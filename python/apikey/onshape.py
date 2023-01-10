@@ -21,45 +21,36 @@ __all__ = [
     'Onshape'
 ]
 
+
 class Path():
     def __init__(self, did=None, wid=None, eid=None):
-        self._did = did
-        self._wid = wid
-        self._eid = eid
-
-    def set_did(self, did):
-        self._did = did
-
-    def set_wid(self, wid):
-        self._wid = wid
-
-    def set_eid(self, eid):
-        self._eid = eid
+        self.did = did
+        self.wid = wid
+        self.eid = eid
 
     def get(self):
         path = ""
-        if self._did != None:
-            path += "/d/" + self._did
-        if self._wid != None:
-            path += "/w/" + self._wid
-        if self._eid != None:
-            path += "/e/" + self._eid
+        if self.did != None:
+            path += "/d/" + self.did
+        if self.wid != None:
+            path += "/w/" + self.wid
+        if self.eid != None:
+            path += "/e/" + self.eid
         return path
 
 
 class ApiPath():
-    def __init__(self, service, path, secondary_service=None):
-        self._service = service
-        self._path = path
-        self._secondary_service = secondary_service
-
-    def set_secondary_service(self, secondary_service):
-        self._secondary_service = secondary_service
+    def __init__(self, service, path=None, secondary_service=None):
+        self.service = service
+        self.path = path
+        self.secondary_service = secondary_service
 
     def get(self):
-        path = '/api/' + self._service + self._path.get()
-        if self._secondary_service != None:
-            path += '/' + self._secondary_service
+        path = '/api/' + self.service
+        if self.path != None:
+            path += self.path.get()
+        if self.secondary_service != None:
+            path += '/' + self.secondary_service
         return path
 
 

@@ -15,7 +15,7 @@ __all__ = [
 
 def log(msg, level=0):
     '''
-    Logs a message to the console, with optional level paramater
+    Logs a message to the console, with optional level parameter
 
     Args:
         - msg (str): message to send to console

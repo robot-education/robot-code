@@ -11,6 +11,24 @@
             "program": "${workspaceFolder}/src/updateversions.py",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Pull code",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/codemanager.py",
+            "args": "pull",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Push code",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/codemanager.py",
+            "args": "push",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }

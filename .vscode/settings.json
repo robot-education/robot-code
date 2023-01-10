@@ -1,9 +1,17 @@
 {
     "cSpell.words": [
         "apikey",
+        "creds",
+        "digestmod",
+        "endc",
         "exportstl",
         "FEATURESTUDIO",
+        "featurestudioids",
         "featurestudios",
-        "fsclient"
+        "fsclient",
+        "fsconstants",
+        "levelname",
+        "updateversion",
+        "updateversions"
     ]
 }
