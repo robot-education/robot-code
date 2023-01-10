@@ -23,12 +23,12 @@ __all__ = [
 
 
 class Path():
-    def __init__(self, did=None, wid=None, eid=None):
+    def __init__(self, did=None: str, wid=None: str, eid=None: str):
         self.did = did
         self.wid = wid
         self.eid = eid
 
-    def get(self):
+    def get(self) -> str:
         path = ""
         if self.did != None:
             path += "/d/" + self.did
@@ -40,12 +40,12 @@ class Path():
 
 
 class ApiPath():
-    def __init__(self, service, path=None, secondary_service=None):
+    def __init__(self, service: str, path=None: Path, secondary_service=None: str):
         self.service = service
         self.path = path
         self.secondary_service = secondary_service
 
-    def get(self):
+    def get(self) -> str:
         path = '/api/' + self.service
         if self.path != None:
             path += self.path.get()
@@ -79,10 +79,6 @@ class Onshape():
 
         The creds.json file should be stored in the root project folder; optionally,
         you can specify the location of a different file.
-
-        Args:
-            - stack (str): Base URL
-            - creds (str, default='./creds.json'): Credentials location
         '''
 
         if not os.path.isfile(creds):
@@ -186,13 +182,12 @@ class Onshape():
 
         return req_headers
 
-    def request(self, method, path, query={}, headers={}, body={}, base_url=None):
+    def request(self, method, apiPath: ApiPath, query={}, headers={}, body={}, base_url=None):
         '''
         Issues a request to Onshape
-
         Args:
             - method (str): HTTP method
-            - path (str): Path  e.g. /api/documents/:id
+            - apiPath (ApiPath): ApiPath  e.g. /api/documents/:id
             - query (dict, default={}): Query params in key-value pairs
             - headers (dict, default={}): Key-value pairs of headers
             - body (dict, default={}): Body for POST request
@@ -201,8 +196,7 @@ class Onshape():
         Returns:
             - requests.Response: Object containing the response from Onshape
         '''
-        path = path.get()
-
+        path = apiPath.get()
         req_headers = self._make_headers(method, path, query, headers)
         if base_url is None:
             base_url = self._url

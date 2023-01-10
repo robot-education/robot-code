@@ -7,7 +7,7 @@ import sys
 
 
 class CodeManager():
-    def __init__(self, document_path):
+    def __init__(self, document_path: str):
         self._document_path = document_path
 
         self._FOLDER_PATH = './backend'
