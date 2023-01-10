@@ -4,6 +4,7 @@ import mimetypes
 import random
 import string
 import os
+import re
 
 DOCUMENT_PATHS = [
     # backend
@@ -11,6 +12,8 @@ DOCUMENT_PATHS = [
     # frontend
     Path('9cffa92db8b62219498f89af', '06b332ccabc9d2e0aa0abf88')
 ]
+
+STD_PATH = Path('12312312345abcabcabcdeff', 'a855e4161c814f2e9ab3698a', '6dbd5a85782144a68bcdd4db')
 
 class Client():
     def __init__(self, logging=True):
@@ -40,3 +43,7 @@ class Client():
     def update_code(self, path, code):
         payload = {'contents': code}
         return self._api.request('post', ApiPath('featurestudios', path), body=payload)
+
+    def std_version(self):
+        code = self.get_code(STD_PATH)
+        return re.search('\d{4,6}', code).group(0)

@@ -3,22 +3,18 @@ from fsclient import Client
 import re
 import io
 
-# backend_test_eid = ''
-LATEST_VERSION = 1930
-
-outdated_version_match = re.compile('version : "(\d{4,6})\.0"|FeatureScript (\d{4,6});')
-
-
-def replace_number(match_obj):
-    return re.sub(pattern='\d{4,6}', repl=str(LATEST_VERSION), string=match_obj.group(0))
-
-
-def update_version(contents):
-    return re.sub(pattern=outdated_version_match, repl=replace_number, string=contents)
+OUTDATED_VERSION_MATCH = re.compile('version : "(\d{4,6})\.0"|FeatureScript (\d{4,6});')
 
 
 def main():
     c = Client(logging=False)
+    std_version = c.std_version()
+
+    def replace_number(match_obj):
+        return re.sub(pattern='\d{4,6}', repl=str(std_version), string=match_obj.group(0))
+
+    def update_version(contents):
+        return re.sub(pattern=OUTDATED_VERSION_MATCH, repl=replace_number, string=contents)
 
     print("Fetching feature studios.")
     paths = c.get_feature_studio_paths()
