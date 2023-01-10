@@ -14,42 +14,44 @@ import hashlib
 import base64
 import datetime
 import requests
-# import urllib
-from urllib.parse import urlparse, urlencode
-from urllib.parse import parse_qs
+import urllib
+# from urllib.parse import urlparse, urlencode
+# from urllib.parse import parse_qs
+from typing import Optional
+
 __all__ = [
     'Onshape'
 ]
 
 
 class Path():
-    def __init__(self, did=None: str, wid=None: str, eid=None: str):
+    def __init__(self, did: Optional[str], wid: Optional[str], eid: Optional[str]) -> None:
         self.did = did
         self.wid = wid
         self.eid = eid
 
     def get(self) -> str:
         path = ""
-        if self.did != None:
+        if self.did is not None:
             path += "/d/" + self.did
-        if self.wid != None:
+        if self.wid is not None:
             path += "/w/" + self.wid
-        if self.eid != None:
+        if self.eid is not None:
             path += "/e/" + self.eid
         return path
 
 
 class ApiPath():
-    def __init__(self, service: str, path=None: Path, secondary_service=None: str):
+    def __init__(self, service: str, path: Optional[Path], secondary_service: Optional[str]) -> None:
         self.service = service
         self.path = path
         self.secondary_service = secondary_service
 
     def get(self) -> str:
         path = '/api/' + self.service
-        if self.path != None:
+        if self.path is not None:
             path += self.path.get()
-        if self.secondary_service != None:
+        if self.secondary_service is not None:
             path += '/' + self.secondary_service
         return path
 
@@ -64,7 +66,7 @@ class Onshape():
         - logging (bool, default=True): Turn logging on or off
     '''
 
-    def __init__(self, stack='https://cad.onshape.com', creds='./creds.json', logging=True):
+    def __init__(self, stack: str = 'https://cad.onshape.com', creds: str = './creds.json', logging: bool = True) -> None:
         '''
         Instantiates an instance of the Onshape class. Reads credentials from a JSON file
         of this format:
@@ -129,7 +131,7 @@ class Onshape():
             - ctype (str, default='application/json'): HTTP Content-Type
         '''
 
-        query = urlencode(query)
+        query = urllib.parse.urlencode(query)
 
         hmac_str = (method + '\n' + nonce + '\n' + date + '\n' + ctype + '\n' + path +
                     '\n' + query + '\n').lower().encode('utf-8')
@@ -182,7 +184,8 @@ class Onshape():
 
         return req_headers
 
-    def request(self, method, apiPath: ApiPath, query={}, headers={}, body={}, base_url=None):
+    def request(self, method: str, apiPath: ApiPath, query: object = {},
+                headers: object = {}, body: object = {}, base_url: str = None):
         '''
         Issues a request to Onshape
         Args:
@@ -213,8 +216,8 @@ class Onshape():
         res = requests.request(method, url, headers=req_headers, data=body, allow_redirects=False, stream=True)
 
         if res.status_code == 307:
-            location = urlparse(res.headers["Location"])
-            querystring = parse_qs(location.query)
+            location = urllib.parse.urlparse(res.headers["Location"])
+            querystring = urllib.parse.parse_qs(location.query)
 
             if self._logging:
                 log('request redirected to: ' + location.geturl())

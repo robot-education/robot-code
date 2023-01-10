@@ -4,6 +4,7 @@ from fs_constants import BACKEND_PATH
 import os
 import json
 import sys
+from typing import Optional
 
 
 class CodeManager():
@@ -44,13 +45,15 @@ class CodeManager():
         if os.path.isfile(self._ID_FILE):
             os.remove(self._ID_FILE)
 
-    def _write_to_file(self, file_name: str, content: str, file_path="": str) -> None:
-        file = open(os.path.join(file_path, file_name), 'w', encoding='utf-8')
+    def _write_to_file(self, file_name: str, content: str, file_path: Optional[str]) -> None:
+        path = os.path.join(file_path, file_name) if file_path is not None else file_name
+        file = open(path, 'w', encoding='utf-8')
         file.write(content)
         file.close()
 
-    def _read_from_file(self, file_name -> str, file_path="": str) -> str:
-        file = open(os.path.join(file_path, file_name), 'r', encoding='utf-8')
+    def _read_from_file(self, file_name -> str, file_path: Optional[str]) -> str:
+        path = os.path.join(file_path, file_name) if file_path is not None else file_name
+        file = open(path, 'r', encoding='utf-8')
         value = file.read()
         file.close()
         return value
