@@ -1,4 +1,4 @@
-from apikey.client import Client
+from client import Client
 # Regex
 import re
 import io

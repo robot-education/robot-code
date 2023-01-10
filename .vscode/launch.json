@@ -8,7 +8,7 @@
             "name": "Run update_fs",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/update_fs.py",
+            "program": "${workspaceFolder}/src/updateversions.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }
