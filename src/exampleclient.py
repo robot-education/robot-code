@@ -1,10 +1,3 @@
-'''
-client
-======
-
-Convenience functions for working with the Onshape API
-'''
-
 from apikey.onshape import Onshape
 
 import mimetypes
@@ -12,51 +5,11 @@ import random
 import string
 import os
 
-
 class Client():
-    '''
-    Defines methods for testing the Onshape API. Comes with several methods:
-
-    - Create a document
-    - Delete a document
-    - Get a list of documents
-
-    Attributes:
-        - stack (str, default='https://cad.onshape.com'): Base URL
-        - logging (bool, default=True): Turn logging on or off
-    '''
-
     def __init__(self, stack='https://cad.onshape.com', logging=True):
-        '''
-        Instantiates a new Onshape client.
-
-        Args:
-            - stack (str, default='https://cad.onshape.com'): Base URL
-            - logging (bool, default=True): Turn logging on or off
-        '''
-
         self._stack = stack
         self._api = Onshape(stack=stack, logging=logging)
 
-    def get_latest_document_version(self, did):
-        pass
-
-    def get_document_feature_studio_ids(self, did, wid):
-        queries = {'elementType': 'FEATURESTUDIO'}
-        feature_studios = self._api.request('get', '/api/documents/d/' + did + '/w/' + wid + '/elements', query=queries).json()
-
-        result = []
-        for feature_studio in feature_studios:
-            result.append(feature_studio['id'])
-        return result
-    
-    def get_feature_studio_code(self, did, wid, eid):
-        result = self._api.request('get', '/api/featurestudios/d/' + did + '/w/' + wid + '/e/' + eid).json()
-        return result['contents']
-    
-    def update_feature_studio_code(self, did, wid, eid, contents):
-        payload={'contents': contents}
-        self._api.request('post', '/api/featurestudios/d/' + did + '/w/' + wid + '/e/' + eid, body=payload)
 
     def new_document(self, name='Test Document', owner_type=0, public=False):
         '''

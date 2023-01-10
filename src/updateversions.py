@@ -1,25 +1,16 @@
-from client import Client
+from fsclient import Client
 # Regex
 import re
 import io
 
 # backend_test_eid = ''
-
-latest_version = 1930
-lines_to_check = 40
-
-documents = [
-    # backend
-    {'did': '00dd11dabe44da2db458f898', 'wid': '6c20cd994b174cc99668701f'},
-    # frontend
-    {'did': '9cffa92db8b62219498f89af', 'wid': '06b332ccabc9d2e0aa0abf88'}
-]
+LATEST_VERSION = 1930
 
 outdated_version_match = re.compile('version : "(\d{4,6})\.0"|FeatureScript (\d{4,6});')
 
 
 def replace_number(match_obj):
-    return re.sub(pattern='\d{4,6}', repl=str(latest_version), string=match_obj.group(0))
+    return re.sub(pattern='\d{4,6}', repl=str(LATEST_VERSION), string=match_obj.group(0))
 
 
 def update_version(contents):
@@ -30,22 +21,21 @@ def main():
     c = Client(logging=False)
 
     print("Fetching feature studios.")
-    for ids in documents:
-        feature_studio_ids = c.get_document_feature_studio_ids(ids['did'], ids['wid'])
+    paths = c.get_feature_studio_paths()
+    num_studios = len(paths)
+    print("Successfully fetched {} feature studios." .format(num_studios))
 
-        num_studios = len(feature_studio_ids)
-        print("Successfully fetched {} feature studios." .format(num_studios))
+    for i, path in enumerate(paths):
+        code = c.get_code(path)
+        new_code = update_version(code)
+        # lines = io.StringIO(code).readlines()
+        # for j in range(min(LINES_TO_CHECK, len(lines))):
+        #     lines[j] = update_version(lines[j])
+        # new_code = ''.join(lines)
+        c.update_code(path, new_code)
+        print("Successfully updated feature studio {} of {}.".format(i + 1, num_studios))
 
-        for i, eid in enumerate(feature_studio_ids):  # feature_studio_ids):
-            contents = c.get_feature_studio_code(ids['did'], ids['wid'], eid)
-            lines = io.StringIO(contents).readlines()
-            for j in range(min(lines_to_check, len(lines))):
-                lines[j] = update_version(lines[j])
-            new_contents = ''.join(lines)
-            c.update_feature_studio_code(ids['did'], ids['wid'], eid, new_contents)
-            print("Successfully updated feature studio {} of {}.".format(i + 1, num_studios))
-
-        print("Successfully updated {} studios.".format(num_studios))
+    print("Successfully updated {} studios.".format(num_studios))
 
 
 # call main

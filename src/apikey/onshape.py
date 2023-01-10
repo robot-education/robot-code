@@ -21,6 +21,48 @@ __all__ = [
     'Onshape'
 ]
 
+class Path():
+    def __init__(self, did=None, wid=None, eid=None):
+        self._did = did
+        self._wid = wid
+        self._eid = eid
+
+    def set_did(self, did):
+        self._did = did
+
+    def set_wid(self, wid):
+        self._wid = wid
+
+    def set_eid(self, eid):
+        self._eid = eid
+
+    def get(self):
+        path = ""
+        if self._did != None:
+            path += "/d/" + self._did
+        if self._wid != None:
+            path += "/w/" + self._wid
+        if self._eid != None:
+            path += "/e/" + self._eid
+        return path
+
+
+class ApiPath():
+    def __init__(self, service, path, secondary_service=None):
+        self._service = service
+        self._path = path
+        self._secondary_service = secondary_service
+
+    def set_secondary_service(self, secondary_service):
+        self._secondary_service = secondary_service
+
+    def get(self):
+        path = '/api/' + self._service + self._path.get()
+        if self._secondary_service != None:
+            path += '/' + self._secondary_service
+        return path
+
+
 class Onshape():
     '''
     Provides access to the Onshape REST API.
@@ -31,7 +73,7 @@ class Onshape():
         - logging (bool, default=True): Turn logging on or off
     '''
 
-    def __init__(self, stack, creds='./creds.json', logging=True):
+    def __init__(self, stack='https://cad.onshape.com', creds='./creds.json', logging=True):
         '''
         Instantiates an instance of the Onshape class. Reads credentials from a JSON file
         of this format:
@@ -168,6 +210,7 @@ class Onshape():
         Returns:
             - requests.Response: Object containing the response from Onshape
         '''
+        path = path.get()
 
         req_headers = self._make_headers(method, path, query, headers)
         if base_url is None:

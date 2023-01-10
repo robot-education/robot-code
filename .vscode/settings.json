@@ -3,6 +3,7 @@
         "apikey",
         "exportstl",
         "FEATURESTUDIO",
-        "featurestudios"
+        "featurestudios",
+        "fsclient"
     ]
 }
