@@ -1,6 +1,5 @@
 from apikey.onshape import Onshape, Path, ApiPath
 from fs_client import FeatureStudioClient
-from fs_constants import BACKEND_PATH
 import os
 import json
 import sys
@@ -45,27 +44,15 @@ class CodeManager():
         if os.path.isfile(self._ID_FILE):
             os.remove(self._ID_FILE)
 
-    def _write_to_file(self, file_name: str, content: str, file_path: Optional[str]) -> None:
+    def _write_to_file(self, file_name: str, content: str, file_path: Optional[str] = None) -> None:
         path = os.path.join(file_path, file_name) if file_path is not None else file_name
         file = open(path, 'w', encoding='utf-8')
         file.write(content)
         file.close()
 
-    def _read_from_file(self, file_name -> str, file_path: Optional[str]) -> str:
+    def _read_from_file(self, file_name: str, file_path: Optional[str] = None) -> str:
         path = os.path.join(file_path, file_name) if file_path is not None else file_name
         file = open(path, 'r', encoding='utf-8')
         value = file.read()
         file.close()
         return value
-
-
-def main():
-    manager = CodeManager(BACKEND_PATH)
-    if sys.argv[1] == 'pull':
-        manager.pull()
-    elif sys.argv[1] == 'push':
-        manager.push()
-    elif sys.argv[1] == 'clean':
-        manager.clean()
-    else:
-        print("Usage: python3 {} <pull|push>".format(sys.argv[0]))

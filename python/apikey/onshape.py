@@ -14,9 +14,7 @@ import hashlib
 import base64
 import datetime
 import requests
-import urllib
-# from urllib.parse import urlparse, urlencode
-# from urllib.parse import parse_qs
+from urllib.parse import urlparse, urlencode, parse_qs
 from typing import Optional
 
 __all__ = [
@@ -25,7 +23,7 @@ __all__ = [
 
 
 class Path():
-    def __init__(self, did: Optional[str], wid: Optional[str], eid: Optional[str]) -> None:
+    def __init__(self, did: Optional[str], wid: Optional[str], eid: Optional[str] = None) -> None:
         self.did = did
         self.wid = wid
         self.eid = eid
@@ -42,7 +40,7 @@ class Path():
 
 
 class ApiPath():
-    def __init__(self, service: str, path: Optional[Path], secondary_service: Optional[str]) -> None:
+    def __init__(self, service: str, path: Optional[Path], secondary_service: Optional[str] = None) -> None:
         self.service = service
         self.path = path
         self.secondary_service = secondary_service
@@ -131,7 +129,7 @@ class Onshape():
             - ctype (str, default='application/json'): HTTP Content-Type
         '''
 
-        query = urllib.parse.urlencode(query)
+        query = urlencode(query)
 
         hmac_str = (method + '\n' + nonce + '\n' + date + '\n' + ctype + '\n' + path +
                     '\n' + query + '\n').lower().encode('utf-8')
@@ -216,8 +214,8 @@ class Onshape():
         res = requests.request(method, url, headers=req_headers, data=body, allow_redirects=False, stream=True)
 
         if res.status_code == 307:
-            location = urllib.parse.urlparse(res.headers["Location"])
-            querystring = urllib.parse.parse_qs(location.query)
+            location = urlparse(res.headers["Location"])
+            querystring = parse_qs(location.query)
 
             if self._logging:
                 log('request redirected to: ' + location.geturl())
