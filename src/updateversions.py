@@ -3,7 +3,7 @@ from client import Client
 import re
 import io
 
-# backend_test_eid = '91306cb3a17c3137dde28dd3'
+# backend_test_eid = ''
 
 latest_version = 1930
 lines_to_check = 40
