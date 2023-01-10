@@ -6,7 +6,7 @@ My actual FeatureScript code can be found here:
 
 ---
 
-### updateversions.py
+### update_versions.py
 A script which pulls down every feature studio and runs a simple regex replace to automatically change all imports to point to the latest version of the Onshape Standard Library.
 
 
@@ -23,5 +23,5 @@ To exit the virtual environment at any time, type `deactivate`.
 
 ### Running the App
 
-Run scripts using `python3`, e.g. `python3 python/updateversions.py`.
+Run scripts using `python3`, e.g. `python3 python/update_versions.py`.
 Debug scripts using the vs-code launch tasks.

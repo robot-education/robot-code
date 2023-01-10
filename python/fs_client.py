@@ -1,5 +1,5 @@
 from apikey.onshape import Onshape, Path, ApiPath
-from fsconstants import STD_PATH
+from fs_constants import STD_PATH
 
 import mimetypes
 import random

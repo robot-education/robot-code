@@ -1,6 +1,6 @@
 from apikey.onshape import Onshape, Path, ApiPath
-from fsclient import FeatureStudioClient
-from fsconstants import BACKEND_PATH
+from fs_client import FeatureStudioClient
+from fs_constants import BACKEND_PATH
 import os
 import json
 import sys
@@ -56,12 +56,17 @@ class CodeManager():
         return value
 
 
-manager = CodeManager(BACKEND_PATH)
-if sys.argv[1] == 'pull':
-    manager.pull()
-elif sys.argv[1] == 'push':
-    manager.push()
-elif sys.argv[1] == 'clean':
-    manager.clean()
-else:
-    print("Usage: python3 {} <pull|push>".format(sys.argv[0]))
+def main():
+    manager = CodeManager(BACKEND_PATH)
+    if sys.argv[1] == 'pull':
+        manager.pull()
+    elif sys.argv[1] == 'push':
+        manager.push()
+    elif sys.argv[1] == 'clean':
+        manager.clean()
+    else:
+        print("Usage: python3 {} <pull|push>".format(sys.argv[0]))
+
+
+if __name__ == '__main__':
+    main()

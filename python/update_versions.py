@@ -1,5 +1,5 @@
-from fsclient import FeatureStudioClient
-from fsconstants import DOCUMENT_PATHS
+from fs_client import FeatureStudioClient
+from fs_constants import DOCUMENT_PATHS
 # Regex
 import re
 
