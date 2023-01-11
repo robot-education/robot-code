@@ -12,16 +12,31 @@ A script which pulls down every feature studio and runs a simple regex replace t
 
 
 ### Local Setup
-Run the following commands to get setup:
+This project uses `pipenv` to manage python dependencies.
+1. Install python and pipenv.
+2. Run code using: `pipenv run python tools/<script>.py`.
+3. Alternatively, run `pipenv shell`, then run code using `python tools/<script>.py`.
+
+To use the Onshape API, you'll need to provide credentials.
+* Get an API key from the [Onshape developer protal](https://dev-portal.onshape.com/keys).
+* Create a file in the root named `creds.json`.
+* Add your access key and secret key to the file:
 ```
-python3 -m venv venv
-source venv/Scripts/activate
-pip install -r requirements.txt
+{
+    "https://cad.onshape.com": {
+        "access_key": "<your_access_key>",
+        "secret_key": "<your_secret_key>"
+    }
+}
 ```
 
-To exit the virtual environment at any time, type `deactivate`.
-
-### Running the App
-
-Run scripts using `python3`, e.g. `python3 python/update_versions.py`.
-Debug scripts using the vs-code launch tasks.
+To enable running scripts more easily, consider adding the following bash function to your `.bashrc`:
+```
+fssync() {
+    pipenv run python ./tools/script.py $@
+}
+```
+You may then execute commands as follows:
+* `fssync pull` - Pulls code from Onshape into src
+* `fssync push` - Pushes code in src to Onshape
+* `fssync update` - Updates code in src to use latest version of the Onshape STD

@@ -1,17 +1,9 @@
-'''
-utils
-=====
-
-Handy functions for API key sample app
-'''
-
 import logging
 from logging.config import dictConfig
 
 __all__ = [
     'log'
 ]
-
 
 def log(msg, level=0):
     '''

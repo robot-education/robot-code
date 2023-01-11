@@ -14,7 +14,9 @@ import hashlib
 import base64
 import datetime
 import requests
-from urllib.parse import urlparse, urlencode, parse_qs
+import copy
+import urllib
+# from urllib.parse import urlparse, urlencode, parse_qs
 from typing import Optional
 
 __all__ = [
@@ -28,7 +30,8 @@ class Path():
         self.wid = wid
         self.eid = eid
 
-    def copy(self) -> Path:
+    # Returns a Path
+    def copy(self):
         return copy.deepcopy(self)
 
     def get(self) -> str:
@@ -132,7 +135,7 @@ class Onshape():
             - ctype (str, default='application/json'): HTTP Content-Type
         '''
 
-        query = urlencode(query)
+        query = urllib.parse.urlencode(query)
 
         hmac_str = (method + '\n' + nonce + '\n' + date + '\n' + ctype + '\n' + path +
                     '\n' + query + '\n').lower().encode('utf-8')
@@ -204,7 +207,7 @@ class Onshape():
         req_headers = self._make_headers(method, path, query, headers)
         if base_url is None:
             base_url = self._url
-        url = base_url + path + '?' + urlencode(query)
+        url = base_url + path + '?' + urllib.parse.urlencode(query)
 
         if self._logging:
             log(body)
@@ -217,8 +220,8 @@ class Onshape():
         res = requests.request(method, url, headers=req_headers, data=body, allow_redirects=False, stream=True)
 
         if res.status_code == 307:
-            location = urlparse(res.headers["Location"])
-            querystring = parse_qs(location.query)
+            location = urllib.parse.urlparse(res.headers["Location"])
+            querystring = urllib.parse.parse_qs(location.query)
 
             if self._logging:
                 log('request redirected to: ' + location.geturl())
