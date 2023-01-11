@@ -11,7 +11,7 @@ class CodeManager():
         self._document_path = document_path
 
         self._FOLDER_PATH = './backend'
-        self._ID_FILE = 'featurestudioids'
+        self._ID_FILE = 'feature_studio_ids.json'
 
         self._client = FeatureStudioClient(Onshape(logging=False))
 
@@ -21,10 +21,14 @@ class CodeManager():
         paths = self._client.extract_paths(feature_studios, self._document_path)
 
         id_to_name = {}
-        for i, feature_studio_path in enumerate(paths):
-            name = str(feature_studios[i]['name'])
-            id_to_name[feature_studio_path.eid] = name
-            code = self._client.get_code(feature_studio_path)
+        for feature_studio in feature_studios:
+            name = feature_studio['name']
+            id = feature_studio['id']
+            id_to_name[id] = name
+
+            path = self._document_path.clone()
+            path.eid = id
+            code = self._client.get_code(path)
             self._write_to_file(name, code, self._FOLDER_PATH)
 
         self._write_to_file(self._ID_FILE, json.dumps(id_to_name))

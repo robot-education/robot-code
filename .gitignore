@@ -2,7 +2,7 @@
 __pycache__
 venv
 backend
-featurestudioids
+feature_studio_ids.json
 
 # api keys
 **/creds.json

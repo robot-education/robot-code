@@ -28,6 +28,9 @@ class Path():
         self.wid = wid
         self.eid = eid
 
+    def copy(self) -> Path:
+        return copy.deepcopy(self)
+
     def get(self) -> str:
         path = ""
         if self.did is not None:
