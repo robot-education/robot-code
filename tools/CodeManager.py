@@ -47,7 +47,7 @@ class CodeManager():
 
         print("Pushed {} files to Onshape.".format(len(items)))
         
-    def update(self) -> None:
+    def update_std(self) -> None:
         files = os.listdir(self._FOLDER_PATH)
         std_version = self._client.std_version()
         updated = 0

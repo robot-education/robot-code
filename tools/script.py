@@ -16,8 +16,8 @@ def main() -> NoReturn:
         manager.pull()
     elif sys.argv[1] == 'push':
         manager.push()
-    elif sys.argv[1] == 'update':
-        manager.update()
+    elif sys.argv[1] == 'update-std':
+        manager.update_std()
     else:
         invalid_args()
     sys.exit(0)

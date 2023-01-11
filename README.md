@@ -36,4 +36,4 @@ To use the Onshape API, you'll need to provide credentials.
 The `fssync` utility supports the following commands:
 * `fssync pull` - Pulls code from Onshape into src
 * `fssync push` - Pushes code in src to Onshape
-* `fssync update` - Updates code in src to use latest version of the Onshape STD
+* `fssync update-std` - Updates code in src to use latest version of the Onshape STD
