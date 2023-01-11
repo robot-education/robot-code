@@ -6,7 +6,7 @@ from typing import NoReturn
 
 
 def invalid() -> NoReturn:
-    print("Usage: python3 {} <pull|push>".format(sys.argv[0]))
+    print("Usage: python3 {} <pull|push|clean>".format(sys.argv[0]))
     sys.exit(1)
 
 

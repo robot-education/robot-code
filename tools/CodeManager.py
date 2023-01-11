@@ -10,8 +10,8 @@ class CodeManager():
     def __init__(self, document_path: str) -> None:
         self._document_path = document_path
 
-        self._FOLDER_PATH = './backend'
-        self._ID_FILE = 'feature_studio_ids.json'
+        self._FOLDER_PATH = './src'
+        self._ID_FILE = './store/id_file.json'
 
         self._client = FeatureStudioClient(Onshape(logging=False))
 
