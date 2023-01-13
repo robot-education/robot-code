@@ -18,6 +18,7 @@ fssync() {
     ./fssync.sh $@
 }
 ```
+New dependencies can be added using `pipenv install <dependency>`.
 
 To use the Onshape API, you'll need to provide credentials.
 * Get an API key from the [Onshape developer protal](https://dev-portal.onshape.com/keys).

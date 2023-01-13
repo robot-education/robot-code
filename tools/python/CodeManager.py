@@ -19,7 +19,7 @@ class CodeManager():
     def pull(self) -> None:
         self.clean()
         feature_studios = self._client.get_feature_studios(self._document_path)
-        paths = self._client.extract_paths(feature_studios, self._document_path)
+        print("Found {} feature studios to pull.".format(len(feature_studios)))
 
         id_to_name = {}
         for feature_studio in feature_studios:

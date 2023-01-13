@@ -1,12 +1,9 @@
 FeatureScript 1930;
 
-enum StatusType
-{
-    OK,
-    ERROR,
-    WARNING,
-    INFO
-}
+enum StatusType { OK,
+ERROR,
+WARNING,
+INFO }
 
 const CUSTOM_ERROR_MAP = {
         // common errors
