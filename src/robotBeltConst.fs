@@ -1,5 +1,5 @@
-FeatureScript 1930;
-import(path : "onshape/std/common.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
 
 export const BELT_TEETH_BOUNDS = { (unitless) : [1, 100, 1e50] } as IntegerBoundSpec;
 export const OFFSET_BOUNDS = { (inch) : [-1e50, 0, 1e50] } as LengthBoundSpec;

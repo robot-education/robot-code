@@ -1,8 +1,8 @@
-FeatureScript 1930;
-import(path : "onshape/std/common.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
 
-export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "1930.0");
-export import(path : "onshape/std/rotationtype.gen.fs", version : "1930.0");
+export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "1948.0");
+export import(path : "onshape/std/rotationtype.gen.fs", version : "1948.0");
 
 /**
  * Moves entities in a part studio to a specified location.

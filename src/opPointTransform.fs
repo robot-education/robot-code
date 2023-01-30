@@ -1,8 +1,8 @@
-FeatureScript 1930;
-import(path : "onshape/std/common.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
 
-export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "1930.0");
-export import(path : "onshape/std/rotationtype.gen.fs", version : "1930.0");
+export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "1948.0");
+export import(path : "onshape/std/rotationtype.gen.fs", version : "1948.0");
 
 /**
  * Throws a [regenError] and marks the specified Part Studio reference parameter as faulty if no entities have been selected.

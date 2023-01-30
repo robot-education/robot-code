@@ -1,12 +1,12 @@
-FeatureScript 1930;
-import(path : "onshape/std/containers.fs", version : "1930.0");
-import(path : "onshape/std/context.fs", version : "1930.0");
-import(path : "onshape/std/feature.fs", version : "1930.0");
-import(path : "onshape/std/evaluate.fs", version : "1930.0");
-import(path : "onshape/std/vector.fs", version : "1930.0");
-import(path : "onshape/std/units.fs", version : "1930.0");
-import(path : "onshape/std/math.fs", version : "1930.0");
-import(path : "onshape/std/surfaceGeometry.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/containers.fs", version : "1948.0");
+import(path : "onshape/std/context.fs", version : "1948.0");
+import(path : "onshape/std/feature.fs", version : "1948.0");
+import(path : "onshape/std/evaluate.fs", version : "1948.0");
+import(path : "onshape/std/vector.fs", version : "1948.0");
+import(path : "onshape/std/units.fs", version : "1948.0");
+import(path : "onshape/std/math.fs", version : "1948.0");
+import(path : "onshape/std/surfaceGeometry.fs", version : "1948.0");
 
 /**
  * Returns `true` when a new `Query` selection is added to a query parameter (but not when a `Query` is removed).
