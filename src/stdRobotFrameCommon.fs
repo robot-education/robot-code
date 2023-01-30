@@ -1,10 +1,10 @@
-FeatureScript 1930;
-import(path : "onshape/std/common.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
 
-export import(path : "onshape/std/frame.fs", version : "1930.0");
-import(path : "onshape/std/frameAttributes.fs", version : "1930.0");
+export import(path : "onshape/std/frame.fs", version : "1948.0");
+import(path : "onshape/std/frameAttributes.fs", version : "1948.0");
 
-export import(path : "onshape/std/frameUtils.fs", version : "1930.0");
+export import(path : "onshape/std/frameUtils.fs", version : "1948.0");
 
 // in `extendFrames` we pad our frame extrusion length to help avoid non-manifold cases in boolean operations
 const EXTEND_FRAMES_PAD_LENGTH = .1 * millimeter;

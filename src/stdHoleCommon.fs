@@ -1,9 +1,9 @@
-FeatureScript 1930;
-import(path : "onshape/std/common.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
 
-export import(path : "onshape/std/hole.fs", version : "1930.0");
-export import(path : "onshape/std/holeUtils.fs", version : "1930.0");
-export import(path : "onshape/std/holetables.gen.fs", version : "1930.0");
+export import(path : "onshape/std/hole.fs", version : "1948.0");
+export import(path : "onshape/std/holeUtils.fs", version : "1948.0");
+export import(path : "onshape/std/holetables.gen.fs", version : "1948.0");
 
 import(path : "69e8015ed20821ef00ec816e", version : "baafe66be21c75fdb0d1b221");
 
@@ -199,6 +199,7 @@ export function clusterVertexQueries(context is Context, selected is Query) retu
     for (var tId in evaluateQuery(context, selected))
     {
         var operationId = lastModifyingOperationId(context, tId);
+
         if (perFeature[operationId] == undefined)
         {
             perFeature[operationId] = [];

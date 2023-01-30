@@ -1,9 +1,9 @@
-FeatureScript 1930;
-import(path : "onshape/std/common.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
 
-import(path : "onshape/std/frameAttributes.fs", version : "1930.0");
+import(path : "onshape/std/frameAttributes.fs", version : "1948.0");
 
-export import(path : "onshape/std/tool.fs", version : "1930.0");
+export import(path : "onshape/std/tool.fs", version : "1948.0");
 
 export import(path : "5b9ab18e3cb91df78334f11f", version : "73ab93a2f6f67add1fe73a12");
 

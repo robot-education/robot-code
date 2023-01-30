@@ -1,0 +1,17 @@
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
+
+annotation { "Feature Type Name" : "Set attribute" }
+export const set = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "My Query", "Filter" : BodyType.MATE_CONNECTOR }
+        definition.myQuery is Query;
+    }
+    {
+        setAttribute(context, {
+                "entities" : definition.myQuery,
+                "name" : "https://onshape/hi.com",
+                "attribute" : "test"
+        });
+    });

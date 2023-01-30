@@ -1,5 +1,5 @@
-FeatureScript 1930;
-import(path : "onshape/std/common.fs", version : "1930.0");
+FeatureScript 1948;
+import(path : "onshape/std/common.fs", version : "1948.0");
 
 annotation { "Feature Type Name" : "Pulley bore fillet" }
 export const pulleyBoreFillet = defineFeature(function(context is Context, id is Id, definition is map)
