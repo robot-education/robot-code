@@ -45,9 +45,26 @@ class AssemblyClient:
     def add_fasten_mate(self, assembly_path: Path):
         apiPath = ApiPath('assemblies', assembly_path, 'features')
         body = {
-            'features': {
-                'featureType': 'mate',
-                'name': 'Ahh'
+            "feature" : {
+                "type" : 66,
+                "message" : {
+                "featureType" : "mateConnector",
+                "name" : "API mate connector",
+                # "parameters" : [ 
+                    #  {
+                    # "type" : 67,
+                    # "typeName" : "BTMParameterQueryWithOccurrenceList",
+                    # "message" : {
+                    # "queries" : [ {
+                    #     "type" : 1083,
+                    #     "typeName" : "BTMInferenceQueryWithOccurrence",
+                    #     "message" : {"inferenceType" : "CENTROID", "geometryIds" : [ "JKW" ], "path" : [ "M420TZZdOPK8489yw" ]}
+                    # } ],
+                    # "parameterId" : "originQuery"
+                    # }
+                    # } 
+                # ]
+                }
             }
         }
         print(body)

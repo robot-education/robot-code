@@ -91,6 +91,9 @@ class PartMateConnectorMap():
                 continue
             id = instance['id']
             for feature in features:
+                if 'matedEntities' not in feature['featureData']:
+                    continue
+
                 for occurence in feature['featureData']['matedEntities']:
                     if occurence['matedOccurrence'] != id:
                         continue
@@ -181,8 +184,6 @@ def main():
                 path['middle_id'],
                 path['element_id'])
             part_mate_map.mate_connectors[id].target_path = target_path
-
-
             # client.add_part_studio_to_assembly(assembly_path, target_path)
             print(client.add_fasten_mate(assembly_path))
 
