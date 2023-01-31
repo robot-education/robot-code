@@ -1,5 +1,5 @@
 from CodeManager import CodeManager
-from fs_constants import BACKEND_PATH
+from FeatureStudioClient import BACKEND_PATH
 
 import sys
 from typing import NoReturn

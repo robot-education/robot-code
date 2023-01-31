@@ -6,7 +6,6 @@ import string
 import os
 import re
 
-
 class FeatureStudioClient():
     def __init__(self, api: Onshape) -> None:
         self._api = api
@@ -19,21 +18,21 @@ class FeatureStudioClient():
     # Returns all feature studios in a document
     def get_feature_studios(self, document_path: Path) -> [object]:
         queries = {'elementType': 'FEATURESTUDIO'}
-        return self._api.request('get', ApiPath(
-            'documents', document_path, 'elements'), query=queries).json()
+        return self._api.request('get', ApiPath('documents', document_path, 'elements'), query=queries)
 
     # Extracts paths from elements
     def extract_paths(self, elements: [object], document_path: Path) -> [Path]:
         result = []
         for element in elements:
             # create a new path to avoid mutation
-            path = Path(document_path.did, document_path.wid, element['id'])
+            path = document_path.copy()
+            path.element_id = element['id']
             result.append(path)
         return result
 
     # Fetches code from the feature studio specified by path
     def get_code(self, path: Path) -> str:
-        return self._api.request('get', ApiPath('featurestudios', path)).json()['contents']
+        return self._api.request('get', ApiPath('featurestudios', path))['contents']
 
     # Sends code to the given feature studio specified by path
     def update_code(self, path: Path, code: str):

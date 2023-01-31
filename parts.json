@@ -1,0 +1,198 @@
+{
+    "rootAssembly": {
+        "occurrences": [
+            {
+                "hidden": false,
+                "fixed": false,
+                "transform": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    -0.16584836118988,
+                    0.0,
+                    1.0,
+                    0.0,
+                    -0.1710966729203082,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.03550593515144565,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "path": [
+                    "MU7tYaC30US47tCSL"
+                ]
+            },
+            {
+                "hidden": false,
+                "fixed": false,
+                "transform": [
+                    -1.0,
+                    0.0,
+                    0.0,
+                    -0.19568438074720806,
+                    0.0,
+                    0.0,
+                    -1.0,
+                    -0.1381916105666972,
+                    0.0,
+                    -1.0,
+                    0.0,
+                    0.031407226088379855,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "path": [
+                    "MHPK/yuypBxI/60Rr"
+                ]
+            }
+        ],
+        "patterns": [],
+        "instances": [
+            {
+                "name": "Part 1 <1>",
+                "suppressed": false,
+                "id": "MU7tYaC30US47tCSL",
+                "type": "Part",
+                "isStandardContent": false,
+                "partId": "JHD",
+                "fullConfiguration": "default",
+                "configuration": "default",
+                "documentId": "00dd11dabe44da2db458f898",
+                "elementId": "c481a23972b3b7259bd9758b",
+                "documentMicroversion": "f2af9ec928711f23fc99999d"
+            },
+            {
+                "name": "Part 1 <2>",
+                "suppressed": false,
+                "id": "MHPK/yuypBxI/60Rr",
+                "type": "Part",
+                "isStandardContent": false,
+                "partId": "JHD",
+                "fullConfiguration": "default",
+                "configuration": "default",
+                "documentId": "00dd11dabe44da2db458f898",
+                "elementId": "c481a23972b3b7259bd9758b",
+                "documentMicroversion": "f2af9ec928711f23fc99999d"
+            }
+        ],
+        "features": [
+            {
+                "id": "MQgpZyxvdahT4Gmi+",
+                "featureData": {
+                    "matedEntities": [
+                        {
+                            "matedOccurrence": [
+                                "MHPK/yuypBxI/60Rr"
+                            ],
+                            "matedCS": {
+                                "xAxis": [
+                                    1.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                "yAxis": [
+                                    0.0,
+                                    1.0,
+                                    0.0
+                                ],
+                                "zAxis": [
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ],
+                                "origin": [
+                                    -0.015412051230669022,
+                                    -0.012700000000000003,
+                                    0.05830506235361099
+                                ]
+                            }
+                        },
+                        {
+                            "matedOccurrence": [
+                                "MU7tYaC30US47tCSL"
+                            ],
+                            "matedCS": {
+                                "xAxis": [
+                                    -1.0,
+                                    -0.0,
+                                    -0.0
+                                ],
+                                "yAxis": [
+                                    0.0,
+                                    0.0,
+                                    -1.0
+                                ],
+                                "zAxis": [
+                                    0.0,
+                                    -1.0,
+                                    0.0
+                                ],
+                                "origin": [
+                                    -0.014423968326659046,
+                                    -0.025400000000000002,
+                                    0.008601290936934208
+                                ]
+                            }
+                        }
+                    ],
+                    "mateType": "FASTENED",
+                    "name": "Fastened 1"
+                },
+                "featureType": "mate",
+                "suppressed": false
+            }
+        ],
+        "fullConfiguration": "default",
+        "configuration": "default",
+        "documentId": "00dd11dabe44da2db458f898",
+        "elementId": "bf30db7102f13da03c8c41fd",
+        "documentMicroversion": "f2af9ec928711f23fc99999d"
+    },
+    "subAssemblies": [],
+    "parts": [
+        {
+            "mateConnectors": [
+                {
+                    "mateConnectorCS": {
+                        "xAxis": [
+                            1.0,
+                            0.0,
+                            0.0
+                        ],
+                        "yAxis": [
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "zAxis": [
+                            0.0,
+                            -1.0,
+                            0.0
+                        ],
+                        "origin": [
+                            -0.03365423157811165,
+                            -0.025400000000000002,
+                            0.021603064611554146
+                        ]
+                    },
+                    "featureId": "FkE2m2JwK4IlMWn_1.assemblyMate.mate"
+                }
+            ],
+            "isStandardContent": false,
+            "partId": "JHD",
+            "bodyType": "solid",
+            "fullConfiguration": "default",
+            "configuration": "default",
+            "documentId": "00dd11dabe44da2db458f898",
+            "elementId": "c481a23972b3b7259bd9758b",
+            "documentMicroversion": "f2af9ec928711f23fc99999d"
+        }
+    ],
+    "partStudioFeatures": []
+}

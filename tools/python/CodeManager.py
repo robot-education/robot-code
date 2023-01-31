@@ -1,5 +1,5 @@
 from apikey.onshape import Onshape, Path, ApiPath
-from fs_client import FeatureStudioClient
+from FeatureStudioClient import FeatureStudioClient
 import os
 import json
 import sys
@@ -42,7 +42,7 @@ class CodeManager():
         items = id_to_name.items()
         for id, name in items:
             code = self._read_from_file(name, self._FOLDER_PATH)
-            path = Path(self._document_path.did, self._document_path.wid, id)
+            path = Path(self._document_path.document_id, self._document_path.middle_id, id)
             self._client.update_code(path, code)
 
         print("Pushed {} files to Onshape.".format(len(items)))
@@ -58,7 +58,6 @@ class CodeManager():
                 updated += 1
                 self._write_to_file(file, new_contents, self._FOLDER_PATH)
         print("Modified {} files.".format(updated))
-
 
     def _update_version(self, contents: str, std_version: str) -> str:
         return re.sub(pattern=self._OUTDATED_VERSION_MATCH,

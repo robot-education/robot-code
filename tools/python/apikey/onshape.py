@@ -23,25 +23,23 @@ __all__ = [
     'Onshape'
 ]
 
-
 class Path():
-    def __init__(self, did: Optional[str], wid: Optional[str], eid: Optional[str] = None) -> None:
-        self.did = did
-        self.wid = wid
-        self.eid = eid
+    def __init__(self, document_id: str, middle_id: Optional[str] = None, element_id: Optional[str] = None) -> None:
+        self.document_id = document_id
+        self.middle_id = middle_id
+        self.element_id = element_id
+        self.middle_type = "w"
 
     # Returns a Path
     def copy(self):
         return copy.deepcopy(self)
 
     def get(self) -> str:
-        path = ""
-        if self.did is not None:
-            path += "/d/" + self.did
-        if self.wid is not None:
-            path += "/w/" + self.wid
-        if self.eid is not None:
-            path += "/e/" + self.eid
+        path = "/d/" + self.document_id
+        if self.middle_id is not None:
+            path += "/" + self.middle_type + "/" + self.middle_id
+        if self.element_id is not None:
+            path += "/e/" + self.element_id
         return path
 
 
@@ -232,7 +230,7 @@ class Onshape():
             for key in querystring:
                 new_query[key] = querystring[key][0]  # won't work for repeated query params
 
-            return self.request(method, location.path, query=new_query, headers=headers, base_url=new_base_url)
+            return self.request(method, location.path, query=new_query, headers=headers, base_url=new_base_url).json()
         elif not 200 <= res.status_code <= 206:
             if self._logging:
                 log('request failed, details: ' + res.text, level=1)
@@ -240,4 +238,4 @@ class Onshape():
             if self._logging:
                 log('request succeeded, details: ' + res.text)
 
-        return res
+        return res.json()
