@@ -10,7 +10,7 @@ class Part:
 
     def part_studio_path(self) -> Path:
         path = Path(self.document_id, self.middle_id, self.element_id)
-        path.middle_type = "m"
+        path.middle_type = 'm'
         return path
 
 class AssemblyClient:
@@ -23,53 +23,45 @@ class AssemblyClient:
     
     def get_assembly(self, assembly_path: Path)-> object:
         apiPath = ApiPath('assemblies', assembly_path) 
-        query = { "includeMateFeatures" : True, "includeMateConnectors" : True, "excludeSuppressed" : True }
+        query = { 'includeMateFeatures' : True, 'includeMateConnectors' : True, 'excludeSuppressed' : True }
         return self._api.request('get', apiPath, query=query)
-    
-    def add_part_studio_to_assembly(self, assembly_path: Path, part_studio_path: Path) -> object:
+
+    def add_part_to_assembly(self, assembly_path: Path, part_studio_path: Path, part_id: str) -> object:
         body = {
             'documentId': part_studio_path.document_id,
             'elementId': part_studio_path.element_id,
             'workspaceId': part_studio_path.middle_id,
             'includePartTypes': ['PARTS'],
-            'isWholePartStudio': True
+            'isWholePartStudio': False,
+            'partId': part_id
         }
         apiPath = ApiPath('assemblies', assembly_path, 'instances')
         return self._api.request('post', apiPath, body=body)
+    
+    def add_part_studio_to_assembly(self, assembly_path: Path, part_studio_path: Path) -> str:
+        body = {
+            'documentId': part_studio_path.document_id,
+            'workspaceId': part_studio_path.middle_id,
+            'elementId': part_studio_path.element_id,
+            'includePartTypes': ['PARTS'],
+            'isWholePartStudio': True
+        }
+        apiPath = ApiPath('assemblies', assembly_path, 'instances')
+        self._api.request('post', apiPath, body=body)
 
-    def evaluate_feature_script(self, part_studio_path: Path, code: str, args: [object]) -> object:
+        query = {
+            'includeNonSolids' : False
+        }
+        apiPath = ApiPath('assemblies', assembly_path)
+        result = self._api.request('get', apiPath, query=query)
+        return result['rootAssembly']['instances'][-1]['id']
+
+
+    def evaluate_feature_script(self, part_studio_path: Path, code: str) -> object:
         apiPath = ApiPath('partstudios', part_studio_path, 'featurescript')
         body = { 'script': code }
         return self._api.request('post', apiPath, body=body)
     
-    def add_fasten_mate(self, assembly_path: Path):
+    def add_assembly_feature(self, assembly_path: Path, feature: object):
         apiPath = ApiPath('assemblies', assembly_path, 'features')
-        body = {
-            "feature" : {
-                "type" : 66,
-                "message" : {
-                "featureType" : "mateConnector",
-                "name" : "API mate connector",
-                # "parameters" : [ 
-                    #  {
-                    # "type" : 67,
-                    # "typeName" : "BTMParameterQueryWithOccurrenceList",
-                    # "message" : {
-                    # "queries" : [ {
-                    #     "type" : 1083,
-                    #     "typeName" : "BTMInferenceQueryWithOccurrence",
-                    #     "message" : {"inferenceType" : "CENTROID", "geometryIds" : [ "JKW" ], "path" : [ "M420TZZdOPK8489yw" ]}
-                    # } ],
-                    # "parameterId" : "originQuery"
-                    # }
-                    # } 
-                # ]
-                }
-            }
-        }
-        print(body)
-        return self._api.request('post', apiPath, body=body)
-
-    def fasten_mate(self, name: str) -> object:
-        return {
-        }
+        return self._api.request('post', apiPath, body={ 'feature' : feature })

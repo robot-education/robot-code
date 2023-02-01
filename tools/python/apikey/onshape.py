@@ -27,8 +27,8 @@ class Path():
     def __init__(self, document_id: str, middle_id: Optional[str] = None, element_id: Optional[str] = None) -> None:
         self.document_id = document_id
         self.middle_id = middle_id
-        self.element_id = element_id
         self.middle_type = "w"
+        self.element_id = element_id
 
     # Returns a Path
     def copy(self):
@@ -44,7 +44,7 @@ class Path():
 
 
 class ApiPath():
-    def __init__(self, service: str, path: Optional[Path], secondary_service: Optional[str] = None) -> None:
+    def __init__(self, service: str, path: Optional[Path] = None, secondary_service: Optional[str] = None) -> None:
         self.service = service
         self.path = path
         self.secondary_service = secondary_service
@@ -230,7 +230,7 @@ class Onshape():
             for key in querystring:
                 new_query[key] = querystring[key][0]  # won't work for repeated query params
 
-            return self.request(method, location.path, query=new_query, headers=headers, base_url=new_base_url).json()
+            return self.request(method, location.path, query=new_query, headers=headers, base_url=new_base_url)
         elif not 200 <= res.status_code <= 206:
             if self._logging:
                 log('request failed, details: ' + res.text, level=1)
@@ -238,4 +238,7 @@ class Onshape():
             if self._logging:
                 log('request succeeded, details: ' + res.text)
 
-        return res.json()
+        try:
+            return res.json()
+        except ValueError:
+            return res
