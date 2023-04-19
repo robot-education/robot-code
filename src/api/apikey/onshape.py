@@ -1,9 +1,9 @@
-'''
+"""
 onshape
 =======
 Provides access to the Onshape REST API
-'''
-from apikey.utils import log
+"""
+from src.api.apikey.utils import log
 
 import os
 import random
@@ -16,12 +16,15 @@ import datetime
 import requests
 import copy
 import urllib
+
 # from urllib.parse import urlparse, urlencode, parse_qs
 from typing import Optional
 
 
-class Path():
-    def __init__(self, did: Optional[str], wid: Optional[str], eid: Optional[str] = None) -> None:
+class Path:
+    def __init__(
+        self, did: Optional[str], wid: Optional[str], eid: Optional[str] = None
+    ) -> None:
         self.did = did
         self.wid = wid
         self.eid = eid
@@ -41,33 +44,43 @@ class Path():
         return path
 
 
-class ApiPath():
-    def __init__(self, service: str, path: Optional[Path], secondary_service: Optional[str] = None) -> None:
+class ApiPath:
+    def __init__(
+        self,
+        service: str,
+        path: Optional[Path],
+        secondary_service: Optional[str] = None,
+    ) -> None:
         self.service = service
         self.path = path
         self.secondary_service = secondary_service
 
     def get(self) -> str:
-        path = '/api/' + self.service
+        path = "/api/" + self.service
         if self.path is not None:
             path += self.path.get()
         if self.secondary_service is not None:
-            path += '/' + self.secondary_service
+            path += "/" + self.secondary_service
         return path
 
 
-class Onshape():
-    '''
+class Onshape:
+    """
     Provides access to the Onshape REST API.
 
     Attributes:
         - stack (str): Base URL
         - creds (str, default='./creds.json'): Credentials location
         - logging (bool, default=True): Turn logging on or off
-    '''
+    """
 
-    def __init__(self, stack: str = 'https://cad.onshape.com', creds: str = './creds.json', logging: bool = True) -> None:
-        '''
+    def __init__(
+        self,
+        stack: str = "https://cad.onshape.com",
+        creds: str = "./creds.json",
+        logging: bool = True,
+    ) -> None:
+        """
         Instantiates an instance of the Onshape class. Reads credentials from a JSON file
         of this format:
 
@@ -81,45 +94,48 @@ class Onshape():
 
         The creds.json file should be stored in the root project folder; optionally,
         you can specify the location of a different file.
-        '''
+        """
 
         if not os.path.isfile(creds):
-            raise IOError('%s is not a file' % creds)
+            raise IOError("%s is not a file" % creds)
 
         with open(creds) as f:
             try:
                 stacks = json.load(f)
                 if stack in stacks:
                     self._url = stack
-                    self._access_key = stacks[stack]['access_key'].encode('utf-8')
-                    self._secret_key = stacks[stack]['secret_key'].encode('utf-8')
+                    self._access_key = stacks[stack]["access_key"].encode("utf-8")
+                    self._secret_key = stacks[stack]["secret_key"].encode("utf-8")
                     self._logging = logging
                 else:
-                    raise ValueError('specified stack not in file')
+                    raise ValueError("specified stack not in file")
             except TypeError:
-                raise ValueError('%s is not valid json' % creds)
+                raise ValueError("%s is not valid json" % creds)
 
         if self._logging:
-            log('onshape instance created: url = %s, access key = %s' % (self._url, self._access_key))
+            log(
+                "onshape instance created: url = %s, access key = %s"
+                % (self._url, self._access_key)
+            )
 
     def _make_nonce(self):
-        '''
+        """
         Generate a unique ID for the request, 25 chars in length
 
         Returns:
             - str: Cryptographic nonce
-        '''
+        """
 
         chars = string.digits + string.ascii_letters
-        nonce = ''.join(random.choice(chars) for i in range(25))
+        nonce = "".join(random.choice(chars) for i in range(25))
 
         if self._logging:
-            log('nonce created: %s' % nonce)
+            log("nonce created: %s" % nonce)
 
         return nonce
 
-    def _make_auth(self, method, date, nonce, path, query={}, ctype='application/json'):
-        '''
+    def _make_auth(self, method, date, nonce, path, query={}, ctype="application/json"):
+        """
         Create the request signature to authenticate
 
         Args:
@@ -129,28 +145,53 @@ class Onshape():
             - path (str): URL pathname
             - query (dict, default={}): URL query string in key-value pairs
             - ctype (str, default='application/json'): HTTP Content-Type
-        '''
+        """
 
-        query = urllib.parse.urlencode(query)
+        query = urllib.parse.urlencode(query)  # type: ignore
 
-        hmac_str = (method + '\n' + nonce + '\n' + date + '\n' + ctype + '\n' + path +
-                    '\n' + query + '\n').lower().encode('utf-8')
+        hmac_str = (
+            (
+                method
+                + "\n"
+                + nonce
+                + "\n"
+                + date
+                + "\n"
+                + ctype
+                + "\n"
+                + path
+                + "\n"
+                + query
+                + "\n"
+            )
+            .lower()
+            .encode("utf-8")
+        )
 
-        signature = base64.b64encode(hmac.new(self._secret_key, hmac_str, digestmod=hashlib.sha256).digest())
-        auth = 'On ' + self._access_key.decode('utf-8') + ':HmacSHA256:' + signature.decode('utf-8')
+        signature = base64.b64encode(
+            hmac.new(self._secret_key, hmac_str, digestmod=hashlib.sha256).digest()
+        )
+        auth = (
+            "On "
+            + self._access_key.decode("utf-8")
+            + ":HmacSHA256:"
+            + signature.decode("utf-8")
+        )
 
         if self._logging:
-            log({
-                'query': query,
-                'hmac_str': hmac_str,
-                'signature': signature,
-                'auth': auth
-            })
+            log(
+                {
+                    "query": query,
+                    "hmac_str": hmac_str,
+                    "signature": signature,
+                    "auth": auth,
+                }
+            )
 
         return auth
 
     def _make_headers(self, method, path, query={}, headers={}):
-        '''
+        """
         Creates a headers object to sign the request
 
         Args:
@@ -161,21 +202,25 @@ class Onshape():
 
         Returns:
             - dict: Dictionary containing all headers
-        '''
+        """
 
-        date = datetime.datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        date = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
         nonce = self._make_nonce()
-        ctype = headers.get('Content-Type') if headers.get('Content-Type') else 'application/json'
+        ctype = (
+            headers.get("Content-Type")
+            if headers.get("Content-Type")
+            else "application/json"
+        )
 
         auth = self._make_auth(method, date, nonce, path, query=query, ctype=ctype)
 
         req_headers = {
-            'Content-Type': 'application/json',
-            'Date': date,
-            'On-Nonce': nonce,
-            'Authorization': auth,
-            'User-Agent': 'Onshape Python Sample App',
-            'Accept': 'application/json'
+            "Content-Type": "application/json",
+            "Date": date,
+            "On-Nonce": nonce,
+            "Authorization": auth,
+            "User-Agent": "Onshape Python Sample App",
+            "Accept": "application/json",
         }
 
         # add in user-defined headers
@@ -184,9 +229,16 @@ class Onshape():
 
         return req_headers
 
-    def request(self, method: str, apiPath: ApiPath, query: object = {},
-                headers: object = {}, body: object = {}, base_url: str = None):
-        '''
+    def request(
+        self,
+        method: str,
+        apiPath: ApiPath,
+        query: object = {},
+        headers: object = {},
+        body: object = {},
+        base_url: str | None = None,
+    ):
+        """
         Issues a request to Onshape
         Args:
             - method (str): HTTP method
@@ -198,42 +250,57 @@ class Onshape():
 
         Returns:
             - requests.Response: Object containing the response from Onshape
-        '''
+        """
         path = apiPath.get()
         req_headers = self._make_headers(method, path, query, headers)
         if base_url is None:
             base_url = self._url
-        url = base_url + path + '?' + urllib.parse.urlencode(query)
+        url = base_url + path + "?" + urllib.parse.urlencode(query)  # type: ignore
 
         if self._logging:
             log(body)
             log(req_headers)
-            log('request url: ' + url)
+            log("request url: " + url)
 
         # only parse as json string if we have to
         body = json.dumps(body) if type(body) == dict else body
 
-        res = requests.request(method, url, headers=req_headers, data=body, allow_redirects=False, stream=True)
+        res = requests.request(
+            method,
+            url,
+            headers=req_headers,
+            data=body,  # type: ignore
+            allow_redirects=False,
+            stream=True,
+        )
 
         if res.status_code == 307:
-            location = urllib.parse.urlparse(res.headers["Location"])
-            querystring = urllib.parse.parse_qs(location.query)
+            location = urllib.parse.urlparse(res.headers["Location"])  # type: ignore
+            querystring = urllib.parse.parse_qs(location.query)  # type: ignore
 
             if self._logging:
-                log('request redirected to: ' + location.geturl())
+                log("request redirected to: " + location.geturl())
 
             new_query = {}
-            new_base_url = location.scheme + '://' + location.netloc
+            new_base_url = location.scheme + "://" + location.netloc
 
             for key in querystring:
-                new_query[key] = querystring[key][0]  # won't work for repeated query params
+                new_query[key] = querystring[key][
+                    0
+                ]  # won't work for repeated query params
 
-            return self.request(method, location.path, query=new_query, headers=headers, base_url=new_base_url)
+            return self.request(
+                method,
+                location.path,
+                query=new_query,
+                headers=headers,
+                base_url=new_base_url,
+            )
         elif not 200 <= res.status_code <= 206:
             if self._logging:
-                log('request failed, details: ' + res.text, level=1)
+                log("request failed, details: " + res.text, level=1)
         else:
             if self._logging:
-                log('request succeeded, details: ' + res.text)
+                log("request succeeded, details: " + res.text)
 
         return res

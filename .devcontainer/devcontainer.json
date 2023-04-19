@@ -8,7 +8,7 @@
 			"WORKSPACE": "${containerWorkspaceFolder}"
 		}
 	},
-	// "postCreateCommand": "bash setup.sh",
+	"postCreateCommand": "bash setup.sh",
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
@@ -16,7 +16,7 @@
 				"streetsidesoftware.code-spell-checker",
 				"redhat.vscode-yaml",
 				"yzhang.markdown-all-in-one",
-				"ms-toolsai.jupyter",
+				// "ms-toolsai.jupyter",
 				"ms-python.python"
 			]
 		}

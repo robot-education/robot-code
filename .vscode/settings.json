@@ -1,4 +1,22 @@
 {
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "bash"
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "editor.formatOnSave": true,
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    "files.eol": "\n",
+    "cSpell.allowCompoundWords": true,
+    "cSpell.ignorePaths": [
+        "build",
+        ".git",
+        ".vscode",
+        ".devcontainer",
+        "conf.py"
+    ],
     "cSpell.words": [
         "apikey",
         "creds",
@@ -14,5 +32,13 @@
         "Onshape",
         "updateversion",
         "updateversions"
-    ]
+    ],
+    "cSpell.flagWords": [
+        "coincentric"
+    ],
+    // "python.analysis.extraPaths": [],
+    "python.formatting.provider": "black",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    "python.defaultInterpreterPath": "/usr/local/bin/python"
 }

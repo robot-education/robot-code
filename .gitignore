@@ -1,7 +1,5 @@
 # python
 __pycache__
-venv
-feature_studio_ids.json
 
 # api keys
-**/creds.json
+creds.json

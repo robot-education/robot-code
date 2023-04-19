@@ -6,20 +6,6 @@ FeatureScripts are traditionally stored and edited in the cloud using Onshape's 
 This repo is set up to work directly with my FeatureScript backend document which can be found here:
 [Alex's FeatureScript Backend](https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f)
 
----
-
-### Local Setup
-This project uses `pipenv` to manage python dependencies.
-1. Install python and pipenv.
-2. In vscode, code can be run using the shell script: `./fssync <args>`.
-3. If you're developing in linux, you may also enable running `fssync` more easily by adding the following to your `.bashrc` (and then reloading vscode or running `source ~./bashrc`):
-```
-fssync() {
-    ./fssync.sh $@
-}
-```
-New dependencies can be added using `pipenv install <dependency>`.
-
 To use the Onshape API, you'll need to provide credentials.
 * Get an API key from the [Onshape developer protal](https://dev-portal.onshape.com/keys).
 * Create a file in the root named `creds.json`.
@@ -32,9 +18,3 @@ To use the Onshape API, you'll need to provide credentials.
     }
 }
 ```
-
-### Commands
-The `fssync` utility supports the following commands:
-* `fssync pull` - Pulls code from Onshape into src
-* `fssync push` - Pushes code in src to Onshape
-* `fssync update-std` - Updates code in src to use latest version of the Onshape STD
