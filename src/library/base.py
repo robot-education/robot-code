@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Self
 
 
 class Node(ABC):
@@ -10,12 +9,32 @@ class Node(ABC):
     def enter(self) -> str:
         raise NotImplementedError
 
+    @abstractmethod
+    def exit(self) -> str:
+        raise NotImplementedError
+
+
+class InlineNode(Node, ABC):
+    def __init__(self):
+        pass
+
     def exit(self) -> str:
         return ""
 
 
-class DummyNode(Node):
+class DummyNode(InlineNode):
+    """An empty node."""
+
     def enter(self) -> str:
         return ""
 
+
 dummy_node = DummyNode()
+
+
+def enter(*nodes: Node) -> tuple[str, ...]:
+    return tuple(node.enter() for node in nodes)
+
+
+def exit(*nodes: Node) -> tuple[str, ...]:
+    return tuple(node.exit() for node in nodes)

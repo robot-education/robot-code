@@ -3,3 +3,6 @@ black>=23.1.0
 
 # Onshape api
 requests >= 2.28.2
+
+# coding
+typing-extensions>=4.5.0
