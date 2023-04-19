@@ -11,6 +11,7 @@
         "fsclient",
         "fsconstants",
         "levelname",
+        "Onshape",
         "updateversion",
         "updateversions"
     ]
