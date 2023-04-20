@@ -4,4 +4,4 @@ __pycache__
 # api keys
 creds.json
 
-fs_code/**
+**/fs_code/**
