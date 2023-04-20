@@ -13,20 +13,19 @@ def main() -> None:
 
     frame_creation_style = Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT")
 
-    is_frc = Predicate("isFrc", definition)
+    # is_frc = Predicate(
+    #     "isFrc", definition, comp_enum.equals("competition", comp_enum.CREATE)
+    # )
 
     pred = UiPredicate("competition")
 
-    comp = EnumAnnotation(comp_enum)
-    pred += comp
+    comp = pred.add(EnumAnnotation(comp_enum))
 
     is_frc += comp.equal(comp_enum.FRC)
 
-    frame_if = If(is_frc.call())
-    pred += frame_if
+    frame_if = pred.add(If(is_frc.call()))
 
-    enum_ann = EnumAnnotation(frame_creation_style)
-    frame_if += enum_ann
+    enum_ann = frame_if.add(EnumAnnotation(frame_creation_style))
 
     studio = Studio("test.fs")
     studio += comp_enum
