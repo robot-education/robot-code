@@ -50,7 +50,7 @@ class Arguments(base.Node):
         return self.arguments.__iter__()
 
     def __str__(self) -> str:
-        return ", ".join(base.enter(*self.arguments))
+        return ", ".join(base.to_str(*self.arguments))
 
 
 dummy_argument = Arguments()
@@ -62,10 +62,16 @@ feature = Arguments(context, id, definition)
 
 
 class Predicate(base.Node):
-    def __init__(self, name: str, arguments: Argument | Arguments = Arguments()):
+    def __init__(
+        self,
+        name: str,
+        arguments: Argument | Arguments = Arguments(),
+        export: bool = True,
+    ):
         self.name = name
         self.arguments = arguments
         self.expressions = []
+        self.export = export
 
     def __add__(self, expression: expr.Expr) -> Self:
         self.expressions.append(expression)
@@ -89,11 +95,12 @@ class Predicate(base.Node):
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
     def __str__(self) -> str:
-        string = "predicate {}({})\n{{\n".format(self.name, str(self.arguments))
+        string = base.export(self.export)
+        string += "predicate {}({})\n{{\n".format(self.name, str(self.arguments))
         string += "".join(
             base.tab(str(expression)) + ";\n" for expression in self.expressions
         )
-        string += "}\n"
+        string += " }\n"
         return string
 
 

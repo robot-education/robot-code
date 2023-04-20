@@ -17,7 +17,8 @@ def main() -> None:
     pred += Parens(~Id("hello") & Id("ahh")) | ~Parens(Id("hmm") & Id("woah"))
     pred += Id("hello") & Id("ahh")
     pred += pred.call()
-    print(pred, end="")
+
+    print(pred)
 
 
 if __name__ == "__main__":

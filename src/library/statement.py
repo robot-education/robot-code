@@ -6,7 +6,7 @@ class Statements(base.Node):
         self.statements = statements
 
     def __str__(self) -> str:
-        return "\n".join(base.enter(*self.statements))
+        return "\n".join(base.to_str(*self.statements))
 
 
 class Statement(base.Node):
