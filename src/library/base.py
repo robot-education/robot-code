@@ -22,3 +22,8 @@ dummy_node = DummyNode()
 
 def enter(*nodes: Node) -> tuple[str, ...]:
     return tuple(str(node) for node in nodes)
+
+
+def tab(string: str) -> str:
+    lines = string.splitlines(keepends=True)
+    return "".join(["    " + line for line in lines])

@@ -1,3 +1,4 @@
+from src.library.enum import Enum
 from src.library.predicate import UiPredicate
 from src.library.expr import Id, Parens
 
@@ -6,8 +7,14 @@ from src.library.expr import Id, Parens
 
 
 def main() -> None:
+    competition = Enum("Competition", "FRC", "VEX", ui=False)
+    frame_creation_style = Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT")
+
+    print(competition)
+    print(frame_creation_style)
+
     pred = UiPredicate("isEnumValid")
-    pred += Parens(Id("hello") & Id("ahh")) | Parens(Id("hmm") & Id("woah"))
+    pred += Parens(~Id("hello") & Id("ahh")) | ~Parens(Id("hmm") & Id("woah"))
     pred += Id("hello") & Id("ahh")
     pred += pred.call()
     print(pred, end="")

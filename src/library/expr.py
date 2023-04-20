@@ -44,13 +44,13 @@ class UnaryOp(Expr):
 
 
 class BoolOp(Expr):
-    def __init__(self, left: Expr, operator: str, right: Expr) -> None:
-        self.left = left
+    def __init__(self, lhs: Expr, operator: str, rhs: Expr) -> None:
+        self.lhs = lhs
         self.operator = operator
-        self.right = right
+        self.rhs = rhs
 
     def __str__(self) -> str:
-        return " ".join([str(self.left), self.operator, str(self.right)])
+        return " ".join([str(self.lhs), self.operator, str(self.rhs)])
 
 
 # class Parens(BoolExpr):

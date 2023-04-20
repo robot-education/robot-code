@@ -65,14 +65,10 @@ class Predicate(base.Node):
     def __init__(self, name: str, arguments: Argument | Arguments = Arguments()):
         self.name = name
         self.arguments = arguments
-        self.statements = []
+        self.expressions = []
 
-    def __add__(
-        self, state: statement.Statements | statement.Statement | expr.Expr
-    ) -> Self:
-        if isinstance(state, expr.Expr):
-            state = statement.Statement(state)
-        self.statements.append(state)
+    def __add__(self, expression: expr.Expr) -> Self:
+        self.expressions.append(expression)
         return self
 
     def call(self, *parameters: tuple[str, str]) -> expr.Expr:
@@ -93,10 +89,11 @@ class Predicate(base.Node):
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
     def __str__(self) -> str:
-        string = "predicate {}({})".format(self.name, str(self.arguments))
-        string += " {\n"
-        string += "".join("\t" + str(statement) for statement in self.statements)
-        string += "};\n"
+        string = "predicate {}({})\n{{\n".format(self.name, str(self.arguments))
+        string += "".join(
+            base.tab(str(expression)) + ";\n" for expression in self.expressions
+        )
+        string += "}\n"
         return string
 
 
