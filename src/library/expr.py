@@ -4,6 +4,7 @@ A module defining expressions. Expressions refer to boolean logic and mathematic
 from __future__ import annotations
 
 from abc import ABC
+import enum as _enum
 from src.library import base
 
 
@@ -16,6 +17,28 @@ class Expr(base.Node, ABC):
 
     def __or__(self, other: Expr) -> Expr:
         return BoolOp(self, "||", other)
+
+
+class Operator(_enum.StrEnum):
+    EQUAL = "=="
+    NOT_EQUAL = "!="
+
+
+class Compare(Expr):
+    def __init__(self, lhs: Expr, operator: Operator, rhs: Expr) -> None:
+        self.lhs = lhs
+        self.operator = operator
+        self.rhs = rhs
+
+    def __invert__(self) -> Expr:
+        """Overload inversion to flip from == to !=."""
+        self.operator = (
+            Operator.NOT_EQUAL if self.operator == Operator.EQUAL else Operator.EQUAL
+        )
+        return self
+
+    def __str__(self) -> str:
+        return " ".join([str(self.lhs), self.operator, str(self.rhs)])
 
 
 class Parens(Expr):
@@ -51,8 +74,3 @@ class BoolOp(Expr):
 
     def __str__(self) -> str:
         return " ".join([str(self.lhs), self.operator, str(self.rhs)])
-
-
-# class Parens(BoolExpr):
-#     def __init__(self, expr: BoolExpr) -> None:
-#         self.token = "(" + expr.token + ")"

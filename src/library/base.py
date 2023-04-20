@@ -1,9 +1,10 @@
 import re
 
 from abc import ABC
+from typing import Iterable
 
 
-class Node(ABC):
+class Node(ABC, object):
     def __init__(self):
         pass
 
@@ -21,18 +22,16 @@ class DummyNode(Node):
         return ""
 
 
-dummy_node = DummyNode()
-
-
 class Map(Node):
     """Defines a map literal."""
 
-    def __init__(self, dict: dict[str, str | None] | dict[str, str]):
+    def __init__(self, dict: dict[str, str | None]):
         self.dict = dict
 
     def __str__(self) -> str:
+        format_string = ' "{}" : {}'
         pairs = [
-            " {} : {}".format(key, value)
+            format_string.format(key, value)
             for key, value in self.dict.items()
             if value is not None
         ]
@@ -47,13 +46,18 @@ def export(export: bool) -> str:
     return "export " if export else ""
 
 
-def to_str(*nodes: Node) -> tuple[str, ...]:
+def to_str(nodes: Iterable[Node]) -> tuple[str, ...]:
     return tuple(str(node) for node in nodes)
 
 
 def tab(string: str) -> str:
     lines = string.splitlines(keepends=True)
-    return "".join(["    " + line for line in lines])
+    return "".join(["\t" + line for line in lines])
+
+
+def quote(string: str) -> str:
+    """Adds quotes around string."""
+    return '"' + string + '"'
 
 
 def user_name(parameter_name: str) -> str:

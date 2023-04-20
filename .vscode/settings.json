@@ -30,6 +30,7 @@
         "fsconstants",
         "levelname",
         "Onshape",
+        "UNCONFIGURABLE",
         "updateversion",
         "updateversions"
     ],
