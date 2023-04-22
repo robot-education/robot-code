@@ -1,5 +1,5 @@
 from typing import Iterator, Self
-from src.library import base
+from src.library import base, utils
 
 
 class Argument(base.Node):
@@ -49,4 +49,4 @@ class Arguments(base.Node):
         return self.arguments.__iter__()
 
     def __str__(self) -> str:
-        return ", ".join(base.to_str(self.arguments))
+        return utils.to_str(self.arguments, sep=", ")

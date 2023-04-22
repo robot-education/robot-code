@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, TypeVar
-import re
+from typing import TypeVar
 
 
 class Node(ABC):
@@ -57,32 +56,3 @@ class Map(Node):
             return "{}"
 
         return "{{{}}}".format(",".join(pairs) + " ")
-
-
-def export(export: bool) -> str:
-    return "export " if export else ""
-
-
-def to_str(nodes: Iterable[Node]) -> tuple[str, ...]:
-    return tuple(str(node) for node in nodes)
-
-
-def tab(string: str) -> str:
-    lines = string.splitlines(keepends=True)
-    return "".join(["    " + line for line in lines])
-
-
-def quote(string: str) -> str:
-    """Adds quotes around string."""
-    return '"' + string + '"'
-
-
-def user_name(parameter_name: str) -> str:
-    """Converts a camel case parameter name to a user facing name which is in sentence case.
-
-    Example: myEnum (or MyEnum) -> My enum
-    """
-    words = re.findall("[a-zA-Z][^A-Z]*", parameter_name)
-    words[0] = words[0].capitalize()
-    words[1:] = [word.lower() for word in words[1:]]
-    return " ".join(words)

@@ -1,6 +1,6 @@
 import enum as _enum
 import dataclasses
-from src.library import base
+from src.library import utils
 
 
 class UiHint(_enum.StrEnum):
@@ -36,12 +36,12 @@ class UiHints:
     def __len__(self) -> int:
         return sum(value for value in dataclasses.astuple(self) if value)
 
-    def to_str(self) -> str:
+    def __str__(self) -> str:
         ui_hints = []
         for field, value in dataclasses.asdict(self):
             if value:
-                ui_hints.append(base.quote(field.upper()))
-        return ", ".join(ui_hints)
+                ui_hints.append(utils.quote(field.upper()))
+        return utils.to_str(ui_hints, sep=", ")
 
 
 @dataclasses.dataclass

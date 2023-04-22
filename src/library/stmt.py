@@ -1,16 +1,16 @@
 from typing import Self
-from src.library import base, expr
+from src.library import base, expr, utils
 
 
 class Statements(base.Node):
-    def __init__(self, *statements) -> None:
+    def __init__(self, *statements: base.Node) -> None:
         self.statements = statements
 
     def __iter__(self):
         return self.statements.__iter__()
 
     def __str__(self) -> str:
-        return "\n".join(base.to_str(self.statements))
+        return utils.to_str(self.statements, sep="\n")
 
 
 class Statement(base.Node):
@@ -40,5 +40,5 @@ class If(Statement):
 
     def __str__(self) -> str:
         string = "if ({})\n{{\n".format(self.test)
-        string += base.tab("".join(base.to_str(*self.statements)))
+        string += utils.to_str(self.statements)
         return string + "}\n"

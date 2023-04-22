@@ -1,0 +1,44 @@
+import re
+from typing import Iterable
+from src.library import base
+
+
+def export(export: bool) -> str:
+    """Returns "export " if export is true. Otherwise, returns ""."""
+    return "export " if export else ""
+
+
+def tab(string: str) -> str:
+    lines = string.splitlines(keepends=True)
+    return "".join(["    " + line for line in lines])
+
+
+def to_str(
+    nodes: Iterable[base.Node | str], sep: str = "", append: str = "", add_tab: bool = False
+) -> str:
+    """Converts an iterable of nodes to a tuple of strings.
+
+    sep: The seperator to put in between strings.
+    append: A string to append to each node.
+    tab: Whether to tab strings over.
+    """
+    strings = [str(node) + append for node in nodes]
+    if add_tab:
+        strings = [tab(string) for string in strings]
+    return sep.join(strings)
+
+
+def quote(string: str) -> str:
+    """Adds quotes around string."""
+    return '"' + string + '"'
+
+
+def user_name(parameter_name: str) -> str:
+    """Converts a camel case parameter name to a user facing name in sentence case.
+
+    Example: myEnum (or MyEnum) -> My enum
+    """
+    words = re.findall("[a-zA-Z][^A-Z]*", parameter_name)
+    words[0] = words[0].capitalize()
+    words[1:] = [word.lower() for word in words[1:]]
+    return " ".join(words)
