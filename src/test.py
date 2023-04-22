@@ -9,6 +9,8 @@ from src.library.studio import Studio
 
 
 def main() -> None:
+    studio = Studio("test.fs")
+
     comp_enum = Enum("Competition", "FRC", "VEX", ui=False)
 
     frame_creation_style = Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT")
@@ -19,20 +21,19 @@ def main() -> None:
 
     pred = UiPredicate("competition")
 
-    comp = pred.add(EnumAnnotation(comp_enum))
+    # comp = pred.add(EnumAnnotation(comp_enum))
 
-    is_frc += comp.equal(comp_enum.FRC)
+    # is_frc += comp.equal(comp_enum.FRC)
 
-    frame_if = pred.add(If(is_frc.call()))
+    # frame_if = pred.add(If(is_frc.call()))
 
-    enum_ann = frame_if.add(EnumAnnotation(frame_creation_style))
+    # enum_ann = frame_if.add(EnumAnnotation(frame_creation_style))
 
-    studio = Studio("test.fs")
-    studio += comp_enum
-    studio += is_frc
-    studio += frame_creation_style
-    studio += pred
-    studio.print()
+    # studio += comp_enum
+    # studio += is_frc
+    # studio += frame_creation_style
+    # studio += pred
+    # studio.print()
 
 
 if __name__ == "__main__":

@@ -1,9 +1,7 @@
-import enum as _enum
-
 from abc import ABC
-from typing import Any, Literal, Self, cast
+from typing import Self
 import warnings
-from src.library import predicate, argument, base, enum, expr, stmt
+from src.library import predicate, argument, base, enum, expr, stmt, ui_hint
 
 definition = argument.Argument("definition", "map")
 id = argument.Argument("id")
@@ -11,35 +9,17 @@ context = argument.Argument("context")
 feature = argument.Arguments(context, id, definition)
 
 
-class UiHint(_enum.StrEnum):
-    ALWAYS_HIDDEN = '"ALWAYS_HIDDEN"'
-    READ_ONLY = '"READ_ONLY"'
-    UNCONFIGURABLE = '"UNCONFIGURABLE"'
-    REMEMBER_PREVIOUS_VALUE = '"REMEMBER_PREVIOUS_VALUE"'
-    HORIZONTAL_ENUM = '"HORIZONTAL_ENUM"'
-    SHOW_LABEL = '"SHOW_LABEL"'
-    SHOW_EXPRESSION = '"SHOW_EXPRESSION"'
-    OPPOSITE_DIRECTION = '"OPPOSITE_DIRECTION"'
-    OPPOSITE_DIRECTION_CIRCULAR = '"OPPOSITE_DIRECTION_CIRCULAR"'
-
-
-BaseUiHints = list[
-    Literal[UiHint.ALWAYS_HIDDEN, UiHint.READ_ONLY, UiHint.UNCONFIGURABLE]
-]
-
-
-def cast_hints(ui_hints: list[Any]) -> list[UiHint]:
-    return cast(list[UiHint], ui_hints)
-
-
 class Annotation(stmt.Statement, ABC):
     def __init__(
         self,
         parameter_name: str,
         user_name: str | None = None,
-        ui_hints: list[UiHint] = [],
-        args: list[tuple[str, str]] = [],
+        ui_hints: ui_hint.UiHints = ui_hint.UiHints(),
+        args: dict[str, str] = {},
     ) -> None:
+        """
+        A dict containing additional strings to add to the annotation map.
+        """
         self.parameter_name = parameter_name
 
         if user_name is None:
@@ -47,13 +27,10 @@ class Annotation(stmt.Statement, ABC):
         else:
             self.user_name = user_name
 
-        map = dict(*args)
-        map["Name"] = base.quote(self.user_name)
-
+        args["Name"] = base.quote(self.user_name)
         if len(ui_hints) > 0:
-            map["UIHint"] = "[{}]".format(", ".join(ui_hints))
-
-        self.map = base.Map(map)
+            args["UiHint"] = ui_hints.to_str()
+        self.map = base.Map(args)
 
     def __str__(self) -> str:
         return "annotation " + self.map + "\n"
@@ -62,29 +39,15 @@ class Annotation(stmt.Statement, ABC):
 class ValueAnnotation(Annotation, ABC):
     """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
 
-    def __init__(
-        self,
-        parameter_name: str,
-        user_name: str | None = None,
-        ui_hints: list[UiHint] = [],
-    ):
-        super().__init__(parameter_name, user_name=user_name, ui_hints=ui_hints)
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
 
 
 class TypeAnnotation(Annotation, ABC):
     """A class defining a UI element which is a type, such as an enum or boolean."""
 
-    def __init__(
-        self,
-        parameter_name: str,
-        user_name: str | None = None,
-        ui_hints: list[UiHint] = [],
-        args: list[tuple[str, str]] = [],
-        type: str | None = None,
-    ) -> None:
-        super().__init__(
-            parameter_name, user_name=user_name, ui_hints=ui_hints, args=args
-        )
+    def __init__(self, parameter_name: str, type: str | None = None, **kwargs) -> None:
+        super().__init__(parameter_name, **kwargs)
 
         if type is None:
             self.type = self.parameter_name
@@ -98,48 +61,22 @@ class TypeAnnotation(Annotation, ABC):
 
 
 class EnumAnnotation(TypeAnnotation):
-    def __init__(
-        self,
-        enum: enum.Enum,
-        parameter_name: str | None = None,
-        user_name: str | None = None,
-        base_hints: BaseUiHints = [],
-        horizontal: bool = False,
-        remember_previous_value: bool = True,
-        show_label: bool = False,
-        default: str | None = None,
-    ):
+    def __init__(self, enum: enum.Enum, default: str | None = None, **kwargs):
         self.enum = enum
 
-        if parameter_name is None:
+        if kwargs["parameter_name"] is None:
             self.parameter_name = enum.name[0].lower() + enum.name[1:]
         else:
-            self.parameter_name = parameter_name
+            self.parameter_name = kwargs["parameter_name"]
 
-        ui_hints = cast_hints(base_hints)
+        if kwargs["ui_hints"].show_label and kwargs["ui_hints"].horizontal_enum:
+            warnings.warn("show_label and horizontal enum don't work together.")
 
-        if show_label and horizontal:
-            warnings.warn("show_label and horizontal don't work together.")
-
-        if horizontal:
-            ui_hints.append(UiHint.HORIZONTAL_ENUM)
-        if remember_previous_value:
-            ui_hints.append(UiHint.REMEMBER_PREVIOUS_VALUE)
-        if show_label:
-            ui_hints.append(UiHint.SHOW_LABEL)
-
+        args = {}
         if default is not None:
-            args = [("Default", default)]
-        else:
-            args = []
+            args["Default"] = default
 
-        super().__init__(
-            self.parameter_name,
-            user_name=user_name,
-            ui_hints=ui_hints,
-            args=args,
-            type=self.enum.name,
-        )
+        super().__init__(self.parameter_name, type=self.enum.name, args=args, **kwargs)
 
     def equal(self, value: enum.EnumValue) -> expr.Expr:
         """Generates an expression which tests whether this parameter matches the value."""

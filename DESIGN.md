@@ -20,3 +20,26 @@ Tweak predicate and the like to take their arguments at initialization, none of 
 Or this not adding nonsense either
 
 Declared but not used warnings?
+
+Okay so node allows everything to be modified after init
+As previously noted, this is sussy baka
+Arbitrarily taking on children whenever you want makes things weird
+
+OTOH, it helps avoid annoying patterns where you have to do inverted dependencies
+Example - if statements need all their children defined in-line (hard) or before hand (also obnoxious)
+So, allowing adding is useful?
+
+Example:
+```
+enum = Enum(...)
+pred = Predicate("annotation", [
+    EnumAnnotation("ahh", enum),
+    # requires enum value to know about enum type
+    If(is_value("ahh", enum.AHH), [
+        EnumAnnotation("huh", enum)
+    ])
+    If += Else([
+        EnumAnnoation("wat", enum)
+    ])
+])
+```
