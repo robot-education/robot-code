@@ -1,5 +1,7 @@
 from typing import Self
-from src.library import stmt, base, expr, utils
+from library import stmt, base, expr, utils
+
+__all__ = ["If", "Else"]
 
 
 class Else(stmt.Statement):

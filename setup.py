@@ -3,5 +3,5 @@
 import setuptools
 
 setuptools.setup(
-    name="src", version="0.1", packages=setuptools.find_namespace_packages()
+    name="library", version="0.1", packages=setuptools.find_namespace_packages()
 )

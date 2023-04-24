@@ -1,7 +1,4 @@
-from src.library.enum import Enum
-from src.library.control import If
-from src.library.ui import EnumAnnotation, UiPredicate, UiTestPredicate, equal
-from src.library.studio import Studio
+from library import *
 
 # All values are predicates or enums anyways...
 # Yeah not a lot of raw variables floating around (or literals, for that matter)
@@ -10,15 +7,14 @@ from src.library.studio import Studio
 def main() -> None:
     studio = Studio("test.fs")
 
-    comp_enum = studio.add(Enum("Competition", "FRC", "VEX", ui=False))
+    comp_enum = studio.add(Enum("Competition", "FRC", "VEX", generate_names=False))
 
     frame_style = studio.add(Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT"))
 
     comp_enum_tests = {}
     for value in comp_enum:
-        name = "is" + value.camel_case().capitalize()
-        pred = studio.add(UiTestPredicate(name))
-        pred.add(equal("competition", value))
+        name = "is" + value.camel_case(capitalize=True)
+        pred = studio.add(UiTestPredicate(name, equal(value)))
         comp_enum_tests[name] = pred.call()
 
     pred = studio.add(UiPredicate("competition"))

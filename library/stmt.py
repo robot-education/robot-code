@@ -1,4 +1,4 @@
-from src.library import base
+from library import base
 
 
 class Statement(base.Node):
@@ -7,4 +7,5 @@ class Statement(base.Node):
     By default, a statement is assumed to be an expression. However, many classes which are statements
     override this behavior.
     """
+
     pass

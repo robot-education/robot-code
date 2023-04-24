@@ -1,6 +1,8 @@
 import warnings
 from typing import Iterable
-from src.library import base, expr, argument, stmt, utils
+from library import base, expr, argument, stmt, utils
+
+__all__ = ["Predicate"]
 
 
 class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):

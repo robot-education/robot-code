@@ -5,7 +5,9 @@ from __future__ import annotations
 
 from abc import ABC
 import enum as _enum
-from src.library import stmt
+from library import stmt
+
+__all__ = ["Parens", "Id"]
 
 
 class Operator(_enum.StrEnum):
@@ -32,9 +34,6 @@ class Line(stmt.Statement):
 
     def __str__(self) -> str:
         return str(self.expr) + ";\n"
-
-    def __iter__(self):
-        return [self].__iter__()
 
 
 class Compare(Expr):

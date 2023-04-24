@@ -3,7 +3,7 @@ onshape
 =======
 Provides access to the Onshape REST API
 """
-from src.api.apikey.utils import log
+from library.api.apikey.utils import log
 
 import os
 import random

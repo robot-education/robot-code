@@ -1,6 +1,6 @@
 import argparse
 
-from src.api import manager
+from library.api import manager
 
 
 def parse_args() -> argparse.Namespace:

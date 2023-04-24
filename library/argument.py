@@ -1,5 +1,7 @@
 from typing import Iterator, Self
-from src.library import base, utils
+from library import base
+
+__all__ = ["Argument"]
 
 
 class Argument(base.Node):
@@ -36,17 +38,3 @@ class Argument(base.Node):
         if self.type is None:
             return self.name
         return "{} is {}".format(self.name, self.type)
-
-
-class Arguments(base.ParentNode[Argument]):
-    def __init__(self, *arguments: Argument) -> None:
-        super().__init__(child_nodes=arguments)
-
-    def __str__(self) -> str:
-        return utils.to_str(self.child_nodes, sep=", ")
-
-
-def promote(node: Argument | Arguments) -> Arguments:
-    if isinstance(node, Argument):
-        return Arguments(node)
-    return node

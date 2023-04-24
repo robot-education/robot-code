@@ -1,5 +1,5 @@
-from src.api.apikey import onshape
-from src.api import client, constants
+from library.api.apikey import onshape
+from library.api import client, constants
 import os
 import json
 import re

@@ -1,6 +1,22 @@
 from abc import ABC
-import warnings, re
-from src.library import predicate, argument, base, enum, expr, stmt, ui_hint, utils
+import re
+from typing import Iterable, Sequence
+from library import predicate, argument, base, enum, expr, stmt, ui_hint, utils
+
+__all__ = [
+    "definition_arg",
+    "id_arg",
+    "context_arg",
+    "feature_args",
+    "EnumAnnotation",
+    "UiPredicate",
+    "UiTestPredicate",
+    "equal",
+    "not_equal",
+    "any",
+    "not_any",
+    "make_enum_test_predicate",
+]
 
 definition_arg = argument.Argument("definition", "map")
 id_arg = argument.Argument("id")
@@ -13,7 +29,7 @@ class Annotation(stmt.Statement, ABC):
         self,
         parameter_name: str,
         user_name: str | None = None,
-        ui_hints: ui_hint.UiHints = ui_hint.UiHints(),
+        ui_hints: Sequence[ui_hint.UiHint] = [],
         args: dict[str, str] = {},
     ) -> None:
         """
@@ -26,10 +42,13 @@ class Annotation(stmt.Statement, ABC):
         else:
             self.user_name = user_name
 
-        args["Name"] = self.user_name
+        # always put name and ui hints first
+        map_args = {"Name": self.user_name}
         if len(ui_hints) > 0:
-            args["UiHint"] = str(ui_hints)
-        self.map = base.Map(args, quote_values=True, exclude_keys="UiHint")
+            map_args["UIHint"] = "[{}]".format(", ".join(ui_hints))
+        map_args.update(args)
+
+        self.map = base.Map(map_args, quote_values=True, exclude_keys="UIHint")
 
     def __str__(self) -> str:
         return "annotation " + str(self.map) + "\n"
@@ -68,12 +87,9 @@ class EnumAnnotation(TypeAnnotation):
         **kwargs
     ):
         self.enum = enum
-
-        if parameter_name is None:
-            capitalized = enum.name[0].lower() + enum.name[1:]
-            parameter_name = re.sub("_", "", capitalized)
-        else:
-            self.parameter_name = parameter_name
+        parameter_name = (
+            enum.default_parameter_name if parameter_name is None else parameter_name
+        )
 
         # if kwargs["ui_hints"].show_label and kwargs["ui_hints"].horizontal_enum:
         #     warnings.warn("show_label and horizontal enum don't work together.")
@@ -97,17 +113,32 @@ class UiPredicate(predicate.Predicate):
 
 
 class UiTestPredicate(predicate.Predicate):
-    def __init__(self, name: str, export: bool = True):
+    def __init__(
+        self,
+        name: str,
+        expression: expr.Expr | None = None,
+        export: bool = True,
+    ):
         """
         A predicate used to test elements in the ui.
         """
         super().__init__(name, arguments=definition_arg, export=export)
+        if expression is not None:
+            self.add(expression)
+
+    def add(self, expression: expr.Expr) -> expr.Expr:
+        super().add(expr.Line(expression))
+        return expression
 
 
 def equal(
-    parameter_name: str, value: enum.EnumValue, definition: str = "definition"
+    value: enum.EnumValue,
+    parameter_name: str | None = None,
+    definition: str = "definition",
 ) -> expr.Expr:
     """Generates an expression which tests whether this parameter matches the value."""
+    if parameter_name is None:
+        parameter_name = value.enum.default_parameter_name
     return expr.Compare(
         expr.Id(utils.definition(definition, parameter_name)),
         expr.Operator.EQUAL,
@@ -140,3 +171,15 @@ def not_any(self, *values: enum.EnumValue) -> expr.Expr:
     for value in values[1:]:
         expression &= self.not_equal(value)
     return expr.Parens(expression)
+
+
+def make_enum_test_predicate(
+    value: enum.EnumValue,
+    parameter_name: str | None = None,
+    name_append: str = "is",
+    export: bool = True,
+) -> UiTestPredicate:
+    name = name_append + value.camel_case(capitalize=True)
+    return UiTestPredicate(
+        name, equal(value, parameter_name=parameter_name), export=export
+    )

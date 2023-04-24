@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Iterable, Iterator, TypeVar, Generic
+from typing import Iterable, Iterator, TypeVar, Generic
 
 
 class Node(ABC):
@@ -35,13 +35,6 @@ class ParentNode(Node, ABC, Generic[T]):
 
     def __len__(self) -> int:
         return len(self.child_nodes)
-
-
-class DummyNode(Node):
-    """An empty node."""
-
-    def __str__(self) -> str:
-        return ""
 
 
 class Map(Node):

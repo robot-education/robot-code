@@ -1,10 +1,12 @@
-from src.library import stmt, utils, base
+from library import stmt, utils, base
 
 AUTO_FILE = """
 /**
 * Auto-generated file. Do not edit!
 */\n
 """
+
+__all__ = ["Studio"]
 
 
 class Studio(base.ParentNode[stmt.Statement]):

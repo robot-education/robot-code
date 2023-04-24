@@ -1,6 +1,6 @@
 import re
 from typing import Iterable
-from src.library import base
+from library import base
 
 
 def export(export: bool) -> str:
@@ -38,6 +38,10 @@ def to_str(
 def quote(string: str) -> str:
     """Adds quotes around string."""
     return '"' + string + '"'
+
+
+def lower_first(string: str) -> str:
+    return string[0].lower() + string[1:]
 
 
 def user_name(parameter_name: str) -> str:
