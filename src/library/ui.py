@@ -26,10 +26,10 @@ class Annotation(stmt.Statement, ABC):
         else:
             self.user_name = user_name
 
-        args["Name"] = utils.quote(self.user_name)
+        args["Name"] = self.user_name
         if len(ui_hints) > 0:
             args["UiHint"] = str(ui_hints)
-        self.map = base.Map(args)
+        self.map = base.Map(args, quote_values=True, exclude_keys="UiHint")
 
     def __str__(self) -> str:
         return "annotation " + self.map + "\n"
