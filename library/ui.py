@@ -10,7 +10,6 @@ __all__ = [
     "feature_args",
     "EnumAnnotation",
     "UiPredicate",
-    "UiTestPredicate",
     "equal",
     "not_equal",
     "any",
@@ -112,23 +111,9 @@ class UiPredicate(predicate.Predicate):
         super().__init__(name + "Predicate", arguments=definition_arg, export=export)
 
 
-class UiTestPredicate(predicate.Predicate):
-    def __init__(
-        self,
-        name: str,
-        expression: expr.Expr | None = None,
-        export: bool = True,
-    ):
-        """
-        A predicate used to test elements in the ui.
-        """
-        super().__init__(name, arguments=definition_arg, export=export)
-        if expression is not None:
-            self.add(expression)
-
-    def add(self, expression: expr.Expr) -> expr.Expr:
-        super().add(expr.Line(expression))
-        return expression
+# class UiTestPredicate(predicate.Predicate):
+#     def __init__(self, name: str, **kwargs):
+#         super().__init__(name, arguments=definition_arg, **kwargs)
 
 
 def equal(
@@ -176,10 +161,14 @@ def not_any(self, *values: enum.EnumValue) -> expr.Expr:
 def make_enum_test_predicate(
     value: enum.EnumValue,
     parameter_name: str | None = None,
-    name_append: str = "is",
+    name_prepend: str = "is",
+    name_append: str = "",
     export: bool = True,
-) -> UiTestPredicate:
-    name = name_append + value.camel_case(capitalize=True)
-    return UiTestPredicate(
-        name, equal(value, parameter_name=parameter_name), export=export
+) -> predicate.Predicate:
+    name = name_prepend + value.camel_case(capitalize=True) + name_append
+    return predicate.Predicate(
+        name,
+        arguments=definition_arg,
+        statements=equal(value, parameter_name=parameter_name),
+        export=export,
     )

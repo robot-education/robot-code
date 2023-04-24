@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from abc import ABC
 import enum as _enum
+from typing import Iterator, Self
 from library import stmt
 
 __all__ = ["Parens", "Id"]
@@ -24,6 +25,10 @@ class Expr(stmt.Statement, ABC):
 
     def __or__(self, other: Expr) -> Expr:
         return BoolOp(self, "||", other)
+
+    # Add iter to support use as a statement for predicate
+    def __iter__(self) -> Iterator[Self]:
+        return [self].__iter__()
 
 
 class Line(stmt.Statement):

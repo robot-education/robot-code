@@ -3,40 +3,47 @@ from library import *
 studio = Studio("robotTubeUiGen.fs")
 
 tube_type = (
-    studio.add(Enum("TubeType"))
-    .add_value("ONE_BY_ONE", user_name="1x1")
-    .add_value("ONE_BY_TWO", user_name="1x2")
-    .add_value("Custom")
+    studio.add(Enum("TubeSupplier"))
+    .add_value("MAX_TUBE", user_name="MAXTube")
+    .add_value("VERSA_FRAME", user_name="VersaFrame")
+    .add_value("CUSTOM")
 )
 
-for value in tube_type:
-    studio.add(make_enum_test_predicate(value, name_append="isTube"))
+tube_size = (
+    studio.add(Enum("TubeSize"))
+    .add_value("ONE_BY_ONE", user_name="1x1")
+    .add_value("ONE_BY_TWO", user_name="1x2")
+    .add_value("CUSTOM")
+)
+
+size_predicates = [
+    studio.add(make_enum_test_predicate(value, name_prepend="isTube")).call()
+    for value in tube_size
+]
 
 tube_ui = studio.add(UiPredicate("robotTube"))
 
 tube_ui.add(
     EnumAnnotation(
-        tube_type,
+        tube_size,
         default="ONE_BY_TWO",
         ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.HORIZONTAL_ENUM],
     )
 )
 
+tube_type = tube_ui.add(
+    EnumAnnotation(
+        tube_type, ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL]
+    )
+)
 
-# comp_enum = studio.add(Enum("Competition", "FRC", "VEX", generate_names=False))
-
-# comp_enum_tests = {}
-# for value in comp_enum:
-#     name = "is" + value.camel_case(capitalize=True)
-#     pred = studio.add(UiTestPredicate(name))
-#     pred.add(equal("competition", value))
-#     comp_enum_tests[name] = pred.call()
+tube_if = tube_ui.add(If(size_predicates[0]))
 
 
-# pred = studio.add(UiPredicate("competition"))
-# pred.add(EnumAnnotation(comp_enum))
 
-# frame_if = pred.add(If(comp_enum_tests["isFrc"]))
+tube_if = tube_ui.add(If(size_predicates[1]))
+
+tube_if = tube_ui.add(If(size_predicates[2]))
 
 
 studio.print()

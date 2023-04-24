@@ -9,8 +9,10 @@ class Else(stmt.Statement):
         pass
 
 
-class If(base.ParentNode[stmt.Statement]):
-    def __init__(self, test: expr.Expr, or_else: Self | Else | None = None) -> None:
+class If(base.ParentNode[stmt.Statement], stmt.Statement):
+    def __init__(
+        self, test: expr.Expr | str, or_else: Self | Else | None = None
+    ) -> None:
         self.test = test
         super().__init__()
 

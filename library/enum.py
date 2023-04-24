@@ -117,6 +117,3 @@ class Enum(stmt.Statement):
         self.values.append(enum_value)
         setattr(self, value, enum_value)
         return self
-
-    def add_custom_value(self) -> Self:
-        return self.add_value("Custom")

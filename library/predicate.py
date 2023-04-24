@@ -1,8 +1,10 @@
 import warnings
-from typing import Iterable
+from typing import Iterable, TypeVar
 from library import base, expr, argument, stmt, utils
 
 __all__ = ["Predicate"]
+
+S = TypeVar("S", bound=base.Node)
 
 
 class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
@@ -13,13 +15,23 @@ class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
         statements: Iterable[stmt.Statement] = [],
         export: bool = True,
     ):
-        super().__init__(statements)
+        statements = [
+            expr.Line(statement) if isinstance(statement, expr.Expr) else statement
+            for statement in statements
+        ]
+        super().__init__(child_nodes=statements)
         self.name = name
         self.arguments = arguments
         self.export = export
 
         if self.arguments == []:
             warnings.warn("Predicate has 0 arguments.")
+
+    def add(self, node: S) -> S:
+        if isinstance(node, expr.Expr):
+            node = expr.Line(node)  # type: ignore
+        super().add(node)
+        return node
 
     def call(self, *args: dict[str, str]) -> expr.Expr:
         """Creates a predicate call.
@@ -40,7 +52,9 @@ class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
 
     def __str__(self) -> str:
         string = utils.export(self.export)
-        string += "predicate {}({})\n{{\n".format(self.name, str(self.arguments))
+        string += "predicate {}({})\n{{\n".format(
+            self.name, utils.to_str(self.arguments)
+        )
         string += utils.to_str(self.child_nodes, tab=True)
         string += " }\n"
         return string

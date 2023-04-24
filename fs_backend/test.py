@@ -14,7 +14,7 @@ def main() -> None:
     comp_enum_tests = {}
     for value in comp_enum:
         name = "is" + value.camel_case(capitalize=True)
-        pred = studio.add(UiTestPredicate(name, equal(value)))
+        pred = studio.add(Predicate(name, statements=equal(value)))
         comp_enum_tests[name] = pred.call()
 
     pred = studio.add(UiPredicate("competition"))
