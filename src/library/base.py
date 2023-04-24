@@ -3,15 +3,14 @@ from typing import Any, Iterable, Iterator, TypeVar, Generic
 
 
 class Node(ABC):
-    def __radd__(self, string: str) -> str:
-        return string + str(self)
-
     @abstractmethod
     def __str__(self) -> str:
         raise NotImplementedError
 
 
 T = TypeVar("T", bound=Node)
+# S is assumed to be superclass of T
+S = TypeVar("S", bound=Node)
 
 
 class ParentNode(Node, ABC, Generic[T]):
@@ -23,12 +22,12 @@ class ParentNode(Node, ABC, Generic[T]):
     def __init__(self, child_nodes: Iterable[T] = []) -> None:
         self.child_nodes: list[T] = list(child_nodes)
 
-    # we need a S extends T type?
-    def add(self, node: Any) -> Any:
+    def add(self, node: S) -> S:
         """Adds a node as a child.
 
         Returns the node which was passed in."""
-        self.child_nodes.append(node)
+        # We assume S extends T
+        self.child_nodes.append(node)  # type: ignore
         return node
 
     def __iter__(self) -> Iterator[T]:

@@ -1,6 +1,5 @@
 from src.library.enum import Enum
-from src.library.predicate import Predicate
-from src.library.stmt import If
+from src.library.control import If
 from src.library.ui import EnumAnnotation, UiPredicate, UiTestPredicate, equal
 from src.library.studio import Studio
 
@@ -13,9 +12,7 @@ def main() -> None:
 
     comp_enum = studio.add(Enum("Competition", "FRC", "VEX", ui=False))
 
-    frame_creation_style = studio.add(
-        Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT")
-    )
+    frame_style = studio.add(Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT"))
 
     comp_enum_tests = {}
     for value in comp_enum:
@@ -33,7 +30,7 @@ def main() -> None:
     )
 
     frame_if = pred.add(If(comp_enum_tests["isFrc"]))
-    frame_if.add(EnumAnnotation(frame_creation_style))
+    frame_if.add(EnumAnnotation(frame_style))
 
     # studio += comp_enum
     # studio += is_frc

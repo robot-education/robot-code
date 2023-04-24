@@ -32,7 +32,7 @@ class Annotation(stmt.Statement, ABC):
         self.map = base.Map(args, quote_values=True, exclude_keys="UiHint")
 
     def __str__(self) -> str:
-        return "annotation " + self.map + "\n"
+        return "annotation " + str(self.map) + "\n"
 
 
 class ValueAnnotation(Annotation, ABC):

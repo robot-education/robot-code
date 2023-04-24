@@ -3,7 +3,7 @@ from typing import Iterable
 from src.library import base, expr, argument, stmt, utils
 
 
-class Predicate(base.ParentNode[stmt.Statement]):
+class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
     def __init__(
         self,
         name: str,
@@ -11,19 +11,13 @@ class Predicate(base.ParentNode[stmt.Statement]):
         statements: Iterable[stmt.Statement] = [],
         export: bool = True,
     ):
-        super().__init__(*statements)
+        super().__init__(statements)
         self.name = name
         self.arguments = arguments
         self.export = export
 
         if self.arguments == []:
             warnings.warn("Predicate has 0 arguments.")
-
-    def add(self, statement: expr.Expr | stmt.Statement) -> stmt.Statement:
-        if isinstance(statement, expr.Expr):
-            statement = stmt.Statement(statement)
-        super().add(statement)
-        return statement
 
     def call(self, *args: dict[str, str]) -> expr.Expr:
         """Creates a predicate call.

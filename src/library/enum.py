@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, Self
+from typing import Iterator, Self
 from src.library import base, stmt, utils
 
 
@@ -82,7 +82,7 @@ class Enum(stmt.Statement):
     def __contains__(self, value: EnumValue) -> bool:
         return value in self.values
 
-    def __iter__(self) -> Iterable[EnumValue]:
+    def __iter__(self) -> Iterator[EnumValue]:
         return self.values.__iter__()
 
     def __str__(self) -> str:

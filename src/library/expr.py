@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from abc import ABC
 import enum as _enum
-from src.library import base
+from src.library import stmt
 
 
 class Operator(_enum.StrEnum):
@@ -13,7 +13,7 @@ class Operator(_enum.StrEnum):
     NOT_EQUAL = "!="
 
 
-class Expr(base.Node, ABC):
+class Expr(stmt.Statement, ABC):
     def __invert__(self) -> Expr:
         return UnaryOp(self, "!")
 
@@ -22,6 +22,19 @@ class Expr(base.Node, ABC):
 
     def __or__(self, other: Expr) -> Expr:
         return BoolOp(self, "||", other)
+
+
+class Line(stmt.Statement):
+    """Represents an expression which spans a line."""
+
+    def __init__(self, expr: Expr) -> None:
+        self.expr = expr
+
+    def __str__(self) -> str:
+        return str(self.expr) + ";\n"
+
+    def __iter__(self):
+        return [self].__iter__()
 
 
 class Compare(Expr):
