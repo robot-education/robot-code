@@ -132,13 +132,17 @@ def equal(
 
 
 def not_equal(
-    self, parameter_name: str, value: enum.EnumValue, definition: str = "definition"
+    value: enum.EnumValue,
+    parameter_name: str | None = None,
+    definition: str = "definition",
 ) -> expr.Expr:
     """Generates an expression which tests whether this parameter does not match value."""
+    if parameter_name is None:
+        parameter_name = value.enum.default_parameter_name
     return expr.Compare(
         expr.Id(utils.definition(definition, parameter_name)),
         expr.Operator.NOT_EQUAL,
-        expr.Id("{}.{}".format(self.enum.name, value)),
+        expr.Id("{}.{}".format(value.enum.name, value.value)),
     )
 
 
