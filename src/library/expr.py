@@ -8,6 +8,11 @@ import enum as _enum
 from src.library import base
 
 
+class Operator(_enum.StrEnum):
+    EQUAL = "=="
+    NOT_EQUAL = "!="
+
+
 class Expr(base.Node, ABC):
     def __invert__(self) -> Expr:
         return UnaryOp(self, "!")
@@ -17,11 +22,6 @@ class Expr(base.Node, ABC):
 
     def __or__(self, other: Expr) -> Expr:
         return BoolOp(self, "||", other)
-
-
-class Operator(_enum.StrEnum):
-    EQUAL = "=="
-    NOT_EQUAL = "!="
 
 
 class Compare(Expr):

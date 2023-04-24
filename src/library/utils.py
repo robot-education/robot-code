@@ -8,23 +8,26 @@ def export(export: bool) -> str:
     return "export " if export else ""
 
 
-def tab(string: str) -> str:
+def tab_lines(string: str) -> str:
     lines = string.splitlines(keepends=True)
     return "".join(["    " + line for line in lines])
 
 
 def to_str(
-    nodes: Iterable[base.Node | str], sep: str = "", append: str = "", add_tab: bool = False
+    nodes: Iterable[base.Node | str],
+    sep: str = "",
+    end: str = "",
+    tab: bool = False,
 ) -> str:
     """Converts an iterable of nodes to a tuple of strings.
 
     sep: The seperator to put in between strings.
-    append: A string to append to each node.
+    end: A string to append to each node.
     tab: Whether to tab strings over.
     """
-    strings = [str(node) + append for node in nodes]
-    if add_tab:
-        strings = [tab(string) for string in strings]
+    strings = [str(node) + end for node in nodes]
+    if tab:
+        strings = [tab_lines(string) for string in strings]
     return sep.join(strings)
 
 

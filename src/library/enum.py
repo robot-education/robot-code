@@ -1,5 +1,5 @@
 from typing import Self
-from src.library import base, stmt
+from src.library import base, stmt, utils
 
 
 class EnumValue(base.Node):
@@ -27,10 +27,10 @@ class EnumValue(base.Node):
 
     def __str__(self) -> str:
         if self.ui:
-            dict = base.Map(
-                {"Name": self.name, "Hidden": "True" if self.hidden else None}
-            )
-            return "annotation {}\n {}".format(str(dict), self.value)
+            dict = {"Name": self.name}
+            if self.hidden:
+                dict["Hidden"] = "true"
+            return "annotation {}\n {}".format(str(base.Map(dict)), self.value)
         else:
             return "{}".format(self.value)
 
@@ -67,7 +67,7 @@ class Enum(stmt.Statement):
         return value in self.values
 
     def __str__(self) -> str:
-        string = base.export(self.export)
+        string = utils.export(self.export)
         string += "enum {} {{\n".format(self.name)
-        string += "".join(base.tab(str(value) + ",\n") for value in self.values)
+        string += utils.to_str(self.values, end=",\n", tab=True)
         return string + "}\n"

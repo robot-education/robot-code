@@ -20,7 +20,7 @@ class Predicate(stmt.Statement):
         self.statements.append(statement)
         return self
 
-    def call(self, *parameters: tuple[str, str]) -> expr.Expr:
+    def call(self, *arg_dict: dict[str, str]) -> expr.Expr:
         """Creates a predicate call.
 
         parameters: A list of tuples mapping argument names to the identifier to use.
@@ -28,7 +28,7 @@ class Predicate(stmt.Statement):
         arg_dict = dict(
             (argument.name, argument.default_parameter) for argument in self.arguments
         )
-        for arg_name, parameter in parameters:
+        for arg_name, parameter in arg_dict:
             if arg_name not in arg_dict:
                 raise ValueError(
                     "{} did not match any arguments in predicate.".format(arg_name)

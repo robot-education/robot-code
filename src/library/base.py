@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from typing import Iterable, Iterator, TypeVar
 
 
 class Node(ABC):
@@ -11,14 +11,17 @@ class Node(ABC):
         raise NotImplementedError
 
 
-T = TypeVar("T", bound=Node)
 
+# T = TypeVar("T", bound=Node)
 
-class ParentNode(Node, ABC):
-    """A node which supports an array of (possibly nested) children."""
+class ParentNode(Node, ABC, T = TypeVar('T')):
+    """A node which supports an array of (possibly nested) children.
 
-    def __init__(self):
-        self.child_nodes: list[Node] = []
+    Note __str__ is not defined for this class; parents should implement themselves.
+    """
+
+    def __init__(self, child_nodes: Iterable[T] | None = []) -> None:
+        self.child_nodes: list[T] = list(*child_nodes)
 
     def add(self, node: T) -> T:
         """Adds a node as a child.
@@ -27,8 +30,8 @@ class ParentNode(Node, ABC):
         self.child_nodes.append(node)
         return node
 
-    def __str__(self) -> str:
-        return "".join(str(node) for node in self.child_nodes)
+    def __iter__(self) -> Iterator[Node]:
+        return self.child_nodes.__iter__()
 
 
 class DummyNode(Node):

@@ -1,5 +1,5 @@
 from typing import Self
-from src.library import stmt, base
+from src.library import stmt, utils, base
 
 AUTO_FILE = """
 /**
@@ -8,21 +8,17 @@ AUTO_FILE = """
 """
 
 
-class Studio:
+class Studio(base.ParentNode):
     def __init__(self, studio_name: str) -> None:
         self.studio_name = studio_name
-        self.statements = []
-
-    def __add__(self, statement: stmt.Statement) -> Self:
-        self.statements.append(statement)
-        return self
 
     def __str__(self) -> str:
         """Process the contents of the feature studio."""
-        return AUTO_FILE + "\n".join(base.to_str(self.statements))
+        return AUTO_FILE + utils.to_str(self.child_nodes, sep="\n")
 
     def send(self) -> None:
         """Sends the output of the studio to onshape."""
+        # code = str(self)
         pass
 
     def print(self) -> None:
