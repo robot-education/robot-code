@@ -38,9 +38,15 @@ class Argument(base.Node):
         return "{} is {}".format(self.name, self.type)
 
 
-class Arguments(base.ParentNode):
+class Arguments(base.ParentNode[Argument]):
     def __init__(self, *arguments: Argument) -> None:
         super().__init__(child_nodes=arguments)
 
     def __str__(self) -> str:
         return utils.to_str(self.child_nodes, sep=", ")
+
+
+def promote(node: Argument | Arguments) -> Arguments:
+    if isinstance(node, Argument):
+        return Arguments(node)
+    return node

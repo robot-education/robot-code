@@ -1,7 +1,7 @@
 from src.library.enum import Enum
 from src.library.predicate import Predicate
 from src.library.stmt import If
-from src.library.ui import EnumAnnotation, UiPredicate, definition
+from src.library.ui import EnumAnnotation, UiPredicate, UiTestPredicate, equal
 from src.library.studio import Studio
 
 # All values are predicates or enums anyways...
@@ -11,29 +11,36 @@ from src.library.studio import Studio
 def main() -> None:
     studio = Studio("test.fs")
 
-    comp_enum = Enum("Competition", "FRC", "VEX", ui=False)
+    comp_enum = studio.add(Enum("Competition", "FRC", "VEX", ui=False))
 
-    frame_creation_style = Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT")
+    frame_creation_style = studio.add(
+        Enum("FrameCreationStyle", "CREATE_VALUE", "CONVERT")
+    )
 
-    # is_frc = Predicate(
-    #     "isFrc", definition, comp_enum.equals("competition", comp_enum.CREATE)
-    # )
+    comp_enum_tests = {}
+    for value in comp_enum:
+        name = "is" + value.camel_case().capitalize()
+        pred = studio.add(UiTestPredicate(name))
+        pred.add(equal("competition", value))
+        comp_enum_tests[name] = pred.call()
 
-    pred = UiPredicate("competition")
+    pred = studio.add(UiPredicate("competition"))
+    pred.add(
+        EnumAnnotation(
+            comp_enum,
+            default="VEX",
+        )
+    )
 
-    # comp = pred.add(EnumAnnotation(comp_enum))
-
-    # is_frc += comp.equal(comp_enum.FRC)
-
-    # frame_if = pred.add(If(is_frc.call()))
-
-    # enum_ann = frame_if.add(EnumAnnotation(frame_creation_style))
+    frame_if = pred.add(If(comp_enum_tests["isFrc"]))
+    frame_if.add(EnumAnnotation(frame_creation_style))
 
     # studio += comp_enum
     # studio += is_frc
     # studio += frame_creation_style
     # studio += pred
-    # studio.print()
+
+    studio.print()
 
 
 if __name__ == "__main__":

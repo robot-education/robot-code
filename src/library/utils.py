@@ -8,6 +8,10 @@ def export(export: bool) -> str:
     return "export " if export else ""
 
 
+def definition(definition: str, parameter_name: str) -> str:
+    return "{}.{}".format(definition, parameter_name)
+
+
 def tab_lines(string: str) -> str:
     lines = string.splitlines(keepends=True)
     return "".join(["    " + line for line in lines])

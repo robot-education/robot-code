@@ -1,12 +1,11 @@
 from abc import ABC
-from typing import Self
-import warnings
+import warnings, re
 from src.library import predicate, argument, base, enum, expr, stmt, ui_hint, utils
 
-definition = argument.Argument("definition", "map")
-id = argument.Argument("id")
-context = argument.Argument("context")
-feature = argument.Arguments(context, id, definition)
+definition_arg = argument.Argument("definition", "map")
+id_arg = argument.Argument("id")
+context_arg = argument.Argument("context")
+feature_args = [context_arg, id_arg, definition_arg]
 
 
 class Annotation(stmt.Statement, ABC):
@@ -23,7 +22,7 @@ class Annotation(stmt.Statement, ABC):
         self.parameter_name = parameter_name
 
         if user_name is None:
-            self.user_name = self.parameter_name
+            self.user_name = utils.user_name(self.parameter_name)
         else:
             self.user_name = user_name
 
@@ -71,18 +70,19 @@ class EnumAnnotation(TypeAnnotation):
         self.enum = enum
 
         if parameter_name is None:
-            self.parameter_name = enum.name[0].lower() + enum.name[1:]
+            capitalized = enum.name[0].lower() + enum.name[1:]
+            parameter_name = re.sub("_", "", capitalized)
         else:
             self.parameter_name = parameter_name
 
-        if kwargs["ui_hints"].show_label and kwargs["ui_hints"].horizontal_enum:
-            warnings.warn("show_label and horizontal enum don't work together.")
+        # if kwargs["ui_hints"].show_label and kwargs["ui_hints"].horizontal_enum:
+        #     warnings.warn("show_label and horizontal enum don't work together.")
 
         args = {}
         if default is not None:
             args["Default"] = default
 
-        super().__init__(self.parameter_name, type=self.enum.name, args=args, **kwargs)
+        super().__init__(parameter_name, type=self.enum.name, args=args, **kwargs)
 
 
 class UiPredicate(predicate.Predicate):
@@ -93,27 +93,34 @@ class UiPredicate(predicate.Predicate):
     """
 
     def __init__(self, name: str, export: bool = True):
-        super().__init__(name + "Predicate", arguments=definition, export=export)
+        super().__init__(name + "Predicate", arguments=definition_arg, export=export)
 
-    def __add__(self, annotation: Annotation | stmt.Statement) -> Self:
-        return super().__add__(annotation)
+
+class UiTestPredicate(predicate.Predicate):
+    def __init__(self, name: str, export: bool = True):
+        """
+        A predicate used to test elements in the ui.
+        """
+        super().__init__(name, arguments=definition_arg, export=export)
 
 
 def equal(
-    self, parameter_name: str, value: enum.EnumValue, definition: str = "definition"
+    parameter_name: str, value: enum.EnumValue, definition: str = "definition"
 ) -> expr.Expr:
     """Generates an expression which tests whether this parameter matches the value."""
     return expr.Compare(
-        expr.Id(definition + "." + self.parameter_name),
+        expr.Id(utils.definition(definition, parameter_name)),
         expr.Operator.EQUAL,
-        expr.Id("{}.{}".format(self.enum.name, value)),
+        expr.Id("{}.{}".format(value.enum.name, value.value)),
     )
 
 
-def not_equal(self, value: enum.EnumValue) -> expr.Expr:
+def not_equal(
+    self, parameter_name: str, value: enum.EnumValue, definition: str = "definition"
+) -> expr.Expr:
     """Generates an expression which tests whether this parameter does not match value."""
     return expr.Compare(
-        expr.Id("definition." + self.parameter_name),
+        expr.Id(utils.definition(definition, parameter_name)),
         expr.Operator.NOT_EQUAL,
         expr.Id("{}.{}".format(self.enum.name, value)),
     )
