@@ -54,14 +54,15 @@ class EnumValue(base.Node):
         result = "".join(words)
         if capitalize:
             return result
-        else:
-            return utils.lower_first(result)
+        return utils.lower_first(result)
 
 
 class Enum(stmt.Statement):
     def __init__(
         self,
         name: str,
+        *,
+        parent: stmt.Parent,
         default_parameter_name: str | None = None,
         export: bool = True,
     ) -> None:
@@ -71,6 +72,8 @@ class Enum(stmt.Statement):
         values: A list of strings which are used to construct enum values. EnumValues may also be registered afterwards.
         default_parameter_name: A default parameter name to use. If not specified, the default is generated automatically by lowercasing the first letter of name.
         """
+        self.register_parent(parent)
+
         self.name = name
         self.default_parameter_name = (
             utils.lower_first(name)

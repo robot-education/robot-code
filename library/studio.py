@@ -7,7 +7,7 @@ AUTO_FILE = """
 __all__ = ["Studio"]
 
 
-class Studio(base.ParentNode[stmt.Statement]):
+class Studio(stmt.Parent):
     def __init__(self, studio_name: str) -> None:
         self.studio_name = studio_name
         super().__init__()

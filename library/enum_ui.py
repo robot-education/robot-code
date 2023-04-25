@@ -73,23 +73,31 @@ def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "")
     return prepend + value.camel_case(capitalize=True) + append
 
 
-def custom_predicate(enum: enum.CustomEnum, name: str | None = None) -> pred.Predicate:
+def custom_predicate(
+    enum: enum.CustomEnum, *, name: str | None = None, parent: stmt.Parent
+) -> expr.Expr:
     if name is None:
         name = "is" + enum.name + "Custom"
-    return pred.UiTestPredicate(name, equal(enum.CUSTOM))
+    return pred.UiTestPredicate(name, equal(enum.CUSTOM), parent=parent).call()
 
 
-class EnumPredicates(dict, stmt.Statement):
+class EnumPredicates(dict, stmt.Parent):
     """A class defining a set of predicates used to check specific enum members."""
 
     def __init__(
         self,
         enum: enum.Enum,
+        *,
+        parent: stmt.Parent,
         parameter_name: str | None = None,
         prepend: str | None = None,
         append: str = "",
         export: bool = True,
     ) -> None:
+        stmt.Parent.__init__(self)
+
+        self.register_parent(parent)
+
         self.parameter_name = (
             enum.default_parameter_name if parameter_name is None else parameter_name
         )
@@ -101,6 +109,7 @@ class EnumPredicates(dict, stmt.Statement):
                 predicate_name(value, prepend=prepend, append=append),
                 equal(value),
                 export=export,
+                parent=self,
             )
             for value in self.enum
         ]

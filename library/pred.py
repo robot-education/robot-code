@@ -13,10 +13,13 @@ class Predicate(stmt.BlockStatement):
     def __init__(
         self,
         name: str,
+        *,
+        parent: stmt.Parent,
         arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement | expr.Expr] = [],
         export: bool = True,
     ):
+        self.register_parent(parent)
         self.name = name
         self.arguments = arguments
         super().__init__(*statements)
@@ -63,20 +66,18 @@ class UiPredicate(Predicate):
         self,
         name: str,
         *statements: stmt.Statement | expr.Expr,
-        export: bool = True,
+        **kwargs,
     ):
         super().__init__(
             name + "Predicate",
             arguments=arg.definition_arg,
             statements=statements,
-            export=export,
+            **kwargs,
         )
 
 
 class UiTestPredicate(Predicate):
-    def __init__(
-        self, name: str, *statements: stmt.Statement | expr.Expr, export: bool = True
-    ):
+    def __init__(self, name: str, *statements: stmt.Statement | expr.Expr, **kwargs):
         super().__init__(
-            name, arguments=arg.definition_arg, statements=statements, export=export
+            name, arguments=arg.definition_arg, statements=statements, **kwargs
         )
