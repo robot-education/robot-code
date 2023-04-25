@@ -57,7 +57,7 @@ class EnumValue(base.Node):
         return utils.lower_first(result)
 
 
-class Enum(stmt.Statement):
+class Enum(dict[str, EnumValue], stmt.Statement):
     def __init__(
         self,
         name: str,
@@ -81,19 +81,7 @@ class Enum(stmt.Statement):
             else default_parameter_name
         )
         self.export = export
-        self.values = []
-
-    def __getattribute__(self, name: str) -> EnumValue:
-        """
-        Overload get_attribute to type hint EnumValue access for users.
-        """
-        return super().__getattribute__(name)
-
-    def __contains__(self, value: EnumValue) -> bool:
-        return value in self.values
-
-    def __iter__(self) -> Iterator[EnumValue]:
-        return self.values.__iter__()
+        super().__init__()
 
     def add_value(
         self,
@@ -102,17 +90,19 @@ class Enum(stmt.Statement):
         hidden: bool = False,
     ) -> Self:
         enum_value = EnumValue(value, self, user_name=user_name, hidden=hidden)
-        self.values.append(enum_value)
-        setattr(self, value, enum_value)
+        self[value] = enum_value
         return self
 
     def __str__(self) -> str:
         string = utils.export(self.export)
         string += "enum {} \n{{\n".format(self.name)
-        string += utils.to_str(self.values, sep=",\n", tab=True)
+        string += utils.to_str(self.values(), sep=",\n", tab=True)
         return string + "\n}\n"
 
 
 class CustomEnum(Enum):
     def add_custom(self) -> Self:
         return self.add_value("CUSTOM")
+
+    def __str__(self) -> str:
+        return super().__str__()

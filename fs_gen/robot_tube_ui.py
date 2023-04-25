@@ -17,6 +17,7 @@ wall_predicate.add(
         wall_thickness, ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL]
     )
 )
+
 If(custom_wall_thickness, parent=wall_predicate).add(
     LengthAnnotation("wallThickness", bound_spec=LengthBound.SHELL_OFFSET_BOUNDS)
 )
@@ -42,7 +43,9 @@ max_tube_type = (
 )
 
 can_be_light = UiTestPredicate(
-    "canBeLight", equal(max_tube_type.NONE) | equal(max_tube_type.GRID), parent=studio
+    "canBeLight",
+    equal(max_tube_type["NONE"]) | equal(max_tube_type["GRID"]),
+    parent=studio,
 ).call()
 
 type_predicates = EnumPredicates(tube_type, parent=studio)
@@ -76,9 +79,8 @@ tube_if.add(
 
 inner_if = If(
     size_predicates["TWO_BY_ONE"] & type_predicates["MAX_TUBE"], parent=tube_if
-).add(
-    EnumAnnotation(max_tube_type, user_name="Pattern type"),
 )
+inner_if.add(EnumAnnotation(max_tube_type, user_name="Pattern type"))
 
 If(can_be_light, parent=inner_if).add(
     BooleanAnnotation("isLight", user_name="Light"),

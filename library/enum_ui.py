@@ -78,10 +78,10 @@ def custom_predicate(
 ) -> expr.Expr:
     if name is None:
         name = "is" + enum.name + "Custom"
-    return pred.UiTestPredicate(name, equal(enum.CUSTOM), parent=parent).call()
+    return pred.UiTestPredicate(name, equal(enum["CUSTOM"]), parent=parent).call()
 
 
-class EnumPredicates(dict, stmt.Parent):
+class EnumPredicates(dict[str, expr.Expr], stmt.Parent):
     """A class defining a set of predicates used to check specific enum members."""
 
     def __init__(
@@ -111,10 +111,10 @@ class EnumPredicates(dict, stmt.Parent):
                 export=export,
                 parent=self,
             )
-            for value in self.enum
+            for value in self.enum.values()
         ]
 
-        value_names = [value.value for value in self.enum]
+        value_names = [value.value for value in self.enum.values()]
         predicate_calls = [predicate.call() for predicate in self.predicates]
         super().__init__(dict(zip(value_names, predicate_calls)))
 
