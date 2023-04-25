@@ -4,14 +4,14 @@ from library import stmt, expr, utils
 __all__ = ["If", "Else", "IfBlock"]
 
 
-class Else(stmt.Block):
+class Else(stmt.BlockStatement):
     def __str__(self) -> str:
         string = "else\n{\n"
         string += utils.to_str(self.child_nodes, tab=True, sep="\n")
         return string + "}\n"
 
 
-class If(stmt.Block):
+class If(stmt.BlockStatement):
     def __init__(self, test: expr.Expr) -> None:
         super().__init__()
         self.test = test

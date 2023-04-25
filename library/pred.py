@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-class Predicate(stmt.Block):
+class Predicate(stmt.BlockStatement):
     def __init__(
         self,
         name: str,
