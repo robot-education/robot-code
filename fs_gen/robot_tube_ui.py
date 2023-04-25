@@ -19,7 +19,7 @@ wall_thickness_predicate.add(
         wall_thickness, ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL]
     )
 )
-wall_if = wall_thickness_predicate.register(If(custom_wall_thickness)).add(
+wall_thickness_predicate.register(If(custom_wall_thickness)).add(
     LengthAnnotation("wallThickness", bound_spec=LengthBound.SHELL_OFFSET_BOUNDS)
 )
 
@@ -27,13 +27,13 @@ tube_size = (
     studio.register(Enum("TubeSize"))
     .add_value("ONE_BY_ONE", user_name="1x1")
     .add_value("TWO_BY_ONE", user_name="2x1")
-    .add_value("CUSTOM")
+    .add_custom_value()
 )
 
 tube_type = (
     studio.register(Enum("TubeType"))
     .add_value("MAX_TUBE", user_name="MAXTube")
-    .add_value("CUSTOM")
+    .add_custom_value()
 )
 
 max_tube_type = (
@@ -52,18 +52,8 @@ can_be_light = (
     )
 ).call()
 
-type_predicates = [
-    studio.register(
-        UiTestPredicate(predicate_name(value, prepend="isTubeType"), equal(value))
-    ).call()
-    for value in tube_type
-]
-size_predicates = [
-    studio.register(
-        UiTestPredicate(predicate_name(value, prepend="isTubeSize"), equal(value))
-    ).call()
-    for value in tube_size
-]
+type_predicates = studio.register(EnumPredicates(tube_type, prepend="isTubeType"))
+size_predicates = studio.register(EnumPredicates(tube_size, prepend="isTubeSize"))
 
 studio.register(UiTestPredicate("isMaxTube", ~size_predicates[2] & type_predicates[0]))
 
@@ -78,8 +68,8 @@ tube_predicate.add(
 )
 
 tube_if = tube_predicate.register(If(size_predicates[2]))
-tube_if.add(LengthAnnotation("length", bound_spec=LengthBound.LENGTH_BOUNDS))
-tube_if.add(LengthAnnotation("width", bound_spec=LengthBound.LENGTH_BOUNDS))
+tube_if.add(LengthAnnotation("length", LengthBound.LENGTH_BOUNDS))
+tube_if.add(LengthAnnotation("width", LengthBound.LENGTH_BOUNDS))
 
 tube_if = tube_if.or_else()
 tube_if.add(
@@ -102,11 +92,12 @@ wall_thickness_if = tube_predicate.register(If(size_predicates[2] | type_predica
 wall_thickness_if.add(wall_thickness_predicate.call())
 
 fit = studio.register(Enum("HoleFit")).add_value("CLOSE").add_value("FREE")
+
 size = (
     studio.register(Enum("HoleSize"))
     .add_value("NO_8", user_name="#8")
     .add_value("NO_10", user_name="#10")
-    .add_value("CUSTOM")
+    .add_custom_value()
 )
 
 hole_predicate = studio.register(UiPredicate("tubeHole"))

@@ -1,7 +1,13 @@
 from typing import Iterator, Self
 from library import base
 
-__all__ = ["Argument"]
+__all__ = [
+    "Argument",
+    "definition_arg",
+    "id_arg",
+    "context_arg",
+    "feature_args",
+]
 
 
 class Argument(base.Node):
@@ -38,3 +44,9 @@ class Argument(base.Node):
         if self.type is None:
             return self.name
         return "{} is {}".format(self.name, self.type)
+
+
+definition_arg = Argument("definition", "map")
+id_arg = Argument("id")
+context_arg = Argument("context")
+feature_args = [context_arg, id_arg, definition_arg]

@@ -1,15 +1,19 @@
 import warnings
 from typing import Iterable, Self
-from library import base, expr, argument, stmt, utils
+from library import arg, base, expr, stmt, utils
 
-__all__ = ["Predicate"]
+__all__ = [
+    "Predicate",
+    "UiPredicate",
+    "UiTestPredicate",
+]
 
 
 class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
     def __init__(
         self,
         name: str,
-        arguments: Iterable[argument.Argument] = [],
+        arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement] = [],
         export: bool = True,
     ):
@@ -56,3 +60,28 @@ class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
         string += utils.to_str(self.child_nodes, tab=True, sep="\n")
         string += " }\n"
         return string
+
+
+class UiPredicate(Predicate):
+    """
+    A predicate defining elements for use in the UI.
+
+    name: The name of the predicate. To match convention, the word `Predicate` is always automatically appended.
+    """
+
+    def __init__(
+        self, name: str, statements: Iterable[stmt.Statement] = [], export: bool = True
+    ):
+        super().__init__(
+            name + "Predicate",
+            arguments=arg.definition_arg,
+            statements=statements,
+            export=export,
+        )
+
+
+class UiTestPredicate(Predicate):
+    def __init__(self, name: str, statement: stmt.Statement, export: bool = True):
+        super().__init__(
+            name, arguments=arg.definition_arg, statements=[statement], export=export
+        )

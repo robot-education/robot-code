@@ -14,7 +14,7 @@ class EnumValue(base.Node):
         enum: Enum,
         user_name: str | None = None,
         hidden: bool = False,
-    ):
+    ) -> None:
         """A possible value of an enum.
 
         value: The value of the enum. Should be all-caps seperated by underscores.
@@ -64,7 +64,7 @@ class Enum(stmt.Statement):
         name: str,
         default_parameter_name: str | None = None,
         export: bool = True,
-    ):
+    ) -> None:
         """An enum.
 
         name: A capital case (LikeThis) string.
@@ -108,3 +108,6 @@ class Enum(stmt.Statement):
         self.values.append(enum_value)
         setattr(self, value, enum_value)
         return self
+
+    def add_custom_value(self) -> Self:
+        return self.add_value("CUSTOM")
