@@ -16,7 +16,7 @@ class Operator(_enum.StrEnum):
     NOT_EQUAL = "!="
 
 
-class Expr(stmt.Statement, ABC):
+class Expr(ABC):
     def __invert__(self) -> Expr:
         return UnaryOp(self, "!")
 
@@ -29,17 +29,6 @@ class Expr(stmt.Statement, ABC):
     # Add iter to support use as a statement for predicate
     def __iter__(self) -> Iterator[Self]:
         return [self].__iter__()
-
-
-class Line(stmt.Statement):
-    """Represents an expression which spans a line."""
-
-    def __init__(self, expr: Expr) -> None:
-        self.expr = expr
-
-    def __str__(self) -> str:
-        return str(self.expr) + ";\n"
-
 
 class Compare(Expr):
     def __init__(self, lhs: Expr, operator: Operator, rhs: Expr) -> None:

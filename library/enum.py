@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from typing import Iterator, Self
-from library import base, stmt, utils
+from library import base, stmt, utils, pred
 
-__all__ = ["EnumValue", "Enum"]
+__all__ = ["EnumValue", "Enum", "CustomEnum"]
 
 
 class EnumValue(base.Node):
@@ -92,12 +92,6 @@ class Enum(stmt.Statement):
     def __iter__(self) -> Iterator[EnumValue]:
         return self.values.__iter__()
 
-    def __str__(self) -> str:
-        string = utils.export(self.export)
-        string += "enum {} {{\n".format(self.name)
-        string += utils.to_str(self.values, end=",\n", tab=True)
-        return string + "}\n"
-
     def add_value(
         self,
         value: str,
@@ -109,5 +103,13 @@ class Enum(stmt.Statement):
         setattr(self, value, enum_value)
         return self
 
-    def add_custom_value(self) -> Self:
+    def __str__(self) -> str:
+        string = utils.export(self.export)
+        string += "enum {} \n{{\n".format(self.name)
+        string += utils.to_str(self.values, end=",\n", tab=True)
+        return string + "}\n"
+
+
+class CustomEnum(Enum):
+    def add_custom(self) -> Self:
         return self.add_value("CUSTOM")

@@ -1,5 +1,6 @@
 from typing import Callable
 from library import enum, expr, stmt, utils
+from library import pred
 from library.pred import UiTestPredicate
 
 __all__ = [
@@ -9,6 +10,7 @@ __all__ = [
     "not_any",
     "predicate_name",
     "EnumPredicates",
+    "custom_predicate",
 ]
 
 
@@ -69,6 +71,12 @@ def not_any(*values: enum.EnumValue, add_parentheses: bool = False) -> expr.Expr
 
 def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "") -> str:
     return prepend + value.camel_case(capitalize=True) + append
+
+
+def custom_predicate(enum: enum.CustomEnum, name: str | None = None) -> pred.Predicate:
+    if name is None:
+        name = "is" + enum.name + "Custom"
+    return pred.UiTestPredicate(name, equal(enum.CUSTOM))
 
 
 class EnumPredicates(dict, stmt.Statement):

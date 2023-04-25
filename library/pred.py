@@ -1,6 +1,6 @@
 import warnings
-from typing import Iterable, Self
-from library import arg, base, expr, stmt, utils
+from typing import Iterable
+from library import arg, expr, stmt, utils
 
 __all__ = [
     "Predicate",
@@ -9,31 +9,21 @@ __all__ = [
 ]
 
 
-class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
+class Predicate(stmt.Block):
     def __init__(
         self,
         name: str,
         arguments: Iterable[arg.Argument] = [],
-        statements: Iterable[stmt.Statement] = [],
+        statements: Iterable[stmt.Statement | expr.Expr] = [],
         export: bool = True,
     ):
-        statements = [
-            expr.Line(statement) if isinstance(statement, expr.Expr) else statement
-            for statement in statements
-        ]
-        super().__init__(child_nodes=statements)
         self.name = name
         self.arguments = arguments
+        super().__init__(*statements)
         self.export = export
 
         if self.arguments == []:
             warnings.warn("Predicate has 0 arguments.")
-
-    def add(self, node: stmt.Statement) -> Self:
-        if isinstance(node, expr.Expr):
-            node = expr.Line(node)  # type: ignore
-        super().add(node)
-        return self
 
     def call(self, *args: dict[str, str]) -> expr.Expr:
         """Creates a predicate call.
@@ -70,7 +60,10 @@ class UiPredicate(Predicate):
     """
 
     def __init__(
-        self, name: str, statements: Iterable[stmt.Statement] = [], export: bool = True
+        self,
+        name: str,
+        *statements: stmt.Statement | expr.Expr,
+        export: bool = True,
     ):
         super().__init__(
             name + "Predicate",
@@ -81,7 +74,9 @@ class UiPredicate(Predicate):
 
 
 class UiTestPredicate(Predicate):
-    def __init__(self, name: str, statement: stmt.Statement, export: bool = True):
+    def __init__(
+        self, name: str, *statements: stmt.Statement | expr.Expr, export: bool = True
+    ):
         super().__init__(
-            name, arguments=arg.definition_arg, statements=[statement], export=export
+            name, arguments=arg.definition_arg, statements=statements, export=export
         )

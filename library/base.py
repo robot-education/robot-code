@@ -20,23 +20,23 @@ class ParentNode(Node, ABC, Generic[T]):
     Note __str__ is not defined for this class; parents should implement themselves.
     """
 
-    def __init__(self, child_nodes: Iterable[T] = []) -> None:
-        self.child_nodes: list[T] = list(child_nodes)
+    def __init__(self, *child_nodes: T) -> None:
+        self.child_nodes = list(child_nodes)
 
     def register(self, node: S) -> S:
         """Adds a node to the class.
 
         Returns the node which was passed in."""
+        # We assume S extends T
         self.child_nodes.append(node)  # type: ignore
         return node
 
-    def add(self, *nodes: T | Iterable[T]) -> Self:
+    def add(self, *nodes: T) -> Self:
         """Adds one or more nodes as children.
 
         Returns the class to enable chaining.
         """
-        # We assume S extends T
-        self.child_nodes.extend(nodes)  # type: ignore
+        self.child_nodes.extend(nodes)
         return self
 
     def __iter__(self) -> Iterator[T]:
