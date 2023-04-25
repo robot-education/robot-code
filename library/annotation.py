@@ -9,6 +9,41 @@ __all__ = [
 ]
 
 
+class Map(base.Node):
+    """Defines a map literal."""
+
+    def __init__(
+        self,
+        dict: dict[str, str],
+        quote_values: bool = False,
+        exclude_keys: Iterable[str] = [],
+    ):
+        """
+        quote_values: Whether to add quotation marks around each value.
+        exclude_keys: Specifies keys to ignore when quoting. Does nothing if quote_values is False.
+        """
+        self.dict = dict
+        self.quote_values = quote_values
+        self.exclude_values = exclude_keys
+
+    def _quote_format_str(self, quote_value: bool) -> str:
+        return ' "{}" : "{}"' if quote_value else ' "{}" : {}'
+
+    def __str__(self) -> str:
+        pairs = [
+            self._quote_format_str(
+                self.quote_values and key not in self.exclude_values
+            ).format(key, value)
+            for key, value in self.dict.items()
+            if value is not None
+        ]
+
+        if len(pairs) == 0:
+            return "{}"
+
+        return "{{{}}}".format(",".join(pairs) + " ")
+
+
 class Annotation(stmt.Statement, ABC):
     def __init__(
         self,
@@ -33,7 +68,7 @@ class Annotation(stmt.Statement, ABC):
             map_args["UIHint"] = "[{}]".format(", ".join(ui_hints))
         map_args.update(args)
 
-        self.map = base.Map(map_args, quote_values=True, exclude_keys="UIHint")
+        self.map = Map(map_args, quote_values=True, exclude_keys="UIHint")
 
     def __str__(self) -> str:
         return "annotation " + str(self.map) + "\n"

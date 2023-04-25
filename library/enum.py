@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Iterator, Self
-from library import base, stmt, utils, pred
+from library import annotation, base, stmt, utils
 
 __all__ = ["EnumValue", "Enum", "CustomEnum"]
 
@@ -44,7 +44,7 @@ class EnumValue(base.Node):
 
         if dict != {}:
             return "annotation {}\n {}".format(
-                str(base.Map(dict, quote_values=True)), self.value
+                str(annotation.Map(dict, quote_values=True)), self.value
             )
         return self.value
 

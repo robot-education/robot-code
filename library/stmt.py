@@ -25,7 +25,7 @@ def convert_expr_to_lines(*nodes: Statement | expr.Expr) -> list[Statement]:
     return [Line(node) if isinstance(node, expr.Expr) else node for node in nodes]
 
 
-class BlockStatement(base.ParentNode[Statement], Statement):
+class BlockStatement(base.ParentNode[Statement]):
     """A type of statement which supports children."""
 
     def __init__(self, *child_nodes: Statement | expr.Expr) -> None:
