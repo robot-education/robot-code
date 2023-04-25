@@ -1,9 +1,7 @@
 from library import stmt, utils, base
 
 AUTO_FILE = """
-/**
-* Auto-generated file. Do not edit!
-*/\n
+/* Automatically generated file -- DO NOT EDIT */\n
 """
 
 __all__ = ["Studio"]

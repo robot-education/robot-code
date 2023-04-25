@@ -1,5 +1,6 @@
 from library.argument import *
 from library.base import *
+from library.bounds import *
 from library.control import *
 from library.enum import *
 from library.expr import *

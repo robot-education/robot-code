@@ -1,6 +1,6 @@
 import enum as _enum
 
-__all__ = ["UiHint"]
+__all__ = ["UiHint", "remember_hint"]
 
 
 class UiHint(_enum.StrEnum):
@@ -14,6 +14,8 @@ class UiHint(_enum.StrEnum):
     OPPOSITE_DIRECTION = '"OPPOSITE_DIRECTION"'
     OPPOSITE_DIRECTION_CIRCULAR = '"OPPOSITE_DIRECTION_CIRCULAR"'
 
+
+remember_hint = [UiHint.REMEMBER_PREVIOUS_VALUE]
 
 # @dataclasses.dataclass
 # class UiHints:

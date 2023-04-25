@@ -1,10 +1,8 @@
 import warnings
-from typing import Iterable, TypeVar
+from typing import Iterable, Self
 from library import base, expr, argument, stmt, utils
 
 __all__ = ["Predicate"]
-
-S = TypeVar("S", bound=base.Node)
 
 
 class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
@@ -27,11 +25,11 @@ class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
         if self.arguments == []:
             warnings.warn("Predicate has 0 arguments.")
 
-    def add(self, node: S) -> S:
+    def add(self, node: stmt.Statement) -> Self:
         if isinstance(node, expr.Expr):
             node = expr.Line(node)  # type: ignore
         super().add(node)
-        return node
+        return self
 
     def call(self, *args: dict[str, str]) -> expr.Expr:
         """Creates a predicate call.
@@ -55,6 +53,6 @@ class Predicate(base.ParentNode[stmt.Statement], stmt.Statement):
         string += "predicate {}({})\n{{\n".format(
             self.name, utils.to_str(self.arguments)
         )
-        string += utils.to_str(self.child_nodes, tab=True)
+        string += utils.to_str(self.child_nodes, tab=True, sep="\n")
         string += " }\n"
         return string

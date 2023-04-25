@@ -8,7 +8,7 @@ def export(export: bool) -> str:
     return "export " if export else ""
 
 
-def definition(definition: str, parameter_name: str) -> str:
+def definition(parameter_name: str, definition: str = "definition") -> str:
     return "{}.{}".format(definition, parameter_name)
 
 

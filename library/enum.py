@@ -13,21 +13,19 @@ class EnumValue(base.Node):
         value: str,
         enum: Enum,
         user_name: str | None = None,
-        generate_name: bool = True,
         hidden: bool = False,
     ):
         """A possible value of an enum.
 
         value: The value of the enum. Should be all-caps seperated by underscores.
         user_name: A user facing name.
-        generate_name: Whether to generate user_name automatically from value. Is overridden by user_name.
         hidden: Whether to mark the enum value as hidden. Has no effect if the enum is not ui.
         """
         self.value = value.upper()
         self.hidden = hidden
         self.enum = enum
 
-        if user_name is None and generate_name:
+        if user_name is None:
             self.user_name = self.make_user_name()
         else:
             self.user_name = user_name
@@ -64,9 +62,7 @@ class Enum(stmt.Statement):
     def __init__(
         self,
         name: str,
-        *values: str,
         default_parameter_name: str | None = None,
-        generate_names: bool = True,
         export: bool = True,
     ):
         """An enum.
@@ -83,8 +79,6 @@ class Enum(stmt.Statement):
         )
         self.export = export
         self.values = []
-        for value in values:
-            self.add_value(value, generate_name=generate_names)
 
     def __getattribute__(self, name: str) -> EnumValue:
         """
@@ -108,12 +102,9 @@ class Enum(stmt.Statement):
         self,
         value: str,
         user_name: str | None = None,
-        generate_name: bool = True,
         hidden: bool = False,
     ) -> Self:
-        enum_value = EnumValue(
-            value, self, user_name=user_name, generate_name=generate_name, hidden=hidden
-        )
+        enum_value = EnumValue(value, self, user_name=user_name, hidden=hidden)
         self.values.append(enum_value)
         setattr(self, value, enum_value)
         return self

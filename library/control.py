@@ -8,7 +8,7 @@ __all__ = ["If", "Else", "IfBlock"]
 class Else(base.ParentNode[stmt.Statement], stmt.Statement):
     def __str__(self) -> str:
         string = "else\n{\n"
-        string += utils.to_str(self.child_nodes, tab=True)
+        string += utils.to_str(self.child_nodes, tab=True, sep="\n")
         return string + "}\n"
 
 
@@ -22,18 +22,16 @@ class If(base.ParentNode[stmt.Statement], stmt.Statement):
     def else_if(self, test: expr.Expr | str) -> Self:
         self.child = If(test)
         self.child.is_child = True
-        self = self.child
-        return self
+        return self.child
 
     def or_else(self) -> Else:
         self.child = Else()
-        self = self.child
-        return self
+        return self.child
 
     def __str__(self) -> str:
         string = "else " if self.is_child else ""
         string += "if ({})\n{{\n".format(self.test)
-        string += utils.to_str(self.child_nodes, tab=True)
+        string += utils.to_str(self.child_nodes, tab=True, sep="\n")
         string += "}\n"
         if self.child is not None:
             string += str(self.child)

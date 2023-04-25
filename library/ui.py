@@ -1,7 +1,16 @@
 from abc import ABC
-import re
-from typing import Iterable, Sequence
-from library import predicate, argument, base, enum, expr, stmt, ui_hint, utils
+from typing import Callable, Iterable, Sequence
+from library import (
+    predicate,
+    argument,
+    bounds,
+    base,
+    enum,
+    expr,
+    stmt,
+    ui_hint,
+    utils,
+)
 
 __all__ = [
     "definition_arg",
@@ -9,13 +18,42 @@ __all__ = [
     "context_arg",
     "feature_args",
     "EnumAnnotation",
+    "BooleanAnnotation",
+    "LengthAnnotation",
     "UiPredicate",
+    "UiTestPredicate",
     "equal",
     "not_equal",
     "any",
     "not_any",
-    "make_enum_test_predicate",
+    "predicate_name",
 ]
+
+
+class UiPredicate(predicate.Predicate):
+    """
+    A predicate defining elements for use in the UI.
+
+    name: The name of the predicate. To match convention, the word `Predicate` is always automatically appended.
+    """
+
+    def __init__(
+        self, name: str, statements: Iterable[stmt.Statement] = [], export: bool = True
+    ):
+        super().__init__(
+            name + "Predicate",
+            arguments=definition_arg,
+            statements=statements,
+            export=export,
+        )
+
+
+class UiTestPredicate(predicate.Predicate):
+    def __init__(self, name: str, statement: stmt.Statement, export: bool = True):
+        super().__init__(
+            name, arguments=definition_arg, statements=[statement], export=export
+        )
+
 
 definition_arg = argument.Argument("definition", "map")
 id_arg = argument.Argument("id")
@@ -53,27 +91,18 @@ class Annotation(stmt.Statement, ABC):
         return "annotation " + str(self.map) + "\n"
 
 
-class ValueAnnotation(Annotation, ABC):
-    """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-
-
 class TypeAnnotation(Annotation, ABC):
     """A class defining a UI element which is a type, such as an enum or boolean."""
 
-    def __init__(self, parameter_name: str, type: str | None = None, **kwargs) -> None:
+    def __init__(self, parameter_name: str, type: str, **kwargs) -> None:
         super().__init__(parameter_name, **kwargs)
-
-        if type is None:
-            self.type = self.parameter_name
-        else:
-            self.type = type
+        self.type = type
 
     def __str__(self) -> str:
-        return super().__str__() + "definition.{} is {};\n".format(
-            self.parameter_name, self.type
+        return (
+            super().__str__()
+            + utils.definition(self.parameter_name)
+            + " is {};\n".format(self.type)
         )
 
 
@@ -81,42 +110,82 @@ class EnumAnnotation(TypeAnnotation):
     def __init__(
         self,
         enum: enum.Enum,
-        default: str | None = None,
         parameter_name: str | None = None,
-        **kwargs
-    ):
+        user_name: str | None = None,
+        default: str | None = None,
+        ui_hints: Iterable[ui_hint.UiHint] | None = ui_hint.remember_hint,
+    ) -> None:
         self.enum = enum
         parameter_name = (
             enum.default_parameter_name if parameter_name is None else parameter_name
         )
-
-        # if kwargs["ui_hints"].show_label and kwargs["ui_hints"].horizontal_enum:
-        #     warnings.warn("show_label and horizontal enum don't work together.")
-
-        args = {}
-        if default is not None:
-            args["Default"] = default
-
-        super().__init__(parameter_name, type=self.enum.name, args=args, **kwargs)
-
-
-class UiPredicate(predicate.Predicate):
-    """
-    A predicate defining elements for use in the UI.
-
-    name: The name of the predicate. To match convention, the word `Predicate` is always automatically appended.
-    """
-
-    def __init__(self, name: str, export: bool = True):
-        super().__init__(name + "Predicate", arguments=definition_arg, export=export)
+        args = {} if not default else {"Default": default}
+        super().__init__(
+            parameter_name,
+            type=self.enum.name,
+            user_name=user_name,
+            args=args,
+            ui_hints=ui_hints,
+        )
 
 
-# class UiTestPredicate(predicate.Predicate):
-#     def __init__(self, name: str, **kwargs):
-#         super().__init__(name, arguments=definition_arg, **kwargs)
+class BooleanAnnotation(TypeAnnotation):
+    def __init__(
+        self,
+        parameter_name: str,
+        user_name: str | None = None,
+        default: bool = False,
+        ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+    ) -> None:
+        args = {} if not default else {"Default": "true"}
+        super().__init__(
+            parameter_name,
+            type="boolean",
+            user_name=user_name,
+            args=args,
+            ui_hints=ui_hints,
+        )
 
 
-def equal(
+class ValueAnnotation(Annotation, ABC):
+    """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
+
+    def __init__(
+        self, parameter_name: str, *, bound_spec: str, predicate: str, **kwargs
+    ):
+        super().__init__(parameter_name, **kwargs)
+        self.bound_spec = bound_spec
+        self.predicate = predicate
+
+    def __str__(self) -> str:
+        return super().__str__() + "{}({}, {});\n".format(
+            self.predicate, utils.definition(self.parameter_name), self.bound_spec
+        )
+
+
+class LengthAnnotation(ValueAnnotation):
+    def __init__(
+        self,
+        parameter_name: str,
+        *,
+        bound_spec: bounds.LengthBound,
+        user_name: str | None = None,
+        ui_hints: Iterable[ui_hint.UiHint] = [
+            ui_hint.UiHint.SHOW_EXPRESSION,
+            ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        ],
+    ) -> None:
+        super().__init__(
+            parameter_name,
+            bound_spec=bound_spec,
+            user_name=user_name,
+            ui_hints=ui_hints,
+            predicate="isLength",
+        )
+
+
+def _equal(
+    operator: expr.Operator,
     value: enum.EnumValue,
     parameter_name: str | None = None,
     definition: str = "definition",
@@ -125,10 +194,19 @@ def equal(
     if parameter_name is None:
         parameter_name = value.enum.default_parameter_name
     return expr.Compare(
-        expr.Id(utils.definition(definition, parameter_name)),
-        expr.Operator.EQUAL,
+        expr.Id(utils.definition(parameter_name, definition=definition)),
+        operator,
         expr.Id("{}.{}".format(value.enum.name, value.value)),
     )
+
+
+def equal(
+    value: enum.EnumValue,
+    parameter_name: str | None = None,
+    definition: str = "definition",
+) -> expr.Expr:
+    """Generates an expression which tests whether this parameter matches the value."""
+    return _equal(expr.Operator.EQUAL, value, parameter_name, definition)
 
 
 def not_equal(
@@ -137,42 +215,29 @@ def not_equal(
     definition: str = "definition",
 ) -> expr.Expr:
     """Generates an expression which tests whether this parameter does not match value."""
-    if parameter_name is None:
-        parameter_name = value.enum.default_parameter_name
-    return expr.Compare(
-        expr.Id(utils.definition(definition, parameter_name)),
-        expr.Operator.NOT_EQUAL,
-        expr.Id("{}.{}".format(value.enum.name, value.value)),
-    )
+    return _equal(expr.Operator.NOT_EQUAL, value, parameter_name, definition)
 
 
-def any(self, *values: enum.EnumValue) -> expr.Expr:
+def _any(
+    func: Callable[[enum.EnumValue], expr.Expr],
+    *values: enum.EnumValue,
+    add_parentheses: bool,
+) -> expr.Expr:
+    expression = func(values[0])
+    for value in values[1:]:
+        expression |= func(value)
+    return expr.Parens(expression) if add_parentheses else expression
+
+
+def any(*values: enum.EnumValue, add_parentheses: bool = False) -> expr.Expr:
     """Generates an expression which is true when this parameter matches any value in values."""
-    expression = self.equal(values[0])
-    for value in values[1:]:
-        expression |= self.equal(value)
-    return expr.Parens(expression)
+    return _any(equal, *values, add_parentheses=add_parentheses)
 
 
-def not_any(self, *values: enum.EnumValue) -> expr.Expr:
+def not_any(*values: enum.EnumValue, add_parentheses: bool = False) -> expr.Expr:
     """Generates an expression which is true when this parameter doesn't match any value in values."""
-    expression = self.not_equal(values[0])
-    for value in values[1:]:
-        expression &= self.not_equal(value)
-    return expr.Parens(expression)
+    return _any(not_equal, *values, add_parentheses=add_parentheses)
 
 
-def make_enum_test_predicate(
-    value: enum.EnumValue,
-    parameter_name: str | None = None,
-    name_prepend: str = "is",
-    name_append: str = "",
-    export: bool = True,
-) -> predicate.Predicate:
-    name = name_prepend + value.camel_case(capitalize=True) + name_append
-    return predicate.Predicate(
-        name,
-        arguments=definition_arg,
-        statements=equal(value, parameter_name=parameter_name),
-        export=export,
-    )
+def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "") -> str:
+    return prepend + value.camel_case(capitalize=True) + append

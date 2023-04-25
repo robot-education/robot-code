@@ -24,14 +24,17 @@ class ParentNode(Node, ABC, Generic[T]):
         self.child_nodes: list[T] = list(child_nodes)
 
     def register(self, node: S) -> S:
-        """Registers node.
+        """Adds a node to the class.
 
         Returns the node which was passed in."""
         self.child_nodes.append(node)  # type: ignore
         return node
 
     def add(self, *nodes: T | Iterable[T]) -> Self:
-        """Adds one or more nodes as children."""
+        """Adds one or more nodes as children.
+
+        Returns the class to enable chaining.
+        """
         # We assume S extends T
         self.child_nodes.extend(nodes)  # type: ignore
         return self
