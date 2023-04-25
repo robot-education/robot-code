@@ -86,13 +86,15 @@ class EnumPredicates(dict, stmt.Statement):
         self,
         enum: enum.Enum,
         parameter_name: str | None = None,
-        prepend: str = "is",
+        prepend: str | None = None,
         append: str = "",
         export: bool = True,
     ) -> None:
         self.parameter_name = (
             enum.default_parameter_name if parameter_name is None else parameter_name
         )
+        if prepend is None:
+            prepend = "is" + enum.name
         self.enum = enum
         self.predicates = [
             UiTestPredicate(

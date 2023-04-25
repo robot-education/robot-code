@@ -106,8 +106,8 @@ class Enum(stmt.Statement):
     def __str__(self) -> str:
         string = utils.export(self.export)
         string += "enum {} \n{{\n".format(self.name)
-        string += utils.to_str(self.values, end=",\n", tab=True)
-        return string + "}\n"
+        string += utils.to_str(self.values, sep=",\n", tab=True)
+        return string + "\n}\n"
 
 
 class CustomEnum(Enum):

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Self
 from library import base, expr
 
@@ -8,7 +9,15 @@ class Statement(base.Node):
     A statement is a singular code construct which composes one or more lines.
     """
 
-    pass
+    # def __init__(self, *, parent: Parent):
+    #     parent.register(self)
+
+
+# class Parent(base.ParentNode[Statement]):
+#     """
+#     A class representing a parent node which can register children.
+#     """
+#     pass
 
 
 class Line(Statement):

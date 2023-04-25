@@ -49,8 +49,8 @@ can_be_light = (
     )
 ).call()
 
-type_predicates = studio.register(EnumPredicates(tube_type, prepend="isTubeType"))
-size_predicates = studio.register(EnumPredicates(tube_size, prepend="isTubeSize"))
+type_predicates = studio.register(EnumPredicates(tube_type))
+size_predicates = studio.register(EnumPredicates(tube_size))
 
 is_max_tube = studio.register(
     UiTestPredicate(

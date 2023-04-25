@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Iterator, Self, TypeVar, Generic
+from typing import Iterator, Self, TypeVar, Generic
 
 
 class Node(ABC):
