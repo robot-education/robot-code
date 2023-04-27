@@ -12,16 +12,15 @@ class Node(ABC):
 
 
 class ChildNode(Node, ABC):
-    def __init__(self, *args, parent: ParentNode, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent: ParentNode, **kwargs) -> None:
+        super().__init__(**kwargs)
         parent.add(self)
 
 
 class ParentNode(Node, ABC):
     """A node which supports an array of (possibly nested) children."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self) -> None:
         self.children: list[Node] = []
 
     def add(self, *children: Node) -> Self:

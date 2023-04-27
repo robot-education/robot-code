@@ -92,7 +92,7 @@ class TypeAnnotation(Annotation, ABC):
 class EnumAnnotation(TypeAnnotation):
     def __init__(
         self,
-        enum: enum.Enum,
+        enum: enum.EnumDict,
         parameter_name: str | None = None,
         user_name: str | None = None,
         default: str | None = None,

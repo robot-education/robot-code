@@ -3,13 +3,14 @@ from library import *
 studio = Studio("robotTubeUi.gen.fs")
 
 wall_thickness = (
-    LookupEnumFactory("WallThickness", parent=studio)
+    lookup_enum_factory.add_enum("WallThickness", parent=studio)
     .add_value("ONE_SIXTEENTH", user_name='1/16"', lookup_value="0.0625 * inch")
     .add_value("ONE_EIGHTH", user_name='1/8"', lookup_value="0.125 * inch")
     .add_custom(lookup_value="definition.customWallThickness")
+    .make()
 )
 
-custom_wall_thickness = custom_predicate(wall_thickness, parent=studio)
+custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
 
 wall_predicate = UiPredicate("wallThickness", parent=studio)
 wall_predicate.add(
@@ -26,23 +27,26 @@ lookup_function(
 )
 
 tube_size = (
-    EnumFactory("TubeSize", parent=studio)
+    enum_factory.add_enum("TubeSize", parent=studio)
     .add_value("ONE_BY_ONE", user_name="1x1")
     .add_value("TWO_BY_ONE", user_name="2x1")
     .add_custom()
+    .make()
 )
 
 tube_type = (
-    EnumFactory("TubeType", parent=studio)
+    enum_factory.add_enum("TubeType", parent=studio)
     .add_value("MAX_TUBE", user_name="MAXTube")
     .add_custom()
+    .make()
 )
 
 max_tube_type = (
-    EnumFactory("MaxTubeType", parent=studio)
+    enum_factory.add_enum("MaxTubeType", parent=studio)
     .add_value("NONE")
     .add_value("GRID")
     .add_value("MAX", user_name="MAX")
+    .make()
 )
 
 can_be_light = UiTestPredicate(
@@ -91,13 +95,19 @@ If(size_predicates["CUSTOM"] | type_predicates["CUSTOM"], parent=tube_predicate)
     wall_predicate()
 )
 
-fit = EnumFactory("HoleFit", parent=studio).add_value("CLOSE").add_value("FREE")
+fit = (
+    enum_factory.add_enum("HoleFit", parent=studio)
+    .add_value("CLOSE")
+    .add_value("FREE")
+    .make()
+)
 
 size = (
-    EnumFactory("HoleSize", parent=studio)
+    enum_factory.add_enum("HoleSize", parent=studio)
     .add_value("NO_8", user_name="#8")
     .add_value("NO_10", user_name="#10")
     .add_custom()
+    .make()
 )
 
 hole_predicate = UiPredicate("tubeHole", parent=studio)

@@ -1,12 +1,13 @@
 from __future__ import annotations
+from abc import ABC
 
 from typing import Generic, Self, TypeVar
 from library import annotation, base, expr, stmt, utils
 from library import control
 
 __all__ = [
-    "EnumFactory",
-    "LookupEnumFactory",
+    "enum_factory",
+    "lookup_enum_factory",
     "lookup_function",
 ]
 
@@ -15,7 +16,7 @@ class EnumValue(base.Node):
     def __init__(
         self,
         value: str,
-        enum: Enum,
+        enum: _Enum,
         user_name: str | None = None,
         hidden: bool = False,
     ) -> None:
@@ -76,10 +77,16 @@ class EnumValue(base.Node):
         )
 
 
+class LookupEnumValue(EnumValue):
+    def __init__(self, *args, lookup_value: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lookup_value = lookup_value
+
+
 T = TypeVar("T", bound=EnumValue)
 
 
-class Enum(stmt.BlockStatement, Generic[T], dict[str, T]):
+class _Enum(stmt.BlockStatement):
     def __init__(
         self,
         name: str,
@@ -104,57 +111,90 @@ class Enum(stmt.BlockStatement, Generic[T], dict[str, T]):
         )
         self.export = export
 
-    def add(self, *enum_values: T) -> Self:
-        for enum_value in enum_values:
-            self[enum_value.value] = enum_value
-        return self
-
     def __str__(self) -> str:
         string = utils.export(self.export)
         string += "enum {} \n{{\n".format(self.name)
-        string += utils.to_str(self.values(), sep=",\n", tab=True)
+        string += self.children_str(sep=",\n", tab=True)
         return string + "\n}\n"
 
 
-class EnumFactory(Enum):
-    def add_value(
-        self, value: str, user_name: str | None = None, hidden: bool = False, **kwargs
+V = TypeVar("V", bound=EnumValue)
+
+
+class EnumDict(dict[str, V], Generic[V]):
+    def __init__(self, enum: _Enum, values: dict[str, V]):
+        self.name = enum.name
+        self.default_parameter_name = enum.default_parameter_name
+        super().__init__(values)
+
+
+class EnumFactoryBase(ABC):
+    def __init__(
+        self,
+        *,
+        enum_supplier,
+        value_supplier,
+    ):
+        self.enum_supplier = enum_supplier
+        self.value_supplier = value_supplier
+        self.enum = None
+        self.result = {}
+
+    def add_enum(
+        self,
+        name: str,
+        *,
+        parent: base.ParentNode,
+        default_parameter_name: str | None = None,
+        export: bool = True,
     ) -> Self:
-        enum_value = EnumValue(
-            value, self, user_name=user_name, hidden=hidden, **kwargs
+        self.enum = self.enum_supplier(
+            name,
+            parent=parent,
+            default_parameter_name=default_parameter_name,
+            export=export,
         )
-        self.add(enum_value)
+        return self
+
+    def add_value(self, value: str, *args, **kwargs) -> Self:
+        enum_value = self.value_supplier(value, self.enum, *args, **kwargs)
+        self.result[value] = enum_value
         return self
 
     def add_custom(self, **kwargs) -> Self:
         return self.add_value("CUSTOM", **kwargs)
 
+    def make(self) -> EnumDict:
+        if self.enum is None:
+            raise ValueError("add_enum must be called before make")
+        if len(self.result.values()) is None:
+            raise ValueError("Cannot create enum with no values")
 
-class LookupEnumValue(EnumValue):
-    def __init__(self, *args, lookup_value: str, **kwargs):
-        self.lookup_value = lookup_value
-        super().__init__(*args, **kwargs)
+        self.enum.add(*self.result.values())
+        enum = EnumDict(self.enum, self.result)
 
+        self.result = {}
+        self.enum = None
 
-class LookupEnum(Enum[LookupEnumValue]):
-    """Defines an enum with a default value for each value.
-
-    A corresponding constant map and lookup function may then be automatically
-    generated which returns the values according to when the function is accessed.
-    """
-
-    pass
+        return enum
 
 
-class LookupEnumFactory(EnumFactory, LookupEnum):
-    def add_value(self, value: str, **kwargs) -> Self:
-        enum_value = LookupEnumValue(value, self, **kwargs)
-        self.add(enum_value)
-        return self
+class EnumFactory(EnumFactoryBase):
+    def __init__(self):
+        super().__init__(enum_supplier=_Enum, value_supplier=EnumValue)
+
+
+class LookupEnumFactory(EnumFactoryBase):
+    def __init__(self):
+        super().__init__(enum_supplier=_Enum, value_supplier=LookupEnumValue)
+
+
+enum_factory = EnumFactory()
+lookup_enum_factory = LookupEnumFactory()
 
 
 def lookup_function(
-    enum: LookupEnum,
+    enum_dict: EnumDict[LookupEnumValue],
     *,
     parent: base.ParentNode,
     predicate_dict: dict[str, expr.Expr] = {},
@@ -164,7 +204,7 @@ def lookup_function(
     """
     tests = []
     statements = []
-    for value, enum_value in enum.items():
+    for value, enum_value in enum_dict.items():
         predicate = predicate_dict.get(value, enum_value())
         tests.append(predicate)
         lookup_value = enum_value.lookup_value

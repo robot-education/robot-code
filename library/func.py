@@ -9,6 +9,20 @@ __all__ = [
 ]
 
 
+class Function(stmt.BlockStatement):
+    def __init__(
+        self,
+        name: str,
+        *,
+        parent: base.ParentNode,
+        arguments: Iterable[arg.Argument] = [],
+        statements: Iterable[stmt.Statement | expr.Expr] = [],
+        export: bool = True,
+        is_lambda: bool = False,
+    ) -> None:
+        pass
+
+
 class Predicate(stmt.BlockStatement):
     def __init__(
         self,
@@ -18,7 +32,7 @@ class Predicate(stmt.BlockStatement):
         arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement | expr.Expr] = [],
         export: bool = True,
-    ):
+    ) -> None:
         super().__init__(parent=parent)
         self.name = name
         self.arguments = arguments
@@ -67,7 +81,7 @@ class UiPredicate(Predicate):
         name: str,
         *statements: stmt.Statement | expr.Expr,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(
             name + "Predicate",
             arguments=arg.definition_arg,
@@ -77,7 +91,9 @@ class UiPredicate(Predicate):
 
 
 class UiTestPredicate(Predicate):
-    def __init__(self, name: str, *statements: stmt.Statement | expr.Expr, **kwargs):
+    def __init__(
+        self, name: str, *statements: stmt.Statement | expr.Expr, **kwargs
+    ) -> None:
         super().__init__(
             name, arguments=arg.definition_arg, statements=statements, **kwargs
         )

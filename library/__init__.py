@@ -7,7 +7,7 @@ from library.enum_ui import *
 from library.enum import *
 from library.expr import *
 
-from library.pred import *
+from library.func import *
 from library.stmt import *
 from library.studio import *
 from library.ui_hint import *

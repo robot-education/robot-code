@@ -1,12 +1,12 @@
 from library import base, enum, expr
-from library import pred
-from library.pred import UiTestPredicate
+from library import func
+from library.func import UiTestPredicate
 
 __all__ = [
     "any",
     "not_any",
     "predicate_name",
-    "custom_predicate",
+    "custom_enum_predicate",
     "enum_predicates",
 ]
 
@@ -36,17 +36,17 @@ def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "")
     return prepend + value.camel_case(capitalize=True) + append
 
 
-def custom_predicate(
-    enum: enum.Enum, *, name: str | None = None, parent: base.ParentNode
+def custom_enum_predicate(
+    enum: enum.EnumDict, *, name: str | None = None, parent: base.ParentNode
 ) -> expr.Expr:
-    """Generates a predicate which tests if an enum is custom."""
+    """Generates a predicate which tests if an enum is CUSTOM."""
     if name is None:
         name = "is" + enum.name + "Custom"
-    return pred.UiTestPredicate(name, enum["CUSTOM"](), parent=parent)()
+    return func.UiTestPredicate(name, enum["CUSTOM"](), parent=parent)()
 
 
 def enum_predicates(
-    enum: enum.Enum,
+    enum: enum.EnumDict,
     *,
     parent: base.ParentNode,
     parameter_name: str | None = None,
