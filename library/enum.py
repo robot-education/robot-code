@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-from typing import Iterator, Self
-from library import annotation, base, stmt, utils
+from typing import Generic, Self, TypeVar
+from library import annotation, base, expr, stmt, utils
+from library import control
 
-__all__ = ["EnumValue", "Enum", "CustomEnum"]
+__all__ = [
+    "EnumFactory",
+    "LookupEnumFactory",
+    "LookupFunction",
+]
 
 
 class EnumValue(base.Node):
@@ -56,8 +61,26 @@ class EnumValue(base.Node):
             return result
         return utils.lower_first(result)
 
+    def __call__(
+        self,
+        parameter_name: str | None = None,
+        definition: str = "definition",
+        invert: bool = False,
+    ) -> expr.Expr:
+        if parameter_name is None:
+            parameter_name = self.enum.default_parameter_name
+        operator = expr.Operator.NOT_EQUAL if invert else expr.Operator.EQUAL
+        return expr.Compare(
+            expr.Id(utils.definition(parameter_name, definition=definition)),
+            operator,
+            expr.Id("{}.{}".format(self.enum.name, self.value)),
+        )
 
-class Enum(dict[str, EnumValue], stmt.Statement):
+
+T = TypeVar("T", bound=EnumValue)
+
+
+class Enum(dict[str, T], stmt.Statement, Generic[T]):
     def __init__(
         self,
         name: str,
@@ -83,14 +106,9 @@ class Enum(dict[str, EnumValue], stmt.Statement):
         self.export = export
         super().__init__()
 
-    def add_value(
-        self,
-        value: str,
-        user_name: str | None = None,
-        hidden: bool = False,
-    ) -> Self:
-        enum_value = EnumValue(value, self, user_name=user_name, hidden=hidden)
-        self[value] = enum_value
+    def add(self, *enum_values: T) -> Self:
+        for enum_value in enum_values:
+            self[enum_value.value] = enum_value
         return self
 
     def __str__(self) -> str:
@@ -100,9 +118,60 @@ class Enum(dict[str, EnumValue], stmt.Statement):
         return string + "\n}\n"
 
 
-class CustomEnum(Enum):
-    def add_custom(self) -> Self:
-        return self.add_value("CUSTOM")
+class EnumFactory(Enum):
+    def add_value(
+        self, value: str, user_name: str | None = None, hidden: bool = False, **kwargs
+    ) -> Self:
+        enum_value = EnumValue(
+            value, self, user_name=user_name, hidden=hidden, **kwargs
+        )
+        self.add(enum_value)
+        return self
 
-    def __str__(self) -> str:
-        return super().__str__()
+    def add_custom(self, **kwargs) -> Self:
+        return self.add_value("CUSTOM", **kwargs)
+
+
+class LookupEnumValue(EnumValue):
+    def __init__(self, *args, lookup_value: str, **kwargs):
+        self.lookup_value = lookup_value
+        super().__init__(*args, **kwargs)
+
+
+class LookupEnum(Enum[LookupEnumValue]):
+    """Defines an enum with a default value for each value.
+
+    A corresponding constant map and lookup function may then be automatically
+    generated which returns the values according to when the function is accessed.
+    """
+
+    pass
+
+
+class LookupEnumFactory(EnumFactory, LookupEnum):
+    def add_value(self, value: str, **kwargs) -> Self:
+        enum_value = LookupEnumValue(value, self, **kwargs)
+        self.add(enum_value)
+        return self
+
+
+class LookupFunction:
+    def __init__(
+        self,
+        enum: LookupEnum,
+        *,
+        parent: stmt.Parent,
+        predicate_dict: dict[str, expr.Expr] = {},
+    ) -> None:
+        """
+        predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
+        """
+        tests = []
+        statements = []
+        for value, enum_value in enum.items():
+            predicate = predicate_dict.get(value, enum_value())
+            tests.append(predicate)
+            lookup_value = enum_value.lookup_value
+            statements.append(stmt.Line("return " + lookup_value))
+
+        control.IfBlock(tests=tests, statements=statements, parent=parent)

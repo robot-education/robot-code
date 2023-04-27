@@ -3,13 +3,14 @@ from library import *
 studio = Studio("robotTubeUi.gen.fs")
 
 wall_thickness = (
-    CustomEnum("WallThickness", parent=studio)
-    .add_value("ONE_SIXTEENTH", user_name='1/16"')
-    .add_value("ONE_EIGHTH", user_name='1/8"')
-    .add_custom()
+    LookupEnumFactory("WallThickness", parent=studio)
+    .add_value("ONE_SIXTEENTH", user_name='1/16"', lookup_value="0.0625 * inch")
+    .add_value("ONE_EIGHTH", user_name='1/8"', lookup_value="0.125 * inch")
+    .add_custom(lookup_value="definition.customWallThickness")
 )
 
 custom_wall_thickness = custom_predicate(wall_thickness, parent=studio)
+
 
 wall_predicate = UiPredicate("wallThickness", parent=studio)
 wall_predicate.add(
@@ -17,26 +18,29 @@ wall_predicate.add(
         wall_thickness, ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL]
     )
 )
-
 If(custom_wall_thickness, parent=wall_predicate).add(
-    LengthAnnotation("wallThickness", bound_spec=LengthBound.SHELL_OFFSET_BOUNDS)
+    LengthAnnotation("customWallThickness", bound_spec=LengthBound.SHELL_OFFSET_BOUNDS)
+)
+
+LookupFunction(
+    wall_thickness, parent=studio, predicate_dict={"CUSTOM": custom_wall_thickness}
 )
 
 tube_size = (
-    CustomEnum("TubeSize", parent=studio)
+    EnumFactory("TubeSize", parent=studio)
     .add_value("ONE_BY_ONE", user_name="1x1")
     .add_value("TWO_BY_ONE", user_name="2x1")
     .add_custom()
 )
 
 tube_type = (
-    CustomEnum("TubeType", parent=studio)
+    EnumFactory("TubeType", parent=studio)
     .add_value("MAX_TUBE", user_name="MAXTube")
     .add_custom()
 )
 
 max_tube_type = (
-    Enum("MaxTubeType", parent=studio)
+    EnumFactory("MaxTubeType", parent=studio)
     .add_value("NONE")
     .add_value("GRID")
     .add_value("MAX", user_name="MAX")
@@ -44,16 +48,16 @@ max_tube_type = (
 
 can_be_light = UiTestPredicate(
     "canBeLight",
-    equal(max_tube_type["NONE"]) | equal(max_tube_type["GRID"]),
+    max_tube_type["NONE"]() | max_tube_type["GRID"](),
     parent=studio,
-).call()
+)()
 
 type_predicates = EnumPredicates(tube_type, parent=studio)
 size_predicates = EnumPredicates(tube_size, parent=studio)
 
 is_max_tube = UiTestPredicate(
     "isMaxTube", ~size_predicates["CUSTOM"] & type_predicates["MAX_TUBE"], parent=studio
-).call()
+)()
 
 tube_predicate = UiPredicate("tubeSize", parent=studio)
 tube_predicate.add(
@@ -68,8 +72,7 @@ tube_if = If(size_predicates["CUSTOM"], parent=tube_predicate)
 tube_if.add(LengthAnnotation("length", LengthBound.LENGTH_BOUNDS))
 tube_if.add(LengthAnnotation("width", LengthBound.LENGTH_BOUNDS))
 
-tube_if = tube_if.or_else()
-tube_if.add(
+tube_if.or_else().add(
     EnumAnnotation(
         tube_type,
         default="CUSTOM",
@@ -79,21 +82,20 @@ tube_if.add(
 
 inner_if = If(
     size_predicates["TWO_BY_ONE"] & type_predicates["MAX_TUBE"], parent=tube_if
-)
-inner_if.add(EnumAnnotation(max_tube_type, user_name="Pattern type"))
+).add(EnumAnnotation(max_tube_type, user_name="Pattern type"))
 
 If(can_be_light, parent=inner_if).add(
     BooleanAnnotation("isLight", user_name="Light"),
 )
 
-wall_if = If(
-    size_predicates["CUSTOM"] | type_predicates["CUSTOM"], parent=tube_predicate
-).add(wall_predicate.call())
+If(size_predicates["CUSTOM"] | type_predicates["CUSTOM"], parent=tube_predicate).add(
+    wall_predicate()
+)
 
-fit = Enum("HoleFit", parent=studio).add_value("CLOSE").add_value("FREE")
+fit = EnumFactory("HoleFit", parent=studio).add_value("CLOSE").add_value("FREE")
 
 size = (
-    CustomEnum("HoleSize", parent=studio)
+    EnumFactory("HoleSize", parent=studio)
     .add_value("NO_8", user_name="#8")
     .add_value("NO_10", user_name="#10")
     .add_custom()

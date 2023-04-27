@@ -28,7 +28,7 @@ class Predicate(stmt.BlockStatement):
         if self.arguments == []:
             warnings.warn("Predicate has 0 arguments.")
 
-    def call(self, *args: dict[str, str]) -> expr.Expr:
+    def __call__(self, *args: dict[str, str]) -> expr.Expr:
         """Creates a predicate call.
 
         parameters: A list of tuples mapping argument names to the identifier to use.
