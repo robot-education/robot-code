@@ -1,13 +1,13 @@
 from __future__ import annotations
 from abc import ABC
 
-from typing import Generic, Iterable, Self, TypeVar
+from typing import Generic, Iterable, Self, Type, TypeVar
 from library import annotation, arg, base, expr, func, stmt, utils
 from library import control
 
 __all__ = [
     "enum_factory",
-    "lookup_enum_factory",
+    "custom_enum_factory",
     "lookup_function",
 ]
 
@@ -31,14 +31,9 @@ class EnumValue(base.Node):
         self.enum = enum
 
         if user_name is None:
-            self.user_name = self.make_user_name()
+            self.user_name = utils.value_user_name(self.value)
         else:
             self.user_name = user_name
-
-    def make_user_name(self) -> str:
-        words = self.value.lower().split(sep="_")
-        words[0] = words[0].capitalize()
-        return " ".join(words)
 
     def __str__(self) -> str:
         dict = {}
@@ -52,14 +47,6 @@ class EnumValue(base.Node):
                 str(annotation.Map(dict, quote_values=True)), self.value
             )
         return self.value
-
-    def camel_case(self, capitalize: bool = False) -> str:
-        words = self.make_user_name().split()
-        words = [word.capitalize() for word in words]
-        result = "".join(words)
-        if capitalize:
-            return result
-        return utils.lower_first(result)
 
     def __call__(
         self,
@@ -132,10 +119,11 @@ class EnumFactoryBase(ABC):
     def __init__(
         self,
         enum_factory,
-        value_factory,
     ):
         self.enum_factory = enum_factory
-        self.value_factory = value_factory
+        self.reset()
+
+    def reset(self) -> None:
         self.enum = None
         self.result = {}
 
@@ -146,7 +134,9 @@ class EnumFactoryBase(ABC):
         parent: base.ParentNode,
         default_parameter_name: str | None = None,
         export: bool = True,
+        value_type: Type = EnumValue,
     ) -> Self:
+        self.value_factory = value_type
         self.enum = self.enum_factory(
             name,
             parent=parent,
@@ -160,9 +150,6 @@ class EnumFactoryBase(ABC):
         self.result[value] = enum_value
         return self
 
-    def add_custom(self, **kwargs) -> Self:
-        return self.add_value("CUSTOM", **kwargs)
-
     def make(self) -> EnumDict:
         if self.enum is None:
             raise ValueError("add_enum must be called before make")
@@ -171,25 +158,45 @@ class EnumFactoryBase(ABC):
 
         self.enum.add(*self.result.values())
         enum = EnumDict(self.enum, self.result)
-
-        self.result = {}
-        self.enum = None
-
+        self.reset()
         return enum
 
 
 class EnumFactory(EnumFactoryBase):
     def __init__(self):
-        super().__init__(enum_factory=_Enum, value_factory=EnumValue)
+        super().__init__(enum_factory=_Enum)
 
 
-class LookupEnumFactory(EnumFactoryBase):
+class CustomEnumFactory(EnumFactory):
     def __init__(self):
-        super().__init__(enum_factory=_Enum, value_factory=LookupEnumValue)
+        super().__init__()
+
+    def reset(self) -> None:
+        super().reset()
+        self.has_custom = False
+
+    def add_custom(self, **kwargs) -> Self:
+        if self.has_custom:
+            raise ValueError("Cannot add a custom value multiple times.")
+        self.add_value("CUSTOM", **kwargs)
+        self.has_custom = True
+        return self
+
+    def make(self) -> EnumDict:
+        if not self.has_custom:
+            self.add_value("CUSTOM")
+        self.has_custom = False
+        return super().make()
+
+
+# class LookupEnumFactory(EnumFactoryBase):
+#     def __init__(self):
+#         super().__init__(enum_factory=_Enum, value_factory=LookupEnumValue)
 
 
 enum_factory = EnumFactory()
-lookup_enum_factory = LookupEnumFactory()
+custom_enum_factory = CustomEnumFactory()
+# lookup_enum_factory = LookupEnumFactory()
 
 
 def lookup_block(

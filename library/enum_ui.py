@@ -1,4 +1,4 @@
-from library import base, enum, expr
+from library import base, enum, expr, utils
 from library import func
 from library.func import UiTestPredicate
 
@@ -33,7 +33,7 @@ def not_any(*values: enum.EnumValue, add_parentheses: bool = False) -> expr.Expr
 
 
 def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "") -> str:
-    return prepend + value.camel_case(capitalize=True) + append
+    return prepend + utils.camel_case(value.value, capitalize=True) + append
 
 
 def custom_enum_predicate(

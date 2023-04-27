@@ -1,12 +1,15 @@
 from library import *
+from library.enum import LookupEnumValue
 
 studio = Studio("robotTubeUi.gen.fs")
 
 wall_thickness = (
-    lookup_enum_factory.add_enum("WallThickness", parent=studio)
+    custom_enum_factory.add_enum(
+        "WallThickness", parent=studio, value_type=LookupEnumValue
+    )
     .add_value("ONE_SIXTEENTH", user_name='1/16"', lookup_value="0.0625 * inch")
     .add_value("ONE_EIGHTH", user_name='1/8"', lookup_value="0.125 * inch")
-    .add_custom(lookup_value="definition.customWallThickness")
+    .add_custom(lookup_value=definition("customWallThickness"))
     .make()
 )
 
@@ -33,17 +36,15 @@ lookup_function(
 )
 
 tube_size = (
-    enum_factory.add_enum("TubeSize", parent=studio)
+    custom_enum_factory.add_enum("TubeSize", parent=studio)
     .add_value("ONE_BY_ONE", user_name="1x1")
     .add_value("TWO_BY_ONE", user_name="2x1")
-    .add_custom()
     .make()
 )
 
 tube_type = (
-    enum_factory.add_enum("TubeType", parent=studio)
+    custom_enum_factory.add_enum("TubeType", parent=studio)
     .add_value("MAX_TUBE", user_name="MAXTube")
-    .add_custom()
     .make()
 )
 
@@ -104,17 +105,16 @@ IfBlock(
 ).add(wall_predicate())
 
 fit = (
-    enum_factory.add_enum("HoleFit", parent=studio)
+    custom_enum_factory.add_enum("HoleFit", parent=studio)
     .add_value("CLOSE")
     .add_value("FREE")
     .make()
 )
 
 size = (
-    enum_factory.add_enum("HoleSize", parent=studio)
+    custom_enum_factory.add_enum("HoleSize", parent=studio)
     .add_value("NO_8", user_name="#8")
     .add_value("NO_10", user_name="#10")
-    .add_custom()
     .make()
 )
 
