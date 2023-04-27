@@ -6,7 +6,7 @@ from library import base, stmt, expr
 __all__ = ["If", "if_block"]
 
 
-class _If(stmt.BlockStatement):
+class _If(stmt.BlockParent):
     def __init__(self, test: expr.Expr) -> None:
         super().__init__()
         self.test = test
@@ -17,7 +17,7 @@ class _If(stmt.BlockStatement):
         return string + "}\n"
 
 
-class _ElseIf(stmt.BlockStatement):
+class _ElseIf(stmt.BlockParent):
     def __init__(self, test: expr.Expr) -> None:
         super().__init__()
         self.test = test
@@ -28,7 +28,7 @@ class _ElseIf(stmt.BlockStatement):
         return string + "}\n"
 
 
-class _Else(stmt.BlockStatement):
+class _Else(stmt.BlockParent):
     def __str__(self) -> str:
         string = "else\n{\n"
         string += self.children_str(tab=True, sep="\n")
@@ -43,14 +43,12 @@ class If(stmt.BlockStatement):
 
     def __init__(self, test: expr.Expr, *, parent: base.ParentNode) -> None:
         super().__init__(parent=parent)
+        # cast children
+        self.children: list[_If | _ElseIf | _Else] = self.children
         self.children.append(_If(test))
 
     def add(self, *nodes: stmt.Statement | expr.Expr) -> Self:
-        self.children[-1].add(*nodes)  # type: ignore
-        return self
-
-    def _register(self, node: stmt.Statement | expr.Expr) -> Self:
-        self.children[-1]._register(node)  # type: ignore
+        self.children[-1].add(*nodes)
         return self
 
     def else_if(self, test: expr.Expr) -> Self:

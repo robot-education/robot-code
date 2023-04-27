@@ -12,10 +12,9 @@ class Node(ABC):
 
 
 class ChildNode(Node, ABC):
-    def __init__(self, *args, parent: ParentNode | None = None, **kwargs) -> None:
+    def __init__(self, *args, parent: ParentNode, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        if parent is not None:
-            parent._register(self)
+        parent.add(self)
 
 
 class ParentNode(Node, ABC):
@@ -23,19 +22,11 @@ class ParentNode(Node, ABC):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.children: list[ChildNode] = []
+        self.children: list[Node] = []
 
-    def add(self, *children: ChildNode) -> Self:
+    def add(self, *children: Node) -> Self:
         """Adds one or more children to the class."""
         self.children.extend(children)
-        return self
-
-    def _register(self, node: ChildNode) -> Self:
-        """Adds a node to the class.
-
-        This method is intended to be invoked by child nodes which are registering themselves with a parent node.
-        """
-        self.children.append(node)
         return self
 
     def children_str(self, **kwargs) -> str:

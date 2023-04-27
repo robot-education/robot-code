@@ -28,9 +28,13 @@ def convert_expr_to_lines(*nodes: Statement | expr.Expr) -> list[Statement]:
     return [Line(node) if isinstance(node, expr.Expr) else node for node in nodes]
 
 
-class BlockStatement(base.ChildNode, base.ParentNode):
-    """A type of statement which supports nested children."""
-
+class BlockParent(base.ParentNode):
     def add(self, *children: Statement | expr.Expr) -> Self:
         super().add(*convert_expr_to_lines(*children))
         return self
+
+
+class BlockStatement(base.ChildNode, BlockParent):
+    """A type of statement which supports nested children."""
+
+    pass
