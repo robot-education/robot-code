@@ -1,6 +1,5 @@
 import re
-from typing import Iterable
-from library import base
+from typing import Iterable, Protocol
 
 
 def export(export: bool) -> str:
@@ -17,8 +16,13 @@ def tab_lines(string: str) -> str:
     return "".join(["    " + line for line in lines])
 
 
+class Str(Protocol):
+    def __str__(self) -> str:
+        ...
+
+
 def to_str(
-    nodes: Iterable[base.Node | str],
+    nodes: Iterable[Str | str],
     sep: str = "",
     end: str = "",
     tab: bool = False,

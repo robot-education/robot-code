@@ -7,12 +7,11 @@ from library import control
 __all__ = [
     "EnumFactory",
     "LookupEnumFactory",
-    "LookupFunction",
+    "lookup_function",
 ]
 
 
 class EnumValue(base.Node):
-    # Enum type is circular?
     def __init__(
         self,
         value: str,
@@ -80,12 +79,12 @@ class EnumValue(base.Node):
 T = TypeVar("T", bound=EnumValue)
 
 
-class Enum(dict[str, T], stmt.Statement, Generic[T]):
+class Enum(stmt.BlockStatement, Generic[T], dict[str, T]):
     def __init__(
         self,
         name: str,
         *,
-        parent: stmt.Parent,
+        parent: base.ParentNode,
         default_parameter_name: str | None = None,
         export: bool = True,
     ) -> None:
@@ -95,7 +94,7 @@ class Enum(dict[str, T], stmt.Statement, Generic[T]):
         values: A list of strings which are used to construct enum values. EnumValues may also be registered afterwards.
         default_parameter_name: A default parameter name to use. If not specified, the default is generated automatically by lowercasing the first letter of name.
         """
-        self.register_parent(parent)
+        super().__init__(parent=parent)
 
         self.name = name
         self.default_parameter_name = (
@@ -104,7 +103,6 @@ class Enum(dict[str, T], stmt.Statement, Generic[T]):
             else default_parameter_name
         )
         self.export = export
-        super().__init__()
 
     def add(self, *enum_values: T) -> Self:
         for enum_value in enum_values:
@@ -155,23 +153,21 @@ class LookupEnumFactory(EnumFactory, LookupEnum):
         return self
 
 
-class LookupFunction:
-    def __init__(
-        self,
-        enum: LookupEnum,
-        *,
-        parent: stmt.Parent,
-        predicate_dict: dict[str, expr.Expr] = {},
-    ) -> None:
-        """
-        predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
-        """
-        tests = []
-        statements = []
-        for value, enum_value in enum.items():
-            predicate = predicate_dict.get(value, enum_value())
-            tests.append(predicate)
-            lookup_value = enum_value.lookup_value
-            statements.append(stmt.Line("return " + lookup_value))
+def lookup_function(
+    enum: LookupEnum,
+    *,
+    parent: base.ParentNode,
+    predicate_dict: dict[str, expr.Expr] = {},
+) -> None:
+    """
+    predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
+    """
+    tests = []
+    statements = []
+    for value, enum_value in enum.items():
+        predicate = predicate_dict.get(value, enum_value())
+        tests.append(predicate)
+        lookup_value = enum_value.lookup_value
+        statements.append(stmt.Line("return " + lookup_value))
 
-        control.IfBlock(tests=tests, statements=statements, parent=parent)
+    control.if_block(tests=tests, statements=statements, parent=parent)

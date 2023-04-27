@@ -11,7 +11,6 @@ wall_thickness = (
 
 custom_wall_thickness = custom_predicate(wall_thickness, parent=studio)
 
-
 wall_predicate = UiPredicate("wallThickness", parent=studio)
 wall_predicate.add(
     EnumAnnotation(
@@ -22,7 +21,7 @@ If(custom_wall_thickness, parent=wall_predicate).add(
     LengthAnnotation("customWallThickness", bound_spec=LengthBound.SHELL_OFFSET_BOUNDS)
 )
 
-LookupFunction(
+lookup_function(
     wall_thickness, parent=studio, predicate_dict={"CUSTOM": custom_wall_thickness}
 )
 
@@ -52,8 +51,8 @@ can_be_light = UiTestPredicate(
     parent=studio,
 )()
 
-type_predicates = EnumPredicates(tube_type, parent=studio)
-size_predicates = EnumPredicates(tube_size, parent=studio)
+type_predicates = enum_predicates(tube_type, parent=studio)
+size_predicates = enum_predicates(tube_size, parent=studio)
 
 is_max_tube = UiTestPredicate(
     "isMaxTube", ~size_predicates["CUSTOM"] & type_predicates["MAX_TUBE"], parent=studio

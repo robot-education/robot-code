@@ -1,6 +1,6 @@
 import warnings
 from typing import Iterable
-from library import arg, expr, stmt, utils
+from library import arg, base, expr, stmt, utils
 
 __all__ = [
     "Predicate",
@@ -14,15 +14,15 @@ class Predicate(stmt.BlockStatement):
         self,
         name: str,
         *,
-        parent: stmt.Parent,
+        parent: base.ParentNode,
         arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement | expr.Expr] = [],
         export: bool = True,
     ):
-        self.register_parent(parent)
+        super().__init__(parent=parent)
         self.name = name
         self.arguments = arguments
-        super().__init__(*statements)
+        self.add(*statements)
         self.export = export
 
         if self.arguments == []:
@@ -50,7 +50,7 @@ class Predicate(stmt.BlockStatement):
         string += "predicate {}({})\n{{\n".format(
             self.name, utils.to_str(self.arguments)
         )
-        string += utils.to_str(self.child_nodes, tab=True, sep="\n")
+        string += self.children_str(tab=True, sep="\n")
         string += " }\n"
         return string
 
