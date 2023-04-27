@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Self, Sequence
 from library import base, stmt, expr
 
-__all__ = ["If", "if_block"]
+__all__ = ["IfBlock", "if_block"]
 
 
 class _If(stmt.BlockParent):
@@ -35,13 +35,13 @@ class _Else(stmt.BlockParent):
         return string + "}\n"
 
 
-class If(stmt.BlockStatement):
+class IfBlock(stmt.BlockStatement):
     """Represents an if statement.
     Nesting works as follows: an If composes an if statement, followed by one or more else_ifs, followed by an else. At any given point an if is only one statement.
     Adding to an If class always adds to the most recently activated condition.
     """
 
-    def __init__(self, test: expr.Expr, *, parent: base.ParentNode) -> None:
+    def __init__(self, test: expr.Expr, *, parent: base.ParentNode | None = None) -> None:
         super().__init__(parent=parent)
         # cast children
         self.children: list[_If | _ElseIf | _Else] = self.children
@@ -60,7 +60,6 @@ class If(stmt.BlockStatement):
         return self
 
     def __str__(self) -> str:
-        print(self.children)
         return self.children_str()
 
 
@@ -79,7 +78,7 @@ def if_block(
             )
         )
 
-    base = If(tests[0], parent=parent).add(statements[0])
+    base = IfBlock(tests[0], parent=parent).add(statements[0])
     for i, test in enumerate(tests[1:], start=1):
         base.else_if(test).add(statements[i])
 

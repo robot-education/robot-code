@@ -34,7 +34,7 @@ class BlockParent(base.ParentNode):
         return self
 
 
-class BlockStatement(base.ChildNode, BlockParent):
+class BlockStatement(Statement, BlockParent):
     """A type of statement which supports nested children."""
 
     pass

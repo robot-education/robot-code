@@ -1,9 +1,9 @@
-import enum as _enum
+import enum as std_enum
 
 __all__ = ["UiHint", "remember_hint"]
 
 
-class UiHint(_enum.StrEnum):
+class UiHint(std_enum.StrEnum):
     ALWAYS_HIDDEN = '"ALWAYS_HIDDEN"'
     READ_ONLY = '"READ_ONLY"'
     UNCONFIGURABLE = '"UNCONFIGURABLE"'

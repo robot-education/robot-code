@@ -1,11 +1,11 @@
-import enum as _enum
+import enum as std_enum
 
 # https://cad.onshape.com/documents/12312312345abcabcabcdeff/w/a855e4161c814f2e9ab3698a/e/87b09e244a234eb791b47826
 
 __all__ = ["LengthBound", "AngleBound"]
 
 
-class LengthBound(_enum.StrEnum):
+class LengthBound(std_enum.StrEnum):
     # (-inf, inf, 1)
     LENGTH_BOUNDS = "LENGTH_BOUNDS"
     # > 0
@@ -31,6 +31,6 @@ class LengthBound(_enum.StrEnum):
     VOLUME_BOUNDS = "VOLUME_BOUNDS"
 
 
-class AngleBound(_enum.StrEnum):
+class AngleBound(std_enum.StrEnum):
     ANGLE_360_BOUNDS = "ANGLE_360_BOUNDS"
     ANGLE_360_ZERO_DEFAULT_BOUNDS = "ANGLE_360_ZERO_DEFAULT_BOUNDS"

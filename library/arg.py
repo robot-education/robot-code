@@ -1,5 +1,5 @@
 from typing import Iterator, Self
-from library import base
+from library import base, type
 
 __all__ = [
     "Argument",
@@ -46,7 +46,7 @@ class Argument(base.Node):
         return "{} is {}".format(self.name, self.type)
 
 
-definition_arg = Argument("definition", "map")
-id_arg = Argument("id")
-context_arg = Argument("context")
+definition_arg = Argument("definition", type.Type.MAP)
+id_arg = Argument("id", type=type.Type.ID)
+context_arg = Argument("context", type=type.Type.CONTEXT)
 feature_args = [context_arg, id_arg, definition_arg]

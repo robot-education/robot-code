@@ -12,9 +12,10 @@ class Node(ABC):
 
 
 class ChildNode(Node, ABC):
-    def __init__(self, parent: ParentNode, **kwargs) -> None:
+    def __init__(self, parent: ParentNode | None = None, **kwargs) -> None:
         super().__init__(**kwargs)
-        parent.add(self)
+        if parent is not None:
+            parent.add(self)
 
 
 class ParentNode(Node, ABC):

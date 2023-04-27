@@ -4,14 +4,14 @@ A module defining expressions. Expressions refer to boolean logic and mathematic
 from __future__ import annotations
 
 from abc import ABC
-import enum as _enum
+import enum as std_enum
 from typing import Iterator, Self
 from library import stmt
 
 __all__ = ["Parens", "Id"]
 
 
-class Operator(_enum.StrEnum):
+class Operator(std_enum.StrEnum):
     EQUAL = "=="
     NOT_EQUAL = "!="
 
@@ -29,6 +29,7 @@ class Expr(ABC):
     # Add iter to support use as a statement for predicate
     def __iter__(self) -> Iterator[Self]:
         return [self].__iter__()
+
 
 class Compare(Expr):
     def __init__(self, lhs: Expr, operator: Operator, rhs: Expr) -> None:

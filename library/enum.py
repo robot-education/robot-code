@@ -1,8 +1,8 @@
 from __future__ import annotations
 from abc import ABC
 
-from typing import Generic, Self, TypeVar
-from library import annotation, base, expr, stmt, utils
+from typing import Generic, Iterable, Self, TypeVar
+from library import annotation, arg, base, expr, func, stmt, utils
 from library import control
 
 __all__ = [
@@ -48,7 +48,7 @@ class EnumValue(base.Node):
             dict["Hidden"] = "true"
 
         if dict != {}:
-            return "annotation {}\n {}".format(
+            return "annotation {}\n{}".format(
                 str(annotation.Map(dict, quote_values=True)), self.value
             )
         return self.value
@@ -131,12 +131,11 @@ class EnumDict(dict[str, V], Generic[V]):
 class EnumFactoryBase(ABC):
     def __init__(
         self,
-        *,
-        enum_supplier,
-        value_supplier,
+        enum_factory,
+        value_factory,
     ):
-        self.enum_supplier = enum_supplier
-        self.value_supplier = value_supplier
+        self.enum_factory = enum_factory
+        self.value_factory = value_factory
         self.enum = None
         self.result = {}
 
@@ -148,7 +147,7 @@ class EnumFactoryBase(ABC):
         default_parameter_name: str | None = None,
         export: bool = True,
     ) -> Self:
-        self.enum = self.enum_supplier(
+        self.enum = self.enum_factory(
             name,
             parent=parent,
             default_parameter_name=default_parameter_name,
@@ -157,7 +156,7 @@ class EnumFactoryBase(ABC):
         return self
 
     def add_value(self, value: str, *args, **kwargs) -> Self:
-        enum_value = self.value_supplier(value, self.enum, *args, **kwargs)
+        enum_value = self.value_factory(value, self.enum, *args, **kwargs)
         self.result[value] = enum_value
         return self
 
@@ -181,27 +180,24 @@ class EnumFactoryBase(ABC):
 
 class EnumFactory(EnumFactoryBase):
     def __init__(self):
-        super().__init__(enum_supplier=_Enum, value_supplier=EnumValue)
+        super().__init__(enum_factory=_Enum, value_factory=EnumValue)
 
 
 class LookupEnumFactory(EnumFactoryBase):
     def __init__(self):
-        super().__init__(enum_supplier=_Enum, value_supplier=LookupEnumValue)
+        super().__init__(enum_factory=_Enum, value_factory=LookupEnumValue)
 
 
 enum_factory = EnumFactory()
 lookup_enum_factory = LookupEnumFactory()
 
 
-def lookup_function(
+def lookup_block(
     enum_dict: EnumDict[LookupEnumValue],
     *,
     parent: base.ParentNode,
     predicate_dict: dict[str, expr.Expr] = {},
 ) -> None:
-    """
-    predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
-    """
     tests = []
     statements = []
     for value, enum_value in enum_dict.items():
@@ -211,3 +207,23 @@ def lookup_function(
         statements.append(stmt.Line("return " + lookup_value))
 
     control.if_block(tests=tests, statements=statements, parent=parent)
+
+
+def lookup_function(
+    name: str,
+    enum_dict: EnumDict[LookupEnumValue],
+    *,
+    additional_arguments: Iterable[arg.Argument] = [],
+    predicate_dict: dict[str, expr.Expr] = {},
+    return_type: str | None = None,
+    parent: base.ParentNode,
+) -> None:
+    """
+    predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
+    """
+    arguments: list[arg.Argument] = [arg.definition_arg]
+    arguments.extend(additional_arguments)
+    function = func.Function(
+        name, arguments=arguments, parent=parent, return_type=return_type
+    )
+    lookup_block(enum_dict, parent=function, predicate_dict=predicate_dict)

@@ -10,5 +10,6 @@ from library.expr import *
 from library.func import *
 from library.stmt import *
 from library.studio import *
+from library.type import *
 from library.ui_hint import *
 from library.utils import *
