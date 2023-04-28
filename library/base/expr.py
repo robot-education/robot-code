@@ -6,7 +6,7 @@ from __future__ import annotations
 from abc import ABC
 import enum as std_enum
 from typing import Iterator, Self
-from library.base import stmt
+from library.base import node
 
 __all__ = ["Parens", "Id"]
 
@@ -16,7 +16,7 @@ class Operator(std_enum.StrEnum):
     NOT_EQUAL = "!="
 
 
-class Expr(ABC):
+class Expr(node.Node, ABC):
     def __invert__(self) -> Expr:
         return UnaryOp(self, "!")
 

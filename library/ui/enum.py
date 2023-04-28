@@ -2,9 +2,8 @@ from __future__ import annotations
 from abc import ABC
 
 from typing import Generic, Iterable, Self, Type, TypeVar
-from library.core import control, func, utils, arg, map
+from library.core import control, func, str_utils, utils, arg, map
 from library.base import node, stmt, expr
-from library.ui import annotation
 
 __all__ = [
     "enum_factory",
@@ -31,7 +30,7 @@ class EnumValue(node.Node):
         self.value = value.upper()
         self.hidden = hidden
         self.enum = enum
-        self.user_name = user_name or utils.value_user_name(self.value)
+        self.user_name = user_name or str_utils.value_user_name(self.value)
 
     def __str__(self) -> str:
         dict = {}
@@ -56,7 +55,7 @@ class EnumValue(node.Node):
             parameter_name = self.enum.default_parameter_name
         operator = expr.Operator.NOT_EQUAL if invert else expr.Operator.EQUAL
         return expr.Compare(
-            expr.Id(utils.definition(parameter_name, definition)),
+            utils.definition(parameter_name, definition),
             operator,
             expr.Id("{}.{}".format(self.enum.name, self.value)),
         )
@@ -89,7 +88,9 @@ class _Enum(stmt.BlockStatement):
         super().__init__(parent=parent)
 
         self.name = name
-        self.default_parameter_name = default_parameter_name or utils.lower_first(name)
+        self.default_parameter_name = default_parameter_name or str_utils.lower_first(
+            name
+        )
         self.export = export
 
     def __str__(self) -> str:
@@ -148,7 +149,7 @@ class EnumFactoryBase(ABC):
         if self.enum is None:
             raise ValueError("add_enum must be called before make")
         if len(self.result.values()) is None:
-            raise ValueError("Cannot create enum with no values")
+            raise ValueError("Cannot create an enum with no values")
 
         self.enum.add(*self.result.values())
         enum = EnumDict(self.enum, self.result)
@@ -195,7 +196,7 @@ def lookup_block(
         predicate = predicate_dict.get(value, enum_value())
         tests.append(predicate)
         lookup_value = enum_value.lookup_value
-        statements.append(stmt.Line("return " + lookup_value))
+        statements.append(stmt.Return(lookup_value))
 
     control.if_block(tests=tests, statements=statements, parent=parent)
 
@@ -208,7 +209,7 @@ def enum_lookup_function(
     additional_arguments: Iterable[arg.Argument] = [],
     predicate_dict: dict[str, expr.Expr] = {},
     return_type: str | None = None,
-) -> None:
+) -> func.Function:
     """
     predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
     """
@@ -218,3 +219,4 @@ def enum_lookup_function(
         name, parent=parent, arguments=arguments, return_type=return_type
     )
     lookup_block(enum_dict, parent=function, predicate_dict=predicate_dict)
+    return function

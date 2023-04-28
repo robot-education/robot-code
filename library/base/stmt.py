@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import Self
 from library.base import expr, node
 
+__all__ = ["Return"]
+
 
 class Statement(node.ChildNode):
     """An class representing a statement.
@@ -16,12 +18,18 @@ class Line(Statement):
     """Represents an statement which spans a single line."""
 
     def __init__(self, expression: expr.Expr | str) -> None:
-        if isinstance(expression, str):
-            expression = expr.Id(expression)
         self.expr = expression
 
     def __str__(self) -> str:
         return str(self.expr) + ";\n"
+
+
+class Return(Statement):
+    def __init__(self, expression: expr.Expr | str) -> None:
+        self.expr = expression
+
+    def __str__(self) -> str:
+        return "return " + str(self.expr) + ";\n"
 
 
 def convert_expr_to_lines(*nodes: Statement | expr.Expr) -> list[Statement]:

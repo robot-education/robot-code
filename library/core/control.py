@@ -67,11 +67,11 @@ class IfBlock(stmt.BlockStatement):
 
 def if_block(
     *,
+    parent: node.ParentNode,
     tests: Sequence[expr.Expr],
     statements: Sequence[stmt.Statement],
     else_statement: stmt.Statement | None = None,
     add_else: bool = True,
-    parent: node.ParentNode,
 ) -> None:
     if len(tests) != len(statements):
         raise ValueError(

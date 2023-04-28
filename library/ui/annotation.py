@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import Iterable, Sequence
-from library.core import utils, map
+from library.core import str_utils, utils, map
 from library.base import stmt
 from library.ui import enum, ui_hint
 
@@ -23,7 +23,7 @@ class Annotation(stmt.Statement, ABC):
         A dict containing additional strings to add to the annotation map.
         """
         self.parameter_name = parameter_name
-        self.user_name = user_name or utils.user_name(self.parameter_name)
+        self.user_name = user_name or str_utils.user_name(self.parameter_name)
 
         # always put name and ui hints first
         map_args = {"Name": self.user_name}
@@ -47,7 +47,7 @@ class TypeAnnotation(Annotation, ABC):
     def __str__(self) -> str:
         return (
             super().__str__()
-            + utils.definition(self.parameter_name)
+            + str(utils.definition(self.parameter_name))
             + " is {};\n".format(self.type)
         )
 

@@ -14,4 +14,5 @@ from library.core.func import *
 from library.core.studio import *
 from library.core.map import *
 from library.core.type import *
+from library.core.str_utils import *
 from library.core.utils import *

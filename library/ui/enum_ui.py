@@ -1,4 +1,4 @@
-from library.core import func, utils
+from library.core import func, str_utils
 from library.base import expr, node
 from library.ui import enum
 
@@ -33,7 +33,7 @@ def not_any(*values: enum.EnumValue, add_parentheses: bool = False) -> expr.Expr
 
 
 def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "") -> str:
-    return prepend + utils.camel_case(value.value, capitalize=True) + append
+    return prepend + str_utils.camel_case(value.value, capitalize=True) + append
 
 
 def custom_enum_predicate(

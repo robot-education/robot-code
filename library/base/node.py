@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Self
 
-from library.core import utils
+from library.core import str_utils
 
 
 class Node(ABC):
@@ -30,4 +30,4 @@ class ParentNode(Node, ABC):
         return self
 
     def children_str(self, **kwargs) -> str:
-        return utils.to_str(self.children, **kwargs)
+        return str_utils.to_str(self.children, **kwargs)

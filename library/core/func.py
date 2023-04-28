@@ -1,7 +1,7 @@
 import warnings
 import enum as std_enum
 from typing import Iterable
-from library.core import utils, arg
+from library.core import str_utils, utils, arg
 from library.base import expr, node, stmt
 
 __all__ = [
@@ -62,9 +62,9 @@ class _Callable(stmt.BlockStatement):
             return "const {} = function".format(self.name)
         return self.callable_type + " " + self.name
 
-    def _string(self, sep: str = "\n") -> str:
+    def _string(self, sep: str = "") -> str:
         string = utils.export(self.export) + self._arg_preamble()
-        string += "({})".format(utils.to_str(self.arguments))
+        string += "({})".format(str_utils.to_str(self.arguments))
         if self.return_type is not None:
             string += " returns " + self.return_type
         string += "\n{\n"
