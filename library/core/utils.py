@@ -24,7 +24,7 @@ class Str(Protocol):
 
 
 def to_str(
-    nodes: Iterable[Str | str],
+    nodes: Iterable[Str],
     sep: str = "",
     end: str = "",
     tab: bool = False,

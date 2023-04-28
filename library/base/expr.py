@@ -6,7 +6,7 @@ from __future__ import annotations
 from abc import ABC
 import enum as std_enum
 from typing import Iterator, Self
-from library import stmt
+from library.base import stmt
 
 __all__ = ["Parens", "Id"]
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Self, Sequence
-from library import base, stmt, expr
+from library.base import node, stmt, expr
 
 __all__ = ["IfBlock", "if_block"]
 
@@ -41,7 +41,9 @@ class IfBlock(stmt.BlockStatement):
     Adding to an If class always adds to the most recently activated condition.
     """
 
-    def __init__(self, test: expr.Expr, *, parent: base.ParentNode | None = None) -> None:
+    def __init__(
+        self, test: expr.Expr, *, parent: node.ParentNode | None = None
+    ) -> None:
         super().__init__(parent=parent)
         # cast children
         self.children: list[_If | _ElseIf | _Else] = self.children
@@ -69,7 +71,7 @@ def if_block(
     statements: Sequence[stmt.Statement],
     else_statement: stmt.Statement | None = None,
     add_else: bool = True,
-    parent: base.ParentNode,
+    parent: node.ParentNode,
 ) -> None:
     if len(tests) != len(statements):
         raise ValueError(

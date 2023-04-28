@@ -1,4 +1,6 @@
-from library import base, enum, expr, func, utils
+from library.core import func, utils
+from library.base import expr, node
+from library.ui import enum
 
 __all__ = [
     "any",
@@ -35,7 +37,7 @@ def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "")
 
 
 def custom_enum_predicate(
-    enum: enum.EnumDict, *, name: str | None = None, parent: base.ParentNode
+    enum: enum.EnumDict, *, name: str | None = None, parent: node.ParentNode
 ) -> expr.Expr:
     """Generates a predicate which tests if an enum is CUSTOM."""
     if name is None:
@@ -46,7 +48,7 @@ def custom_enum_predicate(
 def enum_predicates(
     enum: enum.EnumDict,
     *,
-    parent: base.ParentNode,
+    parent: node.ParentNode,
     parameter_name: str | None = None,
     prepend: str | None = None,
     append: str = "",

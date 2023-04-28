@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Self
 
-from library import utils
+from library.core import utils
 
 
 class Node(ABC):

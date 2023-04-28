@@ -1,5 +1,6 @@
 from typing import Iterator, Self
-from library import base, type
+from library.base import node
+from library.core import type
 
 __all__ = [
     "Argument",
@@ -10,7 +11,7 @@ __all__ = [
 ]
 
 
-class Argument(base.Node):
+class Argument(node.Node):
     def __init__(
         self,
         name: str,

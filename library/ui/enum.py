@@ -2,17 +2,19 @@ from __future__ import annotations
 from abc import ABC
 
 from typing import Generic, Iterable, Self, Type, TypeVar
-from library import annotation, arg, base, expr, func, stmt, utils
-from library import control
+from library.core import control, func, utils, arg, map
+from library.base import node, stmt, expr
+from library.ui import annotation
 
 __all__ = [
     "enum_factory",
     "custom_enum_factory",
     "enum_lookup_function",
+    "LookupEnumValue",
 ]
 
 
-class EnumValue(base.Node):
+class EnumValue(node.Node):
     def __init__(
         self,
         value: str,
@@ -40,7 +42,7 @@ class EnumValue(base.Node):
 
         if dict != {}:
             return "annotation {}\n{}".format(
-                str(annotation.Map(dict, quote_values=True)), self.value
+                str(map.Map(dict, quote_values=True)), self.value
             )
         return self.value
 
@@ -74,7 +76,7 @@ class _Enum(stmt.BlockStatement):
         self,
         name: str,
         *,
-        parent: base.ParentNode,
+        parent: node.ParentNode,
         default_parameter_name: str | None = None,
         export: bool = True,
     ) -> None:
@@ -123,7 +125,7 @@ class EnumFactoryBase(ABC):
         self,
         name: str,
         *,
-        parent: base.ParentNode,
+        parent: node.ParentNode,
         default_parameter_name: str | None = None,
         export: bool = True,
         value_type: Type = EnumValue,
@@ -184,7 +186,7 @@ custom_enum_factory = CustomEnumFactory()
 def lookup_block(
     enum_dict: EnumDict[LookupEnumValue],
     *,
-    parent: base.ParentNode,
+    parent: node.ParentNode,
     predicate_dict: dict[str, expr.Expr] = {},
 ) -> None:
     tests = []
@@ -202,7 +204,7 @@ def enum_lookup_function(
     name: str,
     enum_dict: EnumDict[LookupEnumValue],
     *,
-    parent: base.ParentNode,
+    parent: node.ParentNode,
     additional_arguments: Iterable[arg.Argument] = [],
     predicate_dict: dict[str, expr.Expr] = {},
     return_type: str | None = None,

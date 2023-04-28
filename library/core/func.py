@@ -1,9 +1,11 @@
 import warnings
 import enum as std_enum
 from typing import Iterable
-from library import arg, base, expr, stmt, utils
+from library.core import utils, arg
+from library.base import expr, node, stmt
 
 __all__ = [
+    "Function",
     "Predicate",
     "UiPredicate",
     "ui_test_predicate",
@@ -26,7 +28,7 @@ class _Callable(stmt.BlockStatement):
         return_type: str | None = None,
         export: bool = True,
         is_lambda: bool = False,
-        parent: base.ParentNode,
+        parent: node.ParentNode,
     ) -> None:
         super().__init__(parent=parent)
         self.add(*statements)
@@ -38,7 +40,7 @@ class _Callable(stmt.BlockStatement):
         self.export = export
         self.is_lambda = is_lambda
 
-    def __call__(self, args: dict[str, str] = {}) -> expr.Expr:
+    def __call__(self, arg_overrides: dict[str, str] = {}) -> expr.Expr:
         """Generates an expression which represents a call to the corresponding predicate or function.
 
         parameters: A list of tuples mapping argument names to the identifier to use.
@@ -46,7 +48,7 @@ class _Callable(stmt.BlockStatement):
         arg_dict = dict(
             (argument.name, argument.default_parameter) for argument in self.arguments
         )
-        for arg_name, parameter in args:
+        for arg_name, parameter in arg_overrides:
             if arg_name not in arg_dict:
                 raise ValueError(
                     "{} did not match any arguments in predicate.".format(arg_name)
@@ -55,18 +57,18 @@ class _Callable(stmt.BlockStatement):
 
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
-    def arg_preamble(self) -> str:
+    def _arg_preamble(self) -> str:
         if self.is_lambda:
             return "const {} = function".format(self.name)
         return self.callable_type + " " + self.name
 
-    def __str__(self) -> str:
-        string = utils.export(self.export) + self.arg_preamble()
+    def _string(self, sep: str = "\n") -> str:
+        string = utils.export(self.export) + self._arg_preamble()
         string += "({})".format(utils.to_str(self.arguments))
         if self.return_type is not None:
             string += " returns " + self.return_type
         string += "\n{\n"
-        string += self.children_str(tab=True, sep="\n")
+        string += self.children_str(tab=True, sep=sep)
         string += "}"
         if self.is_lambda:
             string += ";"
@@ -79,7 +81,7 @@ class Function(_Callable):
         self,
         name: str,
         *,
-        parent: base.ParentNode,
+        parent: node.ParentNode,
         arguments: Iterable[arg.Argument] = [],
         return_type: str | None = None,
         statements: Iterable[stmt.Statement | expr.Expr] = [],
@@ -97,13 +99,16 @@ class Function(_Callable):
             is_lambda=is_lambda,
         )
 
+    def __str__(self) -> str:
+        return self._string()
+
 
 class Predicate(_Callable):
     def __init__(
         self,
         name: str,
         *,
-        parent: base.ParentNode,
+        parent: node.ParentNode,
         arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement | expr.Expr] = [],
         export: bool = True,
@@ -121,13 +126,7 @@ class Predicate(_Callable):
             warnings.warn("Predicate has 0 arguments.")
 
     def __str__(self) -> str:
-        string = utils.export(self.export)
-        string += "predicate {}({})\n{{\n".format(
-            self.name, utils.to_str(self.arguments)
-        )
-        string += self.children_str(tab=True, sep="\n")
-        string += "}\n"
-        return string
+        return self._string()
 
 
 class UiPredicate(Predicate):
@@ -150,11 +149,16 @@ class UiPredicate(Predicate):
             **kwargs,
         )
 
+    def __str__(self) -> str:
+        return self._string(sep="\n")
+
 
 def ui_test_predicate(
     name: str, *statements: stmt.Statement | expr.Expr, **kwargs
 ) -> expr.Expr:
-    return Predicate(name, statements=statements, **kwargs)()
+    return Predicate(
+        name, statements=statements, arguments=arg.definition_arg, **kwargs
+    )()
 
 
 # def test_predicate(

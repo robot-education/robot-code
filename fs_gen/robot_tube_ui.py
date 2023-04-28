@@ -1,5 +1,4 @@
 from library import *
-from library.enum import LookupEnumValue
 
 studio = Studio("robotTubeUi.gen.fs")
 
@@ -112,7 +111,7 @@ fit = (
 )
 
 size = (
-    custom_enum_factory.add_enum("HoleSize", parent=studio, value_type=LookupEnumValue)
+    custom_enum_factory.add_enum("HoleSize", parent=studio)
     .add_value("NO_8", user_name="#8")
     .add_value("NO_10", user_name="#10")
     .make()
@@ -122,9 +121,13 @@ hole_predicate = UiPredicate("tubeHole", parent=studio)
 hole_predicate.add(
     EnumAnnotation(size, default="NO_10"),
     IfBlock(size["NO_8"]() | size["NO_10"]())
-    .add(EnumAnnotation(fit, default="FREE"))
+    .add(EnumAnnotation(fit))
     .or_else()
     .add(LengthAnnotation("holeSize", LengthBound.BLEND_BOUNDS)),
+)
+
+hole_diameter_lookup = Function(
+    "getHoleDiameter", parent=studio, arguments=definition_arg, return_type=Type.VALUE
 )
 
 

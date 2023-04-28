@@ -1,4 +1,4 @@
-from library import base
+from library.base import node
 
 AUTO_FILE = """
 /* Automatically generated file -- DO NOT EDIT */\n
@@ -7,7 +7,7 @@ AUTO_FILE = """
 __all__ = ["Studio"]
 
 
-class Studio(base.ParentNode):
+class Studio(node.ParentNode):
     def __init__(self, studio_name: str) -> None:
         super().__init__()
         self.studio_name = studio_name
