@@ -27,7 +27,7 @@ wall_predicate.add(
     ),
 )
 
-lookup_function(
+enum_lookup_function(
     "getWallThickness",
     wall_thickness,
     parent=studio,
@@ -56,18 +56,18 @@ max_tube_type = (
     .make()
 )
 
-can_be_light = UiTestPredicate(
+can_be_light = ui_test_predicate(
     "canBeLight",
     max_tube_type["NONE"]() | max_tube_type["GRID"](),
     parent=studio,
-)()
+)
 
 type_predicates = enum_predicates(tube_type, parent=studio)
 size_predicates = enum_predicates(tube_size, parent=studio)
 
-is_max_tube = UiTestPredicate(
+is_max_tube = ui_test_predicate(
     "isMaxTube", ~size_predicates["CUSTOM"] & type_predicates["MAX_TUBE"], parent=studio
-)()
+)
 
 tube_predicate = UiPredicate("tubeSize", parent=studio)
 tube_predicate.add(
@@ -112,14 +112,20 @@ fit = (
 )
 
 size = (
-    custom_enum_factory.add_enum("HoleSize", parent=studio)
+    custom_enum_factory.add_enum("HoleSize", parent=studio, value_type=LookupEnumValue)
     .add_value("NO_8", user_name="#8")
     .add_value("NO_10", user_name="#10")
     .make()
 )
 
 hole_predicate = UiPredicate("tubeHole", parent=studio)
-# hole_predicate.register(If())
+hole_predicate.add(
+    EnumAnnotation(size, default="NO_10"),
+    IfBlock(size["NO_8"]() | size["NO_10"]())
+    .add(EnumAnnotation(fit, default="FREE"))
+    .or_else()
+    .add(LengthAnnotation("holeSize", LengthBound.BLEND_BOUNDS)),
+)
 
 
 studio.print()

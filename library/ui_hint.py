@@ -15,4 +15,5 @@ class UiHint(std_enum.StrEnum):
     OPPOSITE_DIRECTION_CIRCULAR = '"OPPOSITE_DIRECTION_CIRCULAR"'
 
 
-remember_hint = [UiHint.REMEMBER_PREVIOUS_VALUE]
+# tuple to ensure immutability
+remember_hint: tuple[UiHint] = (UiHint.REMEMBER_PREVIOUS_VALUE,)

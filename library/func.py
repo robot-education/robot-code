@@ -6,7 +6,7 @@ from library import arg, base, expr, stmt, utils
 __all__ = [
     "Predicate",
     "UiPredicate",
-    "UiTestPredicate",
+    "ui_test_predicate",
 ]
 
 
@@ -79,22 +79,22 @@ class Function(_Callable):
         self,
         name: str,
         *,
+        parent: base.ParentNode,
         arguments: Iterable[arg.Argument] = [],
         return_type: str | None = None,
         statements: Iterable[stmt.Statement | expr.Expr] = [],
         export: bool = True,
         is_lambda: bool = False,
-        parent: base.ParentNode,
     ) -> None:
         super().__init__(
             name,
+            parent=parent,
             callable_type=CallableType.FUNCTION,
             arguments=arguments,
             return_type=return_type,
             statements=statements,
             export=export,
             is_lambda=is_lambda,
-            parent=parent,
         )
 
 
@@ -151,13 +151,10 @@ class UiPredicate(Predicate):
         )
 
 
-class UiTestPredicate(Predicate):
-    def __init__(
-        self, name: str, *statements: stmt.Statement | expr.Expr, **kwargs
-    ) -> None:
-        super().__init__(
-            name, arguments=arg.definition_arg, statements=statements, **kwargs
-        )
+def ui_test_predicate(
+    name: str, *statements: stmt.Statement | expr.Expr, **kwargs
+) -> expr.Expr:
+    return Predicate(name, statements=statements, **kwargs)()
 
 
 # def test_predicate(

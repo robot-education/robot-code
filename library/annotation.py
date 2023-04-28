@@ -56,11 +56,7 @@ class Annotation(stmt.Statement, ABC):
         A dict containing additional strings to add to the annotation map.
         """
         self.parameter_name = parameter_name
-
-        if user_name is None:
-            self.user_name = utils.user_name(self.parameter_name)
-        else:
-            self.user_name = user_name
+        self.user_name = user_name or utils.user_name(self.parameter_name)
 
         # always put name and ui hints first
         map_args = {"Name": self.user_name}
@@ -99,16 +95,14 @@ class EnumAnnotation(TypeAnnotation):
         ui_hints: Iterable[ui_hint.UiHint] | None = ui_hint.remember_hint,
     ) -> None:
         self.enum = enum
-        parameter_name = (
-            enum.default_parameter_name if parameter_name is None else parameter_name
-        )
+        parameter_name = parameter_name or enum.default_parameter_name
         args = {} if not default else {"Default": default}
         super().__init__(
             parameter_name,
             type=self.enum.name,
             user_name=user_name,
-            args=args,
             ui_hints=ui_hints,
+            args=args,
         )
 
 
@@ -123,8 +117,8 @@ class BooleanAnnotation(TypeAnnotation):
         args = {} if not default else {"Default": "true"}
         super().__init__(
             parameter_name,
-            type="boolean",
             user_name=user_name,
+            type="boolean",
             args=args,
             ui_hints=ui_hints,
         )
@@ -164,3 +158,27 @@ class LengthAnnotation(ValueAnnotation):
             ui_hints=ui_hints,
             predicate="isLength",
         )
+
+
+class BooleanFlipAnnotation(BooleanAnnotation):
+    def __init__(
+        self,
+        parameter_name: str,
+        ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+        **kwargs,
+    ) -> None:
+        ui_hints = list(ui_hints)
+        ui_hints.append(ui_hint.UiHint.OPPOSITE_DIRECTION)
+        super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
+
+
+class BooleanCircularFlipAnnotation(BooleanAnnotation):
+    def __init__(
+        self,
+        parameter_name: str,
+        ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+        **kwargs,
+    ) -> None:
+        ui_hints = list(ui_hints)
+        ui_hints.append(ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR)
+        super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)

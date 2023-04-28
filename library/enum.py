@@ -8,7 +8,7 @@ from library import control
 __all__ = [
     "enum_factory",
     "custom_enum_factory",
-    "lookup_function",
+    "enum_lookup_function",
 ]
 
 
@@ -29,11 +29,7 @@ class EnumValue(base.Node):
         self.value = value.upper()
         self.hidden = hidden
         self.enum = enum
-
-        if user_name is None:
-            self.user_name = utils.value_user_name(self.value)
-        else:
-            self.user_name = user_name
+        self.user_name = user_name or utils.value_user_name(self.value)
 
     def __str__(self) -> str:
         dict = {}
@@ -50,15 +46,15 @@ class EnumValue(base.Node):
 
     def __call__(
         self,
-        parameter_name: str | None = None,
         definition: str = "definition",
+        parameter_name: str | None = None,
         invert: bool = False,
     ) -> expr.Expr:
         if parameter_name is None:
             parameter_name = self.enum.default_parameter_name
         operator = expr.Operator.NOT_EQUAL if invert else expr.Operator.EQUAL
         return expr.Compare(
-            expr.Id(utils.definition(parameter_name, definition=definition)),
+            expr.Id(utils.definition(parameter_name, definition)),
             operator,
             expr.Id("{}.{}".format(self.enum.name, self.value)),
         )
@@ -91,11 +87,7 @@ class _Enum(stmt.BlockStatement):
         super().__init__(parent=parent)
 
         self.name = name
-        self.default_parameter_name = (
-            utils.lower_first(name)
-            if default_parameter_name is None
-            else default_parameter_name
-        )
+        self.default_parameter_name = default_parameter_name or utils.lower_first(name)
         self.export = export
 
     def __str__(self) -> str:
@@ -168,9 +160,6 @@ class EnumFactory(EnumFactoryBase):
 
 
 class CustomEnumFactory(EnumFactory):
-    def __init__(self):
-        super().__init__()
-
     def reset(self) -> None:
         super().reset()
         self.has_custom = False
@@ -185,18 +174,11 @@ class CustomEnumFactory(EnumFactory):
     def make(self) -> EnumDict:
         if not self.has_custom:
             self.add_value("CUSTOM")
-        self.has_custom = False
         return super().make()
-
-
-# class LookupEnumFactory(EnumFactoryBase):
-#     def __init__(self):
-#         super().__init__(enum_factory=_Enum, value_factory=LookupEnumValue)
 
 
 enum_factory = EnumFactory()
 custom_enum_factory = CustomEnumFactory()
-# lookup_enum_factory = LookupEnumFactory()
 
 
 def lookup_block(
@@ -216,14 +198,14 @@ def lookup_block(
     control.if_block(tests=tests, statements=statements, parent=parent)
 
 
-def lookup_function(
+def enum_lookup_function(
     name: str,
     enum_dict: EnumDict[LookupEnumValue],
     *,
+    parent: base.ParentNode,
     additional_arguments: Iterable[arg.Argument] = [],
     predicate_dict: dict[str, expr.Expr] = {},
     return_type: str | None = None,
-    parent: base.ParentNode,
 ) -> None:
     """
     predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
@@ -231,6 +213,6 @@ def lookup_function(
     arguments: list[arg.Argument] = [arg.definition_arg]
     arguments.extend(additional_arguments)
     function = func.Function(
-        name, arguments=arguments, parent=parent, return_type=return_type
+        name, parent=parent, arguments=arguments, return_type=return_type
     )
     lookup_block(enum_dict, parent=function, predicate_dict=predicate_dict)

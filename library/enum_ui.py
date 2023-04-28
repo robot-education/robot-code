@@ -1,6 +1,4 @@
-from library import base, enum, expr, utils
-from library import func
-from library.func import UiTestPredicate
+from library import base, enum, expr, func, utils
 
 __all__ = [
     "any",
@@ -18,7 +16,7 @@ def _any(
 ) -> expr.Expr:
     expression = values[0](invert=invert)
     for value in values[1:]:
-        expression |= value()
+        expression |= value(invert=invert)
     return expr.Parens(expression) if add_parentheses else expression
 
 
@@ -42,7 +40,7 @@ def custom_enum_predicate(
     """Generates a predicate which tests if an enum is CUSTOM."""
     if name is None:
         name = "is" + enum.name + "Custom"
-    return func.UiTestPredicate(name, enum["CUSTOM"](), parent=parent)()
+    return func.ui_test_predicate(name, enum["CUSTOM"](), parent=parent)
 
 
 def enum_predicates(
@@ -54,21 +52,18 @@ def enum_predicates(
     append: str = "",
     export: bool = True,
 ) -> dict[str, expr.Expr]:
-    parameter_name = (
-        enum.default_parameter_name if parameter_name is None else parameter_name
-    )
-    if prepend is None:
-        prepend = "is" + enum.name
+    parameter_name = parameter_name or enum.default_parameter_name
+    prepend = prepend or "is" + enum.name
     return dict(
         [
             (
                 value.value,
-                UiTestPredicate(
+                func.ui_test_predicate(
                     predicate_name(value, prepend=prepend, append=append),
                     value(),
                     export=export,
                     parent=parent,
-                )(),
+                ),
             )
             for value in enum.values()
         ]
