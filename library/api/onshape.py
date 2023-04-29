@@ -1,6 +1,6 @@
 import argparse
 
-from library.api import manager
+from library.api import config as _config
 
 
 def parse_args() -> argparse.Namespace:
@@ -12,7 +12,7 @@ def parse_args() -> argparse.Namespace:
         "-l", "--log", help="whether to run in logging mode", action="store_true"
     )
 
-    subparsers = parser.add_subparsers(required=True, dest="mode")
+    subparsers = parser.add_subparsers(required=True, dest="action")
     update_parser = subparsers.add_parser(
         "update",
         help="perform direct updates on Onshape",
@@ -35,11 +35,17 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    code_manager = manager.make_manager(logging=args.log)
+    config = _config.Config()
 
-    if args.mode == "update":
-        if args.version:
-            code_manager.update_std()
+    # code_manager = manager.make_manager(logging=args.log)
+
+    # if args.action == "update":
+    #     if args.version:
+    #         code_manager.update_std()
+    # elif args.action == "pull":
+    #     code_manager.pull()
+    # elif args.action == "push":
+    #     pass
 
 
 if __name__ == "__main__":

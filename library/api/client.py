@@ -1,5 +1,4 @@
-from library.api.apikey import onshape
-from library.api import constants
+from library.api import constant, api, onshape
 import re
 
 
@@ -36,9 +35,10 @@ class FeatureStudioClient:
 
     # Fetches code from the feature studio specified by path
     def get_code(self, path: onshape.Path) -> str:
-        result =  self._api.request("get", onshape.ApiPath("featurestudios", path)).json()
-        return result [ "contents"
-        ]
+        result = self._api.request(
+            "get", onshape.ApiPath("featurestudios", path)
+        ).json()
+        return result["contents"]
 
     # Sends code to the given feature studio specified by path
     def update_code(self, path: onshape.Path, code: str):
@@ -49,7 +49,7 @@ class FeatureStudioClient:
 
     # Returns the latest version of the std.
     def std_version(self) -> str:
-        code = self.get_code(constants.STD_PATH)
+        code = self.get_code(constant.STD_PATH)
         parsed = re.search("\\d{4,6}", code)
         if parsed is None:
             raise RuntimeError("Failed to find latest version of onshape std.")

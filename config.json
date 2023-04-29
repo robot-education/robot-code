@@ -1,0 +1,15 @@
+{
+  "storage_path": ".storage",
+  "code_path": ".fs_code",
+  "code_gen_path": "fs_gen",
+  "documents": [
+    {
+      "name": "backend",
+      "url": "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f/e/5b9ab18e3cb91df78334f11f"
+    },
+    {
+      "name": "frontend",
+      "url": "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88/e/99672d1e329b38e647d90146"
+    }
+  ]
+}

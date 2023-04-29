@@ -1,9 +1,7 @@
 """
-onshape
-=======
 Provides access to the Onshape REST API
 """
-from library.api.apikey.utils import log
+from library.api.logger import log
 
 import os
 import random
@@ -14,54 +12,9 @@ import hashlib
 import base64
 import datetime
 import requests
-import copy
 import urllib
 
-# from urllib.parse import urlparse, urlencode, parse_qs
-from typing import Optional
-
-
-class Path:
-    def __init__(
-        self, did: Optional[str], wid: Optional[str], eid: Optional[str] = None
-    ) -> None:
-        self.did = did
-        self.wid = wid
-        self.eid = eid
-
-    # Returns a Path
-    def copy(self):
-        return copy.deepcopy(self)
-
-    def get(self) -> str:
-        path = ""
-        if self.did is not None:
-            path += "/d/" + self.did
-        if self.wid is not None:
-            path += "/w/" + self.wid
-        if self.eid is not None:
-            path += "/e/" + self.eid
-        return path
-
-
-class ApiPath:
-    def __init__(
-        self,
-        service: str,
-        path: Optional[Path],
-        secondary_service: Optional[str] = None,
-    ) -> None:
-        self.service = service
-        self.path = path
-        self.secondary_service = secondary_service
-
-    def get(self) -> str:
-        path = "/api/" + self.service
-        if self.path is not None:
-            path += self.path.get()
-        if self.secondary_service is not None:
-            path += "/" + self.secondary_service
-        return path
+from library.api import api_path
 
 
 class Onshape:
@@ -70,14 +23,14 @@ class Onshape:
 
     Attributes:
         - stack (str): Base URL
-        - creds (str, default='./creds.json'): Credentials location
+        - creds (str, default='creds.json'): Credentials location
         - logging (bool, default=True): Turn logging on or off
     """
 
     def __init__(
         self,
         stack: str = "https://cad.onshape.com",
-        creds: str = "./creds.json",
+        creds: str = "creds.json",
         logging: bool = True,
     ) -> None:
         """
@@ -97,7 +50,7 @@ class Onshape:
         """
 
         if not os.path.isfile(creds):
-            raise IOError("%s is not a file" % creds)
+            raise IOError("{} is not a file".format(creds))
 
         with open(creds) as f:
             try:
@@ -150,22 +103,7 @@ class Onshape:
         query = urllib.parse.urlencode(query)  # type: ignore
 
         hmac_str = (
-            (
-                method
-                + "\n"
-                + nonce
-                + "\n"
-                + date
-                + "\n"
-                + ctype
-                + "\n"
-                + path
-                + "\n"
-                + query
-                + "\n"
-            )
-            .lower()
-            .encode("utf-8")
+            "\n".join([method, nonce, date, ctype, path, query]).lower().encode("utf-8")
         )
 
         signature = base64.b64encode(
@@ -231,8 +169,7 @@ class Onshape:
 
     def request(
         self,
-        method: str,
-        apiPath: ApiPath,
+        request: api_path.ApiRequest,
         query: object = {},
         headers: object = {},
         body: object = {},
@@ -251,8 +188,8 @@ class Onshape:
         Returns:
             - requests.Response: Object containing the response from Onshape
         """
-        path = apiPath.get()
-        req_headers = self._make_headers(method, path, query, headers)
+        path = str(request)
+        req_headers = self._make_headers(request.method, path, query, headers)
         if base_url is None:
             base_url = self._url
         url = base_url + path + "?" + urllib.parse.urlencode(query)  # type: ignore
@@ -266,7 +203,7 @@ class Onshape:
         body = json.dumps(body) if type(body) == dict else body
 
         res = requests.request(
-            method,
+            request.method,
             url,
             headers=req_headers,
             data=body,  # type: ignore
@@ -289,9 +226,15 @@ class Onshape:
                     0
                 ]  # won't work for repeated query params
 
+            # override request string method
+            def __str__override() -> str:
+                return location.path
+
+            request.__str__ = __str__override
+
             return self.request(
-                method,
-                location.path,
+                request,
+                # location.path,
                 query=new_query,
                 headers=headers,
                 base_url=new_base_url,
