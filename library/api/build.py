@@ -5,7 +5,7 @@ from library.api import manager
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build FeatureScript code and push and pull it to Onshape."
+        description="Build FeatureScript code and push and pull from Onshape."
     )
 
     parser.add_argument(
@@ -15,7 +15,7 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(required=True, dest="mode")
     update_parser = subparsers.add_parser(
         "update",
-        help="perform direct updates on std",
+        help="perform direct updates on Onshape",
     )
 
     update_parser.add_argument(
@@ -24,6 +24,10 @@ def parse_args() -> argparse.Namespace:
         help="update every feature studio to the latest version of the onshape std",
         action="store_true",
     )
+
+    subparsers.add_parser("push", help="push code to Onshape")
+
+    subparsers.add_parser("pull", help="pull code from Onshape")
 
     return parser.parse_args()
 
@@ -37,24 +41,6 @@ def main():
         if args.version:
             code_manager.update_std()
 
-
-# def invalid_args() -> NoReturn:
-#     print('Usage: fssync <pull|push|clean>')
-#     sys.exit(1)
-
-# def main() -> NoReturn:
-#     manager = CodeManager(BACKEND_PATH)
-#     if len(sys.argv) != 2:
-#         invalid_args()
-#     if sys.argv[1] == 'pull':
-#         manager.pull()
-#     elif sys.argv[1] == 'push':
-#         manager.push()
-#     elif sys.argv[1] == 'update-std':
-#         manager.update_std()
-#     else:
-#         invalid_args()
-#     sys.exit(0)
 
 if __name__ == "__main__":
     main()
