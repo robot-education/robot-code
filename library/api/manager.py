@@ -22,19 +22,47 @@ class StudioManager:
         5. Else if the microversion ids are different and the local version is not modified, pull.
         6. For each file which was pulled, update the microversion.
         """
-        feature_studios = [
+        curr_data = storage.fetch(self.config.storage_path)
+        studios = [
             studio
-            for path in self.config.documents.values()
-            for studio in self.client.get_studios(path)
+            for name, path in self.config.documents.items()
+            for studio in self.client.get_studios(path, name)
         ]
-        num_studios = len(feature_studios)
-        print("Found {} feature studios to pull.".format(num_studios))
 
-        for feature_studio in feature_studios:
-            code = self.client.get_code(feature_studio.path)
-            storage.write_studio(self.config.code_path, feature_studio.name, code)
+        studios_to_pull = []
+        for studio in studios:
+            curr_studio = curr_data.studios.get(studio.path.id, None)
+            if curr_studio is None:
+                studios_to_pull.append(studio)
+                continue
+            # do nothing if microversions match or the studio is auto-generated
+            elif (
+                curr_studio.microversion_id == studio.microversion_id
+                or curr_studio.generated
+            ):
+                continue
+            # microversions don't match; potential conflict between cloud and local
+            if curr_studio.modified:
+                raise RuntimeError("One or more files have been modified locally.")
+            # okay to overwrite non-modified studio
+            studios_to_pull.append(studio)
+
+        print("Found {} target feature studios.".format(len(studios)))
+        num_studios = len(studios_to_pull)
+        print(
+            "{} feature studios are cached and won't be pulled.".format(
+                len(studios) - num_studios
+            )
+        )
+
+        for studio in studios_to_pull:
+            code = self.client.get_code(studio.path)
+            storage.write_studio(self.config.code_path, studio.name, code)
+            # don't need to worry about reseting generated since generated is never pulled
+            curr_data.studios[studio.path.id] = studio
 
         print("Pulled {} feature studios.".format(num_studios))
+        storage.store(self.config.storage_path, curr_data)
 
     def push(self) -> None:
         """

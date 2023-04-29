@@ -1,13 +1,13 @@
 import pathlib
 import pickle
 import dataclasses
-from typing import Iterable
 from library.api import api_path
 
 
 @dataclasses.dataclass
 class FeatureStudio:
     name: str
+    document_name: str
     path: api_path.StudioPath
     microversion_id: str | None = None
     modified: bool = dataclasses.field(default=False)
@@ -23,8 +23,7 @@ class FeatureStudio:
 
 @dataclasses.dataclass
 class FileData:
-    documents: dict[str, FeatureStudio]
-    feature_studios: Iterable[FeatureStudio]
+    studios: dict[str, FeatureStudio]
 
 
 def store(storage_path: pathlib.Path, data: FileData) -> None:
@@ -33,6 +32,9 @@ def store(storage_path: pathlib.Path, data: FileData) -> None:
 
 
 def fetch(storage_path: pathlib.Path) -> FileData:
+    if not storage_path.is_file():
+        return FileData({})
+
     with storage_path.open("rb") as file:
         return pickle.load(file)
 
