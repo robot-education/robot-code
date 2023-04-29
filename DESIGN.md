@@ -7,9 +7,24 @@ The project supports multiple documents. Document code is pulled into a `local_c
 By default, `onshape pull` pulls the default document. Other documents may be specified as necessary.
 Operations work on `local_code`.
 
-It is an error to push code without pulling first. In such a case, all of the remote documents shall be overwritten. It is up to the user to catch this if this happens.
-
 All operations work on `.fs_code`.
+
+Current implementaion:
+Support for updating all documents via direct ops (i.e. pull, operation, push) to ensure synchronization
+Support for building code and then pushing to the cloud
+Support for cleaning local code
+Built files are marked specially and are always pushed
+File name resolution happens automatically when a file is pushed - if a file id doesn't exist in local storage, pulls the target document and searches it
+
+
+To avoid accidentally overwriting the cloud, the following procedures are in place:
+When code is pulled, a local fixed copy is automatically generated.
+The fixed copy is used to determine necessary updates when pushing. 
+
+When `push` is invoked, the following behaviors occur:
+Each local file which has been modified is pulled. Note since feature studio names are used, this may require pulling down the document, checking for feature studios, and then pulling the final id. Generated files are never checked in this manner.
+For each pulled file with a fixed copy, a comparison is made to the local copy. If any fixed copy doesn't match, `push` fails.
+This catches the case where a user pulls code, makes some changes, then makes some changes in Onshape and attempts to push.
 
 ## Example
 `onshape pull` - `.fs_code` and `.storage` are pulled from Onshape.

@@ -104,5 +104,5 @@ class CodeManager:
 
 
 def make_manager(logging: bool = False) -> CodeManager:
-    feature_client = client.FeatureStudioClient(api.Onshape(logging=logging))
+    feature_client = client.FeatureStudioClient(api.Api(logging=logging))
     return CodeManager(constant.BACKEND_PATH, feature_client)

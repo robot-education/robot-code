@@ -1,50 +1,46 @@
-from library.api import constant, api, onshape
+from library.api import api, api_path, constant
 import re
 
 
 class FeatureStudioClient:
-    def __init__(self, api: onshape.Onshape) -> None:
+    def __init__(self, api: api.Api) -> None:
         self._api = api
 
     # Returns an array of paths to feature studios in a document
-    def get_feature_studio_paths(
-        self, document_path: onshape.Path
-    ) -> list[onshape.Path]:
-        feature_studios = self.get_feature_studios(document_path)
+    def get_studio_paths(
+        self, document_path: api_path.DocumentPath
+    ) -> list[api_path.StudioPath]:
+        feature_studios = self._get_studios(document_path)
         return self.extract_paths(feature_studios, document_path)
 
-    # Returns all feature studios in a document
-    def get_feature_studios(self, document_path: onshape.Path) -> list[dict]:
+    def _get_studios(self, document_path: api_path.DocumentPath) -> list[dict]:
         queries = {"elementType": "FEATURESTUDIO"}
         return self._api.request(
-            "get",
-            onshape.ApiPath("documents", document_path, "elements"),
+            api_path.ApiRequest("get", "documents", document_path, "elements"),
             query=queries,
         ).json()
 
     # Extracts paths from elements
     def extract_paths(
-        self, elements: list[dict], document_path: onshape.Path
-    ) -> list[onshape.Path]:
-        result = []
-        for element in elements:
-            # create a new path to avoid mutation
-            path = onshape.Path(document_path.did, document_path.wid, element["id"])
-            result.append(path)
-        return result
+        self, elements: list[dict], document_path: api_path.DocumentPath
+    ) -> list[api_path.StudioPath]:
+        return [
+            api_path.StudioPath(document_path.copy(), element["id"])
+            for element in elements
+        ]
 
     # Fetches code from the feature studio specified by path
-    def get_code(self, path: onshape.Path) -> str:
+    def get_code(self, path: api_path.StudioPath) -> str:
         result = self._api.request(
-            "get", onshape.ApiPath("featurestudios", path)
+            api_path.ApiRequest("get", "feature_studios", path)
         ).json()
         return result["contents"]
 
     # Sends code to the given feature studio specified by path
-    def update_code(self, path: onshape.Path, code: str):
+    def update_code(self, path: api_path.StudioPath, code: str):
         payload = {"contents": code}
         return self._api.request(
-            "post", onshape.ApiPath("featurestudios", path), body=payload
+            api_path.ApiRequest("post", "featurestudios", path), body=payload
         )
 
     # Returns the latest version of the std.

@@ -17,7 +17,7 @@ import urllib
 from library.api import api_path
 
 
-class Onshape:
+class Api:
     """
     Provides access to the Onshape REST API.
 
