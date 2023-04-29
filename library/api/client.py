@@ -1,38 +1,45 @@
-from library.api import api, api_path, constant
+from library.api import api, api_path, constant, storage
 import re
 
 
-class FeatureStudioClient:
+class StudioClient:
     def __init__(self, api: api.Api) -> None:
         self._api = api
 
-    # Returns an array of paths to feature studios in a document
-    def get_studio_paths(
-        self, document_path: api_path.DocumentPath
-    ) -> list[api_path.StudioPath]:
-        feature_studios = self._get_studios(document_path)
-        return self.extract_paths(feature_studios, document_path)
+    # def get_microversion(self, studio_path: api_path.StudioPath) -> None:
+    #     result = self._api.request(
+    #         api_path.ApiRequest("get", "documents", studio_path, "currentmicroversion")
+    #     ).json()
+    #     return result["microversion"]
 
-    def _get_studios(self, document_path: api_path.DocumentPath) -> list[dict]:
-        queries = {"elementType": "FEATURESTUDIO"}
-        return self._api.request(
+    def get_studios(
+        self, document_path: api_path.DocumentPath
+    ) -> list[storage.FeatureStudio]:
+        """Returns an array of feature studios in a document."""
+        query = {"elementType": "FEATURESTUDIO"}
+        elements = self._api.request(
             api_path.ApiRequest("get", "documents", document_path, "elements"),
-            query=queries,
+            query=query,
         ).json()
+        return self.extract_studios(elements, document_path)
 
     # Extracts paths from elements
-    def extract_paths(
+    def extract_studios(
         self, elements: list[dict], document_path: api_path.DocumentPath
-    ) -> list[api_path.StudioPath]:
+    ) -> list[storage.FeatureStudio]:
         return [
-            api_path.StudioPath(document_path.copy(), element["id"])
+            storage.FeatureStudio(
+                element["name"],
+                api_path.StudioPath(document_path.copy(), element["id"]),
+                element["microversionId"],
+            )
             for element in elements
         ]
 
     # Fetches code from the feature studio specified by path
     def get_code(self, path: api_path.StudioPath) -> str:
         result = self._api.request(
-            api_path.ApiRequest("get", "feature_studios", path)
+            api_path.ApiRequest("get", "featurestudios", path)
         ).json()
         return result["contents"]
 

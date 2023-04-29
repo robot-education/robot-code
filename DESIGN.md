@@ -9,12 +9,15 @@ Operations work on `local_code`.
 
 All operations work on `.fs_code`.
 
-Current implementaion:
+Current implementation:
 Support for updating all documents via direct ops (i.e. pull, operation, push) to ensure synchronization
 Support for building code and then pushing to the cloud
 Support for cleaning local code
 Built files are marked specially and are always pushed
 File name resolution happens automatically when a file is pushed - if a file id doesn't exist in local storage, pulls the target document and searches it
+
+We can use the source microversion to check if we're overriding remote code
+For all files (including auto-generated ones), when pushing check the sourceMicroversion
 
 
 To avoid accidentally overwriting the cloud, the following procedures are in place:

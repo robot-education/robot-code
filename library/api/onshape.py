@@ -1,6 +1,6 @@
 import argparse
 
-from library.api import config as _config
+from library.api import manager, conf
 
 
 def parse_args() -> argparse.Namespace:
@@ -14,16 +14,15 @@ def parse_args() -> argparse.Namespace:
 
     subparsers = parser.add_subparsers(required=True, dest="action")
     update_parser = subparsers.add_parser(
-        "update",
-        help="perform direct updates on Onshape",
+        "update-version",
+        help="update every feature studio to the latest version of the onshape std",
     )
 
-    update_parser.add_argument(
-        "-v",
-        "--version",
-        help="update every feature studio to the latest version of the onshape std",
-        action="store_true",
-    )
+    # update_parser.add_argument(
+    #     "-v",
+    #     "--version",
+    #     action="store_true",
+    # )
 
     subparsers.add_parser("push", help="push code to Onshape")
 
@@ -34,16 +33,14 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
+    config = conf.Config()
+    code_manager = manager.make_manager(config, logging=args.log)
 
-    config = _config.Config()
-
-    # code_manager = manager.make_manager(logging=args.log)
-
-    # if args.action == "update":
-    #     if args.version:
-    #         code_manager.update_std()
-    # elif args.action == "pull":
-    #     code_manager.pull()
+    if args.action == "update-version":
+        pass
+        # code_manager.update_std()
+    elif args.action == "pull":
+        code_manager.pull()
     # elif args.action == "push":
     #     pass
 

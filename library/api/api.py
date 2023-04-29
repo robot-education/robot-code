@@ -12,7 +12,7 @@ import hashlib
 import base64
 import datetime
 import requests
-import urllib
+from urllib import parse
 
 from library.api import api_path
 
@@ -80,14 +80,22 @@ class Api:
         """
 
         chars = string.digits + string.ascii_letters
-        nonce = "".join(random.choice(chars) for i in range(25))
+        nonce = "".join(random.choice(chars) for _ in range(25))
 
         if self._logging:
             log("nonce created: %s" % nonce)
 
         return nonce
 
-    def _make_auth(self, method, date, nonce, path, query={}, ctype="application/json"):
+    def _make_auth(
+        self,
+        method: str,
+        date: str,
+        nonce: str,
+        path: str,
+        query: dict = {},
+        ctype: str = "application/json",
+    ):
         """
         Create the request signature to authenticate
 
@@ -100,10 +108,12 @@ class Api:
             - ctype (str, default='application/json'): HTTP Content-Type
         """
 
-        query = urllib.parse.urlencode(query)  # type: ignore
+        query_str: str = parse.urlencode(query)
 
         hmac_str = (
-            "\n".join([method, nonce, date, ctype, path, query]).lower().encode("utf-8")
+            ("\n".join([method, nonce, date, ctype, path, query_str]) + "\n")
+            .lower()
+            .encode("utf-8")
         )
 
         signature = base64.b64encode(
@@ -170,9 +180,9 @@ class Api:
     def request(
         self,
         request: api_path.ApiRequest,
-        query: object = {},
-        headers: object = {},
-        body: object = {},
+        query: dict = {},
+        headers: dict = {},
+        body: dict | str = {},
         base_url: str | None = None,
     ):
         """
@@ -192,7 +202,7 @@ class Api:
         req_headers = self._make_headers(request.method, path, query, headers)
         if base_url is None:
             base_url = self._url
-        url = base_url + path + "?" + urllib.parse.urlencode(query)  # type: ignore
+        url = base_url + path + "?" + parse.urlencode(query)  # type: ignore
 
         if self._logging:
             log(body)
@@ -200,20 +210,20 @@ class Api:
             log("request url: " + url)
 
         # only parse as json string if we have to
-        body = json.dumps(body) if type(body) == dict else body
+        body = json.dumps(body) if isinstance(body, dict) else body
 
         res = requests.request(
             request.method,
             url,
             headers=req_headers,
-            data=body,  # type: ignore
+            data=body,
             allow_redirects=False,
             stream=True,
         )
 
         if res.status_code == 307:
-            location = urllib.parse.urlparse(res.headers["Location"])  # type: ignore
-            querystring = urllib.parse.parse_qs(location.query)  # type: ignore
+            location = parse.urlparse(res.headers["Location"])
+            query_dict = parse.parse_qs(location.query)
 
             if self._logging:
                 log("request redirected to: " + location.geturl())
@@ -221,10 +231,9 @@ class Api:
             new_query = {}
             new_base_url = location.scheme + "://" + location.netloc
 
-            for key in querystring:
-                new_query[key] = querystring[key][
-                    0
-                ]  # won't work for repeated query params
+            for key in query_dict:
+                # won't work for repeated query params
+                new_query[key] = query_dict[key][0]
 
             # override request string method
             def __str__override() -> str:

@@ -3,6 +3,8 @@ import pathlib
 from typing import Any
 from library.api import api_path
 
+STORAGE_FILE = "studio_data.pickle"
+
 
 class Config:
     def __init__(self):
@@ -32,7 +34,9 @@ class Config:
         return path
 
     def _parse_config(self, config: dict):
-        self.storage_path = self._get_dir(self._get_config_key(config, "storage_path"))
+        self.storage_path = self._get_dir(
+            self._get_config_key(config, "storage_path")
+        ) / pathlib.Path(STORAGE_FILE)
         self.code_path = self._get_dir(self._get_config_key(config, "code_path"))
         self.code_gen_path = self._get_dir(
             self._get_config_key(config, "code_gen_path")
