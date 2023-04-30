@@ -85,29 +85,45 @@ has_min_hole_diameter = ui_test_predicate(
 
 can_be_preset_diameter = ui_test_predicate(
     "canBePresetDiameter",
-    ~Parens(tube_type["MAX_TUBE"]() & ~max_tube_type["NONE"]()),
+    ~Parens(
+        Parens(tube_size["ONE_BY_ONE"]() | tube_size["TWO_BY_ONE"]())
+        & tube_type["MAX_TUBE"]()
+        & Parens(~max_tube_type["NONE"]() | tube_size["ONE_BY_ONE"]())
+    ),
     parent=studio,
 )
 
 # ui predicates
-hole_predicate = UiPredicate("tubeHole", parent=studio)
-hole_predicate.add(
-    IfBlock(can_be_preset_diameter).add(
-        EnumAnnotation(
-            hole_size,
-            default="NO_10",
-            ui_hints=show_label_hint,
-        )
-    ),
-    IfBlock(can_be_preset_diameter & Parens(hole_size["NO_8"]() | hole_size["NO_10"]()))
-    .add(
-        EnumAnnotation(
-            fit,
-            ui_hints=show_label_hint,
-        )
+hole_predicate = UiPredicate("tubeHole", parent=studio).add(
+    DrivenGroupAnnotation(
+        parameter_name="hasHoles", user_name="Holes", default=True
+    ).add(
+        IfBlock(can_be_preset_diameter).add(
+            EnumAnnotation(
+                hole_size,
+                user_name="Size",
+                default="NO_10",
+                ui_hints=show_label_hint,
+            )
+        ),
+        IfBlock(
+            can_be_preset_diameter & Parens(hole_size["NO_8"]() | hole_size["NO_10"]())
+        ).add(
+            EnumAnnotation(
+                fit,
+                user_name="Fit",
+                ui_hints=show_label_hint,
+            )
+        ),
+        IfBlock(~can_be_preset_diameter).add(BooleanAnnotation("overrideHoleDiameter")),
+        IfBlock(
+            Parens(
+                can_be_preset_diameter
+                & Parens(hole_size["NO_8"]() | hole_size["NO_10"]())
+            )
+            | Parens(~can_be_preset_diameter & definition("overrideHoleDiameter"))
+        ).add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
     )
-    .or_else()
-    .add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
 )
 
 wall_predicate = UiPredicate("wallThickness", parent=studio).add(
@@ -128,6 +144,7 @@ wall_predicate = UiPredicate("wallThickness", parent=studio).add(
 tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
     EnumAnnotation(
         tube_size,
+        user_name="Size",
         default="TWO_BY_ONE",
         ui_hints=show_label_hint,
     ),
@@ -141,6 +158,7 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
         EnumAnnotation(
             tube_type,
             default="CUSTOM",
+            user_name="Type",
             ui_hints=show_label_hint,
         ),
         IfBlock(is_max_tube & size_predicates["TWO_BY_ONE"]).add(
@@ -161,7 +179,10 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
 )
 
 tube_predicate = UiPredicate("tube", parent=studio).add(
-    tube_size_predicate(), hole_predicate()
+    GroupAnnotation("Tube").add(
+        tube_size_predicate(),
+    ),
+    hole_predicate(),
 )
 
 # lookup functions

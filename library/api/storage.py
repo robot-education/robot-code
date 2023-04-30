@@ -40,5 +40,7 @@ class CodeWriter:
             file.write(code)
 
     def read(self, name: str) -> str:
+        if not (self.code_path / name).is_file():
+            return ""
         with (self.code_path / name).open("r") as file:
             return file.read()
