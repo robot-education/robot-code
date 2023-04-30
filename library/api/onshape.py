@@ -13,20 +13,24 @@ def parse_args() -> argparse.Namespace:
     )
 
     subparsers = parser.add_subparsers(required=True, dest="action")
-    update_parser = subparsers.add_parser(
-        "update-version",
+    subparsers.add_parser(
+        "update-versions",
         help="update every feature studio to the latest version of the onshape std",
     )
+    subparsers.add_parser(
+        "clean",
+        help="delete everything under storage_path and code_path",
+    )
 
-    # update_parser.add_argument(
-    #     "-v",
-    #     "--version",
-    #     action="store_true",
-    # )
+    push_parser = subparsers.add_parser("push", help="push code to Onshape")
+    push_parser.add_argument(
+        "--force", action="store_true", help="force push, ignoring conflicts"
+    )
 
-    subparsers.add_parser("push", help="push code to Onshape")
-
-    subparsers.add_parser("pull", help="pull code from Onshape")
+    pull_parser = subparsers.add_parser("pull", help="pull code from Onshape")
+    pull_parser.add_argument(
+        "--force", action="store_true", help="force pull, ignoring conflicts"
+    )
 
     return parser.parse_args()
 
@@ -36,13 +40,14 @@ def main():
     config = conf.Config()
     code_manager = manager.make_manager(config, logging=args.log)
 
-    if args.action == "update-version":
-        pass
-        # code_manager.update_std()
+    if args.action == "update-versions":
+        code_manager.update_versions()
     elif args.action == "pull":
-        code_manager.pull()
-    # elif args.action == "push":
-    #     pass
+        code_manager.pull(args.force)
+    elif args.action == "push":
+        code_manager.push(args.force)
+    elif args.action == "clean":
+        code_manager.clean()
 
 
 if __name__ == "__main__":

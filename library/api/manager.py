@@ -1,18 +1,41 @@
-import re
+import re, shutil, os
+from typing import Callable
 
 from library.api import api, client, conf, storage
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
-    'version : "(\\d{4,6})\\.0"|FeatureScript (\\d{4,6});'
+    'version : "(\\d{2,7})\\.0"|FeatureScript (\\d{2,7});'
 )
+
+CONFLICT_MESSAGE = """
+Some files are in conflict and were skipped.
+Use "onshape pull --force" or "onshape push --force" to overwrite.
+"""
 
 
 class StudioManager:
     def __init__(self, config: conf.Config, client: client.StudioClient):
         self.config = config
         self.client = client
+        self.curr_data = storage.fetch(self.config.storage_path)
+        self.conflict = False
 
-    def pull(self) -> None:
+    def handle_conflict(self, studio: storage.FeatureStudio) -> None:
+        self.conflict = True
+        print(
+            "{} has been modified both locally and in Onshape. Skipping.".format(
+                studio.name
+            )
+        )
+
+    def get_config_documents(self) -> list[storage.FeatureStudio]:
+        return [
+            studio
+            for name, path in self.config.documents.items()
+            for studio in self.client.get_studios(path, name)
+        ]
+
+    def pull(self, force: bool) -> None:
         """
         Procedure:
         1. Pull all feature studios from Onshape.
@@ -22,49 +45,39 @@ class StudioManager:
         5. Else if the microversion ids are different and the local version is not modified, pull.
         6. For each file which was pulled, update the microversion.
         """
-        curr_data = storage.fetch(self.config.storage_path)
-        studios = [
-            studio
-            for name, path in self.config.documents.items()
-            for studio in self.client.get_studios(path, name)
-        ]
-
-        studios_to_pull = []
+        writer = storage.CodeWriter(self.config.code_path)
+        studios = self.get_config_documents()
+        pulled = 0
         for studio in studios:
-            curr_studio = curr_data.studios.get(studio.path.id, None)
-            if curr_studio is None:
-                studios_to_pull.append(studio)
-                continue
-            # do nothing if microversions match or the studio is auto-generated
-            elif (
-                curr_studio.microversion_id == studio.microversion_id
-                or curr_studio.generated
-            ):
-                continue
-            # microversions don't match; potential conflict between cloud and local
-            if curr_studio.modified:
-                raise RuntimeError("One or more files have been modified locally.")
-            # okay to overwrite non-modified studio
-            studios_to_pull.append(studio)
+            curr_studio = self.curr_data.studios.get(studio.path.id, None)
+            if curr_studio is not None:
+                # do nothing if microversions match or the studio is auto-generated
+                if (
+                    curr_studio.microversion_id == studio.microversion_id
+                    or curr_studio.generated
+                ):
+                    continue
+                # microversions don't match; potential conflict between cloud and local
+                elif curr_studio.modified and not force:
+                    self.handle_conflict(studio)
+                    continue
+                # okay to overwrite non-modified studio, set id
+                studio.microversion_id = curr_studio.microversion_id
 
-        print("Found {} target feature studios.".format(len(studios)))
-        num_studios = len(studios_to_pull)
-        print(
-            "{} feature studios are cached and won't be pulled.".format(
-                len(studios) - num_studios
-            )
-        )
-
-        for studio in studios_to_pull:
+            print("Pulling {}".format(studio.name))
             code = self.client.get_code(studio.path)
-            storage.write_studio(self.config.code_path, studio.name, code)
+            writer.write(studio.name, code)
             # don't need to worry about reseting generated since generated is never pulled
-            curr_data.studios[studio.path.id] = studio
+            self.curr_data.studios[studio.path.id] = studio
+            pulled += 1
 
-        print("Pulled {} feature studios.".format(num_studios))
-        storage.store(self.config.storage_path, curr_data)
+        if not self.conflict and pulled == 0:
+            print("Already up to date.")
+        else:
+            print("Pulled {} feature studios.".format(pulled))
+            self.finish()
 
-    def push(self) -> None:
+    def push(self, force: bool) -> None:
         """
         Procedure:
         1. Load feature studios from Onshape.
@@ -72,56 +85,84 @@ class StudioManager:
         3. Else, push modified files to Onshape.
         4. Mark all files as the same and update their microversions.
         """
-        pass
+        studios_to_push = [
+            studio
+            for studio in self.curr_data.studios.values()
+            if studio.modified or studio.microversion_id is None
+        ]
 
-    #     id_to_name = json.loads(self._read_from_file(_ID_FILE))
-    #     items = id_to_name.items()
-    #     for id, name in items:
-    #         code = self._read_from_file(name, _FOLDER_PATH)
-    #         path = api.Path(self._document_path.did, self._document_path.wid, id)
-    #         self._client.update_code(path, code)
+        writer = storage.CodeWriter(self.config.code_path)
+        onshape_studios = self.get_config_documents()
 
-    #     print("Pushed {} files to Onshape.".format(len(items)))
+        pushed = 0
+        for studio in studios_to_push:
+            onshape_studio = next(
+                filter(
+                    lambda onshape_studio: onshape_studio.path.id == studio.path.id,
+                    onshape_studios,
+                )
+            )
+            if not force and onshape_studio.microversion_id != studio.microversion_id:
+                self.handle_conflict(studio)
+                continue
 
-    # def update_std(self) -> None:
-    #     files = os.listdir(path=_FOLDER_PATH)
-    #     std_version = self._client.std_version()
-    #     updated = 0
-    #     for file in files:
-    #         contents = self._read_from_file(file, _FOLDER_PATH)
-    #         new_contents = self._update_version(contents, std_version)
-    #         if new_contents != contents:
-    #             updated += 1
-    #             self._write_to_file(file, new_contents, _FOLDER_PATH)
-    #     print("Modified {} files.".format(updated))
+            print("Pushing {}".format(studio.name))
+            self.client.update_code(studio.path, writer.read(studio.name))
+            studio.modified = False
+            studio.microversion_id = self.client.get_microversion_id(studio.path)
+            self.curr_data.studios[studio.path.id] = studio
+            pushed += 1
 
-    #     self.push()
+        if not self.conflict and pushed == 0:
+            print("Everything already up to date.")
+        else:
+            print("Pushed {} studios.".format(pushed))
+            self.finish()
 
-    # def _update_version(self, contents: str, std_version: str) -> str:
-    #     return re.sub(
-    #         pattern=OUTDATED_VERSION_MATCH,
-    #         repl=self._generate_update_replace(std_version),
-    #         string=contents,
-    #     )
+    def update_versions(self) -> None:
+        writer = storage.CodeWriter(self.config.code_path)
+        std_version = self.client.std_version()
+        modified = 0
+        for id, studio in self.curr_data.studios.items():
+            contents = writer.read(studio.name)
+            new_contents = self._update_version(contents, std_version)
+            if new_contents != contents:
+                modified += 1
+                writer.write(studio.name, new_contents)
+                studio.modified = True
+                self.curr_data.studios[id] = studio
+        if modified == 0:
+            print("All files already up to date.")
+        else:
+            print("Modified {} files.".format(modified))
+            self.finish()
 
-    # def _generate_update_replace(self, std_version: str) -> Callable[[re.Match], str]:
-    #     def replace_number(match: re.Match) -> str:
-    #         return re.sub(
-    #             pattern="\\d{4,6}", repl=str(std_version), string=match.group(0)
-    #         )
+    def _update_version(self, contents: str, std_version: str) -> str:
+        return re.sub(
+            pattern=OUTDATED_VERSION_MATCH,
+            repl=self._generate_update_replace(std_version),
+            string=contents,
+        )
 
-    #     return replace_number
+    def _generate_update_replace(self, std_version: str) -> Callable[[re.Match], str]:
+        def replace_number(match: re.Match) -> str:
+            return re.sub(pattern="\\d{2,7}", repl=std_version, string=match.group(0))
+
+        return replace_number
+
+    def finish(self) -> None:
+        storage.store(self.config.storage_path, self.curr_data)
+
+        if self.conflict:
+            print(CONFLICT_MESSAGE)
 
     def clean(self) -> None:
-        for path in [self.config.code_path, self.config.storage_path]:
-            path.rmdir()
-
-        # files = os.listdir(_FOLDER_PATH)
-        # for file in files:
-        #     os.remove(os.path.join(_FOLDER_PATH, file))
-
-        # if os.path.isfile(_ID_FILE):
-        #     os.remove(_ID_FILE)
+        shutil.rmtree(self.config.code_path)
+        shutil.rmtree(self.config.storage_path.parent)
+        # if self.config.storage_path.is_file():
+        #     os.remove(self.config.storage_path)
+        # if self.config.storage_path.parent.is_dir():
+        #     self.config.storage_path.parent.rmdir()
 
 
 def make_manager(config: conf.Config, logging: bool = False) -> StudioManager:

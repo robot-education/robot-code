@@ -6,11 +6,11 @@ class StudioClient:
     def __init__(self, api: api.Api) -> None:
         self._api = api
 
-    # def get_microversion(self, studio_path: api_path.StudioPath) -> None:
-    #     result = self._api.request(
-    #         api_path.ApiRequest("get", "documents", studio_path, "currentmicroversion")
-    #     ).json()
-    #     return result["microversion"]
+    def get_microversion_id(self, path: api_path.StudioPath) -> str:
+        query = {"elementId": path.id}
+        return self._api.request(
+            api_path.ApiRequest("get", "documents", path.path, "elements"), query=query
+        ).json()[0]["microversionId"]
 
     def get_studios(
         self, document_path: api_path.DocumentPath, document_name: str
@@ -48,11 +48,11 @@ class StudioClient:
         return result["contents"]
 
     # Sends code to the given feature studio specified by path
-    def update_code(self, path: api_path.StudioPath, code: str):
+    def update_code(self, path: api_path.StudioPath, code: str) -> dict:
         payload = {"contents": code}
         return self._api.request(
             api_path.ApiRequest("post", "featurestudios", path), body=payload
-        )
+        ).json()
 
     # Returns the latest version of the std.
     def std_version(self) -> str:

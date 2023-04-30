@@ -16,8 +16,7 @@ def main():
 
     custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
 
-    wall_predicate = UiPredicate("wallThickness", parent=studio)
-    wall_predicate.add(
+    wall_predicate = UiPredicate("wallThickness", parent=studio).add(
         EnumAnnotation(
             wall_thickness, ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL]
         ),

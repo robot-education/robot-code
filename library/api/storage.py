@@ -9,9 +9,10 @@ class FeatureStudio:
     name: str
     document_name: str
     path: api_path.StudioPath
+    # None to handle newly generated files
     microversion_id: str | None = None
-    modified: bool = dataclasses.field(default=False)
-    generated: bool = dataclasses.field(default=False)
+    modified: bool = False
+    generated: bool = False
 
 
 # @dataclasses.dataclass
@@ -39,11 +40,14 @@ def fetch(storage_path: pathlib.Path) -> FileData:
         return pickle.load(file)
 
 
-def write_studio(code_path: pathlib.Path, name: str, code: str) -> None:
-    with (code_path / name).open("w") as file:
-        file.write(code)
+class CodeWriter:
+    def __init__(self, code_path: pathlib.Path) -> None:
+        self.code_path = code_path
 
+    def write(self, name: str, code: str) -> None:
+        with (self.code_path / name).open("w") as file:
+            file.write(code)
 
-def read_studio(code_path: pathlib.Path, name) -> str:
-    with (code_path / name).open("r") as file:
-        return file.read()
+    def read(self, name: str) -> str:
+        with (self.code_path / name).open("r") as file:
+            return file.read()
