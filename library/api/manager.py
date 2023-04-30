@@ -5,8 +5,10 @@ from library.base import studio
 from library.api import api, client, conf, storage
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
-    'version : "(\\d{2,7})\\.0"|FeatureScript (\\d{2,7});'
+    r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
 )
+
+VERSION_SUB_MATCH = re.compile(r"\\d{2,7}")
 
 CONFLICT_MESSAGE = """
 Some files are in conflict and were skipped.
@@ -147,7 +149,9 @@ class StudioManager:
 
     def _generate_update_replace(self, std_version: str) -> Callable[[re.Match], str]:
         def replace_number(match: re.Match) -> str:
-            return re.sub(pattern="\\d{2,7}", repl=std_version, string=match.group(0))
+            return re.sub(
+                pattern=VERSION_SUB_MATCH, repl=std_version, string=match.group(0)
+            )
 
         return replace_number
 
@@ -175,13 +179,18 @@ class StudioManager:
         self.finish()
 
     def send_code(self, studio: studio.Studio, std_version: str) -> bool:
+        writer = storage.CodeWriter(self.config.code_path)
         code = studio.build(std_version)
+        curr = writer.read(studio.studio_name)
+        if curr == code:
+            print("{}: No changes. Skipping.".format(studio.studio_name))
+            return False
 
         document = self.config.documents.get(studio.document_name, None)
         if document is None:
             print(
-                "Failed to find document in config named {}. Skipping.".format(
-                    studio.document_name
+                "{}: Failed to find document in config named {}. Skipping.".format(
+                    studio.studio_name, studio.document_name
                 )
             )
             return False
@@ -201,7 +210,7 @@ class StudioManager:
         feature_studio.generated = True
         feature_studio.modified = True
         self.curr_data.studios[feature_studio.path.id] = feature_studio
-        storage.CodeWriter(self.config.code_path).write(feature_studio.name, code)
+        writer.write(feature_studio.name, code)
         return True
 
 

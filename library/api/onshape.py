@@ -9,13 +9,14 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "-l", "--log", help="whether to run in logging mode", action="store_true"
+        "-l", "--log", help="run with logging enabled", action="store_true"
     )
 
     subparsers = parser.add_subparsers(required=True, dest="action")
     update_parser = subparsers.add_parser(
         "update-versions",
-        help="update every feature studio to the latest version of the onshape std",
+        help="update every local feature studio to the latest version of the onshape std",
+        description="update every local feature studio to the latest version of the onshape std.",
     )
     update_parser.add_argument(
         "-p", "--push", action="store_true", help="push code to Onshape after updating"
@@ -24,17 +25,23 @@ def parse_args() -> argparse.Namespace:
     subparsers.add_parser(
         "clean",
         help="delete everything under storage_path and code_path",
+        description="Delete everything under storage_path and code_path.",
     )
 
     build_parser = subparsers.add_parser(
         "build",
         help="build everything under code_gen_path",
+        description="Build everything under code_gen_path.",
     )
     build_parser.add_argument(
         "-p", "--push", action="store_true", help="push code to Onshape after building"
     )
 
-    push_parser = subparsers.add_parser("push", help="push code to Onshape")
+    push_parser = subparsers.add_parser(
+        "push",
+        help="push local code to Onshape",
+        description="Push local code to Onshape.",
+    )
     push_parser.add_argument(
         "--force", action="store_true", help="force push, ignoring conflicts"
     )
@@ -54,17 +61,18 @@ def main():
 
     if args.action == "update-versions":
         code_manager.update_versions()
+        if args.push:
+            code_manager.push(False)
     elif args.action == "build":
         code_manager.build()
+        if args.push:
+            code_manager.push(False)
     elif args.action == "pull":
         code_manager.pull(args.force)
     elif args.action == "push":
         code_manager.push(args.force)
     elif args.action == "clean":
         code_manager.clean()
-
-    if args.push:
-        code_manager.push(False)
 
 
 if __name__ == "__main__":

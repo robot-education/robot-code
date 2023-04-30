@@ -40,7 +40,9 @@
     "cSpell.flagWords": [
         "coincentric"
     ],
-    // "python.analysis.extraPaths": [],
+    "python.analysis.extraPaths": [
+        "library/**"
+    ],
     "python.formatting.provider": "black",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": true,

@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Iterable, Sequence
 from library.core import str_utils, utils, map
-from library.base import stmt
+from library.base import expr, node, stmt
 from library.ui import enum, ui_hint
 
 __all__ = [
@@ -15,6 +15,7 @@ class Annotation(stmt.Statement, ABC):
     def __init__(
         self,
         parameter_name: str,
+        parent: node.ParentNode | None = None,
         user_name: str | None = None,
         ui_hints: Sequence[ui_hint.UiHint] = [],
         args: dict[str, str] = {},
@@ -22,6 +23,7 @@ class Annotation(stmt.Statement, ABC):
         """
         A dict containing additional strings to add to the annotation map.
         """
+        super().__init__(parent=parent)
         self.parameter_name = parameter_name
         self.user_name = user_name or str_utils.user_name(self.parameter_name)
 
@@ -57,19 +59,15 @@ class EnumAnnotation(TypeAnnotation):
         self,
         enum: enum.EnumDict,
         parameter_name: str | None = None,
-        user_name: str | None = None,
         default: str | None = None,
         ui_hints: Iterable[ui_hint.UiHint] | None = ui_hint.remember_hint,
+        **kwargs,
     ) -> None:
         self.enum = enum
         parameter_name = parameter_name or enum.default_parameter_name
         args = {} if not default else {"Default": default}
         super().__init__(
-            parameter_name,
-            type=self.enum.name,
-            user_name=user_name,
-            ui_hints=ui_hints,
-            args=args,
+            parameter_name, type=self.enum.name, ui_hints=ui_hints, args=args, **kwargs
         )
 
 
@@ -77,17 +75,17 @@ class BooleanAnnotation(TypeAnnotation):
     def __init__(
         self,
         parameter_name: str,
-        user_name: str | None = None,
         default: bool = False,
         ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+        **kwargs,
     ) -> None:
         args = {} if not default else {"Default": "true"}
         super().__init__(
             parameter_name,
-            user_name=user_name,
             type="boolean",
             args=args,
             ui_hints=ui_hints,
+            **kwargs,
         )
 
 
@@ -112,18 +110,18 @@ class LengthAnnotation(ValueAnnotation):
         self,
         parameter_name: str,
         bound_spec: str,
-        user_name: str | None = None,
         ui_hints: Iterable[ui_hint.UiHint] = [
             ui_hint.UiHint.SHOW_EXPRESSION,
             ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         ],
+        **kwargs,
     ) -> None:
         super().__init__(
             parameter_name,
             bound_spec,
-            user_name=user_name,
             ui_hints=ui_hints,
             predicate="isLength",
+            **kwargs,
         )
 
 
@@ -149,3 +147,18 @@ class BooleanCircularFlipAnnotation(BooleanAnnotation):
         ui_hints = list(ui_hints)
         ui_hints.append(ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR)
         super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
+
+
+class GroupAnnotation(Annotation):
+    def __init__(
+        self,
+        parameter_name: str,
+        user_name: str | None = None,
+        test: expr.Expr | None = None,
+        ui_hints: Iterable[ui_hint.UiHint] = [],
+        **kwargs,
+    ) -> None:
+        pass
+
+    # def __str__(self) -> str:
+    #     # super().__str__()

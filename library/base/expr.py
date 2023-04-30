@@ -7,6 +7,7 @@ from abc import ABC
 import enum as std_enum
 from typing import Iterator, Self
 from library.base import node
+from library.core import str_utils
 
 __all__ = ["Parens", "Id"]
 
@@ -54,6 +55,17 @@ class Parens(Expr):
 
     def __str__(self) -> str:
         return "({})".format(str(self.expr))
+
+
+class Call(Expr):
+    def __init__(self, name: str, *exprs: Expr, inline: bool = True) -> None:
+        self.name = name
+        self.exprs = exprs
+        self.inline = inline
+
+    def __str__(self) -> str:
+        join_str = ", " if self.inline else ",\n"
+        return "{}({})".format(self.name, str_utils.to_str(self.exprs, sep=join_str))
 
 
 class Id(Expr):

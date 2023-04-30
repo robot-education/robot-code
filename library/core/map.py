@@ -1,5 +1,5 @@
 from typing import Any, Iterable, Sequence
-from library.base import expr, node, stmt
+from library.base import expr
 from library.core import str_utils, utils
 from library.ui import enum
 
@@ -7,7 +7,6 @@ __all__ = [
     "Map",
     "definition_map",
     "enum_map",
-    "const",
     "lookup_enum_map",
     "map_access",
 ]
@@ -61,13 +60,6 @@ class Map(expr.Expr):
 def definition_map(*values: str, definition: str = "definition", **kwargs) -> Map:
     map_dict = dict([(value, utils.definition(value, definition)) for value in values])
     return Map(map_dict, **kwargs)
-
-
-def const(
-    name: str, expr: expr.Expr, *, parent: node.ParentNode, export: bool = False
-) -> str:
-    parent.add(stmt.Line(utils.export(export) + "const " + name + " = " + str(expr)))
-    return name
 
 
 def map_access(map: str | expr.Expr, *keys: str | expr.Expr) -> expr.Expr:

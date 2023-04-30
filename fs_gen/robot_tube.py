@@ -90,20 +90,6 @@ can_be_preset_diameter = ui_test_predicate(
 )
 
 # ui predicates
-wall_predicate = UiPredicate("wallThickness", parent=studio).add(
-    EnumAnnotation(
-        wall_thickness,
-        ui_hints=show_label_hint,
-    ),
-    IfBlock(custom_wall_thickness).add(
-        LengthAnnotation(
-            "customWallThickness",
-            LengthBound.SHELL_OFFSET_BOUNDS,
-            user_name="Wall thickness",
-        )
-    ),
-)
-
 hole_predicate = UiPredicate("tubeHole", parent=studio)
 hole_predicate.add(
     IfBlock(can_be_preset_diameter).add(
@@ -124,67 +110,77 @@ hole_predicate.add(
     .add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
 )
 
+wall_predicate = UiPredicate("wallThickness", parent=studio).add(
+    EnumAnnotation(
+        wall_thickness,
+        ui_hints=show_label_hint,
+    ),
+    IfBlock(custom_wall_thickness).add(
+        LengthAnnotation(
+            "customWallThickness",
+            LengthBound.SHELL_OFFSET_BOUNDS,
+            user_name="Wall thickness",
+        )
+    ),
+)
 
-tube_predicate = UiPredicate("tubeSize", parent=studio)
-tube_predicate.add(
+
+tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
     EnumAnnotation(
         tube_size,
         default="TWO_BY_ONE",
         ui_hints=show_label_hint,
-    )
-)
-
-tube_if = IfBlock(size_predicates["CUSTOM"], parent=tube_predicate).add(
-    LengthAnnotation("length", LengthBound.LENGTH_BOUNDS),
-    LengthAnnotation("width", LengthBound.LENGTH_BOUNDS),
-)
-
-tube_if.or_else().add(
-    EnumAnnotation(
-        tube_type,
-        default="CUSTOM",
-        ui_hints=show_label_hint,
     ),
-    IfBlock(is_max_tube & size_predicates["TWO_BY_ONE"]).add(
+    IfBlock(size_predicates["CUSTOM"])
+    .add(
+        LengthAnnotation("length", LengthBound.LENGTH_BOUNDS),
+        LengthAnnotation("width", LengthBound.LENGTH_BOUNDS),
+    )
+    .or_else()
+    .add(
         EnumAnnotation(
-            max_tube_type,
-            user_name="Pattern type",
-            default="GRID",
+            tube_type,
+            default="CUSTOM",
             ui_hints=show_label_hint,
         ),
-        IfBlock(can_be_light).add(
-            BooleanAnnotation("isLight", user_name="Light"),
+        IfBlock(is_max_tube & size_predicates["TWO_BY_ONE"]).add(
+            EnumAnnotation(
+                max_tube_type,
+                user_name="Pattern type",
+                default="GRID",
+                ui_hints=show_label_hint,
+            ),
+            IfBlock(can_be_light).add(
+                BooleanAnnotation("isLight", user_name="Light"),
+            ),
         ),
+    ),
+    IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(
+        wall_predicate()
     ),
 )
 
-tube_predicate.add(
-    IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(wall_predicate())
+tube_predicate = UiPredicate("tube", parent=studio).add(
+    tube_size_predicate(), hole_predicate()
 )
-
-# IfBlock(size_predicates["CUSTOM"]).add(hole_predicate()),
 
 # lookup functions
-(
-    Function(
-        "getHoleDiameter",
-        parent=studio,
-        arguments=definition_arg,
-        return_type=Type.VALUE,
+get_hole_diameter = Function(
+    "getHoleDiameter",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.VALUE,
+).add(
+    IfBlock(
+        can_be_preset_diameter & Parens(hole_size["NO_8"]() | hole_size["NO_10"]())
     ).add(
-        IfBlock(
-            can_be_preset_diameter & Parens(hole_size["NO_8"]() | hole_size["NO_10"]())
-        ).add(
-            Return(
-                map_access("HOLE_SIZES", definition("holeSize"), definition("holeFit"))
-            )
-        ),
-        Return(definition("holeDiameter")),
-    )
+        Return(map_access("HOLE_SIZES", definition("holeSize"), definition("holeFit")))
+    ),
+    Return(definition("holeDiameter")),
 )
 
 
-const(
+Const(
     "HOLE_SIZES",
     enum_map(
         hole_size,
@@ -201,7 +197,7 @@ Function(
     return_type=Type.VALUE,
 ).add(Return(millimeter(5)))
 
-Function(
+get_tube_size = Function(
     "getTubeSize", parent=studio, arguments=definition_arg, return_type=Type.MAP
 ).add(
     IfBlock(size_predicates["TWO_BY_ONE"])
@@ -211,7 +207,7 @@ Function(
     Return(definition_map("length", "width")),
 )
 
-enum_lookup_function(
+get_wall_thickness = enum_lookup_function(
     "getWallThickness",
     wall_thickness,
     parent=studio,
@@ -219,7 +215,7 @@ enum_lookup_function(
     return_type=Type.VALUE,
 )
 
-Function(
+get_max_tube_definition = Function(
     "getMaxTubeDefinition",
     parent=studio,
     arguments=definition_arg,
@@ -232,6 +228,23 @@ Function(
                 "light": can_be_light & definition("isLight"),
             },
             inline=False,
+        )
+    )
+)
+
+Function(
+    "getTubeDefinition", parent=studio, arguments=definition_arg, return_type=Type.MAP
+).add(
+    Return(
+        merge_maps(
+            get_tube_size(),
+            Map(
+                {
+                    "wallThickness": get_wall_thickness(),
+                    "hole_diameter": get_hole_diameter(),
+                },
+                inline=False,
+            ),
         )
     )
 )
