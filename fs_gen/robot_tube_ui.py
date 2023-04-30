@@ -3,35 +3,16 @@ from library import *
 
 studio = Studio("robotTubeUi.gen.fs", "backend")
 
+# enums
 wall_thickness = (
     custom_enum_factory.add_enum(
         "WallThickness", parent=studio, value_type=LookupEnumValue
     )
-    .add_value("ONE_SIXTEENTH", user_name="1/16", lookup_value=inch(0.0625))
-    .add_value("ONE_EIGHTH", user_name="1/8", lookup_value=inch(0.125))
+    .add_value("ONE_SIXTEENTH", user_name='1/16\\"', lookup_value=inch(0.0625))
+    .add_value("ONE_EIGHTH", user_name='1/8\\"', lookup_value=inch(0.125))
     .add_custom(lookup_value=definition("customWallThickness"))
     .make()
 )
-
-custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
-
-wall_predicate = UiPredicate("wallThickness", parent=studio).add(
-    EnumAnnotation(
-        wall_thickness, ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL]
-    ),
-    IfBlock(custom_wall_thickness).add(
-        LengthAnnotation("customWallThickness", LengthBound.SHELL_OFFSET_BOUNDS)
-    ),
-)
-
-enum_lookup_function(
-    "getWallThickness",
-    wall_thickness,
-    parent=studio,
-    predicate_dict={"CUSTOM": custom_wall_thickness},
-    return_type=Type.VALUE,
-)
-
 
 fit = (
     enum_factory.add_enum("HoleFit", parent=studio)
@@ -45,42 +26,6 @@ hole_size = (
     .add_value("NO_8", user_name="#8")
     .add_value("NO_10", user_name="#10")
     .make()
-)
-
-hole_predicate = UiPredicate("tubeHole", parent=studio)
-hole_predicate.add(
-    EnumAnnotation(hole_size, default="NO_10"),
-    IfBlock(hole_size["NO_8"]() | hole_size["NO_10"]())
-    .add(EnumAnnotation(fit))
-    .or_else()
-    .add(LengthAnnotation("customHoleSize", LengthBound.BLEND_BOUNDS)),
-)
-
-(
-    Function(
-        "getHoleDiameter",
-        parent=studio,
-        arguments=definition_arg,
-        return_type=Type.VALUE,
-    )
-    .add(
-        IfBlock(hole_size["NO_8"]() | hole_size["NO_10"]()).add(
-            Return(
-                map_access("HOLE_SIZES", definition("holeSize"), definition("holeFit"))
-            )
-        )
-    )
-    .add(Return(definition("customHoleSize")))
-)
-
-const(
-    "HOLE_SIZES",
-    enum_map(
-        hole_size,
-        enum_map(fit, inch(0.1695), inch(0.177)),
-        enum_map(fit, inch(0.196), inch(0.201)),
-    ),
-    parent=studio,
 )
 
 tube_size = (
@@ -104,27 +49,88 @@ max_tube_type = (
     .make()
 )
 
+
+# predicates
+custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
+
+
+type_predicates = enum_predicates(tube_type, parent=studio)
+size_predicates = enum_predicates(tube_size, parent=studio)
+
+
+is_max_tube = ui_test_predicate(
+    "isMaxTube",
+    ~tube_size["CUSTOM"]() & tube_type["MAX_TUBE"](),
+    parent=studio,
+)
+
 can_be_light = ui_test_predicate(
     "canBeLight",
     max_tube_type["NONE"]() | max_tube_type["GRID"](),
     parent=studio,
 )
 
-type_predicates = enum_predicates(tube_type, parent=studio)
-size_predicates = enum_predicates(tube_size, parent=studio)
-
-is_max_tube = ui_test_predicate(
-    "isMaxTube",
-    ~size_predicates["CUSTOM"] & type_predicates["MAX_TUBE"],
+has_min_hole_diameter = ui_test_predicate(
+    "hasMinHoleDiameter",
+    tube_type["MAX_TUBE"]()
+    & Parens(
+        tube_size["ONE_BY_ONE"]()
+        | Parens(
+            tube_size["TWO_BY_ONE"]()
+            & Parens(max_tube_type["GRID"]() | max_tube_type["MAX"]())
+        )
+    ),
     parent=studio,
 )
+
+can_be_preset_diameter = ui_test_predicate(
+    "canBePresetDiameter",
+    ~Parens(tube_type["MAX_TUBE"]() & ~max_tube_type["NONE"]()),
+    parent=studio,
+)
+
+# ui predicates
+wall_predicate = UiPredicate("wallThickness", parent=studio).add(
+    EnumAnnotation(
+        wall_thickness,
+        ui_hints=show_label_hint,
+    ),
+    IfBlock(custom_wall_thickness).add(
+        LengthAnnotation(
+            "customWallThickness",
+            LengthBound.SHELL_OFFSET_BOUNDS,
+            user_name="Wall thickness",
+        )
+    ),
+)
+
+hole_predicate = UiPredicate("tubeHole", parent=studio)
+hole_predicate.add(
+    IfBlock(can_be_preset_diameter).add(
+        EnumAnnotation(
+            hole_size,
+            default="NO_10",
+            ui_hints=show_label_hint,
+        )
+    ),
+    IfBlock(can_be_preset_diameter & Parens(hole_size["NO_8"]() | hole_size["NO_10"]()))
+    .add(
+        EnumAnnotation(
+            fit,
+            ui_hints=show_label_hint,
+        )
+    )
+    .or_else()
+    .add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
+)
+
 
 tube_predicate = UiPredicate("tubeSize", parent=studio)
 tube_predicate.add(
     EnumAnnotation(
         tube_size,
         default="TWO_BY_ONE",
-        ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.HORIZONTAL_ENUM],
+        ui_hints=show_label_hint,
     )
 )
 
@@ -137,10 +143,15 @@ tube_if.or_else().add(
     EnumAnnotation(
         tube_type,
         default="CUSTOM",
-        ui_hints=[UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL],
+        ui_hints=show_label_hint,
     ),
     IfBlock(is_max_tube & size_predicates["TWO_BY_ONE"]).add(
-        EnumAnnotation(max_tube_type, user_name="Pattern type"),
+        EnumAnnotation(
+            max_tube_type,
+            user_name="Pattern type",
+            default="GRID",
+            ui_hints=show_label_hint,
+        ),
         IfBlock(can_be_light).add(
             BooleanAnnotation("isLight", user_name="Light"),
         ),
@@ -148,11 +159,47 @@ tube_if.or_else().add(
 )
 
 tube_predicate.add(
-    IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(
-        wall_predicate()
-    ),
-    IfBlock(size_predicates["CUSTOM"]).add(hole_predicate()),
+    IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(wall_predicate())
 )
+
+# IfBlock(size_predicates["CUSTOM"]).add(hole_predicate()),
+
+# lookup functions
+(
+    Function(
+        "getHoleDiameter",
+        parent=studio,
+        arguments=definition_arg,
+        return_type=Type.VALUE,
+    ).add(
+        IfBlock(
+            can_be_preset_diameter & Parens(hole_size["NO_8"]() | hole_size["NO_10"]())
+        ).add(
+            Return(
+                map_access("HOLE_SIZES", definition("holeSize"), definition("holeFit"))
+            )
+        ),
+        Return(definition("holeDiameter")),
+    )
+)
+
+
+const(
+    "HOLE_SIZES",
+    enum_map(
+        hole_size,
+        enum_map(fit, inch(0.1695), inch(0.177)),
+        enum_map(fit, inch(0.196), inch(0.201)),
+    ),
+    parent=studio,
+)
+
+Function(
+    "getMinHoleDiameter",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.VALUE,
+).add(Return(millimeter(5)))
 
 Function(
     "getTubeSize", parent=studio, arguments=definition_arg, return_type=Type.MAP
@@ -162,6 +209,14 @@ Function(
     .else_if(size_predicates["ONE_BY_ONE"])
     .add(Return(Map({"length": inch(1), "width": inch(1)}))),
     Return(definition_map("length", "width")),
+)
+
+enum_lookup_function(
+    "getWallThickness",
+    wall_thickness,
+    parent=studio,
+    predicate_dict={"CUSTOM": custom_wall_thickness},
+    return_type=Type.VALUE,
 )
 
 Function(

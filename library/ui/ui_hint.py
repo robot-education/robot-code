@@ -1,6 +1,7 @@
 import enum as std_enum
+from typing import Iterable
 
-__all__ = ["UiHint", "remember_hint"]
+__all__ = ["UiHint", "remember_hint", "show_label_hint"]
 
 
 class UiHint(std_enum.StrEnum):
@@ -15,5 +16,6 @@ class UiHint(std_enum.StrEnum):
     OPPOSITE_DIRECTION_CIRCULAR = '"OPPOSITE_DIRECTION_CIRCULAR"'
 
 
-# tuple to ensure immutability
-remember_hint: tuple[UiHint] = (UiHint.REMEMBER_PREVIOUS_VALUE,)
+# tuple to ensure immutability to prevent mutation bugs
+remember_hint: Iterable[UiHint] = (UiHint.REMEMBER_PREVIOUS_VALUE,)
+show_label_hint: Iterable[UiHint] = (UiHint.REMEMBER_PREVIOUS_VALUE, UiHint.SHOW_LABEL)
