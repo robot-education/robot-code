@@ -1,5 +1,6 @@
-import re, shutil, os
+import re, shutil, runpy
 from typing import Callable
+from library.base import studio
 
 from library.api import api, client, conf, storage
 
@@ -163,6 +164,49 @@ class StudioManager:
         #     os.remove(self.config.storage_path)
         # if self.config.storage_path.parent.is_dir():
         #     self.config.storage_path.parent.rmdir()
+
+    def build(self) -> None:
+        std_version = self.client.std_version()
+        paths = self.config.code_gen_path.rglob("**/*.py")
+        count = 0
+        for path in paths:
+            output = runpy.run_path(path.as_posix())
+            for cls in output.values():
+                if isinstance(cls, studio.Studio):
+                    if self.send_code(cls, std_version):
+                        count += 1
+        print("Built {} feature studios.".format(count))
+        self.finish()
+
+    def send_code(self, studio: studio.Studio, std_version: str) -> bool:
+        code = studio.build(std_version)
+
+        document = self.config.documents.get(studio.document_name, None)
+        if document is None:
+            print(
+                "Failed to find document in config named {}. Skipping.".format(
+                    studio.document_name
+                )
+            )
+            return False
+        feature_studios = self.client.get_studios(document, studio.document_name)
+        feature_studio = next(
+            filter(
+                lambda feature_studio: feature_studio.name == studio.studio_name,
+                feature_studios,
+            ),
+            None,
+        )
+
+        if feature_studio is None:
+            feature_studio = self.client.make_feature_studio(
+                document, studio.studio_name
+            )
+        feature_studio.generated = True
+        feature_studio.modified = True
+        self.curr_data.studios[feature_studio.path.id] = feature_studio
+        storage.CodeWriter(self.config.code_path).write(feature_studio.name, code)
+        return True
 
 
 def make_manager(config: conf.Config, logging: bool = False) -> StudioManager:

@@ -40,6 +40,26 @@ class StudioClient:
             for element in elements
         ]
 
+    def make_feature_studio(
+        self, document_path: api_path.DocumentPath, studio_name: str
+    ) -> storage.FeatureStudio:
+        body = {"name": studio_name}
+        response = self._api.request(
+            api_path.ApiRequest(
+                "post",
+                "featurestudios",
+                document_path,
+            ),
+            body=body,
+        ).json()
+
+        return storage.FeatureStudio(
+            studio_name,
+            "ahh",
+            api_path.StudioPath(document_path, response["id"]),
+            response["microversionId"],
+        )
+
     # Fetches code from the feature studio specified by path
     def get_code(self, path: api_path.StudioPath) -> str:
         result = self._api.request(

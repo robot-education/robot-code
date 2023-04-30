@@ -22,6 +22,11 @@ def parse_args() -> argparse.Namespace:
         help="delete everything under storage_path and code_path",
     )
 
+    subparsers.add_parser(
+        "build",
+        help="build everything under code_gen_path",
+    )
+
     push_parser = subparsers.add_parser("push", help="push code to Onshape")
     push_parser.add_argument(
         "--force", action="store_true", help="force push, ignoring conflicts"
@@ -42,6 +47,8 @@ def main():
 
     if args.action == "update-versions":
         code_manager.update_versions()
+    elif args.action == "build":
+        code_manager.build()
     elif args.action == "pull":
         code_manager.pull(args.force)
     elif args.action == "push":
