@@ -32,6 +32,57 @@ enum_lookup_function(
     return_type=Type.VALUE,
 )
 
+
+fit = (
+    enum_factory.add_enum("HoleFit", parent=studio)
+    .add_value("CLOSE")
+    .add_value("FREE")
+    .make()
+)
+
+hole_size = (
+    custom_enum_factory.add_enum("HoleSize", parent=studio)
+    .add_value("NO_8", user_name="#8")
+    .add_value("NO_10", user_name="#10")
+    .make()
+)
+
+hole_predicate = UiPredicate("tubeHole", parent=studio)
+hole_predicate.add(
+    EnumAnnotation(hole_size, default="NO_10"),
+    IfBlock(hole_size["NO_8"]() | hole_size["NO_10"]())
+    .add(EnumAnnotation(fit))
+    .or_else()
+    .add(LengthAnnotation("customHoleSize", LengthBound.BLEND_BOUNDS)),
+)
+
+(
+    Function(
+        "getHoleDiameter",
+        parent=studio,
+        arguments=definition_arg,
+        return_type=Type.VALUE,
+    )
+    .add(
+        IfBlock(hole_size["NO_8"]() | hole_size["NO_10"]()).add(
+            Return(
+                map_access("HOLE_SIZES", definition("holeSize"), definition("holeFit"))
+            )
+        )
+    )
+    .add(Return(definition("customHoleSize")))
+)
+
+const(
+    "HOLE_SIZES",
+    enum_map(
+        hole_size,
+        enum_map(fit, inch(0.1695), inch(0.177)),
+        enum_map(fit, inch(0.196), inch(0.201)),
+    ),
+    parent=studio,
+)
+
 tube_size = (
     custom_enum_factory.add_enum("TubeSize", parent=studio)
     .add_value("ONE_BY_ONE", user_name="1x1")
@@ -96,9 +147,12 @@ tube_if.or_else().add(
     ),
 )
 
-IfBlock(
-    size_predicates["CUSTOM"] | type_predicates["CUSTOM"], parent=tube_predicate
-).add(wall_predicate())
+tube_predicate.add(
+    IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(
+        wall_predicate()
+    ),
+    IfBlock(size_predicates["CUSTOM"]).add(hole_predicate()),
+)
 
 Function(
     "getTubeSize", parent=studio, arguments=definition_arg, return_type=Type.MAP
@@ -125,54 +179,4 @@ Function(
             inline=False,
         )
     )
-)
-
-fit = (
-    enum_factory.add_enum("HoleFit", parent=studio)
-    .add_value("CLOSE")
-    .add_value("FREE")
-    .make()
-)
-
-hole_size = (
-    custom_enum_factory.add_enum("HoleSize", parent=studio)
-    .add_value("NO_8", user_name="#8")
-    .add_value("NO_10", user_name="#10")
-    .make()
-)
-
-hole_predicate = UiPredicate("tubeHole", parent=studio)
-hole_predicate.add(
-    EnumAnnotation(hole_size, default="NO_10"),
-    IfBlock(hole_size["NO_8"]() | hole_size["NO_10"]())
-    .add(EnumAnnotation(fit))
-    .or_else()
-    .add(LengthAnnotation("customHoleSize", LengthBound.BLEND_BOUNDS)),
-)
-
-(
-    Function(
-        "getHoleDiameter",
-        parent=studio,
-        arguments=definition_arg,
-        return_type=Type.VALUE,
-    )
-    .add(
-        IfBlock(hole_size["NO_8"]() | hole_size["NO_10"]()).add(
-            Return(
-                map_access("HOLE_SIZES", definition("holeSize"), definition("holeFit"))
-            )
-        )
-    )
-    .add(Return(definition("customHoleSize")))
-)
-
-const(
-    "HOLE_SIZES",
-    enum_map(
-        hole_size,
-        enum_map(fit, inch(0.1695), inch(0.177)),
-        enum_map(fit, inch(0.196), inch(0.201)),
-    ),
-    parent=studio,
 )

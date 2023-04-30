@@ -13,7 +13,7 @@ class StudioClient:
         ).json()[0]["microversionId"]
 
     def get_studios(
-        self, document_path: api_path.DocumentPath, document_name: str
+        self, document_path: api_path.DocumentPath
     ) -> list[storage.FeatureStudio]:
         """Returns an array of feature studios in a document."""
         query = {"elementType": "FEATURESTUDIO"}
@@ -21,19 +21,17 @@ class StudioClient:
             api_path.ApiRequest("get", "documents", document_path, "elements"),
             query=query,
         ).json()
-        return self.extract_studios(elements, document_path, document_name)
+        return self.extract_studios(elements, document_path)
 
     # Extracts paths from elements
     def extract_studios(
         self,
         elements: list[dict],
         document_path: api_path.DocumentPath,
-        document_name: str,
     ) -> list[storage.FeatureStudio]:
         return [
             storage.FeatureStudio(
                 element["name"],
-                document_name,
                 api_path.StudioPath(document_path.copy(), element["id"]),
                 element["microversionId"],
             )
@@ -55,7 +53,6 @@ class StudioClient:
 
         return storage.FeatureStudio(
             studio_name,
-            "ahh",
             api_path.StudioPath(document_path, response["id"]),
             response["microversionId"],
         )

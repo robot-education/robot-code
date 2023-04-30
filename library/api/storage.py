@@ -7,19 +7,10 @@ from library.api import api_path
 @dataclasses.dataclass
 class FeatureStudio:
     name: str
-    document_name: str
     path: api_path.StudioPath
-    # None to handle newly generated files
-    microversion_id: str | None = None
+    microversion_id: str
     modified: bool = False
     generated: bool = False
-
-
-# @dataclasses.dataclass
-# class Document(dict[str, FeatureStudio]):
-#     name: str
-#     path: api_path.DocumentPath
-#     studios: dict[str, FeatureStudio]
 
 
 @dataclasses.dataclass

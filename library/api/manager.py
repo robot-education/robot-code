@@ -32,8 +32,8 @@ class StudioManager:
     def get_config_documents(self) -> list[storage.FeatureStudio]:
         return [
             studio
-            for name, path in self.config.documents.items()
-            for studio in self.client.get_studios(path, name)
+            for path in self.config.documents.values()
+            for studio in self.client.get_studios(path)
         ]
 
     def pull(self, force: bool) -> None:
@@ -117,7 +117,7 @@ class StudioManager:
         if not self.conflict and pushed == 0:
             print("Everything already up to date.")
         else:
-            print("Pushed {} studios.".format(pushed))
+            print("Pushed {} feature studios.".format(pushed))
             self.finish()
 
     def update_versions(self) -> None:
@@ -160,10 +160,6 @@ class StudioManager:
     def clean(self) -> None:
         shutil.rmtree(self.config.code_path)
         shutil.rmtree(self.config.storage_path.parent)
-        # if self.config.storage_path.is_file():
-        #     os.remove(self.config.storage_path)
-        # if self.config.storage_path.parent.is_dir():
-        #     self.config.storage_path.parent.rmdir()
 
     def build(self) -> None:
         std_version = self.client.std_version()
@@ -189,7 +185,7 @@ class StudioManager:
                 )
             )
             return False
-        feature_studios = self.client.get_studios(document, studio.document_name)
+        feature_studios = self.client.get_studios(document)
         feature_studio = next(
             filter(
                 lambda feature_studio: feature_studio.name == studio.studio_name,

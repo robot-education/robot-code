@@ -13,18 +13,25 @@ def parse_args() -> argparse.Namespace:
     )
 
     subparsers = parser.add_subparsers(required=True, dest="action")
-    subparsers.add_parser(
+    update_parser = subparsers.add_parser(
         "update-versions",
         help="update every feature studio to the latest version of the onshape std",
     )
+    update_parser.add_argument(
+        "-p", "--push", action="store_true", help="push code to Onshape after updating"
+    )
+
     subparsers.add_parser(
         "clean",
         help="delete everything under storage_path and code_path",
     )
 
-    subparsers.add_parser(
+    build_parser = subparsers.add_parser(
         "build",
         help="build everything under code_gen_path",
+    )
+    build_parser.add_argument(
+        "-p", "--push", action="store_true", help="push code to Onshape after building"
     )
 
     push_parser = subparsers.add_parser("push", help="push code to Onshape")
@@ -55,6 +62,9 @@ def main():
         code_manager.push(args.force)
     elif args.action == "clean":
         code_manager.clean()
+
+    if args.push:
+        code_manager.push(False)
 
 
 if __name__ == "__main__":
