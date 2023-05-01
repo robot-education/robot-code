@@ -1,5 +1,5 @@
-from library.core import func, str_utils
-from library.base import expr, node
+from library.core import func
+from library.base import expr, node, str_utils
 from library.ui import enum
 
 __all__ = [

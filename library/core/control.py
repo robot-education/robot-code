@@ -11,9 +11,9 @@ class _If(stmt.BlockParent):
         super().__init__()
         self.test = test
 
-    def __str__(self) -> str:
+    def build(self, context: node.Context) -> str:
         string = "if ({})\n{{\n".format(self.test)
-        string += self.children_str(tab=True, sep="\n")
+        string += self.build_children(context, indent=True, sep="\n")
         return string + "}\n"
 
 
@@ -22,16 +22,16 @@ class _ElseIf(stmt.BlockParent):
         super().__init__()
         self.test = test
 
-    def __str__(self) -> str:
+    def build(self, context: node.Context) -> str:
         string = "else if ({})\n{{\n".format(self.test)
-        string += self.children_str(tab=True, sep="\n")
+        string += self.build_children(context, indent=True, sep="\n")
         return string + "}\n"
 
 
 class _Else(stmt.BlockParent):
-    def __str__(self) -> str:
+    def build(self, context: node.Context) -> str:
         string = "else\n{\n"
-        string += self.children_str(tab=True, sep="\n")
+        string += self.build_children(context, indent=True, sep="\n")
         return string + "}\n"
 
 
@@ -61,8 +61,8 @@ class IfBlock(stmt.BlockStatement):
         self.children.append(_Else())
         return self
 
-    def __str__(self) -> str:
-        return self.children_str()
+    def build(self, context: node.Context) -> str:
+        return self.build_children(context)
 
 
 def if_block(

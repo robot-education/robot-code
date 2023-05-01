@@ -180,7 +180,7 @@ class StudioManager:
 
     def send_code(self, studio: studio.Studio, std_version: str) -> bool:
         writer = storage.CodeWriter(self.config.code_path)
-        code = studio.build(std_version)
+        code = studio.build_studio(std_version)
         curr = writer.read(studio.studio_name)
         if curr == code:
             print("{}: No changes. Skipping.".format(studio.studio_name))

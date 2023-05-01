@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Iterable, Self, Sequence
-from library.core import control, str_utils, utils, map
-from library.base import expr, node, stmt
+from library.core import control, utils, map
+from library.base import node, stmt, str_utils
 from library.ui import enum, ui_hint
 
 __all__ = [
@@ -43,8 +43,8 @@ class Annotation(stmt.Statement, ABC):
         keys.append("UIHint")
         self.map = map.Map(map_args, quote_values=True, exclude_keys=keys)
 
-    def __str__(self) -> str:
-        return "annotation " + str(self.map) + "\n"
+    def build(self, context: node.Context) -> str:
+        return "annotation " + self.map.build(context) + "\n"
 
 
 class TypeAnnotation(Annotation, ABC):
@@ -54,10 +54,10 @@ class TypeAnnotation(Annotation, ABC):
         super().__init__(parameter_name, **kwargs)
         self.type = type
 
-    def __str__(self) -> str:
+    def build(self, context: node.Context) -> str:
         return (
             super().__str__()
-            + str(utils.definition(self.parameter_name))
+            + utils.definition(self.parameter_name).build(context)
             + " is {};\n".format(self.type)
         )
 
@@ -109,8 +109,8 @@ class ValueAnnotation(Annotation, ABC):
         self.bound_spec = bound_spec
         self.predicate = predicate
 
-    def __str__(self) -> str:
-        return super().__str__() + "{}({}, {});\n".format(
+    def build(self, context: node.Context) -> str:
+        return super().build(context) + "{}({}, {});\n".format(
             self.predicate, utils.definition(self.parameter_name), self.bound_spec
         )
 
@@ -180,10 +180,10 @@ class GroupAnnotation(Annotation, stmt.BlockStatement):
             **kwargs,
         )
 
-    def __str__(self) -> str:
+    def build(self, context: node.Context) -> str:
         string = super().__str__()
         string += "{\n"
-        string += self.children_str(sep="\n", tab=True)
+        string += self.build_children(context, sep="\n", indent=True)
         return string + "}\n"
 
 
@@ -212,8 +212,8 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
         self.group.add(*args)
         return self
 
-    def __str__(self) -> str:
-        string = str(self.boolean) + "\n"
+    def build(self, context: node.Context) -> str:
+        string = self.boolean.build(context) + "\n"
         string += str(
             control.IfBlock(utils.definition(self.parameter_name)).add(self.group)
         )

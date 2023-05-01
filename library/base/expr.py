@@ -7,7 +7,6 @@ from abc import ABC
 import enum as std_enum
 from typing import Iterator, Self
 from library.base import node
-from library.core import str_utils
 
 __all__ = ["Parens", "Id"]
 
@@ -32,6 +31,20 @@ class Expr(node.Node, ABC):
         return [self].__iter__()
 
 
+class Id(Expr):
+    def __init__(self, identifier: str) -> None:
+        self.identifier = identifier
+
+    def build(self, _: node.Context) -> str:
+        return self.identifier
+
+
+def cast_to_expr(node: Expr | str) -> Expr:
+    if not isinstance(node, Expr):
+        return Id(node)
+    return node
+
+
 class Compare(Expr):
     def __init__(self, lhs: Expr, operator: Operator, rhs: Expr) -> None:
         self.lhs = lhs
@@ -45,16 +58,18 @@ class Compare(Expr):
         )
         return self
 
-    def __str__(self) -> str:
-        return " ".join([str(self.lhs), self.operator, str(self.rhs)])
+    def build(self, context: node.Context) -> str:
+        return " ".join(
+            [self.lhs.build(context), self.operator, self.rhs.build(context)]
+        )
 
 
 class Parens(Expr):
     def __init__(self, expr: Expr) -> None:
         self.expr = expr
 
-    def __str__(self) -> str:
-        return "({})".format(str(self.expr))
+    def build(self, context: node.Context) -> str:
+        return "({})".format(self.expr.build(context))
 
 
 class Call(Expr):
@@ -63,17 +78,11 @@ class Call(Expr):
         self.exprs = exprs
         self.inline = inline
 
-    def __str__(self) -> str:
+    def build(self, context: node.Context) -> str:
         join_str = ", " if self.inline else ",\n"
-        return "{}({})".format(self.name, str_utils.to_str(self.exprs, sep=join_str))
-
-
-class Id(Expr):
-    def __init__(self, identifier: str) -> None:
-        self.identifier = identifier
-
-    def __str__(self) -> str:
-        return self.identifier
+        return "{}({})".format(
+            self.name, node.build_nodes(self.exprs, context, sep=join_str)
+        )
 
 
 class UnaryOp(Expr):
@@ -81,8 +90,8 @@ class UnaryOp(Expr):
         self.operand = operand
         self.operator = operator
 
-    def __str__(self) -> str:
-        return self.operator + str(self.operand)
+    def build(self, context: node.Context) -> str:
+        return self.operator + self.operand.build(context)
 
 
 class BoolOp(Expr):
@@ -91,5 +100,7 @@ class BoolOp(Expr):
         self.operator = operator
         self.rhs = rhs
 
-    def __str__(self) -> str:
-        return " ".join([str(self.lhs), self.operator, str(self.rhs)])
+    def build(self, context: node.Context) -> str:
+        return " ".join(
+            [(self.lhs).build(context), self.operator, self.rhs.build(context)]
+        )

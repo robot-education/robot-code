@@ -1,7 +1,8 @@
+from typing_extensions import override
 import warnings
 import enum as std_enum
 from typing import Iterable
-from library.core import str_utils, utils, arg
+from library.core import utils, arg
 from library.base import expr, node, stmt
 
 __all__ = [
@@ -22,13 +23,13 @@ class _Callable(stmt.BlockStatement):
         self,
         name: str,
         *,
+        parent: node.ParentNode | None = None,
         callable_type: CallableType,
         arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement | expr.Expr] = [],
         return_type: str | None = None,
         export: bool = True,
         is_lambda: bool = False,
-        parent: node.ParentNode,
     ) -> None:
         super().__init__(parent=parent)
         self.add(*statements)
@@ -57,23 +58,33 @@ class _Callable(stmt.BlockStatement):
 
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
-    def _arg_preamble(self) -> str:
-        if self.is_lambda:
-            return "const {} = function".format(self.name)
-        return self.callable_type + " " + self.name
+    def build_call(self, context: node.Context) -> str:
+        return self.__call__().build(context)
 
-    def _string(self, sep: str = "") -> str:
+    def build_def(self, context: node.Context, sep="") -> str:
         string = utils.export(self.export) + self._arg_preamble()
-        string += "({})".format(str_utils.to_str(self.arguments))
+        string += "({})".format(node.build_nodes(self.arguments, context))
         if self.return_type is not None:
             string += " returns " + self.return_type
         string += "\n{\n"
-        string += self.children_str(tab=True, sep=sep)
+        string += self.build_children(context, indent=True, sep=sep)
         string += "}"
         if self.is_lambda:
             string += ";"
         string += "\n"
         return string
+
+    def _arg_preamble(self) -> str:
+        if self.is_lambda:
+            return "const {} = function".format(self.name)
+        return self.callable_type + " " + self.name
+
+    @override
+    def build(self, context: node.Context, **kwargs) -> str:
+        if context.stmt:
+            return self.build_def(context, **kwargs)
+        else:
+            return self.build_call(context)
 
 
 class Function(_Callable):
@@ -81,7 +92,7 @@ class Function(_Callable):
         self,
         name: str,
         *,
-        parent: node.ParentNode,
+        parent: node.ParentNode | None = None,
         arguments: Iterable[arg.Argument] = [],
         return_type: str | None = None,
         statements: Iterable[stmt.Statement | expr.Expr] = [],
@@ -99,16 +110,13 @@ class Function(_Callable):
             is_lambda=is_lambda,
         )
 
-    def __str__(self) -> str:
-        return self._string()
 
-
-class Predicate(_Callable):
+class Predicate(_Callable, expr.Expr):
     def __init__(
         self,
         name: str,
         *,
-        parent: node.ParentNode,
+        parent: node.ParentNode | None = None,
         arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement | expr.Expr] = [],
         export: bool = True,
@@ -124,9 +132,6 @@ class Predicate(_Callable):
 
         if self.arguments == []:
             warnings.warn("Predicate has 0 arguments.")
-
-    def __str__(self) -> str:
-        return self._string()
 
 
 class UiPredicate(Predicate):
@@ -149,16 +154,25 @@ class UiPredicate(Predicate):
             **kwargs,
         )
 
-    def __str__(self) -> str:
-        return self._string(sep="\n")
+    @override
+    def pre_build(self, context: node.Context) -> None:
+        context.ui = True
+
+    @override
+    def build(self, context: node.Context) -> str:
+        return super().build(context, sep="\n")
+
+    @override
+    def post_build(self, context: node.Context) -> None:
+        context.ui = False
 
 
 def ui_test_predicate(
     name: str, *statements: stmt.Statement | expr.Expr, **kwargs
-) -> expr.Expr:
+) -> Predicate:
     return Predicate(
         name, statements=statements, arguments=arg.definition_arg, **kwargs
-    )()
+    )
 
 
 # def test_predicate(

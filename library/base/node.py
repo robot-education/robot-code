@@ -1,14 +1,57 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Self
+from typing import Callable, Iterable, Self, Type
 
-from library.core import str_utils
+import dataclasses
+
+
+@dataclasses.dataclass()
+class Context:
+    std_version: str
+    enum: bool = False
+    ui: bool = False
+    expr: bool = False
+    stmt: bool = True
+    top_stmt: bool = True
+    indent: int = 0
 
 
 class Node(ABC):
+    def __new__(cls: Type[Self], *args, **kwargs) -> Type[Node]:
+        build_func = cls.build
+
+        def run_build(self, context: Context, **kwargs) -> str:
+            self.pre_build(context)
+            # avoid infinite recursion
+            string = build_func(self, context, **kwargs)
+            transformers = cls.transformers(self)
+            for transform in transformers:
+                string = transform(context, string)
+
+            string = self.modify_build(context, string)
+            self.post_build(context)
+            return string
+
+        cls.build = run_build
+        return super().__new__(cls)
+
     @abstractmethod
-    def __str__(self) -> str:
-        raise NotImplementedError
+    def build(self, context: Context, **kwargs) -> str:
+        ...
+
+    def pre_build(self, context: Context) -> None:
+        ...
+
+    def transformers(self) -> Iterable[Callable[[Context, str], str]]:
+        return []
+
+    def post_build(self, context: Context) -> None:
+        ...
+
+
+def apply_indent(context: Context, string: str) -> str:
+    lines = string.splitlines(keepends=True)
+    return "".join([("    " * context.indent) + line for line in lines])
 
 
 class ChildNode(Node, ABC):
@@ -29,5 +72,26 @@ class ParentNode(Node, ABC):
         self.children.extend(children)
         return self
 
-    def children_str(self, **kwargs) -> str:
-        return str_utils.to_str(self.children, **kwargs)
+    def build_children(self, context: Context, **kwargs) -> str:
+        return build_nodes(self.children, context, **kwargs)
+
+
+def build_nodes(
+    nodes: Iterable[Node],
+    context: Context,
+    sep: str = "",
+    end: str = "",
+    indent: bool = False,
+) -> str:
+    """Converts an iterable of nodes to a tuple of strings.
+
+    sep: The seperator to put in between strings.
+    end: A string to append to each node.
+    tab: Whether to tab strings over.
+    """
+    if indent:
+        context.indent += 1
+    strings = [node.build(context) + end for node in nodes]
+    if indent:
+        context.indent -= 1
+    return sep.join(strings)

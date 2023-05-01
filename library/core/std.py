@@ -1,4 +1,4 @@
-from library.base import expr, stmt
+from library.base import expr, node, stmt
 from library.core import utils
 
 __all__ = ["Const", "merge_maps"]
@@ -9,12 +9,20 @@ class Const(stmt.Statement):
         self, name: str, expr: expr.Expr, export: bool = False, **kwargs
     ) -> None:
         super().__init__(**kwargs)
-        self.line = stmt.Line(
-            utils.export(export) + "const " + name + " = " + str(expr)
-        )
+        self.name = name
+        self.expr = expr
+        self.export = export
 
-    def __str__(self) -> str:
-        return str(self.line)
+    def build(self, context: node.Context) -> str:
+        return stmt.Line(
+            expr.Id(
+                utils.export(self.export)
+                + "const "
+                + self.name
+                + " = "
+                + self.expr.build(context)
+            )
+        ).build(context)
 
 
 def merge_maps(defaults: expr.Expr, m: expr.Expr) -> expr.Expr:

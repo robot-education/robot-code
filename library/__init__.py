@@ -2,6 +2,7 @@ from library.base.node import *
 from library.base.stmt import *
 from library.base.expr import *
 from library.base.studio import *
+from library.base.str_utils import *
 
 from library.ui.annotation import *
 from library.ui.bounds import *
@@ -15,5 +16,4 @@ from library.core.func import *
 from library.core.map import *
 from library.core.type import *
 from library.core.std import *
-from library.core.str_utils import *
 from library.core.utils import *

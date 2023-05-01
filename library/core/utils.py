@@ -1,4 +1,4 @@
-from library.base import expr
+from library.base import expr, stmt
 
 __all__ = ["definition"]
 

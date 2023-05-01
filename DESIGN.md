@@ -41,7 +41,6 @@ This catches the case where a user pulls code, makes some changes, then makes so
 # TODOs:
 Define custom `build` method which takes and passes on arbitrary **kwargs.
 Add contexts to various statements.
-Add `if_block` which wraps context.
 Cleanup `Group` annotations.
 
 Context implementations:

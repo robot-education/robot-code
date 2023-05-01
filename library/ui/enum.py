@@ -2,8 +2,10 @@ from __future__ import annotations
 from abc import ABC
 
 from typing import Generic, Iterable, Self, Type, TypeVar
-from library.core import control, func, str_utils, utils, arg, map
-from library.base import node, stmt, expr
+from typing_extensions import override
+import warnings
+from library.core import control, func, utils, arg, map
+from library.base import node, stmt, expr, str_utils
 
 __all__ = [
     "enum_factory",
@@ -13,7 +15,7 @@ __all__ = [
 ]
 
 
-class EnumValue(node.Node):
+class EnumValue(stmt.Statement, expr.Expr):
     def __init__(
         self,
         value: str,
@@ -32,7 +34,7 @@ class EnumValue(node.Node):
         self.enum = enum
         self.user_name = user_name or str_utils.value_user_name(self.value)
 
-    def __str__(self) -> str:
+    def build_value(self, context: node.Context) -> str:
         dict = {}
         if self.user_name is not None:
             dict["Name"] = self.user_name
@@ -41,9 +43,15 @@ class EnumValue(node.Node):
 
         if dict != {}:
             return "annotation {}\n{}".format(
-                str(map.Map(dict, quote_values=True)), self.value
+                map.Map(dict, quote_values=True).build(context), self.value
             )
         return self.value
+
+    def build(self, context: node.Context) -> str:
+        if context.enum:
+            return self.build_value(context)
+        else:
+            return self.__call__().build(context)
 
     def __call__(
         self,
@@ -93,11 +101,23 @@ class _Enum(stmt.BlockStatement):
         )
         self.export = export
 
-    def __str__(self) -> str:
-        string = utils.export(self.export)
-        string += "enum {} \n{{\n".format(self.name)
-        string += self.children_str(sep=",\n", tab=True)
+    @override
+    def pre_build(self, context: node.Context) -> None:
+        if not context.stmt:
+            warnings.warn("Enum must be used as a statement")
+        if not context.top_stmt:
+            warnings.warn("Enum must be top level")
+        context.enum = True
+
+    @override
+    def build(self, context: node.Context) -> str:
+        string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
+        string += self.build_children(context, sep=",\n", indent=True)
         return string + "\n}\n"
+
+    @override
+    def post_build(self, context: node.Context) -> None:
+        context.enum = False
 
 
 V = TypeVar("V", bound=EnumValue)
@@ -113,7 +133,7 @@ class EnumDict(dict[str, V], Generic[V]):
 class EnumFactoryBase(ABC):
     def __init__(
         self,
-        enum_factory,
+        enum_factory: Type[_Enum],
     ):
         self.enum_factory = enum_factory
         self.reset()
@@ -129,7 +149,7 @@ class EnumFactoryBase(ABC):
         parent: node.ParentNode,
         default_parameter_name: str | None = None,
         export: bool = True,
-        value_type: Type = EnumValue,
+        value_type: Type[EnumValue] = EnumValue,
     ) -> Self:
         self.value_factory = value_type
         self.enum = self.enum_factory(
@@ -141,6 +161,9 @@ class EnumFactoryBase(ABC):
         return self
 
     def add_value(self, value: str, *args, **kwargs) -> Self:
+        if self.enum is None:
+            raise ValueError("add_enum must be called before add_value")
+
         enum_value = self.value_factory(value, self.enum, *args, **kwargs)
         self.result[value] = enum_value
         return self
