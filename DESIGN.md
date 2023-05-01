@@ -39,7 +39,28 @@ This catches the case where a user pulls code, makes some changes, then makes so
 
 
 # TODOs:
-Add `make_annotation` method to `Enum`?
+Define custom `build` method which takes and passes on arbitrary **kwargs.
+Add contexts to various statements.
+Add `if_block` which wraps context.
+Cleanup `Group` annotations.
 
-Readd `__rstr__` for `expr`? Start taking `object`?
+Context implementations:
+The goal is to add **kwargs to build to enable build tooling to be more context aware. 
 
+The main use case for this is making it so that predicates, functions, annotations, and enum_values can change their behaviors automatically based on context.
+For example, a predicate used within an expr environment should result in a predicate call, a predicate used within a top level statement environment should result in 
+the predicate definition, and a ui test predicate used within a ui environment should result in the contents being inlined.
+
+Contexts:
+expr, statement, top, ui, enum.
+
+Node should be changed to expose a build function.
+Contexts should be special objects inheriting from `Context`. Their presence (i.e. not None) indicates that context is active.
+A tab context should be made available?
+Automatic inlining expressions is tricky. It's very hard without knowing beforehand. It's possible users could disable inline manually. 
+If we know an expression should be run in inline, we can automatically inline as we go, dropping newlines before children whenever
+the current `Width` context becomes to large?
+As we run, we keep track of the current width. If the current expr puts us over the limit (and inline_expr is true), drop a newline (and possibly a tab) before the current token?
+somethingBig & 
+    somethingMedium & small & 
+    somethingBig & small
