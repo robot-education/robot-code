@@ -1,8 +1,10 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Callable, Iterable, Self, Type
+from typing import Iterable, Self, Type
 
 import dataclasses
+
+from library.base import str_utils
 
 
 @dataclasses.dataclass()
@@ -24,11 +26,10 @@ class Node(ABC):
             self.pre_build(context)
             # avoid infinite recursion
             string = build_func(self, context, **kwargs)
-            transformers = cls.transformers(self)
-            for transform in transformers:
-                string = transform(context, string)
+            # transformers = cls.transformers(self)
+            # for transform in transformers:
+            #     string = transform(context, string)
 
-            string = self.modify_build(context, string)
             self.post_build(context)
             return string
 
@@ -42,16 +43,16 @@ class Node(ABC):
     def pre_build(self, context: Context) -> None:
         ...
 
-    def transformers(self) -> Iterable[Callable[[Context, str], str]]:
-        return []
+    # def transformers(self) -> Iterable[Callable[[Context, str], str]]:
+    #     return []
 
     def post_build(self, context: Context) -> None:
         ...
 
 
-def apply_indent(context: Context, string: str) -> str:
-    lines = string.splitlines(keepends=True)
-    return "".join([("    " * context.indent) + line for line in lines])
+# def apply_indent(context: Context, string: str) -> str:
+#     lines = string.splitlines(keepends=True)
+#     return "".join([("    " * context.indent) + line for line in lines])
 
 
 class ChildNode(Node, ABC):
@@ -94,4 +95,6 @@ def build_nodes(
     strings = [node.build(context) + end for node in nodes]
     if indent:
         context.indent -= 1
-    return sep.join(strings)
+        return str_utils.tab_lines(sep.join(strings))
+    else:
+        return sep.join(strings)

@@ -1,34 +1,35 @@
 from __future__ import annotations
 
 from typing import Self, Sequence
+from typing_extensions import override
 from library.base import node, stmt, expr
 
-__all__ = ["IfBlock", "if_block"]
+__all__ = ["IfBlock", "make_if_block"]
 
 
-class _If(stmt.BlockParent):
+class _If(stmt.BlockStatement):
     def __init__(self, test: expr.Expr) -> None:
         super().__init__()
         self.test = test
 
     def build(self, context: node.Context) -> str:
-        string = "if ({})\n{{\n".format(self.test)
+        string = "if ({})\n{{\n".format(self.test.build(context))
         string += self.build_children(context, indent=True, sep="\n")
         return string + "}\n"
 
 
-class _ElseIf(stmt.BlockParent):
+class _ElseIf(stmt.BlockStatement):
     def __init__(self, test: expr.Expr) -> None:
         super().__init__()
         self.test = test
 
     def build(self, context: node.Context) -> str:
-        string = "else if ({})\n{{\n".format(self.test)
+        string = "else if ({})\n{{\n".format(self.test.build(context))
         string += self.build_children(context, indent=True, sep="\n")
         return string + "}\n"
 
 
-class _Else(stmt.BlockParent):
+class _Else(stmt.BlockStatement):
     def build(self, context: node.Context) -> str:
         string = "else\n{\n"
         string += self.build_children(context, indent=True, sep="\n")
@@ -46,33 +47,34 @@ class IfBlock(stmt.BlockStatement):
     ) -> None:
         super().__init__(parent=parent)
         # cast children
-        self.children: list[_If | _ElseIf | _Else] = self.children
-        self.children.append(_If(test))
+        # self.children: list[_If | _ElseIf | _Else] = self.children
+        super().add(_If(test))
 
+    @override
     def add(self, *nodes: stmt.Statement | expr.Expr) -> Self:
-        self.children[-1].add(*nodes)
+        self.children[-1].add(*nodes)  # type: ignore
         return self
 
     def else_if(self, test: expr.Expr) -> Self:
-        self.children.append(_ElseIf(test))
+        super().add(_ElseIf(test))
         return self
 
     def or_else(self) -> Self:
-        self.children.append(_Else())
+        super().add(_Else())
         return self
 
     def build(self, context: node.Context) -> str:
         return self.build_children(context)
 
 
-def if_block(
+def make_if_block(
     *,
     parent: node.ParentNode,
     tests: Sequence[expr.Expr],
     statements: Sequence[stmt.Statement],
     else_statement: stmt.Statement | None = None,
     add_else: bool = True,
-) -> None:
+) -> IfBlock:
     if len(tests) != len(statements):
         raise ValueError(
             "Cannot generate if block with {} tests and {} expressions".format(
@@ -89,3 +91,5 @@ def if_block(
             base.or_else().add(else_statement)
         else:
             parent.add(else_statement)
+
+    return base

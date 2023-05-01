@@ -56,7 +56,7 @@ class TypeAnnotation(Annotation, ABC):
 
     def build(self, context: node.Context) -> str:
         return (
-            super().__str__()
+            super().build(context)
             + utils.definition(self.parameter_name).build(context)
             + " is {};\n".format(self.type)
         )
@@ -181,7 +181,7 @@ class GroupAnnotation(Annotation, stmt.BlockStatement):
         )
 
     def build(self, context: node.Context) -> str:
-        string = super().__str__()
+        string = super().build(context)
         string += "{\n"
         string += self.build_children(context, sep="\n", indent=True)
         return string + "}\n"
@@ -214,7 +214,9 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
 
     def build(self, context: node.Context) -> str:
         string = self.boolean.build(context) + "\n"
-        string += str(
-            control.IfBlock(utils.definition(self.parameter_name)).add(self.group)
+        string += (
+            control.IfBlock(utils.definition(self.parameter_name))
+            .add(self.group)
+            .build(context)
         )
         return string

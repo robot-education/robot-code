@@ -212,7 +212,7 @@ def lookup_block(
     *,
     parent: node.ParentNode,
     predicate_dict: dict[str, expr.Expr] = {},
-) -> None:
+) -> control.IfBlock:
     tests = []
     statements = []
     for value, enum_value in enum_dict.items():
@@ -220,8 +220,7 @@ def lookup_block(
         tests.append(predicate)
         lookup_value = enum_value.lookup_value
         statements.append(stmt.Return(lookup_value))
-
-    control.if_block(tests=tests, statements=statements, parent=parent)
+    return control.make_if_block(tests=tests, statements=statements, parent=parent)
 
 
 def enum_lookup_function(

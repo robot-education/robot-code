@@ -6,7 +6,9 @@ from __future__ import annotations
 from abc import ABC
 import enum as std_enum
 from typing import Iterator, Self
+from typing_extensions import override
 from library.base import node
+from library.base.node import Context
 
 __all__ = ["Parens", "Id"]
 
@@ -29,6 +31,14 @@ class Expr(node.Node, ABC):
     # Add iter to support use as a statement for predicate
     def __iter__(self) -> Iterator[Self]:
         return [self].__iter__()
+
+    @override
+    def pre_build(self, context: node.Context) -> None:
+        context.expr = True
+
+    @override
+    def post_build(self, context: node.Context) -> None:
+        context.expr = False
 
 
 class Id(Expr):
