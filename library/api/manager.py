@@ -183,13 +183,13 @@ class StudioManager:
         code = studio.build_studio(std_version)
         curr = writer.read(studio.studio_name)
         if curr == code:
-            print("{}: No changes. Skipping.".format(studio.studio_name))
-            return False
+            print("{}: Build resulted in no changes.".format(studio.studio_name))
+            return True  # Still count it as built
 
         document = self.config.documents.get(studio.document_name, None)
         if document is None:
             print(
-                "{}: Failed to find document in config named {}. Skipping.".format(
+                "{}: Failed to find document in config.json named {}. Skipping.".format(
                     studio.studio_name, studio.document_name
                 )
             )

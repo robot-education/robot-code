@@ -3,7 +3,7 @@ import warnings
 import enum as std_enum
 from typing import Iterable
 from library.core import utils, arg
-from library.base import expr, node, stmt
+from library.base import expr, msg, node, stmt
 
 __all__ = [
     "Function",
@@ -51,9 +51,10 @@ class _Callable(stmt.BlockStatement, expr.Expr):
         )
         for arg_name, parameter in arg_overrides:
             if arg_name not in arg_dict:
-                raise ValueError(
-                    "{} did not match any arguments in predicate.".format(arg_name)
+                warnings.warn(
+                    "{} did not match any arguments in predicate".format(arg_name)
                 )
+                continue
             arg_dict[arg_name] = parameter
 
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
@@ -84,11 +85,7 @@ class _Callable(stmt.BlockStatement, expr.Expr):
             return self.build_def(context, **kwargs)
         elif context.is_expression():
             return self.__call__().build(context)
-        else:
-            warnings.warn(
-                "Callable must be used as a top level statement or expression."
-            )
-            return "ERROR_HERE"
+        return msg.warn_context(msg.ContextType.EXPRESSION, msg.ContextType.DEFINITION)
 
 
 class Function(_Callable):
@@ -142,7 +139,10 @@ class UiPredicate(Predicate):
     """
     A predicate defining elements for use in the UI.
 
-    name: The name of the predicate. To match convention, the word `Predicate` is always automatically appended.
+    Args:
+        name: The name of the predicate.
+        append: A string to append to name. Defaults to "Predicate".
+        statements: Statements to start the predicate with.
     """
 
     def __init__(

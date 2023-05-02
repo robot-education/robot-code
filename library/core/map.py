@@ -1,14 +1,15 @@
 from typing import Any, Iterable, Sequence
+from typing_extensions import override
 from library.base import expr, str_utils, node
 from library.core import utils
 from library.ui import enum
 
 __all__ = [
     "Map",
+    "MapAccess",
     "definition_map",
-    # "enum_map",
-    # "lookup_enum_map",
-    # "map_access",
+    "enum_map",
+    "lookup_enum_map",
 ]
 
 
@@ -62,8 +63,16 @@ def definition_map(*values: str, definition: str = "definition", **kwargs) -> Ma
     return Map(map_dict, **kwargs)
 
 
-# def map_access(map: str | expr.Expr, *keys: str | expr.Expr) -> expr.Expr:
-#     return expr.Id(map.build(context) + "".join(("[{}]".format(key) for key in keys))
+class MapAccess(expr.Expr):
+    def __init__(self, map: str | expr.Expr, *keys: str | expr.Expr) -> None:
+        self.map = expr.cast_to_expr(map)
+        self.keys = keys
+
+    @override
+    def build(self, context: node.Context) -> str:
+        return self.map.build(context) + "".join(
+            ("[{}]".format(expr.cast_to_expr(key).build(context)) for key in self.keys)
+        )
 
 
 def enum_map(
@@ -76,9 +85,9 @@ def enum_map(
     return Map(map_dict, quote_keys=False, inline=inline, **kwargs)
 
 
-# def lookup_enum_map(enum: enum.EnumDict[enum.LookupEnumValue]) -> Map:
-#     map_dict = dict(
-#         (enum_value.enum.name + "." + enum_value.value, enum_value.lookup_value)
-#         for enum_value in enum.values()
-#     )
-#     return Map(map_dict, quote_keys=False)
+def lookup_enum_map(enum: enum.EnumDict[enum.LookupEnumValue]) -> Map:
+    map_dict = dict(
+        (enum_value.enum.name + "." + enum_value.value, enum_value.lookup_value)
+        for enum_value in enum.values()
+    )
+    return Map(map_dict, quote_keys=False)

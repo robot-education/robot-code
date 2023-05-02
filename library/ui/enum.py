@@ -1,11 +1,11 @@
 from __future__ import annotations
 from abc import ABC
 
-from typing import Generic, Iterable, Self, Type, TypeVar
+from typing import Any, Generic, Iterable, Self, Type, TypeVar
 from typing_extensions import override
 import warnings
 from library.core import control, func, utils, arg, map
-from library.base import node, stmt, expr, str_utils
+from library.base import msg, node, stmt, expr, str_utils
 
 __all__ = [
     "enum_factory",
@@ -33,6 +33,12 @@ class EnumValue(expr.Expr):
         self.hidden = hidden
         self.enum = enum
         self.user_name = user_name or str_utils.value_user_name(self.value)
+        self.invert = False
+
+    @override
+    def __invert__(self) -> Self:
+        self.invert = not self.invert
+        return self
 
     def __call__(
         self,
@@ -42,7 +48,9 @@ class EnumValue(expr.Expr):
     ) -> expr.Expr:
         if parameter_name is None:
             parameter_name = self.enum.default_parameter_name
-        operator = expr.Operator.NOT_EQUAL if invert else expr.Operator.EQUAL
+        if invert:
+            self.invert = not self.invert
+        operator = expr.Operator.NOT_EQUAL if self.invert else expr.Operator.EQUAL
         return expr.Compare(
             utils.definition(parameter_name, definition),
             operator,
@@ -70,10 +78,9 @@ class EnumValue(expr.Expr):
         elif context.is_expression():
             return self.__call__().build(context)
         else:
-            warnings.warn(
-                "Expected enum value to be used as a part of a enum or expression"
+            return msg.warn_context(
+                msg.ContextType.EXPRESSION, msg.ContextType.DEFINITION
             )
-            return "ERROR_HERE"
 
 
 class LookupEnumValue(EnumValue):
@@ -111,7 +118,7 @@ class _Enum(stmt.BlockStatement):
     @override
     def build(self, context: node.Context) -> str:
         if not context.is_definition():
-            warnings.warn("Enum must be top level statement.")
+            return msg.warn_context(msg.ContextType.DEFINITION)
         context.enum = True
         # Note: must not set statement to avoid triggering child expression to statement conversion
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
@@ -167,7 +174,7 @@ class EnumFactoryBase(ABC):
         self.result[value] = enum_value
         return self
 
-    def make(self) -> EnumDict[EnumValue]:
+    def make(self) -> EnumDict[Any]:
         if self.enum is None:
             raise ValueError("add_enum must be called before make")
         if len(self.result.values()) is None:
@@ -196,7 +203,7 @@ class CustomEnumFactory(EnumFactory):
         self.has_custom = True
         return self
 
-    def make(self) -> EnumDict[EnumValue]:
+    def make(self) -> EnumDict[Any]:
         if not self.has_custom:
             self.add_value("CUSTOM")
         return super().make()

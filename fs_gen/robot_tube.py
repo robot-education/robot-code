@@ -185,86 +185,86 @@ tube_predicate = UiPredicate("tube", parent=studio).add(
 )
 
 # # lookup functions
-# get_hole_diameter = Function(
-#     "getHoleDiameter",
-#     parent=studio,
-#     arguments=definition_arg,
-#     return_type=Type.VALUE,
-# ).add(
-#     IfBlock(
-#         can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
-#     ).add(
-#         Return(map_access("HOLE_SIZES", definition("holeSize"), definition("holeFit")))
-#     ),
-#     Return(definition("holeDiameter")),
-# )
+get_hole_diameter = Function(
+    "getHoleDiameter",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.VALUE,
+).add(
+    IfBlock(
+        can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
+    ).add(
+        Return(MapAccess("HOLE_SIZES", definition("holeSize"), definition("holeFit")))
+    ),
+    Return(definition("holeDiameter")),
+)
 
 
-# Const(
-#     "HOLE_SIZES",
-#     enum_map(
-#         hole_size,
-#         enum_map(fit, inch(0.1695), inch(0.177)),
-#         enum_map(fit, inch(0.196), inch(0.201)),
-#     ),
-#     parent=studio,
-# )
+Const(
+    "HOLE_SIZES",
+    enum_map(
+        hole_size,
+        enum_map(fit, inch(0.1695), inch(0.177)),
+        enum_map(fit, inch(0.196), inch(0.201)),
+    ),
+    parent=studio,
+)
 
-# Function(
-#     "getMinHoleDiameter",
-#     parent=studio,
-#     arguments=definition_arg,
-#     return_type=Type.VALUE,
-# ).add(Return(millimeter(5)))
+Function(
+    "getMinHoleDiameter",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.VALUE,
+).add(Return(millimeter(5)))
 
-# get_tube_size = Function(
-#     "getTubeSize", parent=studio, arguments=definition_arg, return_type=Type.MAP
-# ).add(
-#     IfBlock(size_predicates["TWO_BY_ONE"])
-#     .add(Return(Map({"length": inch(2), "width": inch(1)})))
-#     .else_if(size_predicates["ONE_BY_ONE"])
-#     .add(Return(Map({"length": inch(1), "width": inch(1)}))),
-#     Return(definition_map("length", "width")),
-# )
+get_tube_size = Function(
+    "getTubeSize", parent=studio, arguments=definition_arg, return_type=Type.MAP
+).add(
+    IfBlock(size_predicates["TWO_BY_ONE"])
+    .add(Return(Map({"length": inch(2), "width": inch(1)})))
+    .else_if(size_predicates["ONE_BY_ONE"])
+    .add(Return(Map({"length": inch(1), "width": inch(1)}))),
+    Return(definition_map("length", "width")),
+)
 
-# get_wall_thickness = enum_lookup_function(
-#     "getWallThickness",
-#     wall_thickness,
-#     parent=studio,
-#     predicate_dict={"CUSTOM": custom_wall_thickness},
-#     return_type=Type.VALUE,
-# )
+get_wall_thickness = enum_lookup_function(
+    "getWallThickness",
+    wall_thickness,
+    parent=studio,
+    predicate_dict={"CUSTOM": custom_wall_thickness},
+    return_type=Type.VALUE,
+)
 
-# get_max_tube_definition = Function(
-#     "getMaxTubeDefinition",
-#     parent=studio,
-#     arguments=definition_arg,
-#     return_type=Type.MAP,
-# ).add(
-#     Return(
-#         Map(
-#             {
-#                 "patternType": definition("maxTubePatternType"),
-#                 "light": can_be_light & definition("isLight"),
-#             },
-#             inline=False,
-#         )
-#     )
-# )
+get_max_tube_definition = Function(
+    "getMaxTubeDefinition",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.MAP,
+).add(
+    Return(
+        Map(
+            {
+                "patternType": definition("maxTubePatternType"),
+                "light": can_be_light & definition("isLight"),
+            },
+            inline=False,
+        )
+    )
+)
 
-# Function(
-#     "getTubeDefinition", parent=studio, arguments=definition_arg, return_type=Type.MAP
-# ).add(
-#     Return(
-#         merge_maps(
-#             get_tube_size,
-#             Map(
-#                 {
-#                     "wallThickness": get_wall_thickness,
-#                     "hole_diameter": get_hole_diameter,
-#                 },
-#                 inline=False,
-#             ),
-#         )
-#     )
-# )
+Function(
+    "getTubeDefinition", parent=studio, arguments=definition_arg, return_type=Type.MAP
+).add(
+    Return(
+        merge_maps(
+            get_tube_size,
+            Map(
+                {
+                    "wallThickness": get_wall_thickness,
+                    "hole_diameter": get_hole_diameter,
+                },
+                inline=False,
+            ),
+        )
+    )
+)
