@@ -98,14 +98,17 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
     DrivenGroupAnnotation(
         parameter_name="hasHoles", user_name="Holes", default=True
     ).add(
-        IfBlock(can_be_preset_diameter).add(
+        IfBlock(can_be_preset_diameter)
+        .add(
             EnumAnnotation(
                 hole_size,
                 user_name="Size",
                 default="NO_10",
                 ui_hints=show_label_hint,
             )
-        ),
+        )
+        .or_else()
+        .add(BooleanAnnotation("overrideHoleDiameter")),
         IfBlock(
             can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
         ).add(
@@ -115,7 +118,6 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
                 ui_hints=show_label_hint,
             )
         ),
-        IfBlock(~can_be_preset_diameter).add(BooleanAnnotation("overrideHoleDiameter")),
         IfBlock(
             Parens(
                 can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])

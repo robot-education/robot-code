@@ -186,7 +186,7 @@ class GroupAnnotation(Annotation, stmt.BlockStatement):
         string = super().build(context)
         string += "{\n"
         context.type = node.NodeType.STATEMENT
-        string += self.build_children(context, end="\n", indent=True)
+        string += self.build_children(context, sep="\n", indent=True)
         return string + "}\n"
 
 

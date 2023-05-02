@@ -62,7 +62,7 @@ class _Callable(stmt.BlockStatement, expr.Expr):
         return self.__call__().build(context)
 
     def build_def(self, context: node.Context, sep="") -> str:
-        string = utils.export(self.export) + self._arg_preamble()
+        string = utils.export(self.export) + self._get_start()
         context.type = node.NodeType.EXPRESSION
         string += "({})".format(node.build_nodes(self.arguments, context))
         if self.return_type is not None:
@@ -75,7 +75,7 @@ class _Callable(stmt.BlockStatement, expr.Expr):
         string += "\n"
         return string
 
-    def _arg_preamble(self) -> str:
+    def _get_start(self) -> str:
         if self.is_lambda:
             return "const {} = function".format(self.name)
         return self.callable_type + " " + self.name
@@ -90,7 +90,7 @@ class _Callable(stmt.BlockStatement, expr.Expr):
             warnings.warn(
                 "Expected callable to be used as a statement or an expression."
             )
-            return "<ERROR_HERE!>"
+            return "<ERROR>"
 
 
 class Function(_Callable):

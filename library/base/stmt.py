@@ -24,12 +24,11 @@ class Line(Statement):
     @override
     def build(self, context: node.Context) -> str:
         context.type = node.NodeType.EXPRESSION
-        print(context.type)
         return self.expr.build(context) + ";\n"
 
 
 def cast_to_stmt(node: Statement | expr.Expr) -> Statement:
-    if not isinstance(node, Statement):
+    if isinstance(node, expr.Expr):
         return Line(node)
     return node
 

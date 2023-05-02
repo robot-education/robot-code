@@ -64,9 +64,9 @@ class EnumValue(stmt.Statement, expr.Expr):
 
     @override
     def build(self, context: node.Context) -> str:
-        if context.type == node.NodeType.ENUM:
+        if context.type is node.NodeType.ENUM:
             return self.build_value(context)
-        elif context.type == node.NodeType.EXPRESSION:
+        elif context.type is node.NodeType.EXPRESSION:
             return self.__call__().build(context)
         warnings.warn("Enum value can only be used as an expression")
         return ""
@@ -112,14 +112,12 @@ class _Enum(stmt.BlockStatement):
 
     @override
     def build(self, context: node.Context) -> str:
+        if context.type is not node.NodeType.TOP_LEVEL:
+            warnings.warn("Enum must be top level")
         context.type = node.NodeType.ENUM
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
         string += self.build_children(context, sep=",\n", indent=True)
         return string + "\n}\n"
-
-    # @override
-    # def post_build(self, context: node.Context) -> None:
-    #     context.enum = False
 
 
 V = TypeVar("V", bound=EnumValue)

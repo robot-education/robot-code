@@ -1,18 +1,19 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Iterable, Self, Type
+from math import comb
+from typing import Any, Iterable, Self, Type
 
-import dataclasses
+import dataclasses, collections
 import enum as std_enum
 
 from library.base import str_utils
 
 
 class NodeType(std_enum.Enum):
-    STATEMENT = std_enum.auto()
-    EXPRESSION = std_enum.auto()
-    TOP_LEVEL = std_enum.auto()
-    ENUM = std_enum.auto()
+    TOP_LEVEL = 1
+    STATEMENT = 2
+    ENUM = 3
+    EXPRESSION = 4
 
 
 @dataclasses.dataclass()
@@ -21,21 +22,24 @@ class Context:
     type: NodeType = NodeType.TOP_LEVEL
     ui: bool = False
     indent: int = 0
+    stack: collections.deque[dict] = dataclasses.field(
+        default_factory=lambda: collections.deque()
+    )
 
-    def copy(self) -> Self:
-        return Context(**dataclasses.asdict(self))
+    def as_dict(self) -> dict[str, Any]:
+        return dict(
+            # shallow copy
+            (field.name, getattr(self, field.name))
+            for field in dataclasses.fields(self)
+            if field.name != "stack"
+        )
 
-    def become(self, context: Self) -> None:
-        for field in dataclasses.fields(context):
-            setattr(self, field.name, getattr(context, field.name))
+    def save(self) -> None:
+        self.stack.append(self.as_dict())
 
-
-def call_build(node: Node, context: Context, **context_kwargs):
-    original = context.copy()
-    for key, value in context_kwargs:
-        context.__setattr__(key, value)
-    node.build(context)
-    context.become(original)
+    def restore(self) -> None:
+        for key, value in self.stack.pop().items():
+            setattr(self, key, value)
 
 
 class Node(ABC):
@@ -43,9 +47,9 @@ class Node(ABC):
         saved_build = cls.build
 
         def run_build(self, context: Context, **build_kwargs) -> str:
-            original = context.copy()
+            context.save()
             string = saved_build(self, context, **build_kwargs)
-            context.become(original)
+            context.restore()
             return string
 
         cls.build = run_build
@@ -93,9 +97,9 @@ def build_nodes(
     """
     if indent:
         context.indent += 1
-    strings = [node.build(context) + end for node in nodes]
-    if indent:
-        context.indent -= 1
-        return str_utils.tab_lines(sep.join(strings))
-    else:
-        return sep.join(strings)
+    strings = [node.build(context) for node in nodes]
+    # if end_after_sep:
+    combined = (sep + end).join(strings) + end
+    # else:
+    #     combined = sep.join(string + end for string in strings)
+    return str_utils.tab_lines(combined) if indent else combined
