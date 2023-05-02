@@ -18,7 +18,7 @@ class CallableType(std_enum.StrEnum):
     PREDICATE = "predicate"
 
 
-class _Callable(stmt.BlockStatement):
+class _Callable(stmt.BlockStatement, expr.Expr):
     def __init__(
         self,
         name: str,
@@ -59,12 +59,13 @@ class _Callable(stmt.BlockStatement):
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
     def build_def(self, attributes: node.Attributes, sep="") -> str:
+        attributes.set_expression()
         string = utils.export(self.export) + self._get_start()
-        attributes.contexts.add(node.Context.EXPRESSION)
         string += "({})".format(node.build_nodes(self.arguments, attributes))
         if self.return_type is not None:
             string += " returns " + self.return_type
         string += "\n{\n"
+        attributes.set_statement()
         string += self.build_children(attributes, indent=True, sep=sep)
         string += "}"
         if self.is_lambda:
@@ -79,9 +80,15 @@ class _Callable(stmt.BlockStatement):
 
     @override
     def build(self, attributes: node.Attributes, **kwargs) -> str:
-        if node.Context.CONSTRUCT not in attributes.contexts:
-            warnings.warn("Callable must be used as a top level statement.")
-        return self.build_def(attributes, **kwargs)
+        if attributes.is_definition():
+            return self.build_def(attributes, **kwargs)
+        elif attributes.is_expression():
+            return self.__call__().build(attributes)
+        else:
+            warnings.warn(
+                "Callable must be used as a top level statement or expression."
+            )
+            return "ERROR_HERE"
 
 
 class Function(_Callable):
@@ -154,7 +161,7 @@ class UiPredicate(Predicate):
 
     @override
     def build(self, attributes: node.Attributes) -> str:
-        attributes.contexts.add(node.Context.UI)
+        attributes.ui = True
         return super().build(attributes, sep="\n")
 
 

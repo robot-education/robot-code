@@ -6,6 +6,14 @@ from library.base import expr, node
 __all__ = ["Return"]
 
 
+class Definition(node.ChildNode):
+    pass
+
+
+class BlockDefinition(node.ChildNode, node.ParentNode):
+    pass
+
+
 class Statement(node.ChildNode):
     """An class representing a statement.
 
@@ -23,7 +31,7 @@ class Line(Statement):
 
     @override
     def build(self, attributes: node.Attributes) -> str:
-        attributes.contexts.add(node.Context.EXPRESSION)
+        attributes.set_expression()
         return self.expr.build(attributes) + ";\n"
 
 
@@ -39,14 +47,15 @@ class Return(Statement):
 
     @override
     def build(self, attributes: node.Attributes) -> str:
-        attributes.contexts.add(node.Context.EXPRESSION)
+        attributes.set_expression()
         return "return " + self.expr.build(attributes) + ";\n"
 
 
 class BlockParent(node.ParentNode):
     @override
     def build_children(self, attributes: node.Attributes, **kwargs) -> str:
-        self.children = list(cast_to_stmt(node) for node in self.children)  # type: ignore
+        if attributes.is_statement():
+            self.children = list(cast_to_stmt(node) for node in self.children)  # type: ignore
         return super().build_children(attributes, **kwargs)
 
 

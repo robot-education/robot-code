@@ -8,29 +8,17 @@ __all__ = ["IfBlock", "make_if_block"]
 
 
 class _If(stmt.BlockStatement):
-    def __init__(self, test: expr.Expr) -> None:
+    def __init__(self, test: expr.Expr, else_if: bool = False) -> None:
         super().__init__()
         self.test = test
+        self.else_if = else_if
 
     @override
     def build(self, attributes: node.Attributes) -> str:
-        attributes.contexts.add(node.Context.EXPRESSION)
-        string = "if ({})\n{{\n".format(self.test.build(attributes))
-        attributes.contexts.add(node.Context.STATEMENT)
-        string += self.build_children(attributes, indent=True, sep="\n")
-        return string + "}\n"
-
-
-class _ElseIf(stmt.BlockStatement):
-    def __init__(self, test: expr.Expr) -> None:
-        super().__init__()
-        self.test = test
-
-    @override
-    def build(self, attributes: node.Attributes) -> str:
-        attributes.contexts.add(node.Context.EXPRESSION)
-        string = "else if ({})\n{{\n".format(self.test.build(attributes))
-        attributes.contexts.add(node.Context.STATEMENT)
+        attributes.set_expression()
+        string = "else " if self.else_if else ""
+        string += "if ({})\n{{\n".format(self.test.build(attributes))
+        attributes.set_statement()
         string += self.build_children(attributes, indent=True, sep="\n")
         return string + "}\n"
 
@@ -38,7 +26,7 @@ class _ElseIf(stmt.BlockStatement):
 class _Else(stmt.BlockStatement):
     @override
     def build(self, attributes: node.Attributes) -> str:
-        attributes.contexts.add(node.Context.STATEMENT)
+        attributes.set_statement()
         string = "else\n{\n"
         string += self.build_children(attributes, indent=True, sep="\n")
         return string + "}\n"
@@ -62,7 +50,7 @@ class IfBlock(stmt.BlockStatement):
         return self
 
     def else_if(self, test: expr.Expr) -> Self:
-        super().add(_ElseIf(test))
+        super().add(_If(test, else_if=True))
         return self
 
     def or_else(self) -> Self:

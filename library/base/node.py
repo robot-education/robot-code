@@ -11,23 +11,43 @@ from library.base import str_utils
 
 
 class Context(std_enum.Enum):
-    CONSTRUCT = std_enum.auto()
+    DEFINITION = std_enum.auto()
     STATEMENT = std_enum.auto()
-    ENUM = std_enum.auto()
     EXPRESSION = std_enum.auto()
-    UI = std_enum.auto()
 
 
 @dataclasses.dataclass()
 class Attributes:
     std_version: str
-    contexts: set[Context] = dataclasses.field(
-        default_factory=lambda: {Context.CONSTRUCT}
-    )
+    context: Context = Context.DEFINITION
+    ui: bool = False
+    enum: bool = False
     indent: int = 0
+
     stack: collections.deque[dict] = dataclasses.field(
         default_factory=lambda: collections.deque()
     )
+
+    def set_definition(self) -> Self:
+        self.context = Context.DEFINITION
+        return self
+
+    def set_statement(self) -> Self:
+        self.context = Context.STATEMENT
+        return self
+
+    def set_expression(self) -> Self:
+        self.context = Context.EXPRESSION
+        return self
+
+    def is_definition(self) -> bool:
+        return self.context == Context.DEFINITION
+
+    def is_statement(self) -> bool:
+        return self.context == Context.STATEMENT
+
+    def is_expression(self) -> bool:
+        return self.context == Context.EXPRESSION
 
     def as_dict(self) -> dict[str, Any]:
         return dict(

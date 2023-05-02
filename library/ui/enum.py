@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-class EnumValue(node.Node):
+class EnumValue(expr.Expr):
     def __init__(
         self,
         value: str,
@@ -64,11 +64,16 @@ class EnumValue(node.Node):
 
     @override
     def build(self, attributes: node.Attributes) -> str:
-        if node.Context.ENUM not in attributes.contexts:
+        if attributes.enum:
+            return self.build_value(attributes)
+        # okay with statement due to auto-conversion (I guess...)
+        elif attributes.is_expression():
+            return self.__call__().build(attributes)
+        else:
             warnings.warn(
-                "Expected enum value to be used as a part of a enum. Did you mean to call the value?"
+                "Expected enum value to be used as a part of a enum or expression"
             )
-        return self.build_value(attributes)
+            return "ERROR_HERE"
 
 
 class LookupEnumValue(EnumValue):
@@ -105,9 +110,10 @@ class _Enum(stmt.BlockStatement):
 
     @override
     def build(self, attributes: node.Attributes) -> str:
-        if node.Context.CONSTRUCT not in attributes.contexts:
-            warnings.warn("Enum must be top level")
-        attributes.contexts.add(node.Context.ENUM)
+        if not attributes.is_definition():
+            warnings.warn("Enum must be top level statement.")
+        attributes.enum = True
+        # Note: must not set statement to avoid triggering child expression to statement conversion
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
         string += self.build_children(attributes, sep=",\n", indent=True)
         return string + "\n}\n"
