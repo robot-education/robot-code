@@ -18,7 +18,7 @@ class CallableType(std_enum.StrEnum):
     PREDICATE = "predicate"
 
 
-class _Callable(stmt.BlockStatement):
+class _Callable(stmt.BlockStatement, expr.Expr):
     def __init__(
         self,
         name: str,
@@ -63,6 +63,7 @@ class _Callable(stmt.BlockStatement):
 
     def build_def(self, context: node.Context, sep="") -> str:
         string = utils.export(self.export) + self._arg_preamble()
+        context.type = node.NodeType.EXPRESSION
         string += "({})".format(node.build_nodes(self.arguments, context))
         if self.return_type is not None:
             string += " returns " + self.return_type
@@ -81,10 +82,15 @@ class _Callable(stmt.BlockStatement):
 
     @override
     def build(self, context: node.Context, **kwargs) -> str:
-        if context.stmt:
+        if context.type == node.NodeType.TOP_LEVEL:
             return self.build_def(context, **kwargs)
-        else:
+        elif context.type == node.NodeType.EXPRESSION:
             return self.build_call(context)
+        else:
+            warnings.warn(
+                "Expected callable to be used as a statement or an expression."
+            )
+            return "<ERROR_HERE!>"
 
 
 class Function(_Callable):
@@ -111,7 +117,7 @@ class Function(_Callable):
         )
 
 
-class Predicate(_Callable, expr.Expr):
+class Predicate(_Callable):
     def __init__(
         self,
         name: str,
@@ -144,35 +150,27 @@ class UiPredicate(Predicate):
     def __init__(
         self,
         name: str,
-        *statements: stmt.Statement | expr.Expr,
+        append: str = "Predicate",
+        statements: Iterable[stmt.Statement | expr.Expr] = [],
         **kwargs,
     ) -> None:
         super().__init__(
-            name + "Predicate",
+            name + append,
             arguments=arg.definition_arg,
             statements=statements,
             **kwargs,
         )
 
     @override
-    def pre_build(self, context: node.Context) -> None:
-        context.ui = True
-
-    @override
     def build(self, context: node.Context) -> str:
+        context.ui = True
         return super().build(context, sep="\n")
-
-    @override
-    def post_build(self, context: node.Context) -> None:
-        context.ui = False
 
 
 def ui_test_predicate(
     name: str, *statements: stmt.Statement | expr.Expr, **kwargs
 ) -> Predicate:
-    return Predicate(
-        name, statements=statements, arguments=arg.definition_arg, **kwargs
-    )
+    return UiPredicate(name, append="", statements=statements, **kwargs)
 
 
 # def test_predicate(

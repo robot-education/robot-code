@@ -12,13 +12,7 @@ class Statement(node.ChildNode):
     A statement is a singular code construct which composes one or more lines.
     """
 
-    @override
-    def pre_build(self, context: node.Context) -> None:
-        context.stmt = True
-
-    @override
-    def post_build(self, context: node.Context) -> None:
-        context.stmt = False
+    pass
 
 
 class Line(Statement):
@@ -29,6 +23,8 @@ class Line(Statement):
 
     @override
     def build(self, context: node.Context) -> str:
+        context.type = node.NodeType.EXPRESSION
+        print(context.type)
         return self.expr.build(context) + ";\n"
 
 
@@ -44,6 +40,7 @@ class Return(Statement):
 
     @override
     def build(self, context: node.Context) -> str:
+        context.type = node.NodeType.EXPRESSION
         return "return " + self.expr.build(context) + ";\n"
 
 

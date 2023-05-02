@@ -34,25 +34,6 @@ class EnumValue(stmt.Statement, expr.Expr):
         self.enum = enum
         self.user_name = user_name or str_utils.value_user_name(self.value)
 
-    def build_value(self, context: node.Context) -> str:
-        dict = {}
-        if self.user_name is not None:
-            dict["Name"] = self.user_name
-        if self.hidden:
-            dict["Hidden"] = "true"
-
-        if dict != {}:
-            return "annotation {}\n{}".format(
-                map.Map(dict, quote_values=True).build(context), self.value
-            )
-        return self.value
-
-    def build(self, context: node.Context) -> str:
-        if context.enum:
-            return self.build_value(context)
-        else:
-            return self.__call__().build(context)
-
     def __call__(
         self,
         definition: str = "definition",
@@ -67,6 +48,28 @@ class EnumValue(stmt.Statement, expr.Expr):
             operator,
             expr.Id("{}.{}".format(self.enum.name, self.value)),
         )
+
+    def build_value(self, context: node.Context) -> str:
+        dict = {}
+        if self.user_name is not None:
+            dict["Name"] = self.user_name
+        if self.hidden:
+            dict["Hidden"] = "true"
+
+        if dict != {}:
+            return "annotation {}\n{}".format(
+                map.Map(dict, quote_values=True).build(context), self.value
+            )
+        return self.value
+
+    @override
+    def build(self, context: node.Context) -> str:
+        if context.type == node.NodeType.ENUM:
+            return self.build_value(context)
+        elif context.type == node.NodeType.EXPRESSION:
+            return self.__call__().build(context)
+        warnings.warn("Enum value can only be used as an expression")
+        return ""
 
 
 class LookupEnumValue(EnumValue):
@@ -101,23 +104,22 @@ class _Enum(stmt.BlockStatement):
         )
         self.export = export
 
-    @override
-    def pre_build(self, context: node.Context) -> None:
-        if not context.stmt:
-            warnings.warn("Enum must be used as a statement")
-        if not context.top_stmt:
-            warnings.warn("Enum must be top level")
-        context.enum = True
+    # @override
+    # def pre_build(self, context: node.Context) -> None:
+    #     if not context.type == node.NodeType.TOP_LEVEL:
+    #         warnings.warn("Enum must be top level")
+    #     context.type = node.NodeType.ENUM
 
     @override
     def build(self, context: node.Context) -> str:
+        context.type = node.NodeType.ENUM
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
         string += self.build_children(context, sep=",\n", indent=True)
         return string + "\n}\n"
 
-    @override
-    def post_build(self, context: node.Context) -> None:
-        context.enum = False
+    # @override
+    # def post_build(self, context: node.Context) -> None:
+    #     context.enum = False
 
 
 V = TypeVar("V", bound=EnumValue)

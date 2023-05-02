@@ -3,34 +3,49 @@ from abc import ABC, abstractmethod
 from typing import Iterable, Self, Type
 
 import dataclasses
+import enum as std_enum
 
 from library.base import str_utils
+
+
+class NodeType(std_enum.Enum):
+    STATEMENT = std_enum.auto()
+    EXPRESSION = std_enum.auto()
+    TOP_LEVEL = std_enum.auto()
+    ENUM = std_enum.auto()
 
 
 @dataclasses.dataclass()
 class Context:
     std_version: str
-    enum: bool = False
+    type: NodeType = NodeType.TOP_LEVEL
     ui: bool = False
-    expr: bool = False
-    stmt: bool = True
-    top_stmt: bool = True
     indent: int = 0
+
+    def copy(self) -> Self:
+        return Context(**dataclasses.asdict(self))
+
+    def become(self, context: Self) -> None:
+        for field in dataclasses.fields(context):
+            setattr(self, field.name, getattr(context, field.name))
+
+
+def call_build(node: Node, context: Context, **context_kwargs):
+    original = context.copy()
+    for key, value in context_kwargs:
+        context.__setattr__(key, value)
+    node.build(context)
+    context.become(original)
 
 
 class Node(ABC):
     def __new__(cls: Type[Self], *args, **kwargs) -> Type[Node]:
-        build_func = cls.build
+        saved_build = cls.build
 
-        def run_build(self, context: Context, **kwargs) -> str:
-            self.pre_build(context)
-            # avoid infinite recursion
-            string = build_func(self, context, **kwargs)
-            # transformers = cls.transformers(self)
-            # for transform in transformers:
-            #     string = transform(context, string)
-
-            self.post_build(context)
+        def run_build(self, context: Context, **build_kwargs) -> str:
+            original = context.copy()
+            string = saved_build(self, context, **build_kwargs)
+            context.become(original)
             return string
 
         cls.build = run_build
@@ -39,20 +54,6 @@ class Node(ABC):
     @abstractmethod
     def build(self, context: Context, **kwargs) -> str:
         ...
-
-    def pre_build(self, context: Context) -> None:
-        ...
-
-    # def transformers(self) -> Iterable[Callable[[Context, str], str]]:
-    #     return []
-
-    def post_build(self, context: Context) -> None:
-        ...
-
-
-# def apply_indent(context: Context, string: str) -> str:
-#     lines = string.splitlines(keepends=True)
-#     return "".join([("    " * context.indent) + line for line in lines])
 
 
 class ChildNode(Node, ABC):

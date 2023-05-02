@@ -15,13 +15,11 @@ class Const(stmt.Statement):
 
     def build(self, context: node.Context) -> str:
         return stmt.Line(
-            expr.Id(
-                utils.export(self.export)
-                + "const "
-                + self.name
-                + " = "
-                + self.expr.build(context)
-            )
+            utils.export(self.export)
+            + "const "
+            + self.name
+            + " = "
+            + self.expr.build(context)
         ).build(context)
 
 

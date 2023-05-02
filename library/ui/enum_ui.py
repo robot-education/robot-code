@@ -38,7 +38,7 @@ def predicate_name(value: enum.EnumValue, prepend: str = "is", append: str = "")
 
 def custom_enum_predicate(
     enum: enum.EnumDict, *, name: str | None = None, parent: node.ParentNode
-) -> expr.Expr:
+) -> func.Predicate:
     """Generates a predicate which tests if an enum is CUSTOM."""
     if name is None:
         name = "is" + enum.name + "Custom"

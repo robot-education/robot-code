@@ -111,7 +111,9 @@ class ValueAnnotation(Annotation, ABC):
 
     def build(self, context: node.Context) -> str:
         return super().build(context) + "{}({}, {});\n".format(
-            self.predicate, utils.definition(self.parameter_name), self.bound_spec
+            self.predicate,
+            utils.definition(self.parameter_name).build(context),
+            self.bound_spec,
         )
 
 
@@ -183,7 +185,8 @@ class GroupAnnotation(Annotation, stmt.BlockStatement):
     def build(self, context: node.Context) -> str:
         string = super().build(context)
         string += "{\n"
-        string += self.build_children(context, sep="\n", indent=True)
+        context.type = node.NodeType.STATEMENT
+        string += self.build_children(context, end="\n", indent=True)
         return string + "}\n"
 
 
