@@ -14,21 +14,21 @@ class _If(stmt.BlockStatement):
         self.else_if = else_if
 
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        attributes.set_expression()
+    def build(self, context: node.Context) -> str:
+        context.set_expression()
         string = "else " if self.else_if else ""
-        string += "if ({})\n{{\n".format(self.test.build(attributes))
-        attributes.set_statement()
-        string += self.build_children(attributes, indent=True, sep="\n")
+        string += "if ({})\n{{\n".format(self.test.build(context))
+        context.set_statement()
+        string += self.build_children(context, indent=True, sep="\n")
         return string + "}\n"
 
 
 class _Else(stmt.BlockStatement):
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        attributes.set_statement()
+    def build(self, context: node.Context) -> str:
+        context.set_statement()
         string = "else\n{\n"
-        string += self.build_children(attributes, indent=True, sep="\n")
+        string += self.build_children(context, indent=True, sep="\n")
         return string + "}\n"
 
 
@@ -58,8 +58,8 @@ class IfBlock(stmt.BlockStatement):
         return self
 
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        return self.build_children(attributes)
+    def build(self, context: node.Context) -> str:
+        return self.build_children(context)
 
 
 def make_if_block(

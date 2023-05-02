@@ -30,9 +30,9 @@ class Line(Statement):
         self.expr = expr.cast_to_expr(expression)
 
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        attributes.set_expression()
-        return self.expr.build(attributes) + ";\n"
+    def build(self, context: node.Context) -> str:
+        context.set_expression()
+        return self.expr.build(context) + ";\n"
 
 
 def cast_to_stmt(node: Statement | expr.Expr) -> Statement:
@@ -46,17 +46,17 @@ class Return(Statement):
         self.expr = expr.cast_to_expr(expression)
 
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        attributes.set_expression()
-        return "return " + self.expr.build(attributes) + ";\n"
+    def build(self, context: node.Context) -> str:
+        context.set_expression()
+        return "return " + self.expr.build(context) + ";\n"
 
 
 class BlockParent(node.ParentNode):
     @override
-    def build_children(self, attributes: node.Attributes, **kwargs) -> str:
-        if attributes.is_statement():
+    def build_children(self, context: node.Context, **kwargs) -> str:
+        if context.is_statement():
             self.children = list(cast_to_stmt(node) for node in self.children)  # type: ignore
-        return super().build_children(attributes, **kwargs)
+        return super().build_children(context, **kwargs)
 
 
 class BlockStatement(Statement, BlockParent):

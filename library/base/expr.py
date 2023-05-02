@@ -35,7 +35,7 @@ class Id(Expr):
     def __init__(self, identifier: str) -> None:
         self.identifier = identifier
 
-    def build(self, _: node.Attributes) -> str:
+    def build(self, _: node.Context) -> str:
         return self.identifier
 
 
@@ -58,7 +58,7 @@ class Compare(Expr):
         )
         return self
 
-    def build(self, context: node.Attributes) -> str:
+    def build(self, context: node.Context) -> str:
         return " ".join(
             [self.lhs.build(context), self.operator, self.rhs.build(context)]
         )
@@ -68,7 +68,7 @@ class Parens(Expr):
     def __init__(self, expr: Expr) -> None:
         self.expr = expr
 
-    def build(self, context: node.Attributes) -> str:
+    def build(self, context: node.Context) -> str:
         return "({})".format(self.expr.build(context))
 
 
@@ -78,7 +78,7 @@ class Call(Expr):
         self.exprs = exprs
         self.inline = inline
 
-    def build(self, context: node.Attributes) -> str:
+    def build(self, context: node.Context) -> str:
         join_str = ", " if self.inline else ",\n"
         return "{}({})".format(
             self.name, node.build_nodes(self.exprs, context, sep=join_str)
@@ -90,7 +90,7 @@ class UnaryOp(Expr):
         self.operand = operand
         self.operator = operator
 
-    def build(self, context: node.Attributes) -> str:
+    def build(self, context: node.Context) -> str:
         return self.operator + self.operand.build(context)
 
 
@@ -100,7 +100,7 @@ class BoolOp(Expr):
         self.operator = operator
         self.rhs = rhs
 
-    def build(self, context: node.Attributes) -> str:
+    def build(self, context: node.Context) -> str:
         return " ".join(
             [(self.lhs).build(context), self.operator, self.rhs.build(context)]
         )

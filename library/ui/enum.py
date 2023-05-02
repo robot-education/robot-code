@@ -49,7 +49,7 @@ class EnumValue(expr.Expr):
             expr.Id("{}.{}".format(self.enum.name, self.value)),
         )
 
-    def build_value(self, attributes: node.Attributes) -> str:
+    def build_value(self, context: node.Context) -> str:
         dict = {}
         if self.user_name is not None:
             dict["Name"] = self.user_name
@@ -58,17 +58,17 @@ class EnumValue(expr.Expr):
 
         if dict != {}:
             return "annotation {}\n{}".format(
-                map.Map(dict, quote_values=True).build(attributes), self.value
+                map.Map(dict, quote_values=True).build(context), self.value
             )
         return self.value
 
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        if attributes.enum:
-            return self.build_value(attributes)
+    def build(self, context: node.Context) -> str:
+        if context.enum:
+            return self.build_value(context)
         # okay with statement due to auto-conversion (I guess...)
-        elif attributes.is_expression():
-            return self.__call__().build(attributes)
+        elif context.is_expression():
+            return self.__call__().build(context)
         else:
             warnings.warn(
                 "Expected enum value to be used as a part of a enum or expression"
@@ -109,13 +109,13 @@ class _Enum(stmt.BlockStatement):
         self.export = export
 
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        if not attributes.is_definition():
+    def build(self, context: node.Context) -> str:
+        if not context.is_definition():
             warnings.warn("Enum must be top level statement.")
-        attributes.enum = True
+        context.enum = True
         # Note: must not set statement to avoid triggering child expression to statement conversion
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
-        string += self.build_children(attributes, sep=",\n", indent=True)
+        string += self.build_children(context, sep=",\n", indent=True)
         return string + "\n}\n"
 
 

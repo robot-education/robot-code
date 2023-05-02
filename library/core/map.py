@@ -33,7 +33,7 @@ class Map(expr.Expr):
         self.exclude_keys = exclude_keys
         self.inline = inline
 
-    def _get_pairs(self, context: node.Attributes) -> Sequence[node.Node]:
+    def _get_pairs(self, context: node.Context) -> Sequence[node.Node]:
         pairs = []
         for key, value in self.dict.items():
             if value is None:
@@ -46,7 +46,7 @@ class Map(expr.Expr):
             pairs.append(expr.Id("{} : {}".format(key, value)))
         return pairs
 
-    def build(self, context: node.Attributes) -> str:
+    def build(self, context: node.Context) -> str:
         pairs = self._get_pairs(context)
         if len(pairs) == 0:
             return "{}"

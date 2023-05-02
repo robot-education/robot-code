@@ -58,15 +58,15 @@ class _Callable(stmt.BlockStatement, expr.Expr):
 
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
-    def build_def(self, attributes: node.Attributes, sep="") -> str:
-        attributes.set_expression()
+    def build_def(self, context: node.Context, sep="") -> str:
+        context.set_expression()
         string = utils.export(self.export) + self._get_start()
-        string += "({})".format(node.build_nodes(self.arguments, attributes))
+        string += "({})".format(node.build_nodes(self.arguments, context))
         if self.return_type is not None:
             string += " returns " + self.return_type
         string += "\n{\n"
-        attributes.set_statement()
-        string += self.build_children(attributes, indent=True, sep=sep)
+        context.set_statement()
+        string += self.build_children(context, indent=True, sep=sep)
         string += "}"
         if self.is_lambda:
             string += ";"
@@ -79,11 +79,11 @@ class _Callable(stmt.BlockStatement, expr.Expr):
         return self.callable_type + " " + self.name
 
     @override
-    def build(self, attributes: node.Attributes, **kwargs) -> str:
-        if attributes.is_definition():
-            return self.build_def(attributes, **kwargs)
-        elif attributes.is_expression():
-            return self.__call__().build(attributes)
+    def build(self, context: node.Context, **kwargs) -> str:
+        if context.is_definition():
+            return self.build_def(context, **kwargs)
+        elif context.is_expression():
+            return self.__call__().build(context)
         else:
             warnings.warn(
                 "Callable must be used as a top level statement or expression."
@@ -160,9 +160,9 @@ class UiPredicate(Predicate):
         )
 
     @override
-    def build(self, attributes: node.Attributes) -> str:
-        attributes.ui = True
-        return super().build(attributes, sep="\n")
+    def build(self, context: node.Context) -> str:
+        context.ui = True
+        return super().build(context, sep="\n")
 
 
 def ui_test_predicate(

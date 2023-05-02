@@ -13,7 +13,7 @@ class Const(stmt.Statement):
         self.expr = expr
         self.export = export
 
-    def build(self, context: node.Attributes) -> str:
+    def build(self, context: node.Context) -> str:
         return stmt.Line(
             utils.export(self.export)
             + "const "

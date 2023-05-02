@@ -10,16 +10,16 @@ import enum as std_enum
 from library.base import str_utils
 
 
-class Context(std_enum.Enum):
+class Level(std_enum.Enum):
     DEFINITION = std_enum.auto()
     STATEMENT = std_enum.auto()
     EXPRESSION = std_enum.auto()
 
 
 @dataclasses.dataclass()
-class Attributes:
+class Context:
     std_version: str
-    context: Context = Context.DEFINITION
+    level: Level = Level.DEFINITION
     ui: bool = False
     enum: bool = False
     indent: int = 0
@@ -29,25 +29,25 @@ class Attributes:
     )
 
     def set_definition(self) -> Self:
-        self.context = Context.DEFINITION
+        self.level = Level.DEFINITION
         return self
 
     def set_statement(self) -> Self:
-        self.context = Context.STATEMENT
+        self.level = Level.STATEMENT
         return self
 
     def set_expression(self) -> Self:
-        self.context = Context.EXPRESSION
+        self.level = Level.EXPRESSION
         return self
 
     def is_definition(self) -> bool:
-        return self.context == Context.DEFINITION
+        return self.level == Level.DEFINITION
 
     def is_statement(self) -> bool:
-        return self.context == Context.STATEMENT
+        return self.level == Level.STATEMENT
 
     def is_expression(self) -> bool:
-        return self.context == Context.EXPRESSION
+        return self.level == Level.EXPRESSION
 
     def as_dict(self) -> dict[str, Any]:
         return dict(
@@ -68,17 +68,17 @@ class Node(ABC):
     def __new__(cls: Type[Self], *args, **kwargs) -> Type[Node]:
         saved_build = cls.build
 
-        def run_build(self, attributes: Attributes, **build_kwargs) -> str:
-            attributes.save()
-            string = saved_build(self, attributes, **build_kwargs)
-            attributes.restore()
+        def run_build(self, context: Context, **build_kwargs) -> str:
+            context.save()
+            string = saved_build(self, context, **build_kwargs)
+            context.restore()
             return string
 
         cls.build = run_build
         return super().__new__(cls)
 
     @abstractmethod
-    def build(self, attributes: Attributes, **kwargs) -> str:
+    def build(self, context: Context, **kwargs) -> str:
         ...
 
 
@@ -100,13 +100,13 @@ class ParentNode(Node, ABC):
         self.children.extend(children)
         return self
 
-    def build_children(self, attributes: Attributes, **kwargs) -> str:
-        return build_nodes(self.children, attributes, **kwargs)
+    def build_children(self, context: Context, **kwargs) -> str:
+        return build_nodes(self.children, context, **kwargs)
 
 
 def build_nodes(
     nodes: Iterable[Node],
-    attributes: Attributes,
+    context: Context,
     sep: str = "",
     end: str = "",
     indent: bool = False,
@@ -118,8 +118,8 @@ def build_nodes(
     tab: Whether to tab strings over.
     """
     if indent:
-        attributes.indent += 1
-    strings = [node.build(attributes) for node in nodes]
+        context.indent += 1
+    strings = [node.build(context) for node in nodes]
     # if end_after_sep:
     combined = (sep + end).join(strings) + end
     # else:
