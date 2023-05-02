@@ -165,12 +165,18 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
     IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(wall_predicate),
 )
 
+tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
+    GroupAnnotation("First face").add(), GroupAnnotation("Second face").add()
+)
+
 tube_predicate = UiPredicate("tube", parent=studio).add(
     GroupAnnotation("Tube").add(
         tube_size_predicate,
     ),
     hole_predicate,
+    tube_face_predicate,
 )
+
 
 # # lookup functions
 get_hole_diameter = Function(
