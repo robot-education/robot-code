@@ -222,7 +222,7 @@ def lookup_block(
     tests = []
     statements = []
     for value, enum_value in enum_dict.items():
-        predicate = predicate_dict.get(value, enum_value())
+        predicate = predicate_dict.get(value, enum_value)
         tests.append(predicate)
         lookup_value = enum_value.lookup_value
         statements.append(stmt.Return(lookup_value))

@@ -27,12 +27,12 @@ class Line(Statement):
     """Represents an statement which spans a single line."""
 
     def __init__(self, expression: expr.Expr | str) -> None:
-        self.expr = expr.cast_to_expr(expression)
+        self.expression = expr.cast_to_expr(expression)
 
     @override
     def build(self, context: node.Context) -> str:
         context.set_expression()
-        return self.expr.build(context) + ";\n"
+        return self.expression.build(context) + ";\n"
 
 
 def cast_to_stmt(node: Statement | expr.Expr) -> Statement:
@@ -43,12 +43,12 @@ def cast_to_stmt(node: Statement | expr.Expr) -> Statement:
 
 class Return(Statement):
     def __init__(self, expression: expr.Expr | str) -> None:
-        self.expr = expr.cast_to_expr(expression)
+        self.expression = expr.cast_to_expr(expression)
 
     @override
     def build(self, context: node.Context) -> str:
         context.set_expression()
-        return "return " + self.expr.build(context) + ";\n"
+        return "return " + self.expression.build(context) + ";\n"
 
 
 class BlockParent(node.ParentNode):

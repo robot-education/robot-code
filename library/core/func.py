@@ -9,7 +9,7 @@ __all__ = [
     "Function",
     "Predicate",
     "UiPredicate",
-    "ui_test_predicate",
+    "TestPredicate",
 ]
 
 
@@ -161,28 +161,43 @@ class UiPredicate(Predicate):
 
     @override
     def build(self, context: node.Context) -> str:
+        if context.is_expression() and not context.ui:
+            msg.warn_context("ui predicate body")
         context.ui = True
         return super().build(context, sep="\n")
 
 
-def ui_test_predicate(
-    name: str, *statements: stmt.Statement | expr.Expr, **kwargs
-) -> Predicate:
-    return UiPredicate(name, append="", statements=statements, **kwargs)
+class TestPredicate(Predicate):
+    def __init__(
+        self,
+        name: str,
+        *statements: expr.Expr,
+        arguments: Iterable[arg.Argument] = arg.definition_arg,
+        **kwargs,
+    ) -> None:
+        super().__init__(name, arguments=arguments, statements=statements, **kwargs)
 
+    def build_inline_call(self, context: node.Context) -> str:
+        result = None
+        for statement in self.children:
+            if not isinstance(statement, stmt.Line):
+                warnings.warn("Cannot inline predicate which contains statements")
+                return msg.ERROR_SNIPPET
+            expression = expr.add_parens(statement.expression)
+            if result is None:
+                result = expression
+            else:
+                result &= expression
+        if result is None:
+            warnings.warn("Empty predicate")
+            return msg.ERROR_SNIPPET
 
-# def test_predicate(
-#     name: str,
-#     *,
-#     arguments: Iterable[arg.Argument] = [],
-#     statements: Iterable[stmt.Statement | expr.Expr],
-#     parent: base.ParentNode,
-#     export: bool = True,
-# ) -> expr.Expr:
-#     """Adds a predicate to parent with the given statements.
+        return result.build(context)
 
-#     Returns an expression which calls the predicate.
-#     """
-#     return Predicate(
-#         name, parent=parent, arguments=arguments, statements=statements, export=export
-#     )()
+    @override
+    def build(self, context: node.Context) -> str:
+        if context.is_expression() and context.test_predicate:
+            return self.build_inline_call(context)
+
+        context.test_predicate = True
+        return super().build(context)

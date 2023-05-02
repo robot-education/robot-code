@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Iterable, Self, Sequence
 from library.core import control, utils, map
-from library.base import node, stmt, str_utils
+from library.base import expr, node, stmt, str_utils
 from library.ui import enum, ui_hint
 
 __all__ = [
@@ -199,7 +199,16 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
         user_name: str,
         ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
         default: bool = False,
+        drive_group_test: expr.Expr | None = None,
     ) -> None:
+        """
+        Args:
+            drive_group_test:
+                A test used to determine whether to drive the group or not.
+                When true, the group is driven by the boolean.
+                When false, the boolean is hidden, and the group is a standard group.
+        """
+        self.drive_group_test = drive_group_test
         self.group = GroupAnnotation(
             user_name,
             args={"Driving Parameter": parameter_name},
@@ -217,10 +226,23 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
         return self
 
     def build(self, context: node.Context) -> str:
-        string = self.boolean.build(context) + "\n"
-        string += (
-            control.IfBlock(utils.definition(self.parameter_name))
-            .add(self.group)
-            .build(context)
-        )
+        if self.drive_group_test is None:
+            string = self.boolean.build(context) + "\n"
+            string += (
+                control.IfBlock(utils.definition(self.parameter_name))
+                .add(self.group)
+                .build(context)
+            )
+        else:
+            string = (
+                control.IfBlock(self.drive_group_test).add(self.boolean).build(context)
+            )
+            string += (
+                control.IfBlock(
+                    ~expr.add_parens(self.drive_group_test)
+                    | utils.definition(self.parameter_name)
+                )
+                .add(self.group)
+                .build(context)
+            )
         return string

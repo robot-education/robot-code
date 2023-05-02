@@ -71,6 +71,11 @@ class Parens(Expr):
     def build(self, context: node.Context) -> str:
         return "({})".format(self.expr.build(context))
 
+def add_parens(expression: Expr):
+    if isinstance(expression, Parens):
+        return expression
+    return Parens(expression)
+
 
 class Call(Expr):
     def __init__(self, name: str, *exprs: Expr, inline: bool = True) -> None:

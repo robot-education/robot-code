@@ -58,71 +58,59 @@ type_predicates = enum_predicates(tube_type, parent=studio)
 size_predicates = enum_predicates(tube_size, parent=studio)
 
 
-is_max_tube = ui_test_predicate(
+is_max_tube = TestPredicate(
     "isMaxTube",
     ~tube_size["CUSTOM"] & tube_type["MAX_TUBE"],
     parent=studio,
 )
 
-can_be_light = ui_test_predicate(
+can_be_light = TestPredicate(
     "canBeLight",
     max_tube_type["NONE"] | max_tube_type["GRID"],
     parent=studio,
 )
 
-has_min_hole_diameter = ui_test_predicate(
-    "hasMinHoleDiameter",
-    tube_type["MAX_TUBE"]
-    & Parens(
-        tube_size["ONE_BY_ONE"]
-        | Parens(
-            tube_size["TWO_BY_ONE"]
-            & Parens(max_tube_type["GRID"] | max_tube_type["MAX"])
-        )
-    ),
+# True for any tube without preset holes.
+has_predrilled_holes = TestPredicate(
+    "hasPredrilledHoles",
+    ~Parens(is_max_tube & Parens(~max_tube_type["NONE"] | tube_size["ONE_BY_ONE"])),
     parent=studio,
 )
 
-can_be_preset_diameter = ui_test_predicate(
-    "canBePresetDiameter",
-    ~Parens(
-        Parens(tube_size["ONE_BY_ONE"] | tube_size["TWO_BY_ONE"])
-        & tube_type["MAX_TUBE"]
-        & Parens(~max_tube_type["NONE"] | tube_size["ONE_BY_ONE"])
-    ),
-    parent=studio,
+is_hole_size_set = TestPredicate(
+    "isHoleSizeSet", hole_size["NO_8"] | hole_size["NO_10"], parent=studio
 )
+
 
 # ui predicates
 hole_predicate = UiPredicate("tubeHole", parent=studio).add(
     DrivenGroupAnnotation(
-        parameter_name="hasHoles", user_name="Holes", default=True
+        parameter_name="hasHoles",
+        user_name="Holes",
+        default=True,
+        drive_group_test=has_predrilled_holes,
     ).add(
-        IfBlock(can_be_preset_diameter)
+        IfBlock(has_predrilled_holes)
         .add(
             EnumAnnotation(
                 hole_size,
                 user_name="Size",
                 default="NO_10",
                 ui_hints=show_label_hint,
-            )
+            ),
+            IfBlock(is_hole_size_set).add(
+                EnumAnnotation(
+                    fit,
+                    user_name="Fit",
+                    ui_hints=show_label_hint,
+                )
+            ),
         )
         .or_else()
         .add(BooleanAnnotation("overrideHoleDiameter")),
         IfBlock(
-            can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
-        ).add(
-            EnumAnnotation(
-                fit,
-                user_name="Fit",
-                ui_hints=show_label_hint,
-            )
-        ),
-        IfBlock(
-            Parens(
-                can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
-            )
-            | Parens(~can_be_preset_diameter & definition("overrideHoleDiameter"))
+            Parens(has_predrilled_holes & ~is_hole_size_set)
+            | Parens(~has_predrilled_holes & definition("overrideHoleDiameter"))
         ).add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
     )
 )
@@ -191,9 +179,7 @@ get_hole_diameter = Function(
     arguments=definition_arg,
     return_type=Type.VALUE,
 ).add(
-    IfBlock(
-        can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
-    ).add(
+    IfBlock(has_predrilled_holes & Parens(hole_size["NO_8"] | hole_size["NO_10"])).add(
         Return(MapAccess("HOLE_SIZES", definition("holeSize"), definition("holeFit")))
     ),
     Return(definition("holeDiameter")),

@@ -38,7 +38,8 @@
         "updateversions"
     ],
     "cSpell.flagWords": [
-        "coincentric"
+        "coincentric",
+        "expresion"
     ],
     "python.analysis.extraPaths": [
         "library/**"

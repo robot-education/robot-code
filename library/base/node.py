@@ -17,10 +17,24 @@ class Level(std_enum.Enum):
 
 @dataclasses.dataclass()
 class Context:
+    """
+    Fields:
+        std_version: Stores the current version of the std.
+        level: Stores the current statement level.
+        enum: Used to indicate whether we are currently defining an enum.
+        ui: Used to indicate whether we're in a UI predicate.
+        test_predicate: Used to indicate a test predicate.
+        indent: Indicates the current indentation level. Used for inlining.
+
+    ui and test_predicate are used together to trigger automatic inlining of predicates,
+      which circumvents nested predicate restrictions.
+    """
+
     std_version: str
     level: Level = Level.DEFINITION
-    ui: bool = False
     enum: bool = False
+    ui: bool = False
+    test_predicate: bool = False
     indent: int = 0
 
     stack: collections.deque[dict] = dataclasses.field(
