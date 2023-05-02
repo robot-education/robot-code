@@ -43,7 +43,7 @@ class Map(expr.Expr):
                 value = str_utils.quote(value)
             if self.quote_keys:
                 key = str_utils.quote(key)
-            pairs.append(expr.Id(" {} : {}".format(key, value)))
+            pairs.append(expr.Id("{} : {}".format(key, value)))
         return pairs
 
     def build(self, context: node.Attributes) -> str:
@@ -51,7 +51,7 @@ class Map(expr.Expr):
         if len(pairs) == 0:
             return "{}"
         if self.inline:
-            return "{{{}}}".format(node.build_nodes(pairs, context, sep=",", end=" "))
+            return "{{ {} }}".format(node.build_nodes(pairs, context, sep=", "))
         string = "{\n"
         string += node.build_nodes(pairs, context, sep=",", indent=True, end="\n")
         return string + "}"
