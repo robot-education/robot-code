@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-class EnumValue(stmt.Statement, expr.Expr):
+class EnumValue(node.Node):
     def __init__(
         self,
         value: str,
@@ -49,7 +49,7 @@ class EnumValue(stmt.Statement, expr.Expr):
             expr.Id("{}.{}".format(self.enum.name, self.value)),
         )
 
-    def build_value(self, context: node.Context) -> str:
+    def build_value(self, attributes: node.Attributes) -> str:
         dict = {}
         if self.user_name is not None:
             dict["Name"] = self.user_name
@@ -58,18 +58,17 @@ class EnumValue(stmt.Statement, expr.Expr):
 
         if dict != {}:
             return "annotation {}\n{}".format(
-                map.Map(dict, quote_values=True).build(context), self.value
+                map.Map(dict, quote_values=True).build(attributes), self.value
             )
         return self.value
 
     @override
-    def build(self, context: node.Context) -> str:
-        if context.type is node.NodeType.ENUM:
-            return self.build_value(context)
-        elif context.type is node.NodeType.EXPRESSION:
-            return self.__call__().build(context)
-        warnings.warn("Enum value can only be used as an expression")
-        return ""
+    def build(self, attributes: node.Attributes) -> str:
+        if node.Context.ENUM not in attributes.contexts:
+            warnings.warn(
+                "Expected enum value to be used as a part of a enum. Did you mean to call the value?"
+            )
+        return self.build_value(attributes)
 
 
 class LookupEnumValue(EnumValue):
@@ -81,7 +80,7 @@ class LookupEnumValue(EnumValue):
 T = TypeVar("T", bound=EnumValue)
 
 
-class _Enum(stmt.BlockStatement):
+class _Enum(node.BlockConstruct):
     def __init__(
         self,
         name: str,
@@ -104,19 +103,13 @@ class _Enum(stmt.BlockStatement):
         )
         self.export = export
 
-    # @override
-    # def pre_build(self, context: node.Context) -> None:
-    #     if not context.type == node.NodeType.TOP_LEVEL:
-    #         warnings.warn("Enum must be top level")
-    #     context.type = node.NodeType.ENUM
-
     @override
-    def build(self, context: node.Context) -> str:
-        if context.type is not node.NodeType.TOP_LEVEL:
+    def build(self, attributes: node.Attributes) -> str:
+        if node.Context.CONSTRUCT not in attributes.contexts:
             warnings.warn("Enum must be top level")
-        context.type = node.NodeType.ENUM
+        attributes.contexts.add(node.Context.ENUM)
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
-        string += self.build_children(context, sep=",\n", indent=True)
+        string += self.build_children(attributes, sep=",\n", indent=True)
         return string + "\n}\n"
 
 
@@ -168,7 +161,7 @@ class EnumFactoryBase(ABC):
         self.result[value] = enum_value
         return self
 
-    def make(self) -> EnumDict:
+    def make(self) -> EnumDict[EnumValue]:
         if self.enum is None:
             raise ValueError("add_enum must be called before make")
         if len(self.result.values()) is None:
@@ -197,7 +190,7 @@ class CustomEnumFactory(EnumFactory):
         self.has_custom = True
         return self
 
-    def make(self) -> EnumDict:
+    def make(self) -> EnumDict[EnumValue]:
         if not self.has_custom:
             self.add_value("CUSTOM")
         return super().make()

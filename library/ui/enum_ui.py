@@ -53,7 +53,7 @@ def enum_predicates(
     prepend: str | None = None,
     append: str = "",
     export: bool = True,
-) -> dict[str, expr.Expr]:
+) -> dict[str, func.Predicate]:
     parameter_name = parameter_name or enum.default_parameter_name
     prepend = prepend or "is" + enum.name
     return dict(

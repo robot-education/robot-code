@@ -13,11 +13,11 @@ class _If(stmt.BlockStatement):
         self.test = test
 
     @override
-    def build(self, context: node.Context) -> str:
-        context.type = node.NodeType.EXPRESSION
-        string = "if ({})\n{{\n".format(self.test.build(context))
-        context.type = node.NodeType.STATEMENT
-        string += self.build_children(context, indent=True, sep="\n")
+    def build(self, attributes: node.Attributes) -> str:
+        attributes.contexts.add(node.Context.EXPRESSION)
+        string = "if ({})\n{{\n".format(self.test.build(attributes))
+        attributes.contexts.add(node.Context.STATEMENT)
+        string += self.build_children(attributes, indent=True, sep="\n")
         return string + "}\n"
 
 
@@ -27,20 +27,20 @@ class _ElseIf(stmt.BlockStatement):
         self.test = test
 
     @override
-    def build(self, context: node.Context) -> str:
-        context.type = node.NodeType.EXPRESSION
-        string = "else if ({})\n{{\n".format(self.test.build(context))
-        context.type = node.NodeType.STATEMENT
-        string += self.build_children(context, indent=True, sep="\n")
+    def build(self, attributes: node.Attributes) -> str:
+        attributes.contexts.add(node.Context.EXPRESSION)
+        string = "else if ({})\n{{\n".format(self.test.build(attributes))
+        attributes.contexts.add(node.Context.STATEMENT)
+        string += self.build_children(attributes, indent=True, sep="\n")
         return string + "}\n"
 
 
 class _Else(stmt.BlockStatement):
     @override
-    def build(self, context: node.Context) -> str:
-        context.type = node.NodeType.STATEMENT
+    def build(self, attributes: node.Attributes) -> str:
+        attributes.contexts.add(node.Context.STATEMENT)
         string = "else\n{\n"
-        string += self.build_children(context, indent=True, sep="\n")
+        string += self.build_children(attributes, indent=True, sep="\n")
         return string + "}\n"
 
 
@@ -70,8 +70,8 @@ class IfBlock(stmt.BlockStatement):
         return self
 
     @override
-    def build(self, context: node.Context) -> str:
-        return self.build_children(context)
+    def build(self, attributes: node.Attributes) -> str:
+        return self.build_children(attributes)
 
 
 def make_if_block(

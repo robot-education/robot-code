@@ -18,7 +18,7 @@ class CallableType(std_enum.StrEnum):
     PREDICATE = "predicate"
 
 
-class _Callable(stmt.BlockStatement, expr.Expr):
+class _Callable(node.BlockConstruct):
     def __init__(
         self,
         name: str,
@@ -58,17 +58,14 @@ class _Callable(stmt.BlockStatement, expr.Expr):
 
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
-    def build_call(self, context: node.Context) -> str:
-        return self.__call__().build(context)
-
-    def build_def(self, context: node.Context, sep="") -> str:
+    def build_def(self, attributes: node.Attributes, sep="") -> str:
         string = utils.export(self.export) + self._get_start()
-        context.type = node.NodeType.EXPRESSION
-        string += "({})".format(node.build_nodes(self.arguments, context))
+        attributes.contexts.add(node.Context.EXPRESSION)
+        string += "({})".format(node.build_nodes(self.arguments, attributes))
         if self.return_type is not None:
             string += " returns " + self.return_type
         string += "\n{\n"
-        string += self.build_children(context, indent=True, sep=sep)
+        string += self.build_children(attributes, indent=True, sep=sep)
         string += "}"
         if self.is_lambda:
             string += ";"
@@ -81,16 +78,10 @@ class _Callable(stmt.BlockStatement, expr.Expr):
         return self.callable_type + " " + self.name
 
     @override
-    def build(self, context: node.Context, **kwargs) -> str:
-        if context.type == node.NodeType.TOP_LEVEL:
-            return self.build_def(context, **kwargs)
-        elif context.type == node.NodeType.EXPRESSION:
-            return self.build_call(context)
-        else:
-            warnings.warn(
-                "Expected callable to be used as a statement or an expression."
-            )
-            return "<ERROR>"
+    def build(self, attributes: node.Attributes, **kwargs) -> str:
+        if node.Context.CONSTRUCT not in attributes.contexts:
+            warnings.warn("Callable must be used as a top level statement.")
+        return self.build_def(attributes, **kwargs)
 
 
 class Function(_Callable):
@@ -162,9 +153,9 @@ class UiPredicate(Predicate):
         )
 
     @override
-    def build(self, context: node.Context) -> str:
-        context.ui = True
-        return super().build(context, sep="\n")
+    def build(self, attributes: node.Attributes) -> str:
+        attributes.contexts.add(node.Context.UI)
+        return super().build(attributes, sep="\n")
 
 
 def ui_test_predicate(

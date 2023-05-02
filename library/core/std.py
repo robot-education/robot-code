@@ -4,7 +4,7 @@ from library.core import utils
 __all__ = ["Const", "merge_maps"]
 
 
-class Const(stmt.Statement):
+class Const(stmt.Statement, node.Construct):
     def __init__(
         self, name: str, expr: expr.Expr, export: bool = False, **kwargs
     ) -> None:
@@ -13,7 +13,7 @@ class Const(stmt.Statement):
         self.expr = expr
         self.export = export
 
-    def build(self, context: node.Context) -> str:
+    def build(self, context: node.Attributes) -> str:
         return stmt.Line(
             utils.export(self.export)
             + "const "

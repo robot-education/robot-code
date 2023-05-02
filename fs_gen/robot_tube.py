@@ -66,18 +66,18 @@ is_max_tube = ui_test_predicate(
 
 can_be_light = ui_test_predicate(
     "canBeLight",
-    max_tube_type["NONE"] | max_tube_type["GRID"],
+    max_tube_type["NONE"]() | max_tube_type["GRID"](),
     parent=studio,
 )
 
 has_min_hole_diameter = ui_test_predicate(
     "hasMinHoleDiameter",
-    tube_type["MAX_TUBE"]
+    tube_type["MAX_TUBE"]()
     & Parens(
-        tube_size["ONE_BY_ONE"]
+        tube_size["ONE_BY_ONE"]()
         | Parens(
-            tube_size["TWO_BY_ONE"]
-            & Parens(max_tube_type["GRID"] | max_tube_type["MAX"])
+            tube_size["TWO_BY_ONE"]()
+            & Parens(max_tube_type["GRID"]() | max_tube_type["MAX"]())
         )
     ),
     parent=studio,
@@ -86,9 +86,9 @@ has_min_hole_diameter = ui_test_predicate(
 can_be_preset_diameter = ui_test_predicate(
     "canBePresetDiameter",
     ~Parens(
-        Parens(tube_size["ONE_BY_ONE"] | tube_size["TWO_BY_ONE"])
-        & tube_type["MAX_TUBE"]
-        & Parens(~max_tube_type["NONE"] | tube_size["ONE_BY_ONE"])
+        Parens(tube_size["ONE_BY_ONE"]() | tube_size["TWO_BY_ONE"]())
+        & tube_type["MAX_TUBE"]()
+        & Parens(~max_tube_type["NONE"]() | tube_size["ONE_BY_ONE"]())
     ),
     parent=studio,
 )
@@ -98,7 +98,7 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
     DrivenGroupAnnotation(
         parameter_name="hasHoles", user_name="Holes", default=True
     ).add(
-        IfBlock(can_be_preset_diameter)
+        IfBlock(can_be_preset_diameter())
         .add(
             EnumAnnotation(
                 hole_size,
@@ -110,7 +110,8 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
         .or_else()
         .add(BooleanAnnotation("overrideHoleDiameter")),
         IfBlock(
-            can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
+            can_be_preset_diameter()
+            & Parens(hole_size["NO_8"]() | hole_size["NO_10"]())
         ).add(
             EnumAnnotation(
                 fit,
@@ -120,9 +121,10 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
         ),
         IfBlock(
             Parens(
-                can_be_preset_diameter & Parens(hole_size["NO_8"] | hole_size["NO_10"])
+                can_be_preset_diameter()
+                & Parens(hole_size["NO_8"]() | hole_size["NO_10"]())
             )
-            | Parens(~can_be_preset_diameter & definition("overrideHoleDiameter"))
+            | Parens(~can_be_preset_diameter() & definition("overrideHoleDiameter"))
         ).add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
     )
 )
@@ -132,7 +134,7 @@ wall_predicate = UiPredicate("wallThickness", parent=studio).add(
         wall_thickness,
         ui_hints=show_label_hint,
     ),
-    IfBlock(custom_wall_thickness).add(
+    IfBlock(custom_wall_thickness()).add(
         LengthAnnotation(
             "customWallThickness",
             LengthBound.SHELL_OFFSET_BOUNDS,
@@ -149,7 +151,7 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
         default="TWO_BY_ONE",
         ui_hints=show_label_hint,
     ),
-    IfBlock(size_predicates["CUSTOM"])
+    IfBlock(size_predicates["CUSTOM"]())
     .add(
         LengthAnnotation("length", LengthBound.LENGTH_BOUNDS),
         LengthAnnotation("width", LengthBound.LENGTH_BOUNDS),
@@ -162,19 +164,21 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
             user_name="Type",
             ui_hints=show_label_hint,
         ),
-        IfBlock(is_max_tube & size_predicates["TWO_BY_ONE"]).add(
+        IfBlock(is_max_tube() & size_predicates["TWO_BY_ONE"]()).add(
             EnumAnnotation(
                 max_tube_type,
                 user_name="Pattern type",
                 default="GRID",
                 ui_hints=show_label_hint,
             ),
-            IfBlock(can_be_light).add(
+            IfBlock(can_be_light()).add(
                 BooleanAnnotation("isLight", user_name="Light"),
             ),
         ),
     ),
-    IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(wall_predicate),
+    IfBlock(size_predicates["CUSTOM"]() | type_predicates["CUSTOM"]()).add(
+        wall_predicate()
+    ),
 )
 
 tube_predicate = UiPredicate("tube", parent=studio).add(
