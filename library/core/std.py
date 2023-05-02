@@ -4,7 +4,7 @@ from library.core import utils
 __all__ = ["Const", "merge_maps"]
 
 
-class Const(stmt.Statement, node.Construct):
+class Const(stmt.Statement):
     def __init__(
         self, name: str, expr: expr.Expr, export: bool = False, **kwargs
     ) -> None:

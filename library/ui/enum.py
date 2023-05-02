@@ -80,7 +80,7 @@ class LookupEnumValue(EnumValue):
 T = TypeVar("T", bound=EnumValue)
 
 
-class _Enum(node.BlockConstruct):
+class _Enum(stmt.BlockStatement):
     def __init__(
         self,
         name: str,

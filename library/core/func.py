@@ -18,7 +18,7 @@ class CallableType(std_enum.StrEnum):
     PREDICATE = "predicate"
 
 
-class _Callable(node.BlockConstruct):
+class _Callable(stmt.BlockStatement):
     def __init__(
         self,
         name: str,

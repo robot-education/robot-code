@@ -183,7 +183,7 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
 
 tube_predicate = UiPredicate("tube", parent=studio).add(
     GroupAnnotation("Tube").add(
-        tube_size_predicate,
+        tube_size_predicate(),
     ),
     hole_predicate(),
 )

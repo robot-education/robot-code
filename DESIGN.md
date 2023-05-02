@@ -44,7 +44,23 @@ Add contexts to various statements.
 Cleanup `Group` annotations.
 
 Context implementations:
-The goal is to add **kwargs to build to enable build tooling to be more context aware. 
+We would like to re-add the autocall behavior for predicates and enums.
+Add an option for registering a predicate when making an enum? Maybe, maybe
+
+Call stack:
+Re-add Definition construct
+Definition, Statement, and Expression should be mutually exclusive singleton
+UI and type should be the same
+Does singleton actually fix behavior? 
+Definition and Expr, get Expr
+Predicate is a Definition and an Expr
+There aren't any Statement Expr constructs anymore
+EnumValue is a Expr only
+This also handles them going down the entire tree too far, yay!
+Should Statement and Expr register themselves automatically?
+It would need to be a prebuild thing (like I had before)
+I think that works, yeah
+Attributes should always roll back, hard to imagine a case where they shouldn't
 
 The main use case for this is making it so that predicates, functions, annotations, and enum_values can change their behaviors automatically based on context.
 For example, a predicate used within an expr environment should result in a predicate call, a predicate used within a top level statement environment should result in 

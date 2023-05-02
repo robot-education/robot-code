@@ -31,7 +31,6 @@ class Attributes:
 
     def as_dict(self) -> dict[str, Any]:
         return dict(
-            # shallow copy
             (field.name, copy.copy(getattr(self, field.name)))
             for field in dataclasses.fields(self)
             if field.name != "stack"
@@ -106,13 +105,3 @@ def build_nodes(
     # else:
     #     combined = sep.join(string + end for string in strings)
     return str_utils.tab_lines(combined) if indent else combined
-
-
-class Construct(ChildNode):
-    """A class representing a top-level construct."""
-
-    pass
-
-
-class BlockConstruct(Construct, ParentNode):
-    pass
