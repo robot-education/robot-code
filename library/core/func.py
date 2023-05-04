@@ -3,7 +3,7 @@ import warnings
 import enum as std_enum
 from typing import Iterable
 from library.core import utils, arg
-from library.base import expr, msg, node, stmt
+from library.base import ctxt, expr, msg, node, stmt
 
 __all__ = [
     "Function",
@@ -59,7 +59,7 @@ class _Callable(stmt.BlockStatement, expr.Expr):
 
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
-    def build_def(self, context: node.Context, sep="") -> str:
+    def build_def(self, context: ctxt.Context, sep="") -> str:
         context.set_expression()
         string = utils.export(self.export) + self._get_start()
         string += "({})".format(node.build_nodes(self.arguments, context))
@@ -80,12 +80,15 @@ class _Callable(stmt.BlockStatement, expr.Expr):
         return self.callable_type + " " + self.name
 
     @override
-    def build(self, context: node.Context, **kwargs) -> str:
+    def build(self, context: ctxt.Context, **kwargs) -> str:
         if context.is_definition():
             return self.build_def(context, **kwargs)
         elif context.is_expression():
             return self.__call__().build(context)
-        return msg.warn_context(msg.ContextType.EXPRESSION, msg.ContextType.DEFINITION)
+        else:
+            return msg.warn_context(
+                msg.ContextType.EXPRESSION, msg.ContextType.DEFINITION
+            )
 
 
 class Function(_Callable):
@@ -160,7 +163,7 @@ class UiPredicate(Predicate):
         )
 
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         if context.is_expression() and not context.ui:
             msg.warn_context("ui predicate body")
         context.ui = True
@@ -177,7 +180,7 @@ class TestPredicate(Predicate):
     ) -> None:
         super().__init__(name, arguments=arguments, statements=statements, **kwargs)
 
-    def build_inline_call(self, context: node.Context) -> str:
+    def build_inline_call(self, context: ctxt.Context) -> str:
         result = None
         for statement in self.children:
             if not isinstance(statement, stmt.Line):
@@ -195,7 +198,7 @@ class TestPredicate(Predicate):
         return result.build(context)
 
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         if context.is_expression() and context.test_predicate:
             return self.build_inline_call(context)
 

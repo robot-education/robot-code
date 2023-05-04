@@ -6,7 +6,8 @@ from __future__ import annotations
 from abc import ABC
 import enum as std_enum
 from typing import Iterator, Self
-from library.base import node
+from typing_extensions import override
+from library.base import ctxt, node
 
 __all__ = ["Parens", "Id"]
 
@@ -35,7 +36,8 @@ class Id(Expr):
     def __init__(self, identifier: str) -> None:
         self.identifier = identifier
 
-    def build(self, _: node.Context) -> str:
+    @override
+    def build(self, _: ctxt.Context) -> str:
         return self.identifier
 
 
@@ -58,7 +60,8 @@ class Compare(Expr):
         )
         return self
 
-    def build(self, context: node.Context) -> str:
+    @override
+    def build(self, context: ctxt.Context) -> str:
         return " ".join(
             [self.lhs.build(context), self.operator, self.rhs.build(context)]
         )
@@ -68,8 +71,10 @@ class Parens(Expr):
     def __init__(self, expr: Expr) -> None:
         self.expr = expr
 
-    def build(self, context: node.Context) -> str:
+    @override
+    def build(self, context: ctxt.Context) -> str:
         return "({})".format(self.expr.build(context))
+
 
 def add_parens(expression: Expr):
     if isinstance(expression, Parens):
@@ -83,10 +88,11 @@ class Call(Expr):
         self.exprs = exprs
         self.inline = inline
 
-    def build(self, context: node.Context) -> str:
+    @override
+    def build(self, context: ctxt.Context) -> str:
         join_str = ", " if self.inline else ",\n"
         return "{}({})".format(
-            self.name, node.build_nodes(self.exprs, context, sep=join_str)
+            self.name, node.build_nodes(self.exprs, context, ctxt.Level.EXPRESSION, sep=join_str)
         )
 
 
@@ -95,8 +101,9 @@ class UnaryOp(Expr):
         self.operand = operand
         self.operator = operator
 
-    def build(self, context: node.Context) -> str:
-        return self.operator + self.operand.build(context)
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        return self.operator + self.operand.call_build(context, ctxt.Level.EXPRESSION)
 
 
 class BoolOp(Expr):
@@ -105,7 +112,8 @@ class BoolOp(Expr):
         self.operator = operator
         self.rhs = rhs
 
-    def build(self, context: node.Context) -> str:
+    @override
+    def build(self, context: ctxt.Context) -> str:
         return " ".join(
-            [(self.lhs).build(context), self.operator, self.rhs.build(context)]
+            [(self.lhs).build_expr(context), self.operator, self.rhs.build_expr(context)]
         )

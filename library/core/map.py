@@ -1,6 +1,6 @@
 from typing import Any, Iterable, Sequence
 from typing_extensions import override
-from library.base import expr, str_utils, node
+from library.base import ctxt, expr, str_utils, node
 from library.core import utils
 from library.ui import enum
 
@@ -34,7 +34,7 @@ class Map(expr.Expr):
         self.exclude_keys = exclude_keys
         self.inline = inline
 
-    def _get_pairs(self, context: node.Context) -> Sequence[node.Node]:
+    def _get_pairs(self, context: ctxt.Context) -> Sequence[node.Node]:
         pairs = []
         for key, value in self.dict.items():
             if value is None:
@@ -47,7 +47,7 @@ class Map(expr.Expr):
             pairs.append(expr.Id("{} : {}".format(key, value)))
         return pairs
 
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         pairs = self._get_pairs(context)
         if len(pairs) == 0:
             return "{}"
@@ -69,7 +69,7 @@ class MapAccess(expr.Expr):
         self.keys = keys
 
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         return self.map.build(context) + "".join(
             ("[{}]".format(expr.cast_to_expr(key).build(context)) for key in self.keys)
         )

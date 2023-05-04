@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Self, Sequence
 from typing_extensions import override
-from library.base import node, stmt, expr
+from library.base import ctxt, node, stmt, expr
 
 __all__ = ["IfBlock", "make_if_block"]
 
@@ -14,7 +14,7 @@ class _If(stmt.BlockStatement):
         self.else_if = else_if
 
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         context.set_expression()
         string = "else " if self.else_if else ""
         string += "if ({})\n{{\n".format(self.test.build(context))
@@ -25,7 +25,7 @@ class _If(stmt.BlockStatement):
 
 class _Else(stmt.BlockStatement):
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         context.set_statement()
         string = "else\n{\n"
         string += self.build_children(context, indent=True, sep="\n")
@@ -58,7 +58,7 @@ class IfBlock(stmt.BlockStatement):
         return self
 
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         return self.build_children(context)
 
 

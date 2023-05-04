@@ -43,7 +43,7 @@ class Annotation(stmt.Statement, ABC):
         keys.append("UIHint")
         self.map = map.Map(map_args, quote_values=True, exclude_keys=keys)
 
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         return "annotation " + self.map.build(context) + "\n"
 
 
@@ -54,7 +54,7 @@ class TypeAnnotation(Annotation, ABC):
         super().__init__(parameter_name, **kwargs)
         self.type = type
 
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         return (
             super().build(context)
             + utils.definition(self.parameter_name).build(context)
@@ -109,7 +109,7 @@ class ValueAnnotation(Annotation, ABC):
         self.bound_spec = bound_spec
         self.predicate = predicate
 
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         return super().build(context) + "{}({}, {});\n".format(
             self.predicate,
             utils.definition(self.parameter_name).build(context),
@@ -182,7 +182,7 @@ class GroupAnnotation(Annotation, stmt.BlockStatement):
             **kwargs,
         )
 
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         string = super().build(context)
         string += "{\n"
 
@@ -225,7 +225,7 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
         self.group.add(*args)
         return self
 
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         if self.drive_group_test is None:
             string = self.boolean.build(context) + "\n"
             string += (

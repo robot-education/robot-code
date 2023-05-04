@@ -1,5 +1,5 @@
 from typing import Iterator, Self
-from library.base import node
+from library.base import ctxt, node
 from library.core import type
 
 __all__ = [
@@ -41,7 +41,7 @@ class Argument(node.Node):
     def __iter__(self) -> Iterator[Self]:
         return [self].__iter__()
 
-    def build(self, _: node.Context) -> str:
+    def build(self, _: ctxt.Context) -> str:
         if self.type is None:
             return self.name
         return "{} is {}".format(self.name, self.type)

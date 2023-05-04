@@ -41,14 +41,21 @@ tube_type = (
     .make()
 )
 
-max_tube_type = (
-    enum_factory.add_enum("MaxTubeType", parent=studio)
+max_pattern_type = (
+    enum_factory.add_enum("MaxTubePatternType", parent=studio)
     .add_value("NONE")
     .add_value("GRID")
     .add_value("MAX", user_name="MAX")
     .make()
 )
 
+max_tube_profile = (
+    enum_factory.add_enum("MaxTubeProfileType", parent=studio, annotate=False)
+    .add_value("ONE_BY_ONE")
+    .add_value("TWO_BY_ONE")
+    .add_value("TWO_BY_ONE_LIGHT")
+    .make()
+)
 
 # predicates
 custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
@@ -66,14 +73,14 @@ is_max_tube = TestPredicate(
 
 can_be_light = TestPredicate(
     "canBeLight",
-    max_tube_type["NONE"] | max_tube_type["GRID"],
+    max_pattern_type["NONE"] | max_pattern_type["GRID"],
     parent=studio,
 )
 
 # True for any tube without preset holes.
 has_predrilled_holes = TestPredicate(
     "hasPredrilledHoles",
-    ~Parens(is_max_tube & Parens(~max_tube_type["NONE"] | tube_size["ONE_BY_ONE"])),
+    ~Parens(is_max_tube & Parens(~max_pattern_type["NONE"] | tube_size["ONE_BY_ONE"])),
     parent=studio,
 )
 
@@ -152,7 +159,7 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
         ),
         IfBlock(is_max_tube & size_predicates["TWO_BY_ONE"]).add(
             EnumAnnotation(
-                max_tube_type,
+                max_pattern_type,
                 user_name="Pattern type",
                 default="GRID",
                 ui_hints=show_label_hint,
@@ -227,6 +234,21 @@ get_wall_thickness = enum_lookup_function(
     return_type=Type.VALUE,
 )
 
+get_max_tube_profile_type = Function(
+    "getMaxTubeProfileType",
+    parent=studio,
+    arguments=definition_arg,
+    return_type="MaxTubeProfileType",
+).add(
+    IfBlock(size_predicates["TWO_BY_ONE"]).add(
+        IfBlock(can_be_light & definition("is_light")).add(
+            Return("MaxTubeProfileType.TWO_BY_ONE")
+        ),
+        Return("MaxTubeProfileType.TWO_BY_ONE_LIGHT"),
+    ),
+    Return("MaxTubeProfileType.ONE_BY_ONE"),
+)
+
 get_max_tube_definition = Function(
     "getMaxTubeDefinition",
     parent=studio,
@@ -238,16 +260,19 @@ get_max_tube_definition = Function(
             {
                 "patternType": definition("maxTubePatternType"),
                 "light": can_be_light & definition("isLight"),
+                "maxTubeProfileType": get_max_tube_profile_type,
             },
             inline=False,
         )
     )
 )
 
+tube_def = "tubeDefinition"
 Function(
     "getTubeDefinition", parent=studio, arguments=definition_arg, return_type=Type.MAP
 ).add(
-    Return(
+    Var(
+        tube_def,
         merge_maps(
             get_tube_size,
             Map(
@@ -257,6 +282,10 @@ Function(
                 },
                 inline=False,
             ),
-        )
-    )
+        ),
+    ),
+    # IfBlock(is_max_tube).add(
+    #     Assign(tube_def, merge_maps(tube_def, get_max_tube_definition))
+    # ),
+    # Return(tube_def),
 )

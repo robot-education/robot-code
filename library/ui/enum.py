@@ -5,7 +5,7 @@ from typing import Any, Generic, Iterable, Self, Type, TypeVar
 from typing_extensions import override
 import warnings
 from library.core import control, func, utils, arg, map
-from library.base import msg, node, stmt, expr, str_utils
+from library.base import ctxt, msg, node, stmt, expr, str_utils
 
 __all__ = [
     "enum_factory",
@@ -20,6 +20,7 @@ class EnumValue(expr.Expr):
         self,
         value: str,
         enum: _Enum,
+        annotate: bool = True,
         user_name: str | None = None,
         hidden: bool = False,
     ) -> None:
@@ -32,6 +33,7 @@ class EnumValue(expr.Expr):
         self.value = value.upper()
         self.hidden = hidden
         self.enum = enum
+        self.annotate = annotate
         self.user_name = user_name or str_utils.value_user_name(self.value)
         self.invert = False
 
@@ -57,21 +59,21 @@ class EnumValue(expr.Expr):
             expr.Id("{}.{}".format(self.enum.name, self.value)),
         )
 
-    def build_value(self, context: node.Context) -> str:
+    def build_value(self, context: ctxt.Context) -> str:
         dict = {}
         if self.user_name is not None:
             dict["Name"] = self.user_name
         if self.hidden:
             dict["Hidden"] = "true"
 
-        if dict != {}:
+        if self.annotate and dict != {}:
             return "annotation {}\n{}".format(
                 map.Map(dict, quote_values=True).build(context), self.value
             )
         return self.value
 
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         if context.enum:
             return self.build_value(context)
         # okay with statement due to auto-conversion (I guess...)
@@ -116,7 +118,7 @@ class _Enum(stmt.BlockStatement):
         self.export = export
 
     @override
-    def build(self, context: node.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         if not context.is_definition():
             return msg.warn_context(msg.ContextType.DEFINITION)
         context.enum = True
@@ -155,9 +157,11 @@ class EnumFactoryBase(ABC):
         parent: node.ParentNode,
         default_parameter_name: str | None = None,
         export: bool = True,
+        annotate: bool = True,
         value_type: Type[EnumValue] = EnumValue,
     ) -> Self:
         self.value_factory = value_type
+        self.annotate = annotate
         self.enum = self.enum_factory(
             name,
             parent=parent,
@@ -170,7 +174,9 @@ class EnumFactoryBase(ABC):
         if self.enum is None:
             raise ValueError("add_enum must be called before add_value")
 
-        enum_value = self.value_factory(value, self.enum, *args, **kwargs)
+        enum_value = self.value_factory(
+            value, self.enum, *args, annotate=self.annotate, **kwargs
+        )
         self.result[value] = enum_value
         return self
 
