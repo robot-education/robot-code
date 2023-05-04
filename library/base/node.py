@@ -100,3 +100,11 @@ def build_nodes(
     # else:
     #     combined = sep.join(string + end for string in strings)
     return str_utils.tab_lines(combined) if indent else combined
+
+
+def build_exprs(nodes: Iterable[Node], context: ctxt.Context, **kwargs) -> str:
+    return build_nodes(nodes, context, ctxt.Level.EXPRESSION, **kwargs)
+
+
+def build_stmts(nodes: Iterable[Node], context: ctxt.Context, **kwargs) -> str:
+    return build_nodes(nodes, context, ctxt.Level.STATEMENT, **kwargs)
