@@ -1,8 +1,10 @@
 from __future__ import annotations
 from abc import ABC
-
 from typing import Any, Generic, Iterable, Self, Type, TypeVar
 from typing_extensions import override
+
+import copy
+
 from library.core import control, func, utils, arg, map
 from library.base import ctxt, node, stmt, expr, str_utils
 
@@ -37,9 +39,10 @@ class EnumValue(expr.Expr):
         self.invert = False
 
     @override
-    def __invert__(self) -> Self:
-        self.invert = not self.invert
-        return self
+    def __invert__(self) -> expr.Expr:
+        value = copy.copy(self)
+        value.invert = not value.invert
+        return value
 
     def __call__(
         self,

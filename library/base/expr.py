@@ -83,7 +83,7 @@ def add_parens(expression: Expr):
 
 
 class Call(Expr):
-    def __init__(self, name: str, *exprs: Expr, inline: bool = True) -> None:
+    def __init__(self, name: str, *exprs: Expr | str, inline: bool = True) -> None:
         self.name = name
         self.exprs = exprs
         self.inline = inline
@@ -93,7 +93,9 @@ class Call(Expr):
         join_str = ", " if self.inline else ",\n"
         return "{}({})".format(
             self.name,
-            node.build_nodes(self.exprs, context, sep=join_str),
+            node.build_nodes(
+                (cast_to_expr(expr) for expr in self.exprs), context, sep=join_str
+            ),
         )
 
 

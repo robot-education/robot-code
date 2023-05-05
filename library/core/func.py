@@ -57,16 +57,16 @@ class _Callable(node.TopStatement, stmt.BlockStatement, expr.Expr):
                 continue
             arg_dict[arg_name] = parameter
 
-        return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
+        return expr.Call(self.name, *arg_dict.values())
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        return self.__call__().build(context)
 
     def _get_start(self) -> str:
         if self.is_lambda:
             return "const {} = function".format(self.name)
         return self.callable_type + " " + self.name
-
-    @override
-    def build(self, context: ctxt.Context) -> str:
-        return self.__call__().build(context)
 
     @override
     def build_top(self, context: ctxt.Context) -> str:
@@ -176,7 +176,7 @@ class UiTestPredicate(Predicate, expr.Expr):
         result = None
         for statement in self.children:
             if not isinstance(statement, stmt.Line):
-                warnings.warn("Cannot inline predicate which contains statements")
+                warnings.warn("Cannot inline predicate which contains non-lines")
                 return "<INLINE_FAILED>"
             expression = expr.add_parens(statement.expression)
             if result is None:
@@ -184,10 +184,10 @@ class UiTestPredicate(Predicate, expr.Expr):
             else:
                 result &= expression
         if result is None:
-            warnings.warn("Empty predicate")
+            warnings.warn("Cannot inline empty predicate")
             return "<INLINE_FAILED>"
 
-        return result.build(context)
+        return expr.add_parens(result).build(context)
 
     @override
     def build_top(self, context: ctxt.Context) -> str:

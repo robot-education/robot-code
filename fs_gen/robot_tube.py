@@ -45,7 +45,7 @@ max_pattern_type = (
     enum_factory.add_enum("MaxTubePatternType", parent=studio)
     .add_value("NONE")
     .add_value("GRID")
-    .add_value("MAX", user_name="MAX")
+    .add_value("MAX")
     .make()
 )
 
@@ -64,30 +64,29 @@ custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
 type_predicates = enum_predicates(tube_type, parent=studio)
 size_predicates = enum_predicates(tube_size, parent=studio)
 
-
-is_max_tube = UiTestPredicate(
-    "isMaxTube",
-    ~tube_size["CUSTOM"] & tube_type["MAX_TUBE"],
-    parent=studio,
+studio.add(
+    is_max_tube := UiTestPredicate(
+        "isMaxTube",
+        ~tube_size["CUSTOM"] & tube_type["MAX_TUBE"],
+    ),
+    can_be_light := UiTestPredicate(
+        "canBeLight",
+        max_pattern_type["NONE"] | max_pattern_type["GRID"],
+    ),
+    # True for any tube without preset holes.
+    has_predrilled_holes := UiTestPredicate(
+        "hasPredrilledHoles",
+        ~Parens(
+            is_max_tube & Parens(~max_pattern_type["NONE"] | tube_size["ONE_BY_ONE"])
+        ),
+    ),
+    is_hole_size_set := UiTestPredicate(
+        "isHoleSizeSet", hole_size["NO_8"] | hole_size["NO_10"]
+    ),
+    has_holes := UiTestPredicate(
+        "hasHoles", has_predrilled_holes | definition("hasHoles")
+    ),
 )
-
-can_be_light = UiTestPredicate(
-    "canBeLight",
-    max_pattern_type["NONE"] | max_pattern_type["GRID"],
-    parent=studio,
-)
-
-# True for any tube without preset holes.
-has_predrilled_holes = UiTestPredicate(
-    "hasPredrilledHoles",
-    ~Parens(is_max_tube & Parens(~max_pattern_type["NONE"] | tube_size["ONE_BY_ONE"])),
-    parent=studio,
-)
-
-is_hole_size_set = UiTestPredicate(
-    "isHoleSizeSet", hole_size["NO_8"] | hole_size["NO_10"], parent=studio
-)
-
 
 # ui predicates
 hole_predicate = UiPredicate("tubeHole", parent=studio).add(
@@ -146,8 +145,8 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
     ),
     IfBlock(size_predicates["CUSTOM"])
     .add(
-        LengthAnnotation("length", LengthBound.LENGTH_BOUNDS),
-        LengthAnnotation("width", LengthBound.LENGTH_BOUNDS),
+        LengthAnnotation("length",  LengthBound.NONNEGATIVE_LENGTH_BOUNDS),
+        LengthAnnotation("width",  LengthBound.NONNEGATIVE_LENGTH_BOUNDS),
     )
     .or_else()
     .add(
@@ -157,15 +156,20 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
             user_name="Type",
             ui_hints=show_label_hint,
         ),
-        IfBlock(is_max_tube & size_predicates["TWO_BY_ONE"]).add(
-            EnumAnnotation(
-                max_pattern_type,
-                user_name="Pattern type",
-                default="GRID",
-                ui_hints=show_label_hint,
+        IfBlock(is_max_tube).add(
+            IfBlock(size_predicates["TWO_BY_ONE"]).add(
+                EnumAnnotation(
+                    max_pattern_type,
+                    user_name="Pattern type",
+                    default="GRID",
+                    ui_hints=show_label_hint,
+                ),
+                IfBlock(can_be_light).add(
+                    BooleanAnnotation("isLight", user_name="Light"),
+                ),
             ),
-            IfBlock(can_be_light).add(
-                BooleanAnnotation("isLight", user_name="Light"),
+            BooleanAnnotation(
+                "hasScribeLines", user_name="Draw scribe lines", default=True
             ),
         ),
     ),
@@ -259,6 +263,7 @@ get_max_tube_definition = Function(
         Map(
             {
                 "maxTubePatternType": definition("maxTubePatternType"),
+                "hasScribeLines": definition("hasScribeLines"),
                 "maxTubeProfileType": get_max_tube_profile_type,
             },
             inline=False,
@@ -277,13 +282,17 @@ Function(
             Map(
                 {
                     "wallThickness": get_wall_thickness,
-                    "holeDiameter": get_hole_diameter,
+                    "hasHoles" : has_holes,
+                    "isMaxTube": is_max_tube,
                 },
                 inline=False,
             ),
         ),
     ),
-    IfBlock(is_max_tube).add(
+    IfBlock(definition("hasHoles", tube_def)).add(
+        Assign(definition("holeDiameter", tube_def), get_hole_diameter)
+    ),
+    IfBlock(definition("isMaxTube", tube_def)).add(
         Assign(tube_def, merge_maps(tube_def, get_max_tube_definition))
     ),
     Return(tube_def),

@@ -5,16 +5,20 @@ __all__ = ["Assign", "Const", "Var", "merge_maps"]
 
 
 class Assign(stmt.Statement):
-    def __init__(self, name: str, expr: expr.Expr, **kwargs) -> None:
+    def __init__(
+        self, name: expr.Expr | str, expression: expr.Expr | str, **kwargs
+    ) -> None:
         super().__init__(**kwargs)
-        self.name = name
-        self.expr = expr
+        self.name = expr.cast_to_expr(name)
+        self.expression = expr.cast_to_expr(expression)
 
     def build(self, context: ctxt.Context) -> str:
-        return stmt.Line(self.name + " = " + self.expr.build(context)).build(context)
+        return stmt.Line(
+            self.name.build(context) + " = " + self.expression.build(context)
+        ).build(context)
 
 
-class Const(node.TopStatement, Assign):
+class Const(Assign, node.TopStatement):
     def __init__(self, name: str, expr: expr.Expr, **kwargs) -> None:
         super().__init__(name, expr, **kwargs)
 
