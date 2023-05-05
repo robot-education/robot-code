@@ -1,7 +1,9 @@
 from abc import ABC
 from typing import Iterable, Self, Sequence
+from typing_extensions import override
+import warnings
 from library.core import control, utils, map
-from library.base import expr, node, stmt, str_utils
+from library.base import ctxt, expr, node, stmt, str_utils
 from library.ui import enum, ui_hint
 
 __all__ = [
@@ -43,6 +45,7 @@ class Annotation(stmt.Statement, ABC):
         keys.append("UIHint")
         self.map = map.Map(map_args, quote_values=True, exclude_keys=keys)
 
+    @override
     def build(self, context: ctxt.Context) -> str:
         return "annotation " + self.map.build(context) + "\n"
 
@@ -54,6 +57,7 @@ class TypeAnnotation(Annotation, ABC):
         super().__init__(parameter_name, **kwargs)
         self.type = type
 
+    @override
     def build(self, context: ctxt.Context) -> str:
         return (
             super().build(context)
@@ -109,6 +113,7 @@ class ValueAnnotation(Annotation, ABC):
         self.bound_spec = bound_spec
         self.predicate = predicate
 
+    @override
     def build(self, context: ctxt.Context) -> str:
         return super().build(context) + "{}({}, {});\n".format(
             self.predicate,
@@ -182,11 +187,12 @@ class GroupAnnotation(Annotation, stmt.BlockStatement):
             **kwargs,
         )
 
+    @override
     def build(self, context: ctxt.Context) -> str:
+        if len(self.children) == 0:
+            warnings.warn("Empty parameter group not permitted")
         string = super().build(context)
         string += "{\n"
-
-        context.set_statement()
         string += self.build_children(context, sep="\n", indent=True)
         return string + "}\n"
 
@@ -221,10 +227,12 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
             default=default,
         )
 
+    @override
     def add(self, *args) -> Self:
         self.group.add(*args)
         return self
 
+    @override
     def build(self, context: ctxt.Context) -> str:
         if self.drive_group_test is None:
             string = self.boolean.build(context) + "\n"

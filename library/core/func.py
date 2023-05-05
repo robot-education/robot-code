@@ -1,9 +1,10 @@
+from ast import Call
 from typing_extensions import override
 import warnings
 import enum as std_enum
 from typing import Iterable
 from library.core import utils, arg
-from library.base import ctxt, expr, msg, node, stmt
+from library.base import ctxt, expr, node, stmt
 
 __all__ = [
     "Function",
@@ -18,7 +19,7 @@ class CallableType(std_enum.StrEnum):
     PREDICATE = "predicate"
 
 
-class _Callable(stmt.BlockStatement, expr.Expr):
+class _Callable(stmt.BlockStatement):
     def __init__(
         self,
         name: str,
@@ -59,36 +60,24 @@ class _Callable(stmt.BlockStatement, expr.Expr):
 
         return expr.Id("{}({})".format(self.name, ", ".join(arg_dict.values())))
 
-    def build_def(self, context: ctxt.Context, sep="") -> str:
-        context.set_expression()
+    def _get_start(self) -> str:
+        if self.is_lambda:
+            return "const {} = function".format(self.name)
+        return self.callable_type + " " + self.name
+
+    def build(self, context: ctxt.Context) -> str:
         string = utils.export(self.export) + self._get_start()
         string += "({})".format(node.build_nodes(self.arguments, context))
         if self.return_type is not None:
             string += " returns " + self.return_type
         string += "\n{\n"
-        context.set_statement()
+        sep = "\n" if context.ui else ""
         string += self.build_children(context, indent=True, sep=sep)
         string += "}"
         if self.is_lambda:
             string += ";"
         string += "\n"
         return string
-
-    def _get_start(self) -> str:
-        if self.is_lambda:
-            return "const {} = function".format(self.name)
-        return self.callable_type + " " + self.name
-
-    @override
-    def build(self, context: ctxt.Context, **kwargs) -> str:
-        if context.is_definition():
-            return self.build_def(context, **kwargs)
-        elif context.is_expression():
-            return self.__call__().build(context)
-        else:
-            return msg.warn_context(
-                msg.ContextType.EXPRESSION, msg.ContextType.DEFINITION
-            )
 
 
 class Function(_Callable):
@@ -164,13 +153,11 @@ class UiPredicate(Predicate):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        if context.is_expression() and not context.ui:
-            msg.warn_context("ui predicate body")
         context.ui = True
-        return super().build(context, sep="\n")
+        return super().build(context)
 
 
-class TestPredicate(Predicate):
+class TestPredicate(Predicate, expr.Expr):
     def __init__(
         self,
         name: str,
@@ -185,7 +172,7 @@ class TestPredicate(Predicate):
         for statement in self.children:
             if not isinstance(statement, stmt.Line):
                 warnings.warn("Cannot inline predicate which contains statements")
-                return msg.ERROR_SNIPPET
+                return "<INLINE_FAILED>"
             expression = expr.add_parens(statement.expression)
             if result is None:
                 result = expression
@@ -193,13 +180,14 @@ class TestPredicate(Predicate):
                 result &= expression
         if result is None:
             warnings.warn("Empty predicate")
-            return msg.ERROR_SNIPPET
+            return "<INLINE_FAILED>"
 
         return result.build(context)
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        if context.is_expression() and context.test_predicate:
+        # the context isn't actually UI in a build environment, but prefer inlining for UI compatability
+        if context.test_predicate:
             return self.build_inline_call(context)
 
         context.test_predicate = True

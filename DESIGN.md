@@ -67,11 +67,26 @@ For example, a predicate used within an expr environment should result in a pred
 the predicate definition, and a ui test predicate used within a ui environment should result in the contents being inlined.
 
 Contexts:
-expr, statement, top, ui, enum.
+Problem: we wish to manage contexts in an effective (read: mandated) way. 
+The issue is that knowing the *expected* type of a value can only be done by specifying the type passed to every caller.
 
-Node should be changed to expose a build function.
-Contexts should be special objects inheriting from `Context`. Their presence (i.e. not None) indicates that context is active.
-A tab context should be made available?
+In particular, suppose we pass a predicate (which is both an expression and a definition) to a function. The problem is that it looks like both, so *any* class based
+solution for solving this issue in a systematic way won't work. So, the *type* of a class passed to `build` is no longer sufficient for determining the behavior; the
+*call site* itself must specify its expectation - yikes!
+
+If we were to eliminate this behavior, the main changes would be:
+1. Code would get a bit uglier. Callables would be required to be called once again. Enums could remain as standard `expr`. Type checking would improve. 
+Type checking would be more useful - for example, functions could be required to register themselves to an appropriate context.
+2. On the other hand, this would clarify the call behavior of classes, which is a plus. On the other other hand, it's annoying, and this is my library.
+3. `expr` and `stmt` could offer hooks exposing their `Level`. `Context` would automatically be set to the `Level` of the passed in `node`. OTOH, type checking
+   makes this behavior moot; the type's behavior is already guaranteed to be defined at runtime. One exception is `ui` (and predicate expansion),
+    but that already filters down automatically.
+    Enum is already used to robustly handle the `enum` case. A specialized build function would also work. 
+    The remaining case is `callable`, which is nifty but, again, hard to justify. Integrating calls also makes an external `Call` expr harder to justify?
+So, we no longer need `level`. Like, at all - no features should be customizing their behavior in that way.
+An excpetion is `top_level`. I'm happy just making a dedicated `ParentNode` class for that.
+
+
 Automatic inlining expressions is tricky. It's very hard without knowing beforehand. It's possible users could disable inline manually. 
 If we know an expression should be run in inline, we can automatically inline as we go, dropping newlines before children whenever
 the current `Width` context becomes to large?

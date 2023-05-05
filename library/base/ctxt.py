@@ -5,12 +5,6 @@ import enum as std_enum
 from typing import Any, Self
 
 
-class Level(std_enum.Enum):
-    DEFINITION = std_enum.auto()
-    STATEMENT = std_enum.auto()
-    EXPRESSION = std_enum.auto()
-
-
 @dataclasses.dataclass()
 class Context:
     """
@@ -27,7 +21,6 @@ class Context:
     """
 
     std_version: str
-    level: Level = Level.DEFINITION
     enum: bool = False
     ui: bool = False
     test_predicate: bool = False
@@ -36,27 +29,6 @@ class Context:
     stack: collections.deque[dict] = dataclasses.field(
         default_factory=lambda: collections.deque()
     )
-
-    def set_definition(self) -> Self:
-        self.level = Level.DEFINITION
-        return self
-
-    def set_statement(self) -> Self:
-        self.level = Level.STATEMENT
-        return self
-
-    def set_expression(self) -> Self:
-        self.level = Level.EXPRESSION
-        return self
-
-    def is_definition(self) -> bool:
-        return self.level == Level.DEFINITION
-
-    def is_statement(self) -> bool:
-        return self.level == Level.STATEMENT
-
-    def is_expression(self) -> bool:
-        return self.level == Level.EXPRESSION
 
     def as_dict(self) -> dict[str, Any]:
         return dict(

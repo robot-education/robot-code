@@ -30,7 +30,6 @@ class Line(Statement):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        context.set_expression()
         return self.expression.build(context) + ";\n"
 
 
@@ -46,15 +45,13 @@ class Return(Statement):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        context.set_expression()
         return "return " + self.expression.build(context) + ";\n"
 
 
 class BlockParent(node.ParentNode):
     @override
     def build_children(self, context: ctxt.Context, **kwargs) -> str:
-        if context.is_statement():
-            self.children = list(cast_to_stmt(node) for node in self.children)  # type: ignore
+        self.children = list(cast_to_stmt(node) for node in self.children) # type: ignore
         return super().build_children(context, **kwargs)
 
 

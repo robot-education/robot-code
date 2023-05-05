@@ -3,9 +3,8 @@ from abc import ABC
 
 from typing import Any, Generic, Iterable, Self, Type, TypeVar
 from typing_extensions import override
-import warnings
 from library.core import control, func, utils, arg, map
-from library.base import ctxt, msg, node, stmt, expr, str_utils
+from library.base import ctxt, node, stmt, expr, str_utils
 
 __all__ = [
     "enum_factory",
@@ -76,13 +75,7 @@ class EnumValue(expr.Expr):
     def build(self, context: ctxt.Context) -> str:
         if context.enum:
             return self.build_value(context)
-        # okay with statement due to auto-conversion (I guess...)
-        elif context.is_expression():
-            return self.__call__().build(context)
-        else:
-            return msg.warn_context(
-                msg.ContextType.EXPRESSION, msg.ContextType.DEFINITION
-            )
+        return self.__call__().build(context)
 
 
 class LookupEnumValue(EnumValue):
@@ -94,7 +87,8 @@ class LookupEnumValue(EnumValue):
 T = TypeVar("T", bound=EnumValue)
 
 
-class _Enum(stmt.BlockStatement):
+# Avoid block parent since that has automatic expr->statement conversion
+class _Enum(stmt.Statement, node.ParentNode):
     def __init__(
         self,
         name: str,
@@ -119,10 +113,7 @@ class _Enum(stmt.BlockStatement):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        if not context.is_definition():
-            return msg.warn_context(msg.ContextType.DEFINITION)
         context.enum = True
-        # Note: must not set statement to avoid triggering child expression to statement conversion
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
         string += self.build_children(context, sep=",\n", indent=True)
         return string + "\n}\n"

@@ -92,7 +92,8 @@ class Call(Expr):
     def build(self, context: ctxt.Context) -> str:
         join_str = ", " if self.inline else ",\n"
         return "{}({})".format(
-            self.name, node.build_nodes(self.exprs, context, ctxt.Level.EXPRESSION, sep=join_str)
+            self.name,
+            node.build_nodes(self.exprs, context, sep=join_str),
         )
 
 
@@ -103,7 +104,7 @@ class UnaryOp(Expr):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.operator + self.operand.call_build(context, ctxt.Level.EXPRESSION)
+        return self.operator + self.operand.build(context)
 
 
 class BoolOp(Expr):
@@ -115,5 +116,5 @@ class BoolOp(Expr):
     @override
     def build(self, context: ctxt.Context) -> str:
         return " ".join(
-            [(self.lhs).build_expr(context), self.operator, self.rhs.build_expr(context)]
+            [self.lhs.build(context), self.operator, self.rhs.build(context)]
         )
