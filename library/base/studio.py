@@ -19,9 +19,9 @@ class Studio(node.ParentNode):
     @override
     def build(self, context: ctxt.Context) -> str:
         """Process the contents of the feature studio."""
-        return HEADER.format(
-            context.std_version, context.std_version
-        ) + self.build_children(context, sep="\n")
+        return HEADER.format(context.std_version, context.std_version) + "\n".join(
+            node.build_top(context) for node in self.children  # type: ignore
+        )
 
     def build_studio(self, std_version: str) -> str:
         context = ctxt.Context(std_version)

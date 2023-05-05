@@ -1,4 +1,4 @@
-from library.base import ctxt, expr, stmt
+from library.base import ctxt, expr, node, stmt
 from library.core import utils
 
 __all__ = ["Assign", "Const", "Var", "merge_maps"]
@@ -14,16 +14,15 @@ class Assign(stmt.Statement):
         return stmt.Line(self.name + " = " + self.expr.build(context)).build(context)
 
 
-class Const(Assign):
+class Const(node.TopStatement, Assign):
     def __init__(self, name: str, expr: expr.Expr, **kwargs) -> None:
         super().__init__(name, expr, **kwargs)
 
+    def build_top(self, context: ctxt.Context) -> str:
+        return "export " + self.build(context)
+
     def build(self, context: ctxt.Context) -> str:
-        export = False
-        # if context.is_definition():
-        #     context.set_statement()
-        #     export = True
-        return utils.export(export) + "const " + super().build(context)
+        return "const " + super().build(context)
 
 
 class Var(Assign):

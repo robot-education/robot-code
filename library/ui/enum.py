@@ -88,7 +88,7 @@ T = TypeVar("T", bound=EnumValue)
 
 
 # Avoid block parent since that has automatic expr->statement conversion
-class _Enum(stmt.Statement, node.ParentNode):
+class _Enum(node.TopStatement, node.ChildNode, node.ParentNode):
     def __init__(
         self,
         name: str,
@@ -112,7 +112,7 @@ class _Enum(stmt.Statement, node.ParentNode):
         self.export = export
 
     @override
-    def build(self, context: ctxt.Context) -> str:
+    def build_top(self, context: ctxt.Context) -> str:
         context.enum = True
         string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
         string += self.build_children(context, sep=",\n", indent=True)

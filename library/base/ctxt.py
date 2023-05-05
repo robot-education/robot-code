@@ -21,6 +21,7 @@ class Context:
     """
 
     std_version: str
+    top: bool = True
     enum: bool = False
     ui: bool = False
     test_predicate: bool = False

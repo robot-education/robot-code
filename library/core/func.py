@@ -1,4 +1,3 @@
-from ast import Call
 from typing_extensions import override
 import warnings
 import enum as std_enum
@@ -10,7 +9,7 @@ __all__ = [
     "Function",
     "Predicate",
     "UiPredicate",
-    "TestPredicate",
+    "UiTestPredicate",
 ]
 
 
@@ -19,7 +18,7 @@ class CallableType(std_enum.StrEnum):
     PREDICATE = "predicate"
 
 
-class _Callable(stmt.BlockStatement):
+class _Callable(node.TopStatement, stmt.BlockStatement, expr.Expr):
     def __init__(
         self,
         name: str,
@@ -65,7 +64,12 @@ class _Callable(stmt.BlockStatement):
             return "const {} = function".format(self.name)
         return self.callable_type + " " + self.name
 
+    @override
     def build(self, context: ctxt.Context) -> str:
+        return self.__call__().build(context)
+
+    @override
+    def build_top(self, context: ctxt.Context) -> str:
         string = utils.export(self.export) + self._get_start()
         string += "({})".format(node.build_nodes(self.arguments, context))
         if self.return_type is not None:
@@ -152,20 +156,21 @@ class UiPredicate(Predicate):
         )
 
     @override
-    def build(self, context: ctxt.Context) -> str:
+    def build_top(self, context: ctxt.Context) -> str:
         context.ui = True
-        return super().build(context)
+        return super().build_top(context)
 
 
-class TestPredicate(Predicate, expr.Expr):
+class UiTestPredicate(Predicate, expr.Expr):
     def __init__(
         self,
         name: str,
         *statements: expr.Expr,
-        arguments: Iterable[arg.Argument] = arg.definition_arg,
         **kwargs,
     ) -> None:
-        super().__init__(name, arguments=arguments, statements=statements, **kwargs)
+        super().__init__(
+            name, arguments=arg.definition_arg, statements=statements, **kwargs
+        )
 
     def build_inline_call(self, context: ctxt.Context) -> str:
         result = None
@@ -185,10 +190,13 @@ class TestPredicate(Predicate, expr.Expr):
         return result.build(context)
 
     @override
-    def build(self, context: ctxt.Context) -> str:
-        # the context isn't actually UI in a build environment, but prefer inlining for UI compatability
-        if context.test_predicate:
-            return self.build_inline_call(context)
-
+    def build_top(self, context: ctxt.Context) -> str:
         context.test_predicate = True
+        context.ui = True
+        return super().build_top(context)
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        if context.ui and context.test_predicate:
+            return self.build_inline_call(context)
         return super().build(context)

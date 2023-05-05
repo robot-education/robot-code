@@ -42,7 +42,7 @@ def custom_enum_predicate(
     """Generates a predicate which tests if an enum is CUSTOM."""
     if name is None:
         name = "is" + enum.name + "Custom"
-    return func.TestPredicate(name, enum["CUSTOM"](), parent=parent)
+    return func.UiTestPredicate(name, enum["CUSTOM"](), parent=parent)
 
 
 def enum_predicates(
@@ -60,7 +60,7 @@ def enum_predicates(
         [
             (
                 value.value,
-                func.TestPredicate(
+                func.UiTestPredicate(
                     predicate_name(value, prepend=prepend, append=append),
                     value(),
                     export=export,

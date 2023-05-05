@@ -5,7 +5,7 @@ from library.base import expr, node, ctxt
 __all__ = ["Return"]
 
 
-class Definition(node.ChildNode):
+class TopStatement(node.ChildNode):
     pass
 
 
@@ -51,7 +51,7 @@ class Return(Statement):
 class BlockParent(node.ParentNode):
     @override
     def build_children(self, context: ctxt.Context, **kwargs) -> str:
-        self.children = list(cast_to_stmt(node) for node in self.children) # type: ignore
+        self.children = list(cast_to_stmt(node) for node in self.children)  # type: ignore
         return super().build_children(context, **kwargs)
 
 

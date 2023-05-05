@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Iterable, Self, Type
+from typing_extensions import override
 
 from library.base import str_utils, ctxt
 
@@ -10,13 +11,9 @@ class Node(ABC):
         saved_build = cls.build
 
         # inject level argument to build during class init
-        def run_build(
-            self,
-            context: ctxt.Context,
-            **build_kwargs,
-        ) -> str:
+        def run_build(self, context: ctxt.Context) -> str:
             context.save()
-            string = saved_build(self, context, **build_kwargs)
+            string = saved_build(self, context)
             context.restore()
             return string
 
@@ -48,6 +45,33 @@ class ParentNode(Node, ABC):
 
     def build_children(self, context: ctxt.Context, **kwargs) -> str:
         return build_nodes(self.children, context, **kwargs)
+
+
+class TopStatement(Node, ABC):
+    def __new__(cls: Type[Self], *args, **kwargs) -> Type[Node]:
+        saved_build_top = cls.build_top
+
+        # inject level argument to build during class init
+        def run_build_top(
+            self,
+            context: ctxt.Context,
+        ) -> str:
+            context.save()
+            context.top = False
+            string = saved_build_top(self, context)
+            context.restore()
+            return string
+
+        cls.build_top = run_build_top
+        return super().__new__(cls, *args, **kwargs)
+
+    @abstractmethod
+    def build_top(self, context: ctxt.Context) -> str:
+        ...
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        return ""
 
 
 # def build(node: Node, context: ctxt.Context) -> str:
