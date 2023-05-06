@@ -1,7 +1,7 @@
 from library import *
 
 
-studio = Studio("robotTubeUi.gen.fs", "backend")
+studio = Studio("tubeUi.gen.fs", "backend")
 
 # enums
 wall_thickness = (
@@ -57,6 +57,23 @@ max_tube_profile = (
     .make()
 )
 
+two_inch_face = (
+    enum_factory.add_enum("TwoInchFacePattern", parent=studio)
+    .add_value("THREE", user_name="Three holes")
+    .add_value("TWO", user_name="Two holes")
+    .add_value("ONE", user_name="One hole")
+    .add_value("NONE")
+    .make()
+)
+
+one_inch_face = (
+    enum_factory.add_enum("OneInchFacePattern", parent=studio)
+    .add_value("TWO", user_name="Two holes")
+    .add_value("ONE", user_name="One hole")
+    .add_value("NONE")
+    .make()
+)
+
 # predicates
 custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
 
@@ -76,49 +93,76 @@ studio.add(
     # True for any tube without preset holes.
     has_predrilled_holes := UiTestPredicate(
         "hasPredrilledHoles",
-        ~Parens(
-            is_max_tube & Parens(~max_pattern_type["NONE"] | tube_size["ONE_BY_ONE"])
-        ),
+        ~is_max_tube,
     ),
     is_hole_size_set := UiTestPredicate(
         "isHoleSizeSet", hole_size["NO_8"] | hole_size["NO_10"]
     ),
     has_holes := UiTestPredicate(
-        "hasHoles", has_predrilled_holes | definition("hasHoles")
+        "hasHoles",
+        ~has_predrilled_holes | definition("hasHoles"),
     ),
 )
 
 # ui predicates
 hole_predicate = UiPredicate("tubeHole", parent=studio).add(
-    DrivenGroupAnnotation(
-        parameter_name="hasHoles",
-        user_name="Holes",
-        default=True,
-        drive_group_test=has_predrilled_holes,
-    ).add(
-        IfBlock(has_predrilled_holes)
-        .add(
+    IfBlock(has_predrilled_holes)
+    .add(
+        EnumAnnotation(
+            hole_size,
+            default="NO_10",
+            ui_hints=show_label_hint,
+        ),
+        IfBlock(is_hole_size_set).add(
             EnumAnnotation(
-                hole_size,
-                user_name="Size",
-                default="NO_10",
+                fit,
                 ui_hints=show_label_hint,
-            ),
-            IfBlock(is_hole_size_set).add(
-                EnumAnnotation(
-                    fit,
-                    user_name="Fit",
-                    ui_hints=show_label_hint,
-                )
-            ),
-        )
-        .or_else()
-        .add(BooleanAnnotation("overrideHoleDiameter")),
-        IfBlock(
-            Parens(has_predrilled_holes & ~is_hole_size_set)
-            | Parens(~has_predrilled_holes & definition("overrideHoleDiameter"))
-        ).add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
+            )
+        ),
     )
+    .or_else()
+    .add(BooleanAnnotation("overrideHoleDiameter")),
+    IfBlock(
+        Parens(has_predrilled_holes & ~is_hole_size_set)
+        | Parens(~has_predrilled_holes & definition("overrideHoleDiameter"))
+    ).add(LengthAnnotation("holeDiameter", LengthBound.BLEND_BOUNDS)),
+)
+
+tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
+    IfBlock(
+        size_predicates["TWO_BY_ONE"]
+        & Parens(
+            type_predicates["CUSTOM"]
+            | Parens(type_predicates["MAX_TUBE"] & max_pattern_type["NONE"])
+        )
+    ).add(
+        EnumAnnotation(
+            two_inch_face, user_name='2\\" face pattern', ui_hints=show_label_hint
+        ),
+        IfBlock(two_inch_face["TWO"] | two_inch_face["THREE"]).add(
+            LengthAnnotation(
+                "twoInchFaceSpacing",
+                LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
+                user_name=" Hole spacing",
+            )
+        ),
+    ),
+    IfBlock(
+        type_predicates["CUSTOM"]
+        & Parens(size_predicates["ONE_BY_ONE"] | size_predicates["TWO_BY_ONE"])
+    ).add(
+        EnumAnnotation(
+            one_inch_face, user_name='1\\" face pattern', ui_hints=show_label_hint
+        ),
+        IfBlock(one_inch_face["TWO"]).add(
+            LengthAnnotation(
+                "oneInchFaceSpacing",
+                LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
+                user_name="Hole spacing",
+            )
+        ),
+    ),
+    IfBlock(size_predicates["CUSTOM"]).add(),
 )
 
 wall_predicate = UiPredicate("wallThickness", parent=studio).add(
@@ -145,8 +189,8 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
     ),
     IfBlock(size_predicates["CUSTOM"])
     .add(
-        LengthAnnotation("length",  LengthBound.NONNEGATIVE_LENGTH_BOUNDS),
-        LengthAnnotation("width",  LengthBound.NONNEGATIVE_LENGTH_BOUNDS),
+        LengthAnnotation("length", LengthBound.NONNEGATIVE_LENGTH_BOUNDS),
+        LengthAnnotation("width", LengthBound.NONNEGATIVE_LENGTH_BOUNDS),
     )
     .or_else()
     .add(
@@ -176,16 +220,17 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
     IfBlock(size_predicates["CUSTOM"] | type_predicates["CUSTOM"]).add(wall_predicate),
 )
 
-tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
-    # GroupAnnotation("First face").add(), GroupAnnotation("Second face").add()
-)
 
 tube_predicate = UiPredicate("tube", parent=studio).add(
     GroupAnnotation("Tube").add(
         tube_size_predicate,
     ),
-    hole_predicate,
-    tube_face_predicate,
+    DrivenGroupAnnotation(
+        parameter_name="hasHoles",
+        user_name="Holes",
+        default=True,
+        drive_group_test=has_predrilled_holes,
+    ).add(tube_face_predicate, hole_predicate),
 )
 
 
@@ -282,7 +327,7 @@ Function(
             Map(
                 {
                     "wallThickness": get_wall_thickness,
-                    "hasHoles" : has_holes,
+                    "hasHoles": has_holes,
                     "isMaxTube": is_max_tube,
                 },
                 inline=False,
