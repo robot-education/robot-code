@@ -112,7 +112,6 @@ class Predicate(_Callable):
     def __init__(
         self,
         name: str,
-        *,
         parent: node.ParentNode | None = None,
         arguments: Iterable[arg.Argument] = [],
         statements: Iterable[stmt.Statement | expr.Expr] = [],
@@ -144,15 +143,16 @@ class UiPredicate(Predicate):
     def __init__(
         self,
         name: str,
+        parent: node.ParentNode | None = None,
         append: str = "Predicate",
         statements: Iterable[stmt.Statement | expr.Expr] = [],
-        **kwargs,
     ) -> None:
         super().__init__(
             name + append,
+            parent=parent,
             arguments=arg.definition_arg,
             statements=statements,
-            **kwargs,
+            export=True,
         )
 
     @override

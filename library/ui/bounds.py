@@ -10,7 +10,7 @@ from library.core import std, map
 class LengthBound(std_enum.StrEnum):
     @override
     def _generate_next_value_(name, start, count, last_values) -> str:
-        return str_utils.quote(name)
+        return name
 
     LENGTH_BOUNDS = std_enum.auto()
     """A `LengthBoundSpec` for a positive or negative length."""
@@ -35,7 +35,7 @@ class LengthBound(std_enum.StrEnum):
 class AngleBound(std_enum.StrEnum):
     @override
     def _generate_next_value_(name, start, count, last_values) -> str:
-        return str_utils.quote(name)
+        return name
 
     ANGLE_360_BOUNDS = std_enum.auto()
     """An `AngleBoundSpec` for an angle between 0 and 360 degrees, defaulting to 30 degrees."""
@@ -58,7 +58,7 @@ class AngleBound(std_enum.StrEnum):
 class CountBound(std_enum.StrEnum):
     @override
     def _generate_next_value_(name, start, count, last_values) -> str:
-        return str_utils.quote(name)
+        return name
 
     POSITIVE_COUNT_BOUNDS = std_enum.auto()
     """An `IntegerBoundSpec` for an integer strictly greater than zero, defaulting to 2."""

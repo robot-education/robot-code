@@ -24,8 +24,12 @@ class Assign(stmt.Statement):
 
 class Const(Assign, node.TopStatement):
     def __init__(
-        self, name: str, expression: expr.Expr | str, export: bool = False, **kwargs
+        self, name: str, expression: expr.Expr | str, export: bool = True, **kwargs
     ) -> None:
+        """
+        args:
+            export: Whether to mark the constant as exported. Does nothing if the constant is not a top level constant.
+        """
         super().__init__(name, expression, **kwargs)
         self.export = export
 
@@ -39,12 +43,18 @@ class Const(Assign, node.TopStatement):
         return "const " + super().build(context)
 
 
-class Var(Assign):
-    def __init__(self, name: str, expr: expr.Expr, **kwargs) -> None:
-        super().__init__(name, expr, **kwargs)
+class Var(stmt.Statement):
+    def __init__(
+        self, name: str, expression: expr.Expr | str | None = None, **kwargs
+    ) -> None:
+        self.name = name
+        self.expression = expression
 
     def build(self, context: ctxt.Context) -> str:
-        return "var " + super().build(context)
+        string = "var {}".format(self.name)
+        if self.expression is not None:
+            string += " = " + expr.cast_to_expr(self.expression).build(context)
+        return stmt.Line(string).build(context)
 
 
 def merge_maps(defaults: expr.Expr | str, m: expr.Expr | str) -> expr.Expr:

@@ -4,7 +4,7 @@ from library.base.expr import *
 from library.base.studio import *
 from library.base.str_utils import *
 
-from library.ui.annotation import *
+from library.ui.parameter import *
 from library.ui.bounds import *
 from library.ui.enum_ui import *
 from library.ui.ui_hint import *

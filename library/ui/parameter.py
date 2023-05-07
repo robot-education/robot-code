@@ -7,14 +7,14 @@ from library.base import ctxt, expr, node, stmt, str_utils
 from library.ui import bounds, enum, ui_hint
 
 __all__ = [
-    "EnumAnnotation",
-    "BooleanAnnotation",
-    "LengthAnnotation",
-    "CountAnnotation",
-    "BooleanFlipAnnotation",
-    "BooleanCircularFlipAnnotation",
-    "GroupAnnotation",
-    "DrivenGroupAnnotation",
+    "EnumParameter",
+    "BooleanParameter",
+    "LengthParameter",
+    "CountParameter",
+    "BooleanFlipParameter",
+    "BooleanCircularFlipParameter",
+    "GroupParameter",
+    "DrivenGroupParameter",
 ]
 
 
@@ -52,7 +52,7 @@ class Annotation(stmt.Statement, ABC):
         return "annotation " + self.map.build(context) + "\n"
 
 
-class TypeAnnotation(Annotation, ABC):
+class TypeParameter(Annotation, ABC):
     """A class defining a UI element which is a type, such as an enum or boolean."""
 
     def __init__(self, parameter_name: str, type: str, **kwargs) -> None:
@@ -68,7 +68,7 @@ class TypeAnnotation(Annotation, ABC):
         )
 
 
-class EnumAnnotation(TypeAnnotation):
+class EnumParameter(TypeParameter):
     def __init__(
         self,
         enum: enum.EnumDict,
@@ -85,7 +85,7 @@ class EnumAnnotation(TypeAnnotation):
         )
 
 
-class BooleanAnnotation(TypeAnnotation):
+class BooleanParameter(TypeParameter):
     def __init__(
         self,
         parameter_name: str,
@@ -105,7 +105,7 @@ class BooleanAnnotation(TypeAnnotation):
         )
 
 
-class ValueAnnotation(Annotation, ABC):
+class ValueParameter(Annotation, ABC):
     """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
 
     def __init__(
@@ -124,7 +124,7 @@ class ValueAnnotation(Annotation, ABC):
         )
 
 
-class LengthAnnotation(ValueAnnotation):
+class LengthParameter(ValueParameter):
     def __init__(
         self,
         parameter_name: str,
@@ -142,7 +142,7 @@ class LengthAnnotation(ValueAnnotation):
         )
 
 
-class CountAnnotation(ValueAnnotation):
+class CountParameter(ValueParameter):
     def __init__(
         self,
         parameter_name: str,
@@ -155,12 +155,12 @@ class CountAnnotation(ValueAnnotation):
             parameter_name,
             bound_spec,
             ui_hints=ui_hints,
-            predicate="isCount",
+            predicate="isInteger",
             **kwargs,
         )
 
 
-class BooleanFlipAnnotation(BooleanAnnotation):
+class BooleanFlipParameter(BooleanParameter):
     def __init__(
         self,
         parameter_name: str,
@@ -171,7 +171,7 @@ class BooleanFlipAnnotation(BooleanAnnotation):
         super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
-class BooleanCircularFlipAnnotation(BooleanAnnotation):
+class BooleanCircularFlipParameter(BooleanParameter):
     def __init__(
         self,
         parameter_name: str,
@@ -182,7 +182,7 @@ class BooleanCircularFlipAnnotation(BooleanAnnotation):
         super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
-class GroupAnnotation(Annotation, stmt.BlockStatement):
+class GroupParameter(Annotation, stmt.BlockStatement):
     def __init__(
         self,
         user_name: str,
@@ -213,7 +213,7 @@ class GroupAnnotation(Annotation, stmt.BlockStatement):
         return string + "}\n"
 
 
-class DrivenGroupAnnotation(stmt.BlockStatement):
+class DrivenGroupParameter(stmt.BlockStatement):
     def __init__(
         self,
         *,
@@ -231,12 +231,12 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
                 When false, the boolean is hidden, and the group is a standard group.
         """
         self.drive_group_test = drive_group_test
-        self.group = GroupAnnotation(
+        self.group = GroupParameter(
             user_name,
             args={"Driving Parameter": parameter_name},
         )
         self.parameter_name = parameter_name
-        self.boolean = BooleanAnnotation(
+        self.boolean = BooleanParameter(
             parameter_name=self.parameter_name,
             user_name=user_name,
             ui_hints=ui_hints,

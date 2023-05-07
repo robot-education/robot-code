@@ -10,6 +10,7 @@ class Type(std_enum.StrEnum):
     VALUE = "ValueWithUnits"
     STRING = "string"
     VECTOR = "Vector"
+    NUMBER = "number"
 
 
 class Unit(std_enum.StrEnum):
