@@ -11,19 +11,29 @@ class Assign(stmt.Statement):
         super().__init__(**kwargs)
         self.name = expr.cast_to_expr(name)
         self.expression = expr.cast_to_expr(expression)
+        self.inline = True
 
     def build(self, context: ctxt.Context) -> str:
-        return stmt.Line(
-            self.name.build(context) + " = " + self.expression.build(context)
-        ).build(context)
+        string = (
+            self.name.build(context)
+            + " ={}".format(" " if self.inline else "\n")
+            + self.expression.build(context)
+        )
+        return stmt.Line(string).build(context)
 
 
 class Const(Assign, node.TopStatement):
-    def __init__(self, name: str, expr: expr.Expr, **kwargs) -> None:
-        super().__init__(name, expr, **kwargs)
+    def __init__(
+        self, name: str, expression: expr.Expr | str, export: bool = False, **kwargs
+    ) -> None:
+        super().__init__(name, expression, **kwargs)
+        self.export = export
 
     def build_top(self, context: ctxt.Context) -> str:
-        return "export " + self.build(context)
+        self.inline = False
+        if self.export:
+            return "export " + self.build(context)
+        return self.build(context)
 
     def build(self, context: ctxt.Context) -> str:
         return "const " + super().build(context)

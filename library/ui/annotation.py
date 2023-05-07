@@ -1,15 +1,16 @@
 from abc import ABC
-from typing import Iterable, Self, Sequence
+from typing import Iterable, Self
 from typing_extensions import override
 import warnings
 from library.core import control, utils, map
 from library.base import ctxt, expr, node, stmt, str_utils
-from library.ui import enum, ui_hint
+from library.ui import bounds, enum, ui_hint
 
 __all__ = [
     "EnumAnnotation",
     "BooleanAnnotation",
     "LengthAnnotation",
+    "CountAnnotation",
     "BooleanFlipAnnotation",
     "BooleanCircularFlipAnnotation",
     "GroupAnnotation",
@@ -23,7 +24,7 @@ class Annotation(stmt.Statement, ABC):
         parameter_name: str,
         parent: node.ParentNode | None = None,
         user_name: str | None = None,
-        ui_hints: Sequence[ui_hint.UiHint] = [],
+        ui_hints: ui_hint.UiHint | None = None,
         args: dict[str, str] = {},
         exclude_keys: Iterable[str] = [],
         add_name: bool = True,
@@ -37,8 +38,9 @@ class Annotation(stmt.Statement, ABC):
 
         # always put name and ui hints first
         map_args = {"Name": self.user_name} if add_name else {}
-        if len(ui_hints) > 0:
-            map_args["UIHint"] = "[{}]".format(", ".join(ui_hints))
+        if ui_hints is not None:
+            names = [str_utils.quote(ui_hint.name or "") for ui_hint in ui_hints]
+            map_args["UIHint"] = "[{}]".format(", ".join(names))
         map_args.update(args)
 
         keys = list(exclude_keys)
@@ -72,7 +74,7 @@ class EnumAnnotation(TypeAnnotation):
         enum: enum.EnumDict,
         parameter_name: str | None = None,
         default: str | None = None,
-        ui_hints: Iterable[ui_hint.UiHint] | None = ui_hint.remember_hint,
+        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         **kwargs,
     ) -> None:
         self.enum = enum
@@ -88,7 +90,7 @@ class BooleanAnnotation(TypeAnnotation):
         self,
         parameter_name: str,
         default: bool = False,
-        ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         **kwargs,
     ) -> None:
         args = {} if not default else {"Default": "true"}
@@ -126,11 +128,9 @@ class LengthAnnotation(ValueAnnotation):
     def __init__(
         self,
         parameter_name: str,
+        *,
         bound_spec: str,
-        ui_hints: Iterable[ui_hint.UiHint] = [
-            ui_hint.UiHint.SHOW_EXPRESSION,
-            ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
-        ],
+        ui_hints: ui_hint.UiHint = ui_hint.SHOW_EXPRESSION_HINT,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -142,15 +142,32 @@ class LengthAnnotation(ValueAnnotation):
         )
 
 
+class CountAnnotation(ValueAnnotation):
+    def __init__(
+        self,
+        parameter_name: str,
+        *,
+        bound_spec: str = bounds.CountBound.POSITIVE_COUNT_BOUNDS,
+        ui_hints: ui_hint.UiHint = ui_hint.SHOW_EXPRESSION_HINT,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            parameter_name,
+            bound_spec,
+            ui_hints=ui_hints,
+            predicate="isCount",
+            **kwargs,
+        )
+
+
 class BooleanFlipAnnotation(BooleanAnnotation):
     def __init__(
         self,
         parameter_name: str,
-        ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         **kwargs,
     ) -> None:
-        ui_hints = list(ui_hints)
-        ui_hints.append(ui_hint.UiHint.OPPOSITE_DIRECTION)
+        ui_hints |= ui_hint.UiHint.OPPOSITE_DIRECTION
         super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
@@ -158,11 +175,10 @@ class BooleanCircularFlipAnnotation(BooleanAnnotation):
     def __init__(
         self,
         parameter_name: str,
-        ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         **kwargs,
     ) -> None:
-        ui_hints = list(ui_hints)
-        ui_hints.append(ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR)
+        ui_hints |= ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR
         super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
@@ -203,7 +219,7 @@ class DrivenGroupAnnotation(stmt.BlockStatement):
         *,
         parameter_name: str,
         user_name: str,
-        ui_hints: Iterable[ui_hint.UiHint] = ui_hint.remember_hint,
+        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         default: bool = False,
         drive_group_test: expr.Expr | None = None,
     ) -> None:
