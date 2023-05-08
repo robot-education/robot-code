@@ -112,7 +112,7 @@ studio.add(
     ),
     has_holes := UiTestPredicate(
         "hasHoles",
-        ~has_predrilled_holes | definition("hasHoles"),
+        has_predrilled_holes | definition("hasHoles"),
     ),
     can_have_two_inch_face := UiTestPredicate(
         "canHaveTwoInchFace",
@@ -195,7 +195,7 @@ tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
 )
 
 hole_predicate = UiPredicate("tubeHole", parent=studio).add(
-    IfBlock(has_predrilled_holes)
+    IfBlock(~has_predrilled_holes)
     .add(
         EnumParameter(
             hole_size,
@@ -212,8 +212,8 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
     .or_else()
     .add(BooleanParameter("overrideHoleDiameter")),
     IfBlock(
-        Parens(has_predrilled_holes & ~is_hole_size_set)
-        | Parens(~has_predrilled_holes & definition("overrideHoleDiameter"))
+        Parens(~has_predrilled_holes & ~is_hole_size_set)
+        | Parens(has_predrilled_holes & definition("overrideHoleDiameter"))
     ).add(LengthParameter("holeDiameter", bound_spec=LengthBound.BLEND_BOUNDS)),
     BooleanParameter("delayInstantiation"),
 )
@@ -286,7 +286,7 @@ tube_predicate = UiPredicate("tube", parent=studio).add(
         parameter_name="hasHoles",
         user_name="Holes",
         default=True,
-        drive_group_test=has_predrilled_holes,
+        drive_group_test=~has_predrilled_holes,
     ).add(tube_face_predicate, hole_predicate),
 )
 
