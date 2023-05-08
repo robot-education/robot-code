@@ -1,7 +1,7 @@
 import enum as std_enum
 from typing_extensions import override
 
-from library.base import ctxt, node, str_utils
+from library.base import ctxt, node
 from library.core import std, map
 
 # https://cad.onshape.com/documents/12312312345abcabcabcdeff/w/a855e4161c814f2e9ab3698a/e/87b09e244a234eb791b47826
@@ -80,13 +80,19 @@ class BoundSpec(node.TopStatement):
         self.bounds = bounds
         self.spec_name = spec_name
 
+    @override
     def build_top(self, context: ctxt.Context) -> str:
+        bound_map = dict(("(" + key + ")", value) for key, value in self.bounds.items())
         body = (
-            map.Map(self.bounds, quote_keys=False, inline=False).build(context)
+            map.Map(bound_map, quote_keys=False, inline=False).build(context)
             + " as "
             + self.spec_name
         )
         return std.Const(self.name, body).build(context)
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        return self.name
 
 
 VALUE_MIN = int(-1e5)
@@ -101,13 +107,48 @@ ZERO_TOLERANCE: float = 1e-5
 """A tolerance for an angle or length greater than zero."""
 
 
+def inch_to_meter(inch: float) -> float:
+    return inch * 0.0254
+
+
+def millimeter_to_meter(millimeter: float) -> float:
+    return millimeter / 1000
+
+
 class IntegerBoundSpec(BoundSpec):
     def __init__(
         self,
         name: str,
         min: int = 0,
-        default: int = 2,
         max: int = VALUE_MAX,
+        default: int = 2,
     ) -> None:
         bounds = {"unitless": "[{}, {}, {}]".format(min, default, max)}
         super().__init__(name, bounds, "IntegerBoundSpec")
+
+
+class LengthBoundSpec(BoundSpec):
+    def __init__(
+        self,
+        name: str,
+        min: float = VALUE_MIN,
+        default: float = 0,
+        max: float = VALUE_MAX,
+        millimeter_default: float | None = None,
+        centimeter_default: float | None = None,
+        inch_default: float | None = None,
+        foot_default: float | None = None,
+        yard_default: float | None = None,
+    ) -> None:
+        bounds = {"meter": "[{}, {}, {}]".format(min, default, max)}
+        if millimeter_default is not None:
+            bounds["millimeter"] = str(millimeter_default)
+        if centimeter_default is not None:
+            bounds["centimeter"] = str(centimeter_default)
+        if inch_default is not None:
+            bounds["inch"] = str(inch_default)
+        if foot_default is not None:
+            bounds["foot"] = str(foot_default)
+        if yard_default is not None:
+            bounds["yard"] = str(yard_default)
+        super().__init__(name, bounds, "LengthBoundSpec")

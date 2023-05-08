@@ -237,6 +237,7 @@ def enum_lookup_function(
     additional_arguments: Iterable[arg.Argument] = [],
     predicate_dict: dict[str, expr.Expr] = {},
     return_type: str | None = None,
+    export: bool = True,
 ) -> func.Function:
     """
     predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
@@ -244,7 +245,11 @@ def enum_lookup_function(
     arguments: list[arg.Argument] = [arg.definition_arg]
     arguments.extend(additional_arguments)
     function = func.Function(
-        name, parent=parent, arguments=arguments, return_type=return_type
+        name,
+        parent=parent,
+        arguments=[arg.definition_arg],
+        return_type=return_type,
+        export=export,
     )
     lookup_block(enum_dict, parent=function, predicate_dict=predicate_dict)
     return function

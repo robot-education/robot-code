@@ -1,4 +1,5 @@
 from library import *
+from library.ui.parameter import BooleanParameter, LengthParameter
 
 
 studio = Studio("tubeUi.gen.fs", "backend")
@@ -104,7 +105,7 @@ studio.add(
     # True for any tube without preset holes.
     has_predrilled_holes := UiTestPredicate(
         "hasPredrilledHoles",
-        ~is_max_tube,
+        is_max_tube,
     ),
     is_hole_size_set := UiTestPredicate(
         "isHoleSizeSet", hole_size["NO_8"] | hole_size["NO_10"]
@@ -129,6 +130,70 @@ studio.add(
 )
 
 # ui predicates
+studio.add(
+    two_inch_spacing_bounds := LengthBoundSpec(
+        "TWO_INCH_SPACING_BOUNDS",
+        min=ZERO_TOLERANCE,
+        default=inch_to_meter(1),
+        inch_default=0.5,
+    ),
+    one_inch_spacing_bounds := LengthBoundSpec(
+        "ONE_INCH_SPACING_BOUNDS",
+        min=ZERO_TOLERANCE,
+        default=inch_to_meter(0.5),
+        inch_default=0.5,
+    ),
+    spacing_bounds := LengthBoundSpec(
+        "SPACING_BOUNDS",
+        min=ZERO_TOLERANCE,
+        default=inch_to_meter(0.5),
+        millimeter_default=5,
+        inch_default=0.5,
+    ),
+)
+
+tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
+    IfBlock(can_have_two_inch_face).add(
+        EnumParameter(
+            two_inch_face, user_name='2\\" face hole count', ui_hints=SHOW_LABEL_HINT
+        ),
+        IfBlock(two_inch_face["TWO"] | two_inch_face["THREE"]).add(
+            LengthParameter(
+                "twoInchFaceSpacing",
+                bound_spec=two_inch_spacing_bounds,
+                user_name='2\\" face spacing',
+            )
+        ),
+    ),
+    IfBlock(can_have_one_inch_face).add(
+        EnumParameter(
+            one_inch_face, user_name='1\\" face hole count', ui_hints=SHOW_LABEL_HINT
+        ),
+        IfBlock(one_inch_face["TWO"]).add(
+            LengthParameter(
+                "oneInchFaceSpacing",
+                bound_spec=one_inch_spacing_bounds,
+                user_name='1\\" face spacing',
+            )
+        ),
+    ),
+    IfBlock(size_predicates["CUSTOM"]).add(
+        CountParameter("firstFaceCount", user_name="First face hole count"),
+        LengthParameter(
+            "firstFaceSpacing",
+            bound_spec=spacing_bounds,
+        ),
+        CountParameter("secondFaceCount", user_name="Second face hole count"),
+        LengthParameter(
+            "secondFaceSpacing",
+            bound_spec=spacing_bounds,
+        ),
+    ),
+    IfBlock(~has_predrilled_holes).add(
+        LengthParameter("distance", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS)
+    ),
+)
+
 hole_predicate = UiPredicate("tubeHole", parent=studio).add(
     IfBlock(has_predrilled_holes)
     .add(
@@ -150,47 +215,7 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
         Parens(has_predrilled_holes & ~is_hole_size_set)
         | Parens(~has_predrilled_holes & definition("overrideHoleDiameter"))
     ).add(LengthParameter("holeDiameter", bound_spec=LengthBound.BLEND_BOUNDS)),
-)
-
-tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
-    IfBlock(can_have_two_inch_face).add(
-        EnumParameter(
-            two_inch_face, user_name='2\\" face hole count', ui_hints=SHOW_LABEL_HINT
-        ),
-        IfBlock(two_inch_face["TWO"] | two_inch_face["THREE"]).add(
-            LengthParameter(
-                "twoInchFaceSpacing",
-                # TODO: Make capped bound spec with default
-                bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-                user_name='2\\" face spacing',
-            )
-        ),
-    ),
-    IfBlock(can_have_one_inch_face).add(
-        EnumParameter(
-            one_inch_face, user_name='1\\" face hole count', ui_hints=SHOW_LABEL_HINT
-        ),
-        IfBlock(one_inch_face["TWO"]).add(
-            LengthParameter(
-                "oneInchFaceSpacing",
-                # TODO: Make capped bound spec with default
-                bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-                user_name='1\\" face spacing',
-            )
-        ),
-    ),
-    IfBlock(size_predicates["CUSTOM"]).add(
-        CountParameter("firstFaceCount", user_name="First face hole count"),
-        LengthParameter(
-            "firstFaceSpacing",
-            bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-        ),
-        CountParameter("secondFaceCount", user_name="Second face hole count"),
-        LengthParameter(
-            "secondFaceSpacing",
-            bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-        ),
-    ),
+    BooleanParameter("delayInstantiation"),
 )
 
 wall_predicate = UiPredicate("wallThickness", parent=studio).add(
@@ -272,6 +297,7 @@ get_hole_diameter = Function(
     parent=studio,
     arguments=definition_arg,
     return_type=Type.VALUE,
+    export=False,
 ).add(
     IfBlock(has_predrilled_holes & Parens(hole_size["NO_8"] | hole_size["NO_10"])).add(
         Return(MapAccess("HOLE_SIZES", definition("holeSize"), definition("holeFit")))
@@ -294,14 +320,23 @@ get_min_hole_diameter = Function(
     parent=studio,
     arguments=definition_arg,
     return_type=Type.VALUE,
+    export=False,
 ).add(Return(millimeter(5)))
 
 get_one_inch_face_hole_count = enum_lookup_function(
-    "getOneInchFaceHoleCount", one_inch_face, parent=studio, return_type=Type.NUMBER
+    "getOneInchFaceHoleCount",
+    one_inch_face,
+    parent=studio,
+    return_type=Type.NUMBER,
+    export=False,
 )
 
 get_first_face_width = Function(
-    "getFirstFaceWidth", parent=studio, arguments=definition_arg, return_type=Type.VALUE
+    "getFirstFaceWidth",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.VALUE,
+    export=False,
 ).add(
     IfBlock(size_predicates["TWO_BY_ONE"])
     .add(Return(inch(2)))
@@ -311,11 +346,19 @@ get_first_face_width = Function(
 )
 
 get_two_inch_face_hole_count = enum_lookup_function(
-    "getTwoInchFaceHoleCount", two_inch_face, parent=studio, return_type=Type.NUMBER
+    "getTwoInchFaceHoleCount",
+    two_inch_face,
+    parent=studio,
+    return_type=Type.NUMBER,
+    export=False,
 )
 
 get_second_face_width = Function(
-    "getSecondFaceWidth", parent=studio, arguments=definition_arg, return_type=Type.MAP
+    "getSecondFaceWidth",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.MAP,
+    export=False,
 ).add(
     IfBlock(size_predicates["TWO_BY_ONE"] | size_predicates["ONE_BY_ONE"]).add(
         Return(inch(1))
@@ -329,6 +372,7 @@ get_first_face_pattern_definition = Function(
     parent=studio,
     arguments=definition_arg,
     return_type=Type.MAP,
+    export=False,
 ).add(
     Var(tube_face_def, "{}"),
     IfBlock(can_have_two_inch_face)
@@ -396,6 +440,7 @@ get_second_face_pattern_definition = Function(
     parent=studio,
     arguments=definition_arg,
     return_type=Type.MAP,
+    export=False,
 ).add(
     Var(tube_face_def, "{}"),
     IfBlock(can_have_one_inch_face)
@@ -433,12 +478,23 @@ get_second_face_pattern_definition = Function(
     Return(merge_maps(tube_face_def, Map({"width": get_second_face_width}))),
 )
 
+get_hole_distance = Function(
+    "getHoleDistance",
+    parent=studio,
+    arguments=definition_arg,
+    return_type=Type.VALUE,
+    export=False,
+).add(
+    IfBlock(has_predrilled_holes).add(Return(inch(0.5))), Return(definition("distance"))
+)
+
 get_wall_thickness = enum_lookup_function(
     "getWallThickness",
     wall_thickness,
     parent=studio,
     predicate_dict={"CUSTOM": custom_wall_thickness},
     return_type=Type.VALUE,
+    export=False,
 )
 
 get_max_tube_profile_type = Function(
@@ -446,6 +502,7 @@ get_max_tube_profile_type = Function(
     parent=studio,
     arguments=definition_arg,
     return_type="MaxTubeProfileType",
+    export=False,
 ).add(
     IfBlock(size_predicates["TWO_BY_ONE"]).add(
         IfBlock(can_be_light & definition("isLight")).add(
@@ -461,6 +518,7 @@ get_max_tube_definition = Function(
     parent=studio,
     arguments=definition_arg,
     return_type=Type.MAP,
+    export=False,
 ).add(
     Return(
         Map(
@@ -500,6 +558,7 @@ Function(
                 Map(
                     {
                         '"holeDiameter"': get_hole_diameter,
+                        '"distance"': get_hole_distance,
                         "(TubeFace.FIRST)": get_first_face_pattern_definition,
                         "(TubeFace.SECOND)": get_second_face_pattern_definition,
                     },

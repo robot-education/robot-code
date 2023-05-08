@@ -17,7 +17,9 @@ class _If(stmt.BlockStatement):
     def build(self, context: ctxt.Context) -> str:
         string = "else " if self.else_if else ""
         string += "if ({})\n{{\n".format(self.test.build(context))
-        string += self.build_children(context, indent=True, sep="\n")
+        string += self.build_children(
+            context, indent=True, sep="\n" if context.ui else ""
+        )
         return string + "}\n"
 
 
@@ -25,7 +27,9 @@ class _Else(stmt.BlockStatement):
     @override
     def build(self, context: ctxt.Context) -> str:
         string = "else\n{\n"
-        string += self.build_children(context, indent=True, sep="\n")
+        string += self.build_children(
+            context, indent=True, sep="\n" if context.ui else ""
+        )
         return string + "}\n"
 
 

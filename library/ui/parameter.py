@@ -109,7 +109,12 @@ class ValueParameter(Annotation, ABC):
     """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
 
     def __init__(
-        self, parameter_name: str, bound_spec: str, *, predicate: str, **kwargs
+        self,
+        parameter_name: str,
+        bound_spec: str | bounds.BoundSpec,
+        *,
+        predicate: str,
+        **kwargs,
     ):
         super().__init__(parameter_name, **kwargs)
         self.bound_spec = bound_spec
@@ -117,10 +122,15 @@ class ValueParameter(Annotation, ABC):
 
     @override
     def build(self, context: ctxt.Context) -> str:
+        bound_spec = (
+            self.bound_spec
+            if isinstance(self.bound_spec, str)
+            else self.bound_spec.build(context)
+        )
         return super().build(context) + "{}({}, {});\n".format(
             self.predicate,
             utils.definition(self.parameter_name).build(context),
-            self.bound_spec,
+            bound_spec,
         )
 
 
@@ -129,7 +139,7 @@ class LengthParameter(ValueParameter):
         self,
         parameter_name: str,
         *,
-        bound_spec: str,
+        bound_spec: str | bounds.LengthBoundSpec,
         ui_hints: ui_hint.UiHint = ui_hint.SHOW_EXPRESSION_HINT,
         **kwargs,
     ) -> None:
@@ -147,7 +157,8 @@ class CountParameter(ValueParameter):
         self,
         parameter_name: str,
         *,
-        bound_spec: str = bounds.CountBound.POSITIVE_COUNT_BOUNDS,
+        bound_spec: str
+        | bounds.IntegerBoundSpec = bounds.CountBound.POSITIVE_COUNT_BOUNDS,
         ui_hints: ui_hint.UiHint = ui_hint.SHOW_EXPRESSION_HINT,
         **kwargs,
     ) -> None:
