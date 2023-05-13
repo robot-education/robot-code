@@ -29,18 +29,28 @@ hole_size = (
     .make()
 )
 
+pattern_method = (
+    enum_factory.add_enum("PatternMethod", parent=studio)
+    .add_value("END")
+    .add_value("CENTER")
+    .make()
+)
+pattern_method_predicates = enum_predicates(pattern_method, parent=studio)
+
 tube_size = (
     custom_enum_factory.add_enum("TubeSize", parent=studio)
     .add_value("ONE_BY_ONE", user_name="1x1")
     .add_value("TWO_BY_ONE", user_name="2x1")
     .make()
 )
+size_predicates = enum_predicates(tube_size, parent=studio)
 
 tube_type = (
     custom_enum_factory.add_enum("TubeType", parent=studio)
     .add_value("MAX_TUBE", user_name="MAXTube")
     .make()
 )
+type_predicates = enum_predicates(tube_type, parent=studio)
 
 max_pattern_type = (
     enum_factory.add_enum("MaxTubePatternType", parent=studio)
@@ -90,8 +100,6 @@ one_inch_face = (
 # predicates
 custom_wall_thickness = custom_enum_predicate(wall_thickness, parent=studio)
 
-type_predicates = enum_predicates(tube_type, parent=studio)
-size_predicates = enum_predicates(tube_size, parent=studio)
 
 studio.add(
     is_max_tube := UiTestPredicate(
@@ -192,9 +200,29 @@ tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
     IfBlock(~has_predrilled_holes).add(
         LengthParameter("distance", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS)
     ),
+    EnumParameter(pattern_method, user_name="Start location", ui_hints=SHOW_LABEL_HINT),
+    IfBlock(pattern_method_predicates["END"])
+    .add(
+        BooleanFlipParameter("flipStart", user_name="Flip pattern start"),
+        BooleanParameter("customStartDistance"),
+        IfBlock(definition("customStartDistance")).add(
+            LengthParameter(
+                "startDistance", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS
+            )
+        ),
+        BooleanParameter("customEndDistance"),
+        IfBlock(definition("customEndDistance")).add(
+            LengthParameter(
+                "endDistance", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS
+            )
+        ),
+        # CountParameter("Holes to tie to end", bound_spec=)
+    )
+    .else_if(pattern_method_predicates["CENTER"])
+    .add(BooleanParameter("centerHole")),
 )
 
-hole_predicate = UiPredicate("tubeHole", parent=studio).add(
+hole_predicate = UiPredicate("tubeHoleDiameter", parent=studio).add(
     IfBlock(~has_predrilled_holes)
     .add(
         EnumParameter(
@@ -215,7 +243,7 @@ hole_predicate = UiPredicate("tubeHole", parent=studio).add(
         Parens(~has_predrilled_holes & ~is_hole_size_set)
         | Parens(has_predrilled_holes & definition("overrideHoleDiameter"))
     ).add(LengthParameter("holeDiameter", bound_spec=LengthBound.BLEND_BOUNDS)),
-    BooleanParameter("delayInstantiation"),
+    BooleanParameter("finish", default=True),
 )
 
 wall_predicate = UiPredicate("wallThickness", parent=studio).add(
@@ -299,8 +327,13 @@ get_hole_diameter = Function(
     return_type=Type.VALUE,
     export=False,
 ).add(
-    IfBlock(has_predrilled_holes & Parens(hole_size["NO_8"] | hole_size["NO_10"])).add(
+    IfBlock(
+        Parens(~has_predrilled_holes & Parens(hole_size["NO_8"] | hole_size["NO_10"]))
+    ).add(
         Return(MapAccess("HOLE_SIZES", definition("holeSize"), definition("holeFit")))
+    ),
+    IfBlock(has_predrilled_holes & ~definition("overrideHoleDiameter")).add(
+        IfBlock(is_max_tube).add(Return(millimeter(5)))
     ),
     Return(definition("holeDiameter")),
 )
@@ -321,7 +354,8 @@ get_min_hole_diameter = Function(
     arguments=definition_arg,
     return_type=Type.VALUE,
     export=False,
-).add(Return(millimeter(5)))
+    # Although its technically 5mm, we fudge to allow close fit holes
+).add(Return(inch(0.196)))
 
 get_one_inch_face_hole_count = enum_lookup_function(
     "getOneInchFaceHoleCount",
@@ -431,8 +465,11 @@ get_first_face_pattern_definition = Function(
         # set hole count to 0
         .add(Assign(tube_face_def, Map({"count": 0})))
     ),
-    # Return(tube_face_def)
-    Return(merge_maps(tube_face_def, Map({"width": get_first_face_width}))),
+    Return(
+        merge_maps(
+            Map({"width": get_first_face_width, "spacing": meter(0)}), tube_face_def
+        )
+    ),
 )
 
 get_second_face_pattern_definition = Function(
@@ -475,7 +512,11 @@ get_second_face_pattern_definition = Function(
         )
     ),
     # Return(tube_face_def)
-    Return(merge_maps(tube_face_def, Map({"width": get_second_face_width}))),
+    Return(
+        merge_maps(
+            Map({"width": get_second_face_width, "spacing": meter(0)}), tube_face_def
+        )
+    ),
 )
 
 get_hole_distance = Function(
@@ -559,6 +600,9 @@ Function(
                     {
                         '"holeDiameter"': get_hole_diameter,
                         '"distance"': get_hole_distance,
+                        '"startDistance"': "definition.customStartDistance ? definition.startDistance : definition.distance / 2",
+                        '"endDistance"': "definition.customEndDistance ? definition.endDistance : definition.distance / 2",
+                        '"flipStart"': definition("flipStart"),
                         "(TubeFace.FIRST)": get_first_face_pattern_definition,
                         "(TubeFace.SECOND)": get_second_face_pattern_definition,
                     },
