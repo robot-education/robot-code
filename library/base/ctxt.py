@@ -35,7 +35,7 @@ class Context:
         return dict(
             (field.name, copy.copy(getattr(self, field.name)))
             for field in dataclasses.fields(self)
-            if field.name != "stack"
+            if field.name != "stack" and field.name != "std_version"
         )
 
     def save(self) -> None:

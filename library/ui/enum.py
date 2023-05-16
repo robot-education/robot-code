@@ -58,7 +58,7 @@ class EnumValue(expr.Expr):
         return expr.Compare(
             utils.definition(parameter_name, definition),
             operator,
-            expr.Id("{}.{}".format(self.enum.name, self.value)),
+            "{}.{}".format(self.enum.name, self.value),
         )
 
     def build_value(self, context: ctxt.Context) -> str:
@@ -135,14 +135,14 @@ class EnumDict(dict[str, V], Generic[V]):
 class EnumFactoryBase(ABC):
     def __init__(
         self,
-        enum_factory: Type[_Enum],
+        enum_type: Type[_Enum],
     ):
-        self.enum_factory = enum_factory
+        self.enum_factory = enum_type
         self.reset()
 
     def reset(self) -> None:
-        self.enum = None
         self.result = {}
+        self.enum = None
 
     def add_enum(
         self,
@@ -181,14 +181,14 @@ class EnumFactoryBase(ABC):
             raise ValueError("Cannot create an enum with no values")
 
         self.enum.add(*self.result.values())
-        enum = EnumDict(self.enum, self.result)
+        enum_dict = EnumDict(self.enum, self.result)
         self.reset()
-        return enum
+        return enum_dict
 
 
 class EnumFactory(EnumFactoryBase):
     def __init__(self):
-        super().__init__(enum_factory=_Enum)
+        super().__init__(enum_type=_Enum)
 
 
 class CustomEnumFactory(EnumFactory):

@@ -2,10 +2,6 @@ import enum as std_enum
 
 
 class UiHint(std_enum.Flag):
-    # @override
-    # def _generate_next_value_(name, start, count, last_values) -> str:
-    #     return str_utils.quote(name)
-
     ALWAYS_HIDDEN = std_enum.auto()
     READ_ONLY = std_enum.auto()
     UNCONFIGURABLE = std_enum.auto()
@@ -15,6 +11,7 @@ class UiHint(std_enum.Flag):
     SHOW_EXPRESSION = std_enum.auto()
     OPPOSITE_DIRECTION = std_enum.auto()
     OPPOSITE_DIRECTION_CIRCULAR = std_enum.auto()
+    DISPLAY_SHORT = std_enum.auto()
 
 
 # tuple to ensure immutability to prevent mutation bugs

@@ -1,3 +1,4 @@
+import dataclasses
 from typing import Any, Iterable, Sequence
 from typing_extensions import override
 from library.base import ctxt, expr, str_utils, node
@@ -13,36 +14,35 @@ __all__ = [
 ]
 
 
+@dataclasses.dataclass
 class Map(expr.Expr):
-    """Defines a map literal."""
+    """Defines a map literal.
 
-    def __init__(
-        self,
-        dict: dict[str, Any],
-        quote_keys: bool = True,
-        quote_values: bool = False,
-        exclude_keys: Iterable[str] = [],
-        inline: bool = True,
-    ):
-        """
+    Args:
+        dictionary: A dict of key-value pairs corresponding to values in the resulting dictionary.
         quote_values: Whether to add quotation marks around each value.
-        exclude_keys: Specifies keys to ignore when quoting values. Does nothing if quote_values is False.
-        """
-        self.dict = dict
-        self.quote_keys = quote_keys
-        self.quote_values = quote_values
-        self.exclude_keys = exclude_keys
-        self.inline = inline
+        excluded_keys: Keys who should not be quoted. Does nothing if `quote_keys` is False.
+        excluded_values: Keys whose values should not be quoted. Does nothing if `quote_values` is False.
+        inline: `True` to generate the map inline.
+    """
+
+    dictionary: dict[str, Any]
+    quote_keys: bool = True
+    excluded_keys: Iterable[str] = ()
+    quote_values: bool = False
+    excluded_values: Iterable[str] = ()
+    inline: bool = True
 
     def _get_pairs(self, context: ctxt.Context) -> Sequence[node.Node]:
         pairs = []
-        for key, value in self.dict.items():
+        for key, value in self.dictionary.items():
             if value is None:
                 continue
+
             value = expr.cast_to_expr(value).build(context)
-            if self.quote_values and key not in self.exclude_keys:
+            if self.quote_values and key not in self.excluded_values:
                 value = str_utils.quote(value)
-            if self.quote_keys:
+            if self.quote_keys and key not in self.excluded_keys:
                 key = str_utils.quote(key)
             pairs.append(expr.Id("{} : {}".format(key, value)))
         return pairs

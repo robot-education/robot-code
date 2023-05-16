@@ -1,30 +1,28 @@
+from dataclasses import dataclass
+import dataclasses
+from typing_extensions import override
 from library.base import ctxt, expr, node, stmt
-from library.core import utils
 
-__all__ = ["Assign", "Const", "Var", "merge_maps"]
+__all__ = ["Assign", "Const", "Var", "Ternary", "merge_maps"]
 
 
 class Assign(stmt.Statement):
     def __init__(
-        self, name: expr.Expr | str, expression: expr.Expr | str, **kwargs
+        self, name: expr.ExprCandidate, expression: expr.ExprCandidate, **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.name = expr.cast_to_expr(name)
         self.expression = expr.cast_to_expr(expression)
-        self.inline = True
 
+    @override
     def build(self, context: ctxt.Context) -> str:
-        string = (
-            self.name.build(context)
-            + " ={}".format(" " if self.inline else "\n")
-            + self.expression.build(context)
-        )
+        string = self.name.build(context) + " = " + self.expression.build(context)
         return stmt.Line(string).build(context)
 
 
-class Const(Assign, node.TopStatement):
+class Const(Assign, node.TopStatement, expr.Expr):
     def __init__(
-        self, name: str, expression: expr.Expr | str, export: bool = True, **kwargs
+        self, name: str, expression: expr.ExprCandidate, export: bool = False, **kwargs
     ) -> None:
         """
         args:
@@ -33,29 +31,51 @@ class Const(Assign, node.TopStatement):
         super().__init__(name, expression, **kwargs)
         self.export = export
 
+    @override
     def build_top(self, context: ctxt.Context) -> str:
-        self.inline = False
-        if self.export:
-            return "export " + self.build(context)
-        return self.build(context)
+        append = "export " if self.export else ""
+        return append + "const " + super().build(context)
 
+    @override
     def build(self, context: ctxt.Context) -> str:
-        return "const " + super().build(context)
+        return self.name.build(context)
 
 
+# Does not inherit from Assign since expression may be None
 class Var(stmt.Statement):
     def __init__(
-        self, name: str, expression: expr.Expr | str | None = None, **kwargs
+        self,
+        name: expr.ExprCandidate,
+        expression: expr.ExprCandidate | None = None,
+        **kwargs
     ) -> None:
         self.name = name
         self.expression = expression
 
+    @override
     def build(self, context: ctxt.Context) -> str:
-        string = "var {}".format(self.name)
+        string = "var {}".format(expr.build_expr(self.name, context))
         if self.expression is not None:
-            string += " = " + expr.cast_to_expr(self.expression).build(context)
+            string += " = " + expr.build_expr(self.expression, context)
         return stmt.Line(string).build(context)
 
 
-def merge_maps(defaults: expr.Expr | str, m: expr.Expr | str) -> expr.Expr:
-    return expr.Call("mergeMaps", expr.cast_to_expr(defaults), expr.cast_to_expr(m))
+@dataclasses.dataclass
+class Ternary(expr.Expr):
+    """Represents a ternary operator."""
+
+    test: expr.Expr
+    false_operand: expr.ExprCandidate
+    true_operand: expr.ExprCandidate
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        return "{} ? {} : {}".format(
+            self.test.build(context),
+            expr.build_expr(self.false_operand, context),
+            expr.build_expr(self.true_operand, context),
+        )
+
+
+def merge_maps(defaults: expr.ExprCandidate, m: expr.ExprCandidate) -> expr.Expr:
+    return expr.Call("mergeMaps", defaults, m)

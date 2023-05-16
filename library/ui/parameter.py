@@ -45,7 +45,7 @@ class Annotation(stmt.Statement, ABC):
 
         keys = list(exclude_keys)
         keys.append("UIHint")
-        self.map = map.Map(map_args, quote_values=True, exclude_keys=keys)
+        self.map = map.Map(map_args, quote_values=True, excluded_values=keys)
 
     @override
     def build(self, context: ctxt.Context) -> str:
@@ -90,7 +90,7 @@ class BooleanParameter(TypeParameter):
         self,
         parameter_name: str,
         default: bool = False,
-        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         **kwargs,
     ) -> None:
         args = {} if not default else {"Default": "true"}
@@ -140,7 +140,7 @@ class LengthParameter(ValueParameter):
         parameter_name: str,
         *,
         bound_spec: str | bounds.LengthBoundSpec,
-        ui_hints: ui_hint.UiHint = ui_hint.SHOW_EXPRESSION_HINT,
+        ui_hints: ui_hint.UiHint | None = ui_hint.SHOW_EXPRESSION_HINT,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -159,7 +159,7 @@ class CountParameter(ValueParameter):
         *,
         bound_spec: str
         | bounds.IntegerBoundSpec = bounds.CountBound.POSITIVE_COUNT_BOUNDS,
-        ui_hints: ui_hint.UiHint = ui_hint.SHOW_EXPRESSION_HINT,
+        ui_hints: ui_hint.UiHint | None = ui_hint.SHOW_EXPRESSION_HINT,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -175,10 +175,13 @@ class BooleanFlipParameter(BooleanParameter):
     def __init__(
         self,
         parameter_name: str,
-        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        ui_hints: ui_hint.UiHint | None = None,
         **kwargs,
     ) -> None:
-        ui_hints |= ui_hint.UiHint.OPPOSITE_DIRECTION
+        if ui_hints is None:
+            ui_hints = ui_hint.UiHint.OPPOSITE_DIRECTION
+        else:
+            ui_hints |= ui_hint.UiHint.OPPOSITE_DIRECTION
         super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
@@ -230,7 +233,7 @@ class DrivenGroupParameter(stmt.BlockStatement):
         *,
         parameter_name: str,
         user_name: str,
-        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         default: bool = False,
         drive_group_test: expr.Expr | None = None,
     ) -> None:

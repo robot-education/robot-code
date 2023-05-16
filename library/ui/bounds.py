@@ -88,7 +88,7 @@ class BoundSpec(node.TopStatement):
             + " as "
             + self.spec_name
         )
-        return std.Const(self.name, body).build(context)
+        return std.Const(self.name, body).build_top(context)
 
     @override
     def build(self, context: ctxt.Context) -> str:
