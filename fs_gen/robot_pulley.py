@@ -2,20 +2,20 @@ from library import *
 
 studio = Studio("robotPulleyUi.gen.fs", "backend")
 
-# pulley_fit = (
-#     custom_enum_factory.add_enum("Fit", parent=studio)
-#     .add_value("CLOSE")
-#     .add_value("FREE")
-#     .make()
-# )
+pulley_fit = (
+    custom_enum_factory.add_enum("Fit", parent=studio)
+    .add_value("CLOSE")
+    .add_value("FREE")
+    .make()
+)
 
-# flange_size = (
-#     custom_enum_factory.add_enum("FlangeWidthType", parent=studio)
-#     .add_value("STANDARD")
-#     .add_value("LARGE")
-#     .add_value("CUSTOM")
-#     .make()
-# )
+flange_size = (
+    custom_enum_factory.add_enum("FlangeWidthType", parent=studio)
+    .add_value("STANDARD")
+    .add_value("LARGE")
+    .add_value("CUSTOM")
+    .make()
+)
 
 flange_width_type = (
     enum_factory.add_enum("FlangeWidthType", parent=studio)
@@ -24,12 +24,12 @@ flange_width_type = (
     .make()
 )
 
-# flange_diameter_type = (
-#     enum_factory.add_enum("FlangeDiameterType", parent=studio)
-#     .add_value("OFFSET")
-#     .add_value("OUTER_DIAMETER")
-#     .make()
-# )
+flange_diameter_type = (
+    enum_factory.add_enum("FlangeDiameterType", parent=studio)
+    .add_value("OFFSET")
+    .add_value("OUTER_DIAMETER")
+    .make()
+)
 
 bore_type = (
     enum_factory.add_enum("BoreType", parent=studio)
@@ -58,18 +58,18 @@ studio.add(
             ),
         ),
     ),
-    # bore := UiPredicate("bore").add(
-    #     DrivenGroupParameter(parameter_name="bore", user_name="Bore").add(
-    #         EnumParameter(bore_type),
-    #         IfBlock(bore_type["INSERT"]).add(
-    #             EnumParameter(insert_type, ui_hints=SHOW_LABEL_HINT),
-    #             BooleanParameter("bothSides"),
-    #             IfBlock(~definition("insertBothSides")).add(
-    #                 BooleanFlipParameter("oppositeSide")
-    #             ),
-    #         ),
-    #     )
-    # ),
+    bore := UiPredicate("bore").add(
+        DrivenGroupParameter(parameter_name="bore", user_name="Bore").add(
+            EnumParameter(bore_type),
+            IfBlock(bore_type["INSERT"]).add(
+                EnumParameter(insert_type, ui_hints=SHOW_LABEL_HINT),
+                BooleanParameter("bothSides"),
+                IfBlock(~definition("insertBothSides")).add(
+                    BooleanFlipParameter("oppositeSide")
+                ),
+            ),
+        )
+    ),
 )
 #     custom_flange := UiPredicate("customFlange").add(
 #         EnumParameter(flange_width_type),

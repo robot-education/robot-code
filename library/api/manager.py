@@ -1,4 +1,7 @@
-import re, shutil, runpy
+import importlib
+import importlib.util
+import re
+import shutil
 from typing import Callable
 from library.base import studio
 
@@ -169,12 +172,16 @@ class StudioManager:
         std_version = self.client.std_version()
         paths = self.config.code_gen_path.rglob("**/*.py")
         count = 0
+
         for path in paths:
-            output = runpy.run_path(path.as_posix())
-            for cls in output.values():
+            # output = runpy.run_path(path.as_posix())
+            spec = importlib.util.spec_from_file_location(path.stem, path.as_posix())
+            output = spec.loader.load_module()  # type: ignore
+            for cls in vars(output).values():
                 if isinstance(cls, studio.Studio):
                     if self.send_code(cls, std_version):
                         count += 1
+
         print("Built {} feature studios.".format(count))
         self.finish()
 

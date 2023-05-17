@@ -7,18 +7,11 @@ from library.base import str_utils, ctxt
 
 
 class Node(ABC):
-    def __new__(cls: Type[Self], *args, **kwargs) -> Type[Node]:
-        saved_build = cls.build
-
-        # inject level argument to build during class init
-        def run_build(self, context: ctxt.Context) -> str:
-            context.save()
-            string = saved_build(self, context)
-            context.restore()
-            return string
-
-        cls.build = run_build
-        return super().__new__(cls)
+    def run_build(self, context: ctxt.Context) -> str:
+        context.save()
+        string = self.build(context)
+        context.restore()
+        return string
 
     @abstractmethod
     def build(self, context: ctxt.Context) -> str:
@@ -48,22 +41,15 @@ class ParentNode(Node, ABC):
 
 
 class TopStatement(Node, ABC):
-    def __new__(cls: Type[Self], *args, **kwargs) -> Type[Node]:
-        saved_build_top = cls.build_top
-
-        # inject level argument to build during class init
-        def run_build_top(
-            self,
-            context: ctxt.Context,
-        ) -> str:
-            context.save()
-            context.top = False
-            string = saved_build_top(self, context)
-            context.restore()
-            return string
-
-        cls.build_top = run_build_top
-        return super().__new__(cls, *args, **kwargs)
+    def run_build_top(
+        self,
+        context: ctxt.Context,
+    ) -> str:
+        context.save()
+        context.top = False
+        string = self.build_top(context)
+        context.restore()
+        return string
 
     @abstractmethod
     def build_top(self, context: ctxt.Context) -> str:
