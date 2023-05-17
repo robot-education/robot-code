@@ -30,7 +30,7 @@ class Line(Statement):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.expression.build(context) + ";\n"
+        return self.expression.run_build(context) + ";\n"
 
 
 def cast_to_stmt(node: Statement | expr.Expr) -> Statement:
@@ -45,7 +45,7 @@ class Return(Statement):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return "return " + self.expression.build(context) + ";\n"
+        return "return " + self.expression.run_build(context) + ";\n"
 
 
 class BlockParent(node.ParentNode):

@@ -79,7 +79,7 @@ def cast_to_expr(node: ExprCandidate) -> Expr:
 
 
 def build_expr(node: ExprCandidate, context: ctxt.Context) -> str:
-    return cast_to_expr(node).build(context)
+    return cast_to_expr(node).run_build(context)
 
 
 class Compare(Expr):
@@ -115,7 +115,7 @@ class Parens(Expr):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return "({})".format(self.expr.build(context))
+        return "({})".format(self.expr.run_build(context))
 
 
 def add_parens(expression: Expr):
@@ -150,7 +150,7 @@ class UnaryOp(Expr):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.operator + self.operand.build(context)
+        return self.operator + self.operand.run_build(context)
 
 
 class BoolOp(Expr):

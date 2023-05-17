@@ -49,7 +49,7 @@ class Annotation(stmt.Statement, ABC):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return "annotation " + self.map.build(context) + "\n"
+        return "annotation " + self.map.run_build(context) + "\n"
 
 
 class TypeParameter(Annotation, ABC):
@@ -63,7 +63,7 @@ class TypeParameter(Annotation, ABC):
     def build(self, context: ctxt.Context) -> str:
         return (
             super().build(context)
-            + utils.definition(self.parameter_name).build(context)
+            + utils.definition(self.parameter_name).run_build(context)
             + " is {};\n".format(self.type)
         )
 
@@ -104,7 +104,6 @@ class BooleanParameter(TypeParameter):
             **kwargs,
         )
 
-
 class ValueParameter(Annotation, ABC):
     """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
 
@@ -125,11 +124,11 @@ class ValueParameter(Annotation, ABC):
         bound_spec = (
             self.bound_spec
             if isinstance(self.bound_spec, str)
-            else self.bound_spec.build(context)
+            else self.bound_spec.run_build(context)
         )
         return super().build(context) + "{}({}, {});\n".format(
             self.predicate,
-            utils.definition(self.parameter_name).build(context),
+            utils.definition(self.parameter_name).run_build(context),
             bound_spec,
         )
 
@@ -265,15 +264,17 @@ class DrivenGroupParameter(stmt.BlockStatement):
     @override
     def build(self, context: ctxt.Context) -> str:
         if self.drive_group_test is None:
-            string = self.boolean.build(context) + "\n"
+            string = self.boolean.run_build(context) + "\n"
             string += (
                 control.IfBlock(utils.definition(self.parameter_name))
                 .add(self.group)
-                .build(context)
+                .run_build(context)
             )
         else:
             string = (
-                control.IfBlock(self.drive_group_test).add(self.boolean).build(context)
+                control.IfBlock(self.drive_group_test)
+                .add(self.boolean)
+                .run_build(context)
             )
             string += (
                 control.IfBlock(
@@ -281,6 +282,6 @@ class DrivenGroupParameter(stmt.BlockStatement):
                     | utils.definition(self.parameter_name)
                 )
                 .add(self.group)
-                .build(context)
+                .run_build(context)
             )
         return string

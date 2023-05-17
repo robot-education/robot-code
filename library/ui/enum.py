@@ -70,7 +70,7 @@ class EnumValue(expr.Expr):
 
         if self.annotate and dict != {}:
             return "annotation {}\n{}".format(
-                map.Map(dict, quote_values=True).build(context), self.value
+                map.Map(dict, quote_values=True).run_build(context), self.value
             )
         return self.value
 
@@ -78,7 +78,7 @@ class EnumValue(expr.Expr):
     def build(self, context: ctxt.Context) -> str:
         if context.enum:
             return self.build_value(context)
-        return self.__call__().build(context)
+        return self.__call__().run_build(context)
 
 
 class LookupEnumValue(EnumValue):

@@ -61,7 +61,7 @@ class _Callable(node.TopStatement, stmt.BlockStatement, expr.Expr):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.__call__().build(context)
+        return self.__call__().run_build(context)
 
     def _get_start(self) -> str:
         if self.is_lambda:
@@ -187,7 +187,7 @@ class UiTestPredicate(Predicate, expr.Expr):
             warnings.warn("Cannot inline empty predicate")
             return "<INLINE_FAILED>"
 
-        return expr.add_parens(result).build(context)
+        return expr.add_parens(result).run_build(context)
 
     @override
     def build_top(self, context: ctxt.Context) -> str:

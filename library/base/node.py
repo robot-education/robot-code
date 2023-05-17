@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Iterable, Self, Type
+from typing import Iterable, Self
 from typing_extensions import override
 
 from library.base import str_utils, ctxt
@@ -60,13 +60,6 @@ class TopStatement(Node, ABC):
         return ""
 
 
-# def build(node: Node, context: ctxt.Context) -> str:
-#     context.save()
-#     string = node.build(context)
-#     context.restore()
-#     return string
-
-
 def build_nodes(
     nodes: Iterable[Node],
     context: ctxt.Context,
@@ -83,7 +76,7 @@ def build_nodes(
     """
     if indent:
         context.indent += 1
-    strings = [node.build(context) for node in nodes]
+    strings = [node.run_build(context) for node in nodes]
     # if end_after_sep:
     combined = (sep + end).join(strings) + end
     # else:

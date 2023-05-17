@@ -20,13 +20,13 @@ class Studio(node.ParentNode):
     def build(self, context: ctxt.Context) -> str:
         """Process the contents of the feature studio."""
         return HEADER.format(context.std_version, context.std_version) + "\n".join(
-            node.build_top(context) for node in self.children  # type: ignore
+            node.run_build_top(context) for node in self.children  # type: ignore
         )
 
     def build_studio(self, std_version: str) -> str:
         context = ctxt.Context(std_version)
         print("Building " + self.studio_name)
-        build = self.build(context)
+        build = self.run_build(context)
         # print("Count: " + str(node.count))
         # node.count = 0
         return build

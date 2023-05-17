@@ -70,44 +70,43 @@ studio.add(
             ),
         )
     ),
+    custom_flange := UiPredicate("customFlange").add(
+        EnumParameter(flange_width_type),
+        IfBlock(flange_width_type["FLANGE_WIDTH"])
+        .add(
+            LengthParameter(
+                "flangeWidth", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS
+            )
+        )
+        .or_else()
+        .add(
+            LengthParameter(
+                "pulleyAndFlangeWidth",
+                bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
+                user_name="Total pulley width",
+            )
+        ),
+        EnumParameter(flange_diameter_type, ui_hints=SHOW_LABEL_HINT),
+        IfBlock(flange_diameter_type["OFFSET"])
+        .add(LengthParameter("flangeOffset", bound_spec=LengthBound.BLEND_BOUNDS))
+        .or_else()
+        .add(
+            LengthParameter(
+                "flangeDiameter",
+                bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
+            )
+        ),
+    ),
+    flange := UiPredicate("flange").add(
+        DrivenGroupParameter(parameter_name="flanges", user_name="Flanges").add(
+            EnumParameter(flange_size),
+            IfBlock(flange_size["CUSTOM"]).add(custom_flange),
+        )
+    ),
+    engrave_tooth_count := UiPredicate("engraveToothCount").add(
+        DrivenGroupParameter(
+            parameter_name="engraveToothCount", user_name="Engrave tooth count"
+        ).add(LengthParameter("engravingDepth", bound_spec=LengthBound.BLEND_BOUNDS))
+    ),
+    UiPredicate("pulley").add(general, flange, bore, engrave_tooth_count),
 )
-#     custom_flange := UiPredicate("customFlange").add(
-#         EnumParameter(flange_width_type),
-#         IfBlock(flange_width_type["FLANGE_WIDTH"])
-#         .add(
-#             LengthParameter(
-#                 "flangeWidth", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS
-#             )
-#         )
-#         .or_else()
-#         .add(
-#             LengthParameter(
-#                 "pulleyAndFlangeWidth",
-#                 bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-#                 user_name="Total pulley width",
-#             )
-#         ),
-#         EnumParameter(flange_diameter_type, ui_hints=SHOW_LABEL_HINT),
-#         IfBlock(flange_diameter_type["OFFSET"])
-#         .add(LengthParameter("flangeOffset", bound_spec=LengthBound.BLEND_BOUNDS))
-#         .or_else()
-#         .add(
-#             LengthParameter(
-#                 "flangeDiameter",
-#                 bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-#             )
-#         ),
-#     ),
-#     flange := UiPredicate("flange").add(
-#         DrivenGroupParameter(parameter_name="flanges", user_name="Flanges").add(
-#             EnumParameter(flange_size),
-#             IfBlock(flange_size["CUSTOM"]).add(custom_flange),
-#         )
-#     ),
-#     engrave_tooth_count := UiPredicate("engraveToothCount").add(
-#         DrivenGroupParameter(
-#             parameter_name="engraveToothCount", user_name="Engrave tooth count"
-#         ).add(LengthParameter("engravingDepth", bound_spec=LengthBound.BLEND_BOUNDS))
-#     ),
-#     UiPredicate("pulley").add(general, flange, bore, engrave_tooth_count),
-# )

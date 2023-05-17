@@ -16,8 +16,10 @@ class Assign(stmt.Statement):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        string = self.name.build(context) + " = " + self.expression.build(context)
-        return stmt.Line(string).build(context)
+        string = (
+            self.name.run_build(context) + " = " + self.expression.run_build(context)
+        )
+        return stmt.Line(string).run_build(context)
 
 
 class Const(Assign, node.TopStatement, expr.Expr):
@@ -38,7 +40,7 @@ class Const(Assign, node.TopStatement, expr.Expr):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.name.build(context)
+        return self.name.run_build(context)
 
 
 # Does not inherit from Assign since expression may be None
@@ -57,7 +59,7 @@ class Var(stmt.Statement):
         string = "var {}".format(expr.build_expr(self.name, context))
         if self.expression is not None:
             string += " = " + expr.build_expr(self.expression, context)
-        return stmt.Line(string).build(context)
+        return stmt.Line(string).run_build(context)
 
 
 @dataclasses.dataclass
@@ -71,7 +73,7 @@ class Ternary(expr.Expr):
     @override
     def build(self, context: ctxt.Context) -> str:
         return "{} ? {} : {}".format(
-            self.test.build(context),
+            self.test.run_build(context),
             expr.build_expr(self.false_operand, context),
             expr.build_expr(self.true_operand, context),
         )

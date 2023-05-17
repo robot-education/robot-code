@@ -39,7 +39,7 @@ class Map(expr.Expr):
             if value is None:
                 continue
 
-            value = expr.cast_to_expr(value).build(context)
+            value = expr.cast_to_expr(value).run_build(context)
             if self.quote_values and key not in self.excluded_values:
                 value = str_utils.quote(value)
             if self.quote_keys and key not in self.excluded_keys:
@@ -70,8 +70,11 @@ class MapAccess(expr.Expr):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.map.build(context) + "".join(
-            ("[{}]".format(expr.cast_to_expr(key).build(context)) for key in self.keys)
+        return self.map.run_build(context) + "".join(
+            (
+                "[{}]".format(expr.cast_to_expr(key).run_build(context))
+                for key in self.keys
+            )
         )
 
 

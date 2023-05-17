@@ -84,11 +84,11 @@ class BoundSpec(node.TopStatement):
     def build_top(self, context: ctxt.Context) -> str:
         bound_map = dict(("(" + key + ")", value) for key, value in self.bounds.items())
         body = (
-            map.Map(bound_map, quote_keys=False, inline=False).build(context)
+            map.Map(bound_map, quote_keys=False, inline=False).run_build(context)
             + " as "
             + self.spec_name
         )
-        return std.Const(self.name, body).build_top(context)
+        return std.Const(self.name, body).run_build_top(context)
 
     @override
     def build(self, context: ctxt.Context) -> str:
