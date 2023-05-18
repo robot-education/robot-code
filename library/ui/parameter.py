@@ -1,4 +1,5 @@
 from abc import ABC
+from re import U
 from typing import Iterable, Self
 from typing_extensions import override
 import warnings
@@ -8,6 +9,8 @@ from library.ui import bounds, enum, ui_hint
 
 __all__ = [
     "EnumParameter",
+    "LabeledEnumParameter",
+    "HorizontalEnumParameter",
     "BooleanParameter",
     "LengthParameter",
     "CountParameter",
@@ -85,6 +88,36 @@ class EnumParameter(TypeParameter):
         )
 
 
+class LabeledEnumParameter(EnumParameter):
+    def __init__(
+        self,
+        enum: enum.EnumDict,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        **kwargs,
+    ) -> None:
+        ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.SHOW_LABEL)
+        super().__init__(
+            enum,
+            ui_hints=ui_hints,
+            **kwargs,
+        )
+
+
+class HorizontalEnumParameter(EnumParameter):
+    def __init__(
+        self,
+        enum: enum.EnumDict,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        **kwargs,
+    ) -> None:
+        ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.HORIZONTAL_ENUM)
+        super().__init__(
+            enum,
+            ui_hints=ui_hints,
+            **kwargs,
+        )
+
+
 class BooleanParameter(TypeParameter):
     def __init__(
         self,
@@ -103,6 +136,7 @@ class BooleanParameter(TypeParameter):
             exclude_keys=exclude_keys,
             **kwargs,
         )
+
 
 class ValueParameter(Annotation, ABC):
     """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
@@ -139,7 +173,7 @@ class LengthParameter(ValueParameter):
         parameter_name: str,
         *,
         bound_spec: str | bounds.LengthBoundSpec,
-        ui_hints: ui_hint.UiHint | None = ui_hint.SHOW_EXPRESSION_HINT,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -158,7 +192,7 @@ class CountParameter(ValueParameter):
         *,
         bound_spec: str
         | bounds.IntegerBoundSpec = bounds.CountBound.POSITIVE_COUNT_BOUNDS,
-        ui_hints: ui_hint.UiHint | None = ui_hint.SHOW_EXPRESSION_HINT,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -170,6 +204,24 @@ class CountParameter(ValueParameter):
         )
 
 
+class RealParameter(ValueParameter):
+    def __init__(
+        self,
+        parameter_name: str,
+        *,
+        bound_spec: str | bounds.RealBoundSpec,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            parameter_name,
+            bound_spec,
+            ui_hints=ui_hints,
+            predicate="isReal",
+            **kwargs,
+        )
+
+
 class BooleanFlipParameter(BooleanParameter):
     def __init__(
         self,
@@ -177,22 +229,27 @@ class BooleanFlipParameter(BooleanParameter):
         ui_hints: ui_hint.UiHint | None = None,
         **kwargs,
     ) -> None:
-        if ui_hints is None:
-            ui_hints = ui_hint.UiHint.OPPOSITE_DIRECTION
-        else:
-            ui_hints |= ui_hint.UiHint.OPPOSITE_DIRECTION
-        super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
+        super().__init__(
+            parameter_name,
+            ui_hints=ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION),
+            **kwargs,
+        )
 
 
 class BooleanCircularFlipParameter(BooleanParameter):
     def __init__(
         self,
         parameter_name: str,
-        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         **kwargs,
     ) -> None:
-        ui_hints |= ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR
-        super().__init__(parameter_name, ui_hints=ui_hints, **kwargs)
+        super().__init__(
+            parameter_name,
+            ui_hints=ui_hint.add_ui_hint(
+                ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR
+            ),
+            **kwargs,
+        )
 
 
 class GroupParameter(Annotation, stmt.BlockStatement):
@@ -229,9 +286,8 @@ class GroupParameter(Annotation, stmt.BlockStatement):
 class DrivenGroupParameter(stmt.BlockStatement):
     def __init__(
         self,
-        *,
         parameter_name: str,
-        user_name: str,
+        user_name: str | None = None,
         ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         default: bool = False,
         drive_group_test: expr.Expr | None = None,
@@ -244,6 +300,9 @@ class DrivenGroupParameter(stmt.BlockStatement):
                 When false, the boolean is hidden, and the group is a standard group.
         """
         self.drive_group_test = drive_group_test
+        if user_name is None:
+            user_name = str_utils.user_name(parameter_name)
+
         self.group = GroupParameter(
             user_name,
             args={"Driving Parameter": parameter_name},

@@ -1,3 +1,4 @@
+import dataclasses
 import enum as std_enum
 from typing_extensions import override
 
@@ -27,7 +28,7 @@ class LengthBound(std_enum.StrEnum):
     SHELL_OFFSET_BOUNDS = std_enum.auto()
     """A `LengthBoundSpec` for a shell or offset thickness, with smaller defaults than `NONNEGATIVE_LENGTH_BOUNDS`. (`0.1 * inch`, etc.)."""
     ZERO_INCLUSIVE_OFFSET_BOUNDS = std_enum.auto()
-    """A `LengthBoundSpec` for an offset thickness, for a length greater than or equal to 0, with defaults greater than NONNEGATIVE_ZERO_INCLUSIVE_LENGTH_BOUNDS"""
+    """A `LengthBoundSpec` for an offset thickness, for a length greater than or equal to 0, with defaults greater than `NONNEGATIVE_ZERO_INCLUSIVE_LENGTH_BOUNDS`."""
     PLANE_SIZE_BOUNDS = std_enum.auto()
     """A `LengthBoundSpec` for the size of a construction plane."""
 
@@ -74,20 +75,18 @@ class CountBound(std_enum.StrEnum):
     """The bounds for the density of an isocurve grid."""
 
 
+@dataclasses.dataclass
 class BoundSpec(node.TopStatement):
-    def __init__(self, name: str, bounds: dict[str, str], spec_name: str):
-        self.name = name
-        self.bounds = bounds
-        self.spec_name = spec_name
+    name: str
+    bounds: dict[str, str]
+    type: str
 
     @override
     def build_top(self, context: ctxt.Context) -> str:
         bound_map = dict(("(" + key + ")", value) for key, value in self.bounds.items())
-        body = (
-            map.Map(bound_map, quote_keys=False, inline=False).run_build(context)
-            + " as "
-            + self.spec_name
-        )
+        body = map.Map(
+            bound_map, quote_keys=False, inline=False, type=self.type
+        ).run_build(context)
         return std.Const(self.name, body).run_build_top(context)
 
     @override
@@ -152,3 +151,15 @@ class LengthBoundSpec(BoundSpec):
         if yard_default is not None:
             bounds["yard"] = str(yard_default)
         super().__init__(name, bounds, "LengthBoundSpec")
+
+
+class RealBoundSpec(BoundSpec):
+    def __init__(
+        self,
+        name: str,
+        min: int = 0,
+        max: int = VALUE_MAX,
+        default: int = 1,
+    ) -> None:
+        bounds = {"unitless": "[{}, {}, {}]".format(min, default, max)}
+        super().__init__(name, bounds, "RealBoundSpec")

@@ -27,6 +27,7 @@ class Map(expr.Expr):
     """
 
     dictionary: dict[str, Any]
+    type: str | None = None
     quote_keys: bool = True
     excluded_keys: Iterable[str] = ()
     quote_values: bool = False
@@ -47,7 +48,7 @@ class Map(expr.Expr):
             pairs.append(expr.Id("{} : {}".format(key, value)))
         return pairs
 
-    def build(self, context: ctxt.Context) -> str:
+    def _build_map(self, context: ctxt.Context) -> str:
         pairs = self._get_pairs(context)
         if len(pairs) == 0:
             return "{}"
@@ -56,6 +57,12 @@ class Map(expr.Expr):
         string = "{\n"
         string += node.build_nodes(pairs, context, sep=",", indent=True, end="\n")
         return string + "}"
+
+    def build(self, context: ctxt.Context) -> str:
+        map_string = self._build_map(context)
+        if self.type:
+            return map_string + " as " + self.type
+        return map_string
 
 
 def definition_map(*values: str, definition: str = "definition", **kwargs) -> Map:

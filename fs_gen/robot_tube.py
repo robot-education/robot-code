@@ -174,9 +174,7 @@ studio.add(
 
 tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
     IfBlock(can_have_two_inch_face).add(
-        EnumParameter(
-            two_inch_face, user_name="2 in. face hole count", ui_hints=SHOW_LABEL_HINT
-        ),
+        LabeledEnumParameter(two_inch_face, user_name="2 in. face hole count"),
         IfBlock(
             two_inch_face["TWO"] | two_inch_face["THREE"] | two_inch_face["FOUR"]
         ).add(
@@ -188,9 +186,7 @@ tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
         ),
     ),
     IfBlock(can_have_one_inch_face).add(
-        EnumParameter(
-            one_inch_face, user_name="1 in. face hole count", ui_hints=SHOW_LABEL_HINT
-        ),
+        LabeledEnumParameter(one_inch_face, user_name="1 in. face hole count"),
         IfBlock(one_inch_face["TWO"]).add(
             LengthParameter(
                 "oneInchFaceSpacing",
@@ -239,17 +235,11 @@ tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
 hole_predicate = UiPredicate("tubeHoleDiameter", parent=studio).add(
     IfBlock(~has_predrilled_holes)
     .add(
-        EnumParameter(
+        LabeledEnumParameter(
             hole_size,
             default="NO_10",
-            ui_hints=SHOW_LABEL_HINT,
         ),
-        IfBlock(is_hole_size_set).add(
-            EnumParameter(
-                fit,
-                ui_hints=SHOW_LABEL_HINT,
-            )
-        ),
+        IfBlock(is_hole_size_set).add(LabeledEnumParameter(fit)),
     )
     .or_else()
     .add(BooleanParameter("overrideHoleDiameter")),
@@ -261,10 +251,7 @@ hole_predicate = UiPredicate("tubeHoleDiameter", parent=studio).add(
 )
 
 wall_predicate = UiPredicate("wallThickness", parent=studio).add(
-    EnumParameter(
-        wall_thickness,
-        ui_hints=SHOW_LABEL_HINT,
-    ),
+    LabeledEnumParameter(wall_thickness),
     IfBlock(custom_wall_thickness).add(
         LengthParameter(
             "customWallThickness",
@@ -275,12 +262,7 @@ wall_predicate = UiPredicate("wallThickness", parent=studio).add(
 )
 
 tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
-    EnumParameter(
-        tube_size,
-        user_name="Size",
-        default="TWO_BY_ONE",
-        ui_hints=SHOW_LABEL_HINT,
-    ),
+    LabeledEnumParameter(tube_size, user_name="Size", default="TWO_BY_ONE"),
     IfBlock(size_predicates["CUSTOM"])
     .add(
         LengthParameter(
@@ -292,19 +274,11 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
     )
     .or_else()
     .add(
-        EnumParameter(
-            tube_type,
-            default="CUSTOM",
-            user_name="Type",
-            ui_hints=SHOW_LABEL_HINT,
-        ),
+        LabeledEnumParameter(tube_type, default="CUSTOM", user_name="Type"),
         IfBlock(is_max_tube).add(
             IfBlock(size_predicates["TWO_BY_ONE"]).add(
-                EnumParameter(
-                    max_pattern_type,
-                    user_name="Pattern type",
-                    default="GRID",
-                    ui_hints=SHOW_LABEL_HINT,
+                LabeledEnumParameter(
+                    max_pattern_type, user_name="Pattern type", default="GRID"
                 ),
                 IfBlock(can_be_light).add(
                     BooleanParameter("isLight", user_name="Light"),
@@ -324,7 +298,7 @@ tube_predicate = UiPredicate("tube", parent=studio).add(
         tube_size_predicate,
     ),
     DrivenGroupParameter(
-        parameter_name="hasHoles",
+        "hasHoles",
         user_name="Holes",
         default=True,
         drive_group_test=~has_predrilled_holes,

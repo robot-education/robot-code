@@ -77,8 +77,5 @@ def build_nodes(
     if indent:
         context.indent += 1
     strings = [node.run_build(context) for node in nodes]
-    # if end_after_sep:
     combined = (sep + end).join(strings) + end
-    # else:
-    #     combined = sep.join(string + end for string in strings)
     return str_utils.tab_lines(combined) if indent else combined

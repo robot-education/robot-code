@@ -25,8 +25,5 @@ class Studio(node.ParentNode):
 
     def build_studio(self, std_version: str) -> str:
         context = ctxt.Context(std_version)
-        print("Building " + self.studio_name)
         build = self.run_build(context)
-        # print("Count: " + str(node.count))
-        # node.count = 0
         return build
