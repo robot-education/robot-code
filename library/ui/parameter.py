@@ -1,5 +1,4 @@
 from abc import ABC
-from re import U
 from typing import Iterable, Self
 from typing_extensions import override
 import warnings
@@ -13,12 +12,25 @@ __all__ = [
     "HorizontalEnumParameter",
     "BooleanParameter",
     "LengthParameter",
-    "CountParameter",
+    "IntegerParameter",
+    "RealParameter",
     "BooleanFlipParameter",
     "BooleanCircularFlipParameter",
     "GroupParameter",
     "DrivenGroupParameter",
 ]
+
+
+class AnnotationMap(stmt.Statement):
+    def __init__(
+        self,
+        name: str | None = None,
+        group_name: str | None = None,
+        collapsed_by_default: bool | None = None,
+        description: str | None = None,
+        ui_hints: ui_hint.UiHint | None = None,
+    ) -> None:
+        pass
 
 
 class Annotation(stmt.Statement, ABC):
@@ -33,7 +45,10 @@ class Annotation(stmt.Statement, ABC):
         add_name: bool = True,
     ) -> None:
         """
-        A dict containing additional strings to add to the annotation map.
+        Args:
+            add_name: Whether to add user_name to the annotation map.
+            exclude_keys: A list of keys to exclude from the annotation map.
+            args: A dict containing additional key-value pairs to add to the annotation map.
         """
         super().__init__(parent=parent)
         self.parameter_name = parameter_name
@@ -185,7 +200,7 @@ class LengthParameter(ValueParameter):
         )
 
 
-class CountParameter(ValueParameter):
+class IntegerParameter(ValueParameter):
     def __init__(
         self,
         parameter_name: str,

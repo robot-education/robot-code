@@ -116,15 +116,15 @@ class BoundSpec(node.TopStatement):
 
 
 VALUE_MIN = int(-1e5)
-"""The minimum value for angles and counts."""
+"""The minimum value for angle and integer parameters. Equal to -`VALUE_MAX`."""
 VALUE_MAX = int(1e5)
-"""The maximum value for angles and counts."""
+"""The maximum value for angle and integer parameters."""
 INSTANCE_COUNT_MAX: int = 2500
 """The maximum number of pattern instances."""
 LENGTH_MAX: int = 500
 """The maximum length."""
 ZERO_TOLERANCE: float = 1e-5
-"""A tolerance for an angle or length greater than zero."""
+"""A minimum tolerance for an angle or length greater than zero."""
 
 
 def inch_to_meter(inch: float) -> float:
@@ -140,8 +140,8 @@ class IntegerBoundSpec(BoundSpec):
         self,
         name: str,
         min: int = 0,
-        max: int = VALUE_MAX,
         default: int = 2,
+        max: int = VALUE_MAX,
     ) -> None:
         bounds = {"unitless": "[{}, {}, {}]".format(min, default, max)}
         super().__init__(name, bounds, "IntegerBoundSpec")
@@ -178,9 +178,9 @@ class RealBoundSpec(BoundSpec):
     def __init__(
         self,
         name: str,
-        min: int = 0,
-        max: int = VALUE_MAX,
+        min: float = ZERO_TOLERANCE,
         default: int = 1,
+        max: int = VALUE_MAX,
     ) -> None:
         bounds = {"unitless": "[{}, {}, {}]".format(min, default, max)}
         super().__init__(name, bounds, "RealBoundSpec")

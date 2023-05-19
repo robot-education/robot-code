@@ -15,7 +15,7 @@ __all__ = [
     "custom_enum_factory",
     "EnumFactory",
     "CustomEnumFactory",
-    "enum_lookup_function",
+    "EnumLookupFunction",
     "LookupEnumValue",
 ]
 
@@ -41,6 +41,7 @@ class EnumValue(expr.Expr):
         self.annotate = annotate
         self.user_name = user_name or str_utils.value_user_name(self.value)
         self.invert = False
+        self.predicate = None
 
     def predicate_name(self, name_template: str) -> str:
         """Generates a name for a predicate based on the enum value.
@@ -71,6 +72,9 @@ class EnumValue(expr.Expr):
 
         return name_template.format(**format_dict)
 
+    def register_predicate(self, predicate: func.Predicate):
+        self.predicate = predicate
+
     @override
     def __invert__(self) -> expr.Expr:
         value = copy.copy(self)
@@ -83,11 +87,21 @@ class EnumValue(expr.Expr):
         parameter_name: str | None = None,
         invert: bool = False,
     ) -> expr.Expr:
+        """Represents a call to the enum which tests its value."""
         if parameter_name is None:
             parameter_name = self.enum.default_parameter_name
         if invert:
             self.invert = not self.invert
+
+        # cannot call predicate if parameter_name is different
+        if self.predicate != None and parameter_name is None:
+            predicate_call = self.predicate(arg_overrides={"definition": definition})
+            if invert:
+                return ~predicate_call
+            return predicate_call
+
         operator = expr.Operator.NOT_EQUAL if self.invert else expr.Operator.EQUAL
+
         return expr.Compare(
             utils.definition(parameter_name, definition),
             operator,
@@ -187,7 +201,7 @@ class EnumFactoryBase(ABC):
         annotate: bool = True,
         value_type: Type[EnumValue] = EnumValue,
         generate_predicates: bool = False,
-        predicate_name_template: str = "is{name}{value}",
+        predicate_name_template: str = "is{value}",
     ) -> Self:
         """Begins the construction of an enum.
 
@@ -228,13 +242,14 @@ class EnumFactoryBase(ABC):
 
         # or operator handles None case
         if generate_predicate or self.generate_predicates:
-            func.UiTestPredicate(
+            predicate = func.UiTestPredicate(
                 enum_value.predicate_name(
                     name_template or self.predicate_name_template
                 ),
                 enum_value(),
                 parent=self.parent,
             )
+            enum_value.register_predicate(predicate)
 
         return self
 
@@ -302,27 +317,29 @@ def lookup_block(
     return control.make_if_block(tests=tests, statements=statements, parent=parent)
 
 
-def enum_lookup_function(
-    name: str,
-    enum_dict: EnumDict[LookupEnumValue],
-    *,
-    parent: node.ParentNode,
-    additional_arguments: Iterable[arg.Argument] = [],
-    predicate_dict: dict[str, expr.Expr] = {},
-    return_type: str | None = None,
-    export: bool = True,
-) -> func.Function:
-    """
-    predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
-    """
-    arguments: list[arg.Argument] = [arg.definition_arg]
-    arguments.extend(additional_arguments)
-    function = func.Function(
-        name,
-        parent=parent,
-        arguments=[arg.definition_arg],
-        return_type=return_type,
-        export=export,
-    )
-    lookup_block(enum_dict, parent=function, predicate_dict=predicate_dict)
-    return function
+class EnumLookupFunction(func.Function):
+    def __init__(
+        self,
+        name: str,
+        enum_dict: EnumDict[LookupEnumValue],
+        parent: node.ParentNode | None = None,
+        additional_arguments: Iterable[arg.Argument] = [],
+        return_type: str | None = None,
+        predicate_dict: dict[str, expr.Expr] = {},
+        export: bool = False,
+    ) -> None:
+        """
+        Args:
+            return_type: The return type of the function.
+            predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
+        """
+        arguments: list[arg.Argument] = [arg.definition_arg]
+        arguments.extend(additional_arguments)
+        super().__init__(
+            name,
+            parent=parent,
+            arguments=[arg.definition_arg],
+            return_type=return_type,
+            export=export,
+        )
+        lookup_block(enum_dict, parent=self, predicate_dict=predicate_dict)

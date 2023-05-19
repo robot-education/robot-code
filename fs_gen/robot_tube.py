@@ -161,34 +161,32 @@ studio.add(
 
 tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
     IfBlock(can_have_two_inch_face).add(
-        LabeledEnumParameter(two_inch_face, user_name="2 in. face hole count"),
-        IfBlock(
-            any(two_inch_face, "TWO", "THREE", "FOUR")
-        ).add(
+        LabeledEnumParameter(two_inch_face, user_name="2 inch face hole count"),
+        IfBlock(any(two_inch_face, "TWO", "THREE", "FOUR")).add(
             LengthParameter(
                 "twoInchFaceSpacing",
                 bound_spec=two_inch_spacing_bounds,
-                user_name="2 in. face spacing",
+                user_name="2 inch face spacing",
             )
         ),
     ),
     IfBlock(can_have_one_inch_face).add(
-        LabeledEnumParameter(one_inch_face, user_name="1 in. face hole count"),
+        LabeledEnumParameter(one_inch_face, user_name="1 inch face hole count"),
         IfBlock(one_inch_face["TWO"]).add(
             LengthParameter(
                 "oneInchFaceSpacing",
                 bound_spec=one_inch_spacing_bounds,
-                user_name="1 in. face spacing",
+                user_name="1 inch face spacing",
             )
         ),
     ),
     IfBlock(tube_size["CUSTOM"]).add(
-        CountParameter("firstFaceCount", user_name="First face hole count"),
+        IntegerParameter("firstFaceCount", user_name="First face hole count"),
         LengthParameter(
             "firstFaceSpacing",
             bound_spec=spacing_bounds,
         ),
-        CountParameter("secondFaceCount", user_name="Second face hole count"),
+        IntegerParameter("secondFaceCount", user_name="Second face hole count"),
         LengthParameter(
             "secondFaceSpacing",
             bound_spec=spacing_bounds,
@@ -329,12 +327,11 @@ Const(
 #     # Although its technically 5mm, we fudge to allow close fit holes
 # ).add(Return(inch(0.196)))
 
-get_one_inch_face_hole_count = enum_lookup_function(
+get_one_inch_face_hole_count = EnumLookupFunction(
     "getOneInchFaceHoleCount",
     one_inch_face,
     parent=studio,
     return_type=Type.NUMBER,
-    export=False,
 )
 
 get_first_face_width = Function(
@@ -351,12 +348,11 @@ get_first_face_width = Function(
     Return(definition("firstFaceWidth")),
 )
 
-get_two_inch_face_hole_count = enum_lookup_function(
+get_two_inch_face_hole_count = EnumLookupFunction(
     "getTwoInchFaceHoleCount",
     two_inch_face,
     parent=studio,
     return_type=Type.NUMBER,
-    export=False,
 )
 
 get_second_face_width = Function(
@@ -581,13 +577,12 @@ get_second_face_pattern_definition = Function(
     ),
 )
 
-get_wall_thickness = enum_lookup_function(
+get_wall_thickness = EnumLookupFunction(
     "getWallThickness",
     wall_thickness,
     parent=studio,
     predicate_dict={"CUSTOM": wall_thickness["CUSTOM"]},
     return_type=Type.VALUE,
-    export=False,
 )
 
 get_max_tube_profile_type = Function(

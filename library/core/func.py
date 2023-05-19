@@ -176,15 +176,18 @@ class UiTestPredicate(Predicate, expr.Expr):
         result = None
         for statement in self.children:
             if not isinstance(statement, stmt.Line):
-                warnings.warn("Cannot inline predicate which contains non-lines")
+                warnings.warn(
+                    "Cannot inline predicate which contains statements which aren't lines."
+                )
                 return "<INLINE_FAILED>"
             expression = expr.add_parens(statement.expression)
             if result is None:
                 result = expression
             else:
                 result &= expression
+
         if result is None:
-            warnings.warn("Cannot inline empty predicate")
+            warnings.warn("Cannot inline an empty predicate.")
             return "<INLINE_FAILED>"
 
         return expr.add_parens(result).run_build(context)
