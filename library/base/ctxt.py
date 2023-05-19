@@ -1,8 +1,9 @@
 import collections
 import copy
 import dataclasses
-import enum as std_enum
-from typing import Any, Self
+from typing import Any
+
+_SAVED_FIELDS = ["enum", "ui", "test_predicate", "indent"]
 
 
 @dataclasses.dataclass()
@@ -21,7 +22,6 @@ class Context:
     """
 
     std_version: str
-    top: bool = True
     enum: bool = False
     ui: bool = False
     test_predicate: bool = False
@@ -35,7 +35,7 @@ class Context:
         return dict(
             (field.name, copy.copy(getattr(self, field.name)))
             for field in dataclasses.fields(self)
-            if field.name != "stack" and field.name != "std_version"
+            if field.name in _SAVED_FIELDS
         )
 
     def save(self) -> None:

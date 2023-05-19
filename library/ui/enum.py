@@ -1,9 +1,11 @@
 from __future__ import annotations
 from abc import ABC
+import string
 from typing import Any, Generic, Iterable, Self, Type, TypeVar
 from typing_extensions import override
 
 import copy
+import warnings
 
 from library.core import control, func, utils, arg, map
 from library.base import ctxt, node, stmt, expr, str_utils
@@ -11,6 +13,8 @@ from library.base import ctxt, node, stmt, expr, str_utils
 __all__ = [
     "enum_factory",
     "custom_enum_factory",
+    "EnumFactory",
+    "CustomEnumFactory",
     "enum_lookup_function",
     "LookupEnumValue",
 ]
@@ -37,6 +41,35 @@ class EnumValue(expr.Expr):
         self.annotate = annotate
         self.user_name = user_name or str_utils.value_user_name(self.value)
         self.invert = False
+
+    def predicate_name(self, name_template: str) -> str:
+        """Generates a name for a predicate based on the enum value.
+
+        Args:
+            name_template:
+                A template for the name. May contain the substitutions {name} and {value},
+                which will be replaced with the formatted names of the enum and the value, respectively.
+        """
+
+        format_dict = {}
+        first = True
+        for tuple in string.Formatter().parse(name_template):
+            if tuple[1] == "name":
+                if first and tuple[0] == "":
+                    format_dict["name"] = str_utils.lower_first(self.enum.name)
+                else:
+                    format_dict["name"] = self.enum.name
+            elif tuple[1] == "value":
+                format_dict["value"] = str_utils.camel_case(
+                    self.value, capitalize=not (first and tuple[0] == "")
+                )
+            else:
+                warnings.warn(
+                    "Invalid name_template: Expected substitutions to be {name} or {value} only."
+                )
+            first = False
+
+        return name_template.format(**format_dict)
 
     @override
     def __invert__(self) -> expr.Expr:
@@ -153,9 +186,23 @@ class EnumFactoryBase(ABC):
         export: bool = True,
         annotate: bool = True,
         value_type: Type[EnumValue] = EnumValue,
+        generate_predicates: bool = False,
+        predicate_name_template: str = "is{name}{value}",
     ) -> Self:
+        """Begins the construction of an enum.
+
+        Args:
+            name: The name of the enum. Should be in capital case.
+            parent: The parent of the enum.
+            default_parameter_name: The default name of the enum parameter.
+            generate_predicates: Whether to also generate predicates for each value.
+            predicate_name_template: The default template to use when generating predicate names.
+        """
+        self.parent = parent  # save parent so predicates can also register
         self.value_factory = value_type
         self.annotate = annotate
+        self.generate_predicates = generate_predicates
+        self.predicate_name_template = predicate_name_template
         self.enum = self.enum_factory(
             name,
             parent=parent,
@@ -164,14 +211,31 @@ class EnumFactoryBase(ABC):
         )
         return self
 
-    def add_value(self, value: str, *args, **kwargs) -> Self:
+    def add_value(
+        self,
+        value: str,
+        generate_predicate: bool | None = None,
+        name_template: str | None = None,
+        **kwargs,
+    ) -> Self:
         if self.enum is None:
             raise ValueError("add_enum must be called before add_value")
 
         enum_value = self.value_factory(
-            value, self.enum, *args, annotate=self.annotate, **kwargs
+            value, self.enum, annotate=self.annotate, **kwargs
         )
         self.result[value] = enum_value
+
+        # or operator handles None case
+        if generate_predicate or self.generate_predicates:
+            func.UiTestPredicate(
+                enum_value.predicate_name(
+                    name_template or self.predicate_name_template
+                ),
+                enum_value(),
+                parent=self.parent,
+            )
+
         return self
 
     def make(self) -> EnumDict[Any]:
@@ -209,8 +273,17 @@ class CustomEnumFactory(EnumFactory):
         return super().make()
 
 
-enum_factory = EnumFactory()
-custom_enum_factory = CustomEnumFactory()
+# def custom_enum_predicate(
+#     enum: lib_enum.EnumDict, *, name: str | None = None, parent: node.ParentNode
+# ) -> func.Predicate:
+#     """Generates a predicate which tests if an enum is CUSTOM."""
+#     if name is None:
+#         name = "is" + enum.name + "Custom"
+#     return func.UiTestPredicate(name, enum["CUSTOM"](), parent=parent)
+
+
+enum_factory: EnumFactory = EnumFactory()
+custom_enum_factory: CustomEnumFactory = CustomEnumFactory()
 
 
 def lookup_block(

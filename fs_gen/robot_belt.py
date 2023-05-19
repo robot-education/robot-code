@@ -20,6 +20,16 @@ gt2_pitch = (
     .make()
 )
 
+htd_pitch = (
+    enum_factory.add_enum("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
+    .add_value(
+        "_3MM",
+        lookup_value=millimeter(3),
+    )
+    .add_value("_5MM", lookup_value=millimeter(5))
+    .make()
+)
+
 htd_width = (
     enum_factory.add_enum("HtdBeltWidth", parent=studio, value_type=LookupEnumValue)
     .add_value(
@@ -39,10 +49,9 @@ studio.add(
         )
         .else_if(belt_type["HTD"])
         .add(
+            LabeledEnumParameter(htd_pitch, user_name="Belt pitch", default="_5MM"),
             LabeledEnumParameter(htd_width, user_name="Belt width", default="_15MM"),
         ),
     ),
-    UiPredicate("belt").add(
-    
-    ),
+    UiPredicate("belt").add(),
 )

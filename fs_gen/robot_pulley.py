@@ -30,21 +30,6 @@ flange_diameter_control = (
     .make()
 )
 
-bore_type = (
-    enum_factory.add_enum("BoreType", parent=studio)
-    .add_value("HEX")
-    .add_value("CIRCLE")
-    .add_value("FALCON_SPLINE")
-    .add_value("INSERT")
-    .make()
-)
-
-insert_type = (
-    enum_factory.add_enum("InsertType", parent=studio)
-    .add_value("HEX", user_name="1/2 in. hex")
-    .add_value("SPLINE", user_name="Falcon spline")
-    .make()
-)
 
 studio.add(
     selections := UiPredicate("pulleySelections").add(
@@ -71,18 +56,6 @@ studio.add(
                 BooleanFlipParameter("oppositeDirection"),
             ),
         ),
-    ),
-    bore := UiPredicate("pulleyBore").add(
-        DrivenGroupParameter("hasBore", user_name="Bore").add(
-            LabeledEnumParameter(bore_type),
-            IfBlock(bore_type["INSERT"]).add(
-                LabeledEnumParameter(insert_type),
-                BooleanParameter("bothSides"),
-                IfBlock(~definition("bothSides")).add(
-                    BooleanFlipParameter("oppositeSide")
-                ),
-            ),
-        )
     ),
     custom_flange := UiPredicate("pulleyCustomFlange").add(
         LabeledEnumParameter(flange_width_control),
@@ -122,5 +95,5 @@ studio.add(
             LengthParameter("engravingDepth", bound_spec=LengthBound.BLEND_BOUNDS)
         )
     ),
-    UiPredicate("pulley").add(selections, general, flange, bore, engrave_tooth_count),
+    UiPredicate("pulley").add(selections, general, flange, engrave_tooth_count),
 )

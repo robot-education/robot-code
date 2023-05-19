@@ -75,6 +75,27 @@ class CountBound(std_enum.StrEnum):
     """The bounds for the density of an isocurve grid."""
 
 
+class RealBound(std_enum.StrEnum):
+    @override
+    def _generate_next_value_(name, start, count, last_values) -> str:
+        return name
+
+    SCALE_BOUNDS = std_enum.auto()
+
+    POSITIVE_COUNT_BOUNDS = std_enum.auto()
+    """An `IntegerBoundSpec` for an integer strictly greater than zero, defaulting to 2."""
+    PRIMARY_PATTERN_BOUNDS = std_enum.auto()
+    """bounds for the primary direction of linear pattern."""
+    SECONDARY_PATTERN_BOUNDS = std_enum.auto()
+    """bounds for the secondary direction of a linear pattern."""
+    CIRCULAR_PATTERN_BOUNDS = std_enum.auto()
+    """bounds for a circular pattern."""
+    CURVE_PATTERN_BOUNDS = std_enum.auto()
+    """bounds for a curve pattern."""
+    GRID_BOUNDS = std_enum.auto()
+    """The bounds for the density of an isocurve grid."""
+
+
 @dataclasses.dataclass
 class BoundSpec(node.TopStatement):
     name: str

@@ -46,7 +46,7 @@ class TopStatement(Node, ABC):
         context: ctxt.Context,
     ) -> str:
         context.save()
-        context.top = False
+        # context.top = False?
         string = self.build_top(context)
         context.restore()
         return string

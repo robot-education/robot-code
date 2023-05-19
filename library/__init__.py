@@ -7,8 +7,8 @@ from library.base.str_utils import *
 from library.ui.parameter import *
 from library.ui.bounds import *
 from library.ui.enum_ui import *
-from library.ui.ui_hint import *
 from library.ui.enum import *
+from library.ui.ui_hint import *
 
 from library.core.arg import *
 from library.core.control import *
