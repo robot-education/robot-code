@@ -39,7 +39,6 @@ class Map(expr.Expr):
         for key, value in self.dictionary.items():
             if value is None:
                 continue
-
             value = expr.cast_to_expr(value).run_build(context)
             if self.quote_values and key not in self.excluded_values:
                 value = str_utils.quote(value)

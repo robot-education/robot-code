@@ -2,7 +2,7 @@ import dataclasses
 import enum as std_enum
 from typing_extensions import override
 
-from library.base import ctxt, node
+from library.base import ctxt, node, expr
 from library.core import std, map
 
 # https://cad.onshape.com/documents/12312312345abcabcabcdeff/w/a855e4161c814f2e9ab3698a/e/87b09e244a234eb791b47826
@@ -56,7 +56,7 @@ class AngleBound(std_enum.StrEnum):
     """An `AngleBoundSpec` for an angle between -180 and 180 degrees, defaulting to 0 degrees."""
 
 
-class CountBound(std_enum.StrEnum):
+class IntegerBound(std_enum.StrEnum):
     @override
     def _generate_next_value_(name, start, count, last_values) -> str:
         return name
@@ -97,7 +97,7 @@ class RealBound(std_enum.StrEnum):
 
 
 @dataclasses.dataclass
-class BoundSpec(node.TopStatement):
+class BoundSpec(node.TopStatement, expr.Expr):
     name: str
     bounds: dict[str, str]
     type: str

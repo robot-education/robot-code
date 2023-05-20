@@ -33,66 +33,66 @@ flange_diameter_control = (
 
 studio.add(
     selections := UiPredicate("pulleySelections").add(
-        DrivenGroupParameter("hasSelections", user_name="Selections").add(
-            BooleanParameter("ahh")
+        DrivenParameterGroup("hasSelections", user_name="Selections").add(
+            boolean_parameter("ahh")
         )
     ),
     general := UiPredicate("pulleyGeneral").add(
-        GroupParameter("General").add(
-            BooleanParameter("customWidth"),
+        ParameterGroup("General").add(
+            boolean_parameter("customWidth"),
             IfBlock(definition("customWidth")).add(
-                LengthParameter(
+                length_parameter(
                     "width",
                     user_name="Pulley width",
                     bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
                 )
             ),
-            BooleanParameter("offsetProfile"),
+            boolean_parameter("offsetProfile"),
             IfBlock(definition("offsetProfile")).add(
-                LengthParameter(
+                length_parameter(
                     "offsetDistance",
                     bound_spec=LengthBound.ZERO_INCLUSIVE_OFFSET_BOUNDS,
                 ),
-                BooleanFlipParameter("oppositeDirection"),
+                boolean_flip_parameter("oppositeDirection"),
             ),
         ),
     ),
     custom_flange := UiPredicate("pulleyCustomFlange").add(
-        LabeledEnumParameter(flange_width_control),
+        labeled_enum_parameter(flange_width_control),
         IfBlock(flange_width_control["FLANGE_WIDTH"])
         .add(
-            LengthParameter(
+            length_parameter(
                 "flangeWidth", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS
             )
         )
         .or_else()
         .add(
-            LengthParameter(
+            length_parameter(
                 "pulleyAndFlangeWidth",
                 bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
                 user_name="Total pulley width",
             )
         ),
-        LabeledEnumParameter(flange_diameter_control),
+        labeled_enum_parameter(flange_diameter_control),
         IfBlock(flange_diameter_control["OFFSET"])
-        .add(LengthParameter("flangeOffset", bound_spec=LengthBound.BLEND_BOUNDS))
+        .add(length_parameter("flangeOffset", bound_spec=LengthBound.BLEND_BOUNDS))
         .or_else()
         .add(
-            LengthParameter(
+            length_parameter(
                 "flangeDiameter",
                 bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
             )
         ),
     ),
     flange := UiPredicate("pulleyFlange").add(
-        DrivenGroupParameter("hasFlanges", user_name="Flanges").add(
-            LabeledEnumParameter(flange_type),
+        DrivenParameterGroup("hasFlanges", user_name="Flanges").add(
+            labeled_enum_parameter(flange_type),
             IfBlock(flange_type["CUSTOM"]).add(custom_flange),
         )
     ),
     engrave_tooth_count := UiPredicate("pulleyEngraveToothCount").add(
-        DrivenGroupParameter("engraveToothCount", user_name="Engrave tooth count").add(
-            LengthParameter("engravingDepth", bound_spec=LengthBound.BLEND_BOUNDS)
+        DrivenParameterGroup("engraveToothCount", user_name="Engrave tooth count").add(
+            length_parameter("engravingDepth", bound_spec=LengthBound.BLEND_BOUNDS)
         )
     ),
     UiPredicate("pulley").add(selections, general, flange, engrave_tooth_count),

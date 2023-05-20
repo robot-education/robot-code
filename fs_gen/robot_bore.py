@@ -100,69 +100,69 @@ studio.add(
 # predicates
 studio.add(
     outer_bore := UiPredicate("outerBore").add(
-        GroupParameter("Outer bore").add(
-            EnumParameter(outer_bore_type),
+        ParameterGroup("Outer bore").add(
+            enum_parameter(outer_bore_type),
             IfBlock(outer_bore_type["GEAR"])
             .add(
-                LabeledEnumParameter(gear_pitch_type, user_name="Pitch type"),
+                labeled_enum_parameter(gear_pitch_type, user_name="Pitch type"),
                 IfBlock(gear_pitch_type["DIAMETRICAL_PITCH"])
-                .add(RealParameter("diametricalPitch", bound_spec=dp_pitch_bounds))
+                .add(real_parameter("diametricalPitch", bound_spec=dp_pitch_bounds))
                 .else_if(gear_pitch_type["CIRCULAR_PITCH"])
-                .add(RealParameter("circularPitch", bound_spec=cp_pitch_bounds))
+                .add(real_parameter("circularPitch", bound_spec=cp_pitch_bounds))
                 .or_else()
                 .add(),
-                IntegerParameter("teeth", bound_spec=teeth_bounds),
+                integer_parameter("teeth", bound_spec=teeth_bounds),
             )
             .else_if(outer_bore_type["INSERT"])
             .add(
-                LabeledEnumParameter(insert_type),
+                labeled_enum_parameter(insert_type),
             ),
             IfBlock(any(outer_bore_type, "GEAR", "MAX_SPLINE")).add(
-                BooleanParameter("throughAll"),
-                LengthParameter(
+                boolean_parameter("throughAll"),
+                length_parameter(
                     "outerBoreDepth",
                     bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
                     user_name="Depth",
                 ),
             ),
-            LabeledEnumParameter(fit, parameter_name="outerFit", user_name="Fit"),
+            labeled_enum_parameter(fit, parameter_name="outerFit", user_name="Fit"),
         )
     ),
     inner_bore := UiPredicate("innerBore").add(
-        GroupParameter("Inner bore").add(
-            IfBlock(can_extend_insert).add(BooleanParameter("extendInsert")),
+        ParameterGroup("Inner bore").add(
+            IfBlock(can_extend_insert).add(boolean_parameter("extendInsert")),
             IfBlock(
                 Parens(can_extend_insert & ~definition("extendInsert"))
                 | ~can_extend_insert
             ).add(
-                EnumParameter(inner_bore_type),
+                enum_parameter(inner_bore_type),
                 IfBlock(inner_bore_type["HEX"])
                 .add(
-                    LabeledEnumParameter(hex_size),
+                    labeled_enum_parameter(hex_size),
                     IfBlock(hex_size["CUSTOM"]).add(
-                        LengthParameter(
+                        length_parameter(
                             "width", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS
                         )
                     ),
                 )
                 .else_if(inner_bore_type["CIRCLE"])
                 .add(
-                    LengthParameter(
+                    length_parameter(
                         "diameter", bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS
                     )
                 ),
             ),
-            EnumParameter(fit, parameter_name="innerFit"),
+            labeled_enum_parameter(fit, parameter_name="innerFit", user_name="fit"),
         )
     ),
     selections := UiPredicate("selections").add(
         # mimic hole feature
-        GroupParameter("Selections").add(
-            EnumParameter(end_style, user_name="Termination")
+        ParameterGroup("Selections").add(
+            enum_parameter(end_style, user_name="Termination")
         )
     ),
     UiPredicate("bore").add(
-        HorizontalEnumParameter(bore_creation_type),
+        horizontal_enum_parameter(bore_creation_type),
         IfBlock(has_outer_bore).add(outer_bore),
         IfBlock(has_inner_bore).add(inner_bore),
         selections,

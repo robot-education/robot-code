@@ -1,307 +1,207 @@
 from abc import ABC
-from typing import Iterable, Self
+import dataclasses
+from typing import Self
 from typing_extensions import override
 import warnings
 from library.core import control, utils, map
 from library.base import ctxt, expr, node, stmt, str_utils
-from library.ui import bounds, enum, ui_hint
-
-__all__ = [
-    "EnumParameter",
-    "LabeledEnumParameter",
-    "HorizontalEnumParameter",
-    "BooleanParameter",
-    "LengthParameter",
-    "IntegerParameter",
-    "RealParameter",
-    "BooleanFlipParameter",
-    "BooleanCircularFlipParameter",
-    "GroupParameter",
-    "DrivenGroupParameter",
-]
+from library.ui import bounds, enum, ui_hint, annotation_map
 
 
-class AnnotationMap(stmt.Statement):
-    def __init__(
-        self,
-        name: str | None = None,
-        group_name: str | None = None,
-        collapsed_by_default: bool | None = None,
-        description: str | None = None,
-        ui_hints: ui_hint.UiHint | None = None,
-    ) -> None:
-        pass
+@dataclasses.dataclass
+class TypeParameter(stmt.Statement, ABC):
+    """Represents a UI element which is a type, such as an enum or boolean."""
 
+    parameter_name: str
+    type: str
+    annotation_map: annotation_map.AnnotationMap
+    parent: node.ParentNode | None = None
 
-class Annotation(stmt.Statement, ABC):
-    def __init__(
-        self,
-        parameter_name: str,
-        parent: node.ParentNode | None = None,
-        user_name: str | None = None,
-        ui_hints: ui_hint.UiHint | None = None,
-        args: dict[str, str] = {},
-        exclude_keys: Iterable[str] = [],
-        add_name: bool = True,
-    ) -> None:
-        """
-        Args:
-            add_name: Whether to add user_name to the annotation map.
-            exclude_keys: A list of keys to exclude from the annotation map.
-            args: A dict containing additional key-value pairs to add to the annotation map.
-        """
-        super().__init__(parent=parent)
-        self.parameter_name = parameter_name
-        self.user_name = user_name or str_utils.user_name(self.parameter_name)
-
-        # always put name and ui hints first
-        map_args = {"Name": self.user_name} if add_name else {}
-        if ui_hints is not None:
-            names = [str_utils.quote(ui_hint.name or "") for ui_hint in ui_hints]
-            map_args["UIHint"] = "[{}]".format(", ".join(names))
-        map_args.update(args)
-
-        keys = list(exclude_keys)
-        keys.append("UIHint")
-        self.map = map.Map(map_args, quote_values=True, excluded_values=keys)
-
-    @override
-    def build(self, context: ctxt.Context) -> str:
-        return "annotation " + self.map.run_build(context) + "\n"
-
-
-class TypeParameter(Annotation, ABC):
-    """A class defining a UI element which is a type, such as an enum or boolean."""
-
-    def __init__(self, parameter_name: str, type: str, **kwargs) -> None:
-        super().__init__(parameter_name, **kwargs)
-        self.type = type
+    def __post_init__(self) -> None:
+        super().__init__(self.parent)
 
     @override
     def build(self, context: ctxt.Context) -> str:
         return (
-            super().build(context)
+            self.annotation_map.run_build(context)
             + utils.definition(self.parameter_name).run_build(context)
             + " is {};\n".format(self.type)
         )
 
 
-class EnumParameter(TypeParameter):
-    def __init__(
-        self,
-        enum: enum.EnumDict,
-        parameter_name: str | None = None,
-        default: str | None = None,
-        ui_hints: ui_hint.UiHint = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
-        **kwargs,
-    ) -> None:
-        self.enum = enum
-        parameter_name = parameter_name or enum.default_parameter_name
-        args = {} if not default else {"Default": default}
-        super().__init__(
-            parameter_name, type=self.enum.name, ui_hints=ui_hints, args=args, **kwargs
-        )
+def enum_parameter(
+    enum: enum.EnumDict,
+    parameter_name: str | None = None,
+    user_name: str | None = None,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+    description: str | None = None,
+    default: str | None = None,
+) -> TypeParameter:
+    parameter_name = parameter_name or enum.default_parameter_name
+    map = annotation_map.parameter_annotation_map(
+        parameter_name,
+        user_name,
+        ui_hints,
+        description,
+        default,
+    )
+    return TypeParameter(parameter_name, enum.name, map)
 
 
-class LabeledEnumParameter(EnumParameter):
-    def __init__(
-        self,
-        enum: enum.EnumDict,
-        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
-        **kwargs,
-    ) -> None:
-        ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.SHOW_LABEL)
-        super().__init__(
-            enum,
-            ui_hints=ui_hints,
-            **kwargs,
-        )
+def labeled_enum_parameter(
+    enum: enum.EnumDict,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+    **kwargs,
+):
+    ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.SHOW_LABEL)
+    return enum_parameter(enum, ui_hints=ui_hints, **kwargs)
 
 
-class HorizontalEnumParameter(EnumParameter):
-    def __init__(
-        self,
-        enum: enum.EnumDict,
-        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
-        **kwargs,
-    ) -> None:
-        ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.HORIZONTAL_ENUM)
-        super().__init__(
-            enum,
-            ui_hints=ui_hints,
-            **kwargs,
-        )
+def horizontal_enum_parameter(
+    enum: enum.EnumDict,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+    **kwargs,
+):
+    ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.HORIZONTAL_ENUM)
+    return enum_parameter(enum, ui_hints=ui_hints, **kwargs)
 
 
-class BooleanParameter(TypeParameter):
-    def __init__(
-        self,
-        parameter_name: str,
-        default: bool = False,
-        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
-        **kwargs,
-    ) -> None:
-        args = {} if not default else {"Default": "true"}
-        exclude_keys = ["Default"]
-        super().__init__(
-            parameter_name,
-            type="boolean",
-            ui_hints=ui_hints,
-            args=args,
-            exclude_keys=exclude_keys,
-            **kwargs,
-        )
+def boolean_parameter(
+    parameter_name: str,
+    user_name: str | None = None,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+    description: str | None = None,
+    default: bool = False,
+) -> TypeParameter:
+    """Defines a boolean parameter."""
+    map = annotation_map.parameter_annotation_map(
+        parameter_name, user_name, ui_hints, description, default
+    )
+    return TypeParameter(parameter_name, "boolean", map)
 
 
-class ValueParameter(Annotation, ABC):
-    """A class defining a UI element which belongs to a predicate, such as a length, angle, or query."""
+def boolean_flip_parameter(
+    parameter_name: str, ui_hints: ui_hint.UiHint | None = None, **kwargs
+):
+    """Defines a boolean flip parameter."""
+    ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION)
+    return boolean_parameter(parameter_name, ui_hints=ui_hints, **kwargs)
+
+
+def boolean_circular_flip_parameter(
+    parameter_name: str,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+    **kwargs,
+) -> TypeParameter:
+    ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION)
+    return boolean_parameter(parameter_name, ui_hints=ui_hints, **kwargs)
+
+
+class ValueParameter(stmt.Statement, ABC):
+    """Represents a UI element which belongs to a predicate, such as a length, angle, or query."""
 
     def __init__(
         self,
         parameter_name: str,
         bound_spec: str | bounds.BoundSpec,
-        *,
         predicate: str,
-        **kwargs,
+        annotation_map: annotation_map.AnnotationMap,
+        parent: node.ParentNode | None = None,
     ):
-        super().__init__(parameter_name, **kwargs)
-        self.bound_spec = bound_spec
+        super().__init__(parent)
+        self.parameter_name = parameter_name
+        self.bound_spec = expr.cast_to_expr(bound_spec)
         self.predicate = predicate
+        self.annotation_map = annotation_map
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        bound_spec = (
-            self.bound_spec
-            if isinstance(self.bound_spec, str)
-            else self.bound_spec.run_build(context)
-        )
-        return super().build(context) + "{}({}, {});\n".format(
+        return self.annotation_map.run_build(context) + "{}({}, {});\n".format(
             self.predicate,
             utils.definition(self.parameter_name).run_build(context),
-            bound_spec,
+            self.bound_spec.run_build(context),
         )
 
 
-class LengthParameter(ValueParameter):
-    def __init__(
-        self,
-        parameter_name: str,
-        *,
-        bound_spec: str | bounds.LengthBoundSpec,
-        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            parameter_name,
-            bound_spec,
-            ui_hints=ui_hints,
-            predicate="isLength",
-            **kwargs,
-        )
+def length_parameter(
+    parameter_name: str,
+    bound_spec: str
+    | bounds.LengthBoundSpec = bounds.LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
+    user_name: str | None = None,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
+    description: str | None = None,
+) -> ValueParameter:
+    map = annotation_map.parameter_annotation_map(
+        parameter_name, user_name, ui_hints, description
+    )
+    return ValueParameter(parameter_name, bound_spec, "isLength", map)
 
 
-class IntegerParameter(ValueParameter):
-    def __init__(
-        self,
-        parameter_name: str,
-        *,
-        bound_spec: str
-        | bounds.IntegerBoundSpec = bounds.CountBound.POSITIVE_COUNT_BOUNDS,
-        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            parameter_name,
-            bound_spec,
-            ui_hints=ui_hints,
-            predicate="isInteger",
-            **kwargs,
-        )
+def integer_parameter(
+    parameter_name: str,
+    bound_spec: str
+    | bounds.IntegerBoundSpec = bounds.IntegerBound.POSITIVE_COUNT_BOUNDS,
+    user_name: str | None = None,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
+    description: str | None = None,
+) -> ValueParameter:
+    map = annotation_map.parameter_annotation_map(
+        parameter_name, user_name, ui_hints, description
+    )
+    return ValueParameter(parameter_name, bound_spec, "isInteger", map)
 
 
-class RealParameter(ValueParameter):
-    def __init__(
-        self,
-        parameter_name: str,
-        *,
-        bound_spec: str | bounds.RealBoundSpec,
-        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            parameter_name,
-            bound_spec,
-            ui_hints=ui_hints,
-            predicate="isReal",
-            **kwargs,
-        )
+def real_parameter(
+    parameter_name: str,
+    *,
+    bound_spec: str | bounds.RealBoundSpec,
+    user_name: str | None = None,
+    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
+    description: str | None = None,
+) -> ValueParameter:
+    map = annotation_map.parameter_annotation_map(
+        parameter_name, user_name, ui_hints, description
+    )
+    return ValueParameter(parameter_name, bound_spec, "isReal", map)
 
 
-class BooleanFlipParameter(BooleanParameter):
-    def __init__(
-        self,
-        parameter_name: str,
-        ui_hints: ui_hint.UiHint | None = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            parameter_name,
-            ui_hints=ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION),
-            **kwargs,
-        )
-
-
-class BooleanCircularFlipParameter(BooleanParameter):
-    def __init__(
-        self,
-        parameter_name: str,
-        ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            parameter_name,
-            ui_hints=ui_hint.add_ui_hint(
-                ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR
-            ),
-            **kwargs,
-        )
-
-
-class GroupParameter(Annotation, stmt.BlockStatement):
+class ParameterGroup(stmt.BlockStatement):
     def __init__(
         self,
         user_name: str,
+        parent: node.ParentNode | None = None,
         collapsed_by_default: bool = False,
-        args: dict[str, str] = {},
-        **kwargs,
+        driving_parameter: str | None = None,
     ) -> None:
-        args["Group Name"] = user_name
-        args["Collapsed By Default"] = "true" if collapsed_by_default else "false"
-        exclude_keys = ["Collapsed By Default"]
+        """A parameter group annotation.
 
-        super().__init__(
-            "",
-            user_name=user_name,
-            args=args,
-            exclude_keys=exclude_keys,
-            add_name=False,
-            **kwargs,
-        )
+        Args:
+            driving_parameter: The name of a parameter driving the group. See also DrivenParameterGroup.
+        """
+        super().__init__(parent)
+        dictionary = {
+            "Group Name": str_utils.quote(user_name),
+            "Collapsed By Default": collapsed_by_default,
+        }
+        if driving_parameter:
+            dictionary["Driving Parameter"] = driving_parameter
+        self.map = map.Map(dictionary)
 
     @override
     def build(self, context: ctxt.Context) -> str:
         if len(self.children) == 0:
-            warnings.warn("Empty parameter group not permitted")
-        string = super().build(context)
+            warnings.warn("Empty parameter group not permitted.")
+        string = self.map.run_build(context)
         string += "{\n"
         string += self.build_children(context, sep="\n", indent=True)
         return string + "}\n"
 
 
-class DrivenGroupParameter(stmt.BlockStatement):
+class DrivenParameterGroup(stmt.BlockStatement):
     def __init__(
         self,
         parameter_name: str,
+        parent: node.ParentNode | None = None,
         user_name: str | None = None,
         ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         default: bool = False,
@@ -314,16 +214,14 @@ class DrivenGroupParameter(stmt.BlockStatement):
                 When true, the group is driven by the boolean.
                 When false, the boolean is hidden, and the group is a standard group.
         """
+        super().__init__(parent)
         self.drive_group_test = drive_group_test
-        if user_name is None:
-            user_name = str_utils.user_name(parameter_name)
-
-        self.group = GroupParameter(
-            user_name,
-            args={"Driving Parameter": parameter_name},
-        )
         self.parameter_name = parameter_name
-        self.boolean = BooleanParameter(
+        self.group = ParameterGroup(
+            user_name or str_utils.user_name(parameter_name),
+            driving_parameter=parameter_name,
+        )
+        self.boolean = boolean_parameter(
             parameter_name=self.parameter_name,
             user_name=user_name,
             ui_hints=ui_hints,
