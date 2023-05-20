@@ -53,6 +53,12 @@ def labeled_enum_parameter(
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     **kwargs,
 ):
+    """Constructs a labeled enum parameter.
+
+    Args:
+        ui_hints: Ui hints. `SHOW_LABEL` is automatically appended.
+        kwargs: Additional kwargs to pass to `enum_parameter`.
+    """
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.SHOW_LABEL)
     return enum_parameter(enum, ui_hints=ui_hints, **kwargs)
 
@@ -62,6 +68,13 @@ def horizontal_enum_parameter(
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     **kwargs,
 ):
+    """Constructs a horizontal enum parameter.
+
+    Args:
+        ui_hints: Ui hints. `HORIZONTAL_ENUM` is automatically appended.
+        kwargs: Additional kwargs to pass to `enum_parameter`.
+    """
+
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.HORIZONTAL_ENUM)
     return enum_parameter(enum, ui_hints=ui_hints, **kwargs)
 
@@ -73,7 +86,7 @@ def boolean_parameter(
     description: str | None = None,
     default: bool = False,
 ) -> TypeParameter:
-    """Defines a boolean parameter."""
+    """Constructs a boolean parameter."""
     map = annotation_map.parameter_annotation_map(
         parameter_name, user_name, ui_hints, description, default
     )
@@ -83,17 +96,16 @@ def boolean_parameter(
 def boolean_flip_parameter(
     parameter_name: str, ui_hints: ui_hint.UiHint | None = None, **kwargs
 ):
-    """Defines a boolean flip parameter."""
+    """Constructs a boolean flip parameter."""
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION)
     return boolean_parameter(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
 def boolean_circular_flip_parameter(
-    parameter_name: str,
-    ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
-    **kwargs,
+    parameter_name: str, ui_hints: ui_hint.UiHint | None = None, **kwargs
 ) -> TypeParameter:
-    ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION)
+    """Constructs a boolean circular flip parameter."""
+    ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR)
     return boolean_parameter(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
@@ -176,7 +188,7 @@ class ParameterGroup(stmt.BlockStatement):
         """A parameter group annotation.
 
         Args:
-            driving_parameter: The name of a parameter driving the group. See also DrivenParameterGroup.
+            driving_parameter: The name of a parameter driving the group. See also `DrivenParameterGroup`.
         """
         super().__init__(parent)
         dictionary = {
@@ -191,10 +203,14 @@ class ParameterGroup(stmt.BlockStatement):
     def build(self, context: ctxt.Context) -> str:
         if len(self.children) == 0:
             warnings.warn("Empty parameter group not permitted.")
-        string = self.map.run_build(context)
-        string += "{\n"
-        string += self.build_children(context, sep="\n", indent=True)
-        return string + "}\n"
+        return "".join(
+            [
+                self.map.run_build(context),
+                "{\n",
+                self.build_children(context, sep="\n", indent=True),
+                "}\n",
+            ]
+        )
 
 
 class DrivenParameterGroup(stmt.BlockStatement):
@@ -209,6 +225,8 @@ class DrivenParameterGroup(stmt.BlockStatement):
     ) -> None:
         """
         Args:
+            parameter_name: The parameter name of the boolean parameter.
+            user_name: The user facing name of both the boolean parameter and parameter group.
             drive_group_test:
                 A test used to determine whether to drive the group or not.
                 When true, the group is driven by the boolean.

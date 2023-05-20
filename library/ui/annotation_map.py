@@ -1,7 +1,6 @@
-import dataclasses
 from typing import Iterable
 from typing_extensions import override
-from library.base import ctxt, expr, node, str_utils
+from library.base import ctxt, str_utils
 from library.core import map
 from library.ui import ui_hint
 
@@ -56,7 +55,6 @@ def parameter_annotation_map(
     return AnnotationMap(map_args, quote_values=True, excluded_values=excluded_values)
 
 
-# Use a class to define
 def feature_annotation_map(
     name: str,
     user_name: str | None = None,
@@ -78,7 +76,7 @@ def feature_annotation_map(
     if filter_selector:
         map_args["Filter Selector"] = "[" + ", ".join(filter_selector) + "]"
 
-    function_args = locals()
+    function_args = locals()  # use locals to access function args programatically
     for name in [
         "manipulator_change_function",
         "editing_logic_function",
