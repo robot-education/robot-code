@@ -1,6 +1,9 @@
 {
+  // path to storage folder
   "storage_path": ".storage",
+  // path to output code
   "code_path": ".fs_code",
+  // path to files to execute
   "code_gen_path": "fs_gen",
   // document names are used in studios
   "documents": [

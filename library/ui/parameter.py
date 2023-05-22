@@ -192,12 +192,14 @@ class ParameterGroup(stmt.BlockStatement):
         """
         super().__init__(parent)
         dictionary = {
-            "Group Name": str_utils.quote(user_name),
+            "Group Name": user_name,
             "Collapsed By Default": collapsed_by_default,
         }
         if driving_parameter:
             dictionary["Driving Parameter"] = driving_parameter
-        self.map = map.Map(dictionary)
+        self.map = map.Map(
+            dictionary, quote_values=True, excluded_values=["Collapsed By Default"]
+        )
 
     @override
     def build(self, context: ctxt.Context) -> str:
@@ -205,8 +207,8 @@ class ParameterGroup(stmt.BlockStatement):
             warnings.warn("Empty parameter group not permitted.")
         return "".join(
             [
-                self.map.run_build(context),
-                "{\n",
+                "annotation " + self.map.run_build(context),
+                "\n{\n",
                 self.build_children(context, sep="\n", indent=True),
                 "}\n",
             ]

@@ -3,6 +3,8 @@ import copy
 import dataclasses
 from typing import Any
 
+from library.api import conf, api
+
 _SAVED_FIELDS = ["enum", "ui", "test_predicate", "indent"]
 
 
@@ -22,7 +24,8 @@ class Context:
     """
 
     std_version: str
-    api_manager: None
+    config: conf.Config
+    api: api.Api
 
     enum: bool = False
     ui: bool = False
@@ -30,7 +33,7 @@ class Context:
     indent: int = 0
 
     stack: collections.deque[dict] = dataclasses.field(
-        default_factory=lambda: collections.deque()
+        default_factory=collections.deque
     )
 
     def as_dict(self) -> dict[str, Any]:

@@ -3,7 +3,8 @@ import importlib.util
 import re
 import shutil
 from typing import Callable
-from library.base import studio
+import warnings
+from library.base import ctxt, studio
 
 from library.api import api, api_utils, conf
 
@@ -11,7 +12,7 @@ OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
 )
 
-VERSION_SUB_MATCH = re.compile(r"\\d{2,7}")
+VERSION_SUB_MATCH = re.compile(r"\d{2,7}")
 
 CONFLICT_MESSAGE = """
 Some files are in conflict and were skipped.
@@ -28,7 +29,13 @@ class CommandLineManager:
         self.curr_data = self.config.fetch()
         self.conflict = False
 
-    def report_conflict(self, studio: conf.FeatureStudio) -> None:
+    def _finish(self) -> None:
+        self.config.store(self.curr_data)
+
+        if self.conflict:
+            print(CONFLICT_MESSAGE)
+
+    def _report_conflict(self, studio: conf.FeatureStudio) -> None:
         self.conflict = True
         print(
             "{} has been modified both locally and in Onshape. Skipping.".format(
@@ -36,11 +43,11 @@ class CommandLineManager:
             )
         )
 
-    def get_config_documents(self) -> list[conf.FeatureStudio]:
+    def _get_config_documents(self) -> list[conf.FeatureStudio]:
         return [
             studio
             for path in self.config.documents.values()
-            for studio in api_utils.get_studios(self.api, path)
+            for studio in api_utils.get_studios(self.api, path).values()
         ]
 
     def pull(self, force: bool = False) -> None:
@@ -54,7 +61,7 @@ class CommandLineManager:
         5. Else if the microversion ids are different and the local version is not modified, pull.
         6. For each file which was pulled, update the microversion.
         """
-        studios = self.get_config_documents()
+        studios = self._get_config_documents()
         pulled = 0
         for studio in studios:
             curr_studio = self.curr_data.get(studio.path.id, None)
@@ -67,7 +74,7 @@ class CommandLineManager:
                     continue
                 elif curr_studio.modified and not force:
                     # microversions don't match; potential conflict between cloud and local
-                    self.report_conflict(studio)
+                    self._report_conflict(studio)
                     continue
                 # okay to overwrite non-modified studio, set id
                 studio.microversion_id = curr_studio.microversion_id
@@ -83,7 +90,7 @@ class CommandLineManager:
             print("Already up to date.")
         else:
             print("Pulled {} feature studios.".format(pulled))
-            self.finish()
+            self._finish()
 
     def push(self, force: bool = False) -> None:
         """
@@ -99,7 +106,7 @@ class CommandLineManager:
             if studio.modified or studio.microversion_id is None
         ]
 
-        onshape_studios = self.get_config_documents()
+        onshape_studios = self._get_config_documents()
 
         pushed = 0
         for studio in studios_to_push:
@@ -110,13 +117,15 @@ class CommandLineManager:
                 )
             )
             if not force and onshape_studio.microversion_id != studio.microversion_id:
-                self.report_conflict(studio)
+                self._report_conflict(studio)
                 continue
 
             print("Pushing {}".format(studio.name))
-            api_utils.update_code(
-                self.api, studio.path, self.config.read_file(studio.name)
-            )
+            code = self.config.read_file(studio.name)
+            if code is None:
+                print("Failed to find studio {}. Skipping.".format(studio.name))
+                continue
+            api_utils.update_code(self.api, studio.path, code)  # TODO: check result?
             studio.modified = False
             studio.microversion_id = api_utils.get_microversion_id(
                 self.api, studio.path
@@ -128,13 +137,16 @@ class CommandLineManager:
             print("Everything already up to date.")
         else:
             print("Pushed {} feature studios.".format(pushed))
-            self.finish()
+            self._finish()
 
     def update_versions(self) -> None:
         std_version = api_utils.std_version(self.api)
         modified = 0
         for id, studio in self.curr_data.items():
             contents = self.config.read_file(studio.name)
+            if contents is None:
+                print("Failed to find file {}. Skipping.".format(studio.name))
+                continue
             new_contents = self._update_version(contents, std_version)
             if new_contents != contents:
                 modified += 1
@@ -145,7 +157,7 @@ class CommandLineManager:
             print("All files already up to date.")
         else:
             print("Modified {} files.".format(modified))
-            self.finish()
+            self._finish()
 
     def _update_version(self, contents: str, std_version: str) -> str:
         return re.sub(
@@ -161,12 +173,6 @@ class CommandLineManager:
             )
 
         return replace_number
-
-    def finish(self) -> None:
-        self.config.store(self.curr_data)
-
-        if self.conflict:
-            print(CONFLICT_MESSAGE)
 
     def build(self) -> None:
         std_version = api_utils.std_version(self.api)
@@ -189,35 +195,33 @@ class CommandLineManager:
 
             for cls in vars(module).values():
                 if isinstance(cls, studio.Studio):
-                    if self.send_code(cls, std_version):
+                    if self._send_code(cls, std_version):
                         count += 1
 
         print("Built {} feature studios.".format(count))
-        self.finish()
+        self._finish()
 
-    def send_code(self, studio: studio.Studio, std_version: str) -> bool:
-        code = studio.build_studio(std_version)
+    def _send_code(self, studio: studio.Studio, std_version: str) -> bool:
+        context = ctxt.Context(std_version, self.config, self.api)
+        code = studio.build(context)
+
         curr = self.config.read_file(studio.studio_name)
         if curr == code:
             print("{}: Build resulted in no changes.".format(studio.studio_name))
             return True  # Still count it as built
 
-        document = self.config.documents.get(studio.document_name, None)
+        document = self.config.get_document(studio.document_name)
         if document is None:
             print(
-                "{}: Failed to find document in config.json named {}. Skipping.".format(
-                    studio.studio_name, studio.document_name
+                "{}: Failed to find document in config.json named {}. Valid names are: {}".format(
+                    studio.studio_name,
+                    studio.document_name,
+                    ", ".join(self.config.documents.keys()),
                 )
             )
             return False
         feature_studios = api_utils.get_studios(self.api, document)
-        feature_studio = next(
-            filter(
-                lambda feature_studio: feature_studio.name == studio.studio_name,
-                feature_studios,
-            ),
-            None,
-        )
+        feature_studio = feature_studios.get(studio.studio_name, None)
 
         if feature_studio is None:
             feature_studio = api_utils.make_feature_studio(

@@ -3,5 +3,14 @@
 import setuptools
 
 setuptools.setup(
-    name="library", version="0.1", packages=setuptools.find_namespace_packages()
+    name="library",
+    version="0.1",
+    packages=["library"],
+    # setuptools.find_namespace_packages()
+)
+
+setuptools.setup(
+    name="robot_library",
+    version="0.1",
+    packages=["robot_library"]
 )

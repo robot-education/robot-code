@@ -90,10 +90,14 @@ class Config:
         with (self.code_path / name).open("w") as file:
             file.write(code)
 
-    def read_file(self, name: str) -> str:
-        """Reads code from the specified file. Returns the empty string if the file does not exist."""
+    def read_file(self, name: str) -> str | None:
+        """Reads code from the specified file.
+
+        Returns `None` if the file does not exist."""
         path = self.code_path / name
         if not path.is_file():
-            return ""
-        with path.open("r") as file:
-            return file.read()
+            return None
+        return path.read_text()
+
+    def get_document(self, name: str) -> api_path.DocumentPath | None:
+        return self.documents.get(name, None)

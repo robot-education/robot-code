@@ -6,7 +6,9 @@ from library.api.logger import log
 import os
 import random
 import string
-import json5
+
+# json for dumping api output, json5 for reading config (so comments are allowed)
+import json, json5
 import hmac
 import hashlib
 import base64
@@ -210,9 +212,7 @@ class Api:
 
         # only parse as json string if we have to
         body = (
-            json5.dumps(request.body)
-            if isinstance(request.body, dict)
-            else request.body
+            request.body if isinstance(request.body, str) else json.dumps(request.body)
         )
 
         res = requests.request(

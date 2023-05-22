@@ -201,7 +201,7 @@ class EnumFactoryBase(ABC):
         annotate: bool = True,
         value_type: Type[EnumValue] = EnumValue,
         generate_predicates: bool = False,
-        predicate_name_template: str = "is{value}",
+        predicate_name_template: str = "is{name}{value}",
     ) -> Self:
         """Begins the construction of an enum.
 

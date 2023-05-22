@@ -13,11 +13,16 @@ def get_microversion_id(api: api.Api, path: api_path.StudioPath) -> str:
 
 def get_studios(
     api: api.Api, document_path: api_path.DocumentPath
-) -> list[conf.FeatureStudio]:
+) -> dict[str, conf.FeatureStudio]:
     """Returns an array of feature studios in a document."""
-    query = {"elementType": "FEATURESTUDIO"}
     elements = api.request(
-        api_path.ApiRequest("get", "documents", document_path, "elements", query=query)
+        api_path.ApiRequest(
+            "get",
+            "documents",
+            document_path,
+            "elements",
+            query={"elementType": "FEATURESTUDIO"},
+        )
     ).json()
     return _extract_studios(elements, document_path)
 
@@ -26,16 +31,19 @@ def get_studios(
 def _extract_studios(
     elements: list[dict],
     document_path: api_path.DocumentPath,
-) -> list[conf.FeatureStudio]:
+) -> dict[str, conf.FeatureStudio]:
     """Constructs a list of FeatureStudios from a list of elements returned by a get documents request."""
-    return [
-        conf.FeatureStudio(
+    return dict(
+        (
             element["name"],
-            api_path.StudioPath(document_path.copy(), element["id"]),
-            element["microversionId"],
+            conf.FeatureStudio(
+                element["name"],
+                api_path.StudioPath(document_path.copy(), element["id"]),
+                element["microversionId"],
+            ),
         )
         for element in elements
-    ]
+    )
 
 
 def make_feature_studio(
@@ -76,7 +84,7 @@ def update_code(api: api.Api, path: api_path.StudioPath, code: str) -> dict:
 
 def std_version(api: api.Api) -> str:
     """Fetches the latest version of the onshape std."""
-    code = get_code(api, constant.STD_PATH)
+    code = get_code(api, constant.STD_STUDIO_PATH)
     parsed = re.search("\\d{4,6}", code)
     if parsed is None:
         raise RuntimeError("Failed to find latest version of onshape std.")
