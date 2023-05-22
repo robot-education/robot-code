@@ -1,3 +1,5 @@
+"""Defines a command line parser for the `onshape` command.
+"""
 import argparse
 
 from library.api import manager, conf
@@ -62,11 +64,11 @@ def main():
     if args.action == "update-versions":
         code_manager.update_versions()
         if args.push:
-            code_manager.push(False)
+            code_manager.push()
     elif args.action == "build":
         code_manager.build()
         if args.push:
-            code_manager.push(False)
+            code_manager.push()
     elif args.action == "pull":
         code_manager.pull(args.force)
     elif args.action == "push":

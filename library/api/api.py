@@ -180,9 +180,6 @@ class Api:
     def request(
         self,
         request: api_path.ApiRequest,
-        query: dict = {},
-        headers: dict = {},
-        body: dict | str = {},
         base_url: str | None = None,
     ):
         """
@@ -199,18 +196,22 @@ class Api:
             - requests.Response: Object containing the response from Onshape
         """
         path = str(request)
-        req_headers = self._make_headers(request.method, path, query, headers)
+        req_headers = self._make_headers(
+            request.method, path, request.query, request.headers
+        )
         if base_url is None:
             base_url = self._url
-        url = base_url + path + "?" + parse.urlencode(query)  # type: ignore
+        url = base_url + path + "?" + parse.urlencode(request.query)  # type: ignore
 
         if self._logging:
-            log(body)
+            log(request.body)
             log(req_headers)
             log("request url: " + url)
 
         # only parse as json string if we have to
-        body = json.dumps(body) if isinstance(body, dict) else body
+        body = (
+            json.dumps(request.body) if isinstance(request.body, dict) else request.body
+        )
 
         res = requests.request(
             request.method,
@@ -221,36 +222,39 @@ class Api:
             stream=True,
         )
 
-        if res.status_code == 307:
-            location = parse.urlparse(res.headers["Location"])
-            query_dict = parse.parse_qs(location.query)
+        # if res.status_code == 307:
+        #     location = parse.urlparse(res.headers["Location"])
+        #     query_dict = parse.parse_qs(location.query)
 
-            if self._logging:
-                log("request redirected to: " + location.geturl())
+        #     if self._logging:
+        #         log("request redirected to: " + location.geturl())
 
-            new_query = {}
-            new_base_url = location.scheme + "://" + location.netloc
+        #     new_query = {}
+        #     new_base_url = location.scheme + "://" + location.netloc
 
-            for key in query_dict:
-                # won't work for repeated query params
-                new_query[key] = query_dict[key][0]
+        #     for key in query_dict:
+        #         # won't work for repeated query params
+        #         new_query[key] = query_dict[key][0]
 
-            # override request string method
-            def __str__override() -> str:
-                return location.path
+        #     # override request string method
+        #     def __str__override() -> str:
+        #         return location.path
 
-            request.__str__ = __str__override
+        #     request.__str__ = __str__override
 
-            return self.request(
-                request,
-                # location.path,
-                query=new_query,
-                headers=headers,
-                base_url=new_base_url,
-            )
-        elif not 200 <= res.status_code <= 206:
+        #     return self.request(
+        #         request,
+        #         # location.path,
+        #         query=new_query,
+        #         headers=headers,
+        #         base_url=new_base_url,
+        #     )
+        if not 200 <= res.status_code <= 206:
             if self._logging:
                 log("request failed, details: " + res.text, level=1)
+        elif res.status_code == 307:
+            if self._logging:
+                log("request was supposed to be redirected.")
         else:
             if self._logging:
                 log("request succeeded, details: " + res.text)

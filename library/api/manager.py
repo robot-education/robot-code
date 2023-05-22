@@ -5,7 +5,7 @@ import shutil
 from typing import Callable
 from library.base import studio
 
-from library.api import api, client, conf, storage
+from library.api import api, conf, methods, storage
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
@@ -22,13 +22,13 @@ Use "onshape pull --force" or "onshape push --force" to overwrite.
 class CommandLineManager:
     """Uses an api client to handle command line operations."""
 
-    def __init__(self, config: conf.Config, client: client.StudioClient):
+    def __init__(self, config: conf.Config, api: api.Api):
         self.config = config
-        self.client = client
+        self.api = api
         self.curr_data = storage.fetch(self.config.storage_path)
         self.conflict = False
 
-    def handle_conflict(self, studio: storage.FeatureStudio) -> None:
+    def report_conflict(self, studio: storage.FeatureStudio) -> None:
         self.conflict = True
         print(
             "{} has been modified both locally and in Onshape. Skipping.".format(
@@ -40,11 +40,12 @@ class CommandLineManager:
         return [
             studio
             for path in self.config.documents.values()
-            for studio in self.client.get_studios(path)
+            for studio in methods.get_studios(self.api, path)
         ]
 
-    def pull(self, force: bool) -> None:
-        """
+    def pull(self, force: bool = False) -> None:
+        """Pulls code from Onshape.
+
         Procedure:
         1. Pull all feature studios from Onshape.
         2. Load feature studios from storage.
@@ -59,21 +60,21 @@ class CommandLineManager:
         for studio in studios:
             curr_studio = self.curr_data.studios.get(studio.path.id, None)
             if curr_studio is not None:
-                # do nothing if microversions match or the studio is auto-generated
                 if (
                     curr_studio.microversion_id == studio.microversion_id
                     or curr_studio.generated
                 ):
+                    # do nothing if microversions match or the studio is auto-generated
                     continue
-                # microversions don't match; potential conflict between cloud and local
                 elif curr_studio.modified and not force:
-                    self.handle_conflict(studio)
+                    # microversions don't match; potential conflict between cloud and local
+                    self.report_conflict(studio)
                     continue
                 # okay to overwrite non-modified studio, set id
                 studio.microversion_id = curr_studio.microversion_id
 
             print("Pulling {}".format(studio.name))
-            code = self.client.get_code(studio.path)
+            code = methods.get_code(self.api, studio.path)
             writer.write(studio.name, code)
             # don't need to worry about reseting generated since generated is never pulled
             self.curr_data.studios[studio.path.id] = studio
@@ -85,7 +86,7 @@ class CommandLineManager:
             print("Pulled {} feature studios.".format(pulled))
             self.finish()
 
-    def push(self, force: bool) -> None:
+    def push(self, force: bool = False) -> None:
         """
         Procedure:
         1. Load feature studios from Onshape.
@@ -111,13 +112,13 @@ class CommandLineManager:
                 )
             )
             if not force and onshape_studio.microversion_id != studio.microversion_id:
-                self.handle_conflict(studio)
+                self.report_conflict(studio)
                 continue
 
             print("Pushing {}".format(studio.name))
-            self.client.update_code(studio.path, writer.read(studio.name))
+            methods.update_code(self.api, studio.path, writer.read(studio.name))
             studio.modified = False
-            studio.microversion_id = self.client.get_microversion_id(studio.path)
+            studio.microversion_id = methods.get_microversion_id(self.api, studio.path)
             self.curr_data.studios[studio.path.id] = studio
             pushed += 1
 
@@ -129,7 +130,7 @@ class CommandLineManager:
 
     def update_versions(self) -> None:
         writer = storage.CodeWriter(self.config.code_path)
-        std_version = self.client.std_version()
+        std_version = methods.std_version(self.api)
         modified = 0
         for id, studio in self.curr_data.studios.items():
             contents = writer.read(studio.name)
@@ -171,15 +172,25 @@ class CommandLineManager:
         shutil.rmtree(self.config.storage_path.parent)
 
     def build(self) -> None:
-        std_version = self.client.std_version()
+        std_version = methods.std_version(self.api)
         paths = self.config.code_gen_path.rglob("**/*.py")
         count = 0
 
         for path in paths:
             # output = runpy.run_path(path.as_posix())
-            spec = importlib.util.spec_from_file_location(path.stem, path.as_posix())
-            output = spec.loader.load_module()  # type: ignore
-            for cls in vars(output).values():
+            spec = importlib.util.spec_from_file_location(path.stem, path)
+            if spec is None or spec.loader is None:
+                raise RuntimeError("Failed to open {}. Aborting.".format(path.stem))
+            module = importlib.util.__loader__.create_module(spec)
+            if module is None:
+                raise RuntimeError(
+                    "Failed to initialize {}. Aborting.".format(path.stem)
+                )
+            spec.loader.exec_module(module)
+            # (deprecated) alternative
+            # spec.loader.load_module(path.stem)
+
+            for cls in vars(module).values():
                 if isinstance(cls, studio.Studio):
                     if self.send_code(cls, std_version):
                         count += 1
@@ -203,7 +214,7 @@ class CommandLineManager:
                 )
             )
             return False
-        feature_studios = self.client.get_studios(document)
+        feature_studios = methods.get_studios(self.api, document)
         feature_studio = next(
             filter(
                 lambda feature_studio: feature_studio.name == studio.studio_name,
@@ -213,8 +224,8 @@ class CommandLineManager:
         )
 
         if feature_studio is None:
-            feature_studio = self.client.make_feature_studio(
-                document, studio.studio_name
+            feature_studio = methods.make_feature_studio(
+                self.api, document, studio.studio_name
             )
         feature_studio.generated = True
         feature_studio.modified = True
@@ -224,5 +235,4 @@ class CommandLineManager:
 
 
 def make_manager(config: conf.Config, logging: bool = False) -> CommandLineManager:
-    feature_client = client.StudioClient(api.Api(logging=logging))
-    return CommandLineManager(config, feature_client)
+    return CommandLineManager(config, api.Api(logging=logging))

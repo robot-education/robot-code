@@ -43,6 +43,9 @@ class ApiRequest:
     service: str
     path: StudioPath | DocumentPath | None = None
     secondary_service: str | None = None
+    query: dict = dataclasses.field(default_factory=dict)
+    headers: dict = dataclasses.field(default_factory=dict)
+    body: dict | str = dataclasses.field(default_factory=dict)
 
     def __str__(self) -> str:
         path = "/api/" + self.service
