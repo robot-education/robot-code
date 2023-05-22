@@ -2,18 +2,25 @@ from typing_extensions import override
 import warnings
 from library.api import api_utils
 from library.base import node, ctxt
+from library.core import utils
 
 
 class Import(node.TopStatement):
     """Represents an import statement."""
 
-    def __init__(self, studio_name: str, document_name: str | None = None) -> None:
+    def __init__(
+        self, studio_name: str, document_name: str | None = None, export: bool = False
+    ) -> None:
+        self.export = export
         self.studio_name = studio_name
         self.document_name = document_name
 
     def resolve_path(self, context: ctxt.Context) -> tuple[str, str]:
         if self.document_name == None:
             return ("onshape/std/" + self.studio_name, context.std_version + ".0")
+
+        if self.document_name != context.document_name:
+            return ("<EXTERNAL_DOCUMENT_REF>", "0" * 24)
 
         document = context.config.get_document(self.document_name)
         if document is None:
@@ -35,16 +42,12 @@ class Import(node.TopStatement):
                 )
                 path = "<INVALID_STUDIO_NAME>"
             else:
-                path = studio.name
+                path = studio.path.id
 
         return (path, "0" * 24)
 
     @override
     def build_top(self, context: ctxt.Context) -> str:
-        return 'import(path : "{}", version : "{}");\n'.format(
-            *self.resolve_path(context)
-        )
-
-
-def std_import(studio_name: str) -> Import:
-    return Import(studio_name, document_name="std")
+        return utils.export(
+            self.export
+        ) + 'import(path : "{}", version : "{}");\n'.format(*self.resolve_path(context))

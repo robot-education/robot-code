@@ -3,8 +3,7 @@ import importlib.util
 import re
 import shutil
 from typing import Callable
-import warnings
-from library.base import ctxt, studio
+from library.base import ctxt, node, studio
 
 from library.api import api, api_utils, conf
 
@@ -202,7 +201,7 @@ class CommandLineManager:
         self._finish()
 
     def _send_code(self, studio: studio.Studio, std_version: str) -> bool:
-        context = ctxt.Context(std_version, self.config, self.api)
+        context = ctxt.Context(studio.document_name, std_version, self.config, self.api)
         code = studio.build(context)
 
         curr = self.config.read_file(studio.studio_name)

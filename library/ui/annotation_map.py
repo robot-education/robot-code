@@ -6,7 +6,7 @@ from library.ui import ui_hint
 
 
 def format_description(description: str) -> str:
-    description = description.replace("\n", '<br>" ~\n')
+    description = description.replace("\n", '<br>" ~\n\t"')
     return description
 
 

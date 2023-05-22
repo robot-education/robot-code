@@ -1,5 +1,4 @@
 import re
-from typing import Iterable, Protocol
 
 __all__ = ["quote"]
 
@@ -18,7 +17,13 @@ def lower_first(string: str) -> str:
     return string[0].lower() + string[1:]
 
 
+def upper_first(string: str) -> str:
+    """A variant of capitalize, but notably doesn't lower case the other words."""
+    return string[0].upper() + string[1:]
+
+
 def camel_case(name: str, capitalize: bool = False) -> str:
+    """Converts a name separated by underscores into camel case."""
     words = name.split("_")
     words = [word.capitalize() for word in words]
     result = "".join(words)

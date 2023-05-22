@@ -1,6 +1,10 @@
 from library import *
+from robot_code import robot_studio
 
-studio = Studio("robotBoreUi.gen.fs", "backend")
+DESCRIPTION = """Create a variety of bores suitable for use in robotics."""
+robot_studio = robot_studio.RobotFeature("bore")
+feature_studio = robot_studio.make_feature_studio(DESCRIPTION)
+studio = robot_studio.make_ui_studio(feature_studio)
 
 end_style = (
     enum_factory.add_enum("EndStyle", parent=studio)
@@ -161,7 +165,7 @@ studio.add(
             enum_parameter(end_style, user_name="Termination")
         )
     ),
-    UiPredicate("bore").add(
+    UiPredicate("robotBore").add(
         horizontal_enum_parameter(bore_creation_type),
         IfBlock(has_outer_bore).add(outer_bore),
         IfBlock(has_inner_bore).add(inner_bore),

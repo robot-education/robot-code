@@ -4,7 +4,7 @@
   // path to output code
   "code_path": ".fs_code",
   // path to files to execute
-  "code_gen_path": "fs_gen",
+  "code_gen_path": "robot_code/robot_gen",
   // document names are used in studios
   "documents": [
     {

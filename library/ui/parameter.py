@@ -3,8 +3,8 @@ import dataclasses
 from typing import Self
 from typing_extensions import override
 import warnings
-from library.core import control, utils, map
-from library.base import ctxt, expr, node, stmt, str_utils
+from library.core import control, utils
+from library.base import ctxt, expr, stmt, str_utils, node
 from library.ui import bounds, enum, ui_hint, annotation_map
 
 
@@ -197,7 +197,7 @@ class ParameterGroup(stmt.BlockStatement):
         }
         if driving_parameter:
             dictionary["Driving Parameter"] = driving_parameter
-        self.map = map.Map(
+        self.map = annotation_map.AnnotationMap(
             dictionary, quote_values=True, excluded_values=["Collapsed By Default"]
         )
 
@@ -207,7 +207,7 @@ class ParameterGroup(stmt.BlockStatement):
             warnings.warn("Empty parameter group not permitted.")
         return "".join(
             [
-                "annotation " + self.map.run_build(context),
+                self.map.run_build(context),
                 "\n{\n",
                 self.build_children(context, sep="\n", indent=True),
                 "}\n",

@@ -1,6 +1,11 @@
 from library import *
+from robot_code.robot_studio import RobotFeature
 
-studio = Studio("tubeUi.gen.fs", "backend")
+robot_studio = RobotFeature("frame")
+# feature_studio = robot_studio.make_feature_studio()
+
+studio = robot_studio.make_ui_studio()
+studio.add_import("stdFrameUi.fs", "backend", True)
 
 # enums
 wall_thickness = (
@@ -278,16 +283,21 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
 )
 
 
-tube_predicate = UiPredicate("tube", parent=studio).add(
-    ParameterGroup("Tube").add(
-        tube_size_predicate,
+studio.add(
+    tube_predicate := UiPredicate("tube").add(
+        ParameterGroup("Tube").add(
+            tube_size_predicate,
+        ),
+        DrivenParameterGroup(
+            "hasHoles",
+            user_name="Holes",
+            default=True,
+            drive_group_test=~has_predrilled_holes,
+        ).add(tube_face_predicate, hole_predicate),
     ),
-    DrivenParameterGroup(
-        "hasHoles",
-        user_name="Holes",
-        default=True,
-        drive_group_test=~has_predrilled_holes,
-    ).add(tube_face_predicate, hole_predicate),
+    UiPredicate("robotFrame").add(
+        tube_predicate, Call("frameSelectionPredicate", "definition")
+    ),
 )
 
 

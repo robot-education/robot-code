@@ -8,7 +8,7 @@ import copy
 import warnings
 
 from library.core import control, func, utils, arg, map
-from library.base import ctxt, node, stmt, expr, str_utils
+from library.base import ctxt, node, stmt, expr, str_utils, studio
 
 __all__ = [
     "enum_factory",
