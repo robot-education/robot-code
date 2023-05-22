@@ -19,7 +19,9 @@ Use "onshape pull --force" or "onshape push --force" to overwrite.
 """
 
 
-class StudioManager:
+class CommandLineManager:
+    """Uses an api client to handle command line operations."""
+
     def __init__(self, config: conf.Config, client: client.StudioClient):
         self.config = config
         self.client = client
@@ -221,6 +223,6 @@ class StudioManager:
         return True
 
 
-def make_manager(config: conf.Config, logging: bool = False) -> StudioManager:
+def make_manager(config: conf.Config, logging: bool = False) -> CommandLineManager:
     feature_client = client.StudioClient(api.Api(logging=logging))
-    return StudioManager(config, feature_client)
+    return CommandLineManager(config, feature_client)

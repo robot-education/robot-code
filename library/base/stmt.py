@@ -5,18 +5,10 @@ from library.base import expr, node, ctxt
 __all__ = ["Return"]
 
 
-class TopStatement(node.ChildNode):
-    pass
-
-
-class BlockDefinition(node.ChildNode, node.ParentNode):
-    pass
-
-
 class Statement(node.ChildNode):
     """An class representing a statement.
 
-    A statement is a singular code construct which composes one or more lines.
+    A statement is a singular code construct which spans (at least) one entire line.
     """
 
     pass
@@ -49,6 +41,8 @@ class Return(Statement):
 
 
 class BlockParent(node.ParentNode):
+    """A node which supports one or more children."""
+
     @override
     def build_children(self, context: ctxt.Context, **kwargs) -> str:
         self.children = list(cast_to_stmt(node) for node in self.children)  # type: ignore

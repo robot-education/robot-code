@@ -22,6 +22,8 @@ class Context:
     """
 
     std_version: str
+    api_manager: None
+
     enum: bool = False
     ui: bool = False
     test_predicate: bool = False

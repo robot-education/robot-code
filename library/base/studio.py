@@ -38,6 +38,6 @@ class Studio(node.ParentNode):
         return header + body
 
     def build_studio(self, std_version: str) -> str:
-        context = ctxt.Context(std_version)
+        context = ctxt.Context(std_version, None)
         build = self.run_build(context)
         return build
