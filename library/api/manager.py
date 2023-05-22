@@ -5,7 +5,7 @@ import shutil
 from typing import Callable
 from library.base import studio
 
-from library.api import api, conf, methods, storage
+from library.api import api, api_utils, conf
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
@@ -25,10 +25,10 @@ class CommandLineManager:
     def __init__(self, config: conf.Config, api: api.Api):
         self.config = config
         self.api = api
-        self.curr_data = storage.fetch(self.config.storage_path)
+        self.curr_data = self.config.fetch()
         self.conflict = False
 
-    def report_conflict(self, studio: storage.FeatureStudio) -> None:
+    def report_conflict(self, studio: conf.FeatureStudio) -> None:
         self.conflict = True
         print(
             "{} has been modified both locally and in Onshape. Skipping.".format(
@@ -36,11 +36,11 @@ class CommandLineManager:
             )
         )
 
-    def get_config_documents(self) -> list[storage.FeatureStudio]:
+    def get_config_documents(self) -> list[conf.FeatureStudio]:
         return [
             studio
             for path in self.config.documents.values()
-            for studio in methods.get_studios(self.api, path)
+            for studio in api_utils.get_studios(self.api, path)
         ]
 
     def pull(self, force: bool = False) -> None:
@@ -54,11 +54,10 @@ class CommandLineManager:
         5. Else if the microversion ids are different and the local version is not modified, pull.
         6. For each file which was pulled, update the microversion.
         """
-        writer = storage.CodeWriter(self.config.code_path)
         studios = self.get_config_documents()
         pulled = 0
         for studio in studios:
-            curr_studio = self.curr_data.studios.get(studio.path.id, None)
+            curr_studio = self.curr_data.get(studio.path.id, None)
             if curr_studio is not None:
                 if (
                     curr_studio.microversion_id == studio.microversion_id
@@ -74,10 +73,10 @@ class CommandLineManager:
                 studio.microversion_id = curr_studio.microversion_id
 
             print("Pulling {}".format(studio.name))
-            code = methods.get_code(self.api, studio.path)
-            writer.write(studio.name, code)
+            code = api_utils.get_code(self.api, studio.path)
+            self.config.write_file(studio.name, code)
             # don't need to worry about reseting generated since generated is never pulled
-            self.curr_data.studios[studio.path.id] = studio
+            self.curr_data[studio.path.id] = studio
             pulled += 1
 
         if not self.conflict and pulled == 0:
@@ -96,11 +95,10 @@ class CommandLineManager:
         """
         studios_to_push = [
             studio
-            for studio in self.curr_data.studios.values()
+            for studio in self.curr_data.values()
             if studio.modified or studio.microversion_id is None
         ]
 
-        writer = storage.CodeWriter(self.config.code_path)
         onshape_studios = self.get_config_documents()
 
         pushed = 0
@@ -116,10 +114,14 @@ class CommandLineManager:
                 continue
 
             print("Pushing {}".format(studio.name))
-            methods.update_code(self.api, studio.path, writer.read(studio.name))
+            api_utils.update_code(
+                self.api, studio.path, self.config.read_file(studio.name)
+            )
             studio.modified = False
-            studio.microversion_id = methods.get_microversion_id(self.api, studio.path)
-            self.curr_data.studios[studio.path.id] = studio
+            studio.microversion_id = api_utils.get_microversion_id(
+                self.api, studio.path
+            )
+            self.curr_data[studio.path.id] = studio
             pushed += 1
 
         if not self.conflict and pushed == 0:
@@ -129,17 +131,16 @@ class CommandLineManager:
             self.finish()
 
     def update_versions(self) -> None:
-        writer = storage.CodeWriter(self.config.code_path)
-        std_version = methods.std_version(self.api)
+        std_version = api_utils.std_version(self.api)
         modified = 0
-        for id, studio in self.curr_data.studios.items():
-            contents = writer.read(studio.name)
+        for id, studio in self.curr_data.items():
+            contents = self.config.read_file(studio.name)
             new_contents = self._update_version(contents, std_version)
             if new_contents != contents:
                 modified += 1
-                writer.write(studio.name, new_contents)
+                self.config.write_file(studio.name, new_contents)
                 studio.modified = True
-                self.curr_data.studios[id] = studio
+                self.curr_data[id] = studio
         if modified == 0:
             print("All files already up to date.")
         else:
@@ -162,17 +163,13 @@ class CommandLineManager:
         return replace_number
 
     def finish(self) -> None:
-        storage.store(self.config.storage_path, self.curr_data)
+        self.config.store(self.curr_data)
 
         if self.conflict:
             print(CONFLICT_MESSAGE)
 
-    def clean(self) -> None:
-        shutil.rmtree(self.config.code_path)
-        shutil.rmtree(self.config.storage_path.parent)
-
     def build(self) -> None:
-        std_version = methods.std_version(self.api)
+        std_version = api_utils.std_version(self.api)
         paths = self.config.code_gen_path.rglob("**/*.py")
         count = 0
 
@@ -199,9 +196,8 @@ class CommandLineManager:
         self.finish()
 
     def send_code(self, studio: studio.Studio, std_version: str) -> bool:
-        writer = storage.CodeWriter(self.config.code_path)
         code = studio.build_studio(std_version)
-        curr = writer.read(studio.studio_name)
+        curr = self.config.read_file(studio.studio_name)
         if curr == code:
             print("{}: Build resulted in no changes.".format(studio.studio_name))
             return True  # Still count it as built
@@ -214,7 +210,7 @@ class CommandLineManager:
                 )
             )
             return False
-        feature_studios = methods.get_studios(self.api, document)
+        feature_studios = api_utils.get_studios(self.api, document)
         feature_studio = next(
             filter(
                 lambda feature_studio: feature_studio.name == studio.studio_name,
@@ -224,15 +220,16 @@ class CommandLineManager:
         )
 
         if feature_studio is None:
-            feature_studio = methods.make_feature_studio(
+            feature_studio = api_utils.make_feature_studio(
                 self.api, document, studio.studio_name
             )
         feature_studio.generated = True
         feature_studio.modified = True
-        self.curr_data.studios[feature_studio.path.id] = feature_studio
-        writer.write(feature_studio.name, code)
+        self.curr_data[feature_studio.path.id] = feature_studio
+        self.config.write_file(feature_studio.name, code)
         return True
 
 
-def make_manager(config: conf.Config, logging: bool = False) -> CommandLineManager:
-    return CommandLineManager(config, api.Api(logging=logging))
+def clean(config: conf.Config) -> None:
+    shutil.rmtree(config.code_path)
+    shutil.rmtree(config.storage_path.parent)

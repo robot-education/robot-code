@@ -6,7 +6,7 @@ from library.api.logger import log
 import os
 import random
 import string
-import json
+import json5
 import hmac
 import hashlib
 import base64
@@ -54,11 +54,11 @@ class Api:
 
         with open(creds) as f:
             try:
-                stacks = json.load(f)
-                if stack in stacks:
+                stacks = json5.load(f)
+                if stack in stacks:  # type: ignore
                     self._url = stack
-                    self._access_key = stacks[stack]["access_key"].encode("utf-8")
-                    self._secret_key = stacks[stack]["secret_key"].encode("utf-8")
+                    self._access_key = stacks[stack]["access_key"].encode("utf-8")  # type: ignore
+                    self._secret_key = stacks[stack]["secret_key"].encode("utf-8")  # type: ignore
                     self._logging = logging
                 else:
                     raise ValueError("specified stack not in file")
@@ -210,7 +210,9 @@ class Api:
 
         # only parse as json string if we have to
         body = (
-            json.dumps(request.body) if isinstance(request.body, dict) else request.body
+            json5.dumps(request.body)
+            if isinstance(request.body, dict)
+            else request.body
         )
 
         res = requests.request(

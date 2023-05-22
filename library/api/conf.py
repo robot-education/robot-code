@@ -1,18 +1,34 @@
-import json
+import dataclasses
+import json5
 import pathlib
+import pickle
 from typing import Any
 from library.api import api_path
 
 STORAGE_FILE = "studio_data.pickle"
 
 
+@dataclasses.dataclass
+class FeatureStudio:
+    name: str
+    path: api_path.StudioPath
+    microversion_id: str
+    modified: bool = False
+    generated: bool = False
+
+
+FileData = dict[str, FeatureStudio]
+
+
 class Config:
-    def __init__(self):
+    """Represents the user-specified config information secified in `config.json`."""
+
+    def __init__(self) -> None:
         path = pathlib.Path("config.json")
         if not path.is_file:
             raise IOError("Failed to find conf.json in the root directory")
-        config = json.load(path.open())
-        self._parse_config(config)
+        config = json5.load(path.open())
+        self._parse_config(config)  # type: ignore
 
     def _get_config_key(self, config: dict, key: str) -> Any:
         value = config.get(key, None)
@@ -33,7 +49,7 @@ class Config:
         path.mkdir(exist_ok=True)
         return path
 
-    def _parse_config(self, config: dict):
+    def _parse_config(self, config: dict) -> None:
         self.storage_path = self._get_dir(
             self._get_config_key(config, "storage_path")
         ) / pathlib.Path(STORAGE_FILE)
@@ -44,7 +60,7 @@ class Config:
 
         self._parse_document_paths(config)
 
-    def _parse_document_paths(self, config: dict):
+    def _parse_document_paths(self, config: dict) -> None:
         documents: list = self._get_config_key(config, "documents")
         self.documents: dict[str, api_path.DocumentPath] = dict(
             (
@@ -55,3 +71,29 @@ class Config:
             )
             for document in documents
         )
+
+    def store(self, data: FileData) -> None:
+        """Writes FileData to storage_path."""
+        with self.storage_path.open("wb") as file:
+            pickle.dump(data, file)
+
+    def fetch(self) -> FileData:
+        """Fetches pickled FileData from storage_path."""
+        if not self.storage_path.is_file():
+            return {}
+
+        with self.storage_path.open("rb") as file:
+            return pickle.load(file)
+
+    def write_file(self, name: str, code: str) -> None:
+        """Writes code to the specified file."""
+        with (self.code_path / name).open("w") as file:
+            file.write(code)
+
+    def read_file(self, name: str) -> str:
+        """Reads code from the specified file. Returns the empty string if the file does not exist."""
+        path = self.code_path / name
+        if not path.is_file():
+            return ""
+        with path.open("r") as file:
+            return file.read()

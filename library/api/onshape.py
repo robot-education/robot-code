@@ -2,7 +2,7 @@
 """
 import argparse
 
-from library.api import manager, conf
+from library.api import manager, conf, api
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,22 +59,25 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
     config = conf.Config()
-    code_manager = manager.make_manager(config, logging=args.log)
+    if args.action == "clean":
+        manager.clean(config)
+        return
+
+    api_obj = api.Api(logging=args.log)
+    command_line_manager = manager.CommandLineManager(config, api_obj)
 
     if args.action == "update-versions":
-        code_manager.update_versions()
+        command_line_manager.update_versions()
         if args.push:
-            code_manager.push()
+            command_line_manager.push()
     elif args.action == "build":
-        code_manager.build()
+        command_line_manager.build()
         if args.push:
-            code_manager.push()
+            command_line_manager.push()
     elif args.action == "pull":
-        code_manager.pull(args.force)
+        command_line_manager.pull(args.force)
     elif args.action == "push":
-        code_manager.push(args.force)
-    elif args.action == "clean":
-        code_manager.clean()
+        command_line_manager.push(args.force)
 
 
 if __name__ == "__main__":

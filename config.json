@@ -2,6 +2,7 @@
   "storage_path": ".storage",
   "code_path": ".fs_code",
   "code_gen_path": "fs_gen",
+  // document names are used in studios
   "documents": [
     {
       "name": "backend",

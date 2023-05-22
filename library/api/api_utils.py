@@ -1,18 +1,19 @@
-from library.api import api, api_path, constant, storage
+from library.api import api, api_path, constant, conf
 import re
 
 
 def get_microversion_id(api: api.Api, path: api_path.StudioPath) -> str:
     """Fetches the microversion id of a studio."""
-    query = {"elementId": path.id}
     return api.request(
-        api_path.ApiRequest("get", "documents", path.path, "elements", query=query)
+        api_path.ApiRequest(
+            "get", "documents", path.path, "elements", query={"elementId": path.id}
+        )
     ).json()[0]["microversionId"]
 
 
 def get_studios(
     api: api.Api, document_path: api_path.DocumentPath
-) -> list[storage.FeatureStudio]:
+) -> list[conf.FeatureStudio]:
     """Returns an array of feature studios in a document."""
     query = {"elementType": "FEATURESTUDIO"}
     elements = api.request(
@@ -25,10 +26,10 @@ def get_studios(
 def _extract_studios(
     elements: list[dict],
     document_path: api_path.DocumentPath,
-) -> list[storage.FeatureStudio]:
+) -> list[conf.FeatureStudio]:
     """Constructs a list of FeatureStudios from a list of elements returned by a get documents request."""
     return [
-        storage.FeatureStudio(
+        conf.FeatureStudio(
             element["name"],
             api_path.StudioPath(document_path.copy(), element["id"]),
             element["microversionId"],
@@ -39,7 +40,7 @@ def _extract_studios(
 
 def make_feature_studio(
     api: api.Api, document_path: api_path.DocumentPath, studio_name: str
-) -> storage.FeatureStudio:
+) -> conf.FeatureStudio:
     """Constructs a feature studio with the given name.
 
     Returns a FeatureStudio representing the new studio.
@@ -53,7 +54,7 @@ def make_feature_studio(
         ),
     ).json()
 
-    return storage.FeatureStudio(
+    return conf.FeatureStudio(
         studio_name,
         api_path.StudioPath(document_path, response["id"]),
         response["microversionId"],
