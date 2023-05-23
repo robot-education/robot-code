@@ -44,8 +44,8 @@ class BlockParent(node.ParentNode):
     """A node which supports one or more children."""
 
     @override
-    def build_children(self, context: ctxt.Context, **kwargs) -> str:
-        self.children = list(cast_to_stmt(node) for node in self.children)  # type: ignore
+    def build_children(self, context: ctxt.Context, cast: bool = True, **kwargs) -> str:
+        self.children = list(cast_to_stmt(node) for node in self.children)
         return super().build_children(context, **kwargs)
 
 

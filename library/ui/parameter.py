@@ -115,23 +115,29 @@ class ValueParameter(stmt.Statement, ABC):
     def __init__(
         self,
         parameter_name: str,
-        bound_spec: str | bounds.BoundSpec,
         predicate: str,
         annotation_map: annotation_map.AnnotationMap,
         parent: node.ParentNode | None = None,
+        bound_spec: str | bounds.BoundSpec | None = None,
     ):
         super().__init__(parent)
         self.parameter_name = parameter_name
-        self.bound_spec = expr.cast_to_expr(bound_spec)
+        self.bound_spec = bound_spec
         self.predicate = predicate
         self.annotation_map = annotation_map
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.annotation_map.run_build(context) + "{}({}, {});\n".format(
+        map_str = self.annotation_map.run_build(context)
+        if self.bound_spec:
+            return "{}({}, {});\n".format(
+                self.predicate,
+                utils.definition(self.parameter_name).run_build(context),
+                expr.build_expr(self.bound_spec, context),
+            )
+        return "{}({});\n".format(
             self.predicate,
             utils.definition(self.parameter_name).run_build(context),
-            self.bound_spec.run_build(context),
         )
 
 
@@ -146,7 +152,7 @@ def length_parameter(
     map = annotation_map.parameter_annotation_map(
         parameter_name, user_name, ui_hints, description
     )
-    return ValueParameter(parameter_name, bound_spec, "isLength", map)
+    return ValueParameter(parameter_name, "isLength", map, bound_spec=bound_spec)
 
 
 def integer_parameter(
@@ -160,7 +166,7 @@ def integer_parameter(
     map = annotation_map.parameter_annotation_map(
         parameter_name, user_name, ui_hints, description
     )
-    return ValueParameter(parameter_name, bound_spec, "isInteger", map)
+    return ValueParameter(parameter_name, "isInteger", map, bound_spec=bound_spec)
 
 
 def real_parameter(
@@ -174,7 +180,25 @@ def real_parameter(
     map = annotation_map.parameter_annotation_map(
         parameter_name, user_name, ui_hints, description
     )
-    return ValueParameter(parameter_name, bound_spec, "isReal", map)
+    return ValueParameter(parameter_name, "isReal", map, bound_spec=bound_spec)
+
+
+def query_parameter(
+    parameter_name: str,
+    *,
+    filter: str,
+    user_name: str | None = None,
+    ui_hints: ui_hint.UiHint | None = None,
+    description: str | None = None,
+) -> ValueParameter:
+    map = annotation_map.parameter_annotation_map(
+        parameter_name,
+        user_name,
+        ui_hints,
+        description,
+        additional_args={"filter": filter},
+    )
+    return ValueParameter(parameter_name, "isQuery", map)
 
 
 class ParameterGroup(stmt.BlockStatement):

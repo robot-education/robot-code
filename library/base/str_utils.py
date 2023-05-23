@@ -3,7 +3,7 @@ import re
 __all__ = ["quote"]
 
 
-def tab_lines(string: str) -> str:
+def indent(string: str) -> str:
     lines = string.splitlines(keepends=True)
     return "".join(["    " + line for line in lines])
 
@@ -18,7 +18,7 @@ def lower_first(string: str) -> str:
 
 
 def upper_first(string: str) -> str:
-    """A variant of capitalize, but notably doesn't lower case the other words."""
+    """A variant of capitalize which doesn't lower case the other words."""
     return string[0].upper() + string[1:]
 
 
@@ -41,11 +41,11 @@ def value_user_name(value: str) -> str:
 
 
 def user_name(parameter_name: str) -> str:
-    """Converts a camel case parameter name (or enum value) to a user facing name in sentence case.
+    """Converts a camel case parameter name to sentence case.
 
     Examples:
-    myEnum -> My enum
-    MyValue -> My value
+        myEnum -> My enum
+        MyValue -> My value
     """
     words = re.findall("[a-zA-Z][^A-Z]*", parameter_name)
     return _user_name(words)

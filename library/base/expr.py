@@ -3,7 +3,7 @@ A module defining expressions. Expressions refer to boolean logic and mathematic
 """
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 import enum as std_enum
 from typing import Iterator, Self
 from typing_extensions import override
@@ -12,25 +12,20 @@ from library.base import ctxt, node, expr
 __all__ = ["Parens", "Id", "Call"]
 
 
-class Operator(std_enum.StrEnum):
-    EQUAL = "=="
-    NOT_EQUAL = "!="
-
-
 class Expr(node.Node, ABC):
+    def __and__(self, other: ExprCandidate) -> Expr:
+        return BoolOp(self, "&&", other)
+
+    def __or__(self, other: ExprCandidate) -> Expr:
+        return BoolOp(self, "||", other)
+
     def __invert__(self) -> Expr:
         return UnaryOp(self, "!")
 
-    def __and__(self, other: Expr) -> Expr:
-        return BoolOp(self, "&&", other)
-
-    def __or__(self, other: Expr) -> Expr:
-        return BoolOp(self, "||", other)
-
-    def __add__(self, other: Expr) -> Expr:
+    def __add__(self, other: ExprCandidate) -> Expr:
         return BoolOp(self, "+", other)
 
-    def __sub__(self, other: Expr) -> Expr:
+    def __sub__(self, other: ExprCandidate) -> Expr:
         return BoolOp(self, "-", other)
 
     def __mul__(self, other: ExprCandidate) -> Expr:
@@ -56,16 +51,7 @@ class Expr(node.Node, ABC):
         return [self].__iter__()
 
 
-class Id(Expr):
-    def __init__(self, identifier: str) -> None:
-        self.identifier = identifier
-
-    @override
-    def build(self, _: ctxt.Context) -> str:
-        return self.identifier
-
-
-ExprCandidate = Expr | bool | str | int | float
+ExprCandidate = expr.Expr | bool | str | int | float
 
 
 def cast_to_expr(node: ExprCandidate) -> Expr:
@@ -82,10 +68,22 @@ def build_expr(node: ExprCandidate, context: ctxt.Context) -> str:
     return cast_to_expr(node).run_build(context)
 
 
-class Compare(Expr):
-    def __init__(
-        self, lhs: ExprCandidate, operator: Operator, rhs: ExprCandidate
-    ) -> None:
+class Id(Expr):
+    def __init__(self, identifier: str) -> None:
+        self.identifier = identifier
+
+    @override
+    def build(self, _: ctxt.Context) -> str:
+        return self.identifier
+
+
+class Operator(std_enum.StrEnum):
+    EQUAL = "=="
+    NOT_EQUAL = "!="
+
+
+class Equal(Expr):
+    def __init__(self, lhs: Expr | str, operator: Operator, rhs: Expr | str) -> None:
         self.lhs = lhs
         self.operator = operator
         self.rhs = rhs
@@ -143,14 +141,28 @@ class Call(Expr):
         )
 
 
+class InlineableCall(Call, ABC):
+    """Represents a call which can be inlined."""
+
+    @abstractmethod
+    def build_inline(self, context: ctxt.Context) -> str:
+        ...
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        if context.test_predicate:
+            return self.build_inline(context)
+        return super().build(context)
+
+
 class UnaryOp(Expr):
-    def __init__(self, operand: Expr, operator: str) -> None:
+    def __init__(self, operand: ExprCandidate, operator: str) -> None:
         self.operand = operand
         self.operator = operator
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.operator + self.operand.run_build(context)
+        return self.operator + build_expr(self.operand, context)
 
 
 class BoolOp(Expr):

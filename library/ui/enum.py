@@ -8,7 +8,7 @@ import copy
 import warnings
 
 from library.core import control, func, utils, arg, map
-from library.base import ctxt, node, stmt, expr, str_utils, studio
+from library.base import ctxt, node, stmt, expr, str_utils
 
 __all__ = [
     "enum_factory",
@@ -72,7 +72,7 @@ class EnumValue(expr.Expr):
 
         return name_template.format(**format_dict)
 
-    def register_predicate(self, predicate: func.Predicate):
+    def register_predicate(self, predicate: func.UiTestPredicate):
         self.predicate = predicate
 
     @override
@@ -88,21 +88,19 @@ class EnumValue(expr.Expr):
         invert: bool = False,
     ) -> expr.Expr:
         """Represents a call to the enum which tests its value."""
-        if parameter_name is None:
+        if parameter_name == None:
             parameter_name = self.enum.default_parameter_name
         if invert:
             self.invert = not self.invert
 
-        # cannot call predicate if parameter_name is different
-        if self.predicate != None and parameter_name is None:
-            predicate_call = self.predicate(arg_overrides={"definition": definition})
-            if invert:
-                return ~predicate_call
-            return predicate_call
+        # can only use predicate if everything is default since ui test predicate doesn't have a call method
+        if self.predicate != None and parameter_name != None:
+            call = self.predicate.__call__({"definition": definition})
+            return ~call if self.invert else call
 
         operator = expr.Operator.NOT_EQUAL if self.invert else expr.Operator.EQUAL
 
-        return expr.Compare(
+        return expr.Equal(
             utils.definition(parameter_name, definition),
             operator,
             "{}.{}".format(self.enum.name, self.value),

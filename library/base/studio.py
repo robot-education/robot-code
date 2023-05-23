@@ -3,7 +3,7 @@ from typing_extensions import override
 from library.base import ctxt, node, imp
 
 _FS_HEADER = "FeatureScript {};"
-_GENERATED_HEADER = "/* Automatically generated file -- DO NOT EDIT */\n\n"
+_GENERATED_HEADER = "\n/* Automatically generated file -- DO NOT EDIT */\n\n"
 
 
 class Studio(node.ParentNode):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Iterable, Self
+from typing import Generic, Iterable, Self, TypeVar
 from typing_extensions import override
 
 from library.base import str_utils, ctxt
@@ -18,6 +18,9 @@ class Node(ABC):
         ...
 
 
+N = TypeVar("N", bound=Node)
+
+
 class ChildNode(Node, ABC):
     def __init__(self, parent: ParentNode | None = None, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -25,13 +28,13 @@ class ChildNode(Node, ABC):
             parent.add(self)
 
 
-class ParentNode(Node, ABC):
+class ParentNode(Node, Generic[N], ABC):
     """A node which supports an array of (possibly nested) children."""
 
     def __init__(self) -> None:
-        self.children: list[Node] = []
+        self.children: list[N] = []
 
-    def add(self, *children: Node) -> Self:
+    def add(self, *children: N) -> Self:
         """Adds one or more children to the class."""
         self.children.extend(children)
         return self
@@ -78,4 +81,4 @@ def build_nodes(
         context.indent += 1
     strings = [node.run_build(context) for node in nodes]
     combined = (sep + end).join(strings) + end
-    return str_utils.tab_lines(combined) if indent else combined
+    return str_utils.indent(combined) if indent else combined
