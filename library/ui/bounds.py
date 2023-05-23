@@ -8,11 +8,13 @@ from library.core import std, map
 # https://cad.onshape.com/documents/12312312345abcabcabcdeff/w/a855e4161c814f2e9ab3698a/e/87b09e244a234eb791b47826
 
 
-class LengthBound(std_enum.StrEnum):
-    @override
-    def _generate_next_value_(name, start, count, last_values) -> str:
+class BoundEnum(std_enum.StrEnum):
+    @staticmethod
+    def _generate_next_value_(name, start, count, last_values):
         return name
 
+
+class LengthBound(BoundEnum):
     LENGTH_BOUNDS = std_enum.auto()
     """A `LengthBoundSpec` for a positive or negative length."""
     NONNEGATIVE_LENGTH_BOUNDS = std_enum.auto()
@@ -33,11 +35,7 @@ class LengthBound(std_enum.StrEnum):
     """A `LengthBoundSpec` for the size of a construction plane."""
 
 
-class AngleBound(std_enum.StrEnum):
-    @override
-    def _generate_next_value_(name, start, count, last_values) -> str:
-        return name
-
+class AngleBound(BoundEnum):
     ANGLE_360_BOUNDS = std_enum.auto()
     """An `AngleBoundSpec` for an angle between 0 and 360 degrees, defaulting to 30 degrees."""
     ANGLE_360_REVERSE_DEFAULT_BOUNDS = std_enum.auto()
@@ -56,44 +54,34 @@ class AngleBound(std_enum.StrEnum):
     """An `AngleBoundSpec` for an angle between -180 and 180 degrees, defaulting to 0 degrees."""
 
 
-class IntegerBound(std_enum.StrEnum):
-    @override
-    def _generate_next_value_(name, start, count, last_values) -> str:
-        return name
-
+class IntegerBound(BoundEnum):
     POSITIVE_COUNT_BOUNDS = std_enum.auto()
     """An `IntegerBoundSpec` for an integer strictly greater than zero, defaulting to 2."""
     PRIMARY_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for the primary direction of linear pattern."""
+    """bounds for the primary direction of linear pattern. Defaults to 2, with a max of `INSTANCE_COUNT_MAX`."""
     SECONDARY_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for the secondary direction of a linear pattern."""
+    """bounds for the secondary direction of a linear pattern. Defaults to 1."""
     CIRCULAR_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for a circular pattern."""
-    CURVE_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for a curve pattern."""
+    """bounds for a circular pattern. Defaults to 4."""
+    # CURVE_PATTERN is identical to PRIMARY_PATTERN
+    # CURVE_PATTERN_BOUNDS = std_enum.auto()
+    # """bounds for a curve pattern."""
     GRID_BOUNDS = std_enum.auto()
-    """The bounds for the density of an isocurve grid."""
+    """The bounds for the density of an isocurve grid. Defaults to 10. Ranges from 1 to 50."""
 
 
-class RealBound(std_enum.StrEnum):
-    @override
-    def _generate_next_value_(name, start, count, last_values) -> str:
-        return name
-
+class RealBound(BoundEnum):
     SCALE_BOUNDS = std_enum.auto()
-
-    POSITIVE_COUNT_BOUNDS = std_enum.auto()
-    """An `IntegerBoundSpec` for an integer strictly greater than zero, defaulting to 2."""
-    PRIMARY_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for the primary direction of linear pattern."""
-    SECONDARY_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for the secondary direction of a linear pattern."""
-    CIRCULAR_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for a circular pattern."""
-    CURVE_PATTERN_BOUNDS = std_enum.auto()
-    """bounds for a curve pattern."""
-    GRID_BOUNDS = std_enum.auto()
-    """The bounds for the density of an isocurve grid."""
+    """A `RealBoundSpec` for the positive or negative scale factor on a transform, defaulting to `1`."""
+    POSITIVE_REAL_BOUNDS = std_enum.auto()
+    """A `RealBoundSpec` for a number greater than or equal to zero, defaulting to 1."""
+    FILLET_RHO_BOUNDS = std_enum.auto()
+    """A `RealBoundSpec` for a value greater than or equal to zero and strictly less than 1."""
+    EDGE_PARAMETER_BOUNDS = std_enum.auto()
+    """A `RealBoundSpec` for a normalized parameter along an edge's length, with 0 being the start of the edge and 1 the end.
+    Defaults to 0.5, i.e. the midpoint of an open edge"""
+    CLAMP_MAGNITUDE_REAL_BOUNDS = std_enum.auto()
+    """Ranges from -inf to inf. Defaults to 1."""
 
 
 @dataclasses.dataclass

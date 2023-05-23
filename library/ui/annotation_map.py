@@ -1,8 +1,8 @@
-from typing import Iterable
+from typing import Any, Iterable
 from typing_extensions import override
-from library.base import ctxt, str_utils
+from library.base import ctxt, expr, str_utils
 from library.core import map
-from library.ui import ui_hint
+from library.ui import query_expr, ui_hint
 
 
 def format_description(description: str) -> str:
@@ -22,7 +22,9 @@ def parameter_annotation_map(
     ui_hints: ui_hint.UiHint | None = None,
     description: str | None = None,
     default: str | bool | None = None,
-    additional_args: dict[str, str] = {},
+    filter: expr.Expr | str | None = None,
+    max_picks: int | None = None,
+    additional_args: dict[str, Any] = {},
 ) -> AnnotationMap:
     """Defines a generic annotation map.
     Args:
@@ -48,7 +50,18 @@ def parameter_annotation_map(
         names = [str_utils.quote(ui_hint.name or "") for ui_hint in ui_hints]
         map_args["UIHint"] = "[{}]".format(", ".join(names))
 
+    if filter != None:
+        map_args["Filter"] = filter
+        excluded_values.append("Filter")
+
+    if max_picks != None:
+        map_args["MaxNumberOfPicks"] = max_picks
+        excluded_values.append("MaxNumberOfPicks")
+
     map_args.update(additional_args)
+    # map_args.update((key, expr.cast_to_expr(value)) for key, value in additional_args)
+
+    # description last
     if description != None:
         map_args["Description"] = format_description(description)
 

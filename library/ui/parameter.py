@@ -5,7 +5,7 @@ from typing_extensions import override
 import warnings
 from library.core import control, utils
 from library.base import ctxt, expr, stmt, str_utils, node
-from library.ui import bounds, enum, ui_hint, annotation_map
+from library.ui import bounds, enum, query_expr, ui_hint, annotation_map
 
 
 @dataclasses.dataclass
@@ -130,12 +130,12 @@ class ValueParameter(stmt.Statement, ABC):
     def build(self, context: ctxt.Context) -> str:
         map_str = self.annotation_map.run_build(context)
         if self.bound_spec:
-            return "{}({}, {});\n".format(
+            return map_str + "{}({}, {});\n".format(
                 self.predicate,
                 utils.definition(self.parameter_name).run_build(context),
                 expr.build_expr(self.bound_spec, context),
             )
-        return "{}({});\n".format(
+        return map_str + "{}({});\n".format(
             self.predicate,
             utils.definition(self.parameter_name).run_build(context),
         )
@@ -185,10 +185,11 @@ def real_parameter(
 
 def query_parameter(
     parameter_name: str,
-    *,
-    filter: str,
     user_name: str | None = None,
+    *,
+    filter: str | expr.Expr,
     ui_hints: ui_hint.UiHint | None = None,
+    max_picks: int | None = None,
     description: str | None = None,
 ) -> ValueParameter:
     map = annotation_map.parameter_annotation_map(
@@ -196,7 +197,8 @@ def query_parameter(
         user_name,
         ui_hints,
         description,
-        additional_args={"filter": filter},
+        filter=filter,
+        max_picks=max_picks,
     )
     return ValueParameter(parameter_name, "isQuery", map)
 

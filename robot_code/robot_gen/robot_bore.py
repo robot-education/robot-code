@@ -104,6 +104,7 @@ studio.add(
 # predicates
 studio.add(
     outer_bore := UiPredicate("outerBore").add(
+        query_parameter("selections", filter=EntityType.FACE),
         ParameterGroup("Outer bore").add(
             enum_parameter(outer_bore_type),
             IfBlock(outer_bore_type["GEAR"])
@@ -130,7 +131,7 @@ studio.add(
                 ),
             ),
             labeled_enum_parameter(fit, parameter_name="outerFit", user_name="Fit"),
-        )
+        ),
     ),
     inner_bore := UiPredicate("innerBore").add(
         ParameterGroup("Inner bore").add(
