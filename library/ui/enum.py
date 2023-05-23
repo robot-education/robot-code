@@ -87,7 +87,13 @@ class EnumValue(expr.Expr):
         parameter_name: str | None = None,
         invert: bool = False,
     ) -> expr.Expr:
-        """Represents a call to the enum which tests its value."""
+        """Represents a call to the enum which tests its value.
+
+        Args:
+            definition: A different name for the definition map.
+            parameter_name: The name of the enum parameter. Defaults to `default_parameter_name`.
+            invert: Invert the call. Used by functions such as `any`.
+        """
         if parameter_name == None:
             parameter_name = self.enum.default_parameter_name
         if invert:
