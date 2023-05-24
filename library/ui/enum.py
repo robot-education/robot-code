@@ -11,11 +11,11 @@ from library.core import control, func, utils, arg, map
 from library.base import ctxt, node, stmt, expr, str_utils
 
 __all__ = [
-    "enum_factory",
-    "custom_enum_factory",
+    "ENUM_FACTORY",
+    "CUSTOM_ENUM_FACTORY",
     "EnumFactory",
     "CustomEnumFactory",
-    "EnumLookupFunction",
+    "enum_lookup_function",
     "LookupEnumValue",
 ]
 
@@ -301,49 +301,46 @@ class CustomEnumFactory(EnumFactory):
 #     return func.UiTestPredicate(name, enum["CUSTOM"](), parent=parent)
 
 
-enum_factory: EnumFactory = EnumFactory()
-custom_enum_factory: CustomEnumFactory = CustomEnumFactory()
+ENUM_FACTORY: EnumFactory = EnumFactory()
+CUSTOM_ENUM_FACTORY: CustomEnumFactory = CustomEnumFactory()
 
 
 def lookup_block(
     enum_dict: EnumDict[LookupEnumValue],
     *,
     parent: node.ParentNode,
-    predicate_dict: dict[str, expr.Expr] = {},
 ) -> control.IfBlock:
+    """Constructs an if block which accessesses each lookup value in `enum_dict`."""
     tests = []
     statements = []
-    for value, enum_value in enum_dict.items():
-        predicate = predicate_dict.get(value, enum_value)
-        tests.append(predicate)
+    for enum_value in enum_dict.values():
+        tests.append(enum_value)
         lookup_value = enum_value.lookup_value
         statements.append(stmt.Return(lookup_value))
     return control.make_if_block(tests=tests, statements=statements, parent=parent)
 
 
-class EnumLookupFunction(func.Function):
-    def __init__(
-        self,
-        name: str,
-        enum_dict: EnumDict[LookupEnumValue],
-        parent: node.ParentNode | None = None,
-        additional_arguments: Iterable[arg.Argument] = [],
-        return_type: str | None = None,
-        predicate_dict: dict[str, expr.Expr] = {},
-        export: bool = False,
-    ) -> None:
-        """
-        Args:
-            return_type: The return type of the function.
-            predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
-        """
-        arguments: list[arg.Argument] = [arg.definition_arg]
-        arguments.extend(additional_arguments)
-        super().__init__(
-            name,
-            parent=parent,
-            arguments=[arg.definition_arg],
-            return_type=return_type,
-            export=export,
-        )
-        lookup_block(enum_dict, parent=self, predicate_dict=predicate_dict)
+def enum_lookup_function(
+    name: str,
+    enum_dict: EnumDict[LookupEnumValue],
+    parent: node.ParentNode | None = None,
+    additional_arguments: Iterable[arg.Argument] = [],
+    return_type: str | None = None,
+    export: bool = False,
+) -> func.Function:
+    """
+    Args:
+        return_type: The return type of the function.
+        predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
+    """
+    arguments: list[arg.Argument] = [arg.definition_arg]
+    arguments.extend(additional_arguments)
+    function = func.Function(
+        name,
+        parent=parent,
+        arguments=arguments,
+        return_type=return_type,
+        export=export,
+    )
+    lookup_block(enum_dict, parent=function)
+    return function

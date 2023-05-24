@@ -1,7 +1,8 @@
 from __future__ import annotations
-
+import enum
 from typing import Self, Sequence
 from typing_extensions import override
+import warnings
 from library.base import ctxt, node, stmt, expr
 
 __all__ = ["IfBlock", "make_if_block"]
@@ -34,8 +35,10 @@ class _Else(stmt.BlockStatement):
 
 
 class IfBlock(stmt.BlockStatement):
-    """Represents an if statement.
-    Nesting works as follows: an If composes an if statement, followed by one or more else_ifs, followed by an else. At any given point an if is only one statement.
+    """Represents a block of if statements.
+
+    Calling `else_if` or `or_else` tweaks the behavior.
+     composes an if statement, followed by one or more else_ifs, followed by an else. At any given point an if is only one statement.
     Adding to an If class always adds to the most recently activated condition.
     """
 
@@ -43,6 +46,7 @@ class IfBlock(stmt.BlockStatement):
         self, test: expr.Expr, *, parent: node.ParentNode | None = None
     ) -> None:
         super().__init__(parent=parent)
+        self.else_called = False
         super().add(_If(test))
 
     @override
@@ -51,10 +55,15 @@ class IfBlock(stmt.BlockStatement):
         return self
 
     def else_if(self, test: expr.Expr) -> Self:
+        if self.else_called:
+            raise ValueError("Cannot add else if to an IfBlock after an else.")
         super().add(_If(test, else_if=True))
         return self
 
     def or_else(self) -> Self:
+        if self.else_called:
+            raise ValueError("Cannot add else to an IfBlock multiple times.")
+        self.else_called = True
         super().add(_Else())
         return self
 
@@ -64,16 +73,17 @@ class IfBlock(stmt.BlockStatement):
 
 
 def make_if_block(
-    *,
-    parent: node.ParentNode,
     tests: Sequence[expr.Expr],
     statements: Sequence[stmt.Statement],
     else_statement: stmt.Statement | None = None,
     add_else: bool = True,
+    *,
+    parent: node.ParentNode,
 ) -> IfBlock:
+    """Constructs an IfBlock directly from tests and statements. Assumes one statement per test."""
     if len(tests) != len(statements):
         raise ValueError(
-            "Cannot generate if block with {} tests and {} expressions".format(
+            "Cannot generate if block with {} tests and {} expressions.".format(
                 len(tests), len(statements)
             )
         )

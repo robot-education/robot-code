@@ -182,12 +182,10 @@ class CommandLineManager:
             # output = runpy.run_path(path.as_posix())
             spec = importlib.util.spec_from_file_location(path.stem, path)
             if spec is None or spec.loader is None:
-                raise RuntimeError("Failed to open {}. Aborting.".format(path.stem))
+                raise ValueError("Failed to open {}. Aborting.".format(path.stem))
             module = importlib.util.__loader__.create_module(spec)
             if module is None:
-                raise RuntimeError(
-                    "Failed to initialize {}. Aborting.".format(path.stem)
-                )
+                raise ValueError("Failed to initialize {}. Aborting.".format(path.stem))
             spec.loader.exec_module(module)
             # (deprecated) alternative
             # spec.loader.load_module(path.stem)

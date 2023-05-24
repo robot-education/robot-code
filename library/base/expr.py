@@ -12,7 +12,7 @@ from library.base import ctxt, node, expr
 __all__ = ["Parens", "Id", "Call"]
 
 
-class Expr(node.Node, ABC):
+class Expr(node.Node):
     def __and__(self, other: ExprCandidate) -> Expr:
         return BoolOp(self, "&&", other)
 

@@ -94,7 +94,9 @@ def boolean_parameter(
 
 
 def boolean_flip_parameter(
-    parameter_name: str, ui_hints: ui_hint.UiHint | None = None, **kwargs
+    parameter_name: str = "oppositeDirection",
+    ui_hints: ui_hint.UiHint | None = None,
+    **kwargs,
 ):
     """Constructs a boolean flip parameter."""
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION)
@@ -102,7 +104,9 @@ def boolean_flip_parameter(
 
 
 def boolean_circular_flip_parameter(
-    parameter_name: str, ui_hints: ui_hint.UiHint | None = None, **kwargs
+    parameter_name: str = "oppositeDirection",
+    ui_hints: ui_hint.UiHint | None = None,
+    **kwargs,
 ) -> TypeParameter:
     """Constructs a boolean circular flip parameter."""
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.OPPOSITE_DIRECTION_CIRCULAR)
@@ -191,7 +195,7 @@ def query_parameter(
     ui_hints: ui_hint.UiHint | None = None,
     max_picks: int | None = None,
     description: str | None = None,
-) -> ValueParameter:
+) -> TypeParameter:
     map = annotation_map.parameter_annotation_map(
         parameter_name,
         user_name,
@@ -200,7 +204,7 @@ def query_parameter(
         filter=filter,
         max_picks=max_picks,
     )
-    return ValueParameter(parameter_name, "isQuery", map)
+    return TypeParameter(parameter_name, "Query", map)
 
 
 class ParameterGroup(stmt.BlockStatement):
@@ -249,19 +253,19 @@ class DrivenParameterGroup(stmt.BlockStatement):
         user_name: str | None = None,
         ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         default: bool = False,
-        drive_group_test: expr.Expr | None = None,
+        test: expr.Expr | None = None,
     ) -> None:
         """
         Args:
             parameter_name: The parameter name of the boolean parameter.
             user_name: The user facing name of both the boolean parameter and parameter group.
-            drive_group_test:
-                A test used to determine whether to drive the group or not.
-                When true, the group is driven by the boolean.
-                When false, the boolean is hidden, and the group is a standard group.
+            test:
+                An additional test used to determine whether to allow driving the group in the first place.
+                When true, the group is driven by the (internal) boolean parameter.
+                When false, the internal boolean parameter is hidden, and the group is a standard group.
         """
         super().__init__(parent)
-        self.drive_group_test = drive_group_test
+        self.drive_group_test = test
         self.parameter_name = parameter_name
         self.group = ParameterGroup(
             user_name or str_utils.user_name(parameter_name),

@@ -1,12 +1,13 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 from typing import Generic, Iterable, Self, TypeVar
 from typing_extensions import override
 
 from library.base import str_utils, ctxt
 
 
-class Node(ABC):
+# should be ABC, but ABC breaks enum useage?
+class Node:
     def run_build(self, context: ctxt.Context) -> str:
         context.save()
         string = self.build(context)

@@ -1,11 +1,6 @@
 from library import *
-from robot_code.robot_studio import RobotFeature
 
-robot_studio = RobotFeature("frame")
-# feature_studio = robot_studio.make_feature_studio()
-
-studio = robot_studio.make_ui_studio()
-studio.add_import("stdFrameUi.fs", "backend", True)
+studio = Studio("tubeUi.gen.fs", "backend")
 
 # enums
 wall_thickness = (
@@ -283,21 +278,16 @@ tube_size_predicate = UiPredicate("tubeSize", parent=studio).add(
 )
 
 
-studio.add(
-    tube_predicate := UiPredicate("tube").add(
-        ParameterGroup("Tube").add(
-            tube_size_predicate,
-        ),
-        DrivenParameterGroup(
-            "hasHoles",
-            user_name="Holes",
-            default=True,
-            test=~has_predrilled_holes,
-        ).add(tube_face_predicate, hole_predicate),
+tube_predicate = UiPredicate("tube", parent=studio).add(
+    ParameterGroup("Tube").add(
+        tube_size_predicate,
     ),
-    UiPredicate("robotFrame").add(
-        tube_predicate, Call("frameSelectionPredicate", "definition")
-    ),
+    DrivenParameterGroup(
+        "hasHoles",
+        user_name="Holes",
+        default=True,
+        test=~has_predrilled_holes,
+    ).add(tube_face_predicate, hole_predicate),
 )
 
 
@@ -591,6 +581,7 @@ get_wall_thickness = enum_lookup_function(
     "getWallThickness",
     wall_thickness,
     parent=studio,
+    predicate_dict={"CUSTOM": wall_thickness["CUSTOM"]},
     return_type=Type.VALUE,
 )
 

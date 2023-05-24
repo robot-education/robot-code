@@ -87,5 +87,5 @@ def std_version(api: api.Api) -> str:
     code = get_code(api, constant.STD_STUDIO_PATH)
     parsed = re.search("\\d{4,6}", code)
     if parsed is None:
-        raise RuntimeError("Failed to find latest version of onshape std.")
+        raise ValueError("Failed to find latest version of onshape std.")
     return parsed.group(0)
