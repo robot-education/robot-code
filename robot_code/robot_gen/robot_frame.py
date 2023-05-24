@@ -12,8 +12,8 @@ wall_thickness = (
     CUSTOM_ENUM_FACTORY.add_enum(
         "WallThickness", parent=studio, value_type=LookupEnumValue
     )
-    .add_value("ONE_SIXTEENTH", user_name="1/16 in", lookup_value=inch(0.0625))
-    .add_value("ONE_EIGHTH", user_name="1/8 in", lookup_value=inch(0.125))
+    .add_value("ONE_SIXTEENTH", "1/16 in.", lookup_value=inch(0.0625))
+    .add_value("ONE_EIGHTH", "1/8 in.", lookup_value=inch(0.125))
     .add_custom(lookup_value=definition("customWallThickness"))
     .make()
 )
@@ -27,8 +27,8 @@ fit = (
 
 hole_size = (
     CUSTOM_ENUM_FACTORY.add_enum("HoleSize", parent=studio)
-    .add_value("NO_8", user_name="#8")
-    .add_value("NO_10", user_name="#10")
+    .add_value("NO_8", "#8")
+    .add_value("NO_10", "#10")
     .make()
 )
 
@@ -43,14 +43,14 @@ hole_size = (
 
 tube_size = (
     CUSTOM_ENUM_FACTORY.add_enum("TubeSize", parent=studio, generate_predicates=True)
-    .add_value("ONE_BY_ONE", user_name="1x1")
-    .add_value("TWO_BY_ONE", user_name="2x1")
+    .add_value("ONE_BY_ONE", "1x1")
+    .add_value("TWO_BY_ONE", "2x1")
     .make()
 )
 
 tube_type = (
     CUSTOM_ENUM_FACTORY.add_enum("TubeType", parent=studio, generate_predicates=True)
-    .add_value("MAX_TUBE", user_name="MAXTube")
+    .add_value("MAX_TUBE", "MAXTube")
     .make()
 )
 
@@ -166,22 +166,22 @@ studio.add(
 
 tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
     IfBlock(can_have_two_inch_face).add(
-        labeled_enum_parameter(two_inch_face, user_name="2 inch face hole count"),
+        labeled_enum_parameter(two_inch_face, user_name="2 in. face hole count"),
         IfBlock(any(two_inch_face, "TWO", "THREE", "FOUR")).add(
             length_parameter(
                 "twoInchFaceSpacing",
                 bound_spec=two_inch_spacing_bounds,
-                user_name="2 inch face spacing",
+                user_name="2 in. face spacing",
             )
         ),
     ),
     IfBlock(can_have_one_inch_face).add(
-        labeled_enum_parameter(one_inch_face, user_name="1 inch face hole count"),
+        labeled_enum_parameter(one_inch_face, user_name="1 in. face hole count"),
         IfBlock(one_inch_face["TWO"]).add(
             length_parameter(
                 "oneInchFaceSpacing",
                 bound_spec=one_inch_spacing_bounds,
-                user_name="1 inch face spacing",
+                user_name="1 in. face spacing",
             )
         ),
     ),

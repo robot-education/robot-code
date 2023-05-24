@@ -44,3 +44,7 @@ class ConstructionObject(QueryEnum):
 class ModifiableEntityOnly(QueryEnum):
     YES = enum.auto()
     NO = enum.auto()
+
+
+SKETCH_VERTEX_FILTER = (SketchObject.YES & EntityType.VERTEX) | BodyType.MATE_CONNECTOR
+VERTEX_FILTER = EntityType.VERTEX | BodyType.MATE_CONNECTOR

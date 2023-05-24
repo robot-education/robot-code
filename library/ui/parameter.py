@@ -1,11 +1,10 @@
 from abc import ABC
 import dataclasses
-from typing import Self
 from typing_extensions import override
 import warnings
 from library.core import control, utils
 from library.base import ctxt, expr, stmt, str_utils, node
-from library.ui import bounds, enum, query_expr, ui_hint, annotation_map
+from library.ui import bounds, enum, ui_hint, annotation_map
 
 
 @dataclasses.dataclass
@@ -50,6 +49,8 @@ def enum_parameter(
 
 def labeled_enum_parameter(
     enum: enum.EnumDict,
+    parameter_name: str | None = None,
+    user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     **kwargs,
 ):
@@ -60,11 +61,13 @@ def labeled_enum_parameter(
         kwargs: Additional kwargs to pass to `enum_parameter`.
     """
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.SHOW_LABEL)
-    return enum_parameter(enum, ui_hints=ui_hints, **kwargs)
+    return enum_parameter(enum, parameter_name, user_name, ui_hints=ui_hints, **kwargs)
 
 
 def horizontal_enum_parameter(
     enum: enum.EnumDict,
+    parameter_name: str | None = None,
+    user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     **kwargs,
 ):
@@ -76,7 +79,7 @@ def horizontal_enum_parameter(
     """
 
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.HORIZONTAL_ENUM)
-    return enum_parameter(enum, ui_hints=ui_hints, **kwargs)
+    return enum_parameter(enum, parameter_name, user_name, ui_hints=ui_hints, **kwargs)
 
 
 def boolean_parameter(
@@ -147,9 +150,9 @@ class ValueParameter(stmt.Statement, ABC):
 
 def length_parameter(
     parameter_name: str,
+    user_name: str | None = None,
     bound_spec: str
     | bounds.LengthBoundSpec = bounds.LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-    user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
     description: str | None = None,
 ) -> ValueParameter:
@@ -161,9 +164,9 @@ def length_parameter(
 
 def integer_parameter(
     parameter_name: str,
+    user_name: str | None = None,
     bound_spec: str
     | bounds.IntegerBoundSpec = bounds.IntegerBound.POSITIVE_COUNT_BOUNDS,
-    user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
     description: str | None = None,
 ) -> ValueParameter:
@@ -175,9 +178,9 @@ def integer_parameter(
 
 def real_parameter(
     parameter_name: str,
+    user_name: str | None = None,
     *,
     bound_spec: str | bounds.RealBoundSpec,
-    user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
     description: str | None = None,
 ) -> ValueParameter:
@@ -191,7 +194,7 @@ def query_parameter(
     parameter_name: str,
     user_name: str | None = None,
     *,
-    filter: str | expr.Expr,
+    filter: expr.Expr,
     ui_hints: ui_hint.UiHint | None = None,
     max_picks: int | None = None,
     description: str | None = None,
@@ -238,19 +241,21 @@ class ParameterGroup(stmt.BlockStatement):
         return "".join(
             [
                 self.map.run_build(context),
-                "\n{\n",
+                "{\n",
                 self.build_children(context, sep="\n", indent=True),
                 "}\n",
             ]
         )
 
 
-class DrivenParameterGroup(stmt.BlockStatement):
+class DrivenParameterGroup(ParameterGroup):
+    """Represents a parameter group driven by a boolean."""
+
     def __init__(
         self,
         parameter_name: str,
-        parent: node.ParentNode | None = None,
         user_name: str | None = None,
+        parent: node.ParentNode | None = None,
         ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         default: bool = False,
         test: expr.Expr | None = None,
@@ -264,11 +269,11 @@ class DrivenParameterGroup(stmt.BlockStatement):
                 When true, the group is driven by the (internal) boolean parameter.
                 When false, the internal boolean parameter is hidden, and the group is a standard group.
         """
-        super().__init__(parent)
         self.drive_group_test = test
         self.parameter_name = parameter_name
-        self.group = ParameterGroup(
+        super().__init__(
             user_name or str_utils.user_name(parameter_name),
+            parent=parent,
             driving_parameter=parameter_name,
         )
         self.boolean = boolean_parameter(
@@ -279,17 +284,15 @@ class DrivenParameterGroup(stmt.BlockStatement):
         )
 
     @override
-    def add(self, *args) -> Self:
-        self.group.add(*args)
-        return self
-
-    @override
     def build(self, context: ctxt.Context) -> str:
+        # avoid infinite recursion by building super explicitly
+        parent_build = stmt.StmtId(super().build(context))
+
         if self.drive_group_test is None:
             string = self.boolean.run_build(context) + "\n"
             string += (
                 control.IfBlock(utils.definition(self.parameter_name))
-                .add(self.group)
+                .add(parent_build)
                 .run_build(context)
             )
         else:
@@ -303,7 +306,7 @@ class DrivenParameterGroup(stmt.BlockStatement):
                     ~expr.add_parens(self.drive_group_test)
                     | utils.definition(self.parameter_name)
                 )
-                .add(self.group)
+                .add(parent_build)
                 .run_build(context)
             )
         return string

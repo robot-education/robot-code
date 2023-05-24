@@ -232,6 +232,7 @@ class EnumFactoryBase(ABC):
     def add_value(
         self,
         value: str,
+        user_name: str | None = None,
         generate_predicate: bool | None = None,
         name_template: str | None = None,
         **kwargs,
@@ -240,7 +241,7 @@ class EnumFactoryBase(ABC):
             raise ValueError("add_enum must be called before add_value")
 
         enum_value = self.value_factory(
-            value, self.enum, annotate=self.annotate, **kwargs
+            value, self.enum, user_name=user_name, annotate=self.annotate, **kwargs
         )
         self.result[value] = enum_value
 

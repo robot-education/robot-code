@@ -51,7 +51,7 @@ class IfBlock(stmt.BlockStatement):
 
     @override
     def add(self, *nodes: stmt.Statement | expr.Expr) -> Self:
-        self.children[-1].add(*nodes)  # type: ignore
+        self.children[-1].add(*nodes)
         return self
 
     def else_if(self, test: expr.Expr) -> Self:

@@ -3,7 +3,7 @@ from typing_extensions import override
 from library.base import ctxt, expr, node, str_utils
 from library.ui import annotation_map
 
-FEATURE_DEFINITION = """export const {} = defineFeature(function(context is Context, id is Id, definition is map)
+FEATURE_BODY = """export const {} = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {{
         {}
@@ -33,7 +33,7 @@ class Feature(node.TopStatement):
     @override
     def build_top(self, context: ctxt.Context) -> str:
         header = self.map.run_build(context)
-        return header + FEATURE_DEFINITION.format(
+        return header + FEATURE_BODY.format(
             self.name, self.ui.run_build(context), self.body.run_build(context)
         )
 

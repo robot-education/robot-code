@@ -14,6 +14,15 @@ class Statement(node.ChildNode):
     pass
 
 
+class StmtId(Statement):
+    def __init__(self, expression: str) -> None:
+        self.expression = expression
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        return self.expression
+
+
 class Line(Statement):
     """Represents an statement which spans a single line."""
 
