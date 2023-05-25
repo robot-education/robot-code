@@ -43,10 +43,10 @@ class FeatureFactory:
         self.name = None
         self.args = None
 
-    def start(self, name: str, user_name: str | None = None, **kwargs) -> Self:
+    def start(self, name: str, user_name: str | None = None, **feature_kwargs) -> Self:
         self.name = name
-        kwargs["user_name"] = user_name
-        self.args = kwargs
+        feature_kwargs["user_name"] = user_name
+        self.feature_kwargs = feature_kwargs
         return self
 
     # def add_editing_logic(self, function_name: str) -> Self:
@@ -58,5 +58,5 @@ class FeatureFactory:
     def make(self) -> Feature:
         if self.name is None or self.args is None:
             raise ValueError("start must be called first.")
-        map = annotation_map.feature_annotation_map(self.name, **self.args)
+        map = annotation_map.feature_annotation_map(self.name, **self.feature_kwargs)
         return Feature(self.name, map)
