@@ -1,0 +1,81 @@
+function(context is Context, args)
+{
+const parseId = function(id is Id) returns string
+{
+    var result = "";
+    for (var i, comp in id)
+    {
+        result ~= comp;
+        if (i != size(id) - 1)
+            result ~= ".";
+    }
+    return result;
+};
+const loadValue = function(value) returns string
+precondition
+{
+    value is boolean || value is string || value is number || value is array || value is map;
+}
+{
+    if (value is array)
+    {
+        return loadArray(value);
+    }
+    else if (value is map)
+    {
+        return loadMap(value);
+    }
+    else if (value is boolean || value is number)
+    {
+        return value;
+    }
+    else if (value is string)
+    {
+        return '"' ~ value ~ '"';
+    }
+    throw regenError("Failed to load JSON - invaild data type.");
+};
+const loadMap = function(arg is map) returns string
+{
+    var str = '{';
+    var i = 0;
+    for (var key, value in arg)
+    {
+        str ~= '"' ~ key ~ '" : ' ~ loadValue(value);
+        if (i != size(arg) - 1)
+        {
+            str ~= ',';
+        }
+        i += 1;
+    }
+    return str ~ '}';
+};
+const loadArray = function(arg is array) returns string
+{
+    var str = '[';
+    for (var i, value in arg)
+    {
+        str ~= loadValue(value);
+        if (i != size(arg) - 1)
+        {
+            str ~= ',';
+        }
+    }
+    return str ~ ']';
+};
+const loadJson = function(arg) returns string
+precondition
+{
+    arg is map || arg is array;
+}
+{
+    if (arg is map || arg is array)
+    {
+        return loadValue(arg);
+    }
+    throw regenError("Failed to load JSON - invaild data type.");
+};
+    const mateConnector = qEverything(EntityType.BODY)->qBodyType(BodyType.MATE_CONNECTOR)->qNthElement(0);
+    const targetMateId = lastModifyingOperationId(context, mateConnector)[0];
+    print(loadJson({ "targetMateId" : targetMateId }));
+}

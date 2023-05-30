@@ -3,7 +3,7 @@ import importlib.util
 import re
 import shutil
 from typing import Callable
-from library.base import ctxt, node, studio
+from library.base import ctxt, studio
 
 from library.api import api, api_utils, conf
 
@@ -92,7 +92,8 @@ class CommandLineManager:
             self._finish()
 
     def push(self, force: bool = False) -> None:
-        """
+        """Pushes code to Onshape.
+
         Procedure:
         1. Load feature studios from Onshape.
         2. For each feature studio in storage which has been modified, compare microversions with Onshape. If they don't match, report a warning and abort.
