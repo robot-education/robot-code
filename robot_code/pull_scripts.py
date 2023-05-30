@@ -1,6 +1,6 @@
 import pathlib
 
-from library.api import api, conf, api_utils
+from library.api import api, call_api, conf
 from library.transform import transform
 
 
@@ -17,10 +17,10 @@ def main():
     backend_path = config.get_document("backend")
     if not backend_path:
         raise ValueError("Failed to find backend?")
-    studio_path_map = api_utils.get_studios(onshape, backend_path)
+    studio_path_map = call_api.get_studios(onshape, backend_path)
 
-    json_code = api_utils.get_code(onshape, studio_path_map["loadJson.fs"].path)
-    assembly_script_code = api_utils.get_code(
+    json_code = call_api.get_code(onshape, studio_path_map["loadJson.fs"].path)
+    assembly_script_code = call_api.get_code(
         onshape, studio_path_map["assemblyScript.fs"].path
     )
 
