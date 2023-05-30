@@ -11,70 +11,54 @@ const parseId = function(id is Id) returns string
     }
     return result;
 };
-const toValue = function(value) returns string
-precondition
-{
-    value is boolean || value is string || value is number || value is array || value is map;
-}
-{
-    if (value is array)
-    {
-        return toArray(value);
-    }
-    else if (value is map)
-    {
-        return toMap(value);
-    }
-    else if (value is boolean || value is number)
-    {
-        return toString(value);
-    }
-    else if (value is string)
-    {
-        return '"' ~ value ~ '"';
-    }
-    throw regenError("Failed to load JSON.");
-};
-const toMap = function(arg is map) returns string
-{
-    var str = '{';
-    var i = 0;
-    for (var key, value in arg)
-    {
-        str ~= '"' ~ key ~ '" : ' ~ toValue(value);
-        if (i != size(arg) - 1)
-        {
-            str ~= ',';
-        }
-        i += 1;
-    }
-    return str ~ '}';
-};
-const toArray = function(arg is array) returns string
-{
-    var str = '[';
-    for (var i, value in arg)
-    {
-        str ~= toValue(value);
-        if (i != size(arg) - 1)
-        {
-            str ~= ',';
-        }
-    }
-    return str ~ ']';
-};
 const toJson = function(arg) returns string
-precondition
-{
-    arg is map || arg is array;
-}
-{
-    if (arg is map || arg is array)
+    precondition
     {
-        return toValue(arg);
+        arg is map || arg is array;
     }
-    throw regenError("Failed to load JSON.");
-};
+    {
+        const toJsonImplementation = function(arg, recurse) returns string
+            {
+                if (arg is map)
+                {
+                    var str = '{';
+                    var i = 0;
+                    for (var key, value in arg)
+                    {
+                        str ~= '"' ~ key ~ '" : ' ~ recurse(value, recurse);
+                        if (i != size(arg) - 1)
+                        {
+                            str ~= ',';
+                        }
+                        i += 1;
+                    }
+                    return str ~ '}';
+                }
+                else if (arg is array)
+                {
+                    var str = '[';
+                    for (var i, value in arg)
+                    {
+                        str ~= recurse(value, recurse);
+                        if (i != size(arg) - 1)
+                        {
+                            str ~= ',';
+                        }
+                    }
+                    return str ~ ']';
+                }
+                else if (arg is boolean || arg is number)
+                {
+                    return toString(arg);
+                }
+                else if (arg is string)
+                {
+                    return '"' ~ arg ~ '"';
+                }
+                throw regenError("Failed to load JSON.");
+            };
+        return toJsonImplementation(arg, toJsonImplementation);
+    };
     const ASSEMBLY_ATTRIBUTE = "assemblyAttribute";
 
     const bases = evaluateQuery(context, qHasAttribute(ASSEMBLY_ATTRIBUTE));
@@ -111,81 +95,54 @@ precondition
 }`
 export const parseTargetScript = `function(context is Context, args)
 {
-const parseId = function(id is Id) returns string
-{
-    var result = "";
-    for (var i, comp in id)
-    {
-        result ~= comp;
-        if (i != size(id) - 1)
-            result ~= ".";
-    }
-    return result;
-};
-const toValue = function(value) returns string
-precondition
-{
-    value is boolean || value is string || value is number || value is array || value is map;
-}
-{
-    if (value is array)
-    {
-        return toArray(value);
-    }
-    else if (value is map)
-    {
-        return toMap(value);
-    }
-    else if (value is boolean || value is number)
-    {
-        return toString(value);
-    }
-    else if (value is string)
-    {
-        return '"' ~ value ~ '"';
-    }
-    throw regenError("Failed to load JSON.");
-};
-const toMap = function(arg is map) returns string
-{
-    var str = '{';
-    var i = 0;
-    for (var key, value in arg)
-    {
-        str ~= '"' ~ key ~ '" : ' ~ toValue(value);
-        if (i != size(arg) - 1)
-        {
-            str ~= ',';
-        }
-        i += 1;
-    }
-    return str ~ '}';
-};
-const toArray = function(arg is array) returns string
-{
-    var str = '[';
-    for (var i, value in arg)
-    {
-        str ~= toValue(value);
-        if (i != size(arg) - 1)
-        {
-            str ~= ',';
-        }
-    }
-    return str ~ ']';
-};
 const toJson = function(arg) returns string
-precondition
-{
-    arg is map || arg is array;
-}
-{
-    if (arg is map || arg is array)
+    precondition
     {
-        return toValue(arg);
+        arg is map || arg is array;
     }
-    throw regenError("Failed to load JSON.");
-};
+    {
+        const toJsonImplementation = function(arg, recurse) returns string
+            {
+                if (arg is map)
+                {
+                    var str = '{';
+                    var i = 0;
+                    for (var key, value in arg)
+                    {
+                        str ~= '"' ~ key ~ '" : ' ~ recurse(value, recurse);
+                        if (i != size(arg) - 1)
+                        {
+                            str ~= ',';
+                        }
+                        i += 1;
+                    }
+                    return str ~ '}';
+                }
+                else if (arg is array)
+                {
+                    var str = '[';
+                    for (var i, value in arg)
+                    {
+                        str ~= recurse(value, recurse);
+                        if (i != size(arg) - 1)
+                        {
+                            str ~= ',';
+                        }
+                    }
+                    return str ~ ']';
+                }
+                else if (arg is boolean || arg is number)
+                {
+                    return toString(arg);
+                }
+                else if (arg is string)
+                {
+                    return '"' ~ arg ~ '"';
+                }
+                throw regenError("Failed to load JSON.");
+            };
+        return toJsonImplementation(arg, toJsonImplementation);
+    };
     const mateConnector = qEverything(EntityType.BODY)->qBodyType(BodyType.MATE_CONNECTOR)->qNthElement(0);
     const targetMateId = lastModifyingOperationId(context, mateConnector)[0];
     print(toJson({ "targetMateId" : targetMateId }));

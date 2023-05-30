@@ -24,26 +24,22 @@ def main():
         onshape, studio_path_map["assemblyScript.fs"].path
     )
 
-    functions = [
-        transform.to_lambda(transform.extract_function(json_code, name))
-        for name in ["toJson", "toArray", "toMap", "toValue"]
-    ]
+    to_json = transform.extract_lambda(json_code, "toJson")
     parse_id = transform.to_lambda(
         transform.extract_function(assembly_script_code, "parseId")
     )
-    all = functions
-    all.append(parse_id)
 
     evaluate_functions = {
         name: transform.extract_function(assembly_script_code, name)
         for name in ["parseBase", "parseTarget"]
     }
+
     evaluate_functions = {
         key: "function" + (value.strip().removeprefix("function " + key))
         for key, value in evaluate_functions.items()
     }
-    parse_base = insert_code(evaluate_functions["parseBase"], all)
-    parse_target = insert_code(evaluate_functions["parseTarget"], functions)
+    parse_base = insert_code(evaluate_functions["parseBase"], [to_json, parse_id])
+    parse_target = insert_code(evaluate_functions["parseTarget"], [to_json])
 
     out = "export const parseBaseScript = `{}`\nexport const parseTargetScript = `{}`\n".format(
         parse_base, parse_target

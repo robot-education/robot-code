@@ -15,6 +15,13 @@ def closing_brace(string: str, start: int) -> int:
     return curr
 
 
+def extract_body(code: str, function_start: int) -> int:
+    end = closing_brace(code, function_start)
+    if code.find("precondition", function_start, code.index("{", function_start)) != -1:
+        end = closing_brace(code, end)
+    return end
+
+
 def extract_function(code: str, function_name: str) -> str:
     """Extracts a standard function from a studio.
 
@@ -23,10 +30,16 @@ def extract_function(code: str, function_name: str) -> str:
     For example, do not leave `{` with no corresponding `}` in the code.
     """
     function_start = code.index("function " + function_name)
-    end = closing_brace(code, function_start)
-    if code.find("precondition", function_start, code.index("{", function_start)) != -1:
-        end = closing_brace(code, end)
-    return code[function_start:end]
+    return code[function_start : extract_body(code, function_start)]
+
+
+def extract_lambda(code: str, function_name: str) -> str:
+    """Extracts a lambda function from a studio.
+
+    Keywords such as export are ignored.
+    """
+    function_start = code.index("const " + function_name + " = function")
+    return code[function_start : extract_body(code, function_start) + 1]
 
 
 def to_lambda(function: str) -> str:
