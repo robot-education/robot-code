@@ -19,14 +19,14 @@ def main():
         raise ValueError("Failed to find backend?")
     studio_path_map = call_api.get_studios(onshape, backend_path)
 
-    json_code = call_api.get_code(onshape, studio_path_map["loadJson.fs"].path)
+    json_code = call_api.get_code(onshape, studio_path_map["toJson.fs"].path)
     assembly_script_code = call_api.get_code(
         onshape, studio_path_map["assemblyScript.fs"].path
     )
 
     functions = [
         transform.to_lambda(transform.extract_function(json_code, name))
-        for name in ["loadJson", "loadArray", "loadMap", "loadValue"]
+        for name in ["toJson", "toArray", "toMap", "toValue"]
     ]
     parse_id = transform.to_lambda(
         transform.extract_function(assembly_script_code, "parseId")
@@ -45,8 +45,12 @@ def main():
     parse_base = insert_code(evaluate_functions["parseBase"], all)
     parse_target = insert_code(evaluate_functions["parseTarget"], functions)
 
-    pathlib.Path("./parse_base.txt").write_text(parse_base)
-    pathlib.Path("./parse_target.txt").write_text(parse_target)
+    out = "export const parseBaseScript = `{}`\nexport const parseTargetScript = `{}`\n".format(
+        parse_base, parse_target
+    ).replace(
+        "\\", "\\\\"
+    )
+    pathlib.Path("./assembly-script.ts").write_text(out)
 
 
 if __name__ == "__main__":
