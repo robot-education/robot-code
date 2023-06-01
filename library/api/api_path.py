@@ -22,35 +22,29 @@ def make_document_path(url: str) -> DocumentPath:
 
 
 @dataclasses.dataclass
-class StudioPath:
+class ElementPath:
     path: DocumentPath
     id: str
 
     def copy(self) -> Self:
-        return StudioPath(self.path.copy(), self.id)
+        return ElementPath(self.path.copy(), self.id)
 
     def __str__(self) -> str:
         return str(self.path) + "/e/" + self.id
 
 
-def make_studio_path(document_id: str, workspace_id: str, id: str) -> StudioPath:
-    return StudioPath(DocumentPath(document_id, workspace_id), id)
+def make_studio_path(document_id: str, workspace_id: str, id: str) -> ElementPath:
+    return ElementPath(DocumentPath(document_id, workspace_id), id)
 
 
-@dataclasses.dataclass
-class ApiRequest:
-    method: str
-    service: str
-    path: StudioPath | DocumentPath | None = None
-    secondary_service: str | None = None
-    query: dict = dataclasses.field(default_factory=dict)
-    body: dict | str = dataclasses.field(default_factory=dict)
-    headers: dict = dataclasses.field(default_factory=dict)
-
-    def __str__(self) -> str:
-        path = "/api/" + self.service
-        if self.path is not None:
-            path += str(self.path)
-        if self.secondary_service is not None:
-            path += "/" + self.secondary_service
-        return path
+def api_path(
+    service: str,
+    path: ElementPath | DocumentPath | None = None,
+    secondary_service: str | None = None,
+) -> str:
+    api_path = "/api/" + service
+    if path:
+        api_path += str(path)
+    if secondary_service:
+        api_path += "/" + secondary_service
+    return api_path

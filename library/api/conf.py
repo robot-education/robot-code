@@ -11,7 +11,7 @@ STORAGE_FILE = "studio_data.pickle"
 @dataclasses.dataclass
 class FeatureStudio:
     name: str
-    path: api_path.StudioPath
+    path: api_path.ElementPath
     microversion_id: str
     modified: bool = False
     generated: bool = False

@@ -1,6 +1,6 @@
 import pathlib
 
-from library.api import api, call_api, conf
+from library.api import api_base, api_call, conf
 from library.transform import transform
 
 
@@ -12,37 +12,40 @@ def insert_code(function: str, code: list[str]) -> str:
 
 
 def main():
-    onshape = api.Api(logging=False)
+    onshape = api_base.Api(logging=False)
     config = conf.Config()
     backend_path = config.get_document("backend")
     if not backend_path:
         raise ValueError("Failed to find backend?")
-    studio_path_map = call_api.get_studios(onshape, backend_path)
+    studio_path_map = api_call.get_studios(onshape, backend_path)
 
-    json_code = call_api.get_code(onshape, studio_path_map["toJson.fs"].path)
-    assembly_script_code = call_api.get_code(
+    json_code = api_call.get_code(onshape, studio_path_map["toJson.fs"].path)
+    assembly_script_code = api_call.get_code(
         onshape, studio_path_map["assemblyScript.fs"].path
     )
 
     to_json = transform.extract_lambda(json_code, "toJson")
-    parse_id = transform.to_lambda(
-        transform.extract_function(assembly_script_code, "parseId")
-    )
+    parse_id = [
+        transform.to_lambda(transform.extract_function(assembly_script_code, name))
+        # order matters to ensure lambdas see each other
+        for name in ["parseMateConnectorId", "parseId"]
+    ]
+    functions = [to_json, *parse_id]
 
     evaluate_functions = {
         name: transform.extract_function(assembly_script_code, name)
         for name in ["parseBase", "parseTarget"]
     }
 
-    evaluate_functions = {
-        key: "function" + (value.strip().removeprefix("function " + key))
+    evaluate_functions = [
+        insert_code(
+            "function" + (value.strip().removeprefix("function " + key)), functions
+        )
         for key, value in evaluate_functions.items()
-    }
-    parse_base = insert_code(evaluate_functions["parseBase"], [to_json, parse_id])
-    parse_target = insert_code(evaluate_functions["parseTarget"], [to_json])
+    ]
 
     out = "export const parseBaseScript = `{}`\nexport const parseTargetScript = `{}`\n".format(
-        parse_base, parse_target
+        *evaluate_functions
     ).replace(
         "\\", "\\\\"
     )

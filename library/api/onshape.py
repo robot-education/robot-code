@@ -2,7 +2,7 @@
 """
 import argparse
 
-from library.api import manager, conf, api
+from library.api import api_base, manager, conf
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,7 +63,7 @@ def main():
         manager.clean(config)
         return
 
-    api_obj = api.Api(logging=args.log)
+    api_obj = api_base.Api(logging=args.log)
     command_line_manager = manager.CommandLineManager(config, api_obj)
 
     if args.action == "update-versions":

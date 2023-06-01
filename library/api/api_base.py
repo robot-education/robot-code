@@ -1,6 +1,7 @@
 """
 Provides access to the Onshape REST API
 """
+from typing import Any
 from library.api.logger import log
 
 import os
@@ -15,8 +16,6 @@ import base64
 import datetime
 import requests
 from urllib import parse
-
-from library.api import api_path
 
 
 class Api:
@@ -181,14 +180,18 @@ class Api:
 
     def request(
         self,
-        request: api_path.ApiRequest,
+        method: str,
+        path: str,
+        query: dict = {},
+        headers: dict = {},
+        body: dict | str = {},
         base_url: str | None = None,
     ):
         """
         Issues a request to Onshape
         Args:
             - method (str): HTTP method
-            - apiPath (ApiPath): ApiPath  e.g. /api/documents/:id
+            - path (str): Api path for request
             - query (dict, default={}): Query params in key-value pairs
             - headers (dict, default={}): Key-value pairs of headers
             - body (dict, default={}): Body for POST request
@@ -197,26 +200,21 @@ class Api:
         Returns:
             - requests.Response: Object containing the response from Onshape
         """
-        path = str(request)
-        req_headers = self._make_headers(
-            request.method, path, request.query, request.headers
-        )
+        req_headers = self._make_headers(method, path, query, headers)
         if base_url is None:
             base_url = self._url
-        url = base_url + path + "?" + parse.urlencode(request.query)  # type: ignore
+        url = base_url + path + "?" + parse.urlencode(query)
 
         if self._logging:
-            log(request.body)
+            log(body)
             log(req_headers)
             log("request url: " + url)
 
         # only parse as json string if we have to
-        body = (
-            request.body if isinstance(request.body, str) else json.dumps(request.body)
-        )
+        body = body if isinstance(body, str) else json.dumps(body)
 
         res = requests.request(
-            request.method,
+            method,
             url,
             headers=req_headers,
             data=body,
@@ -224,33 +222,27 @@ class Api:
             stream=True,
         )
 
-        # if res.status_code == 307:
-        #     location = parse.urlparse(res.headers["Location"])
-        #     query_dict = parse.parse_qs(location.query)
+        if res.status_code == 307:
+            location = parse.urlparse(res.headers["Location"])
+            query_dict = parse.parse_qs(location.query)
 
-        #     if self._logging:
-        #         log("request redirected to: " + location.geturl())
+            if self._logging:
+                log("request redirected to: " + location.geturl())
 
-        #     new_query = {}
-        #     new_base_url = location.scheme + "://" + location.netloc
+            new_base_url = location.scheme + "://" + location.netloc
 
-        #     for key in query_dict:
-        #         # won't work for repeated query params
-        #         new_query[key] = query_dict[key][0]
+            new_query = {}
+            for key in query_dict:
+                # won't work for repeated query params
+                new_query[key] = query_dict[key][0]
 
-        #     # override request string method
-        #     def __str__override() -> str:
-        #         return location.path
-
-        #     request.__str__ = __str__override
-
-        #     return self.request(
-        #         request,
-        #         # location.path,
-        #         query=new_query,
-        #         headers=headers,
-        #         base_url=new_base_url,
-        #     )
+            return self.request(
+                method,
+                location.path,
+                query=new_query,
+                headers=headers,
+                base_url=new_base_url,
+            )
         if not 200 <= res.status_code <= 206:
             if self._logging:
                 log("request failed, details: " + res.text, level=1)
@@ -261,4 +253,26 @@ class Api:
             if self._logging:
                 log("request succeeded, details: " + res.text)
 
-        return res
+        try:
+            return res.json()
+        except:
+            return res
+
+
+def get(
+    api: Api,
+    path: str,
+    query: dict = {},
+    headers: dict = {},
+) -> Any:
+    return api.request("get", path, query, headers)
+
+
+def post(
+    api: Api,
+    path: str,
+    query: dict = {},
+    headers: dict = {},
+    body: dict | str = {},
+) -> Any:
+    return api.request("post", path, query, headers, body)

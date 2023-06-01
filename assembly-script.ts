@@ -11,6 +11,11 @@ const parseId = function(id is Id) returns string
     }
     return result;
 };
+const parseMateConnectorId = function(context is Context, query is Query) returns string
+{
+    const id = lastModifyingOperationId(context, query);
+    return parseId(resize(id, size(id) - 1));
+};
 const toJson = function(arg) returns string
     precondition
     {
@@ -79,22 +84,43 @@ const toJson = function(arg) returns string
         {
             const parsed = match(attribute.url, ".*/(\\\\w+)/w/(\\\\w+)/e/(\\\\w+)");
 
-            const id = lastModifyingOperationId(context, base);
-            const mateId = parseId(resize(id, size(id) - 1));
-
             const value = {
-                    "mateId" : mateId,
+                    "mateId" : parseMateConnectorId(context, base),
                     "documentId" : parsed.captures[1],
                     "workspaceId" : parsed.captures[2],
                     "elementId" : parsed.captures[3]
                 };
-            result["mates"] = append(result["mates"], value);
+            result.mates = append(result.mates, value);
+        }
+        else if (attribute["type"] as string == "MIRROR")
+        {
+            const value = {
+                    "endMateId" : parseMateConnectorId(context, base),
+                    "startMateId" : parseMateConnectorId(context, attribute.startMate)
+                };
+            result.mirrors = append(result.mirrors, value);
         }
     }
     print(toJson(result));
 }`
 export const parseTargetScript = `function(context is Context, args)
 {
+const parseId = function(id is Id) returns string
+{
+    var result = "";
+    for (var i, comp in id)
+    {
+        result ~= comp;
+        if (i != size(id) - 1)
+            result ~= ".";
+    }
+    return result;
+};
+const parseMateConnectorId = function(context is Context, query is Query) returns string
+{
+    const id = lastModifyingOperationId(context, query);
+    return parseId(resize(id, size(id) - 1));
+};
 const toJson = function(arg) returns string
     precondition
     {
@@ -144,6 +170,5 @@ const toJson = function(arg) returns string
         return toJsonImplementation(arg, toJsonImplementation);
     };
     const mateConnector = qEverything(EntityType.BODY)->qBodyType(BodyType.MATE_CONNECTOR)->qNthElement(0);
-    const targetMateId = lastModifyingOperationId(context, mateConnector)[0];
-    print(toJson({ "targetMateId" : targetMateId }));
+    print(toJson({ "targetMateId" : parseMateConnectorId(context, mateConnector) }));
 }`

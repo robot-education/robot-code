@@ -4,7 +4,7 @@ import copy
 import dataclasses
 from typing import TYPE_CHECKING, Any
 
-from library.api import conf, api
+from library.api import api_base, conf
 
 if TYPE_CHECKING:  # prevent circular import
     from library.base import imp
@@ -30,7 +30,7 @@ class Context:
     document_name: str
     std_version: str
     config: conf.Config
-    api: api.Api
+    api: api_base.Api
     imports: list[imp.Import] = dataclasses.field(default_factory=list)
 
     enum: bool = False
