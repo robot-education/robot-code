@@ -7,3 +7,8 @@ json5>=0.9.14
 
 # coding
 typing-extensions>=4.5.0
+
+# robot-manager-backend
+flask>=2.3.2
+flask_restful>=0.3.10
+pandas>=2.0.2
