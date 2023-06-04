@@ -42,7 +42,7 @@ class Import(node.TopStatement):
                 )
                 path = "<INVALID_STUDIO_NAME>"
             else:
-                path = studio.path.id
+                path = studio.path.element_id
 
         return (path, "0" * 24)
 

@@ -1,5 +1,5 @@
 import pathlib
-from typing import Self
+from typing import Self, TypedDict
 from urllib import parse
 import dataclasses
 
@@ -24,17 +24,31 @@ def make_document_path(url: str) -> DocumentPath:
 @dataclasses.dataclass
 class ElementPath:
     path: DocumentPath
-    id: str
+    element_id: str
 
     def copy(self) -> Self:
-        return ElementPath(self.path.copy(), self.id)
+        return ElementPath(self.path.copy(), self.element_id)
 
     def __str__(self) -> str:
-        return str(self.path) + "/e/" + self.id
+        return str(self.path) + "/e/" + self.element_id
 
 
-def make_studio_path(document_id: str, workspace_id: str, id: str) -> ElementPath:
-    return ElementPath(DocumentPath(document_id, workspace_id), id)
+class ElementPathObject(TypedDict):
+    documentId: str
+    workspaceId: str
+    elementId: str
+
+
+def make_element_path_from_obj(object: ElementPathObject):
+    return make_element_path(
+        object["documentId"], object["workspaceId"], object["elementId"]
+    )
+
+
+def make_element_path(
+    document_id: str, workspace_id: str, element_id: str
+) -> ElementPath:
+    return ElementPath(DocumentPath(document_id, workspace_id), element_id)
 
 
 def api_path(

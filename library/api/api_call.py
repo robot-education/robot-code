@@ -2,13 +2,12 @@ from library.api import api_base, api_path, constant, conf
 import re
 
 
-def get_microversion_id(api: api_base.Api, studio_path: api_path.ElementPath) -> str:
-    """Fetches the microversion id of a studio."""
-    path = api_path.api_path("documents", studio_path, "elements")
-    return api_base.get(api, path, query={"elementId": studio_path.id})[0][
+def get_microversion_id(api: api_base.Api, element_path: api_path.ElementPath) -> str:
+    """Fetches the microversion id of an element."""
+    path = api_path.api_path("documents", element_path, "elements")
+    return api.get(path, query={"elementId": element_path.element_id})[0][
         "microversionId"
     ]
-
 
 def get_document_elements(
     api: api_base.Api, document_path: api_path.DocumentPath
@@ -17,9 +16,7 @@ def get_document_elements(
 
     Returns a dict mapping element names to their paths.
     """
-    elements = api_base.get(
-        api, api_path.api_path("documents", document_path, "elements")
-    )
+    elements = api.get(api_path.api_path("documents", document_path, "elements"))
     return _extract_paths(elements, document_path)
 
 
@@ -39,8 +36,7 @@ def get_studios(
     api: api_base.Api, document_path: api_path.DocumentPath
 ) -> dict[str, conf.FeatureStudio]:
     """Returns an array of feature studios in a document."""
-    elements = api_base.get(
-        api,
+    elements = api.get(
         api_path.api_path("documents", document_path, "elements"),
         query={"elementType": "FEATURESTUDIO"},
     )
@@ -72,8 +68,7 @@ def make_feature_studio(
 
     Returns a FeatureStudio representing the new studio.
     """
-    response = api_base.post(
-        api,
+    response = api.post(
         api_path.api_path("featurestudios", document_path),
         body={"name": studio_name},
     )
@@ -87,14 +82,12 @@ def make_feature_studio(
 
 def get_code(api: api_base.Api, path: api_path.ElementPath) -> str:
     """Fetches code from a feature studio specified by path."""
-    return api_base.get(api, api_path.api_path("featurestudios", path))["contents"]
+    return api.get(api_path.api_path("featurestudios", path))["contents"]
 
 
 def update_code(api: api_base.Api, path: api_path.ElementPath, code: str) -> dict:
     """Sends code to the given feature studio specified by path."""
-    return api_base.post(
-        api, api_path.api_path("featurestudios", path), body={"contents": code}
-    )
+    return api.post(api_path.api_path("featurestudios", path), body={"contents": code})
 
 
 def std_version(api: api_base.Api) -> str:

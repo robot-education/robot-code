@@ -63,7 +63,7 @@ class CommandLineManager:
         studios = self._get_config_documents()
         pulled = 0
         for studio in studios:
-            curr_studio = self.curr_data.get(studio.path.id, None)
+            curr_studio = self.curr_data.get(studio.path.element_id, None)
             if curr_studio is not None:
                 if (
                     curr_studio.microversion_id == studio.microversion_id
@@ -82,7 +82,7 @@ class CommandLineManager:
             code = api_call.get_code(self.api, studio.path)
             self.config.write_file(studio.name, code)
             # don't need to worry about reseting generated since generated is never pulled
-            self.curr_data[studio.path.id] = studio
+            self.curr_data[studio.path.element_id] = studio
             pulled += 1
 
         if not self.conflict and pulled == 0:
@@ -112,7 +112,8 @@ class CommandLineManager:
         for studio in studios_to_push:
             onshape_studio = next(
                 filter(
-                    lambda onshape_studio: onshape_studio.path.id == studio.path.id,
+                    lambda onshape_studio: onshape_studio.path.element_id
+                    == studio.path.element_id,
                     onshape_studios,
                 )
             )
@@ -127,10 +128,8 @@ class CommandLineManager:
                 continue
             api_call.update_code(self.api, studio.path, code)  # TODO: check result?
             studio.modified = False
-            studio.microversion_id = api_call.get_microversion_id(
-                self.api, studio.path
-            )
-            self.curr_data[studio.path.id] = studio
+            studio.microversion_id = api_call.get_microversion_id(self.api, studio.path)
+            self.curr_data[studio.path.element_id] = studio
             pushed += 1
 
         if not self.conflict and pushed == 0:
@@ -227,7 +226,7 @@ class CommandLineManager:
             )
         feature_studio.generated = True
         feature_studio.modified = True
-        self.curr_data[feature_studio.path.id] = feature_studio
+        self.curr_data[feature_studio.path.element_id] = feature_studio
         self.config.write_file(feature_studio.name, code)
         return True
 
