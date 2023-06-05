@@ -5,7 +5,7 @@ import shutil
 from typing import Callable
 from library.base import ctxt, studio
 
-from library.api import api_base, api_call, conf
+from library.api import api_base, conf, feature_studio
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
@@ -46,7 +46,7 @@ class CommandLineManager:
         return [
             studio
             for path in self.config.documents.values()
-            for studio in api_call.get_studios(self.api, path).values()
+            for studio in feature_studio.get_studios(self.api, path).values()
         ]
 
     def pull(self, force: bool = False) -> None:
@@ -79,7 +79,7 @@ class CommandLineManager:
                 studio.microversion_id = curr_studio.microversion_id
 
             print("Pulling {}".format(studio.name))
-            code = api_call.get_code(self.api, studio.path)
+            code = feature_studio.get_code(self.api, studio.path)
             self.config.write_file(studio.name, code)
             # don't need to worry about reseting generated since generated is never pulled
             self.curr_data[studio.path.element_id] = studio
@@ -126,9 +126,9 @@ class CommandLineManager:
             if code is None:
                 print("Failed to find studio {}. Skipping.".format(studio.name))
                 continue
-            api_call.update_code(self.api, studio.path, code)  # TODO: check result?
+            feature_studio.update_code(self.api, studio.path, code)  # TODO: check result?
             studio.modified = False
-            studio.microversion_id = api_call.get_microversion_id(self.api, studio.path)
+            studio.microversion_id = feature_studio.get_microversion_id(self.api, studio.path)
             self.curr_data[studio.path.element_id] = studio
             pushed += 1
 
@@ -139,7 +139,7 @@ class CommandLineManager:
             self._finish()
 
     def update_versions(self) -> None:
-        std_version = api_call.std_version(self.api)
+        std_version = feature_studio.std_version(self.api)
         modified = 0
         for id, studio in self.curr_data.items():
             contents = self.config.read_file(studio.name)
@@ -174,7 +174,7 @@ class CommandLineManager:
         return replace_number
 
     def build(self) -> None:
-        std_version = api_call.std_version(self.api)
+        std_version = feature_studio.std_version(self.api)
         paths = self.config.code_gen_path.rglob("**/*.py")
         count = 0
 
@@ -217,11 +217,11 @@ class CommandLineManager:
                 )
             )
             return False
-        feature_studios = api_call.get_studios(self.api, document)
+        feature_studios = feature_studio.get_studios(self.api, document)
         feature_studio = feature_studios.get(studio.studio_name, None)
 
         if feature_studio is None:
-            feature_studio = api_call.make_feature_studio(
+            feature_studio = feature_studio.make_feature_studio(
                 self.api, document, studio.studio_name
             )
         feature_studio.generated = True

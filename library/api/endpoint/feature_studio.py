@@ -9,6 +9,7 @@ def get_microversion_id(api: api_base.Api, element_path: api_path.ElementPath) -
         "microversionId"
     ]
 
+
 def get_document_elements(
     api: api_base.Api, document_path: api_path.DocumentPath
 ) -> dict[str, api_path.ElementPath]:

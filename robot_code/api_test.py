@@ -1,4 +1,4 @@
-from library.api import api_base, api_call, conf, api_path
+from library.api import api_base, conf, api_path, feature_studio
 
 
 def get_feature(
@@ -15,7 +15,7 @@ def main():
     backend = config.get_document("backend")
     if backend == None:
         raise ValueError("Failed to find backend?")
-    document = api_call.get_document_elements(api, backend)
+    document = feature_studio.get_document_elements(api, backend)
 
 
 if __name__ == "__main__":

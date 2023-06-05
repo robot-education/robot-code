@@ -1,7 +1,7 @@
 from flask import current_app as app
 from flask import request
 
-from library.api import api_base, api_call, api_path
+from library.api import api_base, api_path
 
 
 def execute():
@@ -17,9 +17,6 @@ def execute():
 
     path = api_path.make_element_path_from_obj(body)
     app.logger.info(str(path))
-
-    result = api_call.std_version(api)
-    app.logger.info(result)
 
     # api_call.get_document_elements(api, path.path)
 

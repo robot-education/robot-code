@@ -1,6 +1,6 @@
 from typing_extensions import override
 import warnings
-from library.api import api_call
+from library.api import feature_studio
 from library.base import node, ctxt
 from library.core import utils
 
@@ -32,7 +32,7 @@ class Import(node.TopStatement):
             )
             path = "<INVALID_DOCUMENT_NAME>"
         else:
-            studios = api_call.get_studios(context.api, document)
+            studios = feature_studio.get_studios(context.api, document)
             studio = studios.get(self.studio_name, None)
             if studio is None:
                 warnings.warn(
