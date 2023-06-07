@@ -1,3 +1,5 @@
+"""Pulls the FeatureScript scripts used to parse assemblies from Onshape."""
+
 import pathlib
 
 from library.api import api_base, conf
@@ -33,24 +35,12 @@ def main():
     ]
     functions = [to_json, *parse_id]
 
-    evaluate_functions = {
-        name: transform.extract_function(assembly_script_code, name)
-        for name in ["parseBase", "parseTarget"]
-    }
-
-    evaluate_functions = [
-        insert_code(
-            "function" + (value.strip().removeprefix("function " + key)), functions
-        )
-        for key, value in evaluate_functions.items()
-    ]
-
-    out = "export const parseBaseScript = `{}`\nexport const parseTargetScript = `{}`\n".format(
-        *evaluate_functions
-    ).replace(
-        "\\", "\\\\"
-    )
-    pathlib.Path("./assembly-script.ts").write_text(out)
+    for name in ["parseBase", "parseTarget"]:
+        function = transform.extract_function(assembly_script_code, name)
+        function = insert_code(
+            "function" + (function.strip().removeprefix("function " + name)), functions
+        )  # .replace("\\", "\\\\")
+        pathlib.Path("backend/scripts/" + name + ".fs").write_text(function)
 
 
 if __name__ == "__main__":
