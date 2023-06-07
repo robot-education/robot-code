@@ -3,9 +3,9 @@ from robot_code import robot_studio
 
 DESCRIPTION = """Create a variety of bores suitable for use in robotics."""
 robot_studio = robot_studio.RobotFeature("bore")
-feature_studio = robot_studio.make_feature_studio(DESCRIPTION)
+feature_studios = robot_studio.make_feature_studio(DESCRIPTION)
 
-studio = robot_studio.make_ui_studio(feature_studio)
+studio = robot_studio.make_ui_studio(feature_studios)
 
 end_style = (
     ENUM_FACTORY.add_enum("EndStyle", parent=studio)

@@ -1,6 +1,7 @@
 import pathlib
 
-from library.api import api_base, conf, feature_studio
+from library.api import api_base, conf
+from library.api.endpoint import documents, feature_studios
 from library.transform import transform
 
 
@@ -12,15 +13,15 @@ def insert_code(function: str, code: list[str]) -> str:
 
 
 def main():
-    onshape = api_base.Api(logging=False)
+    onshape = api_base.ApiKey(logging=False)
     config = conf.Config()
     backend_path = config.get_document("backend")
     if not backend_path:
         raise ValueError("Failed to find backend?")
-    studio_path_map = feature_studio.get_studios(onshape, backend_path)
+    studio_path_map = documents.get_studios(onshape, backend_path)
 
-    json_code = feature_studio.get_code(onshape, studio_path_map["toJson.fs"].path)
-    assembly_script_code = feature_studio.get_code(
+    json_code = feature_studios.get_code(onshape, studio_path_map["toJson.fs"].path)
+    assembly_script_code = feature_studios.get_code(
         onshape, studio_path_map["assemblyScript.fs"].path
     )
 

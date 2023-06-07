@@ -1,8 +1,10 @@
+# import marshmallow
+
 from flask import current_app as app
 from flask import request
 
 from library.api import api_base, api_path
-from library.api.endpoint import assemblies
+from library.api.endpoint import assemblies, assembly_feature
 
 
 def execute():
@@ -16,11 +18,23 @@ def execute():
     part_studio_path = api_path.make_element_path_from_obj(body)
     name = body["name"]
 
-    api = api_base.ApiToken(token, logging=True)
+    api = api_base.ApiToken(token, logging=False)
 
-    assembly = assemblies.make_assembly(api, part_studio_path.path, name)
-    app.logger.info(assembly)
+    id = assemblies.make_assembly(api, part_studio_path.path, name)["id"]
+    assembly_path = api_path.ElementPath(part_studio_path.path, id)
 
-    # api_call.get_document_elements(api, path.path)
+    assemblies.add_part_studio_to_assembly(api, assembly_path, part_studio_path)
+    assembly = assemblies.get_assembly(api, assembly_path)
+    instance_ids = [
+        instance["id"] for instance in assembly["rootAssembly"]["instances"]
+    ]
+    # assemblies.fix_instance(api, assembly_path, instance_ids[0])
 
-    return {"message": "Success"}
+    queries = [
+        assembly_feature.individual_occurrence_query(instance_id)
+        for instance_id in instance_ids
+    ]
+    group_mate = assembly_feature.group_mate("Group", queries)
+    assemblies.add_feature(api, assembly_path, group_mate)
+
+    return {"elementId": assembly_path.element_id}
