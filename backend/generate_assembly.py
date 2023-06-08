@@ -4,7 +4,7 @@ from flask import current_app as app
 from flask import request
 
 from library.api import api_base, api_path
-from library.api.endpoint import assemblies, assembly_feature
+from library.api.endpoints import assemblies, assembly_feature
 
 
 def execute():

@@ -39,7 +39,7 @@ def main():
         function = transform.extract_function(assembly_script_code, name)
         function = insert_code(
             "function" + (function.strip().removeprefix("function " + name)), functions
-        )  # .replace("\\", "\\\\")
+        ).replace("\\", "\\\\")
         pathlib.Path("backend/scripts/" + name + ".fs").write_text(function)
 
 

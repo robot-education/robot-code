@@ -2,7 +2,7 @@
 Provides access to the Onshape REST API
 """
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from typing import Any
 from library.api.logger import log
 
 import os

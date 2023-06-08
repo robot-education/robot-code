@@ -8,12 +8,17 @@ import dataclasses
 class DocumentPath:
     document_id: str
     workspace_id: str
+    workspace_or_version: str = "w"
 
     def copy(self) -> Self:
         return DocumentPath(self.document_id, self.workspace_id)
 
     def __str__(self) -> str:
-        return "/d/{}/w/{}".format(self.document_id, self.workspace_id)
+        return (
+            "/d/{}/"
+            + self.workspace_or_version
+            + "/{}".format(self.document_id, self.workspace_id)
+        )
 
 
 def make_document_path(url: str) -> DocumentPath:
@@ -39,16 +44,21 @@ class ElementPathObject(TypedDict):
     elementId: str
 
 
-def make_element_path_from_obj(object: ElementPathObject):
+def make_element_path_from_obj(object: ElementPathObject) -> ElementPath:
     return make_element_path(
         object["documentId"], object["workspaceId"], object["elementId"]
     )
 
 
 def make_element_path(
-    document_id: str, workspace_id: str, element_id: str
+    document_id: str,
+    workspace_id: str,
+    element_id: str,
+    workspace_or_version: str = "w",
 ) -> ElementPath:
-    return ElementPath(DocumentPath(document_id, workspace_id), element_id)
+    return ElementPath(
+        DocumentPath(document_id, workspace_id, workspace_or_version), element_id
+    )
 
 
 def api_path(

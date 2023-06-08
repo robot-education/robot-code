@@ -1,3 +1,5 @@
+import asyncio
+
 import flask
 from backend import auto_assembly, generate_assembly
 

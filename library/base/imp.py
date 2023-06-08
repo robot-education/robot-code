@@ -1,6 +1,6 @@
 from typing_extensions import override
 import warnings
-from library.api.endpoint import documents
+from library.api.endpoints import documents
 from library.base import node, ctxt
 from library.core import utils
 

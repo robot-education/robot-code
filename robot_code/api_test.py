@@ -1,5 +1,5 @@
 from library.api import api_base, api_path, conf
-from library.api.endpoint import assemblies, documents
+from library.api.endpoints import assemblies, documents
 
 
 def add_part_studio_to_assembly(
