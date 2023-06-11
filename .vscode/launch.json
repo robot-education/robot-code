@@ -5,28 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run update_fs",
+            "name": "Start backend",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/updateversions.py",
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Pull code",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/codemanager.py",
-            "args": "pull",
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Push code",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/codemanager.py",
-            "args": "push",
+            "program": "${workspaceFolder}/backend/server.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }

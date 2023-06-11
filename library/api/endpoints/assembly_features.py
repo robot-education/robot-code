@@ -1,10 +1,20 @@
+from typing import Iterable
+
+
 def fasten_mate(
     name: str,
-    instance_id: str,
-    mate_id: str,
-    target_instance_id: str,
-    target_mate_id: str,
+    queries: tuple[dict, dict],
+    mate_connectors: list[dict] | None = None
+    # instance_id: str,
+    # mate_id: str,
+    # target_instance_id: str,
+    # target_mate_id: str,
 ) -> dict:
+    """A fasten mate.
+
+    Args:
+        queries: A tuple of two queries to use. Note Onshape has a tendency to preserve the location of the second query in cases where neither query is constrained.
+    """
     return {
         "type": 64,
         "version": 2,
@@ -13,22 +23,14 @@ def fasten_mate(
             "name": name,
             "parameters": [
                 mate_type_parameter("FASTENED"),
-                query_parameter(
-                    "mateConnectorsQuery",
-                    [
-                        part_studio_mate_connector_query(
-                            target_instance_id, target_mate_id
-                        ),
-                        part_studio_mate_connector_query(instance_id, mate_id),
-                    ],
-                ),
-                primary_axis_parameter(),
+                query_parameter("mateConnectorsQuery", queries),
+                primary_axis_parameter("primaryAxisAlignment"),
             ],
         },
     }
 
 
-def query_parameter(parameter_id: str, queries: list[dict]) -> dict:
+def query_parameter(parameter_id: str, queries: Iterable[dict]) -> dict:
     return {
         "type": 67,
         "message": {"parameterId": parameter_id, "queries": queries},
@@ -42,10 +44,10 @@ def mate_type_parameter(value: str) -> dict:
     }
 
 
-def primary_axis_parameter() -> dict:
+def primary_axis_parameter(parameter_id: str, value: bool = False) -> dict:
     return {
         "type": 144,
-        "message": {"parameterId": "primaryAxisAlignment", "value": "false"},
+        "message": {"parameterId": parameter_id, "value": value},
     }
 
 
@@ -57,7 +59,8 @@ def part_studio_mate_connector_query(instance_id: str, mate_id: str) -> dict:
     return {"type": 1324, "message": {"featureId": mate_id, "path": [instance_id]}}
 
 
-def group_mate(name: str, queries: list[dict]) -> dict:
+def group_mate(name: str, queries: Iterable[dict]) -> dict:
+    """A group mate."""
     return {
         "type": 65,
         "version": 2,

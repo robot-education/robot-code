@@ -8,6 +8,7 @@ def get_assembly(
     assembly_path: api_path.ElementPath,
     include_non_solids: bool = False,
     include_mate_features: bool = False,
+    include_mate_connectors: bool = False,
     exclude_suppressed: bool = True,
 ) -> dict:
     return api.get(
@@ -16,8 +17,16 @@ def get_assembly(
             "includeMateFeatures": include_mate_features,
             "includeNonSolids": include_non_solids,
             "excludeSuppressed": exclude_suppressed,
+            "includeMateConnectors": include_mate_connectors,
         },
     )
+
+
+def get_assembly_features(
+    api: api_base.Api,
+    assembly_path: api_path.ElementPath,
+) -> dict:
+    return api.get(api_path.api_path("assemblies", assembly_path, "features"))
 
 
 def make_assembly(

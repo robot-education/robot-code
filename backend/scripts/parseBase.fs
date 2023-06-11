@@ -82,7 +82,7 @@ const toJson = function(arg) returns string
 
         if (attribute["type"] as string == "MATE")
         {
-            const parsed = match(attribute.url, ".*/(\\\\w+)/w/(\\\\w+)/e/(\\\\w+)");
+            const parsed = match(attribute.url, ".*/(\\w+)/w/(\\w+)/e/(\\w+)");
 
             const value = {
                     "mateId" : parseMateConnectorId(context, base),
@@ -94,10 +94,16 @@ const toJson = function(arg) returns string
         }
         else if (attribute["type"] as string == "MIRROR")
         {
-            const value = {
-                    "endMateId" : parseMateConnectorId(context, base),
-                    "startMateId" : parseMateConnectorId(context, attribute.startMate)
-                };
+            var value = {
+                "endMateId" : parseMateConnectorId(context, base),
+                "mateToOrigin" : attribute.mateToOrigin
+            };
+            
+            if (!attribute.mateToOrigin)
+            {
+                value.startMateId = parseMateConnectorId(context, attribute.startMate);
+            }
+
             result.mirrors = append(result.mirrors, value);
         }
     }

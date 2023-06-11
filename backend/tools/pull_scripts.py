@@ -15,7 +15,7 @@ def insert_code(function: str, code: list[str]) -> str:
 
 
 def main():
-    onshape = api_base.ApiKey(logging=False)
+    onshape = api_base.ApiKey(logging=True)
     config = conf.Config()
     backend_path = config.get_document("backend")
     if not backend_path:

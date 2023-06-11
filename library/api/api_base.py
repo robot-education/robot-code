@@ -24,13 +24,16 @@ class Api(ABC):
     Provides access to the Onshape REST API.
 
     Attributes:
-        - stack (str): Base URL
-        - creds (str, default='creds.json'): Credentials location
-        - logging (bool, default=True): Turn logging on or off
+        logging: Turn logging on or off
     """
 
     def __init__(self, url: str, logging: bool):
-        self._url = url
+        """
+        Args:
+            url: The base url. Should generally be `https://cad.onshape.com`.
+            logging: True to enable logging.
+        """
+        self._url = url + "/api/v6/"
         self._logging = logging
 
     @abstractmethod
@@ -130,7 +133,6 @@ class ApiKey(Api):
         date: str,
         nonce: str,
         path: str,
-        *,
         query: dict,
         ctype: str,
     ):
@@ -157,12 +159,7 @@ class ApiKey(Api):
         signature = base64.b64encode(
             hmac.new(self._secret_key, hmac_str, digestmod=hashlib.sha256).digest()
         )
-        auth = (
-            "On "
-            + self._access_key.decode("utf-8")
-            + ":HmacSHA256:"
-            + signature.decode("utf-8")
-        )
+        auth = "On " + self._access_key.decode() + ":HmacSHA256:" + signature.decode()
         return auth
 
     def _make_headers(self, method, path, query, headers):
@@ -181,9 +178,9 @@ class ApiKey(Api):
 
         date = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
         nonce = make_nonce()
-        ctype = headers.get("Content-Type") or "application/json"
+        ctype = headers.get("Content-Type", "application/json")
 
-        auth = self._make_auth(method, date, nonce, path, query=query, ctype=ctype)
+        auth = self._make_auth(method, date, nonce, path, query, ctype)
 
         req_headers = {
             "Content-Type": "application/json",

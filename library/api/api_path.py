@@ -4,7 +4,7 @@ from urllib import parse
 import dataclasses
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(unsafe_hash=True)
 class DocumentPath:
     document_id: str
     workspace_id: str
@@ -15,9 +15,9 @@ class DocumentPath:
 
     def __str__(self) -> str:
         return (
-            "/d/{}/"
+            "/d/{}/".format(self.document_id)
             + self.workspace_or_version
-            + "/{}".format(self.document_id, self.workspace_id)
+            + "/{}".format(self.workspace_id)
         )
 
 
@@ -26,7 +26,7 @@ def make_document_path(url: str) -> DocumentPath:
     return DocumentPath(path.parts[2], path.parts[4])
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(unsafe_hash=True)
 class ElementPath:
     path: DocumentPath
     element_id: str
@@ -61,12 +61,21 @@ def make_element_path(
     )
 
 
+@dataclasses.dataclass(unsafe_hash=True)
+class PartPath:
+    path: ElementPath
+    part_id: str
+
+    def copy(self) -> Self:
+        return PartPath(self.path.copy(), self.part_id)
+
+
 def api_path(
     service: str,
     path: ElementPath | DocumentPath | None = None,
     secondary_service: str | None = None,
 ) -> str:
-    api_path = "/api/" + service
+    api_path = service
     if path:
         api_path += str(path)
     if secondary_service:

@@ -4,7 +4,7 @@ from flask import current_app as app
 from flask import request
 
 from library.api import api_base, api_path
-from library.api.endpoints import assemblies, assembly_feature
+from library.api.endpoints import assemblies, assembly_features
 
 
 def execute():
@@ -31,10 +31,10 @@ def execute():
     # assemblies.fix_instance(api, assembly_path, instance_ids[0])
 
     queries = [
-        assembly_feature.individual_occurrence_query(instance_id)
+        assembly_features.individual_occurrence_query(instance_id)
         for instance_id in instance_ids
     ]
-    group_mate = assembly_feature.group_mate("Group", queries)
+    group_mate = assembly_features.group_mate("Group", queries)
     assemblies.add_feature(api, assembly_path, group_mate)
 
     return {"elementId": assembly_path.element_id}
