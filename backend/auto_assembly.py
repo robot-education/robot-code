@@ -1,7 +1,7 @@
 from concurrent import futures
 import pathlib
 import dataclasses
-from typing import Callable, Generator, Iterable
+from typing import Callable, Iterable
 
 from flask import current_app as app
 from flask import request
@@ -20,7 +20,7 @@ def execute():
     if body == None:
         return {"error": "A request body is required."}
 
-    api = api_base.ApiToken(token, logging=False)
+    api = api_base.ApiToken(token, logging=True)
 
     assembly_path = api_path.make_element_path_from_obj(body)
     document_path = assembly_path.path
@@ -47,15 +47,13 @@ def execute():
 
     # wait to resolve assembly features
     assembly_features = assembly_features_future.result()
-    app.logger.info(assembly_features)
-
-    instances_to_mates = get_instances_to_mates_factory(
+    instances_to_mates = get_instances_to_mates(
         assembly, assembly_features, assembly_path, parts_to_mates
     )
     count = iterate_mate_ids(
         api,
         assembly_path,
-        instances_to_mates(),
+        instances_to_mates,
         try_add_instance,
         part_maps,
         targets_to_mate_connectors,
@@ -68,7 +66,7 @@ def execute():
     iterate_mate_ids(
         api,
         assembly_path,
-        instances_to_mates(),
+        instances_to_mates,
         add_mate,
         part_maps,
         targets_to_mate_connectors,
@@ -176,22 +174,21 @@ def evalute_target(api: api_base.Api, assembly_path: api_path.ElementPath) -> di
         return part_studios.evaluate_feature_script(api, assembly_path, file.read())
 
 
-def get_instances_to_mates_factory(
+def get_instances_to_mates(
     assembly: dict,
     assembly_features: dict,
     assembly_path: api_path.ElementPath,
     parts_to_mates: dict[api_path.PartPath, list[str]],
-) -> Callable[[], Generator[tuple[dict, str], None, None]]:
+) -> list[tuple[dict, str]]:
     """Returns a factory which returns a mapping of instances to their mate ids."""
 
-    def gen():
-        for instance in assembly["rootAssembly"]["instances"]:
-            mate_ids = get_part_mate_ids(instance, assembly_path.path, parts_to_mates)
-            for mate_id in mate_ids:
-                if is_mate_unused(instance, mate_id, assembly_features):
-                    yield (instance, mate_id)
-
-    return gen
+    result = []
+    for instance in assembly["rootAssembly"]["instances"]:
+        mate_ids = get_part_mate_ids(instance, assembly_path.path, parts_to_mates)
+        for mate_id in mate_ids:
+            if is_mate_unused(instance, mate_id, assembly_features):
+                result.append((instance, mate_id))
+    return result
 
 
 def is_mate_unused(instance: dict, mate_id: str, assembly_features: dict) -> bool:
@@ -205,10 +202,8 @@ def is_mate_unused(instance: dict, mate_id: str, assembly_features: dict) -> boo
     Speed could be improved by first collecting all mate_ids and then using the above technique alongside a set of all mate ids.
     """
     for feature in assembly_features["features"]:
-        app.logger.info(feature)
         if is_fastened_mate(feature):
             queries = get_query_parameter(feature)
-            app.logger.info(queries)
             if any(
                 query["featureId"] == mate_id and query["path"][0] == instance["id"]
                 for query in queries
@@ -221,7 +216,6 @@ def is_mate_unused(instance: dict, mate_id: str, assembly_features: dict) -> boo
 def is_fastened_mate(feature: dict) -> bool:
     if feature.get("featureType", None) != "mate":
         return False
-    app.logger.info("mate")
     for parameter in feature["parameters"]:
         if parameter["parameterId"] == "mateType":
             app.logger.info("mateType")

@@ -8,9 +8,10 @@ from library.api.endpoints import assemblies, assembly_features
 
 
 def execute():
-    token = request.args["token"]
-    if token == None:
+    auth = request.headers.get("Authentication", None)
+    if auth == None:
         return {"error": "An onshape oauth token is required."}
+    token = auth.removeprefix("Basic").strip()
 
     body = request.get_json()
     if body == None:
@@ -28,11 +29,9 @@ def execute():
     instance_ids = [
         instance["id"] for instance in assembly["rootAssembly"]["instances"]
     ]
-    # assemblies.fix_instance(api, assembly_path, instance_ids[0])
 
     queries = [
-        assembly_features.individual_occurrence_query(instance_id)
-        for instance_id in instance_ids
+        assembly_features.occurrence_query(instance_id) for instance_id in instance_ids
     ]
     group_mate = assembly_features.group_mate("Group", queries)
     assemblies.add_feature(api, assembly_path, group_mate)

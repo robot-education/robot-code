@@ -33,10 +33,14 @@ class Api(ABC):
             url: The base url. Should generally be `https://cad.onshape.com`.
             logging: True to enable logging.
         """
-        self._url = url + "/api/v6/"
+        self._url = url
+        self._path_base = "/api/v6/"
         self._logging = logging
 
     @abstractmethod
+    def _make_headers(self, headers, *, method, path, query):
+        ...
+
     def request(
         self,
         method: str,
@@ -44,7 +48,6 @@ class Api(ABC):
         query: dict = {},
         headers: dict = {},
         body: dict | str = {},
-        base_url: str | None = None,
     ):
         """
         Issues a request to Onshape
@@ -54,12 +57,42 @@ class Api(ABC):
             - query (dict, default={}): Query params in key-value pairs
             - headers (dict, default={}): Key-value pairs of headers
             - body (dict, default={}): Body for POST request
-            - base_url (str, default=None): Host, including scheme and port (if different from creds file)
 
         Returns:
             - requests.Response: Object containing the response from Onshape
         """
-        ...
+        path = self._path_base + path
+        req_headers = self._make_headers(headers, method=method, path=path, query=query)
+        url = self._url + path + "?" + parse.urlencode(query)
+
+        if self._logging:
+            log(body)
+            log(req_headers)
+            log("request url: " + url)
+
+        # only parse as json string if we have to
+        body = body if isinstance(body, str) else json.dumps(body)
+
+        res = requests.request(
+            method,
+            url,
+            headers=req_headers,
+            data=body,
+            allow_redirects=False,
+            stream=True,
+        )
+
+        if not 200 <= res.status_code <= 206:
+            if self._logging:
+                log("request failed, details: " + res.text, level=1)
+        else:
+            if self._logging:
+                log("request succeeded, details: " + res.text)
+
+        try:
+            return res.json()
+        except:
+            return res
 
     def get(
         self,
@@ -112,8 +145,8 @@ class ApiKey(Api):
                 stacks: Any = json5.load(f)
                 if stack in stacks:
                     url = stack
-                    self._access_key = stacks[stack]["access_key"].encode()
-                    self._secret_key = stacks[stack]["secret_key"].encode()
+                    self._access_key: bytes = stacks[stack]["access_key"].encode()
+                    self._secret_key: bytes = stacks[stack]["secret_key"].encode()
                 else:
                     raise ValueError("specified stack not in file")
             except TypeError:
@@ -162,7 +195,7 @@ class ApiKey(Api):
         auth = "On " + self._access_key.decode() + ":HmacSHA256:" + signature.decode()
         return auth
 
-    def _make_headers(self, method, path, query, headers):
+    def _make_headers(self, headers, *, method, path, query):
         """
         Creates a headers object to sign the request
 
@@ -179,7 +212,6 @@ class ApiKey(Api):
         date = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
         nonce = make_nonce()
         ctype = headers.get("Content-Type", "application/json")
-
         auth = self._make_auth(method, date, nonce, path, query, ctype)
 
         req_headers = {
@@ -196,70 +228,6 @@ class ApiKey(Api):
             req_headers[h] = headers[h]
 
         return req_headers
-
-    def request(
-        self,
-        method: str,
-        path: str,
-        query: dict = {},
-        headers: dict = {},
-        body: dict | str = {},
-        base_url: str | None = None,
-    ):
-        req_headers = self._make_headers(method, path, query, headers)
-        if base_url is None:
-            base_url = self._url
-        url = base_url + path + "?" + parse.urlencode(query)
-
-        if self._logging:
-            log(body)
-            log(req_headers)
-            log("request url: " + url)
-
-        # only parse as json string if we have to
-        body = body if isinstance(body, str) else json.dumps(body)
-
-        res = requests.request(
-            method,
-            url,
-            headers=req_headers,
-            data=body,
-            allow_redirects=False,
-            stream=True,
-        )
-
-        if res.status_code == 307:
-            location = parse.urlparse(res.headers["Location"])
-            query_dict = parse.parse_qs(location.query)
-
-            if self._logging:
-                log("request redirected to: " + location.geturl())
-
-            new_base_url = location.scheme + "://" + location.netloc
-
-            new_query = {}
-            for key in query_dict:
-                # won't work for repeated query params
-                new_query[key] = query_dict[key][0]
-
-            return self.request(
-                method,
-                location.path,
-                query=new_query,
-                headers=headers,
-                base_url=new_base_url,
-            )
-        elif not 200 <= res.status_code <= 206:
-            if self._logging:
-                log("request failed, details: " + res.text, level=1)
-        else:
-            if self._logging:
-                log("request succeeded, details: " + res.text)
-
-        try:
-            return res.json()
-        except:
-            return res
 
 
 def make_nonce():
@@ -279,7 +247,7 @@ class ApiToken(Api):
         super().__init__("https://cad.onshape.com", logging)
         self._token = token
 
-    def _make_headers(self, headers):
+    def _make_headers(self, headers, **_):
         """
         Creates a headers object to sign the request
 
@@ -306,67 +274,3 @@ class ApiToken(Api):
             req_headers[h] = headers[h]
 
         return req_headers
-
-    def request(
-        self,
-        method: str,
-        path: str,
-        query: dict = {},
-        headers: dict = {},
-        body: dict | str = {},
-        base_url: str | None = None,
-    ):
-        req_headers = self._make_headers(headers)
-        if base_url is None:
-            base_url = self._url
-        url = base_url + path + "?" + parse.urlencode(query)
-
-        if self._logging:
-            log(body)
-            log(req_headers)
-            log("request url: " + url)
-
-        # only parse as json string if we have to
-        body = body if isinstance(body, str) else json.dumps(body)
-
-        res = requests.request(
-            method,
-            url,
-            headers=req_headers,
-            data=body,
-            allow_redirects=False,
-            stream=True,
-        )
-
-        if res.status_code == 307:
-            location = parse.urlparse(res.headers["Location"])
-            query_dict = parse.parse_qs(location.query)
-
-            if self._logging:
-                log("request redirected to: " + location.geturl())
-
-            new_base_url = location.scheme + "://" + location.netloc
-
-            new_query = {}
-            for key in query_dict:
-                # won't work for repeated query params
-                new_query[key] = query_dict[key][0]
-
-            return self.request(
-                method,
-                location.path,
-                query=new_query,
-                headers=headers,
-                base_url=new_base_url,
-            )
-        elif not 200 <= res.status_code <= 206:
-            if self._logging:
-                log("request failed, details: " + res.text, level=1)
-        else:
-            if self._logging:
-                log("request succeeded, details: " + res.text)
-
-        try:
-            return res.json()
-        except:
-            return res

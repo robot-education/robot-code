@@ -1,5 +1,5 @@
 from library.api import api_base, api_path, conf
-from library.api.endpoints import assemblies, documents
+from library.api.endpoints import documents, assemblies
 
 
 def add_part_studio_to_assembly(
@@ -19,8 +19,6 @@ def add_part_studio_to_assembly(
             "elementId": part_studio_path.element_id,
             "includePartTypes": ["PARTS"],
             "isWholePartStudio": True,
-            "fixed": True,
-            "isFixed": True,
         },
     )
 
@@ -33,12 +31,13 @@ def main():
         raise ValueError("Failed to find backend?")
 
     document = documents.get_document_elements(api, backend)
-    assembly_path = document["My Assembly"]
-    instance_id = "MBDXz6k5DYz61pvFY"
-    # part_studio_path = document["Part Studio 10"]
+    assembly_path = document["Assembly 1"]
+    # part_studio_path = document["test"]
     # add_part_studio_to_assembly(api, assembly_path, part_studio_path)
 
-    assemblies.fix_instance(api, assembly_path, instance_id)
+    instance_id = "MlUJQiwkjIKzq9VR2"
+    result = assemblies.fix_instance(api, assembly_path, instance_id)
+    print(result)
 
 
 if __name__ == "__main__":

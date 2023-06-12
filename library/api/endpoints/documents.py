@@ -8,7 +8,10 @@ def get_document_elements(
 
     Returns a dict mapping element names to their paths.
     """
-    elements = api.get(api_path.api_path("documents", document_path, "elements"))
+    elements = api.get(
+        api_path.api_path("documents", document_path, "elements"),
+        query={"withThumbnails": False},
+    )
     return _extract_paths(elements, document_path)
 
 
@@ -38,7 +41,7 @@ def get_studios(
     """Returns an array of feature studios in a document."""
     elements = api.get(
         api_path.api_path("documents", document_path, "elements"),
-        query={"elementType": "FEATURESTUDIO"},
+        query={"elementType": "FEATURESTUDIO", "withThumbnails": False},
     )
     return _extract_studios(elements, document_path)
 

@@ -1,3 +1,4 @@
+from flask import current_app as app
 from library.api import api_base, api_path
 
 import numpy as np
@@ -50,7 +51,7 @@ def add_part_studio_to_assembly(
 
     Note the response may be malformed due to a (reported) bug with the Onshape API.
     """
-    return api.post(
+    result = api.post(
         api_path.api_path("assemblies", assembly_path, "instances"),
         body={
             "documentId": part_studio_path.path.document_id,
@@ -60,6 +61,8 @@ def add_part_studio_to_assembly(
             "isWholePartStudio": True,
         },
     )
+    app.logger.info(result)
+    return result
 
 
 def add_part_to_assembly(
@@ -85,12 +88,61 @@ def add_part_to_assembly(
     )
 
 
-zero_transform = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
-move = [
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 1, 0],
-    [0.05, 0.1, 0.3, 1],
+zero_transform = [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+]
+
+linear_transform = [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.5,
+    0.5,
+    0.5,
+    1.0,
+]
+
+test = [
+    0.0,
+    1.0,
+    0.0,
+    0,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    0,
+    0,
+    0,
+    0,
+    1.0,
 ]
 
 
@@ -102,37 +154,37 @@ def fix_instance(
     Args:
         assembly_path: The path of the assembly.
     """
-
+    return api.post(
+        api_path.api_path("assemblies", assembly_path, "modify"),
+        body={"unsuppressInstances": [instance_id]},
+    )
     # return api.post(
-    #     api_path.api_path("assemblies", assembly_path, "transformedinstances"),
+    #     api_path.api_path("assemblies", assembly_path, "occurrencetransforms"),
     #     body={
-    #         "transformGroups": [
-    #             {
-    #                 "instances": [
-    #                     {
-    #                         "path": [instance_id],
-    #                         "rootOccurrence": False,
-    #                         "isHidden": True,
-    #                         "isFixed": True,
-    #                         "fix": True,
-    #                         "fixed": True,
-    #                     }
-    #                 ],
-    #                 "transform": zero_transform,
-    #             }
-    #         ],
+    #         "isRelative": False,
+    #         "occurrences": [{"path": [instance_id]}],
+    #         # "transform": (np.matmul(np.identity(4)).flatten().tolist(),
     #     },
     # )
-    transform = np.reshape(np.array(zero_transform), (4, 4))
-    transform = np.matmul(transform, np.array(move))
-    transform = transform.flatten().tolist()
-    print(transform)
+
+
+def transform_instance(
+    api: api_base.Api,
+    assembly_path: api_path.ElementPath,
+    instance_id: str,
+    transform: list[int | float],
+    is_relative: bool = False,
+):
+    """
+    Args:
+        is_relative: True to apply the transform relative to the instance's existing location, False to apply it relative to the origin.
+    """
     return api.post(
         api_path.api_path("assemblies", assembly_path, "occurrencetransforms"),
         body={
-            "isRelative": True,
-            "occurrences": [{"fullPathAsString": instance_id, "path": [instance_id]}],
-            "transform": transform,
+            "isRelative": is_relative,
+            "occurrences": [{"path": [instance_id]}],
+            "transform": test,
         },
     )
 
