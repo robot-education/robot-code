@@ -1,34 +1,29 @@
 from library import *
 from robot_code.robot_studio import RobotFeature
 
-robot_studio = RobotFeature("frame")
-# feature_studio = robot_studio.make_feature_studio()
+DESCRIPTION = r"Generate robot frame members."
 
-studio = robot_studio.make_ui_studio()
+robot_frame = RobotFeature("frame", description=DESCRIPTION)
+studio = robot_frame.ui_studio
+
 studio.add_import("stdFrameUi.fs", "backend", True)
 
 # enums
 wall_thickness = (
-    CUSTOM_ENUM_FACTORY.add_enum(
-        "WallThickness", parent=studio, value_type=LookupEnumValue
-    )
+    EnumFactory("WallThickness", parent=studio, value_type=LookupEnumValue)
     .add_value("ONE_SIXTEENTH", "1/16 in.", lookup_value=inch(0.0625))
     .add_value("ONE_EIGHTH", "1/8 in.", lookup_value=inch(0.125))
     .add_custom(lookup_value=definition("customWallThickness"))
     .make()
 )
 
-fit = (
-    ENUM_FACTORY.add_enum("HoleFit", parent=studio)
-    .add_value("CLOSE")
-    .add_value("FREE")
-    .make()
-)
+fit = EnumFactory("HoleFit", parent=studio).add_value("CLOSE").add_value("FREE").make()
 
 hole_size = (
-    CUSTOM_ENUM_FACTORY.add_enum("HoleSize", parent=studio)
+    EnumFactory("HoleSize", parent=studio)
     .add_value("NO_8", "#8")
     .add_value("NO_10", "#10")
+    .add_custom()
     .make()
 )
 
@@ -42,20 +37,22 @@ hole_size = (
 # pattern_method_predicates = enum_predicates(pattern_method, parent=studio)
 
 tube_size = (
-    CUSTOM_ENUM_FACTORY.add_enum("TubeSize", parent=studio, generate_predicates=True)
+    EnumFactory("TubeSize", parent=studio, generate_predicates=True)
     .add_value("ONE_BY_ONE", "1x1")
     .add_value("TWO_BY_ONE", "2x1")
+    .add_custom()
     .make()
 )
 
 tube_type = (
-    CUSTOM_ENUM_FACTORY.add_enum("TubeType", parent=studio, generate_predicates=True)
+    EnumFactory("TubeType", parent=studio, generate_predicates=True)
     .add_value("MAX_TUBE", "MAXTube")
+    .add_custom()
     .make()
 )
 
 max_pattern_type = (
-    ENUM_FACTORY.add_enum("MaxTubePatternType", parent=studio)
+    EnumFactory("MaxTubePatternType", parent=studio)
     .add_value("NONE")
     .add_value("GRID")
     .add_value("MAX")
@@ -63,7 +60,7 @@ max_pattern_type = (
 )
 
 max_tube_profile = (
-    ENUM_FACTORY.add_enum("MaxTubeProfileType", parent=studio, annotate=False)
+    EnumFactory("MaxTubeProfileType", parent=studio, annotate=False)
     .add_value("ONE_BY_ONE")
     .add_value("TWO_BY_ONE")
     .add_value("TWO_BY_ONE_LIGHT")
@@ -71,16 +68,14 @@ max_tube_profile = (
 )
 
 tube_face = (
-    ENUM_FACTORY.add_enum("TubeFace", parent=studio, annotate=False)
+    EnumFactory("TubeFace", parent=studio, annotate=False)
     .add_value("FIRST")
     .add_value("SECOND")
     .make()
 )
 
 two_inch_face = (
-    ENUM_FACTORY.add_enum(
-        "TwoInchFaceHoleCount", parent=studio, value_type=LookupEnumValue
-    )
+    EnumFactory("TwoInchFaceHoleCount", parent=studio, value_type=LookupEnumValue)
     .add_value("FOUR", user_name="Four holes", lookup_value=4)
     .add_value("THREE", user_name="Three holes", lookup_value=3)
     .add_value("TWO", user_name="Two holes", lookup_value=2)
@@ -90,9 +85,7 @@ two_inch_face = (
 )
 
 one_inch_face = (
-    ENUM_FACTORY.add_enum(
-        "OneInchFaceHoleCount", parent=studio, value_type=LookupEnumValue
-    )
+    EnumFactory("OneInchFaceHoleCount", parent=studio, value_type=LookupEnumValue)
     .add_value("TWO", user_name="Two holes", lookup_value=2)
     .add_value("ONE", user_name="One hole", lookup_value=1)
     .add_value("NONE", lookup_value=0)
@@ -309,11 +302,15 @@ get_hole_diameter = Function(
     return_type=Type.VALUE,
     export=False,
 ).add(
-    IfBlock(has_predrilled_holes & Parens(hole_size["NO_8"] | hole_size["NO_10"])).add(
-        Return(MapAccess("HOLE_SIZES", definition("holeSize"), definition("holeFit")))
-    ),
-    IfBlock(has_predrilled_holes & ~definition("overrideHoleDiameter")).add(
-        IfBlock(is_max_tube).add(Return(millimeter(5)))
+    IfBlock(has_predrilled_holes).add(
+        IfBlock(Parens(hole_size["NO_8"] | hole_size["NO_10"]))
+        .add(
+            Return(
+                MapAccess("HOLE_SIZES", definition("holeSize"), definition("holeFit"))
+            )
+        )
+        .else_if(~definition("overrideHoleDiameter"))
+        .add(IfBlock(is_max_tube).add(Return(millimeter(5))))
     ),
     Return(definition("holeDiameter")),
 )

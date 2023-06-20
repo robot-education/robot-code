@@ -3,33 +3,34 @@ from library import *
 studio = Studio("robotPulleyUi.gen.fs", "backend")
 
 pulley_fit = (
-    CUSTOM_ENUM_FACTORY.add_enum("Fit", parent=studio)
+    EnumFactory("Fit", parent=studio)
     .add_value("CLOSE")
     .add_value("FREE")
+    .add_custom()
     .make()
 )
 
 flange_type = (
-    CUSTOM_ENUM_FACTORY.add_enum("FlangeType", parent=studio)
+    EnumFactory("FlangeType", parent=studio)
     .add_value("STANDARD")
     .add_value("LARGE")
+    .add_custom()
     .make()
 )
 
 flange_width_control = (
-    ENUM_FACTORY.add_enum("widthControl", parent=studio)
+    EnumFactory("widthControl", parent=studio)
     .add_value("FLANGE_WIDTH")
     .add_value("PULLEY_WIDTH")
     .make()
 )
 
 flange_diameter_control = (
-    ENUM_FACTORY.add_enum("FlangeDiameterControl", parent=studio)
+    EnumFactory("FlangeDiameterControl", parent=studio)
     .add_value("OFFSET")
     .add_value("OUTER_DIAMETER")
     .make()
 )
-
 
 studio.add(
     selections := UiPredicate("pulleySelections").add(

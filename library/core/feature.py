@@ -56,7 +56,7 @@ class FeatureFactory:
     #     return self
 
     def make(self) -> Feature:
-        if self.name is None or self.args is None:
+        if self.name is None or self.feature_kwargs is None:
             raise ValueError("start must be called first.")
         map = annotation_map.feature_annotation_map(self.name, **self.feature_kwargs)
         return Feature(self.name, map)

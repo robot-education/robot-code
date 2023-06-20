@@ -60,11 +60,11 @@ class IfBlock(stmt.BlockStatement):
         super().add(_If(test, else_if=True))
         return self
 
-    def or_else(self) -> Self:
+    def or_else(self, *nodes: stmt.Statement | expr.Expr) -> Self:
         if self.else_called:
             raise ValueError("Cannot add else to an IfBlock multiple times.")
         self.else_called = True
-        super().add(_Else())
+        super().add(_Else().add(*nodes))
         return self
 
     @override

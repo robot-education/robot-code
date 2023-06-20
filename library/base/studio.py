@@ -20,8 +20,13 @@ class Studio(node.ParentNode):
         if import_common:
             self.std_imports.append(imp.Import("common.fs"))
 
+    def import_studio(self, studio: Self, export: bool = True) -> Self:
+        """Adds an import targeting the given studio."""
+        self.add_import(studio.studio_name, studio.document_name, export)
+        return self
+
     def add_import(
-        self, studio_name: str, document_name: str | None = None, export: bool = False
+        self, studio_name: str, document_name: str | None = None, export: bool = True
     ) -> Self:
         node = imp.Import(studio_name, document_name, export)
         if document_name:
@@ -73,6 +78,12 @@ class PartialStudio(Studio):
                 section = top_section
 
         return code
+
+    @override
+    def import_studio(self, studio: Studio, export: bool = True) -> Self:
+        """Adds an import targeting the given studio."""
+        self.add_import(studio.studio_name, studio.document_name, export)
+        return self
 
     @override
     def build(self, context: ctxt.Context) -> str:

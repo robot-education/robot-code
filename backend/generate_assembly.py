@@ -19,7 +19,7 @@ def execute():
     part_studio_path = api_path.make_element_path_from_obj(body)
     name = body["name"]
 
-    api = api_base.ApiToken(token, logging=False)
+    api = api_base.ApiToken(token, logging=True)
 
     id = assemblies.make_assembly(api, part_studio_path.path, name)["id"]
     assembly_path = api_path.ElementPath(part_studio_path.path, id)

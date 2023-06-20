@@ -35,10 +35,10 @@ def get_microversion_id(api: api_base.Api, element_path: api_path.ElementPath) -
     ]
 
 
-def get_studios(
+def get_feature_studios(
     api: api_base.Api, document_path: api_path.DocumentPath
 ) -> dict[str, conf.FeatureStudio]:
-    """Returns an array of feature studios in a document."""
+    """Returns a dict mapping feature studio names to feature studios."""
     elements = api.get(
         api_path.api_path("documents", document_path, "elements"),
         query={"elementType": "FEATURESTUDIO", "withThumbnails": False},

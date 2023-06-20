@@ -1,14 +1,13 @@
 from library import *
 from robot_code import robot_studio
+from robot_code.utils import profile
 
 DESCRIPTION = """Create a variety of bores suitable for use in robotics."""
-robot_studio = robot_studio.RobotFeature("bore")
-feature_studios = robot_studio.make_feature_studio(DESCRIPTION)
-
-studio = robot_studio.make_ui_studio(feature_studios)
+robot_studio = robot_studio.RobotFeature("bore", description=DESCRIPTION)
+studio = robot_studio.ui_studio
 
 end_style = (
-    ENUM_FACTORY.add_enum("EndStyle", parent=studio)
+    EnumFactory("EndStyle", parent=studio)
     .add_value("BLIND")
     .add_value("UP_TO_VERTEX")
     .add_value("THROUGH_ALL")
@@ -16,13 +15,13 @@ end_style = (
 )
 
 bore_type = (
-    ENUM_FACTORY.add_enum(
+    EnumFactory(
         "BoreType",
         parent=studio,
         generate_predicates=True,
     )
     .add_value("HEX")
-    .add_value("CIRCLE")
+    .add_value("ROUND")
     .add_value("MAX_SPLINE", "MAXSpline")
     .add_value("FALCON_SPLINE")
     .add_value("GEAR")
@@ -31,19 +30,19 @@ bore_type = (
 )
 
 bore_extend_type = (
-    ENUM_FACTORY.add_enum(
+    EnumFactory(
         "BoreExtendType",
         parent=studio,
     )
     .add_value("HEX")
-    .add_value("CIRCLE")
+    .add_value("ROUND")
     .add_value("MAX_SPLINE")
     .add_value("FALCON_SPLINE")
     .make()
 )
 
 gear_pitch_type = (
-    ENUM_FACTORY.add_enum("GearPitchType", parent=studio)
+    EnumFactory("GearPitchType", parent=studio)
     .add_value("DIAMETRICAL_PITCH")
     .add_value("CIRCULAR_PITCH")
     .add_value("MODULE")
@@ -51,30 +50,20 @@ gear_pitch_type = (
 )
 
 insert_type = (
-    ENUM_FACTORY.add_enum("InsertType", parent=studio)
+    EnumFactory("InsertType", parent=studio)
     .add_value("HEX", "1/2 in. hex")
     .add_value("FALCON_SPLINE")
     .make()
 )
 
-hex_size = (
-    CUSTOM_ENUM_FACTORY.add_enum("HexSize", parent=studio, value_type=LookupEnumValue)
-    .add_value("_1_2_IN", "1/2 in.", lookup_value=inch(1 / 2))
-    .add_value("_3_8_IN", "3/8 in.", lookup_value=inch(3 / 8))
-    .add_custom(lookup_value=definition("width"))
-    .make()
-)
-
-get_hex_size = enum_lookup_function(
-    "getHexSize", hex_size, return_type=Type.VALUE, parent=studio
-)
+hex_size = profile.HexSizeFactory(studio)
 
 fit = (
-    ENUM_FACTORY.add_enum("Fit", parent=studio)
+    EnumFactory("Fit", parent=studio)
     .add_value("NONE")
     .add_value("CLOSE")
     .add_value("FREE")
-    .add_value("CUSTOM")
+    .add_custom()
     .make()
 )
 
@@ -118,11 +107,8 @@ studio.add(
             enum_parameter(bore_type),
             bore_end_predicate,
             IfBlock(bore_type["HEX"])
-            .add(
-                enum_parameter(hex_size),
-                IfBlock(hex_size["CUSTOM"]).add(length_parameter("width")),
-            )
-            .else_if(bore_type["CIRCLE"])
+            .add(hex_size.predicate)
+            .else_if(bore_type["ROUND"])
             .add(length_parameter("diameter"))
             .else_if(bore_type["GEAR"])
             .add(
@@ -152,12 +138,12 @@ studio.add(
                     enum_parameter(bore_extend_type, user_name="Bore type"),
                     IfBlock(bore_extend_type["HEX"])
                     .add(
-                        enum_parameter(hex_size, "innerHexSize", "Hex size"),
-                        IfBlock(hex_size["CUSTOM"](parameter_name="innerHexSize")).add(
-                            length_parameter("extendWidth", "Width")
-                        ),
+                        enum_parameter(hex_size.enum, "innerHexSize", "Hex size"),
+                        IfBlock(
+                            hex_size.enum["CUSTOM"](parameter_name="innerHexSize")
+                        ).add(length_parameter("extendWidth", "Width")),
                     )
-                    .else_if(bore_extend_type["CIRCLE"])
+                    .else_if(bore_extend_type["ROUND"])
                     .add(length_parameter("extendDiameter", "Diameter")),
                 ),
                 boolean_parameter("overrideFit"),
@@ -212,8 +198,8 @@ studio.add(
         "getBoreDefinition", arguments=definition_arg, return_type=Type.MAP
     ).add(
         IfBlock(bore_type["HEX"])
-        .add(Return(Map({"width": get_hex_size})))
-        .else_if(bore_type["CIRCLE"])
+        .add(Return(Map({"width": hex_size.lookup_function})))
+        .else_if(bore_type["ROUND"])
         .add(Return(definition_map("diameter"))),
     ),
 )

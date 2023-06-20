@@ -1,11 +1,8 @@
 {
-  // path to storage folder
-  "storage_path": ".storage",
-  // path to output code
-  "code_path": ".fs_code",
-  // path to files to execute
-  "code_gen_path": "robot_code/robot_gen",
-  // document names are used in studios
+  "storage_path": ".storage", // path to storage folder
+  "code_path": ".fs_code", // path to output code
+  "code_gen_path": "robot_code/gen", // path to files to execute
+  // note document names are used in code gen
   "documents": [
     {
       "name": "backend",

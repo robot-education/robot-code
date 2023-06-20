@@ -3,7 +3,7 @@ from library import *
 studio = Studio("robotBeltUi.gen.fs", "backend")
 
 belt_type = (
-    ENUM_FACTORY.add_enum("BeltType", parent=studio)
+    EnumFactory("BeltType", parent=studio)
     .add_value("GT2")
     .add_value("HTD")
     .add_value("RT25")
@@ -11,7 +11,7 @@ belt_type = (
 )
 
 gt2_pitch = (
-    ENUM_FACTORY.add_enum("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
+    EnumFactory("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
     .add_value(
         "_2MM",
         lookup_value=millimeter(2),
@@ -21,7 +21,7 @@ gt2_pitch = (
 )
 
 htd_pitch = (
-    ENUM_FACTORY.add_enum("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
+    EnumFactory("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
     .add_value(
         "_3MM",
         lookup_value=millimeter(3),
@@ -31,7 +31,7 @@ htd_pitch = (
 )
 
 htd_width = (
-    ENUM_FACTORY.add_enum("HtdBeltWidth", parent=studio, value_type=LookupEnumValue)
+    EnumFactory("HtdBeltWidth", parent=studio, value_type=LookupEnumValue)
     .add_value(
         "_9MM",
         lookup_value=millimeter(9),

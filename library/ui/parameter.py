@@ -29,7 +29,7 @@ class TypeParameter(stmt.Statement, ABC):
 
 
 def enum_parameter(
-    enum: enum.EnumDict,
+    enum: enum.Enum,
     parameter_name: str | None = None,
     user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
@@ -48,7 +48,7 @@ def enum_parameter(
 
 
 def labeled_enum_parameter(
-    enum: enum.EnumDict,
+    enum: enum.Enum,
     parameter_name: str | None = None,
     user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
@@ -65,7 +65,7 @@ def labeled_enum_parameter(
 
 
 def horizontal_enum_parameter(
-    enum: enum.EnumDict,
+    enum: enum.Enum,
     parameter_name: str | None = None,
     user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,

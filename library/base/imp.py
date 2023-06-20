@@ -11,6 +11,10 @@ class Import(node.TopStatement):
     def __init__(
         self, studio_name: str, document_name: str | None = None, export: bool = False
     ) -> None:
+        """
+        Args:
+            document_name: The name of the document (specified in config) to use. If None, the studio is assumed to be from std.
+        """
         self.export = export
         self.studio_name = studio_name
         self.document_name = document_name
@@ -32,7 +36,7 @@ class Import(node.TopStatement):
             )
             path = "<INVALID_DOCUMENT_NAME>"
         else:
-            studios = documents.get_studios(context.api, document)
+            studios = documents.get_feature_studios(context.api, document)
             studio = studios.get(self.studio_name, None)
             if studio is None:
                 warnings.warn(

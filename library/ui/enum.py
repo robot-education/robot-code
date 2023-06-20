@@ -11,10 +11,8 @@ from library.core import control, func, utils, arg, map
 from library.base import ctxt, node, stmt, expr, str_utils
 
 __all__ = [
-    "ENUM_FACTORY",
-    "CUSTOM_ENUM_FACTORY",
     "EnumFactory",
-    "CustomEnumFactory",
+    "Enum",
     "enum_lookup_function",
     "LookupEnumValue",
 ]
@@ -24,7 +22,7 @@ class EnumValue(expr.Expr):
     def __init__(
         self,
         value: str,
-        enum: _Enum,
+        enum: Enum,
         annotate: bool = True,
         user_name: str | None = None,
         hidden: bool = False,
@@ -38,6 +36,7 @@ class EnumValue(expr.Expr):
         self.value = value.upper()
         self.hidden = hidden
         self.enum = enum
+        self.enum.add(self)
         self.annotate = annotate
         self.user_name = user_name or str_utils.value_user_name(self.value)
         self.invert = False
@@ -72,8 +71,9 @@ class EnumValue(expr.Expr):
 
         return name_template.format(**format_dict)
 
-    def register_predicate(self, predicate: func.UiTestPredicate):
+    def register_predicate(self, predicate: func.UiTestPredicate) -> Self:
         self.predicate = predicate
+        return self
 
     @override
     def __invert__(self) -> expr.Expr:
@@ -138,16 +138,17 @@ class LookupEnumValue(EnumValue):
         self.lookup_value = lookup_value
 
 
-T = TypeVar("T", bound=EnumValue)
+V = TypeVar("V", bound=EnumValue)
 
 
 # Avoid block parent since that has automatic expr->statement conversion
-class _Enum(node.TopStatement, node.ChildNode, node.ParentNode):
+class Enum(
+    node.TopStatement, node.ChildNode, node.ParentNode, dict[str, V], Generic[V]
+):
     def __init__(
         self,
         name: str,
-        *,
-        parent: node.ParentNode,
+        parent: node.ParentNode | None = None,
         default_parameter_name: str | None = None,
         export: bool = True,
     ) -> None:
@@ -158,12 +159,18 @@ class _Enum(node.TopStatement, node.ChildNode, node.ParentNode):
         default_parameter_name: A default parameter name to use. If not specified, the default is generated automatically by lowercasing the first letter of name.
         """
         super().__init__(parent=parent)
+        dict.__init__(self)
 
         self.name = name
         self.default_parameter_name = default_parameter_name or str_utils.lower_first(
             name
         )
         self.export = export
+
+    @override
+    def add(self, value: V) -> Self:
+        self[value.value] = value
+        return super().add(value)
 
     @override
     def build_top(self, context: ctxt.Context) -> str:
@@ -173,40 +180,19 @@ class _Enum(node.TopStatement, node.ChildNode, node.ParentNode):
         return string + "\n}\n"
 
 
-V = TypeVar("V", bound=EnumValue)
-
-
-class EnumDict(dict[str, V], Generic[V]):
-    def __init__(self, enum: _Enum, values: dict[str, V]):
-        self.name = enum.name
-        self.default_parameter_name = enum.default_parameter_name
-        super().__init__(values)
-
-
-class EnumFactoryBase(ABC):
+class EnumFactory:
     def __init__(
         self,
-        enum_type: Type[_Enum],
-    ):
-        self.enum_factory = enum_type
-        self.reset()
-
-    def reset(self) -> None:
-        self.result = {}
-        self.enum = None
-
-    def add_enum(
-        self,
         name: str,
-        *,
-        parent: node.ParentNode,
+        parent: node.ParentNode | None = None,
         default_parameter_name: str | None = None,
         export: bool = True,
         annotate: bool = True,
+        enum_type: Type[Enum] = Enum,
         value_type: Type[EnumValue] = EnumValue,
         generate_predicates: bool = False,
         predicate_name_template: str = "is{name}{value}",
-    ) -> Self:
+    ) -> None:
         """Begins the construction of an enum.
 
         Args:
@@ -217,17 +203,18 @@ class EnumFactoryBase(ABC):
             predicate_name_template: The default template to use when generating predicate names.
         """
         self.parent = parent  # save parent so predicates can also register
-        self.value_factory = value_type
+        self.value_type = value_type
         self.annotate = annotate
         self.generate_predicates = generate_predicates
         self.predicate_name_template = predicate_name_template
-        self.enum = self.enum_factory(
+
+        self.has_custom = False
+        self.enum = enum_type(
             name,
             parent=parent,
             default_parameter_name=default_parameter_name,
             export=export,
         )
-        return self
 
     def add_value(
         self,
@@ -240,10 +227,10 @@ class EnumFactoryBase(ABC):
         if self.enum is None:
             raise ValueError("add_enum must be called before add_value")
 
-        enum_value = self.value_factory(
+        # value adds itself to enum
+        enum_value = self.value_type(
             value, self.enum, user_name=user_name, annotate=self.annotate, **kwargs
         )
-        self.result[value] = enum_value
 
         # or operator handles None case
         if generate_predicate or self.generate_predicates:
@@ -258,60 +245,28 @@ class EnumFactoryBase(ABC):
 
         return self
 
-    def make(self) -> EnumDict[Any]:
-        if self.enum is None:
-            raise ValueError("add_enum must be called before make")
-        if len(self.result.values()) is None:
-            raise ValueError("Cannot create an enum with no values")
-
-        self.enum.add(*self.result.values())
-        enum_dict = EnumDict(self.enum, self.result)
-        self.reset()
-        return enum_dict
-
-
-class EnumFactory(EnumFactoryBase):
-    def __init__(self):
-        super().__init__(enum_type=_Enum)
-
-
-class CustomEnumFactory(EnumFactory):
-    def reset(self) -> None:
-        super().reset()
-        self.has_custom = False
-
     def add_custom(self, **kwargs) -> Self:
         if self.has_custom:
-            raise ValueError("Cannot add a custom value multiple times.")
+            raise ValueError("Cannot add a custom value multiple times")
         self.add_value("CUSTOM", **kwargs)
         self.has_custom = True
         return self
 
-    def make(self) -> EnumDict[Any]:
-        if not self.has_custom:
-            self.add_value("CUSTOM")
-        return super().make()
+    def make(self) -> Enum[Any]:
+        if self.enum is None:
+            raise ValueError("add_enum must be called before make")
+        elif len(self.enum) < 1:
+            raise ValueError("Cannot create an enum with no values")
 
-
-# def custom_enum_predicate(
-#     enum: lib_enum.EnumDict, *, name: str | None = None, parent: node.ParentNode
-# ) -> func.Predicate:
-#     """Generates a predicate which tests if an enum is CUSTOM."""
-#     if name is None:
-#         name = "is" + enum.name + "Custom"
-#     return func.UiTestPredicate(name, enum["CUSTOM"](), parent=parent)
-
-
-ENUM_FACTORY: EnumFactory = EnumFactory()
-CUSTOM_ENUM_FACTORY: CustomEnumFactory = CustomEnumFactory()
+        return self.enum
 
 
 def lookup_block(
-    enum_dict: EnumDict[LookupEnumValue],
+    enum_dict: Enum[LookupEnumValue],
     *,
     parent: node.ParentNode,
 ) -> control.IfBlock:
-    """Constructs an if block which accessesses each lookup value in `enum_dict`."""
+    """Constructs an if block which accesses each lookup value in `enum_dict`."""
     tests = []
     statements = []
     for enum_value in enum_dict.values():
@@ -323,7 +278,7 @@ def lookup_block(
 
 def enum_lookup_function(
     name: str,
-    enum_dict: EnumDict[LookupEnumValue],
+    enum_dict: Enum[LookupEnumValue],
     parent: node.ParentNode | None = None,
     additional_arguments: Iterable[arg.Argument] = [],
     return_type: str | None = None,

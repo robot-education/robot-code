@@ -85,7 +85,7 @@ class MapAccess(expr.Expr):
 
 
 def enum_map(
-    enum: enum.EnumDict, *values: str | expr.Expr, inline: bool = False, **kwargs
+    enum: enum.Enum, *values: str | expr.Expr, inline: bool = False, **kwargs
 ) -> Map:
     map_dict = dict(
         (enum_value.enum.name + "." + enum_value.value, value)
@@ -94,7 +94,7 @@ def enum_map(
     return Map(map_dict, quote_keys=False, inline=inline, **kwargs)
 
 
-def lookup_enum_map(enum: enum.EnumDict[enum.LookupEnumValue]) -> Map:
+def lookup_enum_map(enum: enum.Enum[enum.LookupEnumValue]) -> Map:
     map_dict = dict(
         (enum_value.enum.name + "." + enum_value.value, enum_value.lookup_value)
         for enum_value in enum.values()

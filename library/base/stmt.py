@@ -54,11 +54,13 @@ class BlockParent(node.ParentNode):
 
     @override
     def build_children(self, context: ctxt.Context, cast: bool = True, **kwargs) -> str:
-        self.children = list(cast_to_stmt(node) for node in self.children)
+        self.children = list(
+            cast_to_stmt(node) if cast else node for node in self.children
+        )
         return super().build_children(context, **kwargs)
 
 
 class BlockStatement(Statement, BlockParent):
-    """A type of statement which supports nested children."""
+    """A statement which supports a block of nested children."""
 
     pass

@@ -20,10 +20,10 @@ def main():
     backend_path = config.get_document("backend")
     if not backend_path:
         raise ValueError("Failed to find backend?")
-    studio_path_map = documents.get_studios(onshape, backend_path)
+    studio_path_map = documents.get_feature_studios(onshape, backend_path)
 
-    json_code = feature_studios.get_code(onshape, studio_path_map["toJson.fs"].path)
-    assembly_script_code = feature_studios.get_code(
+    json_code = feature_studios.pull_code(onshape, studio_path_map["toJson.fs"].path)
+    assembly_script_code = feature_studios.pull_code(
         onshape, studio_path_map["assemblyScript.fs"].path
     )
 

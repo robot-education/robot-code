@@ -94,7 +94,7 @@ def extract_part_studios(
 def get_parts_to_mates(
     assembly: dict, document_path: api_path.DocumentPath
 ) -> dict[api_path.PartPath, list[str]]:
-    """Constructs a mapping of"""
+    """Constructs a mapping of parts to their mate ids."""
     result = {}
     for part in assembly["parts"]:
         if "mateConnectors" not in part:
@@ -273,7 +273,6 @@ def iterate_mate_ids(
             if thread is not None:
                 threads.append(thread)
 
-    futures.as_completed(threads)
     return len(threads)
 
 

@@ -9,7 +9,7 @@ from typing import Iterator, Self
 from typing_extensions import override
 from library.base import ctxt, node, expr
 
-__all__ = ["Parens", "Id", "Call"]
+__all__ = ["Parens", "Id", "Call", "ui_predicate_call"]
 
 
 class Expr(node.Node):
@@ -120,6 +120,10 @@ def add_parens(expression: Expr):
     if isinstance(expression, Parens):
         return expression
     return Parens(expression)
+
+
+def ui_predicate_call(name: str) -> Call:
+    return Call(name, "definition")
 
 
 class Call(Expr):

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from abc import ABC, ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Generic, Iterable, Self, TypeVar
 from typing_extensions import override
 
@@ -19,14 +19,16 @@ class Node:
         ...
 
 
-N = TypeVar("N", bound=Node)
-
-
 class ChildNode(Node, ABC):
+    """A varaint of node which may become a child of a parent via its constructor."""
+
     def __init__(self, parent: ParentNode | None = None, **kwargs) -> None:
         super().__init__(**kwargs)
         if parent is not None:
             parent.add(self)
+
+
+N = TypeVar("N", bound=Node)
 
 
 class ParentNode(Node, Generic[N], ABC):
@@ -50,7 +52,6 @@ class TopStatement(Node, ABC):
         context: ctxt.Context,
     ) -> str:
         context.save()
-        # context.top = False?
         string = self.build_top(context)
         context.restore()
         return string
@@ -60,7 +61,7 @@ class TopStatement(Node, ABC):
         ...
 
     @override
-    def build(self, context: ctxt.Context) -> str:
+    def build(self, _: ctxt.Context) -> str:
         return ""
 
 

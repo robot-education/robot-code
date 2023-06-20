@@ -72,12 +72,12 @@ class Config:
             for document in documents
         )
 
-    def store(self, data: FileData) -> None:
+    def write(self, data: FileData) -> None:
         """Writes FileData to storage_path."""
         with self.storage_path.open("wb") as file:
             pickle.dump(data, file)
 
-    def fetch(self) -> FileData:
+    def read(self) -> FileData:
         """Fetches pickled FileData from storage_path."""
         if not self.storage_path.is_file():
             return {}
