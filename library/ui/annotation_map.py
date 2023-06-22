@@ -2,7 +2,7 @@ from typing import Any, Iterable
 from typing_extensions import override
 from library.base import ctxt, expr, str_utils
 from library.core import map
-from library.ui import query_expr, ui_hint
+from library.ui import ui_hint
 
 
 def format_description(description: str) -> str:

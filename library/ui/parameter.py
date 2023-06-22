@@ -214,6 +214,7 @@ class ParameterGroup(stmt.BlockStatement):
     def __init__(
         self,
         user_name: str,
+        uppercase_first_letter: bool = True,
         parent: node.ParentNode | None = None,
         collapsed_by_default: bool = False,
         driving_parameter: str | None = None,
@@ -222,8 +223,13 @@ class ParameterGroup(stmt.BlockStatement):
 
         Args:
             driving_parameter: The name of a parameter driving the group. See also `DrivenParameterGroup`.
+            uppercase_first_letter: True to automatically uppercase the first letter of `user_name`. Used to promote consistency with naming among parameters.
         """
         super().__init__(parent)
+
+        if uppercase_first_letter:
+            user_name = str_utils.upper_first(user_name)
+
         dictionary = {
             "Group Name": user_name,
             "Collapsed By Default": collapsed_by_default,
@@ -273,6 +279,7 @@ class DrivenParameterGroup(ParameterGroup):
         self.parameter_name = parameter_name
         super().__init__(
             user_name or str_utils.user_name(parameter_name),
+            uppercase_first_letter=False,
             parent=parent,
             driving_parameter=parameter_name,
         )

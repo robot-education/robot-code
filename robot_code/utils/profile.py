@@ -18,7 +18,7 @@ class HexSizeFactory:
 
     def _register_predicate(self) -> UiPredicate:
         return UiPredicate("hexSize", parent=self.studio).add(
-            enum_parameter(self.enum),
+            labeled_enum_parameter(self.enum),
             IfBlock(self.enum["CUSTOM"]).add(
                 length_parameter(
                     self.width_parameter,

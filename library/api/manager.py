@@ -1,4 +1,3 @@
-from asyncio import as_completed
 import functools
 import importlib
 import importlib.util
@@ -8,7 +7,7 @@ from concurrent import futures
 from typing import Callable, Iterable
 from library.base import ctxt, studio
 
-from library.api import api_base, conf, onshape
+from library.api import api_base, conf
 from library.api.endpoints import documents, feature_studios
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
@@ -72,10 +71,14 @@ class CommandLineManager:
         """
         studios = self._get_all_studios()
 
+        pulled = 0
         with futures.ThreadPoolExecutor() as executor:
-            pulled = sum(
-                executor.map(functools.partial(self.pull_studio, force), studios)
-            )
+            for studio in executor.map(
+                functools.partial(self.pull_studio, force), studios
+            ):
+                if studio:
+                    self.curr_data[studio.path.element_id] = studio
+                    pulled += 1
 
         if not self.conflict and pulled == 0:
             print("Already up to date.")
@@ -83,7 +86,9 @@ class CommandLineManager:
             print("Pulled {} feature studios.".format(pulled))
             self._finish()
 
-    def pull_studio(self, force: bool, studio: conf.FeatureStudio) -> bool:
+    def pull_studio(
+        self, force: bool, studio: conf.FeatureStudio
+    ) -> conf.FeatureStudio | None:
         curr_studio = self.curr_data.get(studio.path.element_id, None)
         if curr_studio is not None:
             if (
@@ -91,11 +96,11 @@ class CommandLineManager:
                 or curr_studio.generated
             ):
                 # do nothing if microversions match or the studio is auto-generated
-                return False
+                return None
             elif curr_studio.modified and not force:
                 # microversions don't match; potential conflict between cloud and local
                 self._report_conflict(studio)
-                return False
+                return None
             # okay to overwrite non-modified studio, set id
             studio.microversion_id = curr_studio.microversion_id
 
@@ -104,8 +109,7 @@ class CommandLineManager:
         code = feature_studios.pull_code(self.api, studio.path)
         self.config.write_file(studio.name, code)
         # don't need to worry about reseting generated since generated is never pulled
-        self.curr_data[studio.path.element_id] = studio
-        return True
+        return studio
 
     def push(self, force: bool = False) -> None:
         """Push code to Onshape.
@@ -124,13 +128,16 @@ class CommandLineManager:
 
         onshape_studios = self._get_all_studios()
 
+        pushed = 0
         with futures.ThreadPoolExecutor() as executor:
-            pushed = sum(
-                executor.map(
-                    functools.partial(self.push_studio, onshape_studios, force),
-                    studios_to_push,
-                )
-            )
+            for push_studio in executor.map(
+                functools.partial(self.push_studio, onshape_studios, force),
+                studios_to_push,
+            ):
+                if push_studio:
+                    # get_microversion_id doesn't work with threading - Onshape bug?
+                    self.curr_data[push_studio.path.element_id] = push_studio
+                    pushed += 1
 
         if not self.conflict and pushed == 0:
             print("Everything already up to date.")
@@ -143,7 +150,7 @@ class CommandLineManager:
         onshape_studios: Iterable[conf.FeatureStudio],
         force: bool,
         push_studio: conf.FeatureStudio,
-    ) -> bool:
+    ) -> conf.FeatureStudio | None:
         onshape_studio = next(
             filter(
                 lambda onshape_studio: onshape_studio.path.element_id
@@ -152,30 +159,22 @@ class CommandLineManager:
             ),
         )
 
-        # if onshape_studio == None:
-        #     print("Generating {}.".format(push_studio.name))
-        #     push_studio = feature_studios.make_feature_studio(
-        #         self.api,
-        #         push_studio.path.path,
-        #         push_studio.name,
-        #     )
         if not force and onshape_studio.microversion_id != push_studio.microversion_id:
             self._report_conflict(push_studio)
-            return False
+            return None
 
         print("Pushing {}".format(push_studio.name))
         code = self.config.read_file(push_studio.name)
         if code is None:
             print("Failed to find studio {}. Skipping.".format(push_studio.name))
-            return False
+            return None
 
         feature_studios.push_code(self.api, push_studio.path, code)
         push_studio.modified = False
         push_studio.microversion_id = documents.get_microversion_id(
             self.api, push_studio.path
         )
-        self.curr_data[push_studio.path.element_id] = push_studio
-        return True
+        return push_studio
 
     def update_versions(self) -> None:
         std_version = feature_studios.std_version(self.api)
@@ -216,9 +215,7 @@ class CommandLineManager:
         std_version = feature_studios.std_version(self.api)
         paths = self.config.code_gen_path.rglob("**/*.py")
         count = 0
-
         for path in paths:
-            # output = runpy.run_path(path.as_posix())
             spec = importlib.util.spec_from_file_location(path.stem, path)
             if spec is None or spec.loader is None:
                 raise ValueError("Failed to open {}. Aborting.".format(path.stem))

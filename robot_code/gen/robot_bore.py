@@ -102,31 +102,29 @@ studio.add(
             )
         ),
     ),
-    bore_predicate := UiPredicate("bore").add(
-        ParameterGroup("Bore").add(
-            enum_parameter(bore_type),
-            bore_end_predicate,
-            IfBlock(bore_type["HEX"])
-            .add(hex_size.predicate)
-            .else_if(bore_type["ROUND"])
-            .add(length_parameter("diameter"))
-            .else_if(bore_type["GEAR"])
-            .add(
-                labeled_enum_parameter(gear_pitch_type, user_name="Pitch type"),
-                IfBlock(gear_pitch_type["DIAMETRICAL_PITCH"])
-                .add(real_parameter("diametricalPitch", bound_spec=dp_pitch_bounds))
-                .else_if(gear_pitch_type["CIRCULAR_PITCH"])
-                .add(real_parameter("circularPitch", bound_spec=cp_pitch_bounds))
-                .or_else()
-                .add(real_parameter("module", bound_spec=dp_pitch_bounds)),
-                integer_parameter("teeth", bound_spec=teeth_bounds),
-            )
-            .else_if(bore_type["INSERT"])
-            .add(
-                enum_parameter(insert_type),
-            ),
-            labeled_enum_parameter(fit),
+    bore_predicate := UiPredicate("bore").add_with_group(
+        enum_parameter(bore_type),
+        bore_end_predicate,
+        IfBlock(bore_type["HEX"])
+        .add(hex_size.predicate)
+        .else_if(bore_type["ROUND"])
+        .add(length_parameter("diameter"))
+        .else_if(bore_type["GEAR"])
+        .add(
+            labeled_enum_parameter(gear_pitch_type, user_name="Pitch type"),
+            IfBlock(gear_pitch_type["DIAMETRICAL_PITCH"])
+            .add(real_parameter("diametricalPitch", bound_spec=dp_pitch_bounds))
+            .else_if(gear_pitch_type["CIRCULAR_PITCH"])
+            .add(real_parameter("circularPitch", bound_spec=cp_pitch_bounds))
+            .or_else()
+            .add(real_parameter("module", bound_spec=dp_pitch_bounds)),
+            integer_parameter("teeth", bound_spec=teeth_bounds),
         )
+        .else_if(bore_type["INSERT"])
+        .add(
+            enum_parameter(insert_type),
+        ),
+        labeled_enum_parameter(fit),
     ),
     extend_predicate := UiPredicate("extendBore").add(
         IfBlock(end_style["BLIND"] | end_style["UP_TO_VERTEX"]).add(
@@ -169,20 +167,18 @@ studio.add(
             length_parameter("distance", bound_spec=LengthBound.SHELL_OFFSET_BOUNDS)
         )
     ),
-    selections_predicate := UiPredicate("selections").add(
-        ParameterGroup("Selections").add(
-            # mimic hole feature
-            query_parameter(
-                "locations",
-                user_name="Sketch points to place bores",
-                filter=SKETCH_VERTEX_FILTER,
-            ),
-            query_parameter(
-                "scope",
-                user_name="Merge scope",
-                filter=ModifiableEntityOnly.YES & EntityType.BODY & BodyType.SOLID,
-            ),
-        )
+    selections_predicate := UiPredicate("selections").add_with_group(
+        # mimic hole feature
+        query_parameter(
+            "locations",
+            user_name="Sketch points to place bores",
+            filter=SKETCH_VERTEX_FILTER,
+        ),
+        query_parameter(
+            "scope",
+            user_name="Merge scope",
+            filter=ModifiableEntityOnly.YES & EntityType.BODY & BodyType.SOLID,
+        ),
     ),
     UiPredicate("robotBore").add(
         bore_predicate,

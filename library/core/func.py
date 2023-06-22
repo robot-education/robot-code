@@ -159,6 +159,10 @@ class UiPredicate(Predicate):
         append: str = "Predicate",
         statements: Iterable[stmt.Statement | expr.Expr] = [],
     ) -> None:
+        """
+        Args:
+            create_group: Wrap the group in a ParameterGroup with the same name as the parameter.
+        """
         super().__init__(
             name + append,
             parent=parent,
@@ -166,6 +170,14 @@ class UiPredicate(Predicate):
             statements=statements,
             export=True,
         )
+        self.base_name = name
+
+    def add_with_group(self, *children: node.Node) -> Self:
+        # avoid circular import
+        from library.ui import parameter
+
+        group = parameter.ParameterGroup(self.base_name).add(*children)
+        return super().add(group)
 
     @override
     def build_top(self, context: ctxt.Context) -> str:

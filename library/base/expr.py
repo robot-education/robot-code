@@ -123,7 +123,7 @@ def add_parens(expression: Expr):
 
 
 def ui_predicate_call(name: str) -> Call:
-    return Call(name, "definition")
+    return Call(name + "Predicate", "definition")
 
 
 class Call(Expr):

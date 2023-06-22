@@ -29,7 +29,7 @@ def _extract_paths(
 
 def get_microversion_id(api: api_base.Api, element_path: api_path.ElementPath) -> str:
     """Fetches the microversion id of an element."""
-    path = api_path.api_path("documents", element_path, "elements")
+    path = api_path.api_path("documents", element_path.path, "elements")
     return api.get(path, query={"elementId": element_path.element_id})[0][
         "microversionId"
     ]
