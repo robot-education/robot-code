@@ -1,14 +1,15 @@
 from abc import ABC
 import dataclasses
+from typing import Self
 from typing_extensions import override
 import warnings
 from library.core import control, utils
-from library.base import ctxt, expr, stmt, str_utils, node
+from library.base import ctxt, expr, str_utils, node
 from library.ui import bounds, enum, ui_hint, annotation_map
 
 
 @dataclasses.dataclass
-class TypeParameter(stmt.Statement, ABC):
+class TypeParameter(node.Node, ABC):
     """Represents a UI element which is a type, such as an enum or boolean."""
 
     parameter_name: str
@@ -17,10 +18,13 @@ class TypeParameter(stmt.Statement, ABC):
     parent: node.ParentNode | None = None
 
     def __post_init__(self) -> None:
-        super().__init__(self.parent)
+        node.handle_parent(self, self.parent)
 
     @override
     def build(self, context: ctxt.Context) -> str:
+        if not context.ui:
+            warnings.warn("UI parameter added to non-UI predicate")
+        context.scope = ctxt.Scope.EXPRESSION
         return (
             self.annotation_map.run_build(context)
             + utils.definition(self.parameter_name).run_build(context)
@@ -116,7 +120,7 @@ def boolean_circular_flip_parameter(
     return boolean_parameter(parameter_name, ui_hints=ui_hints, **kwargs)
 
 
-class ValueParameter(stmt.Statement, ABC):
+class ValueParameter(node.Node, ABC):
     """Represents a UI element which belongs to a predicate, such as a length, angle, or query."""
 
     def __init__(
@@ -127,7 +131,7 @@ class ValueParameter(stmt.Statement, ABC):
         parent: node.ParentNode | None = None,
         bound_spec: str | bounds.BoundSpec | None = None,
     ):
-        super().__init__(parent)
+        node.handle_parent(self, parent)
         self.parameter_name = parameter_name
         self.bound_spec = bound_spec
         self.predicate = predicate
@@ -135,6 +139,9 @@ class ValueParameter(stmt.Statement, ABC):
 
     @override
     def build(self, context: ctxt.Context) -> str:
+        if not context.ui:
+            warnings.warn("UI parameter added to non-UI predicate")
+        context.scope = ctxt.Scope.EXPRESSION
         map_str = self.annotation_map.run_build(context)
         if self.bound_spec:
             return map_str + "{}({}, {});\n".format(
@@ -194,7 +201,7 @@ def query_parameter(
     parameter_name: str,
     user_name: str | None = None,
     *,
-    filter: expr.Expr,
+    filter: expr.Expression,
     ui_hints: ui_hint.UiHint | None = None,
     max_picks: int | None = None,
     description: str | None = None,
@@ -210,7 +217,7 @@ def query_parameter(
     return TypeParameter(parameter_name, "Query", map)
 
 
-class ParameterGroup(stmt.BlockStatement):
+class ParameterGroup(node.ParentNode):
     def __init__(
         self,
         user_name: str,
@@ -225,8 +232,8 @@ class ParameterGroup(stmt.BlockStatement):
             driving_parameter: The name of a parameter driving the group. See also `DrivenParameterGroup`.
             uppercase_first_letter: True to automatically uppercase the first letter of `user_name`. Used to promote consistency with naming among parameters.
         """
-        super().__init__(parent)
-
+        super().__init__()
+        node.handle_parent(self, parent)
         if uppercase_first_letter:
             user_name = str_utils.upper_first(user_name)
 
@@ -242,19 +249,23 @@ class ParameterGroup(stmt.BlockStatement):
 
     @override
     def build(self, context: ctxt.Context) -> str:
+        if not context.ui:
+            warnings.warn("UI parameter added to non-UI predicate")
         if len(self.children) == 0:
-            warnings.warn("Empty parameter group not permitted.")
+            warnings.warn("Empty parameter group not permitted")
         return "".join(
             [
-                self.map.run_build(context),
+                self.map.run_build(context, ctxt.Scope.EXPRESSION),
                 "{\n",
-                self.build_children(context, sep="\n", indent=True),
+                self.build_children(
+                    context, sep="\n", indent=True, scope=ctxt.Scope.STATEMENT
+                ),
                 "}\n",
             ]
         )
 
 
-class DrivenParameterGroup(ParameterGroup):
+class DrivenParameterGroup(node.ParentNode):
     """Represents a parameter group driven by a boolean."""
 
     def __init__(
@@ -264,7 +275,7 @@ class DrivenParameterGroup(ParameterGroup):
         parent: node.ParentNode | None = None,
         ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         default: bool = False,
-        test: expr.Expr | None = None,
+        test: expr.Expression | None = None,
     ) -> None:
         """
         Args:
@@ -277,43 +288,37 @@ class DrivenParameterGroup(ParameterGroup):
         """
         self.drive_group_test = test
         self.parameter_name = parameter_name
-        super().__init__(
+        self.group = ParameterGroup(
             user_name or str_utils.user_name(parameter_name),
             uppercase_first_letter=False,
             parent=parent,
             driving_parameter=parameter_name,
         )
         self.boolean = boolean_parameter(
-            parameter_name=self.parameter_name,
+            parameter_name,
             user_name=user_name,
             ui_hints=ui_hints,
             default=default,
         )
 
     @override
-    def build(self, context: ctxt.Context) -> str:
-        # avoid infinite recursion by building super explicitly
-        parent_build = stmt.StmtId(super().build(context))
+    def add(self, *nodes: node.Node) -> Self:
+        self.group.add(*nodes)
+        return self
 
+    @override
+    def build(self, context: ctxt.Context) -> str:
         if self.drive_group_test is None:
             string = self.boolean.run_build(context) + "\n"
-            string += (
-                control.IfBlock(utils.definition(self.parameter_name))
-                .add(parent_build)
-                .run_build(context)
-            )
+            test = utils.definition(self.parameter_name)
         else:
             string = (
                 control.IfBlock(self.drive_group_test)
                 .add(self.boolean)
                 .run_build(context)
             )
-            string += (
-                control.IfBlock(
-                    ~expr.add_parens(self.drive_group_test)
-                    | utils.definition(self.parameter_name)
-                )
-                .add(parent_build)
-                .run_build(context)
+            test = ~expr.add_parens(self.drive_group_test) | utils.definition(
+                self.parameter_name
             )
+        string += control.IfBlock(test).add(self.group).run_build(context)
         return string

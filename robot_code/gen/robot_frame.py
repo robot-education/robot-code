@@ -1,4 +1,5 @@
 from library import *
+from library.core.std import Return
 from robot_code.robot_studio import RobotFeature
 
 DESCRIPTION = r"Generate robot frame members."
@@ -298,7 +299,7 @@ studio.add(
 get_hole_diameter = Function(
     "getHoleDiameter",
     parent=studio,
-    arguments=definition_arg,
+    parameters=definition_param,
     return_type=Type.VALUE,
     export=False,
 ).add(
@@ -328,7 +329,7 @@ Const(
 # get_min_hole_diameter = Function(
 #     "getMinHoleDiameter",
 #     parent=studio,
-#     arguments=definition_arg,
+#     parameters=definition_param,
 #     return_type=Type.VALUE,
 #     export=False,
 #     # Although its technically 5mm, we fudge to allow close fit holes
@@ -344,7 +345,7 @@ get_one_inch_face_hole_count = enum_lookup_function(
 get_first_face_width = Function(
     "getFirstFaceWidth",
     parent=studio,
-    arguments=definition_arg,
+    parameters=definition_param,
     return_type=Type.VALUE,
     export=False,
 ).add(
@@ -365,7 +366,7 @@ get_two_inch_face_hole_count = enum_lookup_function(
 get_second_face_width = Function(
     "getSecondFaceWidth",
     parent=studio,
-    arguments=definition_arg,
+    parameters=definition_param,
     return_type=Type.MAP,
     export=False,
 ).add(
@@ -443,7 +444,7 @@ tube_face_def = "tubeFaceDefinition"
 get_first_face_pattern_definition = Function(
     "getFirstFacePatternDefinition",
     parent=studio,
-    arguments=definition_arg,
+    parameters=definition_param,
     return_type=Type.MAP,
     export=False,
 ).add(
@@ -525,7 +526,7 @@ get_first_face_pattern_definition = Function(
 get_second_face_pattern_definition = Function(
     "getSecondFacePatternDefinition",
     parent=studio,
-    arguments=definition_arg,
+    parameters=definition_param,
     return_type=Type.MAP,
     export=False,
 ).add(
@@ -594,7 +595,7 @@ get_wall_thickness = enum_lookup_function(
 get_max_tube_profile_type = Function(
     "getMaxTubeProfileType",
     parent=studio,
-    arguments=definition_arg,
+    parameters=definition_param,
     return_type="MaxTubeProfileType",
     export=False,
 ).add(
@@ -610,7 +611,7 @@ get_max_tube_profile_type = Function(
 get_max_tube_definition = Function(
     "getMaxTubeDefinition",
     parent=studio,
-    arguments=definition_arg,
+    parameters=definition_param,
     return_type=Type.MAP,
     export=False,
 ).add(
@@ -628,7 +629,10 @@ get_max_tube_definition = Function(
 
 tube_def = "tubeDefinition"
 Function(
-    "getTubeDefinition", parent=studio, arguments=definition_arg, return_type=Type.MAP
+    "getTubeDefinition",
+    parent=studio,
+    parameters=definition_param,
+    return_type=Type.MAP,
 ).add(
     Var(
         tube_def,

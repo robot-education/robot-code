@@ -2,10 +2,12 @@ from typing_extensions import override
 import warnings
 from library.api.endpoints import documents
 from library.base import node, ctxt
+from library.base import user_error
+from library.base.user_error import expected_scope
 from library.core import utils
 
 
-class Import(node.TopStatement):
+class Import(node.Node):
     """Represents an import statement."""
 
     def __init__(
@@ -24,6 +26,7 @@ class Import(node.TopStatement):
             return ("onshape/std/" + self.studio_name, context.std_version + ".0")
 
         if self.document_name != context.document_name:
+            # TODO: Handle external document ref
             return ("<EXTERNAL_DOCUMENT_REF>", "0" * 24)
 
         document = context.config.get_document(self.document_name)
@@ -34,7 +37,7 @@ class Import(node.TopStatement):
                     ", ".join(context.config.documents.keys()),
                 )
             )
-            path = "<INVALID_DOCUMENT_NAME>"
+            path = user_error.code_message("Invalid document name")
         else:
             studios = documents.get_feature_studios(context.api, document)
             studio = studios.get(self.studio_name, None)
@@ -44,14 +47,16 @@ class Import(node.TopStatement):
                         self.document_name, self.studio_name
                     )
                 )
-                path = "<INVALID_STUDIO_NAME>"
+                path = user_error.code_message("Invalid document name")
             else:
                 path = studio.path.element_id
 
         return (path, "0" * 24)
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
+        if context.scope != ctxt.Scope.TOP:
+            return expected_scope(ctxt.Scope.TOP)
         return utils.export(
             self.export
         ) + 'import(path : "{}", version : "{}");\n'.format(*self.resolve_path(context))

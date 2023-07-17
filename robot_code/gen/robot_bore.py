@@ -1,4 +1,5 @@
 from library import *
+from library.core.std import Return
 from robot_code import robot_studio
 from robot_code.utils import profile
 
@@ -191,7 +192,7 @@ studio.add(
 # functions
 studio.add(
     get_bore_definition := Function(
-        "getBoreDefinition", arguments=definition_arg, return_type=Type.MAP
+        "getBoreDefinition", parameters=definition_param, return_type=Type.MAP
     ).add(
         IfBlock(bore_type["HEX"])
         .add(Return(Map({"width": hex_size.lookup_function})))

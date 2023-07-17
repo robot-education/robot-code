@@ -1,6 +1,6 @@
 from typing import Self
 from typing_extensions import override
-from library.base import ctxt, expr, node, str_utils
+from library.base import ctxt, expr, node, str_utils, user_error
 from library.ui import annotation_map
 
 FEATURE_BODY = """export const {} = defineFeature(function(context is Context, id is Id, definition is map)
@@ -13,7 +13,7 @@ FEATURE_BODY = """export const {} = defineFeature(function(context is Context, i
     }});\n"""
 
 
-class Feature(node.TopStatement):
+class Feature(node.Node):
     def __init__(
         self,
         name: str,
@@ -23,19 +23,20 @@ class Feature(node.TopStatement):
     ) -> None:
         self.name = name
         self.map = map
-        self.ui = ui or expr.Id(self.name + "Predicate(definition);")
-        self.body = body or expr.Id(
-            "do" + str_utils.upper_first(self.name) + "(context, id, definition);"
+        self.ui = ui or expr.Call(self.name + "Predicate", "definition")
+        self.body = body or expr.Call(
+            "do" + str_utils.upper_first(self.name), "context", "id", "definition"
         )
-
-    # def default_function(self) -> str:
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
-        header = self.map.run_build(context)
-        return header + FEATURE_BODY.format(
-            self.name, self.ui.run_build(context), self.body.run_build(context)
-        )
+    def build(self, context: ctxt.Context) -> str:
+        if context.scope == ctxt.Scope.TOP:
+            context.scope = ctxt.Scope.EXPRESSION
+            header = self.map.run_build(context)
+            return header + FEATURE_BODY.format(
+                self.name, self.ui.run_build(context), self.body.run_build(context)
+            )
+        return user_error.expected_scope(ctxt.Scope.TOP)
 
 
 class FeatureFactory:

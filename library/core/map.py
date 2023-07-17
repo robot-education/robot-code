@@ -2,6 +2,8 @@ import dataclasses
 from typing import Any, Iterable, Sequence
 from typing_extensions import override
 from library.base import ctxt, expr, str_utils, node
+from library.base import user_error
+from library.base.user_error import assert_scope
 from library.core import utils
 from library.ui import enum
 
@@ -15,7 +17,7 @@ __all__ = [
 
 
 @dataclasses.dataclass
-class Map(expr.Expr):
+class Map(expr.Expression):
     """Defines a map literal.
 
     Args:
@@ -58,6 +60,7 @@ class Map(expr.Expr):
         return string + "}"
 
     def build(self, context: ctxt.Context) -> str:
+        user_error.assert_scope(context, ctxt.Scope.EXPRESSION)
         map_string = self._build_map(context)
         if self.type:
             return map_string + " as " + self.type
@@ -69,13 +72,16 @@ def definition_map(*values: str, definition: str = "definition", **kwargs) -> Ma
     return Map(map_dict, **kwargs)
 
 
-class MapAccess(expr.Expr):
-    def __init__(self, map: str | expr.Expr, *keys: str | expr.Expr) -> None:
+class MapAccess(expr.Expression):
+    def __init__(
+        self, map: str | expr.Expression, *keys: str | expr.Expression
+    ) -> None:
         self.map = expr.cast_to_expr(map)
         self.keys = keys
 
     @override
     def build(self, context: ctxt.Context) -> str:
+        user_error.assert_scope(context, ctxt.Scope.EXPRESSION)
         return self.map.run_build(context) + "".join(
             (
                 "[{}]".format(expr.cast_to_expr(key).run_build(context))
@@ -85,7 +91,7 @@ class MapAccess(expr.Expr):
 
 
 def enum_map(
-    enum: enum.Enum, *values: str | expr.Expr, inline: bool = False, **kwargs
+    enum: enum.Enum, *values: str | expr.Expression, inline: bool = False, **kwargs
 ) -> Map:
     map_dict = dict(
         (enum_value.enum.name + "." + enum_value.value, value)

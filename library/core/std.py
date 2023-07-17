@@ -1,28 +1,33 @@
 from dataclasses import dataclass
 import dataclasses
 from typing_extensions import override
-from library.base import ctxt, expr, node, stmt
+from library.base import ctxt, expr, node
 
 __all__ = ["Assign", "Const", "Var", "Ternary", "merge_maps"]
 
 
-class Assign(stmt.Statement):
+class Assign(node.Node):
     def __init__(
-        self, name: expr.ExprCandidate, expression: expr.ExprCandidate, **kwargs
+        self,
+        name: expr.ExprCandidate,
+        expression: expr.ExprCandidate,
+        parent: node.ParentNode | None = None,
     ) -> None:
-        super().__init__(**kwargs)
+        node.handle_parent(self, parent)
         self.name = expr.cast_to_expr(name)
         self.expression = expr.cast_to_expr(expression)
 
     @override
     def build(self, context: ctxt.Context) -> str:
+        old_scope = context.scope
+        context.scope = ctxt.Scope.EXPRESSION
         string = (
             self.name.run_build(context) + " = " + self.expression.run_build(context)
         )
-        return stmt.Line(string).run_build(context)
+        return expr.expr_or_stmt(string, old_scope)
 
 
-class Const(Assign, node.TopStatement, expr.Expr):
+class Const(Assign, expr.Expression):
     def __init__(
         self, name: str, expression: expr.ExprCandidate, export: bool = False, **kwargs
     ) -> None:
@@ -34,22 +39,21 @@ class Const(Assign, node.TopStatement, expr.Expr):
         self.export = export
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
-        append = "export " if self.export else ""
-        return append + "const " + super().build(context)
-
-    @override
     def build(self, context: ctxt.Context) -> str:
-        return self.name.run_build(context)
+        if context.scope == ctxt.Scope.TOP:
+            append = "export " if self.export else ""
+            context.scope = ctxt.Scope.STATEMENT
+        else:
+            append = ""
+        return append + "const " + super().build(context)
 
 
 # Does not inherit from Assign since expression may be None
-class Var(stmt.Statement):
+class Var(node.Node):
     def __init__(
         self,
         name: expr.ExprCandidate,
         expression: expr.ExprCandidate | None = None,
-        **kwargs
     ) -> None:
         self.name = name
         self.expression = expression
@@ -59,14 +63,14 @@ class Var(stmt.Statement):
         string = "var {}".format(expr.build_expr(self.name, context))
         if self.expression is not None:
             string += " = " + expr.build_expr(self.expression, context)
-        return stmt.Line(string).run_build(context)
+        return string + ";\n"
 
 
 @dataclasses.dataclass
-class Ternary(expr.Expr):
+class Ternary(expr.Expression):
     """Represents a ternary operator."""
 
-    test: expr.Expr
+    test: expr.Expression
     false_operand: expr.ExprCandidate
     true_operand: expr.ExprCandidate
 
@@ -79,5 +83,14 @@ class Ternary(expr.Expr):
         )
 
 
-def merge_maps(defaults: expr.ExprCandidate, m: expr.ExprCandidate) -> expr.Expr:
+def merge_maps(defaults: expr.ExprCandidate, m: expr.ExprCandidate) -> expr.Expression:
     return expr.Call("mergeMaps", defaults, m)
+
+
+class Return(node.Node):
+    def __init__(self, expression: expr.Expression | str) -> None:
+        self.expression = expr.cast_to_expr(expression)
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        return "return " + self.expression.run_build(context) + ";\n"

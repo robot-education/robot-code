@@ -3,47 +3,55 @@ A module defining expressions. Expressions refer to boolean logic and mathematic
 """
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import enum as std_enum
 from typing import Iterator, Self
 from typing_extensions import override
-from library.base import ctxt, node, expr
+from library.base import ctxt, node, expr, user_error
 
 __all__ = ["Parens", "Id", "Call", "ui_predicate_call"]
 
 
-class Expr(node.Node):
-    def __and__(self, other: ExprCandidate) -> Expr:
+def expr_or_stmt(expression_string: str, scope: ctxt.Scope) -> str:
+    """Converts expression_string to a statement based on context."""
+    if scope == ctxt.Scope.EXPRESSION:
+        return expression_string
+    elif scope == ctxt.Scope.STATEMENT:
+        return expression_string + ";\n"
+    return user_error.expected_scope(ctxt.Scope.EXPRESSION, ctxt.Scope.STATEMENT)
+
+
+class Expression(node.Node):
+    def __and__(self, other: ExprCandidate) -> Expression:
         return BoolOp(self, "&&", other)
 
-    def __or__(self, other: ExprCandidate) -> Expr:
+    def __or__(self, other: ExprCandidate) -> Expression:
         return BoolOp(self, "||", other)
 
-    def __invert__(self) -> Expr:
+    def __invert__(self) -> Expression:
         return UnaryOp(self, "!")
 
-    def __add__(self, other: ExprCandidate) -> Expr:
+    def __add__(self, other: ExprCandidate) -> Expression:
         return BoolOp(self, "+", other)
 
-    def __sub__(self, other: ExprCandidate) -> Expr:
+    def __sub__(self, other: ExprCandidate) -> Expression:
         return BoolOp(self, "-", other)
 
-    def __mul__(self, other: ExprCandidate) -> Expr:
+    def __mul__(self, other: ExprCandidate) -> Expression:
         return BoolOp(self, "*", other)
 
-    def __truediv__(self, other: ExprCandidate) -> Expr:
+    def __truediv__(self, other: ExprCandidate) -> Expression:
         return BoolOp(self, "/", other)
 
-    def __radd__(self, lhs: ExprCandidate) -> Expr:
+    def __radd__(self, lhs: ExprCandidate) -> Expression:
         return BoolOp(lhs, "+", self)
 
-    def __rsub__(self, lhs: ExprCandidate) -> Expr:
+    def __rsub__(self, lhs: ExprCandidate) -> Expression:
         return BoolOp(lhs, "-", self)
 
-    def __rmul__(self, lhs: ExprCandidate) -> Expr:
+    def __rmul__(self, lhs: ExprCandidate) -> Expression:
         return BoolOp(lhs, "*", self)
 
-    def __rtruediv__(self, lhs: ExprCandidate) -> Expr:
+    def __rtruediv__(self, lhs: ExprCandidate) -> Expression:
         return BoolOp(lhs, "/", self)
 
     # Add iter to support use as a statement for predicate
@@ -51,11 +59,11 @@ class Expr(node.Node):
         return [self].__iter__()
 
 
-ExprCandidate = expr.Expr | bool | str | int | float
+ExprCandidate = expr.Expression | bool | str | int | float
 
 
-def cast_to_expr(node: ExprCandidate) -> Expr:
-    if not isinstance(node, Expr):
+def cast_to_expr(node: ExprCandidate) -> Expression:
+    if not isinstance(node, Expression):
         if isinstance(node, bool):
             node = "true" if node else "false"
         elif isinstance(node, int | float):
@@ -68,12 +76,13 @@ def build_expr(node: ExprCandidate, context: ctxt.Context) -> str:
     return cast_to_expr(node).run_build(context)
 
 
-class Id(Expr):
+class Id(Expression):
     def __init__(self, identifier: str) -> None:
+        # Cannot be ExprCandidate due to recursion
         self.identifier = identifier
 
     @override
-    def build(self, _: ctxt.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         return self.identifier
 
 
@@ -82,14 +91,16 @@ class Operator(std_enum.StrEnum):
     NOT_EQUAL = "!="
 
 
-class Equal(Expr):
-    def __init__(self, lhs: Expr | str, operator: Operator, rhs: Expr | str) -> None:
+class Equal(Expression):
+    def __init__(
+        self, lhs: Expression | str, operator: Operator, rhs: Expression | str
+    ) -> None:
         self.lhs = lhs
         self.operator = operator
         self.rhs = rhs
 
     @override
-    def __invert__(self) -> Expr:
+    def __invert__(self) -> Expression:
         """Overload inversion to flip from == to !=."""
         self.operator = (
             Operator.NOT_EQUAL if self.operator == Operator.EQUAL else Operator.EQUAL
@@ -107,8 +118,8 @@ class Equal(Expr):
         )
 
 
-class Parens(Expr):
-    def __init__(self, expr: Expr) -> None:
+class Parens(Expression):
+    def __init__(self, expr: Expression) -> None:
         self.expr = expr
 
     @override
@@ -116,7 +127,7 @@ class Parens(Expr):
         return "({})".format(self.expr.run_build(context))
 
 
-def add_parens(expression: Expr):
+def add_parens(expression: Expression):
     if isinstance(expression, Parens):
         return expression
     return Parens(expression)
@@ -126,40 +137,27 @@ def ui_predicate_call(name: str) -> Call:
     return Call(name + "Predicate", "definition")
 
 
-class Call(Expr):
+class Call(Expression):
     def __init__(
         self, name: str, *args: expr.ExprCandidate, inline: bool = True
     ) -> None:
         self.name = name
-        self.args = args
+        self.args = (cast_to_expr(arg) for arg in args)
         self.inline = inline
 
     @override
     def build(self, context: ctxt.Context) -> str:
         join_str = ", " if self.inline else ",\n"
-        return "{}({})".format(
+        result = "{}({})".format(
             self.name,
             node.build_nodes(
-                (cast_to_expr(expr) for expr in self.args), context, sep=join_str
+                self.args, context, sep=join_str, scope=ctxt.Scope.EXPRESSION
             ),
         )
+        return expr_or_stmt(result, context.scope)
 
 
-class InlineableCall(Call, ABC):
-    """Represents a call which can be inlined."""
-
-    @abstractmethod
-    def build_inline(self, context: ctxt.Context) -> str:
-        ...
-
-    @override
-    def build(self, context: ctxt.Context) -> str:
-        if context.test_predicate:
-            return self.build_inline(context)
-        return super().build(context)
-
-
-class UnaryOp(Expr):
+class UnaryOp(Expression):
     def __init__(self, operand: ExprCandidate, operator: str) -> None:
         self.operand = operand
         self.operator = operator
@@ -169,7 +167,7 @@ class UnaryOp(Expr):
         return self.operator + build_expr(self.operand, context)
 
 
-class BoolOp(Expr):
+class BoolOp(Expression):
     def __init__(self, lhs: ExprCandidate, operator: str, rhs: ExprCandidate) -> None:
         self.lhs = lhs
         self.operator = operator

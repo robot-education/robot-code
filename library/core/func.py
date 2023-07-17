@@ -4,95 +4,101 @@ from typing_extensions import override
 import warnings
 import enum as std_enum
 from typing import Iterable, Self
-from library.core import utils, arg
-from library.base import ctxt, expr, node, stmt, str_utils
-
-__all__ = [
-    "Function",
-    "Predicate",
-    "UiPredicate",
-    "UiTestPredicate",
-]
+from library.core import param, utils
+from library.base import ctxt, expr, node, str_utils, user_error
 
 
-class CallableType(std_enum.StrEnum):
+class _CallableType(std_enum.StrEnum):
     FUNCTION = "function"
     PREDICATE = "predicate"
 
 
-class _Callable(node.TopStatement, stmt.BlockStatement, expr.Expr):
+class _Callable(node.ParentNode, expr.Expression):
     def __init__(
         self,
         name: str,
         *,
         parent: node.ParentNode | None = None,
-        callable_type: CallableType,
-        arguments: Iterable[arg.Argument] = [],
-        statements: Iterable[stmt.Statement | expr.Expr] = [],
+        callable_type: _CallableType,
+        parameters: Iterable[param.Parameter] = [],
+        statements: Iterable[node.Node] = [],
         return_type: str | None = None,
         export: bool = True,
         is_lambda: bool = False,
     ) -> None:
-        super().__init__(parent=parent)
+        super().__init__()
+        node.handle_parent(self, parent)
         self.add(*statements)
-
         self.name = name
         self.callable_type = callable_type
-        self.arguments = arguments
+        self.parameters = parameters
         self.return_type = return_type
         self.export = export
         self.is_lambda = is_lambda
 
-    def _prepare_call(self, arg_overrides: dict[str, str]) -> Iterable[str]:
+    def _get_arguments(
+        self, arg_overrides: dict[str, expr.ExprCandidate]
+    ) -> Iterable[expr.ExprCandidate]:
+        """Constructs an iterable of arguments for a call."""
         arg_dict = dict(
-            (argument.name, argument.default_parameter) for argument in self.arguments
+            (parameter.name, parameter.default_arg) for parameter in self.parameters
         )
-        for arg_name, parameter in arg_overrides.items():
-            if arg_name not in arg_dict:
+        for parameter_name, argument in arg_overrides.items():
+            if parameter_name not in arg_dict:
                 warnings.warn(
-                    "{} did not match any arguments in predicate.".format(arg_name)
+                    "{} did not match any arguments in callable {}".format(
+                        parameter_name, self.name
+                    )
                 )
                 continue
-            arg_dict[arg_name] = parameter
+            arg_dict[parameter_name] = expr.cast_to_expr(argument)
         return arg_dict.values()
 
-    def __call__(self, arg_overrides: dict[str, str] = {}) -> expr.Expr:
+    def __call__(self, arg_overrides: dict[str, expr.ExprCandidate] = {}) -> expr.Call:
         """Generates an expression which represents a call to the corresponding predicate or function.
 
-        parameters: A list of tuples mapping argument names to the identifier to use.
+        Args:
+            arg_overrides: A dict mapping parameter names to their argument values. If a parameter is left out, its default arg will be used instead.
         """
-        return expr.Call(self.name, *self._prepare_call(arg_overrides))
+        return expr.Call(self.name, *self._get_arguments(arg_overrides))
 
     @override
     def build(self, context: ctxt.Context) -> str:
+        if context.scope == ctxt.Scope.TOP:
+            return self._build_callable(context)
         return self.__call__().run_build(context)
+
+    def _build_callable(self, context: ctxt.Context) -> str:
+        string = self._build_header(context)
+        sep = "\n" if context.ui else ""
+        string += self.build_children(
+            context, indent=True, sep=sep, scope=ctxt.Scope.STATEMENT
+        )
+        string += self._build_footer()
+        return string
+
+    def _build_header(self, context: ctxt.Context) -> str:
+        string = self._get_start()
+        string += "({})".format(
+            node.build_nodes(
+                self.parameters, context, sep=", ", scope=ctxt.Scope.EXPRESSION
+            )
+        )
+        if self.return_type is not None:
+            string += " returns " + self.return_type
+        string += "\n{\n"
+        return string
 
     def _get_start(self) -> str:
         if self.is_lambda:
             return "const {} = function".format(self.name)
         return utils.export(self.export) + self.callable_type + " " + self.name
 
-    def _build_header(self, context: ctxt.Context) -> str:
-        string = self._get_start()
-        string += "({})".format(node.build_nodes(self.arguments, context))
-        if self.return_type is not None:
-            string += " returns " + self.return_type
-        string += "\n{\n"
-        return string
-
     def _build_footer(self) -> str:
         string = "}"
         if self.is_lambda:
             string += ";"
         string += "\n"
-        return string
-
-    @override
-    def build_top(self, context: ctxt.Context) -> str:
-        string = self._build_header(context)
-        sep = "\n" if context.ui else ""
-        string += self.build_children(context, indent=True, sep=sep)
-        string += self._build_footer()
         return string
 
 
@@ -102,17 +108,17 @@ class Function(_Callable):
         name: str,
         *,
         parent: node.ParentNode | None = None,
-        arguments: Iterable[arg.Argument] = [],
+        parameters: Iterable[param.Parameter] = [],
         return_type: str | None = None,
-        statements: Iterable[stmt.Statement | expr.Expr] = [],
+        statements: Iterable[node.Node] = [],
         export: bool = True,
         is_lambda: bool = False,
     ) -> None:
         super().__init__(
             name,
             parent=parent,
-            callable_type=CallableType.FUNCTION,
-            arguments=arguments,
+            callable_type=_CallableType.FUNCTION,
+            parameters=parameters,
             return_type=return_type,
             statements=statements,
             export=export,
@@ -125,21 +131,21 @@ class Predicate(_Callable):
         self,
         name: str,
         parent: node.ParentNode | None = None,
-        arguments: Iterable[arg.Argument] = [],
-        statements: Iterable[stmt.Statement | expr.Expr] = [],
+        parameters: Iterable[param.Parameter] = [],
+        statements: Iterable[node.Node] = [],
         export: bool = True,
     ) -> None:
         super().__init__(
             name,
             parent=parent,
-            callable_type=CallableType.PREDICATE,
-            arguments=arguments,
+            callable_type=_CallableType.PREDICATE,
+            parameters=parameters,
             statements=statements,
             export=export,
         )
 
-        if self.arguments == []:
-            warnings.warn("Predicate has 0 arguments.")
+        if self.parameters == []:
+            warnings.warn("Predicate {} has 0 parameters".format(name))
 
 
 class UiPredicate(Predicate):
@@ -157,7 +163,7 @@ class UiPredicate(Predicate):
         name: str,
         parent: node.ParentNode | None = None,
         append: str = "Predicate",
-        statements: Iterable[stmt.Statement | expr.Expr] = [],
+        statements: Iterable[node.Node] = [],
     ) -> None:
         """
         Args:
@@ -166,13 +172,16 @@ class UiPredicate(Predicate):
         super().__init__(
             name + append,
             parent=parent,
-            arguments=arg.definition_arg,
+            parameters=param.definition_param,
             statements=statements,
             export=True,
         )
         self.base_name = name
 
     def add_with_group(self, *children: node.Node) -> Self:
+        """
+        Adds elements to a parameter, enclosed in a ParameterGroup.
+        """
         # avoid circular import
         from library.ui import parameter
 
@@ -180,76 +189,75 @@ class UiPredicate(Predicate):
         return super().add(group)
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
-        context.ui = True
-        return super().build_top(context)
+    def build(self, context: ctxt.Context) -> str:
+        if context.scope == context.scope.TOP:
+            context.ui = True
+        return super().build(context)
 
 
-class UiTestPredicateCall(expr.InlineableCall):
+class _UiTestPredicateCall(expr.Call):
     def __init__(self, parent: UiTestPredicate, *args, **kwargs) -> None:
         self.parent = parent
-        super().__init__(*args, **kwargs)
+        super().__init__(parent.name, *args, **kwargs)
 
-    @override
     def build_inline(self, context: ctxt.Context) -> str:
         result = None
-        for statement in self.parent.children:
-            if not isinstance(statement, stmt.Line):
-                warnings.warn(
-                    "Cannot inline predicate which contains statements which aren't lines."
-                )
-                return "<INLINE_FAILED>"
-            expression = expr.add_parens(statement.expression)
+        for expression in self.parent.children:
+            expression = expr.add_parens(expression)
             if result is None:
                 result = expression
             else:
                 result &= expression
 
         if result is None:
-            warnings.warn("Cannot inline an empty predicate.")
-            return "<INLINE_FAILED>"
+            warnings.warn("Cannot inline an empty predicate")
+            return user_error.code_message("Cannot inline an empty predicate")
 
-        return expr.add_parens(result).run_build(context)
+        return expr.add_parens(result).run_build(context) + ";\n"
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        if context.test_predicate:
+            return self.build_inline(context)
+        return super().build(context)
 
 
-class UiTestPredicate(Predicate, expr.Expr):
+class UiTestPredicate(Predicate, expr.Expression):
     def __init__(
         self,
         name: str,
-        *statements: expr.Expr,
+        *expressions: expr.Expression,
         **kwargs,
     ) -> None:
         super().__init__(
-            name, arguments=arg.definition_arg, statements=statements, **kwargs
+            name, parameters=param.definition_param, statements=expressions, **kwargs
         )
 
-    def __call__(self, arg_overrides: dict[str, str] = {}) -> expr.Expr:
+    def __call__(
+        self, arg_overrides: dict[str, expr.ExprCandidate] = {}
+    ) -> expr.Expression:
         """Generates a predicate call which will automatically inline based on context."""
-        values = self._prepare_call(arg_overrides)
-        return UiTestPredicateCall(self, self.name, *values)
+        return _UiTestPredicateCall(self, *self._get_arguments(arg_overrides))
 
-    @override
-    def build_top(self, context: ctxt.Context) -> str:
-        # TODO: Remove need for three builds
+    def _build_ui_test_predicate(self, context: ctxt.Context) -> str:
+        """Builds the predicate, adding the non-inlined version of each call before each expression as appropriate."""
         string = self._build_header(context)
 
+        context.scope = ctxt.Scope.STATEMENT
         context.test_predicate = False
-        standard_expr = node.build_nodes(self.children, context)
+        standard_expr = self.build_children(context)
         context.test_predicate = True
-        inlined_expr = node.build_nodes(self.children, context)
-        # leave test_predicate to True for remaining calls
+        inlined_expr = self.build_children(context)
 
         if standard_expr == inlined_expr:
-            string += self.build_children(context, indent=True)
+            string += str_utils.indent(standard_expr)
         else:
-            string += str_utils.indent(
-                "/* " + standard_expr + " */\n" + self.build_children(context)
-            )
+            string += str_utils.indent("/* " + standard_expr + " */\n" + inlined_expr)
         string += self._build_footer()
         return string
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        if context.test_predicate:
-            return self.__call__().run_build(context)
-        return super().build(context)
+        if context.scope == ctxt.Scope.TOP:
+            return self._build_ui_test_predicate(context)
+        return self.__call__().run_build(context)

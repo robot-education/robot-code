@@ -3,7 +3,7 @@ from typing_extensions import override
 from library.base import ctxt, node, imp
 
 _FS_HEADER = "FeatureScript {};\n"
-_GENERATED_HEADER = "\n/* Automatically generated file -- DO NOT EDIT */\n\n"
+_GENERATED_STUDIO_HEADER = "\n/* Automatically generated file -- DO NOT EDIT */\n\n"
 
 
 class Studio(node.ParentNode):
@@ -16,7 +16,7 @@ class Studio(node.ParentNode):
         self.document_name = document_name
         self.std_imports = []
         self.imports = []
-        self.children: list[node.TopStatement] = []
+        self.children: list[node.Node] = []
         if import_common:
             self.std_imports.append(imp.Import("common.fs"))
 
@@ -35,26 +35,26 @@ class Studio(node.ParentNode):
             self.std_imports.append(node)
         return self
 
-    def add(self, *nodes: node.TopStatement) -> Self:
+    def add(self, *nodes: node.Node) -> Self:
         self.children.extend(nodes)
         return self
 
     def _build_header(self, context: ctxt.Context) -> str:
         header = _FS_HEADER.format(context.std_version)
         if len(self.std_imports) > 0:
-            header += "".join(node.run_build_top(context) for node in self.std_imports)
+            header += "".join(node.run_build(context) for node in self.std_imports)
         if len(self.imports) > 0:
             if len(self.std_imports) > 0:  # separate sections
                 header += "\n"
-            header += "".join(node.run_build_top(context) for node in self.imports)
+            header += "".join(node.run_build(context) for node in self.imports)
         return header
 
     @override
     def build(self, context: ctxt.Context) -> str:
         """The top-level build function for the studio."""
-        header = self._build_header(context) + _GENERATED_HEADER
-        body = "\n".join(node.run_build_top(context) for node in self.children)
-        return header + body
+        context.scope = ctxt.Scope.TOP
+        header = self._build_header(context) + _GENERATED_STUDIO_HEADER
+        return header + self.build_children(context, sep="\n")
 
 
 _BEGIN_GENERATION = "// Begin generated section\n"
@@ -89,13 +89,7 @@ class PartialStudio(Studio):
     def build(self, context: ctxt.Context) -> str:
         """The top-level build function for the studio."""
         header = _BEGIN_GENERATION + self._build_header(context)
-        body = (
-            "\n".join(
-                node.run_build_top(context) for node in self.children  # type: ignore
-            )
-            + _END_GENERATION
-        )
-        return header + body
+        return header + self.build_children(context, sep="\n") + _END_GENERATION
 
 
 def parse_code_sections(code: str) -> list[str]:

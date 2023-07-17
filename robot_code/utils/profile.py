@@ -3,7 +3,7 @@ from library import *
 
 
 class HexSizeFactory:
-    def __init__(self, studio: Studio, width_parameter: str = "width") -> None:
+    def __init__(self, studio: Studio, width_parameter: str = "hexWidth") -> None:
         self.studio = studio
         self.width_parameter = width_parameter
         self.enum = (
@@ -30,7 +30,7 @@ class HexSizeFactory:
 
     def _register_lookup_function(self) -> Function:
         return enum_lookup_function(
-            "getHexSize", self.enum, return_type=Type.VALUE, parent=self.studio
+            "getHexWidth", self.enum, return_type=Type.VALUE, parent=self.studio
         )
 
 
@@ -58,7 +58,7 @@ class HoleSizeFactory:
         return Function(
             "getHoleSize",
             parent=self.studio,
-            arguments=definition_arg,
+            parameters=definition_param,
             return_type=Type.VALUE,
         ).add(IfBlock(~self.enum["CUSTOM"]).add(), Return(definition("holeDiameter")))
 

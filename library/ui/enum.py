@@ -1,5 +1,4 @@
 from __future__ import annotations
-from abc import ABC
 import string
 from typing import Any, Generic, Iterable, Self, Type, TypeVar
 from typing_extensions import override
@@ -7,8 +6,8 @@ from typing_extensions import override
 import copy
 import warnings
 
-from library.core import control, func, utils, arg, map
-from library.base import ctxt, node, stmt, expr, str_utils
+from library.core import control, func, param, utils, map, std
+from library.base import ctxt, node, expr, str_utils, user_error
 
 __all__ = [
     "EnumFactory",
@@ -18,7 +17,7 @@ __all__ = [
 ]
 
 
-class EnumValue(expr.Expr):
+class EnumValue(expr.Expression):
     def __init__(
         self,
         value: str,
@@ -76,7 +75,7 @@ class EnumValue(expr.Expr):
         return self
 
     @override
-    def __invert__(self) -> expr.Expr:
+    def __invert__(self) -> expr.Expression:
         value = copy.copy(self)
         value.invert = not value.invert
         return value
@@ -86,7 +85,7 @@ class EnumValue(expr.Expr):
         definition: str = "definition",
         parameter_name: str | None = None,
         invert: bool = False,
-    ) -> expr.Expr:
+    ) -> expr.Expression:
         """Represents a call to the enum which tests its value.
 
         Args:
@@ -129,7 +128,9 @@ class EnumValue(expr.Expr):
     def build(self, context: ctxt.Context) -> str:
         if context.enum:
             return self.build_value(context)
-        return self.__call__().run_build(context)
+        elif context.scope == ctxt.Scope.EXPRESSION:
+            return self.__call__().run_build(context)
+        return user_error.expected_scope(ctxt.Scope.EXPRESSION)
 
 
 class LookupEnumValue(EnumValue):
@@ -142,9 +143,7 @@ V = TypeVar("V", bound=EnumValue)
 
 
 # Avoid block parent since that has automatic expr->statement conversion
-class Enum(
-    node.TopStatement, node.ChildNode, node.ParentNode, dict[str, V], Generic[V]
-):
+class Enum(node.ParentNode, dict[str, V], Generic[V]):
     def __init__(
         self,
         name: str,
@@ -158,7 +157,8 @@ class Enum(
         values: A list of strings which are used to construct enum values. EnumValues may also be registered afterwards.
         default_parameter_name: A default parameter name to use. If not specified, the default is generated automatically by lowercasing the first letter of name.
         """
-        super().__init__(parent=parent)
+        node.handle_parent(self, parent)
+        node.ParentNode.__init__(self)
         dict.__init__(self)
 
         self.name = name
@@ -173,11 +173,13 @@ class Enum(
         return super().add(value)
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
-        context.enum = True
-        string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
-        string += self.build_children(context, sep=",\n", indent=True)
-        return string + "\n}\n"
+    def build(self, context: ctxt.Context) -> str:
+        if context.scope == ctxt.Scope.TOP:
+            context.enum = True
+            string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
+            string += self.build_children(context, sep=",\n", indent=True)
+            return string + "\n}\n"
+        return user_error.expected_scope(ctxt.Scope.TOP)
 
 
 class EnumFactory:
@@ -272,7 +274,7 @@ def lookup_block(
     for enum_value in enum_dict.values():
         tests.append(enum_value)
         lookup_value = enum_value.lookup_value
-        statements.append(stmt.Return(lookup_value))
+        statements.append(std.Return(lookup_value))
     return control.make_if_block(tests=tests, statements=statements, parent=parent)
 
 
@@ -280,7 +282,7 @@ def enum_lookup_function(
     name: str,
     enum_dict: Enum[LookupEnumValue],
     parent: node.ParentNode | None = None,
-    additional_arguments: Iterable[arg.Argument] = [],
+    additional_parameters: Iterable[param.Parameter] = [],
     return_type: str | None = None,
     export: bool = False,
 ) -> func.Function:
@@ -289,12 +291,12 @@ def enum_lookup_function(
         return_type: The return type of the function.
         predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
     """
-    arguments: list[arg.Argument] = [arg.definition_arg]
-    arguments.extend(additional_arguments)
+    parameters: list[param.Parameter] = [param.definition_param]
+    parameters.extend(additional_parameters)
     function = func.Function(
         name,
         parent=parent,
-        arguments=arguments,
+        parameters=parameters,
         return_type=return_type,
         export=export,
     )

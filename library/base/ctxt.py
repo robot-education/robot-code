@@ -2,6 +2,7 @@ from __future__ import annotations
 import collections
 import copy
 import dataclasses
+import enum as std_enum
 from typing import TYPE_CHECKING, Any
 
 from library.api import api_base, conf
@@ -9,7 +10,16 @@ from library.api import api_base, conf
 if TYPE_CHECKING:  # prevent circular import
     from library.base import imp
 
-_SAVED_FIELDS = ["enum", "ui", "test_predicate", "indent"]
+_STACK_FIELDS = ["enum", "ui", "test_predicate", "indent", "scope"]
+"""A list of fields which use the stack (meaning they automatically revert once the setting node exits)."""
+
+
+class Scope(std_enum.StrEnum):
+    """Defines high level scopes nodes may be evaluated in."""
+
+    TOP = std_enum.auto()
+    STATEMENT = std_enum.auto()
+    EXPRESSION = std_enum.auto()
 
 
 @dataclasses.dataclass()
@@ -36,6 +46,7 @@ class Context:
     enum: bool = False
     ui: bool = False
     test_predicate: bool = False
+    scope: Scope = Scope.TOP
     indent: int = 0
 
     stack: collections.deque[dict] = dataclasses.field(
@@ -46,7 +57,7 @@ class Context:
         return dict(
             (field.name, copy.copy(getattr(self, field.name)))
             for field in dataclasses.fields(self)
-            if field.name in _SAVED_FIELDS
+            if field.name in _STACK_FIELDS
         )
 
     def save(self) -> None:

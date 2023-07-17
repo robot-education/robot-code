@@ -22,7 +22,7 @@ def parameter_annotation_map(
     ui_hints: ui_hint.UiHint | None = None,
     description: str | None = None,
     default: str | bool | None = None,
-    filter: expr.Expr | str | None = None,
+    filter: expr.Expression | str | None = None,
     max_picks: int | None = None,
     additional_args: dict[str, Any] = {},
 ) -> AnnotationMap:

@@ -1,6 +1,6 @@
+"""A collection of Onshape types and units."""
 import enum as std_enum
-
-__all__ = ["Type", "Unit", "value_with_units", "inch", "millimeter", "meter"]
+from library.base import expr
 
 
 class Type(std_enum.StrEnum):
@@ -24,17 +24,25 @@ class Unit(std_enum.StrEnum):
     RADIAN = "radian"
 
 
-def value_with_units(number: float | int, unit: str = Unit.METER) -> str:
-    return str(number) + " * " + unit
+def value_with_units(number: float | int, unit: str = Unit.METER) -> expr.Expression:
+    return expr.Id(str(number) + " * " + unit)
 
 
-def inch(value: float | int) -> str:
+def inch(value: float | int) -> expr.Expression:
     return value_with_units(value, Unit.INCH)
 
 
-def millimeter(value: float | int) -> str:
+def millimeter(value: float | int) -> expr.Expression:
     return value_with_units(value, Unit.MILLIMETER)
 
 
-def meter(value: float | int) -> str:
+def meter(value: float | int) -> expr.Expression:
     return value_with_units(value, Unit.METER)
+
+
+def degree(value: float | int) -> expr.Expression:
+    return value_with_units(value, Unit.DEGREE)
+
+
+def radian(value: float | int) -> expr.Expression:
+    return value_with_units(value, Unit.RADIAN)

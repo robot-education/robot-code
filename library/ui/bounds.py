@@ -2,7 +2,7 @@ import dataclasses
 import enum as std_enum
 from typing_extensions import override
 
-from library.base import ctxt, node, expr
+from library.base import ctxt, node, expr, user_error
 from library.core import std, map
 
 # https://cad.onshape.com/documents/12312312345abcabcabcdeff/w/a855e4161c814f2e9ab3698a/e/87b09e244a234eb791b47826
@@ -85,22 +85,24 @@ class RealBound(BoundEnum):
 
 
 @dataclasses.dataclass
-class BoundSpec(node.TopStatement, expr.Expr):
+class BoundSpec(node.ParentNode, expr.Expression):
     name: str
     bounds: dict[str, str]
     type: str
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
-        bound_map = dict(("(" + key + ")", value) for key, value in self.bounds.items())
-        body = map.Map(
-            bound_map, quote_keys=False, inline=False, type=self.type
-        ).run_build(context)
-        return std.Const(self.name, body).run_build_top(context)
-
-    @override
     def build(self, context: ctxt.Context) -> str:
-        return self.name
+        if context.scope == ctxt.Scope.TOP:
+            bound_map = dict(
+                ("(" + key + ")", value) for key, value in self.bounds.items()
+            )
+            body = map.Map(
+                bound_map, quote_keys=False, inline=False, type=self.type
+            ).run_build(context, scope=ctxt.Scope.EXPRESSION)
+            return std.Const(self.name, body).run_build(context, scope=ctxt.Scope.TOP)
+        elif context.scope == ctxt.Scope.EXPRESSION:
+            return self.name
+        return user_error.expected_scope(ctxt.Scope.TOP, ctxt.Scope.EXPRESSION)
 
 
 VALUE_MIN = int(-1e5)
