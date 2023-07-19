@@ -1,9 +1,7 @@
-from dataclasses import dataclass
 import dataclasses
 from typing_extensions import override
-from library.base import ctxt, expr, node
-
-__all__ = ["Assign", "Const", "Var", "Ternary", "merge_maps"]
+from library.base import ctxt, expr, node, str_utils, user_error
+from library.core import func
 
 
 class Assign(node.Node):
@@ -14,22 +12,29 @@ class Assign(node.Node):
         parent: node.ParentNode | None = None,
     ) -> None:
         node.handle_parent(self, parent)
-        self.name = expr.cast_to_expr(name)
-        self.expression = expr.cast_to_expr(expression)
+        self.name = name
+        self.expression = expression
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        old_scope = context.scope
-        context.scope = ctxt.Scope.EXPRESSION
-        string = (
-            self.name.run_build(context) + " = " + self.expression.run_build(context)
-        )
-        return expr.expr_or_stmt(string, old_scope)
+        if context.scope == ctxt.Scope.STATEMENT:
+            string = (
+                expr.build_expr(self.name, context)
+                + " = "
+                + expr.build_expr(self.expression, context)
+                + ";\n"
+            )
+            return string
+        return user_error.expected_scope(ctxt.Scope.STATEMENT)
 
 
 class Const(Assign, expr.Expression):
     def __init__(
-        self, name: str, expression: expr.ExprCandidate, export: bool = False, **kwargs
+        self,
+        name: expr.ExprCandidate,
+        expression: expr.ExprCandidate,
+        export: bool = False,
+        **kwargs
     ) -> None:
         """
         args:
@@ -40,12 +45,13 @@ class Const(Assign, expr.Expression):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        if context.scope == ctxt.Scope.TOP:
-            append = "export " if self.export else ""
+        if context.scope == ctxt.Scope.TOP or context.scope == ctxt.Scope.STATEMENT:
+            append = (
+                "export " if (self.export and context.scope == ctxt.Scope.TOP) else ""
+            )
             context.scope = ctxt.Scope.STATEMENT
-        else:
-            append = ""
-        return append + "const " + super().build(context)
+            return append + "const " + super().build(context)
+        return expr.build_expr(self.name, context)
 
 
 # Does not inherit from Assign since expression may be None
@@ -60,37 +66,36 @@ class Var(node.Node):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        string = "var {}".format(expr.build_expr(self.name, context))
-        if self.expression is not None:
-            string += " = " + expr.build_expr(self.expression, context)
-        return string + ";\n"
+        if context.scope == ctxt.Scope.STATEMENT:
+            string = "var {}".format(expr.build_expr(self.name, context))
+            if self.expression is not None:
+                string += " = " + expr.build_expr(self.expression, context)
+            return string + ";\n"
+        return user_error.expected_scope(ctxt.Scope.STATEMENT)
 
 
 @dataclasses.dataclass
 class Ternary(expr.Expression):
-    """Represents a ternary operator."""
+    """Represents a ternary operator.
+
+    Args:
+        parens: Whether to wrap the ternary in parentheses.
+    """
 
     test: expr.Expression
     false_operand: expr.ExprCandidate
     true_operand: expr.ExprCandidate
+    parens: bool = False
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return "{} ? {} : {}".format(
+        result = "{} ? {} : {}".format(
             self.test.run_build(context),
             expr.build_expr(self.false_operand, context),
             expr.build_expr(self.true_operand, context),
         )
+        return str_utils.parens(result) if self.parens else result
 
 
-def merge_maps(defaults: expr.ExprCandidate, m: expr.ExprCandidate) -> expr.Expression:
-    return expr.Call("mergeMaps", defaults, m)
-
-
-class Return(node.Node):
-    def __init__(self, expression: expr.Expression | str) -> None:
-        self.expression = expr.cast_to_expr(expression)
-
-    @override
-    def build(self, context: ctxt.Context) -> str:
-        return "return " + self.expression.run_build(context) + ";\n"
+def merge_maps(defaults: expr.ExprCandidate, m: expr.ExprCandidate) -> func.Call:
+    return func.Call("mergeMaps", defaults, m)

@@ -6,7 +6,7 @@ from typing_extensions import override
 import copy
 import warnings
 
-from library.core import control, func, param, utils, map, std
+from library.core import control, func, param, utils, map
 from library.base import ctxt, node, expr, str_utils, user_error
 
 __all__ = [
@@ -103,7 +103,9 @@ class EnumValue(expr.Expression):
             call = self.predicate.__call__({"definition": definition})
             return ~call if self.invert else call
 
-        operator = expr.Operator.NOT_EQUAL if self.invert else expr.Operator.EQUAL
+        operator = (
+            expr.EqualOperator.NOT_EQUAL if self.invert else expr.EqualOperator.EQUAL
+        )
 
         return expr.Equal(
             utils.definition(parameter_name, definition),
@@ -176,6 +178,7 @@ class Enum(node.ParentNode, dict[str, V], Generic[V]):
     def build(self, context: ctxt.Context) -> str:
         if context.scope == ctxt.Scope.TOP:
             context.enum = True
+            context.scope = ctxt.Scope.EXPRESSION
             string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
             string += self.build_children(context, sep=",\n", indent=True)
             return string + "\n}\n"
@@ -274,7 +277,7 @@ def lookup_block(
     for enum_value in enum_dict.values():
         tests.append(enum_value)
         lookup_value = enum_value.lookup_value
-        statements.append(std.Return(lookup_value))
+        statements.append(func.Return(lookup_value))
     return control.make_if_block(tests=tests, statements=statements, parent=parent)
 
 

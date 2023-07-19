@@ -1,6 +1,7 @@
 from typing import Self
 from typing_extensions import override
-from library.base import ctxt, expr, node, str_utils, user_error
+from library.base import ctxt, node, str_utils, user_error
+from library.core import func
 from library.ui import annotation_map
 
 FEATURE_BODY = """export const {} = defineFeature(function(context is Context, id is Id, definition is map)
@@ -23,8 +24,8 @@ class Feature(node.Node):
     ) -> None:
         self.name = name
         self.map = map
-        self.ui = ui or expr.Call(self.name + "Predicate", "definition")
-        self.body = body or expr.Call(
+        self.ui = ui or func.Call(self.name + "Predicate", "definition")
+        self.body = body or func.Call(
             "do" + str_utils.upper_first(self.name), "context", "id", "definition"
         )
 

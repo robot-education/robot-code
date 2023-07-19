@@ -4,13 +4,34 @@ from typing_extensions import override
 import warnings
 import enum as std_enum
 from typing import Iterable, Self
-from library.core import param, utils
+from library.base.expr import cast_to_expr, expr_or_stmt
+from library.core import param, utils, func
 from library.base import ctxt, expr, node, str_utils, user_error
 
 
 class _CallableType(std_enum.StrEnum):
     FUNCTION = "function"
     PREDICATE = "predicate"
+
+
+class Call(expr.Expression):
+    def __init__(
+        self, name: str, *args: expr.ExprCandidate, inline: bool = True
+    ) -> None:
+        self.name = name
+        self.args = (cast_to_expr(arg) for arg in args)
+        self.inline = inline
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        join_str = ", " if self.inline else ",\n"
+        result = "{}({})".format(
+            self.name,
+            node.build_nodes(
+                self.args, context, sep=join_str, scope=ctxt.Scope.EXPRESSION
+            ),
+        )
+        return expr_or_stmt(result, context.scope)
 
 
 class _Callable(node.ParentNode, expr.Expression):
@@ -54,13 +75,13 @@ class _Callable(node.ParentNode, expr.Expression):
             arg_dict[parameter_name] = expr.cast_to_expr(argument)
         return arg_dict.values()
 
-    def __call__(self, arg_overrides: dict[str, expr.ExprCandidate] = {}) -> expr.Call:
+    def __call__(self, arg_overrides: dict[str, expr.ExprCandidate] = {}) -> func.Call:
         """Generates an expression which represents a call to the corresponding predicate or function.
 
         Args:
             arg_overrides: A dict mapping parameter names to their argument values. If a parameter is left out, its default arg will be used instead.
         """
-        return expr.Call(self.name, *self._get_arguments(arg_overrides))
+        return func.Call(self.name, *self._get_arguments(arg_overrides))
 
     @override
     def build(self, context: ctxt.Context) -> str:
@@ -195,7 +216,7 @@ class UiPredicate(Predicate):
         return super().build(context)
 
 
-class _UiTestPredicateCall(expr.Call):
+class _UiTestPredicateCall(func.Call):
     def __init__(self, parent: UiTestPredicate, *args, **kwargs) -> None:
         self.parent = parent
         super().__init__(parent.name, *args, **kwargs)
@@ -233,11 +254,15 @@ class UiTestPredicate(Predicate, expr.Expression):
             name, parameters=param.definition_param, statements=expressions, **kwargs
         )
 
-    def __call__(
-        self, arg_overrides: dict[str, expr.ExprCandidate] = {}
-    ) -> expr.Expression:
+    def __call__(self, arg_overrides: dict[str, expr.ExprCandidate] = {}) -> func.Call:
         """Generates a predicate call which will automatically inline based on context."""
         return _UiTestPredicateCall(self, *self._get_arguments(arg_overrides))
+
+    @override
+    def build(self, context: ctxt.Context) -> str:
+        if context.scope == ctxt.Scope.TOP:
+            return self._build_ui_test_predicate(context)
+        return self.__call__().run_build(context)
 
     def _build_ui_test_predicate(self, context: ctxt.Context) -> str:
         """Builds the predicate, adding the non-inlined version of each call before each expression as appropriate."""
@@ -256,8 +281,17 @@ class UiTestPredicate(Predicate, expr.Expression):
         string += self._build_footer()
         return string
 
+
+def ui_predicate_call(name: str) -> Call:
+    return Call(name + "Predicate", "definition")
+
+
+class Return(node.Node):
+    def __init__(self, expression: expr.ExprCandidate) -> None:
+        self.expression = expression
+
     @override
     def build(self, context: ctxt.Context) -> str:
-        if context.scope == ctxt.Scope.TOP:
-            return self._build_ui_test_predicate(context)
-        return self.__call__().run_build(context)
+        if context.scope == ctxt.Scope.STATEMENT:
+            return "return " + expr.build_expr(self.expression, context) + ";\n"
+        return user_error.expected_scope(ctxt.Scope.STATEMENT)

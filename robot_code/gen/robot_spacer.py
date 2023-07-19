@@ -1,5 +1,6 @@
 from library import *
-from library.core.std import Return
+from library.core.func import Call, Return, ui_predicate_call
+from library.core.func import Return
 from robot_code.robot_studio import RobotFeature
 from robot_code.utils import profile
 

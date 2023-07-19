@@ -1,5 +1,6 @@
 """Metaprogramming classes used to generate configurable code."""
 from library import *
+from library.core.func import Return
 
 
 class HexSizeFactory:

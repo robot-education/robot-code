@@ -60,11 +60,12 @@ class Map(expr.Expression):
         return string + "}"
 
     def build(self, context: ctxt.Context) -> str:
-        user_error.assert_scope(context, ctxt.Scope.EXPRESSION)
-        map_string = self._build_map(context)
-        if self.type:
-            return map_string + " as " + self.type
-        return map_string
+        if context.scope == ctxt.Scope.EXPRESSION:
+            map_string = self._build_map(context)
+            if self.type:
+                return map_string + " as " + self.type
+            return map_string
+        return user_error.expected_scope(ctxt.Scope.EXPRESSION)
 
 
 def definition_map(*values: str, definition: str = "definition", **kwargs) -> Map:

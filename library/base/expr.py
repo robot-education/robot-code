@@ -8,7 +8,7 @@ from typing import Iterator, Self
 from typing_extensions import override
 from library.base import ctxt, node, expr, user_error
 
-__all__ = ["Parens", "Id", "Call", "ui_predicate_call"]
+__all__ = ["Parens", "Id"]
 
 
 def expr_or_stmt(expression_string: str, scope: ctxt.Scope) -> str:
@@ -65,7 +65,7 @@ ExprCandidate = expr.Expression | bool | str | int | float
 def cast_to_expr(node: ExprCandidate) -> Expression:
     if not isinstance(node, Expression):
         if isinstance(node, bool):
-            node = "true" if node else "false"
+            node = str(node).lower()
         elif isinstance(node, int | float):
             node = str(node)
         return Id(node)
@@ -73,10 +73,13 @@ def cast_to_expr(node: ExprCandidate) -> Expression:
 
 
 def build_expr(node: ExprCandidate, context: ctxt.Context) -> str:
-    return cast_to_expr(node).run_build(context)
+    """Builds a given ExprCandidate as an expression."""
+    return cast_to_expr(node).run_build(context, scope=context.scope.EXPRESSION)
 
 
 class Id(Expression):
+    """Trivially wraps a string into a node."""
+
     def __init__(self, identifier: str) -> None:
         # Cannot be ExprCandidate due to recursion
         self.identifier = identifier
@@ -86,14 +89,14 @@ class Id(Expression):
         return self.identifier
 
 
-class Operator(std_enum.StrEnum):
+class EqualOperator(std_enum.StrEnum):
     EQUAL = "=="
     NOT_EQUAL = "!="
 
 
 class Equal(Expression):
     def __init__(
-        self, lhs: Expression | str, operator: Operator, rhs: Expression | str
+        self, lhs: Expression | str, operator: EqualOperator, rhs: Expression | str
     ) -> None:
         self.lhs = lhs
         self.operator = operator
@@ -103,18 +106,23 @@ class Equal(Expression):
     def __invert__(self) -> Expression:
         """Overload inversion to flip from == to !=."""
         self.operator = (
-            Operator.NOT_EQUAL if self.operator == Operator.EQUAL else Operator.EQUAL
+            EqualOperator.NOT_EQUAL
+            if self.operator == EqualOperator.EQUAL
+            else EqualOperator.EQUAL
         )
         return self
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return " ".join(
-            [
-                build_expr(self.lhs, context),
-                self.operator,
-                build_expr(self.rhs, context),
-            ]
+        return expr_or_stmt(
+            " ".join(
+                [
+                    build_expr(self.lhs, context),
+                    self.operator,
+                    build_expr(self.rhs, context),
+                ]
+            ),
+            context.scope,
         )
 
 
@@ -124,37 +132,15 @@ class Parens(Expression):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return "({})".format(self.expr.run_build(context))
+        return expr_or_stmt(
+            "({})".format(build_expr(self.expr, context)), context.scope
+        )
 
 
 def add_parens(expression: Expression):
     if isinstance(expression, Parens):
         return expression
     return Parens(expression)
-
-
-def ui_predicate_call(name: str) -> Call:
-    return Call(name + "Predicate", "definition")
-
-
-class Call(Expression):
-    def __init__(
-        self, name: str, *args: expr.ExprCandidate, inline: bool = True
-    ) -> None:
-        self.name = name
-        self.args = (cast_to_expr(arg) for arg in args)
-        self.inline = inline
-
-    @override
-    def build(self, context: ctxt.Context) -> str:
-        join_str = ", " if self.inline else ",\n"
-        result = "{}({})".format(
-            self.name,
-            node.build_nodes(
-                self.args, context, sep=join_str, scope=ctxt.Scope.EXPRESSION
-            ),
-        )
-        return expr_or_stmt(result, context.scope)
 
 
 class UnaryOp(Expression):
@@ -164,7 +150,9 @@ class UnaryOp(Expression):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.operator + build_expr(self.operand, context)
+        return expr_or_stmt(
+            self.operator + build_expr(self.operand, context), context.scope
+        )
 
 
 class BoolOp(Expression):
@@ -175,10 +163,13 @@ class BoolOp(Expression):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return " ".join(
-            [
-                build_expr(self.lhs, context),
-                self.operator,
-                build_expr(self.rhs, context),
-            ]
+        return expr_or_stmt(
+            " ".join(
+                [
+                    build_expr(self.lhs, context),
+                    self.operator,
+                    build_expr(self.rhs, context),
+                ]
+            ),
+            context.scope,
         )

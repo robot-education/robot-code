@@ -13,6 +13,11 @@ def quote(string: str) -> str:
     return '"' + string + '"'
 
 
+def parens(string: str) -> str:
+    """Adds parentheses around string."""
+    return "(" + string + ")"
+
+
 def lower_first(string: str) -> str:
     return string[0].lower() + string[1:]
 

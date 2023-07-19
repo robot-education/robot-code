@@ -1,5 +1,6 @@
 from library import *
-from library.core.std import Return
+from library.core.func import Call, Return
+from library.core.func import Return
 from robot_code.robot_studio import RobotFeature
 
 DESCRIPTION = r"Generate robot frame members."

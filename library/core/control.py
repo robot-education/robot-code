@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Self, Sequence
 from typing_extensions import override
-from library.base import ctxt, node, expr
+from library.base import ctxt, node, expr, user_error
 
 __all__ = ["IfBlock", "make_if_block"]
 
@@ -74,7 +74,9 @@ class IfBlock(node.ParentNode):
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        return self.build_children(context)
+        if context.scope == ctxt.Scope.STATEMENT:
+            return self.build_children(context)
+        return user_error.expected_scope(ctxt.Scope.STATEMENT)
 
 
 def make_if_block(
