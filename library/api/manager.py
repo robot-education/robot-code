@@ -237,14 +237,15 @@ class CommandLineManager:
         self._finish()
 
     def _send_code(self, studio: studio.Studio, std_version: str) -> bool:
-        context = ctxt.Context(studio.document_name, std_version, self.config, self.api)
+        context = ctxt.make_context(std_version, self.config, self.api)
         code = studio.build(context)
 
         curr = self.config.read_file(studio.studio_name)
         if curr == code:
             print("{}: Build resulted in no changes.".format(studio.studio_name))
-            return True  # Still count it as built
+            return True
 
+        print("{}: Successfully built.".format(studio.studio_name))
         document = self.config.get_document(studio.document_name)
         if document is None:
             print(

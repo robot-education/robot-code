@@ -94,7 +94,7 @@ studio.add(
         .add(
             Return(
                 hex_size.lookup_function
-                + Ternary(fit["CLOSE"], inch(1 / 128), inch(1 / 64))
+                + Ternary(fit["CLOSE"], inch(0.008), inch(0.016))
             )
         )
         .or_else(Return(get_hole_diameter))

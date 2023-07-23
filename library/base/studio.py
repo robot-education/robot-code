@@ -18,17 +18,17 @@ class Studio(node.ParentNode):
         self.imports = []
         self.children: list[node.Node] = []
         if import_common:
-            self.std_imports.append(imp.Import("common.fs"))
-
-    def import_studio(self, studio: Self, export: bool = True) -> Self:
-        """Adds an import targeting the given studio."""
-        self.add_import(studio.studio_name, studio.document_name, export)
-        return self
+            self.std_imports.append(imp.Import("common.fs", std=True))
 
     def add_import(
-        self, studio_name: str, document_name: str | None = None, export: bool = True
+        self,
+        studio_name: str,
+        document_name: str | None = None,
+        version_id: str | None = None,
+        std: bool = False,
+        export: bool = False,
     ) -> Self:
-        node = imp.Import(studio_name, document_name, export)
+        node = imp.Import(studio_name, document_name, version_id, std, export)
         if document_name:
             self.imports.append(node)
         else:
@@ -53,6 +53,7 @@ class Studio(node.ParentNode):
     def build(self, context: ctxt.Context) -> str:
         """The top-level build function for the studio."""
         context.scope = ctxt.Scope.TOP
+        context.document_name = self.document_name
         header = self._build_header(context) + _GENERATED_STUDIO_HEADER
         return header + self.build_children(context, sep="\n")
 
@@ -78,12 +79,6 @@ class PartialStudio(Studio):
                 section = top_section
 
         return code
-
-    @override
-    def import_studio(self, studio: Studio, export: bool = True) -> Self:
-        """Adds an import targeting the given studio."""
-        self.add_import(studio.studio_name, studio.document_name, export)
-        return self
 
     @override
     def build(self, context: ctxt.Context) -> str:

@@ -22,10 +22,11 @@ class Scope(std_enum.StrEnum):
     EXPRESSION = std_enum.auto()
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass
 class Context:
     """
     Fields:
+        document_name: The internal name for the document. Set by studio.build.
         std_version: Stores the current version of the std.
         level: Stores the current statement level.
         enum: Used to indicate whether we are currently defining an enum.
@@ -37,10 +38,10 @@ class Context:
       which circumvents nested predicate restrictions.
     """
 
-    document_name: str
     std_version: str
     config: conf.Config
     api: api_base.Api
+    document_name: str = ""
     imports: list[imp.Import] = dataclasses.field(default_factory=list)
 
     enum: bool = False
@@ -66,3 +67,7 @@ class Context:
     def restore(self) -> None:
         for key, value in self.stack.pop().items():
             setattr(self, key, value)
+
+
+def make_context(std_version: str, config: conf.Config, api: api_base.Api) -> Context:
+    return Context(std_version, config, api)

@@ -175,7 +175,7 @@ class UiPredicate(Predicate):
 
     Args:
         name: The name of the predicate.
-        append: A string to append to name. Defaults to "Predicate".
+        suffix: A string to append to name. Defaults to "Predicate".
         statements: Statements to start the predicate with.
     """
 
@@ -183,7 +183,7 @@ class UiPredicate(Predicate):
         self,
         name: str,
         parent: node.ParentNode | None = None,
-        append: str = "Predicate",
+        suffix: str = "Predicate",
         statements: Iterable[node.Node] = [],
     ) -> None:
         """
@@ -191,7 +191,7 @@ class UiPredicate(Predicate):
             create_group: Wrap the group in a ParameterGroup with the same name as the parameter.
         """
         super().__init__(
-            name + append,
+            name + suffix,
             parent=parent,
             parameters=param.definition_param,
             statements=statements,
@@ -288,9 +288,9 @@ class UiTestPredicate(Predicate, expr.Expression):
         return string
 
 
-def ui_predicate_call(name: str, append: str = "Predicate") -> Call:
+def ui_predicate_call(name: str, suffix: str = "Predicate") -> Call:
     """Calls a ui predicate, passing definition as an argument."""
-    return Call(name + append, "definition")
+    return Call(name + suffix, "definition")
 
 
 class Return(node.Node):

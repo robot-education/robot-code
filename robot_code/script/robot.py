@@ -24,26 +24,28 @@ def parse_args() -> argparse.Namespace:
     )
 
     subparsers = parser.add_subparsers(required=True, dest="action")
-    release = subparsers.add_parser(
+    release_parser = subparsers.add_parser(
         "release",
         help="release a new version of a FeatureScript",
         description="Release a FeatureScript by adding it to the frontend document.",
     )
-    release.add_argument(
-        "script", "s", help="The name of the script to release", required=True
+    release_parser.add_argument(
+        "--studio",
+        "-s",
+        help="The name of the studio to release",
+        required=True,
     )
-    release.add_argument(
-        "version",
-        "v",
+    release_parser.add_argument(
+        "--version",
+        "-v",
         choices=["major", "minor", "patch"],
         help="The type of version of the script being released",
         required=True,
     )
-    release.add_argument(
-        "description",
-        "d",
-        type=str,
-        help="A brief, internal description of the changes made",
+    release_parser.add_argument(
+        "--description",
+        "-d",
+        help="A brief description of the changes made",
         required=True,
     )
 
@@ -64,7 +66,7 @@ def main():
                 type = release.VersionType.PATCH
             case _:
                 raise RuntimeError("Invalid version was not caught")
-        release.release(api, args.script, type, args.description)
+        release.release(api, args.studio, type, args.description)
 
 
 if __name__ == "__main__":

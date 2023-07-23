@@ -1,6 +1,8 @@
 from library.api import api_base, api_path, conf, constants
 import re
 
+from library.api.endpoints import documents
+
 
 def make_feature_studio(
     api: api_base.Api, document_path: api_path.DocumentPath, studio_name: str
@@ -29,6 +31,16 @@ def pull_code(api: api_base.Api, path: api_path.ElementPath) -> str:
 def push_code(api: api_base.Api, path: api_path.ElementPath, code: str) -> dict:
     """Sends code to the given feature studio specified by path."""
     return api.post(api_path.api_path("featurestudios", path), body={"contents": code})
+
+
+def push_studio(
+    api: api_base.Api, document_path: api_path.DocumentPath, studio_name: str, code: str
+) -> dict:
+    """Push code to a given document. If the studio does not exist in the document, it is first created."""
+    studio = documents.get_feature_studio(api, document_path, studio_name)
+    if not studio:
+        studio = make_feature_studio(api, document_path, studio_name)
+    return push_code(api, studio.path, code)
 
 
 def std_version(api: api_base.Api) -> str:

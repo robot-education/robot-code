@@ -13,6 +13,10 @@ class DocumentPath:
     def copy(self) -> Self:
         return DocumentPath(self.document_id, self.workspace_id)
 
+    def as_document(self) -> str:
+        """Returns a version of the path suitable for use as a version."""
+        return "/d/" + self.document_id
+
     def __str__(self) -> str:
         return (
             "/d/{}/".format(self.document_id)
@@ -36,6 +40,18 @@ class ElementPath:
 
     def __str__(self) -> str:
         return str(self.path) + "/e/" + self.element_id
+
+    def as_link(self) -> str:
+        """Returns a link to the element."""
+        return "https://cad.onshape.com/documents/{}".format(
+            str(self).removeprefix("/d/")
+        )
+
+    def as_path(self) -> str:
+        """Returns a version of the path suitable for use as the path property of Feature Studio imports."""
+        return "{}/{}/{}".format(
+            self.path.document_id, self.path.workspace_id, self.element_id
+        )
 
 
 class ElementPathObject(TypedDict):
@@ -72,7 +88,7 @@ class PartPath:
 
 def api_path(
     service: str,
-    path: ElementPath | DocumentPath | None = None,
+    path: ElementPath | DocumentPath | str | None = None,
     secondary_service: str | None = None,
 ) -> str:
     api_path = service

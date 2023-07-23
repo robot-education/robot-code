@@ -79,7 +79,7 @@ def build_expr(node: ExprCandidate, context: ctxt.Context) -> str:
 
 
 class Id(Expression):
-    """Trivially wraps a string into a node."""
+    """Wraps a string into a node."""
 
     def __init__(self, identifier: str) -> None:
         # Cannot be ExprCandidate due to recursion
