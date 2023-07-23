@@ -74,21 +74,17 @@ def definition_map(*values: str, definition: str = "definition", **kwargs) -> Ma
 
 
 class MapAccess(expr.Expression):
-    def __init__(
-        self, map: str | expr.Expression, *keys: str | expr.Expression
-    ) -> None:
-        self.map = expr.cast_to_expr(map)
+    def __init__(self, map: expr.ExprCandidate, *keys: expr.ExprCandidate) -> None:
+        self.map = map
         self.keys = keys
 
     @override
     def build(self, context: ctxt.Context) -> str:
-        user_error.assert_scope(context, ctxt.Scope.EXPRESSION)
-        return self.map.run_build(context) + "".join(
-            (
-                "[{}]".format(expr.cast_to_expr(key).run_build(context))
-                for key in self.keys
+        if context.scope == ctxt.Scope.EXPRESSION:
+            return expr.build_expr(self.map, context) + "".join(
+                ("[{}]".format(expr.build_expr(key, context)) for key in self.keys)
             )
-        )
+        return user_error.expected_scope(ctxt.Scope.EXPRESSION)
 
 
 def enum_map(

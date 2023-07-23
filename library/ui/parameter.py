@@ -56,6 +56,7 @@ def labeled_enum_parameter(
     parameter_name: str | None = None,
     user_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+    default: str | None = None,
     **kwargs,
 ):
     """Constructs a labeled enum parameter.
@@ -65,7 +66,10 @@ def labeled_enum_parameter(
         kwargs: Additional kwargs to pass to `enum_parameter`.
     """
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.SHOW_LABEL)
-    return enum_parameter(enum, parameter_name, user_name, ui_hints=ui_hints, **kwargs)
+    # default prevents kwargs error?
+    return enum_parameter(
+        enum, parameter_name, user_name, ui_hints=ui_hints, default=default, **kwargs
+    )
 
 
 def horizontal_enum_parameter(

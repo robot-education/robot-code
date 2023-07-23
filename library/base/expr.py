@@ -2,6 +2,7 @@
 A module defining expressions. Expressions refer to boolean logic and mathematical operations.
 """
 from __future__ import annotations
+import dataclasses
 
 import enum as std_enum
 from typing import Iterator, Self
@@ -28,7 +29,7 @@ class Expression(node.Node):
         return BoolOp(self, "||", other)
 
     def __invert__(self) -> Expression:
-        return UnaryOp(self, "!")
+        return UnaryOp("!", self)
 
     def __add__(self, other: ExprCandidate) -> Expression:
         return BoolOp(self, "+", other)
@@ -96,7 +97,7 @@ class EqualOperator(std_enum.StrEnum):
 
 class Equal(Expression):
     def __init__(
-        self, lhs: Expression | str, operator: EqualOperator, rhs: Expression | str
+        self, lhs: ExprCandidate, operator: EqualOperator, rhs: ExprCandidate
     ) -> None:
         self.lhs = lhs
         self.operator = operator
@@ -126,9 +127,9 @@ class Equal(Expression):
         )
 
 
+@dataclasses.dataclass
 class Parens(Expression):
-    def __init__(self, expr: Expression) -> None:
-        self.expr = expr
+    expr: Expression
 
     @override
     def build(self, context: ctxt.Context) -> str:
@@ -137,16 +138,19 @@ class Parens(Expression):
         )
 
 
-def add_parens(expression: Expression):
+def add_parens(expression: Expression) -> Expression:
+    """If expression is not Parens, encloses Expression in Parens."""
     if isinstance(expression, Parens):
         return expression
     return Parens(expression)
 
 
+@dataclasses.dataclass
 class UnaryOp(Expression):
-    def __init__(self, operand: ExprCandidate, operator: str) -> None:
-        self.operand = operand
-        self.operator = operator
+    """An operation with a single operand."""
+
+    operator: str
+    operand: ExprCandidate
 
     @override
     def build(self, context: ctxt.Context) -> str:
@@ -155,11 +159,13 @@ class UnaryOp(Expression):
         )
 
 
+@dataclasses.dataclass
 class BoolOp(Expression):
-    def __init__(self, lhs: ExprCandidate, operator: str, rhs: ExprCandidate) -> None:
-        self.lhs = lhs
-        self.operator = operator
-        self.rhs = rhs
+    """An operation with two operands."""
+
+    lhs: ExprCandidate
+    operator: str
+    rhs: ExprCandidate
 
     @override
     def build(self, context: ctxt.Context) -> str:

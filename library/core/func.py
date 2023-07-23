@@ -132,7 +132,7 @@ class Function(_Callable):
         parameters: Iterable[param.Parameter] = [],
         return_type: str | None = None,
         statements: Iterable[node.Node] = [],
-        export: bool = True,
+        export: bool = False,
         is_lambda: bool = False,
     ) -> None:
         super().__init__(
@@ -232,9 +232,9 @@ class _UiTestPredicateCall(func.Call):
 
         if result is None:
             warnings.warn("Cannot inline an empty predicate")
-            return user_error.code_message("Cannot inline an empty predicate")
+            return user_error.code_message("Cannot inline empty predicate")
 
-        return expr.add_parens(result).run_build(context) + ";\n"
+        return expr.add_parens(result).run_build(context, ctxt.Scope.EXPRESSION) + ";\n"
 
     @override
     def build(self, context: ctxt.Context) -> str:
@@ -269,24 +269,33 @@ class UiTestPredicate(Predicate, expr.Expression):
         string = self._build_header(context)
 
         context.scope = ctxt.Scope.STATEMENT
-        context.test_predicate = False
-        standard_expr = self.build_children(context)
         context.test_predicate = True
         inlined_expr = self.build_children(context)
+        context.test_predicate = False
+        standard_expr = self.build_children(context)
 
         if standard_expr == inlined_expr:
             string += str_utils.indent(standard_expr)
         else:
-            string += str_utils.indent("/* " + standard_expr + " */\n" + inlined_expr)
+            string += str_utils.indent(
+                "/* "
+                # Build standard_expr again as expression (can't be expr first time due to comparison)
+                + self.build_children(context, scope=ctxt.Scope.EXPRESSION)
+                + " */\n"
+                + inlined_expr
+            )
         string += self._build_footer()
         return string
 
 
-def ui_predicate_call(name: str) -> Call:
-    return Call(name + "Predicate", "definition")
+def ui_predicate_call(name: str, append: str = "Predicate") -> Call:
+    """Calls a ui predicate, passing definition as an argument."""
+    return Call(name + append, "definition")
 
 
 class Return(node.Node):
+    """Represents a return statement."""
+
     def __init__(self, expression: expr.ExprCandidate) -> None:
         self.expression = expression
 

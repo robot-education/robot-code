@@ -83,16 +83,16 @@ class Ternary(expr.Expression):
     """
 
     test: expr.Expression
-    false_operand: expr.ExprCandidate
     true_operand: expr.ExprCandidate
-    parens: bool = False
+    false_operand: expr.ExprCandidate
+    parens: bool = True
 
     @override
     def build(self, context: ctxt.Context) -> str:
         result = "{} ? {} : {}".format(
             self.test.run_build(context),
-            expr.build_expr(self.false_operand, context),
             expr.build_expr(self.true_operand, context),
+            expr.build_expr(self.false_operand, context),
         )
         return str_utils.parens(result) if self.parens else result
 

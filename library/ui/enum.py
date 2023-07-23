@@ -6,7 +6,7 @@ from typing_extensions import override
 import copy
 import warnings
 
-from library.core import control, func, param, utils, map
+from library.core import control, func, param, std, utils, map
 from library.base import ctxt, node, expr, str_utils, user_error
 
 __all__ = [
@@ -145,7 +145,7 @@ V = TypeVar("V", bound=EnumValue)
 
 
 # Avoid block parent since that has automatic expr->statement conversion
-class Enum(node.ParentNode, dict[str, V], Generic[V]):
+class Enum(node.ParentNode, expr.Expression, dict[str, V], Generic[V]):
     def __init__(
         self,
         name: str,
@@ -182,7 +182,9 @@ class Enum(node.ParentNode, dict[str, V], Generic[V]):
             string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
             string += self.build_children(context, sep=",\n", indent=True)
             return string + "\n}\n"
-        return user_error.expected_scope(ctxt.Scope.TOP)
+        elif context.scope == ctxt.Scope.EXPRESSION:
+            return utils.definition(self.default_parameter_name).run_build(context)
+        return user_error.expected_scope(ctxt.Scope.TOP, ctxt.Scope.EXPRESSION)
 
 
 class EnumFactory:

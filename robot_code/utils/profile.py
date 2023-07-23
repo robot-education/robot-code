@@ -1,6 +1,5 @@
 """Metaprogramming classes used to generate configurable code."""
 from library import *
-from library.core.func import Return
 
 
 class HexSizeFactory:
@@ -47,7 +46,6 @@ class HoleSizeFactory:
             .make()
         )
 
-        # self.hole_diameter =
         self.predicate = UiPredicate("holeSize", parent=self.studio).add(
             labeled_enum_parameter(self.enum, default="_NO_10"),
             IfBlock(self.enum["CUSTOM"]).add(
@@ -55,13 +53,29 @@ class HoleSizeFactory:
             ),
         )
 
-    def register_function(self, fit_enum: Enum) -> Function:
-        return Function(
-            "getHoleSize",
-            parent=self.studio,
-            parameters=definition_param,
-            return_type=Type.VALUE,
-        ).add(IfBlock(~self.enum["CUSTOM"]).add(), Return(definition("holeDiameter")))
+    def make_lookup_function(self, fit_enum: Enum) -> Function:
+        self.studio.add(
+            function := Function(
+                "getHoleSize",
+                parameters=definition_param,
+                return_type=Type.VALUE,
+            ).add(
+                IfBlock(~self.enum["CUSTOM"]).add(
+                    Return(MapAccess("HOLE_SIZES", self.enum, fit_enum)),
+                ),
+                Return(definition("holeDiameter")),
+            ),
+            Const(
+                "HOLE_SIZES",
+                enum_map(
+                    self.enum,
+                    enum_map(fit_enum, inch(0.1695), inch(0.177)),
+                    enum_map(fit_enum, inch(0.196), inch(0.201)),
+                    enum_map(fit_enum, inch(0.257), inch(0.266)),
+                ),
+            ),
+        )
+        return function
 
 
 def fit_enum(parent: Studio | None = None) -> Enum:

@@ -159,7 +159,11 @@ class CommandLineManager:
             ),
         )
 
-        if not force and onshape_studio.microversion_id != push_studio.microversion_id:
+        if (
+            not force
+            and not push_studio.generated
+            and onshape_studio.microversion_id != push_studio.microversion_id
+        ):
             self._report_conflict(push_studio)
             return None
 
