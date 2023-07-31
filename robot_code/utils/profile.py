@@ -29,7 +29,7 @@ class HexSizeFactory:
         )
 
     def _register_lookup_function(self) -> Function:
-        return enum_lookup_function(
+        return lookup_enum_function(
             "getHexWidth", self.enum, return_type=Type.VALUE, parent=self.studio
         )
 
@@ -78,24 +78,12 @@ class HoleSizeFactory:
         return function
 
 
-def fit_enum(parent: Studio | None = None) -> Enum:
-    return EnumFactory("Fit", parent=parent).add_value("CLOSE").add_value("FREE").make()
+def fit_enum(parent: Studio | None = None, custom: bool = False) -> Enum:
+    factory = EnumFactory("Fit", parent=parent).add_value("CLOSE").add_value("FREE")
+    if custom:
+        factory.add_value("CUSTOM")
+    return factory.make()
 
 
-# labeled_enum_parameter(
-#     hole_size,
-#     default="NO_10",
-# ),
-# IfBlock(is_hole_size_set).add(labeled_enum_parameter(fit)),
-
-# is_hole_size_set := UiTestPredicate(
-#     "isHoleSizeSet", hole_size["NO_8"] | hole_size["NO_10"]
-# ),
-
-# hole_size = (
-#     EnumFactory("HoleSize", parent=studio)
-#     .add_value("NO_8", "#8")
-#     .add_value("NO_10", "#10")
-#     .add_custom()
-#     .make()
-# )
+def fit_tolerance(fit: Enum) -> Ternary:
+    return Ternary(fit["CLOSE"], inch(0.008), inch(0.016))

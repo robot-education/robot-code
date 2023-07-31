@@ -24,25 +24,27 @@ class Unit(std_enum.StrEnum):
     RADIAN = "radian"
 
 
-def value_with_units(number: float | int, unit: str = Unit.METER) -> expr.Expression:
+def value_with_units(
+    number: float | int | str, unit: str = Unit.METER
+) -> expr.Expression:
     return expr.Id(str(number) + " * " + unit)
 
 
-def inch(value: float | int) -> expr.Expression:
+def inch(value: float | int | str) -> expr.Expression:
     return value_with_units(value, Unit.INCH)
 
 
-def millimeter(value: float | int) -> expr.Expression:
+def millimeter(value: float | int | str) -> expr.Expression:
     return value_with_units(value, Unit.MILLIMETER)
 
 
-def meter(value: float | int) -> expr.Expression:
+def meter(value: float | int | str) -> expr.Expression:
     return value_with_units(value, Unit.METER)
 
 
-def degree(value: float | int) -> expr.Expression:
+def degree(value: float | int | str) -> expr.Expression:
     return value_with_units(value, Unit.DEGREE)
 
 
-def radian(value: float | int) -> expr.Expression:
+def radian(value: float | int | str) -> expr.Expression:
     return value_with_units(value, Unit.RADIAN)

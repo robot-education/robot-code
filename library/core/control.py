@@ -83,9 +83,8 @@ def make_if_block(
     tests: Sequence[expr.Expression],
     statements: Sequence[node.Node],
     else_statement: node.Node | None = None,
-    add_else: bool = True,
-    *,
-    parent: node.ParentNode,
+    # add_else: bool = True,
+    parent: node.ParentNode | None = None,
 ) -> IfBlock:
     """Constructs an IfBlock directly from tests and statements. Assumes one statement per test."""
     if len(tests) != len(statements):
@@ -99,10 +98,9 @@ def make_if_block(
     for i, test in enumerate(tests[1:], start=1):
         base.else_if(test).add(statements[i])
 
-    if else_statement is not None:
-        if add_else:
-            base.or_else().add(else_statement)
-        else:
-            parent.add(else_statement)
+    if else_statement:
+        base.or_else().add(else_statement)
+        # else:
+        #     parent.add(else_statement)
 
     return base

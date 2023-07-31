@@ -1,6 +1,7 @@
 from library import *
 from library.core.func import Call, Return, ui_predicate_call
 from library.core.func import Return
+from library.ui.enum import enum_block
 from robot_code.robot_studio import RobotFeature
 from robot_code.utils import profile
 
@@ -11,14 +12,24 @@ robot_spacer = RobotFeature("spacer", description=DESCRIPTION)
 # feature_studio = robot_spacer.feature_studio
 studio = robot_spacer.ui_studio
 
-studio.add_import("stdExtrudeUi.fs", "backend")
-studio.add_import("wallType.fs", "backend")
+studio.add_import("stdExtrudeUi.fs", export=True)
+studio.add_import("wallType.fs", export=True)
 
 spacer_type = (
-    EnumFactory("SpacerType", parent=studio).add_value("HEX").add_value("ROUND").make()
+    EnumFactory(
+        "SpacerType",
+        parent=studio,
+        generate_predicates=True,
+        predicate_name_template="{value}Spacer",
+    )
+    .add_value("HEX")
+    .add_value("ROUND")
+    .add_value("MAX_SPLINE", "MAXSpline")
+    .make()
 )
 hex_spacer = spacer_type["HEX"]
 round_spacer = spacer_type["ROUND"]
+max_spacer = spacer_type["MAX_SPLINE"]
 
 fit = profile.fit_enum(studio)
 hex_size = profile.HexSizeFactory(studio)
@@ -27,7 +38,10 @@ get_hole_diameter = hole_size.make_lookup_function(fit)
 
 studio.add(
     can_have_default_wall := UiTestPredicate(
-        "canHaveDefaultWall", hex_spacer & ~hex_size.enum["CUSTOM"]
+        "canHaveDefaultWall",
+        Parens(hex_spacer & ~hex_size.enum["CUSTOM"])
+        | Parens(round_spacer & ~hole_size.enum["CUSTOM"])
+        | max_spacer,
     ),
     can_have_default_snap_on_gap := UiTestPredicate(
         "canHaveDefaultSnapOnGap",
@@ -37,20 +51,34 @@ studio.add(
         "isSnapOn",
         hex_spacer & definition("snapOn"),
     ),
-    spacer := UiPredicate("spacer").add_with_group(
+    general := UiPredicate("general").add_with_group(
         labeled_enum_parameter(spacer_type),
-        IfBlock(spacer_type["HEX"])
+        IfBlock(hex_spacer)
         .add(hex_size.predicate)
-        .or_else(hole_size.predicate),
+        .else_if(round_spacer)
+        .add(hole_size.predicate)
+        .else_if(max_spacer)
+        .add(boolean_parameter("customOffset")),
         IfBlock(
             Parens(hex_spacer & ~hex_size.enum["CUSTOM"])
             | Parens(round_spacer & ~hole_size.enum["CUSTOM"])
+            | Parens(max_spacer & ~definition("customOffset"))
         ).add(labeled_enum_parameter(fit)),
+        IfBlock(max_spacer & definition("customOffset")).add(
+            length_parameter(
+                "offset", bound_spec=LengthBound.ZERO_DEFAULT_LENGTH_BOUNDS
+            )
+        ),
+        IfBlock(can_have_default_wall).add(
+            boolean_parameter("customWall"),
+        ),
+        IfBlock(~can_have_default_wall | definition("customWall")).add(
+            ui_predicate_call("wallType")
+        ),
+    ),
+    snap_on := UiPredicate("snapOn").add(
         IfBlock(hex_spacer).add(
-            boolean_parameter(
-                "snapOn", description="Use a snap on design", default=False
-            ),
-            IfBlock(definition("snapOn")).add(
+            DrivenParameterGroup("snapOn", description="Use a snap on design").add(
                 IfBlock(can_have_default_snap_on_gap).add(
                     boolean_parameter(
                         "customSnapOnGap",
@@ -66,14 +94,8 @@ studio.add(
                         ui_hints=UiHint.REMEMBER_EXPRESSION,
                     ),
                 ),
-            ),
-        ),
-        IfBlock(can_have_default_wall).add(
-            boolean_parameter("customWall"),
-        ),
-        IfBlock(~can_have_default_wall | definition("customWall")).add(
-            ui_predicate_call("wallType")
-        ),
+            )
+        )
     ),
     UiPredicate("robotSpacer").add(
         query_parameter(
@@ -81,8 +103,15 @@ studio.add(
             user_name="Sketch points to place spacers",
             filter=SKETCH_VERTEX_FILTER,
         ),
-        spacer,
+        general,
+        snap_on,
         ui_predicate_call("extrude"),
+    ),
+    get_custom_offset := Function(
+        "getCustomOffset", parameters=definition_param, return_type=Type.VALUE
+    ).add(
+        IfBlock(definition("customOffset")).add(Return(definition("offset"))),
+        Return(profile.fit_tolerance(fit)),
     ),
     get_inner_diameter := Function(
         "getInnerDiameter",
@@ -90,14 +119,12 @@ studio.add(
         return_type=Type.VALUE,
         export=True,
     ).add(
-        IfBlock(spacer_type["HEX"])
-        .add(
-            Return(
-                hex_size.lookup_function
-                + Ternary(fit["CLOSE"], inch(0.008), inch(0.016))
-            )
-        )
-        .or_else(Return(get_hole_diameter))
+        IfBlock(hex_spacer)
+        .add(Return(hex_size.lookup_function + profile.fit_tolerance(fit)))
+        .else_if(round_spacer)
+        .add(Return(get_hole_diameter))
+        .else_if(max_spacer)
+        .add(Return(inch(1.375) + 2 * get_custom_offset))
     ),
     get_outer_diameter := Function(
         "getOuterDiameter",
@@ -107,7 +134,14 @@ studio.add(
         IfBlock(~can_have_default_wall | definition("customWall")).add(
             Return(Call("getWallDiameter", definition(), "innerDiameter"))
         ),
-        Return(Ternary(hex_size.enum["_1_2_IN"], inch(0.75), inch(0.625))),
+        IfBlock(hex_spacer)
+        .add(
+            Return(Ternary(hex_size.enum["_1_2_IN"], inch(0.75), inch(0.625))),
+        )
+        .else_if(round_spacer)
+        .add(enum_block(hole_size.enum, inch(0.3125), inch(0.375), inch(0.5)))
+        .else_if(max_spacer)
+        .add(Return(inch(1.625))),
     ),
     get_snap_on_gap := Function(
         "getSnapOnGap", parameters=definition_param, return_type=Type.VALUE, export=True
@@ -123,7 +157,10 @@ studio.add(
         return_type=Type.MAP,
         export=True,
     ).add(
+        # innerDiameter used in outerDiameter
         Const("innerDiameter", get_inner_diameter),
+        snap_on := Const("snapOn", is_snap_on),
+        custom_offset := Const("customOffset", max_spacer),
         Var(
             "spacerDefinition",
             Map(
@@ -131,8 +168,10 @@ studio.add(
                     "spacerType": definition("spacerType"),
                     "innerDiameter": "innerDiameter",
                     "outerDiameter": get_outer_diameter,
-                    "snapOn": is_snap_on,
-                    "snapOnGap": Ternary(is_snap_on, get_snap_on_gap, "undefined"),
+                    "snapOn": snap_on,
+                    "snapOnGap": Ternary(snap_on, get_snap_on_gap, "undefined"),
+                    "customOffset": custom_offset,
+                    "offset": Ternary(custom_offset, get_custom_offset, "undefined"),
                 },
                 inline=False,
             ),

@@ -8,7 +8,7 @@ DESCRIPTION = r"Generate robot frame members."
 robot_frame = RobotFeature("frame", description=DESCRIPTION)
 studio = robot_frame.ui_studio
 
-studio.add_import("stdFrameUi.fs", "backend", True)
+studio.add_import("stdFrameUi.fs", export=True)
 
 # enums
 wall_thickness = (
@@ -336,7 +336,7 @@ Const(
 #     # Although its technically 5mm, we fudge to allow close fit holes
 # ).add(Return(inch(0.196)))
 
-get_one_inch_face_hole_count = enum_lookup_function(
+get_one_inch_face_hole_count = lookup_enum_function(
     "getOneInchFaceHoleCount",
     one_inch_face,
     parent=studio,
@@ -357,7 +357,7 @@ get_first_face_width = Function(
     Return(definition("firstFaceWidth")),
 )
 
-get_two_inch_face_hole_count = enum_lookup_function(
+get_two_inch_face_hole_count = lookup_enum_function(
     "getTwoInchFaceHoleCount",
     two_inch_face,
     parent=studio,
@@ -586,7 +586,7 @@ get_second_face_pattern_definition = Function(
     ),
 )
 
-get_wall_thickness = enum_lookup_function(
+get_wall_thickness = lookup_enum_function(
     "getWallThickness",
     wall_thickness,
     parent=studio,

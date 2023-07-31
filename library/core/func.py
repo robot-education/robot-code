@@ -222,6 +222,10 @@ class _UiTestPredicateCall(func.Call):
         super().__init__(parent.name, *args, **kwargs)
 
     def build_inline(self, context: ctxt.Context) -> str:
+        """Composes all of the statements of the UiTestPredicate into a single expression by anding statements together.
+
+        To prevent the boolean logic from changing, each step is wrapped in parentheses.
+        """
         result = None
         for expression in self.parent.children:
             expression = expr.add_parens(expression)
@@ -234,7 +238,7 @@ class _UiTestPredicateCall(func.Call):
             warnings.warn("Cannot inline an empty predicate")
             return user_error.code_message("Cannot inline empty predicate")
 
-        return expr.add_parens(result).run_build(context, ctxt.Scope.EXPRESSION) + ";\n"
+        return expr.add_parens(result).run_build(context)
 
     @override
     def build(self, context: ctxt.Context) -> str:
@@ -296,11 +300,22 @@ def ui_predicate_call(name: str, suffix: str = "Predicate") -> Call:
 class Return(node.Node):
     """Represents a return statement."""
 
-    def __init__(self, expression: expr.ExprCandidate) -> None:
+    def __init__(self, expression: expr.ExprCandidate | None = None) -> None:
         self.expression = expression
 
     @override
     def build(self, context: ctxt.Context) -> str:
         if context.scope == ctxt.Scope.STATEMENT:
-            return "return " + expr.build_expr(self.expression, context) + ";\n"
+            if self.expression:
+                return "return " + expr.build_expr(self.expression, context) + ";\n"
+            else:
+                return "return;\n"
         return user_error.expected_scope(ctxt.Scope.STATEMENT)
+
+
+def return_undefined():
+    """A return which explicitly returns `undefined`.
+
+    Note this behavior is different from calling Return with no args, as that results in an empty return, e.g. `return;`.
+    """
+    return Return("undefined")

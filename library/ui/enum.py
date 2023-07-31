@@ -12,7 +12,7 @@ from library.base import ctxt, node, expr, str_utils, user_error
 __all__ = [
     "EnumFactory",
     "Enum",
-    "enum_lookup_function",
+    "lookup_enum_function",
     "LookupEnumValue",
 ]
 
@@ -62,9 +62,11 @@ class EnumValue(expr.Expression):
                 format_dict["value"] = str_utils.camel_case(
                     self.value, capitalize=not (first and tuple[0] == "")
                 )
-            else:
+            elif tuple[1]:  # only an error if actually is a substitution
                 warnings.warn(
-                    "Invalid name_template: Expected substitutions to be {name} or {value} only."
+                    'Invalid name_template "{}" - substitutions should be either {{name}} or {{value}}'.format(
+                        name_template
+                    )
                 )
             first = False
 
@@ -268,22 +270,21 @@ class EnumFactory:
         return self.enum
 
 
-def lookup_block(
-    enum_dict: Enum[LookupEnumValue],
-    *,
-    parent: node.ParentNode,
+def enum_block(
+    enum: Enum[LookupEnumValue],
+    *return_values: expr.ExprCandidate,
+    parent: node.ParentNode | None = None,
 ) -> control.IfBlock:
-    """Constructs an if block which accesses each lookup value in `enum_dict`."""
+    """Constructs an if block which returns each lookup value in `enum_dict`."""
     tests = []
     statements = []
-    for enum_value in enum_dict.values():
+    for enum_value, return_value in zip(enum.values(), return_values):
         tests.append(enum_value)
-        lookup_value = enum_value.lookup_value
-        statements.append(func.Return(lookup_value))
+        statements.append(func.Return(return_value))
     return control.make_if_block(tests=tests, statements=statements, parent=parent)
 
 
-def enum_lookup_function(
+def lookup_enum_function(
     name: str,
     enum_dict: Enum[LookupEnumValue],
     parent: node.ParentNode | None = None,
@@ -305,5 +306,6 @@ def enum_lookup_function(
         return_type=return_type,
         export=export,
     )
-    lookup_block(enum_dict, parent=function)
+    return_values = (enum_value.lookup_value for enum_value in enum_dict.values())
+    enum_block(enum_dict, *return_values, parent=function)
     return function

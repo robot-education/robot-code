@@ -39,7 +39,7 @@ def parse_args() -> argparse.Namespace:
         "--version",
         "-v",
         choices=["major", "minor", "patch"],
-        help="The type of version of the script being released",
+        help="The version type of the script being released",
         required=True,
     )
     release_parser.add_argument(

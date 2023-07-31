@@ -278,6 +278,7 @@ class DrivenParameterGroup(node.ParentNode):
         user_name: str | None = None,
         parent: node.ParentNode | None = None,
         ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
+        description: str | None = None,
         default: bool = False,
         test: expr.Expression | None = None,
     ) -> None:
@@ -287,8 +288,8 @@ class DrivenParameterGroup(node.ParentNode):
             user_name: The user facing name of both the boolean parameter and parameter group.
             test:
                 An additional test used to determine whether to allow driving the group in the first place.
-                When true, the group is driven by the (internal) boolean parameter.
-                When false, the internal boolean parameter is hidden, and the group is a standard group.
+                When the test evalutes to true, the group is driven by the (internal) boolean parameter.
+                When the test evalutes to false, the internal boolean parameter is hidden, and the group is a standard group.
         """
         self.drive_group_test = test
         self.parameter_name = parameter_name
@@ -303,6 +304,7 @@ class DrivenParameterGroup(node.ParentNode):
             user_name=user_name,
             ui_hints=ui_hints,
             default=default,
+            description=description,
         )
 
     @override
