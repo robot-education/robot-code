@@ -23,13 +23,13 @@ class EnumValue(expr.Expression):
         value: str,
         enum: Enum,
         annotate: bool = True,
-        user_name: str | None = None,
+        display_name: str | None = None,
         hidden: bool = False,
     ) -> None:
         """A possible value of an enum.
 
         value: The value of the enum. Should be all-caps seperated by underscores.
-        user_name: A user facing name.
+        display_name: A user facing name.
         hidden: Whether to mark the enum value as hidden. Has no effect if the enum is not ui.
         """
         self.value = value.upper()
@@ -37,7 +37,7 @@ class EnumValue(expr.Expression):
         self.enum = enum
         self.enum.add(self)
         self.annotate = annotate
-        self.user_name = user_name or str_utils.value_user_name(self.value)
+        self.display_name = display_name or str_utils.value_display_name(self.value)
         self.invert = False
         self.predicate = None
 
@@ -117,8 +117,8 @@ class EnumValue(expr.Expression):
 
     def build_value(self, context: ctxt.Context) -> str:
         dict = {}
-        if self.user_name is not None:
-            dict["Name"] = self.user_name
+        if self.display_name is not None:
+            dict["Name"] = self.display_name
         if self.hidden:
             dict["Hidden"] = "true"
 
@@ -228,7 +228,7 @@ class EnumFactory:
     def add_value(
         self,
         value: str,
-        user_name: str | None = None,
+        display_name: str | None = None,
         generate_predicate: bool | None = None,
         name_template: str | None = None,
         **kwargs,
@@ -238,7 +238,11 @@ class EnumFactory:
 
         # value adds itself to enum
         enum_value = self.value_type(
-            value, self.enum, user_name=user_name, annotate=self.annotate, **kwargs
+            value,
+            self.enum,
+            display_name=display_name,
+            annotate=self.annotate,
+            **kwargs,
         )
 
         # or operator handles None case

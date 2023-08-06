@@ -22,7 +22,7 @@ class HexSizeFactory:
             IfBlock(self.enum["CUSTOM"]).add(
                 length_parameter(
                     self.width_parameter,
-                    user_name="Width",
+                    display_name="Width",
                     bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
                 )
             ),

@@ -35,7 +35,7 @@ class TypeParameter(node.Node, ABC):
 def enum_parameter(
     enum: enum.Enum,
     parameter_name: str | None = None,
-    user_name: str | None = None,
+    display_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     description: str | None = None,
     default: str | None = None,
@@ -43,7 +43,7 @@ def enum_parameter(
     parameter_name = parameter_name or enum.default_parameter_name
     map = annotation_map.parameter_annotation_map(
         parameter_name,
-        user_name,
+        display_name,
         ui_hints,
         description,
         default,
@@ -54,7 +54,7 @@ def enum_parameter(
 def labeled_enum_parameter(
     enum: enum.Enum,
     parameter_name: str | None = None,
-    user_name: str | None = None,
+    display_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     default: str | None = None,
     **kwargs,
@@ -68,14 +68,14 @@ def labeled_enum_parameter(
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.SHOW_LABEL)
     # default prevents kwargs error?
     return enum_parameter(
-        enum, parameter_name, user_name, ui_hints=ui_hints, default=default, **kwargs
+        enum, parameter_name, display_name, ui_hints=ui_hints, default=default, **kwargs
     )
 
 
 def horizontal_enum_parameter(
     enum: enum.Enum,
     parameter_name: str | None = None,
-    user_name: str | None = None,
+    display_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     **kwargs,
 ):
@@ -87,19 +87,21 @@ def horizontal_enum_parameter(
     """
 
     ui_hints = ui_hint.add_ui_hint(ui_hints, ui_hint.UiHint.HORIZONTAL_ENUM)
-    return enum_parameter(enum, parameter_name, user_name, ui_hints=ui_hints, **kwargs)
+    return enum_parameter(
+        enum, parameter_name, display_name, ui_hints=ui_hints, **kwargs
+    )
 
 
 def boolean_parameter(
     parameter_name: str,
-    user_name: str | None = None,
+    display_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
     description: str | None = None,
     default: bool = False,
 ) -> TypeParameter:
     """Constructs a boolean parameter."""
     map = annotation_map.parameter_annotation_map(
-        parameter_name, user_name, ui_hints, description, default
+        parameter_name, display_name, ui_hints, description, default
     )
     return TypeParameter(parameter_name, "boolean", map)
 
@@ -161,49 +163,49 @@ class ValueParameter(node.Node, ABC):
 
 def length_parameter(
     parameter_name: str,
-    user_name: str | None = None,
+    display_name: str | None = None,
     bound_spec: str
     | bounds.LengthBoundSpec = bounds.LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
     description: str | None = None,
 ) -> ValueParameter:
     map = annotation_map.parameter_annotation_map(
-        parameter_name, user_name, ui_hints, description
+        parameter_name, display_name, ui_hints, description
     )
     return ValueParameter(parameter_name, "isLength", map, bound_spec=bound_spec)
 
 
 def integer_parameter(
     parameter_name: str,
-    user_name: str | None = None,
+    display_name: str | None = None,
     bound_spec: str
     | bounds.IntegerBoundSpec = bounds.IntegerBound.POSITIVE_COUNT_BOUNDS,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
     description: str | None = None,
 ) -> ValueParameter:
     map = annotation_map.parameter_annotation_map(
-        parameter_name, user_name, ui_hints, description
+        parameter_name, display_name, ui_hints, description
     )
     return ValueParameter(parameter_name, "isInteger", map, bound_spec=bound_spec)
 
 
 def real_parameter(
     parameter_name: str,
-    user_name: str | None = None,
+    display_name: str | None = None,
     *,
     bound_spec: str | bounds.RealBoundSpec,
     ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_EXPRESSION,
     description: str | None = None,
 ) -> ValueParameter:
     map = annotation_map.parameter_annotation_map(
-        parameter_name, user_name, ui_hints, description
+        parameter_name, display_name, ui_hints, description
     )
     return ValueParameter(parameter_name, "isReal", map, bound_spec=bound_spec)
 
 
 def query_parameter(
     parameter_name: str,
-    user_name: str | None = None,
+    display_name: str | None = None,
     *,
     filter: expr.Expression,
     ui_hints: ui_hint.UiHint | None = None,
@@ -212,7 +214,7 @@ def query_parameter(
 ) -> TypeParameter:
     map = annotation_map.parameter_annotation_map(
         parameter_name,
-        user_name,
+        display_name,
         ui_hints,
         description,
         filter=filter,
@@ -224,7 +226,7 @@ def query_parameter(
 class ParameterGroup(node.ParentNode):
     def __init__(
         self,
-        user_name: str,
+        display_name: str,
         uppercase_first_letter: bool = True,
         parent: node.ParentNode | None = None,
         collapsed_by_default: bool = False,
@@ -234,15 +236,15 @@ class ParameterGroup(node.ParentNode):
 
         Args:
             driving_parameter: The name of a parameter driving the group. See also `DrivenParameterGroup`.
-            uppercase_first_letter: True to automatically uppercase the first letter of `user_name`. Used to promote consistency with naming among parameters.
+            uppercase_first_letter: True to automatically uppercase the first letter of `display_name`. Used to promote consistency with naming among parameters.
         """
         super().__init__()
         node.handle_parent(self, parent)
         if uppercase_first_letter:
-            user_name = str_utils.upper_first(user_name)
+            display_name = str_utils.upper_first(display_name)
 
         dictionary = {
-            "Group Name": user_name,
+            "Group Name": display_name,
             "Collapsed By Default": collapsed_by_default,
         }
         if driving_parameter:
@@ -275,7 +277,7 @@ class DrivenParameterGroup(node.ParentNode):
     def __init__(
         self,
         parameter_name: str,
-        user_name: str | None = None,
+        display_name: str | None = None,
         parent: node.ParentNode | None = None,
         ui_hints: ui_hint.UiHint | None = ui_hint.UiHint.REMEMBER_PREVIOUS_VALUE,
         description: str | None = None,
@@ -285,7 +287,7 @@ class DrivenParameterGroup(node.ParentNode):
         """
         Args:
             parameter_name: The parameter name of the boolean parameter.
-            user_name: The user facing name of both the boolean parameter and parameter group.
+            display_name: The user facing name of both the boolean parameter and parameter group.
             test:
                 An additional test used to determine whether to allow driving the group in the first place.
                 When the test evalutes to true, the group is driven by the (internal) boolean parameter.
@@ -294,14 +296,14 @@ class DrivenParameterGroup(node.ParentNode):
         self.drive_group_test = test
         self.parameter_name = parameter_name
         self.group = ParameterGroup(
-            user_name or str_utils.user_name(parameter_name),
+            display_name or str_utils.display_name(parameter_name),
             uppercase_first_letter=False,
             parent=parent,
             driving_parameter=parameter_name,
         )
         self.boolean = boolean_parameter(
             parameter_name,
-            user_name=user_name,
+            display_name=display_name,
             ui_hints=ui_hints,
             default=default,
             description=description,

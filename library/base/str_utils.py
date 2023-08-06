@@ -35,17 +35,17 @@ def camel_case(name: str, capitalize: bool = False) -> str:
     return result if capitalize else lower_first(result)
 
 
-def _user_name(words: list[str]) -> str:
+def _display_name(words: list[str]) -> str:
     words[0] = words[0].capitalize()
     words[1:] = [word.lower() for word in words[1:]]
     return " ".join(words)
 
 
-def value_user_name(value: str) -> str:
-    return _user_name(value.split("_"))
+def value_display_name(value: str) -> str:
+    return _display_name(value.split("_"))
 
 
-def user_name(parameter_name: str) -> str:
+def display_name(parameter_name: str) -> str:
     """Converts a camel case parameter name to sentence case.
 
     Examples:
@@ -53,4 +53,4 @@ def user_name(parameter_name: str) -> str:
         MyValue -> My value
     """
     words = re.findall("[a-zA-Z][^A-Z]*", parameter_name)
-    return _user_name(words)
+    return _display_name(words)

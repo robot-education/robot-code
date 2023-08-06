@@ -45,9 +45,11 @@ class FeatureFactory:
         self.name = None
         self.args = None
 
-    def start(self, name: str, user_name: str | None = None, **feature_kwargs) -> Self:
+    def start(
+        self, name: str, display_name: str | None = None, **feature_kwargs
+    ) -> Self:
         self.name = name
-        feature_kwargs["user_name"] = user_name
+        feature_kwargs["display_name"] = display_name
         self.feature_kwargs = feature_kwargs
         return self
 

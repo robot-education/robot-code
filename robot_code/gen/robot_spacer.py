@@ -100,7 +100,7 @@ studio.add(
     UiPredicate("robotSpacer").add(
         query_parameter(
             "locations",
-            user_name="Sketch points to place spacers",
+            display_name="Sketch points to place spacers",
             filter=SKETCH_VERTEX_FILTER,
         ),
         general,

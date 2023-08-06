@@ -45,7 +45,7 @@ def release(
     config = conf.Config()
     backend = config.documents["backend"]
     frontend = config.documents["frontend"]
-    feature_name = str_utils.user_name(studio_name.removesuffix(".fs"))
+    feature_name = str_utils.display_name(studio_name.removesuffix(".fs"))
     studio = documents.get_feature_studio(api, backend, studio_name)
     if not studio:
         raise ValueError("Could not find studio {} in backend.".format(studio_name))

@@ -34,7 +34,7 @@ flange_diameter_control = (
 
 studio.add(
     selections := UiPredicate("pulleySelections").add(
-        DrivenParameterGroup("hasSelections", user_name="Selections").add(
+        DrivenParameterGroup("hasSelections", display_name="Selections").add(
             boolean_parameter("ahh")
         )
     ),
@@ -44,7 +44,7 @@ studio.add(
             IfBlock(definition("customWidth")).add(
                 length_parameter(
                     "width",
-                    user_name="Pulley width",
+                    display_name="Pulley width",
                     bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
                 )
             ),
@@ -71,7 +71,7 @@ studio.add(
             length_parameter(
                 "pulleyAndFlangeWidth",
                 bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
-                user_name="Total pulley width",
+                display_name="Total pulley width",
             )
         ),
         labeled_enum_parameter(flange_diameter_control),
@@ -86,15 +86,15 @@ studio.add(
         ),
     ),
     flange := UiPredicate("pulleyFlange").add(
-        DrivenParameterGroup("hasFlanges", user_name="Flanges").add(
+        DrivenParameterGroup("hasFlanges", display_name="Flanges").add(
             labeled_enum_parameter(flange_type),
             IfBlock(flange_type["CUSTOM"]).add(custom_flange),
         )
     ),
     engrave_tooth_count := UiPredicate("pulleyEngraveToothCount").add(
-        DrivenParameterGroup("engraveToothCount", user_name="Engrave tooth count").add(
-            length_parameter("engravingDepth", bound_spec=LengthBound.BLEND_BOUNDS)
-        )
+        DrivenParameterGroup(
+            "engraveToothCount", display_name="Engrave tooth count"
+        ).add(length_parameter("engravingDepth", bound_spec=LengthBound.BLEND_BOUNDS))
     ),
     UiPredicate("pulley").add(selections, general, flange, engrave_tooth_count),
 )
