@@ -634,6 +634,7 @@ Function(
     parent=studio,
     parameters=definition_param,
     return_type=Type.MAP,
+    export=True,
 ).add(
     Var(
         tube_def,
