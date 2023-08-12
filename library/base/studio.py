@@ -14,8 +14,8 @@ class Studio(node.ParentNode):
     ) -> None:
         self.studio_name = studio_name
         self.document_name = document_name
-        self.std_imports = []
-        self.imports = []
+        self.std_imports: list[imp.Import] = []
+        self.imports: list[imp.Import] = []
         self.children: list[node.Node] = []
         if import_common:
             self.std_imports.append(imp.Import("common.fs", std=True))
@@ -52,7 +52,6 @@ class Studio(node.ParentNode):
     @override
     def build(self, context: ctxt.Context) -> str:
         """The top-level build function for the studio."""
-        context.scope = ctxt.Scope.TOP
         context.document_name = self.document_name
         header = self._build_header(context) + _GENERATED_STUDIO_HEADER
         return header + self.build_children(context, sep="\n")
@@ -83,8 +82,10 @@ class PartialStudio(Studio):
     @override
     def build(self, context: ctxt.Context) -> str:
         """The top-level build function for the studio."""
-        header = _BEGIN_GENERATION + self._build_header(context)
-        return header + self.build_children(context, sep="\n") + _END_GENERATION
+        return super().build(context)
+        # context.document_name = self.document_name
+        # header = self._build_header(context)
+        # return header + self.build_children(context, sep="\n")
 
 
 def parse_code_sections(code: str) -> list[str]:

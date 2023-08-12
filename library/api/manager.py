@@ -73,11 +73,11 @@ class CommandLineManager:
 
         pulled = 0
         with futures.ThreadPoolExecutor() as executor:
-            for studio in executor.map(
+            for pulled_studio in executor.map(
                 functools.partial(self.pull_studio, force), studios
             ):
-                if studio:
-                    self.curr_data[studio.path.element_id] = studio
+                if pulled_studio:
+                    self.curr_data[pulled_studio.path.element_id] = pulled_studio
                     pulled += 1
 
         if not self.conflict and pulled == 0:
@@ -87,29 +87,31 @@ class CommandLineManager:
             self._finish()
 
     def pull_studio(
-        self, force: bool, studio: conf.FeatureStudio
+        self, force: bool, studio_to_pull: conf.FeatureStudio
     ) -> conf.FeatureStudio | None:
-        curr_studio = self.curr_data.get(studio.path.element_id, None)
+        curr_studio = self.curr_data.get(studio_to_pull.path.element_id, None)
         if curr_studio is not None:
             if (
-                curr_studio.microversion_id == studio.microversion_id
+                curr_studio.microversion_id == studio_to_pull.microversion_id
                 or curr_studio.generated
             ):
                 # do nothing if microversions match or the studio is auto-generated
                 return None
             elif curr_studio.modified and not force:
                 # microversions don't match; potential conflict between cloud and local
-                self._report_conflict(studio)
+                self._report_conflict(studio_to_pull)
                 return None
-            # okay to overwrite non-modified studio, set id
-            studio.microversion_id = curr_studio.microversion_id
 
-        print("Pulling {}".format(studio.name))
+        print("Pulling {}".format(studio_to_pull.name))
 
-        code = feature_studios.pull_code(self.api, studio.path)
-        self.config.write_file(studio.name, code)
-        # don't need to worry about reseting generated since generated is never pulled
-        return studio
+        code = feature_studios.pull_code(self.api, studio_to_pull.path)
+        self.config.write_file(studio_to_pull.name, code)
+
+        studio_to_pull.microversion_id = documents.get_microversion_id(
+            self.api, studio_to_pull.path
+        )
+        studio_to_pull.modified = False  # Studio is now synced
+        return studio_to_pull
 
     def push(self, force: bool = False) -> None:
         """Push code to Onshape.
@@ -130,13 +132,12 @@ class CommandLineManager:
 
         pushed = 0
         with futures.ThreadPoolExecutor() as executor:
-            for push_studio in executor.map(
+            for pushed_studio in executor.map(
                 functools.partial(self.push_studio, onshape_studios, force),
                 studios_to_push,
             ):
-                if push_studio:
-                    # get_microversion_id doesn't work with threading - Onshape bug?
-                    self.curr_data[push_studio.path.element_id] = push_studio
+                if pushed_studio:
+                    self.curr_data[pushed_studio.path.element_id] = pushed_studio
                     pushed += 1
 
         if not self.conflict and pushed == 0:
@@ -149,36 +150,36 @@ class CommandLineManager:
         self,
         onshape_studios: Iterable[conf.FeatureStudio],
         force: bool,
-        push_studio: conf.FeatureStudio,
+        studio_to_push: conf.FeatureStudio,
     ) -> conf.FeatureStudio | None:
         onshape_studio = next(
             filter(
                 lambda onshape_studio: onshape_studio.path.element_id
-                == push_studio.path.element_id,
+                == studio_to_push.path.element_id,
                 onshape_studios,
             ),
         )
 
         if (
-            not force
-            and not push_studio.generated
-            and onshape_studio.microversion_id != push_studio.microversion_id
+            onshape_studio.microversion_id != studio_to_push.microversion_id
+            and not force
+            and not studio_to_push.generated
         ):
-            self._report_conflict(push_studio)
+            self._report_conflict(studio_to_push)
             return None
 
-        print("Pushing {}".format(push_studio.name))
-        code = self.config.read_file(push_studio.name)
+        print("Pushing {}".format(studio_to_push.name))
+        code = self.config.read_file(studio_to_push.name)
         if code is None:
-            print("Failed to find studio {}. Skipping.".format(push_studio.name))
+            print("Failed to find studio {}. Skipping.".format(studio_to_push.name))
             return None
 
-        feature_studios.push_code(self.api, push_studio.path, code)
-        push_studio.modified = False
-        push_studio.microversion_id = documents.get_microversion_id(
-            self.api, push_studio.path
+        feature_studios.push_code(self.api, studio_to_push.path, code)
+        studio_to_push.modified = False
+        studio_to_push.microversion_id = documents.get_microversion_id(
+            self.api, studio_to_push.path
         )
-        return push_studio
+        return studio_to_push
 
     def update_versions(self) -> None:
         std_version = feature_studios.std_version(self.api)

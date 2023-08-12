@@ -48,8 +48,8 @@ N = TypeVar("N", bound=Node)
 class ParentNode(Node, Generic[N], ABC):
     """A node which supports an array of children."""
 
-    def __init__(self) -> None:
-        self.children: list[N] = []
+    def __init__(self, children: Iterable[N] = []) -> None:
+        self.children = list(children)
 
     def add(self, *nodes: N) -> Self:
         """Adds one or more nodes to the class."""

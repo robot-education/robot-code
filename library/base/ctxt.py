@@ -70,4 +70,8 @@ class Context:
 
 
 def make_context(std_version: str, config: conf.Config, api: api_base.Api) -> Context:
+    """Generates a partially initialized context.
+
+    Note the document name must still be added.
+    """
     return Context(std_version, config, api)

@@ -3,14 +3,15 @@ from robot_code.robot_studio import RobotFeature
 
 robot_bearing = RobotFeature("bearing")
 studio = robot_bearing.ui_studio
+# feature_studio = robot_bearing.feature_studio
 
+studio.add_import("stdHoleCommon.fs", export=True)
 
 bearing_type = (
     EnumFactory("BearingType", studio).add_value("FLANGED").add_value("RADIAL").make()
 )
 flanged = bearing_type["FLANGED"]
 radial = bearing_type["RADIAL"]
-custom = bearing_type["CUSTOM"]
 
 bore_type = EnumFactory("BoreType", studio).add_value("HEX").add_value("ROUND").make()
 hex = bore_type["HEX"]
@@ -41,7 +42,7 @@ round = bore_type["ROUND"]
 # )
 
 studio.add(
-    hole_style := EnumFactory("HoleStyle")
+    hole_style := EnumFactory("BearingHoleStyle")
     .add_value("SIMPLE")
     .add_value("COUNTERBORE")
     .make(),
@@ -49,5 +50,6 @@ studio.add(
         horizontal_enum_parameter(bore_type),
         labeled_enum_parameter(bearing_type),
         IfBlock(flanged).add(),
+        ui_predicate_call("holeLocation"),
     ),
 )

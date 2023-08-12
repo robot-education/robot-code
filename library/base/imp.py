@@ -38,7 +38,11 @@ class Import(node.Node):
         self.document_name = self.document_name or context.document_name
 
         is_external = self.document_name != context.document_name
-        document = context.config.documents[self.document_name]
+        document = context.config.get_document(self.document_name)
+        if document is None:
+            raise ValueError(
+                "Failed to find document in config named {}.".format(self.document_name)
+            )
         if is_external:
             if self.version_id:
                 document.workspace_id = self.version_id

@@ -3,14 +3,8 @@
   "code_path": ".fs_code", // path to output code
   "code_gen_path": "robot_code/gen", // path to files to execute
   // document names are used in code gen
-  "documents": [
-    {
-      "name": "backend",
-      "url": "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f/e/8fce00629c71b941d2d87732"
-    },
-    {
-      "name": "frontend",
-      "url": "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88/e/99672d1e329b38e647d90146"
-    }
-  ]
+  "documents": {
+    "backend": "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f/e/8fce00629c71b941d2d87732",
+    "frontend": "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88/e/99672d1e329b38e647d90146"
+  }
 }

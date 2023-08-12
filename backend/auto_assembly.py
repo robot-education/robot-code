@@ -241,7 +241,7 @@ def get_part_mate_ids(
     """Fetches the mate ids of an instance.
 
     Returns a list of the mate ids on the instance.
-    Returns [] if the instance isn't a valid part or doesn't have any mates.
+    Returns [] if the instance isn't a valid part or it doesn't have any mates.
     """
     if instance["type"] != "Part":
         return []
@@ -261,7 +261,7 @@ def iterate_mate_ids(
     """Iterates over instances_to_mates, calling fn on each.
 
     Args:
-        fn: A function taking an executor, an api, an assembly_path, an instance, a mate id, and *args (in that order),
+        fn: A function taking an executor, an api, an assembly_path, an instance, a mate_id, and *args (in that order),
           and which returns a Future or None.
 
     Returns the number of created threads.

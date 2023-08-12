@@ -47,9 +47,8 @@ class _Callable(node.ParentNode, expr.Expression):
         export: bool = True,
         is_lambda: bool = False,
     ) -> None:
-        super().__init__()
+        super().__init__(statements)
         node.handle_parent(self, parent)
-        self.add(*statements)
         self.name = name
         self.callable_type = callable_type
         self.parameters = parameters

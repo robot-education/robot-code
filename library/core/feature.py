@@ -7,11 +7,9 @@ from library.ui import annotation_map
 FEATURE_BODY = """export const {} = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {{
-        {}
-    }}
+        {}    }}
     {{
-        {}
-    }});\n"""
+        {}    }});\n"""
 
 
 class Feature(node.Node):
@@ -32,8 +30,8 @@ class Feature(node.Node):
     @override
     def build(self, context: ctxt.Context) -> str:
         if context.scope == ctxt.Scope.TOP:
-            context.scope = ctxt.Scope.EXPRESSION
-            header = self.map.run_build(context)
+            header = self.map.run_build(context, scope=ctxt.Scope.EXPRESSION)
+            context.scope = ctxt.Scope.STATEMENT
             return header + FEATURE_BODY.format(
                 self.name, self.ui.run_build(context), self.body.run_build(context)
             )

@@ -1,3 +1,4 @@
+from typing import Any
 from library.api import api_base, api_path, conf, constants
 import re
 
@@ -23,9 +24,16 @@ def make_feature_studio(
     )
 
 
-def pull_code(api: api_base.Api, path: api_path.ElementPath) -> str:
-    """Fetches code from a feature studio specified by path."""
-    return api.get(api_path.api_path("featurestudios", path))["contents"]
+def pull_code(
+    api: api_base.Api, path: api_path.ElementPath, raw_response: bool = False
+) -> Any:
+    """Fetches code from a feature studio specified by path.
+
+    Args:
+        raw_response: True to get the entire response, False to get just the code.
+    """
+    response = api.get(api_path.api_path("featurestudios", path))
+    return response if raw_response else response["contents"]
 
 
 def push_code(api: api_base.Api, path: api_path.ElementPath, code: str) -> dict:

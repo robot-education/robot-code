@@ -31,17 +31,10 @@ class Config:
         self._parse_config(config)  # type: ignore
 
     def _get_config_key(self, config: dict, key: str) -> Any:
+        """Fetches the value of key from config. Throws if key does not exist."""
         value = config.get(key, None)
         if value is None:
             raise KeyError("config.json must contain a {} field".format(key))
-        return value
-
-    def _get_document_key(self, config: dict, key: str) -> Any:
-        value = config.get(key, None)
-        if value is None:
-            raise KeyError(
-                "Each document in config.json must contain a {} field".format(key)
-            )
         return value
 
     def _get_dir(self, dir_path: str) -> pathlib.Path:
@@ -61,15 +54,10 @@ class Config:
         self._parse_document_paths(config)
 
     def _parse_document_paths(self, config: dict) -> None:
-        documents: list = self._get_config_key(config, "documents")
+        documents: dict[str, str] = self._get_config_key(config, "documents")
         self.documents: dict[str, api_path.DocumentPath] = dict(
-            (
-                self._get_document_key(document, "name"),
-                api_path.make_document_path(
-                    self._get_document_key(document, "url"),
-                ),
-            )
-            for document in documents
+            (document_name, api_path.make_document_path(url))
+            for document_name, url in documents.items()
         )
 
     def write(self, data: FileData) -> None:
