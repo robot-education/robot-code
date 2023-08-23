@@ -17,6 +17,22 @@ bore_type = EnumFactory("BoreType", studio).add_value("HEX").add_value("ROUND").
 hex = bore_type["HEX"]
 round = bore_type["ROUND"]
 
+bearing_hole_style = (
+    EnumFactory("BearingHoleStyle", studio, value_type=LookupEnumValue)
+    .add_value("SIMPLE")
+    .add_value("COUNTER_BORE")
+    .make()
+)
+
+bearing_hole_end_style = (
+    EnumFactory("BearingHoleEndStyle", studio, value_type=LookupEnumValue)
+    .add_value("BLIND")
+    .add_value("UP_TO_NEXT")
+    .add_value("UP_TO_ENTITY")
+    .add_value("THROUGH")
+    .make()
+)
+
 # hex_bearing_type = (
 #     EnumFactory("HexBearingType", studio)
 #     .add_value("0.5 in.")
@@ -46,10 +62,18 @@ studio.add(
     .add_value("SIMPLE")
     .add_value("COUNTERBORE")
     .make(),
+    UiPredicate("bearingHoleTop").add(
+        ui_predicate_call("holePreselectionPredicate"),
+        labeled_enum_parameter(bearing_hole_style, display_name="Style"),
+        labeled_enum_parameter(bearing_hole_end_style, display_name="Termination"),
+        boolean_flip_parameter(),
+        ui_predicate_call("holeEndBound"),
+    ),
     UiPredicate("robotBearing").add(
         horizontal_enum_parameter(bore_type),
         labeled_enum_parameter(bearing_type),
         IfBlock(flanged).add(),
         ui_predicate_call("holeLocation"),
+        ui_predicate_call("holeBooleanScope"),
     ),
 )

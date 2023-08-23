@@ -20,7 +20,7 @@ def execute():
     if body == None:
         return {"error": "A request body is required."}
 
-    api = api_base.ApiToken(token, logging=True)
+    api = api_base.ApiToken(token, logging=False)
 
     assembly_path = api_path.make_element_path_from_obj(body)
     document_path = assembly_path.path
@@ -38,7 +38,7 @@ def execute():
         )
 
     assembly = assembly_future.result()
-    parts = assembly["parts"]
+    parts = assembly.get("parts", [])
     part_studio_paths = extract_part_studios(parts, document_path)
     parts_to_mates = get_parts_to_mates(assembly, document_path)
 
@@ -170,6 +170,7 @@ def evaluate_targets(
 
 
 def evalute_target(api: api_base.Api, assembly_path: api_path.ElementPath) -> dict:
+    """Runs the target FeatureScript against a given part studio."""
     with pathlib.Path("backend/scripts/parseTarget.fs").open() as file:
         return part_studios.evaluate_feature_script(api, assembly_path, file.read())
 
@@ -208,17 +209,16 @@ def is_mate_unused(instance: dict, mate_id: str, assembly_features: dict) -> boo
                 query["featureId"] == mate_id and query["path"][0] == instance["id"]
                 for query in queries
             ):
-                app.logger.info("Used mate")
                 return False
     return True
 
 
 def is_fastened_mate(feature: dict) -> bool:
+    """Returns true if a given feature represents a fastened mate."""
     if feature.get("featureType", None) != "mate":
         return False
     for parameter in feature["parameters"]:
         if parameter["parameterId"] == "mateType":
-            app.logger.info("mateType")
             if parameter["value"] != "FASTENED":
                 return False
             else:

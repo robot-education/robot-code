@@ -1,5 +1,5 @@
 import pathlib
-from typing import Self, TypedDict
+from typing import Literal, Self, TypedDict
 from urllib import parse
 import dataclasses
 
@@ -8,7 +8,7 @@ import dataclasses
 class DocumentPath:
     document_id: str
     workspace_id: str
-    workspace_or_version: str = "w"
+    workspace_or_version: Literal["w", "m", "v"] = "w"
 
     def copy(self) -> Self:
         return DocumentPath(self.document_id, self.workspace_id)
@@ -58,11 +58,15 @@ class ElementPathObject(TypedDict):
     documentId: str
     workspaceId: str
     elementId: str
+    workspaceOrVersion: Literal["w", "m", "v"] | None
 
 
 def make_element_path_from_obj(object: ElementPathObject) -> ElementPath:
     return make_element_path(
-        object["documentId"], object["workspaceId"], object["elementId"]
+        object["documentId"],
+        object["workspaceId"],
+        object["elementId"],
+        object.get("workspaceOrVersion") or "w",
     )
 
 
@@ -70,7 +74,7 @@ def make_element_path(
     document_id: str,
     workspace_id: str,
     element_id: str,
-    workspace_or_version: str = "w",
+    workspace_or_version: Literal["w", "m", "v"] = "w",
 ) -> ElementPath:
     return ElementPath(
         DocumentPath(document_id, workspace_id, workspace_or_version), element_id

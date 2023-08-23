@@ -1,8 +1,6 @@
 from flask import current_app as app
 from library.api import api_base, api_path
 
-import numpy as np
-
 
 def get_assembly(
     api: api_base.Api,
@@ -73,7 +71,7 @@ def add_part_to_assembly(
 ) -> dict:
     """Adds a part to a given assembly.
 
-    Note the response may be malformed due to a (reported) bug with the Onshape API.
+    Note the response may be malformed or nonexistant due to a (reported) bug with the Onshape API.
     """
     return api.post(
         api_path.api_path("assemblies", assembly_path, "instances"),
@@ -150,6 +148,8 @@ def fix_instance(
     api: api_base.Api, assembly_path: api_path.ElementPath, instance_id: str
 ) -> dict:
     """Fixes an instance in an assembly.
+
+    Does not currently work; it is unknown if this functionality is exposed thorugh the api.
 
     Args:
         assembly_path: The path of the assembly.

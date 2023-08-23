@@ -1,7 +1,7 @@
 from library import *
 from library.core.feature import FeatureFactory
 
-ROBOT_DESCRIPTION = r"""
+ROBOT_DESCRIPTION: str = r"""
 
 Documentation may be found at: 
 <b>robothandbook.dev</b>

@@ -22,7 +22,7 @@ const toJson = function(arg) returns string
         arg is map || arg is array;
     }
     {
-        const toJsonImplementation = function(arg, recurse) returns string
+        const toJsonImplementation = function(arg, recurse is function) returns string
             {
                 if (arg is map)
                 {
