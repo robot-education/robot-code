@@ -10,6 +10,14 @@
             "group": {
                 "kind": "build"
             }
+        },
+        {
+            "label": "Launch backend",
+            "type": "shell",
+            "command": "python -m backend.server",
+            "group": {
+                "kind": "build"
+            }
         }
     ]
 }

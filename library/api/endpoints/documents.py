@@ -46,6 +46,13 @@ def get_feature_studios(
     return _extract_studios(elements, document_path)
 
 
+def get_feature_studio(
+    api: api_base.Api, document_path: api_path.DocumentPath, studio_name: str
+) -> conf.FeatureStudio | None:
+    """Fetches a single feature studio by name, or None if no such studio exists."""
+    return get_feature_studios(api, document_path).get(studio_name, None)
+
+
 def _extract_studios(
     elements: list[dict],
     document_path: api_path.DocumentPath,
@@ -61,4 +68,46 @@ def _extract_studios(
             ),
         )
         for element in elements
+    )
+
+
+def get_versions(api: api_base.Api, document_path: api_path.DocumentPath) -> list[dict]:
+    """Fetches a list of versions of a document.
+
+    Versions are returned in chronological order, from oldest to newest.
+    """
+    return api.get(
+        api_path.api_path("documents", document_path.as_document(), "versions")
+    )
+
+
+def make_version(
+    api: api_base.Api,
+    document_path: api_path.DocumentPath,
+    version_name: str,
+    description: str,
+    confirm: bool = True,
+) -> dict:
+    """Creates a new version in document.
+
+    Args:
+        confirm: Whether to confirm explicitly with the user before creating a version.
+    """
+    if confirm:
+        value = input(
+            'You are about to irreversibly create a version named "{}". Versions cannot be deleted. Enter "yes" to confirm: '.format(
+                version_name
+            )
+        )
+        if value != "yes":
+            raise ValueError("Aborted version creation.")
+    body = {
+        "name": version_name,
+        "description": description,
+        "documentId": document_path.document_id,
+        "workspaceId": document_path.workspace_id,
+    }
+    return api.post(
+        api_path.api_path("documents", document_path.as_document(), "versions"),
+        body=body,
     )

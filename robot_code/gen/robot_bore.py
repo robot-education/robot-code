@@ -1,4 +1,6 @@
 from library import *
+from library.core.func import Return
+from library.core.func import Return
 from robot_code import robot_studio
 from robot_code.utils import profile
 
@@ -80,7 +82,7 @@ studio.add(
 # predicates
 studio.add(
     bore_end_predicate := UiPredicate("boreEnd").add(
-        enum_parameter(end_style, user_name="Termination", default="BLIND"),
+        enum_parameter(end_style, display_name="Termination", default="BLIND"),
         boolean_flip_parameter(),
         IfBlock(end_style["BLIND"] & bore_type["INSERT"]).add(
             boolean_parameter("overrideDepth")
@@ -97,7 +99,7 @@ studio.add(
         .add(
             query_parameter(
                 "upToEntity",
-                user_name="Up to vertex or mate connector",
+                display_name="Up to vertex or mate connector",
                 filter=VERTEX_FILTER,
             )
         ),
@@ -111,7 +113,7 @@ studio.add(
         .add(length_parameter("diameter"))
         .else_if(bore_type["GEAR"])
         .add(
-            labeled_enum_parameter(gear_pitch_type, user_name="Pitch type"),
+            labeled_enum_parameter(gear_pitch_type, display_name="Pitch type"),
             IfBlock(gear_pitch_type["DIAMETRICAL_PITCH"])
             .add(real_parameter("diametricalPitch", bound_spec=dp_pitch_bounds))
             .else_if(gear_pitch_type["CIRCULAR_PITCH"])
@@ -133,7 +135,7 @@ studio.add(
                     boolean_parameter("overrideBore"),
                 ),
                 IfBlock(definition("overrideBore") | ~bore_type["INSERT"]).add(
-                    enum_parameter(bore_extend_type, user_name="Bore type"),
+                    enum_parameter(bore_extend_type, display_name="Bore type"),
                     IfBlock(bore_extend_type["HEX"])
                     .add(
                         enum_parameter(hex_size.enum, "innerHexSize", "Hex size"),
@@ -155,7 +157,7 @@ studio.add(
                 .add(
                     query_parameter(
                         "innerUpToEntity",
-                        user_name="Up to vertex or mate connector",
+                        display_name="Up to vertex or mate connector",
                         filter=VERTEX_FILTER,
                     )
                 ),
@@ -171,12 +173,12 @@ studio.add(
         # mimic hole feature
         query_parameter(
             "locations",
-            user_name="Sketch points to place bores",
+            display_name="Sketch points to place bores",
             filter=SKETCH_VERTEX_FILTER,
         ),
         query_parameter(
             "scope",
-            user_name="Merge scope",
+            display_name="Merge scope",
             filter=ModifiableEntityOnly.YES & EntityType.BODY & BodyType.SOLID,
         ),
     ),
@@ -191,7 +193,7 @@ studio.add(
 # functions
 studio.add(
     get_bore_definition := Function(
-        "getBoreDefinition", arguments=definition_arg, return_type=Type.MAP
+        "getBoreDefinition", parameters=definition_param, return_type=Type.MAP
     ).add(
         IfBlock(bore_type["HEX"])
         .add(Return(Map({"width": hex_size.lookup_function})))

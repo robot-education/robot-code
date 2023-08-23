@@ -3,7 +3,7 @@ from library import *
 
 
 class HexSizeFactory:
-    def __init__(self, studio: Studio, width_parameter: str = "width") -> None:
+    def __init__(self, studio: Studio, width_parameter: str = "hexWidth") -> None:
         self.studio = studio
         self.width_parameter = width_parameter
         self.enum = (
@@ -22,15 +22,15 @@ class HexSizeFactory:
             IfBlock(self.enum["CUSTOM"]).add(
                 length_parameter(
                     self.width_parameter,
-                    user_name="Width",
+                    display_name="Width",
                     bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
                 )
             ),
         )
 
     def _register_lookup_function(self) -> Function:
-        return enum_lookup_function(
-            "getHexSize", self.enum, return_type=Type.VALUE, parent=self.studio
+        return lookup_enum_function(
+            "getHexWidth", self.enum, return_type=Type.VALUE, parent=self.studio
         )
 
 
@@ -46,7 +46,6 @@ class HoleSizeFactory:
             .make()
         )
 
-        # self.hole_diameter =
         self.predicate = UiPredicate("holeSize", parent=self.studio).add(
             labeled_enum_parameter(self.enum, default="_NO_10"),
             IfBlock(self.enum["CUSTOM"]).add(
@@ -54,33 +53,37 @@ class HoleSizeFactory:
             ),
         )
 
-    def register_function(self, fit_enum: Enum) -> Function:
-        return Function(
-            "getHoleSize",
-            parent=self.studio,
-            arguments=definition_arg,
-            return_type=Type.VALUE,
-        ).add(IfBlock(~self.enum["CUSTOM"]).add(), Return(definition("holeDiameter")))
+    def make_lookup_function(self, fit_enum: Enum) -> Function:
+        self.studio.add(
+            function := Function(
+                "getHoleSize",
+                parameters=definition_param,
+                return_type=Type.VALUE,
+            ).add(
+                IfBlock(~self.enum["CUSTOM"]).add(
+                    Return(MapAccess("HOLE_SIZES", self.enum, fit_enum)),
+                ),
+                Return(definition("holeDiameter")),
+            ),
+            Const(
+                "HOLE_SIZES",
+                enum_map(
+                    self.enum,
+                    enum_map(fit_enum, inch(0.1695), inch(0.177)),
+                    enum_map(fit_enum, inch(0.196), inch(0.201)),
+                    enum_map(fit_enum, inch(0.257), inch(0.266)),
+                ),
+            ),
+        )
+        return function
 
 
-def fit_enum(parent: Studio | None = None) -> Enum:
-    return EnumFactory("Fit", parent=parent).add_value("CLOSE").add_value("FREE").make()
+def fit_enum(parent: Studio | None = None, custom: bool = False) -> Enum:
+    factory = EnumFactory("Fit", parent=parent).add_value("CLOSE").add_value("FREE")
+    if custom:
+        factory.add_value("CUSTOM")
+    return factory.make()
 
 
-# labeled_enum_parameter(
-#     hole_size,
-#     default="NO_10",
-# ),
-# IfBlock(is_hole_size_set).add(labeled_enum_parameter(fit)),
-
-# is_hole_size_set := UiTestPredicate(
-#     "isHoleSizeSet", hole_size["NO_8"] | hole_size["NO_10"]
-# ),
-
-# hole_size = (
-#     EnumFactory("HoleSize", parent=studio)
-#     .add_value("NO_8", "#8")
-#     .add_value("NO_10", "#10")
-#     .add_custom()
-#     .make()
-# )
+def fit_tolerance(fit: Enum) -> Ternary:
+    return Ternary(fit["CLOSE"], inch(0.008), inch(0.016))

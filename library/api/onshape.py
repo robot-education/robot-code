@@ -63,8 +63,8 @@ def main():
         manager.clean(config)
         return
 
-    api_obj = api_base.ApiKey(logging=args.log)
-    command_line_manager = manager.CommandLineManager(config, api_obj)
+    api = api_base.ApiKey(logging=args.log)
+    command_line_manager = manager.CommandLineManager(config, api)
 
     if args.action == "update-versions":
         command_line_manager.update_versions()

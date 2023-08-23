@@ -7,3 +7,4 @@ RUN apt-get update && apt-get install -y sudo man vim less
 # for some reason source is not a valid command, so use . instead
 ARG WORKSPACE
 RUN echo alias onshape=\"bash ${WORKSPACE}/onshape.sh\" >> ~/.bashrc && . ~/.bashrc
+RUN echo alias robot=\"bash ${WORKSPACE}/robot.sh\" >> ~/.bashrc && . ~/.bashrc

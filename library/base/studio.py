@@ -3,7 +3,7 @@ from typing_extensions import override
 from library.base import ctxt, node, imp
 
 _FS_HEADER = "FeatureScript {};\n"
-_GENERATED_HEADER = "\n/* Automatically generated file -- DO NOT EDIT */\n\n"
+_GENERATED_STUDIO_HEADER = "\n/* Automatically generated file -- DO NOT EDIT */\n\n"
 
 
 class Studio(node.ParentNode):
@@ -14,47 +14,47 @@ class Studio(node.ParentNode):
     ) -> None:
         self.studio_name = studio_name
         self.document_name = document_name
-        self.std_imports = []
-        self.imports = []
-        self.children: list[node.TopStatement] = []
+        self.std_imports: list[imp.Import] = []
+        self.imports: list[imp.Import] = []
+        self.children: list[node.Node] = []
         if import_common:
-            self.std_imports.append(imp.Import("common.fs"))
-
-    def import_studio(self, studio: Self, export: bool = True) -> Self:
-        """Adds an import targeting the given studio."""
-        self.add_import(studio.studio_name, studio.document_name, export)
-        return self
+            self.std_imports.append(imp.Import("common.fs", std=True))
 
     def add_import(
-        self, studio_name: str, document_name: str | None = None, export: bool = True
+        self,
+        studio_name: str,
+        document_name: str | None = None,
+        version_id: str | None = None,
+        std: bool = False,
+        export: bool = False,
     ) -> Self:
-        node = imp.Import(studio_name, document_name, export)
+        node = imp.Import(studio_name, document_name, version_id, std, export)
         if document_name:
             self.imports.append(node)
         else:
             self.std_imports.append(node)
         return self
 
-    def add(self, *nodes: node.TopStatement) -> Self:
+    def add(self, *nodes: node.Node) -> Self:
         self.children.extend(nodes)
         return self
 
     def _build_header(self, context: ctxt.Context) -> str:
         header = _FS_HEADER.format(context.std_version)
         if len(self.std_imports) > 0:
-            header += "".join(node.run_build_top(context) for node in self.std_imports)
+            header += "".join(node.run_build(context) for node in self.std_imports)
         if len(self.imports) > 0:
             if len(self.std_imports) > 0:  # separate sections
                 header += "\n"
-            header += "".join(node.run_build_top(context) for node in self.imports)
+            header += "".join(node.run_build(context) for node in self.imports)
         return header
 
     @override
     def build(self, context: ctxt.Context) -> str:
         """The top-level build function for the studio."""
-        header = self._build_header(context) + _GENERATED_HEADER
-        body = "\n".join(node.run_build_top(context) for node in self.children)
-        return header + body
+        context.document_name = self.document_name
+        header = self._build_header(context) + _GENERATED_STUDIO_HEADER
+        return header + self.build_children(context, sep="\n")
 
 
 _BEGIN_GENERATION = "// Begin generated section\n"
@@ -80,22 +80,12 @@ class PartialStudio(Studio):
         return code
 
     @override
-    def import_studio(self, studio: Studio, export: bool = True) -> Self:
-        """Adds an import targeting the given studio."""
-        self.add_import(studio.studio_name, studio.document_name, export)
-        return self
-
-    @override
     def build(self, context: ctxt.Context) -> str:
         """The top-level build function for the studio."""
-        header = _BEGIN_GENERATION + self._build_header(context)
-        body = (
-            "\n".join(
-                node.run_build_top(context) for node in self.children  # type: ignore
-            )
-            + _END_GENERATION
-        )
-        return header + body
+        return super().build(context)
+        # context.document_name = self.document_name
+        # header = self._build_header(context)
+        # return header + self.build_children(context, sep="\n")
 
 
 def parse_code_sections(code: str) -> list[str]:

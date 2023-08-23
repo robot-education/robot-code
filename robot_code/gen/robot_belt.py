@@ -45,12 +45,18 @@ studio.add(
         labeled_enum_parameter(belt_type),
         IfBlock(belt_type["GT2"])
         .add(
-            labeled_enum_parameter(gt2_pitch, user_name="Belt pitch", default="_3MM"),
+            labeled_enum_parameter(
+                gt2_pitch, display_name="Belt pitch", default="_3MM"
+            ),
         )
         .else_if(belt_type["HTD"])
         .add(
-            labeled_enum_parameter(htd_pitch, user_name="Belt pitch", default="_5MM"),
-            labeled_enum_parameter(htd_width, user_name="Belt width", default="_15MM"),
+            labeled_enum_parameter(
+                htd_pitch, display_name="Belt pitch", default="_5MM"
+            ),
+            labeled_enum_parameter(
+                htd_width, display_name="Belt width", default="_15MM"
+            ),
         ),
     ),
     UiPredicate("belt").add(),

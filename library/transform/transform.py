@@ -27,7 +27,7 @@ def extract_function(code: str, function_name: str) -> str:
 
     Keywords such as export are ignored.
     The algorithm used is relatively simple and may fail if the code is not well-formed.
-    For example, do not leave `{` with no corresponding `}` in the code.
+    For example, do not leave a commented out `{` with no corresponding `}` in the code.
     """
     function_start = code.index("function " + function_name)
     return code[function_start : extract_body(code, function_start)]

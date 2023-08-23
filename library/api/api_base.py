@@ -27,14 +27,14 @@ class Api(ABC):
         logging: Turn logging on or off
     """
 
-    def __init__(self, url: str, logging: bool):
+    def __init__(self, url: str, logging: bool, version: int = 6):
         """
         Args:
             url: The base url. Should generally be `https://cad.onshape.com`.
             logging: True to enable logging.
         """
         self._url = url
-        self._path_base = "/api/v6/"
+        self._path_base = "/api/v{}/".format(version)
         self._logging = logging
 
     @abstractmethod
@@ -46,8 +46,8 @@ class Api(ABC):
         method: str,
         path: str,
         query: dict = {},
-        headers: dict = {},
         body: dict | str = {},
+        headers: dict = {},
     ):
         """
         Issues a request to Onshape
@@ -100,16 +100,19 @@ class Api(ABC):
         query: dict = {},
         headers: dict = {},
     ) -> Any:
-        return self.request("get", path, query, headers)
+        return self.request("get", path, query, headers=headers)
 
     def post(
         self,
         path: str,
         query: dict = {},
-        headers: dict = {},
         body: dict | str = {},
+        headers: dict = {},
     ) -> Any:
-        return self.request("post", path, query, headers, body)
+        return self.request("post", path, query, body, headers)
+
+    def delete(self, path: str, query: dict = {}, headers: dict = {}) -> Any:
+        return self.request("delete", path, query, headers=headers)
 
 
 class ApiKey(Api):
@@ -120,6 +123,7 @@ class ApiKey(Api):
         stack: str = "https://cad.onshape.com",
         creds: str = "creds.json",
         logging: bool = False,
+        **kwargs
     ) -> None:
         """
         Instantiates an instance of the Onshape class. Reads credentials from a JSON file
@@ -152,7 +156,7 @@ class ApiKey(Api):
             except TypeError:
                 raise ValueError("%s is not valid json" % creds)
 
-        super().__init__(url, logging)
+        super().__init__(url, logging, **kwargs)
 
         if self._logging:
             log(

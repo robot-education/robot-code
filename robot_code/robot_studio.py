@@ -1,7 +1,7 @@
 from library import *
 from library.core.feature import FeatureFactory
 
-ROBOT_DESCRIPTION = r"""
+ROBOT_DESCRIPTION: str = r"""
 
 Documentation may be found at: 
 <b>robothandbook.dev</b>
@@ -20,7 +20,7 @@ class RobotFeature:
 
         self.feature_studio = self.make_feature_studio(description or "")
         self.ui_studio = self.make_ui_studio()
-        self.feature_studio.import_studio(self.ui_studio)
+        self.feature_studio.add_import(self.ui_studio.studio_name, export=True)
 
     def make_feature_studio(self, description: str) -> PartialStudio:
         studio = PartialStudio(self.name + ".fs", "backend").add(

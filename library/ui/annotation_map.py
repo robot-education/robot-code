@@ -18,26 +18,26 @@ class AnnotationMap(map.Map):
 
 def parameter_annotation_map(
     parameter_name: str | None = None,
-    user_name: str | None = None,
+    display_name: str | None = None,
     ui_hints: ui_hint.UiHint | None = None,
     description: str | None = None,
     default: str | bool | None = None,
-    filter: expr.Expr | str | None = None,
+    filter: expr.Expression | str | None = None,
     max_picks: int | None = None,
     additional_args: dict[str, Any] = {},
 ) -> AnnotationMap:
     """Defines a generic annotation map.
     Args:
-        parameter_name: The name of the parameter. If specified and user_name is `None`, it is automatically converted to `user_name`.
-        user_name: The user facing name of the annotation.
+        parameter_name: The name of the parameter. If specified and display_name is `None`, it is automatically converted to `display_name`.
+        display_name: The user facing name of the annotation.
         additional_args: A dict containing additional key-value pairs to add to the annotation map.
     """
     map_args = {}
     excluded_values = ["UIHint"]
-    if user_name != None:
-        map_args["Name"] = user_name
+    if display_name != None:
+        map_args["Name"] = display_name
     elif parameter_name != None:
-        map_args["Name"] = str_utils.user_name(parameter_name)
+        map_args["Name"] = str_utils.display_name(parameter_name)
 
     if default != None:
         if isinstance(default, bool):
@@ -70,7 +70,7 @@ def parameter_annotation_map(
 
 def feature_annotation_map(
     name: str,
-    user_name: str | None = None,
+    display_name: str | None = None,
     no_preview_provided: bool = False,
     description: str | None = None,
     manipulator_change_function: str | None = None,
@@ -82,7 +82,7 @@ def feature_annotation_map(
     filter_selector: Iterable[str] = (),
 ) -> AnnotationMap:
     """The annotation map for a feature."""
-    map_args = {"Feature Type Name": user_name or str_utils.user_name(name)}
+    map_args = {"Feature Type Name": display_name or str_utils.display_name(name)}
     if no_preview_provided:
         map_args["UIHint"] = "NO_PREVIEW_PROVIDED"
 

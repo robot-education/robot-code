@@ -1,5 +1,4 @@
 from __future__ import annotations
-from abc import ABC
 import string
 from typing import Any, Generic, Iterable, Self, Type, TypeVar
 from typing_extensions import override
@@ -7,30 +6,30 @@ from typing_extensions import override
 import copy
 import warnings
 
-from library.core import control, func, utils, arg, map
-from library.base import ctxt, node, stmt, expr, str_utils
+from library.core import control, func, param, std, utils, map
+from library.base import ctxt, node, expr, str_utils, user_error
 
 __all__ = [
     "EnumFactory",
     "Enum",
-    "enum_lookup_function",
+    "lookup_enum_function",
     "LookupEnumValue",
 ]
 
 
-class EnumValue(expr.Expr):
+class EnumValue(expr.Expression):
     def __init__(
         self,
         value: str,
         enum: Enum,
         annotate: bool = True,
-        user_name: str | None = None,
+        display_name: str | None = None,
         hidden: bool = False,
     ) -> None:
         """A possible value of an enum.
 
         value: The value of the enum. Should be all-caps seperated by underscores.
-        user_name: A user facing name.
+        display_name: A user facing name.
         hidden: Whether to mark the enum value as hidden. Has no effect if the enum is not ui.
         """
         self.value = value.upper()
@@ -38,7 +37,7 @@ class EnumValue(expr.Expr):
         self.enum = enum
         self.enum.add(self)
         self.annotate = annotate
-        self.user_name = user_name or str_utils.value_user_name(self.value)
+        self.display_name = display_name or str_utils.value_display_name(self.value)
         self.invert = False
         self.predicate = None
 
@@ -63,9 +62,11 @@ class EnumValue(expr.Expr):
                 format_dict["value"] = str_utils.camel_case(
                     self.value, capitalize=not (first and tuple[0] == "")
                 )
-            else:
+            elif tuple[1]:  # only an error if actually is a substitution
                 warnings.warn(
-                    "Invalid name_template: Expected substitutions to be {name} or {value} only."
+                    'Invalid name_template "{}" - substitutions should be either {{name}} or {{value}}'.format(
+                        name_template
+                    )
                 )
             first = False
 
@@ -76,7 +77,7 @@ class EnumValue(expr.Expr):
         return self
 
     @override
-    def __invert__(self) -> expr.Expr:
+    def __invert__(self) -> expr.Expression:
         value = copy.copy(self)
         value.invert = not value.invert
         return value
@@ -86,7 +87,7 @@ class EnumValue(expr.Expr):
         definition: str = "definition",
         parameter_name: str | None = None,
         invert: bool = False,
-    ) -> expr.Expr:
+    ) -> expr.Expression:
         """Represents a call to the enum which tests its value.
 
         Args:
@@ -104,7 +105,9 @@ class EnumValue(expr.Expr):
             call = self.predicate.__call__({"definition": definition})
             return ~call if self.invert else call
 
-        operator = expr.Operator.NOT_EQUAL if self.invert else expr.Operator.EQUAL
+        operator = (
+            expr.EqualOperator.NOT_EQUAL if self.invert else expr.EqualOperator.EQUAL
+        )
 
         return expr.Equal(
             utils.definition(parameter_name, definition),
@@ -114,8 +117,8 @@ class EnumValue(expr.Expr):
 
     def build_value(self, context: ctxt.Context) -> str:
         dict = {}
-        if self.user_name is not None:
-            dict["Name"] = self.user_name
+        if self.display_name is not None:
+            dict["Name"] = self.display_name
         if self.hidden:
             dict["Hidden"] = "true"
 
@@ -129,7 +132,9 @@ class EnumValue(expr.Expr):
     def build(self, context: ctxt.Context) -> str:
         if context.enum:
             return self.build_value(context)
-        return self.__call__().run_build(context)
+        elif context.scope == ctxt.Scope.EXPRESSION:
+            return self.__call__().run_build(context)
+        return user_error.expected_scope(ctxt.Scope.EXPRESSION)
 
 
 class LookupEnumValue(EnumValue):
@@ -142,9 +147,7 @@ V = TypeVar("V", bound=EnumValue)
 
 
 # Avoid block parent since that has automatic expr->statement conversion
-class Enum(
-    node.TopStatement, node.ChildNode, node.ParentNode, dict[str, V], Generic[V]
-):
+class Enum(node.ParentNode, expr.Expression, dict[str, V], Generic[V]):
     def __init__(
         self,
         name: str,
@@ -158,7 +161,8 @@ class Enum(
         values: A list of strings which are used to construct enum values. EnumValues may also be registered afterwards.
         default_parameter_name: A default parameter name to use. If not specified, the default is generated automatically by lowercasing the first letter of name.
         """
-        super().__init__(parent=parent)
+        node.handle_parent(self, parent)
+        node.ParentNode.__init__(self)
         dict.__init__(self)
 
         self.name = name
@@ -173,11 +177,16 @@ class Enum(
         return super().add(value)
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
-        context.enum = True
-        string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
-        string += self.build_children(context, sep=",\n", indent=True)
-        return string + "\n}\n"
+    def build(self, context: ctxt.Context) -> str:
+        if context.scope == ctxt.Scope.TOP:
+            context.enum = True
+            context.scope = ctxt.Scope.EXPRESSION
+            string = utils.export(self.export) + "enum {} \n{{\n".format(self.name)
+            string += self.build_children(context, sep=",\n", indent=True)
+            return string + "\n}\n"
+        elif context.scope == ctxt.Scope.EXPRESSION:
+            return utils.definition(self.default_parameter_name).run_build(context)
+        return user_error.expected_scope(ctxt.Scope.TOP, ctxt.Scope.EXPRESSION)
 
 
 class EnumFactory:
@@ -219,7 +228,7 @@ class EnumFactory:
     def add_value(
         self,
         value: str,
-        user_name: str | None = None,
+        display_name: str | None = None,
         generate_predicate: bool | None = None,
         name_template: str | None = None,
         **kwargs,
@@ -229,7 +238,11 @@ class EnumFactory:
 
         # value adds itself to enum
         enum_value = self.value_type(
-            value, self.enum, user_name=user_name, annotate=self.annotate, **kwargs
+            value,
+            self.enum,
+            display_name=display_name,
+            annotate=self.annotate,
+            **kwargs,
         )
 
         # or operator handles None case
@@ -261,26 +274,25 @@ class EnumFactory:
         return self.enum
 
 
-def lookup_block(
-    enum_dict: Enum[LookupEnumValue],
-    *,
-    parent: node.ParentNode,
+def enum_block(
+    enum: Enum[LookupEnumValue],
+    *return_values: expr.ExprCandidate,
+    parent: node.ParentNode | None = None,
 ) -> control.IfBlock:
-    """Constructs an if block which accesses each lookup value in `enum_dict`."""
+    """Constructs an if block which returns each lookup value in `enum_dict`."""
     tests = []
     statements = []
-    for enum_value in enum_dict.values():
+    for enum_value, return_value in zip(enum.values(), return_values):
         tests.append(enum_value)
-        lookup_value = enum_value.lookup_value
-        statements.append(stmt.Return(lookup_value))
+        statements.append(func.Return(return_value))
     return control.make_if_block(tests=tests, statements=statements, parent=parent)
 
 
-def enum_lookup_function(
+def lookup_enum_function(
     name: str,
     enum_dict: Enum[LookupEnumValue],
     parent: node.ParentNode | None = None,
-    additional_arguments: Iterable[arg.Argument] = [],
+    additional_parameters: Iterable[param.Parameter] = [],
     return_type: str | None = None,
     export: bool = False,
 ) -> func.Function:
@@ -289,14 +301,15 @@ def enum_lookup_function(
         return_type: The return type of the function.
         predicate_dict: A dictionary mapping enum values to expressions to use in the place of standard enum calls.
     """
-    arguments: list[arg.Argument] = [arg.definition_arg]
-    arguments.extend(additional_arguments)
+    parameters: list[param.Parameter] = [param.definition_param]
+    parameters.extend(additional_parameters)
     function = func.Function(
         name,
         parent=parent,
-        arguments=arguments,
+        parameters=parameters,
         return_type=return_type,
         export=export,
     )
-    lookup_block(enum_dict, parent=function)
+    return_values = (enum_value.lookup_value for enum_value in enum_dict.values())
+    enum_block(enum_dict, *return_values, parent=function)
     return function

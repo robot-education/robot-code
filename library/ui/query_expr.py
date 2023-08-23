@@ -2,10 +2,10 @@ import enum
 from library.base import ctxt, expr
 
 
-class QueryEnum(expr.Expr, enum.Enum):
+class QueryEnum(expr.Expression, enum.Enum):
     """Represents an expression which can be used as a query filter."""
 
-    def build(self, _: ctxt.Context) -> str:
+    def build(self, context: ctxt.Context) -> str:
         return self.__class__.__name__ + "." + self.name
 
 

@@ -22,7 +22,7 @@ const toJson = function(arg) returns string
         arg is map || arg is array;
     }
     {
-        const toJsonImplementation = function(arg, recurse) returns string
+        const toJsonImplementation = function(arg, recurse is function) returns string
             {
                 if (arg is map)
                 {
@@ -80,25 +80,29 @@ const toJson = function(arg) returns string
                     "name" : ASSEMBLY_ATTRIBUTE
                 });
 
+        // no way to declare a custom enum in evaluateFeatureScript endpoint
         if (attribute["type"] as string == "MATE")
         {
-            const parsed = match(attribute.url, ".*/(\\w+)/w/(\\w+)/e/(\\w+)");
+            const path = attribute.elementPath;
 
             const value = {
                     "mateId" : parseMateConnectorId(context, base),
-                    "documentId" : parsed.captures[1],
-                    "workspaceId" : parsed.captures[2],
-                    "elementId" : parsed.captures[3]
+                    // "query" : base,
+                    "documentId" : path.documentId,
+                    "workspaceOrVersion" : path.workspaceOrVersion,
+                    "workspaceId" : path.workspaceId,
+                    "elementId" : path.elementId
                 };
             result.mates = append(result.mates, value);
         }
         else if (attribute["type"] as string == "MIRROR")
         {
             var value = {
+                "query" : base,
                 "endMateId" : parseMateConnectorId(context, base),
                 "mateToOrigin" : attribute.mateToOrigin
             };
-            
+
             if (!attribute.mateToOrigin)
             {
                 value.startMateId = parseMateConnectorId(context, attribute.startMate);

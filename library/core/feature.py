@@ -1,19 +1,18 @@
 from typing import Self
 from typing_extensions import override
-from library.base import ctxt, expr, node, str_utils
+from library.base import ctxt, node, str_utils, user_error
+from library.core import func
 from library.ui import annotation_map
 
 FEATURE_BODY = """export const {} = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {{
-        {}
-    }}
+        {}    }}
     {{
-        {}
-    }});\n"""
+        {}    }});\n"""
 
 
-class Feature(node.TopStatement):
+class Feature(node.Node):
     def __init__(
         self,
         name: str,
@@ -23,19 +22,20 @@ class Feature(node.TopStatement):
     ) -> None:
         self.name = name
         self.map = map
-        self.ui = ui or expr.Id(self.name + "Predicate(definition);")
-        self.body = body or expr.Id(
-            "do" + str_utils.upper_first(self.name) + "(context, id, definition);"
+        self.ui = ui or func.Call(self.name + "Predicate", "definition")
+        self.body = body or func.Call(
+            "do" + str_utils.upper_first(self.name), "context", "id", "definition"
         )
-
-    # def default_function(self) -> str:
 
     @override
-    def build_top(self, context: ctxt.Context) -> str:
-        header = self.map.run_build(context)
-        return header + FEATURE_BODY.format(
-            self.name, self.ui.run_build(context), self.body.run_build(context)
-        )
+    def build(self, context: ctxt.Context) -> str:
+        if context.scope == ctxt.Scope.TOP:
+            header = self.map.run_build(context, scope=ctxt.Scope.EXPRESSION)
+            context.scope = ctxt.Scope.STATEMENT
+            return header + FEATURE_BODY.format(
+                self.name, self.ui.run_build(context), self.body.run_build(context)
+            )
+        return user_error.expected_scope(ctxt.Scope.TOP)
 
 
 class FeatureFactory:
@@ -43,9 +43,11 @@ class FeatureFactory:
         self.name = None
         self.args = None
 
-    def start(self, name: str, user_name: str | None = None, **feature_kwargs) -> Self:
+    def start(
+        self, name: str, display_name: str | None = None, **feature_kwargs
+    ) -> Self:
         self.name = name
-        feature_kwargs["user_name"] = user_name
+        feature_kwargs["display_name"] = display_name
         self.feature_kwargs = feature_kwargs
         return self
 

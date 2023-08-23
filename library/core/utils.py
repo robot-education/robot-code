@@ -8,9 +8,13 @@ def export(export: bool) -> str:
     return "export " if export else ""
 
 
-def var_definition(identifier: str, definition: str = "definition") -> expr.Expr:
+def var_definition(identifier: str, definition: str = "definition") -> expr.Expression:
     return expr.Id("{}[{}]".format(definition, identifier))
 
 
-def definition(parameter_name: str, definition: str = "definition") -> expr.Expr:
-    return expr.Id("{}.{}".format(definition, parameter_name))
+def definition(
+    parameter_name: str | None = None, definition: str = "definition"
+) -> expr.Expression:
+    if parameter_name:
+        return expr.Id("{}.{}".format(definition, parameter_name))
+    return expr.Id(definition)
