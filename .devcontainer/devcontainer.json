@@ -20,8 +20,5 @@
 				"ms-python.black-formatter"
 			]
 		}
-	},
-	"forwardPorts": [
-		8080
-	]
+	}
 }
