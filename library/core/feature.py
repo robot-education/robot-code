@@ -38,7 +38,7 @@ class Feature(node.Node):
         return user_error.expected_scope(ctxt.Scope.TOP)
 
 
-class FeatureFactory:
+class FeatureBuilder:
     def __init__(self) -> None:
         self.name = None
         self.args = None
@@ -57,7 +57,7 @@ class FeatureFactory:
     #     self.args["editing_logic_function"] = function_name
     #     return self
 
-    def make(self) -> Feature:
+    def build(self) -> Feature:
         if self.name is None or self.feature_kwargs is None:
             raise ValueError("start must be called first.")
         map = annotation_map.feature_annotation_map(self.name, **self.feature_kwargs)

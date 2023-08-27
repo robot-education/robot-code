@@ -1,5 +1,5 @@
 from library import *
-from library.core.feature import FeatureFactory
+from library.core.feature import FeatureBuilder
 
 ROBOT_DESCRIPTION: str = r"""
 
@@ -24,13 +24,13 @@ class RobotFeature:
 
     def make_feature_studio(self, description: str) -> PartialStudio:
         studio = PartialStudio(self.name + ".fs", "backend").add(
-            FeatureFactory()
+            FeatureBuilder()
             .start(
                 self.name,
                 description=description + ROBOT_DESCRIPTION,
                 filter_selector=["ROBOT"],
             )
-            .make()
+            .build()
         )
         return studio
 

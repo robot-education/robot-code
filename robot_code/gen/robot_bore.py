@@ -9,15 +9,15 @@ robot_studio = robot_studio.RobotFeature("bore", description=DESCRIPTION)
 studio = robot_studio.ui_studio
 
 end_style = (
-    EnumFactory("EndStyle", parent=studio)
+    EnumBuilder("EndStyle", parent=studio)
     .add_value("BLIND")
     .add_value("UP_TO_VERTEX")
     .add_value("THROUGH_ALL")
-    .make()
+    .build()
 )
 
 bore_type = (
-    EnumFactory(
+    EnumBuilder(
         "BoreType",
         parent=studio,
         generate_predicates=True,
@@ -28,11 +28,11 @@ bore_type = (
     .add_value("FALCON_SPLINE")
     .add_value("GEAR")
     .add_value("INSERT")
-    .make()
+    .build()
 )
 
 bore_extend_type = (
-    EnumFactory(
+    EnumBuilder(
         "BoreExtendType",
         parent=studio,
     )
@@ -40,33 +40,33 @@ bore_extend_type = (
     .add_value("ROUND")
     .add_value("MAX_SPLINE")
     .add_value("FALCON_SPLINE")
-    .make()
+    .build()
 )
 
 gear_pitch_type = (
-    EnumFactory("GearPitchType", parent=studio)
+    EnumBuilder("GearPitchType", parent=studio)
     .add_value("DIAMETRICAL_PITCH")
     .add_value("CIRCULAR_PITCH")
     .add_value("MODULE")
-    .make()
+    .build()
 )
 
 insert_type = (
-    EnumFactory("InsertType", parent=studio)
+    EnumBuilder("InsertType", parent=studio)
     .add_value("HEX", "1/2 in. hex")
     .add_value("FALCON_SPLINE")
-    .make()
+    .build()
 )
 
-hex_size = profile.HexSizeFactory(studio)
+hex_size = profile.HexSizeBuilder(studio)
 
 fit = (
-    EnumFactory("Fit", parent=studio)
+    EnumBuilder("Fit", parent=studio)
     .add_value("NONE")
     .add_value("CLOSE")
     .add_value("FREE")
     .add_custom()
-    .make()
+    .build()
 )
 
 studio.add(

@@ -1,7 +1,7 @@
 import pathlib
-from typing import Literal, Self, TypedDict
 from urllib import parse
 import dataclasses
+from typing import Literal, Self, TypedDict
 
 
 @dataclasses.dataclass(unsafe_hash=True)
@@ -94,10 +94,15 @@ def api_path(
     service: str,
     path: ElementPath | DocumentPath | str | None = None,
     secondary_service: str | None = None,
+    feature_id: str | None = None,
 ) -> str:
     api_path = service
     if path:
         api_path += str(path)
     if secondary_service:
         api_path += "/" + secondary_service
+    if feature_id:
+        # feature_ids can have slashes, quote prevents problems
+        api_path += "/featureid/" + parse.quote(feature_id, safe="")
+
     return api_path

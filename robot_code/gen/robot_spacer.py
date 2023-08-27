@@ -16,7 +16,7 @@ studio.add_import("stdExtrudeUi.fs", export=True)
 studio.add_import("wallType.fs", export=True)
 
 spacer_type = (
-    EnumFactory(
+    EnumBuilder(
         "SpacerType",
         parent=studio,
         generate_predicates=True,
@@ -25,15 +25,15 @@ spacer_type = (
     .add_value("HEX")
     .add_value("ROUND")
     .add_value("MAX_SPLINE", "MAXSpline")
-    .make()
+    .build()
 )
 hex_spacer = spacer_type["HEX"]
 round_spacer = spacer_type["ROUND"]
 max_spacer = spacer_type["MAX_SPLINE"]
 
 fit = profile.fit_enum(studio)
-hex_size = profile.HexSizeFactory(studio)
-hole_size = profile.HoleSizeFactory(studio)
+hex_size = profile.HexSizeBuilder(studio)
+hole_size = profile.HoleSizeBuilder(studio)
 get_hole_diameter = hole_size.make_lookup_function(fit)
 
 studio.add(

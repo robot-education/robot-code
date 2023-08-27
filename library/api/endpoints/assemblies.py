@@ -1,5 +1,6 @@
-from flask import current_app as app
+from typing import Iterable
 from library.api import api_base, api_path
+from urllib import parse
 
 
 def get_assembly(
@@ -10,6 +11,7 @@ def get_assembly(
     include_mate_connectors: bool = False,
     exclude_suppressed: bool = True,
 ) -> dict:
+    """Retrieves information about an assembly."""
     return api.get(
         api_path.api_path("assemblies", assembly_path),
         query={
@@ -24,30 +26,38 @@ def get_assembly(
 def get_assembly_features(
     api: api_base.Api,
     assembly_path: api_path.ElementPath,
+    feature_ids: Iterable[str] = [],
 ) -> dict:
-    return api.get(api_path.api_path("assemblies", assembly_path, "features"))
+    """Returns features in an assembly.
+
+    Args:
+        feature_ids: Feature ids to retrieve. If omitted, all features are returned.
+    """
+    query = parse.urlencode({"featureId": feature_ids}, doseq=True)
+    return api.get(api_path.api_path("assemblies", assembly_path, "features"), query)
 
 
 def make_assembly(
     api: api_base.Api, document_path: api_path.DocumentPath, assembly_name: str
 ) -> dict:
-    """Constructs an assembly with the given name.
-
-    Returns the response from Onshape.
-    """
+    """Constructs an assembly with the given name."""
     return api.post(
         api_path.api_path("assemblies", document_path), body={"name": assembly_name}
     )
 
 
-def add_part_studio_to_assembly(
+def add_parts_to_assembly(
     api: api_base.Api,
     assembly_path: api_path.ElementPath,
     part_studio_path: api_path.ElementPath,
+    part_id: str | None = None,
 ) -> dict:
     """Adds a part studio to a given assembly.
 
     Note the response may be malformed due to a (reported) bug with the Onshape API.
+
+    Args:
+        part_id: If it is included, only the specified part is added, rather than the entire part studio.
     """
     result = api.post(
         api_path.api_path("assemblies", assembly_path, "instances"),
@@ -56,37 +66,14 @@ def add_part_studio_to_assembly(
             "workspaceId": part_studio_path.path.workspace_id,
             "elementId": part_studio_path.element_id,
             "includePartTypes": ["PARTS"],
-            "isWholePartStudio": True,
-        },
-    )
-    app.logger.info(result)
-    return result
-
-
-def add_part_to_assembly(
-    api: api_base.Api,
-    assembly_path: api_path.ElementPath,
-    part_studio_path: api_path.ElementPath,
-    part_id: str,
-) -> dict:
-    """Adds a part to a given assembly.
-
-    Note the response may be malformed or nonexistant due to a (reported) bug with the Onshape API.
-    """
-    return api.post(
-        api_path.api_path("assemblies", assembly_path, "instances"),
-        body={
-            "documentId": part_studio_path.path.document_id,
-            "workspaceId": part_studio_path.path.workspace_id,
-            "elementId": part_studio_path.element_id,
-            "includePartTypes": ["PARTS"],
-            "isWholePartStudio": False,
+            "isWholePartStudio": (part_id == None),
             "partId": part_id,
         },
     )
+    return result
 
 
-zero_transform = [
+IDENTITY_TRANSFORM = [
     1.0,
     0.0,
     0.0,
@@ -104,68 +91,6 @@ zero_transform = [
     0.0,
     1.0,
 ]
-
-linear_transform = [
-    1.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.5,
-    0.5,
-    0.5,
-    1.0,
-]
-
-test = [
-    0.0,
-    1.0,
-    0.0,
-    0,
-    -1.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.0,
-    1.0,
-    0,
-    0,
-    0,
-    0,
-    1.0,
-]
-
-
-def fix_instance(
-    api: api_base.Api, assembly_path: api_path.ElementPath, instance_id: str
-) -> dict:
-    """Fixes an instance in an assembly.
-
-    Does not currently work; it is unknown if this functionality is exposed thorugh the api.
-
-    Args:
-        assembly_path: The path of the assembly.
-    """
-    return api.post(
-        api_path.api_path("assemblies", assembly_path, "modify"),
-        body={"unsuppressInstances": [instance_id]},
-    )
-    # return api.post(
-    #     api_path.api_path("assemblies", assembly_path, "occurrencetransforms"),
-    #     body={
-    #         "isRelative": False,
-    #         "occurrences": [{"path": [instance_id]}],
-    #         # "transform": (np.matmul(np.identity(4)).flatten().tolist(),
-    #     },
-    # )
 
 
 def transform_instance(
@@ -184,15 +109,34 @@ def transform_instance(
         body={
             "isRelative": is_relative,
             "occurrences": [{"path": [instance_id]}],
-            "transform": test,
+            "transform": transform,
         },
     )
 
 
 def add_feature(
-    api: api_base.Api, assembly_path: api_path.ElementPath, feature: dict
+    api: api_base.Api,
+    assembly_path: api_path.ElementPath,
+    feature: dict,
+    feature_id: str | None = None,
 ) -> dict:
+    """
+    Args:
+        feature_id: If specified, the given feature is updated rather than being created.
+    """
     return api.post(
-        api_path.api_path("assemblies", assembly_path, "features"),
+        api_path.api_path(
+            "assemblies", assembly_path, "features", feature_id=feature_id
+        ),
         body={"feature": feature},
+    )
+
+
+def delete_feature(
+    api: api_base.Api, assembly_path: api_path.ElementPath, feature_id: str
+) -> dict:
+    return api.delete(
+        api_path.api_path(
+            "assemblies", assembly_path, "features", feature_id=feature_id
+        )
     )

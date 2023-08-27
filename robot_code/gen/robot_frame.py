@@ -12,21 +12,21 @@ studio.add_import("stdFrameUi.fs", export=True)
 
 # enums
 wall_thickness = (
-    EnumFactory("WallThickness", parent=studio, value_type=LookupEnumValue)
+    EnumBuilder("WallThickness", parent=studio, value_type=LookupEnumValue)
     .add_value("ONE_SIXTEENTH", "1/16 in.", lookup_value=inch(0.0625))
     .add_value("ONE_EIGHTH", "1/8 in.", lookup_value=inch(0.125))
     .add_custom(lookup_value=definition("customWallThickness"))
-    .make()
+    .build()
 )
 
-fit = EnumFactory("HoleFit", parent=studio).add_value("CLOSE").add_value("FREE").make()
+fit = EnumBuilder("HoleFit", parent=studio).add_value("CLOSE").add_value("FREE").build()
 
 hole_size = (
-    EnumFactory("HoleSize", parent=studio)
+    EnumBuilder("HoleSize", parent=studio)
     .add_value("NO_8", "#8")
     .add_value("NO_10", "#10")
     .add_custom()
-    .make()
+    .build()
 )
 
 # pattern_method = (
@@ -34,64 +34,64 @@ hole_size = (
 #     .add_value("END")
 #     .add_value("CENTER_HOLE")
 #     .add_value("CENTER_GAP")
-#     .make()
+#     .build()
 # )
 # pattern_method_predicates = enum_predicates(pattern_method, parent=studio)
 
 tube_size = (
-    EnumFactory("TubeSize", parent=studio, generate_predicates=True)
+    EnumBuilder("TubeSize", parent=studio, generate_predicates=True)
     .add_value("ONE_BY_ONE", "1x1")
     .add_value("TWO_BY_ONE", "2x1")
     .add_custom()
-    .make()
+    .build()
 )
 
 tube_type = (
-    EnumFactory("TubeType", parent=studio, generate_predicates=True)
+    EnumBuilder("TubeType", parent=studio, generate_predicates=True)
     .add_value("MAX_TUBE", "MAXTube")
     .add_custom()
-    .make()
+    .build()
 )
 
 max_pattern_type = (
-    EnumFactory("MaxTubePatternType", parent=studio)
+    EnumBuilder("MaxTubePatternType", parent=studio)
     .add_value("NONE")
     .add_value("GRID")
     .add_value("MAX")
-    .make()
+    .build()
 )
 
 max_tube_profile = (
-    EnumFactory("MaxTubeProfileType", parent=studio, annotate=False)
+    EnumBuilder("MaxTubeProfileType", parent=studio, annotate=False)
     .add_value("ONE_BY_ONE")
     .add_value("TWO_BY_ONE")
     .add_value("TWO_BY_ONE_LIGHT")
-    .make()
+    .build()
 )
 
 tube_face = (
-    EnumFactory("TubeFace", parent=studio, annotate=False)
+    EnumBuilder("TubeFace", parent=studio, annotate=False)
     .add_value("FIRST")
     .add_value("SECOND")
-    .make()
+    .build()
 )
 
 two_inch_face = (
-    EnumFactory("TwoInchFaceHoleCount", parent=studio, value_type=LookupEnumValue)
+    EnumBuilder("TwoInchFaceHoleCount", parent=studio, value_type=LookupEnumValue)
     .add_value("FOUR", display_name="Four holes", lookup_value=4)
     .add_value("THREE", display_name="Three holes", lookup_value=3)
     .add_value("TWO", display_name="Two holes", lookup_value=2)
     .add_value("ONE", display_name="One hole", lookup_value=1)
     .add_value("NONE", lookup_value=0)
-    .make()
+    .build()
 )
 
 one_inch_face = (
-    EnumFactory("OneInchFaceHoleCount", parent=studio, value_type=LookupEnumValue)
+    EnumBuilder("OneInchFaceHoleCount", parent=studio, value_type=LookupEnumValue)
     .add_value("TWO", display_name="Two holes", lookup_value=2)
     .add_value("ONE", display_name="One hole", lookup_value=1)
     .add_value("NONE", lookup_value=0)
-    .make()
+    .build()
 )
 
 studio.add(

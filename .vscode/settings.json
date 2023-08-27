@@ -42,11 +42,13 @@
         "coincentric",
         "expresion"
     ],
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+    },
     "python.analysis.extraPaths": [
-        "library/**"
+        "library/"
     ],
-    "python.formatting.provider": "black",
     "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.autoImportCompletions": true,
-    "python.defaultInterpreterPath": "/usr/local/bin/python"
+    "python.analysis.autoImportCompletions": true
 }

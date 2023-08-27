@@ -38,32 +38,36 @@ class Api(ABC):
         self._logging = logging
 
     @abstractmethod
-    def _make_headers(self, headers, *, method, path, query):
+    def _make_headers(self, headers, *, method, path, query_str):
         ...
 
     def request(
         self,
         method: str,
         path: str,
-        query: dict = {},
+        query: dict | str = {},
         body: dict | str = {},
         headers: dict = {},
     ):
         """
         Issues a request to Onshape
         Args:
-            - method (str): HTTP method
-            - path (str): Api path for request
-            - query (dict, default={}): Query params in key-value pairs
-            - headers (dict, default={}): Key-value pairs of headers
-            - body (dict, default={}): Body for POST request
+            method: HTTP method
+            path: Api path for request
+            query: Query params in key-value pairs
+            doseq: Whether to convert arrays in query into individual parameters.
+            headers: Key-value pairs of headers
+            body: Body for POST request
 
         Returns:
-            - requests.Response: Object containing the response from Onshape
+            requests.Response: Object containing the response from Onshape
         """
         path = self._path_base + path
-        req_headers = self._make_headers(headers, method=method, path=path, query=query)
-        url = self._url + path + "?" + parse.urlencode(query)
+        query_str = query if isinstance(query, str) else parse.urlencode(query)
+        req_headers = self._make_headers(
+            headers, method=method, path=path, query_str=query_str
+        )
+        url = self._url + path + "?" + query_str
 
         if self._logging:
             log(body)
@@ -97,10 +101,10 @@ class Api(ABC):
     def get(
         self,
         path: str,
-        query: dict = {},
+        query: dict | str = {},
         headers: dict = {},
     ) -> Any:
-        return self.request("get", path, query, headers=headers)
+        return self.request("get", path, query=query, headers=headers)
 
     def post(
         self,
@@ -109,9 +113,15 @@ class Api(ABC):
         body: dict | str = {},
         headers: dict = {},
     ) -> Any:
-        return self.request("post", path, query, body, headers)
+        return self.request(
+            "post",
+            path,
+            query=query,
+            body=body,
+            headers=headers,
+        )
 
-    def delete(self, path: str, query: dict = {}, headers: dict = {}) -> Any:
+    def delete(self, path: str, query: dict | str = {}, headers: dict = {}) -> Any:
         return self.request("delete", path, query, headers=headers)
 
 
@@ -170,7 +180,7 @@ class ApiKey(Api):
         date: str,
         nonce: str,
         path: str,
-        query: dict,
+        query_str: str,
         ctype: str,
     ):
         """
@@ -184,9 +194,6 @@ class ApiKey(Api):
             - query (dict, default={}): URL query string in key-value pairs
             - ctype (str, default='application/json'): HTTP Content-Type
         """
-
-        query_str: str = parse.urlencode(query)
-
         hmac_str = (
             ("\n".join([method, nonce, date, ctype, path, query_str]) + "\n")
             .lower()
@@ -199,7 +206,7 @@ class ApiKey(Api):
         auth = "On " + self._access_key.decode() + ":HmacSHA256:" + signature.decode()
         return auth
 
-    def _make_headers(self, headers, *, method, path, query):
+    def _make_headers(self, headers, *, method, path, query_str):
         """
         Creates a headers object to sign the request
 
@@ -216,7 +223,7 @@ class ApiKey(Api):
         date = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
         nonce = make_nonce()
         ctype = headers.get("Content-Type", "application/json")
-        auth = self._make_auth(method, date, nonce, path, query, ctype)
+        auth = self._make_auth(method, date, nonce, path, query_str, ctype)
 
         req_headers = {
             "Content-Type": "application/json",
@@ -251,15 +258,14 @@ class ApiToken(Api):
         super().__init__("https://cad.onshape.com", logging)
         self._token = token
 
-    def _make_headers(self, headers, **_):
+    def _make_headers(self, headers, **_kwargs):
         """
         Creates a headers object to sign the request
 
         Args:
             - method (str): HTTP method
-            - path (str): Request path, e.g. /api/documents. No query string
-            - query (dict, default={}): Query string in key-value format
             - headers (dict, default={}): Other headers to pass in
+            - _kwargs: Unused keyword arguments
 
         Returns:
             - dict: Dictionary containing all headers
