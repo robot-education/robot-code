@@ -102,7 +102,7 @@ def api_path(
     if secondary_service:
         api_path += "/" + secondary_service
     if feature_id:
-        # feature_ids can have slashes
+        # feature_ids can have slashes, quote prevents problems
         api_path += "/featureid/" + parse.quote(feature_id, safe="")
 
     return api_path

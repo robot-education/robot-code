@@ -10,7 +10,7 @@ from library.core import control, func, param, std, utils, map
 from library.base import ctxt, node, expr, str_utils, user_error
 
 __all__ = [
-    "EnumFactory",
+    "EnumBuilder",
     "Enum",
     "lookup_enum_function",
     "LookupEnumValue",
@@ -189,7 +189,7 @@ class Enum(node.ParentNode, expr.Expression, dict[str, V], Generic[V]):
         return user_error.expected_scope(ctxt.Scope.TOP, ctxt.Scope.EXPRESSION)
 
 
-class EnumFactory:
+class EnumBuilder:
     def __init__(
         self,
         name: str,
@@ -265,7 +265,7 @@ class EnumFactory:
         self.has_custom = True
         return self
 
-    def make(self) -> Enum[Any]:
+    def build(self) -> Enum[Any]:
         if self.enum is None:
             raise ValueError("add_enum must be called before make")
         elif len(self.enum) < 1:

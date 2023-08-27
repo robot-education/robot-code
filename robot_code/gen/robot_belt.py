@@ -3,41 +3,41 @@ from library import *
 studio = Studio("robotBeltUi.gen.fs", "backend")
 
 belt_type = (
-    EnumFactory("BeltType", parent=studio)
+    EnumBuilder("BeltType", parent=studio)
     .add_value("GT2")
     .add_value("HTD")
     .add_value("RT25")
-    .make()
+    .build()
 )
 
 gt2_pitch = (
-    EnumFactory("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
+    EnumBuilder("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
     .add_value(
         "_2MM",
         lookup_value=millimeter(2),
     )
     .add_value("_3MM", lookup_value=millimeter(3))
-    .make()
+    .build()
 )
 
 htd_pitch = (
-    EnumFactory("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
+    EnumBuilder("Gt2BeltPitch", parent=studio, value_type=LookupEnumValue)
     .add_value(
         "_3MM",
         lookup_value=millimeter(3),
     )
     .add_value("_5MM", lookup_value=millimeter(5))
-    .make()
+    .build()
 )
 
 htd_width = (
-    EnumFactory("HtdBeltWidth", parent=studio, value_type=LookupEnumValue)
+    EnumBuilder("HtdBeltWidth", parent=studio, value_type=LookupEnumValue)
     .add_value(
         "_9MM",
         lookup_value=millimeter(9),
     )
     .add_value("_15MM", lookup_value=millimeter(15))
-    .make()
+    .build()
 )
 
 studio.add(

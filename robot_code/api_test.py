@@ -54,19 +54,17 @@ def main():
     document = documents.get_document_elements(api, backend)
     assembly_path = document["Assembly 1"]
 
-    mate_id = "A" * 17
     mate_connector = assembly_features.implicit_mate_connector(
         assembly_features.ORIGIN_QUERY
     )
-    mate_connector["featureId"] = mate_id
 
-    fasten_mate = assembly_features.fasten_mate(
-        "My fasten",
-        [assembly_features.feature_query(mate_id)],
-        mate_connectors=[mate_connector],
+    fasten_mate = (
+        assembly_features.FastenMateBuilder("My fasten")
+        .add_mate_connector(mate_connector)
+        .build()
     )
 
-    fasten_result = assemblies.add_feature(api, assembly_path, fasten_mate)
+    assemblies.add_feature(api, assembly_path, fasten_mate)
 
 
 if __name__ == "__main__":

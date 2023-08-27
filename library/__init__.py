@@ -1,3 +1,7 @@
+__doc__ = (
+    "A library for generating FeatureScript code and working with the Onshape API."
+)
+
 from library.base.node import *
 from library.base.imp import *
 from library.base.expr import *

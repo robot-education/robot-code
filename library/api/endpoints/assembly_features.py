@@ -1,16 +1,29 @@
-from typing import Iterable
+from typing import Iterable, Self
+
+
+def temp_id():
+    return "0" * 17
+    # import os
+    # import base64
+
+    # return base64.b64encode(os.urandom(17)).decode("ascii")
 
 
 def part_studio_mate_connector_query(instance_id: str, mate_id: str) -> dict:
+    """A query for a mate connector in a part studio."""
     return {
         "btType": "BTMPartStudioMateConnectorQuery-1324",
         "featureId": mate_id,
+        "path": [instance_id],
     }
 
 
 def occurrence_query(instance_id: str) -> dict:
     """A query for a specific instance."""
-    return {"btType": "BTMIndividualOccurrenceQuery-626", "path": [instance_id]}
+    return {
+        "btType": "BTMIndividualOccurrenceQuery-626",
+        "path": [instance_id],
+    }
 
 
 def feature_query(feature_id: str, query_data: str = "") -> dict:
@@ -24,19 +37,42 @@ def feature_query(feature_id: str, query_data: str = "") -> dict:
 ORIGIN_QUERY = feature_query("Origin", "ORIGIN_Z")
 
 
+class FastenMateBuilder:
+    """A fasten mate builder."""
+
+    def __init__(self, name: str, queries: Iterable[dict] = []) -> None:
+        """
+        Args:
+            queries: A tuple of two queries to use. Note Onshape has a tendency to preserve the location of the second query in cases where neither instance is constrained.
+        """
+        self.name = name
+        self.mate_connectors = []
+        self.queries = list(queries)
+
+    def add_query(self, query: dict) -> Self:
+        """Add a query."""
+        self.queries.append(query)
+        return self
+
+    def add_mate_connector(self, mate_connector: dict) -> Self:
+        """Adds a query for an implicit (owned) mate connector."""
+        mate_id = temp_id()
+        mate_connector["featureId"] = mate_id
+        self.mate_connectors.append(mate_connector)
+        self.queries.append(feature_query(mate_id))
+        return self
+
+    def build(self) -> dict:
+        return fasten_mate(self.name, self.queries, self.mate_connectors)
+
+
 def fasten_mate(
-    name: str,
-    queries: Iterable[dict],
-    mate_connectors: Iterable[dict] | None = None
-    # instance_id: str,
-    # mate_id: str,
-    # target_instance_id: str,
-    # target_mate_id: str,
+    name: str, queries: Iterable[dict], mate_connectors: Iterable[dict] | None = None
 ) -> dict:
     """A fasten mate.
 
     Args:
-        queries: A tuple of two queries to use. Note Onshape has a tendency to preserve the location of the second query in cases where neither query is constrained.
+        queries: A tuple of two queries to use. Note Onshape has a tendency to preserve the location of the second query in cases where neither instance is constrained.
     """
     fasten_mate = {
         "btType": "BTMMate-64",
@@ -45,9 +81,11 @@ def fasten_mate(
         "parameters": [
             mate_type_parameter("FASTENED"),
             query_parameter("mateConnectorsQuery", queries),
+            # Prevents primary axis flip bug
             primary_axis_parameter("primaryAxisAlignment"),
         ],
     }
+    # Avoid adding None
     if mate_connectors:
         fasten_mate["mateConnectors"] = mate_connectors
     return fasten_mate

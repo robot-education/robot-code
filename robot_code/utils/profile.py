@@ -2,16 +2,16 @@
 from library import *
 
 
-class HexSizeFactory:
+class HexSizeBuilder:
     def __init__(self, studio: Studio, width_parameter: str = "hexWidth") -> None:
         self.studio = studio
         self.width_parameter = width_parameter
         self.enum = (
-            EnumFactory("HexSize", parent=self.studio, value_type=LookupEnumValue)
+            EnumBuilder("HexSize", parent=self.studio, value_type=LookupEnumValue)
             .add_value("_1_2_IN", "1/2 in.", lookup_value=inch(1 / 2))
             .add_value("_3_8_IN", "3/8 in.", lookup_value=inch(3 / 8))
             .add_custom(lookup_value=definition(self.width_parameter))
-            .make()
+            .build()
         )
         self.predicate = self._register_predicate()
         self.lookup_function = self._register_lookup_function()
@@ -34,16 +34,16 @@ class HexSizeFactory:
         )
 
 
-class HoleSizeFactory:
+class HoleSizeBuilder:
     def __init__(self, studio: Studio) -> None:
         self.studio = studio
         self.enum = (
-            EnumFactory("HoleSize", parent=studio)
+            EnumBuilder("HoleSize", parent=studio)
             .add_value("_NO_8", "#8")
             .add_value("_NO_10", "#10")
             .add_value("_1_4_20", "1/4-20")
             .add_custom()
-            .make()
+            .build()
         )
 
         self.predicate = UiPredicate("holeSize", parent=self.studio).add(
@@ -79,10 +79,10 @@ class HoleSizeFactory:
 
 
 def fit_enum(parent: Studio | None = None, custom: bool = False) -> Enum:
-    factory = EnumFactory("Fit", parent=parent).add_value("CLOSE").add_value("FREE")
+    factory = EnumBuilder("Fit", parent=parent).add_value("CLOSE").add_value("FREE")
     if custom:
         factory.add_value("CUSTOM")
-    return factory.make()
+    return factory.build()
 
 
 def fit_tolerance(fit: Enum) -> Ternary:
