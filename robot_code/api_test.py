@@ -23,29 +23,6 @@ from library.api.endpoints import documents, assemblies, assembly_features
 #     )
 
 
-def add_mate(api, assembly_path) -> None:
-    fasten_mate = assembly_features.fasten_mate("My fasten", [])
-
-    fasten_result = assemblies.add_feature(api, assembly_path, fasten_mate)
-    fasten_id = fasten_result["feature"]["featureId"]
-
-    mate_connector = assembly_features.implicit_mate_connector(
-        assembly_features.ORIGIN_QUERY
-    )
-    fasten_mate["mateConnectors"] = [mate_connector]
-
-    fasten_update = assemblies.add_feature(
-        api, assembly_path, fasten_mate, feature_id=fasten_id
-    )
-
-    new_fasten_mate = fasten_update["feature"]
-    mate_connector_id = new_fasten_mate["mateConnectors"][0]["featureId"]
-    mate_query = assembly_features.feature_query(mate_connector_id)
-
-    new_fasten_mate["parameters"][1]["queries"].append(mate_query)
-    assemblies.add_feature(api, assembly_path, new_fasten_mate)
-
-
 def main():
     api = api_base.ApiKey(logging=True)
     config = conf.Config()

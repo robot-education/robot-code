@@ -11,6 +11,7 @@ def get_assembly(
     include_mate_connectors: bool = False,
     exclude_suppressed: bool = True,
 ) -> dict:
+    """Retrieves information about an assembly."""
     return api.get(
         api_path.api_path("assemblies", assembly_path),
         query={
@@ -27,6 +28,11 @@ def get_assembly_features(
     assembly_path: api_path.ElementPath,
     feature_ids: Iterable[str] = [],
 ) -> dict:
+    """Returns features in an assembly.
+
+    Args:
+        feature_ids: Feature ids to retrieve. If omitted, all features are returned.
+    """
     query = parse.urlencode({"featureId": feature_ids}, doseq=True)
     return api.get(api_path.api_path("assemblies", assembly_path, "features"), query)
 
@@ -34,23 +40,24 @@ def get_assembly_features(
 def make_assembly(
     api: api_base.Api, document_path: api_path.DocumentPath, assembly_name: str
 ) -> dict:
-    """Constructs an assembly with the given name.
-
-    Returns the response from Onshape.
-    """
+    """Constructs an assembly with the given name."""
     return api.post(
         api_path.api_path("assemblies", document_path), body={"name": assembly_name}
     )
 
 
-def add_part_studio_to_assembly(
+def add_parts_to_assembly(
     api: api_base.Api,
     assembly_path: api_path.ElementPath,
     part_studio_path: api_path.ElementPath,
+    part_id: str | None = None,
 ) -> dict:
     """Adds a part studio to a given assembly.
 
     Note the response may be malformed due to a (reported) bug with the Onshape API.
+
+    Args:
+        part_id: If it is included, only the specified part is added, rather than the entire part studio.
     """
     result = api.post(
         api_path.api_path("assemblies", assembly_path, "instances"),
@@ -59,36 +66,14 @@ def add_part_studio_to_assembly(
             "workspaceId": part_studio_path.path.workspace_id,
             "elementId": part_studio_path.element_id,
             "includePartTypes": ["PARTS"],
-            "isWholePartStudio": True,
+            "isWholePartStudio": (part_id == None),
+            "partId": part_id,
         },
     )
     return result
 
 
-def add_part_to_assembly(
-    api: api_base.Api,
-    assembly_path: api_path.ElementPath,
-    part_studio_path: api_path.ElementPath,
-    part_id: str,
-) -> dict:
-    """Adds a part to a given assembly.
-
-    Note the response may be malformed or nonexistant due to a (reported) bug with the Onshape API.
-    """
-    return api.post(
-        api_path.api_path("assemblies", assembly_path, "instances"),
-        body={
-            "documentId": part_studio_path.path.document_id,
-            "workspaceId": part_studio_path.path.workspace_id,
-            "elementId": part_studio_path.element_id,
-            "includePartTypes": ["PARTS"],
-            "isWholePartStudio": False,
-            "partId": part_id,
-        },
-    )
-
-
-identity_transform = [
+IDENTITY_TRANSFORM = [
     1.0,
     0.0,
     0.0,
