@@ -1,5 +1,6 @@
-from flask import current_app as app
+from typing import Iterable
 from library.api import api_base, api_path
+from urllib import parse
 
 
 def get_assembly(
@@ -24,8 +25,10 @@ def get_assembly(
 def get_assembly_features(
     api: api_base.Api,
     assembly_path: api_path.ElementPath,
+    feature_ids: Iterable[str] = [],
 ) -> dict:
-    return api.get(api_path.api_path("assemblies", assembly_path, "features"))
+    query = parse.urlencode({"featureId": feature_ids}, doseq=True)
+    return api.get(api_path.api_path("assemblies", assembly_path, "features"), query)
 
 
 def make_assembly(
@@ -59,7 +62,6 @@ def add_part_studio_to_assembly(
             "isWholePartStudio": True,
         },
     )
-    app.logger.info(result)
     return result
 
 
@@ -86,7 +88,7 @@ def add_part_to_assembly(
     )
 
 
-zero_transform = [
+identity_transform = [
     1.0,
     0.0,
     0.0,
@@ -104,68 +106,6 @@ zero_transform = [
     0.0,
     1.0,
 ]
-
-linear_transform = [
-    1.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.5,
-    0.5,
-    0.5,
-    1.0,
-]
-
-test = [
-    0.0,
-    1.0,
-    0.0,
-    0,
-    -1.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.0,
-    1.0,
-    0,
-    0,
-    0,
-    0,
-    1.0,
-]
-
-
-def fix_instance(
-    api: api_base.Api, assembly_path: api_path.ElementPath, instance_id: str
-) -> dict:
-    """Fixes an instance in an assembly.
-
-    Does not currently work; it is unknown if this functionality is exposed thorugh the api.
-
-    Args:
-        assembly_path: The path of the assembly.
-    """
-    return api.post(
-        api_path.api_path("assemblies", assembly_path, "modify"),
-        body={"unsuppressInstances": [instance_id]},
-    )
-    # return api.post(
-    #     api_path.api_path("assemblies", assembly_path, "occurrencetransforms"),
-    #     body={
-    #         "isRelative": False,
-    #         "occurrences": [{"path": [instance_id]}],
-    #         # "transform": (np.matmul(np.identity(4)).flatten().tolist(),
-    #     },
-    # )
 
 
 def transform_instance(
@@ -184,15 +124,34 @@ def transform_instance(
         body={
             "isRelative": is_relative,
             "occurrences": [{"path": [instance_id]}],
-            "transform": test,
+            "transform": transform,
         },
     )
 
 
 def add_feature(
-    api: api_base.Api, assembly_path: api_path.ElementPath, feature: dict
+    api: api_base.Api,
+    assembly_path: api_path.ElementPath,
+    feature: dict,
+    feature_id: str | None = None,
 ) -> dict:
+    """
+    Args:
+        feature_id: If specified, the given feature is updated rather than being created.
+    """
     return api.post(
-        api_path.api_path("assemblies", assembly_path, "features"),
+        api_path.api_path(
+            "assemblies", assembly_path, "features", feature_id=feature_id
+        ),
         body={"feature": feature},
+    )
+
+
+def delete_feature(
+    api: api_base.Api, assembly_path: api_path.ElementPath, feature_id: str
+) -> dict:
+    return api.delete(
+        api_path.api_path(
+            "assemblies", assembly_path, "features", feature_id=feature_id
+        )
     )

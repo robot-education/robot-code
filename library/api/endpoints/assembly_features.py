@@ -1,10 +1,33 @@
 from typing import Iterable
 
 
+def part_studio_mate_connector_query(instance_id: str, mate_id: str) -> dict:
+    return {
+        "btType": "BTMPartStudioMateConnectorQuery-1324",
+        "featureId": mate_id,
+    }
+
+
+def occurrence_query(instance_id: str) -> dict:
+    """A query for a specific instance."""
+    return {"btType": "BTMIndividualOccurrenceQuery-626", "path": [instance_id]}
+
+
+def feature_query(feature_id: str, query_data: str = "") -> dict:
+    return {
+        "btType": "BTMFeatureQueryWithOccurrence-157",
+        "queryData": query_data,
+        "featureId": feature_id,
+    }
+
+
+ORIGIN_QUERY = feature_query("Origin", "ORIGIN_Z")
+
+
 def fasten_mate(
     name: str,
-    queries: tuple[dict, dict],
-    mate_connectors: list[dict] | None = None
+    queries: Iterable[dict],
+    mate_connectors: Iterable[dict] | None = None
     # instance_id: str,
     # mate_id: str,
     # target_instance_id: str,
@@ -15,7 +38,7 @@ def fasten_mate(
     Args:
         queries: A tuple of two queries to use. Note Onshape has a tendency to preserve the location of the second query in cases where neither query is constrained.
     """
-    return {
+    fasten_mate = {
         "btType": "BTMMate-64",
         "featureType": "mate",
         "name": name,
@@ -25,6 +48,9 @@ def fasten_mate(
             primary_axis_parameter("primaryAxisAlignment"),
         ],
     }
+    if mate_connectors:
+        fasten_mate["mateConnectors"] = mate_connectors
+    return fasten_mate
 
 
 def query_parameter(parameter_id: str, queries: Iterable[dict]) -> dict:
@@ -52,18 +78,6 @@ def primary_axis_parameter(parameter_id: str, value: bool = False) -> dict:
     }
 
 
-def part_studio_mate_connector_query(instance_id: str, mate_id: str) -> dict:
-    return {
-        "btType": "BTMPartStudioMateConnectorQuery-1324",
-        "featureId": mate_id,
-        "path": [instance_id],
-    }
-
-
-def occurrence_query(instance_id: str) -> dict:
-    return {"btType": "BTMIndividualOccurrenceQuery-626", "path": [instance_id]}
-
-
 def group_mate(name: str, queries: Iterable[dict]) -> dict:
     """A group mate."""
     return {
@@ -72,3 +86,27 @@ def group_mate(name: str, queries: Iterable[dict]) -> dict:
         "featureType": "mateGroup",
         "parameters": [query_parameter("occurrencesQuery", queries)],
     }
+
+
+def mate_connector(name: str, originQuery: dict, implicit: bool = False) -> dict:
+    """A mate connector feature."""
+
+    return {
+        "btType": "BTMMateConnector-66",
+        "name": name,
+        "implicit": implicit,
+        "parameters": [
+            {
+                "btType": "BTMParameterEnum-145",
+                "value": "ON_ENTITY",
+                "enumName": "Origin type",
+                "parameterId": "originType",
+            },
+            query_parameter("originQuery", [originQuery]),
+        ],
+    }
+
+
+def implicit_mate_connector(originQuery: dict) -> dict:
+    """A mate connector which is owned by another mate."""
+    return mate_connector("Mate connector", originQuery, implicit=True)
