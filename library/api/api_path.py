@@ -66,7 +66,7 @@ class ElementPath(DocumentPath):
         self.element_id = element_id
 
     @staticmethod
-    def from_url(url: str) -> DocumentPath:
+    def from_url(url: str) -> ElementPath:
         """
         Args:
             url: A url for a document.
@@ -76,7 +76,7 @@ class ElementPath(DocumentPath):
         return ElementPath.from_path(path)
 
     @staticmethod
-    def from_path(path: str) -> DocumentPath:
+    def from_path(path: str) -> ElementPath:
         """
         Args:
             path: A path of the form "/d/documentId/w|v|m/workspaceId/e/elementId".
