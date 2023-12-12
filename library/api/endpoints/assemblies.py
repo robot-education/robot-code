@@ -39,7 +39,7 @@ def get_assembly_features(
     )
 
 
-def make_assembly(
+def create_assembly(
     api: api_base.Api, document_path: api_path.DocumentPath, assembly_name: str
 ) -> dict:
     """Constructs an assembly with the given name."""

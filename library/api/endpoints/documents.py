@@ -108,7 +108,7 @@ def confirm_version_creation(version_name: str):
         raise ValueError("Aborted version creation.")
 
 
-def make_version(
+def create_version(
     api: api_base.Api,
     document_path: api_path.DocumentPath,
     version_name: str,
@@ -122,7 +122,7 @@ def make_version(
         "workspaceId": document_path.workspace_id,
     }
     return api.post(
-        api_path.document_api_path("documents", document_path, "versions"),
+        api_path.api_path("documents", document_path.to_document_base(), "versions"),
         body=body,
     )
 

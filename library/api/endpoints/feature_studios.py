@@ -5,7 +5,7 @@ import re
 from library.api.endpoints import documents
 
 
-def make_feature_studio(
+def create_feature_studio(
     api: api_base.Api, document_path: api_path.DocumentPath, studio_name: str
 ) -> conf.FeatureStudio:
     """Constructs a feature studio with the given name.
@@ -13,7 +13,7 @@ def make_feature_studio(
     Returns a FeatureStudio representing the new studio.
     """
     response = api.post(
-        api_path.element_api_path("featurestudios", document_path),
+        api_path.document_api_path("featurestudios", document_path),
         body={"name": studio_name},
     )
 
@@ -49,7 +49,7 @@ def push_studio(
     """Push code to a given document. If the studio does not exist in the document, it is first created."""
     studio = documents.get_feature_studio(api, document_path, studio_name)
     if not studio:
-        studio = make_feature_studio(api, document_path, studio_name)
+        studio = create_feature_studio(api, document_path, studio_name)
     return push_code(api, studio.path, code)
 
 

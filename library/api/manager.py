@@ -261,7 +261,7 @@ class CommandLineManager:
         feature_studio = studios.get(studio.studio_name, None)
 
         if feature_studio is None:
-            feature_studio = feature_studios.make_feature_studio(
+            feature_studio = feature_studios.create_feature_studio(
                 self.api, document, studio.studio_name
             )
         feature_studio.generated = True

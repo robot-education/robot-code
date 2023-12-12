@@ -53,10 +53,10 @@ def release(
     new_version_name = get_new_version_name(api, config, feature_name, version_type)
 
     documents.confirm_version_creation(new_version_name)
-    new_version = documents.make_version(api, backend, new_version_name, description)
+    new_version = documents.create_version(api, backend, new_version_name, description)
 
     update_release_studio(api, config, studio, new_version_name, new_version["id"])
-    documents.make_version(api, frontend, new_version_name, description)
+    documents.create_version(api, frontend, new_version_name, description)
 
 
 def get_new_version_name(
