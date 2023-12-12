@@ -1,6 +1,7 @@
+from __future__ import annotations
 import pathlib
 from urllib import parse
-from typing import Iterator, Literal, Self, TypedDict
+from typing import Iterator, Literal, Self
 
 
 class DocumentPath:
@@ -13,6 +14,26 @@ class DocumentPath:
         self.document_id = document_id
         self.workspace_id = workspace_id
         self.workspace_or_version: Literal["w", "m", "v"] = workspace_or_version
+
+    @staticmethod
+    def from_url(url: str) -> DocumentPath:
+        """
+        Args:
+            url: A url for a document.
+        """
+        path = parse.urlparse(url).path
+        # Remove leading "documents"
+        path = path[path.find("/") - 1 :]
+        return DocumentPath.from_path(path)
+
+    @staticmethod
+    def from_path(path: str) -> DocumentPath:
+        """
+        Args:
+            path: A path of the form "/d/documentId/w|v|m|/workspaceId/elementId".
+        """
+        parts = pathlib.Path(path).parts
+        return DocumentPath(parts[1], parts[3], parts[2])  # type: ignore
 
     def to_document_path(self) -> Self:
         return DocumentPath(
@@ -39,15 +60,29 @@ class DocumentPath:
         return "/d/" + self.document_id
 
 
-def make_document_path(url: str) -> DocumentPath:
-    path = pathlib.Path(parse.urlparse(url).path)
-    return DocumentPath(path.parts[2], path.parts[4])
-
-
 class ElementPath(DocumentPath):
     def __init__(self, document_path: DocumentPath, element_id: str) -> None:
         super().__init__(*document_path)
         self.element_id = element_id
+
+    @staticmethod
+    def from_url(url: str) -> DocumentPath:
+        """
+        Args:
+            url: A url for a document.
+        """
+        path = parse.urlparse(url).path
+        path = path[path.find("/") :]
+        return ElementPath.from_path(path)
+
+    @staticmethod
+    def from_path(path: str) -> DocumentPath:
+        """
+        Args:
+            path: A path of the form "/d/documentId/w|v|m/workspaceId/e/elementId".
+        """
+        parts = pathlib.Path(path).parts
+        return ElementPath(super().from_path(path), parts[5])
 
     def to_element_path(self) -> Self:
         return ElementPath(
@@ -154,24 +189,6 @@ def api_path(
         api_path += "/featureid/" + parse.quote(feature_id, safe="")
 
     return api_path
-
-
-class ElementPathObject(TypedDict):
-    """An API Object which can be converted to an element path."""
-
-    documentId: str
-    workspaceId: str
-    elementId: str
-    workspaceOrVersion: Literal["w", "m", "v"] | None
-
-
-def make_element_path_from_obj(object: ElementPathObject) -> ElementPath:
-    return make_element_path(
-        object["documentId"],
-        object["workspaceId"],
-        object["elementId"],
-        object.get("workspaceOrVersion") or "w",
-    )
 
 
 def get_wmv_key(path: DocumentPath) -> str:

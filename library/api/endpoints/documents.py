@@ -22,7 +22,7 @@ def _extract_paths(
         (
             element["name"],
             # Copy to prevent saving reference to input
-            api_path.ElementPath(document_path.to_document_path(), element["id"]),
+            api_path.ElementPath(document_path, element["id"]),
         )
         for element in elements
     )
@@ -65,7 +65,7 @@ def _extract_studios(
             conf.FeatureStudio(
                 element["name"],
                 # Copy to avoid saving reference
-                api_path.ElementPath(document_path.to_document_path(), element["id"]),
+                api_path.ElementPath(document_path, element["id"]),
                 element["microversionId"],
             ),
         )
