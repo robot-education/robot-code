@@ -51,9 +51,12 @@ def release(
         raise ValueError("Could not find studio {} in backend.".format(studio_name))
 
     new_version_name = get_new_version_name(api, config, feature_name, version_type)
+
+    documents.confirm_version_creation(new_version_name)
     new_version = documents.make_version(api, backend, new_version_name, description)
+
     update_release_studio(api, config, studio, new_version_name, new_version["id"])
-    documents.make_version(api, frontend, new_version_name, description, confirm=False)
+    documents.make_version(api, frontend, new_version_name, description)
 
 
 def get_new_version_name(
@@ -111,7 +114,7 @@ def update_release_studio(
     To do so, we need a path to the backend studio.
     """
     version_path = api_path.make_element_path(
-        studio.path.path.document_id,
+        studio.path.document_id,
         version_id,
         studio.path.element_id,
         workspace_or_version="v",
@@ -119,7 +122,7 @@ def update_release_studio(
     release_studio = Studio(studio.name, "frontend", import_common=False).add(
         Id(release_preamble(version_name, version_path)),
         BaseImport(
-            version_path.as_path(),
+            version_path.as_feature_studio_path(),
             studio.microversion_id,
             export=True,
         ),

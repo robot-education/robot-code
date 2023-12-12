@@ -27,14 +27,16 @@ class Api(ABC):
         logging: Turn logging on or off
     """
 
-    def __init__(self, url: str, logging: bool, version: int = 6):
+    def __init__(self, url: str, logging: bool, version: int | None = 6):
         """
         Args:
             url: The base url. Should generally be `https://cad.onshape.com`.
             logging: True to enable logging.
         """
         self._url = url
-        self._path_base = "/api/v{}/".format(version)
+        self._path_base = "/api/"
+        if version:
+            self._path_base += "v{}/".format(version)
         self._logging = logging
 
     @abstractmethod

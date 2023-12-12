@@ -1,7 +1,6 @@
 import pathlib
 from typing_extensions import override
 from urllib import parse
-import dataclasses
 from typing import Iterator, Literal, Self, TypedDict
 
 
@@ -21,16 +20,19 @@ class DocumentPath:
             self.document_id, self.workspace_id, self.workspace_or_version
         )
 
-    def as_document(self) -> str:
+    def as_document_base(self) -> str:
         """Returns just the document portion of the path."""
         return "/d/" + self.document_id
 
-    def __str__(self) -> str:
+    def as_document_path(self) -> str:
         return (
             "/d/{}/".format(self.document_id)
             + self.workspace_or_version
             + "/{}".format(self.workspace_id)
         )
+
+    def __repr__(self) -> str:
+        return self.as_document_path()
 
     def __hash__(self) -> int:
         return hash((self.document_id, self.workspace_id, self.workspace_or_version))
@@ -46,7 +48,6 @@ def make_document_path(url: str) -> DocumentPath:
     return DocumentPath(path.parts[2], path.parts[4])
 
 
-@dataclasses.dataclass(unsafe_hash=True)
 class ElementPath(DocumentPath):
     def __init__(self, document_path: DocumentPath, element_id: str) -> None:
         super().__init__(*document_path)
@@ -59,20 +60,18 @@ class ElementPath(DocumentPath):
             self.element_id,
         )
 
-    def document_path(self) -> DocumentPath:
-        return super()
+    def as_element_path(self) -> str:
+        return super().as_document_path() + "/e/" + self.element_id
 
-    def __str__(self) -> str:
-        return str(super()) + "/e/" + self.element_id
+    def __repr__(self) -> str:
+        return self.as_element_path()
 
     def __hash__(self) -> int:
         return hash((super(), self.element_id))
 
     def __iter__(self) -> Iterator:
-        yield self.document_id
-        yield self.workspace_id
+        yield from super()
         yield self.element_id
-        yield self.workspace_or_version
 
     def as_link(self) -> str:
         """Returns a link to the element."""
@@ -80,9 +79,13 @@ class ElementPath(DocumentPath):
             str(self).removeprefix("/d/")
         )
 
-    def as_path(self) -> str:
+    def as_feature_studio_path(self) -> str:
         """Returns a version of the path suitable for use as the path property of Feature Studio imports."""
-        return "{}/{}/{}".format(self.document_id, self.workspace_id, self.element_id)
+        return "{}/{}/{}".format(
+            self.document_id,
+            self.workspace_id,
+            self.element_id,
+        )
 
 
 class ElementPathObject(TypedDict):
@@ -119,10 +122,7 @@ class PartPath(ElementPath):
         element_path: ElementPath,
         part_id: str,
     ) -> None:
-        super().__init__(
-            element_path.document_path(),
-            element_path.element_id,
-        )
+        super().__init__(*element_path)
         self.part_id = part_id
 
     @override
@@ -132,23 +132,39 @@ class PartPath(ElementPath):
             self.part_id,
         )
 
-    def element_path(self) -> DocumentPath:
-        return super()
-
     def __hash__(self) -> int:
         return hash((super(), self.part_id))
 
     def __iter__(self) -> Iterator:
-        yield self.document_id
-        yield self.workspace_id
-        yield self.element_id
+        yield from super()
         yield self.part_id
-        yield self.workspace_or_version
+
+
+def element_api_path(
+    service: str,
+    path: ElementPath,
+    secondary_service: str | None = None,
+    feature_id: str | None = None,
+) -> str:
+    """Constructs a path suitable for consumption by an API."""
+    temp_path = str(path) if isinstance(path, str) else path.as_element_path()
+    return api_path(service, temp_path, secondary_service, feature_id)
+
+
+def document_api_path(
+    service: str,
+    path: DocumentPath,
+    secondary_service: str | None = None,
+    feature_id: str | None = None,
+) -> str:
+    """Constructs a path suitable for consumption by an API."""
+    temp_path = str(path) if isinstance(path, str) else path.as_document_path()
+    return api_path(service, temp_path, secondary_service, feature_id)
 
 
 def api_path(
     service: str,
-    path: ElementPath | DocumentPath | str | None = None,
+    path: str | None = None,
     secondary_service: str | None = None,
     feature_id: str | None = None,
 ) -> str:

@@ -13,7 +13,7 @@ def get_assembly(
 ) -> dict:
     """Retrieves information about an assembly."""
     return api.get(
-        api_path.api_path("assemblies", assembly_path),
+        api_path.element_api_path("assemblies", assembly_path),
         query={
             "includeMateFeatures": include_mate_features,
             "includeNonSolids": include_non_solids,
@@ -34,7 +34,9 @@ def get_assembly_features(
         feature_ids: Feature ids to retrieve. If omitted, all features are returned.
     """
     query = parse.urlencode({"featureId": feature_ids}, doseq=True)
-    return api.get(api_path.api_path("assemblies", assembly_path, "features"), query)
+    return api.get(
+        api_path.element_api_path("assemblies", assembly_path, "features"), query
+    )
 
 
 def make_assembly(
@@ -42,7 +44,8 @@ def make_assembly(
 ) -> dict:
     """Constructs an assembly with the given name."""
     return api.post(
-        api_path.api_path("assemblies", document_path), body={"name": assembly_name}
+        api_path.document_api_path("assemblies", document_path),
+        body={"name": assembly_name},
     )
 
 
@@ -60,7 +63,7 @@ def add_parts_to_assembly(
         part_id: If it is included, only the specified part is added, rather than the entire part studio.
     """
     result = api.post(
-        api_path.api_path("assemblies", assembly_path, "instances"),
+        api_path.element_api_path("assemblies", assembly_path, "instances"),
         body={
             "documentId": part_studio_path.document_id,
             "workspaceId": part_studio_path.workspace_id,
@@ -83,7 +86,7 @@ def add_part_to_assembly(
     Note the response may be malformed due to a (reported) bug with the Onshape API.
     """
     result = api.post(
-        api_path.api_path("assemblies", assembly_path, "instances"),
+        api_path.element_api_path("assemblies", assembly_path, "instances"),
         body={
             "documentId": part_path.document_id,
             "workspaceId": part_path.workspace_id,
@@ -128,7 +131,7 @@ def transform_instance(
         is_relative: True to apply the transform relative to the instance's existing location. False to apply it relative to the origin.
     """
     return api.post(
-        api_path.api_path("assemblies", assembly_path, "occurrencetransforms"),
+        api_path.element_api_path("assemblies", assembly_path, "occurrencetransforms"),
         body={
             "isRelative": is_relative,
             "occurrences": [{"path": [instance_id]}],
@@ -148,7 +151,7 @@ def add_feature(
         feature_id: If specified, the given feature is updated rather than being created.
     """
     return api.post(
-        api_path.api_path(
+        api_path.element_api_path(
             "assemblies", assembly_path, "features", feature_id=feature_id
         ),
         body={"feature": feature},
@@ -159,7 +162,7 @@ def delete_feature(
     api: api_base.Api, assembly_path: api_path.ElementPath, feature_id: str
 ) -> dict:
     return api.delete(
-        api_path.api_path(
+        api_path.element_api_path(
             "assemblies", assembly_path, "features", feature_id=feature_id
         )
     )

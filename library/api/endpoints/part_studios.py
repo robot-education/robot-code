@@ -10,7 +10,7 @@ def evaluate_feature_script(
     Returns the printed output of the script parsed as JSON.
     """
     result = api.post(
-        api_path.api_path("partstudios", part_studio_path, "featurescript"),
+        api_path.element_api_path("partstudios", part_studio_path, "featurescript"),
         body={"script": script},
     )
     return json.loads(result["console"])
