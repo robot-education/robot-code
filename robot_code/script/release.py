@@ -14,7 +14,7 @@ RELEASE_PREAMBLE = """/**
 
 
 def release_preamble(version_name: str, studio_path: api_path.ElementPath) -> str:
-    return RELEASE_PREAMBLE.format(version_name, studio_path.as_link())
+    return RELEASE_PREAMBLE.format(version_name, studio_path.to_link())
 
 
 def extract_versions(feature_name: str, version_name: str) -> re.Match | None:
@@ -122,7 +122,7 @@ def update_release_studio(
     release_studio = Studio(studio.name, "frontend", import_common=False).add(
         Id(release_preamble(version_name, version_path)),
         BaseImport(
-            version_path.as_feature_studio_path(),
+            version_path.to_feature_studio_path(),
             studio.microversion_id,
             export=True,
         ),

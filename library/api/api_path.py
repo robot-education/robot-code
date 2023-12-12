@@ -1,5 +1,4 @@
 import pathlib
-from typing_extensions import override
 from urllib import parse
 from typing import Iterator, Literal, Self, TypedDict
 
@@ -15,24 +14,17 @@ class DocumentPath:
         self.workspace_id = workspace_id
         self.workspace_or_version: Literal["w", "m", "v"] = workspace_or_version
 
-    def copy(self) -> Self:
+    def to_document_path(self) -> Self:
         return DocumentPath(
             self.document_id, self.workspace_id, self.workspace_or_version
         )
 
-    def as_document_base(self) -> str:
-        """Returns just the document portion of the path."""
-        return "/d/" + self.document_id
-
-    def as_document_path(self) -> str:
+    def __str__(self) -> str:
         return (
             "/d/{}/".format(self.document_id)
             + self.workspace_or_version
             + "/{}".format(self.workspace_id)
         )
-
-    def __repr__(self) -> str:
-        return self.as_document_path()
 
     def __hash__(self) -> int:
         return hash((self.document_id, self.workspace_id, self.workspace_or_version))
@@ -41,6 +33,10 @@ class DocumentPath:
         yield self.document_id
         yield self.workspace_id
         yield self.workspace_or_version
+
+    def to_document_base(self) -> str:
+        """Returns just the document portion of the path."""
+        return "/d/" + self.document_id
 
 
 def make_document_path(url: str) -> DocumentPath:
@@ -53,18 +49,14 @@ class ElementPath(DocumentPath):
         super().__init__(*document_path)
         self.element_id = element_id
 
-    @override
-    def copy(self) -> Self:
+    def to_element_path(self) -> Self:
         return ElementPath(
-            super().copy(),
+            self.to_document_path(),
             self.element_id,
         )
 
-    def as_element_path(self) -> str:
-        return super().as_document_path() + "/e/" + self.element_id
-
-    def __repr__(self) -> str:
-        return self.as_element_path()
+    def __str__(self) -> str:
+        return str(super().to_document_path()) + "/e/" + self.element_id
 
     def __hash__(self) -> int:
         return hash((super(), self.element_id))
@@ -73,13 +65,13 @@ class ElementPath(DocumentPath):
         yield from super()
         yield self.element_id
 
-    def as_link(self) -> str:
+    def to_link(self) -> str:
         """Returns a link to the element."""
         return "https://cad.onshape.com/documents/{}".format(
             str(self).removeprefix("/d/")
         )
 
-    def as_feature_studio_path(self) -> str:
+    def to_feature_studio_path(self) -> str:
         """Returns a version of the path suitable for use as the path property of Feature Studio imports."""
         return "{}/{}/{}".format(
             self.document_id,
@@ -109,10 +101,9 @@ class PartPath(ElementPath):
         super().__init__(*element_path)
         self.part_id = part_id
 
-    @override
-    def copy(self) -> Self:
+    def part_path(self) -> Self:
         return PartPath(
-            super().copy(),
+            self.to_element_path(),
             self.part_id,
         )
 
@@ -131,8 +122,7 @@ def element_api_path(
     feature_id: str | None = None,
 ) -> str:
     """Constructs a path suitable for consumption by an API."""
-    temp_path = str(path) if isinstance(path, str) else path.as_element_path()
-    return api_path(service, temp_path, secondary_service, feature_id)
+    return api_path(service, str(path.to_element_path()), secondary_service, feature_id)
 
 
 def document_api_path(
@@ -142,8 +132,9 @@ def document_api_path(
     feature_id: str | None = None,
 ) -> str:
     """Constructs a path suitable for consumption by an API."""
-    temp_path = str(path) if isinstance(path, str) else path.as_document_path()
-    return api_path(service, temp_path, secondary_service, feature_id)
+    return api_path(
+        service, str(path.to_document_path()), secondary_service, feature_id
+    )
 
 
 def api_path(

@@ -21,7 +21,8 @@ def _extract_paths(
     return dict(
         (
             element["name"],
-            api_path.ElementPath(document_path.copy(), element["id"]),
+            # Copy to prevent saving reference to input
+            api_path.ElementPath(document_path.to_document_path(), element["id"]),
         )
         for element in elements
     )
@@ -63,7 +64,8 @@ def _extract_studios(
             element["name"],
             conf.FeatureStudio(
                 element["name"],
-                api_path.ElementPath(document_path.copy(), element["id"]),
+                # Copy to avoid saving reference
+                api_path.ElementPath(document_path.to_document_path(), element["id"]),
                 element["microversionId"],
             ),
         )
@@ -86,7 +88,7 @@ def get_versions(
         limit: The max number of versions to return.
     """
     return api.get(
-        api_path.api_path("documents", document_path.as_document_base(), "versions"),
+        api_path.api_path("documents", document_path.to_document_base(), "versions"),
         query={offset: offset, limit: limit},
     )
 
