@@ -88,22 +88,6 @@ class ElementPath(DocumentPath):
         )
 
 
-class ElementPathObject(TypedDict):
-    documentId: str
-    workspaceId: str
-    elementId: str
-    workspaceOrVersion: Literal["w", "m", "v"] | None
-
-
-def make_element_path_from_obj(object: ElementPathObject) -> ElementPath:
-    return make_element_path(
-        object["documentId"],
-        object["workspaceId"],
-        object["elementId"],
-        object.get("workspaceOrVersion") or "w",
-    )
-
-
 def make_element_path(
     document_id: str,
     workspace_id: str,
@@ -179,3 +163,25 @@ def api_path(
         api_path += "/featureid/" + parse.quote(feature_id, safe="")
 
     return api_path
+
+
+class ElementPathObject(TypedDict):
+    """An API Object which can be converted to an element path."""
+
+    documentId: str
+    workspaceId: str
+    elementId: str
+    workspaceOrVersion: Literal["w", "m", "v"] | None
+
+
+def make_element_path_from_obj(object: ElementPathObject) -> ElementPath:
+    return make_element_path(
+        object["documentId"],
+        object["workspaceId"],
+        object["elementId"],
+        object.get("workspaceOrVersion") or "w",
+    )
+
+
+def get_wmv_key(path: DocumentPath) -> str:
+    return "workspaceId" if path.workspace_or_version == "w" else "versionId"

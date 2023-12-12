@@ -54,49 +54,32 @@ def add_parts_to_assembly(
     assembly_path: api_path.ElementPath,
     part_studio_path: api_path.ElementPath,
     part_id: str | None = None,
-) -> dict:
+) -> None:
     """Adds a part studio to a given assembly.
-
-    Note the response may be malformed due to a (reported) bug with the Onshape API.
 
     Args:
         part_id: If it is included, only the specified part is added, rather than the entire part studio.
     """
-    result = api.post(
-        api_path.element_api_path("assemblies", assembly_path, "instances"),
-        body={
-            "documentId": part_studio_path.document_id,
-            "workspaceId": part_studio_path.workspace_id,
-            "elementId": part_studio_path.element_id,
-            "includePartTypes": ["PARTS"],
-            "isWholePartStudio": (part_id == None),
-            "partId": part_id,
-        },
+    body = {
+        "documentId": part_studio_path.document_id,
+        "elementId": part_studio_path.element_id,
+        "includePartTypes": ["PARTS"],
+        "isWholePartStudio": (part_id == None),
+        "partId": part_id,
+    }
+    body[api_path.get_wmv_key(part_studio_path)] = part_studio_path.workspace_id
+    api.post(
+        api_path.element_api_path("assemblies", assembly_path, "instances"), body=body
     )
-    return result
 
 
 def add_part_to_assembly(
     api: api_base.Api,
     assembly_path: api_path.ElementPath,
     part_path: api_path.PartPath,
-) -> dict:
-    """Adds a part to a given assembly.
-
-    Note the response may be malformed due to a (reported) bug with the Onshape API.
-    """
-    result = api.post(
-        api_path.element_api_path("assemblies", assembly_path, "instances"),
-        body={
-            "documentId": part_path.document_id,
-            "workspaceId": part_path.workspace_id,
-            "elementId": part_path.element_id,
-            "partId": part_path.part_id,
-            "includePartTypes": ["PARTS"],
-            "isWholePartStudio": False,
-        },
-    )
-    return result
+) -> None:
+    """Adds a part to a given assembly."""
+    add_parts_to_assembly(api, assembly_path, part_path, part_id=part_path.part_id)
 
 
 IDENTITY_TRANSFORM = [
