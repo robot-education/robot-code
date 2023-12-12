@@ -127,6 +127,15 @@ def make_element_path(
     )
 
 
+def make_element_path_from_obj(obj: dict) -> ElementPath:
+    return make_element_path(
+        obj["documentId"],
+        obj["workspaceId"],
+        obj["elementId"],
+        obj.get("workspaceOrVersion", "w"),
+    )
+
+
 class PartPath(ElementPath):
     def __init__(
         self,
