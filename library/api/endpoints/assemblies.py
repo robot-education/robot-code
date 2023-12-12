@@ -62,12 +62,35 @@ def add_parts_to_assembly(
     result = api.post(
         api_path.api_path("assemblies", assembly_path, "instances"),
         body={
-            "documentId": part_studio_path.path.document_id,
-            "workspaceId": part_studio_path.path.workspace_id,
+            "documentId": part_studio_path.document_id,
+            "workspaceId": part_studio_path.workspace_id,
             "elementId": part_studio_path.element_id,
             "includePartTypes": ["PARTS"],
             "isWholePartStudio": (part_id == None),
             "partId": part_id,
+        },
+    )
+    return result
+
+
+def add_part_to_assembly(
+    api: api_base.Api,
+    assembly_path: api_path.ElementPath,
+    part_path: api_path.PartPath,
+) -> dict:
+    """Adds a part to a given assembly.
+
+    Note the response may be malformed due to a (reported) bug with the Onshape API.
+    """
+    result = api.post(
+        api_path.api_path("assemblies", assembly_path, "instances"),
+        body={
+            "documentId": part_path.document_id,
+            "workspaceId": part_path.workspace_id,
+            "elementId": part_path.element_id,
+            "partId": part_path.part_id,
+            "includePartTypes": ["PARTS"],
+            "isWholePartStudio": False,
         },
     )
     return result
@@ -102,7 +125,7 @@ def transform_instance(
 ):
     """
     Args:
-        is_relative: True to apply the transform relative to the instance's existing location, False to apply it relative to the origin.
+        is_relative: True to apply the transform relative to the instance's existing location. False to apply it relative to the origin.
     """
     return api.post(
         api_path.api_path("assemblies", assembly_path, "occurrencetransforms"),

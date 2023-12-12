@@ -2,7 +2,7 @@ import dataclasses
 import json5
 import pathlib
 import pickle
-from typing import Any
+from typing import Any, Protocol
 from library.api import api_path
 
 STORAGE_FILE = "studio_data.pickle"
@@ -20,8 +20,19 @@ class FeatureStudio:
 FileData = dict[str, FeatureStudio]
 
 
+class ConfigData(Protocol):
+    """
+    Attributes:
+        storage_path: A path to a file to store data under.
+        code_path: A dict of data.
+    """
+    storage_path: dict | None
+    code_path: dict | None
+    code_gen_path: dict | None
+
+
 class Config:
-    """Represents the user-specified config information secified in `config.json`."""
+    """Represents config information specified by the user."""
 
     def __init__(self) -> None:
         path = pathlib.Path("config.json")

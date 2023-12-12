@@ -5,7 +5,6 @@ def temp_id():
     return "0" * 17
     # import os
     # import base64
-
     # return base64.b64encode(os.urandom(17)).decode("ascii")
 
 

@@ -29,7 +29,7 @@ def _extract_paths(
 
 def get_microversion_id(api: api_base.Api, element_path: api_path.ElementPath) -> str:
     """Fetches the microversion id of an element."""
-    path = api_path.api_path("documents", element_path.path, "elements")
+    path = api_path.api_path("documents", element_path.document_path(), "elements")
     return api.get(path, query={"elementId": element_path.element_id})[0][
         "microversionId"
     ]
@@ -86,7 +86,7 @@ def make_version(
     document_path: api_path.DocumentPath,
     version_name: str,
     description: str,
-    confirm: bool = True,
+    confirm: bool = False,
 ) -> dict:
     """Creates a new version in document.
 
@@ -101,6 +101,7 @@ def make_version(
         )
         if value != "yes":
             raise ValueError("Aborted version creation.")
+
     body = {
         "name": version_name,
         "description": description,
