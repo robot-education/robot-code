@@ -14,6 +14,23 @@ Operations work on `local_code`.
     `pull` is not required to be run before `build`.
 `onshape push` - Each file in `.fs_code` which was modified is sent to Onshape.
 
+# Rewrite:
+I propose the following changes.
+1. Writing a custom JavaScript/Python GH Actions workflow which syncs a repo (e.g. main) with one or more Onshape documents. The repo would specify the urls. Pushing to the repo would deploy to Onshape automatically.
+2. Modifying these scripts to support "local" development tests. This would involve compiling FeatureScript and pushing them to a temporary Onshape document for testing. Caching would be done to help keep things synced, but because the files are considered local only, the doucment should be considered "temporary". In particular:
+When code is first pushed, the document should be cleaned. Unused studios should be removed.
+We can then create all of the neccessary feature studios, and construct a mapping of document ids to element ids.
+We can then compile the FeatureScript code using the target document id mapping. Finally, we can push the FeatureScript code.
+(Note - Github FeatureScript will never be true FeatureScript code, so no more editing in Onshape directly. Tragic.). 
+Local history should be stored (the document name mapping) and used to determine if additional pushes are needed.
+If a local studio is deleted, that should trigger cascading changes to the compilation of the studios which import it (we could store it as a map or recompile every time).
+When a push occurs, the changed studios should be updated as needed. 
+
+A VSCode extension to deploy code might be able to listen for rename changes directly, saving the above logic. It could also probably handle hmr automatically.
+I may eventually implement HMR compiling, but that's a problem for future me.
+
+The AST API should be broken into a custom build script which buils python AST files into OS files. When code is pushed, the GH actions script should compile (if neccessary) and deploy the compiled code. GitHub should always be the single source of truth for the Onshape document.
+
 
 
 # TODOs:
