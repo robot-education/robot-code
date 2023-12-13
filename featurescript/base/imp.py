@@ -1,11 +1,11 @@
 import dataclasses
 from typing_extensions import override
 import warnings
-from library.api.endpoints import documents
-from library.base import node, ctxt
-from library.base import user_error
-from library.base.user_error import expected_scope
-from library.core import utils
+from featurescript.api.endpoints import documents
+from featurescript.base import node, ctxt
+from featurescript.base import user_error
+from featurescript.base.user_error import expected_scope
+from featurescript.core import utils
 
 
 @dataclasses.dataclass

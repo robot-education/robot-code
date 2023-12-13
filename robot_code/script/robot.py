@@ -2,7 +2,7 @@
 """
 import argparse
 
-from library.api import api_base, conf
+from featurescript.api import api_base, conf
 from robot_code.script import release
 
 """

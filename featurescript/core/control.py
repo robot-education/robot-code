@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Self, Sequence
 from typing_extensions import override
-from library.base import ctxt, node, expr, user_error
+from featurescript.base import ctxt, node, expr, user_error
 
 __all__ = ["IfBlock", "make_if_block"]
 

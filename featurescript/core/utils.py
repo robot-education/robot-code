@@ -1,4 +1,4 @@
-from library.base import expr
+from featurescript.base import expr
 
 __all__ = ["definition", "var_definition"]
 

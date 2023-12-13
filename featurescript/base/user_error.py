@@ -1,7 +1,7 @@
 """Defines utilities for reporting warnings and errors to users."""
 
 import warnings
-from library.base import ctxt
+from featurescript.base import ctxt
 
 
 def code_message(message: str) -> str:

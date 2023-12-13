@@ -1,7 +1,7 @@
-from library import *
-from library.core.func import Call, Return, ui_predicate_call
-from library.core.func import Return
-from library.ui.enum import enum_block
+from featurescript import *
+from featurescript.core.func import Call, Return, ui_predicate_call
+from featurescript.core.func import Return
+from featurescript.ui.enum import enum_block
 from robot_code.robot_studio import RobotFeature
 from robot_code.utils import profile
 

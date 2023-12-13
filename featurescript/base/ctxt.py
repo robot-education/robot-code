@@ -5,10 +5,10 @@ import dataclasses
 import enum as std_enum
 from typing import TYPE_CHECKING, Any
 
-from library.api import api_base, conf
+from featurescript.api import api_base, conf
 
 if TYPE_CHECKING:  # prevent circular import
-    from library.base import imp
+    from featurescript.base import imp
 
 _STACK_FIELDS = ["enum", "ui", "test_predicate", "indent", "scope"]
 """A list of fields which use the stack (meaning they automatically revert once the setting node exits)."""

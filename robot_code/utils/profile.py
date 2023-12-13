@@ -1,5 +1,5 @@
 """Metaprogramming classes used to generate configurable code."""
-from library import *
+from featurescript import *
 
 
 class HexSizeBuilder:

@@ -7,7 +7,7 @@ import dataclasses
 import enum as std_enum
 from typing import Iterator, Self
 from typing_extensions import override
-from library.base import ctxt, node, expr, user_error
+from featurescript.base import ctxt, node, expr, user_error
 
 __all__ = ["Parens", "Id"]
 

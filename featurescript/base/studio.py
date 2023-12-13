@@ -1,6 +1,6 @@
 from typing import Self
 from typing_extensions import override
-from library.base import ctxt, node, imp
+from featurescript.base import ctxt, node, imp
 
 _FS_HEADER = "FeatureScript {};\n"
 _GENERATED_STUDIO_HEADER = "\n/* Automatically generated file -- DO NOT EDIT */\n\n"

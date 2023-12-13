@@ -1,8 +1,8 @@
 from typing import Any, Iterable
 from typing_extensions import override
-from library.base import ctxt, expr, str_utils
-from library.core import map
-from library.ui import ui_hint
+from featurescript.base import ctxt, expr, str_utils
+from featurescript.core import map
+from featurescript.ui import ui_hint
 
 
 def format_description(description: str) -> str:

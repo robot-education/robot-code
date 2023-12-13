@@ -3,9 +3,9 @@ import dataclasses
 from typing import Self
 from typing_extensions import override
 import warnings
-from library.core import control, utils
-from library.base import ctxt, expr, str_utils, node
-from library.ui import bounds, enum, ui_hint, annotation_map
+from featurescript.core import control, utils
+from featurescript.base import ctxt, expr, str_utils, node
+from featurescript.ui import bounds, enum, ui_hint, annotation_map
 
 
 @dataclasses.dataclass

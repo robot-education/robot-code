@@ -1,5 +1,5 @@
-from library.api import api_base, conf, api_path
-from library.api.endpoints import documents, assemblies
+from featurescript.api import api_base, conf, api_path
+from featurescript.api.endpoints import documents, assemblies
 
 
 def main():

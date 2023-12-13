@@ -1,5 +1,5 @@
-from library import *
-from library.core.feature import FeatureBuilder
+from featurescript import *
+from featurescript.core.feature import FeatureBuilder
 
 ROBOT_DESCRIPTION: str = r"""
 

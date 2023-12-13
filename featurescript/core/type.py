@@ -1,6 +1,6 @@
 """A collection of Onshape types and units."""
 import enum as std_enum
-from library.base import expr
+from featurescript.base import expr
 
 
 class Type(std_enum.StrEnum):

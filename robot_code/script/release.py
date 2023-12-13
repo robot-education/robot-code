@@ -1,10 +1,10 @@
 import enum, re
-from library.api import api_base, api_path, conf
-from library.api.endpoints import documents, feature_studios
-from library.base import str_utils
+from featurescript.api import api_base, api_path, conf
+from featurescript.api.endpoints import documents, feature_studios
+from featurescript.base import str_utils
 
-from library import *
-from library.base.ctxt import make_context
+from featurescript import *
+from featurescript.base.ctxt import make_context
 
 RELEASE_PREAMBLE = """/**
  * {}

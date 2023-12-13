@@ -1,6 +1,6 @@
-from library import *
-from library.core.func import Return
-from library.core.func import Return
+from featurescript import *
+from featurescript.core.func import Return
+from featurescript.core.func import Return
 from robot_code import robot_studio
 from robot_code.utils import profile
 

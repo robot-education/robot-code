@@ -1,4 +1,4 @@
-from library import *
+from featurescript import *
 
 studio = Studio("robotPulleyUi.gen.fs", "backend")
 

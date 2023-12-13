@@ -1,5 +1,5 @@
-from library.base import expr
-from library.ui import enum as lib_enum
+from featurescript.base import expr
+from featurescript.ui import enum as lib_enum
 
 __all__ = [
     "any",

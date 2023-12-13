@@ -1,6 +1,6 @@
 from typing import Iterator, Self
-from library.base import ctxt, expr, node
-from library.core import type
+from featurescript.base import ctxt, expr, node
+from featurescript.core import type
 
 
 class Parameter(node.Node):

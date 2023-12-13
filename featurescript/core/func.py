@@ -4,9 +4,9 @@ from typing_extensions import override
 import warnings
 import enum as std_enum
 from typing import Iterable, Self
-from library.base.expr import cast_to_expr, expr_or_stmt
-from library.core import param, utils, func
-from library.base import ctxt, expr, node, str_utils, user_error
+from featurescript.base.expr import cast_to_expr, expr_or_stmt
+from featurescript.core import param, utils, func
+from featurescript.base import ctxt, expr, node, str_utils, user_error
 
 
 class _CallableType(std_enum.StrEnum):
@@ -203,7 +203,7 @@ class UiPredicate(Predicate):
         Adds elements to a parameter, enclosed in a ParameterGroup.
         """
         # avoid circular import
-        from library.ui import parameter
+        from featurescript.ui import parameter
 
         group = parameter.ParameterGroup(self.base_name).add(*children)
         return super().add(group)

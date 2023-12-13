@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Iterable
 from typing_extensions import override
-from library.base import ctxt, expr, node, str_utils, user_error
-from library.core import map, std
+from featurescript.base import ctxt, expr, node, str_utils, user_error
+from featurescript.core import map, std
 
 
 class LookupTable(std.Const):

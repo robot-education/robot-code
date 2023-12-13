@@ -1,5 +1,5 @@
 import enum
-from library.base import ctxt, expr
+from featurescript.base import ctxt, expr
 
 
 class QueryEnum(expr.Expression, enum.Enum):

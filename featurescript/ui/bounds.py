@@ -2,8 +2,8 @@ import dataclasses
 import enum as std_enum
 from typing_extensions import override
 
-from library.base import ctxt, node, expr, user_error
-from library.core import std, map
+from featurescript.base import ctxt, node, expr, user_error
+from featurescript.core import std, map
 
 # https://cad.onshape.com/documents/12312312345abcabcabcdeff/w/a855e4161c814f2e9ab3698a/e/87b09e244a234eb791b47826
 

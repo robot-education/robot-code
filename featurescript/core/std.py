@@ -1,7 +1,7 @@
 import dataclasses
 from typing_extensions import override
-from library.base import ctxt, expr, node, str_utils, user_error
-from library.core import func
+from featurescript.base import ctxt, expr, node, str_utils, user_error
+from featurescript.core import func
 
 
 class Assign(node.Node):

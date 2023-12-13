@@ -6,8 +6,8 @@ from typing_extensions import override
 import copy
 import warnings
 
-from library.core import control, func, param, std, utils, map
-from library.base import ctxt, node, expr, str_utils, user_error
+from featurescript.core import control, func, param, std, utils, map
+from featurescript.base import ctxt, node, expr, str_utils, user_error
 
 __all__ = [
     "EnumBuilder",

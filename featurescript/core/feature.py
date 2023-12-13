@@ -1,15 +1,17 @@
 from typing import Self
 from typing_extensions import override
-from library.base import ctxt, node, str_utils, user_error
-from library.core import func
-from library.ui import annotation_map
+from featurescript.base import ctxt, node, str_utils, user_error
+from featurescript.core import func
+from featurescript.ui import annotation_map
 
 FEATURE_BODY = """export const {} = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {{
-        {}    }}
+        {}    
+    }}
     {{
-        {}    }});\n"""
+        {}    
+    }});\n"""
 
 
 class Feature(node.Node):

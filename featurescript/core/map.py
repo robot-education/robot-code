@@ -1,11 +1,11 @@
 import dataclasses
 from typing import Any, Iterable, Sequence
 from typing_extensions import override
-from library.base import ctxt, expr, str_utils, node
-from library.base import user_error
-from library.base.user_error import assert_scope
-from library.core import utils
-from library.ui import enum
+from featurescript.base import ctxt, expr, str_utils, node
+from featurescript.base import user_error
+from featurescript.base.user_error import assert_scope
+from featurescript.core import utils
+from featurescript.ui import enum
 
 __all__ = [
     "Map",
