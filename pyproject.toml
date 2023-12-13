@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "robot-code"
+version = "0.1.0"
+description = ""
+authors = ["Alex Kempen <alex.bookreader@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "library" }, { include = "robot_code" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+typing-extensions = "^4.9.0"
+requests = "^2.31.0"
+json5 = "^0.9.14"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

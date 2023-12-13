@@ -1,15 +1,10 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/debian
 {
-	"name": "Linux",
-	"dockerFile": "Dockerfile",
-	"build": {
-		"args": {
-			"WORKSPACE": "${containerWorkspaceFolder}"
-		}
-	},
+	"name": "Robot Code Container",
+	"image": "mcr.microsoft.com/devcontainers/python:3.12",
 	"postCreateCommand": "bash setup.sh",
-	// Configure tool-specific properties.
+	// Configure tool-specific properties
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -17,8 +12,10 @@
 				"redhat.vscode-yaml",
 				"yzhang.markdown-all-in-one",
 				"ms-python.python",
-				"ms-python.black-formatter"
+				"ms-python.black-formatter",
+				"tamasfe.even-better-toml"
 			]
 		}
-	}
+	},
+	"remoteUser": "root"
 }

@@ -10,7 +10,8 @@ import random
 import string
 
 # json for dumping api output, json5 for reading config (so comments are allowed)
-import json, json5
+import json
+import json5
 import hmac
 import hashlib
 import base64
