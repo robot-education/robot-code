@@ -7,8 +7,8 @@ from concurrent import futures
 from typing import Callable, Iterable
 from library.base import ctxt, studio
 
-from library.api import api_base, conf
-from library.api.endpoints import documents, feature_studios
+from api import api_base, conf
+from api.endpoints import documents, feature_studios
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'

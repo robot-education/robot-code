@@ -1,0 +1,9 @@
+__pycache__
+backend_tools/
+robot_code/
+.vscode/
+.devcontainer/
+.gitignore
+README.md
+setup.py
+*.sh

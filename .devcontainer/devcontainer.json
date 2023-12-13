@@ -4,6 +4,9 @@
 	"name": "Robot Code Container",
 	"image": "mcr.microsoft.com/devcontainers/python:3.12",
 	"postCreateCommand": "bash setup.sh",
+	"features": {
+		"ghcr.io/dhoeric/features/google-cloud-cli:latest": {}
+	},
 	// Configure tool-specific properties
 	"customizations": {
 		"vscode": {
@@ -12,10 +15,14 @@
 				"redhat.vscode-yaml",
 				"yzhang.markdown-all-in-one",
 				"ms-python.python",
+				"GoogleCloudTools.cloudcode",
 				"ms-python.black-formatter",
 				"tamasfe.even-better-toml"
 			]
 		}
 	},
+	"forwardPorts": [
+		8080
+	],
 	"remoteUser": "root"
 }

@@ -25,10 +25,10 @@ class Api(ABC):
     Provides access to the Onshape REST API.
 
     Attributes:
-        logging: Turn logging on or off
+        logging: Turn logging on or off.
     """
 
-    def __init__(self, url: str, logging: bool, version: int | None = 6):
+    def __init__(self, url: str, logging: bool = False, version: int | None = 6):
         """
         Args:
             url: The base url. Should generally be `https://cad.onshape.com`.
