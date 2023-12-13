@@ -1,6 +1,7 @@
 from typing import Any, Iterable
 from typing_extensions import override
-from featurescript.base import ctxt, expr, str_utils
+from common import str_utils
+from featurescript.base import ctxt, expr
 from featurescript.core import map
 from featurescript.ui import ui_hint
 

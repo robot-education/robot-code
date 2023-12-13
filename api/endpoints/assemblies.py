@@ -1,6 +1,6 @@
 from typing import Iterable
-from library.api import api_base, api_path
 from urllib import parse
+from api import api_base, api_path
 
 
 def get_assembly(

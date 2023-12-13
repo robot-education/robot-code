@@ -1,5 +1,5 @@
 import json
-from library.api import api_base, api_path
+from api import api_base, api_path
 
 
 def evaluate_feature_script(

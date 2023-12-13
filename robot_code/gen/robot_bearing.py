@@ -3,7 +3,6 @@ from robot_code.robot_studio import RobotFeature
 
 robot_bearing = RobotFeature("bearing")
 studio = robot_bearing.ui_studio
-# feature_studio = robot_bearing.feature_studio
 
 studio.add_import("stdHoleCommon.fs", export=True)
 

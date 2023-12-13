@@ -4,7 +4,12 @@ version = "0.1.0"
 description = ""
 authors = ["Alex Kempen <alex.bookreader@gmail.com>"]
 readme = "README.md"
-packages = [{ include = "library" }, { include = "robot_code" }]
+packages = [
+    { include = "api" },
+    { include = "common" },
+    { include = "featurescript" },
+    { include = "robot_code" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"

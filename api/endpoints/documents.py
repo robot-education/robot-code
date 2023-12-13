@@ -1,4 +1,4 @@
-from library.api import api_base, api_path, conf
+from api import api_base, api_path
 
 
 def get_document_elements(
@@ -34,43 +34,6 @@ def get_microversion_id(api: api_base.Api, element_path: api_path.ElementPath) -
     return api.get(path, query={"elementId": element_path.element_id})[0][
         "microversionId"
     ]
-
-
-def get_feature_studios(
-    api: api_base.Api, document_path: api_path.DocumentPath
-) -> dict[str, conf.FeatureStudio]:
-    """Returns a dict mapping feature studio names to feature studios."""
-    elements = api.get(
-        api_path.document_api_path("documents", document_path, "elements"),
-        query={"elementType": "FEATURESTUDIO", "withThumbnails": False},
-    )
-    return _extract_studios(elements, document_path)
-
-
-def get_feature_studio(
-    api: api_base.Api, document_path: api_path.DocumentPath, studio_name: str
-) -> conf.FeatureStudio | None:
-    """Fetches a single feature studio by name, or None if no such studio exists."""
-    return get_feature_studios(api, document_path).get(studio_name, None)
-
-
-def _extract_studios(
-    elements: list[dict],
-    document_path: api_path.DocumentPath,
-) -> dict[str, conf.FeatureStudio]:
-    """Constructs a list of FeatureStudios from a list of elements returned by a get documents request."""
-    return dict(
-        (
-            element["name"],
-            conf.FeatureStudio(
-                element["name"],
-                # Copy to avoid saving reference
-                api_path.ElementPath(document_path, element["id"]),
-                element["microversionId"],
-            ),
-        )
-        for element in elements
-    )
 
 
 def get_versions(

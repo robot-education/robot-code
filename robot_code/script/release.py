@@ -1,7 +1,7 @@
 import enum, re
 from featurescript.api import api_base, api_path, conf
 from featurescript.api.endpoints import documents, feature_studios
-from featurescript.base import str_utils
+from common import str_utils
 
 from featurescript import *
 from featurescript.base.ctxt import make_context

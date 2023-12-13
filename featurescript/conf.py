@@ -3,7 +3,7 @@ import json5
 import pathlib
 import pickle
 from typing import Any, Protocol
-from library.api import api_path
+from api import api_path
 
 STORAGE_FILE = "studio_data.pickle"
 
@@ -26,6 +26,7 @@ class ConfigData(Protocol):
         storage_path: A path to a file to store data under.
         code_path: A dict of data.
     """
+
     storage_path: dict | None
     code_path: dict | None
     code_gen_path: dict | None
@@ -67,7 +68,7 @@ class Config:
     def _parse_document_paths(self, config: dict) -> None:
         documents: dict[str, str] = self._get_config_key(config, "documents")
         self.documents: dict[str, api_path.DocumentPath] = dict(
-            (document_name, api_path.make_document_path(url))
+            (document_name, api_path.DocumentPath.from_url(url))
             for document_name, url in documents.items()
         )
 

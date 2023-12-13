@@ -1,6 +1,7 @@
 import dataclasses
 from typing_extensions import override
-from featurescript.base import ctxt, expr, node, str_utils, user_error
+from common import str_utils
+from featurescript.base import ctxt, expr, node, user_error
 from featurescript.core import func
 
 
@@ -15,7 +16,6 @@ class Assign(node.Node):
         self.name = name
         self.expression = expression
 
-    @override
     def build(self, context: ctxt.Context) -> str:
         if context.scope == ctxt.Scope.STATEMENT:
             string = (

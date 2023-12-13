@@ -18,20 +18,13 @@
         ".git",
         ".vscode",
         ".devcontainer",
-        "conf.py"
     ],
     "cSpell.words": [
         "apikey",
         "creds",
-        "ctxt",
         "digestmod",
-        "endc",
         "exportstl",
         "FEATURESTUDIO",
-        "featurestudioids",
-        "featurestudios",
-        "fsclient",
-        "fsconstants",
         "levelname",
         "Onshape",
         "UNCONFIGURABLE",
@@ -42,13 +35,10 @@
         "coincentric",
         "expresion"
     ],
+    "python.defaultInterpreterPath": "/root/.cache/pypoetry/virtualenvs/robot-code-35_YYa_h-py3.12",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
-        "editor.formatOnSave": true,
-    },
-    "python.analysis.extraPaths": [
-        "library/"
-    ],
-    "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.autoImportCompletions": true
+    }
 }

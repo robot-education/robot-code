@@ -1,4 +1,4 @@
-from library.base import str_utils
+from common import str_utils
 
 # { queryType : UNION , subqueries : [ { disambiguationData : [ { disambiguationType : ORIGINAL_DEPENDENCY , originals : [ { entityType : EDGE , historyType : CREATION , operationId : [ F86ylNPrzWLomm9_1.wireOp ] , queryType : SKETCH_ENTITY , sketchEntityId : rGNlyQ5ipaBS } ] } ] , entityType : EDGE , historyType : CREATION , isStart : false , operationId : [ FHCYmesA2a3t0Lm_1.opExtrude ] , queryType : CAP_EDGE } ] }
 

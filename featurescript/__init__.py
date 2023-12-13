@@ -6,7 +6,7 @@ from featurescript.base.node import *
 from featurescript.base.imp import *
 from featurescript.base.expr import *
 from featurescript.base.studio import *
-from featurescript.base.str_utils import *
+from common.str_utils import *
 
 from featurescript.ui.annotation_map import *
 from featurescript.ui.parameter import *

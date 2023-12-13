@@ -1,7 +1,8 @@
 import dataclasses
 from typing import Any, Iterable, Sequence
 from typing_extensions import override
-from featurescript.base import ctxt, expr, str_utils, node
+from common import str_utils
+from featurescript.base import ctxt, expr, node
 from featurescript.base import user_error
 from featurescript.base.user_error import assert_scope
 from featurescript.core import utils

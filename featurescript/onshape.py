@@ -2,7 +2,8 @@
 """
 import argparse
 
-from library.api import api_base, manager, conf
+from api import api_base
+from featurescript import conf, manager
 
 
 def parse_args() -> argparse.Namespace:

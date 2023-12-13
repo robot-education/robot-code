@@ -1,10 +1,9 @@
 import dataclasses
 from typing_extensions import override
 import warnings
-from featurescript.api.endpoints import documents
-from featurescript.base import node, ctxt
-from featurescript.base import user_error
-from featurescript.base.user_error import expected_scope
+from api.endpoints import documents
+from featurescript import endpoints
+from featurescript.base import node, ctxt, user_error
 from featurescript.core import utils
 
 
@@ -53,7 +52,7 @@ class Import(node.Node):
             # set last to avoid affecting get_versions call
             document.workspace_or_version = "v"
 
-        studio = documents.get_feature_studio(context.api, document, self.studio_name)
+        studio = endpoints.get_feature_studio(context.api, document, self.studio_name)
         version = "0" * 24
         if studio is None:
             warnings.warn(
@@ -80,7 +79,7 @@ class Import(node.Node):
     @override
     def build(self, context: ctxt.Context) -> str:
         if context.scope != ctxt.Scope.TOP:
-            return expected_scope(ctxt.Scope.TOP)
+            return user_error.expected_scope(ctxt.Scope.TOP)
         return utils.export(
             self.export
         ) + 'import(path : "{}", version : "{}");\n'.format(*self.resolve_path(context))

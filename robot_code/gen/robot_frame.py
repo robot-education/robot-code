@@ -1,6 +1,4 @@
 from featurescript import *
-from featurescript.core.func import Call, Return
-from featurescript.core.func import Return
 from robot_code.robot_studio import RobotFeature
 
 DESCRIPTION = r"Generate robot frame members."

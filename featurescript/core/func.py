@@ -4,9 +4,10 @@ from typing_extensions import override
 import warnings
 import enum as std_enum
 from typing import Iterable, Self
+from common import str_utils
 from featurescript.base.expr import cast_to_expr, expr_or_stmt
 from featurescript.core import param, utils, func
-from featurescript.base import ctxt, expr, node, str_utils, user_error
+from featurescript.base import ctxt, expr, node, user_error
 
 
 class _CallableType(std_enum.StrEnum):

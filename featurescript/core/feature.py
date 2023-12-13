@@ -1,6 +1,7 @@
 from typing import Self
 from typing_extensions import override
-from featurescript.base import ctxt, node, str_utils, user_error
+from common import str_utils
+from featurescript.base import ctxt, node, user_error
 from featurescript.core import func
 from featurescript.ui import annotation_map
 
