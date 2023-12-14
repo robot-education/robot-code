@@ -1,6 +1,5 @@
 import dataclasses
-from typing import Any, Iterable, Sequence
-from typing_extensions import override
+from typing import Any, Iterable, Sequence, override
 from common import str_utils
 from featurescript.base import ctxt, expr, node
 from featurescript.base import user_error

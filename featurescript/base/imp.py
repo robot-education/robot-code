@@ -1,5 +1,5 @@
 import dataclasses
-from typing_extensions import override
+from typing import override
 import warnings
 from api.endpoints import documents
 from featurescript import endpoints

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing_extensions import override
+from typing import Iterable, Self, override
 import warnings
 import enum as std_enum
-from typing import Iterable, Self
 from common import str_utils
 from featurescript.base.expr import cast_to_expr, expr_or_stmt
 from featurescript.core import param, utils, func

@@ -5,7 +5,7 @@ FROM python:3.12.1-slim
 ENV PYTHONUNBUFFERED True
 
 # Set production
-ENV NODE_ENV production
+# ENV NODE_ENV production
 
 # Copy local code to the container image.
 ENV APP_HOME /app

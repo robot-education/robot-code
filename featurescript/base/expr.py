@@ -5,8 +5,7 @@ from __future__ import annotations
 import dataclasses
 
 import enum as std_enum
-from typing import Iterator, Self
-from typing_extensions import override
+from typing import Iterator, Self, override
 from featurescript.base import ctxt, node, expr, user_error
 
 __all__ = ["Parens", "Id"]

@@ -1,9 +1,13 @@
 import flask
 import os
 from api.endpoints import documents
-from google.cloud import firestore
 
-from backend.endpoints import auto_assembly, generate_assembly, update_references
+from backend.endpoints import (
+    add_parent,
+    assembly_mirror,
+    generate_assembly,
+    update_references,
+)
 from backend.common import setup
 
 
@@ -15,35 +19,22 @@ def api_exception(e: setup.ApiException):
     return e.to_dict(), e.status_code
 
 
-@app.route("<str:document_id>/add-parent", methods=["POST"])
+app.register_blueprint(generate_assembly.router)
+app.register_blueprint(assembly_mirror.router)
+
+
+@app.route("/add-parent", methods=["POST"])
 def add_parent_route():
     """Adds a parent to the current document."""
-    db = setup.get_db()
-    document_id = setup.get_document_id()
-    parent_id = setup.get_value("parentId")
-
-    # TODO: cycle detection? ehh
-    documents = db.collection("documents")
-    documents.document(document_id).update(
-        {"parents": firestore.ArrayUnion([parent_id])}
-    )
-    documents.document(parent_id).update(
-        {"children": firestore.ArrayUnion([document_id])}
-    )
-    return {"message": "Success"}
+    return add_parent.execute()
 
 
-@app.route("<path:element_path>/auto-assembly", methods=["POST"])
-def auto_assembly_route():
-    return auto_assembly.execute()
+# @app.route("/auto-assembly", methods=["POST"])
+# def auto_assembly_route():
+#     return auto_assembly.execute()
 
 
-@app.route("<path:element_path>/generate-assembly", methods=["POST"])
-def generate_assembly_route():
-    return generate_assembly.execute()
-
-
-@app.route("<path:document_path>/update-references", methods=["POST"])
+@app.route("/update-references", methods=["POST"])
 def update_references_route():
     """Updates references in a document.
 
@@ -57,7 +48,7 @@ def update_references_route():
     return update_references.execute()
 
 
-@app.route("<path:document_path>/create-version", methods=["POST"])
+@app.route("/create-version", methods=["POST"])
 def create_version_route():
     """Creates a version.
 
@@ -65,13 +56,13 @@ def create_version_route():
     """
     api = setup.get_api()
     document_path = setup.get_document_path()
-    result = documents.make_version(
+    result = documents.create_version(
         api, document_path, setup.get_value("name"), setup.get_value("description")
     )
     return {"id": result["id"]}
 
 
-@app.route("<path:document_path>/next-version-name", methods=["GET"])
+@app.route("/next-version-name", methods=["GET"])
 def next_version_name_route():
     """Returns the next default version name for a given document."""
     api = setup.get_api()
@@ -83,6 +74,6 @@ def next_version_name_route():
 
 if __name__ == "__main__":
     app.run(
-        debug=os.environ.get("NODE_ENV", "development") != "production",
+        debug=True,
         port=int(os.environ.get("PORT", 8080)),
     )

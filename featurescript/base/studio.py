@@ -1,5 +1,4 @@
-from typing import Self
-from typing_extensions import override
+from typing import Self, override
 from featurescript.base import ctxt, node, imp
 
 _FS_HEADER = "FeatureScript {};\n"

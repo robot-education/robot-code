@@ -1,7 +1,6 @@
 from __future__ import annotations
 import string
-from typing import Any, Generic, Iterable, Self, Type, TypeVar
-from typing_extensions import override
+from typing import Any, Generic, Iterable, Self, Type, TypeVar, override
 
 import copy
 import warnings

@@ -94,6 +94,7 @@ def assembly(api: api_base.Api, assembly_path: api_path.ElementPath) -> Assembly
 
 
 def are_keys_equal(first: dict, second: dict, *keys: Iterable[str]) -> bool:
+    """Returns true if the value of each key in first and second are equal."""
     return all(first.get(key, None) == second.get(key, None) for key in keys)
 
 

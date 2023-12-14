@@ -1,5 +1,4 @@
-from typing import Self
-from typing_extensions import override
+from typing import Self, override
 from common import str_utils
 from featurescript.base import ctxt, node, user_error
 from featurescript.core import func

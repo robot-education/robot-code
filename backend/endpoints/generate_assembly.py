@@ -1,15 +1,19 @@
+import flask
 from api import api_path
 from api.endpoints import assemblies, assembly_features
 
 from backend.common import setup
 
+router = flask.Blueprint("generate-assembly", __name__)
 
-def execute():
+
+@router.route("/generate-assembly", methods=["POST"])
+def generate_assembly_route():
     api = setup.get_api()
     name = setup.get_value("name")
     part_studio_path = setup.get_element_path()
 
-    id = assemblies.make_assembly(api, part_studio_path, name)["id"]
+    id = assemblies.create_assembly(api, part_studio_path, name)["id"]
     assembly_path = api_path.ElementPath(part_studio_path, id)
 
     assemblies.add_parts_to_assembly(api, assembly_path, part_studio_path)

@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import Iterable
-from typing_extensions import override
+from typing import Iterable, override
 from common import str_utils
 from featurescript.base import ctxt, expr, node, user_error
 from featurescript.core import map, std

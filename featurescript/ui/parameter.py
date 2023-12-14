@@ -1,7 +1,6 @@
 from abc import ABC
 import dataclasses
-from typing import Self
-from typing_extensions import override
+from typing import Self, override
 import warnings
 from common import str_utils
 from featurescript.core import control, utils

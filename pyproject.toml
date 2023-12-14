@@ -10,18 +10,19 @@ packages = [
     { include = "featurescript" },
     { include = "robot_code" },
     { include = "backend" },
+    { include = "backend_tools" },
 ]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-typing-extensions = "^4.9.0"
 # Onshape API
 requests = "^2.31.0"
 json5 = "^0.9.14"
 # Server
 flask = "^3.0.0"
 firebase-admin = "^6.3.0"
-gunicorn = "^21.2.0"      # Used in cloud container
+# google-cloud-firestore = "^2.13.1"
+gunicorn = "^21.2.0" # Used in cloud container
 
 [build-system]
 requires = ["poetry-core"]

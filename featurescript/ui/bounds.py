@@ -1,6 +1,6 @@
 import dataclasses
 import enum as std_enum
-from typing_extensions import override
+from typing import override
 
 from featurescript.base import ctxt, node, expr, user_error
 from featurescript.core import std, map

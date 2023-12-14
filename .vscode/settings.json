@@ -24,6 +24,7 @@
         "creds",
         "digestmod",
         "exportstl",
+        "featureid",
         "FEATURESTUDIO",
         "levelname",
         "Onshape",

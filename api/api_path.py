@@ -1,7 +1,7 @@
 from __future__ import annotations
 import pathlib
 from urllib import parse
-from typing import Iterator, Literal, Self
+from typing import Iterator, Literal
 
 
 class DocumentPath:
@@ -23,19 +23,27 @@ class DocumentPath:
         """
         path = parse.urlparse(url).path
         # Remove leading "documents"
-        path = path[path.find("/") - 1 :]
+        path = path[path.find("/") :]
         return DocumentPath.from_path(path)
+
+    @staticmethod
+    def from_obj(obj: dict) -> DocumentPath:
+        return DocumentPath(
+            obj["documentId"],
+            obj["workspaceId"],
+            obj.get("workspaceOrVersion", "w"),
+        )
 
     @staticmethod
     def from_path(path: str) -> DocumentPath:
         """
         Args:
-            path: A path of the form "/d/documentId/w|v|m|/workspaceId/elementId".
+            path: A path of the form "/d/documentId/w|v|m/workspaceId/elementId".
         """
         parts = pathlib.Path(path).parts
         return DocumentPath(parts[1], parts[3], parts[2])  # type: ignore
 
-    def to_document_path(self) -> Self:
+    def to_document_path(self) -> DocumentPath:
         return DocumentPath(
             self.document_id, self.workspace_id, self.workspace_or_version
         )
@@ -50,11 +58,6 @@ class DocumentPath:
     def __hash__(self) -> int:
         return hash((self.document_id, self.workspace_id, self.workspace_or_version))
 
-    def __iter__(self) -> Iterator:
-        yield self.document_id
-        yield self.workspace_id
-        yield self.workspace_or_version
-
     def to_document_base(self) -> str:
         """Returns just the document portion of the path."""
         return "/d/" + self.document_id
@@ -62,7 +65,11 @@ class DocumentPath:
 
 class ElementPath(DocumentPath):
     def __init__(self, document_path: DocumentPath, element_id: str) -> None:
-        super().__init__(*document_path)
+        super().__init__(
+            document_path.document_id,
+            document_path.workspace_id,
+            document_path.workspace_or_version,
+        )
         self.element_id = element_id
 
     @staticmethod
@@ -82,9 +89,13 @@ class ElementPath(DocumentPath):
             path: A path of the form "/d/documentId/w|v|m/workspaceId/e/elementId".
         """
         parts = pathlib.Path(path).parts
-        return ElementPath(super().from_path(path), parts[5])
+        return ElementPath(DocumentPath.from_path(path), parts[5])
 
-    def to_element_path(self) -> Self:
+    @staticmethod
+    def from_obj(obj: dict) -> ElementPath:
+        return ElementPath(DocumentPath.from_obj(obj), obj["elementId"])
+
+    def to_element_path(self) -> ElementPath:
         return ElementPath(
             self.to_document_path(),
             self.element_id,
@@ -95,10 +106,6 @@ class ElementPath(DocumentPath):
 
     def __hash__(self) -> int:
         return hash((super(), self.element_id))
-
-    def __iter__(self) -> Iterator:
-        yield from super()
-        yield self.element_id
 
     def to_link(self) -> str:
         """Returns a link to the element."""
@@ -127,25 +134,23 @@ def make_element_path(
     )
 
 
-def make_element_path_from_obj(obj: dict) -> ElementPath:
-    return make_element_path(
-        obj["documentId"],
-        obj["workspaceId"],
-        obj["elementId"],
-        obj.get("workspaceOrVersion", "w"),
-    )
-
-
 class PartPath(ElementPath):
     def __init__(
         self,
         element_path: ElementPath,
         part_id: str,
     ) -> None:
-        super().__init__(*element_path)
+        super().__init__(
+            DocumentPath(
+                element_path.document_id,
+                element_path.workspace_id,
+                element_path.workspace_or_version,
+            ),
+            element_path.element_id,
+        )
         self.part_id = part_id
 
-    def part_path(self) -> Self:
+    def part_path(self) -> PartPath:
         return PartPath(
             self.to_element_path(),
             self.part_id,
@@ -153,10 +158,6 @@ class PartPath(ElementPath):
 
     def __hash__(self) -> int:
         return hash((super(), self.part_id))
-
-    def __iter__(self) -> Iterator:
-        yield from super()
-        yield self.part_id
 
 
 def element_api_path(

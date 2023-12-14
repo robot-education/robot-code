@@ -2,10 +2,21 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from concurrent import futures
 from typing import Iterable
+import flask
 
 from api import api_base, api_path
 from api.endpoints import assemblies
 from backend.common import assembly_data, setup, evaluate
+
+router = flask.Blueprint("assembly-mirror", __name__)
+
+
+@router.route("/assembly-mirror", methods=["POST"])
+def assembly_mirror_route():
+    api = setup.get_api()
+    assembly_path = setup.get_element_path()
+    AssemblyMirror(api, assembly_path).execute()
+    return {"message": "Success"}
 
 
 class AssemblyMirrorCandidate:
@@ -209,9 +220,3 @@ class AssemblyMirror:
                 continue
 
         return []
-
-
-def execute(assembly_path: api_path.ElementPath):
-    api = setup.get_api()
-    AssemblyMirror(api, assembly_path).execute()
-    return {"message": "Success"}

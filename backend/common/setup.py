@@ -1,5 +1,6 @@
 from typing import Iterable
-from google.cloud import firestore
+import firebase_admin
+from firebase_admin import firestore
 from flask import request
 from api import api_base, api_path
 import http
@@ -17,30 +18,30 @@ class ApiException(Exception):
         return {"message": self.message}
 
 
-def get_element_path() -> api_path.ElementPath:
-    try:
-        return api_path.ElementPath.from_path(request.args["element_path"])
-    except:
-        raise ApiException("Failed to parse element path.")
-
-
 def get_document_id() -> str:
     try:
-        document_path = request.args["document_id"]
-        return document_path.removeprefix("/")
+        return request.args["documentId"]
     except:
         raise ApiException("Failed to parse document path.")
 
 
 def get_document_path() -> api_path.DocumentPath:
     try:
-        return api_path.DocumentPath.from_path(request.args["document_path"])
+        return api_path.DocumentPath.from_obj(request.args)
     except:
         raise ApiException("Failed to parse document path.")
 
 
-def get_db() -> firestore.Client:
-    return firestore.Client("robot-manager-123")
+def get_element_path() -> api_path.ElementPath:
+    try:
+        return api_path.ElementPath.from_obj(request.args)
+    except:
+        raise ApiException("Failed to parse element path.")
+
+
+def get_db() -> firestore.firestore.Client:
+    firebase_admin.initialize_app()
+    return firestore.client()
 
 
 def _extract_token(auth: str) -> str:
