@@ -23,6 +23,7 @@
         "apikey",
         "creds",
         "digestmod",
+        "dotenv",
         "exportstl",
         "featureid",
         "FEATURESTUDIO",
@@ -36,7 +37,6 @@
         "coincentric",
         "expresion"
     ],
-    "python.defaultInterpreterPath": "/root/.cache/pypoetry/virtualenvs/robot-code-35_YYa_h-py3.12",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": true,
     "[python]": {

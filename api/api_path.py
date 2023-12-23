@@ -22,8 +22,7 @@ class DocumentPath:
             url: A url for a document.
         """
         path = parse.urlparse(url).path
-        # Remove leading "documents"
-        path = path[path.find("/") :]
+        path = path.removeprefix("/documents")
         return DocumentPath.from_path(path)
 
     @staticmethod

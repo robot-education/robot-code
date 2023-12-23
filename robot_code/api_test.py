@@ -1,12 +1,15 @@
-from featurescript.api import api_base, conf, api_path
-from featurescript.api.endpoints import documents, assemblies
+from api import api_path, key_api
+from api.endpoints import documents, assemblies
+from featurescript import conf
 
 
 def main():
-    api = api_base.ApiKey(logging=False)
+    api = key_api.make_key_api()
     config = conf.Config()
     target = config.documents["target"]
     base = config.documents["base"]
+
+    print(target.to_document_path())
 
     document = documents.get_document_elements(api, target)
     target_path = document["Assembly 1"]
