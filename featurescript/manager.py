@@ -1,13 +1,14 @@
+from typing import Callable, Iterable
 import functools
 import importlib
 import importlib.util
 import re
 import shutil
 from concurrent import futures
-from typing import Callable, Iterable
-from library.base import ctxt, studio
 
-from api import api_base, conf
+from featurescript.base import ctxt, studio
+from featurescript import conf, endpoints
+from api import api_base
 from api.endpoints import documents, feature_studios
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
@@ -49,7 +50,7 @@ class CommandLineManager:
         """Returns an iterable over all feature studios in Onshape."""
         with futures.ThreadPoolExecutor() as executor:
             threads = [
-                executor.submit(documents.get_feature_studios, self.api, path)
+                executor.submit(endpoints.get_feature_studios, self.api, path)
                 for path in self.config.documents.values()
             ]
         return [
@@ -257,11 +258,11 @@ class CommandLineManager:
                 )
             )
             return False
-        studios = documents.get_feature_studios(self.api, document)
+        studios = endpoints.get_feature_studios(self.api, document)
         feature_studio = studios.get(studio.studio_name, None)
 
         if feature_studio is None:
-            feature_studio = feature_studios.create_feature_studio(
+            feature_studio = endpoints.create_feature_studio(
                 self.api, document, studio.studio_name
             )
         feature_studio.generated = True

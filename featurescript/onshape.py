@@ -2,7 +2,7 @@
 """
 import argparse
 
-from api import api_base
+from api import key_api
 from featurescript import conf, manager
 
 
@@ -64,7 +64,7 @@ def main():
         manager.clean(config)
         return
 
-    api = api_base.ApiKey(logging=args.log)
+    api = key_api.make_key_api()
     command_line_manager = manager.CommandLineManager(config, api)
 
     if args.action == "update-versions":

@@ -1,7 +1,5 @@
 import re
 
-__all__ = ["quote"]
-
 
 def indent(string: str) -> str:
     lines = string.splitlines(keepends=True)

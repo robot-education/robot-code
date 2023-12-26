@@ -1,37 +1,62 @@
-from api import api_base
-from api.api_base import Api
+import http
+import json
+import logging
+from typing import Unpack, override
+from urllib import parse
+import dotenv
+from requests_oauthlib import OAuth2Session
+from api import api_base, exceptions, utils
+from api.api_base import Api, ApiBaseArgs, make_api_base_args
+
+
+def make_oauth_api(load_dotenv: bool = True):
+    if load_dotenv:
+        utils.load_env()
+    kwargs = make_api_base_args()
 
 
 class OauthApi(Api):
     """Provides access to the Onshape api via an Oauth token."""
 
-    def __init__(self, token: str, logging: bool = False):
-        super().__init__("https://cad.onshape.com", logging)
-        self._token = token
+    def __init__(self, oauth: OAuth2Session, **kwargs: Unpack[ApiBaseArgs]):
+        super().__init__(**kwargs)
+        self._oauth = oauth
 
-    def _make_headers(self, headers, **_kwargs):
-        """
-        Creates a headers object to sign the request.
+    @override
+    def _request(
+        self,
+        method: http.HTTPMethod,
+        path: str,
+        query: dict | str = {},
+        body: dict | str = {},
+        headers: dict[str, str] = {},
+    ):
+        base_url = self._base_url + path
 
-        Args:
-            - method (str): HTTP method
-            - headers (dict, default={}): Other headers to pass in
-            - _kwargs: Unused keyword arguments
+        if self._logging:
+            if len(body) > 0:
+                logging.info(body)
+            logging.info("request url: " + base_url)
 
-        Returns:
-            - dict: Dictionary containing all headers
-        """
-        date = api_base.make_date()
-        req_headers = {
-            "Content-Type": "application/json",
-            "Date": date,
-            "Authorization": "Bearer " + self._token,
-            "User-Agent": "Onshape App",
-            "Accept": "application/json",
-        }
+        headers = {"Content-Type": headers.get("Content-Type", "application/json")}
 
-        # add in user-defined headers
-        for h in headers:
-            req_headers[h] = headers[h]
+        res = self._oauth.request(
+            method,
+            base_url,
+            headers=headers,
+            params=query,
+            data=body,
+        )
+        status = http.HTTPStatus(res.status_code)
+        if status.is_success:
+            if self._logging:
+                logging.info("request succeeded, details: " + res.text)
+        else:
+            if self._logging:
+                logging.error("request failed, details: " + res.text)
+            raise exceptions.ApiException(res.text, status)
 
-        return req_headers
+        try:
+            return res.json()
+        except:
+            return res

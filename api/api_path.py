@@ -1,7 +1,7 @@
 from __future__ import annotations
 import pathlib
 from urllib import parse
-from typing import Iterator, Literal
+from typing import Literal
 
 
 class DocumentPath:

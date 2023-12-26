@@ -9,8 +9,6 @@ def main():
     target = config.documents["target"]
     base = config.documents["base"]
 
-    print(target.to_document_path())
-
     document = documents.get_document_elements(api, target)
     target_path = document["Assembly 1"]
 

@@ -22,6 +22,7 @@
     "cSpell.words": [
         "apikey",
         "creds",
+        "ctxt",
         "digestmod",
         "dotenv",
         "exportstl",
