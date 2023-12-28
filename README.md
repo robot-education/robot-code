@@ -71,3 +71,5 @@ pipx install poetry
 poetry shell
 code .
 ``` -->
+
+<!-- https://stackoverflow.com/questions/29458548/can-you-add-https-functionality-to-a-python-flask-web-server -->

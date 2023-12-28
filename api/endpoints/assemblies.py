@@ -35,7 +35,7 @@ def get_assembly_features(
     """
     query = parse.urlencode({"featureId": feature_ids}, doseq=True)
     return api.get(
-        api_path.element_api_path("assemblies", assembly_path, "features"), query
+        api_path.element_api_path("assemblies", assembly_path, "features"), query=query
     )
 
 

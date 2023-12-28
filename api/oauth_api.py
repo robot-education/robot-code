@@ -1,26 +1,27 @@
+from __future__ import annotations
 import http
 import json
 import logging
 from typing import Unpack, override
 from urllib import parse
-import dotenv
 from requests_oauthlib import OAuth2Session
-from api import api_base, exceptions, utils
+from api import exceptions, utils
 from api.api_base import Api, ApiBaseArgs, make_api_base_args
 
 
-def make_oauth_api(load_dotenv: bool = True):
+def make_oauth_api(oauth: OAuth2Session, load_dotenv: bool = False) -> OAuthApi:
     if load_dotenv:
         utils.load_env()
     kwargs = make_api_base_args()
+    return OAuthApi(oauth, **kwargs)
 
 
-class OauthApi(Api):
-    """Provides access to the Onshape api via an Oauth token."""
+class OAuthApi(Api):
+    """Provides access to the Onshape API via OAuth."""
 
     def __init__(self, oauth: OAuth2Session, **kwargs: Unpack[ApiBaseArgs]):
         super().__init__(**kwargs)
-        self._oauth = oauth
+        self.oauth = oauth
 
     @override
     def _request(
@@ -31,21 +32,24 @@ class OauthApi(Api):
         body: dict | str = {},
         headers: dict[str, str] = {},
     ):
-        base_url = self._base_url + path
+        query_str = query if isinstance(query, str) else parse.urlencode(query)
+        body_str = body if isinstance(body, str) else json.dumps(body)
+
+        url = self._base_url + path + "?" + query_str
 
         if self._logging:
             if len(body) > 0:
                 logging.info(body)
-            logging.info("request url: " + base_url)
+            logging.info("request url: " + url)
 
-        headers = {"Content-Type": headers.get("Content-Type", "application/json")}
+        req_headers = headers.copy()
+        req_headers["Content-Type"] = headers.get("Content-Type", "application/json")
 
-        res = self._oauth.request(
+        res = self.oauth.request(
             method,
-            base_url,
-            headers=headers,
-            params=query,
-            data=body,
+            url,
+            headers=req_headers,
+            data=body_str,
         )
         status = http.HTTPStatus(res.status_code)
         if status.is_success:

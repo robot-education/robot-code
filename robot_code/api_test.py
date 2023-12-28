@@ -1,10 +1,12 @@
 from api import api_path, key_api
-from api.endpoints import documents, assemblies
+from api.endpoints import documents, assemblies, users
 from featurescript import conf
 
 
 def main():
     api = key_api.make_key_api()
+    users.ping(api)
+
     config = conf.Config()
     target = config.documents["target"]
     base = config.documents["base"]
@@ -18,7 +20,7 @@ def main():
     base_path.workspace_or_version = "v"
     base_path.workspace_id = documents.get_latest_version(api, base_path)["id"]
 
-    print(assemblies.add_parts_to_assembly(api, target_path, base_path))
+    assemblies.add_parts_to_assembly(api, target_path, base_path)
 
     ref = documents.get_external_references(api, target_path)[
         "elementExternalReferences"

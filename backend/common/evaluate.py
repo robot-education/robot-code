@@ -109,7 +109,7 @@ def evalute_auto_assembly_parts(
             for values in result["mates"]:
                 part_maps.mates_to_targets[
                     values["mateId"]
-                ] = api_path.make_element_path_from_obj(values)
+                ] = api_path.ElementPath.from_obj(values)
 
         return part_maps
 

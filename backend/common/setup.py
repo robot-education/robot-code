@@ -2,8 +2,10 @@ from typing import Iterable
 import firebase_admin
 from firebase_admin import firestore
 from flask import request
-import flask
 from api import api_base, api_path, exceptions
+from api import oauth_api
+from api.oauth_api import make_oauth_api
+from backend.common import oauth_session
 
 
 def get_document_id() -> str:
@@ -32,44 +34,8 @@ def get_db() -> firestore.firestore.Client:
     return firestore.client()
 
 
-# def _extract_token(auth: str) -> str:
-#     return auth.removeprefix("Basic").strip()
-
-
-def save_redirect_url(redirect_url: str) -> None:
-    flask.session["redirect_url"] = redirect_url
-
-
-def get_redirect_url() -> str | None:
-    return flask.session.get("redirect_url")
-
-
-def save_session_state(state) -> None:
-    flask.session["oauth_state"] = state
-
-
-def get_session_state():
-    return flask.session["oauth_state"]
-
-
-def save_token(token) -> None:
-    flask.session["oauth_token"] = token
-
-
-def get_token():
-    return flask.session["oauth_token"]
-
-
-def get_api() -> api_base.Api | None:
-    return None
-
-
-#     auth = request.headers.get("Authentication", None)
-#     if not auth:
-#         raise exceptions.ApiException(
-#             "An auth token is required.", http.HTTPStatus.UNAUTHORIZED
-#         )
-# return api_base.O(_extract_token(auth), logging=logging)
+def get_api() -> oauth_api.OAuthApi:
+    return make_oauth_api(oauth_session.get_oauth_session())
 
 
 def get_value(key: str) -> str:

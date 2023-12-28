@@ -84,14 +84,18 @@ def update_references_route():
 
 if __name__ == "__main__":
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    app.config["SESSION_COOKIE_NAME"] = "robot-manager"
-    # app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    # app.config["SESSION_COOKIE_SECURE"] = False
-    # app.config["SESSION_COOKIE_HTTPONLY"] = False
-
+    # Only works with firefox setting sameSite.noneRequiresSecure to false
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_NAME="robot-manager",
+        SESSION_COOKIE_SAMESITE="None",
+        SESSION_COOKIE_HTTPONLY=False,
+        SESSION_COOKIE_DOMAIN="localhost",
+    )
     app.secret_key = os.getenv("SESSION_SECRET")
-    # app.secret_key = os.urandom(24)
+
     app.run(
         debug=True,
-        port=int(os.environ.get("PORT", 8080)),
+        ssl_context=("./credentials/cert.pem", "./credentials/key.pem"),
+        port=int(os.getenv("PORT", 8080)),
     )

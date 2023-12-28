@@ -4,7 +4,7 @@ import os
 import http
 import logging
 
-logging.basicConfig(level=logging.NOTSET)
+# logging.basicConfig(level=logging.INFO)
 
 
 class ApiBaseArgs(TypedDict):
