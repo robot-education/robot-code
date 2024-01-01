@@ -16,8 +16,12 @@ def save_token(token) -> None:
     flask.session["oauth_token"] = token
 
 
-def get_token() -> dict | None:
-    return flask.session.get("oauth_token")
+def has_token() -> bool:
+    return "oauth_token" in flask.session
+
+
+def get_token() -> dict:
+    return flask.session["oauth_token"]
 
 
 client_id = os.getenv("OAUTH_CLIENT_ID")
@@ -40,7 +44,10 @@ def get_oauth_session(oauth_type: OAuthType = OAuthType.USE) -> OAuth2Session:
     elif oauth_type == OAuthType.REDIRECT:
         return OAuth2Session(client_id, state=get_session_state())
 
-    refresh_kwargs = {"client_id": client_id, "client_secret": client_secret}
+    refresh_kwargs = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
     return OAuth2Session(
         client_id,
         token=get_token(),

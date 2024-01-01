@@ -7,9 +7,8 @@ The frontend should have a /sign-in route which redirects to the /sign-in route 
 The frontend should have a /redirect route which calls the /redirect route below.
 """
 import flask
-from flask import request
+from flask import make_response, request
 from api.endpoints import users
-from api.oauth_api import make_oauth_api
 from backend.common import oauth_session, setup
 
 
@@ -73,7 +72,8 @@ def redirect():
         client_secret=oauth_session.client_secret,
         code=request.args.get("code"),
     )
-    flask.current_app.logger.info(token)
+
+    # flask.current_app.logger.info(token)
     oauth_session.save_token(token)
 
     # api = setup.get_api()
@@ -81,7 +81,19 @@ def redirect():
     # flask.current_app.logger.info("Ping: {}".format(val))
 
     redirect_url = flask.session["redirect_url"]
-    return flask.redirect(redirect_url)
+    response = make_response(flask.redirect(redirect_url))
+    # response = make_response(redirect_url)
+    # response.set_cookie(
+    #     "Ahhhhh",
+    #     "hadfdafsdf",
+    #     secure=True,
+    #     samesite="none",
+    #     httponly=False,
+    # )
+    # response.headers.add("Access-Control-Allow-Headers", "true")
+    # response.headers.add("Access-Control-Allow-Origin", "https://localhost:3000")
+    return response
+    # return {"redirectUrl": redirect_url}
 
 
 @router.route("/temp", methods=["GET"])

@@ -86,16 +86,16 @@ if __name__ == "__main__":
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     # Only works with firefox setting sameSite.noneRequiresSecure to false
     app.config.update(
-        SESSION_COOKIE_SECURE=True,
+        # SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_NAME="robot-manager",
-        SESSION_COOKIE_SAMESITE="None",
-        SESSION_COOKIE_HTTPONLY=False,
-        SESSION_COOKIE_DOMAIN="localhost",
+        # SESSION_COOKIE_SAMESITE="none",
+        # SESSION_COOKIE_HTTPONLY=False,
+        # SESSION_COOKIE_DOMAIN="localhost",
     )
     app.secret_key = os.getenv("SESSION_SECRET")
 
     app.run(
         debug=True,
-        ssl_context=("./credentials/cert.pem", "./credentials/key.pem"),
+        # ssl_context=("./credentials/cert.pem", "./credentials/key.pem"),
         port=int(os.getenv("PORT", 8080)),
     )
