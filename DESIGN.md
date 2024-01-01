@@ -81,11 +81,3 @@ Type checking would be more useful - for example, functions could be required to
 So, we no longer need `level`. Like, at all - no features should be customizing their behavior in that way.
 An excpetion is `top_level`. I'm happy just making a dedicated `ParentNode` class for that.
 
-
-Automatic inlining expressions is tricky. It's very hard without knowing beforehand. It's possible users could disable inline manually. 
-If we know an expression should be run in inline, we can automatically inline as we go, dropping newlines before children whenever
-the current `Width` context becomes to large?
-As we run, we keep track of the current width. If the current expr puts us over the limit (and inline_expr is true), drop a newline (and possibly a tab) before the current token?
-somethingBig & 
-    somethingMedium & small & 
-    somethingBig & small

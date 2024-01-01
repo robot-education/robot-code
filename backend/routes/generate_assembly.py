@@ -28,4 +28,5 @@ def generate_assembly_route():
     group_mate = assembly_features.group_mate("Group", queries)
     assemblies.add_feature(api, assembly_path, group_mate)
 
+    flask.current_app.logger.info("Done")
     return {"elementId": assembly_path.element_id}

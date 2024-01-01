@@ -10,6 +10,22 @@
             "group": {
                 "kind": "build"
             }
+        },
+        {
+            "label": "Production build",
+            "type": "npm",
+            "script": "build",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Development server",
+            "type": "npm",
+            "script": "dev",
+            "problemMatcher": []
         }
         // {
         //     "label": "Launch backend",

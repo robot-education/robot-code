@@ -73,3 +73,9 @@ code .
 ``` -->
 
 <!-- https://stackoverflow.com/questions/29458548/can-you-add-https-functionality-to-a-python-flask-web-server -->
+
+# Organization
+
+This is a python-typescript monorepo.
+Python stuff includes poetry.lock, and pyproject.toml.
+TypeScript stuff includes tsconfig, vite.config, .prettierrc, config.json, index.html, package.json.

@@ -20,8 +20,8 @@ def has_token() -> bool:
     return "oauth_token" in flask.session
 
 
-def get_token() -> dict:
-    return flask.session["oauth_token"]
+def get_token() -> dict | None:
+    return flask.session.get("oauth_token")
 
 
 client_id = os.getenv("OAUTH_CLIENT_ID")

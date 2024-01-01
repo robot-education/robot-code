@@ -13,12 +13,7 @@
     },
     "files.eol": "\n",
     "cSpell.allowCompoundWords": true,
-    "cSpell.ignorePaths": [
-        "build",
-        ".git",
-        ".vscode",
-        ".devcontainer",
-    ],
+    "cSpell.ignorePaths": ["build", ".git", ".vscode", ".devcontainer"],
     "cSpell.words": [
         "apikey",
         "creds",
@@ -34,13 +29,20 @@
         "updateversion",
         "updateversions"
     ],
-    "cSpell.flagWords": [
-        "coincentric",
-        "expresion"
-    ],
+    "cSpell.flagWords": ["coincentric", "expresion"],
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": true,
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "npm.packageManager": "npm",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[jsonc]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     }
 }

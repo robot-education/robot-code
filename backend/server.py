@@ -2,6 +2,8 @@ import flask
 import os
 import dotenv
 from api import exceptions
+from api.endpoints import users
+from backend.common import setup
 
 from backend.routes import (
     add_parent,
@@ -31,6 +33,28 @@ def api_exception(e: exceptions.ApiException):
 app.register_blueprint(oauth.router)
 app.register_blueprint(generate_assembly.router)
 app.register_blueprint(assembly_mirror.router)
+
+
+@app.route("/app", methods=["GET"])
+def app_route():
+    flask.current_app.logger.info("Server app")
+    api = setup.get_api()
+    authorized = api.oauth.authorized and users.ping(api, catch=True)
+    if not authorized:
+        flask.session["redirect_url"] = flask.request.url
+        return flask.redirect("/sign-in")
+    flask.current_app.logger.info("Server app")
+    return flask.send_from_directory("dist", "index.html")
+
+
+@app.route("/assets/<path:filename>")
+def serve_assets_route(filename: str):
+    return flask.send_from_directory("dist/assets", filename)
+
+
+@app.route("/api/<path:route>", methods=["POST", "GET"])
+def api_route(route: str):
+    return flask.make_response(flask.redirect("/" + route + "?" + flask.request.query_string.decode(), code=307))
 
 
 @app.route("/add-parent", methods=["POST"])
@@ -96,6 +120,6 @@ if __name__ == "__main__":
 
     app.run(
         debug=True,
-        # ssl_context=("./credentials/cert.pem", "./credentials/key.pem"),
-        port=int(os.getenv("PORT", 8080)),
+        ssl_context=("./credentials/cert.pem", "./credentials/key.pem"),
+        port=int(os.getenv("PORT", 3000)),
     )
