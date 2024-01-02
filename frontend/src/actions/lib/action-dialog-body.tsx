@@ -1,7 +1,7 @@
 import { DialogBody, DialogFooter } from "@blueprintjs/core";
 import { ReactNode } from "react";
-import { useActionInfo } from "./action-context";
-import { ActionState } from "./action-state";
+import { useActionInfo } from "../action-context";
+import { ActionState } from "../action-state";
 import { useCurrentMutation } from "./action-utils";
 
 interface ActionDialogBodyProps {

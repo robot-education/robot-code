@@ -10,13 +10,11 @@ import { useMutation } from "@tanstack/react-query";
 
 import { handleStringChange } from "../common/handlers";
 import { useOnshapeParams } from "../common/onshape-params";
-import { ActionProvider } from "../actions/action-dialog";
 import { ActionForm } from "../actions/action-form";
-import { ActionSpinner } from "../actions/action-spinner";
-import { ActionSuccess } from "../actions/action-success";
 import { ActionInfo } from "../actions/action-context";
 import { ActionCard } from "../actions/action-card";
-import { useCurrentMutation } from "../actions/action-utils";
+import { useCurrentMutation } from "../actions/lib/action-utils";
+import { Action } from "../actions/action";
 import { post } from "../api/api";
 import { ElementPath, toElementQuery } from "../api/path";
 
@@ -79,18 +77,16 @@ export function GenerateAssembly() {
     );
 
     return (
-        <ActionProvider actionInfo={actionInfo} mutation={mutation}>
-            <GenerateAssemblyForm />
-            <ActionSpinner
-                message="Generating assembly"
-                controller={abortControllerRef.current}
-            />
-            <ActionSuccess
-                message="Successfully generated assembly."
-                description="Remember to fix a part in the assembly to lock it in place."
-                actions={openButton}
-            />
-        </ActionProvider>
+        <Action
+            actionInfo={actionInfo}
+            mutation={mutation}
+            actionForm={<GenerateAssemblyForm />}
+            loadingMessage="Generating assembly"
+            controller={abortControllerRef.current}
+            successMessage="Successfully generated assembly."
+            successDescription="Remember to fix a part in the assembly to lock it in place."
+            successActions={openButton}
+        />
     );
 }
 

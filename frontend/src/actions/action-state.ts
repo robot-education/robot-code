@@ -1,4 +1,4 @@
-import { useCurrentMutation } from "./action-utils";
+import { useCurrentMutation } from "./lib/action-utils";
 
 export enum ActionState {
     CONFIGURING = "idle",

@@ -42,7 +42,7 @@ def get_oauth_session(oauth_type: OAuthType = OAuthType.USE) -> OAuth2Session:
     if oauth_type == OAuthType.SIGN_IN:
         return OAuth2Session(client_id)
     elif oauth_type == OAuthType.REDIRECT:
-        return OAuth2Session(client_id, state=get_session_state())
+        return OAuth2Session(client_id, state=flask.request.args["state"])
 
     refresh_kwargs = {
         "client_id": client_id,

@@ -39,9 +39,7 @@ def sign_in():
             The url to redirect to on grant denial.
     """
     oauth = oauth_session.get_oauth_session(oauth_session.OAuthType.SIGN_IN)
-    auth_url, state = oauth.authorization_url(oauth_session.auth_base_url)
-
-    oauth_session.save_session_state(state)
+    auth_url, _ = oauth.authorization_url(oauth_session.auth_base_url)
 
     # Send user to Onshape's sign in page
     return flask.redirect(auth_url)
@@ -58,7 +56,6 @@ def redirect():
         return flask.redirect("/grant-denied")
 
     oauth = oauth_session.get_oauth_session(oauth_session.OAuthType.REDIRECT)
-    flask.session["oauth_state"] = None
 
     token = oauth.fetch_token(
         oauth_session.token_url,
@@ -69,11 +66,3 @@ def redirect():
 
     redirect_url = flask.session["redirect_url"]
     return flask.redirect(redirect_url)
-
-
-# @router.route("/temp", methods=["GET"])
-# def temp():
-#     onshape = oauth_session.get_oauth_session()
-#     return onshape.get(
-#         "https://cad.onshape.com/api/v6/documents?q=Untitled&ownerType=1&sortColumn=createdAt&sortOrder=desc&offset=0&limit=5"
-#     ).json()

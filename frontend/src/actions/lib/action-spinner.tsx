@@ -1,6 +1,6 @@
 import { NonIdealState, Spinner, Button } from "@blueprintjs/core";
 import { ActionDialogBody } from "./action-dialog-body";
-import { ActionState } from "./action-state";
+import { ActionState } from "../action-state";
 import { useCloseMenuRouter, useCurrentMutation } from "./action-utils";
 
 interface ActionSpinnerProps {

@@ -1,7 +1,7 @@
 import { UseMutationResult } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
-import { useCurrentMenuType, useMenuRouter } from "../common/menu-type";
+import { useCurrentMenuType, useMenuRouter } from "../../common/menu-type";
 
 const mutationContext = createContext<UseMutationResult>(null!);
 

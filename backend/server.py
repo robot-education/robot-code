@@ -1,31 +1,16 @@
 import os
 import dotenv
-from flask import (
-    Flask,
-    current_app,
-    redirect,
-    render_template,
-    request,
-    send_from_directory,
-    session,
-)
+import flask
+from flask import current_app
 from api import exceptions
 from api.endpoints import users
 from backend.common import setup
-
-
-# import logging
-# import sys
-
-# log = logging.getLogger("oauthlib")
-# log.addHandler(logging.StreamHandler(sys.stdout))
-# log.setLevel(logging.DEBUG)
 
 dotenv.load_dotenv()
 
 
 def create_app():
-    app = Flask(__name__, static_folder="dist")
+    app = flask.Flask(__name__, static_folder="dist")
     app.config.update(
         SESSION_COOKIE_NAME="robot-manager", SECRET_KEY=os.getenv("SESSION_SECRET")
     )
@@ -54,19 +39,24 @@ def create_app():
         current_app.logger.info(api.oauth)
         authorized = api.oauth.authorized and users.ping(api, catch=True)
         if not authorized:
-            session["redirect_url"] = request.url
-            return redirect("/sign-in")
-        return render_template("index.html")
-        # return flask.send_from_directory("dist", "index.html")
+            flask.session["redirect_url"] = flask.request.url
+            return flask.redirect("/sign-in")
+
+        if os.getenv("NODE_ENV", "development") == "production":
+            return flask.send_from_directory("dist", "index.html")
+        else:
+            return flask.render_template("index.html")
 
     @app.route("/assets/<path:filename>")
     def serve_assets_route(filename: str):
-        return send_from_directory("dist/assets", filename)
+        return flask.send_from_directory("dist/assets", filename)
 
     @app.route("/api/<path:route>", methods=["POST", "GET"])
     def api_route(route: str):
         # 307 redirect keeps same method but drops query parameters
-        return redirect("/" + route + "?" + request.query_string.decode(), code=307)
+        return flask.redirect(
+            "/" + route + "?" + flask.request.query_string.decode(), code=307
+        )
 
     @app.route("/add-parent", methods=["POST"])
     def add_parent_route():
@@ -112,10 +102,4 @@ def create_app():
     #     # len(versions) is correct due to Start version
     #     return {"name": "V{}".format(len(versions))}
 
-
-# if __name__ == "__main__":
-#     app.run(
-#         debug=True,
-#         ssl_context=("./credentials/cert.pem", "./credentials/key.pem"),
-#         port=int(os.getenv("PORT", 3000)),
-#     )
+    return app
