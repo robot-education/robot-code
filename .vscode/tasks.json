@@ -6,10 +6,7 @@
         {
             "label": "Pull assembly scripts",
             "type": "shell",
-            "command": "python -m backend.tools.pull_scripts",
-            "group": {
-                "kind": "build"
-            }
+            "command": "poetry run python -m backend.tools.pull_scripts"
         },
         {
             "label": "Production build",
@@ -19,21 +16,31 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
             }
         },
         {
-            "label": "Development server",
+            "label": "Launch frontend",
             "type": "npm",
             "script": "dev",
-            "problemMatcher": []
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "group": {
+                "kind": "build"
+            }
+        },
+        {
+            "label": "Launch backend",
+            "type": "shell",
+            // "command": "poetry run python -m backend.server",
+            "command": "poetry run flask --app backend.server run",
+            "group": {
+                "kind": "build"
+            }
         }
-        // {
-        //     "label": "Launch backend",
-        //     "type": "shell",
-        //     "command": "python -m backend.server",
-        //     "group": {
-        //         "kind": "build"
-        //     }
-        // }
     ]
 }

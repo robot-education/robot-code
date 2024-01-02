@@ -196,8 +196,6 @@ poetry.toml
 
 # api keys
 creds.json
-
 .fs_code/
 .storage/
-
 credentials/

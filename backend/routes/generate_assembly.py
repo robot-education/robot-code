@@ -8,7 +8,7 @@ router = flask.Blueprint("generate-assembly", __name__)
 
 
 @router.route("/generate-assembly", methods=["POST"])
-def generate_assembly_route():
+def generate_assembly():
     api = setup.get_api()
     name = setup.get_value("name")
     part_studio_path = setup.get_element_path()

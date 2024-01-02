@@ -7,24 +7,23 @@ The frontend should have a /sign-in route which redirects to the /sign-in route 
 The frontend should have a /redirect route which calls the /redirect route below.
 """
 import flask
-from flask import make_response, request
-from api.endpoints import users
-from backend.common import oauth_session, setup
+from flask import request
+from backend.common import oauth_session
 
 
 router = flask.Blueprint("oauth", __name__)
 
 
-@router.route("/authorized", methods=["GET"])
-def authorized():
-    """
-    Returns:
-        authorized: true if the client is authenticated.
-            If false, the client should call /sign-in.
-    """
-    api = setup.get_api()
-    authorized = api.oauth.authorized and users.ping(api, catch=True)
-    return {"authorized": authorized}
+# @router.route("/authorized", methods=["GET"])
+# def authorized():
+#     """
+#     Returns:
+#         authorized: true if the client is authenticated.
+#             If false, the client should call /sign-in.
+#     """
+#     api = setup.get_api()
+#     authorized = api.oauth.authorized and users.ping(api, catch=True)
+#     return {"authorized": authorized}
 
 
 @router.route("/sign-in", methods=["GET"])
@@ -53,7 +52,7 @@ def redirect():
     """The Onshape redirect route.
 
     Parameters:
-        All parameters received from Onshape.
+        The code and state parameters received from Onshape.
     """
     if request.args.get("error") == "access_denied":
         return flask.redirect("/grant-denied")
@@ -68,13 +67,13 @@ def redirect():
     )
     oauth_session.save_token(token)
 
-    redirect_url = flask.url_for(flask.session["redirect_url"])
+    redirect_url = flask.session["redirect_url"]
     return flask.redirect(redirect_url)
 
 
-@router.route("/temp", methods=["GET"])
-def temp():
-    onshape = oauth_session.get_oauth_session()
-    return onshape.get(
-        "https://cad.onshape.com/api/v6/documents?q=Untitled&ownerType=1&sortColumn=createdAt&sortOrder=desc&offset=0&limit=5"
-    ).json()
+# @router.route("/temp", methods=["GET"])
+# def temp():
+#     onshape = oauth_session.get_oauth_session()
+#     return onshape.get(
+#         "https://cad.onshape.com/api/v6/documents?q=Untitled&ownerType=1&sortColumn=createdAt&sortOrder=desc&offset=0&limit=5"
+#     ).json()

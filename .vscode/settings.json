@@ -27,7 +27,8 @@
         "Onshape",
         "UNCONFIGURABLE",
         "updateversion",
-        "updateversions"
+        "updateversions",
+        "vite"
     ],
     "cSpell.flagWords": ["coincentric", "expresion"],
     "python.analysis.typeCheckingMode": "basic",

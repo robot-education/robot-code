@@ -328,6 +328,20 @@ async = ["asgiref (>=3.2)"]
 dotenv = ["python-dotenv"]
 
 [[package]]
+name = "flask-vite"
+version = "0.3.6"
+description = "Flask+Vite integration."
+optional = false
+python-versions = ">=3.9,<4.0"
+files = [
+    {file = "flask_vite-0.3.6-py3-none-any.whl", hash = "sha256:ab42262f3615db01c127b5dd378449961af34fc92e1fe7f89913d49735673502"},
+    {file = "flask_vite-0.3.6.tar.gz", hash = "sha256:cf1a00c5371d2f25c0216d00d4a332b9ea6de61d19c91264730dfc2e65532040"},
+]
+
+[package.dependencies]
+flask = ">2"
+
+[[package]]
 name = "google-api-core"
 version = "2.15.0"
 description = "Google API client core library"
@@ -1003,24 +1017,6 @@ docs = ["sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
 tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
-name = "pyopenssl"
-version = "23.3.0"
-description = "Python wrapper module around the OpenSSL library"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "pyOpenSSL-23.3.0-py3-none-any.whl", hash = "sha256:6756834481d9ed5470f4a9393455154bc92fe7a64b7bc6ee2c804e78c52099b2"},
-    {file = "pyOpenSSL-23.3.0.tar.gz", hash = "sha256:6b2cba5cc46e822750ec3e5a81ee12819850b11303630d575e98108a079c2b12"},
-]
-
-[package.dependencies]
-cryptography = ">=41.0.5,<42"
-
-[package.extras]
-docs = ["sphinx (!=5.2.0,!=5.2.0.post0,!=7.2.5)", "sphinx-rtd-theme"]
-test = ["flaky", "pretend", "pytest (>=3.0.1)"]
-
-[[package]]
 name = "pyparsing"
 version = "3.1.1"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -1148,4 +1144,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "545ad5095b45624ee5e6070ba50f0c553b030f6a098e16144824b05cb3248100"
+content-hash = "d66d9b5653063594e9094fe283f4a1d1d7bf8a7c71f4dee2e1d05bd0d71800ab"
