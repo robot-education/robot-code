@@ -1,4 +1,3 @@
-import { BlueprintIcons_16Id } from "@blueprintjs/icons/lib/esm/generated/16px/blueprint-icons-16";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export enum MenuType {
@@ -30,29 +29,4 @@ export function useMenuRouter() {
     return (menuType: MenuType) => {
         navigate("/app/" + menuType);
     };
-}
-
-interface MenuProps {
-    text: string;
-    icon: BlueprintIcons_16Id;
-}
-
-export function getMenuProps(menuType: MenuType): MenuProps {
-    switch (menuType) {
-        case MenuType.PART_STUDIO:
-            return {
-                text: "Part studio",
-                icon: "home"
-            };
-        case MenuType.ASSEMBLY:
-            return {
-                text: "Assembly",
-                icon: "home"
-            };
-        case MenuType.VERSIONS:
-            return {
-                text: "Versions",
-                icon: "git-branch"
-            };
-    }
 }

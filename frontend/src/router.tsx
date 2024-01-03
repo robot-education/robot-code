@@ -7,6 +7,9 @@ import { GrantDenied } from "./grant-denied";
 import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
 import { UpdateAllReferences } from "./versions/update-all-references";
+import { Assembly } from "./assembly/assembly";
+import { ManageLinks } from "./manage-links/manage-links";
+import { loadLinks } from "./manage-links/link-loader";
 
 export const router = createBrowserRouter([
     {
@@ -28,9 +31,19 @@ export const router = createBrowserRouter([
                         ]
                     },
                     {
+                        path: "assembly",
+                        element: <Assembly />,
+                        children: []
+                    },
+                    {
                         path: "versions",
                         element: <Versions />,
                         children: [
+                            {
+                                path: "manage-links",
+                                element: <ManageLinks />,
+                                loader: loadLinks
+                            },
                             {
                                 path: "push-version",
                                 element: <PushVersion />

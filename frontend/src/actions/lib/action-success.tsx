@@ -1,9 +1,9 @@
 import { Intent } from "@blueprintjs/core";
-import { NonIdealStateOverride } from "../../common/non-ideal-state-override";
+import { NonIdealStateOverride } from "../../components/non-ideal-state-override";
 import { ActionDialogBody } from "./action-dialog-body";
 import { ActionState } from "../action-state";
 import { ReactNode } from "react";
-import { CloseButton } from "./close-button";
+import { CloseButton } from "../../components/close-button";
 
 interface ActionSuccessProps {
     message: string;

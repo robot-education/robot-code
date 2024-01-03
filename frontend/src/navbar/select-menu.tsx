@@ -1,12 +1,8 @@
 import { Button, Intent, Menu, Popover } from "@blueprintjs/core";
-
 import { SelectMenuItem } from "./select-menu-item";
-import {
-    MenuType,
-    getMenuProps,
-    useCurrentMenuType
-} from "../common/menu-type";
+import { MenuType, useCurrentMenuType } from "../common/menu-type";
 import { useAppType } from "../common/onshape-params";
+import { getMenuProps } from "./menu-props";
 
 export function SelectMenu() {
     const appType = useAppType();
@@ -31,7 +27,11 @@ export function SelectMenu() {
         );
 
     const menuItems = currentMenuTypes.map((menuType) => (
-        <SelectMenuItem key={menuType} menuType={menuType} />
+        <SelectMenuItem
+            key={menuType}
+            {...getMenuProps(menuType)}
+            menuType={menuType}
+        />
     ));
 
     const menu = <Menu>{menuItems}</Menu>;

@@ -1,17 +1,17 @@
 import { MenuItem } from "@blueprintjs/core";
-import { MenuType, getMenuProps, useMenuRouter } from "../common/menu-type";
+import { MenuType, useMenuRouter } from "../common/menu-type";
+import { getMenuProps } from "./menu-props";
 
 interface MenuTypeSelectItemProps {
     menuType: MenuType;
 }
 
 export function SelectMenuItem(props: MenuTypeSelectItemProps) {
-    const { menuType } = props;
     const menuRouter = useMenuRouter();
     return (
         <MenuItem
-            {...getMenuProps(menuType)}
-            onClick={() => menuRouter(menuType)}
+            {...getMenuProps(props.menuType)}
+            onClick={() => menuRouter(props.menuType)}
         />
     );
 }

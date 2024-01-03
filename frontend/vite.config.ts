@@ -10,13 +10,14 @@ export default defineConfig({
         //     key: fs.readFileSync("./credentials/key.pem"),
         //     cert: fs.readFileSync("./credentials/cert.pem")
         // },
-        origin: "https://localhost:3000",
+        // origin: "https://localhost:3000",
+        origin: "http://localhost:5173",
         port: 5173,
         strictPort: true
     },
     build: {
         outDir: "../backend/dist",
-        emptyOutDir: true
+        emptyOutDir: true,
         // manifest: true
     }
 });

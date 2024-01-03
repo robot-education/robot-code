@@ -14,31 +14,18 @@ from backend.common import oauth_session
 router = flask.Blueprint("oauth", __name__)
 
 
-# @router.route("/authorized", methods=["GET"])
-# def authorized():
-#     """
-#     Returns:
-#         authorized: true if the client is authenticated.
-#             If false, the client should call /sign-in.
-#     """
-#     api = setup.get_api()
-#     authorized = api.oauth.authorized and users.ping(api, catch=True)
-#     return {"authorized": authorized}
-
-
 @router.route("/sign-in", methods=["GET"])
 def sign_in():
-    """The oauth sign in route.
+    """The oauth sign in route."""
+    if request.args.get("redirectOnshapeUri"):
+        url = request.args.get("redirectOnshapeUri")
+        # Handle Onshape bug
+        if url == "[object Object]":
+            url = "https://cad.onshape.com/user/applications"
+        flask.session["redirect_url"] = url
 
-    Parameters:
-        redirectUrl:
-            The url to redirect to after the grant.
-            Note if an "redirectOnshapeUri" parameter was sent by Onshape to the original /sign-in route,
-            this parameter should take that value.
-        grantDeniedUrl:
-            The url to redirect to on grant denial.
-    """
     oauth = oauth_session.get_oauth_session(oauth_session.OAuthType.SIGN_IN)
+    # Saving state is unneeded since Onshape saves it for us
     auth_url, _ = oauth.authorization_url(oauth_session.auth_base_url)
 
     # Send user to Onshape's sign in page
@@ -60,7 +47,7 @@ def redirect():
     token = oauth.fetch_token(
         oauth_session.token_url,
         client_secret=oauth_session.client_secret,
-        code=request.args.get("code"),
+        code=request.args["code"],
     )
     oauth_session.save_token(token)
 

@@ -1,4 +1,4 @@
-// @import '@blueprintjs/core/lib/scss/variables';
+@import "@blueprintjs/core/lib/scss/variables";
 
 /* Disable drag text highlighting */
 * {
@@ -6,4 +6,12 @@
     -moz-user-select: none;
     -khtml-user-select: none;
     -webkit-user-select: none;
+}
+
+.link-card {
+    justify-content: space-between;
+}
+
+.link-card-url-input {
+    padding-right: $pt-grid-size;
 }

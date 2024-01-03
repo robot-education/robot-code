@@ -1,8 +1,8 @@
 import { Intent } from "@blueprintjs/core";
 import { ActionDialogBody } from "./action-dialog-body";
 import { ActionState } from "../action-state";
-import { CloseButton } from "./close-button";
-import { NonIdealStateOverride } from "../../common/non-ideal-state-override";
+import { CloseButton } from "../../components/close-button";
+import { NonIdealStateOverride } from "../../components/non-ideal-state-override";
 
 export function ActionError() {
     return (

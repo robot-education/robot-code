@@ -58,7 +58,7 @@ export class NonIdealStateOverride extends AbstractPureComponent<NonIdealStateOv
                     icon={icon}
                     intent={iconIntent}
                     size={iconSize}
-                    aria-hidden={true}
+                    aria-hidden
                     tabIndex={-1}
                 />
             </div>

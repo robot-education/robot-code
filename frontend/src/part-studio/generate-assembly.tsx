@@ -98,14 +98,9 @@ function GenerateAssemblyForm() {
 
     const options = (
         <>
-            <FormGroup
-                label="Assembly name"
-                labelFor="assemblyName"
-                labelInfo="(required)"
-            >
+            <FormGroup label="Assembly name" labelInfo="(required)">
                 <Tooltip content={"The name of the generated assembly"}>
                     <InputGroup
-                        name="assemblyName"
                         value={assemblyName}
                         intent={disabled ? Intent.DANGER : undefined}
                         onChange={handleStringChange(setAssemblyName)}
@@ -114,8 +109,7 @@ function GenerateAssemblyForm() {
             </FormGroup>
             {/* <FormGroup
             label="Execute auto assembly"
-            labelFor="auto-assemble"
-            inline={true}
+            inline
         >
             <Tooltip
                 content={
@@ -123,7 +117,6 @@ function GenerateAssemblyForm() {
                 }
             >
                 <Checkbox
-                    id="auto-assemble"
                     checked={autoAssemble}
                     onClick={handleBooleanChange(setAutoAssemble)}
                 />

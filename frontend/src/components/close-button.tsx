@@ -1,5 +1,8 @@
 import { Button, Intent } from "@blueprintjs/core";
-import { useCloseMenuRouter, useCurrentMutation } from "./action-utils";
+import {
+    useCloseMenuRouter,
+    useCurrentMutation
+} from "../actions/lib/action-utils";
 
 export function CloseButton() {
     const mutation = useCurrentMutation();

@@ -6,7 +6,6 @@ import { MutationProvider } from "./action-utils";
 
 interface ActionProviderProps {
     actionInfo: ActionInfo;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutation: UseMutationResult<any, any, any, any>;
     children: ReactNode;
 }

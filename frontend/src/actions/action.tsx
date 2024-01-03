@@ -9,7 +9,6 @@ import { UseMutationResult } from "@tanstack/react-query";
 
 export interface ActionProps {
     actionInfo: ActionInfo;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutation: UseMutationResult<any, any, any, any>;
     actionForm: ReactNode;
     loadingMessage: string;

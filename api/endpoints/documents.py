@@ -1,16 +1,33 @@
+import enum
 from api import api_base, api_path
 
 
+class ElementType(enum.StrEnum):
+    PART_STUDIO = "PARTSTUDIO"
+    ASSEMBLY = "ASSEMBLY"
+    DRAWING = "DRAWING"
+    FEATURE_STUDIO = "FEATURESTUDIO"
+
+
 def get_document_elements(
-    api: api_base.Api, document_path: api_path.DocumentPath
+    api: api_base.Api,
+    document_path: api_path.DocumentPath,
+    element_type: ElementType | None = None,
 ) -> dict[str, api_path.ElementPath]:
     """Fetches all elements in a document.
 
     Returns a dict mapping element names to their paths.
+
+    Args:
+        element_type: The type of element (tab) to get. If None, all elements are returned.
     """
+    query: dict = {"withThumbnails": False}
+    if element_type:
+        query["elementType"] = element_type
+
     elements = api.get(
         api_path.document_api_path("documents", document_path, "elements"),
-        query={"withThumbnails": False},
+        query=query,
     )
     return _extract_paths(elements, document_path)
 
@@ -21,7 +38,6 @@ def _extract_paths(
     return dict(
         (
             element["name"],
-            # Copy to prevent saving reference to input
             api_path.ElementPath(document_path, element["id"]),
         )
         for element in elements
@@ -44,10 +60,10 @@ def get_versions(
 ) -> list[dict]:
     """Fetches a list of versions of a document.
 
-    Versions are returned in revese chronological order (oldest - newest).
+    Versions are returned in reverse chronological order (oldest - newest).
 
     Args:
-        offset: A starting offset to apply.
+        offset: A starting offset to apply. Does not support negative indexing.
         limit: The max number of versions to return.
     """
     return api.get(

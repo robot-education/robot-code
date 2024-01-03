@@ -10,6 +10,10 @@ export interface DocumentPath extends DocumentBasePath {
     workspaceOrVersion?: string;
 }
 
+export interface Document extends DocumentPath {
+    name: string;
+}
+
 export interface ElementPath extends DocumentPath {
     elementId: string;
 }
