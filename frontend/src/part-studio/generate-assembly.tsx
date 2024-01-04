@@ -1,22 +1,19 @@
 import { useRef, useState } from "react";
-import {
-    FormGroup,
-    Tooltip,
-    InputGroup,
-    Intent,
-    Button
-} from "@blueprintjs/core";
+import { FormGroup, Tooltip, InputGroup } from "@blueprintjs/core";
 import { useMutation } from "@tanstack/react-query";
 
 import { handleStringChange } from "../common/handlers";
-import { useOnshapeParams } from "../common/onshape-params";
 import { ActionForm } from "../actions/action-form";
 import { ActionInfo } from "../actions/action-context";
 import { ActionCard } from "../actions/action-card";
-import { useCurrentMutation } from "../actions/lib/action-utils";
+import { useCurrentMutation } from "../actions/common/action-utils";
 import { Action } from "../actions/action";
-import { post } from "../api/api";
-import { ElementPath, toElementQuery } from "../api/path";
+import { useLoaderData } from "react-router-dom";
+import {
+    GenerateAssemblyArgs,
+    generateAssemblyMutation
+} from "./generate-assembly-query";
+import { OpenUrlButtons } from "../components/open-url-buttons";
 
 const actionInfo: ActionInfo = {
     title: "Generate assembly",
@@ -24,40 +21,22 @@ const actionInfo: ActionInfo = {
     route: "generate-assembly"
 };
 
-interface ActionArgs {
-    assemblyName: string;
-}
-
 export function GenerateAssemblyCard() {
     return <ActionCard actionInfo={actionInfo} />;
 }
 
+/**
+ * I think I can write a mutation wrapper which automatically injects the AbortController into the execute function when mutate is called.
+ * That allows the mutation to handle the abort controller internally.
+ */
+
 export function GenerateAssembly() {
     const abortControllerRef = useRef<AbortController>(null!);
-    const onshapeParams = useOnshapeParams();
 
-    const execute = async (args: ActionArgs) => {
-        abortControllerRef.current = new AbortController();
-        const currentPath: ElementPath = onshapeParams;
-
-        const result = await post(
-            "/generate-assembly",
-            abortControllerRef.current.signal,
-            toElementQuery(currentPath),
-            { name: args.assemblyName }
-        );
-        if (!result) {
-            throw new Error("Request failed.");
-        }
-
-        const assemblyPath = Object.assign({}, currentPath);
-        assemblyPath.elementId = result.elementId;
-        const assemblyUrl = `https://cad.onshape.com/documents/${assemblyPath.documentId}/w/${assemblyPath.workspaceId}/e/${assemblyPath.elementId}`;
-        // if (data.autoAssemble) {
-        // const result = await post("/auto-assembly", assemblyPath.elementObject());
-        // if (result == null) { return false; }
-        // }
-        return { assemblyUrl };
+    const execute = async (args: GenerateAssemblyArgs) => {
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        return generateAssemblyMutation(args, controller);
     };
 
     const mutation = useMutation({
@@ -66,13 +45,10 @@ export function GenerateAssembly() {
     });
 
     const openButton = mutation.isSuccess && (
-        <Button
-            text="Open assembly"
-            intent="primary"
-            icon="share"
-            onClick={() => {
-                window.open(mutation.data.assemblyUrl);
-            }}
+        <OpenUrlButtons
+            openInNewTabText="Switch to assembly"
+            openText="Open in new tab"
+            url={mutation.data.assemblyUrl}
         />
     );
 
@@ -92,7 +68,8 @@ export function GenerateAssembly() {
 
 function GenerateAssemblyForm() {
     const mutation = useCurrentMutation();
-    const [assemblyName, setAssemblyName] = useState("Assembly");
+    const defaultName = useLoaderData() as string;
+    const [assemblyName, setAssemblyName] = useState(defaultName);
     // const [autoAssemble, setAutoAssemble] = useState(true);
     const disabled = assemblyName === "";
 
@@ -102,7 +79,7 @@ function GenerateAssemblyForm() {
                 <Tooltip content={"The name of the generated assembly"}>
                     <InputGroup
                         value={assemblyName}
-                        intent={disabled ? Intent.DANGER : undefined}
+                        intent={disabled ? "danger" : undefined}
                         onChange={handleStringChange(setAssemblyName)}
                     />
                 </Tooltip>
@@ -125,9 +102,7 @@ function GenerateAssemblyForm() {
         </>
     );
 
-    const handleSubmit = () => {
-        mutation.mutate({ assemblyName });
-    };
+    const handleSubmit = () => mutation.mutate({ assemblyName });
 
     return (
         <ActionForm

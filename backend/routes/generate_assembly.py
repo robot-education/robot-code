@@ -7,11 +7,16 @@ from backend.common import setup
 router = flask.Blueprint("generate-assembly", __name__)
 
 
-@router.route("/generate-assembly", methods=["POST"])
-def generate_assembly():
+@router.post("/generate-assembly/<document_id>/<workspace_id>/<element_id>")
+def generate_assembly(document_id: str, workspace_id: str, element_id: str):
+    """Generates a new assembly from the given part studio.
+
+    Returns:
+        elementId: The element id of the generated assembly.
+    """
     api = setup.get_api()
     name = setup.get_value("name")
-    part_studio_path = setup.get_element_path()
+    part_studio_path = api_path.make_element_path(document_id, workspace_id, element_id)
 
     id = assemblies.create_assembly(api, part_studio_path, name)["id"]
     assembly_path = api_path.ElementPath(part_studio_path, id)

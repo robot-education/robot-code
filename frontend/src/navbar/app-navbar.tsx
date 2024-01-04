@@ -9,23 +9,17 @@ import {
 import { SelectMenu } from "./select-menu";
 import { ReactNode } from "react";
 import { MenuType, useCurrentMenuType } from "../common/menu-type";
-import { useNavigate } from "react-router-dom";
+import { OpenLinkedDocumentsButton } from "../linked-documents-manager/linked-documents-manager";
 
 /**
  * Provides top-level navigation for the app.
  */
 export function AppNavbar(): ReactNode {
     const menuType = useCurrentMenuType();
-    const navigate = useNavigate();
     const referencesButton = menuType === MenuType.VERSIONS && (
         <>
             <NavbarDivider />
-            <Button
-                icon="diagram-tree"
-                text="Manage links"
-                onClick={() => navigate(`/app/versions/manage-links`)}
-                minimal
-            />
+            <OpenLinkedDocumentsButton />
         </>
     );
 

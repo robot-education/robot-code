@@ -15,20 +15,6 @@ def get_document_id() -> str:
         raise exceptions.ApiException("Failed to parse document path.")
 
 
-def get_document_path() -> api_path.DocumentPath:
-    try:
-        return api_path.DocumentPath.from_obj(request.args)
-    except:
-        raise exceptions.ApiException("Failed to parse document path.")
-
-
-def get_element_path() -> api_path.ElementPath:
-    try:
-        return api_path.ElementPath.from_obj(request.args)
-    except:
-        raise exceptions.ApiException("Failed to parse element path.")
-
-
 def get_db() -> firestore.firestore.Client:
     firebase_admin.initialize_app()
     return firestore.client()
@@ -38,14 +24,32 @@ def get_api() -> oauth_api.OAuthApi:
     return make_oauth_api(oauth_session.get_oauth_session())
 
 
+def get_arg(key: str) -> str:
+    """Returns a value from the request query.
+
+    Throws if it doesn't exist.
+    """
+    value = request.args.get(key, None)
+    if not value:
+        raise exceptions.ApiException(
+            "Missing required query parameter {}.".format(key)
+        )
+    return value
+
+
 def get_value(key: str) -> str:
+    """Returns a value from the request body.
+
+    Throws if it doesn't exist.
+    """
     value = request.get_json().get(key, None)
     if not value:
-        raise exceptions.ApiException("Missing required key {}.".format(key))
+        raise exceptions.ApiException("Missing required body parameter {}.".format(key))
     return value
 
 
 def get_optional_value(key: str) -> str | None:
+    """Returns a value from the request body."""
     return request.get_json().get(key, None)
 
 

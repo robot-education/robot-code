@@ -14,7 +14,7 @@ from backend.common import oauth_session
 router = flask.Blueprint("oauth", __name__)
 
 
-@router.route("/sign-in", methods=["GET"])
+@router.get("/sign-in")
 def sign_in():
     """The oauth sign in route."""
     if request.args.get("redirectOnshapeUri"):
@@ -32,7 +32,7 @@ def sign_in():
     return flask.redirect(auth_url)
 
 
-@router.route("/redirect", methods=["GET"])
+@router.get("/redirect")
 def redirect():
     """The Onshape redirect route.
 

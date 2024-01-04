@@ -1,13 +1,10 @@
-import { ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, useLocation } from "react-router-dom";
 
-import { queryClient } from "../query-client";
-import {
-    onshapeParamsContext,
-    useSaveOnshapeParams
-} from "../common/onshape-params";
+import { queryClient } from "../query/query-client";
 import { AppNavbar } from "../navbar/app-navbar";
+import { Provider } from "react-redux";
+import { store } from "./store";
 
 export function App() {
     const location = useLocation();
@@ -15,19 +12,10 @@ export function App() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <OnshapeParamsProvider>
+            <Provider store={store}>
                 <AppNavbar />
                 <Outlet />
-            </OnshapeParamsProvider>
+            </Provider>
         </QueryClientProvider>
-    );
-}
-
-function OnshapeParamsProvider(props: { children: ReactNode }) {
-    const appType = useSaveOnshapeParams();
-    return (
-        <onshapeParamsContext.Provider value={appType}>
-            {props.children}
-        </onshapeParamsContext.Provider>
     );
 }

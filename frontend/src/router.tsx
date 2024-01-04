@@ -8,8 +8,9 @@ import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
 import { UpdateAllReferences } from "./versions/update-all-references";
 import { Assembly } from "./assembly/assembly";
-import { ManageLinks } from "./manage-links/manage-links";
-import { loadLinks } from "./manage-links/link-loader";
+import { LinkedDocumentsManager } from "./linked-documents-manager/linked-documents-manager";
+import { linkedDocumentsQuery } from "./linked-documents-manager/linked-documents-query";
+import { generateAssemblyQuery } from "./part-studio/generate-assembly-query";
 
 export const router = createBrowserRouter([
     {
@@ -26,7 +27,8 @@ export const router = createBrowserRouter([
                         children: [
                             {
                                 path: "generate-assembly",
-                                element: <GenerateAssembly />
+                                element: <GenerateAssembly />,
+                                loader: generateAssemblyQuery
                             }
                         ]
                     },
@@ -40,9 +42,9 @@ export const router = createBrowserRouter([
                         element: <Versions />,
                         children: [
                             {
-                                path: "manage-links",
-                                element: <ManageLinks />,
-                                loader: loadLinks
+                                path: "linked-documents",
+                                element: <LinkedDocumentsManager />,
+                                loader: linkedDocumentsQuery
                             },
                             {
                                 path: "push-version",

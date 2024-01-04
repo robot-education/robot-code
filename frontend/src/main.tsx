@@ -11,7 +11,7 @@ import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import "@blueprintjs/select/lib/css/blueprint-select.css";
 
 // Custom css
-import "./app.scss";
+import "./main.scss";
 
 // Router
 import { RouterProvider } from "react-router-dom";

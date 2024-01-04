@@ -26,18 +26,10 @@ class DocumentPath:
         return DocumentPath.from_path(path)
 
     @staticmethod
-    def from_obj(obj: dict) -> DocumentPath:
-        return DocumentPath(
-            obj["documentId"],
-            obj["workspaceId"],
-            obj.get("workspaceOrVersion", "w"),
-        )
-
-    @staticmethod
     def from_path(path: str) -> DocumentPath:
         """
         Args:
-            path: A path of the form "/d/documentId/w|v|m/workspaceId/elementId".
+            path: A path of the form "/d/<documentId>/<w|v|m>/<workspaceId>/e/<elementId>".
         """
         parts = pathlib.Path(path).parts
         return DocumentPath(parts[1], parts[3], parts[2])  # type: ignore
@@ -60,6 +52,14 @@ class DocumentPath:
     def to_document_base(self) -> str:
         """Returns just the document portion of the path."""
         return "/d/" + self.document_id
+
+
+def make_document_path(
+    document_id: str,
+    workspace_id: str,
+    workspace_or_version: Literal["w", "m", "v"] = "w",
+) -> DocumentPath:
+    return DocumentPath(document_id, workspace_id, workspace_or_version)
 
 
 class ElementPath(DocumentPath):
@@ -85,14 +85,10 @@ class ElementPath(DocumentPath):
     def from_path(path: str) -> ElementPath:
         """
         Args:
-            path: A path of the form "/d/documentId/w|v|m/workspaceId/e/elementId".
+            path: A path of the form "/d/<documentId>/<w|v|m>/<workspaceId>/e/<elementId>".
         """
         parts = pathlib.Path(path).parts
         return ElementPath(DocumentPath.from_path(path), parts[5])
-
-    @staticmethod
-    def from_obj(obj: dict) -> ElementPath:
-        return ElementPath(DocumentPath.from_obj(obj), obj["elementId"])
 
     def to_element_path(self) -> ElementPath:
         return ElementPath(

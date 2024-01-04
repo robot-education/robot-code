@@ -1,4 +1,3 @@
-import { Intent } from "@blueprintjs/core";
 import { NonIdealStateOverride } from "../../components/non-ideal-state-override";
 import { ActionDialogBody } from "./action-dialog-body";
 import { ActionState } from "../action-state";
@@ -22,7 +21,7 @@ export function ActionSuccess(props: ActionSuccessProps) {
         <ActionDialogBody requiredState={ActionState.SUCCESS} actions={actions}>
             <NonIdealStateOverride
                 icon="tick"
-                iconIntent={Intent.SUCCESS}
+                iconIntent="success"
                 title={props.message}
                 description={props.description}
             />

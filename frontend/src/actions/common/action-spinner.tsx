@@ -1,7 +1,7 @@
 import { NonIdealState, Spinner, Button } from "@blueprintjs/core";
 import { ActionDialogBody } from "./action-dialog-body";
 import { ActionState } from "../action-state";
-import { useCloseMenuRouter, useCurrentMutation } from "./action-utils";
+import { useMutationResetHandler, useCurrentMutation } from "./action-utils";
 
 interface ActionSpinnerProps {
     message: string;
@@ -10,7 +10,7 @@ interface ActionSpinnerProps {
 
 export function ActionSpinner(props: ActionSpinnerProps) {
     const mutation = useCurrentMutation();
-    const closeMenuRouter = useCloseMenuRouter(mutation);
+    const closeMenuRouter = useMutationResetHandler(mutation);
     const abortButton = (
         <Button
             text="Abort"

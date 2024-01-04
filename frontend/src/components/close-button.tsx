@@ -1,18 +1,24 @@
-import { Button, Intent } from "@blueprintjs/core";
-import {
-    useCloseMenuRouter,
-    useCurrentMutation
-} from "../actions/lib/action-utils";
+import { Button } from "@blueprintjs/core";
+import { useNavigate } from "react-router-dom";
 
-export function CloseButton() {
-    const mutation = useCurrentMutation();
-    const closeMenuRouter = useCloseMenuRouter(mutation);
+interface CloseButtonProps {
+    onClose?: () => void;
+}
+
+export function CloseButton(props: CloseButtonProps) {
+    const { onClose } = props;
+    const navigate = useNavigate();
     return (
         <Button
             text="Close"
-            intent={Intent.PRIMARY}
+            intent="primary"
             icon="tick"
-            onClick={closeMenuRouter}
+            onClick={() => {
+                if (onClose) {
+                    onClose();
+                }
+                navigate("..");
+            }}
         />
     );
 }

@@ -1,10 +1,9 @@
 import flask
-from api import exceptions
+from api import api_path, exceptions
 from api.endpoints import documents
 from backend.common import setup
 
 from backend.routes import (
-    add_parent,
     assembly_mirror,
     generate_assembly,
     update_references,
@@ -21,35 +20,16 @@ def api_exception(e: exceptions.ApiException):
 
 router.register_blueprint(generate_assembly.router)
 router.register_blueprint(assembly_mirror.router)
+router.register_blueprint(update_references.router)
 
 
-@router.route("/add-parent", methods=["POST"])
-def add_parent_route():
-    """Adds a parent to the current document."""
-    return add_parent.execute()
-
-
-# @app.route("/auto-assembly", methods=["POST"])
+# @app.post("/auto-assembly")
 # def auto_assembly_route():
 #     return auto_assembly.execute()
 
 
-@router.route("/update-references", methods=["POST"])
-def update_references_route():
-    """Updates references in a document.
-
-    Args:
-        fromDocumentIds: A list of documentIds to look for when deciding what to update.
-        If included, only references to the specified documents will be updated.
-        Otherwise, all outdated references will be updated.
-    Returns:
-        updates: The number of references which were updated.
-    """
-    return update_references.execute()
-
-
-# @app.route("/create-version", methods=["POST"])
-# def create_version_route():
+# @app.post("/create-version")
+# def create_version():
 #     """Creates a version.
 
 #     Returns the id of the created version.
@@ -62,22 +42,34 @@ def update_references_route():
 #     return {"id": result["id"]}
 
 
-@router.route("/next-version-name", methods=["GET"])
-def next_version_name_route():
-    """Returns the next default version name for a given document."""
-    api = setup.get_api()
-    document_path = setup.get_document_path()
-    versions = documents.get_versions(api, document_path)
-    # len(versions) is correct due to Start version
-    return {"name": "V{}".format(len(versions))}
+@router.get("/default-name/<document_id>/<workspace_id>")
+def default_name(document_id: str, workspace_id: str):
+    """Returns the next default name for a given element type in a document.
 
-
-@router.route("/next-assembly-name", methods=["GET"])
-def next_assembly_name_route():
-    """Returns the next default assembly name for a given document."""
+    Args:
+        elementType: The type of element to fetch.
+            Either PART_STUDIO, ASSEMBLY, or VERSION.
+    """
     api = setup.get_api()
-    document_path = setup.get_document_path()
-    assemblies = documents.get_document_elements(
-        api, document_path, element_type=documents.ElementType.ASSEMBLY
+    document_path = api_path.DocumentPath(document_id, workspace_id)
+    element_type = setup.get_arg("elementType")
+    if element_type == "VERSION":
+        versions = documents.get_versions(api, document_path)
+        # len(versions) is correct due to Start version
+        return {"name": "V{}".format(len(versions))}
+    elif element_type == "ASSEMBLY":
+        assemblies = documents.get_document_elements(
+            api, document_path, element_type=documents.ElementType.ASSEMBLY
+        )
+        return {"name": "Assembly {}".format(len(assemblies) + 1)}
+    elif element_type == "PART_STUDIO":
+        part_studios = documents.get_document_elements(
+            api, document_path, element_type=documents.ElementType.PART_STUDIO
+        )
+        return {"name": "Part Studio {}".format(len(part_studios) + 1)}
+
+    raise exceptions.ApiException(
+        "Received invalid value for query parameter elementType: {}".format(
+            element_type
+        )
     )
-    return {"name": "Assembly {}".format(len(assemblies) + 1)}

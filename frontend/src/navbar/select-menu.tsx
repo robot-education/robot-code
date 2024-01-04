@@ -1,18 +1,19 @@
-import { Button, Intent, Menu, Popover } from "@blueprintjs/core";
+import { Button, Menu, Popover } from "@blueprintjs/core";
 import { SelectMenuItem } from "./select-menu-item";
 import { MenuType, useCurrentMenuType } from "../common/menu-type";
-import { useAppType } from "../common/onshape-params";
 import { getMenuProps } from "./menu-props";
+import { useAppSelector } from "../app/hooks";
+import { selectAppType } from "../app/onshape-params-slice";
 
 export function SelectMenu() {
-    const appType = useAppType();
+    const appType = useAppSelector(selectAppType);
     const currentMenuType = useCurrentMenuType();
 
     const currentMenuButton = (
         <Button
             {...getMenuProps(currentMenuType)}
             rightIcon="caret-down"
-            intent={Intent.PRIMARY}
+            intent="primary"
             alignText="left"
             minimal
         />

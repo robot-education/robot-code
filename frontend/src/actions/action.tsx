@@ -1,14 +1,15 @@
 import { ReactNode } from "react";
-import { ActionDialog } from "./lib/action-dialog";
-import { ActionError } from "./lib/action-error";
-import { ActionProvider } from "./lib/action-provider";
-import { ActionSpinner } from "./lib/action-spinner";
-import { ActionSuccess } from "./lib/action-success";
+import { ActionDialog } from "./common/action-dialog";
+import { ActionError } from "./common/action-error";
+import { ActionProvider } from "./common/action-provider";
+import { ActionSpinner } from "./common/action-spinner";
+import { ActionSuccess } from "./common/action-success";
 import { ActionInfo } from "./action-context";
 import { UseMutationResult } from "@tanstack/react-query";
 
 export interface ActionProps {
     actionInfo: ActionInfo;
+    // actionState: ActionState;
     mutation: UseMutationResult<any, any, any, any>;
     actionForm: ReactNode;
     loadingMessage: string;

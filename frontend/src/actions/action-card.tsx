@@ -1,6 +1,6 @@
-import { Button, Card, H4, Intent } from "@blueprintjs/core";
+import { Button, Card, H4 } from "@blueprintjs/core";
 import { ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ActionInfo } from "./action-context";
 
 interface ActionCardProps {
@@ -13,8 +13,6 @@ interface ActionCardProps {
 export function ActionCard(props: ActionCardProps): ReactNode {
     const { actionInfo } = props;
     const navigate = useNavigate();
-    const pathname = useLocation().pathname;
-
     return (
         <Card>
             <H4>{actionInfo.title}</H4>
@@ -22,8 +20,8 @@ export function ActionCard(props: ActionCardProps): ReactNode {
             <Button
                 text="Configure"
                 rightIcon="arrow-right"
-                intent={Intent.PRIMARY}
-                onClick={() => navigate(pathname + "/" + actionInfo.route)}
+                intent="primary"
+                onClick={() => navigate(actionInfo.route)}
             />
         </Card>
     );

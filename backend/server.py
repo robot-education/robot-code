@@ -21,9 +21,9 @@ def create_app():
 
     app.register_blueprint(oauth.router)
 
-    @app.route("/app/assembly", methods=["GET"])
-    @app.route("/app/part-studio", methods=["GET"])
-    def app_route():
+    @app.get("/app/assembly")
+    @app.get("/app/part-studio")
+    def serve_app():
         api = setup.get_api()
         authorized = api.oauth.authorized and users.ping(api, catch=True)
         if not authorized:
@@ -35,12 +35,12 @@ def create_app():
         else:
             return flask.render_template("index.html")
 
-    @app.route("/grant-denied", methods=["GET"])
-    def grant_denied_route():
+    @app.get("/grant-denied")
+    def serve_grant_denied():
         return flask.render_template("index.html")
 
-    @app.route("/assets/<path:filename>", methods=["GET"])
-    def serve_assets_route(filename: str):
+    @app.get("/assets/<path:filename>")
+    def serve_assets(filename: str):
         return flask.send_from_directory("dist/assets", filename)
 
     return app

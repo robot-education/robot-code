@@ -1,4 +1,4 @@
-export interface DocumentBasePath {
+export interface DocumentBasePath extends Record<string, string> {
     documentId: string;
 }
 
@@ -7,7 +7,7 @@ export interface DocumentPath extends DocumentBasePath {
     /**
      * One of "w", "v", or "m". Defaults to "w".
      */
-    workspaceOrVersion?: string;
+    workspaceOrVersion: string;
 }
 
 export interface Document extends DocumentPath {
@@ -18,40 +18,20 @@ export interface ElementPath extends DocumentPath {
     elementId: string;
 }
 
-export function toQuery(
-    path: ElementPath,
-    pathType: PathType = PathType.ELEMENT
-): Record<string, string> {
-    switch (pathType) {
-        case PathType.DOCUMENT_BASE:
-            return toDocumentBaseQuery(path);
-        case PathType.DOCUMENT:
-            return toDocumentQuery(path);
-        case PathType.ELEMENT:
-            return toElementQuery(path);
-    }
-}
-
-export function toDocumentBaseQuery(
-    path: DocumentBasePath
-): Record<string, string> {
+export function toDocumentBase(path: DocumentPath): Record<string, string> {
     return {
         documentId: path.documentId
     };
 }
 
-export function toDocumentQuery(path: DocumentPath): Record<string, string> {
+/**
+ * Trims an ElementPath to just the DocumentPath portion.
+ */
+export function toDocumentPath(path: ElementPath): Record<string, string> {
     return {
-        ...toDocumentBaseQuery(path),
+        ...toDocumentBase(path),
         workspaceOrVersion: path.workspaceOrVersion ?? "w",
         workspaceId: path.workspaceId
-    };
-}
-
-export function toElementQuery(path: ElementPath): Record<string, string> {
-    return {
-        ...toDocumentQuery(path),
-        elementId: path.elementId
     };
 }
 
@@ -61,14 +41,8 @@ export function toElementQuery(path: ElementPath): Record<string, string> {
 export function getCurrentPath(queryParams: URLSearchParams): ElementPath {
     return {
         documentId: queryParams.get("documentId") ?? "",
-        workspaceOrVersion: queryParams.get("workspaceOrVersion") ?? undefined,
         workspaceId: queryParams.get("workspaceId") ?? "",
+        workspaceOrVersion: "w",
         elementId: queryParams.get("elementId") ?? ""
     };
-}
-
-export enum PathType {
-    DOCUMENT_BASE,
-    DOCUMENT,
-    ELEMENT
 }

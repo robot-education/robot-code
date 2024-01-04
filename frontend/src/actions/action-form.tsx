@@ -1,7 +1,7 @@
 import { Button } from "@blueprintjs/core";
 import { ReactNode } from "react";
 import { ActionState } from "./action-state";
-import { ActionDialogBody } from "./lib/action-dialog-body";
+import { ActionDialogBody } from "./common/action-dialog-body";
 
 interface ActionFormProps {
     disabled?: boolean;

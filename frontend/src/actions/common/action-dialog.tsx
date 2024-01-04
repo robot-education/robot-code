@@ -2,13 +2,19 @@ import { Dialog } from "@blueprintjs/core";
 import { useActionInfo } from "../action-context";
 import { ReactNode } from "react";
 import { ActionState } from "../action-state";
-import { useCloseMenuRouter, useCurrentMutation } from "./action-utils";
+import { useCurrentMutation } from "./action-utils";
+import { useNavigate } from "react-router-dom";
 
-export function ActionDialog(props: { children: ReactNode }): ReactNode {
+export interface ActionDialogProps {
+    children: ReactNode;
+    // actionState: ActionState;
+}
+
+export function ActionDialog(props: ActionDialogProps): ReactNode {
     const actionInfo = useActionInfo();
     const mutation = useCurrentMutation();
+    const navigate = useNavigate();
     const actionState = mutation.status as ActionState;
-    const closeMenuRouter = useCloseMenuRouter(mutation);
 
     return (
         <Dialog
@@ -20,7 +26,10 @@ export function ActionDialog(props: { children: ReactNode }): ReactNode {
             }
             canEscapeKeyClose={actionState !== ActionState.EXECUTING}
             isCloseButtonShown={actionState !== ActionState.EXECUTING}
-            onClose={closeMenuRouter}
+            onClose={() => {
+                mutation.reset();
+                navigate("..");
+            }}
         >
             {props.children}
         </Dialog>

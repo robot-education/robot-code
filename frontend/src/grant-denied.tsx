@@ -1,4 +1,4 @@
-import { Button, Intent } from "@blueprintjs/core";
+import { Button } from "@blueprintjs/core";
 import { NonIdealStateOverride } from "./components/non-ideal-state-override";
 
 const URL = "https://cad.onshape.com/user/applications";
@@ -20,7 +20,7 @@ export function GrantDenied(): JSX.Element {
         <div style={{ height: "80vh" }}>
             <NonIdealStateOverride
                 icon="cross"
-                iconIntent={Intent.DANGER}
+                iconIntent="danger"
                 title="Grant denied"
                 description="Robot manager was denied access to your documents."
                 action={applicationAccessButton}
