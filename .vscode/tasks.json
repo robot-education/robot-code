@@ -6,18 +6,68 @@
         {
             "label": "Pull assembly scripts",
             "type": "shell",
-            "command": "python -m backend.tools.pull_scripts",
+            "command": "poetry run python -m backend.tools.pull_scripts"
+        },
+        {
+            "label": "Production build",
+            "type": "npm",
+            "script": "build",
+            "problemMatcher": [],
             "group": {
                 "kind": "build"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            }
+        },
+        {
+            "label": "Launch servers",
+            "dependsOn": ["Launch frontend", "Launch backend"],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Launch frontend",
+            "type": "npm",
+            "script": "dev",
+            "problemMatcher": [],
+            "presentation": {
+                "group": "server"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            }
+        },
+        {
+            "label": "Launch backend",
+            "type": "shell",
+            "command": "poetry",
+            "args": [
+                "run",
+                "flask",
+                "--app",
+                "backend.server",
+                "run",
+                "--debug",
+                "--cert",
+                "credentials/cert.pem",
+                "--key",
+                "credentials/key.pem",
+                "--port",
+                "3000"
+            ],
+            "presentation": {
+                "group": "server"
             }
         }
-        // {
-        //     "label": "Launch backend",
-        //     "type": "shell",
-        //     "command": "python -m backend.server",
-        //     "group": {
-        //         "kind": "build"
-        //     }
-        // }
     ]
 }

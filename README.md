@@ -66,6 +66,11 @@ pipx ensurepath
 pipx install poetry
 ```
 
+# Robot Manager Setup
+
+Use the `Launch servers` task to launch the dev servers necessary to view the app. By default, the flask app runs on port 3000, and the vite app runs on port 5173.
+
+
 <!-- In your shell:
 ```
 poetry shell

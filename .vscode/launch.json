@@ -11,6 +11,6 @@
             "program": "${workspaceFolder}/backend/server.py",
             "console": "integratedTerminal",
             "justMyCode": true
-        }
+        },        
     ]
 }
