@@ -38,7 +38,7 @@ export async function post(path: string, options: PostOptions): Promise<any> {
  */
 export async function get(
     path: string,
-    query: URLSearchParamsInit
+    query?: URLSearchParamsInit
 ): Promise<any> {
     return fetch(getUrl(path, query))
         .then((res) => {
@@ -56,7 +56,7 @@ export async function get(
  */
 export async function _delete(
     path: string,
-    query: URLSearchParamsInit
+    query?: URLSearchParamsInit
 ): Promise<any> {
     return fetch(getUrl(path, query), { method: "DELETE" })
         .then((res) => {

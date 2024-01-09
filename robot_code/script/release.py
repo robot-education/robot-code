@@ -1,4 +1,5 @@
 import enum, re
+import api.endpoints.versions
 from featurescript.api import api_base, api_path, conf
 from featurescript.api.endpoints import documents, feature_studios
 from common import str_utils
@@ -62,7 +63,7 @@ def release(
 def get_new_version_name(
     api: api_base.Api, config: conf.Config, feature_name: str, version_type: VersionType
 ) -> str:
-    backend_versions = documents.get_versions(api, config.documents["backend"])
+    backend_versions = api.endpoints.versions.get_versions(api, config.documents["backend"])
     previous_version_name = None
     for version in reversed(backend_versions):
         if not is_feature_release(feature_name, version["name"]):

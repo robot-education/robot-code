@@ -11,7 +11,7 @@ from backend.common import assembly_data, setup, evaluate
 router = flask.Blueprint("assembly-mirror", __name__)
 
 
-@router.post("/assembly-mirror/<document_id>/<workspace_id>/<element_id>")
+@router.post("/assembly-mirror/d/<document_id>/w/<workspace_id>/e/<element_id>")
 def assembly_mirror(document_id: str, workspace_id: str, element_id: str):
     api = setup.get_api()
     assembly_path = api_path.make_element_path(document_id, workspace_id, element_id)

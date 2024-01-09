@@ -9,7 +9,7 @@ interface OpenUrlButtonsProps {
     /**
      * Text for the button which switches to the url.
      */
-    openText: string;
+    switchToText: string;
     /**
      * Text for the button that opens the url in a new tab.
      */
@@ -22,7 +22,7 @@ interface OpenUrlButtonsProps {
 export function OpenUrlButtons(props: OpenUrlButtonsProps) {
     return (
         <>
-            <OpenUrlButton text={props.openText} url={props.url} />
+            <SwitchToUrlButton text={props.switchToText} url={props.url} />
             <OpenUrlInNewTabButton
                 text={props.openInNewTabText}
                 url={props.url}
@@ -36,7 +36,7 @@ interface UrlButtonProps {
     text: string;
 }
 
-export function OpenUrlInNewTabButton(props: UrlButtonProps) {
+export function SwitchToUrlButton(props: UrlButtonProps) {
     return (
         <Button
             text={props.text}
@@ -49,7 +49,7 @@ export function OpenUrlInNewTabButton(props: UrlButtonProps) {
     );
 }
 
-export function OpenUrlButton(props: UrlButtonProps) {
+export function OpenUrlInNewTabButton(props: UrlButtonProps) {
     return (
         <Button
             text={props.text}

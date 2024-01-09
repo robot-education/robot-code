@@ -6,7 +6,7 @@ import {
     Popover
 } from "@blueprintjs/core";
 import { makeUrl, openUrl, openUrlInNewTab } from "../common/url";
-import { DocumentPath } from "../api/path";
+import { DocumentPath, toApiDocumentPath } from "../api/path";
 import { _delete } from "../api/api";
 
 interface DocumentOptionsMenuProps {
@@ -16,7 +16,7 @@ interface DocumentOptionsMenuProps {
 export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
     const url = makeUrl(props.documentPath);
     const handleDeleteLink = () => {
-        _delete("/document-link", props.documentPath);
+        _delete("/document-link" + toApiDocumentPath(props.documentPath));
     };
     const menu = (
         <Menu>

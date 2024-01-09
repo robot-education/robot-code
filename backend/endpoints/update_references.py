@@ -8,7 +8,7 @@ from backend.common import setup
 router = flask.Blueprint("update-references", __name__)
 
 
-@router.post("/update-references/<document_id>/<workspace_id>")
+@router.post("/update-references/d/<document_id>/w/<workspace_id>")
 def update_references(document_id: str, workspace_id: str):
     """Updates references in a given document.
 

@@ -7,7 +7,7 @@ from backend.common import setup
 router = flask.Blueprint("generate-assembly", __name__)
 
 
-@router.post("/generate-assembly/<document_id>/<workspace_id>/<element_id>")
+@router.post("/generate-assembly/d/<document_id>/w/<workspace_id>/e/<element_id>")
 def generate_assembly(document_id: str, workspace_id: str, element_id: str):
     """Generates a new assembly from the given part studio.
 

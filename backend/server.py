@@ -5,7 +5,7 @@ from flask import current_app
 from api.endpoints import users
 from backend import api
 from backend.common import setup
-from backend.routes import oauth
+from backend.endpoints import oauth
 
 dotenv.load_dotenv()
 

@@ -4,6 +4,8 @@ import { Icon, Card, InputGroup, Button } from "@blueprintjs/core";
 import { post } from "../api/api";
 import { toaster } from "../app/app-toaster";
 import { HandledError } from "../common/error";
+import { selectApiDocumentPath } from "../app/onshape-params-slice";
+import { store } from "../app/store";
 
 interface AddLinkArgs {
     url: string;
@@ -14,9 +16,12 @@ async function addLinkMutation({ url }: AddLinkArgs): Promise<string> {
         throw new HandledError("Enter a valid document url.");
     }
     // TODO: Parent or child link?
-    const result = await post("/document-link", {
-        query: { url }
-    });
+    const result = await post(
+        "/document-link" + selectApiDocumentPath(store.getState()),
+        {
+            query: { url }
+        }
+    );
     if (!result) {
         throw new HandledError(
             "Unexpectedly failed to add link. If the problem persists, contact Alex."

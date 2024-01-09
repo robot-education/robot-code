@@ -1,5 +1,6 @@
 import enum
 from api import api_base, api_path
+from api.endpoints.versions import get_latest_version
 
 
 class ElementType(enum.StrEnum):
@@ -25,85 +26,19 @@ def get_document_elements(
     if element_type:
         query["elementType"] = element_type
 
-    elements = api.get(
+    return api.get(
         api_path.document_api_path("documents", document_path, "elements"),
         query=query,
-    )
-    return _extract_paths(elements, document_path)
-
-
-def _extract_paths(
-    elements: list[dict], document_path: api_path.DocumentPath
-) -> dict[str, api_path.ElementPath]:
-    return dict(
-        (
-            element["name"],
-            api_path.ElementPath(document_path, element["id"]),
-        )
-        for element in elements
     )
 
 
 def get_microversion_id(api: api_base.Api, element_path: api_path.ElementPath) -> str:
-    """Fetches the microversion id of an element."""
+    """Fetches the microversion id of a specific element."""
+    # The actual microversion id endpoint is only document level...
     path = api_path.element_api_path("documents", element_path, "elements")
     return api.get(path, query={"elementId": element_path.element_id})[0][
         "microversionId"
     ]
-
-
-def get_versions(
-    api: api_base.Api,
-    document_path: api_path.DocumentPath,
-    offset: int = 0,
-    limit: int = 0,
-) -> list[dict]:
-    """Fetches a list of versions of a document.
-
-    Versions are returned in reverse chronological order (oldest - newest).
-
-    Args:
-        offset: A starting offset to apply. Does not support negative indexing.
-        limit: The max number of versions to return.
-    """
-    return api.get(
-        api_path.api_path("documents", document_path.to_document_base(), "versions"),
-        query={offset: offset, limit: limit},
-    )
-
-
-def get_latest_version(api: api_base.Api, document_path: api_path.DocumentPath) -> dict:
-    return get_versions(api, document_path)[-1]
-
-
-def confirm_version_creation(version_name: str):
-    """Prompts the python user to confirm the creation of a version."""
-    value = input(
-        'You are about to irreversibly create a version named "{}". Versions cannot be deleted. Enter "yes" to confirm: '.format(
-            version_name
-        )
-    )
-    if value != "yes":
-        raise ValueError("Aborted version creation.")
-
-
-def create_version(
-    api: api_base.Api,
-    document_path: api_path.DocumentPath,
-    version_name: str,
-    description: str,
-) -> dict:
-    """Creates a new version of a document."""
-    body = {
-        "name": version_name,
-        "description": description,
-        "documentId": document_path.document_id,
-        "workspaceId": document_path.workspace_id,
-    }
-    return api.post(
-        api_path.api_path("documents", document_path.to_document_base(), "versions"),
-        body=body,
-    )
 
 
 def get_external_references(

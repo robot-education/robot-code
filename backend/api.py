@@ -1,9 +1,10 @@
+from typing import Literal
 import flask
 from api import api_path, exceptions
-from api.endpoints import documents
+from api.endpoints import documents, versions
 from backend.common import setup
 
-from backend.routes import (
+from backend.endpoints import (
     assembly_mirror,
     generate_assembly,
     update_references,
@@ -42,8 +43,8 @@ router.register_blueprint(update_references.router)
 #     return {"id": result["id"]}
 
 
-@router.get("/default-name/<document_id>/<workspace_id>")
-def default_name(document_id: str, workspace_id: str):
+@router.get("/default-name/d/<document_id>/<wv>/<workspace_id>")
+def default_name(document_id: str, wv: Literal["w", "v"], workspace_id: str):
     """Returns the next default name for a given element type in a document.
 
     Args:
@@ -51,12 +52,12 @@ def default_name(document_id: str, workspace_id: str):
             Either PART_STUDIO, ASSEMBLY, or VERSION.
     """
     api = setup.get_api()
-    document_path = api_path.DocumentPath(document_id, workspace_id)
+    document_path = api_path.DocumentPath(document_id, workspace_id, wv)
     element_type = setup.get_arg("elementType")
     if element_type == "VERSION":
-        versions = documents.get_versions(api, document_path)
+        version_list = versions.get_versions(api, document_path)
         # len(versions) is correct due to Start version
-        return {"name": "V{}".format(len(versions))}
+        return {"name": "V{}".format(len(version_list))}
     elif element_type == "ASSEMBLY":
         assemblies = documents.get_document_elements(
             api, document_path, element_type=documents.ElementType.ASSEMBLY

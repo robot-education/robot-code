@@ -1,4 +1,4 @@
-export interface DocumentBasePath extends Record<string, string> {
+export interface DocumentBasePath {
     documentId: string;
 }
 
@@ -7,7 +7,7 @@ export interface DocumentPath extends DocumentBasePath {
     /**
      * One of "w", "v", or "m". Defaults to "w".
      */
-    workspaceOrVersion: string;
+    workspaceOrVersion?: string;
 }
 
 export interface Document extends DocumentPath {
@@ -18,21 +18,33 @@ export interface ElementPath extends DocumentPath {
     elementId: string;
 }
 
-export function toDocumentBase(path: DocumentPath): Record<string, string> {
-    return {
-        documentId: path.documentId
-    };
+export function isDocumentPath(path: DocumentBasePath): path is DocumentPath {
+    return (<DocumentPath>path).workspaceId !== undefined;
+}
+
+export function isElementPath(path: DocumentBasePath): path is ElementPath {
+    return isDocumentPath(path) && (<ElementPath>path).elementId !== undefined;
+}
+
+export function toApiDocumentBase(path: DocumentBasePath): string {
+    return `/d/${path.documentId}`;
 }
 
 /**
  * Trims an ElementPath to just the DocumentPath portion.
  */
-export function toDocumentPath(path: ElementPath): Record<string, string> {
-    return {
-        ...toDocumentBase(path),
-        workspaceOrVersion: path.workspaceOrVersion ?? "w",
-        workspaceId: path.workspaceId
-    };
+export function toApiDocumentPath(path: DocumentPath): string {
+    return (
+        toApiDocumentBase(path) +
+        `/${path.workspaceOrVersion ?? "w"}/${path.workspaceId}`
+    );
+}
+
+/**
+ * Trims an ElementPath to just the DocumentPath portion.
+ */
+export function toApiElementPath(path: ElementPath): string {
+    return toApiDocumentPath(path) + `/e/${path.elementId}`;
 }
 
 /**

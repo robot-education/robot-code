@@ -47,7 +47,7 @@ export function GenerateAssembly() {
     const openButton = mutation.isSuccess && (
         <OpenUrlButtons
             openInNewTabText="Switch to assembly"
-            openText="Open in new tab"
+            switchToText="Open in new tab"
             url={mutation.data.assemblyUrl}
         />
     );

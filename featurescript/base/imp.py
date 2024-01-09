@@ -1,7 +1,7 @@
 import dataclasses
 from typing import override
 import warnings
-from api.endpoints import documents
+from api.endpoints import versions
 from featurescript import endpoints
 from featurescript.base import node, ctxt, user_error
 from featurescript.core import utils
@@ -46,7 +46,7 @@ class Import(node.Node):
             if self.version_id:
                 document.workspace_id = self.version_id
             else:
-                document.workspace_id = documents.get_versions(context.api, document)[
+                document.workspace_id = versions.get_versions(context.api, document)[
                     -1
                 ]["id"]
             # set last to avoid affecting get_versions call
