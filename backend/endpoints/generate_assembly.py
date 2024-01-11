@@ -7,16 +7,16 @@ from backend.common import setup
 router = flask.Blueprint("generate-assembly", __name__)
 
 
-@router.post("/generate-assembly/d/<document_id>/w/<workspace_id>/e/<element_id>")
-def generate_assembly(document_id: str, workspace_id: str, element_id: str):
+@router.post("/generate-assembly" + setup.element_route())
+def generate_assembly(**kwargs: str):
     """Generates a new assembly from the given part studio.
 
     Returns:
         elementId: The element id of the generated assembly.
     """
     api = setup.get_api()
-    name = setup.get_value("name")
-    part_studio_path = api_path.make_element_path(document_id, workspace_id, element_id)
+    name = setup.get_body("name")
+    part_studio_path = setup.get_element_path()
 
     id = assemblies.create_assembly(api, part_studio_path, name)["id"]
     assembly_path = api_path.ElementPath(part_studio_path, id)
@@ -33,4 +33,9 @@ def generate_assembly(document_id: str, workspace_id: str, element_id: str):
     group_mate = assembly_features.group_mate("Group", queries)
     assemblies.add_feature(api, assembly_path, group_mate)
 
-    return {"elementId": assembly_path.element_id}
+    return {
+        "documentId": assembly_path.document_id,
+        "workspaceId": assembly_path.workspace_id,
+        "workspaceOrVersion": assembly_path.workspace_or_version,
+        "elementId": assembly_path.element_id,
+    }

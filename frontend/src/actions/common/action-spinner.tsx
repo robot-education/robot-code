@@ -5,7 +5,6 @@ import { useMutationResetHandler, useCurrentMutation } from "./action-utils";
 
 interface ActionSpinnerProps {
     message: string;
-    controller: AbortController;
 }
 
 export function ActionSpinner(props: ActionSpinnerProps) {
@@ -17,7 +16,6 @@ export function ActionSpinner(props: ActionSpinnerProps) {
             intent="danger"
             icon="cross"
             onClick={() => {
-                props.controller.abort();
                 closeMenuRouter();
             }}
         />

@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any, NotRequired, TypedDict, Unpack
 import os
 import http
-import logging
 
 # logging.basicConfig(level=logging.INFO)
 
@@ -56,9 +55,9 @@ class Api(ABC):
                 Note this does not result in using the latest version of the API automatically.
         """
         self._logging = logging
-        self._base_url = base_url + "/api/"
+        self._base_url = base_url + "/api"
         if version:
-            self._base_url += "v{}/".format(version)
+            self._base_url += "/v{}".format(version)
 
     @abstractmethod
     def _request(

@@ -1,6 +1,4 @@
 import {
-    Alignment,
-    Button,
     Navbar,
     NavbarDivider,
     NavbarGroup,
@@ -8,15 +6,13 @@ import {
 } from "@blueprintjs/core";
 import { SelectMenu } from "./select-menu";
 import { ReactNode } from "react";
-import { MenuType, useCurrentMenuType } from "../common/menu-type";
-import { OpenLinkedDocumentsButton } from "../linked-documents-manager/linked-documents-manager";
+import { OpenLinkedDocumentsButton } from "../linked-documents/linked-documents-dialog";
 
 /**
  * Provides top-level navigation for the app.
  */
 export function AppNavbar(): ReactNode {
-    const menuType = useCurrentMenuType();
-    const referencesButton = menuType === MenuType.VERSIONS && (
+    const documentManagerButton = (
         <>
             <NavbarDivider />
             <OpenLinkedDocumentsButton />
@@ -29,11 +25,11 @@ export function AppNavbar(): ReactNode {
                 <NavbarHeading>Robot manager</NavbarHeading>
                 <NavbarDivider />
                 <SelectMenu />
-                {referencesButton}
+                {documentManagerButton}
             </NavbarGroup>
-            <NavbarGroup align={Alignment.RIGHT}>
+            {/* <NavbarGroup align={Alignment.RIGHT}>
                 <Button icon="cog" minimal />
-            </NavbarGroup>
+            </NavbarGroup> */}
         </Navbar>
     );
 }

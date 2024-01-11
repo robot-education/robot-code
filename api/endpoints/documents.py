@@ -10,6 +10,10 @@ class ElementType(enum.StrEnum):
     FEATURE_STUDIO = "FEATURESTUDIO"
 
 
+def get_document(api: api_base.Api, document_base: api_path.DocumentPath) -> dict:
+    return api.get(api_path.api_path("documents/" + document_base.document_id))
+
+
 def get_document_elements(
     api: api_base.Api,
     document_path: api_path.DocumentPath,

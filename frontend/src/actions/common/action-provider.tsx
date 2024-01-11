@@ -10,6 +10,9 @@ interface ActionProviderProps {
     children: ReactNode;
 }
 
+/**
+ * Serves as a provider for the current mutation and actionInfo for its children.
+ */
 export function ActionProvider(props: ActionProviderProps) {
     return (
         <ActionContextProvider value={props.actionInfo}>

@@ -8,8 +8,7 @@ import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
 import { UpdateAllReferences } from "./versions/update-all-references";
 import { Assembly } from "./assembly/assembly";
-import { LinkedDocumentsManager } from "./linked-documents-manager/linked-documents-manager";
-import { linkedDocumentsQuery } from "./linked-documents-manager/linked-documents-query";
+import { LinkedDocumentsDialog } from "./linked-documents/linked-documents-dialog";
 import { generateAssemblyQuery } from "./part-studio/generate-assembly-query";
 
 export const router = createBrowserRouter([
@@ -43,8 +42,7 @@ export const router = createBrowserRouter([
                         children: [
                             {
                                 path: "linked-documents",
-                                element: <LinkedDocumentsManager />,
-                                loader: linkedDocumentsQuery
+                                element: <LinkedDocumentsDialog />
                             },
                             {
                                 path: "push-version",

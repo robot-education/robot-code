@@ -21,7 +21,7 @@ def update_references(document_id: str, workspace_id: str):
     """
     api = setup.get_api()
     document_path = api_path.make_document_path(document_id, workspace_id)
-    child_document_ids = setup.get_optional_value("childDocumentIds")
+    child_document_ids = setup.get_optional_body("childDocumentIds")
 
     updates = 0
     refs = documents.get_external_references(api, document_path)

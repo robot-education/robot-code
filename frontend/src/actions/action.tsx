@@ -13,7 +13,6 @@ export interface ActionProps {
     mutation: UseMutationResult<any, any, any, any>;
     actionForm: ReactNode;
     loadingMessage: string;
-    controller: AbortController;
     successMessage: string;
     successDescription: string;
     successActions?: ReactNode;
@@ -24,10 +23,7 @@ export function Action(props: ActionProps) {
         <ActionProvider actionInfo={props.actionInfo} mutation={props.mutation}>
             <ActionDialog>
                 {props.actionForm}
-                <ActionSpinner
-                    message={props.loadingMessage}
-                    controller={props.controller}
-                />
+                <ActionSpinner message={props.loadingMessage} />
                 <ActionSuccess
                     message={props.successMessage}
                     description={props.successDescription}

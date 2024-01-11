@@ -2,8 +2,11 @@ export interface DocumentBasePath {
     documentId: string;
 }
 
-export interface DocumentPath extends DocumentBasePath {
+export interface DocumentWorkspacePath extends DocumentBasePath {
     workspaceId: string;
+}
+
+export interface DocumentPath extends DocumentWorkspacePath {
     /**
      * One of "w", "v", or "m". Defaults to "w".
      */

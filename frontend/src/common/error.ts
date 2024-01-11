@@ -1,11 +1,6 @@
-export class HandledError<T> extends Error {
-    public data: T;
-
-    constructor(data: T) {
-        super(
-            "Internal error - this error is supposed to be handled! Contact Alex."
-        );
+export class HandledError extends Error {
+    constructor(message: string) {
+        super(message);
         Object.setPrototypeOf(this, HandledError.prototype);
-        this.data = data;
     }
 }

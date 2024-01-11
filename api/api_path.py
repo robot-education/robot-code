@@ -9,11 +9,11 @@ class DocumentPath:
         self,
         document_id: str,
         workspace_id: str,
-        workspace_or_version: Literal["w", "m", "v"] = "w",
+        workspace_or_version: str = "w",
     ) -> None:
         self.document_id = document_id
         self.workspace_id = workspace_id
-        self.workspace_or_version: Literal["w", "m", "v"] = workspace_or_version
+        self.workspace_or_version = workspace_or_version
 
     @staticmethod
     def from_url(url: str) -> DocumentPath:
@@ -57,7 +57,7 @@ class DocumentPath:
 def make_document_path(
     document_id: str,
     workspace_id: str,
-    workspace_or_version: Literal["w", "m", "v"] = "w",
+    workspace_or_version: str = "w",
 ) -> DocumentPath:
     return DocumentPath(document_id, workspace_id, workspace_or_version)
 
@@ -184,6 +184,8 @@ def api_path(
     feature_id: str | None = None,
 ) -> str:
     """Constructs a path suitable for consumption by an API."""
+    if not service.startswith("/"):
+        service = "/" + service
     api_path = service
     if path:
         api_path += str(path)

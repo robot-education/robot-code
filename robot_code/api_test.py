@@ -1,6 +1,5 @@
 from api import api_path, key_api
-from api.endpoints import documents, assemblies, users
-import api.endpoints.versions
+from api.endpoints import documents, assemblies, users, versions
 from featurescript import conf
 
 
@@ -19,7 +18,7 @@ def main():
     base_path = base_document["Part Studio 1"]
 
     base_path.workspace_or_version = "v"
-    base_path.workspace_id = api.endpoints.versions.get_latest_version(api, base_path)["id"]
+    base_path.workspace_id = versions.get_latest_version(api, base_path)["id"]
 
     assemblies.add_parts_to_assembly(api, target_path, base_path)
 

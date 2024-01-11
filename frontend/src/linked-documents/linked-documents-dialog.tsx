@@ -1,7 +1,8 @@
 import { Button, Dialog, DialogBody, DialogFooter } from "@blueprintjs/core";
 import { useNavigate } from "react-router-dom";
-import { LinkedDocumentsList } from "./linked-documents-list";
 import { CloseButton } from "../components/close-button";
+import { LinkType } from "./document-link-type";
+import { LinkedDocumentsList } from "./linked-documents-list";
 
 export function OpenLinkedDocumentsButton() {
     const navigate = useNavigate();
@@ -15,7 +16,7 @@ export function OpenLinkedDocumentsButton() {
     );
 }
 
-export function LinkedDocumentsManager() {
+export function LinkedDocumentsDialog() {
     const navigate = useNavigate();
     return (
         <Dialog
@@ -26,7 +27,17 @@ export function LinkedDocumentsManager() {
             title="Manage linked documents"
         >
             <DialogBody>
-                <LinkedDocumentsList />
+                <LinkedDocumentsList
+                    linkType={LinkType.PARENTS}
+                    title="Parent documents"
+                    subtitle="Documents which use things created in this document."
+                />
+                <br />
+                <LinkedDocumentsList
+                    linkType={LinkType.CHILDREN}
+                    title="Child documents"
+                    subtitle="Documents which create things used in this document."
+                />
             </DialogBody>
             <DialogFooter minimal actions={<CloseButton />} />
         </Dialog>
