@@ -2,7 +2,7 @@
 """
 import argparse
 
-from api import key_api
+from onshape_api import key_api
 from featurescript import conf, manager
 
 

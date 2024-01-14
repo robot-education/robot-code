@@ -5,8 +5,10 @@ import http
 
 # logging.basicConfig(level=logging.INFO)
 
+__all__ = ["Api"]
 
-class ApiBaseArgs(TypedDict):
+
+class ApiArgs(TypedDict):
     base_url: NotRequired[str]
     logging: NotRequired[bool]
     version: NotRequired[int | None]
@@ -17,10 +19,10 @@ class ApiQueryArgs(TypedDict):
     headers: NotRequired[dict[str, str]]
 
 
-def make_api_base_args() -> ApiBaseArgs:
-    """Constructs ApiBaseArgs from environment variables."""
+def make_api_base_args() -> ApiArgs:
+    """Constructs ApiArgs from environment variables."""
     # True if API_LOGGING exists and isn't "false". Default is "false".
-    kwargs: ApiBaseArgs = {"logging": os.getenv("API_LOGGING", "false") == "true"}
+    kwargs: ApiArgs = {"logging": os.getenv("API_LOGGING", "false") == "true"}
     if temp := os.getenv("API_VERSION"):
         kwargs["version"] = int(temp)
     if base_url := os.getenv("API_BASE_URL"):

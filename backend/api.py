@@ -1,29 +1,35 @@
 import http
 import flask
-from api import exceptions
-from api.endpoints import documents, versions
-from backend.common import setup
 
+import onshape_api
+from onshape_api import endpoints
+
+from backend.common import backend_exceptions, setup
 from backend.endpoints import (
     assembly_mirror,
     generate_assembly,
     linked_documents,
-    update_references,
+    references,
 )
 
 
 router = flask.Blueprint("api", __name__, url_prefix="/api")
 
 
-@router.errorhandler(exceptions.ApiException)
-def api_exception(e: exceptions.ApiException):
+@router.errorhandler(onshape_api.ApiError)
+def api_exception(e: onshape_api.ApiError):
+    return e.to_dict(), e.status_code
+
+
+@router.errorhandler(backend_exceptions.UserException)
+def user_exception(e: backend_exceptions.UserException):
     return e.to_dict(), e.status_code
 
 
 router.register_blueprint(generate_assembly.router)
 router.register_blueprint(assembly_mirror.router)
-router.register_blueprint(update_references.router)
 router.register_blueprint(linked_documents.router)
+router.register_blueprint(references.router)
 
 
 # @app.post("/auto-assembly")
@@ -53,23 +59,23 @@ def default_name(element_type: str, **kwargs):
         element_type: The type of element to fetch. One of part-studio, assembly, or version.
     """
     api = setup.get_api()
-    document_path = setup.get_document_path("wv")
+    document_path = setup.get_instance_path("wv")
     if element_type == "version":
-        version_list = versions.get_versions(api, document_path)
+        version_list = endpoints.get_versions(api, document_path)
         # len(versions) is correct due to Start version
         return {"name": "V{}".format(len(version_list))}
     elif element_type == "assembly":
-        assemblies = documents.get_document_elements(
-            api, document_path, element_type=documents.ElementType.ASSEMBLY
+        assemblies = endpoints.get_document_elements(
+            api, document_path, element_type=endpoints.ElementType.ASSEMBLY
         )
         return {"name": "Assembly {}".format(len(assemblies) + 1)}
     elif element_type == "part-studio":
-        part_studios = documents.get_document_elements(
-            api, document_path, element_type=documents.ElementType.PART_STUDIO
+        part_studios = endpoints.get_document_elements(
+            api, document_path, element_type=endpoints.ElementType.PART_STUDIO
         )
         return {"name": "Part Studio {}".format(len(part_studios) + 1)}
 
-    raise exceptions.ApiException(
+    raise onshape_api.ApiError(
         "Received invalid value for route arg element_type: {}".format(element_type),
         http.HTTPStatus.NOT_FOUND,
     )

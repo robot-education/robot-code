@@ -3,18 +3,18 @@ from abc import ABC, abstractmethod
 from concurrent import futures
 from typing import Iterable
 import flask
+import onshape_api
+from onshape_api import endpoints
 
-from api import api_base, api_path
-from api.endpoints import assemblies
 from backend.common import assembly_data, setup, evaluate
 
 router = flask.Blueprint("assembly-mirror", __name__)
 
 
-@router.post("/assembly-mirror/d/<document_id>/w/<workspace_id>/e/<element_id>")
-def assembly_mirror(document_id: str, workspace_id: str, element_id: str):
+@router.post("/assembly-mirror" + setup.element_route())
+def assembly_mirror(**kwargs):
+    assembly_path = setup.get_element_path()
     api = setup.get_api()
-    assembly_path = api_path.make_element_path(document_id, workspace_id, element_id)
     AssemblyMirror(api, assembly_path).execute()
     return {"message": "Success"}
 
@@ -36,7 +36,7 @@ class AssemblyMirrorCandidate:
         self.instance = instance
         self.part = assembly.get_part_from_instance(instance)
         self.part_path = assembly.resolve_part_path(instance)
-        self.element_path = self.part_path.to_element_path()
+        self.element_path = onshape_api.ElementPath.to_path(self.part_path)
         self.mate_connectors = self._init_mate_connectors(assembly_features)
         self.all_used = all(self.mate_connectors.values())
 
@@ -55,15 +55,15 @@ class AssemblyMirrorCandidate:
 class AssemblyMirrorPart(ABC):
     """Represents a part which assembly mirror is being applied to."""
 
-    def __init__(self, part_path: api_path.PartPath) -> None:
+    def __init__(self, part_path: onshape_api.PartPath) -> None:
         self.part_path = part_path
 
     def add_to_assembly(
-        self, api: api_base.Api, assembly_path: api_path.ElementPath
+        self, api: onshape_api.Api, assembly_path: onshape_api.ElementPath
     ) -> None:
-        assemblies.add_part_to_assembly(api, assembly_path, self.part_path)
+        endpoints.add_parts_to_assembly(api, assembly_path, self.part_path)
 
-    def find_match(self, instance_dict: dict[api_path.PartPath, dict]) -> dict:
+    def find_match(self, instance_dict: dict[onshape_api.PartPath, dict]) -> dict:
         """Returns the an assembled instance which matches this part."""
         # TODO: Atomicity error handling
         return instance_dict[self.part_path]
@@ -90,7 +90,9 @@ class CenterMirrorPart(AssemblyMirrorPart):
 class AssemblyMirror:
     """Represents the execution of a single assembly mirror operation."""
 
-    def __init__(self, api: api_base.Api, assembly_path: api_path.ElementPath) -> None:
+    def __init__(
+        self, api: onshape_api.Api, assembly_path: onshape_api.ElementPath
+    ) -> None:
         self.api = api
         self.path = assembly_path
 
@@ -134,7 +136,7 @@ class AssemblyMirror:
 
     def _collect_part_studios(
         self, candidates: Iterable[AssemblyMirrorCandidate]
-    ) -> Iterable[api_path.ElementPath]:
+    ) -> Iterable[onshape_api.ElementPath]:
         """Maps candidates into a set of unique part studios.
 
         Candidates without any unused mate connectors are first filtered out.
@@ -156,7 +158,7 @@ class AssemblyMirror:
         self,
         candidates: Iterable[AssemblyMirrorCandidate],
         origin_base_mates: set[str],
-    ) -> set[api_path.PartPath]:
+    ) -> set[onshape_api.PartPath]:
         """Returns a set of part_paths representing parts which are ineligible for origin mirroring."""
         return set(
             candidate.part_path
@@ -167,7 +169,7 @@ class AssemblyMirror:
     def _is_eligible_for_origin_mirror(
         self,
         candidate: AssemblyMirrorCandidate,
-        used_origin_paths: set[api_path.PartPath],
+        used_origin_paths: set[onshape_api.PartPath],
         origin_base_mates: set[str],
     ) -> bool:
         if candidate.part_path in used_origin_paths:

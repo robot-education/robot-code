@@ -1,13 +1,13 @@
 from __future__ import annotations
 from typing import Any, Iterable
-from api import api_path, api_base
-from api.endpoints import assemblies
+import onshape_api
+from onshape_api import endpoints
 
 
 class Assembly:
     """Contains information from Onshape about an assembly."""
 
-    def __init__(self, assembly_data: dict, path: api_path.ElementPath) -> None:
+    def __init__(self, assembly_data: dict, path: onshape_api.ElementPath) -> None:
         self.assembly_data = assembly_data
         self.path = path
 
@@ -36,16 +36,18 @@ class Assembly:
     def get_instances(self) -> list[dict]:
         return self.assembly_data["rootAssembly"].get("instances", [])
 
-    def extract_unique_part_studios(self) -> set[api_path.ElementPath]:
+    def extract_unique_part_studios(self) -> set[onshape_api.ElementPath]:
         """Constructs a set of unique part studio paths in the assembly."""
         return set(self.resolve_path(part) for part in self.get_parts())
 
-    def get_part_paths_to_mate_ids(self) -> dict[api_path.PartPath, list[str]]:
+    def get_part_paths_to_mate_ids(self) -> dict[onshape_api.PartPath, list[str]]:
         """Constructs a dict which maps part paths to a list of the unique mate ids owned by each part."""
 
         result = {}
         for part in self.get_parts():
-            part_path = api_path.PartPath(self.resolve_path(part), part["partId"])
+            part_path = onshape_api.PartPath.from_path(
+                self.resolve_path(part), part["partId"]
+            )
             for mate_connector in part.get("mateConnectors", []):
                 mate_id = mate_connector["featureId"]
                 values = result.get(part_path, [])
@@ -53,41 +55,38 @@ class Assembly:
                 result[part_path] = values
         return result
 
-    def resolve_part_path(self, instance_or_part: dict) -> api_path.PartPath:
+    def resolve_part_path(self, instance_or_part: dict) -> onshape_api.PartPath:
         """Constructs a part path to a given instance or part.
 
         Args:
             instance_or_part: An instance or part in an assembly.
         """
-        return api_path.PartPath(
+        return onshape_api.PartPath.from_path(
             self.resolve_path(instance_or_part), instance_or_part["partId"]
         )
 
-    def resolve_path(self, instance_or_part: dict) -> api_path.ElementPath:
+    def resolve_path(self, instance_or_part: dict) -> onshape_api.ElementPath:
         """Constructs an element path from a given instance or a part.
 
         Args:
             instance_or_part: An instance or part in an assembly.
         """
         if "documentVersion" in instance_or_part:
-            return api_path.ElementPath(
-                api_path.DocumentPath(
-                    instance_or_part["documentId"],
-                    instance_or_part["documentVersion"],
-                    "v",
-                ),
+            return onshape_api.ElementPath(
+                instance_or_part["documentId"],
+                instance_or_part["documentVersion"],
                 instance_or_part["elementId"],
+                onshape_api.InstanceType.VERSION,
             )
-        return api_path.ElementPath(
-            api_path.DocumentPath(
-                instance_or_part["documentId"], self.path.workspace_id, "w"
-            ),
+        return onshape_api.ElementPath(
+            instance_or_part["documentId"],
+            self.path.instance_id,
             instance_or_part["elementId"],
         )
 
 
-def assembly(api: api_base.Api, assembly_path: api_path.ElementPath) -> Assembly:
-    assembly_data = assemblies.get_assembly(
+def assembly(api: onshape_api.Api, assembly_path: onshape_api.ElementPath) -> Assembly:
+    assembly_data = endpoints.get_assembly(
         api, assembly_path, include_mate_features=True, include_mate_connectors=True
     )
     return Assembly(assembly_data, assembly_path)
@@ -139,7 +138,7 @@ def get_parameter(feature: dict, parameter_id: str) -> Any:
 
 
 def assembly_features(
-    api: api_base.Api, assembly_path: api_path.ElementPath
+    api: onshape_api.Api, assembly_path: onshape_api.ElementPath
 ) -> AssemblyFeatures:
-    assembly_data = assemblies.get_assembly_features(api, assembly_path)
+    assembly_data = endpoints.get_assembly_features(api, assembly_path)
     return AssemblyFeatures(assembly_data)

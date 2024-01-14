@@ -1,17 +1,20 @@
 from __future__ import annotations
+from typing import Unpack, override
 import http
 import json
 import logging
-from typing import Unpack, override
 from urllib import parse
+
 from requests_oauthlib import OAuth2Session
-from api import exceptions, utils
-from api.api_base import Api, ApiBaseArgs, make_api_base_args
+
+from onshape_api import exceptions
+from onshape_api.utils import env_utils
+from onshape_api.api.api_base import Api, ApiArgs, make_api_base_args
 
 
 def make_oauth_api(oauth: OAuth2Session, load_dotenv: bool = False) -> OAuthApi:
     if load_dotenv:
-        utils.load_env()
+        env_utils.load_env()
     kwargs = make_api_base_args()
     return OAuthApi(oauth, **kwargs)
 
@@ -19,7 +22,7 @@ def make_oauth_api(oauth: OAuth2Session, load_dotenv: bool = False) -> OAuthApi:
 class OAuthApi(Api):
     """Provides access to the Onshape API via OAuth."""
 
-    def __init__(self, oauth: OAuth2Session, **kwargs: Unpack[ApiBaseArgs]):
+    def __init__(self, oauth: OAuth2Session, **kwargs: Unpack[ApiArgs]):
         super().__init__(**kwargs)
         self.oauth = oauth
 
@@ -58,7 +61,7 @@ class OAuthApi(Api):
         else:
             if self._logging:
                 logging.error("request failed, details: " + res.text)
-            raise exceptions.ApiException(res.text, status)
+            raise exceptions.ApiError(res.text, status)
 
         try:
             return res.json()

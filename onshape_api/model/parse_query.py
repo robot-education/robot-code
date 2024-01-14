@@ -1,4 +1,7 @@
+"""Utilities with working with queries in part studios and assemblies."""
 from common import str_utils
+
+__all__ = ["parse_query"]
 
 # { queryType : UNION , subqueries : [ { disambiguationData : [ { disambiguationType : ORIGINAL_DEPENDENCY , originals : [ { entityType : EDGE , historyType : CREATION , operationId : [ F86ylNPrzWLomm9_1.wireOp ] , queryType : SKETCH_ENTITY , sketchEntityId : rGNlyQ5ipaBS } ] } ] , entityType : EDGE , historyType : CREATION , isStart : false , operationId : [ FHCYmesA2a3t0Lm_1.opExtrude ] , queryType : CAP_EDGE } ] }
 
@@ -33,6 +36,7 @@ def parse_query_value(key: str, value) -> str:
 
 
 def parse_query(query: dict) -> str:
+    """Parses a query into a format consumable by the Onshape API."""
     if query.get("queryType") == "UNION":
         subqueries = ", ".join(
             [parse_query(subquery) for subquery in query["subqueries"]]

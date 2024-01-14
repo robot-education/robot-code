@@ -1,13 +1,32 @@
-from logging.config import dictConfig
-import dotenv
+from onshape_api.paths.paths import ElementPath, InstancePath
 
 
-def load_env():
-    """Loads the .env file from root.
+def confirm_version_creation(version_name: str):
+    """Prompts the python user to confirm the creation of a version."""
+    value = input(
+        'You are about to irreversibly create a version named "{}". Versions cannot be deleted (Y/n):'.format(
+            version_name
+        )
+    )
+    if value != "" and value.lower() != "y":
+        raise ValueError("Aborted version creation.")
 
-    Throws if no variables are added."""
-    if not dotenv.load_dotenv():
-        raise ValueError("Failed to load .env file")
+
+def map_documents(
+    elements: list[dict], document_path: InstancePath
+) -> dict[str, ElementPath]:
+    """Constructs a mapping of document names to their paths.
+
+    Can be used on the responses from certain endpoints.
+    """
+    return dict(
+        (
+            element["name"],
+            ElementPath.from_path(document_path, element["id"]),
+        )
+        for element in elements
+    )
+
 
 # red_color = "\033[91m"
 # end_color = "\033[0m"

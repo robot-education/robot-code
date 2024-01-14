@@ -14,8 +14,9 @@ from urllib import parse
 
 import requests
 
-from api import exceptions, utils
-from api.api_base import Api, ApiBaseArgs, make_api_base_args
+from onshape_api import exceptions
+from onshape_api.api.api_base import Api, ApiArgs, make_api_base_args
+from onshape_api.utils import env_utils
 
 
 def make_key_api(load_dotenv: bool = True) -> KeyApi:
@@ -26,7 +27,7 @@ def make_key_api(load_dotenv: bool = True) -> KeyApi:
     The variables API_BASE_URL, API_VERSION, and API_LOGGING may also be set.
     """
     if load_dotenv:
-        utils.load_env()
+        env_utils.load_env()
     kwargs = make_api_base_args()
     access_key = os.getenv("API_ACCESS_KEY")
     secret_key = os.getenv("API_SECRET_KEY")
@@ -43,7 +44,7 @@ class KeyApi(Api):
     """Provides access to the Onshape API using API keys."""
 
     def __init__(
-        self, access_key: str, secret_key: str, **kwargs: Unpack[ApiBaseArgs]
+        self, access_key: str, secret_key: str, **kwargs: Unpack[ApiArgs]
     ) -> None:
         super().__init__(**kwargs)
         self._access_key = access_key
@@ -93,7 +94,7 @@ class KeyApi(Api):
             # The official Onshape app has redirect handling here, we skip because lazy
             if self._logging:
                 logging.error("unhandled redirect, details: " + res.text)
-            raise exceptions.ApiException(res.text, status)
+            raise exceptions.ApiError(res.text, status)
 
             # location = parse.urlparse(res.headers["Location"])
             # if self._logging:
@@ -115,7 +116,7 @@ class KeyApi(Api):
         else:
             if self._logging:
                 logging.error("request failed, details: " + res.text)
-            raise exceptions.ApiException(res.text, status)
+            raise exceptions.ApiError(res.text, status)
 
         try:
             return res.json()

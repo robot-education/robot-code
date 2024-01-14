@@ -1,8 +1,7 @@
 import os
 import dotenv
 import flask
-from flask import current_app
-from api.endpoints import users
+from onshape_api.endpoints import users
 from backend import api
 from backend.common import setup
 from backend.endpoints import oauth
@@ -18,7 +17,6 @@ def create_app():
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
     app.register_blueprint(api.router)
-
     app.register_blueprint(oauth.router)
 
     @app.get("/app/assembly")

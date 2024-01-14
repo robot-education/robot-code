@@ -1,11 +1,11 @@
+"""Utilities and functions for working with assembly features."""
+
 from typing import Iterable, Self
 
 
-def temp_id():
+def dummy_id():
+    """A dummy id which allows features to bypass validation."""
     return "0" * 17
-    # import os
-    # import base64
-    # return base64.b64encode(os.urandom(17)).decode("ascii")
 
 
 def part_studio_mate_connector_query(instance_id: str, mate_id: str) -> dict:
@@ -55,7 +55,7 @@ class FastenMateBuilder:
 
     def add_mate_connector(self, mate_connector: dict) -> Self:
         """Adds a query for an implicit (owned) mate connector."""
-        mate_id = temp_id()
+        mate_id = dummy_id()
         mate_connector["featureId"] = mate_id
         self.mate_connectors.append(mate_connector)
         self.queries.append(feature_query(mate_id))

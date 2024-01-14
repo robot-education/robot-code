@@ -45,5 +45,12 @@
     },
     "[typescriptreact]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/*.pyc": true,
+        "**/assets": true,
+        "**/dist": true,
+        "**/*.code-search": true
     }
 }
