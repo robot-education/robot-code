@@ -12,20 +12,14 @@ import { OpenLinkedDocumentsButton } from "../linked-documents/linked-documents-
  * Provides top-level navigation for the app.
  */
 export function AppNavbar(): ReactNode {
-    const documentManagerButton = (
-        <>
-            <NavbarDivider />
-            <OpenLinkedDocumentsButton />
-        </>
-    );
-
     return (
         <Navbar>
             <NavbarGroup>
                 <NavbarHeading>Robot manager</NavbarHeading>
                 <NavbarDivider />
                 <SelectMenu />
-                {documentManagerButton}
+                <NavbarDivider />
+                <OpenLinkedDocumentsButton />
             </NavbarGroup>
             {/* <NavbarGroup align={Alignment.RIGHT}>
                 <Button icon="cog" minimal />

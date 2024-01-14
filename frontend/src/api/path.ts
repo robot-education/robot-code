@@ -13,7 +13,7 @@ export interface DocumentPath extends DocumentWorkspacePath {
     workspaceOrVersion?: string;
 }
 
-export interface Document extends DocumentPath {
+export interface Document extends DocumentWorkspacePath {
     name: string;
 }
 

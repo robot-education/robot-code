@@ -16,11 +16,11 @@ interface PostOptions {
 /**
  * Makes a post request to a backend /api route.
  */
-export async function post(path: string, options: PostOptions): Promise<any> {
-    return fetch(getUrl(path, options.query), {
+export async function post(path: string, options?: PostOptions): Promise<any> {
+    return fetch(getUrl(path, options?.query), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(options.body ?? {})
+        body: JSON.stringify(options?.body ?? {})
     }).then((res) => {
         if (!res.ok) {
             throw new Error("Network response failed.");

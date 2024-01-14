@@ -9,7 +9,10 @@ import { PushVersion } from "./versions/push-version";
 import { UpdateAllReferences } from "./versions/update-all-references";
 import { Assembly } from "./assembly/assembly";
 import { LinkedDocumentsDialog } from "./linked-documents/linked-documents-dialog";
-import { generateAssemblyQuery } from "./part-studio/generate-assembly-query";
+import {
+    DefaultNameType,
+    makeDefaultNameLoader
+} from "./common/default-name-loader";
 
 export const router = createBrowserRouter([
     {
@@ -25,16 +28,27 @@ export const router = createBrowserRouter([
                         element: <PartStudio />,
                         children: [
                             {
+                                path: "linked-documents",
+                                element: <LinkedDocumentsDialog />
+                            },
+                            {
                                 path: "generate-assembly",
                                 element: <GenerateAssembly />,
-                                loader: generateAssemblyQuery
+                                loader: makeDefaultNameLoader(
+                                    DefaultNameType.ASSEMBLY
+                                )
                             }
                         ]
                     },
                     {
                         path: "assembly",
                         element: <Assembly />,
-                        children: []
+                        children: [
+                            {
+                                path: "linked-documents",
+                                element: <LinkedDocumentsDialog />
+                            }
+                        ]
                     },
                     {
                         path: "versions",
@@ -46,7 +60,10 @@ export const router = createBrowserRouter([
                             },
                             {
                                 path: "push-version",
-                                element: <PushVersion />
+                                element: <PushVersion />,
+                                loader: makeDefaultNameLoader(
+                                    DefaultNameType.VERSION
+                                )
                             },
                             {
                                 path: "update-all-references",

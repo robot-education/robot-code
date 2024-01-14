@@ -7,7 +7,7 @@ import {
     showInternalErrorToast,
     showSuccessToast
 } from "../app/toaster";
-import { HandledError } from "../common/error";
+import { HandledError } from "../common/errors";
 import { selectApiDocumentPath } from "../app/onshape-params-slice";
 import { store } from "../app/store";
 import { parseUrl } from "../common/url";
@@ -54,7 +54,7 @@ async function addLinkMutationFn({
 export function AddLinkCard({ linkType }: LinkTypeProps) {
     const [url, setUrl] = useState("");
     const addLinkMutation = useMutation({
-        mutationKey: ["post", "document-link", linkType],
+        mutationKey: ["post", "linked-documents", linkType],
         mutationFn: addLinkMutationFn,
         onError: (error) => {
             if (error instanceof HandledError) {
@@ -74,17 +74,16 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
         }
     });
 
-    const linkIcon = <Icon icon="link" />;
     return (
         <Card className="link-card" key="add">
             <InputGroup
                 className="link-card-url-input"
+                fill
                 value={url}
                 intent={addLinkMutation.error ? "danger" : undefined}
                 onValueChange={(value) => setUrl(value)}
-                leftElement={linkIcon}
+                leftElement={<Icon icon="link" />}
                 placeholder="Document link"
-                fill={true}
             />
             <Button
                 text="Add"

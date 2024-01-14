@@ -10,7 +10,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@blueprintjs/core": "^5.7.2",
+        "@blueprintjs/core": "^5.8.2",
         "@blueprintjs/icons": "^5.5.0",
         "@blueprintjs/select": "^5.0.20",
         "@reduxjs/toolkit": "^2.0.1",

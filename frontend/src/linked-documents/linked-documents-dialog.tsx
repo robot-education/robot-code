@@ -3,14 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { CloseButton } from "../components/close-button";
 import { LinkType } from "./document-link-type";
 import { LinkedDocumentsList } from "./linked-documents-list";
+import { useCurrentMenuType } from "../common/menu-type";
 
 export function OpenLinkedDocumentsButton() {
     const navigate = useNavigate();
+    const currentMenuType = useCurrentMenuType();
     return (
         <Button
             icon="diagram-tree"
             text="Manage links"
-            onClick={() => navigate("/app/versions/linked-documents")}
+            onClick={() => navigate(`/app/${currentMenuType}/linked-documents`)}
             minimal
         />
     );

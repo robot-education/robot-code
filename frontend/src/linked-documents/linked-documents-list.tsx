@@ -2,6 +2,9 @@ import {
     Button,
     Card,
     CardList,
+    Icon,
+    NonIdealState,
+    NonIdealStateIconSize,
     Section,
     SectionCard,
     Spinner
@@ -14,9 +17,7 @@ import { selectApiDocumentPath } from "../app/onshape-params-slice";
 import { useAppSelector } from "../app/hooks";
 import { LinkType, LinkTypeProps } from "./document-link-type";
 import { DocumentOptionsMenu } from "./document-options-menu";
-import { NonIdealStateOverride } from "../components/non-ideal-state-override";
-import { queryClient } from "../query/query-client";
-import { showInfoToast } from "../app/toaster";
+import { useState } from "react";
 
 function getDocumentCards(
     linkType: LinkType,
@@ -41,12 +42,11 @@ interface LinkedDocumentsProps extends LinkTypeProps {
 }
 
 export function LinkedDocumentsList(props: LinkedDocumentsProps) {
-    const apiPath = useAppSelector(selectApiDocumentPath);
+    const [isManuallyRefetching, setManuallyRefetching] = useState(false);
+    const documentApiPath = useAppSelector(selectApiDocumentPath);
     const queryFn = async (): Promise<Document[]> => {
-        console.log("Call backend");
-        // Call get links with current document path
         const result = await get(
-            `/linked-documents/${props.linkType}` + apiPath
+            `/linked-documents/${props.linkType}` + documentApiPath
         );
         return result.documents;
     };
@@ -57,7 +57,7 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
 
     let body;
     // Also show spinner when query is invalidated by reset button
-    if (query.isPending || query.isRefetching) {
+    if (query.isPending || isManuallyRefetching) {
         // Could also render some dummy cards wrapped in a skeleton
         body = (
             <Card style={{ justifyContent: "center" }}>
@@ -68,11 +68,17 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
         body = getDocumentCards(props.linkType, query.data);
     } else if (query.isError) {
         body = (
-            <NonIdealStateOverride
+            <NonIdealState
                 title="Failed to load linked documents."
                 description="If the problem persits, contact Alex."
-                iconIntent="danger"
-                icon="cross"
+                icon={
+                    <Icon
+                        icon="cross"
+                        intent="danger"
+                        size={NonIdealStateIconSize.STANDARD}
+                    />
+                }
+                iconMuted={false}
             />
         );
     }
@@ -83,10 +89,9 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
             minimal
             onClick={async (event) => {
                 event.stopPropagation();
-                await queryClient.resetQueries({
-                    queryKey: ["linked-documents", props.linkType]
-                });
-                showInfoToast("Refreshed documents.");
+                setManuallyRefetching(true);
+                await query.refetch();
+                setManuallyRefetching(false);
             }}
         />
     );
