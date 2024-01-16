@@ -1,5 +1,5 @@
 import { Intent, OverlayToaster } from "@blueprintjs/core";
-import { TickCircle, WarningSign } from "@blueprintjs/icons";
+import { InfoSign, TickCircle, WarningSign } from "@blueprintjs/icons";
 
 export const toaster = OverlayToaster.create({
     maxToasts: 3
@@ -19,7 +19,7 @@ export const errorToastArgs = {
 export function showInfoToast(message: string, key?: string): string {
     return toaster.show(
         {
-            icon: "info-sign",
+            icon: <InfoSign />,
             intent: "primary",
             message
         },

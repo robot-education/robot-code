@@ -13,7 +13,7 @@ from backend.endpoints import (
 )
 
 
-router = flask.Blueprint("api", __name__, url_prefix="/api")
+router = flask.Blueprint("api", __name__, url_prefix="/api", static_folder="dist")
 
 
 @router.errorhandler(onshape_api.ApiError)

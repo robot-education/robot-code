@@ -20,6 +20,7 @@ import { Workspace } from "../api/path";
 import { useId } from "react";
 import { queryClient } from "../query/query-client";
 import { useMutation } from "@tanstack/react-query";
+import { CaretDown, Cross, Share } from "@blueprintjs/icons";
 
 interface DeleteDocumentArgs {
     documentPath: InstancePath;
@@ -32,7 +33,7 @@ async function deleteDocumentMutationFn(
     const currentApiPath = currentInstanceApiPath();
     return del(`/linked-documents/${args.linkType}` + currentApiPath, {
         documentId: args.documentPath.documentId,
-        workspaceId: args.documentPath.instanceId
+        instanceId: args.documentPath.instanceId
     });
 }
 
@@ -112,14 +113,14 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
         <Menu>
             <MenuItem
                 text="Open in new tab"
-                icon="share"
+                icon={<Share />}
                 intent="primary"
                 onClick={() => openUrlInNewTab(url)}
             />
             <MenuDivider />
             <MenuItem
                 text="Delete link"
-                icon="cross"
+                icon={<Cross />}
                 intent="danger"
                 onClick={() => {
                     deleteMutation.mutate({
@@ -136,7 +137,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                 alignText="left"
                 intent="primary"
                 text="Options"
-                rightIcon="caret-down"
+                rightIcon={<CaretDown />}
                 minimal
             />
         </Popover>

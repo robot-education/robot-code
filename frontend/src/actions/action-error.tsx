@@ -1,15 +1,19 @@
+import { Cross } from "@blueprintjs/icons";
 import { CloseButton } from "../components/close-button";
 import { ActionBody } from "./action-body";
-import { Icon, NonIdealState, NonIdealStateIconSize } from "@blueprintjs/core";
+import {
+    Classes,
+    NonIdealState,
+    NonIdealStateIconSize
+} from "@blueprintjs/core";
 
 export function ActionError() {
     return (
         <ActionBody actions={<CloseButton />}>
             <NonIdealState
                 icon={
-                    <Icon
-                        icon="cross"
-                        intent="danger"
+                    <Cross
+                        className={Classes.INTENT_DANGER}
                         size={NonIdealStateIconSize.STANDARD}
                     />
                 }

@@ -109,7 +109,7 @@ def evalute_auto_assembly_parts(
             for values in result["mates"]:
                 part_maps.mates_to_targets[values["mateId"]] = onshape_api.ElementPath(
                     values["documentId"],
-                    values["workspaceId"],
+                    values["instanceId"],
                     values["elementId"],
                     values["workspaceOrVersion"],
                 )

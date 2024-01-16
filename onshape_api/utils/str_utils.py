@@ -1,3 +1,4 @@
+"""A miscellaneous collection of utilities for working with strings."""
 import re
 
 

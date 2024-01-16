@@ -3,6 +3,7 @@ import { SelectMenuItem } from "./select-menu-item";
 import { MenuType, useCurrentMenuType } from "../common/menu-type";
 import { getMenuProps } from "./menu-props";
 import { currentAppType } from "../app/onshape-params";
+import { CaretDown } from "@blueprintjs/icons";
 
 export function SelectMenu() {
     const appType = currentAppType();
@@ -11,7 +12,7 @@ export function SelectMenu() {
     const currentMenuButton = (
         <Button
             {...getMenuProps(currentMenuType)}
-            rightIcon="caret-down"
+            rightIcon={<CaretDown />}
             intent="primary"
             alignText="left"
             minimal

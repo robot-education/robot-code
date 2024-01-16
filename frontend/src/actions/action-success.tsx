@@ -1,7 +1,12 @@
-import { Icon, NonIdealState, NonIdealStateIconSize } from "@blueprintjs/core";
+import {
+    Classes,
+    NonIdealState,
+    NonIdealStateIconSize
+} from "@blueprintjs/core";
 import { ReactNode } from "react";
 import { ActionBody } from "./action-body";
 import { CloseButton } from "../components/close-button";
+import { Tick } from "@blueprintjs/icons";
 
 interface ActionSuccessProps {
     message: string;
@@ -19,9 +24,8 @@ export function ActionSuccess(props: ActionSuccessProps) {
         <ActionBody actions={actions}>
             <NonIdealState
                 icon={
-                    <Icon
-                        icon="tick"
-                        intent="success"
+                    <Tick
+                        className={Classes.INTENT_SUCCESS}
                         size={NonIdealStateIconSize.STANDARD}
                     />
                 }

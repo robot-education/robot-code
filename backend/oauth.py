@@ -8,7 +8,7 @@ The frontend should have a /redirect route which calls the /redirect route below
 """
 import flask
 from flask import request
-from backend.common import connect, oauth_utils
+from backend.common import connect, env
 
 
 router = flask.Blueprint("oauth", __name__)
@@ -23,7 +23,7 @@ def sign_in():
 
     oauth = connect.get_oauth_session(connect.OAuthType.SIGN_IN)
     # Saving state is unneeded since Onshape saves it for us
-    auth_url, _ = oauth.authorization_url(oauth_utils.auth_base_url)
+    auth_url, _ = oauth.authorization_url(connect.auth_base_url)
 
     # Send user to Onshape's sign in page
     return flask.redirect(auth_url)
@@ -42,8 +42,8 @@ def redirect():
     oauth = connect.get_oauth_session(connect.OAuthType.REDIRECT)
 
     token = oauth.fetch_token(
-        oauth_utils.token_url,
-        client_secret=oauth_utils.client_secret,
+        connect.token_url,
+        client_secret=env.client_secret,
         code=request.args["code"],
     )
     connect.save_token(token)

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Icon, Card, InputGroup, Button } from "@blueprintjs/core";
+import { Card, InputGroup, Button } from "@blueprintjs/core";
 import { post } from "../api/api";
 import {
     showErrorToast,
@@ -14,6 +14,7 @@ import { queryClient } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
 import { LinkTypeProps, LinkType } from "./document-link-type";
 import { Workspace } from "../api/path";
+import { Add, Link } from "@blueprintjs/icons";
 
 interface AddLinkArgs {
     url: string;
@@ -43,7 +44,7 @@ async function addLinkMutationFn({
     return post(`/linked-documents/${linkType}` + currentApiPath, {
         query: {
             documentId: targetPath.documentId,
-            workspaceId: targetPath.instanceId
+            instanceId: targetPath.instanceId
         }
     }).catch(() => {
         showInternalErrorToast("Unexpectedly failed to add link.");
@@ -81,12 +82,12 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
                 value={url}
                 intent={addLinkMutation.error ? "danger" : undefined}
                 onValueChange={(value) => setUrl(value)}
-                leftElement={<Icon icon="link" />}
+                leftElement={<Link />}
                 placeholder="Document link"
             />
             <Button
                 text="Add"
-                icon="add"
+                icon={<Add />}
                 minimal
                 intent="primary"
                 loading={addLinkMutation.isPending}

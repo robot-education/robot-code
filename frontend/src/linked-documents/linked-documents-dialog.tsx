@@ -4,13 +4,14 @@ import { CloseButton } from "../components/close-button";
 import { LinkType } from "./document-link-type";
 import { LinkedDocumentsList } from "./linked-documents-list";
 import { useCurrentMenuType } from "../common/menu-type";
+import { DiagramTree } from "@blueprintjs/icons";
 
 export function OpenLinkedDocumentsButton() {
     const navigate = useNavigate();
     const currentMenuType = useCurrentMenuType();
     return (
         <Button
-            icon="diagram-tree"
+            icon={<DiagramTree />}
             text="Manage links"
             onClick={() => navigate(`/app/${currentMenuType}/linked-documents`)}
             minimal

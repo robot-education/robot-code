@@ -22,7 +22,7 @@ export function AppNavbar(): ReactNode {
                 <OpenLinkedDocumentsButton />
             </NavbarGroup>
             {/* <NavbarGroup align={Alignment.RIGHT}>
-                <Button icon="cog" minimal />
+                <Button icon={<Cog />} minimal />
             </NavbarGroup> */}
         </Navbar>
     );

@@ -53,15 +53,3 @@ export function toInstanceApiPath(path: InstancePath): string {
 export function toElementApiPath(path: ElementPath): string {
     return toInstanceApiPath(path) + `/e/${path.elementId}`;
 }
-
-/**
- * Returns the path to the current window.
- */
-export function getCurrentPath(queryParams: URLSearchParams): ElementPath {
-    return {
-        documentId: queryParams.get("documentId") ?? "",
-        instanceId: queryParams.get("workspaceId") ?? "",
-        instanceType: "w",
-        elementId: queryParams.get("elementId") ?? ""
-    };
-}

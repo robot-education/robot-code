@@ -10,7 +10,7 @@ export function ActionSpinner(props: ActionSpinnerProps) {
     //     <Button
     //         text="Abort"
     //         intent="danger"
-    //         icon="cross"
+    //         icon={<Cross />}
     //         onClick={() => {
     //         }}
     //     />

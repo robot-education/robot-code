@@ -17,24 +17,6 @@ import "./main.scss";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 
-// Blueprint Icon loading
-import { Icons, IconPaths } from "@blueprintjs/icons";
-// see https://vitejs.dev/guide/features.html#glob-import
-const iconModules: Record<string, { default: IconPaths }> = import.meta.glob(
-    [
-        "../node_modules/@blueprintjs/icons/lib/esm/generated/16px/paths/*.js",
-        "../node_modules/@blueprintjs/icons/lib/esm/generated/20px/paths/*.js"
-    ],
-    { eager: true }
-);
-
-Icons.setLoaderOptions({
-    loader: async (name, size) =>
-        iconModules[
-            `../node_modules/@blueprintjs/icons/lib/esm/generated/${size}px/paths/${name}.js`
-        ].default
-});
-
 createRoot(document.getElementById("root")!).render(
     // <StrictMode>
     <RouterProvider router={router} />

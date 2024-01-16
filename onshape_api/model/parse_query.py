@@ -1,5 +1,5 @@
 """Utilities with working with queries in part studios and assemblies."""
-from common import str_utils
+from onshape_api.utils import str_utils
 
 __all__ = ["parse_query"]
 

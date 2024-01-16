@@ -41,7 +41,7 @@ def make_document(
         name = endpoints.get_document(api, path)["name"]
     except:
         raise backend_exceptions.UserException(
-            "Provided documentId and/or workspaceId were invalid."
+            "Provided documentId and/or instanceId were invalid."
         )
     return {
         "documentId": path.document_id,
@@ -91,7 +91,7 @@ def delete_linked_document(link_type: LinkType, **kwargs):
 
     curr_id = route_to_db_id()
     link_path = onshape_api.InstancePath(
-        connect.get_query("documentId"), connect.get_query("workspaceId")
+        connect.get_query("documentId"), connect.get_query("instanceId")
     )
     link_id = object_to_db_id(link_path)
 
@@ -125,7 +125,7 @@ def add_linked_document(link_type: LinkType, **kwargs):
     api = connect.get_api()
     curr_id = route_to_db_id()
     link_path = onshape_api.InstancePath(
-        connect.get_query("documentId"), connect.get_query("workspaceId")
+        connect.get_query("documentId"), connect.get_query("instanceId")
     )
     link_id = object_to_db_id(link_path)
     link_types = get_link_types(link_type)

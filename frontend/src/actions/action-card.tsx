@@ -2,6 +2,7 @@ import { Button, Card, H4 } from "@blueprintjs/core";
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ActionInfo } from "./action-context";
+import { ArrowRight } from "@blueprintjs/icons";
 
 interface ActionCardProps {
     actionInfo: ActionInfo;
@@ -19,7 +20,7 @@ export function ActionCard(props: ActionCardProps): ReactNode {
             <p>{actionInfo.description}</p>
             <Button
                 text="Configure"
-                rightIcon="arrow-right"
+                rightIcon={<ArrowRight />}
                 intent="primary"
                 onClick={() => navigate(actionInfo.route)}
             />

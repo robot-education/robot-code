@@ -1,14 +1,14 @@
 """Serves as an abstraction layer for connecting with the Onshape API, the backend database, and the current flask request."""
 import enum
 from typing import Any
-import os
-from uuid import uuid4
 
+from uuid import uuid4
 from google.cloud import firestore
 import flask
 from requests_oauthlib import OAuth2Session
+
 import onshape_api
-from backend.common import backend_exceptions, oauth_utils
+from backend.common import backend_exceptions, env
 
 
 def get_session_id() -> str:
@@ -44,9 +44,6 @@ def set_session_data(transaction, session_data: dict) -> None:
     transaction.set(doc_ref, session_data)
 
 
-client_id = os.getenv("OAUTH_CLIENT_ID")
-client_secret = os.getenv("OAUTH_CLIENT_SECRET")
-
 base_url = "https://oauth.onshape.com/oauth"
 auth_base_url = base_url + "/authorize"
 token_url = base_url + "/token"
@@ -60,16 +57,16 @@ class OAuthType(enum.Enum):
 
 def get_oauth_session(oauth_type: OAuthType = OAuthType.USE) -> OAuth2Session:
     if oauth_type == OAuthType.SIGN_IN:
-        return OAuth2Session(client_id)
+        return OAuth2Session(env.client_id)
     elif oauth_type == OAuthType.REDIRECT:
-        return OAuth2Session(client_id, state=flask.request.args["state"])
+        return OAuth2Session(env.client_id, state=flask.request.args["state"])
 
     refresh_kwargs = {
-        "client_id": client_id,
-        "client_secret": client_secret,
+        "client_id": env.client_id,
+        "client_secret": env.client_secret,
     }
     return OAuth2Session(
-        client_id,
+        env.client_id,
         token=get_token(),
         auto_refresh_url=token_url,
         auto_refresh_kwargs=refresh_kwargs,

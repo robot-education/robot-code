@@ -76,7 +76,8 @@
             "command": "gcloud emulators firestore start --host-port=127.0.0.1:8080",
             "presentation": {
                 "group": "server"
-            }
+            },
+            "problemMatcher": []
         },
         {
             "label": "Clear db",

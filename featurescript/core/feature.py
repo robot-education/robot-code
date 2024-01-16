@@ -1,5 +1,5 @@
 from typing import Self, override
-from common import str_utils
+from onshape_api.utils import str_utils
 from featurescript.base import ctxt, node, user_error
 from featurescript.core import func
 from featurescript.ui import annotation_map

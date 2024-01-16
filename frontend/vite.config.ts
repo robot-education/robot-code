@@ -17,7 +17,6 @@ export default defineConfig({
     },
     build: {
         outDir: "../backend/dist",
-        emptyOutDir: true,
-        // manifest: true
+        emptyOutDir: true
     }
 });

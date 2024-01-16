@@ -5,7 +5,7 @@ from onshape_api.endpoints import versions
 from onshape_api.utils import version_utils
 from featurescript.endpoints import feature_studios
 from featurescript import conf
-from common import str_utils
+from onshape_api.utils import str_utils
 
 from featurescript import *
 from featurescript.base.ctxt import make_context

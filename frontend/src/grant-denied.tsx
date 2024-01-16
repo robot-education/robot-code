@@ -1,5 +1,10 @@
-import { Icon, NonIdealState, NonIdealStateIconSize } from "@blueprintjs/core";
+import {
+    Classes,
+    NonIdealState,
+    NonIdealStateIconSize
+} from "@blueprintjs/core";
 import { OpenUrlButton } from "./components/open-url-button";
+import { Cross } from "@blueprintjs/icons";
 
 const URL = "https://cad.onshape.com/user/applications";
 
@@ -12,9 +17,8 @@ export function GrantDenied(): JSX.Element {
         <div style={{ height: "80vh" }}>
             <NonIdealState
                 icon={
-                    <Icon
-                        icon="cross"
-                        intent="danger"
+                    <Cross
+                        className={Classes.INTENT_DANGER}
                         size={NonIdealStateIconSize.STANDARD}
                     />
                 }

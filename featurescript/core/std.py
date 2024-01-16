@@ -1,6 +1,6 @@
 import dataclasses
 from typing import override
-from common import str_utils
+from onshape_api.utils import str_utils
 from featurescript.base import ctxt, expr, node, user_error
 from featurescript.core import func
 
