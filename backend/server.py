@@ -3,7 +3,7 @@ import dotenv
 import flask
 from onshape_api.endpoints import users
 from backend import api
-from backend.common import setup
+from backend.common import connect
 from backend.endpoints import oauth
 
 dotenv.load_dotenv()
@@ -19,23 +19,28 @@ def create_app():
     app.register_blueprint(api.router)
     app.register_blueprint(oauth.router)
 
-    @app.get("/app/assembly")
-    @app.get("/app/part-studio")
+    production = os.getenv("NODE_ENV", "development") == "production"
+
+    @app.get("/app")
     def serve_app():
-        api = setup.get_api()
+        api = connect.get_api()
         authorized = api.oauth.authorized and users.ping(api, catch=True)
         if not authorized:
             flask.session["redirect_url"] = flask.request.url
             return flask.redirect("/sign-in")
 
-        if os.getenv("NODE_ENV", "development") == "production":
-            return flask.send_from_directory("dist", "index.html")
-        else:
-            return flask.render_template("index.html")
+        # if os.getenv("NODE_ENV", "development") == "production":
+
+        return flask.render_template("index.html", production=production)
+        # return flask.send_from_directory("dist", "index.html")
 
     @app.get("/grant-denied")
     def serve_grant_denied():
         return flask.render_template("index.html")
+
+    @app.get("/robot-icon.svg")
+    def serve_icon():
+        return flask.url_for("static", filename="robot-icon.svg")
 
     @app.get("/assets/<path:filename>")
     def serve_assets(filename: str):

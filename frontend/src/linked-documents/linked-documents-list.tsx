@@ -9,19 +9,16 @@ import {
     SectionCard,
     Spinner
 } from "@blueprintjs/core";
-import { Document } from "../api/path";
+import { Workspace } from "../api/path";
 import { AddLinkCard } from "./add-link-card";
 import { useQuery } from "@tanstack/react-query";
-import { get } from "../api/api";
-import { selectApiDocumentPath } from "../app/onshape-params-slice";
-import { useAppSelector } from "../app/hooks";
 import { LinkType, LinkTypeProps } from "./document-link-type";
 import { DocumentOptionsMenu } from "./document-options-menu";
 import { useState } from "react";
 
 function getDocumentCards(
     linkType: LinkType,
-    documents: Document[]
+    documents: Workspace[]
 ): JSX.Element[] {
     return documents.map((document) => {
         return (
@@ -29,7 +26,7 @@ function getDocumentCards(
                 <span>{document.name}</span>
                 <DocumentOptionsMenu
                     linkType={linkType}
-                    documentPath={document}
+                    instancePath={document}
                 />
             </Card>
         );
@@ -43,16 +40,8 @@ interface LinkedDocumentsProps extends LinkTypeProps {
 
 export function LinkedDocumentsList(props: LinkedDocumentsProps) {
     const [isManuallyRefetching, setManuallyRefetching] = useState(false);
-    const documentApiPath = useAppSelector(selectApiDocumentPath);
-    const queryFn = async (): Promise<Document[]> => {
-        const result = await get(
-            `/linked-documents/${props.linkType}` + documentApiPath
-        );
-        return result.documents;
-    };
-    const query = useQuery({
-        queryKey: ["linked-documents", props.linkType],
-        queryFn
+    const query = useQuery<Workspace[]>({
+        queryKey: ["linked-documents", props.linkType]
     });
 
     let body;

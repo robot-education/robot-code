@@ -1,53 +1,57 @@
-export interface DocumentBasePath {
+export interface DocumentPath {
     documentId: string;
 }
 
-export interface DocumentWorkspacePath extends DocumentBasePath {
-    workspaceId: string;
+export interface WorkspacePath extends DocumentPath {
+    instanceId: string;
 }
 
-export interface DocumentPath extends DocumentWorkspacePath {
+export interface InstancePath extends WorkspacePath {
     /**
      * One of "w", "v", or "m". Defaults to "w".
      */
-    workspaceOrVersion?: string;
+    instanceType?: string;
 }
 
-export interface Document extends DocumentWorkspacePath {
+export interface Workspace extends WorkspacePath {
     name: string;
 }
 
-export interface ElementPath extends DocumentPath {
+export interface ElementPath extends InstancePath {
     elementId: string;
 }
 
-export function isDocumentPath(path: DocumentBasePath): path is DocumentPath {
-    return (<DocumentPath>path).workspaceId !== undefined;
+export function isWorkspacePath(path: DocumentPath): path is WorkspacePath {
+    return (<WorkspacePath>path).instanceId !== undefined;
 }
 
-export function isElementPath(path: DocumentBasePath): path is ElementPath {
-    return isDocumentPath(path) && (<ElementPath>path).elementId !== undefined;
+export function isInstancePath(path: DocumentPath): path is InstancePath {
+    return (<InstancePath>path).instanceId !== undefined;
 }
 
-export function toApiDocumentBase(path: DocumentBasePath): string {
+export function isElementPath(path: DocumentPath): path is ElementPath {
+    return isWorkspacePath(path) && (<ElementPath>path).elementId !== undefined;
+}
+
+export function toDocumentApiPath(path: DocumentPath): string {
     return `/d/${path.documentId}`;
 }
 
 /**
  * Trims an ElementPath to just the DocumentPath portion.
  */
-export function toApiDocumentPath(path: DocumentPath): string {
+export function toInstanceApiPath(path: InstancePath): string {
     return (
-        toApiDocumentBase(path) +
-        `/${path.workspaceOrVersion ?? "w"}/${path.workspaceId}`
+        toDocumentApiPath(path) +
+        `/${path.instanceType ?? "w"}/${path.instanceId}`
     );
 }
 
 /**
  * Trims an ElementPath to just the DocumentPath portion.
  */
-export function toApiElementPath(path: ElementPath): string {
-    return toApiDocumentPath(path) + `/e/${path.elementId}`;
+export function toElementApiPath(path: ElementPath): string {
+    return toInstanceApiPath(path) + `/e/${path.elementId}`;
 }
 
 /**
@@ -56,8 +60,8 @@ export function toApiElementPath(path: ElementPath): string {
 export function getCurrentPath(queryParams: URLSearchParams): ElementPath {
     return {
         documentId: queryParams.get("documentId") ?? "",
-        workspaceId: queryParams.get("workspaceId") ?? "",
-        workspaceOrVersion: "w",
+        instanceId: queryParams.get("workspaceId") ?? "",
+        instanceType: "w",
         elementId: queryParams.get("elementId") ?? ""
     };
 }

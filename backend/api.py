@@ -4,7 +4,7 @@ import flask
 import onshape_api
 from onshape_api import endpoints
 
-from backend.common import backend_exceptions, setup
+from backend.common import backend_exceptions, connect
 from backend.endpoints import (
     assembly_mirror,
     generate_assembly,
@@ -51,15 +51,15 @@ router.register_blueprint(references.router)
 #     return {"id": result["id"]}
 
 
-@router.get("/default-name/<element_type>" + setup.document_route("wv"))
+@router.get("/default-name/<element_type>" + connect.document_route("wv"))
 def default_name(element_type: str, **kwargs):
     """Returns the next default name for a given element type in a document.
 
     Route Args:
         element_type: The type of element to fetch. One of part-studio, assembly, or version.
     """
-    api = setup.get_api()
-    document_path = setup.get_instance_path("wv")
+    api = connect.get_api()
+    document_path = connect.get_instance_path("wv")
     if element_type == "version":
         version_list = endpoints.get_versions(api, document_path)
         # len(versions) is correct due to Start version

@@ -1,6 +1,6 @@
 import json
 
-from api.api_base import Api
+from onshape_api.api.api_base import Api
 from onshape_api.paths.api_path import api_path
 from onshape_api.paths.paths import ElementPath
 

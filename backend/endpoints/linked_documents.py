@@ -5,7 +5,7 @@ import flask
 from google.cloud import firestore
 
 import onshape_api
-from backend.common import backend_exceptions, setup
+from backend.common import backend_exceptions, connect
 from onshape_api import endpoints
 
 
@@ -19,7 +19,7 @@ def object_to_db_id(path: onshape_api.InstancePath) -> str:
 
 
 def route_to_db_id() -> str:
-    return object_to_db_id(setup.get_instance_path())
+    return object_to_db_id(connect.get_instance_path())
 
 
 def make_db_id(document_id: str, workspace_id: str) -> str:
@@ -53,7 +53,7 @@ def make_document(
 router = flask.Blueprint("linked_documents", __name__)
 
 
-@router.get("/linked-documents/<link_type>" + setup.document_route())
+@router.get("/linked-documents/<link_type>" + connect.document_route())
 async def get_linked_documents(link_type: str, **kwargs):
     """Returns the parents and children linked to a given document."""
     if link_type not in LinkType:
@@ -61,10 +61,9 @@ async def get_linked_documents(link_type: str, **kwargs):
             "Invalid link_type {}.".format(link_type)
         )
 
-    db = setup.get_db()
-    api = setup.get_api()
+    api = connect.get_api()
     document_id = route_to_db_id()
-    doc = db.collection("documents").document(document_id).get()
+    doc = connect.db_linked_documents().document(document_id).get()
     tasks = []
     if doc.exists and (data := doc.to_dict()):
         async with asyncio.TaskGroup() as tg:
@@ -78,7 +77,7 @@ async def get_linked_documents(link_type: str, **kwargs):
     return {"documents": [task.result() for task in tasks]}
 
 
-@router.delete("/linked-documents/<link_type>" + setup.document_route())
+@router.delete("/linked-documents/<link_type>" + connect.document_route())
 def delete_linked_document(link_type: LinkType, **kwargs):
     """Deletes a link from the url to the document specified in the query params.
 
@@ -87,16 +86,16 @@ def delete_linked_document(link_type: LinkType, **kwargs):
     """
     link_types = get_link_types(link_type)
 
-    api = setup.get_api()
-    db = setup.get_db()
+    api = connect.get_api()
+    db = connect.get_db()
 
     curr_id = route_to_db_id()
     link_path = onshape_api.InstancePath(
-        setup.get_query("documentId"), setup.get_query("workspaceId")
+        connect.get_query("documentId"), connect.get_query("workspaceId")
     )
     link_id = object_to_db_id(link_path)
 
-    db_ref = db.collection("documents")
+    db_ref = connect.db_linked_documents()
     db_ref.document(curr_id).update({link_types[0]: firestore.ArrayRemove([link_id])})
     db_ref.document(link_id).update({link_types[1]: firestore.ArrayRemove([curr_id])})
     return make_document(api, link_path)
@@ -112,7 +111,7 @@ def add_document_link(
         doc_ref.update({linkType: firestore.ArrayUnion([new_id])})
 
 
-@router.post("/linked-documents/<link_type>" + setup.document_route())
+@router.post("/linked-documents/<link_type>" + connect.document_route())
 def add_linked_document(link_type: LinkType, **kwargs):
     """Adds the document specified in the query parameters to the document specified in the url.
 
@@ -123,11 +122,10 @@ def add_linked_document(link_type: LinkType, **kwargs):
     Returns:
         The documentId, workspaceId, and name of the newly linked document.
     """
-    db = setup.get_db()
-    api = setup.get_api()
+    api = connect.get_api()
     curr_id = route_to_db_id()
     link_path = onshape_api.InstancePath(
-        setup.get_query("documentId"), setup.get_query("workspaceId")
+        connect.get_query("documentId"), connect.get_query("workspaceId")
     )
     link_id = object_to_db_id(link_path)
     link_types = get_link_types(link_type)
@@ -137,7 +135,7 @@ def add_linked_document(link_type: LinkType, **kwargs):
     # Additional error handling - ensures link is valid
     link_document = make_document(api, link_path)
 
-    db_ref = db.collection("documents")
+    db_ref = connect.db_linked_documents()
     add_document_link(db_ref, link_types[0], curr_id, link_id)
     add_document_link(db_ref, link_types[1], link_id, curr_id)
     return link_document

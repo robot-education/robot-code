@@ -1,3 +1,4 @@
+from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath
 
 
@@ -26,6 +27,17 @@ def map_documents(
         )
         for element in elements
     )
+
+
+def get_wmv_key(path: InstancePath) -> str:
+    """Returns workspaceId if workspace_or_version is w, else versionId."""
+    match path.instance_type:
+        case InstanceType.WORKSPACE:
+            return "workspaceId"
+        case InstanceType.VERSION:
+            return "versionId"
+        case InstanceType.MICROVERSION:
+            return "microversionId"
 
 
 # red_color = "\033[91m"

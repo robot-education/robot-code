@@ -8,13 +8,12 @@ import {
     showSuccessToast
 } from "../app/toaster";
 import { HandledError } from "../common/errors";
-import { selectApiDocumentPath } from "../app/onshape-params-slice";
-import { store } from "../app/store";
+import { currentInstanceApiPath } from "../app/onshape-params";
 import { parseUrl } from "../common/url";
 import { queryClient } from "../query/query-client";
-import { toApiDocumentPath } from "../api/path";
+import { toInstanceApiPath } from "../api/path";
 import { LinkTypeProps, LinkType } from "./document-link-type";
-import { Document } from "../api/path";
+import { Workspace } from "../api/path";
 
 interface AddLinkArgs {
     url: string;
@@ -24,7 +23,7 @@ interface AddLinkArgs {
 async function addLinkMutationFn({
     url,
     linkType
-}: AddLinkArgs): Promise<Document> {
+}: AddLinkArgs): Promise<Workspace> {
     if (url.length === 0) {
         throw new HandledError("Enter a valid document link.");
     }
@@ -36,15 +35,15 @@ async function addLinkMutationFn({
         );
     }
 
-    const currentApiPath = selectApiDocumentPath(store.getState());
-    if (toApiDocumentPath(targetPath) === currentApiPath) {
+    const currentApiPath = currentInstanceApiPath();
+    if (toInstanceApiPath(targetPath) === currentApiPath) {
         throw new HandledError("A document can't be linked to itself!");
     }
 
     return post(`/linked-documents/${linkType}` + currentApiPath, {
         query: {
             documentId: targetPath.documentId,
-            workspaceId: targetPath.workspaceId
+            workspaceId: targetPath.instanceId
         }
     }).catch(() => {
         showInternalErrorToast("Unexpectedly failed to add link.");
@@ -67,7 +66,7 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
             // queryClient.invalidateQueries({
             //     queryKey: ["linked-documents", linkType]
             // });
-            queryClient.setQueryData<Document[]>(
+            queryClient.setQueryData<Workspace[]>(
                 ["linked-documents", args.linkType],
                 (queryData) => (queryData ?? []).concat(document)
             );

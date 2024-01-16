@@ -2,8 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { ActionCard } from "../actions/action-card";
 import { ActionForm } from "../actions/action-form";
 import { ActionDialog } from "../actions/action-dialog";
-import { selectApiDocumentPath } from "../app/onshape-params-slice";
-import { useAppSelector } from "../app/hooks";
+import { currentInstanceApiPath } from "../app/onshape-params";
 import { post } from "../api/api";
 import { ExecuteButton } from "../components/execute-button";
 import { ActionSuccess } from "../actions/action-success";
@@ -21,7 +20,7 @@ export function UpdateAllReferencesCard() {
 }
 
 export function UpdateAllReferences() {
-    const documentPath = useAppSelector(selectApiDocumentPath);
+    const documentPath = currentInstanceApiPath();
     const mutationFn = (): Promise<number> =>
         post("/update-references" + documentPath).then(
             (response) => response.updatedElements
@@ -37,6 +36,7 @@ export function UpdateAllReferences() {
 
     const form = (
         <ActionForm
+            description={actionInfo.description}
             executeButton={<ExecuteButton onSubmit={() => mutation.mutate()} />}
         />
     );

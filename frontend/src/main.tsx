@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+// import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 // Used to make static assets work in dev
@@ -36,7 +36,7 @@ Icons.setLoaderOptions({
 });
 
 createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        <RouterProvider router={router} />
-    </StrictMode>
+    // <StrictMode>
+    <RouterProvider router={router} />
+    // </StrictMode>
 );

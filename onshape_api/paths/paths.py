@@ -12,6 +12,7 @@ The object model has the following elements:
 """
 from __future__ import annotations
 import pathlib
+from typing import cast
 from urllib import parse
 from onshape_api.paths.instance_type import InstanceType
 
@@ -51,11 +52,11 @@ class InstancePath(DocumentPath):
     ) -> None:
         super().__init__(document_id)
         self.instance_id = instance_id
-        if not isinstance(instance_type, InstanceType):
+        if instance_type not in InstanceType:
             raise ValueError(
                 "Invalid value for instance_type: {}".format(instance_type)
             )
-        self._instance_type = instance_type
+        self._instance_type = cast(InstanceType, instance_type)
 
     @property
     def instance_type(self) -> InstanceType:
@@ -126,7 +127,7 @@ class ElementPath(InstancePath):
             instance.document_id,
             instance.instance_id,
             element_id,
-            instance.instance_type,
+            instance_type=instance.instance_type,
         )
 
     @classmethod
@@ -135,7 +136,7 @@ class ElementPath(InstancePath):
             element.document_id,
             element.instance_id,
             element.element_id,
-            element.instance_type,
+            instance_type=element.instance_type,
         )
 
     def to_feature_studio_path(self) -> str:

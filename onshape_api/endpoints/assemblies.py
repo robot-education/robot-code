@@ -1,10 +1,10 @@
 from typing import Iterable
 from urllib import parse
 
-from api.api_base import Api
+from onshape_api.api.api_base import Api
+from onshape_api.assertions import assert_workspace
 from onshape_api.paths.api_path import api_path
-from onshape_api.paths.instance_type import (
-    assert_workspace,
+from onshape_api.utils.endpoint_utils import (
     get_wmv_key,
 )
 from onshape_api.paths.paths import ElementPath, InstancePath, PartPath
@@ -58,27 +58,35 @@ def create_assembly(api: Api, workspace_path: InstancePath, assembly_name: str) 
 def add_parts_to_assembly(
     api: Api,
     assembly_path: ElementPath,
-    part_studio_path: ElementPath | PartPath,
-    # part_id: str | None = None,
+    part_studio_path: ElementPath,
+    part_id: str | None = None,
 ) -> None:
     """Adds a part studio to a given assembly.
 
     If the part_studio_path is an ElementPath, the entire part studio is added. Otherwise, only the specified part is added.
 
+    This endpoint has no response since Onshape doesn't give one.
     """
     assert_workspace(assembly_path)
-    is_part_path = isinstance(part_studio_path, PartPath)
     body = {
         "documentId": part_studio_path.document_id,
         "elementId": part_studio_path.element_id,
         "includePartTypes": ["PARTS"],
-        "isWholePartStudio": not is_part_path,
+        "isWholePartStudio": part_id is None,
     }
-    if is_part_path:
-        body["partId"] = part_studio_path.part_id
-
     body[get_wmv_key(part_studio_path)] = part_studio_path.instance_id
+    if part_id:
+        body["partId"] = part_id
+
     api.post(api_path("assemblies", assembly_path, ElementPath, "instances"), body=body)
+
+
+def add_part_to_assembly(
+    api: Api,
+    assembly_path: ElementPath,
+    part_path: PartPath,
+) -> None:
+    add_parts_to_assembly(api, assembly_path, part_path, part_path.part_id)
 
 
 def transform_instance(
@@ -119,8 +127,8 @@ def add_feature(
             "assemblies",
             assembly_path,
             ElementPath,
-            "features/featureId",
-            end_id=feature_id,
+            "features",
+            feature_id=feature_id,
         ),
         body={"feature": feature},
     )
@@ -134,7 +142,7 @@ def delete_feature(api: Api, assembly_path: ElementPath, feature_id: str) -> dic
             "assemblies",
             assembly_path,
             ElementPath,
-            "features/featureId",
-            end_id=feature_id,
+            "features",
+            feature_id=feature_id,
         )
     )

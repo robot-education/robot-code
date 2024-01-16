@@ -1,6 +1,5 @@
 import { get } from "../api/api";
-import { selectApiDocumentPath } from "../app/onshape-params-slice";
-import { store } from "../app/store";
+import { currentInstanceApiPath } from "../app/onshape-params";
 
 export enum DefaultNameType {
     ASSEMBLY = "/assembly",
@@ -13,7 +12,7 @@ export enum DefaultNameType {
  */
 export function makeDefaultNameLoader(nameType: DefaultNameType) {
     return () =>
-        get(
-            "/default-name" + nameType + selectApiDocumentPath(store.getState())
-        ).then((result) => result.name);
+        get("/default-name" + nameType + currentInstanceApiPath()).then(
+            (result) => result.name
+        );
 }

@@ -9,9 +9,8 @@ import { ActionCard } from "../actions/action-card";
 import { ActionDialog } from "../actions/action-dialog";
 import { useLoaderData } from "react-router-dom";
 import { OpenUrlButton } from "../components/open-url-button";
-import { useAppSelector } from "../app/hooks";
-import { selectApiElementPath } from "../app/onshape-params-slice";
-import { ElementPath } from "../api/path";
+import { currentElementPath } from "../app/onshape-params";
+import { ElementPath, toElementApiPath } from "../api/path";
 import { makeUrl } from "../common/url";
 import { post } from "../api/api";
 import { ExecuteButton } from "../components/execute-button";
@@ -35,16 +34,22 @@ interface GenerateAssemblyArgs {
 }
 
 export function GenerateAssembly() {
-    const elementPath = useAppSelector(selectApiElementPath);
     const mutationFn = async (
         args: GenerateAssemblyArgs
     ): Promise<ElementPath> => {
-        return post("/generate-assembly" + elementPath, {
-            body: { name: args.assemblyName }
-        });
+        const path = currentElementPath();
+        const result = await post(
+            "/generate-assembly" + toElementApiPath(path),
+            {
+                body: { name: args.assemblyName }
+            }
+        );
         // if (data.autoAssemble) {
         // await post("/auto-assembly", assemblyPath.elementObject());
         // }
+        const resultPath = Object.assign({}, path);
+        resultPath.elementId = result.elementId;
+        return resultPath;
     };
     const mutation = useMutation({
         mutationKey: [actionInfo.route],
@@ -128,7 +133,10 @@ function GenerateAssemblyForm(props: MutationProps) {
     );
 
     return (
-        <ActionForm executeButton={executeButton}>
+        <ActionForm
+            description={actionInfo.description}
+            executeButton={executeButton}
+        >
             {assemblyNameForm}
         </ActionForm>
     );

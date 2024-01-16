@@ -6,10 +6,9 @@ import {
     Popover
 } from "@blueprintjs/core";
 import { makeUrl, openUrlInNewTab } from "../common/url";
-import { DocumentPath } from "../api/path";
+import { InstancePath } from "../api/path";
 import { del, post } from "../api/api";
-import { useAppSelector } from "../app/hooks";
-import { selectApiDocumentPath } from "../app/onshape-params-slice";
+import { currentInstanceApiPath } from "../app/onshape-params";
 import { LinkType, LinkTypeProps } from "./document-link-type";
 import {
     showInternalErrorToast,
@@ -17,64 +16,63 @@ import {
     successToastArgs,
     toaster
 } from "../app/toaster";
-import { Document } from "../api/path";
+import { Workspace } from "../api/path";
 import { useId } from "react";
 import { queryClient } from "../query/query-client";
 import { useMutation } from "@tanstack/react-query";
-import { store } from "../app/store";
 
 interface DeleteDocumentArgs {
-    documentPath: DocumentPath;
+    documentPath: InstancePath;
     linkType: LinkType;
 }
 
 async function deleteDocumentMutationFn(
     args: DeleteDocumentArgs
-): Promise<Document> {
-    const currentApiPath = selectApiDocumentPath(store.getState());
+): Promise<Workspace> {
+    const currentApiPath = currentInstanceApiPath();
     return del(`/linked-documents/${args.linkType}` + currentApiPath, {
         documentId: args.documentPath.documentId,
-        workspaceId: args.documentPath.workspaceId
+        workspaceId: args.documentPath.instanceId
     });
 }
 
 interface DocumentOptionsMenuProps extends LinkTypeProps {
-    documentPath: DocumentPath;
+    instancePath: InstancePath;
 }
 
 export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
-    const { documentPath } = props;
-    const url = makeUrl(documentPath);
-    const currentApiPath = useAppSelector(selectApiDocumentPath);
+    const { instancePath } = props;
+    const url = makeUrl(instancePath);
     const successToastId = useId();
 
     const deleteMutation = useMutation({
-        mutationKey: ["delete", "linked-documents", documentPath],
+        mutationKey: ["delete", "linked-documents", instancePath],
         mutationFn: deleteDocumentMutationFn,
         onError: () => {
             showInternalErrorToast("Unexpectedly failed to delete document.");
         },
         onSuccess: (deletedDocument, args) => {
             // Update displayed documents
-            queryClient.setQueryData<Document[]>(
+            queryClient.setQueryData<Workspace[]>(
                 ["linked-documents", args.linkType],
                 (oldDocuments) =>
                     (oldDocuments ?? []).filter(
                         (document) =>
                             document.documentId !==
                                 deletedDocument.documentId &&
-                            document.workspaceId !== deletedDocument.workspaceId
+                            document.instanceId !== deletedDocument.instanceId
                     )
             );
 
             // This can (and probably should) be it's own mutation
             const handleUndo = async () => {
                 await post(
-                    `/linked-documents/${args.linkType}` + currentApiPath,
+                    `/linked-documents/${args.linkType}` +
+                        currentInstanceApiPath(),
                     {
                         query: {
                             documentId: deletedDocument.documentId,
-                            workspaceId: deletedDocument.workspaceId
+                            instanceId: deletedDocument.instanceId
                         }
                     }
                 )
@@ -126,7 +124,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                 onClick={() => {
                     deleteMutation.mutate({
                         linkType: props.linkType,
-                        documentPath: props.documentPath
+                        documentPath: props.instancePath
                     });
                 }}
             />

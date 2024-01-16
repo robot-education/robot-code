@@ -1,6 +1,6 @@
 from onshape_api.paths.api_path import api_path
-from api.api_base import Api
-from onshape_api.paths.instance_type import get_wmv_key
+from onshape_api.api.api_base import Api
+from onshape_api.utils.endpoint_utils import get_wmv_key
 from onshape_api.paths.paths import DocumentPath, InstancePath
 
 

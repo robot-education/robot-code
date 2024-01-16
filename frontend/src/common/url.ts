@@ -1,20 +1,20 @@
 import {
-    DocumentBasePath,
     DocumentPath,
+    InstancePath,
     ElementPath,
-    isDocumentPath,
+    isInstancePath,
     isElementPath
 } from "../api/path";
 
-export function makeUrl(path: DocumentBasePath): string;
 export function makeUrl(path: DocumentPath): string;
+export function makeUrl(path: InstancePath): string;
 export function makeUrl(path: ElementPath): string;
 export function makeUrl(
-    path: DocumentBasePath | DocumentPath | ElementPath
+    path: DocumentPath | InstancePath | ElementPath
 ): string {
     let url = `https://cad.onshape.com/documents/${path.documentId}`;
-    if (isDocumentPath(path)) {
-        url += `/${path.workspaceOrVersion ?? "w"}/${path.workspaceId}`;
+    if (isInstancePath(path)) {
+        url += `/${path.instanceType ?? "w"}/${path.instanceId}`;
     }
     if (isElementPath(path)) {
         url += `/e/${path.elementId}`;
@@ -33,8 +33,8 @@ export function parseUrl(url: string): ElementPath | null {
         const parts = pathname.split("/");
         return {
             documentId: parts[2],
-            workspaceId: parts[4],
-            workspaceOrVersion: parts[3],
+            instanceId: parts[4],
+            instanceType: parts[3],
             elementId: parts[6]
         };
     } catch {

@@ -8,7 +8,7 @@ The frontend should have a /redirect route which calls the /redirect route below
 """
 import flask
 from flask import request
-from backend.common import oauth_session
+from backend.common import connect, oauth_utils
 
 
 router = flask.Blueprint("oauth", __name__)
@@ -19,14 +19,11 @@ def sign_in():
     """The oauth sign in route."""
     if request.args.get("redirectOnshapeUri"):
         url = request.args.get("redirectOnshapeUri")
-        # Handle Onshape bug
-        if url == "[object Object]":
-            url = "https://cad.onshape.com/user/applications"
         flask.session["redirect_url"] = url
 
-    oauth = oauth_session.get_oauth_session(oauth_session.OAuthType.SIGN_IN)
+    oauth = connect.get_oauth_session(connect.OAuthType.SIGN_IN)
     # Saving state is unneeded since Onshape saves it for us
-    auth_url, _ = oauth.authorization_url(oauth_session.auth_base_url)
+    auth_url, _ = oauth.authorization_url(oauth_utils.auth_base_url)
 
     # Send user to Onshape's sign in page
     return flask.redirect(auth_url)
@@ -42,14 +39,14 @@ def redirect():
     if request.args.get("error") == "access_denied":
         return flask.redirect("/grant-denied")
 
-    oauth = oauth_session.get_oauth_session(oauth_session.OAuthType.REDIRECT)
+    oauth = connect.get_oauth_session(connect.OAuthType.REDIRECT)
 
     token = oauth.fetch_token(
-        oauth_session.token_url,
-        client_secret=oauth_session.client_secret,
+        oauth_utils.token_url,
+        client_secret=oauth_utils.client_secret,
         code=request.args["code"],
     )
-    oauth_session.save_token(token)
+    connect.save_token(token)
 
     redirect_url = flask.session["redirect_url"]
     return flask.redirect(redirect_url)

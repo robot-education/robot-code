@@ -2,13 +2,15 @@ from typing import Any
 import re
 
 from onshape_api.model import constants
-from api.api_base import Api
+from onshape_api.api.api_base import Api
 from onshape_api.paths.api_path import api_path
-from onshape_api.paths.instance_type import assert_workspace
+from onshape_api.assertions import assert_workspace
 from onshape_api.paths.paths import InstancePath, ElementPath
 
 
-def pull_code(api: Api, feature_studio_path: ElementPath, raw_response: bool = False) -> Any:
+def pull_code(
+    api: Api, feature_studio_path: ElementPath, raw_response: bool = False
+) -> Any:
     """Fetches code from a feature studio.
 
     Args:
@@ -36,7 +38,9 @@ def std_version(api: Api) -> str:
     return parsed.group(0)
 
 
-def create_feature_studio(api: Api, instance_path: InstancePath, studio_name: str) -> dict:
+def create_feature_studio(
+    api: Api, instance_path: InstancePath, studio_name: str
+) -> dict:
     """Constructs a feature studio with the given name.
 
     Returns a FeatureStudio representing the new studio.

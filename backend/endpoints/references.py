@@ -4,7 +4,7 @@ import flask
 import onshape_api
 from onshape_api import endpoints
 
-from backend.common import setup
+from backend.common import connect
 
 
 router = flask.Blueprint("references", __name__)
@@ -16,35 +16,48 @@ def update_refs(
     child_document_ids: Iterable[str] | None = None,
 ):
     refs = endpoints.get_external_references(api, instance_path)
-    externalRefs = refs["elementExternalReferences"]
+    external_refs: dict = refs["elementExternalReferences"]
+    latest_versions: list = refs["latestVersions"]
+    # Maps documentIds to their latest versionId
+    latest_version_dict = {}
+    for latest_version in latest_versions:
+        latest_version_dict[latest_version["documentId"]] = latest_version["id"]
 
     # For some reason running this asynchronously causes problems...
     updated_elements = 0
-    for element_id, paths in externalRefs.items():
+    for element_id, paths in external_refs.items():
         target_path = onshape_api.ElementPath.from_path(instance_path, element_id)
         for path in paths:
-            flask.current_app.logger.info(str(path))
             if not path["isOutOfDate"]:
                 continue
             document_id = path["documentId"]
-            if child_document_ids != None and document_id not in child_document_ids:
+            if child_document_ids is not None and document_id not in child_document_ids:
                 continue
             # References are always to external versions
-            current_document_path = onshape_api.InstancePath(
+            current_instance_path = onshape_api.InstancePath(
                 document_id, path["id"], onshape_api.InstanceType.VERSION
             )
             for referenced_element in path["referencedElements"]:
                 # Runs once for each tab and each outdated document reference
                 current_path = onshape_api.ElementPath.from_path(
-                    current_document_path, referenced_element
+                    current_instance_path, referenced_element
                 )
-                endpoints.update_to_latest_reference(api, target_path, current_path)
+                # Sometimes externalReferences returns invalid data?
+                try:
+                    endpoints.update_reference(
+                        api,
+                        target_path,
+                        current_path,
+                        latest_version_dict[current_path.document_id],
+                    )
+                except:
+                    continue
 
             updated_elements += 1
     return updated_elements
 
 
-@router.post("/update-references" + setup.document_route())
+@router.post("/update-references" + connect.document_route())
 def update_references(*args, **kwargs):
     """Updates references in a given document.
 
@@ -56,14 +69,14 @@ def update_references(*args, **kwargs):
     Returns:
         updatedElements: The number of tabs which had old references that were updated.
     """
-    api = setup.get_api()
-    instance_path = setup.get_instance_path()
-    child_document_ids = setup.get_optional_body("childDocumentIds")
+    api = connect.get_api()
+    instance_path = connect.get_instance_path()
+    child_document_ids = connect.get_optional_body("childDocumentIds")
     updated_elements = update_refs(api, instance_path, child_document_ids)
     return {"updatedElements": updated_elements}
 
 
-@router.post("/push-version" + setup.document_route())
+@router.post("/push-version" + connect.document_route())
 def push_version(**kwargs):
     """Updates references in a given document.
 
@@ -75,17 +88,17 @@ def push_version(**kwargs):
     Returns:
         updatedReferences: The number of tabs which had references updated.
     """
-    api = setup.get_api()
-    curr_instance = setup.get_instance_path()
-    name = setup.get_body("name")
-    description = setup.get_body("description")
-    body = setup.get_body("instancesToUpdate")
+    api = connect.get_api()
+    curr_instance = connect.get_instance_path()
+    name = connect.get_body("name")
+    description = connect.get_optional_body("description") or ""
+    body = connect.get_body("instancesToUpdate")
     instances_to_update = [
         onshape_api.InstancePath(temp["documentId"], temp["instanceId"])
         for temp in body
     ]
 
-    endpoints.create_version(api, curr_instance, name, description)["id"]
+    endpoints.create_version(api, curr_instance, name, description)
 
     updated_references = 0
     for update_instance in instances_to_update:

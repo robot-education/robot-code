@@ -6,15 +6,15 @@ import flask
 import onshape_api
 from onshape_api import endpoints
 
-from backend.common import assembly_data, setup, evaluate
+from backend.common import assembly_data, connect, evaluate
 
 router = flask.Blueprint("assembly-mirror", __name__)
 
 
-@router.post("/assembly-mirror" + setup.element_route())
+@router.post("/assembly-mirror" + connect.element_route())
 def assembly_mirror(**kwargs):
-    assembly_path = setup.get_element_path()
-    api = setup.get_api()
+    assembly_path = connect.get_element_path()
+    api = connect.get_api()
     AssemblyMirror(api, assembly_path).execute()
     return {"message": "Success"}
 

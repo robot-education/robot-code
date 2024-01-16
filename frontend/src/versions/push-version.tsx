@@ -8,14 +8,14 @@ import { handleStringChange } from "../common/handlers";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ActionDialog } from "../actions/action-dialog";
 import { post } from "../api/api";
-import { selectApiDocumentPath } from "../app/onshape-params-slice";
-import { useAppSelector } from "../app/hooks";
+import { currentInstanceApiPath } from "../app/onshape-params";
 import { ActionError } from "../actions/action-error";
 import { ActionSpinner } from "../actions/action-spinner";
 import { ActionSuccess } from "../actions/action-success";
 import { ExecuteButton } from "../components/execute-button";
-import { DocumentWorkspacePath, Document } from "../api/path";
+import { WorkspacePath, Workspace } from "../api/path";
 import { MutationProps } from "../query/mutation";
+import { LinkType } from "../linked-documents/document-link-type";
 
 const actionInfo: ActionInfo = {
     title: "Push version",
@@ -31,16 +31,18 @@ export function PushVersionCard() {
 interface PushVersionArgs {
     name: string;
     description: string;
-    documentPaths: DocumentWorkspacePath[];
+    instancePaths: WorkspacePath[];
 }
 
 export function PushVersion() {
-    const documentApiPath = useAppSelector(selectApiDocumentPath);
     const mutationFn = async (args: PushVersionArgs) => {
-        return post("/push-version" + documentApiPath, {
+        console.log("Description: " + args.description);
+        console.log(args.instancePaths);
+        return post("/push-version" + currentInstanceApiPath(), {
             body: {
                 name: args.name,
-                description: args.description
+                description: args.description,
+                instancesToUpdate: args.instancePaths
             }
         });
     };
@@ -69,8 +71,8 @@ function PushVersionForm(props: MutationProps) {
     const mutation = props.mutation;
     const defaultName = useLoaderData() as string;
 
-    const query = useQuery<Document[]>({
-        queryKey: ["linked-documents"]
+    const query = useQuery<Workspace[]>({
+        queryKey: ["linked-documents", LinkType.PARENTS]
     });
 
     // Form fields and validation
@@ -125,13 +127,16 @@ function PushVersionForm(props: MutationProps) {
                 mutation.mutate({
                     name: versionName,
                     description: versionDescription,
-                    documentPaths: query.data
+                    instancePaths: query.data
                 })
             }
         />
     );
     return (
-        <ActionForm executeButton={executeButton}>
+        <ActionForm
+            description={actionInfo.description}
+            executeButton={executeButton}
+        >
             {versionNameField}
             {versionDescriptionField}
         </ActionForm>
