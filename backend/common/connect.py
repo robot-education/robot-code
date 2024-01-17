@@ -92,6 +92,13 @@ def get_document_id() -> str:
 db = firestore.Client()
 sessions = db.collection("sessions")
 linked_documents = db.collection("linked-documents")
+users = db.collection("users")
+
+
+def save_user():
+    """Saves the user's id for personal logging purposes (I want to keep track of the total number of users)."""
+    user_id = flask.request.args["userId"]
+    users.document(user_id).set({})
 
 
 def get_db() -> firestore.Client:

@@ -8,14 +8,9 @@ export interface MenuProps {
 
 export function getMenuProps(menuType: MenuType): MenuProps {
     switch (menuType) {
-        case MenuType.PART_STUDIO:
+        case MenuType.HOME:
             return {
-                text: "Part studio",
-                icon: "home"
-            };
-        case MenuType.ASSEMBLY:
-            return {
-                text: "Assembly",
+                text: "Home",
                 icon: "home"
             };
         case MenuType.VERSIONS:

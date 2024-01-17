@@ -1,19 +1,18 @@
 import { createBrowserRouter } from "react-router-dom";
-import { Root } from "./root";
+import { Root } from "./pages/root";
 import { App } from "./app/app";
-import { PartStudio } from "./part-studio/part-studio";
-import { GenerateAssembly } from "./part-studio/generate-assembly";
-import { GrantDenied } from "./grant-denied";
+import { Home } from "./home/home";
+import { GenerateAssembly } from "./home/generate-assembly";
+import { GrantDenied } from "./pages/grant-denied";
 import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
 import { UpdateAllReferences } from "./versions/update-all-references";
-import { Assembly } from "./assembly/assembly";
 import { LinkManager } from "./link-manager/link-manager";
 import {
     DefaultNameType,
     makeDefaultNameLoader
 } from "./common/default-name-loader";
-import { License } from "./license";
+import { License } from "./pages/license";
 
 export const router = createBrowserRouter([
     {
@@ -25,8 +24,8 @@ export const router = createBrowserRouter([
                 element: <App />,
                 children: [
                     {
-                        path: "part-studio",
-                        element: <PartStudio />,
+                        path: "home",
+                        element: <Home />,
                         children: [
                             {
                                 path: "link-manager",
@@ -38,16 +37,6 @@ export const router = createBrowserRouter([
                                 loader: makeDefaultNameLoader(
                                     DefaultNameType.ASSEMBLY
                                 )
-                            }
-                        ]
-                    },
-                    {
-                        path: "assembly",
-                        element: <Assembly />,
-                        children: [
-                            {
-                                path: "link-manager",
-                                element: <LinkManager />
                             }
                         ]
                     },

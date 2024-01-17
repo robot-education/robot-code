@@ -2,10 +2,8 @@ import { Button, Menu, Popover } from "@blueprintjs/core";
 import { SelectMenuItem } from "./select-menu-item";
 import { MenuType, useCurrentMenuType } from "../common/menu-type";
 import { getMenuProps } from "./menu-props";
-import { currentAppType } from "../app/onshape-params";
 
 export function SelectMenu() {
-    const appType = currentAppType();
     const currentMenuType = useCurrentMenuType();
 
     const currentMenuButton = (
@@ -18,13 +16,9 @@ export function SelectMenu() {
         />
     );
 
-    const currentMenuTypes = Object.values(MenuType)
-        .filter((menuType) => menuType !== currentMenuType)
-        .filter(
-            (menuType) =>
-                appType.toString() === menuType.toString() ||
-                menuType === MenuType.VERSIONS
-        );
+    const currentMenuTypes = Object.values(MenuType).filter(
+        (menuType) => menuType !== currentMenuType
+    );
 
     const menuItems = currentMenuTypes.map((menuType) => (
         <SelectMenuItem

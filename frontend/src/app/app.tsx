@@ -9,7 +9,7 @@ import {
 
 import { queryClient } from "../query/query-client";
 import { AppNavbar } from "../navbar/app-navbar";
-import { currentAppType, saveOnshapeParams } from "./onshape-params";
+import { saveOnshapeParams } from "./onshape-params";
 
 export function App() {
     const params = useSearchParams()[0];
@@ -22,7 +22,7 @@ export function App() {
 
     if (isApp) {
         saveOnshapeParams(params);
-        return <Navigate to={`/app/${currentAppType()}`} />;
+        return <Navigate to="/app/home" />;
     }
     return (
         <QueryClientProvider client={queryClient}>

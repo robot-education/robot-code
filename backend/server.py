@@ -29,6 +29,8 @@ def create_app():
         if not authorized:
             flask.session["redirect_url"] = flask.request.url
             return flask.redirect("/sign-in")
+
+        connect.save_user()
         return serve_index()
 
     @app.get("/license")

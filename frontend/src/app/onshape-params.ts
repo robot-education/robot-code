@@ -1,13 +1,13 @@
-import { AppType } from "../common/app-type";
+import { ElementType } from "../common/element-type";
 import { ElementPath, toInstanceApiPath, toElementApiPath } from "../api/path";
 
 // export interface OnshapeParams extends ElementPath {
-//     appType: AppType;
+//     elementType: ElementType;
 // }
 
 export function saveOnshapeParams(params: URLSearchParams) {
     for (const key of [
-        "appType",
+        "elementType",
         "documentId",
         "instanceId",
         "instanceType",
@@ -17,7 +17,7 @@ export function saveOnshapeParams(params: URLSearchParams) {
     }
 }
 
-export function currentElementPath(): ElementPath {
+export function getCurrentElementPath(): ElementPath {
     const result: any = {};
     for (const key of [
         "documentId",
@@ -30,14 +30,14 @@ export function currentElementPath(): ElementPath {
     return result as ElementPath;
 }
 
-export function currentAppType() {
-    return sessionStorage.getItem("appType") as AppType;
+export function getCurrentElementType() {
+    return sessionStorage.getItem("elementType") as ElementType;
 }
 
 export function currentInstanceApiPath() {
-    return toInstanceApiPath(currentElementPath());
+    return toInstanceApiPath(getCurrentElementPath());
 }
 
 export function currentElementApiPath() {
-    return toElementApiPath(currentElementPath());
+    return toElementApiPath(getCurrentElementPath());
 }

@@ -9,7 +9,7 @@ import { ActionCard } from "../actions/action-card";
 import { ActionDialog } from "../actions/action-dialog";
 import { useLoaderData } from "react-router-dom";
 import { OpenUrlButton } from "../components/open-url-button";
-import { currentElementPath } from "../app/onshape-params";
+import { getCurrentElementPath } from "../app/onshape-params";
 import { ElementPath, toElementApiPath } from "../api/path";
 import { makeUrl } from "../common/url";
 import { post } from "../api/api";
@@ -37,7 +37,7 @@ export function GenerateAssembly() {
     const mutationFn = async (
         args: GenerateAssemblyArgs
     ): Promise<ElementPath> => {
-        const path = currentElementPath();
+        const path = getCurrentElementPath();
         const result = await post(
             "/generate-assembly" + toElementApiPath(path),
             {
