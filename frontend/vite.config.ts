@@ -6,11 +6,6 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
     plugins: [react()],
     server: {
-        // https: {
-        //     key: fs.readFileSync("./credentials/key.pem"),
-        //     cert: fs.readFileSync("./credentials/cert.pem")
-        // },
-        // origin: "https://localhost:3000",
         origin: "http://localhost:5173",
         port: 5173,
         strictPort: true

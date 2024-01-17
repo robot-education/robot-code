@@ -96,5 +96,18 @@ Then restart the distro. This prevents google cloud from using the google cloud 
 
 Note: this project uses Google Cloud Firestore as it's database. This is not to be confused with Google Firebase's Firestore, as Firebase is a separate project from Google Cloud. Yikes.
 
+# Deploying in Google Cloud
+
+The app can be deployed using the google cloud CLI.
+
+Some notes:
+
+-   To allow the App deployed in the App Engine to connect to Firestore, the App Engine service account must be given the Firestore user role in IAM.
+-   You'll need to create an app.yaml file to deploy. Make sure to add the necessary ENV authentication variables. The entrypoint can be something like:
+
+```
+entrypoint: gunicorn -b :$PORT -w 2 "backend.server:create_app()"
+```
+
 <!-- To connect to the cloud db from your dev environment, run:
 ```gcloud auth application-default login``` -->

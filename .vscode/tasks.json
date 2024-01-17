@@ -9,7 +9,18 @@
             "command": "poetry run python -m backend.tools.pull_scripts"
         },
         {
-            "label": "Production build",
+            "label": "Deploy app",
+            "type": "shell",
+            "command": "gcloud app deploy",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build"
+            },
+            "dependsOn": ["Build app"],
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "Build app",
             "type": "npm",
             "script": "build",
             "problemMatcher": [],

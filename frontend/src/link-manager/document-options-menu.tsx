@@ -11,16 +11,15 @@ import { del, post } from "../api/api";
 import { currentInstanceApiPath } from "../app/onshape-params";
 import { LinkType, LinkTypeProps } from "./document-link-type";
 import {
+    infoToastArgs,
     showInternalErrorToast,
     showSuccessToast,
-    successToastArgs,
     toaster
 } from "../app/toaster";
 import { Workspace } from "../api/path";
 import { useId } from "react";
-import { queryClient } from "../query/query-client";
+import { linkedDocumentsKey, queryClient } from "../query/query-client";
 import { useMutation } from "@tanstack/react-query";
-import { CaretDown, Cross, Share } from "@blueprintjs/icons";
 
 interface DeleteDocumentArgs {
     documentPath: InstancePath;
@@ -47,7 +46,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
     const successToastId = useId();
 
     const deleteMutation = useMutation({
-        mutationKey: ["delete", "linked-documents", instancePath],
+        mutationKey: ["linked-documents", "delete", instancePath],
         mutationFn: deleteDocumentMutationFn,
         onError: () => {
             showInternalErrorToast("Unexpectedly failed to delete document.");
@@ -55,7 +54,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
         onSuccess: (deletedDocument, args) => {
             // Update displayed documents
             queryClient.setQueryData<Workspace[]>(
-                ["linked-documents", args.linkType],
+                linkedDocumentsKey(args.linkType),
                 (oldDocuments) =>
                     (oldDocuments ?? []).filter(
                         (document) =>
@@ -86,7 +85,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                     .then(() => {
                         toaster.dismiss(successToastId);
                         queryClient.invalidateQueries({
-                            queryKey: ["linked-documents", args.linkType]
+                            queryKey: linkedDocumentsKey(args.linkType)
                         });
                         showSuccessToast(
                             `Successfully restored ${deletedDocument.name}.`
@@ -96,8 +95,8 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
 
             toaster.show(
                 {
-                    ...successToastArgs,
-                    message: `Successfully deleted ${deletedDocument.name}.`,
+                    ...infoToastArgs,
+                    message: `Deleted link to ${deletedDocument.name}.`,
                     action: {
                         text: "Undo",
                         onClick: handleUndo
@@ -113,14 +112,14 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
         <Menu>
             <MenuItem
                 text="Open in new tab"
-                icon={<Share />}
+                icon="share"
                 intent="primary"
                 onClick={() => openUrlInNewTab(url)}
             />
             <MenuDivider />
             <MenuItem
                 text="Delete link"
-                icon={<Cross />}
+                icon="cross"
                 intent="danger"
                 onClick={() => {
                     deleteMutation.mutate({
@@ -137,7 +136,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                 alignText="left"
                 intent="primary"
                 text="Options"
-                rightIcon={<CaretDown />}
+                rightIcon="caret-down"
                 minimal
             />
         </Popover>

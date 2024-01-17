@@ -4,15 +4,15 @@ import { ActionBody } from "./action-body";
 interface ActionFormProps {
     description?: string;
     children?: ReactNode;
-    executeButton: ReactNode;
+    actions: ReactNode;
 }
 
 export function ActionForm(props: ActionFormProps) {
-    const { description, children, executeButton } = props;
+    const { description, children, actions } = props;
     const renderDescription = description ? <p>{description}</p> : null;
 
     return (
-        <ActionBody actions={executeButton}>
+        <ActionBody actions={actions}>
             {renderDescription}
             {children}
         </ActionBody>

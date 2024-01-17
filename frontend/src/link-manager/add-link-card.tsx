@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Card, InputGroup, Button } from "@blueprintjs/core";
+import { Card, InputGroup, Button, Icon } from "@blueprintjs/core";
 import { post } from "../api/api";
 import {
     showErrorToast,
@@ -10,11 +10,10 @@ import {
 import { HandledError } from "../common/errors";
 import { currentInstanceApiPath } from "../app/onshape-params";
 import { parseUrl } from "../common/url";
-import { queryClient } from "../query/query-client";
+import { linkedDocumentsKey, queryClient } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
 import { LinkTypeProps, LinkType } from "./document-link-type";
 import { Workspace } from "../api/path";
-import { Add, Link } from "@blueprintjs/icons";
 
 interface AddLinkArgs {
     url: string;
@@ -64,11 +63,8 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
         onSuccess: (document, args) => {
             showSuccessToast(`Successfully linked ${document.name}.`);
             setUrl("");
-            // queryClient.invalidateQueries({
-            //     queryKey: ["linked-documents", linkType]
-            // });
             queryClient.setQueryData<Workspace[]>(
-                ["linked-documents", args.linkType],
+                linkedDocumentsKey(args.linkType),
                 (queryData) => (queryData ?? []).concat(document)
             );
         }
@@ -82,12 +78,12 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
                 value={url}
                 intent={addLinkMutation.error ? "danger" : undefined}
                 onValueChange={(value) => setUrl(value)}
-                leftElement={<Link />}
+                leftElement={<Icon icon="link" />}
                 placeholder="Document link"
             />
             <Button
                 text="Add"
-                icon={<Add />}
+                icon="add"
                 minimal
                 intent="primary"
                 loading={addLinkMutation.isPending}

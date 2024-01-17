@@ -37,6 +37,7 @@ def update_refs(
             current_instance_path = onshape_api.InstancePath(
                 document_id, path["id"], onshape_api.InstanceType.VERSION
             )
+            made_update = False
             for referenced_element in path["referencedElements"]:
                 # Runs once for each tab and each outdated document reference
                 current_path = onshape_api.ElementPath.from_path(
@@ -50,10 +51,12 @@ def update_refs(
                         current_path,
                         latest_version_dict[current_path.document_id],
                     )
+                    made_update = True
                 except:
                     continue
 
-            updated_elements += 1
+            if made_update:
+                updated_elements += 1
     return updated_elements
 
 

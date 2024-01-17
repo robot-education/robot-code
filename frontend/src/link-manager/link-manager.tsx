@@ -1,25 +1,10 @@
-import { Button, Dialog, DialogBody, DialogFooter } from "@blueprintjs/core";
+import { Dialog, DialogBody, DialogFooter } from "@blueprintjs/core";
 import { useNavigate } from "react-router-dom";
 import { CloseButton } from "../components/close-button";
 import { LinkType } from "./document-link-type";
 import { LinkedDocumentsList } from "./linked-documents-list";
-import { useCurrentMenuType } from "../common/menu-type";
-import { DiagramTree } from "@blueprintjs/icons";
 
-export function OpenLinkedDocumentsButton() {
-    const navigate = useNavigate();
-    const currentMenuType = useCurrentMenuType();
-    return (
-        <Button
-            icon={<DiagramTree />}
-            text="Manage links"
-            onClick={() => navigate(`/app/${currentMenuType}/linked-documents`)}
-            minimal
-        />
-    );
-}
-
-export function LinkedDocumentsDialog() {
+export function LinkManager() {
     const navigate = useNavigate();
     return (
         <Dialog

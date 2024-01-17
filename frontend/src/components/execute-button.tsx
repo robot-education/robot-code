@@ -1,5 +1,4 @@
 import { Button } from "@blueprintjs/core";
-import { ArrowRight } from "@blueprintjs/icons";
 
 interface ExecuteButtonProps {
     onSubmit: () => void;
@@ -15,7 +14,7 @@ export function ExecuteButton(props: ExecuteButtonProps) {
             text="Execute"
             intent="primary"
             type="submit"
-            rightIcon={<ArrowRight />}
+            rightIcon="arrow-right"
             onClick={props.onSubmit}
         />
     );

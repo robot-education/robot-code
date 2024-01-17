@@ -1,9 +1,9 @@
 import { MenuType } from "../common/menu-type";
-import { GitBranch, Home } from "@blueprintjs/icons";
+import { IconName } from "@blueprintjs/icons";
 
 export interface MenuProps {
     text: string;
-    icon: JSX.Element;
+    icon: IconName;
 }
 
 export function getMenuProps(menuType: MenuType): MenuProps {
@@ -11,22 +11,22 @@ export function getMenuProps(menuType: MenuType): MenuProps {
         case MenuType.PART_STUDIO:
             return {
                 text: "Part studio",
-                icon: <Home />
+                icon: "home"
             };
         case MenuType.ASSEMBLY:
             return {
                 text: "Assembly",
-                icon: <Home />
+                icon: "home"
             };
         case MenuType.VERSIONS:
             return {
                 text: "Versions",
-                icon: <GitBranch />
+                icon: "git-branch"
             };
         // case MenuType.FEATURE_SCRIPT:
         //     return {
         //         text: "Feature script",
-        //         icon: <Code />
+        //         icon: "code"
         //     };
     }
 }

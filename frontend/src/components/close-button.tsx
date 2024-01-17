@@ -1,5 +1,4 @@
 import { Button } from "@blueprintjs/core";
-import { Tick } from "@blueprintjs/icons";
 import { useNavigate } from "react-router-dom";
 
 interface CloseButtonProps {
@@ -17,7 +16,7 @@ export function CloseButton(props: CloseButtonProps) {
         <Button
             text="Close"
             intent="primary"
-            icon={<Tick />}
+            icon="tick"
             onClick={handleClose}
         />
     );

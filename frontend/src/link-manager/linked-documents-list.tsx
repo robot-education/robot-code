@@ -2,7 +2,7 @@ import {
     Button,
     Card,
     CardList,
-    Classes,
+    Icon,
     NonIdealState,
     NonIdealStateIconSize,
     Section,
@@ -15,7 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LinkType, LinkTypeProps } from "./document-link-type";
 import { DocumentOptionsMenu } from "./document-options-menu";
 import { useState } from "react";
-import { Cross, Repeat } from "@blueprintjs/icons";
+import { linkedDocumentsKey } from "../query/query-client";
 
 function getDocumentCards(
     linkType: LinkType,
@@ -42,7 +42,7 @@ interface LinkedDocumentsProps extends LinkTypeProps {
 export function LinkedDocumentsList(props: LinkedDocumentsProps) {
     const [isManuallyRefetching, setManuallyRefetching] = useState(false);
     const query = useQuery<Workspace[]>({
-        queryKey: ["linked-documents", props.linkType]
+        queryKey: linkedDocumentsKey(props.linkType)
     });
 
     let body;
@@ -62,8 +62,9 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
                 title="Failed to load linked documents."
                 description="If the problem persits, contact Alex."
                 icon={
-                    <Cross
-                        className={Classes.INTENT_DANGER}
+                    <Icon
+                        icon="cross"
+                        intent="danger"
                         size={NonIdealStateIconSize.STANDARD}
                     />
                 }
@@ -74,7 +75,7 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
 
     const resetButton = (
         <Button
-            icon={<Repeat />}
+            icon="repeat"
             minimal
             onClick={async (event) => {
                 event.stopPropagation();

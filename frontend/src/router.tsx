@@ -8,11 +8,12 @@ import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
 import { UpdateAllReferences } from "./versions/update-all-references";
 import { Assembly } from "./assembly/assembly";
-import { LinkedDocumentsDialog } from "./linked-documents/linked-documents-dialog";
+import { LinkManager } from "./link-manager/link-manager";
 import {
     DefaultNameType,
     makeDefaultNameLoader
 } from "./common/default-name-loader";
+import { License } from "./license";
 
 export const router = createBrowserRouter([
     {
@@ -28,8 +29,8 @@ export const router = createBrowserRouter([
                         element: <PartStudio />,
                         children: [
                             {
-                                path: "linked-documents",
-                                element: <LinkedDocumentsDialog />
+                                path: "link-manager",
+                                element: <LinkManager />
                             },
                             {
                                 path: "generate-assembly",
@@ -45,8 +46,8 @@ export const router = createBrowserRouter([
                         element: <Assembly />,
                         children: [
                             {
-                                path: "linked-documents",
-                                element: <LinkedDocumentsDialog />
+                                path: "link-manager",
+                                element: <LinkManager />
                             }
                         ]
                     },
@@ -55,8 +56,8 @@ export const router = createBrowserRouter([
                         element: <Versions />,
                         children: [
                             {
-                                path: "linked-documents",
-                                element: <LinkedDocumentsDialog />
+                                path: "link-manager",
+                                element: <LinkManager />
                             },
                             {
                                 path: "push-version",
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
             {
                 path: "grant-denied",
                 element: <GrantDenied />
+            },
+            {
+                path: "license",
+                element: <License />
             }
         ]
     }

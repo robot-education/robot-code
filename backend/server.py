@@ -31,13 +31,20 @@ def create_app():
             return flask.redirect("/sign-in")
         return serve_index()
 
+    @app.get("/license")
     @app.get("/grant-denied")
-    def serve_grant_denied():
+    def serve_static_pages():
         return serve_index()
 
-    # Handle production asset paths
-    @app.get("/assets/<path:filename>")
-    def serve_assets(filename: str):
-        return flask.send_from_directory("dist/assets", filename)
+    # Production only handlers:
+    if env.is_production:
+
+        @app.get("/robot-icon.svg")
+        def serve_icon():
+            return flask.send_from_directory("dist", "robot-icon.svg")
+
+        @app.get("/assets/<path:filename>")
+        def serve_assets(filename: str):
+            return flask.send_from_directory("dist/assets", filename)
 
     return app

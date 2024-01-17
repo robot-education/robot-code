@@ -1,7 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { Workspace } from "../api/path";
 import { currentInstanceApiPath } from "../app/onshape-params";
-import { LinkType } from "../linked-documents/document-link-type";
+import { LinkType } from "../link-manager/document-link-type";
 import { get } from "../api/api";
 
 export const queryClient = new QueryClient();
@@ -15,12 +15,19 @@ const linkedDocumentsQueryFn: QueryFunction = async (
     return result.documents;
 };
 
-queryClient.setQueryDefaults(["linked-documents", LinkType.PARENTS], {
+export function linkedDocumentsKey(linkType: LinkType) {
+    return ["linked-documents", linkType];
+}
+
+export const linkedParentDocumentsKey = linkedDocumentsKey(LinkType.PARENTS);
+export const linkedChildDocumentsKey = linkedDocumentsKey(LinkType.CHILDREN);
+
+queryClient.setQueryDefaults(linkedParentDocumentsKey, {
     queryFn: linkedDocumentsQueryFn,
     meta: { linkType: LinkType.PARENTS }
 });
 
-queryClient.setQueryDefaults(["linked-documents", LinkType.CHILDREN], {
+queryClient.setQueryDefaults(linkedChildDocumentsKey, {
     queryFn: linkedDocumentsQueryFn,
     meta: { linkType: LinkType.CHILDREN }
 });

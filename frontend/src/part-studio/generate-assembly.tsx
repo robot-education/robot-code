@@ -60,12 +60,12 @@ export function GenerateAssembly() {
         <ActionDialog title={actionInfo.title} mutation={mutation}>
             {mutation.isIdle && <GenerateAssemblyForm mutation={mutation} />}
             {mutation.isPending && (
-                <ActionSpinner message="Generating assembly" />
+                <ActionSpinner message="Generating assembly..." />
             )}
             {mutation.isError && <ActionError />}
             {mutation.isSuccess && (
                 <ActionSuccess
-                    message="Successfully generated assembly."
+                    message="Successfully generated assembly"
                     description="Remember to fix a part in the assembly to lock it in place."
                     actions={
                         <OpenUrlButton
@@ -135,7 +135,7 @@ function GenerateAssemblyForm(props: MutationProps) {
     return (
         <ActionForm
             description={actionInfo.description}
-            executeButton={executeButton}
+            actions={executeButton}
         >
             {assemblyNameForm}
         </ActionForm>
