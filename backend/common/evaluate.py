@@ -5,8 +5,8 @@ from concurrent import futures
 import dataclasses
 import pathlib
 from typing import Iterable, TypedDict
-from api import api_base, api_path
-from api.endpoints import part_studios
+import onshape_api
+from onshape_api import endpoints
 
 SCRIPT_PATH = pathlib.Path("../scripts")
 
@@ -18,7 +18,7 @@ def open_script(script_name: str):
 
 class AutoAssemblyBase(TypedDict):
     mate_id: str
-    target: api_path.ElementPath
+    target: onshape_api.ElementPath
 
 
 class AutoAssemblyTarget(TypedDict):
@@ -26,31 +26,31 @@ class AutoAssemblyTarget(TypedDict):
 
 
 def evalute_auto_assembly_part(
-    api: api_base.Api, part_studio_path: api_path.ElementPath
+    api: onshape_api.Api, part_studio_path: onshape_api.ElementPath
 ) -> dict:
-    return part_studios.evaluate_feature_script(
+    return endpoints.evaluate_feature_script(
         api, part_studio_path, open_script("parseAutoAssembly")
     )
 
 
 def evalute_auto_assembly_target_part(
-    api: api_base.Api, part_studio_path: api_path.ElementPath
+    api: onshape_api.Api, part_studio_path: onshape_api.ElementPath
 ) -> dict:
-    return part_studios.evaluate_feature_script(
+    return endpoints.evaluate_feature_script(
         api, part_studio_path, open_script("parseAutoAssemblyTarget")
     )
 
 
 def evaluate_assembly_mirror_part(
-    api: api_base.Api, part_studio_path: api_path.ElementPath
+    api: onshape_api.Api, part_studio_path: onshape_api.ElementPath
 ) -> dict:
-    return part_studios.evaluate_feature_script(
+    return endpoints.evaluate_feature_script(
         api, part_studio_path, open_script("parseAssemblyMirror")
     )
 
 
 def evaluate_assembly_mirror_parts(
-    api: api_base.Api, part_studio_paths: Iterable[api_path.ElementPath]
+    api: onshape_api.Api, part_studio_paths: Iterable[onshape_api.ElementPath]
 ) -> tuple[dict[str, str], set[str]]:
     """Runs the assembly mirror scripts against the given part_studio_paths and aggregates the results.
 
@@ -84,7 +84,7 @@ def evaluate_assembly_mirror_parts(
 
 @dataclasses.dataclass
 class PartMaps:
-    mates_to_targets: dict[str, api_path.ElementPath] = dataclasses.field(
+    mates_to_targets: dict[str, onshape_api.ElementPath] = dataclasses.field(
         default_factory=dict
     )
     mirror_mates: dict[str, str] = dataclasses.field(default_factory=dict)
@@ -92,7 +92,7 @@ class PartMaps:
 
 
 def evalute_auto_assembly_parts(
-    api: api_base.Api, part_studio_paths: set[api_path.ElementPath]
+    api: onshape_api.Api, part_studio_paths: set[onshape_api.ElementPath]
 ):
     with futures.ThreadPoolExecutor() as executor:
         threads = [
@@ -107,11 +107,9 @@ def evalute_auto_assembly_parts(
                 continue
 
             for values in result["mates"]:
-                part_maps.mates_to_targets[
-                    values["mateId"]
-                ] = api_path.make_element_path(
+                part_maps.mates_to_targets[values["mateId"]] = onshape_api.ElementPath(
                     values["documentId"],
-                    values["workspaceId"],
+                    values["instanceId"],
                     values["elementId"],
                     values["workspaceOrVersion"],
                 )
@@ -120,7 +118,7 @@ def evalute_auto_assembly_parts(
 
 
 def evaluate_targets(
-    api: api_base.Api, mates_to_targets: dict[str, api_path.ElementPath]
+    api: onshape_api.Api, mates_to_targets: dict[str, onshape_api.ElementPath]
 ) -> dict[str, str]:
     """Converts a dict mapping mate_ids to target part studios into a dict mapping target part studio mate ids to original mate ids.
 

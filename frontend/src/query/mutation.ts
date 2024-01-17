@@ -1,6 +1,10 @@
-export type ExecuteAction<T, R> = (args: T, signal: AbortSignal) => Promise<R>;
+import { UseMutationResult } from "@tanstack/react-query";
 
-export function useActionMutation<T, R>(args: T, execute: ExecuteAction<T, R>) {
-    const controller = new AbortController();
-    return execute(args, controller.signal);
+/**
+ * An alias type for UseMutationResult, which is the type returned by useMutation.
+ */
+export type Mutation = UseMutationResult<any, Error, any, any>;
+
+export interface MutationProps {
+    mutation: Mutation;
 }

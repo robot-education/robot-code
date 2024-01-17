@@ -8,8 +8,8 @@ from concurrent import futures
 
 from featurescript.base import ctxt, studio
 from featurescript import conf, endpoints
-from api import api_base
-from api.endpoints import documents, feature_studios
+from onshape_api import api_base
+from onshape_api.endpoints import documents, feature_studios
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
@@ -108,7 +108,7 @@ class CommandLineManager:
         code = feature_studios.pull_code(self.api, studio_to_pull.path)
         self.config.write_file(studio_to_pull.name, code)
 
-        studio_to_pull.microversion_id = documents.get_microversion_id(
+        studio_to_pull.microversion_id = documents.latest_microversion_id(
             self.api, studio_to_pull.path
         )
         studio_to_pull.modified = False  # Studio is now synced
@@ -177,7 +177,7 @@ class CommandLineManager:
 
         feature_studios.push_code(self.api, studio_to_push.path, code)
         studio_to_push.modified = False
-        studio_to_push.microversion_id = documents.get_microversion_id(
+        studio_to_push.microversion_id = documents.latest_microversion_id(
             self.api, studio_to_push.path
         )
         return studio_to_push

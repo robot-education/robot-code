@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Iterable, Self, override
 import warnings
 import enum as std_enum
-from common import str_utils
+from onshape_api.utils import str_utils
 from featurescript.base.expr import cast_to_expr, expr_or_stmt
 from featurescript.core import param, utils, func
 from featurescript.base import ctxt, expr, node, user_error

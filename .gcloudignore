@@ -1,0 +1,8 @@
+#!include .gitignore
+
+.vscode/
+backend_tools/
+frontend/
+featurescript/
+robot_code/
+scripts/

@@ -1,10 +1,9 @@
-import { BlueprintIcons_16Id } from "@blueprintjs/icons/lib/esm/generated/16px/blueprint-icons-16";
-
 import { MenuType } from "../common/menu-type";
+import { IconName } from "@blueprintjs/icons";
 
 export interface MenuProps {
     text: string;
-    icon: BlueprintIcons_16Id;
+    icon: IconName;
 }
 
 export function getMenuProps(menuType: MenuType): MenuProps {

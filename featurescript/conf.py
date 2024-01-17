@@ -3,7 +3,7 @@ import json5
 import pathlib
 import pickle
 from typing import Any, Protocol
-from api import api_path
+from onshape_api.paths import paths
 
 STORAGE_FILE = "studio_data.pickle"
 
@@ -11,7 +11,7 @@ STORAGE_FILE = "studio_data.pickle"
 @dataclasses.dataclass
 class FeatureStudio:
     name: str
-    path: api_path.ElementPath
+    path: paths.ElementPath
     microversion_id: str
     modified: bool = False
     generated: bool = False
@@ -67,8 +67,8 @@ class Config:
 
     def _parse_document_paths(self, config: dict) -> None:
         documents: dict[str, str] = self._get_config_key(config, "documents")
-        self.documents: dict[str, api_path.DocumentPath] = dict(
-            (document_name, api_path.DocumentPath.from_url(url))
+        self.documents: dict[str, paths.InstancePath] = dict(
+            (document_name, paths.url_to_path(url))
             for document_name, url in documents.items()
         )
 
@@ -99,5 +99,5 @@ class Config:
             return None
         return path.read_text()
 
-    def get_document(self, name: str) -> api_path.DocumentPath | None:
+    def get_document(self, name: str) -> paths.InstancePath | None:
         return self.documents.get(name, None)

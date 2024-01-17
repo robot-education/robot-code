@@ -1,26 +1,23 @@
-import { Button } from "@blueprintjs/core";
-import { NonIdealStateOverride } from "./components/non-ideal-state-override";
+import { Icon, NonIdealState, NonIdealStateIconSize } from "@blueprintjs/core";
+import { OpenUrlButton } from "./components/open-url-button";
 
 const URL = "https://cad.onshape.com/user/applications";
 
 export function GrantDenied(): JSX.Element {
     const applicationAccessButton = (
-        <Button
-            text="Open Onshape application page"
-            intent="primary"
-            icon="share"
-            onClick={() => {
-                // location.href = URL;
-                window.open(URL);
-            }}
-        />
+        <OpenUrlButton text="Open onshape application page" url={URL} />
     );
 
     return (
         <div style={{ height: "80vh" }}>
-            <NonIdealStateOverride
-                icon="cross"
-                iconIntent="danger"
+            <NonIdealState
+                icon={
+                    <Icon
+                        icon="cross"
+                        intent="danger"
+                        size={NonIdealStateIconSize.STANDARD}
+                    />
+                }
                 title="Grant denied"
                 description="Robot manager was denied access to your documents."
                 action={applicationAccessButton}

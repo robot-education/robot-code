@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Generic, Iterable, Self, TypeVar
-from common import str_utils
+from onshape_api.utils import str_utils
 
 from featurescript.base import ctxt
 

@@ -2,8 +2,8 @@
 
 import pathlib
 
-from api import api_base
-from api.endpoints import feature_studios
+from onshape_api import api_base
+from onshape_api.endpoints import feature_studios
 from featurescript import conf, endpoints
 from featurescript.transform import transform
 

@@ -68,13 +68,46 @@ pipx install poetry
 
 # Robot Manager Setup
 
+You'll need to create a store entry in Onshape and generate secure certificates for the python dev server so Onshape will connect with it in your dev environment.
+
 Use the `Launch servers` task to launch the dev servers necessary to view the app. By default, the flask app runs on port 3000, and the vite app runs on port 5173.
 
+# Google Cloud Setup
 
-<!-- In your shell:
+This app is setup to be deployed using Google Cloud.
+
+To emulate the google cloud database locally and deploy, you'll need to install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install#deb).
+
+<!-- To emulate the google cloud database locally, first install a version of the Java JRE:
+
 ```
-poetry shell
-code .
+sudo apt install default-jre
 ``` -->
 
-<!-- https://stackoverflow.com/questions/29458548/can-you-add-https-functionality-to-a-python-flask-web-server -->
+Then start up the google cloud emulator:
+
+```
+gcloud emulators firestore start
+```
+
+To enable python to connect to the emulator, add the variable `FIRESTORE_EMULATOR_HOST` to `.env` with the value `127.0.0.1:8080`.
+
+Then restart the distro. This prevents google cloud from using the google cloud version located outside of WSL.
+
+Note: this project uses Google Cloud Firestore as it's database. This is not to be confused with Google Firebase's Firestore, as Firebase is a separate project from Google Cloud. Yikes.
+
+# Deploying in Google Cloud
+
+The app can be deployed using the google cloud CLI.
+
+Some notes:
+
+-   To allow the App deployed in the App Engine to connect to Firestore, the App Engine service account must be given the Firestore user role in IAM.
+-   You'll need to create an app.yaml file to deploy. Make sure to add the necessary ENV authentication variables. The entrypoint can be something like:
+
+```
+entrypoint: gunicorn -b :$PORT -w 2 "backend.server:create_app()"
+```
+
+<!-- To connect to the cloud db from your dev environment, run:
+```gcloud auth application-default login``` -->

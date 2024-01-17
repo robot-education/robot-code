@@ -1,5 +1,5 @@
 from typing import Any, Iterable, override
-from common import str_utils
+from onshape_api.utils import str_utils
 from featurescript.base import ctxt, expr
 from featurescript.core import map
 from featurescript.ui import ui_hint

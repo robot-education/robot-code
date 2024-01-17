@@ -11,26 +11,22 @@ function getUrl(path: string, query?: URLSearchParamsInit): string {
 interface PostOptions {
     query?: URLSearchParamsInit;
     body?: object;
-    signal?: AbortSignal;
 }
 
 /**
  * Makes a post request to a backend /api route.
  */
-export async function post(path: string, options: PostOptions): Promise<any> {
-    return fetch(getUrl(path, options.query), {
+export async function post(path: string, options?: PostOptions): Promise<any> {
+    return fetch(getUrl(path, options?.query), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(options.body ?? {}),
-        signal: options.signal
-    })
-        .then((res) => {
-            if (!res.ok) {
-                throw res;
-            }
-            return res.json();
-        })
-        .catch(() => null);
+        body: JSON.stringify(options?.body ?? {})
+    }).then((res) => {
+        if (!res.ok) {
+            throw new Error("Network response failed.");
+        }
+        return res.json();
+    });
 }
 
 /**
@@ -40,30 +36,28 @@ export async function get(
     path: string,
     query?: URLSearchParamsInit
 ): Promise<any> {
-    return fetch(getUrl(path, query))
-        .then((res) => {
-            if (!res.ok) {
-                throw res;
-            }
-            return res.json();
-        })
-        .catch(() => null);
+    return fetch(getUrl(path, query), {
+        cache: "no-store"
+    }).then((res) => {
+        if (!res.ok) {
+            throw new Error("Network response failed.");
+        }
+        return res.json();
+    });
 }
 
 /**
  * Makes a delete request to a backend /api route.
  * Note delete is a reserved keyword in JavaScript.
  */
-export async function _delete(
+export async function del(
     path: string,
     query?: URLSearchParamsInit
 ): Promise<any> {
-    return fetch(getUrl(path, query), { method: "DELETE" })
-        .then((res) => {
-            if (!res.ok) {
-                throw res;
-            }
-            return res.json();
-        })
-        .catch(() => null);
+    return fetch(getUrl(path, query), { method: "DELETE" }).then((res) => {
+        if (!res.ok) {
+            throw new Error("Network response failed.");
+        }
+        return res.json();
+    });
 }

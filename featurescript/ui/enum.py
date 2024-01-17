@@ -4,7 +4,7 @@ from typing import Any, Generic, Iterable, Self, Type, TypeVar, override
 
 import copy
 import warnings
-from common import str_utils
+from onshape_api.utils import str_utils
 
 from featurescript.core import control, func, param, utils, map
 from featurescript.base import ctxt, node, expr, user_error

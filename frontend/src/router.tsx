@@ -8,9 +8,12 @@ import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
 import { UpdateAllReferences } from "./versions/update-all-references";
 import { Assembly } from "./assembly/assembly";
-import { LinkedDocumentsManager } from "./linked-documents-manager/linked-documents-manager";
-import { linkedDocumentsQuery } from "./linked-documents-manager/linked-documents-query";
-import { generateAssemblyQuery } from "./part-studio/generate-assembly-query";
+import { LinkManager } from "./link-manager/link-manager";
+import {
+    DefaultNameType,
+    makeDefaultNameLoader
+} from "./common/default-name-loader";
+import { License } from "./license";
 
 export const router = createBrowserRouter([
     {
@@ -26,29 +29,42 @@ export const router = createBrowserRouter([
                         element: <PartStudio />,
                         children: [
                             {
+                                path: "link-manager",
+                                element: <LinkManager />
+                            },
+                            {
                                 path: "generate-assembly",
                                 element: <GenerateAssembly />,
-                                loader: generateAssemblyQuery
+                                loader: makeDefaultNameLoader(
+                                    DefaultNameType.ASSEMBLY
+                                )
                             }
                         ]
                     },
                     {
                         path: "assembly",
                         element: <Assembly />,
-                        children: []
+                        children: [
+                            {
+                                path: "link-manager",
+                                element: <LinkManager />
+                            }
+                        ]
                     },
                     {
                         path: "versions",
                         element: <Versions />,
                         children: [
                             {
-                                path: "linked-documents",
-                                element: <LinkedDocumentsManager />,
-                                loader: linkedDocumentsQuery
+                                path: "link-manager",
+                                element: <LinkManager />
                             },
                             {
                                 path: "push-version",
-                                element: <PushVersion />
+                                element: <PushVersion />,
+                                loader: makeDefaultNameLoader(
+                                    DefaultNameType.VERSION
+                                )
                             },
                             {
                                 path: "update-all-references",
@@ -61,6 +77,10 @@ export const router = createBrowserRouter([
             {
                 path: "grant-denied",
                 element: <GrantDenied />
+            },
+            {
+                path: "license",
+                element: <License />
             }
         ]
     }

@@ -1,46 +1,50 @@
 import os
-import dotenv
 import flask
-from flask import current_app
-from api.endpoints import users
+from onshape_api.endpoints import users
 from backend import api
-from backend.common import setup
-from backend.endpoints import oauth
-
-dotenv.load_dotenv()
+from backend.common import connect, env
+from backend import oauth
 
 
 def create_app():
-    app = flask.Flask(__name__, static_folder="dist")
+    app = flask.Flask(__name__)
     app.config.update(
-        SESSION_COOKIE_NAME="robot-manager", SECRET_KEY=os.getenv("SESSION_SECRET")
+        SESSION_COOKIE_NAME="robot-manager", SECRET_KEY=env.session_secret
     )
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
     app.register_blueprint(api.router)
-
     app.register_blueprint(oauth.router)
 
-    @app.get("/app/assembly")
-    @app.get("/app/part-studio")
-    def serve_app():
-        api = setup.get_api()
-        authorized = api.oauth.authorized and users.ping(api, catch=True)
-        if not authorized:
-            flask.session["redirect_url"] = flask.request.url
-            return flask.redirect("/sign-in")
-
-        if os.getenv("NODE_ENV", "development") == "production":
+    def serve_index():
+        if env.is_production:
             return flask.send_from_directory("dist", "index.html")
         else:
             return flask.render_template("index.html")
 
-    @app.get("/grant-denied")
-    def serve_grant_denied():
-        return flask.render_template("index.html")
+    @app.get("/app")
+    def serve_app():
+        api = connect.get_api()
+        authorized = api.oauth.authorized and users.ping(api, catch=True)
+        if not authorized:
+            flask.session["redirect_url"] = flask.request.url
+            return flask.redirect("/sign-in")
+        return serve_index()
 
-    @app.get("/assets/<path:filename>")
-    def serve_assets(filename: str):
-        return flask.send_from_directory("dist/assets", filename)
+    @app.get("/license")
+    @app.get("/grant-denied")
+    def serve_static_pages():
+        return serve_index()
+
+    # Production only handlers:
+    if env.is_production:
+
+        @app.get("/robot-icon.svg")
+        def serve_icon():
+            return flask.send_from_directory("dist", "robot-icon.svg")
+
+        @app.get("/assets/<path:filename>")
+        def serve_assets(filename: str):
+            return flask.send_from_directory("dist/assets", filename)
 
     return app

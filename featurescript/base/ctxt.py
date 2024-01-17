@@ -5,7 +5,7 @@ import dataclasses
 import enum as std_enum
 from typing import TYPE_CHECKING, Any
 
-from api import api_base
+from onshape_api import api_base
 from featurescript import conf
 
 if TYPE_CHECKING:  # prevent circular import

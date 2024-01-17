@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { FormGroup, Tooltip, InputGroup } from "@blueprintjs/core";
 import { useMutation } from "@tanstack/react-query";
 
@@ -6,14 +6,18 @@ import { handleStringChange } from "../common/handlers";
 import { ActionForm } from "../actions/action-form";
 import { ActionInfo } from "../actions/action-context";
 import { ActionCard } from "../actions/action-card";
-import { useCurrentMutation } from "../actions/common/action-utils";
-import { Action } from "../actions/action";
+import { ActionDialog } from "../actions/action-dialog";
 import { useLoaderData } from "react-router-dom";
-import {
-    GenerateAssemblyArgs,
-    generateAssemblyMutation
-} from "./generate-assembly-query";
-import { OpenUrlButtons } from "../components/open-url-buttons";
+import { OpenUrlButton } from "../components/open-url-button";
+import { currentElementPath } from "../app/onshape-params";
+import { ElementPath, toElementApiPath } from "../api/path";
+import { makeUrl } from "../common/url";
+import { post } from "../api/api";
+import { ExecuteButton } from "../components/execute-button";
+import { ActionError } from "../actions/action-error";
+import { ActionSuccess } from "../actions/action-success";
+import { ActionSpinner } from "../actions/action-spinner";
+import { MutationProps } from "../query/mutation";
 
 const actionInfo: ActionInfo = {
     title: "Generate assembly",
@@ -25,90 +29,115 @@ export function GenerateAssemblyCard() {
     return <ActionCard actionInfo={actionInfo} />;
 }
 
-/**
- * I think I can write a mutation wrapper which automatically injects the AbortController into the execute function when mutate is called.
- * That allows the mutation to handle the abort controller internally.
- */
+interface GenerateAssemblyArgs {
+    assemblyName: string;
+}
 
 export function GenerateAssembly() {
-    const abortControllerRef = useRef<AbortController>(null!);
-
-    const execute = async (args: GenerateAssemblyArgs) => {
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
-        return generateAssemblyMutation(args, controller);
+    const mutationFn = async (
+        args: GenerateAssemblyArgs
+    ): Promise<ElementPath> => {
+        const path = currentElementPath();
+        const result = await post(
+            "/generate-assembly" + toElementApiPath(path),
+            {
+                body: { name: args.assemblyName }
+            }
+        );
+        // if (data.autoAssemble) {
+        // await post("/auto-assembly", assemblyPath.elementObject());
+        // }
+        const resultPath = Object.assign({}, path);
+        resultPath.elementId = result.elementId;
+        return resultPath;
     };
-
     const mutation = useMutation({
         mutationKey: [actionInfo.route],
-        mutationFn: execute
+        mutationFn
     });
 
-    const openButton = mutation.isSuccess && (
-        <OpenUrlButtons
-            openInNewTabText="Switch to assembly"
-            switchToText="Open in new tab"
-            url={mutation.data.assemblyUrl}
-        />
-    );
-
     return (
-        <Action
-            actionInfo={actionInfo}
-            mutation={mutation}
-            actionForm={<GenerateAssemblyForm />}
-            loadingMessage="Generating assembly"
-            controller={abortControllerRef.current}
-            successMessage="Successfully generated assembly."
-            successDescription="Remember to fix a part in the assembly to lock it in place."
-            successActions={openButton}
-        />
+        <ActionDialog title={actionInfo.title} mutation={mutation}>
+            {mutation.isIdle && <GenerateAssemblyForm mutation={mutation} />}
+            {mutation.isPending && (
+                <ActionSpinner message="Generating assembly..." />
+            )}
+            {mutation.isError && <ActionError />}
+            {mutation.isSuccess && (
+                <ActionSuccess
+                    message="Successfully generated assembly"
+                    description="Remember to fix a part in the assembly to lock it in place."
+                    actions={
+                        <OpenUrlButton
+                            text="Open assembly in new tab"
+                            url={makeUrl(mutation.data)}
+                        />
+                    }
+                />
+            )}
+        </ActionDialog>
     );
 }
 
-function GenerateAssemblyForm() {
-    const mutation = useCurrentMutation();
+function GenerateAssemblyForm(props: MutationProps) {
+    const mutation = props.mutation;
+
     const defaultName = useLoaderData() as string;
     const [assemblyName, setAssemblyName] = useState(defaultName);
-    // const [autoAssemble, setAutoAssemble] = useState(true);
     const disabled = assemblyName === "";
+    // const [autoAssemble, setAutoAssemble] = useState(true);
 
-    const options = (
-        <>
-            <FormGroup label="Assembly name" labelInfo="(required)">
-                <Tooltip content={"The name of the generated assembly"}>
-                    <InputGroup
-                        value={assemblyName}
-                        intent={disabled ? "danger" : undefined}
-                        onChange={handleStringChange(setAssemblyName)}
-                    />
-                </Tooltip>
-            </FormGroup>
-            {/* <FormGroup
-            label="Execute auto assembly"
-            inline
+    const assemblyNameForm = (
+        <FormGroup
+            label="Assembly name"
+            labelInfo="(required)"
+            labelFor="assembly-name"
+            style={{ width: "auto" }}
         >
-            <Tooltip
-                content={
-                    "Whether to execute auto assembly on the generated assembly"
-                }
-            >
-                <Checkbox
-                    checked={autoAssemble}
-                    onClick={handleBooleanChange(setAutoAssemble)}
+            <Tooltip content={"The name of the generated assembly"}>
+                <InputGroup
+                    id="assembly-name"
+                    value={assemblyName}
+                    intent={disabled ? "danger" : undefined}
+                    onChange={handleStringChange(setAssemblyName)}
+                    placeholder="Assembly name"
                 />
             </Tooltip>
-        </FormGroup> */}
-        </>
+        </FormGroup>
     );
+    // const executeAutoAssemblyForm = (
+    //     <FormGroup
+    //         label="Execute auto assembly"
+    //         inline
+    //         labelFor="execute-auto-assembly"
+    //     >
+    //         <Tooltip
+    //             content={
+    //                 "Whether to execute auto assembly on the generated assembly"
+    //             }
+    //         >
+    //             <Checkbox
+    //                 id="execute-auto-assembly"
+    //                 checked={autoAssemble}
+    //                 onClick={handleBooleanChange(setAutoAssemble)}
+    //             />
+    //         </Tooltip>
+    //     </FormGroup>
+    // );
 
-    const handleSubmit = () => mutation.mutate({ assemblyName });
+    const executeButton = (
+        <ExecuteButton
+            disabled={disabled}
+            onSubmit={() => mutation.mutate({ assemblyName })}
+        />
+    );
 
     return (
         <ActionForm
-            disabled={disabled}
-            options={options}
-            onSubmit={handleSubmit}
-        />
+            description={actionInfo.description}
+            actions={executeButton}
+        >
+            {assemblyNameForm}
+        </ActionForm>
     );
 }

@@ -1,39 +1,36 @@
 import {
-    Alignment,
-    Button,
+    IconSize,
     Navbar,
     NavbarDivider,
-    NavbarGroup,
-    NavbarHeading
+    NavbarGroup
 } from "@blueprintjs/core";
 import { SelectMenu } from "./select-menu";
 import { ReactNode } from "react";
-import { MenuType, useCurrentMenuType } from "../common/menu-type";
-import { OpenLinkedDocumentsButton } from "../linked-documents-manager/linked-documents-manager";
+
+import robotIcon from "/robot-icon.svg";
+import { OpenLinkManagerButton } from "../components/manage-links-button";
 
 /**
  * Provides top-level navigation for the app.
  */
 export function AppNavbar(): ReactNode {
-    const menuType = useCurrentMenuType();
-    const referencesButton = menuType === MenuType.VERSIONS && (
-        <>
-            <NavbarDivider />
-            <OpenLinkedDocumentsButton />
-        </>
-    );
-
     return (
         <Navbar>
             <NavbarGroup>
-                <NavbarHeading>Robot manager</NavbarHeading>
+                {/* <NavbarHeading>Robot manager</NavbarHeading> */}
+                <img
+                    height={IconSize.LARGE}
+                    src={robotIcon}
+                    alt="Robot manager"
+                />
                 <NavbarDivider />
                 <SelectMenu />
-                {referencesButton}
+                <NavbarDivider />
+                <OpenLinkManagerButton />
             </NavbarGroup>
-            <NavbarGroup align={Alignment.RIGHT}>
-                <Button icon="cog" minimal />
-            </NavbarGroup>
+            {/* <NavbarGroup align={Alignment.RIGHT}>
+                <Button icon={<Cog />} minimal />
+            </NavbarGroup> */}
         </Navbar>
     );
 }

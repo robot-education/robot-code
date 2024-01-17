@@ -1,34 +1,20 @@
-import { Button } from "@blueprintjs/core";
 import { ReactNode } from "react";
-import { ActionState } from "./action-state";
-import { ActionDialogBody } from "./common/action-dialog-body";
+import { ActionBody } from "./action-body";
 
 interface ActionFormProps {
-    disabled?: boolean;
-    options?: ReactNode;
-    onSubmit: () => void;
+    description?: string;
+    children?: ReactNode;
+    actions: ReactNode;
 }
 
 export function ActionForm(props: ActionFormProps) {
-    const { disabled, options } = props;
-
-    const executeButton = (
-        <Button
-            text="Execute"
-            intent="primary"
-            type="submit"
-            rightIcon="arrow-right"
-            disabled={disabled ?? false}
-            onClick={props.onSubmit}
-        />
-    );
+    const { description, children, actions } = props;
+    const renderDescription = description ? <p>{description}</p> : null;
 
     return (
-        <ActionDialogBody
-            requiredState={ActionState.CONFIGURING}
-            actions={executeButton}
-        >
-            {options}
-        </ActionDialogBody>
+        <ActionBody actions={actions}>
+            {renderDescription}
+            {children}
+        </ActionBody>
     );
 }

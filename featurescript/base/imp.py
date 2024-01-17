@@ -1,7 +1,7 @@
 import dataclasses
 from typing import override
 import warnings
-from api.endpoints import versions
+from onshape_api.endpoints import versions
 from featurescript import endpoints
 from featurescript.base import node, ctxt, user_error
 from featurescript.core import utils
@@ -44,11 +44,11 @@ class Import(node.Node):
             )
         if is_external:
             if self.version_id:
-                document.workspace_id = self.version_id
+                document.instance_id = self.version_id
             else:
-                document.workspace_id = versions.get_versions(context.api, document)[
-                    -1
-                ]["id"]
+                document.instance_id = versions.get_versions(context.api, document)[-1][
+                    "id"
+                ]
             # set last to avoid affecting get_versions call
             document.workspace_or_version = "v"
 
@@ -67,7 +67,7 @@ class Import(node.Node):
             path = "/".join(
                 (
                     document.document_id,
-                    document.workspace_id,
+                    document.instance_id,
                     studio.path.element_id,
                 )
             )
