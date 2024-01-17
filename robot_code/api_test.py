@@ -18,7 +18,7 @@ def main():
     base_document = documents.get_document_elements(api, base)
     base_path = base_document["Part Studio 1"]
 
-    base_path.workspace_or_version = "v"
+    # base_path.instance_type = InstanceType.VERSION
     base_path.instance_id = versions.get_latest_version(api, base_path)["id"]
 
     assemblies.add_parts_to_assembly(api, target_path, base_path)
