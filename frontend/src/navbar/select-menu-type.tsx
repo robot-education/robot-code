@@ -14,7 +14,6 @@ export function SelectMenuType() {
             {...getMenuProps(currentMenuType)}
             rightIcon="caret-down"
             intent="primary"
-            alignText="left"
             minimal
         />
     );
@@ -34,17 +33,13 @@ export function SelectMenuType() {
     }
 
     const menuItems = currentMenuTypes.map((menuType) => (
-        <SelectMenuItem
-            key={menuType}
-            {...getMenuProps(menuType)}
-            menuType={menuType}
-        />
+        <SelectMenuItem key={menuType} menuType={menuType} />
     ));
 
     const menu = <Menu>{menuItems}</Menu>;
 
     return (
-        <Popover content={menu} minimal placement="bottom-end">
+        <Popover content={menu} minimal placement="bottom-start">
             {currentMenuButton}
         </Popover>
     );

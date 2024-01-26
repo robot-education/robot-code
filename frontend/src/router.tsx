@@ -13,6 +13,7 @@ import {
 } from "./common/default-name-loader";
 import { License } from "./pages/license";
 import { Assembly } from "./assembly/assembly";
+import { MenuType } from "./common/menu-type";
 
 export const router = createBrowserRouter([
     {
@@ -20,7 +21,7 @@ export const router = createBrowserRouter([
         element: <App />,
         children: [
             {
-                path: "part-studio",
+                path: MenuType.PART_STUDIO,
                 element: <PartStudio />,
                 children: [
                     {
@@ -35,7 +36,7 @@ export const router = createBrowserRouter([
                 ]
             },
             {
-                path: "assembly",
+                path: MenuType.ASSEMBLY,
                 element: <Assembly />,
                 children: [
                     {
@@ -45,7 +46,7 @@ export const router = createBrowserRouter([
                 ]
             },
             {
-                path: "versions",
+                path: MenuType.VERSIONS,
                 element: <Versions />,
                 children: [
                     {

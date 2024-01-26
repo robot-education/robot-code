@@ -45,8 +45,6 @@ interface PushVersionArgs {
 
 export function PushVersion() {
     const mutationFn = async (args: PushVersionArgs) => {
-        console.log("Description: " + args.description);
-        console.log(args.instancePaths);
         return post("/push-version" + currentInstanceApiPath(), {
             body: {
                 name: args.name,
