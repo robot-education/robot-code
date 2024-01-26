@@ -9,7 +9,11 @@ from backend import oauth
 def create_app():
     app = flask.Flask(__name__)
     app.config.update(
-        SESSION_COOKIE_NAME="robot-manager", SECRET_KEY=env.session_secret
+        SESSION_COOKIE_NAME="robot-manager",
+        SECRET_KEY=env.session_secret,
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="None",
     )
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
