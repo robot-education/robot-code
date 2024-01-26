@@ -6,7 +6,7 @@ import {
     Popover
 } from "@blueprintjs/core";
 import { makeUrl, openUrlInNewTab } from "../common/url";
-import { InstancePath } from "../api/path";
+import { WorkspacePath } from "../api/path";
 import { del, post } from "../api/api";
 import { currentInstanceApiPath } from "../app/onshape-params";
 import { LinkType, LinkTypeProps } from "./document-link-type";
@@ -18,51 +18,44 @@ import {
 } from "../app/toaster";
 import { Workspace } from "../api/path";
 import { useId } from "react";
-import { linkedDocumentsKey, queryClient } from "../query/query-client";
+import {
+    handleDocumentAdded,
+    handleDocumentRemoved
+} from "../query/query-client";
 import { useMutation } from "@tanstack/react-query";
 
-interface DeleteDocumentArgs {
-    documentPath: InstancePath;
+interface RemoveDocumentArgs {
+    workspacePath: WorkspacePath;
     linkType: LinkType;
 }
 
-async function deleteDocumentMutationFn(
-    args: DeleteDocumentArgs
+async function removeDocumentMutationFn(
+    args: RemoveDocumentArgs
 ): Promise<Workspace> {
     const currentApiPath = currentInstanceApiPath();
     return del(`/linked-documents/${args.linkType}` + currentApiPath, {
-        documentId: args.documentPath.documentId,
-        instanceId: args.documentPath.instanceId
+        documentId: args.workspacePath.documentId,
+        instanceId: args.workspacePath.instanceId
     });
 }
 
 interface DocumentOptionsMenuProps extends LinkTypeProps {
-    instancePath: InstancePath;
+    workspacePath: WorkspacePath;
 }
 
 export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
-    const { instancePath } = props;
-    const url = makeUrl(instancePath);
+    const { workspacePath } = props;
+    const url = makeUrl(workspacePath);
     const successToastId = useId();
 
     const deleteMutation = useMutation({
-        mutationKey: ["linked-documents", "delete", instancePath],
-        mutationFn: deleteDocumentMutationFn,
+        mutationKey: ["linked-documents", "delete", workspacePath],
+        mutationFn: removeDocumentMutationFn,
         onError: () => {
             showInternalErrorToast("Unexpectedly failed to delete document.");
         },
-        onSuccess: (deletedDocument, args) => {
-            // Update displayed documents
-            queryClient.setQueryData<Workspace[]>(
-                linkedDocumentsKey(args.linkType),
-                (oldDocuments) =>
-                    (oldDocuments ?? []).filter(
-                        (document) =>
-                            document.documentId !==
-                                deletedDocument.documentId &&
-                            document.instanceId !== deletedDocument.instanceId
-                    )
-            );
+        onSuccess: (removedDocument, args) => {
+            handleDocumentRemoved(args.linkType, removedDocument);
 
             // This can (and probably should) be it's own mutation
             const handleUndo = async () => {
@@ -71,8 +64,8 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                         currentInstanceApiPath(),
                     {
                         query: {
-                            documentId: deletedDocument.documentId,
-                            instanceId: deletedDocument.instanceId
+                            documentId: removedDocument.documentId,
+                            instanceId: removedDocument.instanceId
                         }
                     }
                 )
@@ -84,11 +77,9 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                     })
                     .then(() => {
                         toaster.dismiss(successToastId);
-                        queryClient.invalidateQueries({
-                            queryKey: linkedDocumentsKey(args.linkType)
-                        });
+                        handleDocumentAdded(args.linkType, removedDocument);
                         showSuccessToast(
-                            `Successfully restored ${deletedDocument.name}.`
+                            `Successfully restored ${removedDocument.name}.`
                         );
                     });
             };
@@ -96,7 +87,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
             toaster.show(
                 {
                     ...infoToastArgs,
-                    message: `Deleted link to ${deletedDocument.name}.`,
+                    message: `Removed link to ${removedDocument.name}.`,
                     action: {
                         text: "Undo",
                         onClick: handleUndo
@@ -104,7 +95,6 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                 },
                 successToastId
             );
-            return document;
         }
     });
 
@@ -124,7 +114,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                 onClick={() => {
                     deleteMutation.mutate({
                         linkType: props.linkType,
-                        documentPath: props.instancePath
+                        workspacePath: props.workspacePath
                     });
                 }}
             />

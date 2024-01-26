@@ -60,7 +60,7 @@ def update_refs(
     return updated_elements
 
 
-@router.post("/update-references" + connect.document_route())
+@router.post("/update-references" + connect.instance_route())
 def update_references(*args, **kwargs):
     """Updates references in a given document.
 
@@ -79,7 +79,7 @@ def update_references(*args, **kwargs):
     return {"updatedElements": updated_elements}
 
 
-@router.post("/push-version" + connect.document_route())
+@router.post("/push-version" + connect.instance_route())
 def push_version(**kwargs):
     """Updates references in a given document.
 

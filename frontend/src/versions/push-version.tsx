@@ -45,8 +45,6 @@ interface PushVersionArgs {
 
 export function PushVersion() {
     const mutationFn = async (args: PushVersionArgs) => {
-        console.log("Description: " + args.description);
-        console.log(args.instancePaths);
         return post("/push-version" + currentInstanceApiPath(), {
             body: {
                 name: args.name,
@@ -60,6 +58,20 @@ export function PushVersion() {
         mutationFn
     });
 
+    let actionSuccess = null;
+    if (mutation.isSuccess) {
+        const result = mutation.variables;
+        const length = result.instancePaths.length;
+        const plural = length == 1 ? "" : "s";
+        const description = `Successfully pushed ${result.name} to ${length} document${plural}.`;
+        actionSuccess = (
+            <ActionSuccess
+                message="Successfully pushed version"
+                description={description}
+            />
+        );
+    }
+
     return (
         <ActionDialog title={actionInfo.title} mutation={mutation}>
             {mutation.isIdle && <PushVersionForm mutation={mutation} />}
@@ -67,11 +79,7 @@ export function PushVersion() {
                 <ActionSpinner message="Creating and pushing version..." />
             )}
             {mutation.isError && <ActionError />}
-            {mutation.isSuccess && (
-                <ActionSuccess
-                    message={`Successfully pushed version ${mutation.variables.name} to ${mutation.variables.instancePaths.length} documents`}
-                />
-            )}
+            {actionSuccess}
         </ActionDialog>
     );
 }

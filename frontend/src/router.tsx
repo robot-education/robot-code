@@ -1,8 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
-import { Root } from "./pages/root";
 import { App } from "./app/app";
-import { Home } from "./home/home";
-import { GenerateAssembly } from "./home/generate-assembly";
+import { PartStudio } from "./part-studio/part-studio";
+import { GenerateAssembly } from "./part-studio/generate-assembly";
 import { GrantDenied } from "./pages/grant-denied";
 import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
@@ -13,64 +12,66 @@ import {
     makeDefaultNameLoader
 } from "./common/default-name-loader";
 import { License } from "./pages/license";
+import { Assembly } from "./assembly/assembly";
+import { MenuType } from "./common/menu-type";
 
 export const router = createBrowserRouter([
     {
-        path: "/",
-        element: <Root />,
+        path: "app",
+        element: <App />,
         children: [
             {
-                path: "app",
-                element: <App />,
+                path: MenuType.PART_STUDIO,
+                element: <PartStudio />,
                 children: [
                     {
-                        path: "home",
-                        element: <Home />,
-                        children: [
-                            {
-                                path: "link-manager",
-                                element: <LinkManager />
-                            },
-                            {
-                                path: "generate-assembly",
-                                element: <GenerateAssembly />,
-                                loader: makeDefaultNameLoader(
-                                    DefaultNameType.ASSEMBLY
-                                )
-                            }
-                        ]
+                        path: "link-manager",
+                        element: <LinkManager />
                     },
                     {
-                        path: "versions",
-                        element: <Versions />,
-                        children: [
-                            {
-                                path: "link-manager",
-                                element: <LinkManager />
-                            },
-                            {
-                                path: "push-version",
-                                element: <PushVersion />,
-                                loader: makeDefaultNameLoader(
-                                    DefaultNameType.VERSION
-                                )
-                            },
-                            {
-                                path: "update-all-references",
-                                element: <UpdateAllReferences />
-                            }
-                        ]
+                        path: "generate-assembly",
+                        element: <GenerateAssembly />,
+                        loader: makeDefaultNameLoader(DefaultNameType.ASSEMBLY)
                     }
                 ]
             },
             {
-                path: "grant-denied",
-                element: <GrantDenied />
+                path: MenuType.ASSEMBLY,
+                element: <Assembly />,
+                children: [
+                    {
+                        path: "link-manager",
+                        element: <LinkManager />
+                    }
+                ]
             },
             {
-                path: "license",
-                element: <License />
+                path: MenuType.VERSIONS,
+                element: <Versions />,
+                children: [
+                    {
+                        path: "link-manager",
+                        element: <LinkManager />
+                    },
+                    {
+                        path: "push-version",
+                        element: <PushVersion />,
+                        loader: makeDefaultNameLoader(DefaultNameType.VERSION)
+                    },
+                    {
+                        path: "update-all-references",
+                        element: <UpdateAllReferences />
+                    }
+                ]
             }
         ]
+    },
+    {
+        path: "grant-denied",
+        element: <GrantDenied />
+    },
+    {
+        path: "license",
+        element: <License />
     }
 ]);

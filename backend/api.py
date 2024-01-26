@@ -51,7 +51,7 @@ router.register_blueprint(references.router)
 #     return {"id": result["id"]}
 
 
-@router.get("/default-name/<element_type>" + connect.document_route("wv"))
+@router.get("/default-name/<element_type>" + connect.instance_route("wv"))
 def default_name(element_type: str, **kwargs):
     """Returns the next default name for a given element type in a document.
 
