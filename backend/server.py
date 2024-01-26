@@ -42,9 +42,8 @@ def create_app():
     def serve_static_pages():
         return serve_index()
 
-    # Production only handlers:
     if env.is_production:
-
+        # Production only handlers:
         @app.get("/robot-icon.svg")
         def serve_icon():
             return flask.send_from_directory("dist", "robot-icon.svg")
@@ -52,5 +51,11 @@ def create_app():
         @app.get("/assets/<path:filename>")
         def serve_assets(filename: str):
             return flask.send_from_directory("dist/assets", filename)
+
+    else:
+        # Development hmr handler
+        @app.get("/app/<path:current_path>")
+        def serve_app_hmr(current_path: str):
+            return serve_index()
 
     return app

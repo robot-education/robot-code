@@ -17,6 +17,7 @@ import "@blueprintjs/select/lib/css/blueprint-select.css";
 
 // Custom css
 import "./main.scss";
+import { FocusStyleManager } from "@blueprintjs/core";
 
 // see https://vitejs.dev/guide/features.html#glob-import
 const iconModules: Record<string, { default: IconPaths }> = import.meta.glob(
@@ -34,6 +35,8 @@ Icons.setLoaderOptions({
             `../node_modules/@blueprintjs/icons/lib/esm/generated/${size}px/paths/${name}.js`
         ].default
 });
+
+FocusStyleManager.onlyShowFocusOnTabs();
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>

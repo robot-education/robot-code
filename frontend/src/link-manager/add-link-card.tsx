@@ -10,7 +10,7 @@ import {
 import { HandledError } from "../common/errors";
 import { currentInstanceApiPath } from "../app/onshape-params";
 import { parseUrl } from "../common/url";
-import { linkedDocumentsKey, queryClient } from "../query/query-client";
+import { handleDocumentAdded } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
 import { LinkTypeProps, LinkType } from "./document-link-type";
 import { Workspace } from "../api/path";
@@ -32,6 +32,12 @@ async function addLinkMutationFn({
     if (!targetPath) {
         throw new HandledError(
             "Failed to parse the entered link. Is it a valid document link?"
+        );
+    }
+
+    if (targetPath.instanceType !== "w") {
+        throw new HandledError(
+            "Links can only be created to workspaces, not versions."
         );
     }
 
@@ -60,13 +66,10 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
                 showErrorToast(error.message);
             }
         },
-        onSuccess: (document, args) => {
-            showSuccessToast(`Successfully linked ${document.name}.`);
+        onSuccess: (workspace, args) => {
+            showSuccessToast(`Successfully linked ${workspace.name}.`);
             setUrl("");
-            queryClient.setQueryData<Workspace[]>(
-                linkedDocumentsKey(args.linkType),
-                (queryData) => (queryData ?? []).concat(document)
-            );
+            handleDocumentAdded(args.linkType, workspace);
         }
     });
 

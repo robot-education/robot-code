@@ -1,6 +1,8 @@
 import os
 
-# dotenv.load_dotenv(override=True)
+import dotenv
+
+dotenv.load_dotenv(override=True)
 
 client_id = os.environ["OAUTH_CLIENT_ID"]
 client_secret = os.environ["OAUTH_CLIENT_SECRET"]

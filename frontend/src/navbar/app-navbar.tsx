@@ -4,7 +4,7 @@ import {
     NavbarDivider,
     NavbarGroup
 } from "@blueprintjs/core";
-import { SelectMenu } from "./select-menu";
+import { SelectMenuType } from "./select-menu-type";
 import { ReactNode } from "react";
 
 import robotIcon from "/robot-icon.svg";
@@ -17,14 +17,13 @@ export function AppNavbar(): ReactNode {
     return (
         <Navbar>
             <NavbarGroup>
-                {/* <NavbarHeading>Robot manager</NavbarHeading> */}
                 <img
                     height={IconSize.LARGE}
                     src={robotIcon}
                     alt="Robot manager"
                 />
                 <NavbarDivider />
-                <SelectMenu />
+                <SelectMenuType />
                 <NavbarDivider />
                 <OpenLinkManagerButton />
             </NavbarGroup>

@@ -9,7 +9,8 @@ import {
 
 import { queryClient } from "../query/query-client";
 import { AppNavbar } from "../navbar/app-navbar";
-import { saveOnshapeParams } from "./onshape-params";
+import { getCurrentElementType, saveOnshapeParams } from "./onshape-params";
+import { ElementType } from "../common/element-type";
 
 export function App() {
     const params = useSearchParams()[0];
@@ -22,7 +23,12 @@ export function App() {
 
     if (isApp) {
         saveOnshapeParams(params);
-        return <Navigate to="/app/home" />;
+        const elementType = getCurrentElementType();
+        const menuType =
+            elementType === ElementType.PART_STUDIO
+                ? "part-studio"
+                : "assembly";
+        return <Navigate to={"/app/" + menuType} />;
     }
     return (
         <QueryClientProvider client={queryClient}>

@@ -1,7 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
 
 export enum MenuType {
-    HOME = "home",
+    PART_STUDIO = "part-studio",
+    ASSEMBLY = "assembly",
     VERSIONS = "versions"
     // FEATURE_SCRIPT = "feature-script"
 }
@@ -17,7 +18,7 @@ export function useCurrentMenuType(): MenuType {
             return type;
         }
     }
-    throw new Error("No valid menu type");
+    throw new Error("Invalid menu type at path: " + pathname);
 }
 
 /**

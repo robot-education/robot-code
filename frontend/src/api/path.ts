@@ -1,4 +1,4 @@
-export interface DocumentPath {
+export interface DocumentPath extends Record<string, string> {
     documentId: string;
 }
 
@@ -10,7 +10,7 @@ export interface InstancePath extends WorkspacePath {
     /**
      * One of "w", "v", or "m". Defaults to "w".
      */
-    instanceType?: string;
+    instanceType: string;
 }
 
 export interface Workspace extends WorkspacePath {
@@ -41,10 +41,7 @@ export function toDocumentApiPath(path: DocumentPath): string {
  * Trims an ElementPath to just the DocumentPath portion.
  */
 export function toInstanceApiPath(path: InstancePath): string {
-    return (
-        toDocumentApiPath(path) +
-        `/${path.instanceType ?? "w"}/${path.instanceId}`
-    );
+    return toDocumentApiPath(path) + `/${path.instanceType}/${path.instanceId}`;
 }
 
 /**
