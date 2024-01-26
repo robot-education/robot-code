@@ -74,7 +74,7 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
     });
 
     return (
-        <Card className="link-card" key="add">
+        <Card className="link-card">
             <InputGroup
                 className="link-card-url-input"
                 fill

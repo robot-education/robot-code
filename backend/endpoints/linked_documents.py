@@ -53,9 +53,9 @@ def make_document(
 router = flask.Blueprint("linked_documents", __name__)
 
 
-@router.get("/linked-documents/<link_type>" + connect.document_route())
+@router.get("/linked-documents/<link_type>" + connect.instance_route())
 async def get_linked_documents(link_type: str, **kwargs):
-    """Returns the parents and children linked to a given document."""
+    """Returns the documents linked to a given document."""
     if link_type not in LinkType:
         raise backend_exceptions.UserException(
             "Invalid link_type {}.".format(link_type)
@@ -64,7 +64,7 @@ async def get_linked_documents(link_type: str, **kwargs):
     api = connect.get_api()
     document_id = route_to_db_id()
     doc = connect.db_linked_documents().document(document_id).get()
-    tasks = []
+    tasks: list[asyncio.Task] = []
     if doc.exists and (data := doc.to_dict()):
         async with asyncio.TaskGroup() as tg:
             for document_id in data.get(link_type, []):
@@ -77,7 +77,7 @@ async def get_linked_documents(link_type: str, **kwargs):
     return {"documents": [task.result() for task in tasks]}
 
 
-@router.delete("/linked-documents/<link_type>" + connect.document_route())
+@router.delete("/linked-documents/<link_type>" + connect.instance_route())
 def delete_linked_document(link_type: LinkType, **kwargs):
     """Deletes a link from the url to the document specified in the query params.
 
@@ -87,7 +87,6 @@ def delete_linked_document(link_type: LinkType, **kwargs):
     link_types = get_link_types(link_type)
 
     api = connect.get_api()
-    db = connect.get_db()
 
     curr_id = route_to_db_id()
     link_path = onshape_api.InstancePath(
@@ -111,7 +110,7 @@ def add_document_link(
         doc_ref.update({linkType: firestore.ArrayUnion([new_id])})
 
 
-@router.post("/linked-documents/<link_type>" + connect.document_route())
+@router.post("/linked-documents/<link_type>" + connect.instance_route())
 def add_linked_document(link_type: LinkType, **kwargs):
     """Adds the document specified in the query parameters to the document specified in the url.
 

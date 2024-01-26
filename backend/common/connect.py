@@ -74,19 +74,12 @@ def get_oauth_session(oauth_type: OAuthType = OAuthType.USE) -> OAuth2Session:
     )
 
 
-def document_route(wvm_param: str = "w"):
+def instance_route(wvm_param: str = "w"):
     return f"/d/<document_id>/<{wvm_param}>/<workspace_id>"
 
 
 def element_route(wvm_param: str = "w"):
-    return document_route(wvm_param) + "/e/<element_id>"
-
-
-def get_document_id() -> str:
-    try:
-        return flask.request.args["documentId"]
-    except:
-        raise backend_exceptions.UserException("Expected documentId.")
+    return instance_route(wvm_param) + "/e/<element_id>"
 
 
 db = firestore.Client()

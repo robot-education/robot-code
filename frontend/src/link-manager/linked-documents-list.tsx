@@ -20,18 +20,17 @@ import { linkedDocumentsKey } from "../query/query-client";
 function getDocumentCards(
     linkType: LinkType,
     documents: Workspace[]
-): JSX.Element[] {
-    return documents.map((document) => {
-        return (
-            <Card className="link-card" key={document.documentId}>
-                <span>{document.name}</span>
-                <DocumentOptionsMenu
-                    linkType={linkType}
-                    workspacePath={document}
-                />
-            </Card>
-        );
-    });
+): JSX.Element {
+    const cards = documents.map((document) => (
+        <Card
+            className="link-card"
+            key={document.documentId + "|" + document.instanceId}
+        >
+            <span>{document.name}</span>
+            <DocumentOptionsMenu linkType={linkType} workspacePath={document} />
+        </Card>
+    ));
+    return <>{cards}</>;
 }
 
 interface LinkedDocumentsProps extends LinkTypeProps {
@@ -48,7 +47,6 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
     let body;
     // Also show spinner when query is invalidated by reset button
     if (query.isPending || isManuallyRefetching) {
-        // Could also render some dummy cards wrapped in a skeleton
         body = (
             <Card style={{ justifyContent: "center" }}>
                 <Spinner intent={"primary"} />

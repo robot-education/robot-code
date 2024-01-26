@@ -16,6 +16,7 @@
     "cSpell.ignorePaths": ["build", ".git", ".vscode", ".devcontainer"],
     "cSpell.words": [
         "apikey",
+        "blueprintjs",
         "creds",
         "ctxt",
         "digestmod",
