@@ -54,7 +54,7 @@ router = flask.Blueprint("linked_documents", __name__)
 
 
 @router.get("/linked-documents/<link_type>" + connect.instance_route())
-async def get_linked_documents(link_type: str, **kwargs):
+def get_linked_documents(link_type: str, **kwargs):
     """Returns the documents linked to a given document."""
     if link_type not in LinkType:
         raise backend_exceptions.UserException(
@@ -64,17 +64,25 @@ async def get_linked_documents(link_type: str, **kwargs):
     api = connect.get_api()
     document_id = route_to_db_id()
     doc = connect.db_linked_documents().document(document_id).get()
-    tasks: list[asyncio.Task] = []
+    documents = []
     if doc.exists and (data := doc.to_dict()):
-        async with asyncio.TaskGroup() as tg:
-            for document_id in data.get(link_type, []):
-                path = from_db_id(document_id)
+        for document_id in data.get(link_type, []):
+            path = from_db_id(document_id)
+            documents.append(make_document(api, path))
 
-                async def call():
-                    return make_document(api, path)
+    return {"documents": documents}
 
-                tasks.append(tg.create_task(call()))
-    return {"documents": [task.result() for task in tasks]}
+    # tasks: list[asyncio.Task] = []
+    # if doc.exists and (data := doc.to_dict()):
+    #     async with asyncio.TaskGroup() as tg:
+    #         for document_id in data.get(link_type, []):
+    #             path = from_db_id(document_id)
+
+    #             async def call():
+    #                 return make_document(api, path)
+
+    #             tasks.append(tg.create_task(call()))
+    # return {"documents": [task.result() for task in tasks]}
 
 
 @router.delete("/linked-documents/<link_type>" + connect.instance_route())
@@ -105,7 +113,7 @@ def add_document_link(
 ):
     doc_ref = db_ref.document(path_id)
     if not doc_ref.get().exists:
-        db_ref.add({linkType: [new_id]}, path_id)
+        doc_ref.set({linkType: [new_id]})
     else:
         doc_ref.update({linkType: firestore.ArrayUnion([new_id])})
 

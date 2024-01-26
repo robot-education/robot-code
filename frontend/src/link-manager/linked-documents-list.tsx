@@ -21,6 +21,7 @@ function getDocumentCards(
     linkType: LinkType,
     documents: Workspace[]
 ): JSX.Element {
+    console.log(documents);
     const cards = documents.map((document) => (
         <Card
             className="link-card"

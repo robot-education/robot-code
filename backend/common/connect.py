@@ -20,7 +20,7 @@ def get_session_id() -> str:
 
 
 def save_token(token) -> None:
-    set_session_data(db.transaction(), {"token": token})
+    set_session_data({"token": token})
 
 
 def get_token() -> dict | None:
@@ -36,12 +36,10 @@ def get_session_data() -> dict:
     return session_data
 
 
-@firestore.transactional
-def set_session_data(transaction, session_data: dict) -> None:
+def set_session_data(session_data: dict) -> None:
     session_id = get_session_id()
     doc_ref = db_sessions().document(document_id=session_id)
-    # doc = doc_ref.get(transaction=transaction)
-    transaction.set(doc_ref, session_data)
+    doc_ref.set(session_data)
 
 
 base_url = "https://oauth.onshape.com/oauth"
