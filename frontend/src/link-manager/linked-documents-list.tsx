@@ -27,7 +27,7 @@ function getDocumentCards(
                 <span>{document.name}</span>
                 <DocumentOptionsMenu
                     linkType={linkType}
-                    instancePath={document}
+                    workspacePath={document}
                 />
             </Card>
         );

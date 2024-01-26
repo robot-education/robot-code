@@ -33,23 +33,23 @@ async function removeDocumentMutationFn(
     args: RemoveDocumentArgs
 ): Promise<Workspace> {
     const currentApiPath = currentInstanceApiPath();
-    return del(
-        `/linked-documents/${args.linkType}` + currentApiPath,
-        args.workspacePath
-    );
+    return del(`/linked-documents/${args.linkType}` + currentApiPath, {
+        documentId: args.workspacePath.documentId,
+        instanceId: args.workspacePath.instanceId
+    });
 }
 
 interface DocumentOptionsMenuProps extends LinkTypeProps {
-    instancePath: WorkspacePath;
+    workspacePath: WorkspacePath;
 }
 
 export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
-    const { instancePath } = props;
-    const url = makeUrl(instancePath);
+    const { workspacePath } = props;
+    const url = makeUrl(workspacePath);
     const successToastId = useId();
 
     const deleteMutation = useMutation({
-        mutationKey: ["linked-documents", "delete", instancePath],
+        mutationKey: ["linked-documents", "delete", workspacePath],
         mutationFn: removeDocumentMutationFn,
         onError: () => {
             showInternalErrorToast("Unexpectedly failed to delete document.");
@@ -114,7 +114,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                 onClick={() => {
                     deleteMutation.mutate({
                         linkType: props.linkType,
-                        workspacePath: props.instancePath
+                        workspacePath: props.workspacePath
                     });
                 }}
             />

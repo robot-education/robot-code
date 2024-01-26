@@ -3,18 +3,23 @@ import {
     InstancePath,
     ElementPath,
     isInstancePath,
-    isElementPath
+    isElementPath,
+    isWorkspacePath,
+    WorkspacePath
 } from "../api/path";
 
 export function makeUrl(path: DocumentPath): string;
+export function makeUrl(path: WorkspacePath): string;
 export function makeUrl(path: InstancePath): string;
 export function makeUrl(path: ElementPath): string;
-export function makeUrl(
-    path: DocumentPath | InstancePath | ElementPath
-): string {
+// Impelmentation handler
+export function makeUrl(path: DocumentPath): string {
     let url = `https://cad.onshape.com/documents/${path.documentId}`;
+    // Match most specific match first
     if (isInstancePath(path)) {
-        url += `/${path.instanceType ?? "w"}/${path.instanceId}`;
+        url += `/${path.instanceType}/${path.instanceId}`;
+    } else if (isWorkspacePath(path)) {
+        url += `/w/${path.instanceId}`;
     }
     if (isElementPath(path)) {
         url += `/e/${path.elementId}`;

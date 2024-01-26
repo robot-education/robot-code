@@ -1,4 +1,4 @@
-export interface DocumentPath extends Record<string, string> {
+export interface DocumentPath {
     documentId: string;
 }
 
@@ -13,12 +13,12 @@ export interface InstancePath extends WorkspacePath {
     instanceType: string;
 }
 
-export interface Workspace extends WorkspacePath {
-    name: string;
-}
-
 export interface ElementPath extends InstancePath {
     elementId: string;
+}
+
+export interface Workspace extends WorkspacePath {
+    name: string;
 }
 
 export function isWorkspacePath(path: DocumentPath): path is WorkspacePath {
@@ -26,27 +26,24 @@ export function isWorkspacePath(path: DocumentPath): path is WorkspacePath {
 }
 
 export function isInstancePath(path: DocumentPath): path is InstancePath {
-    return (<InstancePath>path).instanceId !== undefined;
+    return (
+        isWorkspacePath(path) && (<InstancePath>path).instanceType !== undefined
+    );
 }
 
 export function isElementPath(path: DocumentPath): path is ElementPath {
-    return isWorkspacePath(path) && (<ElementPath>path).elementId !== undefined;
+    return isInstancePath(path) && (<ElementPath>path).elementId !== undefined;
 }
 
 export function toDocumentApiPath(path: DocumentPath): string {
     return `/d/${path.documentId}`;
 }
 
-/**
- * Trims an ElementPath to just the DocumentPath portion.
- */
-export function toInstanceApiPath(path: InstancePath): string {
-    return toDocumentApiPath(path) + `/${path.instanceType}/${path.instanceId}`;
+export function toInstanceApiPath(path: WorkspacePath): string {
+    const instanceType = isInstancePath(path) ? path.instanceType : "w";
+    return toDocumentApiPath(path) + `/${instanceType}/${path.instanceId}`;
 }
 
-/**
- * Trims an ElementPath to just the DocumentPath portion.
- */
 export function toElementApiPath(path: ElementPath): string {
     return toInstanceApiPath(path) + `/e/${path.elementId}`;
 }

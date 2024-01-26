@@ -66,10 +66,10 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
                 showErrorToast(error.message);
             }
         },
-        onSuccess: (workspace, args) => {
-            showSuccessToast(`Successfully linked ${workspace.name}.`);
+        onSuccess: (document, args) => {
+            showSuccessToast(`Successfully linked ${document.name}.`);
             setUrl("");
-            handleDocumentAdded(args.linkType, workspace);
+            handleDocumentAdded(args.linkType, document);
         }
     });
 
