@@ -56,6 +56,6 @@ def create_app():
         # Development hmr handler
         @app.get("/app/<path:current_path>")
         def serve_app_hmr(current_path: str):
-            return serve_index()
+            return flask.render_template("index.html")
 
     return app

@@ -1,5 +1,8 @@
 #!include .gitignore
 
+# Make sure not to upload .env
+.env
+
 .vscode/
 backend_tools/
 frontend/

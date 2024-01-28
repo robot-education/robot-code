@@ -39,6 +39,7 @@ def get_session_data() -> dict:
 def set_session_data(session_data: dict) -> None:
     session_id = get_session_id()
     doc_ref = db_sessions().document(document_id=session_id)
+    # transaction.set(doc_ref, session_data)
     doc_ref.set(session_data)
 
 
