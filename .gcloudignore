@@ -1,7 +1,8 @@
-#!include .gitignore
+# Import gitignore contents:
+#!include:.gitignore
 
-# Make sure not to upload .env
-.env
+# Re-add app.yaml
+!app.yaml
 
 .vscode/
 backend_tools/
