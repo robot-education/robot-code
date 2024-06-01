@@ -1,0 +1,174 @@
+# A simple EBNF for FeatureScript
+# The goal is to permissively accept FeatureScript programs, and not worry too much about rejecting all possibly invalid forms
+
+# TODO:
+# math expressions and operations w/precedence
+# namespace use
+
+
+# TOP LEVEL CONSTRUCTS
+studio: version [import+] [top_level+]
+
+version: "FeatureScript" INT ";"
+
+import: EXPORT? [ID "::"] "import" "(" "path" ":" string "," "version" ":" string ")" ";"
+
+top_level: annotation? EXPORT? (constant_declaration 
+    | function
+    | predicate
+    | operator_overload
+    | enum_declaration
+    | type_declaration)
+
+annotation: "annotation" map_literal
+
+# SUBROUTINES
+function: _subroutine{"function", ID}
+predicate: _subroutine{"predicate", ID}
+operator_overload: _subroutine{"operator", OVERLOAD_OP}
+
+# All subroutines can have preconditions
+_subroutine{type, name_match}: type name_match "(" parameters ")" return_type? precondition? block_statement
+
+parameters: [parameter ("," parameter)*]
+parameter: ID | ID "is" TYPE_ID
+
+return_type: "returns" TYPE_ID
+# can be a statement or a block_statement
+precondition: "precondition" statement
+
+# At least one value is required
+enum_declaration: "enum" TYPE_ID "{" enum_value ("," enum_value)* "}"
+enum_value: annotation? ID
+
+# Not required to be followed by the typecheck predicate
+type_declaration: "type" TYPE_ID "typecheck" ID ";"
+
+# STATEMENTS
+# block statements are ambiguous with expression statement map literals
+# So we have to use precedence to override
+block_statement.2: "{" statement* "}"
+
+statement: annotation? (_simple_stmt
+    | if_statement
+    | while_loop
+    | for_loop
+    | for_in_loop
+    | try_stmt)
+
+# Statements that end with a semicolon
+_simple_stmt: (variable_declaration
+    | constant_declaration
+    | assignment_stmt
+    | expression_stmt
+    | block_statement
+    | return_stmt
+    | break_stmt
+    | continue_stmt
+    | switch_stmt) ";"
+
+constant_declaration: "const" ID ["is" TYPE_ID] "=" expression
+
+# Technically variables with types must be instantiated
+variable_declaration: "var"  ID  ["is" TYPE_ID] ["=" expression]
+
+# Assignment must be to an ID or an accessed ID
+# Redundant parentheses and a lot of expressions are not allowed
+assignment_stmt: _variable ASSIGNMENT_OP expression
+_variable: ID | _simple_access
+
+_simple_access: _maybe_parens "[" expression? "]" | _maybe_parens "." ID
+_maybe_parens: _variable | "(" _variable ")"
+
+expression_stmt: expression ";"
+
+return_stmt: "return" expression
+break_stmt: "break"
+continue_stmt: "continue"
+switch_stmt: "switch" "(" expression ")" map_literal
+
+# LOGICAL STATEMENTS
+# Note a statement can be a block statement
+if_statement: "if" "(" expression ")" (statement | _else_statement)
+# Prevents multiple possible derivations of if - else if - else 
+_else_statement: "else" statement
+
+while_loop: "while" "(" expression ")" statement
+
+for_loop: "for" "(" (expression_stmt | variable_declaration) expression ";" (function_call | assignment) ")" statement
+
+for_in_loop: "for" "(" "var" ID ["," ID] "in" expression ")" statement
+try_stmt: "try" SILENT? block_statement
+
+# EXPRESSIONS
+expression: _value 
+    | container_access
+    | map_access
+    | function_call
+    | lambda
+    | box_declaration
+    | type_check
+    | type_cast
+
+# Optional expression to allow box access
+container_access: expression "[" expression? "]"
+map_access: expression "." ID
+function_call: ID "(" [expression ("," expression)*] ")" ["->" function_call]
+
+lambda: "function" "(" parameters ")" return_type? precondition? block_statement
+box_declaration: "new" "box" "(" expression ")"
+
+type_check: expression "is" TYPE_ID
+type_cast: expression "as" TYPE_ID
+
+# VALUES
+_value: ID | string | number | boolean | undefined | array_literal | map_literal
+
+boolean: "true" -> true | "false" -> false
+undefined: "undefined" -> undefined
+
+array_literal: "[" [expression ("," expression)*] "]"
+
+map_literal: "{" [pair ("," pair)*] "}"
+?pair: key ":" expression
+
+# Note expression includes string literals
+key: ID -> id_key
+    | expression -> expr_key
+    | "(" expression ")" -> expr_key
+
+# OPERATORS
+
+
+ternary: expression "?" expression ":" expression
+
+
+
+# TOKENS
+EXPORT: "export"
+SILENT: "silent"
+
+ID: CNAME # This technically allows keywords...
+TYPE_ID: ID
+
+# Operators which can be overloaded
+OVERLOAD_OP: "+" | "-" | "*" | "/" | "%" | "^" | "<" 
+ASSIGNMENT_OP: "=" | "+=" | "-=" | "*=" | "/=" | "^=" | "%=" | "||=" | "&&=" | "~="
+BINARY_OP: OVERLOAD_OP | "~" | ">" | "<=" | ">=" | "==" | "!=" | "&&" | "||"
+UNARY_OP: "-" | "!"
+L_PARENS: "("
+R_PARENS: ")"
+
+%import common (INT, NUMBER, ESCAPED_STRING, CNAME)
+
+?string: ESCAPED_STRING
+?number: NUMBER | "inf"
+
+%import common (WS, CPP_COMMENT, C_COMMENT)
+
+COMMENT: CPP_COMMENT
+MULTILINE_COMMENT: C_COMMENT
+
+%ignore WS
+%ignore COMMENT
+%ignore MULTILINE_COMMENT
