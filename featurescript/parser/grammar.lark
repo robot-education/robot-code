@@ -1,0 +1,201 @@
+// A simple EBNF for FeatureScript
+// The goal is to permissively accept FeatureScript programs, and not worry too much about rejecting all possibly invalid forms
+
+// TODO:
+// math expressions and operations w/precedence
+// namespace use
+
+// TOP LEVEL CONSTRUCTS
+studio: version import* top_statement*
+
+?version: "FeatureScript" INT ";"
+
+// Remap name since import is a reserved keyword in Python
+import: export namespace "import" "(" "path" ":" string_literal "," "version" ":" string_literal ")" ";" -> import_
+
+// We want export so we don't have to check for None when we use it
+// But ["export"] doesn't work since "export" gets removed
+export: [EXPORT]
+EXPORT: "export"
+namespace: [ID "::"]
+
+top_statement: [annotation] export (constant_declaration 
+    | function
+    | predicate
+    | operator_overload
+    | enum_declaration
+    | type_declaration)
+
+annotation: "annotation" map_literal
+
+// SUBROUTINES
+function: _subroutine{"function", ID}
+predicate: _subroutine{"predicate", ID}
+
+overload_op: "+" | "-" | "*" | "/" | "%" | "^" | "<" 
+operator_overload: _subroutine{"operator", overload_op}
+
+// All subroutines can have preconditions
+_subroutine{type, name_match}: type name_match  parameters [return_type] [precondition] block_statement
+
+parameters: "(" [parameter ("," parameter)*] ")"
+parameter: ID | ID "is" TYPE_ID
+
+?return_type: "returns" TYPE_ID
+// can be a statement or a block_statement
+?precondition: "precondition" statement
+
+// At least one value is required
+enum_declaration: "enum" TYPE_ID "{" enum_value ("," enum_value)* "}"
+enum_value: [annotation] ID
+
+// Not required to be followed by the typecheck predicate
+type_declaration: "type" TYPE_ID "typecheck" ID ";"
+
+// STATEMENTS
+statement: [annotation] (block_statement
+    | variable_declaration
+    | constant_declaration
+    | assignment_stmt
+    | expression_stmt
+    | return_stmt
+    | break_stmt
+    | continue_stmt
+    | switch_stmt
+    | if_statement
+    | while_loop
+    | for_loop
+    | for_in_loop
+    | throw_stmt
+    | try_stmt)
+
+// block statements are ambiguous with expression statement map literals
+// So we have to use precedence to override?
+block_statement.2: "{" statement* "}"
+
+// Technically variables with types must be instantiated
+constant_declaration: "const" ID ["is" TYPE_ID] "=" expression ";"
+
+variable_declaration: "var"  ID ["is" TYPE_ID] ["=" expression] ";"
+
+// This version admits a lot of illegal forms but is good enough
+ASSIGNMENT_OP: "=" | "+=" | "-=" | "*=" | "/=" | "^=" | "%=" | "||=" | "&&=" | "~="
+assignment_stmt: _assignment ";"
+_assignment: lhs_expr ASSIGNMENT_OP expression 
+
+expression_stmt: expression ";"
+
+return_stmt: "return" expression ";"
+break_stmt: "break" ";"
+continue_stmt: "continue" ";"
+switch_stmt: "switch" "(" expression ")" map_literal ";"
+
+// LOGICAL STATEMENTS
+// Note a statement can be a block statement
+if_statement: "if" "(" expression ")" (statement | ("else" statement))
+
+while_loop: "while" "(" expression ")" statement
+
+// incr must be a function call or assignment
+// init includes the semicolon
+for_loop: "for" "(" (expression_stmt | variable_declaration) expression ";" (call_expr | _assignment) ")" statement
+
+for_in_loop: "for" "(" "var" ID ["," ID] "in" expression ")" statement
+
+try_stmt: "try" [SILENT] block_statement
+SILENT: "silent"
+
+throw_stmt: "throws" expression ";"
+
+// EXPRESSIONS
+?expression: string_concat_expr 
+    | ternary_expr
+
+ternary_expr: string_concat_expr "?" expression ":" expression
+
+// Should come just before ternaries, but after strings and everything are resolved
+
+// String concatentation comes after all math and logical expressions
+?string_concat_expr: logical_or_expr ("~" logical_or_expr)*
+
+?logical_or_expr: logical_and_expr ("||" logical_and_expr)*
+
+?logical_and_expr: logical_comp_expr ("&&" logical_comp_expr)*
+
+?logical_comp_expr: comp_expr (logical_comp_op comp_expr)*
+logical_comp_op: "==" | "!="
+
+?comp_expr: additive_expr (comp_op additive_expr)*
+comp_op: "<" | ">" | "<=" | ">="
+
+?additive_expr: mult_expr (additive_op mult_expr)*
+additive_op: "+" | "-"
+
+// short for "multiplicative"
+?mult_expr: exp_expr (mult_op exp_expr)*
+mult_op: "*" | "/" | "%"
+
+?exp_expr: unary_expr ("^" unary_expr)*
+
+?unary_expr: type_op_expr | unary_op unary_expr
+unary_op: "-" | "!"
+
+// type ops have higher precedence than unary ops
+?type_op_expr: lhs_expr | type_op_expr type_op TYPE_ID
+type_op: "is" | "as"
+
+?lhs_expr: member_expr | call_expr
+
+// Helps disambiguate some cases I guess
+// ?new_box_expr: member_expr | "new" "box" "(" expression ")"
+
+?call_expr: member_expr arguments (_call_expr_tail)* ["->" call_expr]
+_call_expr_tail: arguments 
+    | "[" expression? "]" 
+    | "." ID
+arguments: "(" [expression ("," expression)*] ")"
+
+?member_expr: primary_expression
+    | lambda_expr
+    | member_expr "[" expression? "]"
+    | member_expr "." ID
+    | "new" "box" arguments
+
+?primary_expression: ID
+    | _literal
+    | "(" expression ")" -> parentheses
+
+
+// Optional expression to allow box access
+lambda_expr: "function" "(" parameters ")" return_type? precondition? block_statement
+
+// LITERALS
+_literal: string_literal | numeric_literal | boolean_literal | undefined_literal | array_literal | map_literal
+
+?boolean_literal: "true" -> true | "false" -> false
+?undefined_literal: "undefined" -> undefined
+
+?string_literal: ESCAPED_STRING
+?numeric_literal:NUMBER | "inf"
+
+?array_literal: "[" [expression ("," expression)*] "]"
+
+?map_literal: "{" [pair ("," pair)*] "}"
+pair: expression ":" expression
+// Explicit key is not needed since all forms are valid expressions
+
+// TOKENS
+
+
+%import common (INT, NUMBER, ESCAPED_STRING)
+ID: /[_a-zA-Z]\w*/ // And not a keyword
+TYPE_ID: ID
+
+
+// CPP_COMMENTs are single line comments
+// C_COMMENTs are multiline comments
+%import common (WS, CPP_COMMENT, C_COMMENT)
+
+%ignore WS
+%ignore CPP_COMMENT
+%ignore C_COMMENT

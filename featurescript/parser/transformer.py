@@ -2,6 +2,7 @@ import lark
 
 
 class TreeToAst(lark.Transformer):
-    """Transforms a Lark AST to """
+    """Converts a Lark parse tree into a FeatureScript AST."""
+
     def list(self, items):
         return list(items)
