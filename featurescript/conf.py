@@ -17,7 +17,8 @@ class FeatureStudio:
     generated: bool = False
 
 
-FileData = dict[str, FeatureStudio]
+type FileData = dict[str, FeatureStudio]
+"""A file consists of a mapping of element ids to FeatureStudios."""
 
 
 class ConfigData(Protocol):
