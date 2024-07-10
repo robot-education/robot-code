@@ -6,7 +6,8 @@
         {
             "label": "Pull assembly scripts",
             "type": "shell",
-            "command": "poetry run python -m backend.tools.pull_scripts"
+            "command": "python -m backend.tools.pull_scripts",
+            "problemMatcher": []
         },
         {
             "label": "Deploy app",
@@ -61,10 +62,8 @@
         {
             "label": "Launch backend",
             "type": "shell",
-            "command": "poetry",
+            "command": "flask",
             "args": [
-                "run",
-                "flask",
                 "--app",
                 "backend.server",
                 "run",
