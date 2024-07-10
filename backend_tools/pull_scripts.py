@@ -2,7 +2,7 @@
 
 import pathlib
 
-from onshape_api import api_base
+from onshape_api.api import key_api
 from onshape_api.endpoints import feature_studios
 from featurescript import conf, endpoints
 from featurescript.transform import transform
@@ -16,11 +16,11 @@ def insert_code(function: str, code: list[str]) -> str:
 
 
 def main():
-    onshape = api_base.ApiKey(logging=True)
+    onshape = key_api.make_key_api()
     config = conf.Config()
     backend_path = config.get_document("backend")
     if not backend_path:
-        raise ValueError("Failed to find backend?")
+        raise ValueError("Unexpectedly failed to find backend document")
     studio_path_map = endpoints.get_feature_studios(onshape, backend_path)
 
     json_code = feature_studios.pull_code(onshape, studio_path_map["toJson.fs"].path)

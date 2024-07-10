@@ -94,7 +94,7 @@ class Config:
     def read_file(self, name: str) -> str | None:
         """Reads code from the specified file.
 
-        Returns `None` if the file does not exist."""
+        Returns None if the file does not exist."""
         path = self.code_path / name
         if not path.is_file():
             return None
