@@ -65,6 +65,20 @@ pipx ensurepath
 pipx install poetry
 ```
 
+## Scripts
+
+Several scripts for pulling code from Onshape and pushing new versions of Robot FeatureScripts are included in `scripts`. Scripts can be invoked as follows:
+
+```
+./scripts/onshape.sh
+```
+
+The following scripts are available:
+
+-   deploy - Deploys the Robot manager app to google cloud.
+-   onshape - Can be used to push and pull code from Onshape via the API.
+-   robot - Can be used to release new versions of Robot FeatureScripts.
+
 # Robot Manager
 
 The Robot manager app lives in the `frontend` and `backend` folders. The app uses Python and flask as the backend and API and Vite and React for the frontend. The app is deployed using Google Cloud App Engine, with Google Cloud Firestore as the database.
@@ -73,7 +87,7 @@ The Robot manager app lives in the `frontend` and `backend` folders. The app use
 
 You'll need to create a store entry in Onshape and generate secure certificates for the python dev server so Onshape will connect with it in your dev environment.
 
-Use the `Launch servers` task to launch the dev servers necessary to view the app. You should set up Onshape to connect to:
+Use the `Launch servers` VSCode task to launch the dev servers necessary to view the app. You should set up Onshape to connect to:
 
 ```
 https://localhost:3000/app

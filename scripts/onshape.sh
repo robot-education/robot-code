@@ -1,3 +1,3 @@
 #! /bin/sh
 # A simple wrapper for onshape.py
-python -m api.onshape "$@"
+python -m featurescript.onshape "$@"

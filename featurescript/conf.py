@@ -17,7 +17,8 @@ class FeatureStudio:
     generated: bool = False
 
 
-FileData = dict[str, FeatureStudio]
+type FileData = dict[str, FeatureStudio]
+"""A file consists of a mapping of element ids to FeatureStudios."""
 
 
 class ConfigData(Protocol):
@@ -93,7 +94,7 @@ class Config:
     def read_file(self, name: str) -> str | None:
         """Reads code from the specified file.
 
-        Returns `None` if the file does not exist."""
+        Returns None if the file does not exist."""
         path = self.code_path / name
         if not path.is_file():
             return None
