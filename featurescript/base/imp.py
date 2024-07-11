@@ -5,6 +5,7 @@ from onshape_api.endpoints import versions
 from featurescript import endpoints
 from featurescript.base import node, ctxt, user_error
 from featurescript.core import utils
+from onshape_api.paths.instance_type import InstanceType
 
 
 @dataclasses.dataclass
@@ -50,7 +51,7 @@ class Import(node.Node):
                     "id"
                 ]
             # set last to avoid affecting get_versions call
-            document.workspace_or_version = "v"
+            document.instance_type = InstanceType.VERSION
 
         studio = endpoints.get_feature_studio(context.api, document, self.studio_name)
         version = "0" * 24

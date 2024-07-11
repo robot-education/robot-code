@@ -56,17 +56,12 @@ class InstancePath(DocumentPath):
             raise ValueError(
                 "Invalid value for instance_type: {}".format(instance_type)
             )
-        self._instance_type = cast(InstanceType, instance_type)
-
-    @property
-    def instance_type(self) -> InstanceType:
-        """Returns the instance type of this object."""
-        return self._instance_type
+        self.instance_type = cast(InstanceType, instance_type)
 
     @property
     def wvm(self) -> str:
         """An alias for the string value of instanceType."""
-        return str(self._instance_type)
+        return str(self.instance_type)
 
     @staticmethod
     def to_api_path(instance: InstancePath) -> str:

@@ -1,5 +1,4 @@
 from onshape_api import key_api
-from onshape_api.paths import paths
 from onshape_api.endpoints import documents, assemblies, users, versions
 from featurescript import conf
 
