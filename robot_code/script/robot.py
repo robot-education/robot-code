@@ -1,8 +1,8 @@
 """Defines a command line parser for the `robot` command.
 """
-import argparse
 
-from featurescript.api import api_base, conf
+import argparse
+from onshape_api.api import key_api
 from robot_code.script import release
 
 """
@@ -54,7 +54,7 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
-    api = api_base.ApiKey(logging=args.log)
+    api = key_api.make_key_api()
 
     if args.action == "release":
         match args.version:

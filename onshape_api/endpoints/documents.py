@@ -1,5 +1,9 @@
 import enum
-from onshape_api.assertions import assert_instance_type, assert_version, assert_workspace
+from onshape_api.assertions import (
+    assert_instance_type,
+    assert_version,
+    assert_workspace,
+)
 from onshape_api.endpoints.versions import get_latest_version
 from onshape_api.api.api_base import Api
 from onshape_api.paths.api_path import api_path
@@ -48,12 +52,16 @@ def get_document_elements(
     )
 
 
-def latest_microversion_id(api: Api, instance_path: InstancePath) -> str:
-    """Fetches the latest microversion id of a given workspace."""
+def get_workspace_microversion_id(api: Api, instance_path: InstancePath) -> str:
+    """Fetches the latest microversion id of a given workspace.
+
+    Note this is the microversion associated with the workspace as a whole.
+    Individual elements also have their own microversion ids which are unrelated to the workspace's.
+    """
     assert_instance_type(instance_path, InstanceType.WORKSPACE, InstanceType.VERSION)
     return api.get(
         api_path("documents", instance_path, InstancePath, "currentmicroversion")
-    )
+    )["microversion"]
 
 
 def get_references(api: Api, element_path: ElementPath) -> dict:

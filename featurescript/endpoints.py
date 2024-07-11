@@ -1,6 +1,6 @@
 from onshape_api.api.api_base import Api
 from onshape_api.paths.api_path import api_path
-from onshape_api.endpoints import feature_studios
+from onshape_api.endpoints import feature_studios, documents
 from onshape_api.paths.paths import InstancePath, ElementPath
 from featurescript import conf
 
@@ -16,18 +16,11 @@ def get_feature_studios(
     return _extract_studios(elements, instance_path)
 
 
-def get_feature_studio(
-    api: Api, document_path: InstancePath, studio_name: str
-) -> conf.FeatureStudio | None:
-    """Fetches a single feature studio by name, or None if no such studio exists."""
-    return get_feature_studios(api, document_path).get(studio_name, None)
-
-
 def _extract_studios(
     elements: list[dict],
     instance_path: InstancePath,
 ) -> dict[str, conf.FeatureStudio]:
-    """Constructs a list of FeatureStudios from a list of elements returned by a get documents request."""
+    """Constructs a dict of names to FeatureStudios from a list of elements returned by a get documents request."""
     return dict(
         (
             element["name"],
@@ -39,6 +32,13 @@ def _extract_studios(
         )
         for element in elements
     )
+
+
+def get_feature_studio(
+    api: Api, document_path: InstancePath, studio_name: str
+) -> conf.FeatureStudio | None:
+    """Fetches a single feature studio by name, or None if no such studio exists."""
+    return get_feature_studios(api, document_path).get(studio_name, None)
 
 
 def create_feature_studio(
