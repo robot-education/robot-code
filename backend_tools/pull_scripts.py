@@ -1,10 +1,9 @@
 """Pulls the FeatureScript scripts used to parse assemblies from Onshape."""
 
 import pathlib
-
 from onshape_api.api import key_api
 from onshape_api.endpoints import feature_studios
-from featurescript import conf, endpoints
+from featurescript import conf, endpoints, feature_studio
 from featurescript.transform import transform
 
 
@@ -21,7 +20,7 @@ def main():
     backend_path = config.get_document("backend")
     if not backend_path:
         raise ValueError("Unexpectedly failed to find backend document")
-    studio_path_map = endpoints.get_feature_studios(onshape, backend_path)
+    studio_path_map = feature_studio.get_feature_studios(onshape, backend_path)
 
     json_code = feature_studios.pull_code(onshape, studio_path_map["toJson.fs"].path)
     assembly_script_code = feature_studios.pull_code(

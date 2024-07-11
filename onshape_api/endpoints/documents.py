@@ -36,7 +36,7 @@ def get_document_elements(
     api: Api,
     instance_path: InstancePath,
     element_type: ElementType | None = None,
-) -> dict[str, ElementPath]:
+) -> list[dict]:
     """Fetches all elements in a document.
 
     Args:
@@ -50,6 +50,18 @@ def get_document_elements(
         api_path("documents", instance_path, InstancePath, "elements"),
         query=query,
     )
+
+
+def get_document_element(api: Api, element_path: ElementPath) -> dict | None:
+    """Fetches an element in a document, or None if it doesn't exist."""
+    query = {"withThumbnails": False, "elementId": element_path.element_id}
+    response = api.get(
+        api_path("documents", element_path, InstancePath, "elements"),
+        query=query,
+    )
+    if len(response) == 1:
+        return response[0]
+    return None
 
 
 def get_workspace_microversion_id(api: Api, instance_path: InstancePath) -> str:

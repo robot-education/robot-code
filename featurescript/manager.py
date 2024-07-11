@@ -7,9 +7,13 @@ import shutil
 from concurrent import futures
 
 from featurescript.base import ctxt, studio
-from featurescript import conf, endpoints
+from featurescript import conf
+from featurescript.feature_studio import FeatureStudio, get_feature_studios
 from onshape_api import api_base
 from onshape_api.endpoints import feature_studios
+from onshape_api.endpoints.feature_studios import create_feature_studio
+from onshape_api.endpoints.std_versions import get_latest_std_version
+from onshape_api.paths.paths import ElementPath
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
@@ -39,7 +43,7 @@ class CommandLineManager:
         if self.conflict:
             print(CONFLICT_MESSAGE)
 
-    def _report_conflict(self, studio: conf.FeatureStudio) -> None:
+    def _report_conflict(self, studio: FeatureStudio) -> None:
         self.conflict = True
         print(
             "{} has been modified both locally and in Onshape. Skipping.".format(
@@ -47,11 +51,11 @@ class CommandLineManager:
             )
         )
 
-    def _get_all_studios_map(self) -> dict[str, conf.FeatureStudio]:
-        """Returns an dict mapping element ids to feature studios."""
+    def _get_studio_map(self) -> dict[str, FeatureStudio]:
+        """Returns a dict mapping Feature Studio names to FeatureStudios."""
         with futures.ThreadPoolExecutor() as executor:
             threads = [
-                executor.submit(endpoints.get_feature_studios, self.api, path)
+                executor.submit(get_feature_studios, self.api, path)
                 for path in self.config.documents.values()
             ]
         result = {}
@@ -75,7 +79,7 @@ class CommandLineManager:
         5. Else if the microversion ids are different and the local version is not modified, pull.
         6. For each file which was pulled, update the microversion.
         """
-        studios = self._get_all_studios_map().values()
+        studios = self._get_studio_map().values()
 
         pulled = 0
         with futures.ThreadPoolExecutor() as executor:
@@ -93,8 +97,8 @@ class CommandLineManager:
             self._finish()
 
     def pull_studio(
-        self, force: bool, studio_to_pull: conf.FeatureStudio
-    ) -> conf.FeatureStudio | None:
+        self, force: bool, studio_to_pull: FeatureStudio
+    ) -> FeatureStudio | None:
         curr_studio = self.curr_data.get(studio_to_pull.path.element_id, None)
         if curr_studio is not None:
             if (
@@ -132,7 +136,7 @@ class CommandLineManager:
             if studio.modified or studio.microversion_id is None
         ]
 
-        onshape_studio_map = self._get_all_studios_map()
+        onshape_studio_map = self._get_studio_map()
 
         pushed_studios = []
         # pushed = 0
@@ -145,7 +149,7 @@ class CommandLineManager:
                     pushed_studios.append(pushed_studio)
 
         # resync microversion ids after all futures are completed
-        updated_studio_map = self._get_all_studios_map()
+        updated_studio_map = self._get_studio_map()
         for pushed_studio in pushed_studios:
             updated_studio = updated_studio_map[pushed_studio.path.element_id]
             pushed_studio.microversion_id = updated_studio.microversion_id
@@ -159,10 +163,10 @@ class CommandLineManager:
 
     def push_studio(
         self,
-        onshape_studio_map: dict[str, conf.FeatureStudio],
+        onshape_studio_map: dict[str, FeatureStudio],
         force: bool,
-        studio_to_push: conf.FeatureStudio,
-    ) -> conf.FeatureStudio | None:
+        studio_to_push: FeatureStudio,
+    ) -> FeatureStudio | None:
         onshape_studio = onshape_studio_map.get(studio_to_push.path.element_id, None)
         # next(
         #     filter(
@@ -196,7 +200,7 @@ class CommandLineManager:
         return studio_to_push
 
     def update_versions(self) -> None:
-        std_version = feature_studios.std_version(self.api)
+        std_version = get_latest_std_version(self.api)
         modified = 0
         for id, studio in self.curr_data.items():
             contents = self.config.read_file(studio.name)
@@ -231,7 +235,7 @@ class CommandLineManager:
         return replace_number
 
     def build(self) -> None:
-        std_version = feature_studios.std_version(self.api)
+        std_version = get_latest_std_version(self.api)
         paths = self.config.code_gen_path.rglob("**/*.py")
         count = 0
         for path in paths:
@@ -271,12 +275,15 @@ class CommandLineManager:
                 )
             )
             return False
-        studios = endpoints.get_feature_studios(self.api, document)
+        studios = get_feature_studios(self.api, document)
         feature_studio = studios.get(studio.studio_name, None)
 
         if feature_studio is None:
-            feature_studio = endpoints.create_feature_studio(
-                self.api, document, studio.studio_name
+            result = create_feature_studio(self.api, document, studio.studio_name)
+            feature_studio = FeatureStudio(
+                result["name"],
+                ElementPath.from_path(document, result["id"]),
+                result["microversionId"],
             )
         feature_studio.generated = True
         feature_studio.modified = True

@@ -1,12 +1,13 @@
 {
-  "storage_path": ".storage", // path to storage folder
-  "code_path": ".fs_code", // path to output code
-  "code_gen_path": "robot_code/gen", // path to files to execute
-  // document names are used in code gen
-  "documents": {
-    "backend": "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f/e/8fce00629c71b941d2d87732",
-    "frontend": "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88/e/99672d1e329b38e647d90146",
-    "base": "https://cad.onshape.com/documents/769b556baf61d32b18813fd0/w/e6d6c2b3a472b97a7e352949/e/8a0c13d3b2b68a99502dc436",
-    "target": "https://cad.onshape.com/documents/22f3d6ea902783d4d2edb393/w/f73628fa0b8129209cec904f/e/23b3c801977fa988d3fc7405"
-  }
+    "storage_path": "temp", // path to storage folder
+    "code_path": ".fs_code", // path to output code
+    "code_gen_path": "robot_code/gen", // path to files to execute
+    // document names are used in code gen
+    "documents": {
+        "backend": "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f/e/8fce00629c71b941d2d87732",
+        "frontend": "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88/e/99672d1e329b38e647d90146",
+        "frontend-beta": "",
+        "base": "https://cad.onshape.com/documents/769b556baf61d32b18813fd0/w/e6d6c2b3a472b97a7e352949/e/8a0c13d3b2b68a99502dc436",
+        "target": "https://cad.onshape.com/documents/22f3d6ea902783d4d2edb393/w/f73628fa0b8129209cec904f/e/23b3c801977fa988d3fc7405"
+    }
 }

@@ -1,6 +1,7 @@
 import dataclasses
 from typing import override
 import warnings
+from featurescript.feature_studio import get_feature_studio
 from onshape_api.endpoints import versions
 from featurescript import endpoints
 from featurescript.base import node, ctxt, user_error
@@ -53,7 +54,7 @@ class Import(node.Node):
             # set last to avoid affecting get_versions call
             document.instance_type = InstanceType.VERSION
 
-        studio = endpoints.get_feature_studio(context.api, document, self.studio_name)
+        studio = get_feature_studio(context.api, document, self.studio_name)
         version = "0" * 24
         if studio is None:
             warnings.warn(

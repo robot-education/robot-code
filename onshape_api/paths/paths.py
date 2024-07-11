@@ -10,6 +10,7 @@ The object model has the following elements:
 * Element - Represents an Onshape tab, such as a Part Studio, Assembly, or Drawing.
 * Part - Represents a Part inside a Part Studio.
 """
+
 from __future__ import annotations
 import pathlib
 from typing import cast
@@ -198,7 +199,15 @@ class PartPath(ElementPath):
         )
 
 
-def url_to_path(url: str) -> ElementPath:
+def url_to_instance_path(url: str) -> InstancePath:
+    """Constructs an InstancePath from an Onshape document url."""
+    path = parse.urlparse(url).path
+    path = path.removeprefix("/documents")
+    parts = pathlib.Path(path).parts
+    return InstancePath(parts[1], parts[3], instance_type=parts[2])
+
+
+def url_to_element_path(url: str) -> ElementPath:
     """Constructs an ElementPath from an Onshape document url."""
     path = parse.urlparse(url).path
     path = path.removeprefix("/documents")

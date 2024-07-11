@@ -12,7 +12,7 @@ A minor release introduces minor new features.
 A patch introduces bug fixes.
 
 Numbering scheme:
-script - [major release number].[minor release number].[patch number]
+script - v[major release number].[minor release number].[patch number][-beta]
 """
 
 
