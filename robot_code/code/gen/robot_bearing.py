@@ -1,5 +1,5 @@
 from featurescript import *
-from robot_code.robot_studio import RobotFeature
+from robot_code.code.robot_feature import RobotFeature
 
 robot_bearing = RobotFeature("bearing")
 studio = robot_bearing.ui_studio

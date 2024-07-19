@@ -15,12 +15,50 @@ from onshape_api.paths.paths import (
     InstancePath,
     ElementPath,
 )
+from onshape_api.utils.endpoint_utils import get_instance_type_key
 
 
 def get_document(api: Api, document_path: DocumentPath) -> dict:
     """Retrieves a given document's metadata."""
     # documents endpoints are not idiomatic - no /d/
     return api.get(api_path("documents", end_id=document_path.document_id))
+
+
+def create_new_workspace(
+    api: Api, document_path: DocumentPath, name: str, description: str | None = None
+) -> dict:
+    """Creates a new workspace in a given document."""
+    body = {"name": name}
+    if description != None:
+        body["description"] = description
+    return api.post(
+        api_path("documents", document_path, DocumentPath, "workspaces"), body=body
+    )
+
+
+def create_new_workspace_from_instance(
+    api: Api, path: InstancePath, name: str, description: str | None = None
+) -> dict:
+    """Creates a new workspace in a given document."""
+    key = get_instance_type_key(path)
+    body = {"name": name, key: path.instance_id}
+    if description != None:
+        body["description"] = description
+    return api.post(api_path("documents", path, DocumentPath, "workspaces"), body=body)
+
+
+def delete_workspace(api: Api, workspace_path: InstancePath) -> dict:
+    """Deletes a workspace."""
+    assert_instance_type(workspace_path, InstanceType.WORKSPACE)
+    return api.delete(
+        api_path(
+            "documents",
+            workspace_path,
+            DocumentPath,
+            "workspaces",
+            workspace_path.instance_id,
+        )
+    )
 
 
 class ElementType(enum.StrEnum):

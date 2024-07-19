@@ -1,10 +1,10 @@
 from featurescript import *
-from robot_code import robot_studio
+from robot_code.code import robot_feature
 from robot_code.utils import profile
 
 DESCRIPTION = """Create a variety of bores suitable for use in robotics."""
-robot_studio = robot_studio.RobotFeature("bore", description=DESCRIPTION)
-studio = robot_studio.ui_studio
+robot_feature = robot_feature.RobotFeature("bore", description=DESCRIPTION)
+studio = robot_feature.ui_studio
 
 end_style = (
     EnumBuilder("EndStyle", parent=studio)

@@ -5,9 +5,6 @@ import dataclasses
 import enum as std_enum
 from typing import TYPE_CHECKING, Any
 
-from onshape_api import api_base
-from featurescript import conf
-
 if TYPE_CHECKING:  # prevent circular import
     from featurescript.base import imp
 
@@ -26,9 +23,8 @@ class Scope(std_enum.StrEnum):
 @dataclasses.dataclass
 class Context:
     """
-    Fields:
-        document_name: The internal name for the document. Set by studio.build.
-        std_version: Stores the current version of the std.
+    Attributes:
+        std_version: The current version of the std.
         level: Stores the current statement level.
         enum: Used to indicate whether we are currently defining an enum.
         ui: Used to indicate whether we're in a UI predicate.
@@ -39,10 +35,8 @@ class Context:
       which circumvents nested predicate restrictions.
     """
 
-    std_version: str
-    config: conf.Config
-    api: api_base.Api
-    document_name: str = ""
+    std_version: int
+
     imports: list[imp.Import] = dataclasses.field(default_factory=list)
 
     enum: bool = False
@@ -68,11 +62,3 @@ class Context:
     def restore(self) -> None:
         for key, value in self.stack.pop().items():
             setattr(self, key, value)
-
-
-def make_context(std_version: str, config: conf.Config, api: api_base.Api) -> Context:
-    """Generates a partially initialized context.
-
-    Note the document name must still be added.
-    """
-    return Context(std_version, config, api)

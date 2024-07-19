@@ -18,22 +18,21 @@ class RobotFeature:
         else:
             self.name = name
 
-        self.feature_studio = self.make_feature_studio(description or "")
+        # self.feature_studio = self.make_feature_studio(description or "")
         self.ui_studio = self.make_ui_studio()
-        self.feature_studio.add_import(self.ui_studio.studio_name, export=True)
+        # self.feature_studio.add_import(self.ui_studio.studio_name, export=True)
 
-    def make_feature_studio(self, description: str) -> PartialStudio:
-        studio = PartialStudio(self.name + ".fs", "backend").add(
-            FeatureBuilder()
-            .start(
-                self.name,
-                description=description + ROBOT_DESCRIPTION,
-                filter_selector=["ROBOT"],
-            )
-            .build()
-        )
-        return studio
+    # def make_feature_studio(self, description: str) -> PartialStudio:
+    #     studio = PartialStudio(self.name + ".fs").add(
+    #         FeatureBuilder()
+    #         .start(
+    #             self.name,
+    #             description=description + ROBOT_DESCRIPTION,
+    #         )
+    #         .build()
+    #     )
+    #     return studio
 
     def make_ui_studio(self) -> Studio:
         ui_name = self.name + "Ui.gen.fs"
-        return Studio(ui_name, "backend")
+        return Studio(ui_name)

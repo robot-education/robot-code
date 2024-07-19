@@ -1,6 +1,6 @@
-from featurescript.conf import Config
+from robot_code.conf import Config
 from onshape_api.api.key_api import make_key_api
-from onshape_api.endpoints import documents, assemblies, users, versions
+from onshape_api.endpoints import users
 
 
 def main():
@@ -11,11 +11,11 @@ def main():
     target = config.documents["target"]
     base = config.documents["base"]
 
-    document = documents.get_document_elements(api, target)
-    target_path = None
+    # response = documents.get_document_elements(api, target)
+    # document = make_name_to_path_map(response, target)
 
-    base_document = documents.get_document_elements(api, base)
-    base_path = None
+    # response = documents.get_document_elements(api, base)
+    # base_path = make_name_to_path_map(response, base)
 
     # base_path.instance_id = versions.get_latest_version(api, base_path)["id"]
 

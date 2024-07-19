@@ -7,7 +7,7 @@ import shutil
 from concurrent import futures
 
 from featurescript.base import ctxt, studio
-from featurescript import conf
+from robot_code import conf
 from featurescript.feature_studio import FeatureStudio, get_feature_studios
 from onshape_api import api_base
 from onshape_api.endpoints import feature_studios
@@ -256,8 +256,7 @@ class CommandLineManager:
         self._finish()
 
     def _send_code(self, studio: studio.Studio, std_version: str) -> bool:
-        context = ctxt.make_context(std_version, self.config, self.api)
-        code = studio.build(context)
+        code = studio.build(ctxt.Context(std_version))
 
         curr = self.config.read_file(studio.studio_name)
         if curr == code:
@@ -265,12 +264,11 @@ class CommandLineManager:
             return True
 
         print("{}: Successfully built.".format(studio.studio_name))
-        document = self.config.get_document(studio.document_name)
+        document = self.config.get_document("backend")
         if document is None:
             print(
                 "{}: Failed to find document in config.json named {}. Valid names are: {}".format(
                     studio.studio_name,
-                    studio.document_name,
                     ", ".join(self.config.documents.keys()),
                 )
             )

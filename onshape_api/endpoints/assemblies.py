@@ -5,7 +5,7 @@ from onshape_api.api.api_base import Api
 from onshape_api.assertions import assert_workspace
 from onshape_api.paths.api_path import api_path
 from onshape_api.utils.endpoint_utils import (
-    get_wmv_key,
+    get_instance_type_key,
 )
 from onshape_api.paths.paths import ElementPath, InstancePath, PartPath
 
@@ -74,7 +74,7 @@ def add_parts_to_assembly(
         "includePartTypes": ["PARTS"],
         "isWholePartStudio": part_id is None,
     }
-    body[get_wmv_key(part_studio_path)] = part_studio_path.instance_id
+    body[get_instance_type_key(part_studio_path)] = part_studio_path.instance_id
     if part_id:
         body["partId"] = part_id
 

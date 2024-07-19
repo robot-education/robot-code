@@ -12,23 +12,42 @@ from onshape_api.paths.paths import ElementPath, InstancePath
 
 @dataclasses.dataclass
 class FeatureStudio:
+    """Represents a FeatureStudio in Onshape.
+
+    Attributes:
+        name: The name of the feature studio.
+        path: The path to the feature studio.
+        microversion_id: The most recent microverison id of the feature studio.
+            Used for external FeatureScript imports.
+    """
+
     name: str
     path: ElementPath
     microversion_id: str
-    modified: bool = False
-    generated: bool = False
-
-    def create(self, api: Api) -> dict:
-        """Creates this FeatureStudio in Onshape."""
-        return feature_studios.create_feature_studio(api, self.path, self.name)
 
     def push(self, api: Api, code: str) -> dict:
         """Pushes this Studio to Onshape. The studio is created if it does not already exist."""
-        # onshape_studio = get_feature_studio(api, self.path, self.name)
         element = documents.get_document_element(api, self.path)
         if element == None:
-            self.create(api)
+            return feature_studios.create_feature_studio(api, self.path, self.name)
         return feature_studios.push_code(api, self.path, code)
+
+
+def pull_feature_studio(
+    api: Api, instance_path: InstancePath, studio_name: str
+) -> FeatureStudio:
+    """Fetches a single feature studio by name, creating it if necessary."""
+    feature_studio = get_feature_studio(api, instance_path, studio_name)
+    if feature_studio == None:
+        response = feature_studios.create_feature_studio(
+            api, instance_path, studio_name
+        )
+        return FeatureStudio(
+            studio_name,
+            ElementPath.from_path(instance_path, response["id"]),
+            response["microversionId"],
+        )
+    return feature_studio
 
 
 def get_feature_studios(

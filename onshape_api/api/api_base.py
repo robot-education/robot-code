@@ -46,7 +46,7 @@ class Api(ABC):
         self,
         base_url: str = "https://cad.onshape.com",
         logging: bool = False,
-        version: int | None = 6,
+        version: int | None = 7,
     ):
         """
         Args:

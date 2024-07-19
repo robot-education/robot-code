@@ -1,6 +1,6 @@
 from featurescript import *
-from robot_code.robot_studio import RobotFeature
-from robot_code.utils import profile
+from robot_code.code import profile
+from robot_code.code.robot_feature import RobotFeature
 
 DESCRIPTION = r"Generate spacers."
 
@@ -9,8 +9,8 @@ robot_spacer = RobotFeature("spacer", description=DESCRIPTION)
 # feature_studio = robot_spacer.feature_studio
 studio = robot_spacer.ui_studio
 
-studio.add_import("stdExtrudeUi.fs", export=True)
-studio.add_import("wallType.fs", export=True)
+# studio.add_import("stdExtrudeUi.fs", export=True)
+# studio.add_import("wallType.fs", export=True)
 
 spacer_type = (
     EnumBuilder(

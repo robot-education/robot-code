@@ -2,18 +2,7 @@ from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath
 
 
-def confirm_version_creation(version_name: str):
-    """Prompts the python user to confirm the creation of a version."""
-    value = input(
-        'You are about to irreversibly create a version named "{}". Versions cannot be deleted (Y/n):'.format(
-            version_name
-        )
-    )
-    if value != "" and value.lower() != "y":
-        raise ValueError("Aborted version creation.")
-
-
-def map_documents(
+def make_name_to_path_map(
     elements: list[dict], document_path: InstancePath
 ) -> dict[str, ElementPath]:
     """Constructs a mapping of document names to their paths.
@@ -29,8 +18,8 @@ def map_documents(
     )
 
 
-def get_wmv_key(path: InstancePath) -> str:
-    """Returns workspaceId if workspace_or_version is w, else versionId."""
+def get_instance_type_key(path: InstancePath) -> str:
+    """Returns workspaceId, versionId, or microversionId depending on the path's InstanceType."""
     match path.instance_type:
         case InstanceType.WORKSPACE:
             return "workspaceId"

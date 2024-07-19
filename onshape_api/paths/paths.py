@@ -135,14 +135,6 @@ class ElementPath(InstancePath):
             instance_type=element.instance_type,
         )
 
-    def to_feature_studio_path(self) -> str:
-        """Returns a version of the path suitable for use as the path property of Feature Studio imports."""
-        return "{}/{}/{}".format(
-            self.document_id,
-            self.instance_id,
-            self.element_id,
-        )
-
     def __hash__(self) -> int:
         return super().__hash__() ^ hash(self.element_id)
 
