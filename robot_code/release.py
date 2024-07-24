@@ -5,11 +5,6 @@ Code to release Robot FeatureScripts from the backend to the frontend repo.
 from featurescript.base.ctxt import Context
 from onshape_api.model.constants import START_VERSION_NAME
 from onshape_api.api.api_base import Api
-from onshape_api.endpoints.documents import (
-    create_new_workspace,
-    create_new_workspace_from_instance,
-    delete_workspace,
-)
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.endpoints.versions import create_version, get_versions
 from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
