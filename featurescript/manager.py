@@ -7,7 +7,7 @@ import shutil
 from concurrent import futures
 
 from featurescript.base import ctxt, studio
-from robot_code import conf
+from featurescript import conf
 from featurescript.feature_studio import FeatureStudio, get_feature_studios
 from onshape_api import api_base
 from onshape_api.endpoints import feature_studios

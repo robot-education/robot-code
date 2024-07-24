@@ -88,6 +88,3 @@ class Config:
         if not path.is_file():
             return None
         return path.read_text()
-
-    def get_document(self, name: str) -> paths.InstancePath | None:
-        return self.documents.get(name, None)

@@ -37,3 +37,19 @@ def create_feature_studio(
         api_path("featurestudios", instance_path, InstancePath),
         body={"name": studio_name},
     )
+
+
+def get_feature_specs(api: Api, feature_studio_path: ElementPath) -> dict:
+    return api.get(
+        api_path("featurestudios", feature_studio_path, ElementPath, "featurespecs")
+    )
+
+
+def get_feature_spec(api: Api, feature_studio_path: ElementPath) -> dict:
+    """Returns the feature spec for the first custom feature in a given Feature Studio."""
+    feature_specs = get_feature_specs(api, feature_studio_path)
+    if len(feature_specs["featureSpecs"]) < 1:
+        raise ValueError(
+            "The specified feature studio did not have any custom features"
+        )
+    return feature_specs["featureSpecs"][0]

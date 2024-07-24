@@ -55,7 +55,7 @@ def create_assembly(api: Api, workspace_path: InstancePath, assembly_name: str) 
     )
 
 
-def add_parts_to_assembly(
+def add_parts(
     api: Api,
     assembly_path: ElementPath,
     part_studio_path: ElementPath,
@@ -86,7 +86,7 @@ def add_part_to_assembly(
     assembly_path: ElementPath,
     part_path: PartPath,
 ) -> None:
-    add_parts_to_assembly(api, assembly_path, part_path, part_path.part_id)
+    add_parts(api, assembly_path, part_path, part_path.part_id)
 
 
 def transform_instance(

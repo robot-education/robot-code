@@ -5,8 +5,9 @@ import flask
 from google.cloud import firestore
 
 import onshape_api
-from backend.common import backend_exceptions, connect
+from backend.common import backend_exceptions, connect, database
 from onshape_api import endpoints
+from onshape_api.endpoints import documents
 
 
 class LinkType(enum.StrEnum):
@@ -38,7 +39,7 @@ def make_document(
     api: onshape_api.Api, path: onshape_api.InstancePath
 ) -> dict[str, str]:
     try:
-        name = endpoints.get_document(api, path)["name"]
+        name = documents.get_document(api, path)["name"]
     except:
         raise backend_exceptions.UserException(
             "Provided documentId and/or instanceId were invalid."
@@ -61,9 +62,10 @@ def get_linked_documents(link_type: str, **kwargs):
             "Invalid link_type {}.".format(link_type)
         )
 
-    api = connect.get_api()
+    db = database.Database()
+    api = connect.get_api(db)
     document_id = route_to_db_id()
-    doc = connect.db_linked_documents().document(document_id).get()
+    doc = db.linked_documents.document(document_id).get()
     documents = []
     if doc.exists and (data := doc.to_dict()):
         for document_id in data.get(link_type, []):
@@ -94,7 +96,8 @@ def delete_linked_document(link_type: LinkType, **kwargs):
     """
     link_types = get_link_types(link_type)
 
-    api = connect.get_api()
+    db = database.Database()
+    api = connect.get_api(db)
 
     curr_id = route_to_db_id()
     link_path = onshape_api.InstancePath(
@@ -102,7 +105,7 @@ def delete_linked_document(link_type: LinkType, **kwargs):
     )
     link_id = object_to_db_id(link_path)
 
-    db_ref = connect.db_linked_documents()
+    db_ref = db.linked_documents
     db_ref.document(curr_id).update({link_types[0]: firestore.ArrayRemove([link_id])})
     db_ref.document(link_id).update({link_types[1]: firestore.ArrayRemove([curr_id])})
     return make_document(api, link_path)
@@ -129,7 +132,8 @@ def add_linked_document(link_type: LinkType, **kwargs):
     Returns:
         The documentId, workspaceId, and name of the newly linked document.
     """
-    api = connect.get_api()
+    db = database.Database()
+    api = connect.get_api(db)
     curr_id = route_to_db_id()
     link_path = onshape_api.InstancePath(
         connect.get_query("documentId"), connect.get_query("instanceId")
@@ -142,7 +146,7 @@ def add_linked_document(link_type: LinkType, **kwargs):
     # Additional error handling - ensures link is valid
     link_document = make_document(api, link_path)
 
-    db_ref = connect.db_linked_documents()
+    db_ref = db.linked_documents
     add_document_link(db_ref, link_types[0], curr_id, link_id)
     add_document_link(db_ref, link_types[1], link_id, curr_id)
     return link_document
@@ -153,4 +157,3 @@ def get_link_types(link_type: LinkType) -> tuple[LinkType, LinkType]:
         return (LinkType.PARENTS, LinkType.CHILDREN)
     elif link_type == LinkType.CHILDREN:
         return (LinkType.CHILDREN, LinkType.PARENTS)
-    raise backend_exceptions.UserException("Invalid link_type {}.".format(link_type))

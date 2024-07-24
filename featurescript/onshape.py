@@ -4,7 +4,7 @@ import argparse
 
 from onshape_api import key_api
 from featurescript import manager
-from robot_code import conf
+from featurescript import conf
 
 
 def parse_args() -> argparse.Namespace:

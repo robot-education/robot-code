@@ -9,13 +9,13 @@ import hmac
 import hashlib
 import base64
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib import parse
 
 import requests
 
 from onshape_api import exceptions
-from onshape_api.api.api_base import Api, ApiArgs, make_api_base_args
+from onshape_api.api.api_base import Api, ApiArgs, get_api_base_args
 from onshape_api.utils import env_utils
 
 
@@ -28,7 +28,7 @@ def make_key_api(load_dotenv: bool = True) -> KeyApi:
     """
     if load_dotenv:
         env_utils.load_env()
-    kwargs = make_api_base_args()
+    kwargs = get_api_base_args()
     access_key = os.getenv("API_ACCESS_KEY")
     secret_key = os.getenv("API_SECRET_KEY")
 
@@ -65,6 +65,7 @@ class KeyApi(Api):
         headers: dict[str, str] = {},
     ):
         query_str = query if isinstance(query, str) else parse.urlencode(query)
+
         body_str = body if isinstance(body, str) else json.dumps(body)
 
         url = self._base_url + path + "?" + query_str
@@ -72,10 +73,10 @@ class KeyApi(Api):
         headers = make_headers(method, headers, url, self._access_key, self._secret_key)
 
         if self._logging:
-            logging.debug("request url: " + url)
-            logging.debug("request headers: " + str(headers))
+            logging.info("request url: " + url)
+            logging.info("request headers: " + str(headers))
             if len(body) > 0:
-                logging.debug(body)
+                logging.info(body)
 
         res = requests.request(
             method,
@@ -89,7 +90,10 @@ class KeyApi(Api):
 
         if status.is_success:
             if self._logging:
-                logging.debug("request succeeded, details: " + res.text)
+                if res.text == "":
+                    logging.info("request succeeded")
+                else:
+                    logging.info("request succeeded, details: " + res.text)
         elif status is http.HTTPStatus.TEMPORARY_REDIRECT:
             # The official Onshape app has redirect handling here, we skip because lazy
             if self._logging:
@@ -157,7 +161,7 @@ def make_headers(
 
 def make_date():
     """Returns the current date and time."""
-    return datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    return datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
 def make_nonce():

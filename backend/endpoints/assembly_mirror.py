@@ -6,7 +6,8 @@ import flask
 import onshape_api
 from onshape_api import endpoints
 
-from backend.common import assembly_data, connect, evaluate
+from backend.common import assembly_data, connect, database, evaluate
+from onshape_api.endpoints import assemblies
 
 router = flask.Blueprint("assembly-mirror", __name__)
 
@@ -14,7 +15,8 @@ router = flask.Blueprint("assembly-mirror", __name__)
 @router.post("/assembly-mirror" + connect.element_route())
 def assembly_mirror(**kwargs):
     assembly_path = connect.get_element_path()
-    api = connect.get_api()
+    db = database.Database()
+    api = connect.get_api(db)
     AssemblyMirror(api, assembly_path).execute()
     return {"message": "Success"}
 
@@ -61,7 +63,7 @@ class AssemblyMirrorPart(ABC):
     def add_to_assembly(
         self, api: onshape_api.Api, assembly_path: onshape_api.ElementPath
     ) -> None:
-        endpoints.add_parts_to_assembly(api, assembly_path, self.part_path)
+        assemblies.add_parts(api, assembly_path, self.part_path)
 
     def find_match(self, instance_dict: dict[onshape_api.PartPath, dict]) -> dict:
         """Returns the an assembled instance which matches this part."""
@@ -69,8 +71,7 @@ class AssemblyMirrorPart(ABC):
         return instance_dict[self.part_path]
 
     @abstractmethod
-    def do_fasten(self) -> None:
-        ...
+    def do_fasten(self) -> None: ...
 
 
 class OriginMirrorPart(AssemblyMirrorPart):

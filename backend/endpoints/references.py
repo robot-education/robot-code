@@ -2,10 +2,8 @@ from typing import Iterable
 import flask
 
 import onshape_api
-from onshape_api import endpoints
-
-from backend.common import connect
-
+from backend.common import connect, database
+from onshape_api.endpoints import documents, versions
 
 router = flask.Blueprint("references", __name__)
 
@@ -15,7 +13,7 @@ def update_refs(
     instance_path: onshape_api.InstancePath,
     child_document_ids: Iterable[str] | None = None,
 ):
-    refs = endpoints.get_external_references(api, instance_path)
+    refs = documents.get_external_references(api, instance_path)
     external_refs: dict = refs["elementExternalReferences"]
     latest_versions: list = refs["latestVersions"]
     # Maps documentIds to their latest versionId
@@ -45,7 +43,7 @@ def update_refs(
                 )
                 # Sometimes externalReferences returns invalid data?
                 try:
-                    endpoints.update_reference(
+                    documents.update_reference(
                         api,
                         target_path,
                         current_path,
@@ -72,7 +70,8 @@ def update_references(*args, **kwargs):
     Returns:
         updatedElements: The number of tabs which had old references that were updated.
     """
-    api = connect.get_api()
+    db = database.Database()
+    api = connect.get_api(db)
     instance_path = connect.get_instance_path()
     child_document_ids = connect.get_optional_body("childDocumentIds")
     updated_elements = update_refs(api, instance_path, child_document_ids)
@@ -91,7 +90,8 @@ def push_version(**kwargs):
     Returns:
         updatedReferences: The number of tabs which had references updated.
     """
-    api = connect.get_api()
+    db = database.Database()
+    api = connect.get_api(db)
     curr_instance = connect.get_instance_path()
     name = connect.get_body("name")
     description = connect.get_optional_body("description") or ""
@@ -101,7 +101,7 @@ def push_version(**kwargs):
         for temp in body
     ]
 
-    endpoints.create_version(api, curr_instance, name, description)
+    versions.create_version(api, curr_instance, name, description)
 
     updated_references = 0
     for update_instance in instances_to_update:

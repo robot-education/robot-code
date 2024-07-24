@@ -5,7 +5,7 @@ from onshape_api.api import key_api
 from onshape_api.endpoints import feature_studios
 from featurescript import endpoints, feature_studio
 from featurescript.transform import transform
-from robot_code import conf
+from featurescript import conf
 
 
 def insert_code(function: str, code: list[str]) -> str:

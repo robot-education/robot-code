@@ -4,7 +4,6 @@ Code to release Robot FeatureScripts from the backend to the frontend repo.
 
 from featurescript.base.ctxt import Context
 from onshape_api.model.constants import START_VERSION_NAME
-from robot_code.conf import Config
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints.documents import (
     create_new_workspace,
@@ -21,6 +20,8 @@ from featurescript.feature_studio import (
     get_feature_studio,
     pull_feature_studio,
 )
+from robot_code.confirm import confirm
+from robot_code.documents import Documents
 from robot_code.robot_version import (
     START_VERSION,
     RobotVersion,
@@ -82,7 +83,7 @@ def get_new_version_name(
 
 def release(
     api: Api,
-    studio_name: str,
+    script_name: str,
     description: str,
     version_type: VersionType | None = None,
     is_prerelease: bool = False,
@@ -98,19 +99,17 @@ def release(
     """
     if version_type == None and not is_prerelease:
         raise ValueError("Must enter a version or make a prerelease.")
-    feature_name = str_utils.display_name(studio_name.removesuffix(".fs"))
 
-    config = Config()
-    if test:
-        backend = config.documents["test-backend"]
-        frontend = config.documents["test-frontend"]
-    else:
-        backend = config.documents["backend"]
-        frontend = config.documents["frontend"]
+    feature_name = str_utils.display_name(script_name)
 
-    verify_studio_exists(api, backend, studio_name)
+    # db = database.Database()
+    # fs_ref = db.featurescripts
 
-    frontend_versions = parse_versions(get_versions(api, frontend))
+    documents = Documents(test=test)
+
+    verify_studio_exists(api, documents.backend, script_name)
+
+    frontend_versions = parse_versions(get_versions(api, documents.frontend))
     previous_version = get_previous_version(feature_name, frontend_versions)
 
     new_version_name = get_new_version_name(
@@ -119,27 +118,29 @@ def release(
 
     confirm_release(new_version_name, previous_version, test)
 
-    if is_prerelease:
-        version_id = None
-        if len(frontend_versions) > 0 and frontend_versions[0].is_prerelease():
-            # Branch from previous version
-            version_id = frontend_versions[0].version_id
-            version_path = InstancePath.from_path(
-                frontend, version_id, InstanceType.VERSION
-            )
-            response = create_new_workspace_from_instance(api, version_path, "TEMP")
-        else:
-            response = create_new_workspace(api, frontend, "TEMP")
-        workspace_to_use = InstancePath.from_path(frontend, response["id"])
-    else:
-        workspace_to_use = frontend
+    # if is_prerelease:
+    #     version_id = None
+    #     if len(frontend_versions) > 0 and frontend_versions[0].is_prerelease():
+    #         # Branch from previous version
+    #         version_id = frontend_versions[0].version_id
+    #         version_path = InstancePath.from_path(
+    #             documents.frontend, version_id, InstanceType.VERSION
+    #         )
+    #         response = create_new_workspace_from_instance(api, version_path, "TEMP")
+    #     else:
+    #         response = create_new_workspace(api, documents.frontend, "TEMP")
+    #     workspace_to_use = InstancePath.from_path(documents.frontend, response["id"])
+    # else:
+    #     workspace_to_use = documents.frontend
 
     # Create a version in the backend
-    backend_version = create_version(api, backend, new_version_name, description)
-    backend_version_path = InstancePath.from_path(
-        backend, backend_version["id"], InstanceType.VERSION
+    backend_version = create_version(
+        api, documents.backend, new_version_name, description
     )
-    backend_studio = get_feature_studio(api, backend_version_path, studio_name)
+    backend_version_path = InstancePath.from_path(
+        documents.backend, backend_version["id"], InstanceType.VERSION
+    )
+    backend_studio = get_feature_studio(api, backend_version_path, script_name)
     if backend_studio == None:
         raise AssertionError(
             "Studio is unexpectedly missing from created version. Code left in bad state. Aborting."
@@ -151,13 +152,13 @@ def release(
         new_version_name, std_version, backend_studio
     )
 
-    frontend_studio = pull_feature_studio(api, workspace_to_use, studio_name)
+    frontend_studio = pull_feature_studio(api, documents.frontend, script_name)
     frontend_studio.push(api, release_studio_code)
-    create_version(api, workspace_to_use, new_version_name, description)
+    create_version(api, documents.frontend, new_version_name, description)
 
-    if is_prerelease:
-        # cleanup workspace
-        delete_workspace(api, workspace_to_use)
+    # if is_prerelease:
+    #     # cleanup workspace
+    #     delete_workspace(api, workspace_to_use)
 
 
 def confirm_release(
@@ -175,10 +176,7 @@ def confirm_release(
         message = f'You are about to IRREVERSIBLY release "{version_name}".'
 
     message += f' The previous version is "{previous_version_name}".'
-
-    value = input(message + " Please confirm (y/N):")
-    if value == "" or value.lower() != "y":
-        raise ValueError("Aborted version creation.")
+    return confirm(message, "Aborted version creation.")
 
 
 RELEASE_PREAMBLE = """/**

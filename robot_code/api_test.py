@@ -1,15 +1,23 @@
-from robot_code.conf import Config
 from onshape_api.api.key_api import make_key_api
-from onshape_api.endpoints import users
+from onshape_api.endpoints import part_studios, users
+from onshape_api.endpoints.feature_studios import get_feature_spec
+from onshape_api.paths.paths import url_to_element_path
+from robot_code.documents import Documents
+
+# import logging
+
+# logging.basicConfig(level=logging.INFO, filename=None)
 
 
 def main():
     api = make_key_api()
     users.ping(api)
 
-    config = Config()
-    target = config.documents["target"]
-    base = config.documents["base"]
+    documents = Documents(test=True)
+
+    test = url_to_element_path(
+        "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/v/d1389fa34235160533671706/e/50410223cd7c6fe15bb37171"
+    )
 
     # response = documents.get_document_elements(api, target)
     # document = make_name_to_path_map(response, target)

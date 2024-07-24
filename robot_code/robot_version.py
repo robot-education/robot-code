@@ -21,6 +21,7 @@ from enum import StrEnum
 import re
 from semver import Version as SemVersion
 from onshape_api.model.constants import START_VERSION_NAME
+from onshape_api.utils import str_utils
 
 START_VERSION = SemVersion(0, 0, 0)
 
@@ -58,6 +59,9 @@ class RobotVersion:
 
     def version_name(self) -> str:
         return version_name(self.feature_name, self.version)
+
+    def studio_name(self) -> str:
+        return str_utils.camel_case(self.feature_name) + ".fs"
 
     def is_prerelease(self) -> bool:
         """Returns true if the version is a prerelease."""

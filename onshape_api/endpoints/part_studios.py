@@ -1,11 +1,15 @@
 import json
 
 from onshape_api.api.api_base import Api
+from onshape_api.assertions import assert_instance_type
 from onshape_api.paths.api_path import api_path
+from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath
 
 
-def evaluate_feature_script(api: Api, part_studio_path: ElementPath, script: str) -> dict:
+def evaluate_feature_script(
+    api: Api, part_studio_path: ElementPath, script: str
+) -> dict:
     """Evaluate a FeatureScript script against a given part studio.
 
     Returns the printed output of the script parsed as JSON.
@@ -15,3 +19,28 @@ def evaluate_feature_script(api: Api, part_studio_path: ElementPath, script: str
         body={"script": script},
     )
     return json.loads(result["console"])
+
+
+def add_feature(
+    api: Api,
+    part_studio_path: ElementPath,
+    name: str,
+    namespace: str,
+    feature_type: str,
+):
+    """Adds a feature to a part studio."""
+    assert_instance_type(part_studio_path, InstanceType.WORKSPACE)
+
+    body = {
+        "btType": "BTFeatureDefinitionCall-1406",
+        "feature": {
+            "btType": "BTMFeature-134",
+            "namespace": namespace,
+            "name": name,
+            "featureType": feature_type,
+        },
+    }
+
+    return api.post(
+        api_path("partstudios", part_studio_path, ElementPath, "features"), body=body
+    )
