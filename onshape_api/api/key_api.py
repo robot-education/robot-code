@@ -200,7 +200,7 @@ def make_authorization(
 def make_basic_authorization(access_key: str, secret_key: str):
     """Basic authorization encoding.
 
-    Currently unused, but a convenient (but less secure) alternative to encoding date, nonce, etc.
+    Currently unused, but a convenient (and less secure) alternative to encoding date, nonce, etc.
     """
     b64 = base64.b64encode(f"{access_key}:{secret_key}".encode()).decode()
     return f"Basic {b64}"

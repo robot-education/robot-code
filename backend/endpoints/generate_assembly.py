@@ -1,7 +1,6 @@
 import flask
 
 import onshape_api
-from onshape_api import endpoints
 
 from backend.common import connect, database
 from onshape_api import model

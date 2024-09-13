@@ -3,10 +3,11 @@ Code to release Robot FeatureScripts from the backend to the frontend repo.
 """
 
 from featurescript.base.ctxt import Context
-from onshape_api.model.constants import START_VERSION_NAME
 from onshape_api.api.api_base import Api
+from onshape_api.endpoints.feature_studios import get_feature_specs
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.endpoints.versions import create_version, get_versions
+from onshape_api.model.constants import START_VERSION_NAME
 from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
 
 from featurescript import *
@@ -16,7 +17,14 @@ from featurescript.feature_studio import (
     pull_feature_studio,
 )
 from robot_code.confirm import confirm
-from robot_code.documents import Documents
+from robot_code.documents import (
+    BACKEND,
+    FRONTEND,
+    BETA_FRONTEND,
+    TEST_BACKEND,
+    TEST_FRONTEND,
+    Document,
+)
 from robot_code.robot_version import (
     START_VERSION,
     RobotVersion,
@@ -40,6 +48,26 @@ def verify_studio_exists(api: Api, workspace_path: InstancePath, studio_name: st
     backend_studio = get_feature_studio(api, workspace_path, studio_name)
     if backend_studio == None:
         raise ValueError("Could not find studio {} in backend.".format(studio_name))
+
+
+def verify_feature_name(
+    api: Api, backend_studio_path: ElementPath, is_prerelease: bool
+):
+    specs = get_feature_specs(api, backend_studio_path)["featureSpecs"]
+    if len(specs) > 1:
+        names = list(spec["featureTypeName"] for spec in specs)
+        raise ValueError(
+            "The feature studio has multiple custom features defined: "
+            + ", ".join(names)
+        )
+    elif len(specs) <= 0:
+        raise ValueError("The feature studio doesn't have any valid custom features.")
+    feature_name: str = specs[0]["featureTypeName"]
+    name_has_beta = "beta" in feature_name.lower()
+    if is_prerelease and not name_has_beta:
+        raise ValueError("Prerelease feature names must contain the word beta")
+    elif not is_prerelease and name_has_beta:
+        raise ValueError("Regular release feature names cannot contain the word beta")
 
 
 def get_new_version_name(
@@ -96,16 +124,23 @@ def release(
         raise ValueError("Must enter a version or make a prerelease.")
 
     feature_name = str_utils.display_name(script_name)
+    studio_name = script_name + ".fs"
 
-    # db = database.Database()
-    # fs_ref = db.featurescripts
+    backend = Document(api, TEST_BACKEND if test else BACKEND)
+    frontend = Document(api, TEST_FRONTEND if test else FRONTEND)
 
-    documents = Documents(test=test)
+    # Verify studio exists
+    backend_studio_path = backend.get_element_path(studio_name)
+    verify_feature_name(api, backend_studio_path, is_prerelease)
 
-    verify_studio_exists(api, documents.backend, script_name)
+    frontend_studio = frontend.get_element(studio_name)
+    if frontend_studio == None:
+        print(
+            "WARNING: The frontend studio does not currently exist and will be created from scratch."
+        )
 
-    frontend_versions = parse_versions(get_versions(api, documents.frontend))
-    previous_version = get_previous_version(feature_name, frontend_versions)
+    backend_versions = parse_versions(get_versions(api, backend.path))
+    previous_version = get_previous_version(feature_name, backend_versions)
 
     new_version_name = get_new_version_name(
         feature_name, previous_version, version_type, is_prerelease
@@ -113,29 +148,30 @@ def release(
 
     confirm_release(new_version_name, previous_version, test)
 
-    # if is_prerelease:
-    #     version_id = None
-    #     if len(frontend_versions) > 0 and frontend_versions[0].is_prerelease():
-    #         # Branch from previous version
-    #         version_id = frontend_versions[0].version_id
-    #         version_path = InstancePath.from_path(
-    #             documents.frontend, version_id, InstanceType.VERSION
-    #         )
-    #         response = create_new_workspace_from_instance(api, version_path, "TEMP")
-    #     else:
-    #         response = create_new_workspace(api, documents.frontend, "TEMP")
-    #     workspace_to_use = InstancePath.from_path(documents.frontend, response["id"])
-    # else:
-    #     workspace_to_use = documents.frontend
+    if is_prerelease:
+        workspace_to_use = BETA_FRONTEND
+        # if len(frontend_versions) > 0 and frontend_versions[0].is_prerelease():
+        #     # Most recent version is pre-release - use existing Beta workspace
+        #     workspace_to_use = FRONTEND_BETA
+        #     # version_id = frontend_versions[0].version_id
+        #     # version_path = InstancePath.from_path(
+        #     #     frontend.path, version_id, InstanceType.VERSION
+        #     # )
+        #     # response = create_new_workspace_from_instance(api, version_path, "Beta")
+        # else:
+        #     # Delete Beta workspace and make it again to make it current with Main
+        #     delete_workspace(api, FRONTEND_BETA)
+        #     response = create_new_workspace(api, frontend.path, "Beta")
+        # workspace_to_use = InstancePath.from_path(frontend.path, response["id"])
+    else:
+        workspace_to_use = frontend.path
 
     # Create a version in the backend
-    backend_version = create_version(
-        api, documents.backend, new_version_name, description
-    )
+    backend_version = create_version(api, backend.path, new_version_name, description)
     backend_version_path = InstancePath.from_path(
-        documents.backend, backend_version["id"], InstanceType.VERSION
+        backend.path, backend_version["id"], InstanceType.VERSION
     )
-    backend_studio = get_feature_studio(api, backend_version_path, script_name)
+    backend_studio = get_feature_studio(api, backend_version_path, studio_name)
     if backend_studio == None:
         raise AssertionError(
             "Studio is unexpectedly missing from created version. Code left in bad state. Aborting."
@@ -147,9 +183,9 @@ def release(
         new_version_name, std_version, backend_studio
     )
 
-    frontend_studio = pull_feature_studio(api, documents.frontend, script_name)
+    frontend_studio = pull_feature_studio(api, workspace_to_use, studio_name)
     frontend_studio.push(api, release_studio_code)
-    create_version(api, documents.frontend, new_version_name, description)
+    create_version(api, workspace_to_use, new_version_name, description)
 
     # if is_prerelease:
     #     # cleanup workspace

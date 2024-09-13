@@ -1,4 +1,5 @@
 import enum
+from typing import Iterable
 from onshape_api.assertions import (
     assert_instance_type,
     assert_version,
@@ -36,6 +37,15 @@ def create_new_workspace(
     )
 
 
+def copy_workspace(
+    api: Api, instance_path: InstancePath, new_name: str, is_public: bool = False
+) -> dict:
+    assert_workspace(instance_path)
+    path = f"/documents/{instance_path.document_id}/workspaces/{instance_path.instance_id}/copy"
+    body = {"isPublic": is_public, "newName": new_name}
+    return api.post(path, body)
+
+
 def create_new_workspace_from_instance(
     api: Api, path: InstancePath, name: str, description: str | None = None
 ) -> dict:
@@ -61,6 +71,11 @@ def delete_workspace(api: Api, workspace_path: InstancePath) -> dict:
     )
 
 
+def delete_document(api: Api, document_path: DocumentPath) -> dict:
+    """Deletes an entire document."""
+    return api.delete(f"/documents/{document_path.document_id}")
+
+
 class ElementType(enum.StrEnum):
     """Describes possible element (tab) types in a document."""
 
@@ -68,6 +83,7 @@ class ElementType(enum.StrEnum):
     ASSEMBLY = "ASSEMBLY"
     DRAWING = "DRAWING"
     FEATURE_STUDIO = "FEATURESTUDIO"
+    BLOB = "BLOB"
 
 
 def get_document_elements(
@@ -81,7 +97,7 @@ def get_document_elements(
         element_type: The type of element (tab) to get. If None, all elements are returned.
     """
     query: dict = {"withThumbnails": False}
-    if element_type:
+    if element_type != None:
         query["elementType"] = element_type
 
     return api.get(
@@ -114,16 +130,11 @@ def get_workspace_microversion_id(api: Api, instance_path: InstancePath) -> str:
     )["microversion"]
 
 
-def get_references(api: Api, element_path: ElementPath) -> dict:
-    """An undocumented endpoint which returns a list of specific external references in a tab."""
-    return api.get(api_path("elements", element_path, ElementPath, "references"))
-
-
 def get_external_references(
     api: Api,
     instance_path: InstancePath,
 ) -> dict:
-    """An undocumented endpoint which returns all external references in a document.
+    """An undocumented OAuth only endpoint which returns all external references in a document.
 
     Generally speaking, this returns a list of the external workspaces referenced by each tab in the instance.
     """
@@ -132,29 +143,15 @@ def get_external_references(
     )
 
 
-# @deprecated("Possibly broken endpoint")
-# def update_latest_references(
-#     api: Api, element_path: api_path.ElementPath, element: str
-# ) -> dict:
-#     """Updates a tab's references to the latest versions."""
-#     body = {"elements": [element]}
-#     return api.post(
-#         api_path.element_api_path(
-#             "documents", element_path, "latestdocumentreferences"
-#         ),
-#         body=body,
-#     )
-
-
 def update_to_latest_reference(
     api: Api,
     element_path: ElementPath,
     old_reference_path: ElementPath,
 ) -> None:
-    """Updates a reference to the latest version.
+    """Updates references from element_path to old_reference_path automatically.
 
-    This updates all features in the tab specified by element which reference
-    objects in old_reference to use the latest version of that reference.
+    Specifically, all features in element_path which reference
+    objects in old_reference_path are updated to use the latest version of that reference.
     """
     latest_version = get_latest_version(api, old_reference_path)["id"]
     update_reference(api, element_path, old_reference_path, latest_version)
@@ -166,8 +163,8 @@ def update_reference(
     old_reference_path: ElementPath,
     version_id: str,
 ) -> None:
-    """Updates all features in element which reference old_reference to the version
-    of old_reference specified by version_id.
+    """Updates all features in element which reference old_reference_path to the version
+    of old_reference_path specified by version_id.
     """
     assert_workspace(element_path)
     assert_version(old_reference_path)
@@ -190,4 +187,60 @@ def update_reference(
     api.post(
         api_path("elements", element_path, ElementPath, "updatereferences"),
         body=body,
+    )
+
+
+def move_reference(
+    api: Api,
+    element_path: ElementPath,
+    old_reference_path: ElementPath,
+    new_reference_path: ElementPath,
+) -> None:
+    """Updates all features in element which reference old_reference_path to new_reference_path."""
+    assert_workspace(element_path)
+    assert_version(old_reference_path)
+    assert_version(new_reference_path)
+    body = {
+        "referenceUpdates": [
+            {
+                "fromReference": {
+                    "documentId": old_reference_path.document_id,
+                    "versionId": old_reference_path.instance_id,
+                    "elementId": old_reference_path.element_id,
+                },
+                "toReference": {
+                    "documentId": new_reference_path.document_id,
+                    "versionId": new_reference_path.instance_id,
+                    "elementId": new_reference_path.element_id,
+                },
+            }
+        ]
+    }
+    api.post(
+        api_path("elements", element_path, ElementPath, "updatereferences"),
+        body=body,
+    )
+
+
+def move_elements(
+    api: Api,
+    source_path: InstancePath,
+    element_ids: Iterable[str],
+    target_path: InstancePath,
+    target_version_name: str,
+) -> dict:
+    """Moves one or more tabs from the source to the target."""
+    assert_workspace(source_path)
+    assert_workspace(target_path)
+    body = {
+        "elements": element_ids,
+        "isPublic": False,
+        "sourceDocumentId": source_path.document_id,
+        "sourceWorkspaceId": source_path.instance_id,
+        "targetDocumentId": target_path.document_id,
+        "targetWorkspaceId": target_path.instance_id,
+        "versionName": target_version_name,
+    }
+    return api.post(
+        api_path("documents", source_path, InstancePath, "moveelement"), body
     )

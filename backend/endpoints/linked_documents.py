@@ -1,4 +1,3 @@
-import asyncio
 import enum
 
 import flask
@@ -6,7 +5,6 @@ from google.cloud import firestore
 
 import onshape_api
 from backend.common import backend_exceptions, connect, database
-from onshape_api import endpoints
 from onshape_api.endpoints import documents
 
 

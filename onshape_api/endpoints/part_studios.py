@@ -1,10 +1,18 @@
 import json
 
 from onshape_api.api.api_base import Api
-from onshape_api.assertions import assert_instance_type
+from onshape_api.assertions import assert_instance_type, assert_workspace
 from onshape_api.paths.api_path import api_path
 from onshape_api.paths.instance_type import InstanceType
-from onshape_api.paths.paths import ElementPath
+from onshape_api.paths.paths import ElementPath, InstancePath
+
+
+def create_part_studio(api: Api, instance_path: InstancePath, name: str) -> dict:
+    """Creates a part studio in a document."""
+    assert_workspace(instance_path)
+    return api.post(
+        api_path("partstudios", instance_path, InstancePath), body={"name": name}
+    )
 
 
 def evaluate_feature_script(

@@ -12,10 +12,6 @@ export function App() {
 
     const isApp = Boolean(useMatch("/app"));
 
-    // location logging for debugging
-    // const location = useLocation();
-    // console.log(location.pathname + location.search);
-
     if (isApp) {
         saveOnshapeParams(params);
         const elementType = getCurrentElementType();

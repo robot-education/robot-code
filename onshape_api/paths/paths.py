@@ -41,6 +41,9 @@ class DocumentPath:
     def __eq__(self, other) -> bool:
         return isinstance(other, DocumentPath) and self.document_id == other.document_id
 
+    def __str__(self) -> str:
+        return DocumentPath.to_api_path(self)
+
 
 class InstancePath(DocumentPath):
     """Represents a path to a specific instance (generally a workspace or version) of an Onshape document."""
@@ -99,6 +102,9 @@ class InstancePath(DocumentPath):
             and self.wvm == other.wvm
         )
 
+    def __str__(self) -> str:
+        return InstancePath.to_api_path(self)
+
 
 class ElementPath(InstancePath):
     """Represents a document tab in an instance."""
@@ -145,6 +151,9 @@ class ElementPath(InstancePath):
             and self.element_id == other.element_id
         )
 
+    def __str__(self) -> str:
+        return ElementPath.to_api_path(self)
+
 
 class PartPath(ElementPath):
     """Represents a part in a part studio."""
@@ -189,6 +198,9 @@ class PartPath(ElementPath):
             and self.__eq__(other)
             and self.part_id == other.part_id
         )
+
+    def __str__(self) -> str:
+        return PartPath.to_api_path(self)
 
 
 def url_to_instance_path(url: str) -> InstancePath:

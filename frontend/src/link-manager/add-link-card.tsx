@@ -79,9 +79,10 @@ export function AddLinkCard({ linkType }: LinkTypeProps) {
                 className="link-card-url-input"
                 fill
                 value={url}
-                intent={addLinkMutation.error ? "danger" : undefined}
+                intent={addLinkMutation.isError ? "danger" : undefined}
                 onValueChange={(value) => setUrl(value)}
                 leftElement={<Icon icon="link" />}
+                type="url"
                 placeholder="Document link"
             />
             <Button

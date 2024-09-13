@@ -14,6 +14,11 @@ import {
 import { License } from "./pages/license";
 import { Assembly } from "./assembly/assembly";
 import { MenuType } from "./common/menu-type";
+import { Design } from "./design/design";
+import { SwerveDrive } from "./design/swerve-drive";
+import { Climber } from "./design/climber";
+import { AddDesign } from "./design/add-design";
+import { UpdateChildReferences } from "./versions/update-child-references";
 
 export const router = createBrowserRouter([
     {
@@ -61,6 +66,35 @@ export const router = createBrowserRouter([
                     {
                         path: "update-all-references",
                         element: <UpdateAllReferences />
+                    },
+                    {
+                        path: "update-child-references",
+                        element: <UpdateChildReferences />
+                    }
+                ]
+            },
+            {
+                path: MenuType.DESIGN,
+                element: <Design />,
+                children: [
+                    {
+                        path: "link-manager",
+                        element: <LinkManager />
+                    },
+                    {
+                        loader: makeDefaultNameLoader(DefaultNameType.VERSION),
+                        path: "add-design",
+                        element: <AddDesign />
+                    },
+                    {
+                        loader: makeDefaultNameLoader(DefaultNameType.VERSION),
+                        path: "swerve-drive",
+                        element: <SwerveDrive />
+                    },
+                    {
+                        loader: makeDefaultNameLoader(DefaultNameType.VERSION),
+                        path: "climber",
+                        element: <Climber />
                     }
                 ]
             }

@@ -5,6 +5,7 @@ import { ActionInfo } from "./action-context";
 
 interface ActionCardProps {
     actionInfo: ActionInfo;
+    children?: ReactNode;
 }
 
 /**
@@ -23,6 +24,7 @@ export function ActionCard(props: ActionCardProps): ReactNode {
                 intent="primary"
                 onClick={() => navigate(actionInfo.route)}
             />
+            {props.children}
         </Card>
     );
 }

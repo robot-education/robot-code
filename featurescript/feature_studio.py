@@ -19,17 +19,21 @@ class FeatureStudio:
         path: The path to the feature studio.
         microversion_id: The most recent microverison id of the feature studio.
             Used for external FeatureScript imports.
+        created: Whether the FeatureStudio is newly created.
     """
 
     name: str
     path: ElementPath
     microversion_id: str
+    created: bool
 
     def push(self, api: Api, code: str) -> dict:
         """Pushes this Studio to Onshape. The studio is created if it does not already exist."""
         element = documents.get_document_element(api, self.path)
         if element == None:
-            return feature_studios.create_feature_studio(api, self.path, self.name)
+            result = feature_studios.create_feature_studio(api, self.path, self.name)
+            self.created = False
+            return result
         return feature_studios.push_code(api, self.path, code)
 
 
@@ -46,6 +50,7 @@ def pull_feature_studio(
             studio_name,
             ElementPath.from_path(instance_path, response["id"]),
             response["microversionId"],
+            True,
         )
     return feature_studio
 
@@ -80,6 +85,7 @@ def _extract_studios(
                 element["name"],
                 ElementPath.from_path(instance_path, element["id"]),
                 element["microversionId"],
+                False,
             ),
         )
         for element in elements

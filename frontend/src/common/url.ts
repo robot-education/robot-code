@@ -27,23 +27,32 @@ export function makeUrl(path: DocumentPath): string {
     return url;
 }
 
+export interface Configuration {
+    configuration?: string;
+}
+
 /**
  * A utility which parses Onshape urls into an ElementPath.
- * Returns `null` if the url could not be parsed successfully.
+ * Returns `undefined` if the url could not be parsed successfully.
  */
-export function parseUrl(url: string): ElementPath | null {
+export function parseUrl(
+    urlString: string
+): (ElementPath & Configuration) | undefined {
     try {
         // Example pathname: /documents/769b556baf61d32b18813fd0/w/e6d6c2b3a472b97a7e352949/e/8a0c13d3b2b68a99502dc436
-        const pathname = new URL(url).pathname;
-        const parts = pathname.split("/");
+        const url = new URL(urlString);
+        const parts = url.pathname.split("/");
+        const configuration =
+            url.searchParams.get("configuration") ?? undefined;
         return {
             documentId: parts[2],
             instanceId: parts[4],
             instanceType: parts[3],
-            elementId: parts[6]
+            elementId: parts[6],
+            configuration
         };
     } catch {
-        return null;
+        return undefined;
     }
 }
 

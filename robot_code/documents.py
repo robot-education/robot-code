@@ -8,37 +8,33 @@ from onshape_api.paths.paths import (
 )
 
 
-class Documents:
-    def __init__(self, test: bool = False):
-        self.test = test
+class Document:
+    def __init__(self, api: Api, path: InstancePath):
+        self.path = path
+        self.elements = get_document_elements(api, path)
 
-    @property
-    def frontend(self) -> InstancePath:
-        return TEST_FRONTEND if self.test else FRONTEND
+    def get_element(self, element_name: str) -> dict | None:
+        return next(
+            filter(lambda element: element["name"] == element_name, self.elements), None
+        )
 
-    @property
-    def backend(self) -> InstancePath:
-        return TEST_BACKEND if self.test else BACKEND
-
-    def frontend_element(self, api: Api, element_name: str) -> ElementPath:
-        return get_element_path(api, self.frontend, element_name)
-
-    def backend_element(self, api: Api, element_name: str) -> ElementPath:
-        return get_element_path(api, self.backend, element_name)
-
-
-def get_element_path(api: Api, instance_path: InstancePath, element_name: str):
-    elements = get_document_elements(api, instance_path)
-    element = next(filter(lambda element: element["name"] == element_name, elements))
-    return ElementPath.from_path(instance_path, element["id"])
+    def get_element_path(self, element_name: str) -> ElementPath:
+        element = self.get_element(element_name)
+        if element == None:
+            raise ValueError("Failed to find a studio with the specified name.")
+        return ElementPath.from_path(self.path, element["id"])
 
 
 FRONTEND = url_to_instance_path(
     "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88"
 )
 
+BETA_FRONTEND = url_to_instance_path(
+    "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/7517d9bc30a444e88795c529"
+)
+
 BACKEND = url_to_instance_path(
-    "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cda994b174cc99668701f"
+    "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f"
 )
 
 TEST_FRONTEND = url_to_instance_path(

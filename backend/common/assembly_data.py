@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Iterable
 import onshape_api
-from onshape_api import endpoints
+from onshape_api.endpoints.assemblies import get_assembly, get_assembly_features
 
 
 class Assembly:
@@ -86,7 +86,7 @@ class Assembly:
 
 
 def assembly(api: onshape_api.Api, assembly_path: onshape_api.ElementPath) -> Assembly:
-    assembly_data = endpoints.get_assembly(
+    assembly_data = get_assembly(
         api, assembly_path, include_mate_features=True, include_mate_connectors=True
     )
     return Assembly(assembly_data, assembly_path)
@@ -140,5 +140,5 @@ def get_parameter(feature: dict, parameter_id: str) -> Any:
 def assembly_features(
     api: onshape_api.Api, assembly_path: onshape_api.ElementPath
 ) -> AssemblyFeatures:
-    assembly_data = endpoints.get_assembly_features(api, assembly_path)
+    assembly_data = get_assembly_features(api, assembly_path)
     return AssemblyFeatures(assembly_data)

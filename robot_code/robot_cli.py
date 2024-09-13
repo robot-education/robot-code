@@ -24,23 +24,48 @@ def get_release_parser() -> argparse.ArgumentParser:
         help="The camel case name of the script to update",
     )
 
-    release_parser.add_argument(
-        "--version",
-        "-v",
-        choices=["major", "minor", "patch"],
-        help="The version type of the script being released",
+    # release_parser.add_argument(
+    #     "--version",
+    #     "-v",
+    #     choices=["major", "minor", "patch"],
+    #     help="The version type of the script being released",
+    # )
+
+    version_group = release_parser.add_mutually_exclusive_group()
+    version_group.add_argument(
+        "--major",
+        dest="version",
+        action="store_const",
+        const="major",
+        help="Mark this release as a new major release",
+    )
+
+    version_group.add_argument(
+        "--minor",
+        dest="version",
+        action="store_const",
+        const="minor",
+        help="Mark this release as a new minor release",
+    )
+
+    version_group.add_argument(
+        "--patch",
+        dest="version",
+        action="store_const",
+        const="patch",
+        help="Mark this release as a new patch",
     )
 
     release_parser.add_argument(
-        "--beta",
         "-b",
+        "--beta",
         action="store_true",
         help="Whether the release is a prerelease",
     )
 
     release_parser.add_argument(
-        "--description",
         "-d",
+        "--description",
         help="A brief internal-only description of the changes made",
         default="",
     )
@@ -48,10 +73,12 @@ def get_release_parser() -> argparse.ArgumentParser:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Release Robot FeatureScripts.")
+    parser = argparse.ArgumentParser(
+        description="Release Robot FeatureScripts.", prog="scripts/robot.sh"
+    )
 
     parser.add_argument(
-        "-l", "--log", help="Whether to run with logging enabled", action="store_true"
+        "-l", "--log", help="whether to run with logging enabled", action="store_true"
     )
 
     subparsers = parser.add_subparsers(required=True, dest="action")

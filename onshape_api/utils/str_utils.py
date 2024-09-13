@@ -1,5 +1,12 @@
 """A miscellaneous collection of utilities for working with strings."""
+
 import re
+import json
+
+
+def to_json(value: dict | list):
+    """Pretty-prints a json value."""
+    print(json.dumps(value, indent=2))
 
 
 def indent(string: str) -> str:

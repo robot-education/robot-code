@@ -21,11 +21,10 @@ function getDocumentCards(
     linkType: LinkType,
     documents: Workspace[]
 ): JSX.Element {
-    console.log(documents);
     const cards = documents.map((document) => (
         <Card
             className="link-card"
-            key={document.documentId + "|" + document.instanceId}
+            key={document.documentId + "/" + document.instanceId}
         >
             <span>{document.name}</span>
             <DocumentOptionsMenu linkType={linkType} workspacePath={document} />

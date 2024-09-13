@@ -5,6 +5,7 @@ import onshape_api
 
 from backend.common import backend_exceptions, connect, database
 from backend.endpoints import (
+    add_design,
     assembly_mirror,
     generate_assembly,
     linked_documents,
@@ -31,6 +32,7 @@ router.register_blueprint(generate_assembly.router)
 router.register_blueprint(assembly_mirror.router)
 router.register_blueprint(linked_documents.router)
 router.register_blueprint(references.router)
+router.register_blueprint(add_design.router)
 
 
 # @app.post("/auto-assembly")

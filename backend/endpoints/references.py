@@ -8,11 +8,32 @@ from onshape_api.endpoints import documents, versions
 router = flask.Blueprint("references", __name__)
 
 
-def update_refs(
+@router.post("/update-references" + connect.instance_route())
+def update_references(*args, **kwargs):
+    """Updates references in a given document.
+
+    Args:
+        childDocumentIds: A list of documentIds to look for when deciding what to update.
+        If included, only references stemming from the specified documents will be updated.
+        Otherwise, all outdated references will be updated.
+
+    Returns:
+        updatedElements: The number of tabs which had old references that were updated.
+    """
+    db = database.Database()
+    api = connect.get_api(db)
+    instance_path = connect.get_instance_path()
+    child_document_ids = connect.get_optional_body("childDocumentIds")
+    updated_elements = do_update_references(api, instance_path, child_document_ids)
+    return {"updatedElements": updated_elements}
+
+
+def do_update_references(
     api: onshape_api.Api,
     instance_path: onshape_api.InstancePath,
     child_document_ids: Iterable[str] | None = None,
 ):
+    """Updates all references from elements in instance_path to any document with child_document_ids to point to the latest version of that reference."""
     refs = documents.get_external_references(api, instance_path)
     external_refs: dict = refs["elementExternalReferences"]
     latest_versions: list = refs["latestVersions"]
@@ -29,8 +50,9 @@ def update_refs(
             if not path["isOutOfDate"]:
                 continue
             document_id = path["documentId"]
-            if child_document_ids is not None and document_id not in child_document_ids:
-                continue
+            if child_document_ids != None:
+                if document_id not in child_document_ids:
+                    continue
             # References are always to external versions
             current_instance_path = onshape_api.InstancePath(
                 document_id, path["id"], onshape_api.InstanceType.VERSION
@@ -58,26 +80,6 @@ def update_refs(
     return updated_elements
 
 
-@router.post("/update-references" + connect.instance_route())
-def update_references(*args, **kwargs):
-    """Updates references in a given document.
-
-    Args:
-        childDocumentIds: A list of documentIds to look for when deciding what to update.
-        If included, only references stemming from the specified documents will be updated.
-        Otherwise, all outdated references will be updated.
-
-    Returns:
-        updatedElements: The number of tabs which had old references that were updated.
-    """
-    db = database.Database()
-    api = connect.get_api(db)
-    instance_path = connect.get_instance_path()
-    child_document_ids = connect.get_optional_body("childDocumentIds")
-    updated_elements = update_refs(api, instance_path, child_document_ids)
-    return {"updatedElements": updated_elements}
-
-
 @router.post("/push-version" + connect.instance_route())
 def push_version(**kwargs):
     """Updates references in a given document.
@@ -85,7 +87,7 @@ def push_version(**kwargs):
     Args:
         name: The name of the version to create.
         description: The description to create.
-        instancesToUpdate: A list of workspace instances (documentId, instanceId) to push the version to.
+        instancesToUpdate: A list of workspace instance objects {documentId, instanceId} to push the version to.
 
     Returns:
         updatedReferences: The number of tabs which had references updated.
@@ -105,7 +107,7 @@ def push_version(**kwargs):
 
     updated_references = 0
     for update_instance in instances_to_update:
-        updated_references += update_refs(
+        updated_references += do_update_references(
             api, update_instance, [curr_instance.document_id]
         )
 

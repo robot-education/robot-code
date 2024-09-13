@@ -4,7 +4,6 @@ from concurrent import futures
 from typing import Iterable
 import flask
 import onshape_api
-from onshape_api import endpoints
 
 from backend.common import assembly_data, connect, database, evaluate
 from onshape_api.endpoints import assemblies

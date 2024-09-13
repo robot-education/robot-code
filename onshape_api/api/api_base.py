@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, NotRequired, TypedDict, Unpack
 import os
 import http
 
-# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 __all__ = ["Api"]
 
@@ -21,12 +22,12 @@ class ApiQueryArgs(TypedDict):
 
 def get_api_base_args() -> ApiArgs:
     """Constructs ApiArgs from environment variables."""
-    # True if API_LOGGING exists and isn't "false". Default is "false".
     kwargs: ApiArgs = {}
 
+    # True if API_LOGGING exists and isn't "false". Default is "false".
     logging = os.getenv("API_LOGGING")
     if logging == None:
-        kwargs["logging"] = True
+        kwargs["logging"] = False
     else:
         kwargs["logging"] = logging.lower() == "true"
 

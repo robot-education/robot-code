@@ -145,9 +145,9 @@ def get_body(key: str) -> Any:
     return value
 
 
-def get_optional_body(key: str) -> Any | None:
+def get_optional_body(key: str, default: Any | None = None) -> Any:
     """Returns a value from the request body."""
-    return flask.request.get_json().get(key, None)
+    return flask.request.get_json().get(key, default)
 
 
 # def extract_body(

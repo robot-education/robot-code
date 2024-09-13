@@ -23,6 +23,11 @@ export function getMenuProps(menuType: MenuType): MenuProps {
                 text: "Versions",
                 icon: "git-branch"
             };
+        case MenuType.DESIGN:
+            return {
+                text: "Design",
+                icon: "build"
+            };
         // case MenuType.FEATURE_SCRIPT:
         //     return {
         //         text: "Feature script",
