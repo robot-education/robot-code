@@ -5,6 +5,8 @@ A monorepo hosting python scripts for updating and maintaining my Robot FeatureS
 This repo is set up to work directly with my FeatureScript backend document which can be found here:
 [Alex's FeatureScript Backend](https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f)
 
+Note: This repo is equipped to run with VSCode on Linux (specifically, WSL Ubuntu).
+
 # Onshape API
 
 A generic library for connecting with and using the Onshape API.
@@ -62,7 +64,13 @@ Install `pipx`:
 ```
 sudo apt install pipx
 pipx ensurepath
+```
+
+The use `pipx` to install poetry and install the project:
+
+```
 pipx install poetry
+poetry install
 ```
 
 ## Scripts
@@ -83,9 +91,7 @@ The following scripts are available:
 
 The Robot manager app lives in the `frontend` and `backend` folders. The app uses Python and flask as the backend and API and Vite and React for the frontend. The app is deployed using Google Cloud App Engine, with Google Cloud Firestore as the database.
 
-## Robot Manager Setup
-
-You'll need to create a store entry in Onshape and generate secure certificates for the python dev server so Onshape will connect with it in your dev environment.
+# Robot Manager Setup
 
 Use the `Launch servers` VSCode task to launch the dev servers necessary to view the app. You should set up Onshape to connect to:
 
@@ -93,9 +99,46 @@ Use the `Launch servers` VSCode task to launch the dev servers necessary to view
 https://localhost:3000/app
 ```
 
+## Flask Credentials Setup
+
+Onshape requires all apps, even temporary test apps, to use https. This creates a headache for local development.
+In order to solve this issue, you'll need to generate a certificate and add it to a folder named `credentials` in the root of this project:
+
+```
+/credentials/cert.pem
+/credentials/key.pem
+```
+
+This can be done automatically by running the script `make_credentials.sh`:
+
+```
+./scripts/make_credentials.sh
+```
+
+You'll then need to add a security exception to your browser to avoid getting blocked by a security exception.
+On Firefox, the procedure is:
+
+1. Start the development servers using the `Launch servers` VSCode task.
+2. Open Firefox and go to `Settings > Certificates > View Certificates... > Servers > Add Exception...`
+3. Enter `https://localhost:3000` as the Location and click `Get Certificate`.
+4. Check `Permanently store this exception` and then click `Confirm Security Exception`.
+
+You should now be able to view the app in Onshape.
+
+## Frontend Setup
+
+Install Node.js, then use npm to install the dependencies in `frontend`:
+
+```
+cd frontend
+npm install
+```
+
 ## Google Cloud Dev Setup
 
 To emulate the google cloud database locally, you'll need to install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install#deb).
+
+Also run `gcloud components update`.
 
 Then start up the google cloud emulator:
 
