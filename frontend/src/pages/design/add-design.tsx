@@ -1,23 +1,23 @@
+import { FormGroup, InputGroup, Icon } from "@blueprintjs/core";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLoaderData } from "react-router-dom";
-import { ActionCard } from "../actions/action-card";
-import { ActionInfo } from "../actions/action-context";
-import { ActionForm } from "../actions/action-form";
-import { useMutation } from "@tanstack/react-query";
-import { ActionDialog } from "../actions/action-dialog";
-import { post } from "../api/api";
-import { currentInstanceApiPath } from "../app/onshape-params";
-import { ActionError } from "../actions/action-error";
-import { ActionSpinner } from "../actions/action-spinner";
-import { ActionSuccess } from "../actions/action-success";
-import { ExecuteButton } from "../components/execute-button";
-import { MutationProps } from "../query/mutation";
-import { VersionNameField } from "../components/version-fields";
-import { isVersionNameValid } from "../common/version-utils";
-import { FormGroup, Icon, InputGroup } from "@blueprintjs/core";
-import { parseUrl } from "../common/url";
-import { HandledError } from "../common/errors";
-import { showErrorToast } from "../app/toaster";
+import { ActionCard } from "../../actions/action-card";
+import { ActionInfo } from "../../actions/action-context";
+import { ActionDialog } from "../../actions/action-dialog";
+import { ActionError } from "../../actions/action-error";
+import { ActionForm } from "../../actions/action-form";
+import { ActionSpinner } from "../../actions/action-spinner";
+import { ActionSuccess } from "../../actions/action-success";
+import { currentInstanceApiPath } from "../../app/onshape-params";
+import { showErrorToast } from "../../app/toaster";
+import { HandledError } from "../../common/errors";
+import { parseUrl } from "../../common/url";
+import { post } from "../../api/api";
+import { isVersionNameValid } from "../../common/version-utils";
+import { ExecuteButton } from "../../components/execute-button";
+import { VersionNameField } from "../../components/version-fields";
+import { MutationProps } from "../../query/mutation";
 
 const actionInfo: ActionInfo = {
     title: "Add design",

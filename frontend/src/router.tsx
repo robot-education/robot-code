@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { App } from "./app/app";
-import { PartStudio } from "./part-studio/part-studio";
-import { GenerateAssembly } from "./part-studio/generate-assembly";
+import { PartStudio } from "./pages/part-studio/part-studio";
+import { GenerateAssembly } from "./pages/part-studio/generate-assembly";
 import { GrantDenied } from "./pages/grant-denied";
 import { Versions } from "./versions/versions";
 import { PushVersion } from "./versions/push-version";
@@ -12,12 +12,10 @@ import {
     makeDefaultNameLoader
 } from "./common/default-name-loader";
 import { License } from "./pages/license";
-import { Assembly } from "./assembly/assembly";
-import { MenuType } from "./common/menu-type";
-import { Design } from "./design/design";
-import { SwerveDrive } from "./design/swerve-drive";
-import { Climber } from "./design/climber";
-import { AddDesign } from "./design/add-design";
+import { Assembly } from "./pages/assembly/assembly";
+import { MenuType } from "./app/menu-type";
+import { Design } from "./pages/design/design";
+import { AddDesign } from "./pages/design/add-design";
 import { UpdateChildReferences } from "./versions/update-child-references";
 
 export const router = createBrowserRouter([
@@ -82,20 +80,20 @@ export const router = createBrowserRouter([
                         element: <LinkManager />
                     },
                     {
-                        loader: makeDefaultNameLoader(DefaultNameType.VERSION),
                         path: "add-design",
-                        element: <AddDesign />
-                    },
-                    {
-                        loader: makeDefaultNameLoader(DefaultNameType.VERSION),
-                        path: "swerve-drive",
-                        element: <SwerveDrive />
-                    },
-                    {
-                        loader: makeDefaultNameLoader(DefaultNameType.VERSION),
-                        path: "climber",
-                        element: <Climber />
+                        element: <AddDesign />,
+                        loader: makeDefaultNameLoader(DefaultNameType.VERSION)
                     }
+                    // {
+                    //     path: "swerve-drive",
+                    //     element: <SwerveDrive />,
+                    //     loader: makeDefaultNameLoader(DefaultNameType.VERSION)
+                    // },
+                    // {
+                    //     path: "climber",
+                    //     element: <Climber />,
+                    //     loader: makeDefaultNameLoader(DefaultNameType.VERSION)
+                    // }
                 ]
             }
         ]

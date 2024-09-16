@@ -1,6 +1,6 @@
 import { Button, Menu, Popover } from "@blueprintjs/core";
 import { SelectMenuItem } from "./select-menu-item";
-import { MenuType, useCurrentMenuType } from "../common/menu-type";
+import { MenuType, useCurrentMenuType } from "../app/menu-type";
 import { getMenuProps } from "./menu-props";
 import { getCurrentElementType } from "../app/onshape-params";
 import { ElementType } from "../common/element-type";

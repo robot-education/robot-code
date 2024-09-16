@@ -18,3 +18,14 @@ class InstanceType(StrEnum):
         except ValueError:
             return False
         return True
+
+
+def get_instance_type_key(instance_type: InstanceType) -> str:
+    """Returns workspaceId, versionId, or microversionId depending on the path's InstanceType."""
+    match instance_type:
+        case InstanceType.WORKSPACE:
+            return "workspaceId"
+        case InstanceType.VERSION:
+            return "versionId"
+        case InstanceType.MICROVERSION:
+            return "microversionId"

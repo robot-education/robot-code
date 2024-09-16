@@ -1,42 +1,43 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLoaderData } from "react-router-dom";
-import { ActionCard } from "../actions/action-card";
-import { ActionInfo } from "../actions/action-context";
-import { ActionForm } from "../actions/action-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ActionDialog } from "../actions/action-dialog";
-import { post } from "../api/api";
-import { currentInstanceApiPath } from "../app/onshape-params";
-import { ActionError } from "../actions/action-error";
-import { ActionSpinner } from "../actions/action-spinner";
-import { ActionSuccess } from "../actions/action-success";
-import { ExecuteButton } from "../components/execute-button";
-import { Workspace } from "../api/path";
-import { MutationProps } from "../query/mutation";
-import { linkedParentDocumentsKey } from "../query/query-client";
-import { isVersionNameValid } from "../common/version-utils";
-import { VersionNameField } from "../components/version-fields";
+import { ActionCard } from "../../actions/action-card";
+import { ActionInfo } from "../../actions/action-context";
+import { ActionDialog } from "../../actions/action-dialog";
+import { ActionError } from "../../actions/action-error";
+import { ActionForm } from "../../actions/action-form";
+import { ActionSpinner } from "../../actions/action-spinner";
+import { ActionSuccess } from "../../actions/action-success";
+import { post } from "../../api/api";
+import { Workspace } from "../../api/path";
+import { currentInstanceApiPath } from "../../app/onshape-params";
+import { isVersionNameValid } from "../../common/version-utils";
+import { ExecuteButton } from "../../components/execute-button";
+import { VersionNameField } from "../../components/version-fields";
+import { MutationProps } from "../../query/mutation";
+import { linkedParentDocumentsKey } from "../../query/query-client";
 
 const actionInfo: ActionInfo = {
-    title: "Swerve drive",
-    description: "Add a modifiable copy of a swerve drive to your document.",
-    route: "swerve-drive"
+    title: "Telescoping climber",
+    description:
+        "Add a modifiable copy of a COTs telescoping climber to your document.",
+    route: "climber"
 };
 
-export function SwerveDriveCard() {
+export function ClimberCard() {
     return <ActionCard actionInfo={actionInfo} />;
 }
 
-interface SwerveDriveArgs {
+interface ClimberArgs {
     versionName: string;
 }
 
-export function SwerveDrive() {
-    const mutationFn = async (args: SwerveDriveArgs) => {
+export function Climber() {
+    const mutationFn = async (args: ClimberArgs) => {
         return post("/add-design" + currentInstanceApiPath(), {
             body: {
                 versionName: args.versionName,
-                elementNames: [],
+                // elementNames: [],
                 documentId: "f7166c9cd8a6628556838a38",
                 instanceId: "8113816c3e51cf1fa2a2b832"
             }
@@ -51,7 +52,7 @@ export function SwerveDrive() {
     if (mutation.isSuccess) {
         actionSuccess = (
             <ActionSuccess
-                message="Successfully added drivetrain"
+                message="Successfully added climber"
                 // description={description}
             />
         );
@@ -61,7 +62,7 @@ export function SwerveDrive() {
         <ActionDialog title={actionInfo.title} mutation={mutation}>
             {mutation.isIdle && <AddDesignForm mutation={mutation} />}
             {mutation.isPending && (
-                <ActionSpinner message="Adding drivetrain..." />
+                <ActionSpinner message="Adding climber..." />
             )}
             {mutation.isError && <ActionError />}
             {actionSuccess}

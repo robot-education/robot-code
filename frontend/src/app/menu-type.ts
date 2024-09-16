@@ -31,3 +31,19 @@ export function useMenuRouter() {
         navigate("/app/" + menuType);
     };
 }
+
+/**
+ * Saves the current menu type to local storage.
+ * Used to allow resumption of a session.
+ */
+export function saveMenuType(menuType: MenuType) {
+    localStorage.setItem("lastUsedMenuType", menuType);
+}
+
+export function getLastUsedMenuType(defaultMenuType: MenuType): MenuType {
+    const menuType = localStorage.getItem("lastUsedMenuType");
+    if (menuType == null) {
+        return defaultMenuType;
+    }
+    return menuType as MenuType;
+}

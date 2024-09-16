@@ -1,21 +1,26 @@
-"""Contains Object classes for Onshape. Objects can be used to work on Onshape Documents, Workspaces, and Tabs. 
+"""Contains Path classes for Onshape. Objects can be used to work on Onshape Documents, Workspaces, and Tabs. 
 
 The object model has the following elements:
-* Document - Represents an Onshape document. 
-    Notably, documents are actually just collections of instances (workspaces and versions), so this isn't inherently useful on it's own.
-* Instance - Represents an Onshape workspace, version, or microversion. 
-    Workspaces are editable and are thus the most common. Note Onshape allows creating multiple workspaces in the same document, but most users don't utilize this functionality. 
-    Versions correspond to explicit versions in the version list.
-    Microversions typically correspond to individual edits in the edit history of a document.
-* Element - Represents an Onshape tab, such as a Part Studio, Assembly, or Drawing.
-* Part - Represents a Part inside a Part Studio.
+    Document: Represents an Onshape document. 
+        Notably, documents are actually just collections of instances (workspaces and versions), so this isn't inherently useful on it's own.
+    Instance: Represents an Onshape workspace, version, or microversion. 
+        Workspaces are editable and are thus the most common. Note Onshape allows creating multiple workspaces in the same document, but most users don't utilize this functionality. 
+        Versions correspond to explicit versions in the version list.
+        Microversions typically correspond to individual edits in the edit history of a document.
+    Element: Represents an Onshape tab, such as a Part Studio, Assembly, or Drawing.
+    Part: Represents a Part inside a Part Studio.
+
+Notes on Path methods:
+    to_api_path: This method is static in order to work with api_path. 
+        In particular, it is important for api_path to be able to print out a subset of the path, as the full path is not always required.
+    copy: Creates a copy of a path. This is a class method in order to gain access to the constructor.
 """
 
 from __future__ import annotations
 import pathlib
 from typing import cast
 from urllib import parse
-from onshape_api.paths.instance_type import InstanceType
+from onshape_api.paths.instance_type import InstanceType, get_instance_type_key
 
 
 class DocumentPath:
@@ -31,8 +36,12 @@ class DocumentPath:
     def to_api_path(path: DocumentPath) -> str:
         return "/d/{}".format(path.document_id)
 
-    @classmethod
-    def to_path(cls, path: DocumentPath) -> DocumentPath:
+    @staticmethod
+    def to_api_object(path: DocumentPath) -> dict:
+        return {"documentId": path.document_id}
+
+    @classmethod  # class method in order to have constructor
+    def copy(cls, path: DocumentPath) -> DocumentPath:
         return cls(path.document_id)
 
     def __hash__(self) -> int:
@@ -74,6 +83,12 @@ class InstancePath(DocumentPath):
             instance.wvm, instance.instance_id
         )
 
+    @staticmethod
+    def to_api_object(path: InstancePath) -> dict:
+        object = DocumentPath.to_api_object(path)
+        object[get_instance_type_key(path.instance_type)] = path.instance_id
+        return object
+
     @classmethod
     def from_path(
         cls,
@@ -88,7 +103,7 @@ class InstancePath(DocumentPath):
         )
 
     @classmethod
-    def to_path(cls, instance: InstancePath) -> InstancePath:
+    def copy(cls, instance: InstancePath) -> InstancePath:
         return cls(instance.document_id, instance.instance_id, instance.instance_type)
 
     def __hash__(self) -> int:
@@ -123,6 +138,12 @@ class ElementPath(InstancePath):
     def to_api_path(element: ElementPath) -> str:
         return InstancePath.to_api_path(element) + "/e/" + element.element_id
 
+    @staticmethod
+    def to_api_object(path: ElementPath) -> dict:
+        object = InstancePath.to_api_object(path)
+        object["elementId"] = path.element_id
+        return object
+
     @classmethod
     def from_path(cls, instance: InstancePath, element_id: str) -> ElementPath:
         return cls(
@@ -133,7 +154,7 @@ class ElementPath(InstancePath):
         )
 
     @classmethod
-    def to_path(cls, element: ElementPath) -> ElementPath:
+    def copy(cls, element: ElementPath) -> ElementPath:
         return cls(
             element.document_id,
             element.instance_id,
@@ -169,8 +190,14 @@ class PartPath(ElementPath):
         super().__init__(document_id, instance_id, element_id, instance_type)
         self.part_id = part_id
 
+    @staticmethod
+    def to_api_object(path: PartPath) -> dict:
+        object = ElementPath.to_api_object(path)
+        object["partId"] = path.part_id
+        return object
+
     @classmethod
-    def to_path(cls, part: PartPath) -> PartPath:
+    def copy(cls, part: PartPath) -> PartPath:
         return cls(
             part.document_id,
             part.instance_id,

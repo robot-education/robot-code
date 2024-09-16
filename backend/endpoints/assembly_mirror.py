@@ -37,7 +37,7 @@ class AssemblyMirrorCandidate:
         self.instance = instance
         self.part = assembly.get_part_from_instance(instance)
         self.part_path = assembly.resolve_part_path(instance)
-        self.element_path = onshape_api.ElementPath.to_path(self.part_path)
+        self.element_path = onshape_api.ElementPath.copy(self.part_path)
         self.mate_connectors = self._init_mate_connectors(assembly_features)
         self.all_used = all(self.mate_connectors.values())
 

@@ -1,9 +1,11 @@
 from typing import Iterable
 import flask
 
+from flask import current_app
 import onshape_api
 from backend.common import connect, database
 from onshape_api.endpoints import documents, versions
+from onshape_api.paths.paths import ElementPath
 
 router = flask.Blueprint("references", __name__)
 
@@ -36,8 +38,9 @@ def do_update_references(
     """Updates all references from elements in instance_path to any document with child_document_ids to point to the latest version of that reference."""
     refs = documents.get_external_references(api, instance_path)
     external_refs: dict = refs["elementExternalReferences"]
-    latest_versions: list = refs["latestVersions"]
+
     # Maps documentIds to their latest versionId
+    latest_versions: list = refs["latestVersions"]
     latest_version_dict = {}
     for latest_version in latest_versions:
         latest_version_dict[latest_version["documentId"]] = latest_version["id"]
@@ -57,26 +60,26 @@ def do_update_references(
             current_instance_path = onshape_api.InstancePath(
                 document_id, path["id"], onshape_api.InstanceType.VERSION
             )
-            made_update = False
+
+            reference_updates = []
             for referenced_element in path["referencedElements"]:
                 # Runs once for each tab and each outdated document reference
-                current_path = onshape_api.ElementPath.from_path(
+                current_path = ElementPath.from_path(
                     current_instance_path, referenced_element
                 )
-                # Sometimes externalReferences returns invalid data?
-                try:
-                    documents.update_reference(
-                        api,
-                        target_path,
-                        current_path,
-                        latest_version_dict[current_path.document_id],
-                    )
-                    made_update = True
-                except:
-                    continue
+                update = documents.VersionUpdate(
+                    current_path, latest_version_dict[current_path.document_id]
+                )
+                reference_updates.append(update)
 
-            if made_update:
+            # Sometimes externalReferences returns invalid data/updates?
+            try:
+                documents.update_references(api, target_path, reference_updates)
                 updated_elements += 1
+            except:
+                current_app.logger.warning("Failed to update references")
+                continue
+
     return updated_elements
 
 

@@ -138,7 +138,11 @@ npm install
 
 To emulate the google cloud database locally, you'll need to install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install#deb).
 
-Also run `gcloud components update`.
+You should also install the firestore emulator and a Java JRE:
+
+```
+sudo apt install google-cloud-cli-firestore-emulator default-jre
+```
 
 Then start up the google cloud emulator:
 

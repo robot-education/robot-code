@@ -1,4 +1,4 @@
-import { MenuType } from "../common/menu-type";
+import { MenuType } from "../app/menu-type";
 import { IconName } from "@blueprintjs/icons";
 
 export interface MenuProps {

@@ -1,8 +1,7 @@
 import enum
-from typing import Iterable
+from typing import Iterable, override
 from onshape_api.assertions import (
     assert_instance_type,
-    assert_version,
     assert_workspace,
 )
 from onshape_api.endpoints.versions import get_latest_version
@@ -16,7 +15,8 @@ from onshape_api.paths.paths import (
     InstancePath,
     ElementPath,
 )
-from onshape_api.utils.endpoint_utils import get_instance_type_key
+from onshape_api.paths.instance_type import get_instance_type_key
+from onshape_api.utils.str_utils import to_json
 
 
 def get_document(api: Api, document_path: DocumentPath) -> dict:
@@ -50,7 +50,7 @@ def create_new_workspace_from_instance(
     api: Api, path: InstancePath, name: str, description: str | None = None
 ) -> dict:
     """Creates a new workspace in a given document."""
-    key = get_instance_type_key(path)
+    key = get_instance_type_key(path.instance_type)
     body = {"name": name, key: path.instance_id}
     if description != None:
         body["description"] = description
@@ -143,78 +143,62 @@ def get_external_references(
     )
 
 
-def update_to_latest_reference(
+class ReferenceUpdate:
+    def __init__(self, from_path: ElementPath, to_path: ElementPath) -> None:
+        self.from_path = from_path
+        self.to_path = to_path
+
+    def __str__(self) -> str:
+        return to_json(self.to_api_object())
+
+    def to_api_object(self) -> dict:
+        return {
+            "fromReference": ElementPath.to_api_object(self.from_path),
+            "toReference": ElementPath.to_api_object(self.to_path),
+        }
+
+
+class VersionUpdate(ReferenceUpdate):
+    def __init__(self, old_reference_path: ElementPath, version_id: str) -> None:
+        self.old_reference_path = old_reference_path
+        self.version_id = version_id
+
+    @override
+    def to_api_object(self) -> dict:
+        to_reference = ElementPath.copy(self.old_reference_path)
+        to_reference.instance_id = self.version_id
+        return {
+            "fromReference": ElementPath.to_api_object(self.old_reference_path),
+            "toReference": ElementPath.to_api_object(to_reference),
+        }
+
+
+def update_to_latest_version(
     api: Api,
     element_path: ElementPath,
     old_reference_path: ElementPath,
 ) -> None:
-    """Updates references from element_path to old_reference_path automatically.
+    """Updates all features in element_path which reference old_reference_path to the latest version.
 
     Specifically, all features in element_path which reference
     objects in old_reference_path are updated to use the latest version of that reference.
     """
-    latest_version = get_latest_version(api, old_reference_path)["id"]
-    update_reference(api, element_path, old_reference_path, latest_version)
-
-
-def update_reference(
-    api: Api,
-    element_path: ElementPath,
-    old_reference_path: ElementPath,
-    version_id: str,
-) -> None:
-    """Updates all features in element which reference old_reference_path to the version
-    of old_reference_path specified by version_id.
-    """
-    assert_workspace(element_path)
-    assert_version(old_reference_path)
-    body = {
-        "referenceUpdates": [
-            {
-                "fromReference": {
-                    "documentId": old_reference_path.document_id,
-                    "versionId": old_reference_path.instance_id,
-                    "elementId": old_reference_path.element_id,
-                },
-                "toReference": {
-                    "documentId": old_reference_path.document_id,
-                    "versionId": version_id,
-                    "elementId": old_reference_path.element_id,
-                },
-            }
-        ]
-    }
-    api.post(
-        api_path("elements", element_path, ElementPath, "updatereferences"),
-        body=body,
+    latest_version_id = get_latest_version(api, old_reference_path)["id"]
+    update_references(
+        api, element_path, [VersionUpdate(old_reference_path, latest_version_id)]
     )
 
 
-def move_reference(
-    api: Api,
-    element_path: ElementPath,
-    old_reference_path: ElementPath,
-    new_reference_path: ElementPath,
+def update_references(
+    api: Api, element_path: ElementPath, reference_updates: Iterable[ReferenceUpdate]
 ) -> None:
-    """Updates all features in element which reference old_reference_path to new_reference_path."""
+    """Applies all reference updates to elements in element_path.
+
+    Note this endpoint does not have any return information.
+    """
     assert_workspace(element_path)
-    assert_version(old_reference_path)
-    assert_version(new_reference_path)
     body = {
-        "referenceUpdates": [
-            {
-                "fromReference": {
-                    "documentId": old_reference_path.document_id,
-                    "versionId": old_reference_path.instance_id,
-                    "elementId": old_reference_path.element_id,
-                },
-                "toReference": {
-                    "documentId": new_reference_path.document_id,
-                    "versionId": new_reference_path.instance_id,
-                    "elementId": new_reference_path.element_id,
-                },
-            }
-        ]
+        "referenceUpdates": [update.to_api_object() for update in reference_updates]
     }
     api.post(
         api_path("elements", element_path, ElementPath, "updatereferences"),
