@@ -5,8 +5,8 @@ import onshape_api
 
 from backend.common import backend_exceptions, connect, database
 from backend.endpoints import (
-    add_design,
     assembly_mirror,
+    copy_design,
     generate_assembly,
     linked_documents,
     references,
@@ -32,7 +32,7 @@ router.register_blueprint(generate_assembly.router)
 router.register_blueprint(assembly_mirror.router)
 router.register_blueprint(linked_documents.router)
 router.register_blueprint(references.router)
-router.register_blueprint(add_design.router)
+router.register_blueprint(copy_design.router)
 
 
 # @app.post("/auto-assembly")
@@ -63,7 +63,7 @@ def default_name(element_type: str, **kwargs):
     """
     db = database.Database()
     api = connect.get_api(db)
-    document_path = connect.get_instance_path("wv")
+    document_path = connect.get_route_instance_path("wv")
     if element_type == "version":
         version_list = versions.get_versions(api, document_path)
         # len(versions) is correct due to Start version

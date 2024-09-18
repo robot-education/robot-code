@@ -24,8 +24,8 @@ def update_references(*args, **kwargs):
     """
     db = database.Database()
     api = connect.get_api(db)
-    instance_path = connect.get_instance_path()
-    child_document_ids = connect.get_optional_body("childDocumentIds")
+    instance_path = connect.get_route_instance_path()
+    child_document_ids = connect.get_body_optional("childDocumentIds")
     updated_elements = do_update_references(api, instance_path, child_document_ids)
     return {"updatedElements": updated_elements}
 
@@ -97,9 +97,9 @@ def push_version(**kwargs):
     """
     db = database.Database()
     api = connect.get_api(db)
-    curr_instance = connect.get_instance_path()
+    curr_instance = connect.get_route_instance_path()
     name = connect.get_body("name")
-    description = connect.get_optional_body("description") or ""
+    description = connect.get_body_optional("description") or ""
     body = connect.get_body("instancesToUpdate")
     instances_to_update = [
         onshape_api.InstancePath(temp["documentId"], temp["instanceId"])

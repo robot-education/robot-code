@@ -20,22 +20,22 @@ import { VersionNameField } from "../../components/version-fields";
 import { MutationProps } from "../../query/mutation";
 
 const actionInfo: ActionInfo = {
-    title: "Add design",
+    title: "Copy design",
     description: "Copy the contents of any other document into this one.",
-    route: "add-design"
+    route: "copy-design"
 };
 
-export function AddDesignCard() {
+export function CopyDesignCard() {
     return <ActionCard actionInfo={actionInfo} />;
 }
 
-interface AddDesignArgs {
+interface CopyDesignArgs {
     versionName: string;
     url: string;
 }
 
-export function AddDesign() {
-    const mutationFn = async (args: AddDesignArgs) => {
+export function CopyDesign() {
+    const mutationFn = async (args: CopyDesignArgs) => {
         const parsed = parseUrl(args.url);
         if (parsed === undefined) {
             throw new HandledError(
@@ -68,7 +68,7 @@ export function AddDesign() {
 
     return (
         <ActionDialog title={actionInfo.title} mutation={mutation}>
-            {mutation.isIdle && <AddDesignForm mutation={mutation} />}
+            {mutation.isIdle && <CopyDesignForm mutation={mutation} />}
             {mutation.isPending && <ActionSpinner message="Adding design..." />}
             {mutation.isError && <ActionError />}
             {actionSuccess}
@@ -76,10 +76,7 @@ export function AddDesign() {
     );
 }
 
-/**
- * A form used to collect a url and one or more tabs the user would like to add to their document.
- */
-function AddDesignForm(props: MutationProps) {
+function CopyDesignForm(props: MutationProps) {
     const defaultName = useLoaderData() as string;
 
     const [url, setUrl] = useState("");

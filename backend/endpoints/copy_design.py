@@ -9,7 +9,7 @@ from onshape_api.endpoints.documents import (
 from onshape_api.endpoints.part_studios import create_part_studio
 from onshape_api.paths.paths import InstancePath
 
-router = flask.Blueprint("add-design", __name__)
+router = flask.Blueprint("copy-design", __name__)
 
 # @router.get("/get-elements" + connect.instance_route())
 # def get_elements(**kwargs):
@@ -33,8 +33,8 @@ router = flask.Blueprint("add-design", __name__)
 #     return result
 
 
-@router.post("/add-design" + connect.instance_route())
-def add_design(**kwargs):
+@router.post("/copy-design" + connect.instance_route())
+def copy_design(**kwargs):
     """Adds a design to the current instance by copying the document and then moving one or more tabs over.
 
     Note: If a subset of tabs are moved, local references from the moved tabs to tabs that are left behind
@@ -43,25 +43,24 @@ def add_design(**kwargs):
     Rebinding those references isn't reliable since the original document might not have a version to rebind to.
 
     Args:
-        documentId: The id of the document to copy into.
-        instanceId: The id of the instance to copy into. Must be a workspace.
+        documentId: The id of the document to copy.
+        instanceId: The id of the instance to copy.
         versionName: The name of the version to create in the document being copied into.
-        elementNames: A list of tabs to copy.
-        excludedElementNames: A list of tabs to exclude.
+        elements: A list of tab names to copy.
+        elementsToExclude: A list of tab names to exclude.
     """
     db = database.Database()
     api = connect.get_api(db)
 
-    target_path = connect.get_instance_path()
-    design_path = InstancePath(
-        connect.get_body("documentId"), connect.get_body("instanceId")
-    )
-    included_names: list[str] | None = connect.get_optional_body("elementNames")
-    excluded_names: list[str] = connect.get_optional_body("excludedElementNames", [])
+    target_path = connect.get_route_instance_path()
+    design_path = connect.get_body_instance_path()
+
+    included_names: list[str] | None = connect.get_body_optional("elements")
+    excluded_names: list[str] = connect.get_body_optional("elementsToExclude", [])
     version_name: str = connect.get_body("versionName")
 
     # Copy design document to avoid impacting other users
-    copy_data = copy_workspace(api, design_path, "TEMP")
+    copy_data = copy_workspace(api, design_path, "COPY DESIGN TEMP DOCUMENT")
     copy_path = InstancePath(copy_data["newDocumentId"], copy_data["newWorkspaceId"])
     elements = get_document_elements(api, copy_path)
 

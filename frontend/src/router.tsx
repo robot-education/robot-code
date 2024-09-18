@@ -15,8 +15,9 @@ import { License } from "./pages/license";
 import { Assembly } from "./pages/assembly/assembly";
 import { MenuType } from "./app/menu-type";
 import { Design } from "./pages/design/design";
-import { AddDesign } from "./pages/design/add-design";
+import { CopyDesign } from "./pages/design/copy-design";
 import { UpdateChildReferences } from "./versions/update-child-references";
+import { Climber } from "./pages/design/climber";
 
 export const router = createBrowserRouter([
     {
@@ -80,8 +81,13 @@ export const router = createBrowserRouter([
                         element: <LinkManager />
                     },
                     {
-                        path: "add-design",
-                        element: <AddDesign />,
+                        path: "copy-design",
+                        element: <CopyDesign />,
+                        loader: makeDefaultNameLoader(DefaultNameType.VERSION)
+                    },
+                    {
+                        path: "climber",
+                        element: <Climber />,
                         loader: makeDefaultNameLoader(DefaultNameType.VERSION)
                     }
                     // {
@@ -89,11 +95,6 @@ export const router = createBrowserRouter([
                     //     element: <SwerveDrive />,
                     //     loader: makeDefaultNameLoader(DefaultNameType.VERSION)
                     // },
-                    // {
-                    //     path: "climber",
-                    //     element: <Climber />,
-                    //     loader: makeDefaultNameLoader(DefaultNameType.VERSION)
-                    // }
                 ]
             }
         ]

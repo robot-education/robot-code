@@ -13,7 +13,7 @@ router = flask.Blueprint("assembly-mirror", __name__)
 
 @router.post("/assembly-mirror" + connect.element_route())
 def assembly_mirror(**kwargs):
-    assembly_path = connect.get_element_path()
+    assembly_path = connect.get_route_element_path()
     db = database.Database()
     api = connect.get_api(db)
     AssemblyMirror(api, assembly_path).execute()

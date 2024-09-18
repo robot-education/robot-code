@@ -19,7 +19,7 @@ def generate_assembly(**kwargs: str):
     db = database.Database()
     api = connect.get_api(db)
     name = connect.get_body("name")
-    part_studio_path = connect.get_element_path()
+    part_studio_path = connect.get_route_element_path()
 
     element_id = assemblies.create_assembly(api, part_studio_path, name)["id"]
     assembly_path = onshape_api.ElementPath.from_path(part_studio_path, element_id)

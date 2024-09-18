@@ -10,6 +10,8 @@ from requests_oauthlib import OAuth2Session
 from backend.common.database import Database
 import onshape_api
 from backend.common import backend_exceptions, env
+from onshape_api.assertions import assert_instance_type
+from onshape_api.paths.instance_type import InstanceType
 
 
 def get_session_id() -> str:
@@ -91,7 +93,7 @@ def get_api(db: Database) -> onshape_api.OAuthApi:
     return onshape_api.make_oauth_api(get_oauth_session(db))
 
 
-def get_instance_path(wvm_param: str = "w") -> onshape_api.InstancePath:
+def get_route_instance_path(wvm_param: str = "w") -> onshape_api.InstancePath:
     return onshape_api.InstancePath(
         get_route("document_id"),
         get_route("workspace_id"),
@@ -99,10 +101,34 @@ def get_instance_path(wvm_param: str = "w") -> onshape_api.InstancePath:
     )
 
 
-def get_element_path(wvm_param: str = "w") -> onshape_api.ElementPath:
+def get_route_element_path(wvm_param: str = "w") -> onshape_api.ElementPath:
     return onshape_api.ElementPath.from_path(
-        get_instance_path(wvm_param),
+        get_route_instance_path(wvm_param),
         get_route("element_id"),
+    )
+
+
+def get_body_instance_path(
+    *instance_types: InstanceType, default_type: InstanceType = InstanceType.WORKSPACE
+) -> onshape_api.InstancePath:
+    instance_type = get_body_optional("instanceType")
+    if instance_type == None:
+        instance_type = default_type
+    # Only do validation if instance type passed
+    elif instance_type not in instance_types:
+        raise backend_exceptions.UserException(
+            "Invalid instance type {}.".format(instance_type)
+        )
+
+    return onshape_api.InstancePath(
+        get_body("documentId"), get_body("instanceId"), instance_type
+    )
+
+
+def get_body_element_path() -> onshape_api.ElementPath:
+    return onshape_api.ElementPath.from_path(
+        get_body_instance_path(),
+        get_route("elementId"),
     )
 
 
@@ -135,7 +161,7 @@ def get_query(key: str) -> str:
 def get_body(key: str) -> Any:
     """Returns a value from the request body.
 
-    Throws if it doesn't exist.
+    Throws if key doesn't exist.
     """
     value = flask.request.get_json().get(key, None)
     if not value:
@@ -145,8 +171,8 @@ def get_body(key: str) -> Any:
     return value
 
 
-def get_optional_body(key: str, default: Any | None = None) -> Any:
-    """Returns a value from the request body."""
+def get_body_optional(key: str, default: Any | None = None) -> Any:
+    """Returns a value from the request body, or default if it doesn't exist."""
     return flask.request.get_json().get(key, default)
 
 

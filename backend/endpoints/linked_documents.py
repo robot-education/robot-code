@@ -18,7 +18,7 @@ def object_to_db_id(path: onshape_api.InstancePath) -> str:
 
 
 def route_to_db_id() -> str:
-    return object_to_db_id(connect.get_instance_path())
+    return object_to_db_id(connect.get_route_instance_path())
 
 
 def make_db_id(document_id: str, workspace_id: str) -> str:
