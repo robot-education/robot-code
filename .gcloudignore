@@ -3,6 +3,8 @@
 
 # Re-add app.yaml
 !app.yaml
+# Re-add dist
+!backend/dist/
 
 .vscode/
 backend_tools/

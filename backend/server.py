@@ -24,17 +24,18 @@ def create_app():
         if env.is_production:
             return flask.send_from_directory("dist", "index.html")
         else:
+            flask.current_app.logger.debug("App running in development mode")
             return flask.render_template("index.html")
 
     @app.get("/app")
     def serve_app():
+        """The base route used by Onshape."""
         db = database.Database()
         api = connect.get_api(db)
         authorized = api.oauth.authorized and users.ping(api, catch=True)
         if not authorized:
             flask.session["redirect_url"] = flask.request.url
             return flask.redirect("/sign-in")
-
         return serve_index()
 
     @app.get("/license")
