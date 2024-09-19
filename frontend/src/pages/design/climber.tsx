@@ -9,7 +9,7 @@ import { ActionForm } from "../../actions/action-form";
 import { ActionSpinner } from "../../actions/action-spinner";
 import { ActionSuccess } from "../../actions/action-success";
 import { post } from "../../api/api";
-import { InstancePath, Workspace, WorkspacePath } from "../../api/path";
+import { Workspace, WorkspacePath } from "../../api/path";
 import { currentInstanceApiPath } from "../../app/onshape-params";
 import { isVersionNameValid } from "../../common/version-utils";
 import { ExecuteButton } from "../../components/execute-button";
@@ -20,9 +20,9 @@ import { FormGroup, HTMLSelect } from "@blueprintjs/core";
 import { handleValueChange } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
-    title: "COTs climber",
+    title: "COTS climber",
     description:
-        "Add a modifiable copy of a COTs telescoping climber from AndyMark or The Thrifty Bot to this document.",
+        "Add a modifiable copy of a COTS telescoping climber from AndyMark or The Thrifty Bot to this document.",
     route: "climber"
 };
 
