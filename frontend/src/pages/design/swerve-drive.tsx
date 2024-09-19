@@ -33,7 +33,7 @@ interface SwerveDriveArgs {
 
 export function SwerveDrive() {
     const mutationFn = async (args: SwerveDriveArgs) => {
-        return post("/add-design" + currentInstanceApiPath(), {
+        return post("/copy-design" + currentInstanceApiPath(), {
             body: {
                 versionName: args.versionName,
                 elementNames: [],

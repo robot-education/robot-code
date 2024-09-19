@@ -128,7 +128,7 @@ export function Climber() {
     const mutationFn = async (args: ClimberArgs) => {
         const body: any = getClimberInfo(args.climberType);
         body.versionName = args.versionName;
-        return post("/add-design" + currentInstanceApiPath(), { body });
+        return post("/copy-design" + currentInstanceApiPath(), { body });
     };
     const mutation = useMutation({
         mutationKey: [actionInfo.route],

@@ -47,7 +47,7 @@ export function CopyDesign() {
             documentId: parsed.documentId,
             instanceId: parsed.instanceId
         };
-        return post("/add-design" + currentInstanceApiPath(), { body });
+        return post("/copy-design" + currentInstanceApiPath(), { body });
     };
     const mutation = useMutation({
         mutationKey: [actionInfo.route],
