@@ -13,24 +13,27 @@ class LinkType(enum.StrEnum):
     CHILDREN = "children"
 
 
-def object_to_db_id(path: onshape_api.InstancePath) -> str:
+def path_to_db_id(path: onshape_api.InstancePath) -> str:
+    """Converts an Onshape path to a database id."""
     return make_db_id(path.document_id, path.instance_id)
 
 
-def route_to_db_id() -> str:
-    return object_to_db_id(connect.get_route_instance_path())
+def get_db_id_from_route() -> str:
+    """Returns the database id from the current route."""
+    return path_to_db_id(connect.get_route_instance_path())
+
+
+def db_id_to_path(db_id: str) -> onshape_api.InstancePath:
+    """Converts a database id to an Onshape path."""
+    slash = db_id.find("|")
+    document_id = db_id[:slash]
+    workspace_id = db_id[slash + 1 :]
+    return onshape_api.InstancePath(document_id, workspace_id)
 
 
 def make_db_id(document_id: str, workspace_id: str) -> str:
     # Use a vertical bar so firestore doesn't assume it's a path
     return document_id + "|" + workspace_id
-
-
-def from_db_id(db_id: str) -> onshape_api.InstancePath:
-    slash = db_id.find("|")
-    document_id = db_id[:slash]
-    workspace_id = db_id[slash + 1 :]
-    return onshape_api.InstancePath(document_id, workspace_id)
 
 
 def make_document(
@@ -62,12 +65,12 @@ def get_linked_documents(link_type: str, **kwargs):
 
     db = database.Database()
     api = connect.get_api(db)
-    document_id = route_to_db_id()
+    document_id = get_db_id_from_route()
     doc = db.linked_documents.document(document_id).get()
     documents = []
     if doc.exists and (data := doc.to_dict()):
         for document_id in data.get(link_type, []):
-            path = from_db_id(document_id)
+            path = db_id_to_path(document_id)
             documents.append(make_document(api, path))
 
     return {"documents": documents}
@@ -97,11 +100,11 @@ def delete_linked_document(link_type: LinkType, **kwargs):
     db = database.Database()
     api = connect.get_api(db)
 
-    curr_id = route_to_db_id()
+    curr_id = get_db_id_from_route()
     link_path = onshape_api.InstancePath(
         connect.get_query("documentId"), connect.get_query("instanceId")
     )
-    link_id = object_to_db_id(link_path)
+    link_id = path_to_db_id(link_path)
 
     db_ref = db.linked_documents
     db_ref.document(curr_id).update({link_types[0]: firestore.ArrayRemove([link_id])})
@@ -132,11 +135,11 @@ def add_linked_document(link_type: LinkType, **kwargs):
     """
     db = database.Database()
     api = connect.get_api(db)
-    curr_id = route_to_db_id()
+    curr_id = get_db_id_from_route()
     link_path = onshape_api.InstancePath(
         connect.get_query("documentId"), connect.get_query("instanceId")
     )
-    link_id = object_to_db_id(link_path)
+    link_id = path_to_db_id(link_path)
     link_types = get_link_types(link_type)
 
     if curr_id == link_id:
