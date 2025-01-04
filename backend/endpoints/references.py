@@ -99,7 +99,7 @@ def push_version(**kwargs):
     api = connect.get_api(db)
     curr_instance = connect.get_route_instance_path()
     name = connect.get_body("name")
-    description = connect.get_body_optional("description") or ""
+    description = connect.get_body_optional("description", "")
     body = connect.get_body("instancesToUpdate")
     instances_to_update = [
         onshape_api.InstancePath(temp["documentId"], temp["instanceId"])
