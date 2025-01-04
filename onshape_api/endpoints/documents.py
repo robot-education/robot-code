@@ -1,5 +1,6 @@
 import enum
 from typing import Iterable, override
+
 from onshape_api.assertions import (
     assert_instance_type,
     assert_workspace,
@@ -210,7 +211,7 @@ def move_elements(
     api: Api,
     source_path: InstancePath,
     element_ids: Iterable[str],
-    target_path: InstancePath,
+    target_path: InstancePath | ElementPath,
     target_version_name: str,
 ) -> dict:
     """Moves one or more tabs from the source to the target."""
@@ -218,13 +219,15 @@ def move_elements(
     assert_workspace(target_path)
     body = {
         "elements": element_ids,
-        "isPublic": False,
         "sourceDocumentId": source_path.document_id,
         "sourceWorkspaceId": source_path.instance_id,
         "targetDocumentId": target_path.document_id,
         "targetWorkspaceId": target_path.instance_id,
         "versionName": target_version_name,
     }
+    if isinstance(target_path, ElementPath):
+        body["anchorElementId"] = target_path.element_id
+
     return api.post(
         api_path("documents", source_path, InstancePath, "moveelement"), body
     )

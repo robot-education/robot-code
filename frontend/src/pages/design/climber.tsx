@@ -10,7 +10,7 @@ import { ActionSpinner } from "../../actions/action-spinner";
 import { ActionSuccess } from "../../actions/action-success";
 import { post } from "../../api/api";
 import { Workspace, WorkspacePath } from "../../api/path";
-import { currentInstanceApiPath } from "../../app/onshape-params";
+import { currentElementApiPath } from "../../app/onshape-params";
 import { isVersionNameValid } from "../../common/version-utils";
 import { ExecuteButton } from "../../components/execute-button";
 import { VersionNameField } from "../../components/version-fields";
@@ -128,7 +128,7 @@ export function Climber() {
     const mutationFn = async (args: ClimberArgs) => {
         const body: any = getClimberInfo(args.climberType);
         body.versionName = args.versionName;
-        return post("/copy-design" + currentInstanceApiPath(), { body });
+        return post("/copy-design" + currentElementApiPath(), { body });
     };
     const mutation = useMutation({
         mutationKey: [actionInfo.route],

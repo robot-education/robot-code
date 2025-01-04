@@ -1,6 +1,7 @@
 """
 A module defining expressions. Expressions refer to boolean logic and mathematical operations.
 """
+
 from __future__ import annotations
 import dataclasses
 
@@ -78,7 +79,7 @@ def build_expr(node: ExprCandidate, context: ctxt.Context) -> str:
 
 
 class Id(Expression):
-    """Wraps a string into a node."""
+    """Wraps a string into an identifier node."""
 
     def __init__(self, identifier: str) -> None:
         # Cannot be ExprCandidate due to recursion

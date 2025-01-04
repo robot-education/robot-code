@@ -25,7 +25,6 @@ class AssemblyMirrorCandidate:
 
     Attributes:
         mate_connectors: A dict mapping mate_ids to a boolean which is True if the mate connector is used and False otherwise.
-        fully_used: True if all mate connectors are used.
     """
 
     def __init__(
@@ -39,7 +38,6 @@ class AssemblyMirrorCandidate:
         self.part_path = assembly.resolve_part_path(instance)
         self.element_path = onshape_api.ElementPath.copy(self.part_path)
         self.mate_connectors = self._init_mate_connectors(assembly_features)
-        self.all_used = all(self.mate_connectors.values())
 
     def _init_mate_connectors(
         self, assembly_features: assembly_data.AssemblyFeatures
@@ -51,6 +49,9 @@ class AssemblyMirrorCandidate:
             )
             for mate_connector in self.part.get("mateConnectors", [])
         )
+
+    def all_used(self) -> bool:
+        return all(self.mate_connectors.values())
 
 
 class AssemblyMirrorPart(ABC):
@@ -80,8 +81,8 @@ class OriginMirrorPart(AssemblyMirrorPart):
         pass
 
 
-class CenterMirrorPart(AssemblyMirrorPart):
-    """An assembly mirror part which is being fastened to a copy."""
+class MateMirrorPart(AssemblyMirrorPart):
+    """An assembly mirror part which is being fastened to a copy via mate connector."""
 
     def __init__(self) -> None:
         pass
@@ -179,7 +180,7 @@ class AssemblyMirror:
         )
         return len(origin_mate_intersection) >= 1
 
-    def _is_elibible_for_center_mirror(
+    def _is_elibible_for_mate_mirror(
         self, candidate: AssemblyMirrorCandidate, base_to_target_mates: dict[str, str]
     ) -> bool:
         """Returns True if the candidate is eligible for assembly mirror.
@@ -217,7 +218,7 @@ class AssemblyMirror:
                 # Handle origin mirror - duplicate part?
                 # Generate a matcher function and store the mate_ids, I guess
                 continue
-            elif self._is_elibible_for_center_mirror(candidate, base_to_target_mates):
+            elif self._is_elibible_for_mate_mirror(candidate, base_to_target_mates):
                 # Handle standard mirror
                 continue
 

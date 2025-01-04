@@ -31,6 +31,7 @@ from robot_code.robot_version import (
     VersionType,
     bump_version,
     bump_prerelease,
+    match_robot_version,
     parse_versions,
     version_name,
 )
@@ -111,6 +112,7 @@ def release(
     version_type: VersionType | None = None,
     is_prerelease: bool = False,
     test: bool = False,
+    create_frontend_version: bool = False,
 ):
     """Releases a new version of a feature studio.
 
@@ -123,6 +125,7 @@ def release(
     if version_type == None and not is_prerelease:
         raise ValueError("Must enter a version or make a prerelease.")
 
+    script_name = script_name.removesuffix(".fs")
     feature_name = str_utils.display_name(script_name)
     studio_name = script_name + ".fs"
 
@@ -185,7 +188,9 @@ def release(
 
     frontend_studio = pull_feature_studio(api, workspace_to_use, studio_name)
     frontend_studio.push(api, release_studio_code)
-    create_version(api, workspace_to_use, new_version_name, description)
+
+    if create_frontend_version:
+        create_version(api, workspace_to_use, new_version_name, description)
 
     # if is_prerelease:
     #     # cleanup workspace
@@ -238,3 +243,41 @@ def get_release_studio_code(
         ),
     )
     return feature_studio.build(Context(std_version))
+
+
+def sync_versions(api: Api):
+    """Syncs all unreleased versions in the backend document to the frontend document."""
+    # Newest to oldest versions
+    backend_versions = get_versions(api, BACKEND)[::-1]
+    frontend_version_names = [
+        version["name"]
+        for version in get_versions(api, FRONTEND)
+        if match_robot_version(version["name"]) != None
+    ]
+    versions_to_sync = []
+    for version in backend_versions:
+        # Stop once matching version found
+        if version["name"] in frontend_version_names:
+            break
+        # Append results in newest to oldest order
+        versions_to_sync.append(version)
+
+    # Reverse so versions are back in oldest to newest order
+    versions_to_sync.reverse()
+
+    if versions_to_sync == []:
+        raise ValueError("Failed to find versions to sync.")
+
+    print("Versions:")
+    print(
+        "\n".join(
+            f"{version["name"]}, {version["description"]}"
+            for version in versions_to_sync
+        )
+    )
+    confirm(
+        "You are about to IRREVERSIBLY create the above versions in the frontend document.",
+        "Aborted version sync.",
+    )
+    for version in versions_to_sync:
+        create_version(api, FRONTEND, version["name"], version["description"])

@@ -3,7 +3,7 @@
 
 import argparse
 from onshape_api.api import key_api
-from robot_code.release import release
+from robot_code.release import release, sync_versions
 
 """
 Versioning is handled as follows:
@@ -69,6 +69,11 @@ def get_release_parser() -> argparse.ArgumentParser:
         help="A brief internal-only description of the changes made",
         default="",
     )
+    release_parser.add_argument(
+        "--make-version",
+        help="True to also create the version in the Frontend, releasing the script immediately",
+        action="store_true",
+    )
     return release_parser
 
 
@@ -96,6 +101,11 @@ def parse_args() -> argparse.Namespace:
         help="release a test FeatureScript",
         description="Release a test FeatureScript in the test-frontend document.",
     )
+    subparsers.add_parser(
+        "sync-versions",
+        help="sync versions to the frontend document",
+        description="Create all missing versions in the frontend document.",
+    )
 
     return parser.parse_args()
 
@@ -110,8 +120,12 @@ def main():
             args.description,
             version_type=args.version,
             is_prerelease=args.beta,
+            create_frontend_version=args.make_version,
             test=(args.action == "test-release"),
         )
+    elif args.action == "sync-versions":
+        api = key_api.make_key_api()
+        sync_versions(api)
 
 
 if __name__ == "__main__":

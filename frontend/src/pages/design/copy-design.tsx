@@ -9,7 +9,7 @@ import { ActionError } from "../../actions/action-error";
 import { ActionForm } from "../../actions/action-form";
 import { ActionSpinner } from "../../actions/action-spinner";
 import { ActionSuccess } from "../../actions/action-success";
-import { currentInstanceApiPath } from "../../app/onshape-params";
+import { currentElementApiPath } from "../../app/onshape-params";
 import { showErrorToast } from "../../app/toaster";
 import { HandledError } from "../../common/errors";
 import { parseUrl } from "../../common/url";
@@ -47,7 +47,7 @@ export function CopyDesign() {
             documentId: parsed.documentId,
             instanceId: parsed.instanceId
         };
-        return post("/copy-design" + currentInstanceApiPath(), { body });
+        return post("/copy-design" + currentElementApiPath(), { body });
     };
     const mutation = useMutation({
         mutationKey: [actionInfo.route],

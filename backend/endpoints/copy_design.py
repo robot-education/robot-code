@@ -33,7 +33,7 @@ router = flask.Blueprint("copy-design", __name__)
 #     return result
 
 
-@router.post("/copy-design" + connect.instance_route())
+@router.post("/copy-design" + connect.element_route())
 def copy_design(**kwargs):
     """Adds a design to the current instance by copying the document and then moving one or more tabs over.
 
@@ -52,7 +52,7 @@ def copy_design(**kwargs):
     db = database.Database()
     api = connect.get_api(db)
 
-    target_path = connect.get_route_instance_path()
+    target_path = connect.get_route_element_path()
     design_path = connect.get_body_instance_path()
 
     included_names: list[str] | None = connect.get_body_optional("elements")
