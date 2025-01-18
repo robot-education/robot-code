@@ -9,10 +9,9 @@ export const queryClient = new QueryClient();
 const linkedDocumentsQueryFn: QueryFunction = async (
     context
 ): Promise<Workspace[]> => {
-    const result = await get(
+    return await get(
         `/linked-documents/${context.meta?.linkType}` + currentInstanceApiPath()
     );
-    return result.documents;
 };
 
 export function linkedDocumentsKey(linkType: LinkType) {

@@ -3,11 +3,14 @@ import {
     Card,
     CardList,
     Icon,
+    IconSize,
+    Intent,
     NonIdealState,
     NonIdealStateIconSize,
     Section,
     SectionCard,
-    Spinner
+    Spinner,
+    Tooltip
 } from "@blueprintjs/core";
 import { Workspace } from "../api/path";
 import { AddLinkCard } from "./add-link-card";
@@ -39,13 +42,19 @@ interface LinkedDocumentsProps extends LinkTypeProps {
     subtitle: string;
 }
 
+interface LinkedDocumentsResult {
+    documents: Workspace[];
+    invalidLinks?: number;
+}
+
 export function LinkedDocumentsList(props: LinkedDocumentsProps) {
     const [isManuallyRefetching, setManuallyRefetching] = useState(false);
-    const query = useQuery<Workspace[]>({
+    const query = useQuery<LinkedDocumentsResult>({
         queryKey: linkedDocumentsKey(props.linkType)
     });
 
     let body;
+    let invalidLinks = undefined;
     // Also show spinner when query is invalidated by reset button
     if (query.isPending || isManuallyRefetching) {
         body = (
@@ -54,8 +63,17 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
             </Card>
         );
     } else if (query.isSuccess) {
-        body = getDocumentCards(props.linkType, query.data);
+        invalidLinks = query.data.invalidLinks;
+        body = getDocumentCards(props.linkType, query.data.documents);
     } else if (query.isError) {
+        // if (query.error instanceof MissingPermissionError) {
+        //     const error = query.error;
+        //     if (error.documentName) {
+        //         description = `You do not have ${error.permission} access to ${error.documentName}.`;
+        //     } else {
+        //         description = `You do not have ${error.permission} access to all of the linked documents.`;
+        //     }
+        // }
         body = (
             <NonIdealState
                 title="Failed to load linked documents."
@@ -85,11 +103,31 @@ export function LinkedDocumentsList(props: LinkedDocumentsProps) {
         />
     );
 
+    let invalidLinksAlert = null;
+    if (invalidLinks) {
+        invalidLinksAlert = (
+            <Tooltip>
+                <Icon
+                    icon="warning-sign"
+                    size={IconSize.LARGE}
+                    intent={Intent.WARNING}
+                />
+            </Tooltip>
+        );
+    }
+
+    const rightElement = (
+        <>
+            {invalidLinksAlert}
+            {resetButton}
+        </>
+    );
+
     return (
         <Section
             title={props.title}
             subtitle={props.subtitle}
-            rightElement={resetButton}
+            rightElement={rightElement}
             collapsible
             collapseProps={{ defaultIsOpen: true }}
         >

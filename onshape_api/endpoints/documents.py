@@ -1,5 +1,9 @@
 import enum
-from onshape_api.assertions import assert_instance_type, assert_version, assert_workspace
+from onshape_api.assertions import (
+    assert_instance_type,
+    assert_version,
+    assert_workspace,
+)
 from onshape_api.endpoints.versions import get_latest_version
 from onshape_api.api.api_base import Api
 from onshape_api.paths.api_path import api_path

@@ -1,10 +1,12 @@
 from typing import Iterable
 import flask
 
+from backend.common.backend_exceptions import require_permissions
 import onshape_api
 from onshape_api import endpoints
 
 from backend.common import connect
+from onshape_api.endpoints.permissions import Permission
 
 
 router = flask.Blueprint("references", __name__)
@@ -74,14 +76,19 @@ def update_references(*args, **kwargs):
     """
     api = connect.get_api()
     instance_path = connect.get_instance_path()
+    require_permissions(api, instance_path, Permission.WRITE)
     child_document_ids = connect.get_optional_body("childDocumentIds")
+    if child_document_ids != None:
+        for document_id in child_document_ids:
+            require_permissions(api, document_id, Permission.LINK)
+
     updated_elements = update_refs(api, instance_path, child_document_ids)
     return {"updatedElements": updated_elements}
 
 
 @router.post("/push-version" + connect.instance_route())
 def push_version(**kwargs):
-    """Updates references in a given document.
+    """Creates a version, then pushes that new version to all instancesToUpdate.
 
     Args:
         name: The name of the version to create.
@@ -93,6 +100,7 @@ def push_version(**kwargs):
     """
     api = connect.get_api()
     curr_instance = connect.get_instance_path()
+    require_permissions(api, curr_instance, Permission.WRITE, Permission.LINK)
     name = connect.get_body("name")
     description = connect.get_optional_body("description") or ""
     body = connect.get_body("instancesToUpdate")
@@ -100,6 +108,8 @@ def push_version(**kwargs):
         onshape_api.InstancePath(temp["documentId"], temp["instanceId"])
         for temp in body
     ]
+    for instance in instances_to_update:
+        require_permissions(api, instance, Permission.WRITE)
 
     endpoints.create_version(api, curr_instance, name, description)
 

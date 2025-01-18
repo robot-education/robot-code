@@ -9,6 +9,7 @@ import { ActionSuccess } from "../actions/action-success";
 import { ActionSpinner } from "../actions/action-spinner";
 import { ActionError } from "../actions/action-error";
 import { Callout } from "@blueprintjs/core";
+import { MissingPermissionError } from "../common/errors";
 
 const actionInfo = {
     title: "Update all references",
@@ -57,13 +58,28 @@ export function UpdateAllReferences() {
         }
     }
 
+    let actionError = null;
+    if (mutation.isError) {
+        const error = mutation.error;
+        if (error instanceof MissingPermissionError) {
+            actionError = (
+                <ActionError
+                    title="Cannot update references"
+                    description={error.getDescription()}
+                />
+            );
+        } else {
+            actionError = <ActionError />;
+        }
+    }
+
     return (
         <ActionDialog title={actionInfo.title} mutation={mutation}>
             {mutation.isIdle && form}
             {mutation.isPending && (
                 <ActionSpinner message="Updating references..." />
             )}
-            {mutation.isError && <ActionError />}
+            {actionError}
             {mutation.isSuccess && <ActionSuccess message={successMessage} />}
         </ActionDialog>
     );

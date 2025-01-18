@@ -18,6 +18,7 @@ import { ActionError } from "../actions/action-error";
 import { ActionSuccess } from "../actions/action-success";
 import { ActionSpinner } from "../actions/action-spinner";
 import { MutationProps } from "../query/mutation";
+import { MissingPermissionError } from "../common/errors";
 
 const actionInfo: ActionInfo = {
     title: "Generate assembly",
@@ -56,13 +57,28 @@ export function GenerateAssembly() {
         mutationFn
     });
 
+    let actionError = null;
+    if (mutation.isError) {
+        const error = mutation.error;
+        if (error instanceof MissingPermissionError) {
+            actionError = (
+                <ActionError
+                    title="Missing permissions"
+                    description={error.getDescription()}
+                />
+            );
+        } else {
+            actionError = <ActionError />;
+        }
+    }
+
     return (
         <ActionDialog title={actionInfo.title} mutation={mutation}>
             {mutation.isIdle && <GenerateAssemblyForm mutation={mutation} />}
             {mutation.isPending && (
                 <ActionSpinner message="Generating assembly..." />
             )}
-            {mutation.isError && <ActionError />}
+            {actionError}
             {mutation.isSuccess && (
                 <ActionSuccess
                     message="Successfully generated assembly"

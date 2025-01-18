@@ -21,6 +21,11 @@ def api_exception(e: onshape_api.ApiError):
     return e.to_dict(), e.status_code
 
 
+@router.errorhandler(backend_exceptions.MissingPermission)
+def missing_permission(e: backend_exceptions.MissingPermission):
+    return e.to_dict(), e.status_code
+
+
 @router.errorhandler(backend_exceptions.UserException)
 def user_exception(e: backend_exceptions.UserException):
     return e.to_dict(), e.status_code

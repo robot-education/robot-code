@@ -25,6 +25,7 @@ import { WorkspacePath, Workspace } from "../api/path";
 import { MutationProps } from "../query/mutation";
 import { linkedParentDocumentsKey } from "../query/query-client";
 import { OpenLinkManagerButton } from "../components/manage-links-button";
+import { MissingPermissionError } from "../common/errors";
 
 const actionInfo: ActionInfo = {
     title: "Push version",
@@ -72,14 +73,29 @@ export function PushVersion() {
         );
     }
 
+    let actionError = null;
+    if (mutation.isError) {
+        const error = mutation.error;
+        if (error instanceof MissingPermissionError) {
+            actionError = (
+                <ActionError
+                    title="Cannot push document"
+                    description={error.getDescription()}
+                />
+            );
+        } else {
+            actionError = <ActionError />;
+        }
+    }
+
     return (
         <ActionDialog title={actionInfo.title} mutation={mutation}>
             {mutation.isIdle && <PushVersionForm mutation={mutation} />}
             {mutation.isPending && (
                 <ActionSpinner message="Creating and pushing version..." />
             )}
-            {mutation.isError && <ActionError />}
             {actionSuccess}
+            {actionError}
         </ActionDialog>
     );
 }
