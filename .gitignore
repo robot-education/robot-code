@@ -200,3 +200,4 @@ app.yaml
 .fs_code/
 .storage/
 credentials/
+temp/
