@@ -1,5 +1,6 @@
 import enum
 from typing import Iterable, override
+from unittest import skip
 
 from onshape_api.assertions import (
     assert_instance_type,
@@ -22,8 +23,9 @@ from onshape_api.utils.str_utils import to_json
 
 def get_document(api: Api, document_path: DocumentPath) -> dict:
     """Retrieves a given document's metadata."""
-    # documents endpoints are not idiomatic - no /d/
-    return api.get(api_path("documents", end_id=document_path.document_id))
+    return api.get(
+        api_path("documents", document_path, DocumentPath, skip_document_d=True)
+    )
 
 
 def create_new_workspace(

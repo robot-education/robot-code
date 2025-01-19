@@ -1,4 +1,6 @@
 from http import HTTPStatus
+
+import flask
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints.documents import get_document
 from onshape_api.endpoints.permissions import Permission, get_permissions
@@ -21,9 +23,9 @@ class BackendException(Exception):
         return {"type": "BACKEND_EXCEPTION", "message": self.message}
 
 
-class UserException(Exception):
-    """An exception thrown by the backend which is presumably the user's fault.
-    The message associated with a UserException is generally displayed directly to the user.
+class ClientException(Exception):
+    """An exception thrown by the backend which stems from an issue with the client.
+    This is still an issue, but is generally with the client implementation rather than the server itself.
     """
 
     def __init__(
@@ -35,7 +37,7 @@ class UserException(Exception):
         self.status_code = HTTPStatus.BAD_REQUEST
 
     def to_dict(self):
-        return {"type": "USER_EXCEPTION", "message": self.message}
+        return {"type": "CLIENT_EXCEPTION", "message": self.message}
 
 
 class MissingPermission(Exception):
