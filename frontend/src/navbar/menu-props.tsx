@@ -1,4 +1,4 @@
-import { MenuType } from "../common/menu-type";
+import { MenuType } from "../app/menu-type";
 import { IconName } from "@blueprintjs/icons";
 
 export interface MenuProps {
@@ -22,6 +22,11 @@ export function getMenuProps(menuType: MenuType): MenuProps {
             return {
                 text: "Versions",
                 icon: "git-branch"
+            };
+        case MenuType.DESIGN:
+            return {
+                text: "Design",
+                icon: "build"
             };
         // case MenuType.FEATURE_SCRIPT:
         //     return {

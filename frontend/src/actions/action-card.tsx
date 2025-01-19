@@ -5,6 +5,7 @@ import { ActionInfo } from "./action-context";
 
 interface ActionCardProps {
     actionInfo: ActionInfo;
+    children?: ReactNode;
 }
 
 /**
@@ -18,11 +19,12 @@ export function ActionCard(props: ActionCardProps): ReactNode {
             <H4>{actionInfo.title}</H4>
             <p>{actionInfo.description}</p>
             <Button
-                text="Configure"
+                text="Set up"
                 rightIcon="arrow-right"
                 intent="primary"
                 onClick={() => navigate(actionInfo.route)}
             />
+            {props.children}
         </Card>
     );
 }

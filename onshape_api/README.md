@@ -10,9 +10,8 @@ The main namespace includes methods for connecting to Onshape using API Keys and
 
 ## onshape_api.utils
 
-The utils namespace includes some utils for working
+The utils namespace includes a handful of general utilities which may or may not be related to the rest of the library.
 
-## onshape_api.misc
+## onshape_api.model
 
-The misc namespace includes utilities for creating assembly features and parsing queries derived from e.g. FeatureScript.
-
+The model namespace includes utilities for creating assembly features and parsing queries derived from e.g. FeatureScript.

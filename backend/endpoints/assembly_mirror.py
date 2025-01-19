@@ -4,17 +4,18 @@ from concurrent import futures
 from typing import Iterable
 import flask
 import onshape_api
-from onshape_api import endpoints
 
-from backend.common import assembly_data, connect, evaluate
+from backend.common import assembly_data, connect, database, evaluate
+from onshape_api.endpoints import assemblies
 
 router = flask.Blueprint("assembly-mirror", __name__)
 
 
 @router.post("/assembly-mirror" + connect.element_route())
 def assembly_mirror(**kwargs):
-    assembly_path = connect.get_element_path()
-    api = connect.get_api()
+    assembly_path = connect.get_route_element_path()
+    db = database.Database()
+    api = connect.get_api(db)
     AssemblyMirror(api, assembly_path).execute()
     return {"message": "Success"}
 
@@ -24,7 +25,6 @@ class AssemblyMirrorCandidate:
 
     Attributes:
         mate_connectors: A dict mapping mate_ids to a boolean which is True if the mate connector is used and False otherwise.
-        fully_used: True if all mate connectors are used.
     """
 
     def __init__(
@@ -36,9 +36,8 @@ class AssemblyMirrorCandidate:
         self.instance = instance
         self.part = assembly.get_part_from_instance(instance)
         self.part_path = assembly.resolve_part_path(instance)
-        self.element_path = onshape_api.ElementPath.to_path(self.part_path)
+        self.element_path = onshape_api.ElementPath.copy(self.part_path)
         self.mate_connectors = self._init_mate_connectors(assembly_features)
-        self.all_used = all(self.mate_connectors.values())
 
     def _init_mate_connectors(
         self, assembly_features: assembly_data.AssemblyFeatures
@@ -51,6 +50,9 @@ class AssemblyMirrorCandidate:
             for mate_connector in self.part.get("mateConnectors", [])
         )
 
+    def all_used(self) -> bool:
+        return all(self.mate_connectors.values())
+
 
 class AssemblyMirrorPart(ABC):
     """Represents a part which assembly mirror is being applied to."""
@@ -61,7 +63,7 @@ class AssemblyMirrorPart(ABC):
     def add_to_assembly(
         self, api: onshape_api.Api, assembly_path: onshape_api.ElementPath
     ) -> None:
-        endpoints.add_parts_to_assembly(api, assembly_path, self.part_path)
+        assemblies.add_parts(api, assembly_path, self.part_path)
 
     def find_match(self, instance_dict: dict[onshape_api.PartPath, dict]) -> dict:
         """Returns the an assembled instance which matches this part."""
@@ -69,8 +71,7 @@ class AssemblyMirrorPart(ABC):
         return instance_dict[self.part_path]
 
     @abstractmethod
-    def do_fasten(self) -> None:
-        ...
+    def do_fasten(self) -> None: ...
 
 
 class OriginMirrorPart(AssemblyMirrorPart):
@@ -80,8 +81,8 @@ class OriginMirrorPart(AssemblyMirrorPart):
         pass
 
 
-class CenterMirrorPart(AssemblyMirrorPart):
-    """An assembly mirror part which is being fastened to a copy."""
+class MateMirrorPart(AssemblyMirrorPart):
+    """An assembly mirror part which is being fastened to a copy via mate connector."""
 
     def __init__(self) -> None:
         pass
@@ -179,7 +180,7 @@ class AssemblyMirror:
         )
         return len(origin_mate_intersection) >= 1
 
-    def _is_elibible_for_center_mirror(
+    def _is_elibible_for_mate_mirror(
         self, candidate: AssemblyMirrorCandidate, base_to_target_mates: dict[str, str]
     ) -> bool:
         """Returns True if the candidate is eligible for assembly mirror.
@@ -217,7 +218,7 @@ class AssemblyMirror:
                 # Handle origin mirror - duplicate part?
                 # Generate a matcher function and store the mate_ids, I guess
                 continue
-            elif self._is_elibible_for_center_mirror(candidate, base_to_target_mates):
+            elif self._is_elibible_for_mate_mirror(candidate, base_to_target_mates):
                 # Handle standard mirror
                 continue
 

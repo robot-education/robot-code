@@ -41,11 +41,15 @@ export function showSuccessToast(message: string, key?: string): string {
     );
 }
 
+/**
+ * Shows a toaster with an error message.
+ * @param message : The message to display.
+ */
 export function showErrorToast(message: string, key?: string): string {
     return toaster.show(
         {
             ...errorToastArgs,
-            message: message
+            message
         },
         key
     );

@@ -43,8 +43,8 @@ from onshape_api.paths.paths import DocumentPath
 
 def api_path(
     route: str,
-    object: DocumentPath | None = None,
-    object_type: Type[DocumentPath] | None = None,
+    path: DocumentPath | None = None,
+    path_type: Type[DocumentPath] | None = None,
     end_route: str | None = None,
     end_id: str | None = None,
     feature_id: str | None = None,
@@ -65,10 +65,10 @@ def api_path(
     """
     api_path = "" if route.startswith("/") else "/" + route
 
-    if object is not None:
-        if object_type is None:
+    if path is not None:
+        if path_type is None:
             raise ValueError("path_type must be provided alongside path")
-        api_path += object_type.to_api_path(object)
+        api_path += path_type.to_api_path(path)
     if end_route is not None:
         api_path += "" if end_route.startswith("/") else "/" + end_route
     if end_id is not None:

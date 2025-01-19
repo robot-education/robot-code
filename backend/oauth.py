@@ -9,7 +9,7 @@ The frontend should have a /redirect route which calls the /redirect route below
 
 import flask
 from flask import request
-from backend.common import connect, env
+from backend.common import connect, database, env
 
 
 router = flask.Blueprint("oauth", __name__)
@@ -22,7 +22,8 @@ def sign_in():
         url = request.args.get("redirectOnshapeUri")
         flask.session["redirect_url"] = url
 
-    oauth = connect.get_oauth_session(connect.OAuthType.SIGN_IN)
+    db = database.Database()
+    oauth = connect.get_oauth_session(db, connect.OAuthType.SIGN_IN)
     # Saving state is unneeded since Onshape saves it for us
     auth_url, _ = oauth.authorization_url(connect.auth_base_url)
 
@@ -40,14 +41,15 @@ def redirect():
     if request.args.get("error") == "access_denied":
         return flask.redirect("/grant-denied")
 
-    oauth = connect.get_oauth_session(connect.OAuthType.REDIRECT)
+    db = database.Database()
+    oauth = connect.get_oauth_session(db, connect.OAuthType.REDIRECT)
 
     token = oauth.fetch_token(
         connect.token_url,
         client_secret=env.client_secret,
         code=request.args["code"],
     )
-    connect.save_token(token)
+    connect.save_token(db, token)
 
     redirect_url = flask.session["redirect_url"]
     return flask.redirect(redirect_url)

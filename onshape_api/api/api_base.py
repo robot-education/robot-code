@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, NotRequired, TypedDict, Unpack
 import os
 import http
 
-# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 __all__ = ["Api"]
 
@@ -19,10 +20,17 @@ class ApiQueryArgs(TypedDict):
     headers: NotRequired[dict[str, str]]
 
 
-def make_api_base_args() -> ApiArgs:
+def get_api_base_args() -> ApiArgs:
     """Constructs ApiArgs from environment variables."""
+    kwargs: ApiArgs = {}
+
     # True if API_LOGGING exists and isn't "false". Default is "false".
-    kwargs: ApiArgs = {"logging": os.getenv("API_LOGGING", "false") == "true"}
+    logging = os.getenv("API_LOGGING")
+    if logging == None:
+        kwargs["logging"] = False
+    else:
+        kwargs["logging"] = logging.lower() == "true"
+
     if temp := os.getenv("API_VERSION"):
         kwargs["version"] = int(temp)
     if base_url := os.getenv("API_BASE_URL"):
@@ -46,7 +54,7 @@ class Api(ABC):
         self,
         base_url: str = "https://cad.onshape.com",
         logging: bool = False,
-        version: int | None = 6,
+        version: int | None = 8,
     ):
         """
         Args:

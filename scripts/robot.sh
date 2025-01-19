@@ -1,3 +1,3 @@
 #! /bin/sh
 # A simple wrapper for robot.py
-python -m robot_code.script.robot "$@"
+python robot_code/robot_cli.py "$@"

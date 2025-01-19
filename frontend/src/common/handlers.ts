@@ -11,3 +11,9 @@ export function handleStringChange(handler: Dispatch<string>) {
     return (event: FormEvent<HTMLElement>) =>
         handler((event.target as HTMLInputElement).value);
 }
+
+/** Event handler that exposes the target element's value as a string. */
+export function handleValueChange<T>(handler: Dispatch<T>) {
+    return (event: FormEvent<HTMLElement>) =>
+        handler((event.target as HTMLInputElement).value as T);
+}

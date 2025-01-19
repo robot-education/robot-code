@@ -2,7 +2,7 @@ import os
 import flask
 from onshape_api.endpoints import users
 from backend import api
-from backend.common import connect, env
+from backend.common import connect, database, env
 from backend import oauth
 
 
@@ -24,17 +24,18 @@ def create_app():
         if env.is_production:
             return flask.send_from_directory("dist", "index.html")
         else:
+            flask.current_app.logger.debug("App running in development mode")
             return flask.render_template("index.html")
 
     @app.get("/app")
     def serve_app():
-        api = connect.get_api()
+        """The base route used by Onshape."""
+        db = database.Database()
+        api = connect.get_api(db)
         authorized = api.oauth.authorized and users.ping(api, catch=True)
         if not authorized:
             flask.session["redirect_url"] = flask.request.url
             return flask.redirect("/sign-in")
-
-        connect.save_user()
         return serve_index()
 
     @app.get("/license")

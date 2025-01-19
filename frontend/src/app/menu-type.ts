@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 export enum MenuType {
     PART_STUDIO = "part-studio",
     ASSEMBLY = "assembly",
-    VERSIONS = "versions"
+    VERSIONS = "versions",
+    DESIGN = "design"
     // FEATURE_SCRIPT = "feature-script"
 }
 
@@ -29,4 +30,20 @@ export function useMenuRouter() {
     return (menuType: MenuType) => {
         navigate("/app/" + menuType);
     };
+}
+
+/**
+ * Saves the current menu type to local storage.
+ * Used to allow resumption of a session.
+ */
+export function saveMenuType(menuType: MenuType) {
+    localStorage.setItem("lastUsedMenuType", menuType);
+}
+
+export function getLastUsedMenuType(defaultMenuType: MenuType): MenuType {
+    const menuType = localStorage.getItem("lastUsedMenuType");
+    if (menuType == null) {
+        return defaultMenuType;
+    }
+    return menuType as MenuType;
 }

@@ -2,15 +2,17 @@ import http
 import flask
 
 import onshape_api
-from onshape_api import endpoints
 
-from backend.common import backend_exceptions, connect
+from backend.common import backend_exceptions, connect, database
 from backend.endpoints import (
     assembly_mirror,
+    copy_design,
     generate_assembly,
     linked_documents,
     references,
 )
+from onshape_api.endpoints import documents, versions
+from onshape_api.endpoints.documents import ElementType
 
 
 router = flask.Blueprint("api", __name__, url_prefix="/api", static_folder="dist")
@@ -35,6 +37,7 @@ router.register_blueprint(generate_assembly.router)
 router.register_blueprint(assembly_mirror.router)
 router.register_blueprint(linked_documents.router)
 router.register_blueprint(references.router)
+router.register_blueprint(copy_design.router)
 
 
 # @app.post("/auto-assembly")
@@ -63,20 +66,21 @@ def default_name(element_type: str, **kwargs):
     Route Args:
         element_type: The type of element to fetch. One of part-studio, assembly, or version.
     """
-    api = connect.get_api()
-    document_path = connect.get_instance_path("wv")
+    db = database.Database()
+    api = connect.get_api(db)
+    document_path = connect.get_route_instance_path("wv")
     if element_type == "version":
-        version_list = endpoints.get_versions(api, document_path)
+        version_list = versions.get_versions(api, document_path)
         # len(versions) is correct due to Start version
         return {"name": "V{}".format(len(version_list))}
     elif element_type == "assembly":
-        assemblies = endpoints.get_document_elements(
-            api, document_path, element_type=endpoints.ElementType.ASSEMBLY
+        assemblies = documents.get_document_elements(
+            api, document_path, element_type=ElementType.ASSEMBLY
         )
         return {"name": "Assembly {}".format(len(assemblies) + 1)}
     elif element_type == "part-studio":
-        part_studios = endpoints.get_document_elements(
-            api, document_path, element_type=endpoints.ElementType.PART_STUDIO
+        part_studios = documents.get_document_elements(
+            api, document_path, element_type=ElementType.PART_STUDIO
         )
         return {"name": "Part Studio {}".format(len(part_studios) + 1)}
 

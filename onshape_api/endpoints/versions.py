@@ -1,6 +1,5 @@
 from onshape_api.paths.api_path import api_path
 from onshape_api.api.api_base import Api
-from onshape_api.utils.endpoint_utils import get_wmv_key
 from onshape_api.paths.paths import DocumentPath, InstancePath
 
 
@@ -12,7 +11,7 @@ def get_versions(
 ) -> list[dict]:
     """Fetches a list of versions of a document.
 
-    Versions are returned in reverse chronological order (oldest - newest).
+    Versions are returned in chronological order, with the oldest version ("Start") first.
 
     Args:
         offset: A starting offset to apply. Does not support negative indexing.
@@ -38,10 +37,8 @@ def create_version(
     body = {
         "name": version_name,
         "description": description,
-        "documentId": instance_path.document_id,
     }
-    # Allows versioning from different workspaces/previous versions
-    body[get_wmv_key(instance_path)] = instance_path.instance_id
+    body.update(InstancePath.to_api_object(instance_path))
     return api.post(
         api_path("documents", instance_path, DocumentPath, "versions"),
         body=body,

@@ -2,23 +2,23 @@ import { useState } from "react";
 import { FormGroup, Tooltip, InputGroup } from "@blueprintjs/core";
 import { useMutation } from "@tanstack/react-query";
 
-import { handleStringChange } from "../common/handlers";
-import { ActionForm } from "../actions/action-form";
-import { ActionInfo } from "../actions/action-context";
-import { ActionCard } from "../actions/action-card";
-import { ActionDialog } from "../actions/action-dialog";
+import { handleStringChange } from "../../common/handlers";
+import { ActionForm } from "../../actions/action-form";
+import { ActionInfo } from "../../actions/action-context";
+import { ActionCard } from "../../actions/action-card";
+import { ActionDialog } from "../../actions/action-dialog";
 import { useLoaderData } from "react-router-dom";
-import { OpenUrlButton } from "../components/open-url-button";
-import { getCurrentElementPath } from "../app/onshape-params";
-import { ElementPath, toElementApiPath } from "../api/path";
-import { makeUrl } from "../common/url";
-import { post } from "../api/api";
-import { ExecuteButton } from "../components/execute-button";
-import { ActionError } from "../actions/action-error";
-import { ActionSuccess } from "../actions/action-success";
-import { ActionSpinner } from "../actions/action-spinner";
-import { MutationProps } from "../query/mutation";
-import { MissingPermissionError } from "../common/errors";
+import { OpenUrlButton } from "../../components/open-url-button";
+import { getCurrentElementPath } from "../../app/onshape-params";
+import { ElementPath, toElementApiPath } from "../../api/path";
+import { makeUrl } from "../../common/url";
+import { post } from "../../api/api";
+import { ExecuteButton } from "../../components/execute-button";
+import { ActionError } from "../../actions/action-error";
+import { ActionSuccess } from "../../actions/action-success";
+import { ActionSpinner } from "../../actions/action-spinner";
+import { MutationProps } from "../../query/mutation";
+import { MissingPermissionError } from "../../common/errors";
 
 const actionInfo: ActionInfo = {
     title: "Generate assembly",

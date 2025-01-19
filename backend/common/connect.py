@@ -1,14 +1,17 @@
-"""Serves as an abstraction layer for connecting with the Onshape API, the backend database, and the current flask request."""
+"""Serves as an abstraction layer for connecting with the Onshape API and the current flask request."""
+
 import enum
 from typing import Any
 
 from uuid import uuid4
-from google.cloud import firestore
 import flask
 from requests_oauthlib import OAuth2Session
 
+from backend.common.database import Database
 import onshape_api
 from backend.common import backend_exceptions, env
+from onshape_api.assertions import assert_instance_type
+from onshape_api.paths.instance_type import InstanceType
 
 
 def get_session_id() -> str:
@@ -19,27 +22,26 @@ def get_session_id() -> str:
     return session_id
 
 
-def save_token(token) -> None:
-    set_session_data({"token": token})
+def get_token(db: Database) -> dict | None:
+    return get_session_data(db).get("token")
 
 
-def get_token() -> dict | None:
-    return get_session_data().get("token")
+def save_token(db: Database, token) -> None:
+    set_session_data(db, {"token": token})
 
 
-def get_session_data() -> dict:
+def get_session_data(db: Database) -> dict:
     session_id = get_session_id()
-    doc_ref = db_sessions().document(document_id=session_id)
+    doc_ref = db.sessions.document(document_id=session_id)
     doc = doc_ref.get()
     if not doc.exists or (session_data := doc.to_dict()) is None:
         session_data = {"token": None}
     return session_data
 
 
-def set_session_data(session_data: dict) -> None:
+def set_session_data(db: Database, session_data: dict) -> None:
     session_id = get_session_id()
-    doc_ref = db_sessions().document(document_id=session_id)
-    # transaction.set(doc_ref, session_data)
+    doc_ref = db.sessions.document(document_id=session_id)
     doc_ref.set(session_data)
 
 
@@ -54,7 +56,9 @@ class OAuthType(enum.Enum):
     USE = enum.auto()
 
 
-def get_oauth_session(oauth_type: OAuthType = OAuthType.USE) -> OAuth2Session:
+def get_oauth_session(
+    db: Database, oauth_type: OAuthType = OAuthType.USE
+) -> OAuth2Session:
     if oauth_type == OAuthType.SIGN_IN:
         return OAuth2Session(env.client_id)
     elif oauth_type == OAuthType.REDIRECT:
@@ -64,12 +68,16 @@ def get_oauth_session(oauth_type: OAuthType = OAuthType.USE) -> OAuth2Session:
         "client_id": env.client_id,
         "client_secret": env.client_secret,
     }
+
+    def _save_token(token) -> None:
+        save_token(db, token)
+
     return OAuth2Session(
         env.client_id,
-        token=get_token(),
+        token=get_token(db),
         auto_refresh_url=token_url,
         auto_refresh_kwargs=refresh_kwargs,
-        token_updater=save_token,
+        token_updater=_save_token,
     )
 
 
@@ -81,35 +89,11 @@ def element_route(wvm_param: str = "w"):
     return instance_route(wvm_param) + "/e/<element_id>"
 
 
-db = firestore.Client()
-sessions = db.collection("sessions")
-linked_documents = db.collection("linked-documents")
-users = db.collection("users")
+def get_api(db: Database) -> onshape_api.OAuthApi:
+    return onshape_api.make_oauth_api(get_oauth_session(db))
 
 
-def save_user():
-    """Saves the user's id for personal logging purposes (I want to keep track of the total number of users)."""
-    user_id = flask.request.args["userId"]
-    users.document(user_id).set({})
-
-
-def get_db() -> firestore.Client:
-    return db
-
-
-def db_linked_documents() -> firestore.CollectionReference:
-    return linked_documents
-
-
-def db_sessions() -> firestore.CollectionReference:
-    return sessions
-
-
-def get_api() -> onshape_api.OAuthApi:
-    return onshape_api.make_oauth_api(get_oauth_session())
-
-
-def get_instance_path(wvm_param: str = "w") -> onshape_api.InstancePath:
+def get_route_instance_path(wvm_param: str = "w") -> onshape_api.InstancePath:
     return onshape_api.InstancePath(
         get_route("document_id"),
         get_route("workspace_id"),
@@ -117,10 +101,34 @@ def get_instance_path(wvm_param: str = "w") -> onshape_api.InstancePath:
     )
 
 
-def get_element_path(wvm_param: str = "w") -> onshape_api.ElementPath:
+def get_route_element_path(wvm_param: str = "w") -> onshape_api.ElementPath:
     return onshape_api.ElementPath.from_path(
-        get_instance_path(wvm_param),
+        get_route_instance_path(wvm_param),
         get_route("element_id"),
+    )
+
+
+def get_body_instance_path(
+    *instance_types: InstanceType, default_type: InstanceType = InstanceType.WORKSPACE
+) -> onshape_api.InstancePath:
+    instance_type = get_body_optional("instanceType")
+    if instance_type == None:
+        instance_type = default_type
+    # Only do validation if instance type passed
+    elif instance_type not in instance_types:
+        raise backend_exceptions.UserException(
+            "Invalid instance type {}.".format(instance_type)
+        )
+
+    return onshape_api.InstancePath(
+        get_body("documentId"), get_body("instanceId"), instance_type
+    )
+
+
+def get_body_element_path() -> onshape_api.ElementPath:
+    return onshape_api.ElementPath.from_path(
+        get_body_instance_path(),
+        get_route("elementId"),
     )
 
 
@@ -153,7 +161,7 @@ def get_query(key: str) -> str:
 def get_body(key: str) -> Any:
     """Returns a value from the request body.
 
-    Throws if it doesn't exist.
+    Throws if key doesn't exist.
     """
     value = flask.request.get_json().get(key, None)
     if not value:
@@ -163,9 +171,9 @@ def get_body(key: str) -> Any:
     return value
 
 
-def get_optional_body(key: str) -> Any | None:
-    """Returns a value from the request body."""
-    return flask.request.get_json().get(key, None)
+def get_body_optional(key: str, default: Any | None = None) -> Any:
+    """Returns a value from the request body, or default if it doesn't exist."""
+    return flask.request.get_json().get(key, default)
 
 
 # def extract_body(

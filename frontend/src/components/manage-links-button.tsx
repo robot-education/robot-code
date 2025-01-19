@@ -1,6 +1,6 @@
 import { Button } from "@blueprintjs/core";
 import { useNavigate } from "react-router-dom";
-import { useCurrentMenuType } from "../common/menu-type";
+import { useCurrentMenuType } from "../app/menu-type";
 
 interface OpenLinkManagerButtonProps {
     /**

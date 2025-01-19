@@ -23,40 +23,45 @@ import { DocumentOptionsMenu } from "./document-options-menu";
 import { useState } from "react";
 import { linkedDocumentsKey } from "../query/query-client";
 
+interface LinkedDocumentTitleProps {
+    document: LinkedDocument;
+}
+
+function LinkedDocumentTitle(props: LinkedDocumentTitleProps): JSX.Element {
+    const document = props.document;
+    if (isOpenableDocument(document)) {
+        return (
+            <EntityTitle
+                title={document.name}
+                icon="document"
+                subtitle={
+                    !document.isDefaultWorkspace
+                        ? document.workspaceName
+                        : undefined
+                }
+            />
+        );
+    }
+    return (
+        <EntityTitle
+            className={Classes.INTENT_DANGER}
+            title="Unknown Document"
+            icon="warning-sign"
+        />
+    );
+}
+
 function getDocumentCards(
     linkType: LinkType,
     documents: LinkedDocument[]
 ): JSX.Element {
-    console.log(documents);
     const cards = documents.map((document) => {
-        let entityTitle;
-        if (isOpenableDocument(document)) {
-            entityTitle = (
-                <EntityTitle
-                    title={document.name}
-                    icon="document"
-                    subtitle={
-                        !document.isDefaultWorkspace
-                            ? document.workspaceName
-                            : undefined
-                    }
-                />
-            );
-        } else {
-            entityTitle = (
-                <EntityTitle
-                    className={Classes.INTENT_DANGER}
-                    title="Unknown Document"
-                    icon="warning-sign"
-                />
-            );
-        }
         return (
             <Card
                 className="link-card"
                 key={document.documentId + "|" + document.instanceId}
             >
-                {entityTitle}
+                <LinkedDocumentTitle document={document} />
                 <DocumentOptionsMenu
                     linkType={linkType}
                     workspacePath={document}

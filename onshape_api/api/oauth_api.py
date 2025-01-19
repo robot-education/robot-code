@@ -9,13 +9,13 @@ from requests_oauthlib import OAuth2Session
 
 from onshape_api import exceptions
 from onshape_api.utils import env_utils
-from onshape_api.api.api_base import Api, ApiArgs, make_api_base_args
+from onshape_api.api.api_base import Api, ApiArgs, get_api_base_args
 
 
 def make_oauth_api(oauth: OAuth2Session, load_dotenv: bool = False) -> OAuthApi:
     if load_dotenv:
         env_utils.load_env()
-    kwargs = make_api_base_args()
+    kwargs = get_api_base_args()
     return OAuthApi(oauth, **kwargs)
 
 

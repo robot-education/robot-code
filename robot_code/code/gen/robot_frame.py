@@ -1,12 +1,13 @@
 from featurescript import *
-from robot_code.robot_studio import RobotFeature
+from robot_code.code.robot_feature import RobotFeature
 
 DESCRIPTION = r"Generate robot frame members."
 
 robot_frame = RobotFeature("frame", description=DESCRIPTION)
 studio = robot_frame.ui_studio
 
-studio.add_import("stdFrameUi.fs", export=True)
+
+# studio.add_import(studio_import("stdFrameUi.fs", export=True))
 
 # enums
 wall_thickness = (
@@ -211,7 +212,7 @@ tube_face_predicate = UiPredicate("tubeFace", parent=studio).add(
                 bound_spec=LengthBound.NONNEGATIVE_LENGTH_BOUNDS,
             )
         ),
-    )
+    ),
     # CountParameter("Holes to tie to end", bound_spec=)
 )
 
@@ -430,7 +431,7 @@ Const(
             "patternCount": 1,
             "patternSpacing": meter(0),
             "holeDepth": inch(1),
-            "width": inch(2)
+            "width": inch(2),
             # "isPredrilled": True,
         },
         inline=False,

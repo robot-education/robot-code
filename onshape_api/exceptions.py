@@ -7,7 +7,7 @@ class ApiError(Exception):
     def __init__(
         self, message: str, status_code: http.HTTPStatus = http.HTTPStatus.BAD_REQUEST
     ):
-        super().__init__(message)
+        super().__init__(str(status_code) + ": " + message)
         self.message = message
         self.status_code = status_code
 

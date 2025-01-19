@@ -1,23 +1,13 @@
-import dataclasses
 import json5
 import pathlib
 import pickle
 from typing import Any, Protocol
+from featurescript import feature_studio
 from onshape_api.paths import paths
 
-STORAGE_FILE = "studio_data.pickle"
+STORAGE_FILE: str = "studio_data.pickle"
 
-
-@dataclasses.dataclass
-class FeatureStudio:
-    name: str
-    path: paths.ElementPath
-    microversion_id: str
-    modified: bool = False
-    generated: bool = False
-
-
-FileData = dict[str, FeatureStudio]
+FileData = dict[str, feature_studio.FeatureStudio]
 
 
 class ConfigData(Protocol):
@@ -68,7 +58,7 @@ class Config:
     def _parse_document_paths(self, config: dict) -> None:
         documents: dict[str, str] = self._get_config_key(config, "documents")
         self.documents: dict[str, paths.InstancePath] = dict(
-            (document_name, paths.url_to_path(url))
+            (document_name, paths.url_to_element_path(url))
             for document_name, url in documents.items()
         )
 
@@ -93,11 +83,8 @@ class Config:
     def read_file(self, name: str) -> str | None:
         """Reads code from the specified file.
 
-        Returns `None` if the file does not exist."""
+        Returns None if the file does not exist."""
         path = self.code_path / name
         if not path.is_file():
             return None
         return path.read_text()
-
-    def get_document(self, name: str) -> paths.InstancePath | None:
-        return self.documents.get(name, None)

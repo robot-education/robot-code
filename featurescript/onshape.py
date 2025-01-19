@@ -3,7 +3,8 @@
 import argparse
 
 from onshape_api import key_api
-from featurescript import conf, manager
+from featurescript import manager
+from featurescript import conf
 
 
 def parse_args() -> argparse.Namespace:

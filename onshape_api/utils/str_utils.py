@@ -1,5 +1,12 @@
 """A miscellaneous collection of utilities for working with strings."""
+
 import re
+import json
+
+
+def to_json(value: dict | list) -> str:
+    """Converts a dict or list to a pretty print string."""
+    return json.dumps(value, indent=2)
 
 
 def indent(string: str) -> str:

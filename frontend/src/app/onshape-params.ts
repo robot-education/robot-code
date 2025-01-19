@@ -1,9 +1,8 @@
+/**
+ * Saves parameters sent Onshape to session storage so they're available to all routes.
+ */
 import { ElementType } from "../common/element-type";
 import { ElementPath, toInstanceApiPath, toElementApiPath } from "../api/path";
-
-// export interface OnshapeParams extends ElementPath {
-//     elementType: ElementType;
-// }
 
 export function saveOnshapeParams(params: URLSearchParams) {
     for (const key of [
