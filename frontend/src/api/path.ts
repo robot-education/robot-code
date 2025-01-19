@@ -6,6 +6,10 @@ export interface WorkspacePath extends DocumentPath {
     instanceId: string;
 }
 
+export interface Workspace extends WorkspacePath {
+    name: string;
+}
+
 export interface InstancePath extends WorkspacePath {
     /**
      * One of "w", "v", or "m". Defaults to "w".
@@ -15,10 +19,6 @@ export interface InstancePath extends WorkspacePath {
 
 export interface ElementPath extends InstancePath {
     elementId: string;
-}
-
-export interface Workspace extends WorkspacePath {
-    name: string;
 }
 
 export function isWorkspacePath(path: DocumentPath): path is WorkspacePath {

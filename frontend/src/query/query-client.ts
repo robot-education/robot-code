@@ -1,7 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { Workspace, WorkspacePath } from "../api/path";
 import { currentInstanceApiPath } from "../app/onshape-params";
-import { LinkType } from "../link-manager/document-link-type";
+import { LinkType } from "../link-manager/link-types";
 import { get } from "../api/api";
 
 export const queryClient = new QueryClient();

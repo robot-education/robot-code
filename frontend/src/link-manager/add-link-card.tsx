@@ -12,7 +12,7 @@ import { currentInstanceApiPath } from "../app/onshape-params";
 import { parseUrl } from "../common/url";
 import { handleDocumentAdded } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
-import { LinkTypeProps, LinkType } from "./document-link-type";
+import { LinkTypeProps, LinkType } from "./link-types";
 import { Workspace } from "../api/path";
 import { MissingPermissionError } from "../common/errors";
 
@@ -55,7 +55,7 @@ async function addLinkMutationFn({
     }).catch((error) => {
         if (error instanceof MissingPermissionError) {
             throw new HandledError(
-                "Failed to link document - you do not have necessary permissions."
+                "Failed to link document - You do not have the necessary permissions."
             );
         }
         showInternalErrorToast("Unexpectedly failed to add link.");

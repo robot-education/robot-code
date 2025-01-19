@@ -1,7 +1,7 @@
 import { Dialog, DialogBody, DialogFooter } from "@blueprintjs/core";
 import { useNavigate } from "react-router-dom";
 import { CloseButton } from "../components/close-button";
-import { LinkType } from "./document-link-type";
+import { LinkType } from "./link-types";
 import { LinkedDocumentsList } from "./linked-documents-list";
 
 export function LinkManager() {
