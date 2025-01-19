@@ -1,12 +1,11 @@
 """"Utilities for evaluating FeatureScripts against part studios."""
 
-
 from concurrent import futures
 import dataclasses
 import pathlib
 from typing import Iterable, TypedDict
 import onshape_api
-from onshape_api import endpoints
+from onshape_api.endpoints.part_studios import evaluate_feature_script
 
 SCRIPT_PATH = pathlib.Path("../scripts")
 
@@ -28,7 +27,7 @@ class AutoAssemblyTarget(TypedDict):
 def evalute_auto_assembly_part(
     api: onshape_api.Api, part_studio_path: onshape_api.ElementPath
 ) -> dict:
-    return endpoints.evaluate_feature_script(
+    return evaluate_feature_script(
         api, part_studio_path, open_script("parseAutoAssembly")
     )
 
@@ -36,7 +35,7 @@ def evalute_auto_assembly_part(
 def evalute_auto_assembly_target_part(
     api: onshape_api.Api, part_studio_path: onshape_api.ElementPath
 ) -> dict:
-    return endpoints.evaluate_feature_script(
+    return evaluate_feature_script(
         api, part_studio_path, open_script("parseAutoAssemblyTarget")
     )
 
@@ -44,7 +43,7 @@ def evalute_auto_assembly_target_part(
 def evaluate_assembly_mirror_part(
     api: onshape_api.Api, part_studio_path: onshape_api.ElementPath
 ) -> dict:
-    return endpoints.evaluate_feature_script(
+    return evaluate_feature_script(
         api, part_studio_path, open_script("parseAssemblyMirror")
     )
 

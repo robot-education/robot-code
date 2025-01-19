@@ -11,21 +11,25 @@ from onshape_api.paths.paths import ElementPath, InstancePath
 
 
 @dataclasses.dataclass
-class FeatureStudio:
+class LocalFeatureStudio:
     """Represents a FeatureStudio in Onshape.
 
     Attributes:
         name: The name of the feature studio.
         path: The path to the feature studio.
-        microversion_id: The most recent microverison id of the feature studio.
+        microversion_id: The most recent microverison id of the feature studio in the cloud.
             Used for external FeatureScript imports.
-        created: Whether the FeatureStudio is newly created.
+        created: True if the FeatureStudio actually exists in the cloud.
+        generated: True if the FeatureStudio is locally generated.
+        modified: True if the FeatureStudio has been modified since being pulled.
     """
 
     name: str
     path: ElementPath
     microversion_id: str
     created: bool
+    generated: bool = False
+    modified: bool = False
 
     def push(self, api: Api, code: str) -> dict:
         """Pushes this Studio to Onshape. The studio is created if it does not already exist."""
@@ -39,14 +43,14 @@ class FeatureStudio:
 
 def pull_feature_studio(
     api: Api, instance_path: InstancePath, studio_name: str
-) -> FeatureStudio:
+) -> LocalFeatureStudio:
     """Fetches a single feature studio by name, creating it if necessary."""
     feature_studio = get_feature_studio(api, instance_path, studio_name)
     if feature_studio == None:
         response = feature_studios.create_feature_studio(
             api, instance_path, studio_name
         )
-        return FeatureStudio(
+        return LocalFeatureStudio(
             studio_name,
             ElementPath.from_path(instance_path, response["id"]),
             response["microversionId"],
@@ -57,7 +61,7 @@ def pull_feature_studio(
 
 def get_feature_studios(
     api: Api, instance_path: InstancePath
-) -> dict[str, FeatureStudio]:
+) -> dict[str, LocalFeatureStudio]:
     """Returns a dict mapping feature studio names to feature studios."""
     elements = api.get(
         api_path("documents", instance_path, InstancePath, "elements"),
@@ -68,7 +72,7 @@ def get_feature_studios(
 
 def get_feature_studio(
     api: Api, document_path: InstancePath, studio_name: str
-) -> FeatureStudio | None:
+) -> LocalFeatureStudio | None:
     """Fetches a single feature studio by name, or None if no such studio exists."""
     return get_feature_studios(api, document_path).get(studio_name, None)
 
@@ -76,12 +80,12 @@ def get_feature_studio(
 def _extract_studios(
     elements: list[dict],
     instance_path: InstancePath,
-) -> dict[str, FeatureStudio]:
+) -> dict[str, LocalFeatureStudio]:
     """Constructs a list of FeatureStudios from a list of elements returned by a get documents request."""
     return dict(
         (
             element["name"],
-            FeatureStudio(
+            LocalFeatureStudio(
                 element["name"],
                 ElementPath.from_path(instance_path, element["id"]),
                 element["microversionId"],

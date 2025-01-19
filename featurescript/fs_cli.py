@@ -1,5 +1,6 @@
-"""Defines a command line parser for the `onshape` command.
+"""Defines a command line parser for the `fs` command.
 """
+
 import argparse
 
 from onshape_api import key_api

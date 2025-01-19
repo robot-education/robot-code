@@ -86,25 +86,30 @@ def parse_args() -> argparse.Namespace:
         "-l", "--log", help="whether to run with logging enabled", action="store_true"
     )
 
-    subparsers = parser.add_subparsers(required=True, dest="action")
+    action_parsers = parser.add_subparsers(required=True, dest="action")
 
     release_parser = get_release_parser()
-    subparsers.add_parser(
+    action_parsers.add_parser(
         "release",
         help="release a new version of a FeatureScript",
         parents=[release_parser],
         description="Release a FeatureScript to the frontend document.",
     )
-    subparsers.add_parser(
+    action_parsers.add_parser(
         "test-release",
         parents=[release_parser],
         help="release a test FeatureScript",
         description="Release a test FeatureScript in the test-frontend document.",
     )
-    subparsers.add_parser(
+    action_parsers.add_parser(
         "sync-versions",
         help="sync versions to the frontend document",
         description="Create all missing versions in the frontend document.",
+    )
+    action_parsers.add_parser(
+        "update-fs-versions",
+        help="Update all Feature Studios to the latest FeatureScript version",
+        description="Update all Feature Studios to the latest FeatureScript version.",
     )
 
     return parser.parse_args()
