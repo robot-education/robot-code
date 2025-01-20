@@ -6,7 +6,11 @@ from google.cloud import firestore
 from backend.common import backend_exceptions, connect, database
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints.metadata import get_instance_metadata
-from onshape_api.endpoints.permissions import Permission, get_permissions
+from onshape_api.endpoints.permissions import (
+    Permission,
+    get_permissions,
+    has_permissions,
+)
 from onshape_api.endpoints import documents
 from onshape_api.paths.paths import InstancePath
 
@@ -39,37 +43,6 @@ def make_db_id(document_id: str, workspace_id: str) -> str:
 
 
 router = flask.Blueprint("linked-documents", __name__)
-
-
-@router.get("/linked-documents/<link_type>" + connect.instance_route())
-def get_linked_documents(link_type: str, **kwargs):
-    """Gets a list of documents (technically, workspaces) linked to the current document.
-
-    Returns a list of linked documents with the fields:
-        documentId:
-        instanceId:
-        name: The name of the document, or undefined if the document cannot be read.
-        isDefaultWorkspace: True if the linked document is the default workspace.
-        workspaceName: The name of the workspace.
-    """
-    if link_type not in LinkType:
-        raise backend_exceptions.BackendException(
-            "Invalid link_type {}.".format(link_type)
-        )
-    db = database.Database()
-    api = connect.get_api(db)
-    curr_path = connect.get_route_instance_path()
-    backend_exceptions.require_permissions(api, curr_path, Permission.READ)
-    document_db_id = path_to_db_id(curr_path)
-
-    doc = db.linked_documents.document(document_db_id).get()
-    linked_documents = []
-    if doc.exists and (data := doc.to_dict()):
-        for document_db_id in data.get(link_type, []):
-            path = db_id_to_path(document_db_id)
-            linked_documents.append(make_document(api, path))
-
-    return linked_documents
 
 
 @router.delete("/linked-documents/<link_type>" + connect.instance_route())
@@ -146,17 +119,38 @@ def add_linked_document(link_type: LinkType, **kwargs):
     return link_document
 
 
-def get_link_types(link_type: LinkType) -> tuple[LinkType, LinkType]:
-    if link_type == LinkType.PARENTS:
-        return (LinkType.PARENTS, LinkType.CHILDREN)
-    elif link_type == LinkType.CHILDREN:
-        return (LinkType.CHILDREN, LinkType.PARENTS)
-    raise backend_exceptions.BackendException("Invalid link_type {}.".format(link_type))
+@router.get("/linked-documents/<link_type>" + connect.instance_route())
+def get_linked_documents(link_type: str, **kwargs):
+    """Gets a list of documents (technically, workspaces) linked to the current document.
+
+    Returns a list of linked documents with the fields:
+        documentId:
+        instanceId:
+        name: The name of the document, or undefined if the document cannot be read.
+        workspaceName: The name of the workspace.
+    """
+    if link_type not in LinkType:
+        raise backend_exceptions.BackendException(
+            "Invalid link_type {}.".format(link_type)
+        )
+    db = database.Database()
+    api = connect.get_api(db)
+    curr_path = connect.get_route_instance_path()
+    backend_exceptions.require_permissions(api, curr_path, Permission.READ)
+    document_db_id = path_to_db_id(curr_path)
+
+    doc = db.linked_documents.document(document_db_id).get()
+    linked_documents = []
+    if doc.exists and (data := doc.to_dict()):
+        for document_db_id in data.get(link_type, []):
+            path = db_id_to_path(document_db_id)
+            linked_documents.append(make_document(api, path))
+
+    return linked_documents
 
 
 def make_document(api: Api, path: InstancePath) -> dict:
-    permissions = get_permissions(api, path)
-    if Permission.READ not in permissions:
+    if not has_permissions(api, path, Permission.READ):
         return {
             "documentId": path.document_id,
             "instanceId": path.instance_id,
@@ -169,6 +163,7 @@ def make_document(api: Api, path: InstancePath) -> dict:
         default_workspace_instance_id = linked_document["defaultWorkspace"]["id"]
         is_default_workspace = path.instance_id == default_workspace_instance_id
         if is_default_workspace:
+            # Technically saves an Onshape call
             workspace_name = linked_document["defaultWorkspace"]["name"]
         else:
             instance_data = get_instance_metadata(api, path)
@@ -187,6 +182,13 @@ def make_document(api: Api, path: InstancePath) -> dict:
         "instanceId": path.instance_id,
         "isOpenable": True,
         "name": name,
-        "isDefaultWorkspace": is_default_workspace,
         "workspaceName": workspace_name,
     }
+
+
+def get_link_types(link_type: LinkType) -> tuple[LinkType, LinkType]:
+    if link_type == LinkType.PARENTS:
+        return (LinkType.PARENTS, LinkType.CHILDREN)
+    elif link_type == LinkType.CHILDREN:
+        return (LinkType.CHILDREN, LinkType.PARENTS)
+    raise backend_exceptions.BackendException("Invalid link_type {}.".format(link_type))

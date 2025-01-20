@@ -1,6 +1,5 @@
 from http import HTTPStatus
 
-import flask
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints.documents import get_document
 from onshape_api.endpoints.permissions import Permission, get_permissions
@@ -46,31 +45,34 @@ class MissingPermission(Exception):
     def __init__(
         self,
         missing_permission: Permission,
+        document_id: str,
         document_name: str | None = None,
     ):
-        super().__init__("Missing necessary permission: " + missing_permission)
+        super().__init__("MISSING_PERMISSION")
         self.missing_permission = missing_permission
+        self.document_id = document_id
         self.document_name = document_name
         self.status_code = HTTPStatus.UNAUTHORIZED
 
     def to_dict(self):
-        result = {
+        return {
             "type": "MISSING_PERMISSION",
             "permission": self.missing_permission,
+            "documentId": self.document_id,
+            "documentName": self.document_name,
         }
-        if self.document_name != None:
-            result["documentName"] = self.document_name
-        return result
 
 
 def require_permissions(api: Api, path: DocumentPath, *needed_permissions: Permission):
     """Throws an exception if the current user doesn't have given permissions for the given document."""
     permissions = get_permissions(api, path)
+    if permissions == []:
+        raise MissingPermission(Permission.READ, path.document_id)
+
     for permission in needed_permissions:
         if permission not in permissions:
-            if Permission.READ in permissions:
-                try:
-                    document_name = get_document(api, path)["name"]
-                except:
-                    continue
-            raise MissingPermission(permission, document_name)
+            try:
+                document_name = get_document(api, path)["name"]
+            except:
+                document_name = None
+            raise MissingPermission(permission, path.document_id, document_name)

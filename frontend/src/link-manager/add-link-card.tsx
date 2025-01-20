@@ -7,14 +7,13 @@ import {
     showInternalErrorToast,
     showSuccessToast
 } from "../app/toaster";
-import { HandledError } from "../common/errors";
+import { HandledError, MissingPermissionError } from "../common/errors";
 import { currentInstanceApiPath } from "../app/onshape-params";
 import { parseUrl } from "../common/url";
 import { handleDocumentAdded } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
 import { LinkTypeProps, LinkType } from "./link-types";
 import { Workspace } from "../api/path";
-import { MissingPermissionError } from "../common/errors";
 
 interface AddLinkArgs {
     url: string;

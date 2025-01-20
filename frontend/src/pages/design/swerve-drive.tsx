@@ -14,8 +14,8 @@ import { currentInstanceApiPath } from "../../app/onshape-params";
 import { isVersionNameValid } from "../../common/version-utils";
 import { ExecuteButton } from "../../components/execute-button";
 import { VersionNameField } from "../../components/version-fields";
-import { MutationProps } from "../../query/mutation";
 import { linkedParentDocumentsKey } from "../../query/query-client";
+import { OnSubmitProps } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
     title: "Swerve drive",
@@ -50,16 +50,13 @@ export function SwerveDrive() {
     let actionSuccess = null;
     if (mutation.isSuccess) {
         actionSuccess = (
-            <ActionSuccess
-                message="Successfully added drivetrain"
-                // description={description}
-            />
+            <ActionSuccess message="Successfully added drivetrain" />
         );
     }
 
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
-            {mutation.isIdle && <AddDesignForm mutation={mutation} />}
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
+            {mutation.isIdle && <AddDesignForm onSubmit={mutation.mutate} />}
             {mutation.isPending && (
                 <ActionSpinner message="Adding drivetrain..." />
             )}
@@ -69,7 +66,7 @@ export function SwerveDrive() {
     );
 }
 
-function AddDesignForm(props: MutationProps) {
+function AddDesignForm(props: OnSubmitProps<SwerveDriveArgs>) {
     const defaultName = useLoaderData() as string;
     const query = useQuery<Workspace[]>({ queryKey: linkedParentDocumentsKey });
 
@@ -82,7 +79,7 @@ function AddDesignForm(props: MutationProps) {
             <ExecuteButton
                 loading={!disabled && query.isFetching}
                 disabled={disabled}
-                onSubmit={() => props.mutation.mutate({ versionName })}
+                onSubmit={() => props.onSubmit({ versionName })}
             />
         </>
     );

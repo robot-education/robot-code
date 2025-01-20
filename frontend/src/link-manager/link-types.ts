@@ -14,7 +14,6 @@ export interface LinkedDocument extends WorkspacePath {
 
 export interface OpenableLinkedDocument extends LinkedDocument {
     name: string;
-    isDefaultWorkspace: boolean;
     workspaceName: string;
 }
 

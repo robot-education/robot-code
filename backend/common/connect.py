@@ -10,7 +10,6 @@ from requests_oauthlib import OAuth2Session
 from backend.common.database import Database
 import onshape_api
 from backend.common import backend_exceptions, env
-from onshape_api.assertions import assert_instance_type
 from onshape_api.paths.instance_type import InstanceType
 
 

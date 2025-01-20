@@ -74,7 +74,7 @@ export function UpdateAllReferences() {
     }
 
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
             {mutation.isIdle && form}
             {mutation.isPending && (
                 <ActionSpinner message="Updating references..." />

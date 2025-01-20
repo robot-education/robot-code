@@ -4,12 +4,16 @@ import {
     CardList,
     Classes,
     EntityTitle,
+    H5,
     Icon,
+    Intent,
     NonIdealState,
     NonIdealStateIconSize,
     Section,
     SectionCard,
-    Spinner
+    Spinner,
+    Text,
+    Tooltip
 } from "@blueprintjs/core";
 import { AddLinkCard } from "./add-link-card";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +26,7 @@ import {
 import { DocumentOptionsMenu } from "./document-options-menu";
 import { useState } from "react";
 import { linkedDocumentsKey } from "../query/query-client";
+import { toInstanceApiPath } from "../api/path";
 
 interface LinkedDocumentTitleProps {
     document: LinkedDocument;
@@ -32,22 +37,21 @@ function LinkedDocumentTitle(props: LinkedDocumentTitleProps): JSX.Element {
     if (isOpenableDocument(document)) {
         return (
             <EntityTitle
-                title={document.name}
+                title={`${document.name} - ${document.workspaceName}`}
                 icon="document"
-                subtitle={
-                    !document.isDefaultWorkspace
-                        ? document.workspaceName
-                        : undefined
-                }
             />
         );
     }
     return (
-        <EntityTitle
-            className={Classes.INTENT_DANGER}
-            title="Unknown Document"
-            icon="warning-sign"
-        />
+        <Tooltip
+            content="Failed to load document info. Do you have permission to access it?"
+            minimal
+        >
+            <EntityTitle
+                title="Unknown Document"
+                icon={<Icon icon="error" intent={Intent.DANGER} />}
+            />
+        </Tooltip>
     );
 }
 
@@ -57,10 +61,7 @@ function getDocumentCards(
 ): JSX.Element {
     const cards = documents.map((document) => {
         return (
-            <Card
-                className="link-card"
-                key={document.documentId + "|" + document.instanceId}
-            >
+            <Card className="link-card" key={toInstanceApiPath(document)}>
                 <LinkedDocumentTitle document={document} />
                 <DocumentOptionsMenu
                     linkType={linkType}
