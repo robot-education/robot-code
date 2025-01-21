@@ -28,10 +28,10 @@ export function getMenuProps(menuType: MenuType): MenuProps {
                 text: "Design",
                 icon: "build"
             };
-        // case MenuType.FEATURE_SCRIPT:
-        //     return {
-        //         text: "Feature script",
-        //         icon: "code"
-        //     };
+        case MenuType.CODE:
+            return {
+                text: "Code",
+                icon: "code"
+            };
     }
 }

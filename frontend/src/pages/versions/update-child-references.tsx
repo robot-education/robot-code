@@ -1,19 +1,19 @@
 import { Callout } from "@blueprintjs/core";
-import { ActionCard } from "../actions/action-card";
-import { ActionInfo } from "../actions/action-context";
-import { ActionForm } from "../actions/action-form";
+import { ActionCard } from "../../actions/action-card";
+import { ActionInfo } from "../../actions/action-context";
+import { ActionForm } from "../../actions/action-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ActionDialog } from "../actions/action-dialog";
-import { post } from "../api/api";
-import { currentInstanceApiPath } from "../app/onshape-params";
-import { ActionError } from "../actions/action-error";
-import { ActionSpinner } from "../actions/action-spinner";
-import { ActionSuccess } from "../actions/action-success";
-import { ExecuteButton } from "../components/execute-button";
-import { WorkspacePath, Workspace } from "../api/path";
-import { linkedChildDocumentsKey } from "../query/query-client";
-import { OpenLinkManagerButton } from "../components/manage-links-button";
-import { OnSubmitProps } from "../common/handlers";
+import { ActionDialog } from "../../actions/action-dialog";
+import { post } from "../../api/api";
+import { currentInstanceApiPath } from "../../app/onshape-params";
+import { ActionError } from "../../actions/action-error";
+import { ActionSpinner } from "../../actions/action-spinner";
+import { ActionSuccess } from "../../actions/action-success";
+import { ExecuteButton } from "../../components/execute-button";
+import { WorkspacePath, Workspace } from "../../api/path";
+import { linkedChildDocumentsKey } from "../../query/query-client";
+import { OpenLinkManagerButton } from "../../components/manage-links-button";
+import { OnSubmitProps } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
     title: "Update child references",

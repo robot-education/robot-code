@@ -2,17 +2,15 @@ import {
     Button,
     Card,
     CardList,
-    Classes,
     EntityTitle,
-    H5,
     Icon,
+    IconSize,
     Intent,
     NonIdealState,
     NonIdealStateIconSize,
     Section,
     SectionCard,
     Spinner,
-    Text,
     Tooltip
 } from "@blueprintjs/core";
 import { AddLinkCard } from "./add-link-card";
@@ -27,6 +25,7 @@ import { DocumentOptionsMenu } from "./document-options-menu";
 import { useState } from "react";
 import { linkedDocumentsKey } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
+import { ICON } from "@blueprintjs/core/lib/esm/common/classes";
 
 interface LinkedDocumentTitleProps {
     document: LinkedDocument;

@@ -8,7 +8,6 @@ from onshape_api.api.api_base import Api
 from onshape_api.endpoints.metadata import get_instance_metadata
 from onshape_api.endpoints.permissions import (
     Permission,
-    get_permissions,
     has_permissions,
 )
 from onshape_api.endpoints import documents
@@ -92,8 +91,7 @@ def add_linked_document(link_type: LinkType, **kwargs):
 
     Query Args:
         documentId, workspaceId: The id of the document to link.
-    Returns:
-        The documentId, workspaceId, and name of the newly linked document.
+    Returns the linked document (see also get_linked_documents).
     """
     db = database.Database()
     api = connect.get_api(db)
@@ -111,6 +109,7 @@ def add_linked_document(link_type: LinkType, **kwargs):
 
     if curr_db_id == link_db_id:
         raise backend_exceptions.ClientException("Cannot link a document to itself.")
+
     link_document = make_document(api, link_path)
 
     link_types = get_link_types(link_type)

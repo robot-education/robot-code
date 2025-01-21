@@ -4,8 +4,8 @@ export enum MenuType {
     PART_STUDIO = "part-studio",
     ASSEMBLY = "assembly",
     VERSIONS = "versions",
-    DESIGN = "design"
-    // FEATURE_SCRIPT = "feature-script"
+    DESIGN = "design",
+    CODE = "code"
 }
 
 /**

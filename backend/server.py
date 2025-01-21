@@ -34,7 +34,10 @@ def create_app():
         api = connect.get_api(db)
         authorized = api.oauth.authorized and users.ping(api, catch=True)
         if not authorized:
-            flask.session["redirect_url"] = flask.request.url
+            # In Google Cloud the request url is always http
+            # But when we redirect we need https to avoid getting blocked by the browser
+            secure_url = flask.request.url.replace("http://", "https://", 1)
+            flask.session["redirect_url"] = secure_url
             return flask.redirect("/sign-in")
         return serve_index()
 

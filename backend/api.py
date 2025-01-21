@@ -1,4 +1,3 @@
-import http
 import flask
 
 from backend.common import backend_exceptions, connect, database
@@ -8,6 +7,7 @@ from backend.endpoints import (
     generate_assembly,
     linked_documents,
     references,
+    update_featurescripts,
 )
 from onshape_api.endpoints import documents, versions
 from onshape_api.endpoints.documents import ElementType
@@ -38,6 +38,7 @@ router.register_blueprint(assembly_mirror.router)
 router.register_blueprint(linked_documents.router)
 router.register_blueprint(references.router)
 router.register_blueprint(copy_design.router)
+router.register_blueprint(update_featurescripts.router)
 
 
 @router.get("/default-name/<element_type>" + connect.instance_route("wv"))
