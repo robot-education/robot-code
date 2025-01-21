@@ -34,24 +34,25 @@ interface LinkedDocumentTitleProps {
 
 function LinkedDocumentTitle(props: LinkedDocumentTitleProps): JSX.Element {
     const document = props.document;
-    if (isOpenableDocument(document)) {
+    if (!isOpenableDocument(document)) {
         return (
-            <EntityTitle
-                title={`${document.name} - ${document.workspaceName}`}
-                icon="document"
-            />
+            <Tooltip
+                content="Failed to load document info. Do you have permission to access it?"
+                minimal
+            >
+                <EntityTitle
+                    title="Unknown Document"
+                    icon={<Icon icon="error" intent={Intent.DANGER} />}
+                />
+            </Tooltip>
         );
     }
     return (
-        <Tooltip
-            content="Failed to load document info. Do you have permission to access it?"
-            minimal
-        >
-            <EntityTitle
-                title="Unknown Document"
-                icon={<Icon icon="error" intent={Intent.DANGER} />}
-            />
-        </Tooltip>
+        <EntityTitle
+            title={document.name}
+            subtitle={document.workspaceName}
+            icon="document"
+        />
     );
 }
 
