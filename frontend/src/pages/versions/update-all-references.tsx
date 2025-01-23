@@ -1,14 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
-import { ActionCard } from "../actions/action-card";
-import { ActionForm } from "../actions/action-form";
-import { ActionDialog } from "../actions/action-dialog";
-import { currentInstanceApiPath } from "../app/onshape-params";
-import { post } from "../api/api";
-import { ExecuteButton } from "../components/execute-button";
-import { ActionSuccess } from "../actions/action-success";
-import { ActionSpinner } from "../actions/action-spinner";
-import { ActionError } from "../actions/action-error";
+import { ActionCard } from "../../actions/action-card";
+import { ActionForm } from "../../actions/action-form";
+import { ActionDialog } from "../../actions/action-dialog";
+import { currentInstanceApiPath } from "../../app/onshape-params";
+import { post } from "../../api/api";
+import { ExecuteButton } from "../../components/execute-button";
+import { ActionSuccess } from "../../actions/action-success";
+import { ActionSpinner } from "../../actions/action-spinner";
+import { ActionError } from "../../actions/action-error";
 import { Callout } from "@blueprintjs/core";
+import { MissingPermissionError } from "../../common/errors";
 
 const actionInfo = {
     title: "Update all references",
@@ -57,13 +58,28 @@ export function UpdateAllReferences() {
         }
     }
 
+    let actionError = null;
+    if (mutation.isError) {
+        const error = mutation.error;
+        if (error instanceof MissingPermissionError) {
+            actionError = (
+                <ActionError
+                    title="Cannot update references"
+                    description={error.getDescription()}
+                />
+            );
+        } else {
+            actionError = <ActionError />;
+        }
+    }
+
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
             {mutation.isIdle && form}
             {mutation.isPending && (
                 <ActionSpinner message="Updating references..." />
             )}
-            {mutation.isError && <ActionError />}
+            {actionError}
             {mutation.isSuccess && <ActionSuccess message={successMessage} />}
         </ActionDialog>
     );

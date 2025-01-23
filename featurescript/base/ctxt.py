@@ -35,7 +35,7 @@ class Context:
       which circumvents nested predicate restrictions.
     """
 
-    std_version: int
+    std_version: str
 
     imports: list[imp.Import] = dataclasses.field(default_factory=list)
 

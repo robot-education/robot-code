@@ -3,9 +3,15 @@ import enum
 import flask
 from google.cloud import firestore
 
-import onshape_api
 from backend.common import backend_exceptions, connect, database
+from onshape_api.api.api_base import Api
+from onshape_api.endpoints.metadata import get_instance_metadata
+from onshape_api.endpoints.permissions import (
+    Permission,
+    has_permissions,
+)
 from onshape_api.endpoints import documents
+from onshape_api.paths.paths import InstancePath
 
 
 class LinkType(enum.StrEnum):
@@ -13,8 +19,7 @@ class LinkType(enum.StrEnum):
     CHILDREN = "children"
 
 
-def path_to_db_id(path: onshape_api.InstancePath) -> str:
-    """Converts an Onshape path to a database id."""
+def path_to_db_id(path: InstancePath) -> str:
     return make_db_id(path.document_id, path.instance_id)
 
 
@@ -23,12 +28,12 @@ def get_db_id_from_route() -> str:
     return path_to_db_id(connect.get_route_instance_path())
 
 
-def db_id_to_path(db_id: str) -> onshape_api.InstancePath:
+def db_id_to_path(db_id: str) -> InstancePath:
     """Converts a database id to an Onshape path."""
     slash = db_id.find("|")
     document_id = db_id[:slash]
     workspace_id = db_id[slash + 1 :]
-    return onshape_api.InstancePath(document_id, workspace_id)
+    return InstancePath(document_id, workspace_id)
 
 
 def make_db_id(document_id: str, workspace_id: str) -> str:
@@ -36,56 +41,7 @@ def make_db_id(document_id: str, workspace_id: str) -> str:
     return document_id + "|" + workspace_id
 
 
-def make_document(
-    api: onshape_api.Api, path: onshape_api.InstancePath
-) -> dict[str, str]:
-    try:
-        name = documents.get_document(api, path)["name"]
-    except:
-        raise backend_exceptions.UserException(
-            "Provided documentId and/or instanceId were invalid."
-        )
-    return {
-        "documentId": path.document_id,
-        "instanceId": path.instance_id,
-        "name": name,
-    }
-
-
-router = flask.Blueprint("linked_documents", __name__)
-
-
-@router.get("/linked-documents/<link_type>" + connect.instance_route())
-def get_linked_documents(link_type: str, **kwargs):
-    """Returns the documents linked to a given document."""
-    if link_type not in LinkType:
-        raise backend_exceptions.UserException(
-            "Invalid link_type {}.".format(link_type)
-        )
-
-    db = database.Database()
-    api = connect.get_api(db)
-    document_id = get_db_id_from_route()
-    doc = db.linked_documents.document(document_id).get()
-    documents = []
-    if doc.exists and (data := doc.to_dict()):
-        for document_id in data.get(link_type, []):
-            path = db_id_to_path(document_id)
-            documents.append(make_document(api, path))
-
-    return {"documents": documents}
-
-    # tasks: list[asyncio.Task] = []
-    # if doc.exists and (data := doc.to_dict()):
-    #     async with asyncio.TaskGroup() as tg:
-    #         for document_id in data.get(link_type, []):
-    #             path = from_db_id(document_id)
-
-    #             async def call():
-    #                 return make_document(api, path)
-
-    #             tasks.append(tg.create_task(call()))
-    # return {"documents": [task.result() for task in tasks]}
+router = flask.Blueprint("linked-documents", __name__)
 
 
 @router.delete("/linked-documents/<link_type>" + connect.instance_route())
@@ -95,20 +51,25 @@ def delete_linked_document(link_type: LinkType, **kwargs):
     Query Args:
         documentId, workspaceId: The id of the document link to delete.
     """
-    link_types = get_link_types(link_type)
 
     db = database.Database()
     api = connect.get_api(db)
+    curr_path = connect.get_route_instance_path()
+    curr_id = path_to_db_id(curr_path)
+    backend_exceptions.require_permissions(api, curr_path, Permission.WRITE)
 
-    curr_id = get_db_id_from_route()
-    link_path = onshape_api.InstancePath(
+    link_types = get_link_types(link_type)
+    link_path = InstancePath(
         connect.get_query("documentId"), connect.get_query("instanceId")
     )
     link_id = path_to_db_id(link_path)
 
-    db_ref = db.linked_documents
-    db_ref.document(curr_id).update({link_types[0]: firestore.ArrayRemove([link_id])})
-    db_ref.document(link_id).update({link_types[1]: firestore.ArrayRemove([curr_id])})
+    db.linked_documents.document(curr_id).update(
+        {link_types[0]: firestore.ArrayRemove([link_id])}
+    )
+    db.linked_documents.document(link_id).update(
+        {link_types[1]: firestore.ArrayRemove([curr_id])}
+    )
     return make_document(api, link_path)
 
 
@@ -130,27 +91,98 @@ def add_linked_document(link_type: LinkType, **kwargs):
 
     Query Args:
         documentId, workspaceId: The id of the document to link.
-    Returns:
-        The documentId, workspaceId, and name of the newly linked document.
+    Returns the linked document (see also get_linked_documents).
     """
     db = database.Database()
     api = connect.get_api(db)
-    curr_id = get_db_id_from_route()
-    link_path = onshape_api.InstancePath(
+
+    curr_path = connect.get_route_instance_path()
+    curr_db_id = path_to_db_id(curr_path)
+    backend_exceptions.require_permissions(api, curr_path, Permission.WRITE)
+
+    link_path = InstancePath(
         connect.get_query("documentId"), connect.get_query("instanceId")
     )
-    link_id = path_to_db_id(link_path)
-    link_types = get_link_types(link_type)
+    backend_exceptions.require_permissions(api, link_path, Permission.READ)
 
-    if curr_id == link_id:
-        raise backend_exceptions.UserException("Cannot link a document to itself.")
-    # Additional error handling - ensures link is valid
+    link_db_id = path_to_db_id(link_path)
+
+    if curr_db_id == link_db_id:
+        raise backend_exceptions.ClientException("Cannot link a document to itself.")
+
     link_document = make_document(api, link_path)
 
-    db_ref = db.linked_documents
-    add_document_link(db_ref, link_types[0], curr_id, link_id)
-    add_document_link(db_ref, link_types[1], link_id, curr_id)
+    link_types = get_link_types(link_type)
+    add_document_link(db.linked_documents, link_types[0], curr_db_id, link_db_id)
+    add_document_link(db.linked_documents, link_types[1], link_db_id, curr_db_id)
     return link_document
+
+
+@router.get("/linked-documents/<link_type>" + connect.instance_route())
+def get_linked_documents(link_type: str, **kwargs):
+    """Gets a list of documents (technically, workspaces) linked to the current document.
+
+    Returns a list of linked documents with the fields:
+        documentId:
+        instanceId:
+        name: The name of the document, or undefined if the document cannot be read.
+        workspaceName: The name of the workspace.
+    """
+    if link_type not in LinkType:
+        raise backend_exceptions.BackendException(
+            "Invalid link_type {}.".format(link_type)
+        )
+    db = database.Database()
+    api = connect.get_api(db)
+    curr_path = connect.get_route_instance_path()
+    backend_exceptions.require_permissions(api, curr_path, Permission.READ)
+    document_db_id = path_to_db_id(curr_path)
+
+    doc = db.linked_documents.document(document_db_id).get()
+    linked_documents = []
+    if doc.exists and (data := doc.to_dict()):
+        for document_db_id in data.get(link_type, []):
+            path = db_id_to_path(document_db_id)
+            linked_documents.append(make_document(api, path))
+
+    return linked_documents
+
+
+def make_document(api: Api, path: InstancePath) -> dict:
+    if not has_permissions(api, path, Permission.READ):
+        return {
+            "documentId": path.document_id,
+            "instanceId": path.instance_id,
+            "isOpenable": False,
+        }
+    try:
+        linked_document = documents.get_document(api, path)
+        name = linked_document["name"]
+
+        default_workspace_instance_id = linked_document["defaultWorkspace"]["id"]
+        is_default_workspace = path.instance_id == default_workspace_instance_id
+        if is_default_workspace:
+            # Technically saves an Onshape call
+            workspace_name = linked_document["defaultWorkspace"]["name"]
+        else:
+            instance_data = get_instance_metadata(api, path)
+            workspace_name = next(
+                data["value"]
+                for data in instance_data["properties"]
+                if data["name"] == "Name"
+            )
+    except:
+        raise backend_exceptions.BackendException(
+            "Unexpectedly failed to get name of linked document."
+        )
+
+    return {
+        "documentId": path.document_id,
+        "instanceId": path.instance_id,
+        "isOpenable": True,
+        "name": name,
+        "workspaceName": workspace_name,
+    }
 
 
 def get_link_types(link_type: LinkType) -> tuple[LinkType, LinkType]:
@@ -158,3 +190,4 @@ def get_link_types(link_type: LinkType) -> tuple[LinkType, LinkType]:
         return (LinkType.PARENTS, LinkType.CHILDREN)
     elif link_type == LinkType.CHILDREN:
         return (LinkType.CHILDREN, LinkType.PARENTS)
+    raise backend_exceptions.BackendException("Invalid link_type {}.".format(link_type))

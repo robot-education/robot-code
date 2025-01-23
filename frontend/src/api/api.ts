@@ -1,4 +1,5 @@
 import { URLSearchParamsInit, createSearchParams } from "react-router-dom";
+import { reportMissingPermissionError } from "../common/errors";
 
 function getUrl(path: string, query?: URLSearchParamsInit): string {
     path = "/api" + path;
@@ -21,12 +22,7 @@ export async function post(path: string, options?: PostOptions): Promise<any> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(options?.body ?? {})
-    }).then((res) => {
-        if (!res.ok) {
-            throw new Error("Network response failed.");
-        }
-        return res.json();
-    });
+    }).then(handleResponse);
 }
 
 /**
@@ -38,12 +34,7 @@ export async function get(
 ): Promise<any> {
     return fetch(getUrl(path, query), {
         cache: "no-store"
-    }).then((res) => {
-        if (!res.ok) {
-            throw new Error("Network response failed.");
-        }
-        return res.json();
-    });
+    }).then(handleResponse);
 }
 
 /**
@@ -54,10 +45,16 @@ export async function del(
     path: string,
     query?: URLSearchParamsInit
 ): Promise<any> {
-    return fetch(getUrl(path, query), { method: "DELETE" }).then((res) => {
-        if (!res.ok) {
-            throw new Error("Network response failed.");
-        }
-        return res.json();
-    });
+    return fetch(getUrl(path, query), { method: "DELETE" }).then(
+        handleResponse
+    );
+}
+
+async function handleResponse(response: Response) {
+    const json = await response.json();
+    if (!response.ok) {
+        reportMissingPermissionError(json);
+        throw new Error("Network response failed.");
+    }
+    return json;
 }

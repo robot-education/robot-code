@@ -12,7 +12,7 @@ from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
 
 from featurescript import *
 from featurescript.feature_studio import (
-    FeatureStudio,
+    LocalFeatureStudio,
     get_feature_studio,
     pull_feature_studio,
 )
@@ -228,8 +228,8 @@ def release_preamble(version_name: str, studio_path: ElementPath) -> str:
 
 def get_release_studio_code(
     version_name: str,
-    std_version: int,
-    backend_studio: FeatureStudio,
+    std_version: str,
+    backend_studio: LocalFeatureStudio,
 ) -> str:
     """Generates a studio which exposes a backend Feature Script.
 

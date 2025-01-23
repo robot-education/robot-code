@@ -1,7 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { Workspace, WorkspacePath } from "../api/path";
 import { currentInstanceApiPath } from "../app/onshape-params";
-import { LinkType } from "../link-manager/document-link-type";
+import { LinkType } from "../link-manager/link-types";
 import { get } from "../api/api";
 
 export const queryClient = new QueryClient();
@@ -9,10 +9,9 @@ export const queryClient = new QueryClient();
 const linkedDocumentsQueryFn: QueryFunction = async (
     context
 ): Promise<Workspace[]> => {
-    const result = await get(
+    return await get(
         `/linked-documents/${context.meta?.linkType}` + currentInstanceApiPath()
     );
-    return result.documents;
 };
 
 export function linkedDocumentsKey(linkType: LinkType) {

@@ -48,6 +48,7 @@ def api_path(
     end_route: str | None = None,
     end_id: str | None = None,
     feature_id: str | None = None,
+    skip_document_d: bool = False,
 ) -> str:
     """Constructs a path suitable for consumption by an API.
 
@@ -62,13 +63,17 @@ def api_path(
             The end_id is escaped to prevent issues with slashes in the id.
         feature_id: If included, /featureId/<feature_id> is appended.
             The feature_id is escaped to prevent issues with slashes in the id.
+        skip_document_d: If True and path_type is DocumentPath, the /d/ portion of the documentId will be omitted.
     """
     api_path = "" if route.startswith("/") else "/" + route
 
     if path is not None:
         if path_type is None:
             raise ValueError("path_type must be provided alongside path")
-        api_path += path_type.to_api_path(path)
+        if path_type is DocumentPath and skip_document_d:
+            api_path += "/" + path.document_id
+        else:
+            api_path += path_type.to_api_path(path)
     if end_route is not None:
         api_path += "" if end_route.startswith("/") else "/" + end_route
     if end_id is not None:

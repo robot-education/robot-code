@@ -2,34 +2,74 @@ import {
     Button,
     Card,
     CardList,
+    EntityTitle,
     Icon,
+    IconSize,
+    Intent,
     NonIdealState,
     NonIdealStateIconSize,
     Section,
     SectionCard,
-    Spinner
+    Spinner,
+    Tooltip
 } from "@blueprintjs/core";
-import { Workspace } from "../api/path";
 import { AddLinkCard } from "./add-link-card";
 import { useQuery } from "@tanstack/react-query";
-import { LinkType, LinkTypeProps } from "./document-link-type";
+import {
+    isOpenableDocument,
+    LinkedDocument,
+    LinkType,
+    LinkTypeProps
+} from "./link-types";
 import { DocumentOptionsMenu } from "./document-options-menu";
 import { useState } from "react";
 import { linkedDocumentsKey } from "../query/query-client";
+import { toInstanceApiPath } from "../api/path";
+import { ICON } from "@blueprintjs/core/lib/esm/common/classes";
+
+interface LinkedDocumentTitleProps {
+    document: LinkedDocument;
+}
+
+function LinkedDocumentTitle(props: LinkedDocumentTitleProps): JSX.Element {
+    const document = props.document;
+    if (!isOpenableDocument(document)) {
+        return (
+            <Tooltip
+                content="Failed to load document info. Do you have permission to access it?"
+                minimal
+            >
+                <EntityTitle
+                    title="Unknown Document"
+                    icon={<Icon icon="error" intent={Intent.DANGER} />}
+                />
+            </Tooltip>
+        );
+    }
+    return (
+        <EntityTitle
+            title={document.name}
+            subtitle={document.workspaceName}
+            icon="document"
+        />
+    );
+}
 
 function getDocumentCards(
     linkType: LinkType,
-    documents: Workspace[]
+    documents: LinkedDocument[]
 ): JSX.Element {
-    const cards = documents.map((document) => (
-        <Card
-            className="link-card"
-            key={document.documentId + "/" + document.instanceId}
-        >
-            <span>{document.name}</span>
-            <DocumentOptionsMenu linkType={linkType} workspacePath={document} />
-        </Card>
-    ));
+    const cards = documents.map((document) => {
+        return (
+            <Card className="link-card" key={toInstanceApiPath(document)}>
+                <LinkedDocumentTitle document={document} />
+                <DocumentOptionsMenu
+                    linkType={linkType}
+                    workspacePath={document}
+                />
+            </Card>
+        );
+    });
     return <>{cards}</>;
 }
 
@@ -40,7 +80,7 @@ interface LinkedDocumentsProps extends LinkTypeProps {
 
 export function LinkedDocumentsList(props: LinkedDocumentsProps) {
     const [isManuallyRefetching, setManuallyRefetching] = useState(false);
-    const query = useQuery<Workspace[]>({
+    const query = useQuery<LinkedDocument[]>({
         queryKey: linkedDocumentsKey(props.linkType)
     });
 

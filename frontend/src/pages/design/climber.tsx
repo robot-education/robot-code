@@ -14,10 +14,9 @@ import { currentElementApiPath } from "../../app/onshape-params";
 import { isVersionNameValid } from "../../common/version-utils";
 import { ExecuteButton } from "../../components/execute-button";
 import { VersionNameField } from "../../components/version-fields";
-import { MutationProps } from "../../query/mutation";
 import { linkedParentDocumentsKey } from "../../query/query-client";
 import { FormGroup, HTMLSelect } from "@blueprintjs/core";
-import { handleValueChange } from "../../common/handlers";
+import { handleValueChange, OnSubmitProps } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
     title: "COTS climber",
@@ -146,8 +145,8 @@ export function Climber() {
     }
 
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
-            {mutation.isIdle && <AddDesignForm mutation={mutation} />}
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
+            {mutation.isIdle && <AddDesignForm onSubmit={mutation.mutate} />}
             {mutation.isPending && (
                 <ActionSpinner message="Adding climber..." />
             )}
@@ -186,6 +185,7 @@ function getClimberType(
                 case AndymarkClimberStage.TWO:
                     return ClimberType.ANDYMARK_TWO_STAGE;
             }
+        // eslint-disable-next-line no-fallthrough
         case ClimberSupplier.THRIFTY_BOT:
             switch (thriftyBotClimberStage) {
                 case ThriftyBotClimberStage.TWO:
@@ -198,7 +198,7 @@ function getClimberType(
     }
 }
 
-function AddDesignForm(props: MutationProps) {
+function AddDesignForm(props: OnSubmitProps<ClimberArgs>) {
     const defaultName = useLoaderData() as string;
     const query = useQuery<Workspace[]>({ queryKey: linkedParentDocumentsKey });
     const [climberSupplier, setClimberSupplier] = useState(
@@ -259,7 +259,7 @@ function AddDesignForm(props: MutationProps) {
             loading={!disabled && query.isFetching}
             disabled={disabled}
             onSubmit={() => {
-                props.mutation.mutate({
+                props.onSubmit({
                     versionName,
                     climberType: getClimberType(
                         climberSupplier,

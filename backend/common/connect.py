@@ -10,7 +10,6 @@ from requests_oauthlib import OAuth2Session
 from backend.common.database import Database
 import onshape_api
 from backend.common import backend_exceptions, env
-from onshape_api.assertions import assert_instance_type
 from onshape_api.paths.instance_type import InstanceType
 
 
@@ -116,7 +115,7 @@ def get_body_instance_path(
         instance_type = default_type
     # Only do validation if instance type passed
     elif instance_type not in instance_types:
-        raise backend_exceptions.UserException(
+        raise backend_exceptions.BackendException(
             "Invalid instance type {}.".format(instance_type)
         )
 
@@ -139,7 +138,7 @@ def get_route(route_param: str) -> str:
     """
     view_args = flask.request.view_args
     if view_args is None or (param := view_args.get(route_param)) is None:
-        raise backend_exceptions.UserException(
+        raise backend_exceptions.ClientException(
             "Missing required path parameter {}.".format(route_param)
         )
     return param
@@ -152,7 +151,7 @@ def get_query(key: str) -> str:
     """
     value = flask.request.args.get(key)
     if value is None:
-        raise backend_exceptions.UserException(
+        raise backend_exceptions.ClientException(
             "Missing required query parameter {}.".format(key)
         )
     return value
@@ -165,7 +164,7 @@ def get_body(key: str) -> Any:
     """
     value = flask.request.get_json().get(key, None)
     if not value:
-        raise backend_exceptions.UserException(
+        raise backend_exceptions.ClientException(
             "Missing required body parameter {}.".format(key)
         )
     return value

@@ -2,7 +2,7 @@ import dataclasses
 from typing import override
 from featurescript.base import node, ctxt, user_error
 from featurescript.core import utils
-from featurescript.feature_studio import FeatureStudio
+from featurescript.feature_studio import LocalFeatureStudio
 from onshape_api.assertions import assert_instance_type
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath
@@ -48,7 +48,7 @@ class StdImport(node.Node):
         ).build(context)
 
 
-def external_import(studio: FeatureStudio, export: bool = False) -> Import:
+def external_import(studio: LocalFeatureStudio, export: bool = False) -> Import:
     """An import of a feature studio from an external document."""
     path = studio.path
     assert_instance_type(path, InstanceType.VERSION)

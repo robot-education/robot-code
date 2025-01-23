@@ -7,7 +7,7 @@ from onshape_api.paths import paths
 
 STORAGE_FILE: str = "studio_data.pickle"
 
-FileData = dict[str, feature_studio.FeatureStudio]
+FileData = dict[str, feature_studio.LocalFeatureStudio]
 
 
 class ConfigData(Protocol):
@@ -30,7 +30,7 @@ class Config:
         if not path.is_file:
             raise IOError("Failed to find conf.json in the root directory")
         config = json5.load(path.open())
-        self._parse_config(config)  # type: ignore
+        self._parse_config(config)
 
     def _get_config_key(self, config: dict, key: str) -> Any:
         """Fetches the value of key from config. Throws if key does not exist."""

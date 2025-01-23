@@ -1,26 +1,27 @@
 import { Button, Callout, Classes, Collapse } from "@blueprintjs/core";
 import { useState } from "react";
 import { useLoaderData } from "react-router-dom";
-import { ActionCard } from "../actions/action-card";
-import { ActionInfo } from "../actions/action-context";
-import { ActionForm } from "../actions/action-form";
+import { ActionCard } from "../../actions/action-card";
+import { ActionInfo } from "../../actions/action-context";
+import { ActionForm } from "../../actions/action-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ActionDialog } from "../actions/action-dialog";
-import { post } from "../api/api";
-import { currentInstanceApiPath } from "../app/onshape-params";
-import { ActionError } from "../actions/action-error";
-import { ActionSpinner } from "../actions/action-spinner";
-import { ActionSuccess } from "../actions/action-success";
-import { ExecuteButton } from "../components/execute-button";
-import { WorkspacePath, Workspace } from "../api/path";
-import { MutationProps } from "../query/mutation";
-import { linkedParentDocumentsKey } from "../query/query-client";
-import { OpenLinkManagerButton } from "../components/manage-links-button";
+import { ActionDialog } from "../../actions/action-dialog";
+import { post } from "../../api/api";
+import { currentInstanceApiPath } from "../../app/onshape-params";
+import { ActionError } from "../../actions/action-error";
+import { ActionSpinner } from "../../actions/action-spinner";
+import { ActionSuccess } from "../../actions/action-success";
+import { ExecuteButton } from "../../components/execute-button";
+import { WorkspacePath, Workspace, toInstanceApiPath } from "../../api/path";
+import { linkedParentDocumentsKey } from "../../query/query-client";
+import { OpenLinkManagerButton } from "../../components/manage-links-button";
 import {
     VersionDescriptionField,
     VersionNameField
-} from "../components/version-fields";
-import { isVersionNameValid } from "../common/version-utils";
+} from "../../components/version-fields";
+import { isVersionNameValid } from "../../common/version-utils";
+import { MissingPermissionError } from "../../common/errors";
+import { OnSubmitProps } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
     title: "Push version",
@@ -40,7 +41,7 @@ interface PushVersionArgs {
 }
 
 export function PushVersion() {
-    const mutationFn = async (args: PushVersionArgs) => {
+    const pushVersionMutationFn = async (args: PushVersionArgs) => {
         return post("/push-version" + currentInstanceApiPath(), {
             body: {
                 name: args.name,
@@ -51,15 +52,15 @@ export function PushVersion() {
     };
     const mutation = useMutation({
         mutationKey: [actionInfo.route],
-        mutationFn
+        mutationFn: pushVersionMutationFn
     });
 
     let actionSuccess = null;
     if (mutation.isSuccess) {
-        const result = mutation.variables;
-        const length = result.instancePaths.length;
+        const args = mutation.variables;
+        const length = args.instancePaths.length;
         const plural = length == 1 ? "" : "s";
-        const description = `Successfully pushed ${result.name} to ${length} document${plural}.`;
+        const description = `Successfully pushed ${args.name} to ${length} document${plural}.`;
         actionSuccess = (
             <ActionSuccess
                 message="Successfully pushed version"
@@ -68,19 +69,36 @@ export function PushVersion() {
         );
     }
 
+    let actionError = null;
+    if (mutation.isError) {
+        const error = mutation.error;
+        if (error instanceof MissingPermissionError) {
+            actionError = (
+                <ActionError
+                    title="Cannot push document"
+                    description={error.getDescription(
+                        "You don't have access to a linked document."
+                    )}
+                />
+            );
+        } else {
+            actionError = <ActionError />;
+        }
+    }
+
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
-            {mutation.isIdle && <PushVersionForm mutation={mutation} />}
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
+            {mutation.isIdle && <PushVersionForm onSubmit={mutation.mutate} />}
             {mutation.isPending && (
                 <ActionSpinner message="Creating and pushing version..." />
             )}
-            {mutation.isError && <ActionError />}
             {actionSuccess}
+            {actionError}
         </ActionDialog>
     );
 }
 
-function PushVersionForm(props: MutationProps) {
+function PushVersionForm(props: OnSubmitProps<PushVersionArgs>) {
     const defaultName = useLoaderData() as string;
     const query = useQuery<Workspace[]>({ queryKey: linkedParentDocumentsKey });
 
@@ -88,11 +106,13 @@ function PushVersionForm(props: MutationProps) {
 
     // Form fields and validation
     const [versionName, setVersionName] = useState(defaultName);
-
     const [versionDescription, setVersionDescription] = useState("");
 
-    const disabled =
-        !isVersionNameValid(versionName) || versionDescription.length > 10000;
+    const enabled =
+        isVersionNameValid(versionName) &&
+        versionDescription.length <= 10000 &&
+        query.isSuccess &&
+        query.data.length > 0;
 
     let noParentsCallout = null;
     let preview = null;
@@ -117,7 +137,7 @@ function PushVersionForm(props: MutationProps) {
             preview = (
                 <>
                     <Button
-                        disabled={disabled}
+                        disabled={!enabled}
                         text="Explanation"
                         icon="info-sign"
                         rightIcon={showInfo ? "chevron-up" : "chevron-down"}
@@ -141,7 +161,13 @@ function PushVersionForm(props: MutationProps) {
                                         style={{ listStyleType: "disc" }}
                                     >
                                         {query.data.map((document) => (
-                                            <li>{document.name}</li>
+                                            <li
+                                                key={toInstanceApiPath(
+                                                    document
+                                                )}
+                                            >
+                                                {document.name}
+                                            </li>
                                         ))}
                                     </ul>
                                 </li>
@@ -171,13 +197,13 @@ function PushVersionForm(props: MutationProps) {
     const actions = (
         <>
             <ExecuteButton
-                loading={!disabled && query.isFetching}
-                disabled={disabled}
+                loading={!enabled && query.isFetching}
+                disabled={!enabled}
                 onSubmit={() =>
-                    props.mutation.mutate({
+                    props.onSubmit({
                         name: versionName,
                         description: versionDescription,
-                        instancePaths: query.data
+                        instancePaths: query.data ?? []
                     })
                 }
             />

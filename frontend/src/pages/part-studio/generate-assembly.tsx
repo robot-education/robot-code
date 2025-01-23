@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FormGroup, Tooltip, InputGroup } from "@blueprintjs/core";
 import { useMutation } from "@tanstack/react-query";
 
-import { handleStringChange } from "../../common/handlers";
+import { handleStringChange, OnSubmitProps } from "../../common/handlers";
 import { ActionForm } from "../../actions/action-form";
 import { ActionInfo } from "../../actions/action-context";
 import { ActionCard } from "../../actions/action-card";
@@ -17,7 +17,7 @@ import { ExecuteButton } from "../../components/execute-button";
 import { ActionError } from "../../actions/action-error";
 import { ActionSuccess } from "../../actions/action-success";
 import { ActionSpinner } from "../../actions/action-spinner";
-import { MutationProps } from "../../query/mutation";
+import { MissingPermissionError } from "../../common/errors";
 
 const actionInfo: ActionInfo = {
     title: "Generate assembly",
@@ -56,13 +56,30 @@ export function GenerateAssembly() {
         mutationFn
     });
 
+    let actionError = null;
+    if (mutation.isError) {
+        const error = mutation.error;
+        if (error instanceof MissingPermissionError) {
+            actionError = (
+                <ActionError
+                    title="Missing permissions"
+                    description={error.getDescription()}
+                />
+            );
+        } else {
+            actionError = <ActionError />;
+        }
+    }
+
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
-            {mutation.isIdle && <GenerateAssemblyForm mutation={mutation} />}
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
+            {mutation.isIdle && (
+                <GenerateAssemblyForm onSubmit={mutation.mutate} />
+            )}
             {mutation.isPending && (
                 <ActionSpinner message="Generating assembly..." />
             )}
-            {mutation.isError && <ActionError />}
+            {actionError}
             {mutation.isSuccess && (
                 <ActionSuccess
                     message="Successfully generated assembly"
@@ -79,9 +96,7 @@ export function GenerateAssembly() {
     );
 }
 
-function GenerateAssemblyForm(props: MutationProps) {
-    const mutation = props.mutation;
-
+function GenerateAssemblyForm(props: OnSubmitProps<GenerateAssemblyArgs>) {
     const defaultName = useLoaderData() as string;
     const [assemblyName, setAssemblyName] = useState(defaultName);
     const disabled = assemblyName === "";
@@ -94,7 +109,7 @@ function GenerateAssemblyForm(props: MutationProps) {
             labelFor="assembly-name"
             style={{ width: "auto" }}
         >
-            <Tooltip content={"The name of the generated assembly"}>
+            <Tooltip content="The name of the generated assembly" minimal>
                 <InputGroup
                     id="assembly-name"
                     value={assemblyName}
@@ -128,7 +143,7 @@ function GenerateAssemblyForm(props: MutationProps) {
     const executeButton = (
         <ExecuteButton
             disabled={disabled}
-            onSubmit={() => mutation.mutate({ assemblyName })}
+            onSubmit={() => props.onSubmit({ assemblyName })}
         />
     );
 

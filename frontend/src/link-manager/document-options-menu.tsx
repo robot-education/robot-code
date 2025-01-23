@@ -9,7 +9,7 @@ import { makeUrl, openUrlInNewTab } from "../common/url";
 import { WorkspacePath } from "../api/path";
 import { del, post } from "../api/api";
 import { currentInstanceApiPath } from "../app/onshape-params";
-import { LinkType, LinkTypeProps } from "./document-link-type";
+import { LinkType, LinkTypeProps } from "./link-types";
 import {
     infoToastArgs,
     showInternalErrorToast,

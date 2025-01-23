@@ -8,12 +8,13 @@ from concurrent import futures
 
 from featurescript.base import ctxt, studio
 from featurescript import conf
-from featurescript.feature_studio import FeatureStudio, get_feature_studios
+from featurescript.feature_studio import LocalFeatureStudio, get_feature_studios
 from onshape_api import api_base
 from onshape_api.endpoints import feature_studios
 from onshape_api.endpoints.feature_studios import create_feature_studio
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import ElementPath
+from robot_code.documents import BACKEND
 
 OUTDATED_VERSION_MATCH: re.Pattern[str] = re.compile(
     r'version : "(\d{2,7})\.0"|FeatureScript (\d{2,7});'
@@ -43,7 +44,7 @@ class CommandLineManager:
         if self.conflict:
             print(CONFLICT_MESSAGE)
 
-    def _report_conflict(self, studio: FeatureStudio) -> None:
+    def _report_conflict(self, studio: LocalFeatureStudio) -> None:
         self.conflict = True
         print(
             "{} has been modified both locally and in Onshape. Skipping.".format(
@@ -51,7 +52,7 @@ class CommandLineManager:
             )
         )
 
-    def _get_studio_map(self) -> dict[str, FeatureStudio]:
+    def _get_studio_map(self) -> dict[str, LocalFeatureStudio]:
         """Returns a dict mapping Feature Studio names to FeatureStudios."""
         with futures.ThreadPoolExecutor() as executor:
             threads = [
@@ -97,8 +98,8 @@ class CommandLineManager:
             self._finish()
 
     def pull_studio(
-        self, force: bool, studio_to_pull: FeatureStudio
-    ) -> FeatureStudio | None:
+        self, force: bool, studio_to_pull: LocalFeatureStudio
+    ) -> LocalFeatureStudio | None:
         curr_studio = self.curr_data.get(studio_to_pull.path.element_id, None)
         if curr_studio is not None:
             if (
@@ -163,10 +164,10 @@ class CommandLineManager:
 
     def push_studio(
         self,
-        onshape_studio_map: dict[str, FeatureStudio],
+        onshape_studio_map: dict[str, LocalFeatureStudio],
         force: bool,
-        studio_to_push: FeatureStudio,
-    ) -> FeatureStudio | None:
+        studio_to_push: LocalFeatureStudio,
+    ) -> LocalFeatureStudio | None:
         onshape_studio = onshape_studio_map.get(studio_to_push.path.element_id, None)
         # next(
         #     filter(
@@ -264,7 +265,7 @@ class CommandLineManager:
             return True
 
         print("{}: Successfully built.".format(studio.studio_name))
-        document = self.config.get_document("backend")
+        document = BACKEND
         if document is None:
             print(
                 "{}: Failed to find document in config.json named {}. Valid names are: {}".format(
@@ -278,10 +279,11 @@ class CommandLineManager:
 
         if feature_studio is None:
             result = create_feature_studio(self.api, document, studio.studio_name)
-            feature_studio = FeatureStudio(
+            feature_studio = LocalFeatureStudio(
                 result["name"],
                 ElementPath.from_path(document, result["id"]),
                 result["microversionId"],
+                True,
             )
         feature_studio.generated = True
         feature_studio.modified = True

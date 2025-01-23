@@ -1,11 +1,16 @@
 from typing import Iterable
 import flask
 
-from flask import current_app
-import onshape_api
+from backend.common.backend_exceptions import require_permissions
+
 from backend.common import connect, database
+from onshape_api.api.api_base import Api
+from onshape_api.endpoints.permissions import Permission
+
+from flask import current_app
 from onshape_api.endpoints import documents, versions
-from onshape_api.paths.paths import ElementPath
+from onshape_api.paths.instance_type import InstanceType
+from onshape_api.paths.paths import ElementPath, InstancePath
 
 router = flask.Blueprint("references", __name__)
 
@@ -25,14 +30,19 @@ def update_references(*args, **kwargs):
     db = database.Database()
     api = connect.get_api(db)
     instance_path = connect.get_route_instance_path()
+    require_permissions(api, instance_path, Permission.WRITE)
     child_document_ids = connect.get_body_optional("childDocumentIds")
+    if child_document_ids != None:
+        for document_id in child_document_ids:
+            require_permissions(api, document_id, Permission.LINK)
+
     updated_elements = do_update_references(api, instance_path, child_document_ids)
     return {"updatedElements": updated_elements}
 
 
 def do_update_references(
-    api: onshape_api.Api,
-    instance_path: onshape_api.InstancePath,
+    api: Api,
+    instance_path: InstancePath,
     child_document_ids: Iterable[str] | None = None,
 ):
     """Updates all references from elements in instance_path to any document with child_document_ids to point to the latest version of that reference."""
@@ -48,7 +58,7 @@ def do_update_references(
     # For some reason running this asynchronously causes problems...
     updated_elements = 0
     for element_id, paths in external_refs.items():
-        target_path = onshape_api.ElementPath.from_path(instance_path, element_id)
+        target_path = ElementPath.from_path(instance_path, element_id)
         for path in paths:
             if not path["isOutOfDate"]:
                 continue
@@ -57,8 +67,8 @@ def do_update_references(
                 if document_id not in child_document_ids:
                     continue
             # References are always to external versions
-            current_instance_path = onshape_api.InstancePath(
-                document_id, path["id"], onshape_api.InstanceType.VERSION
+            current_instance_path = InstancePath(
+                document_id, path["id"], InstanceType.VERSION
             )
 
             reference_updates = []
@@ -85,7 +95,7 @@ def do_update_references(
 
 @router.post("/push-version" + connect.instance_route())
 def push_version(**kwargs):
-    """Updates references in a given document.
+    """Creates a version, then pushes that new version to all instancesToUpdate.
 
     Args:
         name: The name of the version to create.
@@ -98,13 +108,15 @@ def push_version(**kwargs):
     db = database.Database()
     api = connect.get_api(db)
     curr_instance = connect.get_route_instance_path()
+    require_permissions(api, curr_instance, Permission.WRITE, Permission.LINK)
     name = connect.get_body("name")
     description = connect.get_body_optional("description", "")
     body = connect.get_body("instancesToUpdate")
     instances_to_update = [
-        onshape_api.InstancePath(temp["documentId"], temp["instanceId"])
-        for temp in body
+        InstancePath(temp["documentId"], temp["instanceId"]) for temp in body
     ]
+    for instance in instances_to_update:
+        require_permissions(api, instance, Permission.WRITE)
 
     versions.create_version(api, curr_instance, name, description)
 

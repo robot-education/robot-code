@@ -1,10 +1,11 @@
 import flask
 
-import onshape_api
-
+from backend.common.backend_exceptions import require_permissions
 from backend.common import connect, database
 from onshape_api import model
+from onshape_api.endpoints.permissions import Permission
 from onshape_api.endpoints import assemblies
+from onshape_api.paths.paths import ElementPath
 
 router = flask.Blueprint("generate-assembly", __name__)
 
@@ -20,9 +21,10 @@ def generate_assembly(**kwargs: str):
     api = connect.get_api(db)
     name = connect.get_body("name")
     part_studio_path = connect.get_route_element_path()
+    require_permissions(api, part_studio_path, Permission.READ, Permission.WRITE)
 
     element_id = assemblies.create_assembly(api, part_studio_path, name)["id"]
-    assembly_path = onshape_api.ElementPath.from_path(part_studio_path, element_id)
+    assembly_path = ElementPath.from_path(part_studio_path, element_id)
 
     assemblies.add_parts(api, assembly_path, part_studio_path)
     assembly_data = assemblies.get_assembly(api, assembly_path)

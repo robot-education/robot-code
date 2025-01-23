@@ -1,19 +1,19 @@
 import { Callout } from "@blueprintjs/core";
-import { ActionCard } from "../actions/action-card";
-import { ActionInfo } from "../actions/action-context";
-import { ActionForm } from "../actions/action-form";
+import { ActionCard } from "../../actions/action-card";
+import { ActionInfo } from "../../actions/action-context";
+import { ActionForm } from "../../actions/action-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ActionDialog } from "../actions/action-dialog";
-import { post } from "../api/api";
-import { currentInstanceApiPath } from "../app/onshape-params";
-import { ActionError } from "../actions/action-error";
-import { ActionSpinner } from "../actions/action-spinner";
-import { ActionSuccess } from "../actions/action-success";
-import { ExecuteButton } from "../components/execute-button";
-import { WorkspacePath, Workspace } from "../api/path";
-import { MutationProps } from "../query/mutation";
-import { linkedChildDocumentsKey } from "../query/query-client";
-import { OpenLinkManagerButton } from "../components/manage-links-button";
+import { ActionDialog } from "../../actions/action-dialog";
+import { post } from "../../api/api";
+import { currentInstanceApiPath } from "../../app/onshape-params";
+import { ActionError } from "../../actions/action-error";
+import { ActionSpinner } from "../../actions/action-spinner";
+import { ActionSuccess } from "../../actions/action-success";
+import { ExecuteButton } from "../../components/execute-button";
+import { WorkspacePath, Workspace } from "../../api/path";
+import { linkedChildDocumentsKey } from "../../query/query-client";
+import { OpenLinkManagerButton } from "../../components/manage-links-button";
+import { OnSubmitProps } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
     title: "Update child references",
@@ -54,9 +54,9 @@ export function UpdateChildReferences() {
     }
 
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
             {mutation.isIdle && (
-                <UpdateChildReferencesForm mutation={mutation} />
+                <UpdateChildReferencesForm onSubmit={mutation.mutate} />
             )}
             {mutation.isPending && (
                 <ActionSpinner message="Creating and pushing version..." />
@@ -67,7 +67,9 @@ export function UpdateChildReferences() {
     );
 }
 
-function UpdateChildReferencesForm(props: MutationProps) {
+function UpdateChildReferencesForm(
+    props: OnSubmitProps<UpdateChildReferencesArgs>
+) {
     const query = useQuery<Workspace[]>({ queryKey: linkedChildDocumentsKey });
 
     let noChildrenCallout = null;
@@ -90,8 +92,8 @@ function UpdateChildReferencesForm(props: MutationProps) {
         <ExecuteButton
             loading={query.isFetching}
             onSubmit={() =>
-                props.mutation.mutate({
-                    instancePaths: query.data
+                props.onSubmit({
+                    instancePaths: query.data ?? []
                 })
             }
         />

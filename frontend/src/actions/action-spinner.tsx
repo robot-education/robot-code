@@ -3,9 +3,11 @@ import { ActionBody } from "./action-body";
 
 interface ActionSpinnerProps {
     message: string;
+    slow?: boolean;
 }
 
 export function ActionSpinner(props: ActionSpinnerProps) {
+    const slow = props.slow ?? false;
     // const abortButton = (
     //     <Button
     //         text="Abort"
@@ -21,6 +23,7 @@ export function ActionSpinner(props: ActionSpinnerProps) {
             <NonIdealState
                 icon={<Spinner intent="primary" />}
                 title={props.message}
+                description={slow ? "This may take some time." : undefined}
                 // action={abortButton}
             />
         </ActionBody>

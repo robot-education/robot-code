@@ -7,6 +7,29 @@ This repo is set up to work directly with my FeatureScript backend document whic
 
 Note: This repo is equipped to run with VSCode on Linux (specifically, WSL Ubuntu).
 
+# Repo Setup
+
+First, create a new file in the root of this project named `.env` and add the following contents:
+
+```
+# Server config
+API_LOGGING=true # Enable or disable logging
+API_BASE_PATH=https://cad.onshape.com # Use a different base path
+API_VERSION=10 # Use a different version of the API
+
+# API Keys
+API_ACCESS_KEY=<Your API Access Key>
+API_SECRET_KEY=<Your API Secret Key>
+
+# OAuth
+OAUTH_CLIENT_ID=<Your OAuth client id>
+OAUTH_CLIENT_SECRET=<Your OAuth client secret>
+SESSION_SECRET=literallyAnythingWillDo
+
+NODE_ENV=development
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+```
+
 # Onshape API
 
 A generic library for connecting with and using the Onshape API.
@@ -18,23 +41,12 @@ They are explained in more detail below.
 
 Besides the environment variables required for each API variant, you can also set the variables:
 
-```
-API_LOGGING=true # Enable logging
-API_BASE_PATH=https://cad.onshape.com # Use a different base path
-API_VERSION=6 # Use a different version of the API
-```
-
 ## Key API
 
 This allows you to use the Onshape API with API keys.
 
 1. Get an API key from the [Onshape developer portal](https://dev-portal.onshape.com/keys).
-1. Add your access key and secret key to `.env`:
-
-```
-API_ACCESS_KEY=<Your access key>
-API_SECRET_KEY=<Your secret key>
-```
+1. Add your access key and secret key to `.env`.
 
 You can then call `make_key_api()` to get an `Api` instance you can pass to endpoints or invoke directly.
 
@@ -91,15 +103,31 @@ The following scripts are available:
 
 The Robot manager app lives in the `frontend` and `backend` folders. The app uses Python and flask as the backend and API and Vite and React for the frontend. The app is deployed using Google Cloud App Engine, with Google Cloud Firestore as the database.
 
-# Robot Manager Setup
+## Onshape App Setup
 
-Use the `Launch servers` VSCode task to launch the dev servers necessary to view the app. You should set up Onshape to connect to:
+To test Onshape app changes, you will need to create an OAuth application in the [Onshape Developer Portal](https://cad.onshape.com/appstore/dev-portal/oauthApps). Fill out the following information:
 
-```
-https://localhost:3000/app
-```
+-   Name: (Arbitrary) Robot Manager Test
+-   Primary format: (Arbitrary) com.robot-manager-test
+-   Redirect URLs: `https://localhost:3000/redirect`
+-   OAuth URL: `https://localhost:3000/sign-in`
+-   Uncheck "Application can request purchases on your behalf".
 
-## Flask Credentials Setup
+Click save, then copy your OAuth app's OAuth client identifier and OAuth client secret and add them to your `.env` file.
+
+Next, add the necessary Extensions to your OAuth application so you can see it in documents you open:
+
+1. Open your OAuth application in the [Onshape Developer Portal](https://cad.onshape.com/appstore/dev-portal/oauthApps).
+2. Go to the Extensions tab.
+3. Create two extensions with the following properties:
+    - Name: Robot manager test
+    - Location: Element right panel
+    - Context: Inside assembly/Inside part studio
+    - Action URL:
+      `https://localhost:3000/app?elementType=ASSEMBLY&documentId={$documentId}&instanceType={$workspaceOrVersion}&instanceId={$workspaceOrVersionId}&elementId={$elementId}`
+      `https://localhost:3000/app?elementType=PART_STUDIO&documentId={$documentId}&instanceType={$workspaceOrVersion}&instanceId={$workspaceOrVersionId}&elementId={$elementId}`
+
+### Flask Credentials Setup
 
 Onshape requires all apps, even temporary test apps, to use https. This creates a headache for local development.
 In order to solve this issue, you'll need to generate a certificate and add it to a folder named `credentials` in the root of this project:
@@ -122,8 +150,6 @@ On Firefox, the procedure is:
 2. Open Firefox and go to `Settings > Certificates > View Certificates... > Servers > Add Exception...`
 3. Enter `https://localhost:3000` as the Location and click `Get Certificate`.
 4. Check `Permanently store this exception` and then click `Confirm Security Exception`.
-
-You should now be able to view the app in Onshape.
 
 ## Frontend Setup
 
@@ -150,15 +176,19 @@ Then start up the google cloud emulator:
 gcloud emulators firestore start
 ```
 
-To enable python to connect to the emulator, add the variable `FIRESTORE_EMULATOR_HOST` to `.env` with the value `127.0.0.1:8080`.
-
 <!-- Then restart the distro. This prevents google cloud from using the google cloud version located outside of WSL. -->
 
 Note: this project uses Google Cloud Firestore as it's database. This is not to be confused with Google Firebase's Firestore, as Firebase is a separate project from Google Cloud.
 
-## Deploying in Google Cloud
+## Development Servers
 
-The app can be deployed using the google cloud CLI - `gcloud app deploy`.
+Run the `Launch servers` VSCode task to launch the dev servers necessary to view and test the app.
+If everything is setup properly, you should see all three servers start successfully.
+You should also be able to launch Robot Manager from the right panel of any Onshape Part Studio or Assembly and see the Robot manager UI appear.
+
+# Deploying in Google Cloud
+
+The app can be deployed by running the script `./scripts/deploy.sh`.
 
 Some notes:
 

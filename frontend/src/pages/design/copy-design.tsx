@@ -17,7 +17,7 @@ import { post } from "../../api/api";
 import { isVersionNameValid } from "../../common/version-utils";
 import { ExecuteButton } from "../../components/execute-button";
 import { VersionNameField } from "../../components/version-fields";
-import { MutationProps } from "../../query/mutation";
+import { OnSubmitProps } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
     title: "Copy design",
@@ -67,8 +67,8 @@ export function CopyDesign() {
     }
 
     return (
-        <ActionDialog title={actionInfo.title} mutation={mutation}>
-            {mutation.isIdle && <CopyDesignForm mutation={mutation} />}
+        <ActionDialog title={actionInfo.title} isPending={mutation.isPending}>
+            {mutation.isIdle && <CopyDesignForm onSubmit={mutation.mutate} />}
             {mutation.isPending && <ActionSpinner message="Adding design..." />}
             {mutation.isError && <ActionError />}
             {actionSuccess}
@@ -76,7 +76,7 @@ export function CopyDesign() {
     );
 }
 
-function CopyDesignForm(props: MutationProps) {
+function CopyDesignForm(props: OnSubmitProps<CopyDesignArgs>) {
     const defaultName = useLoaderData() as string;
 
     const [url, setUrl] = useState("");
@@ -111,7 +111,7 @@ function CopyDesignForm(props: MutationProps) {
         <ExecuteButton
             disabled={disabled}
             onSubmit={() => {
-                props.mutation.mutate({
+                props.onSubmit({
                     versionName,
                     url
                 });

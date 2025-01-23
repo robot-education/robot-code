@@ -7,12 +7,12 @@ import {
     showInternalErrorToast,
     showSuccessToast
 } from "../app/toaster";
-import { HandledError } from "../common/errors";
+import { HandledError, MissingPermissionError } from "../common/errors";
 import { currentInstanceApiPath } from "../app/onshape-params";
 import { parseUrl } from "../common/url";
 import { handleDocumentAdded } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
-import { LinkTypeProps, LinkType } from "./document-link-type";
+import { LinkTypeProps, LinkType } from "./link-types";
 import { Workspace } from "../api/path";
 
 interface AddLinkArgs {
@@ -51,7 +51,12 @@ async function addLinkMutationFn({
             documentId: targetPath.documentId,
             instanceId: targetPath.instanceId
         }
-    }).catch(() => {
+    }).catch((error) => {
+        if (error instanceof MissingPermissionError) {
+            throw new HandledError(
+                "Failed to link document - You do not have the necessary permissions."
+            );
+        }
         showInternalErrorToast("Unexpectedly failed to add link.");
     });
 }
