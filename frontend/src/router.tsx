@@ -5,6 +5,7 @@ import { GenerateAssembly } from "./pages/part-studio/generate-assembly";
 import { GrantDenied } from "./pages/grant-denied";
 import { Versions } from "./pages/versions/versions";
 import { PushVersion } from "./pages/versions/push-version";
+import { PushVersionRecursive } from "./pages/versions/push-version-recursive";
 import { UpdateAllReferences } from "./pages/versions/update-all-references";
 import { LinkManager } from "./link-manager/link-manager";
 import {
@@ -63,6 +64,11 @@ export const router = createBrowserRouter([
                     {
                         path: "push-version",
                         element: <PushVersion />,
+                        loader: makeDefaultNameLoader(DefaultNameType.VERSION)
+                    },
+                    {
+                        path: "push-version-recursive",
+                        element: <PushVersionRecursive />,
                         loader: makeDefaultNameLoader(DefaultNameType.VERSION)
                     },
                     {

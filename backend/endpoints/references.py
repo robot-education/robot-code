@@ -1,4 +1,5 @@
 from typing import Iterable
+from collections import defaultdict, deque
 import flask
 
 from backend.common.backend_exceptions import require_permissions
@@ -115,6 +116,45 @@ def push_version(**kwargs):
     instances_to_update = [
         InstancePath(temp["documentId"], temp["instanceId"]) for temp in body
     ]
+    for instance in instances_to_update:
+        require_permissions(api, instance, Permission.WRITE)
+
+    versions.create_version(api, curr_instance, name, description)
+
+    updated_references = 0
+    for update_instance in instances_to_update:
+        updated_references += do_update_references(
+            api, update_instance, [curr_instance.document_id]
+        )
+
+    return {"updatedReferences": updated_references}
+
+
+@router.post("/push-version-recursive" + connect.instance_route())
+def push_version_recursive(**kwargs):
+    """Creates a version, then pushes that new version to all instancesToUpdate.
+
+    Args:
+        name: The name of the version to create.
+        description: The description to create.
+        instancesToUpdate: A list of workspace instance objects {documentId, instanceId} to push the version to.
+
+    Returns:
+        updatedReferences: The number of tabs which had references updated.
+    """
+    db = database.Database()
+    api = connect.get_api(db)
+    curr_instance = connect.get_route_instance_path()
+    require_permissions(api, curr_instance, Permission.WRITE, Permission.LINK)
+    name = connect.get_body("name")
+    description = connect.get_body_optional("description", "")
+    
+    body = connect.get_body("instancesToUpdate")
+
+    instances_to_update = [
+        InstancePath(temp["documentId"], temp["instanceId"]) for temp in body
+    ]
+
     for instance in instances_to_update:
         require_permissions(api, instance, Permission.WRITE)
 
