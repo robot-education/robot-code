@@ -1,6 +1,5 @@
 from hmac import new
 from typing import Iterable
-from collections import defaultdict, deque
 import flask
 from requests import get
 
