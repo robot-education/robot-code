@@ -1,10 +1,13 @@
+from hmac import new
 from typing import Iterable
 from collections import defaultdict, deque
 import flask
+from requests import get
 
 from backend.common.backend_exceptions import require_permissions
 
 from backend.common import connect, database
+from backend.endpoints.linked_documents import LinkType, db_id_to_path, get_linked_documents, make_document, path_to_db_id
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints.permissions import Permission
 
@@ -12,6 +15,7 @@ from flask import current_app
 from onshape_api.endpoints import documents, versions
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath
+from onshape_api.utils.str_utils import parens
 
 router = flask.Blueprint("references", __name__)
 
@@ -151,17 +155,55 @@ def push_version_recursive(**kwargs):
     
     body = connect.get_body("instancesToUpdate")
 
-    instances_to_update = [
-        InstancePath(temp["documentId"], temp["instanceId"]) for temp in body
-    ]
+    
 
-    for instance in instances_to_update:
-        require_permissions(api, instance, Permission.WRITE)
+
+
+
+
+    def get_linked_parents(db, instance):
+        document_db_id = path_to_db_id(instance)
+        doc = db.linked_documents.document(document_db_id).get()
+        linked_parents = []
+        if doc.exists and (data := doc.to_dict()):
+            for document_db_id in data.get(LinkType.PARENTS, []):
+                linked_parents.append(db_id_to_path(document_db_id))
+
+        return linked_parents
+
+    unvisited_nodes = [curr_instance]
+
+    sorted_list = []
+
+    while unvisited_nodes:
+        curr_node = unvisited_nodes.pop(0)
+        sorted_list.append(curr_node)
+        curr_node_parents = get_linked_parents(db, curr_node)
+        for parent in curr_node_parents:
+            if parent not in sorted_list:
+                unvisited_nodes.append(parent)
+            else:
+                raise Exception("Cycle detected")
+
+    with open("backend/endpoints/logfile.txt", "a") as log_file:
+
+        log_file.write("curr_instance begin\n")
+        log_file.write(f"{curr_instance}\n")
+        log_file.write("curr_instance end\n\n")
+
+        log_file.write("sorted_list begin\n")
+        for node in sorted_list:
+            log_file.write(f"{documents.get_document(api, node)["name"]}\n")
+        log_file.write("sorted_list end\n\n")
+
+
+    for instance in sorted_list:
+        require_permissions(api, instance, Permission.WRITE , Permission.LINK)
 
     versions.create_version(api, curr_instance, name, description)
 
     updated_references = 0
-    for update_instance in instances_to_update:
+    for update_instance in sorted_list:
         updated_references += do_update_references(
             api, update_instance, [curr_instance.document_id]
         )
