@@ -200,17 +200,16 @@ def push_version_recursive(**kwargs):
 
     updated_references = 0
     for update_instance in sorted_list:
-        versions.create_version(api, update_instance, name, description)
-        versioned_docs.append(update_instance)
 
         updated_references += do_update_references(
-            api, update_instance, [doc.document_id for doc in versioned_docs]
+            api, update_instance, [doc.document_id for doc in sorted_list]
         )
+        versions.create_version(api, update_instance, name, description)
 
     with open("backend/endpoints/logfile.txt", "a") as log_file:
 
-        log_file.write("versioned_docs begin\n")
-        log_file.write(f"{versioned_docs}\n")
-        log_file.write("versioned_docs end\n\n")
+        log_file.write("updated_references begin\n")
+        log_file.write(f"{updated_references}\n")
+        log_file.write("updated_references end\n\n")
 
     return {"updatedReferences": updated_references}
