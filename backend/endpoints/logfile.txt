@@ -1,0 +1,45 @@
+curr_instance begin
+/d/839f2ae3b61462b2924dd8dd/w/cb58acd8fcb444681d733ab5
+curr_instance end
+
+sorted_list begin
+Document A
+Document B
+Document C
+Document D
+sorted_list end
+
+versioned_docs begin
+[<onshape_api.paths.paths.InstancePath object at 0x7fb355579ac0>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555796d0>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555796a0>, <onshape_api.paths.paths.InstancePath object at 0x7fb355578080>]
+versioned_docs end
+
+curr_instance begin
+/d/839f2ae3b61462b2924dd8dd/w/cb58acd8fcb444681d733ab5
+curr_instance end
+
+sorted_list begin
+Document A
+Document B
+Document C
+Document D
+sorted_list end
+
+versioned_docs begin
+[<onshape_api.paths.paths.InstancePath object at 0x7fb3555a1310>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555a20c0>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555a1550>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555a18b0>]
+versioned_docs end
+
+curr_instance begin
+/d/839f2ae3b61462b2924dd8dd/w/cb58acd8fcb444681d733ab5
+curr_instance end
+
+sorted_list begin
+Document A
+Document B
+Document C
+Document D
+sorted_list end
+
+versioned_docs begin
+[<onshape_api.paths.paths.InstancePath object at 0x7fb35695b920>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555a1670>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555a0830>, <onshape_api.paths.paths.InstancePath object at 0x7fb3555a1730>]
+versioned_docs end
+

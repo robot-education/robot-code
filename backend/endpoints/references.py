@@ -1,4 +1,5 @@
 from hmac import new
+from math import log
 from typing import Iterable
 import flask
 from requests import get
@@ -151,14 +152,6 @@ def push_version_recursive(**kwargs):
     require_permissions(api, curr_instance, Permission.WRITE, Permission.LINK)
     name = connect.get_body("name")
     description = connect.get_body_optional("description", "")
-    
-    body = connect.get_body("instancesToUpdate")
-
-    
-
-
-
-
 
     def get_linked_parents(db, instance):
         document_db_id = path_to_db_id(instance)
@@ -178,11 +171,13 @@ def push_version_recursive(**kwargs):
         curr_node = unvisited_nodes.pop(0)
         sorted_list.append(curr_node)
         curr_node_parents = get_linked_parents(db, curr_node)
+
         for parent in curr_node_parents:
-            if parent not in sorted_list:
+            if parent in sorted_list:
+                sorted_list.remove(parent)
+                sorted_list.append(parent)
+            elif parent not in unvisited_nodes:
                 unvisited_nodes.append(parent)
-            else:
-                raise Exception("Cycle detected")
 
     with open("backend/endpoints/logfile.txt", "a") as log_file:
 
@@ -201,10 +196,21 @@ def push_version_recursive(**kwargs):
 
     versions.create_version(api, curr_instance, name, description)
 
+    versioned_docs = []
+
     updated_references = 0
     for update_instance in sorted_list:
+        versions.create_version(api, update_instance, name, description)
+        versioned_docs.append(update_instance)
+
         updated_references += do_update_references(
-            api, update_instance, [curr_instance.document_id]
+            api, update_instance, [doc.document_id for doc in versioned_docs]
         )
+
+    with open("backend/endpoints/logfile.txt", "a") as log_file:
+
+        log_file.write("versioned_docs begin\n")
+        log_file.write(f"{versioned_docs}\n")
+        log_file.write("versioned_docs end\n\n")
 
     return {"updatedReferences": updated_references}
