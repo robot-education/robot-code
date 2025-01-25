@@ -103,3 +103,18 @@ updated_references begin
 6
 updated_references end
 
+curr_instance begin
+/d/839f2ae3b61462b2924dd8dd/w/cb58acd8fcb444681d733ab5
+curr_instance end
+
+sorted_list begin
+Document A
+Document B
+Document C
+Document D
+sorted_list end
+
+updated_references begin
+6
+updated_references end
+

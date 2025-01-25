@@ -196,8 +196,6 @@ def push_version_recursive(**kwargs):
 
     versions.create_version(api, curr_instance, name, description)
 
-    versioned_docs = []
-
     updated_references = 0
     for update_instance in sorted_list:
 
