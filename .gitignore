@@ -201,3 +201,4 @@ app.yaml
 .storage/
 credentials/
 temp/
+.env

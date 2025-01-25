@@ -173,11 +173,14 @@ def push_version_recursive(**kwargs):
         curr_node_parents = get_linked_parents(db, curr_node)
 
         for parent in curr_node_parents:
-            if parent in sorted_list:
-                sorted_list.remove(parent)
-                sorted_list.append(parent)
-            elif parent not in unvisited_nodes:
+            if parent not in unvisited_nodes:
                 unvisited_nodes.append(parent)
+    
+    trimmed_list = [] #remove duplicates
+
+    for instance in reversed(sorted_list):
+        if instance not in trimmed_list:
+            trimmed_list.insert(0,instance)
 
     with open("backend/endpoints/logfile.txt", "a") as log_file:
 
@@ -185,22 +188,22 @@ def push_version_recursive(**kwargs):
         log_file.write(f"{curr_instance}\n")
         log_file.write("curr_instance end\n\n")
 
-        log_file.write("sorted_list begin\n")
-        for node in sorted_list:
+        log_file.write("trimmed_list begin\n")
+        for node in trimmed_list:
             log_file.write(f"{documents.get_document(api, node)["name"]}\n")
-        log_file.write("sorted_list end\n\n")
+        log_file.write("trimmed_list end\n\n")
 
 
-    for instance in sorted_list:
+    for instance in trimmed_list:
         require_permissions(api, instance, Permission.WRITE , Permission.LINK)
 
     versions.create_version(api, curr_instance, name, description)
 
     updated_references = 0
-    for update_instance in sorted_list:
+    for update_instance in trimmed_list:
 
         updated_references += do_update_references(
-            api, update_instance, [doc.document_id for doc in sorted_list]
+            api, update_instance, [doc.document_id for doc in trimmed_list]
         )
         versions.create_version(api, update_instance, name, description)
 
