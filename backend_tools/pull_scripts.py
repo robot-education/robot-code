@@ -5,7 +5,6 @@ from onshape_api.api import key_api
 from onshape_api.endpoints import feature_studios
 from featurescript import feature_studio
 from featurescript.transform import transform
-from featurescript import conf
 from robot_code.documents import BACKEND
 
 
