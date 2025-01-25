@@ -4,6 +4,7 @@ from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
 
 inst_path = InstancePath("1", "2")
 same_path = InstancePath("1", "2")
+diff_path = InstancePath("1", "5")
 
 doc_path = DocumentPath("1")
 element_path = ElementPath("1", "2", "5")
@@ -23,6 +24,12 @@ class TestPathMethods(unittest.TestCase):
     def test_in(self):
         self.assertTrue(inst_path in [same_path])
         self.assertTrue(inst_path in {same_path})
+
+    def test_diff(self):
+        self.assertFalse(inst_path == diff_path)
+        self.assertFalse(inst_path is diff_path)
+        self.assertFalse(inst_path in [diff_path])
+        self.assertFalse(inst_path in {diff_path})
 
     def test_conversions(self):
         self.assertFalse(inst_path == doc_path)
