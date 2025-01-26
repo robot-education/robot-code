@@ -48,7 +48,7 @@ class DocumentPath:
         return hash(self.document_id)
 
     def __eq__(self, other) -> bool:
-        return isinstance(other, type(self)) and self.document_id == other.document_id
+        return isinstance(other, DocumentPath) and self.document_id == other.document_id
 
     def __str__(self) -> str:
         return DocumentPath.to_api_path(self)
@@ -111,7 +111,7 @@ class InstancePath(DocumentPath):
 
     def __eq__(self, other) -> bool:
         return (
-            isinstance(other, type(self))
+            isinstance(other, InstancePath)
             and super().__eq__(other)
             and self.instance_id == other.instance_id
             and self.wvm == other.wvm
@@ -167,7 +167,7 @@ class ElementPath(InstancePath):
 
     def __eq__(self, other) -> bool:
         return (
-            isinstance(other, type(self))
+            isinstance(other, ElementPath)
             and self.__eq__(other)
             and self.element_id == other.element_id
         )
@@ -221,7 +221,7 @@ class PartPath(ElementPath):
 
     def __eq__(self, other) -> bool:
         return (
-            isinstance(other, type(self))
+            isinstance(other, PartPath)
             and self.__eq__(other)
             and self.part_id == other.part_id
         )
