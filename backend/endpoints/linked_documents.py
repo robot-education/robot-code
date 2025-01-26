@@ -1,5 +1,5 @@
 import enum
-from typing import cast
+from typing import Callable, cast
 
 import flask
 from google.cloud import firestore
@@ -163,7 +163,11 @@ def get_document_paths(link_type: str, **kwargs):
             raise backend_exceptions.ReportedException(
                 "Cannot retrieve children recursively"
             )
-        linked_document_paths = get_all_linked_parents(db, curr_path)
+
+        def parent_function(node: InstancePath) -> list[InstancePath]:
+            return get_linked_document_paths(db, node)
+
+        linked_document_paths = get_all_linked_parents(parent_function, curr_path)
     else:
         linked_document_paths = get_linked_document_paths(db, curr_path, link_type)
     return [make_document(api, path) for path in linked_document_paths]
@@ -224,7 +228,9 @@ def get_linked_document_paths(
     return linked_paths
 
 
-def get_all_linked_parents(db: database.Database, root: InstancePath):
+def get_all_linked_parents(
+    parent_function: Callable[[InstancePath], list[InstancePath]], root: InstancePath
+):
     """Returns a topologically sorted list of parents of the given document_path."""
     visited = set()
     stack = set()
@@ -239,7 +245,7 @@ def get_all_linked_parents(db: database.Database, root: InstancePath):
         stack.add(curr)
         visited.add(curr)
 
-        linked_paths = get_linked_document_paths(db, curr)
+        linked_paths = parent_function(curr)
         for node in linked_paths:
             dfs(node)
         stack.remove(curr)
