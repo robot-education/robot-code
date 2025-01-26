@@ -201,5 +201,3 @@ app.yaml
 .storage/
 credentials/
 temp/
-.env
-backend/endpoints/logfile.txt
