@@ -55,9 +55,9 @@ def copy_design(**kwargs):
     target_path = connect.get_route_element_path()
     design_path = connect.get_body_instance_path()
 
-    included_names: list[str] | None = connect.get_body_optional("elements")
-    excluded_names: list[str] = connect.get_body_optional("elementsToExclude", [])
-    version_name: str = connect.get_body("versionName")
+    included_names: list[str] | None = connect.get_optional_body_arg("elements")
+    excluded_names: list[str] = connect.get_optional_body_arg("elementsToExclude", [])
+    version_name: str = connect.get_body_arg("versionName")
 
     # Copy design document to avoid impacting other users
     copy_data = copy_workspace(api, design_path, "COPY DESIGN TEMP DOCUMENT")

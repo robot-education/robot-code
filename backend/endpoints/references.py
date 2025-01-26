@@ -31,7 +31,7 @@ def update_references(*args, **kwargs):
     api = connect.get_api(db)
     instance_path = connect.get_route_instance_path()
     require_permissions(api, instance_path, Permission.WRITE)
-    child_document_ids = connect.get_body_optional("childDocumentIds")
+    child_document_ids = connect.get_optional_body_arg("childDocumentIds")
     if child_document_ids != None:
         for document_id in child_document_ids:
             require_permissions(api, document_id, Permission.LINK)
@@ -109,21 +109,22 @@ def push_version(**kwargs):
     api = connect.get_api(db)
     curr_instance = connect.get_route_instance_path()
     require_permissions(api, curr_instance, Permission.WRITE, Permission.LINK)
-    name = connect.get_body("name")
-    description = connect.get_body_optional("description", "")
-    body = connect.get_body("instancesToUpdate")
+    name = connect.get_body_arg("name")
+    description = connect.get_optional_body_arg("description", "")
+    body = connect.get_body_arg("instancesToUpdate")
     instances_to_update = [
         InstancePath(temp["documentId"], temp["instanceId"]) for temp in body
     ]
     for instance in instances_to_update:
-        require_permissions(api, instance, Permission.WRITE)
+        require_permissions(api, instance, Permission.WRITE, Permission.LINK)
 
     versions.create_version(api, curr_instance, name, description)
 
     updated_references = 0
+    visited_ids = [curr_instance.document_id]
     for update_instance in instances_to_update:
-        updated_references += do_update_references(
-            api, update_instance, [curr_instance.document_id]
-        )
+        updated_references += do_update_references(api, update_instance, visited_ids)
+        visited_ids.append(update_instance.document_id)
+        versions.create_version(api, update_instance, name, description)
 
     return {"updatedReferences": updated_references}

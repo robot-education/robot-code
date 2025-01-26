@@ -22,3 +22,9 @@ export function isOpenableDocument(
 ): linkedDocument is OpenableLinkedDocument {
     return linkedDocument.isOpenable;
 }
+
+export function allOpenableDocuments(
+    linkedDocuments: LinkedDocument[]
+): linkedDocuments is OpenableLinkedDocument[] {
+    return linkedDocuments.every((document) => document.isOpenable);
+}

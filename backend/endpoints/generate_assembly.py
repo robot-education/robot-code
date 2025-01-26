@@ -19,7 +19,7 @@ def generate_assembly(**kwargs: str):
     """
     db = database.Database()
     api = connect.get_api(db)
-    name = connect.get_body("name")
+    name = connect.get_body_arg("name")
     part_studio_path = connect.get_route_element_path()
     require_permissions(api, part_studio_path, Permission.READ, Permission.WRITE)
 

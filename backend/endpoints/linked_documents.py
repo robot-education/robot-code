@@ -1,10 +1,12 @@
 import enum
+from typing import cast
 
 import flask
 from google.cloud import firestore
 
 from backend.common import backend_exceptions, connect, database
 from onshape_api.api.api_base import Api
+from onshape_api.endpoints import permissions
 from onshape_api.endpoints.metadata import get_instance_metadata
 from onshape_api.endpoints.permissions import (
     Permission,
@@ -60,7 +62,7 @@ def delete_linked_document(link_type: LinkType, **kwargs):
 
     link_types = get_link_types(link_type)
     link_path = InstancePath(
-        connect.get_query("documentId"), connect.get_query("instanceId")
+        connect.get_query_arg("documentId"), connect.get_query_arg("instanceId")
     )
     link_id = path_to_db_id(link_path)
 
@@ -101,14 +103,14 @@ def add_linked_document(link_type: LinkType, **kwargs):
     backend_exceptions.require_permissions(api, curr_path, Permission.WRITE)
 
     link_path = InstancePath(
-        connect.get_query("documentId"), connect.get_query("instanceId")
+        connect.get_query_arg("documentId"), connect.get_query_arg("instanceId")
     )
     backend_exceptions.require_permissions(api, link_path, Permission.READ)
 
     link_db_id = path_to_db_id(link_path)
 
     if curr_db_id == link_db_id:
-        raise backend_exceptions.ClientException("Cannot link a document to itself.")
+        raise backend_exceptions.ReportedException("Cannot link a document to itself.")
 
     link_document = make_document(api, link_path)
 
@@ -118,34 +120,53 @@ def add_linked_document(link_type: LinkType, **kwargs):
     return link_document
 
 
+def get_link_types(link_type: LinkType) -> tuple[LinkType, LinkType]:
+    if link_type == LinkType.PARENTS:
+        return (LinkType.PARENTS, LinkType.CHILDREN)
+    elif link_type == LinkType.CHILDREN:
+        return (LinkType.CHILDREN, LinkType.PARENTS)
+    raise backend_exceptions.BackendException("Invalid link_type {}.".format(link_type))
+
+
 @router.get("/linked-documents/<link_type>" + connect.instance_route())
-def get_linked_documents(link_type: str, **kwargs):
+def get_document_paths(link_type: str, **kwargs):
     """Gets a list of documents (technically, workspaces) linked to the current document.
+
+    Query args:
+        recursive:
+            If true (and link_type is PARENTS), the list of documents will recursively include parents linked to the current document.
+            The result will be topologically sorted such that linked dependencies are respected.
 
     Returns a list of linked documents with the fields:
         documentId:
         instanceId:
-        name: The name of the document, or undefined if the document cannot be read.
-        workspaceName: The name of the workspace.
+        isOpenable: Whether the document can be opened.
+        isLinkable: Whether the user has link permissions.
+        name: If the document can be opened, the name of the document.
+        workspaceName: If the document can be opened, the name of the workspace.
     """
     if link_type not in LinkType:
         raise backend_exceptions.BackendException(
             "Invalid link_type {}.".format(link_type)
         )
+    link_type = cast(LinkType, link_type)
+
     db = database.Database()
     api = connect.get_api(db)
+
     curr_path = connect.get_route_instance_path()
     backend_exceptions.require_permissions(api, curr_path, Permission.READ)
-    document_db_id = path_to_db_id(curr_path)
 
-    doc = db.linked_documents.document(document_db_id).get()
-    linked_documents = []
-    if doc.exists and (data := doc.to_dict()):
-        for document_db_id in data.get(link_type, []):
-            path = db_id_to_path(document_db_id)
-            linked_documents.append(make_document(api, path))
-
-    return linked_documents
+    recursive: bool = connect.get_optional_query_arg("recursive") == "true"
+    if recursive:
+        if link_type == LinkType.CHILDREN:
+            raise backend_exceptions.ReportedException(
+                "Cannot retrieve children recursively"
+            )
+        linked_document_paths = get_all_linked_parents(db, curr_path)
+    else:
+        linked_document_paths = get_linked_document_paths(db, curr_path, link_type)
+    return [make_document(api, path) for path in linked_document_paths]
 
 
 def make_document(api: Api, path: InstancePath) -> dict:
@@ -154,8 +175,10 @@ def make_document(api: Api, path: InstancePath) -> dict:
             "documentId": path.document_id,
             "instanceId": path.instance_id,
             "isOpenable": False,
+            "isLinkable": False,
         }
     try:
+        is_linkable = permissions.has_permissions(api, path, Permission.LINK)
         linked_document = documents.get_document(api, path)
         name = linked_document["name"]
 
@@ -180,14 +203,49 @@ def make_document(api: Api, path: InstancePath) -> dict:
         "documentId": path.document_id,
         "instanceId": path.instance_id,
         "isOpenable": True,
+        "isLinkable": is_linkable,
         "name": name,
         "workspaceName": workspace_name,
     }
 
 
-def get_link_types(link_type: LinkType) -> tuple[LinkType, LinkType]:
-    if link_type == LinkType.PARENTS:
-        return (LinkType.PARENTS, LinkType.CHILDREN)
-    elif link_type == LinkType.CHILDREN:
-        return (LinkType.CHILDREN, LinkType.PARENTS)
-    raise backend_exceptions.BackendException("Invalid link_type {}.".format(link_type))
+def get_linked_document_paths(
+    db: database.Database,
+    document_path: InstancePath,
+    link_type: LinkType = LinkType.PARENTS,
+):
+    """Returns a list of documents linked from the given document_path."""
+    document_db_id = path_to_db_id(document_path)
+    doc = db.linked_documents.document(document_db_id).get()
+    linked_paths = []
+    if doc.exists and (data := doc.to_dict()):
+        for document_db_id in data.get(link_type, []):
+            linked_paths.append(db_id_to_path(document_db_id))
+    return linked_paths
+
+
+def get_all_linked_parents(db: database.Database, root: InstancePath):
+    """Returns a topologically sorted list of parents of the given document_path."""
+    visited = set()
+    stack = set()
+    result = []
+
+    def dfs(curr: InstancePath):
+        if curr in stack:
+            raise backend_exceptions.LinkedCycleException()
+        if curr in visited:
+            return
+
+        stack.add(curr)
+        visited.add(curr)
+
+        linked_paths = get_linked_document_paths(db, curr)
+        for node in linked_paths:
+            dfs(node)
+        stack.remove(curr)
+        result.append(curr)
+
+    dfs(root)
+    # Root ends up at the back since it's a dfs
+    result.pop()
+    return result[::-1]

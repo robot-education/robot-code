@@ -1,3 +1,4 @@
+from abc import ABC
 from http import HTTPStatus
 
 from onshape_api.api.api_base import Api
@@ -23,9 +24,7 @@ class BackendException(Exception):
 
 
 class ClientException(Exception):
-    """An exception thrown by the backend which stems from an issue with the client.
-    This is still an issue, but is generally with the client implementation rather than the server itself.
-    """
+    """An unexpected exception thrown by the backend which stems from an issue with the client code."""
 
     def __init__(
         self,
@@ -33,13 +32,25 @@ class ClientException(Exception):
     ):
         super().__init__()
         self.message = message
-        self.status_code = HTTPStatus.BAD_REQUEST
+        self.status_code = HTTPStatus.EXPECTATION_FAILED
 
     def to_dict(self):
         return {"type": "CLIENT_EXCEPTION", "message": self.message}
 
 
-class MissingPermission(Exception):
+class ReportedException(ABC, Exception):
+    """An exception which is exposed to the user."""
+
+    def __init__(self, type: str, status_code: HTTPStatus = HTTPStatus.BAD_REQUEST):
+        super().__init__(type)
+        self.type = type
+        self.status_code = status_code
+
+    def to_dict(self):
+        return {"type": self.type}
+
+
+class MissingPermissionException(ReportedException):
     """An exception indicating a user does not have the necessary permissions for one or more resources used by an endpoint."""
 
     def __init__(
@@ -48,15 +59,14 @@ class MissingPermission(Exception):
         document_id: str,
         document_name: str | None = None,
     ):
-        super().__init__("MISSING_PERMISSION")
+        super().__init__("MISSING_PERMISSION", HTTPStatus.UNAUTHORIZED)
         self.missing_permission = missing_permission
         self.document_id = document_id
         self.document_name = document_name
-        self.status_code = HTTPStatus.UNAUTHORIZED
 
     def to_dict(self):
         return {
-            "type": "MISSING_PERMISSION",
+            "type": self.type,
             "permission": self.missing_permission,
             "documentId": self.document_id,
             "documentName": self.document_name,
@@ -67,7 +77,7 @@ def require_permissions(api: Api, path: DocumentPath, *needed_permissions: Permi
     """Throws an exception if the current user doesn't have given permissions for the given document."""
     permissions = get_permissions(api, path)
     if permissions == []:
-        raise MissingPermission(Permission.READ, path.document_id)
+        raise MissingPermissionException(Permission.READ, path.document_id)
 
     for permission in needed_permissions:
         if permission not in permissions:
@@ -75,4 +85,13 @@ def require_permissions(api: Api, path: DocumentPath, *needed_permissions: Permi
                 document_name = get_document(api, path)["name"]
             except:
                 document_name = None
-            raise MissingPermission(permission, path.document_id, document_name)
+            raise MissingPermissionException(
+                permission, path.document_id, document_name
+            )
+
+
+class LinkedCycleException(ReportedException):
+    """An exception indicating the current document's linked document graph contains a cycle."""
+
+    def __init__(self):
+        super().__init__("LINKED_CYCLE")

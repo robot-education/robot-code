@@ -10,10 +10,11 @@ import { ActionError } from "../../actions/action-error";
 import { ActionSpinner } from "../../actions/action-spinner";
 import { ActionSuccess } from "../../actions/action-success";
 import { ExecuteButton } from "../../components/execute-button";
-import { WorkspacePath, Workspace } from "../../api/path";
-import { linkedChildDocumentsKey } from "../../query/query-client";
+import { WorkspacePath } from "../../api/path";
 import { OpenLinkManagerButton } from "../../components/manage-links-button";
 import { OnSubmitProps } from "../../common/handlers";
+import { getLinkedDocumentsOptions } from "../../query/query-client";
+import { LinkType } from "../../link-manager/link-types";
 
 const actionInfo: ActionInfo = {
     title: "Update child references",
@@ -70,7 +71,7 @@ export function UpdateChildReferences() {
 function UpdateChildReferencesForm(
     props: OnSubmitProps<UpdateChildReferencesArgs>
 ) {
-    const query = useQuery<Workspace[]>({ queryKey: linkedChildDocumentsKey });
+    const query = useQuery(getLinkedDocumentsOptions(LinkType.CHILDREN));
 
     let noChildrenCallout = null;
     if (query.isSuccess && query.data.length == 0) {

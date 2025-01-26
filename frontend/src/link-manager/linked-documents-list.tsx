@@ -4,7 +4,6 @@ import {
     CardList,
     EntityTitle,
     Icon,
-    IconSize,
     Intent,
     NonIdealState,
     NonIdealStateIconSize,
@@ -23,9 +22,8 @@ import {
 } from "./link-types";
 import { DocumentOptionsMenu } from "./document-options-menu";
 import { useState } from "react";
-import { linkedDocumentsKey } from "../query/query-client";
 import { toInstanceApiPath } from "../api/path";
-import { ICON } from "@blueprintjs/core/lib/esm/common/classes";
+import { getLinkedDocumentsOptions } from "../query/query-client";
 
 interface LinkedDocumentTitleProps {
     document: LinkedDocument;
@@ -80,10 +78,7 @@ interface LinkedDocumentsProps extends LinkTypeProps {
 
 export function LinkedDocumentsList(props: LinkedDocumentsProps) {
     const [isManuallyRefetching, setManuallyRefetching] = useState(false);
-    const query = useQuery<LinkedDocument[]>({
-        queryKey: linkedDocumentsKey(props.linkType)
-    });
-
+    const query = useQuery(getLinkedDocumentsOptions(props.linkType));
     let body;
     // Also show spinner when query is invalidated by reset button
     if (query.isPending || isManuallyRefetching) {

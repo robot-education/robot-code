@@ -36,7 +36,7 @@ async def update_references(*args, **kwargs):
     api = connect.get_api(db)
     instance_path = connect.get_route_instance_path("w")
     require_permissions(api, instance_path, Permission.WRITE)
-    std_version = connect.get_body("stdVersion")
+    std_version = connect.get_body_arg("stdVersion")
 
     elements = get_document_elements(api, instance_path, ElementType.FEATURE_STUDIO)
 

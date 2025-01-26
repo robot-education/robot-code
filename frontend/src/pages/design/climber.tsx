@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLoaderData } from "react-router-dom";
 import { ActionCard } from "../../actions/action-card";
@@ -9,12 +9,11 @@ import { ActionForm } from "../../actions/action-form";
 import { ActionSpinner } from "../../actions/action-spinner";
 import { ActionSuccess } from "../../actions/action-success";
 import { post } from "../../api/api";
-import { Workspace, WorkspacePath } from "../../api/path";
+import { WorkspacePath } from "../../api/path";
 import { currentElementApiPath } from "../../app/onshape-params";
 import { isVersionNameValid } from "../../common/version-utils";
 import { ExecuteButton } from "../../components/execute-button";
 import { VersionNameField } from "../../components/version-fields";
-import { linkedParentDocumentsKey } from "../../query/query-client";
 import { FormGroup, HTMLSelect } from "@blueprintjs/core";
 import { handleValueChange, OnSubmitProps } from "../../common/handlers";
 
@@ -136,12 +135,7 @@ export function Climber() {
 
     let actionSuccess = null;
     if (mutation.isSuccess) {
-        actionSuccess = (
-            <ActionSuccess
-                message="Successfully added climber"
-                // description={description}
-            />
-        );
+        actionSuccess = <ActionSuccess message="Successfully added climber" />;
     }
 
     return (
@@ -200,7 +194,6 @@ function getClimberType(
 
 function AddDesignForm(props: OnSubmitProps<ClimberArgs>) {
     const defaultName = useLoaderData() as string;
-    const query = useQuery<Workspace[]>({ queryKey: linkedParentDocumentsKey });
     const [climberSupplier, setClimberSupplier] = useState(
         ClimberSupplier.ANDYMARK
     );
@@ -256,7 +249,7 @@ function AddDesignForm(props: OnSubmitProps<ClimberArgs>) {
 
     const executeButton = (
         <ExecuteButton
-            loading={!disabled && query.isFetching}
+            loading={!disabled}
             disabled={disabled}
             onSubmit={() => {
                 props.onSubmit({
