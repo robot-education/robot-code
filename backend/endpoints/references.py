@@ -1,5 +1,5 @@
 from hmac import new
-from math import log
+from math import e, log
 from typing import Iterable
 import flask
 from requests import get
@@ -7,7 +7,13 @@ from requests import get
 from backend.common.backend_exceptions import require_permissions
 
 from backend.common import connect, database
-from backend.endpoints.linked_documents import LinkType, db_id_to_path, get_linked_documents, make_document, path_to_db_id
+from backend.endpoints.linked_documents import (
+    LinkType,
+    db_id_to_path,
+    get_linked_documents,
+    make_document,
+    path_to_db_id,
+)
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints.permissions import Permission
 
@@ -163,47 +169,59 @@ def push_version_recursive(**kwargs):
 
         return linked_parents
 
-    unvisited_nodes = [curr_instance]
+    unvisited_nodes = []
 
     sorted_list = []
 
-    while unvisited_nodes:
-        curr_node = unvisited_nodes.pop(0)
-        sorted_list.append(curr_node)
-        curr_node_parents = get_linked_parents(db, curr_node)
+    route = []
+    route.append(curr_instance)
 
-        for parent in curr_node_parents:
-            if parent not in unvisited_nodes:
-                unvisited_nodes.append(parent)
-    
-    trimmed_list = [] #remove duplicates
+    curr_parents = []
 
-    for instance in reversed(sorted_list):
-        if instance not in trimmed_list:
-            trimmed_list.insert(0,instance)
+    while route:
+        print(f"Route: {route}")
+        print(f"Unvisited Nodes: {unvisited_nodes}")
+
+        curr_parents = get_linked_parents(db, route[-1])
+
+        for parent in sorted_list:
+            if parent in curr_parents:
+                curr_parents.remove(parent)
+
+        if not curr_parents:
+            sorted_list.append(route.pop())
+
+        for parent in curr_parents:
+            if parent in unvisited_nodes:
+                unvisited_nodes.remove(parent)
+
+        unvisited_nodes.extend(curr_parents)
+
+        if curr_parents:
+            if unvisited_nodes:
+                if unvisited_nodes[-1] in route:
+                    raise Exception("Cycle detected")
+                route.append(unvisited_nodes.pop())
+
+    sorted_list.reverse()
 
     with open("backend/endpoints/logfile.txt", "a") as log_file:
 
-        log_file.write("curr_instance begin\n")
-        log_file.write(f"{curr_instance}\n")
-        log_file.write("curr_instance end\n\n")
+        log_file.write("sorted_list begin\n")
+        for node in sorted_list:
+            log_file.write(f"{documents.get_document(api, node)['name']}\n")
+        log_file.write("sorted_list end\n\n")
 
-        log_file.write("trimmed_list begin\n")
-        for node in trimmed_list:
-            log_file.write(f"{documents.get_document(api, node)["name"]}\n")
-        log_file.write("trimmed_list end\n\n")
-
-
-    for instance in trimmed_list:
-        require_permissions(api, instance, Permission.WRITE , Permission.LINK)
+    for instance in sorted_list:
+        require_permissions(api, instance, Permission.WRITE, Permission.LINK)
 
     versions.create_version(api, curr_instance, name, description)
 
     updated_references = 0
-    for update_instance in trimmed_list:
+    for update_instance in sorted_list:
 
         updated_references += do_update_references(
-            api, update_instance, [doc.document_id for doc in trimmed_list]
+            api, update_instance, [doc.document_id for doc in sorted_list]
         )
         versions.create_version(api, update_instance, name, description)
 
