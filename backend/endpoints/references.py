@@ -159,16 +159,18 @@ def push_version_recursive(**kwargs):
     name = connect.get_body("name")
     description = connect.get_body_optional("description", "")
 
-    def get_linked_parents(db, instance):
+    def get_linked_parents(db, instance, mock_db):
+        if instance in mock_db:
+            return mock_db[instance]
         document_db_id = path_to_db_id(instance)
         doc = db.linked_documents.document(document_db_id).get()
         linked_parents = []
         if doc.exists and (data := doc.to_dict()):
             for document_db_id in data.get(LinkType.PARENTS, []):
                 linked_parents.append(db_id_to_path(document_db_id))
+        mock_db[instance] = linked_parents
 
         return linked_parents
-
     unvisited_nodes = []
 
     sorted_list = []
