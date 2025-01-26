@@ -1,9 +1,19 @@
+from hmac import new
+from math import e, log
 from typing import Iterable
 import flask
+from requests import get
 
 from backend.common.backend_exceptions import require_permissions
 
 from backend.common import connect, database
+from backend.endpoints.linked_documents import (
+    LinkType,
+    db_id_to_path,
+    get_linked_documents,
+    make_document,
+    path_to_db_id,
+)
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints.permissions import Permission
 
@@ -11,6 +21,7 @@ from flask import current_app
 from onshape_api.endpoints import documents, versions
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath
+from onshape_api.utils.str_utils import parens
 
 router = flask.Blueprint("references", __name__)
 
@@ -125,5 +136,99 @@ def push_version(**kwargs):
         updated_references += do_update_references(
             api, update_instance, [curr_instance.document_id]
         )
+
+    return {"updatedReferences": updated_references}
+
+
+@router.post("/push-version-recursive" + connect.instance_route())
+def push_version_recursive(**kwargs):
+    """Creates a version, then pushes that new version to all instancesToUpdate.
+
+    Args:
+        name: The name of the version to create.
+        description: The description to create.
+        instancesToUpdate: A list of workspace instance objects {documentId, instanceId} to push the version to.
+
+    Returns:
+        updatedReferences: The number of tabs which had references updated.
+    """
+    db = database.Database()
+    api = connect.get_api(db)
+    curr_instance = connect.get_route_instance_path()
+    require_permissions(api, curr_instance, Permission.WRITE, Permission.LINK)
+    name = connect.get_body("name")
+    description = connect.get_body_optional("description", "")
+
+    def get_linked_parents(db, instance):
+        document_db_id = path_to_db_id(instance)
+        doc = db.linked_documents.document(document_db_id).get()
+        linked_parents = []
+        if doc.exists and (data := doc.to_dict()):
+            for document_db_id in data.get(LinkType.PARENTS, []):
+                linked_parents.append(db_id_to_path(document_db_id))
+
+        return linked_parents
+
+    unvisited_nodes = []
+
+    sorted_list = []
+
+    route = []
+    route.append(curr_instance)
+
+    curr_parents = []
+
+    while route:
+        print(f"Route: {route}")
+        print(f"Unvisited Nodes: {unvisited_nodes}")
+
+        curr_parents = get_linked_parents(db, route[-1])
+
+        for parent in sorted_list:
+            if parent in curr_parents:
+                curr_parents.remove(parent)
+
+        if not curr_parents:
+            sorted_list.append(route.pop())
+
+        for parent in curr_parents:
+            if parent in unvisited_nodes:
+                unvisited_nodes.remove(parent)
+
+        unvisited_nodes.extend(curr_parents)
+
+        if curr_parents:
+            if unvisited_nodes:
+                if unvisited_nodes[-1] in route:
+                    raise Exception("Cycle detected")
+                route.append(unvisited_nodes.pop())
+
+    sorted_list.reverse()
+
+    with open("backend/endpoints/logfile.txt", "a") as log_file:
+
+        log_file.write("sorted_list begin\n")
+        for node in sorted_list:
+            log_file.write(f"{documents.get_document(api, node)['name']}\n")
+        log_file.write("sorted_list end\n\n")
+
+    for instance in sorted_list:
+        require_permissions(api, instance, Permission.WRITE, Permission.LINK)
+
+    versions.create_version(api, curr_instance, name, description)
+
+    updated_references = 0
+    for update_instance in sorted_list:
+
+        updated_references += do_update_references(
+            api, update_instance, [doc.document_id for doc in sorted_list]
+        )
+        versions.create_version(api, update_instance, name, description)
+
+    with open("backend/endpoints/logfile.txt", "a") as log_file:
+
+        log_file.write("updated_references begin\n")
+        log_file.write(f"{updated_references}\n")
+        log_file.write("updated_references end\n\n")
 
     return {"updatedReferences": updated_references}
