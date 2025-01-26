@@ -110,7 +110,7 @@ def get_route_element_path(wvm_param: str = "w") -> onshape_api.ElementPath:
 def get_body_instance_path(
     *instance_types: InstanceType, default_type: InstanceType = InstanceType.WORKSPACE
 ) -> onshape_api.InstancePath:
-    instance_type = get_body_optional("instanceType")
+    instance_type = get_optional_body_arg("instanceType")
     if instance_type == None:
         instance_type = default_type
     # Only do validation if instance type passed
@@ -120,7 +120,7 @@ def get_body_instance_path(
         )
 
     return onshape_api.InstancePath(
-        get_body("documentId"), get_body("instanceId"), instance_type
+        get_body_arg("documentId"), get_body_arg("instanceId"), instance_type
     )
 
 
@@ -138,39 +138,44 @@ def get_route(route_param: str) -> str:
     """
     view_args = flask.request.view_args
     if view_args is None or (param := view_args.get(route_param)) is None:
-        raise backend_exceptions.ClientException(
+        raise backend_exceptions.ReportedException(
             "Missing required path parameter {}.".format(route_param)
         )
     return param
 
 
-def get_query(key: str) -> str:
+def get_query_arg(key: str) -> Any:
     """Returns a value from the request query.
 
     Throws if it doesn't exist.
     """
     value = flask.request.args.get(key)
     if value is None:
-        raise backend_exceptions.ClientException(
+        raise backend_exceptions.ReportedException(
             "Missing required query parameter {}.".format(key)
         )
     return value
 
 
-def get_body(key: str) -> Any:
+def get_optional_query_arg(key: str) -> str | None:
+    """Returns a value from the request query, or None if it doesn't exist."""
+    return flask.request.args.get(key)
+
+
+def get_body_arg(key: str) -> Any:
     """Returns a value from the request body.
 
     Throws if key doesn't exist.
     """
     value = flask.request.get_json().get(key, None)
     if not value:
-        raise backend_exceptions.ClientException(
+        raise backend_exceptions.ReportedException(
             "Missing required body parameter {}.".format(key)
         )
     return value
 
 
-def get_body_optional(key: str, default: Any | None = None) -> Any:
+def get_optional_body_arg(key: str, default: Any | None = None) -> Any:
     """Returns a value from the request body, or default if it doesn't exist."""
     return flask.request.get_json().get(key, default)
 

@@ -1,6 +1,10 @@
 import { getCurrentElementPath } from "../app/onshape-params";
 import { capitalize } from "./str-utils";
 
+/**
+ * Errors which are generated and thrown on the client.
+ * Unlike other errors, the message is usually displayed directly to the user.
+ */
 export class HandledError extends Error {
     constructor(message: string) {
         super(message);
@@ -8,7 +12,20 @@ export class HandledError extends Error {
     }
 }
 
-export class MissingPermissionError extends Error {
+/**
+ * Errors reported by the backend and handled on the client.
+ */
+export class ReportedError extends Error {
+    public type: string;
+
+    constructor(type: string) {
+        super(type);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.type = type;
+    }
+}
+
+export class MissingPermissionError extends ReportedError {
     public constructor(
         public permission: string,
         public isCurrentDocument: boolean,
@@ -51,4 +68,18 @@ export function reportMissingPermissionError(json: any) {
         isCurrentDocument,
         json.documentName
     );
+}
+
+export class LinkedCycleError extends ReportedError {
+    public constructor() {
+        super("LINKED_CYCLE");
+        Object.setPrototypeOf(this, new.target.prototype);
+    }
+}
+
+export function reportLinkedCycleError(json: any) {
+    if (json.type !== "LINKED_CYCLE") {
+        return;
+    }
+    throw new LinkedCycleError();
 }

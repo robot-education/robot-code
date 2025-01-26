@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLoaderData } from "react-router-dom";
 import { ActionInfo } from "../../actions/action-context";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ActionCard } from "../../actions/action-card";
 import { ActionDialog } from "../../actions/action-dialog";
 import { ActionError } from "../../actions/action-error";
@@ -9,12 +9,10 @@ import { ActionForm } from "../../actions/action-form";
 import { ActionSpinner } from "../../actions/action-spinner";
 import { ActionSuccess } from "../../actions/action-success";
 import { post } from "../../api/api";
-import { Workspace } from "../../api/path";
 import { currentInstanceApiPath } from "../../app/onshape-params";
 import { isVersionNameValid } from "../../common/version-utils";
 import { ExecuteButton } from "../../components/execute-button";
 import { VersionNameField } from "../../components/version-fields";
-import { linkedParentDocumentsKey } from "../../query/query-client";
 import { OnSubmitProps } from "../../common/handlers";
 
 const actionInfo: ActionInfo = {
@@ -68,7 +66,6 @@ export function SwerveDrive() {
 
 function AddDesignForm(props: OnSubmitProps<SwerveDriveArgs>) {
     const defaultName = useLoaderData() as string;
-    const query = useQuery<Workspace[]>({ queryKey: linkedParentDocumentsKey });
 
     // Form fields and validation
     const [versionName, setVersionName] = useState(defaultName);
@@ -77,7 +74,7 @@ function AddDesignForm(props: OnSubmitProps<SwerveDriveArgs>) {
     const actions = (
         <>
             <ExecuteButton
-                loading={!disabled && query.isFetching}
+                loading={!disabled}
                 disabled={disabled}
                 onSubmit={() => props.onSubmit({ versionName })}
             />

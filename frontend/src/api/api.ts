@@ -1,5 +1,8 @@
 import { URLSearchParamsInit, createSearchParams } from "react-router-dom";
-import { reportMissingPermissionError } from "../common/errors";
+import {
+    reportLinkedCycleError,
+    reportMissingPermissionError
+} from "../common/errors";
 
 function getUrl(path: string, query?: URLSearchParamsInit): string {
     path = "/api" + path;
@@ -54,6 +57,7 @@ async function handleResponse(response: Response) {
     const json = await response.json();
     if (!response.ok) {
         reportMissingPermissionError(json);
+        reportLinkedCycleError(json);
         throw new Error("Network response failed.");
     }
     return json;

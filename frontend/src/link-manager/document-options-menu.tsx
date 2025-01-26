@@ -9,14 +9,18 @@ import { makeUrl, openUrlInNewTab } from "../common/url";
 import { WorkspacePath } from "../api/path";
 import { del, post } from "../api/api";
 import { currentInstanceApiPath } from "../app/onshape-params";
-import { LinkType, LinkTypeProps } from "./link-types";
+import {
+    isOpenableDocument,
+    LinkedDocument,
+    LinkType,
+    LinkTypeProps
+} from "./link-types";
 import {
     infoToastArgs,
     showInternalErrorToast,
     showSuccessToast,
     toaster
 } from "../app/toaster";
-import { Workspace } from "../api/path";
 import { useId } from "react";
 import {
     handleDocumentAdded,
@@ -31,7 +35,7 @@ interface RemoveDocumentArgs {
 
 async function removeDocumentMutationFn(
     args: RemoveDocumentArgs
-): Promise<Workspace> {
+): Promise<LinkedDocument> {
     const currentApiPath = currentInstanceApiPath();
     return del(`/linked-documents/${args.linkType}` + currentApiPath, {
         documentId: args.workspacePath.documentId,
@@ -56,8 +60,11 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
         },
         onSuccess: (removedDocument, args) => {
             handleDocumentRemoved(args.linkType, removedDocument);
+            const removedDocumentName = isOpenableDocument(removedDocument)
+                ? removedDocument.name
+                : "UNKNOWN DOCUMENT";
 
-            // This can (and probably should) be it's own mutation
+            // This could be it's own mutation
             const handleUndo = async () => {
                 await post(
                     `/linked-documents/${args.linkType}` +
@@ -79,7 +86,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
                         toaster.dismiss(successToastId);
                         handleDocumentAdded(args.linkType, removedDocument);
                         showSuccessToast(
-                            `Successfully restored ${removedDocument.name}.`
+                            `Successfully restored ${removedDocumentName}.`
                         );
                     });
             };
@@ -87,7 +94,7 @@ export function DocumentOptionsMenu(props: DocumentOptionsMenuProps) {
             toaster.show(
                 {
                     ...infoToastArgs,
-                    message: `Removed link to ${removedDocument.name}.`,
+                    message: `Removed link to ${removedDocumentName}.`,
                     action: {
                         text: "Undo",
                         onClick: handleUndo
