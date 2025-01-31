@@ -1,11 +1,12 @@
 # Robot Code
 
-A monorepo hosting python scripts for updating and maintaining my Robot FeatureScript projects as well as hosting and deploying the Robot Manager Onshape library app.
-
-This repo is set up to work directly with my FeatureScript backend document which can be found here:
-[Alex's FeatureScript Backend](https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f)
+A monorepo hosting python scripts for updating and maintaining my Robot FeatureScripts as well as hosting and deploying the Robot Manager Onshape library app.
 
 Note: This repo is equipped to run with VSCode on Linux (specifically, WSL Ubuntu).
+
+# Robot Manager
+
+The Robot manager app lives in the `frontend` and `backend` folders. The app uses Python and flask as the backend and API and Vite and React for the frontend. The app is deployed using Google Cloud App Engine, with Google Cloud Firestore as the database.
 
 # Repo Setup
 
@@ -30,35 +31,9 @@ NODE_ENV=development
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
 ```
 
-# Onshape API
+You only need API keys if you plan on accessing the Onshape API via regular python script. Likewise, you only need OAuth keys if you're planning on accessing the Onshape API via Robot manager.
 
-A generic library for connecting with and using the Onshape API.
-
-API credentials are set by creating a file in the root named `.env`.
-
-Two API variants are available, `KeyApi` and `OauthApi`. Each variant extends `Api`, which is the generic interface.
-They are explained in more detail below.
-
-Besides the environment variables required for each API variant, you can also set the variables:
-
-## Key API
-
-This allows you to use the Onshape API with API keys.
-
-1. Get an API key from the [Onshape developer portal](https://dev-portal.onshape.com/keys).
-1. Add your access key and secret key to `.env`.
-
-You can then call `make_key_api()` to get an `Api` instance you can pass to endpoints or invoke directly.
-
-## OAuth API
-
-This allows you to use the Onshape API with an OAuth flow via the `requests_oauthlib` library.
-
-1. Create an OAuth application on the [Onshape developer portal](https://dev-portal.onshape.com/oauthApps).
-
-You can then call `make_oauth_api()` to get an `Api` instance you can pass to endpoints or invoke directly.
-
-## First Time Python Setup
+## Python Setup
 
 Install `python`:
 
@@ -69,7 +44,9 @@ sudo apt update
 sudo apt install python3.12
 ```
 
-Note you may need to restart your terminal after installing `software-properties-common`.
+Note that Python version 3.12 or greater is a hard requirement.
+
+Also, you may need to restart your terminal after installing `software-properties-common`.
 
 Install `pipx`:
 
@@ -78,32 +55,14 @@ sudo apt install pipx
 pipx ensurepath
 ```
 
-The use `pipx` to install poetry and install the project:
+The use `pipx` to install poetry, then install the project:
 
 ```
 pipx install poetry
 poetry install
 ```
 
-## Scripts
-
-Several scripts for pulling code from Onshape and pushing new versions of Robot FeatureScripts are included in `scripts`. Scripts can be invoked as follows:
-
-```
-./scripts/onshape.sh
-```
-
-The following scripts are available:
-
--   deploy - Deploys the Robot manager app to google cloud.
--   onshape - Can be used to push and pull code from Onshape via the API.
--   robot - Can be used to release new versions of Robot FeatureScripts.
-
-# Robot Manager
-
-The Robot manager app lives in the `frontend` and `backend` folders. The app uses Python and flask as the backend and API and Vite and React for the frontend. The app is deployed using Google Cloud App Engine, with Google Cloud Firestore as the database.
-
-## Onshape App Setup
+## Onshape OAuth App Setup
 
 To test Onshape app changes, you will need to create an OAuth application in the [Onshape Developer Portal](https://cad.onshape.com/appstore/dev-portal/oauthApps). Fill out the following information:
 
@@ -127,9 +86,18 @@ Next, add the necessary Extensions to your OAuth application so you can see it i
       `https://localhost:3000/app?elementType=ASSEMBLY&documentId={$documentId}&instanceType={$workspaceOrVersion}&instanceId={$workspaceOrVersionId}&elementId={$elementId}`
       `https://localhost:3000/app?elementType=PART_STUDIO&documentId={$documentId}&instanceType={$workspaceOrVersion}&instanceId={$workspaceOrVersionId}&elementId={$elementId}`
 
-### Flask Credentials Setup
+## Onshape API Key Setup
 
-Onshape requires all apps, even temporary test apps, to use https. This creates a headache for local development.
+This isn't required for running Robot Manager but will allow you to use the Onshape API with API keys via locally developed Python scripts.
+
+1. Get an API key from the [Onshape developer portal](https://dev-portal.onshape.com/keys).
+1. Add your access key and secret key to `.env`.
+
+You can then call `make_key_api()` inside a locally running Python script to get an `Api` instance you can pass to endpoints in `onshape_api/endpoints`.
+
+## Flask Credentials Setup
+
+Onshape requires all apps, even temporary test apps, to use https. This creates a big headache for local development.
 In order to solve this issue, you'll need to generate a certificate and add it to a folder named `credentials` in the root of this project:
 
 ```
@@ -143,8 +111,10 @@ This can be done automatically by running the script `make_credentials.sh`:
 ./scripts/make_credentials.sh
 ```
 
-You'll then need to add a security exception to your browser to avoid getting blocked by a security exception.
-On Firefox, the procedure is:
+If successful, this should create a folder named `credentials` in the root of the project containing `cert.pem` and `key.pem`.
+
+You'll then need to add a security exception to your browser to avoid getting blocked.
+In Firefox, the procedure is:
 
 1. Start the development servers using the `Launch servers` VSCode task.
 2. Open Firefox and go to `Settings > Certificates > View Certificates... > Servers > Add Exception...`
@@ -170,7 +140,7 @@ You should also install the firestore emulator and a Java JRE:
 sudo apt install google-cloud-cli-firestore-emulator default-jre
 ```
 
-Then start up the google cloud emulator:
+You can test your build by starting up the google cloud emulator:
 
 ```
 gcloud emulators firestore start
@@ -178,23 +148,49 @@ gcloud emulators firestore start
 
 <!-- Then restart the distro. This prevents google cloud from using the google cloud version located outside of WSL. -->
 
-Note: this project uses Google Cloud Firestore as it's database. This is not to be confused with Google Firebase's Firestore, as Firebase is a separate project from Google Cloud.
+Note: this project uses Google Cloud Firestore as it's database. This is not to be confused with Google Firebase or Google Firebase's Firestore (yikes), as Google Firebase is a separate project from Google Cloud.
 
 ## Development Servers
 
-Run the `Launch servers` VSCode task to launch the dev servers necessary to view and test the app.
+You should now be able to run the `Launch servers` VSCode task to launch the dev servers necessary to view and test the app.
 If everything is setup properly, you should see all three servers start successfully.
 You should also be able to launch Robot Manager from the right panel of any Onshape Part Studio or Assembly and see the Robot manager UI appear.
 
 # Deploying in Google Cloud
 
-The app can be deployed by running the script `./scripts/deploy.sh`.
+Robot Manager can be deployed by running the script `./scripts/deploy.sh`.
 
 Some notes:
 
 -   To allow the App deployed in the App Engine to connect to Firestore, the App Engine service account must be given the Firestore user role in IAM.
--   You'll need to create an app.yaml file to deploy. Make sure to add the necessary ENV authentication variables. The entrypoint can be:
+-   You'll need to create an app.yaml file to deploy. A suitable app.yaml is:
 
 ```
-entrypoint: gunicorn -b :$PORT -w 2 "backend.server:create_app()"
+runtime: python312
+
+instance_class: F1
+
+env_variables:
+    API_VERSION: 10
+    NODE_ENV: "production"
+    OAUTH_CLIENT_ID: "<YOUR PRODUCTION OAUTH CLIENT ID IN QUOTES>"
+    OAUTH_CLIENT_SECRET: "<YOUR PRODUCTION OAUTH CLIENT SECRET IN QUOTES>"
+    SESSION_SECRET: "<AN ARBITRARY SECRET YOU MAKE UP>"
+
+# Ran out of memory with F1 instance and 2 workers, so only 2 workers on F2
+entrypoint: gunicorn -b :8080 -w 2 -t 60 "backend.server:create_app()"
 ```
+
+# FeatureScript Scripts
+
+Several scripts for pulling code from Onshape and pushing new versions of Robot FeatureScripts are included in `scripts`. Scripts can be invoked as follows:
+
+```
+./scripts/onshape.sh
+```
+
+The following scripts are available:
+
+-   deploy - Deploys the Robot manager app to google cloud.
+-   onshape - Can be used to push and pull code from Onshape via the API.
+-   robot - Can be used to release new versions of Robot FeatureScripts.
