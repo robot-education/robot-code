@@ -5,7 +5,7 @@ import { queryClient } from "../query/query-client";
 import { AppNavbar } from "../navbar/app-navbar";
 import { getCurrentElementType, saveOnshapeParams } from "./onshape-params";
 import { ElementType } from "../common/element-type";
-import { getLastUsedMenuType, MenuType } from "./menu-type";
+import { MenuType } from "./menu-type";
 import { SaveMenuType } from "./save-menu-type";
 
 export function App() {
@@ -18,9 +18,8 @@ export function App() {
         const defaultMenuType =
             elementType === ElementType.PART_STUDIO
                 ? MenuType.PART_STUDIO
-                : MenuType.VERSIONS;
-        const menuType = getLastUsedMenuType(defaultMenuType);
-        return <Navigate to={"/app/" + menuType} />;
+                : MenuType.ASSEMBLY;
+        return <Navigate to={"/app/" + defaultMenuType} />;
     }
     return (
         <QueryClientProvider client={queryClient}>

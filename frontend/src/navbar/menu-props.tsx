@@ -10,28 +10,13 @@ export function getMenuProps(menuType: MenuType): MenuProps {
     switch (menuType) {
         case MenuType.PART_STUDIO:
             return {
-                text: "Part studio",
+                text: "Deriver",
                 icon: "home"
             };
         case MenuType.ASSEMBLY:
             return {
-                text: "Assembly",
+                text: "Inserter",
                 icon: "home"
-            };
-        case MenuType.VERSIONS:
-            return {
-                text: "Versions",
-                icon: "git-branch"
-            };
-        case MenuType.DESIGN:
-            return {
-                text: "Design",
-                icon: "build"
-            };
-        case MenuType.CODE:
-            return {
-                text: "Code",
-                icon: "code"
             };
     }
 }

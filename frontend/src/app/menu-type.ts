@@ -1,11 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
 
 export enum MenuType {
-    PART_STUDIO = "part-studio",
-    ASSEMBLY = "assembly",
-    VERSIONS = "versions",
-    DESIGN = "design",
-    CODE = "code"
+    PART_STUDIO = "Part-Deriver",
+    ASSEMBLY = "Part-Inserter"
 }
 
 /**
