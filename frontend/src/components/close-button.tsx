@@ -1,5 +1,5 @@
 import { Button } from "@blueprintjs/core";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 
 interface CloseButtonProps {
     /**
@@ -11,7 +11,7 @@ interface CloseButtonProps {
 
 export function CloseButton(props: CloseButtonProps) {
     const navigate = useNavigate();
-    const handleClose = props.onClose ?? (() => navigate(".."));
+    const handleClose = props.onClose ?? (() => navigate({ to: "/app" }));
     return (
         <Button
             text="Close"

@@ -5,7 +5,8 @@ import {
     isInstancePath,
     isElementPath,
     isWorkspacePath,
-    WorkspacePath
+    WorkspacePath,
+    InstanceType
 } from "../api/path";
 
 export function makeUrl(path: DocumentPath): string;
@@ -47,7 +48,7 @@ export function parseUrl(
         return {
             documentId: parts[2],
             instanceId: parts[4],
-            instanceType: parts[3],
+            instanceType: parts[3] as InstanceType,
             elementId: parts[6],
             configuration
         };

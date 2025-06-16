@@ -1,32 +1,22 @@
+import { queryClient } from "../query-client";
+import { AppNavbar } from "./app-navbar";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { Navigate, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Navigate, Outlet, useMatch, useSearchParams } from "react-router-dom";
-
-import { queryClient } from "../query/query-client";
-import { AppNavbar } from "../navbar/app-navbar";
-import { getCurrentElementType, saveOnshapeParams } from "./onshape-params";
-import { ElementType } from "../common/element-type";
-import { MenuType } from "./menu-type";
-import { SaveMenuType } from "./save-menu-type";
 
 export function App() {
-    const params = useSearchParams()[0];
-    const isApp = Boolean(useMatch("/app"));
+    const matchRoute = useMatchRoute();
 
-    if (isApp) {
-        saveOnshapeParams(params);
-        const elementType = getCurrentElementType();
-        const defaultMenuType =
-            elementType === ElementType.PART_STUDIO
-                ? MenuType.PART_STUDIO
-                : MenuType.ASSEMBLY;
-        return <Navigate to={"/app/" + defaultMenuType} />;
+    if (matchRoute({ to: "/app" })) {
+        return <Navigate to="/app/documents" />;
     }
     return (
-        <QueryClientProvider client={queryClient}>
-            <SaveMenuType>
+        <>
+            <QueryClientProvider client={queryClient}>
                 <AppNavbar />
                 <Outlet />
-            </SaveMenuType>
-        </QueryClientProvider>
+            </QueryClientProvider>
+            <TanStackRouterDevtools />
+        </>
     );
 }

@@ -1,42 +1,21 @@
-/**
- * Saves parameters sent Onshape to session storage so they're available to all routes.
- */
 import { ElementType } from "../common/element-type";
-import { ElementPath, toInstanceApiPath, toElementApiPath } from "../api/path";
+import { ElementPath } from "../api/path";
+import { Store } from "@tanstack/react-store";
 
-export function saveOnshapeParams(params: URLSearchParams) {
-    for (const key of [
-        "elementType",
-        "documentId",
-        "instanceId",
-        "instanceType",
-        "elementId"
-    ]) {
-        sessionStorage.setItem(key, params.get(key)!);
-    }
+export interface OnshapeParams extends ElementPath {
+    elementType: ElementType;
 }
 
-export function getCurrentElementPath(): ElementPath {
-    const result: any = {};
-    for (const key of [
-        "documentId",
-        "instanceId",
-        "instanceType",
-        "elementId"
-    ]) {
-        result[key] = sessionStorage.getItem(key)!;
-    }
-    return result as ElementPath;
+const onshapeParamsStore = new Store({});
+
+export function saveOnshapeParams(params: OnshapeParams) {
+    onshapeParamsStore.setState(params);
 }
 
-export function getCurrentElementType() {
-    return sessionStorage.getItem("elementType") as ElementType;
+export function useOnshapeParams(): OnshapeParams {
+    return onshapeParamsStore.state as OnshapeParams;
 }
 
-export function currentInstanceApiPath() {
-    return toInstanceApiPath(getCurrentElementPath());
-}
-
-export function currentElementApiPath() {
-    return toElementApiPath(getCurrentElementPath());
+export function useCurrentElementType(): ElementType {
+    return useOnshapeParams().elementType;
 }

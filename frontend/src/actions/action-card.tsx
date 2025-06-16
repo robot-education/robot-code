@@ -1,7 +1,7 @@
 import { Button, Card, H4 } from "@blueprintjs/core";
 import { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
 import { ActionInfo } from "./action-context";
+import { useNavigate } from "@tanstack/react-router";
 
 interface ActionCardProps {
     actionInfo: ActionInfo;
@@ -22,7 +22,7 @@ export function ActionCard(props: ActionCardProps): ReactNode {
                 text="Set up"
                 rightIcon="arrow-right"
                 intent="primary"
-                onClick={() => navigate(actionInfo.route)}
+                onClick={() => navigate({ to: actionInfo.route })}
             />
             {props.children}
         </Card>

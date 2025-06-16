@@ -1,8 +1,8 @@
-import { URLSearchParamsInit, createSearchParams } from "react-router-dom";
+import { reportMissingPermissionError } from "./errors";
 import {
-    reportLinkedCycleError,
-    reportMissingPermissionError
-} from "../common/errors";
+    createSearchParams,
+    URLSearchParamsInit
+} from "../common/search-params";
 
 function getUrl(path: string, query?: URLSearchParamsInit): string {
     path = "/api" + path;
@@ -20,7 +20,10 @@ interface PostOptions {
 /**
  * Makes a post request to a backend /api route.
  */
-export async function post(path: string, options?: PostOptions): Promise<any> {
+export async function apiPost(
+    path: string,
+    options?: PostOptions
+): Promise<any> {
     return fetch(getUrl(path, options?.query), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,7 +34,7 @@ export async function post(path: string, options?: PostOptions): Promise<any> {
 /**
  * Makes a get request to a backend /api route.
  */
-export async function get(
+export async function apiGet(
     path: string,
     query?: URLSearchParamsInit
 ): Promise<any> {
@@ -44,7 +47,7 @@ export async function get(
  * Makes a delete request to a backend /api route.
  * Note delete is a reserved keyword in JavaScript.
  */
-export async function del(
+export async function apiDelete(
     path: string,
     query?: URLSearchParamsInit
 ): Promise<any> {
@@ -57,7 +60,6 @@ async function handleResponse(response: Response) {
     const json = await response.json();
     if (!response.ok) {
         reportMissingPermissionError(json);
-        reportLinkedCycleError(json);
         throw new Error("Network response failed.");
     }
     return json;
