@@ -1,19 +1,19 @@
-import { ElementType } from "../common/element-type";
+import { useSearch } from "@tanstack/react-router";
+import { ElementType } from "../api/element-type";
 import { ElementPath } from "../api/path";
-import { Store } from "@tanstack/react-store";
+
+export enum ColorTheme {
+    LIGHT = "light",
+    DARK = "dark"
+}
 
 export interface OnshapeParams extends ElementPath {
     elementType: ElementType;
-}
-
-const onshapeParamsStore = new Store({});
-
-export function saveOnshapeParams(params: OnshapeParams) {
-    onshapeParamsStore.setState(params);
+    theme: ColorTheme;
 }
 
 export function useOnshapeParams(): OnshapeParams {
-    return onshapeParamsStore.state as OnshapeParams;
+    return useSearch({ from: "/app" });
 }
 
 export function useCurrentElementType(): ElementType {

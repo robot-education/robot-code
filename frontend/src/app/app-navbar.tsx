@@ -1,12 +1,12 @@
 import {
     Alignment,
     Button,
+    ButtonVariant,
     IconSize,
     InputGroup,
     Navbar,
     NavbarDivider,
-    NavbarGroup,
-    Size
+    NavbarGroup
 } from "@blueprintjs/core";
 import { ReactNode } from "react";
 
@@ -19,7 +19,7 @@ import { apiPost } from "../api/api";
  */
 export function AppNavbar(): ReactNode {
     return (
-        <Navbar>
+        <Navbar fixedToTop={false}>
             <NavbarGroup>
                 <img
                     height={IconSize.LARGE}
@@ -27,7 +27,11 @@ export function AppNavbar(): ReactNode {
                     alt="Robot manager"
                 />
                 <NavbarDivider />
-                <InputGroup type="search" leftIcon="search" size={Size.LARGE} />
+                <InputGroup
+                    type="search"
+                    leftIcon="search"
+                    placeholder="Search library..."
+                />
             </NavbarGroup>
             <NavbarGroup align={Alignment.END}>
                 <ReloadAllDocumentsButton />
@@ -47,7 +51,7 @@ function ReloadAllDocumentsButton(): ReactNode {
     return (
         <Button
             icon="refresh"
-            minimal
+            variant={ButtonVariant.MINIMAL}
             text="Reload all documents"
             onClick={() => mutation.mutate()}
             loading={mutation.isPending}

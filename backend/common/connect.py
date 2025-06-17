@@ -107,27 +107,19 @@ def get_route_element_path(wvm_param: str = "w") -> onshape_api.ElementPath:
     )
 
 
-def get_body_instance_path(
-    *instance_types: InstanceType, default_type: InstanceType = InstanceType.WORKSPACE
-) -> onshape_api.InstancePath:
-    instance_type = get_optional_body_arg("instanceType")
-    if instance_type == None:
-        instance_type = default_type
-    # Only do validation if instance type passed
-    elif instance_type not in instance_types:
-        raise backend_exceptions.BackendException(
-            "Invalid instance type {}.".format(instance_type)
-        )
-
+def get_body_instance_path(*instance_types: InstanceType) -> onshape_api.InstancePath:
+    instance_type = get_optional_body_arg("instanceType", InstanceType.WORKSPACE)
     return onshape_api.InstancePath(
-        get_body_arg("documentId"), get_body_arg("instanceId"), instance_type
+        get_body_arg("documentId"),
+        get_body_arg("instanceId"),
+        instance_type=instance_type,
     )
 
 
 def get_body_element_path() -> onshape_api.ElementPath:
     return onshape_api.ElementPath.from_path(
         get_body_instance_path(),
-        get_route("elementId"),
+        get_body_arg("elementId"),
     )
 
 

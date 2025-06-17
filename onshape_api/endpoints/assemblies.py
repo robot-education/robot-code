@@ -3,6 +3,8 @@ from urllib import parse
 
 from onshape_api.api.api_base import Api
 from onshape_api.assertions import assert_workspace
+from onshape_api.endpoints.documents import ElementType
+from onshape_api.model.constants import IDENTITY_TRANSFORM
 from onshape_api.paths.api_path import api_path
 from onshape_api.paths.paths import ElementPath, InstancePath, PartPath
 
@@ -52,7 +54,50 @@ def create_assembly(api: Api, workspace_path: InstancePath, assembly_name: str) 
     )
 
 
-def add_parts(
+def add_element_to_assembly(
+    api: Api,
+    assembly_path: ElementPath,
+    element_path: ElementPath,
+    element_type: ElementType,
+    configuration: str | None = None,
+) -> dict:
+    """
+    Adds the contents of an element tab to an assembly.
+
+    Note this function uses the transformedinstances endpoint since the default insert endpoint has no return value.
+
+    assembly_path: The path to the assembly to add to.
+    element_path: The path to the element tab to insert into the assembly.
+    """
+    assert_workspace(assembly_path)
+
+    if element_type == ElementType.ASSEMBLY:
+        instance = {"isAssembly": True, "configuration": configuration}
+    elif element_type == ElementType.PART_STUDIO:
+        instance = {
+            "includePartTypes": ["PARTS"],
+            "isWholePartStudio": True,
+            "configuration": configuration,
+        }
+    else:
+        raise ValueError(
+            f"The given element_type must be a part studio or assembly, got {element_type}"
+        )
+
+    instance.update(ElementPath.to_api_object(element_path))
+
+    # Use the transformedinstances endpoint since it actually has a return value
+    # body = {
+    #     "transformGroups": [{"instances": [instance], "transform": IDENTITY_TRANSFORM}]
+    # }
+
+    return api.post(
+        api_path("assemblies", assembly_path, ElementPath, "instances"),
+        body=instance,
+    )
+
+
+def add_part_studio_to_assembly(
     api: Api,
     assembly_path: ElementPath,
     part_studio_path: ElementPath | PartPath,
@@ -83,7 +128,7 @@ def add_part_to_assembly(
     assembly_path: ElementPath,
     part_path: PartPath,
 ) -> None:
-    add_parts(api, assembly_path, part_path, part_path.part_id)
+    add_part_studio_to_assembly(api, assembly_path, part_path, part_path.part_id)
 
 
 def transform_instance(

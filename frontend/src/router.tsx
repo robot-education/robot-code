@@ -1,10 +1,9 @@
-import { usePrefetchQuery } from "@tanstack/react-query";
+import { ElementType } from "react";
 import { apiGet } from "./api/api";
-import { ElementPath, InstanceType } from "./api/path";
+import { ElementPath } from "./api/path";
 import { App } from "./app/app";
 import { DocumentList } from "./app/document-list";
 import { OnshapeParams } from "./app/onshape-params";
-import { ElementType } from "./common/element-type";
 import { GrantDenied } from "./pages/grant-denied";
 import { License } from "./pages/license";
 import {
@@ -15,7 +14,7 @@ import {
     SearchSchemaInput
 } from "@tanstack/react-router";
 
-const rootRoute = createRootRoute({});
+const rootRoute = createRootRoute();
 
 /**
  * When the app is first loaded by Onshape, Onshape provides search params indiciating the context the app is being accessed from.
@@ -29,13 +28,7 @@ const appRoute = createRoute({
     validateSearch: (
         search: Record<string, unknown> & SearchSchemaInput
     ): OnshapeParams => {
-        return {
-            elementType: search.elementType as ElementType,
-            documentId: search.documentId as string,
-            instanceType: search.instanceType as InstanceType,
-            instanceId: search.instanceId as string,
-            elementId: search.elementId as string
-        };
+        return search as unknown as OnshapeParams;
     },
     search: {
         middlewares: [retainSearchParams(true)]
@@ -43,19 +36,20 @@ const appRoute = createRoute({
 });
 
 export interface DocumentResult {
-    documents: Document[];
-    elements: Element[];
+    documents: DocumentObj[];
+    elements: ElementObj[];
 }
 
-export interface Document {
+export interface DocumentObj {
     name: string;
     id: string;
     elementIds: string[];
 }
 
-export interface Element extends ElementPath {
+export interface ElementObj extends ElementPath {
     name: string;
     id: string;
+    elementType: ElementType;
 }
 
 const documentsRoute = createRoute({
@@ -84,45 +78,3 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 export const router = createRouter({ routeTree });
-
-// export const router = createBrowserRouter([
-//     {
-//         path: "app",
-//         element: <App />,
-//         children: [
-//             {
-//                 path: MenuType.PART_STUDIO,
-//                 element: <PartStudio />,
-//                 children: [
-//                     {
-//                         path: "link-manager",
-//                         element: <LinkManager />
-//                     },
-//                     {
-//                         path: "generate-assembly",
-//                         element: <GenerateAssembly />,
-//                         loader: makeDefaultNameLoader(DefaultNameType.ASSEMBLY)
-//                     }
-//                 ]
-//             },
-//             {
-//                 path: MenuType.ASSEMBLY,
-//                 element: <Assembly />,
-//                 children: [
-//                     {
-//                         path: "link-manager",
-//                         element: <LinkManager />
-//                     }
-//                 ]
-//             }
-//         ]
-//     },
-//     {
-//         path: "grant-denied",
-//         element: <GrantDenied />
-//     },
-//     {
-//         path: "license",
-//         element: <License />
-//     }
-// ]);

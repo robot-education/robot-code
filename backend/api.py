@@ -1,7 +1,7 @@
 import flask
 
 from backend.common import backend_exceptions
-from backend.endpoints import get_documents, save_documents
+from backend.endpoints import get_documents, insert_elements, save_documents
 from onshape_api.exceptions import ApiError
 
 
@@ -26,8 +26,4 @@ def reported_exception(e: backend_exceptions.ReportedException):
 
 router.register_blueprint(save_documents.router)
 router.register_blueprint(get_documents.router)
-# router.register_blueprint(assembly_mirror.router)
-# router.register_blueprint(linked_documents.router)
-# router.register_blueprint(references.router)
-# router.register_blueprint(copy_design.router)
-# router.register_blueprint(update_featurescripts.router)
+router.register_blueprint(insert_elements.router)
