@@ -1,7 +1,7 @@
 import os
 import flask
 from onshape_api.endpoints import users
-from backend import api
+from backend.endpoints import api
 from backend.common import connect, database, env
 from backend import oauth
 

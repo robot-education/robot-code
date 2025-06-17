@@ -4,9 +4,8 @@ from urllib import parse
 from onshape_api.api.api_base import Api
 from onshape_api.assertions import assert_workspace
 from onshape_api.endpoints.documents import ElementType
-from onshape_api.model.constants import IDENTITY_TRANSFORM
 from onshape_api.paths.api_path import api_path
-from onshape_api.paths.paths import ElementPath, InstancePath, PartPath
+from onshape_api.paths.paths import ElementPath, InstancePath
 
 
 def get_assembly(
@@ -95,40 +94,6 @@ def add_element_to_assembly(
         api_path("assemblies", assembly_path, ElementPath, "instances"),
         body=instance,
     )
-
-
-def add_part_studio_to_assembly(
-    api: Api,
-    assembly_path: ElementPath,
-    part_studio_path: ElementPath | PartPath,
-    part_id: str | None = None,
-) -> None:
-    """Adds a part studio to a given assembly.
-
-    If the part_studio_path is an ElementPath, the entire part studio is added. Otherwise, only the specified part is added.
-
-    This endpoint has no response since Onshape doesn't give one.
-    """
-    assert_workspace(assembly_path)
-    body = {
-        "includePartTypes": ["PARTS"],
-        "isWholePartStudio": part_id is None,
-    }
-
-    if isinstance(part_studio_path, PartPath):
-        body.update(PartPath.to_api_object(part_studio_path))
-    else:
-        body.update(ElementPath.to_api_object(part_studio_path))
-
-    api.post(api_path("assemblies", assembly_path, ElementPath, "instances"), body=body)
-
-
-def add_part_to_assembly(
-    api: Api,
-    assembly_path: ElementPath,
-    part_path: PartPath,
-) -> None:
-    add_part_studio_to_assembly(api, assembly_path, part_path, part_path.part_id)
 
 
 def transform_instance(
