@@ -77,7 +77,7 @@ Next, add the necessary Extensions to your OAuth application so you can see it i
     - Context: Inside assembly/Inside part studio
     - Action URL:
         - Assembly: `https://localhost:3000/app?elementType=ASSEMBLY&documentId={$documentId}&instanceType={$workspaceOrVersion}&instanceId={$workspaceOrVersionId}&elementId={$elementId}`
-        - Part Studio: `https://localhost:3000/app?elementType=PART_STUDIO&documentId={$documentId}&instanceType={$workspaceOrVersion}&instanceId={$workspaceOrVersionId}&elementId={$elementId}`
+        - Part Studio: `https://localhost:3000/app?elementType=PARTSTUDIO&documentId={$documentId}&instanceType={$workspaceOrVersion}&instanceId={$workspaceOrVersionId}&elementId={$elementId}`
     - Icon: You'll need an arbitrary icon. You should be able to borrow one from `/frontend/src/assets/`.
 
 You should now be able to see your App in the right panel of any Part Studios or Assemblies you open.

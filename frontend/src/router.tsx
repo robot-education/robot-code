@@ -13,6 +13,8 @@ import {
     retainSearchParams,
     SearchSchemaInput
 } from "@tanstack/react-router";
+import { queryOptions } from "@tanstack/react-query";
+import { queryClient } from "./query-client";
 
 const rootRoute = createRootRoute();
 
@@ -52,11 +54,17 @@ export interface ElementObj extends ElementPath {
     elementType: ElementType;
 }
 
+const loadDocuments = queryOptions<DocumentResult>({
+    queryKey: ["documents"],
+    queryFn: () => apiGet("/documents"),
+    staleTime: Infinity
+});
+
 const documentsRoute = createRoute({
     getParentRoute: () => appRoute,
     path: "/documents",
     component: DocumentList,
-    loader: async (): Promise<DocumentResult> => apiGet("/documents")
+    loader: () => queryClient.ensureQueryData(loadDocuments)
 });
 
 const grantDeniedRoute = createRoute({

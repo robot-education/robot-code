@@ -13,6 +13,7 @@ import { ReactNode } from "react";
 import robotIcon from "/robot-icon.svg";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "../api/api";
+import { queryClient } from "../query-client";
 
 /**
  * Provides top-level navigation for the app.
@@ -45,6 +46,9 @@ function ReloadAllDocumentsButton(): ReactNode {
         mutationKey: ["save-all-documents"],
         mutationFn: () => {
             return apiPost("/save-all-documents");
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["documents"] });
         }
     });
 
