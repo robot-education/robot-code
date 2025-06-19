@@ -25,6 +25,14 @@ class Database:
     def configurations(self) -> CollectionReference:
         return self.db.collection("configurations")
 
+    def delete_document(self, document_id: str):
+        element = self.documents.document(document_id).get().to_dict()
+        if element == None:
+            return
+        for element_id in element.get("elementIds", []):
+            self.elements.document(element_id).delete()
+            self.configurations.document(element_id).delete()
+
 
 def make_element_db_id(element_path: ElementPath) -> str:
     """Constructs the id of an element in the elements collection of the database.

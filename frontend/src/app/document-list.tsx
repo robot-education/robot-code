@@ -4,9 +4,9 @@ import { PropsWithChildren, ReactNode } from "react";
 import { toElementApiPath } from "../api/path";
 import { useMutation } from "@tanstack/react-query";
 import { useOnshapeParams } from "./onshape-params";
-import { apiPost } from "../api/api";
+import { apiGet, apiPost } from "../api/api";
 import { ElementType } from "../api/element-type";
-import { ElementObj } from "../router";
+import { ConfigurationResult, ElementObj } from "../router";
 
 export function DocumentList(): ReactNode {
     const data = useLoaderData({ from: "/app/documents" });
@@ -56,16 +56,33 @@ function ElementCard(props: ElementCardProps): ReactNode {
     const insertMutation = useMutation({
         mutationKey: ["insert", element.id],
         mutationFn: async () => {
+            let configuration: string | undefined = undefined;
+            if (element.configurationId) {
+                const result = (await apiGet(
+                    "/configuration/" + element.configurationId
+                )) as ConfigurationResult;
+                configuration = result.defaultConfiguration;
+            }
             if (onshapeParams.elementType == ElementType.ASSEMBLY) {
                 return apiPost(
                     "/add-to-assembly" + toElementApiPath(onshapeParams),
-                    { body: element }
+                    {
+                        body: {
+                            ...element,
+                            configuration
+                        }
+                    }
                 );
             }
 
             return apiPost(
                 "/add-to-part-studio" + toElementApiPath(onshapeParams),
-                { body: element }
+                {
+                    body: {
+                        ...element,
+                        configuration
+                    }
+                }
             );
         }
     });

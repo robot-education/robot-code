@@ -15,6 +15,7 @@ function getUrl(path: string, query?: URLSearchParamsInit): string {
 interface PostOptions {
     query?: URLSearchParamsInit;
     body?: object;
+    signal?: AbortSignal;
 }
 
 /**
@@ -27,7 +28,8 @@ export async function apiPost(
     return fetch(getUrl(path, options?.query), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(options?.body ?? {})
+        body: JSON.stringify(options?.body ?? {}),
+        signal: options?.signal
     }).then(handleResponse);
 }
 
@@ -36,10 +38,12 @@ export async function apiPost(
  */
 export async function apiGet(
     path: string,
-    query?: URLSearchParamsInit
+    query?: URLSearchParamsInit,
+    signal?: AbortSignal
 ): Promise<any> {
     return fetch(getUrl(path, query), {
-        cache: "no-store"
+        cache: "no-store",
+        signal
     }).then(handleResponse);
 }
 

@@ -1,6 +1,8 @@
 from typing import Iterable
 from urllib import parse
 
+import flask
+
 from onshape_api.api.api_base import Api
 from onshape_api.assertions import assert_workspace
 from onshape_api.endpoints.documents import ElementType

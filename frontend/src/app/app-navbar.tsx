@@ -45,10 +45,13 @@ function ReloadAllDocumentsButton(): ReactNode {
     const mutation = useMutation({
         mutationKey: ["save-all-documents"],
         mutationFn: () => {
-            return apiPost("/save-all-documents");
+            return apiPost("/save-all-documents", {
+                // Set a timeout of 5 minutes
+                signal: AbortSignal.timeout(5 * 60000)
+            });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["documents"] });
+            queryClient.refetchQueries({ queryKey: ["documents"] });
         }
     });
 

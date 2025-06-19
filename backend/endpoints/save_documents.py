@@ -1,59 +1,115 @@
+from enum import StrEnum
 import flask
 import json5
 
 from backend.common import connect, database
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints import documents
-from onshape_api.endpoints.configurations import get_configuration
+from onshape_api.endpoints.configurations import encode_configuration, get_configuration
 from onshape_api.endpoints.documents import ElementType
 from onshape_api.endpoints.versions import get_latest_version_path
 from onshape_api.paths.paths import (
     ElementPath,
     InstancePath,
-    url_to_instance_path,
+    url_to_document_path,
 )
 
 router = flask.Blueprint("save-documents", __name__)
+
+
+class ParameterType(StrEnum):
+    ENUM = "BTMConfigurationParameterEnum-105"
+    QUANTITY = "BTMConfigurationParameterQuantity-1826"
+    BOOLEAN = "BTMConfigurationParameterBoolean-2550"
+    STRING = "BTMConfigurationParameterString-872"
+
+
+class QuantityType(StrEnum):
+    LENGTH = "LENGTH"
+    ANGLE = "ANGLE"
+    INTEGER = "INTEGER"
+    REAL = "REAL"
+
+
+def parse_configuration(configuration: dict) -> dict:
+    parameters = []
+    for parameter, current in zip(
+        configuration["configurationParameters"], configuration["currentConfiguration"]
+    ):
+        parameter_type = parameter["btType"]
+        result = {
+            "id": parameter["parameterId"],
+            "name": parameter["parameterName"],
+            "type": parameter_type,
+        }
+        if parameter_type == ParameterType.ENUM:
+            result["default"] = parameter["defaultValue"]
+            result["options"] = [
+                {"id": option["option"], "name": option["optionName"]}
+                for option in parameter["options"]
+            ]
+        elif parameter_type == ParameterType.BOOLEAN:
+            result["default"] = parameter["defaultValue"]
+        elif parameter_type == ParameterType.STRING:
+            result["default"] = parameter["defaultValue"]
+        elif parameter_type == ParameterType.QUANTITY:
+            quantity_type = parameter["quantityType"]
+            range = parameter["rangeAndDefault"]
+            result = {
+                "quantityType": quantity_type,
+                "default": current["expression"],
+                "min": range["minValue"],
+                "max": range["maxValue"],
+            }
+            if (
+                quantity_type != QuantityType.REAL
+                and quantity_type != QuantityType.REAL
+            ):
+                result["units"] = range["units"]
+
+        parameters.append(result)
+
+    default_value = encode_configuration(
+        (param["id"], param["default"]) for param in parameters
+    )
+    return {"defaultConfiguration": default_value, "parameters": parameters}
+
+
+def save_element(
+    db: database.Database, api: Api, version_path: InstancePath, element: dict
+) -> str:
+    element_type: ElementType = element["elementType"]
+    name = element["name"]  # Use the name of the tab
+    element_id = element["id"]
+    path = ElementPath.from_path(version_path, element_id)
+
+    element_db_value = {
+        "name": name,
+        "elementType": element_type,
+        "documentId": version_path.document_id,
+        "elementType": element_type,
+    }
+
+    configuration = get_configuration(api, path)
+    if configuration["configurationParameters"] != []:
+        configuration_value = parse_configuration(configuration)
+        # Re-use element db id since configurations can't be shared
+        db.configurations.document(element_id).set(configuration_value)
+        element_db_value["configurationId"] = element_id
+
+    db.elements.document(element_id).set(element_db_value)
+    return element_id
 
 
 def save_document(api: Api, db: database.Database, version_path: InstancePath) -> int:
     """Loads all of the elements of a given document into the database."""
     contents = documents.get_contents(api, version_path)
 
-    element_paths: list[str] = []
-    for element in contents["elements"]:
-        element_type: ElementType = element["elementType"]
-        if element_type not in [ElementType.PART_STUDIO, ElementType.ASSEMBLY]:
-            continue
-
-        name = element["name"]  # Use the name of the tab
-        path = ElementPath.from_path(version_path, element["id"])
-
-        configuration = get_configuration(api, path)
-        configurable = configuration["configurationParameters"] != []
-        if configurable:
-            # TODO: Parse and save configuration
-            pass
-
-        # encodedConfigurationParams = element.get("configurationParameters")
-        # configurable = encodedConfigurationParams != None
-
-        element_db_id = database.make_element_db_id(path)
-        element_db_value = {
-            "name": name,
-            "type": element_type,
-            "instanceId": version_path.instance_id,
-            "elementType": element_type,
-            "configurable": configurable,
-        }
-        if configurable:
-            # Re-use element db ids since configurations can't be shared
-            element_db_value["configurationId"] = element_db_id
-
-        element_ref = db.elements.document(element_db_id)
-        element_ref.set(element_db_value)
-
-        element_paths.append(element_db_id)
+    element_ids = [
+        save_element(db, api, version_path, element)
+        for element in contents["elements"]
+        if element["elementType"] in [ElementType.ASSEMBLY, ElementType.PART_STUDIO]
+    ]
 
     document = documents.get_document(api, version_path)
     if document["documentThumbnailElementId"] == None:
@@ -64,10 +120,11 @@ def save_document(api: Api, db: database.Database, version_path: InstancePath) -
     db.documents.document(version_path.document_id).set(
         {
             "name": document_name,
-            "elementIds": element_paths,
+            "instanceId": version_path.instance_id,
+            "elementIds": element_ids,
         }
     )
-    return len(element_paths)
+    return len(element_ids)
 
 
 @router.post("/save-all-documents")
@@ -76,10 +133,6 @@ def save_all_documents(**kwargs):
     db = database.Database()
     api = connect.get_api(db)
 
-    database.delete_collection(db.documents)
-    database.delete_collection(db.elements)
-    database.delete_collection(db.configurations)
-
     with open("config.json") as file:
         config = json5.load(file)
 
@@ -87,8 +140,15 @@ def save_all_documents(**kwargs):
 
     count = 0
     for document_url in documents_list:
-        path = url_to_instance_path(document_url)
+        path = url_to_document_path(document_url)
         latest_version_path = get_latest_version_path(api, path)
+
+        document = db.documents.document(path.document_id).get().to_dict()
+        # Version is already saved
+        if document and document.get("instanceId") == latest_version_path.instance_id:
+            continue
+
+        db.delete_document(path.document_id)
         count += save_document(api, db, latest_version_path)
 
     return {"savedElements": count}

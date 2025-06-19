@@ -236,6 +236,14 @@ class PartPath(ElementPath):
         return PartPath.to_api_path(self)
 
 
+def url_to_document_path(url: str) -> DocumentPath:
+    """Constructs an DocumentPath from an Onshape document url."""
+    path = parse.urlparse(url).path
+    path = path.removeprefix("/documents")
+    parts = pathlib.Path(path).parts
+    return DocumentPath(parts[1])
+
+
 def url_to_instance_path(url: str) -> InstancePath:
     """Constructs an InstancePath from an Onshape document url."""
     path = parse.urlparse(url).path

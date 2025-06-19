@@ -41,7 +41,7 @@ class OAuthApi(Api):
         url = self._base_url + path + "?" + query_str
 
         if self._logging:
-            if len(body) > 0:
+            if body != {} and body != "":
                 logging.info(body)
             logging.info("request url: " + url)
 

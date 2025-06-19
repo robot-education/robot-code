@@ -33,7 +33,7 @@ export interface Configuration {
 }
 
 /**
- * A utility which parses Onshape urls into an ElementPath.
+ * Parses Onshape urls into an ElementPath.
  * Returns `undefined` if the url could not be parsed successfully.
  */
 export function parseUrl(

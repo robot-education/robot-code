@@ -2,9 +2,6 @@ import flask
 
 from backend.common import connect, database
 from onshape_api.endpoints.assemblies import add_element_to_assembly
-from onshape_api.paths.paths import (
-    ElementPath,
-)
 
 router = flask.Blueprint("insert-elements", __name__)
 
@@ -17,8 +14,11 @@ def add_to_assembly(**kwargs):
     assembly_path = connect.get_route_element_path()
     path_to_add = connect.get_body_element_path()
     element_type = connect.get_body_arg("elementType")
+    configuration = connect.get_optional_body_arg("configuration")
 
-    add_element_to_assembly(api, assembly_path, path_to_add, element_type)
+    add_element_to_assembly(
+        api, assembly_path, path_to_add, element_type, configuration=configuration
+    )
     return {"success": True}
 
 

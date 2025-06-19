@@ -142,7 +142,7 @@ You can test your build by starting up the google cloud emulator:
 gcloud emulators firestore start
 ```
 
-<!-- Then restart the distro. This prevents google cloud from using the google cloud version located outside of WSL. -->
+<!-- Then restart your WSL instance. This prevents google cloud from using the google cloud version located outside of WSL. -->
 
 Note: this project uses Google Cloud Firestore as it's database. This is not to be confused with Google Firebase or Google Firebase's Firestore (yikes), as Google Firebase is a separate project from Google Cloud.
 

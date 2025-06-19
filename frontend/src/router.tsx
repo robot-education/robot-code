@@ -37,27 +37,38 @@ const appRoute = createRoute({
     }
 });
 
+export interface ConfigurationResult {
+    defaultConfiguration: string;
+    parameters: ParameterObj[];
+}
+
+export interface ParameterObj {
+    id: string;
+    name: string;
+}
+
 export interface DocumentResult {
     documents: DocumentObj[];
     elements: ElementObj[];
 }
 
 export interface DocumentObj {
-    name: string;
     id: string;
+    name: string;
     elementIds: string[];
 }
 
 export interface ElementObj extends ElementPath {
-    name: string;
     id: string;
+    name: string;
     elementType: ElementType;
+    configurationId?: string;
 }
 
 const loadDocuments = queryOptions<DocumentResult>({
     queryKey: ["documents"],
     queryFn: () => apiGet("/documents"),
-    staleTime: Infinity
+    staleTime: Infinity,
 });
 
 const documentsRoute = createRoute({
