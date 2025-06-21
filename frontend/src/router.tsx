@@ -1,9 +1,6 @@
-import { ElementType } from "react";
-import { apiGet } from "./api/api";
-import { ElementPath } from "./api/path";
 import { App } from "./app/app";
 import { DocumentList } from "./app/document-list";
-import { OnshapeParams } from "./app/onshape-params";
+import { SearchParams } from "./api/search-params";
 import { GrantDenied } from "./pages/grant-denied";
 import { License } from "./pages/license";
 import {
@@ -13,8 +10,11 @@ import {
     retainSearchParams,
     SearchSchemaInput
 } from "@tanstack/react-router";
-import { queryOptions } from "@tanstack/react-query";
 import { queryClient } from "./query-client";
+import { ConfigurationResult, DocumentResult } from "./api/backend-types";
+import { ConfigurationDialog } from "./app/insert-dialog";
+import { queryOptions } from "@tanstack/react-query";
+import { apiGet } from "./api/api";
 
 const rootRoute = createRootRoute();
 
@@ -29,53 +29,53 @@ const appRoute = createRoute({
     // Add SearchSchemaInput so search parameters become optional
     validateSearch: (
         search: Record<string, unknown> & SearchSchemaInput
-    ): OnshapeParams => {
-        return search as unknown as OnshapeParams;
+    ): SearchParams => {
+        return search as unknown as SearchParams;
     },
     search: {
         middlewares: [retainSearchParams(true)]
     }
 });
 
-export interface ConfigurationResult {
-    defaultConfiguration: string;
-    parameters: ParameterObj[];
-}
-
-export interface ParameterObj {
-    id: string;
-    name: string;
-}
-
-export interface DocumentResult {
-    documents: DocumentObj[];
-    elements: ElementObj[];
-}
-
-export interface DocumentObj {
-    id: string;
-    name: string;
-    elementIds: string[];
-}
-
-export interface ElementObj extends ElementPath {
-    id: string;
-    name: string;
-    elementType: ElementType;
-    configurationId?: string;
-}
-
-const loadDocuments = queryOptions<DocumentResult>({
-    queryKey: ["documents"],
-    queryFn: () => apiGet("/documents"),
-    staleTime: Infinity,
-});
-
 const documentsRoute = createRoute({
     getParentRoute: () => appRoute,
     path: "/documents",
     component: DocumentList,
-    loader: () => queryClient.ensureQueryData(loadDocuments)
+    beforeLoad: ({ abortController }) => {
+        const loadDocuments = queryOptions<DocumentResult>({
+            queryKey: ["documents"],
+            queryFn: () => apiGet("/documents", {}, abortController.signal)
+        });
+        return queryClient.ensureQueryData(loadDocuments);
+    },
+    loader: ({ context }) => {
+        return context;
+    }
+});
+
+const insertDialogRoute = createRoute({
+    getParentRoute: () => documentsRoute,
+    path: "/$elementId",
+    component: ConfigurationDialog,
+    loader: ({ params, abortController, context }) => {
+        const element = context.elements.find(
+            (element) => element.id === params.elementId
+        );
+        const configurationId = element?.configurationId;
+        if (!configurationId) {
+            return undefined;
+        }
+        const loadConfiguration = queryOptions<ConfigurationResult>({
+            queryKey: ["configuration", configurationId],
+            queryFn: () =>
+                apiGet(
+                    "/configuration/" + configurationId,
+                    {},
+                    abortController.signal
+                )
+        });
+        return queryClient.ensureQueryData(loadConfiguration);
+    }
 });
 
 const grantDeniedRoute = createRoute({
@@ -91,9 +91,14 @@ const licenseRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-    appRoute.addChildren([documentsRoute]),
+    appRoute.addChildren([documentsRoute.addChildren([insertDialogRoute])]),
     grantDeniedRoute,
     licenseRoute
 ]);
 
-export const router = createRouter({ routeTree });
+export const router = createRouter({
+    routeTree
+    // Database is immutable, so no need to refetch things
+    // defaultStaleTime: Infinity,
+    // defaultPreloadStaleTime: Infinity
+});

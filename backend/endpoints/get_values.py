@@ -1,6 +1,15 @@
 import flask
 
 from backend.common import database
+from backend.common import connect
+from backend.common.connect import (
+    element_route,
+    get_optional_query_arg,
+    get_route_element_path,
+    get_route_instance_path,
+    instance_route,
+)
+from onshape_api.endpoints import thumbnails
 from onshape_api.paths.instance_type import InstanceType
 
 router = flask.Blueprint("get-values", __name__)
@@ -50,3 +59,22 @@ def get_configuration(configuration_id: str):
     if result == None:
         raise ValueError(f"Failed to find configuration with id {configuration_id}")
     return result
+
+
+@router.get("/thumbnail" + instance_route())
+def get_document_thumbnail(**kwargs):
+    db = database.Database()
+    api = connect.get_api(db)
+    instance_path = get_route_instance_path()
+    size = get_optional_query_arg("size")
+    return thumbnails.get_instance_thumbnail(api, instance_path, size)
+
+
+@router.get("/thumbnail" + element_route())
+def get_element_thumbnail(**kwargs):
+    db = database.Database()
+    api = connect.get_api(db)
+    element_path = get_route_element_path()
+    configuration = get_optional_query_arg("configuration")
+    size = get_optional_query_arg("size")
+    return thumbnails.get_element_thumbnail(api, element_path, size, configuration)

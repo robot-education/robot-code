@@ -1,10 +1,10 @@
 from typing import Iterable
 from urllib import parse
 
-import flask
-
+from backend.endpoints.save_documents import parse_configuration
 from onshape_api.api.api_base import Api
 from onshape_api.assertions import assert_workspace
+from onshape_api.endpoints.configurations import encode_configuration
 from onshape_api.endpoints.documents import ElementType
 from onshape_api.paths.api_path import api_path
 from onshape_api.paths.paths import ElementPath, InstancePath
@@ -60,8 +60,8 @@ def add_element_to_assembly(
     assembly_path: ElementPath,
     element_path: ElementPath,
     element_type: ElementType,
-    configuration: str | None = None,
-) -> dict:
+    configuration: dict[str, str] | None = None,
+) -> None:
     """
     Adds the contents of an element tab to an assembly.
 
@@ -72,14 +72,19 @@ def add_element_to_assembly(
     """
     assert_workspace(assembly_path)
 
+    instance = {}
+    if configuration != None:
+        instance["configuration"] = encode_configuration(configuration)
+
     if element_type == ElementType.ASSEMBLY:
-        instance = {"isAssembly": True, "configuration": configuration}
+        instance["isAssembly"] = True
     elif element_type == ElementType.PART_STUDIO:
-        instance = {
-            "includePartTypes": ["PARTS"],
-            "isWholePartStudio": True,
-            "configuration": configuration,
-        }
+        instance.update(
+            {
+                "includePartTypes": ["PARTS"],
+                "isWholePartStudio": True,
+            }
+        )
     else:
         raise ValueError(
             f"The given element_type must be a part studio or assembly, got {element_type}"
@@ -87,12 +92,13 @@ def add_element_to_assembly(
 
     instance.update(ElementPath.to_api_object(element_path))
 
-    # Use the transformedinstances endpoint since it actually has a return value
+    # Could use the transformedinstances endpoint to get a return value
     # body = {
     #     "transformGroups": [{"instances": [instance], "transform": IDENTITY_TRANSFORM}]
     # }
 
-    return api.post(
+    # The post instances endpoint has no return value :(
+    api.post(
         api_path("assemblies", assembly_path, ElementPath, "instances"),
         body=instance,
     )

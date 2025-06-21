@@ -14,6 +14,7 @@ import robotIcon from "/robot-icon.svg";
 import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "../api/api";
 import { queryClient } from "../query-client";
+import { router } from "../router";
 
 /**
  * Provides top-level navigation for the app.
@@ -50,8 +51,9 @@ function ReloadAllDocumentsButton(): ReactNode {
                 signal: AbortSignal.timeout(5 * 60000)
             });
         },
-        onSuccess: () => {
-            queryClient.refetchQueries({ queryKey: ["documents"] });
+        onSuccess: async () => {
+            await queryClient.refetchQueries({ queryKey: ["documents"] });
+            router.invalidate(); // Trigger page reload
         }
     });
 

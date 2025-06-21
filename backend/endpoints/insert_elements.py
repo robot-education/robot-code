@@ -1,3 +1,4 @@
+import logging
 import flask
 
 from backend.common import connect, database
@@ -15,6 +16,8 @@ def add_to_assembly(**kwargs):
     path_to_add = connect.get_body_element_path()
     element_type = connect.get_body_arg("elementType")
     configuration = connect.get_optional_body_arg("configuration")
+
+    logging.error(configuration)
 
     add_element_to_assembly(
         api, assembly_path, path_to_add, element_type, configuration=configuration

@@ -1,12 +1,7 @@
 import { Card, CardList, Section, SectionCard } from "@blueprintjs/core";
-import { useLoaderData } from "@tanstack/react-router";
+import { Outlet, useLoaderData, useNavigate } from "@tanstack/react-router";
 import { PropsWithChildren, ReactNode } from "react";
-import { toElementApiPath } from "../api/path";
-import { useMutation } from "@tanstack/react-query";
-import { useOnshapeParams } from "./onshape-params";
-import { apiGet, apiPost } from "../api/api";
-import { ElementType } from "../api/element-type";
-import { ConfigurationResult, ElementObj } from "../router";
+import { ElementObj } from "../api/backend-types";
 
 export function DocumentList(): ReactNode {
     const data = useLoaderData({ from: "/app/documents" });
@@ -27,7 +22,12 @@ export function DocumentList(): ReactNode {
         );
     });
 
-    return cards;
+    return (
+        <>
+            {cards}
+            <Outlet />
+        </>
+    );
 }
 
 interface DocumentCardProps extends PropsWithChildren {
@@ -50,45 +50,18 @@ interface ElementCardProps extends PropsWithChildren {
 
 function ElementCard(props: ElementCardProps): ReactNode {
     const { element } = props;
-
-    const onshapeParams = useOnshapeParams();
-
-    const insertMutation = useMutation({
-        mutationKey: ["insert", element.id],
-        mutationFn: async () => {
-            let configuration: string | undefined = undefined;
-            if (element.configurationId) {
-                const result = (await apiGet(
-                    "/configuration/" + element.configurationId
-                )) as ConfigurationResult;
-                configuration = result.defaultConfiguration;
-            }
-            if (onshapeParams.elementType == ElementType.ASSEMBLY) {
-                return apiPost(
-                    "/add-to-assembly" + toElementApiPath(onshapeParams),
-                    {
-                        body: {
-                            ...element,
-                            configuration
-                        }
-                    }
-                );
-            }
-
-            return apiPost(
-                "/add-to-part-studio" + toElementApiPath(onshapeParams),
-                {
-                    body: {
-                        ...element,
-                        configuration
-                    }
-                }
-            );
-        }
-    });
+    const navigate = useNavigate();
 
     return (
-        <Card interactive onClick={() => insertMutation.mutate()}>
+        <Card
+            interactive
+            onClick={() =>
+                navigate({
+                    to: "/app/documents/$elementId",
+                    params: { elementId: element.id }
+                })
+            }
+        >
             <span>{element.name}</span>
         </Card>
     );

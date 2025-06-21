@@ -8,7 +8,7 @@ import {
     useSearch
 } from "@tanstack/react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ColorTheme } from "./onshape-params";
+import { getThemeClass } from "../api/search-params";
 import { Section } from "@blueprintjs/core";
 
 export function App() {
@@ -21,7 +21,7 @@ export function App() {
 
     return (
         <Section
-            className={search.theme === ColorTheme.DARK ? "bp5-dark" : ""}
+            className={getThemeClass(search.theme)}
             style={{ position: "absolute", height: "100%", width: "100%" }}
         >
             <QueryClientProvider client={queryClient}>

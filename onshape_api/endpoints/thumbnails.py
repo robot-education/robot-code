@@ -3,7 +3,7 @@ from onshape_api.api.api_base import Api
 from onshape_api.assertions import assert_instance_type
 from onshape_api.paths.api_path import api_path
 from onshape_api.paths.instance_type import InstanceType
-from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
+from onshape_api.paths.paths import ElementPath, InstancePath
 
 
 class ThumbnailSize(StrEnum):
@@ -23,7 +23,7 @@ class ThumbnailSize(StrEnum):
         return True
 
 
-def get_document_thumbnail(
+def get_instance_thumbnail(
     api: Api, instance_path: InstancePath, size: ThumbnailSize
 ) -> dict:
     """Returns the thumbnail of a given document."""
@@ -36,11 +36,11 @@ def get_element_thumbnail(
     api: Api,
     element_path: ElementPath,
     size: ThumbnailSize,
-    configuration: str | None = None,
+    query_configuration: str | None = None,
 ) -> dict:
     """Returns the thumbnail of a given element."""
     path = api_path("thumbnails", element_path, ElementPath)
-    if configuration:
-        path += "/ac/" + configuration
+    if query_configuration:
+        path += "/ac/" + query_configuration
     path += "/s/" + size
     return api.get(path)

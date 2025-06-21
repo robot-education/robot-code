@@ -53,10 +53,12 @@ def decode_configuration(
 #     )
 
 
-def encode_configuration(values: Iterable[tuple[str, str]]) -> str:
+def encode_configuration(values: dict[str, str]) -> str:
     # Convert to str to handle booleans and other tomfoolery
-    return ";".join(f"{id}={parse.quote_plus(str(value))}" for (id, value) in values)
+    return ";".join(
+        f"{id}={parse.quote_plus(str(value))}" for (id, value) in values.items()
+    )
 
 
-def encode_configuration_for_query(values: Iterable[tuple[str, str]]) -> str:
-    return parse.quote_plus(";".join(f"{id}={value}" for (id, value) in values))
+def encode_configuration_for_query(values: dict[str, str]) -> str:
+    return parse.quote_plus(";".join(f"{id}={value}" for (id, value) in values.items()))

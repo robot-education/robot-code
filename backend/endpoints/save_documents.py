@@ -49,7 +49,8 @@ def parse_configuration(configuration: dict) -> dict:
                 for option in parameter["options"]
             ]
         elif parameter_type == ParameterType.BOOLEAN:
-            result["default"] = parameter["defaultValue"]
+            # Convert to "true" or "false" for simplicity
+            result["default"] = str(parameter["defaultValue"]).lower()
         elif parameter_type == ParameterType.STRING:
             result["default"] = parameter["defaultValue"]
         elif parameter_type == ParameterType.QUANTITY:
@@ -60,17 +61,15 @@ def parse_configuration(configuration: dict) -> dict:
                 "default": current["expression"],
                 "min": range["minValue"],
                 "max": range["maxValue"],
+                "unit": range["units"],  # empty string for real and integer
             }
-            if (
-                quantity_type != QuantityType.REAL
-                and quantity_type != QuantityType.REAL
-            ):
-                result["units"] = range["units"]
+            # if quantity_type not in [QuantityType.REAL, QuantityType.INTEGER]:
+            #     result["unit"] = range["units"]
 
         parameters.append(result)
 
     default_value = encode_configuration(
-        (param["id"], param["default"]) for param in parameters
+        {param["id"]: param["default"] for param in parameters}
     )
     return {"defaultConfiguration": default_value, "parameters": parameters}
 
@@ -139,16 +138,27 @@ def save_all_documents(**kwargs):
     documents_list = config["documents"]
 
     count = 0
+    visited = set()
     for document_url in documents_list:
         path = url_to_document_path(document_url)
-        latest_version_path = get_latest_version_path(api, path)
+        visited.add(path.document_id)
 
+        latest_version_path = get_latest_version_path(api, path)
         document = db.documents.document(path.document_id).get().to_dict()
+        if document == None:
+            count += save_document(api, db, latest_version_path)
+            continue
         # Version is already saved
-        if document and document.get("instanceId") == latest_version_path.instance_id:
+        if document.get("instanceId") == latest_version_path.instance_id:
             continue
 
         db.delete_document(path.document_id)
         count += save_document(api, db, latest_version_path)
+
+    # Clean up any documents that are no longer in the config
+    for doc_ref in db.documents.stream():
+        if doc_ref.id in visited:
+            continue
+        db.delete_document(doc_ref.id)
 
     return {"savedElements": count}
