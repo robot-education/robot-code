@@ -62,8 +62,10 @@
         {
             "label": "Launch backend",
             "type": "shell",
-            "command": "flask",
+            "command": "uv",
             "args": [
+                "run",
+                "flask",
                 "--app",
                 "backend.server",
                 "run",
