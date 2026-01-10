@@ -35,32 +35,22 @@ You only need API keys if you plan on accessing the Onshape API via regular pyth
 
 ## Python Setup
 
-Install `python`:
+This project uses [uv](https://github.com/astral-sh/uv) to manage Python.
+
+Install `uv`:
 
 ```
-sudo apt install software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install python3.12
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Then use `uv` to install Python 3.12 and all of the project's dependencies:
+
+```
+uv python install 3.12
+uv sync
 ```
 
 Note that Python version 3.12 or greater is a hard requirement.
-
-Also, you may need to restart your terminal after installing `software-properties-common`.
-
-Install `pipx`:
-
-```
-sudo apt install pipx
-pipx ensurepath
-```
-
-The use `pipx` to install poetry, then install the project:
-
-```
-pipx install poetry
-poetry install
-```
 
 ## Onshape OAuth App Setup
 
