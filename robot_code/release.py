@@ -126,6 +126,7 @@ def release(
         raise ValueError("Must enter a version or make a prerelease.")
 
     script_name = script_name.removesuffix(".fs")
+
     feature_name = str_utils.display_name(script_name)
     studio_name = script_name + ".fs"
 
@@ -249,13 +250,20 @@ def sync_versions(api: Api):
     """Syncs all unreleased versions in the backend document to the frontend document."""
     # Newest to oldest versions
     backend_versions = get_versions(api, BACKEND)[::-1]
+
+    # Build a list of robot versions which are already in the frontend
     frontend_version_names = [
         version["name"]
         for version in get_versions(api, FRONTEND)
         if match_robot_version(version["name"]) != None
     ]
     versions_to_sync = []
+    # Interate over backend versions until we find a version that's already in the frontend
     for version in backend_versions:
+        # Skip non-robot versions
+        if match_robot_version(version["name"]) == None:
+            continue
+
         # Stop once matching version found
         if version["name"] in frontend_version_names:
             break
