@@ -6,18 +6,14 @@ readme = "README.md"
 requires-python= ">=3.12"
 
 dependencies = [
-    "flask[async]>=3.1.1",
-    "google-cloud-firestore>=2.21.0",
-    "gunicorn>=23.0.0",
     "json5>=0.12.0",
     "python-dotenv>=1.1.0",
     "requests>=2.32.4",
-    "requests-oauthlib>=2.0.0",
     "semver>=3.0.4",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["onshape_api", "backend", "featurescript", "robot_code", "backend_tools"]
+packages = ["onshape_api", "featurescript", "robot_code"]
 
 [build-system]
 requires = ["hatchling"]

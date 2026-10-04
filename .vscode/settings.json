@@ -16,7 +16,6 @@
     "cSpell.ignorePaths": ["build", ".git", ".vscode", ".devcontainer"],
     "cSpell.words": [
         "apikey",
-        "blueprintjs",
         "creds",
         "ctxt",
         "digestmod",
@@ -30,8 +29,7 @@
         "UNCONFIGURABLE",
         "Unopenable",
         "updateversion",
-        "updateversions",
-        "vite"
+        "updateversions"
     ],
     "cSpell.flagWords": ["coincentric", "expresion"],
     "python.analysis.typeCheckingMode": "basic",
@@ -39,14 +37,8 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
-    "npm.packageManager": "npm",
-    "typescript.enablePromptUseWorkspaceTsdk": true,
-    "typescript.tsdk": "node_modules/typescript/lib",
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "[jsonc]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[typescriptreact]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "search.exclude": {
