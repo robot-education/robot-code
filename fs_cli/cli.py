@@ -111,7 +111,11 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
 
             if args.log:
                 os.environ["API_LOGGING"] = "true"
-            remote = OnshapeRemote(make_key_api())
+            try:
+                remote = OnshapeRemote(make_key_api())
+            except KeyError as error:
+                # Missing API credentials
+                raise ConfigError(error.args[0]) from error
         state = State.load(config.state_path)
         workspace = Workspace(config, state, remote)
         try:
@@ -120,10 +124,6 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
             state.save()
     except (ConfigError, UsageError) as error:
         print(f"fs: {error}", file=sys.stderr)
-        return 2
-    except KeyError as error:
-        # Missing API credentials
-        print(f"fs: {error.args[0]}", file=sys.stderr)
         return 2
     except ApiError as error:
         print(f"fs: Onshape request failed: {error}", file=sys.stderr)
