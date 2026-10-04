@@ -5,7 +5,7 @@
   "publisher": "robot-code",
   "version": "0.1.0",
   "private": true,
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/robot-education/robot-code.git",
