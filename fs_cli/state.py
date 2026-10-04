@@ -12,7 +12,7 @@ import hashlib
 import json
 import pathlib
 
-STATE_VERSION = 1
+STATE_VERSION = 2
 
 
 def content_hash(code: str) -> str:
@@ -25,7 +25,7 @@ class StudioState:
     """What a Feature Studio looked like the last time it was pushed or pulled.
 
     Attributes:
-        file: The name of the local file the studio is mirrored to.
+        file: The path of the local file, relative to the code folder (using /).
         hash: The content hash of the studio when it was last synced.
         microversion_id: The element microversion in Onshape when it was last synced.
     """
@@ -36,12 +36,10 @@ class StudioState:
 
 
 class State:
-    def __init__(
-        self, path: pathlib.Path, documents: dict[str, dict[str, StudioState]]
-    ) -> None:
+    def __init__(self, path: pathlib.Path, studios: dict[str, StudioState]) -> None:
         self.path = path
-        # document name -> element id -> state
-        self.documents = documents
+        # element id -> state
+        self.studios = studios
 
     @classmethod
     def load(cls, path: pathlib.Path) -> State:
@@ -49,30 +47,23 @@ class State:
             return cls(path, {})
         try:
             data = json.loads(path.read_text())
-        except json.JSONDecodeError:
+            if data.get("version") != STATE_VERSION:
+                return cls(path, {})
+            studios = {
+                element_id: StudioState(**studio)
+                for element_id, studio in data["studios"].items()
+            }
+        except (json.JSONDecodeError, KeyError, TypeError):
             print(f"Warning: ignoring unreadable state file {path}.")
             return cls(path, {})
-        documents = {
-            document: {
-                element_id: StudioState(**studio)
-                for element_id, studio in studios.items()
-            }
-            for document, studios in data.get("documents", {}).items()
-        }
-        return cls(path, documents)
+        return cls(path, studios)
 
     def save(self) -> None:
         data = {
             "version": STATE_VERSION,
-            "documents": {
-                document: {
-                    element_id: dataclasses.asdict(studio)
-                    for element_id, studio in sorted(studios.items())
-                }
-                for document, studios in sorted(self.documents.items())
+            "studios": {
+                element_id: dataclasses.asdict(studio)
+                for element_id, studio in sorted(self.studios.items())
             },
         }
         self.path.write_text(json.dumps(data, indent=2) + "\n")
-
-    def studios(self, document: str) -> dict[str, StudioState]:
-        return self.documents.setdefault(document, {})

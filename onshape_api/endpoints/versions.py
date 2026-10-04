@@ -17,9 +17,12 @@ def get_versions(
         offset: A starting offset to apply. Does not support negative indexing.
         limit: The max number of versions to return.
     """
+    query = {"offset": offset}
+    if limit > 0:
+        query["limit"] = limit
     return api.get(
         api_path("documents", document_path, DocumentPath, "versions"),
-        query={offset: offset, limit: limit},
+        query=query,
     )
 
 

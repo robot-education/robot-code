@@ -1,87 +1,89 @@
 # Robot Code
 
-The source of truth for my Onshape FeatureScripts. FeatureScripts are checked in as `.fs` files, edited
-locally in VS Code (with real language support), and pushed to Onshape with the `fs` command.
+The source of truth for my Onshape FeatureScripts. Every FeatureScript lives in the Robot backend document in
+Onshape, and is checked in here as a `.fs` file. They're edited locally in VS Code (with real language support),
+pushed to the backend document with the `fs` command, and released to the public frontend document with
+`fs release`.
 
-The Robot Manager Onshape app previously lived here; it was removed and its final state is preserved at the
+The Robot Manager Onshape app previously lived here; its final state is preserved at the
 [`robot-manager-final`](https://github.com/robot-education/robot-code/tree/robot-manager-final) tag.
 
 ## Layout
 
-| Path                   | What it is                                                                              |
-| ---------------------- | --------------------------------------------------------------------------------------- |
-| `featurescripts/`      | FeatureScript source, one folder per Onshape document                                   |
-| `featurescripts.toml`  | Maps each folder to an Onshape document workspace                                       |
-| `fs_cli/`              | The `fs` command for pushing to (and pulling from) Onshape                              |
-| `fs_lsp/`              | A Python FeatureScript language server (highlighting, navigation, hovers, completions)  |
-| `vscode-extension/`    | The VS Code extension: grammar, snippets, and a thin client that runs `fs_lsp`          |
-| `onshape_api/`         | A small Onshape REST API client                                                         |
-| `featurescript/`, `robot_code/` | Older tooling: a Python DSL for generating FeatureScript and Robot release scripts |
+| Path                       | What it is                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `featurescripts/`          | The backend document's Feature Studios, with its folders mirrored as folders |
+| `fs_cli/`                  | The `fs` command                                                             |
+| `onshape_api/`             | A small Onshape REST API client                                              |
+| `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
+| `vscode-extension/server/` | The Python FeatureScript language server the extension runs (`fs_lsp`)       |
+| `pyproject.toml`           | Python dependencies, plus the `[tool.fs]` table configuring the documents    |
 
 # Setup
 
-This project uses [uv](https://github.com/astral-sh/uv) to manage Python (3.12+):
+1. Install [uv](https://github.com/astral-sh/uv), then install Python and the dependencies:
 
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv python install 3.12
-uv sync
-```
+    ```
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    uv python install 3.12
+    uv sync
+    ```
 
-## Onshape API keys
+2. Create an API key in the [Onshape developer portal](https://dev-portal.onshape.com/keys) and add it to a
+   `.env` file in the root of the repo (it's gitignored):
 
-`fs` talks to Onshape with API keys:
+    ```
+    API_ACCESS_KEY=<Your API Access Key>
+    API_SECRET_KEY=<Your API Secret Key>
 
-1. Create an API key in the [Onshape developer portal](https://dev-portal.onshape.com/keys).
-2. Create a `.env` file in the root of this repo (it's gitignored):
+    # Optional
+    API_LOGGING=false            # Log every request
+    API_BASE_URL=https://cad.onshape.com
+    API_VERSION=10
+    ```
 
-```
-API_ACCESS_KEY=<Your API Access Key>
-API_SECRET_KEY=<Your API Secret Key>
+    The same variables can be set directly in the environment instead (e.g. in CI).
 
-# Optional
-API_LOGGING=false            # Log every request
-API_BASE_URL=https://cad.onshape.com
-API_VERSION=10
-```
+3. Install the VS Code extension (requires Node.js), then reload VS Code:
 
-The same variables can be set directly in the environment instead (e.g. in CI).
+    ```
+    cd vscode-extension
+    npm ci
+    npm run install-extension
+    ```
 
-# Pushing FeatureScripts to Onshape
+# The `fs` command
 
-Each entry in `featurescripts.toml` maps an Onshape workspace to a folder:
+## Pushing and pulling
 
-```toml
-[documents.robot]
-url = "https://cad.onshape.com/documents/<document id>/w/<workspace id>"
-# path = "featurescripts/robot"   # optional, defaults to featurescripts/<name>
-```
-
-Every Feature Studio in that workspace corresponds to `<folder>/<studio name>.fs`.
+`[tool.fs]` in `pyproject.toml` points `fs` at the backend document, and every Feature Studio in it corresponds
+to a file in `featurescripts/`. A studio named `robotFrame.fs` in the document's `Robot` folder is
+`featurescripts/Robot/robotFrame.fs`.
 
 The repo is the source of truth, so pushing is the default:
 
 ```
 uv run fs                    # same as `fs push`: push every local change
-uv run fs push robot         # just one document
-uv run fs push featurescripts/robot/robotFrame.fs
+uv run fs push robotFrame    # push one FeatureScript, by name...
+uv run fs push featurescripts/Robot   # ...or by file or folder
 uv run fs push --dry-run     # show what would be pushed
 ```
 
-New `.fs` files are created as new Feature Studios. Any errors or warnings Onshape reports for pushed code are
-printed.
+Any errors or warnings Onshape reports for pushed code are printed. New files become new Feature Studios. The
+Onshape API can't create or move folders, so new studios are created at the top level of the document; `fs` tells
+you which folder to drag them into.
 
 For the occasional edit made directly in Onshape:
 
 ```
 uv run fs status             # what differs, and what to do about it
 uv run fs diff               # unified diff of Onshape vs. the repo
-uv run fs pull               # bring Onshape changes into the repo
+uv run fs pull               # bring Onshape changes (and tabs moved between folders) into the repo
 uv run fs sync               # pull Onshape-only changes and push local-only changes
 uv run fs update-std --push  # bump `FeatureScript NNNN;` and std imports to the latest std
 ```
 
-To start tracking an existing document, add it to `featurescripts.toml` and run `uv run fs pull` once.
+Every command takes the same kinds of targets as `fs push`, and `--help` lists each one's options.
 
 ### How conflicts are detected
 
@@ -95,29 +97,37 @@ against the file's recent git history: if Onshape matches a committed version, l
 - Both changed: both commands skip it; inspect with `fs diff`, then pick a side with `fs pull --force` or
   `fs push --force`.
 
-Deleting a file locally never deletes the Feature Studio in Onshape; delete the tab in Onshape yourself.
+Files are matched to Feature Studios by their element id once synced, so renaming a tab or moving it to another
+folder in Onshape is picked up by `fs pull`. Deleting a file never deletes the tab in Onshape (delete the tab
+yourself), and a tab deleted in Onshape is recreated by `fs push` unless you delete the file.
+
+## Releasing
+
+The frontend document is what users import. It isn't mirrored into the repo: each of its Feature Studios is a
+small generated file re-exporting a version of the backend studio, and `fs release` keeps it up to date.
+
+```
+uv run fs release robotFrame --minor -d "Added a thing"   # 1.2.3 -> 1.3.0
+uv run fs release robotFrame --patch --publish            # also create the version in the frontend
+uv run fs release robotFrameBeta --major --beta           # start a beta: 1.3.0 -> 2.0.0-beta.1
+uv run fs release robotFrameBeta --beta                   # continue it: 2.0.0-beta.2
+uv run fs release robotFrame --minor --dry-run            # show the plan without changing anything
+```
+
+A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
+frontend studio of the same name at it (creating the studio if needed). Beta releases go to the separate
+`frontend_beta` document instead, and the feature's name must contain "beta". The studio must be pushed and in
+sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
+skips the prompt).
+
+`uv run fs sync-versions` creates any release versions that exist in the backend document but not in the
+frontend document.
 
 # VS Code
 
-Open this repo in VS Code. `.vscode/settings.json` associates `*.fs` with FeatureScript.
+Open the repo root in VS Code; `.vscode/settings.json` associates `*.fs` with FeatureScript.
 
-## Installing the extension
-
-Requires Node.js. From the repo root:
-
-```
-cd vscode-extension
-npm ci
-npm run install-extension
-```
-
-(or run the **Install FeatureScript extension** task). Re-run it after changing the extension. Changes to the
-Python language server only need `uv sync` and **FeatureScript: Restart Language Server**.
-
-The extension starts the language server with `.venv/bin/fs-lsp`, falling back to `uv run fs-lsp`; override
-this with the `featurescript.server.command` setting.
-
-## Features
+The extension provides:
 
 - TextMate and semantic highlighting (custom features, predicates, enums and members, annotation and map keys,
   stdlib symbols, ...)
@@ -129,39 +139,33 @@ this with the `featurescript.server.command` setting.
 - Syntax diagnostics: unbalanced brackets, unterminated strings and comments, `++`/`--`
 - Snippets (`fs-header`, `defineFeature`, `annotation`, ...)
 - Commands: **FeatureScript: Push File to Onshape** (also a button in the editor title bar), **Push All**,
-  **Pull**, **Sync**, and **Show Onshape Status**, which run `fs` in a terminal after saving
+  **Pull**, **Sync**, and **Show Onshape Status**, which save and then run `fs` in a terminal
+
+It starts the language server with `.venv/bin/fs-lsp`, falling back to `uv run fs-lsp`; override this with the
+`featurescript.server.command` setting.
 
 ## Developing the extension and language server
 
-- `fs_lsp/` holds all language smarts, in Python. `fs_lsp/server.py` wires them up with
-  [pygls](https://github.com/openlawlibrary/pygls).
-- `vscode-extension/src/extension.ts` only launches the server and registers the `fs` commands.
-- Run the **Run FeatureScript extension** launch configuration (F5) to open a window with the in-development
-  extension.
+- All the language smarts are Python, in `vscode-extension/server/fs_lsp/`; `server.py` wires them up with
+  [pygls](https://github.com/openlawlibrary/pygls). After changing them, run
+  **FeatureScript: Restart Language Server**.
+- `vscode-extension/src/extension.ts` only launches the server and registers the `fs` commands. After changing
+  it (or the grammar, snippets, or `package.json`), run `npm run install-extension` again, or press F5 (the
+  **Run FeatureScript extension** launch configuration) to try it in a new window.
 - The grammar is edited in `vscode-extension/syntaxes/featurescript.tmLanguage.yaml`; `npm run build`
   regenerates the JSON.
+- The server's knowledge of the Onshape standard library lives in `vscode-extension/server/fs_lsp/data/`.
+  Regenerate it from the latest std version in Onshape with `uv run python -m fs_lsp.tools.update_stdlib`.
 
-The language server's knowledge of the Onshape standard library lives in `fs_lsp/data/`. Regenerate it from the
-latest std version in Onshape (requires API keys) with:
-
-```
-uv run python -m fs_lsp.tools.update_stdlib
-```
-
-The language server and grammar are based on
+The extension and language server are based on
 [gatrall/featurescript-language-support](https://github.com/gatrall/featurescript-language-support) (MIT).
 
 # Tests
 
 ```
-uv run pytest                                  # fs CLI and language server
-cd vscode-extension && npm test                # TextMate grammar
-cd vscode-extension && npm run test:integration  # the extension inside a real VS Code
+uv run pytest                                      # fs CLI, Onshape client, and language server
+cd vscode-extension && npm test                    # TextMate grammar
+cd vscode-extension && npm run test:integration    # the extension inside a real VS Code
 ```
 
 On a headless Linux machine, run the integration test under `xvfb-run -a`.
-
-# Robot FeatureScript releases
-
-`./scripts/robot.sh` releases new versions of Robot FeatureScripts from the backend document to the public
-frontend document. Run `./scripts/robot.sh --help` for details.

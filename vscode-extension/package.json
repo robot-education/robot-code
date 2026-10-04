@@ -24,7 +24,7 @@
   "main": "./out/extension.js",
   "activationEvents": [
     "onLanguage:featurescript",
-    "workspaceContains:featurescripts.toml"
+    "workspaceContains:pyproject.toml"
   ],
   "contributes": {
     "languages": [

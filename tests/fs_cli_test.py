@@ -1,5 +1,6 @@
 """Tests for the fs CLI, run against an in-memory stand-in for Onshape."""
 
+import copy
 import itertools
 import pathlib
 import subprocess
@@ -7,51 +8,105 @@ import subprocess
 import pytest
 
 from fs_cli import cli
-from fs_cli.remote import RemoteStudio
+from fs_cli.remote import RemoteStudio, Version, folder_paths
+from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.workspace import Status, update_std_version
+from semver import Version as SemVersion
 
-URL = "https://cad.onshape.com/documents/d1/w/w1"
+BACKEND = "https://cad.onshape.com/documents/back/w/bw"
+FRONTEND = "https://cad.onshape.com/documents/front/w/fw"
+BETA = "https://cad.onshape.com/documents/beta/w/betaw"
 
 
 class FakeOnshape:
     """Mimics the parts of Onshape the CLI uses. Every edit bumps a studio's microversion."""
 
     def __init__(self) -> None:
-        self.studios: dict[str, dict] = {}
+        # (document id, instance id) -> element id -> studio
+        self.instances: dict[tuple[str, str], dict[str, dict]] = {}
+        self.versions_by_document: dict[str, list[Version]] = {}
         self.ids = itertools.count()
         self.pulls = 0
 
-    def add(self, name: str, code: str) -> str:
-        element_id = f"e{next(self.ids)}"
-        self.studios[element_id] = {
+    def _id(self, prefix: str) -> str:
+        return f"{prefix}{next(self.ids)}"
+
+    def studios(self, document: str = "back", instance: str = "bw") -> dict[str, dict]:
+        return self.instances.setdefault((document, instance), {})
+
+    def add(
+        self,
+        name: str,
+        code: str,
+        folders: tuple[str, ...] = (),
+        features: list[str] | None = None,
+        document: str = "back",
+        instance: str = "bw",
+    ) -> str:
+        element_id = self._id("e")
+        self.studios(document, instance)[element_id] = {
             "name": name,
             "code": code,
-            "mv": f"m{next(self.ids)}",
+            "mv": self._id("m"),
+            "folders": folders,
+            "features": features or [],
         }
         return element_id
 
-    def edit(self, element_id: str, code: str) -> None:
-        self.studios[element_id].update(code=code, mv=f"m{next(self.ids)}")
+    def edit(self, element_id: str, code: str, document="back", instance="bw") -> None:
+        self.studios(document, instance)[element_id].update(code=code, mv=self._id("m"))
 
-    def code(self, name: str) -> str:
-        return next(s["code"] for s in self.studios.values() if s["name"] == name)
+    def code(self, name: str, document="back", instance="bw") -> str:
+        studio = next(
+            s for s in self.studios(document, instance).values() if s["name"] == name
+        )
+        return studio["code"]
+
+    def names(self, document="back", instance="bw") -> list[str]:
+        return sorted(s["name"] for s in self.studios(document, instance).values())
 
     # Remote protocol
 
     def list_studios(self, instance):
-        return [RemoteStudio(id, s["name"], s["mv"]) for id, s in self.studios.items()]
+        return [
+            RemoteStudio(id, s["name"], s["mv"], s["folders"])
+            for id, s in self.studios(
+                instance.document_id, instance.instance_id
+            ).items()
+        ]
 
     def pull(self, instance, element_id):
         self.pulls += 1
-        return self.studios[element_id]["code"]
+        return self.studios(instance.document_id, instance.instance_id)[element_id][
+            "code"
+        ]
 
     def push(self, instance, element_id, code):
-        self.edit(element_id, code)
+        self.edit(element_id, code, instance.document_id, instance.instance_id)
         return []
 
     def create(self, instance, name):
-        element_id = self.add(name, "")
-        return RemoteStudio(element_id, name, self.studios[element_id]["mv"])
+        element_id = self.add(
+            name, "", document=instance.document_id, instance=instance.instance_id
+        )
+        studio = self.studios(instance.document_id, instance.instance_id)[element_id]
+        return RemoteStudio(element_id, name, studio["mv"])
+
+    def feature_names(self, instance, element_id):
+        return self.studios(instance.document_id, instance.instance_id)[element_id][
+            "features"
+        ]
+
+    def versions(self, instance):
+        return list(self.versions_by_document.get(instance.document_id, []))
+
+    def create_version(self, instance, name, description):
+        version = Version(self._id("v"), name, description)
+        self.versions_by_document.setdefault(instance.document_id, []).append(version)
+        self.instances[(instance.document_id, version.id)] = copy.deepcopy(
+            self.studios(instance.document_id, instance.instance_id)
+        )
+        return version
 
     def latest_std_version(self):
         return "2909"
@@ -59,8 +114,10 @@ class FakeOnshape:
 
 @pytest.fixture
 def repo(tmp_path, monkeypatch) -> pathlib.Path:
-    (tmp_path / "featurescripts.toml").write_text(f'[documents.robot]\nurl = "{URL}"\n')
-    (tmp_path / "featurescripts" / "robot").mkdir(parents=True)
+    (tmp_path / "pyproject.toml").write_text(
+        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nfrontend_beta = "{BETA}"\n'
+    )
+    (tmp_path / "featurescripts").mkdir()
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -74,8 +131,13 @@ def run(onshape: FakeOnshape, *args: str) -> int:
     return cli.main(list(args), remote=onshape)
 
 
-def local(repo: pathlib.Path, name: str) -> pathlib.Path:
-    return repo / "featurescripts" / "robot" / name
+def local(repo: pathlib.Path, path: str) -> pathlib.Path:
+    return repo / "featurescripts" / path
+
+
+def write(repo: pathlib.Path, path: str, code: str) -> None:
+    local(repo, path).parent.mkdir(parents=True, exist_ok=True)
+    local(repo, path).write_text(code)
 
 
 def git(repo: pathlib.Path, *args: str) -> None:
@@ -85,6 +147,9 @@ def git(repo: pathlib.Path, *args: str) -> None:
         check=True,
         capture_output=True,
     )
+
+
+# Syncing
 
 
 def test_pull_then_push_round_trip(repo, onshape, capsys):
@@ -111,7 +176,7 @@ def test_unchanged_studios_are_not_downloaded(repo, onshape):
 
 
 def test_push_creates_new_studios(repo, onshape):
-    local(repo, "new.fs").write_text("new")
+    write(repo, "new.fs", "new")
     assert run(onshape, "push") == 0
     assert onshape.code("new.fs") == "new"
 
@@ -166,10 +231,18 @@ def test_sync_pushes_and_pulls(repo, onshape):
     assert onshape.code("local.fs") == "l2"
 
 
+def test_dry_run_changes_nothing(repo, onshape):
+    onshape.add("remote.fs", "r")
+    write(repo, "local.fs", "l")
+    assert run(onshape, "sync", "--dry-run") == 0
+    assert onshape.names() == ["remote.fs"]
+    assert not local(repo, "remote.fs").exists()
+
+
 def test_fresh_clone_uses_git_history(repo, onshape):
     """Without sync state, Onshape matching a committed version means local edits are safe to push."""
     onshape.add("frame.fs", "v1")
-    local(repo, "frame.fs").write_text("v1")
+    write(repo, "frame.fs", "v1")
     git(repo, "init", "-q")
     git(repo, "add", ".")
     git(repo, "commit", "-qm", "v1")
@@ -181,32 +254,20 @@ def test_fresh_clone_uses_git_history(repo, onshape):
 
 def test_fresh_clone_without_history_is_a_conflict(repo, onshape):
     onshape.add("frame.fs", "remote")
-    local(repo, "frame.fs").write_text("local")
+    write(repo, "frame.fs", "local")
     assert run(onshape, "push") == 1
     assert onshape.code("frame.fs") == "remote"
 
 
-def test_targets_limit_scope(repo, onshape):
-    local(repo, "a.fs").write_text("a")
-    local(repo, "b.fs").write_text("b")
-    assert run(onshape, "push", "featurescripts/robot/a.fs") == 0
-    assert [s["name"] for s in onshape.studios.values()] == ["a.fs"]
-    assert run(onshape, "push", "robot") == 0
-    assert sorted(s["name"] for s in onshape.studios.values()) == ["a.fs", "b.fs"]
-
-
-def test_unknown_target(repo, onshape, capsys):
-    assert run(onshape, "push", "nope") == 2
-    assert "not a configured document" in capsys.readouterr().err
-
-
-def test_status(repo, onshape, capsys):
-    onshape.add("remote.fs", "r")
-    local(repo, "new.fs").write_text("n")
+def test_deleted_in_onshape_is_recreated_by_push(repo, onshape, capsys):
+    element_id = onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    del onshape.studios()[element_id]
+    capsys.readouterr()
     run(onshape, "status")
-    out = capsys.readouterr().out
-    assert "remote.fs" in out and Status.REMOTE_ONLY.value in out
-    assert "new.fs" in out and Status.LOCAL_ONLY.value in out
+    assert Status.DELETED_IN_ONSHAPE.value in capsys.readouterr().out
+    assert run(onshape, "push") == 0
+    assert onshape.code("frame.fs") == "a"
 
 
 def test_studio_names_without_extension(repo, onshape):
@@ -216,6 +277,131 @@ def test_studio_names_without_extension(repo, onshape):
     local(repo, "Robot frame.fs").write_text("y")
     run(onshape, "push")
     assert onshape.code("Robot frame") == "y"
+
+
+# Folders
+
+
+def test_folders_are_mirrored(repo, onshape):
+    onshape.add("frame.fs", "f", folders=("Robot", "Structure"))
+    onshape.add("util.fs", "u")
+    assert run(onshape, "pull") == 0
+    assert local(repo, "Robot/Structure/frame.fs").read_text() == "f"
+    assert local(repo, "util.fs").read_text() == "u"
+
+    local(repo, "Robot/Structure/frame.fs").write_text("f2")
+    assert run(onshape, "push") == 0
+    assert onshape.code("frame.fs") == "f2"
+
+
+def test_pull_follows_tabs_moved_in_onshape(repo, onshape):
+    element_id = onshape.add("frame.fs", "f", folders=("Old",))
+    run(onshape, "pull")
+    onshape.studios()[element_id]["folders"] = ("New",)
+    assert run(onshape, "pull") == 0
+    assert local(repo, "New/frame.fs").read_text() == "f"
+    assert not local(repo, "Old").exists()
+
+
+def test_files_moved_locally_are_matched_by_name(repo, onshape, capsys):
+    """A local move shouldn't create a duplicate studio in Onshape."""
+    onshape.add("frame.fs", "f", folders=("Robot",))
+    write(repo, "Elsewhere/frame.fs", "f2")
+    git(repo, "init", "-q")
+    capsys.readouterr()
+    assert run(onshape, "push", "--force") == 0
+    assert onshape.names() == ["frame.fs"]
+    assert onshape.code("frame.fs") == "f2"
+    assert "is at Robot/frame.fs in Onshape" in capsys.readouterr().out
+
+
+def test_new_files_in_folders_are_created_at_top_level(repo, onshape, capsys):
+    write(repo, "Robot/new.fs", "n")
+    assert run(onshape, "push") == 0
+    assert onshape.code("new.fs") == "n"
+    assert "move the tab into the Robot folder" in capsys.readouterr().out
+    # Once moved in Onshape, everything lines up
+    onshape.studios()[next(iter(onshape.studios()))]["folders"] = ("Robot",)
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+
+
+def test_folder_paths_from_contents():
+    tree = {
+        "groupName": "",
+        "groups": [
+            {"btType": "BTDocumentElementReference-2484", "elementId": "a"},
+            {
+                "btType": "BTElementGroup-1458",
+                "groupName": "Robot",
+                "groups": [
+                    {"elementId": "b"},
+                    {"groupName": "Inner", "groups": [{"elementId": "c"}]},
+                ],
+            },
+        ],
+    }
+    assert folder_paths(tree) == {"a": (), "b": ("Robot",), "c": ("Robot", "Inner")}
+    assert folder_paths(None) == {}
+
+
+# Targets
+
+
+def test_targets_limit_scope(repo, onshape):
+    write(repo, "a.fs", "a")
+    write(repo, "Robot/b.fs", "b")
+    write(repo, "Robot/c.fs", "c")
+    assert run(onshape, "push", "featurescripts/a.fs") == 0
+    assert onshape.names() == ["a.fs"]
+    assert run(onshape, "push", "featurescripts/Robot") == 0
+    assert onshape.names() == ["a.fs", "b.fs", "c.fs"]
+
+
+def test_targets_by_studio_name(repo, onshape):
+    write(repo, "Robot/frame.fs", "f")
+    write(repo, "other.fs", "o")
+    assert run(onshape, "push", "frame") == 0
+    assert onshape.names() == ["frame.fs"]
+
+
+def test_unknown_target(repo, onshape, capsys):
+    assert run(onshape, "push", "nope") == 2
+    assert 'No FeatureScript matches "nope"' in capsys.readouterr().err
+
+
+def test_status(repo, onshape, capsys):
+    onshape.add("remote.fs", "r")
+    write(repo, "new.fs", "n")
+    run(onshape, "status")
+    out = capsys.readouterr().out
+    assert "remote.fs" in out and Status.REMOTE_ONLY.value in out
+    assert "new.fs" in out and Status.LOCAL_ONLY.value in out
+
+
+@pytest.mark.parametrize(
+    "argv, command",
+    [
+        ([], "push"),
+        (["-l"], "push"),
+        (["frame.fs"], "push"),
+        (["--force"], "push"),
+        (["pull"], "pull"),
+        (["release", "frame", "--minor"], "release"),
+    ],
+)
+def test_push_is_the_default_command(argv, command):
+    assert cli.parse_args(argv).command == command
+
+
+def test_missing_config(tmp_path, monkeypatch, onshape, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert run(onshape, "status") == 2
+    assert "[tool.fs]" in capsys.readouterr().err
+
+
+# Updating the std
 
 
 def test_update_std_version():
@@ -232,20 +418,122 @@ def test_update_std_version():
 
 
 def test_update_std_command(repo, onshape):
-    local(repo, "a.fs").write_text("FeatureScript 1000;\n")
+    write(repo, "a.fs", "FeatureScript 1000;\n")
     assert run(onshape, "update-std", "--push") == 0
     assert onshape.code("a.fs") == "FeatureScript 2909;\n"
 
 
-@pytest.mark.parametrize(
-    "argv, command",
-    [
-        ([], "push"),
-        (["-l"], "push"),
-        (["robot"], "push"),
-        (["--force"], "push"),
-        (["pull"], "pull"),
-    ],
-)
-def test_push_is_the_default_command(argv, command):
-    assert cli.parse_args(argv).command == command
+# Releasing
+
+
+def test_feature_names():
+    assert feature_name_for("robotFrame.fs") == "Robot frame"
+    assert feature_name_for("robotFrameBeta") == "Robot frame beta"
+
+
+def test_next_version():
+    v = SemVersion.parse
+    previous = ReleasedVersion("Robot frame", v("1.2.3"))
+    assert next_version(None, VersionType.MINOR, False) == v("0.1.0")
+    assert next_version(previous, VersionType.PATCH, False) == v("1.2.4")
+    assert next_version(previous, VersionType.MAJOR, True) == v("2.0.0-beta.1")
+    beta = ReleasedVersion("Robot frame", v("2.0.0-beta.1"))
+    assert next_version(beta, None, True) == v("2.0.0-beta.2")
+    assert next_version(beta, VersionType.MAJOR, False) == v("2.0.0")
+    with pytest.raises(ValueError):
+        next_version(previous, None, False)
+    with pytest.raises(ValueError):
+        next_version(previous, None, True)
+    with pytest.raises(ValueError):
+        next_version(beta, VersionType.MINOR, True)
+
+
+def released_frame(repo, onshape) -> str:
+    element_id = onshape.add(
+        "robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"]
+    )
+    run(onshape, "pull")
+    return element_id
+
+
+def test_release(repo, onshape):
+    element_id = released_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "-d", "First") == 0
+
+    [version] = onshape.versions_by_document["back"]
+    assert version.name == "Robot frame - v0.1.0"
+    released = onshape.studios("back", version.id)[element_id]
+    code = onshape.code("robotFrame.fs", "front", "fw")
+    assert code.startswith("FeatureScript 2909;\n")
+    assert " * Robot frame - v0.1.0\n" in code
+    assert (
+        f'export import(path : "back/{version.id}/{element_id}", version : "{released["mv"]}");'
+        in code
+    )
+    assert "front" not in onshape.versions_by_document
+
+    assert (
+        run(
+            onshape,
+            "release",
+            "featurescripts/Robot/robotFrame.fs",
+            "--patch",
+            "-y",
+            "--publish",
+        )
+        == 0
+    )
+    assert [v.name for v in onshape.versions_by_document["front"]] == [
+        "Robot frame - v0.1.1"
+    ]
+    assert onshape.names("front", "fw") == ["robotFrame.fs"]
+
+
+def test_release_dry_run(repo, onshape, capsys):
+    released_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--major", "--dry-run") == 0
+    assert "Robot frame - v1.0.0" in capsys.readouterr().out
+    assert "back" not in onshape.versions_by_document
+
+
+def test_release_requires_pushed_code(repo, onshape, capsys):
+    released_frame(repo, onshape)
+    local(repo, "Robot/robotFrame.fs").write_text("unpushed")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 2
+    assert "run `fs push`" in capsys.readouterr().err
+
+
+def test_beta_release(repo, onshape, capsys):
+    onshape.add("robotFrameBeta.fs", "b", features=["robotFrameBeta"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotFrameBeta", "--minor", "-y") == 2
+    assert "--beta" in capsys.readouterr().err
+    assert run(onshape, "release", "robotFrameBeta", "--minor", "--beta", "-y") == 0
+    assert onshape.names("beta", "betaw") == ["robotFrameBeta.fs"]
+    assert (
+        onshape.versions_by_document["back"][0].name
+        == "Robot frame beta - v0.1.0-beta.1"
+    )
+
+
+def test_release_requires_confirmation_when_not_interactive(repo, onshape, capsys):
+    released_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor") == 2
+    assert "--yes" in capsys.readouterr().err
+
+
+def test_sync_versions(repo, onshape):
+    onshape.versions_by_document["back"] = [
+        Version("1", "Robot frame - v1.0.0"),
+        Version("2", "Unrelated version"),
+        Version("3", "Robot frame - v1.1.0", "Things"),
+        Version("4", "Robot bore - v0.1.0"),
+    ]
+    onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]
+    assert run(onshape, "sync-versions", "-y") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == [
+        "Robot frame - v1.0.0",
+        "Robot frame - v1.1.0",
+        "Robot bore - v0.1.0",
+    ]
+    assert onshape.versions_by_document["front"][1].description == "Things"

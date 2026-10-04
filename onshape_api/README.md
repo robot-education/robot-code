@@ -1,17 +1,8 @@
 # Onshape API
 
-A library for working with the Onshape API.
+A small client for the Onshape REST API, used by the `fs` CLI and the stdlib index generator.
 
-# Modules
-
-## onshape_api
-
-The main namespace includes methods for connecting to Onshape using API Keys and OAuth as well as utilities for working with resource paths.
-
-## onshape_api.utils
-
-The utils namespace includes a handful of general utilities which may or may not be related to the rest of the library.
-
-## onshape_api.model
-
-The model namespace includes utilities for creating assembly features and parsing queries derived from e.g. FeatureScript.
+- `onshape_api.api`: `make_key_api()` builds an `Api` authenticated with the API keys in `.env` or the environment.
+- `onshape_api.paths`: `DocumentPath`, `InstancePath`, and `ElementPath`, plus conversions to and from Onshape urls.
+- `onshape_api.endpoints`: one function per REST endpoint (documents, feature studios, versions, std versions).
+- `onshape_api.model`: constants such as the path to the Onshape std library.

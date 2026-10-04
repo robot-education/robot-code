@@ -7,23 +7,3 @@ STD_PATH = url_to_instance_path(
 
 START_VERSION_NAME = "Start"
 """The name of the base version inside every Onshape document."""
-
-IDENTITY_TRANSFORM = [
-    1.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    1.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    1.0,
-]
-"""The identity transform."""

@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from "vscode-languageclient/node";
 
-const CONFIG_FILE = "featurescripts.toml";
+const CONFIG_FILE = "pyproject.toml";
 
 let client: LanguageClient | undefined;
 
@@ -37,11 +37,19 @@ export async function deactivate(): Promise<void> {
   await stopClient();
 }
 
-/** The folder containing featurescripts.toml, falling back to the first workspace folder. */
+/** Whether a folder is the repo root: its pyproject.toml configures the fs CLI. */
+function isRepoRoot(folder: string): boolean {
+  try {
+    return /^\[tool\.fs\]/m.test(fs.readFileSync(path.join(folder, CONFIG_FILE), "utf8"));
+  } catch {
+    return false;
+  }
+}
+
+/** The repo root, falling back to the first workspace folder. */
 function repoRoot(): string | undefined {
-  const folders = vscode.workspace.workspaceFolders ?? [];
-  const withConfig = folders.find((folder) => fs.existsSync(path.join(folder.uri.fsPath, CONFIG_FILE)));
-  return (withConfig ?? folders[0])?.uri.fsPath;
+  const folders = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
+  return folders.find(isRepoRoot) ?? folders[0];
 }
 
 /**
@@ -103,8 +111,8 @@ async function stopClient(): Promise<void> {
 /** Runs the fs CLI in a terminal so its output (and any conflicts) are visible. */
 async function runFs(fsArgs: string[]): Promise<void> {
   const root = repoRoot();
-  if (!root) {
-    void vscode.window.showWarningMessage(`Open the folder containing ${CONFIG_FILE} to use FeatureScript commands.`);
+  if (!root || !isRepoRoot(root)) {
+    void vscode.window.showWarningMessage(`Open the robot-code repo (whose ${CONFIG_FILE} has a [tool.fs] table) to use FeatureScript commands.`);
     return;
   }
   // The CLI reads files from disk

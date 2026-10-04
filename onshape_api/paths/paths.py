@@ -1,17 +1,17 @@
-"""Contains Path classes for Onshape. Objects can be used to work on Onshape Documents, Workspaces, and Tabs. 
+"""Contains Path classes for Onshape. Objects can be used to work on Onshape Documents, Workspaces, and Tabs.
 
 The object model has the following elements:
-    Document: Represents an Onshape document. 
+    Document: Represents an Onshape document.
         Notably, documents are actually just collections of instances (workspaces and versions), so this isn't inherently useful on it's own.
-    Instance: Represents an Onshape workspace, version, or microversion. 
-        Workspaces are editable and are thus the most common. Note Onshape allows creating multiple workspaces in the same document, but most users don't utilize this functionality. 
+    Instance: Represents an Onshape workspace, version, or microversion.
+        Workspaces are editable and are thus the most common. Note Onshape allows creating multiple workspaces in the same document, but most users don't utilize this functionality.
         Versions correspond to explicit versions in the version list.
         Microversions typically correspond to individual edits in the edit history of a document.
     Element: Represents an Onshape tab, such as a Part Studio, Assembly, or Drawing.
     Part: Represents a Part inside a Part Studio.
 
 Notes on Path methods:
-    to_api_path: This method is static in order to work with api_path. 
+    to_api_path: This method is static in order to work with api_path.
         In particular, it is important for api_path to be able to print out a subset of the path, as the full path is not always required.
     copy: Creates a copy of a path. This is a class method in order to gain access to the constructor.
 """

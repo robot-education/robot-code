@@ -2,7 +2,6 @@ from typing import Type
 from urllib import parse
 from onshape_api.paths.paths import DocumentPath
 
-
 # class ApiRequestBuilder:
 #     """A builder class which can be used to construct a request to the Onshape API."""
 

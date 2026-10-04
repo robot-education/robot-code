@@ -1,4 +1,4 @@
-"""Loads featurescripts.toml, which maps Onshape documents to local folders."""
+"""Loads the [tool.fs] table from the repo's pyproject.toml."""
 
 from __future__ import annotations
 
@@ -9,9 +9,8 @@ import tomllib
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import InstancePath, url_to_instance_path
 
-CONFIG_FILE = "featurescripts.toml"
+CONFIG_FILE = "pyproject.toml"
 STATE_FILE = ".fs-state.json"
-DEFAULT_CODE_DIR = "featurescripts"
 
 
 class ConfigError(Exception):
@@ -19,81 +18,76 @@ class ConfigError(Exception):
 
 
 @dataclasses.dataclass
-class DocumentConfig:
-    """A single Onshape document workspace whose Feature Studios are mirrored into a local folder.
-
+class Config:
+    """
     Attributes:
-        name: The name of the document, as used on the command line.
-        url: The Onshape url of the workspace.
-        path: The folder holding the document's .fs files.
+        root: The repo root (the folder containing pyproject.toml).
+        code_dir: The folder Feature Studios in the backend document are mirrored to.
+        backend: The workspace holding the source of every FeatureScript.
+        frontend: The public workspace released FeatureScripts are published to.
+        frontend_beta: The workspace beta releases are published to.
     """
 
-    name: str
-    url: str
-    path: pathlib.Path
-
-    @property
-    def instance(self) -> InstancePath:
-        return url_to_instance_path(self.url)
-
-
-@dataclasses.dataclass
-class Config:
     root: pathlib.Path
-    documents: list[DocumentConfig]
+    code_dir: pathlib.Path
+    backend: InstancePath
+    frontend: InstancePath | None = None
+    frontend_beta: InstancePath | None = None
 
     @property
     def state_path(self) -> pathlib.Path:
         return self.root / STATE_FILE
 
-    def document(self, name: str) -> DocumentConfig | None:
-        return next((doc for doc in self.documents if doc.name == name), None)
-
-    def document_for_path(self, path: pathlib.Path) -> DocumentConfig | None:
-        """Returns the document whose folder contains path, if any."""
-        path = path.resolve()
-        for doc in self.documents:
-            if path == doc.path.resolve() or doc.path.resolve() in path.parents:
-                return doc
-        return None
-
 
 def find_root(start: pathlib.Path | None = None) -> pathlib.Path:
-    """Returns the closest directory at or above start containing featurescripts.toml."""
+    """Returns the closest directory at or above start whose pyproject.toml has a [tool.fs] table."""
     start = (start or pathlib.Path.cwd()).resolve()
     for directory in [start, *start.parents]:
-        if (directory / CONFIG_FILE).is_file():
+        path = directory / CONFIG_FILE
+        if path.is_file() and "fs" in _read(path).get("tool", {}):
             return directory
     raise ConfigError(
-        f"Could not find {CONFIG_FILE} in {start} or any of its parent directories."
+        f"Could not find a {CONFIG_FILE} with a [tool.fs] table in {start} or any of its parents."
     )
 
 
-def load_config(root: pathlib.Path | None = None) -> Config:
-    root = find_root(root)
-    with (root / CONFIG_FILE).open("rb") as file:
-        try:
-            data = tomllib.load(file)
-        except tomllib.TOMLDecodeError as error:
-            raise ConfigError(f"Failed to parse {CONFIG_FILE}: {error}") from error
-    return parse_config(root, data)
+def load_config(start: pathlib.Path | None = None) -> Config:
+    root = find_root(start)
+    return parse_config(root, _read(root / CONFIG_FILE)["tool"]["fs"])
 
 
 def parse_config(root: pathlib.Path, data: dict) -> Config:
-    code_dir = data.get("code_dir", DEFAULT_CODE_DIR)
-    documents = []
-    for name, entry in data.get("documents", {}).items():
-        if not isinstance(entry, dict) or "url" not in entry:
-            raise ConfigError(f'Document "{name}" must define a url.')
-        url = entry["url"]
+    if "backend" not in data:
+        raise ConfigError("[tool.fs] must set backend to the backend document's url.")
+    return Config(
+        root=root,
+        code_dir=root / data.get("path", "featurescripts"),
+        backend=_workspace(data, "backend"),
+        frontend=_workspace(data, "frontend") if "frontend" in data else None,
+        frontend_beta=(
+            _workspace(data, "frontend_beta") if "frontend_beta" in data else None
+        ),
+    )
+
+
+def _workspace(data: dict, key: str) -> InstancePath:
+    url = data[key]
+    try:
+        instance = url_to_instance_path(url)
+    except (IndexError, ValueError, TypeError) as error:
+        raise ConfigError(
+            f"[tool.fs] {key} is not a valid Onshape url: {url}"
+        ) from error
+    if instance.instance_type != InstanceType.WORKSPACE:
+        raise ConfigError(
+            f"[tool.fs] {key} must link to a workspace (a url containing /w/), not a version."
+        )
+    return instance
+
+
+def _read(path: pathlib.Path) -> dict:
+    with path.open("rb") as file:
         try:
-            instance = url_to_instance_path(url)
-        except (IndexError, ValueError) as error:
-            raise ConfigError(f'Document "{name}" has an invalid url: {url}') from error
-        if instance.instance_type != InstanceType.WORKSPACE:
-            raise ConfigError(
-                f'Document "{name}" must point to a workspace (a url containing /w/), since versions are read-only.'
-            )
-        path = root / entry.get("path", f"{code_dir}/{name}")
-        documents.append(DocumentConfig(name, url, path))
-    return Config(root, documents)
+            return tomllib.load(file)
+        except tomllib.TOMLDecodeError as error:
+            raise ConfigError(f"Failed to parse {path}: {error}") from error
