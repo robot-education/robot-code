@@ -1,4 +1,4 @@
-// Checks the TextMate grammar against the shared fixtures in tests/fixtures.
+// Checks the TextMate grammar against the shared fixtures in server/tests/fixtures.
 // Ported from gatrall/featurescript-language-support (MIT).
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -12,7 +12,7 @@ const oniguruma = require("vscode-oniguruma");
 const textmate = require("vscode-textmate");
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const fixtures = resolve(root, "../tests/fixtures");
+const fixtures = resolve(root, "server/tests/fixtures");
 
 async function loadGrammar() {
   const wasm = await readFile(require.resolve("vscode-oniguruma/release/onig.wasm"));

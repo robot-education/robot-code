@@ -75,7 +75,7 @@ const tests = {
 };
 
 exports.run = async function run() {
-  const uri = vscode.Uri.file(path.join(repoRoot, "tests/fixtures/slot.fs"));
+  const uri = vscode.Uri.file(path.join(repoRoot, "vscode-extension/server/tests/fixtures/slot.fs"));
   const document = await vscode.workspace.openTextDocument(uri);
   await vscode.window.showTextDocument(document);
   let failures = 0;

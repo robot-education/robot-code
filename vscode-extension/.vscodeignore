@@ -8,3 +8,4 @@ tsconfig.json
 *.vsix
 .gitignore
 .vscode-test/**
+server/**

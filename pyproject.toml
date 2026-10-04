@@ -1,10 +1,10 @@
 [project]
 name = "robot-code"
 version = "0.1.0"
-description = ""
+description = "Source of truth for my Onshape FeatureScripts, plus the tooling to edit, push, and release them."
 readme = "README.md"
-requires-python= ">=3.12"
-
+license = "MIT"
+requires-python = ">=3.12"
 dependencies = [
     "pygls>=2.0",
     "python-dotenv>=1.1.0",
@@ -19,12 +19,22 @@ fs-lsp = "fs_lsp.server:main"
 [dependency-groups]
 dev = ["pytest>=8.0.0"]
 
+[tool.fs]
+# Folder the backend document's Feature Studios are mirrored to (Onshape folders become subfolders).
+path = "featurescripts"
+# The backend document: the source code of every FeatureScript. `fs push`/`fs pull` sync it with `path`.
+backend = "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f"
+# The public document `fs release` publishes released FeatureScripts to. Not mirrored locally.
+frontend = "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88"
+# The document `fs release --beta` publishes beta releases to.
+frontend_beta = "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/7517d9bc30a444e88795c529"
+
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "vscode-extension/server/tests"]
 python_files = ["*test*.py"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["onshape_api", "fs_cli", "fs_lsp", "featurescript", "robot_code"]
+packages = ["onshape_api", "fs_cli", "vscode-extension/server/fs_lsp"]
 
 [build-system]
 requires = ["hatchling"]

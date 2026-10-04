@@ -1,3 +1,9 @@
+Much of this folder is based on https://github.com/gatrall/featurescript-language-support:
+the TextMate grammar, snippets, and language configuration, plus the parts of the Python
+language server in server/fs_lsp (parser, semantic classifier, symbol index, hover,
+completion, stdlib index generator, and the bundled data/*.json indexes) and the test
+fixtures in server/tests/fixtures. It is used under the MIT License:
+
 MIT License
 
 Copyright (c) 2026 gatrall
