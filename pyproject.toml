@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python= ">=3.12"
 
 dependencies = [
+    "pygls>=2.0",
     "python-dotenv>=1.1.0",
     "requests>=2.32.4",
     "semver>=3.0.4",
@@ -13,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 fs = "fs_cli.cli:run"
+fs-lsp = "fs_lsp.server:main"
 
 [dependency-groups]
 dev = ["pytest>=8.0.0"]
@@ -22,7 +24,7 @@ testpaths = ["tests"]
 python_files = ["*test*.py"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["onshape_api", "fs_cli", "featurescript", "robot_code"]
+packages = ["onshape_api", "fs_cli", "fs_lsp", "featurescript", "robot_code"]
 
 [build-system]
 requires = ["hatchling"]
