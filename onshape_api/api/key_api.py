@@ -32,10 +32,10 @@ def make_key_api(load_dotenv: bool = True) -> KeyApi:
     access_key = os.getenv("API_ACCESS_KEY")
     secret_key = os.getenv("API_SECRET_KEY")
 
-    if access_key is None:
-        raise KeyError("API_ACCESS_KEY is a required env variable")
-    if secret_key is None:
-        raise KeyError("API_SECRET_KEY is a required env variable")
+    if not access_key or not secret_key:
+        raise KeyError(
+            "API_ACCESS_KEY and API_SECRET_KEY must be set, either in the environment or in a .env file"
+        )
 
     return KeyApi(access_key, secret_key, **kwargs)
 

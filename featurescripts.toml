@@ -1,0 +1,13 @@
+# Maps Onshape documents to folders of FeatureScript (.fs) files in this repo.
+#
+# Each Feature Studio in a document's workspace is mirrored to <path>/<studio name>.fs.
+# `fs push` (the default) updates Onshape from the repo; `fs pull` goes the other way.
+# See README.md for details.
+
+# Folder holding one sub-folder per document (unless a document sets its own `path`).
+code_dir = "featurescripts"
+
+[documents.robot]
+# The Robot FeatureScripts backend document (where the source code lives).
+url = "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f"
+# path = "featurescripts/robot"

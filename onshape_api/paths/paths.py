@@ -168,7 +168,7 @@ class ElementPath(InstancePath):
     def __eq__(self, other) -> bool:
         return (
             isinstance(other, ElementPath)
-            and self.__eq__(other)
+            and super().__eq__(other)
             and self.element_id == other.element_id
         )
 
@@ -222,7 +222,7 @@ class PartPath(ElementPath):
     def __eq__(self, other) -> bool:
         return (
             isinstance(other, PartPath)
-            and self.__eq__(other)
+            and super().__eq__(other)
             and self.part_id == other.part_id
         )
 
