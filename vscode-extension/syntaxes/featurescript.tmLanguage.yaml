@@ -1,0 +1,200 @@
+$schema: https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json
+name: FeatureScript
+scopeName: source.featurescript
+fileTypes:
+  - featurescript
+patterns:
+  - include: '#comments'
+  - include: '#strings'
+  - include: '#invalid-operators'
+  - include: '#version-directive'
+  - include: '#declarations'
+  - include: '#constants'
+  - include: '#support'
+  - include: '#keywords'
+  - include: '#numbers'
+  - include: '#operators'
+  - include: '#punctuation'
+repository:
+  comments:
+    patterns:
+      - name: comment.block.featurescript
+        begin: '/\*'
+        beginCaptures:
+          '0':
+            name: punctuation.definition.comment.featurescript
+        end: '\*/'
+        endCaptures:
+          '0':
+            name: punctuation.definition.comment.featurescript
+      - name: comment.line.double-slash.featurescript
+        begin: '//'
+        beginCaptures:
+          '0':
+            name: punctuation.definition.comment.featurescript
+        end: '$'
+  strings:
+    patterns:
+      - name: string.quoted.double.featurescript
+        begin: '"'
+        beginCaptures:
+          '0':
+            name: punctuation.definition.string.begin.featurescript
+        end: '"'
+        endCaptures:
+          '0':
+            name: punctuation.definition.string.end.featurescript
+        patterns:
+          - include: '#escapes'
+      - name: string.quoted.single.featurescript
+        begin: ''''
+        beginCaptures:
+          '0':
+            name: punctuation.definition.string.begin.featurescript
+        end: ''''
+        endCaptures:
+          '0':
+            name: punctuation.definition.string.end.featurescript
+        patterns:
+          - include: '#escapes'
+  escapes:
+    patterns:
+      - name: constant.character.escape.featurescript
+        match: '\\(?:[btnfr''"\\]|u[0-9A-Fa-f]{4})'
+  invalid-operators:
+    patterns:
+      - name: invalid.illegal.operator.increment.featurescript
+        match: '(?:\+\+|--)'
+  version-directive:
+    patterns:
+      - name: meta.version.featurescript
+        match: '^\s*(FeatureScript)\s+(\d+(?:\.\d+)?)\s*(;)'
+        captures:
+          '1':
+            name: storage.type.featurescript
+          '2':
+            name: constant.numeric.featurescript
+          '3':
+            name: punctuation.terminator.statement.featurescript
+  declarations:
+    patterns:
+      - name: meta.feature.declaration.featurescript
+        match: '\b(export\s+)?(const)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(=)\s*(defineFeature)\b'
+        captures:
+          '1':
+            name: storage.modifier.featurescript
+          '2':
+            name: storage.modifier.featurescript
+          '3':
+            name: entity.name.function.featurescript
+          '4':
+            name: keyword.operator.featurescript
+          '5':
+            name: support.function.featurescript
+      - name: meta.constant.declaration.featurescript
+        match: '\b(const)\s+([A-Za-z_][A-Za-z0-9_]*)'
+        captures:
+          '1':
+            name: storage.modifier.featurescript
+          '2':
+            name: variable.other.constant.featurescript
+      - name: meta.function.declaration.featurescript
+        match: '\b(function)\s+([A-Za-z_][A-Za-z0-9_]*)'
+        captures:
+          '1':
+            name: keyword.declaration.featurescript
+          '2':
+            name: entity.name.function.featurescript
+      - name: meta.predicate.declaration.featurescript
+        match: '\b(predicate)\s+([A-Za-z_][A-Za-z0-9_]*)'
+        captures:
+          '1':
+            name: keyword.declaration.featurescript
+          '2':
+            name: entity.name.function.featurescript
+      - name: meta.operator.declaration.featurescript
+        match: '\b(operator)\s*([+\-*/%^~<>=!&|?]+)'
+        captures:
+          '1':
+            name: keyword.declaration.featurescript
+          '2':
+            name: entity.name.function.operator.featurescript
+      - name: meta.enum.declaration.featurescript
+        match: '\b(enum)\s+([A-Za-z_][A-Za-z0-9_]*)'
+        captures:
+          '1':
+            name: keyword.declaration.featurescript
+          '2':
+            name: entity.name.type.enum.featurescript
+      - name: meta.type.declaration.featurescript
+        match: '\b(type)\s+([A-Za-z_][A-Za-z0-9_]*)'
+        captures:
+          '1':
+            name: keyword.declaration.featurescript
+          '2':
+            name: entity.name.type.featurescript
+      - name: variable.parameter.featurescript
+        match: '(?<=\(|,)\s*([A-Za-z_][A-Za-z0-9_]*)(?=\s+is\b)'
+        captures:
+          '1':
+            name: variable.parameter.featurescript
+      - name: variable.other.property.featurescript
+        match: '(?<=\.|\?\.)[A-Za-z_][A-Za-z0-9_]*'
+  constants:
+    patterns:
+      - name: constant.language.boolean.featurescript
+        match: '\b(?:false|true)\b'
+      - name: constant.language.undefined.featurescript
+        match: '\bundefined\b'
+      - name: constant.language.infinity.featurescript
+        match: '\binf\b'
+  support:
+    patterns:
+      - name: support.function.featurescript
+        match: '\b(?:defineFeature|op[A-Z][A-Za-z0-9_]*|ev[A-Z][A-Za-z0-9_]*|q[A-Z][A-Za-z0-9_]*|is[A-Z][A-Za-z0-9_]*)\b(?=\s*\()'
+      - name: support.type.featurescript
+        match: '\b(?:Context|Id|Query|Vector|Transform|Line|Plane|ValueWithUnits|LengthBoundSpec|RealBoundSpec|AngleBoundSpec)\b'
+      - name: support.constant.featurescript
+        match: '\b(?:PI|LENGTH_BOUNDS|BLEND_BOUNDS|POSITIVE_REAL_BOUNDS|EntityType|BodyType|BoundingType|UIHint|inch|meter|millimeter|centimeter|degree|unitless)\b'
+  keywords:
+    patterns:
+      - name: storage.modifier.featurescript
+        match: '\b(?:export|const|var)\b'
+      - name: keyword.declaration.featurescript
+        match: '\b(?:annotation|enum|function|import|operator|precondition|predicate|returns|type|typecheck|typeconvert)\b'
+      - name: keyword.control.featurescript
+        match: '\b(?:if|else|break|continue|for|in|return|while|try|catch|throw|assert|case|default|do|switch)\b'
+      - name: keyword.operator.featurescript
+        match: '\b(?:as|is|new)\b'
+  numbers:
+    patterns:
+      - name: constant.numeric.featurescript
+        match: '(?<![A-Za-z0-9_])(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?![A-Za-z0-9_])'
+  operators:
+    patterns:
+      - name: punctuation.accessor.namespace.featurescript
+        match: '::'
+      - name: punctuation.accessor.dot.featurescript
+        match: '\?\.|\.'
+      - name: keyword.operator.featurescript
+        match: '\?\[\]|\?\[|=>|->|\?\?=|\|\|=|&&=|<=|>=|==|!=|\+=|-=|\*=|/=|\^=|%=|~=|\?\?|&&|\|\||[+\-*/%^~<>!=?]'
+  punctuation:
+    patterns:
+      - name: punctuation.section.block.begin.featurescript
+        match: '\{'
+      - name: punctuation.section.block.end.featurescript
+        match: '\}'
+      - name: punctuation.section.parens.begin.featurescript
+        match: '\('
+      - name: punctuation.section.parens.end.featurescript
+        match: '\)'
+      - name: punctuation.section.brackets.begin.featurescript
+        match: '\['
+      - name: punctuation.section.brackets.end.featurescript
+        match: '\]'
+      - name: punctuation.separator.comma.featurescript
+        match: ','
+      - name: punctuation.separator.colon.featurescript
+        match: ':'
+      - name: punctuation.terminator.statement.featurescript
+        match: ';'

@@ -1,0 +1,203 @@
+{
+  "name": "featurescript",
+  "displayName": "FeatureScript",
+  "description": "Onshape FeatureScript language support backed by this repo's Python language server, plus commands for pushing to Onshape.",
+  "publisher": "robot-code",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robot-education/robot-code.git",
+    "directory": "vscode-extension"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "featurescript",
+    "onshape"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:featurescript",
+    "workspaceContains:featurescripts.toml"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "featurescript",
+        "aliases": [
+          "FeatureScript",
+          "featurescript"
+        ],
+        "extensions": [
+          ".featurescript"
+        ],
+        "firstLine": "^\\s*FeatureScript\\s+\\d+\\s*;",
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "featurescript",
+        "scopeName": "source.featurescript",
+        "path": "./syntaxes/featurescript.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "featurescript",
+        "path": "./snippets/featurescript.code-snippets"
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "feature",
+        "superType": "function",
+        "description": "FeatureScript custom feature created with defineFeature"
+      },
+      {
+        "id": "predicate",
+        "superType": "function",
+        "description": "FeatureScript predicate"
+      },
+      {
+        "id": "annotationKey",
+        "superType": "property",
+        "description": "Key inside a FeatureScript annotation map"
+      },
+      {
+        "id": "mapKey",
+        "superType": "property",
+        "description": "Key inside a FeatureScript map literal"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "featurescript",
+        "scopes": {
+          "feature": [
+            "entity.name.function.featurescript"
+          ],
+          "predicate": [
+            "entity.name.function.featurescript"
+          ],
+          "annotationKey": [
+            "variable.other.property.featurescript"
+          ],
+          "mapKey": [
+            "variable.other.property.featurescript"
+          ]
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "[featurescript]": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    },
+    "configuration": {
+      "title": "FeatureScript",
+      "properties": {
+        "featurescript.server.command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Command used to start the language server, e.g. `[\"uv\", \"run\", \"fs-lsp\"]`. By default the repo's `.venv/bin/fs-lsp` is used if it exists, otherwise `uv run fs-lsp`."
+        },
+        "featurescript.fs.command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Command used to run the `fs` CLI. By default the repo's `.venv/bin/fs` is used if it exists, otherwise `uv run fs`."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "featurescript.push",
+        "title": "Push All to Onshape",
+        "category": "FeatureScript"
+      },
+      {
+        "command": "featurescript.pushFile",
+        "title": "Push File to Onshape",
+        "category": "FeatureScript",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "featurescript.pull",
+        "title": "Pull from Onshape",
+        "category": "FeatureScript"
+      },
+      {
+        "command": "featurescript.sync",
+        "title": "Sync with Onshape",
+        "category": "FeatureScript"
+      },
+      {
+        "command": "featurescript.status",
+        "title": "Show Onshape Status",
+        "category": "FeatureScript"
+      },
+      {
+        "command": "featurescript.restartServer",
+        "title": "Restart Language Server",
+        "category": "FeatureScript"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "featurescript.pushFile",
+          "when": "editorLangId == featurescript",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "featurescript.pushFile",
+          "when": "resourceLangId == featurescript",
+          "group": "featurescript"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "featurescript.pushFile",
+          "when": "editorLangId == featurescript"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build:grammar": "node scripts/build-grammar.mjs",
+    "build": "npm run build:grammar && esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap --minify",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "npm run build:grammar && node --test test/*.test.mjs",
+    "test:integration": "npm run build && node test/integration/run.mjs",
+    "package": "npm run build && vsce package --no-dependencies --skip-license -o featurescript.vsix",
+    "install-extension": "npm run package && code --install-extension featurescript.vsix --force"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/vscode": "~1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.9.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0",
+    "yaml": "^2.8.0"
+  }
+}

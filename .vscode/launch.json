@@ -1,0 +1,20 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Opens a new VS Code window on this repo with the in-development extension loaded.
+            // The Python language server is restarted with the window, so edits to fs_lsp take effect too.
+            "name": "Run FeatureScript extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-extension",
+                "${workspaceFolder}"
+            ],
+            "outFiles": ["${workspaceFolder}/vscode-extension/out/**/*.js"],
+            "preLaunchTask": "Build FeatureScript extension"
+        }
+    ]
+}

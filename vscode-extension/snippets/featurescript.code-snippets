@@ -1,0 +1,95 @@
+{
+  "FeatureScript header with std import": {
+    "prefix": "fs-header",
+    "body": [
+      "FeatureScript ${1:2909};",
+      "// git commit '${2:Add FeatureScript source}'",
+      "",
+      "import(path : \"onshape/std/geometry.fs\", version : \"${1:2909}.0\");",
+      ""
+    ],
+    "description": "FeatureScript version header plus standard library import"
+  },
+  "defineFeature skeleton": {
+    "prefix": "defineFeature",
+    "body": [
+      "annotation { \"Feature Type Name\" : \"${1:Feature name}\" }",
+      "export const ${2:featureName} = defineFeature(function(context is Context, id is Id, definition is map)",
+      "    precondition",
+      "    {",
+      "        ${3}",
+      "    }",
+      "    {",
+      "        ${4}",
+      "    });"
+    ],
+    "description": "Custom feature declaration"
+  },
+  "annotation skeleton": {
+    "prefix": "annotation",
+    "body": [
+      "annotation { \"${1:Name}\" : \"${2:Label}\" }"
+    ],
+    "description": "FeatureScript annotation map"
+  },
+  "query parameter precondition": {
+    "prefix": "pre-query",
+    "body": [
+      "annotation { \"Name\" : \"${1:Selection}\", \"Filter\" : ${2:EntityType.EDGE} }",
+      "definition.${3:selection} is Query;"
+    ],
+    "description": "Query parameter precondition"
+  },
+  "length parameter precondition": {
+    "prefix": "pre-length",
+    "body": [
+      "annotation { \"Name\" : \"${1:Length}\" }",
+      "isLength(definition.${2:length}, ${3:LENGTH_BOUNDS});"
+    ],
+    "description": "Length parameter precondition"
+  },
+  "annotated enum": {
+    "prefix": "enum-annotated",
+    "body": [
+      "export enum ${1:MyOption}",
+      "{",
+      "    annotation { \"Name\" : \"${2:Option One}\" }",
+      "    ${3:ONE},",
+      "    annotation { \"Name\" : \"${4:Option Two}\" }",
+      "    ${5:TWO}",
+      "}"
+    ],
+    "description": "Enum with annotated members"
+  },
+  "operation call with definition map": {
+    "prefix": "op-map",
+    "body": [
+      "${1:opExtrude}(context, id + \"${2:op1}\", {",
+      "    \"${3:entities}\" : ${4:definition.entities},",
+      "    \"${5:endBound}\" : ${6:BoundingType.THROUGH_ALL}",
+      "});"
+    ],
+    "description": "Operation call with a FeatureScript definition map"
+  },
+  "predicate skeleton": {
+    "prefix": "predicate",
+    "body": [
+      "export predicate ${1:canBeValue}(${2:value})",
+      "{",
+      "    ${2:value} is ${3:map};",
+      "}"
+    ],
+    "description": "Predicate declaration"
+  },
+  "operator overload skeleton": {
+    "prefix": "operator",
+    "body": [
+      "export operator${1:*}(${2:x is Vector}, ${3:y is number})",
+      "{",
+      "    return ${4:x};",
+      "}"
+    ],
+    "description": "Operator overload declaration"
+  }
+}
+
