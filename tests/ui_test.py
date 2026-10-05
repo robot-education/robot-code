@@ -196,6 +196,63 @@ def test_bad_settings_are_reported(repo):
     assert warnings == ["point isn't shown, so --set point did nothing."]
 
 
+ARRAY_FEATURE = """FeatureScript 1;
+import(path : "onshape/std/common.fs", version : "1.0");
+
+annotation { "Feature Type Name" : "Widget" }
+export const widget = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "Holes", "Item name" : "hole", "Item label template" : "#name (#depth)" }
+        definition.holes is array;
+        for (var hole in definition.holes)
+        {
+            annotation { "Name" : "Name", "Default" : "Hole" }
+            hole.name is string;
+
+            annotation { "Name" : "Depth", "UIHint" : ["CAN_BE_TOLERANT"] }
+            isLength(hole.depth, LENGTH_BOUNDS);
+        }
+
+        annotation { "Name" : "Total", "UIHint" : ["READ_ONLY"] }
+        isLength(definition.total, LENGTH_BOUNDS);
+    }
+    {
+    });
+"""
+
+
+def test_arrays(repo):
+    (repo / "featurescripts" / "widget.fs").write_text(ARRAY_FEATURE)
+    page, warnings = render(repo)
+    assert warnings == []
+    # New features start with no items
+    assert texts(page)[3:] == ["Holes", "Add hole", "Total", "1 in"]
+    assert "class='input read-only'" in page
+    page, _ = render(repo, "holes=2")
+    assert texts(page)[3:] == [
+        "Holes",
+        "Hole (1 in)",
+        "&#x2716;",
+        "Name",
+        "Hole",
+        "Depth",
+        "1 in",
+        "Hole (1 in)",
+        "&#x2716;",
+        "Name",
+        "Hole",
+        "Depth",
+        "1 in",
+        "Add hole",
+        "Total",
+        "1 in",
+    ]
+    assert "title='Add tolerance'" in page
+    with pytest.raises(UiError, match="how many items"):
+        render(repo, "holes=many")
+
+
 def test_screenshot(repo, capsys):
     try:
         find_chromium()

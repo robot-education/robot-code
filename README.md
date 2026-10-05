@@ -202,6 +202,10 @@ would set (like Robot nut strip's end offsets) show their defaults. Like Onshape
 `holeDiameter`) as an icon instead of a label, and a mate connector button beside queries which accept them. It
 needs Chromium, which it finds in Playwright's browsers folder, on the path, or through `CHROMIUM`.
 
+Arrays start empty, as in a new feature; `--set holes=2` shows two items. `featurescripts/tools/uiTestBench.fs` has one
+of every kind of parameter and UI hint, for comparing `fs ui` with Onshape (`uv run fs ui
+featurescripts/tools/uiTestBench.fs --set items=2`).
+
 `fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
 (following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)
 which the feature's file doesn't export, as Onshape requires, and warns about comparisons with `true` or `false`,

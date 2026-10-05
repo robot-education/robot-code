@@ -193,7 +193,7 @@ def make_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="NAME=VALUE",
         help="set a parameter, e.g. placement=POINT, transform=true, or (for lookup tables) "
-        "'frcNutStrip=REV > 3/8 in. > #10-32'; can be repeated",
+        "'frcNutStrip=REV > 3/8 in. > #10-32', or (for arrays) how many items to show; can be repeated",
     )
     ui_command.add_argument("-o", "--output", help="the PNG to write (default: <feature>.png)")
     ui_command.add_argument("--html", action="store_true", help="also write the dialog's HTML next to the PNG")

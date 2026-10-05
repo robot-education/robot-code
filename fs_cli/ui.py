@@ -122,10 +122,20 @@ class Parser:
             then = self.statement()
             otherwise = self.statement() if self.accept("else") else None
             return Node("if", (condition, then, otherwise), token)
+        if self.check("for") and self.peek(1).value == "(" and self.peek(2).value == "var" and self.peek(4).value == "in":
+            # for (var item in definition.items), as array parameters' items are declared
+            self.advance()
+            self.expect("(")
+            self.advance()
+            variable = self.advance().value
+            self.expect("in")
+            iterable = self.expression()
+            self.expect(")")
+            return Node("loop", (self.statement(), variable, iterable), token)
         if self.check("for") or self.check("while"):
             self.advance()
             self.skip_balanced()
-            return Node("loop", (self.statement(),), token)
+            return Node("loop", (self.statement(), None, None), token)
         if self.check("var") or self.check("const"):
             self.advance()
             name = self.advance().value
@@ -639,6 +649,9 @@ class Parameter:
     enum: EnumType | None = None
     # For lookup tables, the (label, choice) of each level
     levels: list[tuple[str, str]] = dataclasses.field(default_factory=list)
+    # For arrays, how many items to show, and each one's parameters
+    count: int = 0
+    items: list[list] = dataclasses.field(default_factory=list)
 
     @property
     def label(self) -> str:
@@ -678,6 +691,7 @@ class DialogBuilder:
         self.definition = Definition({})
         self.warnings: list[str] = []
         self.declared: set[str] = set()
+        self.arrays: dict[str, Parameter] = {}
 
     def build(self, feature: Feature) -> list:
         if feature.defaults is not None:
@@ -723,6 +737,21 @@ class DialogBuilder:
             scope[name] = self.evaluator.value(value, scope)
         elif kind == "expression":
             self.expression(node.args[0], scope, items, annotation)
+        elif kind == "loop":
+            body, variable, iterable = node.args
+            name = self.parameter_name(iterable, scope) if iterable is not None else None
+            if name in self.arrays:
+                self.array_items(self.arrays[name], body, variable, scope)
+
+    def array_items(self, array: Parameter, body: Node, variable: str, scope: dict[str, Any]) -> None:
+        """Walks an array parameter's loop once for each item, as each item's parameters are declared in it."""
+        outer = self.definition, self.declared
+        for _ in range(array.count):
+            self.definition, self.declared = Definition({}), set()
+            children: list = []
+            self.walk(body, {**scope, variable: self.definition}, children, {})
+            array.items.append(children)
+        self.definition, self.declared = outer
 
     def expression(self, node: Node, scope: dict[str, Any], items: list, annotation: dict) -> None:
         if node.kind == "is":
@@ -794,6 +823,13 @@ class DialogBuilder:
             override = self.overrides.get(name)
             choices = [part.strip() for part in override.split(">")] if override else []
             parameter.levels = lookup_levels(table, choices) if isinstance(table, dict) else []
+        elif type_name == "array":
+            parameter.kind = "array"
+            count = self.overrides.get(name, "0")
+            if not count.isdigit():
+                raise UiError(f"{name} is an array, so --set it to how many items to show, not {count}.")
+            parameter.count = int(count)
+            self.arrays[name] = parameter
         elif type_name in ("PartStudioData",):
             parameter.kind = "reference"
         elif type_name == "string":
@@ -907,6 +943,9 @@ ICON_VALUES = {
 # The button beside queries which accept mate connectors, to create one
 MATE_CONNECTOR_ICON = 74
 
+# The button beside CAN_BE_TOLERANT values, to add a tolerance
+TOLERANCE_ICON = 867
+
 # The annotation key holding the source of a query's filter
 FILTER_TEXT = "__filter"
 
@@ -969,6 +1008,20 @@ body { margin: 0; padding: 10px; background: #1b1b1b; font: 12px Roboto, "Helvet
 .group-body { margin-left: 5px; padding-left: 8px; border-left: 1px solid #555; }
 .short { display: flex; gap: 6px; flex: 1; align-items: center; }
 .short .input { flex: 1; min-width: 0; }
+.input.read-only { color: #8c8c8c; border-bottom-style: dotted; }
+.chevron { width: 5px; height: 5px; border-right: 1.5px solid #bbb; border-bottom: 1.5px solid #bbb; transform: rotate(-45deg); margin: 0 2px 0 1px; flex: none; }
+.chevron.open { transform: rotate(45deg); margin-bottom: 3px; }
+.array { margin: 4px 0; }
+.array-header { padding: 4px 0 3px; color: #ddd; }
+.array-list { border: 1px solid #484848; border-radius: 2px; }
+.array-item + .array-item { border-top: 1px solid #484848; }
+.item-header { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: #313131; }
+.item-header .label { color: #ddd; }
+.item-header .remove { color: #999; font-size: 11px; }
+.item-header .grip { width: 6px; height: 10px; flex: none; background: radial-gradient(circle, #888 1px, transparent 1.2px) 0 0 / 3px 3.4px; }
+.item-body { padding: 0 6px 2px 18px; }
+.array-add { display: flex; align-items: center; gap: 5px; padding: 5px 2px 2px; color: #79b4f0; }
+.array-add::before { content: "+"; font-size: 15px; line-height: 12px; }
 .slider { margin: 8px 6px 2px; height: 2px; background: #666; position: relative; }
 .slider::after { content: ""; position: absolute; left: 52%; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #2b2b2b; border: 1.5px solid #ccc; }
 """
@@ -1004,13 +1057,16 @@ class Renderer:
             if isinstance(item, Group):
                 rows.append([self.group(item, driving_values)])
                 continue
+            if item.kind == "array":
+                rows.append([self.array(item)])
+                continue
             hints = item.hints
             if "ALWAYS_HIDDEN" in hints or item.name in driving:
                 continue
             button = next((hint for hint in BUTTONS if hint in hints), None)
             if button and (item.kind in ("boolean", "enum")):
                 control = f"<span class='button' title='{html.escape(item.label)}'>{icon(*BUTTONS[button])}</span>"
-                if rows and "FIRST_IN_ROW" not in hints and not rows[-1][0].startswith("<div class='group"):
+                if rows and "FIRST_IN_ROW" not in hints and not rows[-1][0].startswith("<div"):
                     rows[-1].append(control)
                 else:
                     rows.append([control])
@@ -1024,7 +1080,7 @@ class Renderer:
                 continue
             rows.extend([row] for row in self.parameter(item))
         return "".join(
-            row[0] if row[0].startswith("<div class='group") else "<div class='row'>" + "".join(row) + "</div>"
+            row[0] if row[0].startswith("<div") else "<div class='row'>" + "".join(row) + "</div>"
             for row in rows
         )
 
@@ -1044,6 +1100,28 @@ class Renderer:
             + "</div><div class='group-body'>"
             + ("" if collapsed else self.items(group.children))
             + "</div></div>"
+        )
+
+    def array(self, array: Parameter) -> str:
+        """An array parameter: its items, each under a header labeled by its "Item label template", and a button to
+        add one."""
+        item_name = str(array.annotation.get("Item name", "item"))
+        template = array.annotation.get("Item label template")
+        items = []
+        for index, children in enumerate(array.items):
+            values = {child.name: _text(child.value) for child in children if isinstance(child, Parameter)}
+            label = f"{item_name.capitalize()} {index + 1}"
+            if isinstance(template, str):
+                label = re.sub(r"#(\w+)", lambda match: values.get(match[1], match[0]), template)
+            items.append(
+                "<div class='array-item'><div class='item-header'><span class='grip'></span><span class='chevron open'>"
+                f"</span><span class='label'>{html.escape(label)}</span><span class='remove'>&#x2716;</span></div>"
+                f"<div class='item-body'>{self.items(children)}</div></div>"
+            )
+        listed = f"<div class='array-list'>{''.join(items)}</div>" if items else ""
+        return (
+            f"<div class='array'><div class='array-header'>{html.escape(array.label)}</div>{listed}"
+            f"<div class='array-add'>Add {html.escape(item_name)}</div></div>"
         )
 
     def short(self, item: Parameter, labeled: bool = True) -> str:
@@ -1089,7 +1167,13 @@ class Renderer:
                 for level, choice in item.levels
             ]
         if item.kind in ("length", "angle", "integer", "real", "string"):
-            return [label + f"<span class='input'>{html.escape(_text(item.value or ''))}</span>"]
+            read_only = " read-only" if "READ_ONLY" in item.hints else ""
+            row = label + f"<span class='input{read_only}'>{html.escape(_text(item.value or ''))}</span>"
+            if "CAN_BE_TOLERANT" in item.hints:
+                # Expands to show the tolerance, once one's added with the button
+                row = "<span class='chevron'></span>" + row
+                row += f"<span class='button' title='Add tolerance'>{icon(TOLERANCE_ICON)}</span>"
+            return [row]
         return [label]
 
 
