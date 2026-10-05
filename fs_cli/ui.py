@@ -697,6 +697,11 @@ class DialogBuilder:
         elif kind == "annotated":
             value = self.evaluator.value(node.args[0], scope)
             annotation = value if isinstance(value, dict) else {}
+            if node.args[0].kind == "map":
+                for key, entry in node.args[0].args:
+                    if key.kind == "literal" and key.args[0] == "Filter":
+                        # Usually too complex to evaluate, but its text says what it accepts
+                        annotation = {**annotation, FILTER_TEXT: describe(entry)}
             inner = node.args[1]
             if "Group Name" in annotation and inner.kind == "block":
                 group = Group(str(annotation["Group Name"]), annotation)
@@ -816,6 +821,8 @@ def describe(node: Node) -> str:
         return f"{args[0]}{describe(args[1])}"
     if kind == "binary":
         return f"{describe(args[1])} {args[0]} {describe(args[2])}"
+    if kind == "group":
+        return f"({describe(args[0])})"
     return "..."
 
 
@@ -859,43 +866,85 @@ def format_bounds(kind: str, bounds: Any) -> str:
 # Rendering
 
 
-ICONS = {
-    "OPPOSITE_DIRECTION": "&#x21C4;",
-    "OPPOSITE_DIRECTION_CIRCULAR": "&#x21BB;",
-    "PRIMARY_AXIS": "&#x21C5;",
-    "MATE_CONNECTOR_AXIS_TYPE": "&#x27F3;",
+# Icons from onshape_icons/, by number (see its index.html)
+ICON_DIR = pathlib.Path(__file__).resolve().parents[1] / "onshape_icons"
+
+# Buttons for enum and boolean parameters with these UI hints: (icon, whether it's drawn dark and needs inverting)
+BUTTONS = {
+    "OPPOSITE_DIRECTION": (846, True),
+    "OPPOSITE_DIRECTION_CIRCULAR": (849, True),
+    "PRIMARY_AXIS": (848, True),
+    "MATE_CONNECTOR_AXIS_TYPE": (848, True),
 }
 
+# Parameters Onshape shows with an icon instead of a label, by id (std's versioned ids, like holeDiameterV2, too)
+PARAMETER_ICONS = {
+    "holeDiameter": 861,
+    "holeDepth": 860,
+    "cBoreDiameter": 857,
+    "cBoreDepth": 856,
+    "cSinkDiameter": 859,
+    "cSinkAngle": 858,
+    "tapDrillDiameter": 865,
+    "tappedDepth": 866,
+}
+
+# The button beside queries which accept mate connectors, to create one
+MATE_CONNECTOR_ICON = 74
+
+# The annotation key holding the source of a query's filter
+FILTER_TEXT = "__filter"
+
+
+def icon(number: int, invert: bool = False) -> str:
+    """An icon's SVG, inline."""
+    path = ICON_DIR / f"svg-{number}.svg"
+    if not path.is_file():
+        return ""
+    svg = re.sub(r"<\?xml[^>]*>", "", path.read_text())
+    return f"<span class='icon{' invert' if invert else ''}'>{svg}</span>"
+
+
+def parameter_icon(name: str) -> int | None:
+    return PARAMETER_ICONS.get(re.sub(r"V\d+$", "", name))
+
+
 STYLE = """
-body { margin: 0; padding: 12px; background: #e9ebee; font: 12px Roboto, "Helvetica Neue", Arial, sans-serif; color: #333; }
-.dialog { width: 300px; background: #fff; border: 1px solid #c6c9ce; border-radius: 3px; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
-.header { display: flex; align-items: center; padding: 7px 8px; border-bottom: 1px solid #dde0e4; font-weight: 500; font-size: 13px; }
-.header .title { flex: 1; }
-.header .ok { color: #2d8a34; font-size: 15px; margin-left: 8px; }
-.header .cancel { color: #c23b22; font-size: 15px; margin-left: 8px; }
-.body { padding: 6px 8px 8px; }
-.row { display: flex; align-items: center; min-height: 26px; margin: 2px 0; gap: 6px; }
-.label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.input, .select { width: 118px; height: 20px; border: 1px solid #b9bdc3; border-radius: 2px; padding: 0 5px; display: flex; align-items: center; box-sizing: border-box; background: #fff; }
-.select { justify-content: space-between; }
-.select.wide { flex: 1; width: auto; }
-.select::after { content: "\\25BE"; color: #666; margin-left: 4px; }
-.tabs { display: flex; flex: 1; border: 1px solid #b9bdc3; border-radius: 2px; overflow: hidden; }
-.tab { flex: 1; text-align: center; padding: 4px 2px; border-right: 1px solid #b9bdc3; white-space: nowrap; }
-.tab:last-child { border-right: none; }
-.tab.selected { background: #d6e6f7; color: #0f5ea8; font-weight: 500; }
-.query { flex: 1; min-height: 22px; border: 1px solid #b9bdc3; border-radius: 2px; padding: 3px 6px; color: #888; background: #fafbfc; }
-.query.focus { border-color: #3d8ee0; background: #eef5fd; color: #3b6fa8; }
-.check { width: 13px; height: 13px; border: 1px solid #8d939b; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; }
+body { margin: 0; padding: 10px; background: #1b1b1b; font: 12px Roboto, "Helvetica Neue", Arial, sans-serif; color: #dcdcdc; }
+.dialog { width: 236px; background: #2b2b2b; border: 1px solid #444; border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+.header { display: flex; align-items: center; padding: 5px 6px 5px 8px; background: #333; border-bottom: 1px solid #444; font-size: 13px; color: #eee; }
+.header .title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header .ok { width: 24px; height: 22px; display: inline-flex; align-items: center; justify-content: center; background: #2f6f2a; color: #fff; border-radius: 2px; font-size: 14px; margin-left: 6px; }
+.header .cancel { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: #e04b3a; font-size: 14px; margin-left: 2px; }
+.body { padding: 4px 6px 6px; }
+.row { display: flex; align-items: center; min-height: 24px; margin: 3px 0; gap: 6px; }
+.label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #d0d0d0; }
+.label.right { text-align: right; }
+.input, .select { min-width: 92px; height: 20px; border-bottom: 1px solid #8a8a8a; padding: 0 3px; display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box; color: #eee; }
+.select { justify-content: space-between; gap: 6px; }
+.select.wide { flex: 1; width: auto; border: none; border-bottom: 1px solid #8a8a8a; }
+.select::after { content: ""; border: 4px solid transparent; border-top: 5px solid #ccc; margin-top: 4px; }
+.tabs { display: flex; flex: 1; border-bottom: 1px solid #444; }
+.tab { flex: 1; text-align: center; padding: 4px 2px; white-space: nowrap; color: #ddd; }
+.tab.selected { background: #3d5975; color: #a9d4ff; box-shadow: inset 0 -2px #5aa9f0; }
+.query { flex: 1; min-height: 34px; border: 1px solid #3b7bc4; border-radius: 2px; padding: 3px 6px; color: #8fb8e6; background: #1f2732; box-sizing: border-box; }
+.query.focus { border-color: #58a3f2; background: #22344a; color: #b7d8fb; }
+.check { width: 13px; height: 13px; border: 1px solid #bbb; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; flex: none; }
 .check.on { background: #3d8ee0; border-color: #3d8ee0; }
-.button { width: 22px; height: 20px; border: 1px solid #b9bdc3; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; color: #444; background: #f6f7f8; }
-.group { margin: 6px 0 2px; border-top: 1px solid #dde0e4; }
-.group-header { display: flex; align-items: center; gap: 6px; font-weight: 500; padding: 5px 0 3px; }
-.group-header::before { content: "\\25BE"; color: #666; }
-.collapsed .group-header::before { content: "\\25B8"; }
-.group-body { padding-left: 10px; }
-.short { display: flex; gap: 6px; flex: 1; }
-.short .input { flex: 1; width: auto; }
+.button { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: #ddd; flex: none; }
+.icon { display: inline-flex; width: 18px; height: 18px; flex: none; }
+.icon svg { width: 100%; height: 100%; }
+.icon.invert { filter: invert(1); }
+.icon.parameter { width: 22px; height: 22px; }
+.group { margin: 4px 0 2px; }
+.group-header { display: flex; align-items: center; gap: 6px; padding: 4px 0 3px; color: #ddd; }
+.group-header::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid #bbb; border-bottom: 1.5px solid #bbb; transform: rotate(45deg); margin: 0 3px 3px 2px; }
+.collapsed .group-header::before { transform: rotate(-45deg); margin-bottom: 0; }
+.group-body { margin-left: 5px; padding-left: 8px; border-left: 1px solid #555; }
+.short { display: flex; gap: 6px; flex: 1; align-items: center; }
+.short .input { flex: 1; min-width: 0; }
+.slider { margin: 8px 6px 2px; height: 2px; background: #666; position: relative; }
+.slider::after { content: ""; position: absolute; left: 52%; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #2b2b2b; border: 1.5px solid #ccc; }
 """
 
 
@@ -912,7 +961,7 @@ class Renderer:
             + html.escape(title)
             + "</span><span class='ok'>&#x2714;</span><span class='cancel'>&#x2716;</span></div><div class='body'>"
             + body
-            + "</div></div></body></html>"
+            + "<div class='slider'></div></div></div></body></html>"
         )
 
     def items(self, items: list) -> str:
@@ -932,9 +981,9 @@ class Renderer:
             hints = item.hints
             if "ALWAYS_HIDDEN" in hints or item.name in driving:
                 continue
-            button = next((hint for hint in ICONS if hint in hints), None)
+            button = next((hint for hint in BUTTONS if hint in hints), None)
             if button and (item.kind in ("boolean", "enum")):
-                control = f"<span class='button' title='{html.escape(item.label)}'>{ICONS[button]}</span>"
+                control = f"<span class='button' title='{html.escape(item.label)}'>{icon(*BUTTONS[button])}</span>"
                 if rows and "FIRST_IN_ROW" not in hints and not rows[-1][0].startswith("<div class='group"):
                     rows[-1].append(control)
                 else:
@@ -956,10 +1005,12 @@ class Renderer:
     def group(self, group: Group, driving_values: dict[str, Any]) -> str:
         driving = group.annotation.get("Driving Parameter")
         check = ""
+        collapsed = group.annotation.get("Collapsed By Default") is True
         if driving:
             on = bool(driving_values.get(driving))
             check = f"<span class='check{' on' if on else ''}'>{'&#x2714;' if on else ''}</span>"
-        collapsed = group.annotation.get("Collapsed By Default") is True
+            # Its contents are only shown when it's checked
+            collapsed = collapsed or not on
         return (
             f"<div class='group{' collapsed' if collapsed else ''}'><div class='group-header'>"
             + check
@@ -980,6 +1031,10 @@ class Renderer:
 
     def parameter(self, item: Parameter) -> list[str]:
         label = f"<span class='label'>{html.escape(item.label)}</span>"
+        number = parameter_icon(item.name)
+        if number is not None:
+            # In place of its label, which shows when it's hovered
+            label = f"<span class='label' title='{html.escape(item.label)}'>{icon(number)}</span>"
         if item.kind == "enum" and item.enum is not None:
             names = item.enum.values
             if "HORIZONTAL_ENUM" in item.hints:
@@ -990,7 +1045,7 @@ class Renderer:
                 return [f"<span class='tabs'>{tabs}</span>"]
             selected = html.escape(names.get(item.value, item.value or ""))
             if "SHOW_LABEL" in item.hints:
-                return [label + f"<span class='select'>{selected}</span>"]
+                return [label.replace("class='label'", "class='label right'") + f"<span class='select'>{selected}</span>"]
             return [f"<span class='select wide'>{selected}</span>"]
         if item.kind == "boolean":
             on = bool(item.value)
@@ -998,10 +1053,13 @@ class Renderer:
         if item.kind in ("query", "reference"):
             focus = not self.focused
             self.focused = True
-            return [f"<span class='query{' focus' if focus else ''}'>{html.escape(item.label)}</span>"]
+            query = f"<span class='query{' focus' if focus else ''}'>{html.escape(item.label)}</span>"
+            if "MATE_CONNECTOR" in str(item.annotation.get(FILTER_TEXT, "")):
+                query += f"<span class='button' title='Create mate connector'>{icon(MATE_CONNECTOR_ICON)}</span>"
+            return [query]
         if item.kind == "lookup":
             return [
-                f"<span class='label'>{html.escape(level)}</span><span class='select'>{html.escape(choice)}</span>"
+                f"<span class='label right'>{html.escape(level)}</span><span class='select'>{html.escape(choice)}</span>"
                 for level, choice in item.levels
             ]
         if item.kind in ("length", "angle", "integer", "real", "string"):
@@ -1086,6 +1144,8 @@ def render_feature(
     items = builder.build(feature)
     annotation = builder.evaluator.value(feature.annotation, {}) if feature.annotation else {}
     title = annotation.get("Feature Type Name", feature_name) if isinstance(annotation, dict) else feature_name
+    # As Onshape names a new feature
+    title = f"{title} 1"
     unused = set(overrides) - builder.declared
     warnings = builder.warnings + [f"{name} isn't shown, so --set {name} did nothing." for name in sorted(unused)]
     return Renderer().page(str(title), items), warnings

@@ -16,6 +16,7 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 | `fs_cli/`                  | The `fs` command                                                             |
 | `onshape_api/`             | A small Onshape REST API client; see [its README](onshape_api/README.md)     |
 | `std/`                     | A read-only copy of the Onshape std library, for reference                   |
+| `onshape_icons/`           | Onshape's UI icons, for `fs ui`; browse them with its `index.html`           |
 | `docs/`                    | Conventions for writing FeatureScripts                                       |
 | `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
 | `vscode-extension/server/` | The Python FeatureScript language server the extension runs (`fs_lsp`)       |
@@ -193,11 +194,12 @@ uv run fs unused             # exports nothing uses (--local: also those only th
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 ```
 
-`fs ui` renders a feature's dialog roughly as Onshape shows it, from its precondition: parameters take their
-defaults (or the values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides
-them. Editing logic doesn't run, so values it would set (like Robot nut strip's end offsets) show their defaults. It
-needs Chromium, which it finds in Playwright's browsers folder, on the path, or through `CHROMIUM`. The styling is
-an approximation to refine against screenshots of the real dialogs.
+`fs ui` renders a feature's dialog roughly as Onshape shows it (in its dark theme, with its icons from
+`onshape_icons/`), from its precondition: parameters take their defaults (or the values given with `--set`),
+predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic doesn't run, so values it
+would set (like Robot nut strip's end offsets) show their defaults. Like Onshape, it shows some parameters (like
+`holeDiameter`) as an icon instead of a label, and a mate connector button beside queries which accept them. It
+needs Chromium, which it finds in Playwright's browsers folder, on the path, or through `CHROMIUM`.
 
 `fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
 (following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)

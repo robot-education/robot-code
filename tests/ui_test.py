@@ -143,7 +143,7 @@ def test_dialog_follows_the_precondition(repo):
     page, warnings = render(repo)
     assert warnings == []
     assert texts(page) == [
-        "Widget",
+        "Widget 1",
         "&#x2714;",
         "&#x2716;",
         # A horizontal enum, without the hidden value
@@ -159,7 +159,6 @@ def test_dialog_follows_the_precondition(repo):
         # From the predicate in another file, with its argument; the flip button joins its row
         "Depth",
         "1 in",
-        "&#x21C4;",
         "Offset",
         # The group's driving parameter is its header
         "&#x2714;",
@@ -168,6 +167,8 @@ def test_dialog_follows_the_precondition(repo):
         "1 in",
     ]
     assert "class='tab selected'>Edge<" in page
+    # The flip button, with Onshape's icon
+    assert "<span class='button' title='Flip'><span class='icon invert'><svg" in page
 
 
 def test_short_parameters_share_a_row(repo):
