@@ -116,7 +116,7 @@ export const multiExtrude = defineFeature(function(context is Context, id is Id,
             definition.entities = entity;
             extrude(context, extrudeId, definition);
             processSubfeatureStatus(context, id, {
-                        "subfeatureId" : id + i,
+                        "subfeatureId" : extrudeId,
                         "propagateErrorDisplay" : true
                     });
         }

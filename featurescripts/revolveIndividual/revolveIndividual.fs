@@ -36,11 +36,12 @@ export const revolveIndividual = defineFeature(function(context is Context, id i
         }
 
         // Revolve everything as new bodies and then delete them, so the feature gets revolve's manipulators
+        // (which are only shown when added with the top level id)
         var manipulatorDefinition = definition;
         manipulatorDefinition.operationType = NewBodyOperationType.NEW;
         manipulatorDefinition.surfaceOperationType = NewSurfaceOperationType.NEW;
-        revolve(context, id + "manipulators", manipulatorDefinition);
-        opDeleteBodies(context, id + "deleteManipulators", { "entities" : qCreatedBy(id + "manipulators", EntityType.BODY) });
+        revolve(context, id, manipulatorDefinition);
+        opDeleteBodies(context, id + "deleteManipulators", { "entities" : qCreatedBy(id, EntityType.BODY) });
 
         for (var i, selection in selections)
         {

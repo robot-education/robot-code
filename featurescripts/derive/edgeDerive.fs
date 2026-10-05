@@ -66,32 +66,9 @@ export const edgeDerive = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Edges", "Filter" : EntityType.EDGE, "UIHint" : ["UNCONFIGURABLE"] }
         definition.edges is Query;
 
-        annotation { "Name" : "Parameters", "UIHint" : ["ALWAYS_HIDDEN"] }
-        isAnything(definition.parameters);
+        edgeDeriveParametersPredicate(definition);
 
-        annotation { "Name" : "Edge to use", "Filter" : EntityType.EDGE, "UIHint" : ["ALWAYS_HIDDEN"] }
-        definition.edgeQuery is Query;
-
-        annotation { "Name" : "Move" }
-        definition.transform is boolean;
-
-        if (definition.transform)
-        {
-            annotation { "Name" : "X translation" }
-            isLength(definition.translationX, ZERO_DEFAULT_LENGTH_BOUNDS);
-
-            annotation { "Name" : "Y translation" }
-            isLength(definition.translationY, ZERO_DEFAULT_LENGTH_BOUNDS);
-
-            annotation { "Name" : "Z translation" }
-            isLength(definition.translationZ, ZERO_DEFAULT_LENGTH_BOUNDS);
-
-            annotation { "Name" : "Rotation angle" }
-            isAngle(definition.rotation, ANGLE_360_ZERO_DEFAULT_BOUNDS);
-
-            annotation { "Name" : "Opposite direction", "UIHint" : ["OPPOSITE_DIRECTION_CIRCULAR"] }
-            definition.oppositeDirection is boolean;
-        }
+        edgeDeriveTransformPredicate(definition);
 
         annotation { "Name" : "Delete planes and sketches", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.deletePlanesAndSketches is boolean;
@@ -158,6 +135,46 @@ export const edgeDerive = defineFeature(function(context is Context, id is Id, d
             "oppositeDirection" : false,
             "deletePlanesAndSketches" : true
         });
+
+/**
+ * The hidden parameters edge derive's manipulators set. Features which call edge derive with their own `edges`
+ * should include this, and use [edgeDeriveManipulatorChange] and [edgeDeriveEditLogic].
+ */
+export predicate edgeDeriveParametersPredicate(definition is map)
+{
+    annotation { "Name" : "Parameters", "UIHint" : ["ALWAYS_HIDDEN"] }
+    isAnything(definition.parameters);
+
+    annotation { "Name" : "Edge to use", "Filter" : EntityType.EDGE, "UIHint" : ["ALWAYS_HIDDEN"] }
+    definition.edgeQuery is Query;
+}
+
+/**
+ * The options for moving the derived entities away from each edge.
+ */
+export predicate edgeDeriveTransformPredicate(definition is map)
+{
+    annotation { "Name" : "Move" }
+    definition.transform is boolean;
+
+    if (definition.transform)
+    {
+        annotation { "Name" : "X translation" }
+        isLength(definition.translationX, ZERO_DEFAULT_LENGTH_BOUNDS);
+
+        annotation { "Name" : "Y translation" }
+        isLength(definition.translationY, ZERO_DEFAULT_LENGTH_BOUNDS);
+
+        annotation { "Name" : "Z translation" }
+        isLength(definition.translationZ, ZERO_DEFAULT_LENGTH_BOUNDS);
+
+        annotation { "Name" : "Rotation angle" }
+        isAngle(definition.rotation, ANGLE_360_ZERO_DEFAULT_BOUNDS);
+
+        annotation { "Name" : "Opposite direction", "UIHint" : ["OPPOSITE_DIRECTION_CIRCULAR"] }
+        definition.oppositeDirection is boolean;
+    }
+}
 
 /**
  * The parameters of the first `count` edges, filling in defaults for edges which don't have any yet.
