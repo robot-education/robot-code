@@ -2,8 +2,11 @@
 
 Each nut strip has two rows of tapped through holes along its length, one through its width (the X row) and one
 through its height (the Y row). Each row's first hole is `xHoleStart` or `yHoleStart` from the strip's start, and its
-holes are `spacing` apart; holes stop as close to the strip's end as the closest row starts to its start.
+holes are `spacing` apart; holes stop as close to the strip's end as the closest row starts to its start. Strips with
+`centerHole` also have a tapped through hole down their length.
 """
+
+import dataclasses
 
 from fs_cli.tables import Node, Table, Value, inch, mm, string
 
@@ -28,6 +31,10 @@ def thread(name: str, size: str, pitch: str, major_diameter: str, tap_drill_diam
 NUMBER_8_32 = thread("#8-32", "#8", "32 tpi", inch(0.164), inch(0.136))
 NUMBER_10_32 = thread("#10-32", "#10", "32 tpi", inch(0.19), inch(0.159))
 M3 = thread("M3 x 0.5", "M3", "0.5 mm", mm(3), mm(2.5))
+
+
+def with_center_hole(thread: Value) -> Value:
+    return dataclasses.replace(thread, values={**thread.values, "centerHole": "true"})
 
 
 def size(
@@ -72,6 +79,14 @@ WCP = vendor(
     ],
 )
 
+# https://lastanvil.com/products/nut-strip
+# The rows alternate like WCP's (both STEP files); the #10-32 strip also has a hole down its center
+# TODO: Last Anvil's appearance (the #10-32 strip is sandblasted, the #8-32 strip unfinished)
+LAST_ANVIL = vendor(
+    "Last Anvil",
+    [size("1/2 in.", inch(0.5), inch(0.5), inch(0.25), inch(0.5), [with_center_hole(NUMBER_10_32), NUMBER_8_32])],
+)
+
 # https://www.revrobotics.com/3-8in-nut-strips/
 # The rows line up (their holes cross), starting 0.24 in. from the end (REV-21-3420's STEP file)
 REV_FRC = vendor(
@@ -89,6 +104,6 @@ REV_FTC = vendor(
 )
 
 CONTENTS = [
-    Table("frcNutStripTable", Node("vendor", [WCP, REV_FRC])),
+    Table("frcNutStripTable", Node("vendor", [WCP, REV_FRC, LAST_ANVIL])),
     Table("ftcNutStripTable", Node("vendor", [REV_FTC])),
 ]

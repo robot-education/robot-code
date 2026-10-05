@@ -41,6 +41,20 @@ export const frcNutStripTable = {
                     },
                 },
             },
+            "Last Anvil" : {
+                "name" : "size",
+                "displayName" : "Size",
+                "entries" : {
+                    "1/2 in." : {
+                        "name" : "thread",
+                        "displayName" : "Thread",
+                        "entries" : {
+                            "#10-32" : { "centerHole" : true, "height" : 0.5 * inch, "majorDiameter" : 0.19 * inch, "pitch" : "32 tpi", "size" : "#10", "sizeName" : "1/2 in.", "spacing" : 0.5 * inch, "tapDrillDiameter" : 0.159 * inch, "threadName" : "#10-32", "vendor" : "Last Anvil", "width" : 0.5 * inch, "xHoleStart" : 0.25 * inch, "yHoleStart" : 0.5 * inch },
+                            "#8-32" : { "height" : 0.5 * inch, "majorDiameter" : 0.164 * inch, "pitch" : "32 tpi", "size" : "#8", "sizeName" : "1/2 in.", "spacing" : 0.5 * inch, "tapDrillDiameter" : 0.136 * inch, "threadName" : "#8-32", "vendor" : "Last Anvil", "width" : 0.5 * inch, "xHoleStart" : 0.25 * inch, "yHoleStart" : 0.5 * inch },
+                        },
+                    },
+                },
+            },
         },
     };
 

@@ -183,7 +183,8 @@ function sketchLengthFace(context is Context, id is Id, plane is Plane) returns 
  * Builds a nut strip `length` long, starting at `location` and running along its Z axis, with its width along X.
  * Which of the nine points of its start (see `ninePointOffsets`) is at `location` is chosen by `index`.
  *
- * The strip and its Y row of holes are one extrude of a sketch; its X row of holes are cut with one more.
+ * The strip and its Y row of holes are one extrude of a sketch; its X row of holes (and center hole, if it has one)
+ * are cut with one more.
  *
  * @returns {array} : Where each of the nine points of its start is.
  */
@@ -231,19 +232,51 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
                     "endBound" : BoundingType.BLIND,
                     "endDepth" : nutStrip.width
                 });
+    }
+    const hasCenterHole = nutStrip.centerHole ?? false;
+    const centerHole = toWorld(location, center);
+    if (hasCenterHole)
+    {
+        const centerHoleSketch = newSketchOnPlane(context, id + "centerHoleSketch", {
+                    "sketchPlane" : plane(centerHole, location.zAxis, location.xAxis)
+                });
+        skCircle(centerHoleSketch, "hole", { "center" : vector(0, 0) * meter, "radius" : nutStrip.tapDrillDiameter / 2 });
+        skSolve(centerHoleSketch);
+        opExtrude(context, id + "centerHoleTool", {
+                    "entities" : qSketchRegion(id + "centerHoleSketch"),
+                    "direction" : location.zAxis,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : length
+                });
+    }
+    const tools = qUnion([qCreatedBy(id + "holeTools", EntityType.BODY), qCreatedBy(id + "centerHoleTool", EntityType.BODY)]);
+    if (xHoles != [] || hasCenterHole)
+    {
         opBoolean(context, id + "cutHoles", {
-                    "tools" : qCreatedBy(id + "holeTools", EntityType.BODY),
+                    "tools" : tools,
                     "targets" : strip,
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
     }
+
     // Found once the holes are cut, since holes which cross are split
-    const holes = concatenateArrays([
-                holesInRow(context, id + "strip", stripPlane, nutStrip, yHoles),
-                holesInRow(context, id + "holeTools", holePlane, nutStrip, xHoles)
-            ]);
+    var holes = concatenateArrays([
+            holesInRow(context, id + "strip", stripPlane, nutStrip, yHoles),
+            holesInRow(context, id + "holeTools", holePlane, nutStrip, xHoles)
+        ]);
+    if (hasCenterHole)
+    {
+        holes = append(holes, {
+                    "faces" : qCreatedBy(id + "centerHoleTool", EntityType.FACE)->qGeometry(GeometryType.CYLINDER),
+                    "coordSystem" : coordSystem(centerHole, location.xAxis, location.zAxis)
+                });
+    }
     opDeleteBodies(context, id + "deleteSketches", {
-                "entities" : qUnion([qCreatedBy(id + "stripSketch", EntityType.BODY), qCreatedBy(id + "holeSketch", EntityType.BODY)])
+                "entities" : qUnion([
+                        qCreatedBy(id + "stripSketch", EntityType.BODY),
+                        qCreatedBy(id + "holeSketch", EntityType.BODY),
+                        qCreatedBy(id + "centerHoleSketch", EntityType.BODY)
+                    ])
             });
 
     setTappedThroughHoles(context, id, holes, nutStrip);
