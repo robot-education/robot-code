@@ -12,13 +12,13 @@ import(path : "core/robotFeature.fs", version : "");
  * Everything else works like the std Revolve feature, which this calls once per selection.
  */
 annotation {
-        "Feature Type Name" : "Revolve individual",
+        "Feature Type Name" : "Multi revolve",
         "Feature Type Description" : "Revolve distinct faces as new parts even when they're adjacent to each other." ~ CREDIT,
         "Manipulator Change Function" : "revolveManipulatorChange",
         "Filter Selector" : "allparts",
         "Editing Logic Function" : "revolveEditLogic"
     }
-export const revolveIndividual = defineFeature(function(context is Context, id is Id, definition is map)
+export const multiRevolve = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
         revolvePredicate(definition);
