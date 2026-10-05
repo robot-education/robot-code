@@ -16,6 +16,7 @@ from fs_cli.config import ConfigError, load_config
 from fs_cli.release import plan_release, run_release, unsynced_versions
 from fs_cli.remote import OnshapeRemote, Remote
 from fs_cli.state import State
+from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
 from fs_cli.versions import VersionType
 from fs_cli.workspace import (
     HINTS,
@@ -86,12 +87,33 @@ def make_parser() -> argparse.ArgumentParser:
         "-a", "--all", action="store_true", help="also list studios which are in sync"
     )
     command("diff", "show differences between Onshape and the repo")
-    command(
+    update_std = command(
         "update-std",
-        "update FeatureScript versions and std imports to the latest std version",
-    ).add_argument(
+        "update FeatureScript versions and std imports to the std version in std/",
+    )
+    update_std.add_argument(
+        "--latest",
+        action="store_true",
+        help="use the latest std version in Onshape instead (1 API call)",
+    )
+    update_std.add_argument(
         "-p", "--push", action="store_true", help="push to Onshape after updating"
     )
+
+    pull_std = command(
+        "pull-std",
+        "update std/ to the latest Onshape std library, and the language server's index of it",
+        targets=False,
+    )
+    pull_std.add_argument(
+        "--from-onshape",
+        action="store_true",
+        help="download changed files from Onshape (1 API call each) instead of the GitHub mirror",
+    )
+    pull_std.add_argument(
+        "-y", "--yes", action="store_true", help="don't ask to confirm API usage"
+    )
+    dry_run(pull_std)
 
     release = command(
         "release", "release a FeatureScript to the frontend document", targets=False
@@ -304,7 +326,14 @@ def diff(workspace: Workspace, args: argparse.Namespace) -> int:
 
 
 def update_std(workspace: Workspace, args: argparse.Namespace) -> int:
-    std_version = workspace.remote.latest_std_version()
+    if args.latest:
+        std_version = workspace.remote.latest_std_version()
+    else:
+        std_version = StdMetadata.load(workspace.config.std_dir).number
+        if std_version is None:
+            raise UsageError(
+                "std/ has no recorded version; run `fs pull-std` first, or pass --latest."
+            )
     studios = workspace.scan(workspace.resolve_targets(args.targets))
     changed = apply_to_files(
         studios, lambda code: update_std_version(code, std_version)
@@ -370,6 +399,40 @@ def sync_versions(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
+def pull_std(workspace: Workspace, args: argparse.Namespace) -> int:
+    std_dir = workspace.config.std_dir
+    before = StdMetadata.load(std_dir).version
+    if args.from_onshape:
+
+        def confirm_download(count: int) -> None:
+            if not args.yes:
+                confirm(
+                    f"Downloading {_plural(count, 'file')} takes {count} API calls."
+                )
+
+        update = pull_from_onshape(
+            std_dir, workspace.remote, args.dry_run, confirm_download
+        )
+    else:
+        update = pull_from_mirror(std_dir, args.dry_run)
+    verb = "Would update" if args.dry_run else "Updated"
+    if update.changed or update.removed:
+        print(
+            f"{verb} std/ from {before or 'nothing'} to {update.version}: {len(update.changed)} files changed, {len(update.removed)} removed."
+        )
+    else:
+        print(f"std/ is already up to date ({update.version}).")
+    if not args.dry_run:
+        from fs_lsp.tools.update_stdlib import regenerate
+
+        print(f"Regenerated the language server's stdlib index: {regenerate(std_dir)}.")
+        if update.version != before:
+            print(
+                f"Run `fs update-std` to move your FeatureScripts to {update.version}, then `fs push`."
+            )
+    return 0
+
+
 COMMANDS = {
     "push": push,
     "pull": pull,
@@ -377,6 +440,7 @@ COMMANDS = {
     "status": status,
     "diff": diff,
     "update-std": update_std,
+    "pull-std": pull_std,
     "release": release,
     "sync-versions": sync_versions,
 }
@@ -405,7 +469,7 @@ def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
         return 0
     if dry_run:
         for studio in studios:
-            print(f"Would pull {studio.path}")
+            print(f"Would pull {studio.path}{'' if studio.located else ' (new)'}")
         return 0
     workspace.pull_studios(studios)
     for studio in studios:

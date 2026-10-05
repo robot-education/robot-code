@@ -444,11 +444,6 @@ def test_diagnostics_clean_fixtures():
             assert found == [], path.name
 
 
-def test_diagnostics_allow_std_version_placeholder():
-    assert messages("FeatureScript ✨;\nconst a = 1;") == []
-    assert messages("const ✨ = 1;") != []
-
-
 def test_diagnostics_brackets_and_operators():
     assert any("never closed" in m for m in messages("function f() {\n  g(1;\n}"))
     assert any("Unmatched" in m for m in messages("const a = 1);"))

@@ -23,6 +23,7 @@ class Config:
     Attributes:
         root: The repo root (the folder containing pyproject.toml).
         code_dir: The folder Feature Studios in the backend document are mirrored to.
+        std_dir: The folder holding a copy of the Onshape std library.
         backend: The workspace holding the source of every FeatureScript.
         frontend: The public workspace released FeatureScripts are published to.
         frontend_beta: The workspace beta releases are published to.
@@ -30,6 +31,7 @@ class Config:
 
     root: pathlib.Path
     code_dir: pathlib.Path
+    std_dir: pathlib.Path
     backend: InstancePath
     frontend: InstancePath | None = None
     frontend_beta: InstancePath | None = None
@@ -62,6 +64,7 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
     return Config(
         root=root,
         code_dir=root / data.get("path", "featurescripts"),
+        std_dir=root / data.get("std", "std"),
         backend=_workspace(data, "backend"),
         frontend=_workspace(data, "frontend") if "frontend" in data else None,
         frontend_beta=(

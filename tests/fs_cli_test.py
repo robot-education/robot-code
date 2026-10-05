@@ -11,6 +11,7 @@ import pytest
 from fs_cli import cli
 from fs_cli.remote import RemoteStudio, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
+from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
 from onshape_api.exceptions import ApiError
 from semver import Version as SemVersion
@@ -31,6 +32,7 @@ class FakeOnshape:
         self.pulls = 0
         # Every API call made, by method
         self.calls: collections.Counter[str] = collections.Counter()
+        self.folders_error: Exception | None = None
 
     def _id(self, prefix: str) -> str:
         return f"{prefix}{next(self.ids)}"
@@ -74,11 +76,22 @@ class FakeOnshape:
     def list_studios(self, instance):
         self.calls["list_studios"] += 1
         return [
-            RemoteStudio(id, s["name"], s["mv"], s["folders"])
+            RemoteStudio(id, s["name"], s["mv"])
             for id, s in self.studios(
                 instance.document_id, instance.instance_id
             ).items()
         ]
+
+    def studio_folders(self, instance):
+        self.calls["studio_folders"] += 1
+        if self.folders_error:
+            raise self.folders_error
+        return {
+            id: s["folders"]
+            for id, s in self.studios(
+                instance.document_id, instance.instance_id
+            ).items()
+        }
 
     def pull(self, instance, element_id):
         self.calls["pull"] += 1
@@ -310,7 +323,8 @@ def test_api_calls_are_minimal(repo, onshape):
     onshape.add("a.fs", "a", folders=("Robot",))
     onshape.add("b.fs", "b")
     run(onshape, "pull")
-    assert onshape.calls == {"list_studios": 1, "pull": 2}
+    # Folders are only looked up because these studios are new to the repo
+    assert onshape.calls == {"list_studios": 1, "studio_folders": 1, "pull": 2}
 
     onshape.calls.clear()
     run(onshape, "status")
@@ -375,71 +389,79 @@ def test_new_files_in_folders_stay_put(repo, onshape, capsys):
     assert "everything in sync" in capsys.readouterr().out
 
 
-def test_contents_failure_falls_back_to_elements(capsys):
-    """If the contents endpoint fails, studios are listed from the elements endpoint without folders."""
+class StubApi:
+    """Records requests; answers from a dict of path suffix -> response (or exception)."""
+
+    def __init__(self, responses):
+        self.responses = responses
+        self.requests = []
+
+    def get(self, path, anonymous=False, **kwargs):
+        self.requests.append((path.rsplit("/", 1)[-1], anonymous))
+        response = self.responses[path.rsplit("/", 1)[-1], anonymous]
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+
+ELEMENTS = [
+    {"id": "e1", "name": "a.fs", "elementType": "FEATURESTUDIO", "microversionId": "m1"}
+]
+
+
+def test_listing_is_anonymous_when_possible():
+    """Anonymous calls don't count against Onshape's API limits."""
     from fs_cli.remote import OnshapeRemote
     from onshape_api.paths.paths import url_to_instance_path
 
-    class StubApi:
-        def __init__(self):
-            self.paths = []
+    api = StubApi({("elements", True): ELEMENTS})
+    remote = OnshapeRemote(api)
+    assert remote.list_studios(url_to_instance_path(BACKEND)) == [
+        RemoteStudio("e1", "a.fs", "m1")
+    ]
+    assert api.requests == [("elements", True)]
 
-        def get(self, path, **kwargs):
-            self.paths.append(path)
-            if path.endswith("/contents"):
-                raise ApiError("Invalid JSON input.")
-            return [
-                {
-                    "id": "e1",
-                    "name": "a.fs",
-                    "elementType": "FEATURESTUDIO",
-                    "microversionId": "m1",
-                }
-            ]
 
-    api = StubApi()
+def test_listing_falls_back_to_credentials_for_private_documents():
+    from fs_cli.remote import OnshapeRemote
+    from onshape_api.paths.paths import url_to_instance_path
+
+    api = StubApi(
+        {("elements", True): ApiError("Unauthenticated"), ("elements", False): ELEMENTS}
+    )
     remote = OnshapeRemote(api)
     instance = url_to_instance_path(BACKEND)
-    assert remote.list_studios(instance) == [RemoteStudio("e1", "a.fs", "m1")]
-    assert "couldn't read the document's folders" in capsys.readouterr().out
     remote.list_studios(instance)
-    # Contents isn't retried once it fails
-    assert [path.rsplit("/", 1)[-1] for path in api.paths] == [
-        "contents",
-        "elements",
-        "elements",
+    remote.list_studios(instance)
+    # The anonymous request isn't retried once it fails
+    assert api.requests == [
+        ("elements", True),
+        ("elements", False),
+        ("elements", False),
     ]
 
 
-def test_contents_lists_feature_studios_with_folders():
+def test_studio_folders_from_contents():
     from fs_cli.remote import OnshapeRemote
     from onshape_api.paths.paths import url_to_instance_path
 
-    class StubApi:
-        def get(self, path, **kwargs):
-            assert path.endswith("/contents") and not kwargs.get("query")
-            return {
-                "elements": [
-                    {
-                        "id": "e1",
-                        "name": "a.fs",
-                        "elementType": "FEATURESTUDIO",
-                        "microversionId": "m1",
-                    },
-                    {
-                        "id": "e2",
-                        "name": "Part Studio 1",
-                        "elementType": "PARTSTUDIO",
-                        "microversionId": "m2",
-                    },
-                ],
-                "folders": {
-                    "groups": [{"groupName": "Robot", "groups": [{"elementId": "e1"}]}]
-                },
-            }
+    contents = {
+        "elements": ELEMENTS,
+        "folders": {
+            "groups": [{"groupName": "Robot", "groups": [{"elementId": "e1"}]}]
+        },
+    }
+    api = StubApi({("contents", False): contents})
+    folders = OnshapeRemote(api).studio_folders(url_to_instance_path(BACKEND))
+    assert folders == {"e1": ("Robot",)}
 
-    studios = OnshapeRemote(StubApi()).list_studios(url_to_instance_path(BACKEND))
-    assert studios == [RemoteStudio("e1", "a.fs", "m1", ("Robot",))]
+
+def test_folder_lookup_failure_falls_back_to_top_level(repo, onshape, capsys):
+    onshape.add("frame.fs", "f", folders=("Robot",))
+    onshape.folders_error = ApiError("Invalid JSON input.")
+    assert run(onshape, "pull") == 0
+    assert local(repo, "frame.fs").read_text() == "f"
+    assert "couldn't read the document's folders" in capsys.readouterr().out
 
 
 # Same-document imports
@@ -580,8 +602,57 @@ def test_update_std_version():
 
 def test_update_std_command(repo, onshape):
     write(repo, "a.fs", "FeatureScript 1000;\n")
-    assert run(onshape, "update-std", "--push") == 0
+    assert run(onshape, "update-std", "--latest", "--push") == 0
     assert onshape.code("a.fs") == "FeatureScript 2909;\n"
+
+
+def test_update_std_uses_the_checked_in_std_version(repo, onshape, capsys):
+    write(repo, "a.fs", "FeatureScript 1000;\n")
+    assert run(onshape, "update-std") == 2
+    assert "fs pull-std" in capsys.readouterr().err
+    StdMetadata(version="2960.0").save(repo / "std")
+    assert run(onshape, "update-std") == 0
+    assert local(repo, "a.fs").read_text() == "FeatureScript 2960;\n"
+    assert "latest_std_version" not in onshape.calls
+
+
+# Pulling the std
+
+
+def test_pull_std_from_onshape_only_downloads_changed_files(repo, onshape, monkeypatch):
+    from onshape_api.model.constants import STD_PATH
+
+    std, workspace = STD_PATH.document_id, STD_PATH.instance_id
+    geometry = onshape.add(
+        "geometry.fs", "geometry v1", document=std, instance=workspace
+    )
+    onshape.add("math.fs", "math v1", document=std, instance=workspace)
+    onshape.versions_by_document[std] = []
+    onshape.create_version(STD_PATH, "2960.0", "")
+    regenerated = []
+    monkeypatch.setattr(
+        "fs_lsp.tools.update_stdlib.regenerate",
+        lambda path: regenerated.append(path) or "ok",
+    )
+
+    onshape.calls.clear()
+    assert run(onshape, "pull-std", "--from-onshape", "-y") == 0
+    assert (repo / "std" / "geometry.fs").read_text() == "geometry v1"
+    assert StdMetadata.load(repo / "std").version == "2960.0"
+    assert onshape.calls["pull"] == 2
+    assert regenerated == [repo / "std"]
+
+    # A new version where only geometry.fs changed
+    onshape.edit(geometry, "geometry v2", document=std, instance=workspace)
+    onshape.create_version(STD_PATH, "2970.0", "")
+    onshape.calls.clear()
+    assert run(onshape, "pull-std", "--from-onshape", "-y") == 0
+    assert (repo / "std" / "geometry.fs").read_text() == "geometry v2"
+    assert onshape.calls == {"versions": 1, "list_studios": 1, "pull": 1}
+
+    onshape.calls.clear()
+    assert run(onshape, "pull-std", "--from-onshape", "-y") == 0
+    assert "pull" not in onshape.calls
 
 
 # Releasing

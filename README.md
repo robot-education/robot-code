@@ -40,7 +40,6 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
     # Optional
     API_LOGGING=false            # Log every request
     API_BASE_URL=https://cad.onshape.com
-    API_VERSION=10
     ```
 
     The same variables can be set directly in the environment instead (e.g. in CI).
@@ -82,7 +81,7 @@ uv run fs status             # what differs, and what to do about it
 uv run fs diff               # unified diff of Onshape vs. the repo
 uv run fs pull               # bring Onshape changes into the repo
 uv run fs sync               # pull Onshape-only changes and push local-only changes
-uv run fs update-std --push  # bump `FeatureScript NNNN;` and std imports to the latest std
+uv run fs update-std --push  # bump `FeatureScript NNNN;` and std imports to the std version in std/
 ```
 
 Every command takes the same kinds of targets as `fs push`, and `--help` lists each one's options.
@@ -114,15 +113,18 @@ file never deletes the tab in Onshape (delete the tab yourself), and a tab delet
 Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 [API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum:
 
-- `fs status` / `fs push` with nothing to do: 1 call, which lists every tab's microversion (and the folders).
-  A studio is only downloaded when its microversion changed since the last sync, so on a new machine the
-  first run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may
-  change when a tab it imports changes); then the download just confirms nothing needs doing.
-- Pushing: 1 call per studio pushed, plus 1 to record the new microversions.
-- Pulling: 1 call per studio pulled.
-- `fs release`: about 8 calls.
+- Listing the backend document's tabs (every command does this to get each tab's microversion) is free: the
+  document is public, so `fs` lists it without credentials, and only calls made with your API keys count. If
+  the document is ever made private, listing falls back to 1 call.
+- A studio is only downloaded when its microversion changed since the last sync, so on a new machine the first
+  run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may change
+  when a tab it imports changes); then the download just confirms nothing needs doing.
+- Pushing: 1 call per studio pushed.
+- Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
+- `fs release`: 5 to 7 calls.
 
-Failed calls (like a 400) don't count.
+So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing. Failed calls (like a 400) don't
+count either.
 
 ## Releasing
 
@@ -182,17 +184,20 @@ It starts the language server with `.venv/bin/fs-lsp`, falling back to `uv run f
 
 # The std library
 
-`std/` holds a copy of the Onshape std library ([MIT](std/LICENSE.txt)), with version numbers replaced by `✨` so
-updates only touch the files that changed. Its README notes the version. To update it to the latest std, and
-regenerate the language server's stdlib indexes:
+`std/` holds a copy of the Onshape std library ([MIT](std/LICENSE.txt)); `std/std.json` records its version. To
+move to the latest std:
 
 ```
-uv run python -m fs_lsp.tools.update_stdlib
+uv run fs pull-std           # update std/ (and the language server's index of it)
+uv run fs update-std --push  # move your FeatureScripts to that version and push them
 ```
 
-This uses the [std library mirror on GitHub](https://github.com/javawizard/onshape-std-library-mirror), so it makes
-no Onshape API calls. If the mirror lags behind Onshape, `--from-onshape` downloads the std from Onshape instead,
-at one API call per std Feature Studio (~270). `--offline` just regenerates the indexes from `std/`.
+`fs pull-std` uses the [std library mirror on GitHub](https://github.com/javawizard/onshape-std-library-mirror),
+which costs no Onshape API calls. If the mirror lags behind Onshape, `fs pull-std --from-onshape` pulls from
+Onshape instead. That records each std file's microversion and only downloads files whose microversion changed,
+but note that every std release bumps the version numbers in every std file, so pulling a new release from
+Onshape still downloads all ~265 files (1 API call each). `uv run python -m fs_lsp.tools.update_stdlib` just
+regenerates the language server's index from `std/`.
 
 # The Onshape API
 
