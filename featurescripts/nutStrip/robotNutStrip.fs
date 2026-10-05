@@ -390,6 +390,21 @@ function setNutStripProperties(context is Context, strip is Query, definition is
                 "propertyType" : PropertyType.NAME,
                 "value" : lengthString ~ " Nut Strip (" ~ nutStrip.vendor ~ " " ~ nutStrip.sizeName ~ ", " ~ nutStrip.threadName ~ ")"
             });
+    // The part number of the stock it's cut from, and a link to buy it
+    const stock = stockFor(nutStrip, length);
+    if (stock != undefined)
+    {
+        setProperty(context, {
+                    "entities" : strip,
+                    "propertyType" : PropertyType.PART_NUMBER,
+                    "value" : stock.partNumber
+                });
+    }
+    setProperty(context, {
+                "entities" : strip,
+                "propertyType" : PropertyType.DESCRIPTION,
+                "value" : stock == undefined ? nutStrip.url : stock.url
+            });
     setProperty(context, {
                 "entities" : strip,
                 "propertyType" : PropertyType.MATERIAL,
@@ -400,6 +415,23 @@ function setNutStripProperties(context is Context, strip is Query, definition is
                 "propertyType" : PropertyType.APPEARANCE,
                 "value" : nutStrip.appearance
             });
+}
+
+/**
+ * The stock a nut strip `length` long is cut from: the shortest length it's sold in that's long enough, or `undefined`
+ * if it's longer than all of them.
+ */
+function stockFor(nutStrip is map, length is ValueWithUnits)
+{
+    for (var stock in nutStrip.stock)
+    {
+        // Lengths are only shown to 3 decimal places, so a strip which looks like stock length is
+        if (length <= stock.length + 0.001 * inch)
+        {
+            return stock;
+        }
+    }
+    return undefined;
 }
 
 /**
