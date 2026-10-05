@@ -10,8 +10,9 @@ If Onshape still matches (3), only the local copy changed and it is safe to push
 file still matches (3), only Onshape changed and it is safe to pull. Otherwise both changed and
 the studio is in conflict; --force picks a side.
 
-Folders in the document are mirrored as folders on disk. The Onshape API can't create or move
-folders, so Onshape's folder structure wins: `fs pull` moves local files to match it.
+Studios are tracked by element id, so the local folder structure is the source of truth: files can
+be renamed and moved freely, and Onshape's folders are ignored. The only time Onshape's folders matter
+is when a studio is pulled into the repo for the first time, where it's placed in the matching folder.
 """
 
 from __future__ import annotations
@@ -26,7 +27,8 @@ from typing import Callable, Iterable
 
 from fs_cli import git
 from fs_cli.config import Config
-from fs_cli.remote import Remote, RemoteStudio, file_name_for
+from fs_cli.remote import Remote, RemoteStudio, file_name_for, relative_path_for
+from onshape_api.exceptions import ApiError
 from fs_cli.state import State, StudioState, content_hash
 
 MAX_WORKERS = 8
@@ -68,6 +70,7 @@ class Studio:
     Attributes:
         path: The local path relative to the code folder (using /), whether or not it exists.
         file: The absolute local path.
+        located: False for studios only in Onshape whose local folder hasn't been looked up yet.
     """
 
     path: str
@@ -76,6 +79,7 @@ class Studio:
     saved: StudioState | None
     local_code: str | None
     deleted_in_onshape: bool = False
+    located: bool = True
     remote_code: str | None = None
     status: Status = Status.IN_SYNC
 
@@ -83,15 +87,6 @@ class Studio:
     def name(self) -> str:
         return (
             self.remote.name if self.remote else pathlib.PurePosixPath(self.path).name
-        )
-
-    @property
-    def moved(self) -> bool:
-        """True if the studio is in a different folder in Onshape than locally."""
-        return (
-            self.remote is not None
-            and self.local_code is not None
-            and self.remote.relative_path != self.path
         )
 
 
@@ -104,13 +99,10 @@ class Targets:
     names: set[str]
 
     def matches(self, target: str, studio: Studio) -> bool:
-        candidates = [studio.path]
-        if studio.remote:
-            candidates.append(studio.remote.relative_path)
         if target in self.folders:
-            return any(c.startswith(target + "/") or target == "" for c in candidates)
+            return target == "" or studio.path.startswith(target + "/")
         if target in self.paths:
-            return target in candidates
+            return target == studio.path
         name = studio.name
         return target in (name, name.removesuffix(".fs"), file_name_for(name))
 
@@ -179,6 +171,12 @@ class Workspace:
         return sorted(studios, key=lambda studio: studio.path)
 
     def _match(self, remote_studios: list[RemoteStudio]) -> list[Studio]:
+        """Pairs Feature Studios with local files.
+
+        Synced studios keep the file recorded in the state, following it if it's moved or renamed
+        locally. Otherwise (e.g. on a fresh clone) a studio is paired with the one local file of
+        the same name.
+        """
         saved = self.state.studios
         remote_ids = {remote.element_id for remote in remote_studios}
         deleted_in_onshape = set()
@@ -196,17 +194,12 @@ class Workspace:
             if code_dir.is_dir()
             else {}
         )
-
         studios: list[Studio] = []
         claimed: set[str] = set()
 
-        def add(path: str, remote: RemoteStudio | None, entry: StudioState | None):
-            if path in claimed:
-                print(
-                    f'Warning: skipping Feature Studio "{remote.name if remote else path}" since another studio already maps to {path}.'
-                )
-                return
+        def add(path: str, remote: RemoteStudio | None, located: bool = True) -> None:
             claimed.add(path)
+            entry = saved.get(remote.element_id) if remote else None
             studios.append(
                 Studio(
                     path,
@@ -215,37 +208,48 @@ class Workspace:
                     entry,
                     _read(local.get(path)),
                     deleted_in_onshape=remote is None and path in deleted_in_onshape,
+                    located=located,
                 )
             )
 
-        unmatched: list[RemoteStudio] = []
+        unmatched = []
         for remote in remote_studios:
             entry = saved.get(remote.element_id)
-            if entry:
-                add(entry.file, remote, entry)
-            elif remote.relative_path in local:
-                add(remote.relative_path, remote, None)
+            if entry and entry.file in local and entry.file not in claimed:
+                add(entry.file, remote)
             else:
                 unmatched.append(remote)
 
-        # A studio with no local file at its Onshape path may have been moved locally; pair it with
-        # an untracked local file of the same name, as long as that's unambiguous
-        unclaimed = collections.defaultdict(list)
+        by_name = collections.defaultdict(list)
         for path in local:
             if path not in claimed:
-                unclaimed[pathlib.PurePosixPath(path).name].append(path)
-        names = collections.Counter(file_name_for(remote.name) for remote in unmatched)
+                by_name[pathlib.PurePosixPath(path).name].append(path)
+        wanted = collections.Counter(file_name_for(r.name) for r in unmatched)
         for remote in unmatched:
             name = file_name_for(remote.name)
-            candidates = unclaimed.get(name, [])
-            if len(candidates) == 1 and names[name] == 1:
-                add(candidates[0], remote, None)
+            candidates = by_name.get(name, [])
+            entry = saved.get(remote.element_id)
+            if entry and not (len(candidates) == 1 and wanted[name] == 1):
+                # Renamed locally: an untracked file still holds the last synced contents
+                candidates = [
+                    path
+                    for path in local
+                    if path not in claimed
+                    and content_hash(_read(local[path]) or "") == entry.hash
+                ]
+            if len(candidates) == 1 and (entry or wanted[name] == 1):
+                add(candidates[0], remote)
+                if entry:
+                    # Moved or renamed locally
+                    entry.file = candidates[0]
+            elif entry:
+                add(entry.file, remote)  # Deleted locally
             else:
-                add(remote.relative_path, remote, None)
+                add(relative_path_for(remote.name), remote, located=False)
 
         for path in sorted(local):
             if path not in claimed:
-                add(path, None, None)
+                add(path, None)
         return studios
 
     def _classify(self, studio: Studio) -> None:
@@ -334,34 +338,39 @@ class Workspace:
         return notices
 
     def pull_studios(self, studios: list[Studio]) -> None:
-        """Writes the Onshape contents of studios to disk, at their Onshape folder paths."""
+        """Writes the Onshape contents of studios to their local files."""
+        self._locate([studio for studio in studios if not studio.located])
         with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
             list(executor.map(self.fetch, studios))
         for studio in studios:
             assert studio.remote and studio.remote_code is not None
-            self.relocate(studio)
             studio.file.parent.mkdir(parents=True, exist_ok=True)
             studio.file.write_text(studio.remote_code, newline="")
             studio.local_code = studio.remote_code
             self._record(studio, studio.remote_code, studio.remote.microversion_id)
 
-    def relocate(self, studio: Studio) -> bool:
-        """Moves a studio's local file to match its folder in Onshape. Returns False if blocked."""
-        assert studio.remote
-        target_path = studio.remote.relative_path
-        if target_path == studio.path:
-            return True
-        target = self.config.code_dir / target_path
-        if target.exists():
-            return False
-        if studio.file.exists():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            studio.file.rename(target)
-            _remove_empty_parents(studio.file.parent, self.config.code_dir)
-        studio.path, studio.file = target_path, target
-        if studio.remote.element_id in self.state.studios:
-            self.state.studios[studio.remote.element_id].file = target_path
-        return True
+    def _locate(self, studios: list[Studio]) -> None:
+        """Places studios new to the repo in the folders they're in in Onshape.
+
+        This takes an extra API call, so it's only done when such a studio is actually pulled.
+        """
+        if not studios:
+            return
+        try:
+            folders = self.remote.studio_folders(self.instance)
+        except ApiError as error:
+            print(
+                f"Warning: couldn't read the backend document's folders, so new files go in the top level folder ({error})."
+            )
+            folders = {}
+        for studio in studios:
+            assert studio.remote
+            path = relative_path_for(
+                studio.remote.name, folders.get(studio.remote.element_id, ())
+            )
+            if not (self.config.code_dir / path).exists():
+                studio.path, studio.file = path, self.config.code_dir / path
+            studio.located = True
 
 
 def select(studios: list[Studio], *statuses: Status) -> list[Studio]:
@@ -373,16 +382,6 @@ def _read(path: pathlib.Path | None) -> str | None:
         return None
     with path.open(newline="") as file:
         return file.read()
-
-
-def _remove_empty_parents(directory: pathlib.Path, stop: pathlib.Path) -> None:
-    stop = stop.resolve()
-    while directory.resolve() != stop and stop in directory.resolve().parents:
-        try:
-            directory.rmdir()
-        except OSError:
-            return
-        directory = directory.parent
 
 
 # Updating the FeatureScript version

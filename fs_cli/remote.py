@@ -15,28 +15,21 @@ from onshape_api.paths.paths import ElementPath, InstancePath
 
 @dataclasses.dataclass
 class RemoteStudio:
-    """A Feature Studio in Onshape.
-
-    Attributes:
-        folders: The names of the folders containing the studio, outermost first.
-    """
-
     element_id: str
     name: str
     microversion_id: str
-    folders: tuple[str, ...] = ()
-
-    @property
-    def relative_path(self) -> str:
-        """Where the studio is mirrored to, relative to the code folder (using /)."""
-        parts = [safe_file_name(folder) for folder in self.folders]
-        parts.append(file_name_for(self.name))
-        return pathlib.PurePosixPath(*parts).as_posix()
 
 
 def safe_file_name(name: str) -> str:
     name = name.replace("/", "_").replace("\\", "_").strip()
     return "_" if name in ("", ".", "..") else name
+
+
+def relative_path_for(studio_name: str, folders: tuple[str, ...] = ()) -> str:
+    """The path a studio is first pulled to, relative to the code folder (using /)."""
+    parts = [safe_file_name(folder) for folder in folders]
+    parts.append(file_name_for(studio_name))
+    return pathlib.PurePosixPath(*parts).as_posix()
 
 
 def file_name_for(studio_name: str) -> str:
@@ -54,6 +47,10 @@ class Version:
 
 class Remote(Protocol):
     def list_studios(self, instance: InstancePath) -> list[RemoteStudio]: ...
+
+    def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
+        """Maps element ids to the folders containing them, outermost first."""
+        ...
 
     def pull(self, instance: InstancePath, element_id: str) -> str: ...
 
@@ -85,21 +82,17 @@ class OnshapeRemote:
         self.api = api
 
     def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
-        contents = documents.get_document_contents(
+        elements = documents.get_document_elements(
             self.api, instance, ElementType.FEATURE_STUDIO
         )
-        folders = folder_paths(contents.get("folders"))
         return [
-            RemoteStudio(
-                element["id"],
-                element["name"],
-                element["microversionId"],
-                folders.get(element["id"], ()),
-            )
-            for element in contents.get("elements", [])
-            if element.get("elementType", ElementType.FEATURE_STUDIO)
-            == ElementType.FEATURE_STUDIO
+            RemoteStudio(element["id"], element["name"], element["microversionId"])
+            for element in elements
         ]
+
+    def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
+        contents = documents.get_document_contents(self.api, instance)
+        return folder_paths(contents.get("folders"))
 
     def pull(self, instance: InstancePath, element_id: str) -> str:
         return feature_studios.pull_code(

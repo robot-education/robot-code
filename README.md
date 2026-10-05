@@ -12,7 +12,7 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 
 | Path                       | What it is                                                                   |
 | -------------------------- | ---------------------------------------------------------------------------- |
-| `featurescripts/`          | The backend document's Feature Studios, with its folders mirrored as folders |
+| `featurescripts/`          | The backend document's Feature Studios, organized however you like           |
 | `fs_cli/`                  | The `fs` command                                                             |
 | `onshape_api/`             | A small Onshape REST API client                                              |
 | `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
@@ -57,8 +57,10 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 ## Pushing and pulling
 
 `[tool.fs]` in `pyproject.toml` points `fs` at the backend document, and every Feature Studio in it corresponds
-to a file in `featurescripts/`. A studio named `robotFrame.fs` in the document's `Robot` folder is
-`featurescripts/Robot/robotFrame.fs`.
+to a file in `featurescripts/`. The local folder structure is yours: once a file is tracked you can move or rename
+it freely, and the folders in Onshape are ignored. The only time Onshape's folders matter is when a studio is
+pulled into the repo for the first time, e.g. a studio named `robotFrame.fs` in the document's `Robot` folder
+lands at `featurescripts/Robot/robotFrame.fs`.
 
 The repo is the source of truth, so pushing is the default:
 
@@ -69,16 +71,15 @@ uv run fs push featurescripts/Robot   # ...or by file or folder
 uv run fs push --dry-run     # show what would be pushed
 ```
 
-Any errors or warnings Onshape reports for pushed code are printed. New files become new Feature Studios. The
-Onshape API can't create or move folders, so new studios are created at the top level of the document; `fs` tells
-you which folder to drag them into.
+Any errors or warnings Onshape reports for pushed code are printed. New files become new Feature Studios at the
+top level of the document (the API can't create folders); move the tabs in Onshape if you like, `fs` won't care.
 
 For the occasional edit made directly in Onshape:
 
 ```
 uv run fs status             # what differs, and what to do about it
 uv run fs diff               # unified diff of Onshape vs. the repo
-uv run fs pull               # bring Onshape changes (and tabs moved between folders) into the repo
+uv run fs pull               # bring Onshape changes into the repo
 uv run fs sync               # pull Onshape-only changes and push local-only changes
 uv run fs update-std --push  # bump `FeatureScript NNNN;` and std imports to the latest std
 ```
@@ -97,9 +98,23 @@ against the file's recent git history: if Onshape matches a committed version, l
 - Both changed: both commands skip it; inspect with `fs diff`, then pick a side with `fs pull --force` or
   `fs push --force`.
 
-Files are matched to Feature Studios by their element id once synced, so renaming a tab or moving it to another
-folder in Onshape is picked up by `fs pull`. Deleting a file never deletes the tab in Onshape (delete the tab
-yourself), and a tab deleted in Onshape is recreated by `fs push` unless you delete the file.
+Files are matched to Feature Studios by element id once synced, so renaming or moving either the file or the tab
+doesn't break the link. (On a fresh clone, studios are matched to the local file with the same name.) Deleting a
+file never deletes the tab in Onshape (delete the tab yourself), and a tab deleted in Onshape is recreated by
+`fs push` unless you delete the file.
+
+### API usage
+
+Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
+[API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum:
+
+- `fs status` / `fs push` with nothing to do: 1 call. Studios are only downloaded when their microversion
+  changed since the last sync, so on a new machine the first run downloads each studio once.
+- Pushing: 1 call per studio pushed, plus 1 to record the new microversions.
+- Pulling: 1 call per studio pulled, plus 1 to look up folders if any studio is new to the repo.
+- `fs release`: about 8 calls.
+
+Failed calls (like a 400) don't count.
 
 ## Releasing
 

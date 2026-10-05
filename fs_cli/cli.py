@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import difflib
 import os
-import pathlib
 import sys
 
 from fs_cli.config import ConfigError, load_config
@@ -212,7 +211,6 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         Status.DELETED_LOCALLY,
         "was deleted locally but not in Onshape; delete the tab in Onshape, or run `fs pull --force` to restore it",
     )
-    note_moved(studios)
     return (
         do_push(workspace, select(studios, *PUSHABLE, *overwritable), args.dry_run)
         or skipped
@@ -245,10 +243,7 @@ def pull(workspace: Workspace, args: argparse.Namespace) -> int:
         "was deleted in Onshape; delete the file, or run `fs push` to recreate it",
     )
     to_pull = select(studios, *PULLABLE, *overwritable)
-    moved = do_move(
-        workspace, [s for s in studios if s.moved and s not in to_pull], args.dry_run
-    )
-    return do_pull(workspace, to_pull, args.dry_run) or skipped or moved
+    return do_pull(workspace, to_pull, args.dry_run) or skipped
 
 
 def sync(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -259,7 +254,6 @@ def sync(workspace: Workspace, args: argparse.Namespace) -> int:
         Status.DELETED_LOCALLY,
         "was deleted locally but not in Onshape; delete the tab in Onshape, or run `fs pull --force` to restore it",
     )
-    note_moved(studios)
     pulled = do_pull(workspace, select(studios, *PULLABLE), args.dry_run)
     pushed = do_push(workspace, select(studios, *PUSHABLE), args.dry_run)
     return pulled or pushed or skipped
@@ -271,15 +265,12 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
     print(
         f"{os.path.relpath(config.code_dir)}/ <-> backend document {path_to_url(workspace.instance)}"
     )
-    shown = [s for s in studios if args.all or s.status != Status.IN_SYNC or s.moved]
+    shown = [s for s in studios if args.all or s.status != Status.IN_SYNC]
     if not shown:
         print("  everything in sync")
     width = max((len(studio.path) for studio in shown), default=0)
     for studio in shown:
         details = [studio.status.value]
-        if studio.moved:
-            assert studio.remote
-            details.append(f"in Onshape at {studio.remote.relative_path}")
         hint = HINTS.get(studio.status)
         suffix = f"  ({hint})" if hint else ""
         print(f"  {studio.path:<{width}}  {', '.join(details)}{suffix}")
@@ -295,7 +286,7 @@ def diff(workspace: Workspace, args: argparse.Namespace) -> int:
             difflib.unified_diff(
                 remote_code.splitlines(keepends=True),
                 (studio.local_code or "").splitlines(keepends=True),
-                fromfile=f"onshape/{studio.remote.relative_path if studio.remote else studio.path}",
+                fromfile=f"onshape/{studio.path}",
                 tofile=f"local/{studio.path}",
             )
         )
@@ -395,19 +386,12 @@ def do_push(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
         print(f"{verb} {studio.path}{' (new)' if studio.remote is None else ''}")
     if dry_run:
         return 0
-    new = [studio for studio in studios if studio.remote is None]
     notices = workspace.push_studios(studios)
     errors = False
     for path, messages in notices.items():
         for message in messages:
             errors = errors or message.startswith("error")
             print(f"  {path}: {message}")
-    for studio in new:
-        folder = pathlib.PurePosixPath(studio.path).parent
-        if str(folder) != ".":
-            print(
-                f"Note: {studio.path} was created at the top level of the backend document; move the tab into the {folder} folder in Onshape (the API can't)."
-            )
     print(f"Pushed {_plural(len(studios), 'Feature Studio')}.")
     return 1 if errors else 0
 
@@ -416,32 +400,15 @@ def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
     if not studios:
         print("Nothing to pull.")
         return 0
-    verb = "Would pull" if dry_run else "Pulling"
+    if dry_run:
+        for studio in studios:
+            print(f"Would pull {studio.path}{'' if studio.located else ' (new)'}")
+        return 0
+    workspace.pull_studios(studios)
     for studio in studios:
-        assert studio.remote
-        print(f"{verb} {studio.remote.relative_path}")
-    if not dry_run:
-        workspace.pull_studios(studios)
-        print(f"Pulled {_plural(len(studios), 'Feature Studio')}.")
+        print(f"Pulled {studio.path}")
+    print(f"Pulled {_plural(len(studios), 'Feature Studio')}.")
     return 0
-
-
-def do_move(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
-    """Moves local files to match their folders in Onshape. Returns 1 if any were blocked."""
-    blocked = 0
-    for studio in studios:
-        assert studio.remote
-        old_path, new_path = studio.path, studio.remote.relative_path
-        if dry_run:
-            print(f"Would move {old_path} to {new_path}")
-        elif workspace.relocate(studio):
-            print(f"Moved {old_path} to {new_path} to match Onshape")
-        else:
-            blocked = 1
-            print(
-                f"Skipping move of {old_path} to {new_path}: a file is already there."
-            )
-    return blocked
 
 
 def report_skipped(
@@ -461,15 +428,6 @@ def report_skipped(
 def note(studios: list[Studio], status: Status, message: str) -> None:
     for studio in select(studios, status):
         print(f"Note: {studio.path} {message}.")
-
-
-def note_moved(studios: list[Studio]) -> None:
-    for studio in studios:
-        if studio.moved:
-            assert studio.remote
-            print(
-                f"Note: {studio.path} is at {studio.remote.relative_path} in Onshape; move the tab in Onshape, or run `fs pull` to move the file to match."
-            )
 
 
 def confirm(warning: str) -> None:

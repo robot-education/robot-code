@@ -34,25 +34,12 @@ def get_document_elements(
     )
 
 
-def get_document_contents(
-    api: Api,
-    instance_path: InstancePath,
-    element_type: ElementType | None = None,
-) -> dict:
+def get_document_contents(api: Api, instance_path: InstancePath) -> dict:
     """Fetches the elements (tabs) in a document along with the document's folder structure.
 
     Returns a dict with:
         elements: The elements, as returned by get_document_elements.
         folders: The root folder, a tree of {"groupName", "groups"} folders whose groups
             also contain {"elementId"} references to elements.
-
-    Args:
-        element_type: The type of element to get. The folder structure is not filtered.
     """
-    query: dict = {}
-    if element_type is not None:
-        query["elementType"] = element_type
-    return api.get(
-        api_path("documents", instance_path, InstancePath, "contents"),
-        query=query,
-    )
+    return api.get(api_path("documents", instance_path, InstancePath, "contents"))

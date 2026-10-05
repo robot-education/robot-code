@@ -11,6 +11,7 @@ from fs_cli import cli
 from fs_cli.remote import RemoteStudio, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.workspace import Status, update_std_version
+from onshape_api.exceptions import ApiError
 from semver import Version as SemVersion
 
 BACKEND = "https://cad.onshape.com/documents/back/w/bw"
@@ -27,6 +28,8 @@ class FakeOnshape:
         self.versions_by_document: dict[str, list[Version]] = {}
         self.ids = itertools.count()
         self.pulls = 0
+        self.folder_lookups = 0
+        self.folders_error: Exception | None = None
 
     def _id(self, prefix: str) -> str:
         return f"{prefix}{next(self.ids)}"
@@ -69,11 +72,22 @@ class FakeOnshape:
 
     def list_studios(self, instance):
         return [
-            RemoteStudio(id, s["name"], s["mv"], s["folders"])
+            RemoteStudio(id, s["name"], s["mv"])
             for id, s in self.studios(
                 instance.document_id, instance.instance_id
             ).items()
         ]
+
+    def studio_folders(self, instance):
+        self.folder_lookups += 1
+        if self.folders_error:
+            raise self.folders_error
+        return {
+            id: s["folders"]
+            for id, s in self.studios(
+                instance.document_id, instance.instance_id
+            ).items()
+        }
 
     def pull(self, instance, element_id):
         self.pulls += 1
@@ -282,49 +296,89 @@ def test_studio_names_without_extension(repo, onshape):
 # Folders
 
 
-def test_folders_are_mirrored(repo, onshape):
+def test_first_pull_mirrors_folders(repo, onshape):
     onshape.add("frame.fs", "f", folders=("Robot", "Structure"))
     onshape.add("util.fs", "u")
     assert run(onshape, "pull") == 0
     assert local(repo, "Robot/Structure/frame.fs").read_text() == "f"
     assert local(repo, "util.fs").read_text() == "u"
+    assert onshape.folder_lookups == 1
 
     local(repo, "Robot/Structure/frame.fs").write_text("f2")
     assert run(onshape, "push") == 0
     assert onshape.code("frame.fs") == "f2"
 
 
-def test_pull_follows_tabs_moved_in_onshape(repo, onshape):
+def test_folders_are_only_looked_up_for_new_pulls(repo, onshape):
+    onshape.add("frame.fs", "f", folders=("Robot",))
+    run(onshape, "status")
+    run(onshape, "pull", "--dry-run")
+    assert onshape.folder_lookups == 0
+    run(onshape, "pull")
+    run(onshape, "status")
+    run(onshape, "push")
+    run(onshape, "pull")
+    assert onshape.folder_lookups == 1
+
+
+def test_onshape_folders_are_ignored_after_the_first_pull(repo, onshape):
     element_id = onshape.add("frame.fs", "f", folders=("Old",))
     run(onshape, "pull")
     onshape.studios()[element_id]["folders"] = ("New",)
+    onshape.edit(element_id, "f2")
     assert run(onshape, "pull") == 0
-    assert local(repo, "New/frame.fs").read_text() == "f"
-    assert not local(repo, "Old").exists()
+    assert local(repo, "Old/frame.fs").read_text() == "f2"
+    assert not local(repo, "New").exists()
 
 
-def test_files_moved_locally_are_matched_by_name(repo, onshape, capsys):
-    """A local move shouldn't create a duplicate studio in Onshape."""
+def test_local_moves_and_renames_are_followed(repo, onshape, capsys):
     onshape.add("frame.fs", "f", folders=("Robot",))
-    write(repo, "Elsewhere/frame.fs", "f2")
-    git(repo, "init", "-q")
-    capsys.readouterr()
-    assert run(onshape, "push", "--force") == 0
-    assert onshape.names() == ["frame.fs"]
-    assert onshape.code("frame.fs") == "f2"
-    assert "is at Robot/frame.fs in Onshape" in capsys.readouterr().out
+    run(onshape, "pull")
 
-
-def test_new_files_in_folders_are_created_at_top_level(repo, onshape, capsys):
-    write(repo, "Robot/new.fs", "n")
+    local(repo, "Robot/frame.fs").rename(local(repo, "frame.fs"))
+    local(repo, "frame.fs").write_text("moved")
     assert run(onshape, "push") == 0
-    assert onshape.code("new.fs") == "n"
-    assert "move the tab into the Robot folder" in capsys.readouterr().out
-    # Once moved in Onshape, everything lines up
-    onshape.studios()[next(iter(onshape.studios()))]["folders"] = ("Robot",)
+    assert onshape.names() == ["frame.fs"]
+    assert onshape.code("frame.fs") == "moved"
+
+    local(repo, "frame.fs").rename(local(repo, "renamed.fs"))
     capsys.readouterr()
     run(onshape, "status")
     assert "everything in sync" in capsys.readouterr().out
+    local(repo, "renamed.fs").write_text("renamed")
+    assert run(onshape, "push") == 0
+    assert onshape.names() == ["frame.fs"]
+    assert onshape.code("frame.fs") == "renamed"
+
+
+def test_fresh_clone_matches_files_by_name(repo, onshape):
+    """Without sync state, a studio pairs with the one local file of the same name, wherever it is."""
+    onshape.add("frame.fs", "f", folders=("Robot",))
+    write(repo, "Elsewhere/frame.fs", "f")
+    git(repo, "init", "-q")
+    assert run(onshape, "status") == 0
+    write(repo, "Elsewhere/frame.fs", "f2")
+    assert run(onshape, "push") == 0
+    assert onshape.names() == ["frame.fs"]
+    assert onshape.code("frame.fs") == "f2"
+    assert onshape.folder_lookups == 0
+
+
+def test_new_files_in_folders_stay_put(repo, onshape, capsys):
+    write(repo, "Robot/new.fs", "n")
+    assert run(onshape, "push") == 0
+    assert onshape.code("new.fs") == "n"
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+
+
+def test_folder_lookup_failure_falls_back_to_top_level(repo, onshape, capsys):
+    onshape.add("frame.fs", "f", folders=("Robot",))
+    onshape.folders_error = ApiError("Invalid JSON input.")
+    assert run(onshape, "pull") == 0
+    assert local(repo, "frame.fs").read_text() == "f"
+    assert "couldn't read the backend document's folders" in capsys.readouterr().out
 
 
 def test_folder_paths_from_contents():
