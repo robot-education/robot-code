@@ -1,8 +1,12 @@
-"""Local (untracked) bookkeeping about the last time each Feature Studio was synced.
+"""Bookkeeping about the Feature Studios in the backend document.
 
-The state lets the CLI tell apart "I changed this file locally" from "someone changed this
-Feature Studio in Onshape". It lives in .fs-state.json, which is not checked in; when it is
-missing (e.g. on a fresh clone) the CLI falls back to comparing against git history.
+Which file each Feature Studio is synced with lives in fs-studios.json, which is checked in, so
+every clone (and `fs check`, which never calls Onshape) can resolve imports by element id.
+
+What each studio looked like the last time it was synced lives in .fs-state.json, which is not
+checked in. It lets the CLI tell apart "I changed this file locally" from "someone changed this
+Feature Studio in Onshape"; when it is missing (e.g. on a fresh clone) the CLI falls back to
+comparing against git history.
 """
 
 from __future__ import annotations
@@ -13,7 +17,10 @@ import json
 import pathlib
 import re
 
-STATE_VERSION = 3
+STATE_VERSION = 4
+STUDIOS_VERSION = 1
+# Before version 4, the state also held each studio's file
+_STATE_VERSION_WITH_FILES = 3
 
 # An import of another tab in the same document: import(path : "<element id>", version : "<id>")
 _SAME_DOCUMENT_IMPORT = re.compile(
@@ -70,48 +77,103 @@ def content_hash(code: str) -> str:
 
 @dataclasses.dataclass
 class StudioState:
-    """What a Feature Studio looked like the last time it was pushed or pulled.
+    """A synced Feature Studio.
 
     Attributes:
         file: The path of the local file, relative to the code folder (using /).
-        hash: The content hash of the studio when it was last synced.
-        microversion_id: The element microversion in Onshape when it was last synced.
+        hash: The content hash of the studio when it was last synced, or "" if it hasn't been
+            synced on this machine.
+        microversion_id: The element microversion in Onshape when it was last synced, or "".
     """
 
     file: str
-    hash: str
-    microversion_id: str
+    hash: str = ""
+    microversion_id: str = ""
 
 
 class State:
-    def __init__(self, path: pathlib.Path, studios: dict[str, StudioState]) -> None:
+    def __init__(
+        self,
+        path: pathlib.Path,
+        studios_path: pathlib.Path,
+        studios: dict[str, StudioState],
+    ) -> None:
         self.path = path
+        self.studios_path = studios_path
         # element id -> state
         self.studios = studios
 
     @classmethod
-    def load(cls, path: pathlib.Path) -> State:
-        if not path.is_file():
-            return cls(path, {})
-        try:
-            data = json.loads(path.read_text())
-            if data.get("version") != STATE_VERSION:
-                return cls(path, {})
-            studios = {
-                element_id: StudioState(**studio)
-                for element_id, studio in data["studios"].items()
-            }
-        except (json.JSONDecodeError, KeyError, TypeError):
-            print(f"Warning: ignoring unreadable state file {path}.")
-            return cls(path, {})
-        return cls(path, studios)
+    def load(cls, path: pathlib.Path, studios_path: pathlib.Path) -> State:
+        files = load_studio_files(studios_path)
+        synced = _read_json(path)
+        if synced.get("version") == _STATE_VERSION_WITH_FILES:
+            for element_id, studio in synced.get("studios", {}).items():
+                if isinstance(studio, dict) and "file" in studio:
+                    files.setdefault(element_id, studio["file"])
+        elif synced.get("version") != STATE_VERSION:
+            synced = {}
+        studios = {}
+        for element_id, file in files.items():
+            studio = synced.get("studios", {}).get(element_id)
+            studio = studio if isinstance(studio, dict) else {}
+            studios[element_id] = StudioState(
+                file, studio.get("hash", ""), studio.get("microversion_id", "")
+            )
+        return cls(path, studios_path, studios)
 
     def save(self) -> None:
-        data = {
-            "version": STATE_VERSION,
-            "studios": {
-                element_id: dataclasses.asdict(studio)
-                for element_id, studio in sorted(self.studios.items())
+        studios = sorted(self.studios.items())
+        _write_json(
+            self.studios_path,
+            {
+                "version": STUDIOS_VERSION,
+                "studios": {element_id: studio.file for element_id, studio in studios},
             },
-        }
-        self.path.write_text(json.dumps(data, indent=2) + "\n")
+        )
+        _write_json(
+            self.path,
+            {
+                "version": STATE_VERSION,
+                "studios": {
+                    element_id: {"hash": studio.hash, "microversion_id": studio.microversion_id}
+                    for element_id, studio in studios
+                    if studio.hash or studio.microversion_id
+                },
+            },
+        )
+
+
+def migrate(path: pathlib.Path, studios_path: pathlib.Path) -> None:
+    """Moves which file each studio is synced with out of a state file from before version 4."""
+    if _read_json(path).get("version") == _STATE_VERSION_WITH_FILES:
+        State.load(path, studios_path).save()
+
+
+def load_studio_files(studios_path: pathlib.Path) -> dict[str, str]:
+    """Maps element ids to files in the code folder, from fs-studios.json."""
+    data = _read_json(studios_path)
+    if data.get("version") != STUDIOS_VERSION:
+        return {}
+    return {
+        element_id: file
+        for element_id, file in data.get("studios", {}).items()
+        if isinstance(file, str)
+    }
+
+
+def _read_json(path: pathlib.Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        print(f"Warning: ignoring unreadable file {path}.")
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _write_json(path: pathlib.Path, data: dict) -> None:
+    text = json.dumps(data, indent=2) + "\n"
+    if not path.is_file() or path.read_text() != text:
+        path.write_text(text)

@@ -75,17 +75,7 @@ def project(tmp_path) -> Project:
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(code)
     ids = {UTILS_ID: "core/utils.fs", SHAPES_ID: "core/shapes.fs", REEXPORT_ID: "core/reexport.fs"}
-    (tmp_path / ".fs-state.json").write_text(
-        json.dumps(
-            {
-                "version": 3,
-                "studios": {
-                    element_id: {"file": file, "hash": "", "microversion_id": ""}
-                    for element_id, file in ids.items()
-                },
-            }
-        )
-    )
+    (tmp_path / "fs-studios.json").write_text(json.dumps({"version": 1, "studios": ids}))
     project = Project.find(tmp_path / "featurescripts" / "feature.fs")
     assert project is not None
     return project
@@ -128,8 +118,8 @@ def test_unused_imports(project, tmp_path):
     assert project.check(module(project, "core/reexport.fs")) == []
 
 
-def test_unknown_imports_need_state(project):
-    project.state_path.unlink()
+def test_unknown_imports_need_studios(project):
+    project.studios_path.unlink()
     feature = module(project, "feature.fs")
     assert not any(p.code == "unknown-import" for p in project.check(feature))
 

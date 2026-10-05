@@ -8,14 +8,11 @@ def get_document_elements(
     api: Api,
     instance_path: InstancePath,
     element_type: ElementType | None = None,
-    anonymous: bool = False,
 ) -> list[DocumentElement]:
     """Fetches all elements (tabs) in a document, with each one's microversion.
 
     Args:
         element_type: The type of element to get. If None, all elements are returned.
-        anonymous: Send the request without credentials, which works for public documents
-            and doesn't count against Onshape's API limits.
     """
     query: dict = {"withThumbnails": False}
     if element_type is not None:
@@ -23,7 +20,6 @@ def get_document_elements(
     return api.get(
         api_path("documents", instance_path, InstancePath, "elements"),
         query=query,
-        anonymous=anonymous,
     )
 
 

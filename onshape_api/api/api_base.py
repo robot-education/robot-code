@@ -18,9 +18,6 @@ class ApiArgs(TypedDict):
 class ApiQueryArgs(TypedDict):
     query: NotRequired[str | dict]
     headers: NotRequired[dict[str, str]]
-    # Send the request without credentials. Works for some reads of public documents, and
-    # such calls don't count against Onshape's API limits.
-    anonymous: NotRequired[bool]
 
 
 API_VERSION = 16
@@ -82,7 +79,6 @@ class Api(ABC):
         query: dict | str = "",
         body: dict | str = "",
         headers: dict[str, str] = {},
-        anonymous: bool = False,
     ) -> Any:
         """
         Issues a request to Onshape.

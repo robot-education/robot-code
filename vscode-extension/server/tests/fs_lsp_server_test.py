@@ -179,13 +179,8 @@ def test_cross_file_navigation(tmp_path):
         "export const a = double(1) + missing;\n"
     )
     (code_dir / "feature.fs").write_text(feature_source)
-    (tmp_path / ".fs-state.json").write_text(
-        json.dumps(
-            {
-                "version": 3,
-                "studios": {utils_id: {"file": "utils.fs", "hash": "", "microversion_id": ""}},
-            }
-        )
+    (tmp_path / "fs-studios.json").write_text(
+        json.dumps({"version": 1, "studios": {utils_id: "utils.fs"}})
     )
     uri = (code_dir / "feature.fs").as_uri()
     client = Client()

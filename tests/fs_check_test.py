@@ -22,15 +22,8 @@ def repo(tmp_path, monkeypatch):
     (code_dir / "feature.fs").write_text(
         f'FeatureScript 1;\nimport(path : "{UTILS_ID}", version : "v");\nexport const a = double(1);\n'
     )
-    (tmp_path / ".fs-state.json").write_text(
-        json.dumps(
-            {
-                "version": 3,
-                "studios": {
-                    UTILS_ID: {"file": "core/utils.fs", "hash": "", "microversion_id": ""}
-                },
-            }
-        )
+    (tmp_path / "fs-studios.json").write_text(
+        json.dumps({"version": 1, "studios": {UTILS_ID: "core/utils.fs"}})
     )
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("API_ACCESS_KEY", raising=False)
@@ -71,3 +64,26 @@ def test_refs(repo, capsys):
         "  featurescripts/feature.fs:3:18: export const a = double(1);\n"
     )
     assert cli.main(["refs", "triple"]) == 1
+
+
+def test_check_moves_studio_files_out_of_old_state(repo, capsys):
+    # Even if fs-studios.json was already made (e.g. on another machine)
+    (repo / "fs-studios.json").write_text(json.dumps({"version": 1, "studios": {}}))
+    (repo / ".fs-state.json").write_text(
+        json.dumps(
+            {
+                "version": 3,
+                "studios": {
+                    UTILS_ID: {"file": "core/utils.fs", "hash": "h", "microversion_id": "m"}
+                },
+            }
+        )
+    )
+    assert cli.main(["check"]) == 0
+    assert "No problems found." in capsys.readouterr().out
+    assert json.loads((repo / "fs-studios.json").read_text())["studios"] == {
+        UTILS_ID: "core/utils.fs"
+    }
+    assert json.loads((repo / ".fs-state.json").read_text())["studios"] == {
+        UTILS_ID: {"hash": "h", "microversion_id": "m"}
+    }

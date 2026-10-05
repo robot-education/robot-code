@@ -102,6 +102,9 @@ Onshape, and what the studio looked like the last time it was pushed or pulled. 
 per machine in `.fs-state.json` (gitignored). On a fresh clone, Onshape's contents are instead compared
 against the file's recent git history: if Onshape matches a committed version, local edits are safe to push.
 
+Which file each Feature Studio is synced with is kept in `fs-studios.json`, which is checked in. Commit it when
+`fs` changes it (when studios are added, deleted, or moved).
+
 - Only the local file changed: `fs push` updates Onshape.
 - Only Onshape changed: `fs push` skips it and suggests `fs pull`.
 - Both changed: both commands skip it; inspect with `fs diff`, then pick a side with `fs pull --force` or
@@ -126,11 +129,8 @@ recreated by `fs push` unless you delete the file.
 Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 [API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum:
 
-- Listing the backend document's tabs (every command does this to get each tab's microversion) is free: the
-  document is public, so `fs` lists it without credentials, and only calls made with your API keys count. If
-  the document is ever made private, listing falls back to 1 call. The free listing is cached, though, so it can
-  miss tabs created (or still show tabs deleted) in the last little while; when it's missing a studio `fs` has
-  synced, `fs` lists again with credentials (1 call) before treating the studio as deleted.
+- Listing the backend document's tabs: 1 call. Every command that talks to Onshape does this first, to get each
+  tab's microversion.
 - A studio is only downloaded when its microversion changed since the last sync, so on a new machine the first
   run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may change
   when a tab it imports changes); then the download just confirms nothing needs doing.
@@ -141,16 +141,15 @@ Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 - Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
 - `fs release`: 6 to 8 calls.
 
-So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing. Failed calls (like a 400) don't
-count either.
+So `fs status`, and `fs push` or `fs pull` with nothing to do, cost 1 call (the listing). Failed calls (like a
+400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
 
 ## Checking and navigating
 
 Conventions for writing FeatureScripts (UI state predicates, where horizontal enums go, and so on) are in
 [docs/featurescript-style.md](docs/featurescript-style.md).
 
-These read the repo only (no API calls). Imports between studios are resolved through `.fs-state.json`, so run
-`fs status` or `fs pull` once on a new machine first.
+These read the repo only (no API calls). Imports between studios are resolved through `fs-studios.json`.
 
 ```
 uv run fs check              # syntax errors, undefined names, unused or unknown imports, and more
@@ -230,7 +229,7 @@ The extension provides:
 - TextMate and semantic highlighting (custom features, predicates, enums and members, annotation and map keys,
   stdlib symbols, ...)
 - Outline, breadcrumbs, sticky scroll, and folding
-- Go to Definition and Find References across files (imports are resolved through `.fs-state.json`), highlights,
+- Go to Definition and Find References across files (imports are resolved through `fs-studios.json`), highlights,
   and workspace symbol search (Ctrl+T)
 - Hovers with doc comments, stdlib signatures, enum variants, feature definition fields, and the file an import
   refers to

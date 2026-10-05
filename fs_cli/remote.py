@@ -9,7 +9,6 @@ from typing import Protocol
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints import documents, elements, feature_studios, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
-from onshape_api.exceptions import ApiError
 from onshape_api.paths.paths import ElementPath, InstancePath
 from onshape_api.types import ElementGroup, ElementType
 
@@ -53,12 +52,8 @@ class Version:
 
 
 class Remote(Protocol):
-    def list_studios(self, instance: InstancePath, fresh: bool = False) -> list[RemoteStudio]:
-        """Lists the Feature Studios in a document, with their microversions (but not folders).
-
-        Args:
-            fresh: Make sure the listing is up to date, even if that costs an API call.
-        """
+    def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
+        """Lists the Feature Studios in a document, with their microversions (but not folders)."""
         ...
 
     def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
@@ -95,25 +90,11 @@ class Remote(Protocol):
 class OnshapeRemote:
     def __init__(self, api: Api) -> None:
         self.api = api
-        self.anonymous_failed = False
 
-    def list_studios(self, instance: InstancePath, fresh: bool = False) -> list[RemoteStudio]:
-        # Listing a public document works without credentials, and anonymous calls don't count
-        # against Onshape's API limits; fall back to an authenticated call if it's private. But
-        # anonymous listings are cached, and can miss (or still show) tabs for a while after
-        # they're created (or deleted), so fresh listings are always authenticated.
-        elements = None
-        if not self.anonymous_failed and not fresh:
-            try:
-                elements = documents.get_document_elements(
-                    self.api, instance, ElementType.FEATURE_STUDIO, anonymous=True
-                )
-            except ApiError:
-                self.anonymous_failed = True
-        if elements is None:
-            elements = documents.get_document_elements(
-                self.api, instance, ElementType.FEATURE_STUDIO
-            )
+    def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
+        elements = documents.get_document_elements(
+            self.api, instance, ElementType.FEATURE_STUDIO
+        )
         return [
             RemoteStudio(element["id"], element["name"], element["microversionId"])
             for element in elements

@@ -165,11 +165,6 @@ class Workspace:
     def scan(self, targets: Targets | None = None) -> list[Studio]:
         """Loads and classifies every studio (or just those in targets)."""
         remote_studios = self.remote.list_studios(self.instance)
-        listed = {remote.element_id for remote in remote_studios}
-        if any(element_id not in listed for element_id in self.state.studios):
-            # A synced studio seems to be gone. The listing may just be stale, so make sure before
-            # treating it as deleted
-            remote_studios = self.remote.list_studios(self.instance, fresh=True)
         # Every studio's microversion before anything is pushed (see push_studios)
         self.listed_microversions = {
             remote.element_id: remote.microversion_id for remote in remote_studios
@@ -426,7 +421,7 @@ class Workspace:
         # command knows Onshape hasn't been modified since
         current = {
             remote.element_id: remote
-            for remote in self.remote.list_studios(self.instance, fresh=True)
+            for remote in self.remote.list_studios(self.instance)
         }
         for studio in studios:
             assert studio.remote and studio.local_code is not None

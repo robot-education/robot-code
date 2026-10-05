@@ -1,8 +1,8 @@
 """Cross-file analysis of the FeatureScripts in a repo.
 
 Feature Studios import each other by element id (`import(path : "<element id>", ...)`). The fs
-CLI records which file each element id is synced with in .fs-state.json, which lets imports be
-resolved to files: for Go to Definition and Find References across files, and for diagnostics
+CLI records which file each element id is synced with in fs-studios.json (checked in), which lets
+imports be resolved to files: for Go to Definition and Find References across files, and for diagnostics
 about names which aren't defined anywhere and imports which aren't used.
 
 Files are re-read when they change on disk, and open editors can overlay their unsaved contents.
@@ -25,7 +25,6 @@ from fs_lsp.symbol_index import Declaration, SymbolIndex
 
 ELEMENT_ID = re.compile(r"[0-9a-f]{24}")
 STD_PREFIX = "onshape/std/"
-STATE_FILE = ".fs-state.json"
 
 TOP_LEVEL_KINDS = frozenset(
     ["feature", "function", "predicate", "operator", "enum", "type", "variable"]
@@ -184,11 +183,11 @@ class Project:
     """The FeatureScripts in a repo's code folder (see the fs CLI's [tool.fs] config)."""
 
     def __init__(
-        self, root: pathlib.Path, code_dir: pathlib.Path, state_path: pathlib.Path
+        self, root: pathlib.Path, code_dir: pathlib.Path, studios_path: pathlib.Path
     ) -> None:
         self.root = root
         self.code_dir = code_dir
-        self.state_path = state_path
+        self.studios_path = studios_path
         self.overlays: dict[pathlib.Path, str] = {}
         self._modules: dict[pathlib.Path, tuple[object, Module]] = {}
         self._element_ids: tuple[object, dict[str, pathlib.Path]] | None = None
@@ -202,7 +201,7 @@ class Project:
             config = load_config(path if path.is_dir() else path.parent)
         except ConfigError:
             return None
-        project = cls(config.root, config.code_dir, config.state_path)
+        project = cls(config.root, config.code_dir, config.studios_path)
         return project if project.contains(path) else None
 
     def contains(self, path: pathlib.Path) -> bool:
@@ -245,19 +244,19 @@ class Project:
         return module
 
     def element_ids(self) -> dict[str, pathlib.Path]:
-        """Maps element ids to the files synced with them, from the fs CLI's state file."""
+        """Maps element ids to the files synced with them, from the fs CLI's fs-studios.json."""
         try:
-            stat = self.state_path.stat()
+            stat = self.studios_path.stat()
             key: object = (stat.st_mtime_ns, stat.st_size)
         except OSError:
             return {}
         if self._element_ids and self._element_ids[0] == key:
             return self._element_ids[1]
         try:
-            studios = json.loads(self.state_path.read_text())["studios"]
+            studios = json.loads(self.studios_path.read_text())["studios"]
             ids = {
-                element_id: (self.code_dir / studio["file"]).resolve()
-                for element_id, studio in studios.items()
+                element_id: (self.code_dir / file).resolve()
+                for element_id, file in studios.items()
             }
         except (OSError, ValueError, KeyError, TypeError):
             ids = {}

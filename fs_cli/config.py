@@ -11,6 +11,7 @@ from onshape_api.paths.paths import InstancePath, url_to_instance_path
 
 CONFIG_FILE = "pyproject.toml"
 STATE_FILE = ".fs-state.json"
+STUDIOS_FILE = "fs-studios.json"
 
 
 class ConfigError(Exception):
@@ -38,7 +39,13 @@ class Config:
 
     @property
     def state_path(self) -> pathlib.Path:
+        """The local (untracked) record of when each Feature Studio was last synced."""
         return self.root / STATE_FILE
+
+    @property
+    def studios_path(self) -> pathlib.Path:
+        """The checked in map of element ids to files in the code folder."""
+        return self.root / STUDIOS_FILE
 
 
 def find_root(start: pathlib.Path | None = None) -> pathlib.Path:

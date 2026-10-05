@@ -17,7 +17,7 @@ import sys
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release import plan_release, run_release, unsynced_versions
 from fs_cli.remote import OnshapeRemote, Remote
-from fs_cli.state import State
+from fs_cli.state import State, migrate
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
 from fs_cli.gen import GenerateError, generate
 from fs_cli.versions import VersionType
@@ -232,11 +232,12 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
     args = parse_args(argv)
     try:
         config = load_config()
+        migrate(config.state_path, config.studios_path)
         if args.command in OFFLINE_COMMANDS:
             return OFFLINE_COMMANDS[args.command](config, args)
         if remote is None:
             remote = _onshape_remote(args.log)
-        state = State.load(config.state_path)
+        state = State.load(config.state_path, config.studios_path)
         try:
             return COMMANDS[args.command](Workspace(config, state, remote), args)
         finally:
@@ -515,9 +516,11 @@ def pull_std(workspace: Workspace, args: argparse.Namespace) -> int:
 
 
 def gen(config: Config, args: argparse.Namespace) -> int:
+    # Imports need a version, which is only known for studios synced on this machine
     synced = {
         entry.file: (element_id, entry.microversion_id)
-        for element_id, entry in State.load(config.state_path).studios.items()
+        for element_id, entry in State.load(config.state_path, config.studios_path).studios.items()
+        if entry.microversion_id
     }
     generated = generate(config.code_dir, StdMetadata.load(config.std_dir).number, synced)
     changed = [result for result in generated if result.changed]
@@ -622,7 +625,7 @@ def refs(config: Config, args: argparse.Namespace) -> int:
 
 
 def _project(config: Config) -> Project:
-    return Project(config.root, config.code_dir, config.state_path)
+    return Project(config.root, config.code_dir, config.studios_path)
 
 
 def _select_modules(project: Project, targets: list[str]) -> list[Module]:

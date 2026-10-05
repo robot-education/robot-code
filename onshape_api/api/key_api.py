@@ -63,7 +63,6 @@ class KeyApi(Api):
         query: dict | str = "",
         body: dict | str = "",
         headers: dict[str, str] = {},
-        anonymous: bool = False,
     ):
         query_str = query if isinstance(query, str) else parse.urlencode(query)
 
@@ -71,12 +70,7 @@ class KeyApi(Api):
 
         url = self._base_url + path + "?" + query_str
 
-        if anonymous:
-            headers = {"Accept": "application/json", **headers}
-        else:
-            headers = make_headers(
-                method, headers, url, self._access_key, self._secret_key
-            )
+        headers = make_headers(method, headers, url, self._access_key, self._secret_key)
 
         if self._logging:
             logging.info("request url: " + url)

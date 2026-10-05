@@ -3,6 +3,7 @@
 import collections
 import copy
 import itertools
+import json
 import pathlib
 import re
 import subprocess
@@ -34,8 +35,6 @@ class FakeOnshape:
         # Every API call made, by method
         self.calls: collections.Counter[str] = collections.Counter()
         self.folders_error: Exception | None = None
-        # Element ids missing from listings which aren't fresh, like Onshape's cached anonymous listings
-        self.stale: set[str] = set()
 
     def _id(self, prefix: str) -> str:
         return f"{prefix}{next(self.ids)}"
@@ -76,14 +75,13 @@ class FakeOnshape:
 
     # Remote protocol
 
-    def list_studios(self, instance, fresh=False):
-        self.calls["fresh_list_studios" if fresh else "list_studios"] += 1
+    def list_studios(self, instance):
+        self.calls["list_studios"] += 1
         return [
             RemoteStudio(id, s["name"], s["mv"])
             for id, s in self.studios(
                 instance.document_id, instance.instance_id
             ).items()
-            if fresh or id not in self.stale
         ]
 
     def studio_folders(self, instance):
@@ -292,6 +290,49 @@ def test_fresh_clone_uses_git_history(repo, onshape):
     assert onshape.code("frame.fs") == "v2"
 
 
+def test_studio_files_are_checked_in(repo, onshape, capsys):
+    """Which file each studio is synced with is kept apart from the local sync state."""
+    element_id = onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    assert json.loads((repo / "fs-studios.json").read_text()) == {
+        "version": 1,
+        "studios": {element_id: "frame.fs"},
+    }
+    state = json.loads((repo / ".fs-state.json").read_text())
+    assert "file" not in state["studios"][element_id]
+
+    # Moving the file locally updates it
+    write(repo, "core/frame.fs", "a")
+    local(repo, "frame.fs").unlink()
+    run(onshape, "status")
+    assert json.loads((repo / "fs-studios.json").read_text())["studios"] == {element_id: "core/frame.fs"}
+
+    # A fresh clone keeps the studio paired with its file, though another file has the same name
+    (repo / ".fs-state.json").unlink()
+    write(repo, "other/frame.fs", "b")
+    capsys.readouterr()
+    run(onshape, "status", "--all")
+    out = capsys.readouterr().out
+    assert re.search(r"core/frame\.fs\s+in sync", out)
+    assert re.search(r"other/frame\.fs\s+new locally", out)
+
+
+def test_old_state_files_move_to_studios_file(repo, onshape):
+    element_id = onshape.add("frame.fs", "a")
+    write(repo, "core/frame.fs", "a")
+    (repo / ".fs-state.json").write_text(
+        json.dumps(
+            {
+                "version": 3,
+                "studios": {element_id: {"file": "core/frame.fs", "hash": "", "microversion_id": ""}},
+            }
+        )
+    )
+    run(onshape, "status")
+    assert json.loads((repo / "fs-studios.json").read_text())["studios"] == {element_id: "core/frame.fs"}
+    assert json.loads((repo / ".fs-state.json").read_text())["version"] == 4
+
+
 def test_fresh_clone_without_history_is_a_conflict(repo, onshape):
     onshape.add("frame.fs", "remote")
     write(repo, "frame.fs", "local")
@@ -459,27 +500,6 @@ def test_import_version_updates_after_a_push_are_not_downloaded(repo, onshape, c
     assert Status.REMOTE_CHANGES.value in capsys.readouterr().out
 
 
-def test_stale_listings_are_checked(repo, onshape, capsys):
-    write(repo, "utils.fs", "u")
-    run(onshape, "push")
-    [element_id] = onshape.studios()
-    # The cached listing doesn't show the new studio yet
-    onshape.stale.add(element_id)
-    calls = onshape.calls["fresh_list_studios"]
-    capsys.readouterr()
-    assert run(onshape, "status") == 0
-    assert "everything in sync" in capsys.readouterr().out
-    assert onshape.calls["fresh_list_studios"] == calls + 1
-    assert run(onshape, "push") == 0
-    assert onshape.names() == ["utils.fs"]  # Not created again
-
-    # Studios really deleted in Onshape are still noticed
-    del onshape.studios()[element_id]
-    capsys.readouterr()
-    run(onshape, "status")
-    assert Status.DELETED_IN_ONSHAPE.value in capsys.readouterr().out
-
-
 def test_studio_names_without_extension(repo, onshape):
     onshape.add("Robot frame", "x")
     run(onshape, "pull")
@@ -519,8 +539,8 @@ def test_api_calls_are_minimal(repo, onshape):
     onshape.calls.clear()
     local(repo, "Robot/a.fs").write_text("a2")
     run(onshape, "push")
-    # List, push, then list again (freshly, so it's up to date) to record the new microversion
-    assert onshape.calls == {"list_studios": 1, "push": 1, "fresh_list_studios": 1}
+    # List, push, then list again to record the new microversion
+    assert onshape.calls == {"list_studios": 2, "push": 1}
 
 
 def test_onshape_folders_are_ignored_after_the_first_pull(repo, onshape):
@@ -581,9 +601,9 @@ class StubApi:
         self.responses = responses
         self.requests = []
 
-    def get(self, path, anonymous=False, **kwargs):
-        self.requests.append((path.rsplit("/", 1)[-1], anonymous))
-        response = self.responses[path.rsplit("/", 1)[-1], anonymous]
+    def get(self, path, **kwargs):
+        self.requests.append(path.rsplit("/", 1)[-1])
+        response = self.responses[path.rsplit("/", 1)[-1]]
         if isinstance(response, Exception):
             raise response
         return response
@@ -592,38 +612,6 @@ class StubApi:
 ELEMENTS = [
     {"id": "e1", "name": "a.fs", "elementType": "FEATURESTUDIO", "microversionId": "m1"}
 ]
-
-
-def test_listing_is_anonymous_when_possible():
-    """Anonymous calls don't count against Onshape's API limits."""
-    from fs_cli.remote import OnshapeRemote
-    from onshape_api.paths.paths import url_to_instance_path
-
-    api = StubApi({("elements", True): ELEMENTS})
-    remote = OnshapeRemote(api)
-    assert remote.list_studios(url_to_instance_path(BACKEND)) == [
-        RemoteStudio("e1", "a.fs", "m1")
-    ]
-    assert api.requests == [("elements", True)]
-
-
-def test_listing_falls_back_to_credentials_for_private_documents():
-    from fs_cli.remote import OnshapeRemote
-    from onshape_api.paths.paths import url_to_instance_path
-
-    api = StubApi(
-        {("elements", True): ApiError("Unauthenticated"), ("elements", False): ELEMENTS}
-    )
-    remote = OnshapeRemote(api)
-    instance = url_to_instance_path(BACKEND)
-    remote.list_studios(instance)
-    remote.list_studios(instance)
-    # The anonymous request isn't retried once it fails
-    assert api.requests == [
-        ("elements", True),
-        ("elements", False),
-        ("elements", False),
-    ]
 
 
 def test_studio_folders_from_contents():
@@ -636,7 +624,7 @@ def test_studio_folders_from_contents():
             "groups": [{"groupName": "Robot", "groups": [{"elementId": "e1"}]}]
         },
     }
-    api = StubApi({("contents", False): contents})
+    api = StubApi({"contents": contents})
     folders = OnshapeRemote(api).studio_folders(url_to_instance_path(BACKEND))
     assert folders == {"e1": ("Robot",)}
 

@@ -150,8 +150,7 @@ def run_release(
     target_studio = next(
         (
             studio
-            # Fresh, so a studio created moments ago isn't created again
-            for studio in remote.list_studios(plan.target, fresh=True)
+            for studio in remote.list_studios(plan.target)
             if studio.name == studio_name
         ),
         None,
