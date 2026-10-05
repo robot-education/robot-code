@@ -26,12 +26,12 @@ export predicate canBeBoundaryElement(value)
     }
 }
 
-export predicate isElementPoint(element is map)
+predicate isElementPoint(element is map)
 {
     element["type"] == BoundaryType.POINT;
 }
 
-export predicate isElementCircle(element is map)
+predicate isElementCircle(element is map)
 {
     element["type"] == BoundaryType.CIRCLE;
 }

@@ -34,7 +34,7 @@ const SPACING_BOUNDS = {
             (inch) : 0.5
         } as LengthBoundSpec;
 
-export predicate tubeFacePredicate(definition is map)
+predicate tubeFacePredicate(definition is map)
 {
     if (canHaveTwoInchFace(definition))
     {
@@ -106,7 +106,7 @@ export predicate tubeFacePredicate(definition is map)
     }
 }
 
-export predicate tubeHoleDiameterPredicate(definition is map)
+predicate tubeHoleDiameterPredicate(definition is map)
 {
     if (!hasPredrilledHoles(definition))
     {
@@ -135,7 +135,7 @@ export predicate tubeHoleDiameterPredicate(definition is map)
     definition.finish is boolean;
 }
 
-export predicate wallThicknessPredicate(definition is map)
+predicate wallThicknessPredicate(definition is map)
 {
     annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
     definition.wallThickness is WallThickness;
@@ -147,7 +147,7 @@ export predicate wallThicknessPredicate(definition is map)
     }
 }
 
-export predicate tubeSizePredicate(definition is map)
+predicate tubeSizePredicate(definition is map)
 {
     annotation { "Name" : "Size", "Default" : "TWO_BY_ONE", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
     definition.tubeSize is TubeSize;
@@ -190,7 +190,7 @@ export predicate tubeSizePredicate(definition is map)
     }
 }
 
-export predicate tubePredicate(definition is map)
+predicate tubePredicate(definition is map)
 {
     annotation { "Group Name" : "Tube", "Collapsed By Default" : false }
     {

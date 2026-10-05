@@ -213,3 +213,24 @@ def test_variables_are_visible_after_their_declaration(project):
     assert declaration.kind == "function"
     [(_, declaration)] = project.definitions(module, source.index("return twice") + 7)
     assert declaration.kind == "variable"
+
+
+def test_imported_names_are_highlighted(project):
+    from fs_lsp.semantic import build_semantic_tokens
+
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        'FeatureScript 2909;\nexport enum Shape { CIRCLE }\nexport const SIDES = 4;\n'
+    )
+    path = project.code_dir / "use.fs"
+    path.write_text(
+        f'FeatureScript 2909;\nimport(path : "{SHAPES_ID}", version : "v");\n'
+        "export const a = [SIDES, Shape.CIRCLE];\n"
+    )
+    module = project.module(path)
+    tokens = {
+        token.token.value: (token.type, token.modifiers)
+        for token in build_semantic_tokens(module.parsed, project.imported_names(module))
+    }
+    assert tokens["SIDES"] == ("variable", ("readonly",))
+    assert tokens["Shape"][0] == "enum"
+    assert tokens["CIRCLE"] == ("enumMember", ("readonly",))

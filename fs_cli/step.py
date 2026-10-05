@@ -195,12 +195,27 @@ class StepFile:
         if not faces:
             raise StepError(f"No planar face perpendicular to Z{'' if z is None else f' at z = {z}'}.")
         _, id, face = max(faces, key=lambda face: face[0])
+        return [self._edge(ref, tolerance) for ref in self._outer_loop(id, face).args[1]]
+
+    def _outer_loop(self, id: int, face: Instance) -> Instance:
+        """A face's outer loop: its FACE_OUTER_BOUND, or (as some exporters only write FACE_BOUNDs)
+        the bound reaching furthest from the origin."""
         bounds = [self.get(ref) for ref in face.args[1]]
         outer = [bound for bound in bounds if bound.type == "FACE_OUTER_BOUND"]
-        if len(outer) != 1:
-            raise StepError(f"Face #{id} doesn't have exactly one outer bound.")
-        loop = self.get(outer[0].args[1], "EDGE_LOOP")
-        return [self._edge(ref, tolerance) for ref in loop.args[1]]
+        if len(outer) > 1:
+            raise StepError(f"Face #{id} has more than one outer bound.")
+        if outer:
+            return self.get(outer[0].args[1], "EDGE_LOOP")
+        loops = [self.get(bound.args[1], "EDGE_LOOP") for bound in bounds]
+
+        def reach(loop: Instance) -> float:
+            return max(
+                math.hypot(*self.point(vertex)[:2])
+                for ref in loop.args[1]
+                for vertex in self.get(self.get(ref, "ORIENTED_EDGE").args[3], "EDGE_CURVE").args[1:3]
+            )
+
+        return max(loops, key=reach)
 
     def _edge(self, ref: Ref, tolerance: float) -> Entity:
         oriented = self.get(ref, "ORIENTED_EDGE")

@@ -164,7 +164,14 @@ def did_close(ls: FeatureScriptServer, params: lsp.DidCloseTextDocumentParams) -
 def semantic_tokens(
     ls: FeatureScriptServer, params: lsp.SemanticTokensParams
 ) -> lsp.SemanticTokens:
-    analysis = ls.analysis(ls.document(params.text_document.uri))
+    uri = params.text_document.uri
+    analysis = ls.analysis(ls.document(uri))
+    found = ls.project_module(uri)
+    if found:
+        # Depends on the files this one imports, so it isn't cached
+        project, module = found
+        tokens = build_semantic_tokens(analysis.parsed, project.imported_names(module))
+        return lsp.SemanticTokens(data=encode(tokens))
     return lsp.SemanticTokens(data=analysis.semantic_tokens)
 
 

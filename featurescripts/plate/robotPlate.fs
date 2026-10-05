@@ -17,7 +17,7 @@ PlateIcon::import(path : "f4499b93a8838a7034e96418", version : "912d892fd2f79526
 /**
  * The top level plate UI predicate.
  */
-export predicate robotPlatePredicate(definition is map)
+predicate robotPlatePredicate(definition is map)
 {
     booleanStepTypePredicate(definition);
 
@@ -39,7 +39,7 @@ export predicate robotPlatePredicate(definition is map)
     booleanStepScopePredicate(definition);
 }
 
-export predicate platePositionPredicate(definition is map)
+predicate platePositionPredicate(definition is map)
 {
     annotation { "Name" : "Plate plane", "Filter" : QueryFilterCompound.ALLOWS_PLANE, "MaxNumberOfPicks" : 1,
                 "Description" : "A flat face or plane to locate the plate on." }
@@ -57,7 +57,7 @@ export predicate platePositionPredicate(definition is map)
     definition.symmetric is boolean;
 }
 
-export predicate plateThicknessPredicate(definition is map)
+predicate plateThicknessPredicate(definition is map)
 {
     if (definition.endBound == PlateBoundingType.BLIND || definition.endBound == PlateBoundingType.THROUGH_ALL)
     {

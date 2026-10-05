@@ -47,6 +47,19 @@ _MODIFIER_BITS = {name: 1 << index for index, name in enumerate(TOKEN_MODIFIERS)
 LITERAL_KEYWORDS = frozenset(["false", "true", "undefined", "inf"])
 
 
+@dataclasses.dataclass
+class ImportedNames:
+    """What a file can use from the files it imports (see fs_lsp.project).
+
+    Attributes:
+        names: The semantic type of each name, and whether it's readonly (a constant).
+        enum_members: The members of each imported enum.
+    """
+
+    names: dict[str, tuple[SemanticType, bool]] = dataclasses.field(default_factory=dict)
+    enum_members: dict[str, set[str]] = dataclasses.field(default_factory=dict)
+
+
 @dataclasses.dataclass(slots=True)
 class SemanticToken:
     token: Token
@@ -58,7 +71,9 @@ def _unique(*modifiers: SemanticModifier) -> tuple[SemanticModifier, ...]:
     return tuple(dict.fromkeys(modifiers))
 
 
-def build_semantic_tokens(parsed: ParsedProgram) -> list[SemanticToken]:
+def build_semantic_tokens(
+    parsed: ParsedProgram, imported: ImportedNames | None = None
+) -> list[SemanticToken]:
     explicit: dict[int, SemanticHint] = {}
     for hint in parsed.hints:
         explicit[hint.token.offset] = _with_default_library(hint, parsed)
@@ -70,9 +85,9 @@ def build_semantic_tokens(parsed: ParsedProgram) -> list[SemanticToken]:
             continue
         hint = explicit.get(token.offset)
         if hint:
-            built.append(_upgrade_explicit_hint(parsed, hint, index))
+            built.append(_upgrade_explicit_hint(parsed, hint, index, imported or ImportedNames()))
             continue
-        inferred = _infer(parsed, token, index)
+        inferred = _infer(parsed, token, index, imported or ImportedNames())
         if inferred:
             built.append(inferred)
     return built
@@ -129,7 +144,9 @@ def _enum_member_token(
     return None
 
 
-def _infer(parsed: ParsedProgram, token: Token, index: int) -> SemanticToken | None:
+def _infer(
+    parsed: ParsedProgram, token: Token, index: int, imported: ImportedNames
+) -> SemanticToken | None:
     kind = token.kind
     if kind == "number":
         return SemanticToken(token, "number", ())
@@ -159,6 +176,8 @@ def _infer(parsed: ParsedProgram, token: Token, index: int) -> SemanticToken | N
             member = _enum_member_token(parsed, token, before_previous.value, modifiers)
             if member:
                 return member
+            if token.value in imported.enum_members.get(before_previous.value, ()):
+                return SemanticToken(token, "enumMember", _unique("readonly", *modifiers))
         return SemanticToken(token, "property", modifiers)
 
     if previous is not None and previous.value in ("is", "as", "returns"):
@@ -183,6 +202,12 @@ def _infer(parsed: ParsedProgram, token: Token, index: int) -> SemanticToken | N
             token, _symbol_type(symbol.kind), _unique(*readonly, *modifiers)
         )
 
+    if token.value in imported.names:
+        type, readonly = imported.names[token.value]
+        return SemanticToken(
+            token, type, _unique(*(("readonly",) if readonly else ()), *modifiers)
+        )
+
     if parsed.imports_stdlib:
         library_symbol = stdlib().choose(token.value, next_value)
     else:
@@ -196,7 +221,7 @@ def _infer(parsed: ParsedProgram, token: Token, index: int) -> SemanticToken | N
 
 
 def _upgrade_explicit_hint(
-    parsed: ParsedProgram, hint: SemanticHint, index: int
+    parsed: ParsedProgram, hint: SemanticHint, index: int, imported: ImportedNames
 ) -> SemanticToken:
     if hint.type == "property" and index >= 2:
         before_previous = parsed.tokens[index - 2]
@@ -205,6 +230,8 @@ def _upgrade_explicit_hint(
         )
         if member:
             return member
+        if hint.token.value in imported.enum_members.get(before_previous.value, ()):
+            return SemanticToken(hint.token, "enumMember", _unique("readonly", *hint.modifiers))
     return SemanticToken(hint.token, hint.type, hint.modifiers)
 
 

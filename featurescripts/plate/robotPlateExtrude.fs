@@ -99,7 +99,7 @@ function verifyEndBoundEntity(context is Context, definition is map, platePlane 
  * Allows errors to highlight the underlying source of a plate plane appropriately. In particular,
  * highlights platePlane if a platePlane is selected. Otherwise, throws normally.
  */
-export function platePlaneAwareRegenError(definition is map, faultyParameter is string, errorString is string)
+function platePlaneAwareRegenError(definition is map, faultyParameter is string, errorString is string)
 {
     throw regenError(errorString, [faultyParameter, "platePlane"], definition[faultyParameter]);
 }

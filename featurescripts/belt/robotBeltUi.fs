@@ -7,7 +7,7 @@ export import(path : "948c83c1b1ac83de4ccf921b", version : "4aff58a1ab26d9f7aa7a
 export import(path : "b82468283e5ec09720bad185", version : "fd6fb14ea8cac07a38291b2f");
 export import(path : "d82c5bf9082d0054f8f0b419", version : "5ddffe8574f5098d20aa559d");
 
-export const BELT_TEETH_BOUNDS = { (unitless) : [1, 100, 1e50] } as IntegerBoundSpec;
+const BELT_TEETH_BOUNDS = { (unitless) : [1, 100, 1e50] } as IntegerBoundSpec;
 
 export predicate isSimpleBelt(definition is map)
 {
@@ -53,7 +53,7 @@ export enum SelectionType
     PITCH_CIRCLE
 }
 
-export predicate selectionPredicate(definition is map)
+predicate selectionPredicate(definition is map)
 {
     annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
     {
@@ -73,7 +73,7 @@ export predicate selectionPredicate(definition is map)
     }
 }
 
-export predicate simpleBeltSelectionPredicate(definition is map)
+predicate simpleBeltSelectionPredicate(definition is map)
 {
     annotation { "Name" : "Standalone belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.isStandaloneBelt is boolean;
@@ -118,7 +118,7 @@ export predicate simpleBeltSelectionPredicate(definition is map)
 }
 
 
-export predicate complexBeltSelectionPredicate(definition is map)
+predicate complexBeltSelectionPredicate(definition is map)
 {
     annotation {
                 "Name" : "Pulleys",
@@ -161,7 +161,7 @@ export predicate complexBeltSelectionPredicate(definition is map)
 }
 
 
-export predicate beltPredicate(definition is map)
+predicate beltPredicate(definition is map)
 {
     annotation { "Group Name" : "Belt", "Collapsed By Default" : false }
     {
@@ -203,7 +203,7 @@ export function pulleyString(pulley is Pulley) returns string
     return "pulley" ~ (pulley == Pulley.ONE ? "One" : "Two");
 }
 
-export predicate optionsPredicate(definition is map)
+predicate optionsPredicate(definition is map)
 {
     annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
     {

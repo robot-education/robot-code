@@ -508,7 +508,7 @@ export function robotMotorEditLogic(context is Context, id is Id, oldDefinition 
 
 
 // The following code is adapted from the Lighten Featurescript
-export function autoSelectParts(context is Context, oldDefinition is map, definition is map,
+function autoSelectParts(context is Context, oldDefinition is map, definition is map,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
     if (definition.motorLocations == oldDefinition.motorLocations || specifiedParameters.booleanScope)

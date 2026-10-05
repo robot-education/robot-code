@@ -21,7 +21,7 @@ export enum CreationMethod
     BELT
 }
 
-export predicate pulleyGeneralPredicate(definition is map)
+predicate pulleyGeneralPredicate(definition is map)
 {
     annotation { "Group Name" : "Pulley", "Collapsed By Default" : false }
     {
@@ -32,7 +32,7 @@ export predicate pulleyGeneralPredicate(definition is map)
     }
 }
 
-export predicate pulleyFlangePredicate(definition is map)
+predicate pulleyFlangePredicate(definition is map)
 {
     annotation { "Name" : "Add flanges", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.addFlanges is boolean;
@@ -52,7 +52,7 @@ const TEXT_POSITION_BOUNDS =
             (unitless) : [0.0, 0.75, 1.0]
         } as RealBoundSpec;
 
-export predicate pulleyTextPredicate(definition is map)
+predicate pulleyTextPredicate(definition is map)
 {
     annotation { "Name" : "Engrave tooth count", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.addText is boolean;
@@ -85,7 +85,7 @@ export enum BoreType
     SPLINE
 }
 
-export const ENTRANCE_CHAMFER_BOUNDS =
+const ENTRANCE_CHAMFER_BOUNDS =
 {
             (meter) : [1e-5, 0.001, 500],
             (centimeter) : 0.1,
@@ -93,7 +93,7 @@ export const ENTRANCE_CHAMFER_BOUNDS =
             (inch) : 1 / 32,
         } as LengthBoundSpec;
 
-export predicate pulleyBorePredicate(definition is map)
+predicate pulleyBorePredicate(definition is map)
 {
     annotation { "Name" : "Add bore", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.addBore is boolean;

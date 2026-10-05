@@ -99,7 +99,7 @@ def internal_spline(
     pressure_angle: float,
     major_diameter: float,
     minor_diameter: float,
-    space_angle: float = 90,
+    space_angle: float = 0,
 ) -> list[Entity]:
     """The hole an involute spline shaft fits in (an ISO 4156 internal spline, with flat roots and sharp corners).
 
@@ -149,7 +149,10 @@ def internal_spline(
 def spline_xs_hole() -> list[Entity]:
     """SplineXS: a 15 tooth, 0.5 module, 30 degree ISO 4156 spline (e.g. the Kraken X60's shaft).
 
-    ISO 4156 flat root internal spline: major diameter m(z + 1.5), minor diameter m(z - 1).
+    ISO 4156 flat root internal spline: major diameter m(z + 1.5), minor diameter m(z - 1). A space
+    is centered on the x axis, matching TTB-0356 (vendor/), where it lines up with one of the
+    print adapter's reliefs. That also makes the profile symmetric about the x axis, so mirroring
+    the sketch (e.g. when a feature is flipped) doesn't change it.
     """
     teeth, module = 15, 0.5
     return internal_spline(teeth, module, 30, module * (teeth + 1.5), module * (teeth - 1))

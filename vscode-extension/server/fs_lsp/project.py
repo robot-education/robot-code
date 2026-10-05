@@ -19,6 +19,7 @@ from typing import Iterable, Literal
 from fs_lsp.diagnostics import diagnostics as syntax_diagnostics
 from fs_lsp.parser import ParsedProgram, parse
 from fs_lsp.scanner import Token
+from fs_lsp.semantic import ImportedNames
 from fs_lsp.stdlib import built_in_type, stdlib
 from fs_lsp.symbol_index import Declaration, SymbolIndex
 
@@ -324,6 +325,22 @@ class Project:
                     for owner, declaration in declarations
                 )
         return names, sees_std
+
+    def imported_names(self, module: Module) -> ImportedNames:
+        """The names a module can use from its imports, for semantic highlighting."""
+        providers, _ = self.providers(module)
+        imported = ImportedNames()
+        for name, provided in providers.items():
+            provider = provided[0]
+            declaration = provider.declaration
+            if declaration.kind == "variable":
+                variable = provider.module.parsed.variables.get(name)
+                imported.names[name] = ("variable", bool(variable and variable.readonly))
+            elif declaration.kind in ("feature", "function", "predicate", "enum", "type"):
+                imported.names[name] = (declaration.kind, False)  # type: ignore[assignment]
+            if declaration.kind == "enum":
+                imported.enum_members[name] = set(provider.module.parsed.enum_members.get(name, []))
+        return imported
 
     def importers(self, module: Module) -> list[Module]:
         """The modules which import module directly."""
