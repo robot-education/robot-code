@@ -27,6 +27,15 @@ export predicate axisOrientationPredicate(definition is map)
     annotation { "Name" : "Flip primary axis", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
     definition.oppositeDirection is boolean;
 
+    secondaryAxisPredicate(definition);
+}
+
+/**
+ * Creates the button for rotating in 90 degree increments from `axisOrientationPredicate`, for features which
+ * already have an `oppositeDirection` parameter (such as an extrude's) to put it next to.
+ */
+export predicate secondaryAxisPredicate(definition is map)
+{
     annotation { "Name" : "Reorient secondary axis", "UIHint" : UIHint.MATE_CONNECTOR_AXIS_TYPE, "Default" : MateConnectorAxisType.PLUS_X }
     definition.secondaryAxisType is MateConnectorAxisType;
 }

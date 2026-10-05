@@ -2,10 +2,12 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "core/location.fs", version : "");
+import(path : "core/mounting.fs", version : "");
 import(path : "core/pointManipulator.fs", version : "");
 import(path : "core/robotFeature.fs", version : "");
 // The extrude options; also exports the enums they use, which are parameter types
 export import(path : "core/stdExtrude.fs", version : "");
+export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960.0");
 import(path : "derive/edgeDerive.fs", version : "");
 
 // TODO: import the nut strip Part Studio from FRCDesignLib, and opPointTransform.fs for partStudioData
@@ -67,14 +69,15 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
         {
             locationPredicate(definition, "nut strip");
 
-            annotation { "Name" : "Angle" }
-            isAngle(definition.angle, ANGLE_360_ZERO_DEFAULT_BOUNDS);
-
             ninePointManipulatorPredicate(definition);
 
             annotation { "Group Name" : "Extrude", "Collapsed By Default" : false }
             {
-                newExtrudePredicate(definition);
+                // The opposite direction button flips the direction the nut strip is drawn in, so the rotate button
+                // goes next to it, as in the std Transform feature
+                newExtrudeEndTypePredicate(definition);
+                secondaryAxisPredicate(definition);
+                newExtrudeBoundsPredicate(definition);
             }
         }
     }
@@ -96,13 +99,14 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
             "edgeQuery" : qNothing(),
             "transform" : false,
             "oppositeDirection" : false,
-            "angle" : 0 * degree,
+            "secondaryAxisType" : MateConnectorAxisType.PLUS_X,
             "index" : NINE_POINT_CENTER_INDEX
         });
 
 /**
- * Extrudes a nut strip from the selected location. Its length comes from the extrude options, and the nine point
- * manipulator chooses which point of its end lines up with the location.
+ * Extrudes a nut strip from the selected location. Its length comes from the extrude options, and it's drawn in the
+ * extrude's direction (which matters since its holes alternate), rotated by `secondaryAxisType`. The nine point
+ * manipulator chooses which point of its start lines up with the location.
  */
 function extrudeNutStrip(context is Context, id is Id, definition is map)
 {
@@ -114,9 +118,11 @@ function extrudeNutStrip(context is Context, id is Id, definition is map)
     callSubfeatureAndProcessStatus(id, extrude, context, id, extrudeDefinition, {
                 "featureParameterMap" : { "entities" : "location" }
             });
+    // Z along the extrude's direction (its opposite direction flip), and X reoriented by secondaryAxisType
+    const drawPlane = applyAxisOrientation(definition, plane);
     const extent = evBox3d(context, {
                 "topology" : qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID),
-                "cSys" : coordSystem(plane),
+                "cSys" : coordSystem(drawPlane),
                 "tight" : true
             });
     opDeleteBodies(context, id + "deleteLength", { "entities" : qCreatedBy(id, EntityType.BODY) });
@@ -132,9 +138,8 @@ function extrudeNutStrip(context is Context, id is Id, definition is map)
 
     // The nut strip's length is along Z
     const points = ninePoints(evBox3d(context, { "topology" : nutStrip, "tight" : true }));
-    var location = coordSystem(plane);
-    location.origin += plane.normal * extent.minCorner[2];
-    location = rotationAround(line(location.origin, location.zAxis), definition.angle) * location;
+    var location = coordSystem(drawPlane);
+    location.origin += drawPlane.normal * extent.minCorner[2];
     const placement = toWorld(location) * transform(-points[getPointIndex(definition, size(points))]);
 
     opTransform(context, id + "transform", { "bodies" : nutStrip, "transform" : placement });

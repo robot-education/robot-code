@@ -62,12 +62,29 @@ export predicate extrudePredicate(definition is map)
  */
 export predicate newExtrudePredicate(definition is map)
 {
+    newExtrudeEndTypePredicate(definition);
+
+    newExtrudeBoundsPredicate(definition);
+}
+
+/**
+ * The first part of `newExtrudePredicate`: the end type and the opposite direction button next to it.
+ * Split out so features can put buttons of their own next to it.
+ */
+export predicate newExtrudeEndTypePredicate(definition is map)
+{
     annotation { "Name" : "End type" }
     definition.endBound is SMExtrudeBoundingType;
 
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.oppositeDirection is boolean;
+}
 
+/**
+ * The rest of `newExtrudePredicate`, after `newExtrudeEndTypePredicate`.
+ */
+export predicate newExtrudeBoundsPredicate(definition is map)
+{
     extrudeBoundParametersPredicate(definition);
 
     // extrudeDirectionPredicate(definition);
