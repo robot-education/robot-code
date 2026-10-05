@@ -62,7 +62,9 @@ and leave a `TODO` for anything assumed.
 - Order vendors and parts by use, so the most used one is the default.
 - Give each part its `stock`: the lengths it's sold in, shortest first, each with its part number and the page
   for that part number, if it has one (`setStockProperties` picks the shortest one long enough). Parts sold in each
-  length (like goBILDA's) list every length.
+  length (like goBILDA's) list every length, and parts only sold in set lengths, which can't be cut (like goBILDA's
+  REX shafts, with e-clip grooves), are marked so (`fixed_lengths` in robotShaftTables.py), which warns when a part
+  isn't one of them. Past the longest length, features warn that it's only sold up to it.
 - Use placeholder appearances (`WHITE`, `BLACK`, `DARK_GRAY`) until colors are chosen, and the right material
   (`ALUMINUM`, `ALUMINUM_7075`, `STEEL`, `STAINLESS_STEEL` in `core/robotProperties.fs`).
 - Run `uv run fs gen`, then `uv run fs check` and `uv run fs ui` on the feature, and simulate anything with rules

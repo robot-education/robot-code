@@ -10,7 +10,7 @@ import(path : "0103ad63394d7713fbf44448", version : "d9ead1a79bded860ba8f3ddf");
 import(path : "6c65805103086c85362ee4b7", version : "06268198ef2566cb246b9f56");
 
 annotation { "Feature Type Name" : "Robot spline profile",
-        "Feature Type Description" : "Create MAXSpline and SplineXL profiles." ~ CREDIT,
+        "Feature Type Description" : "Create MAXSpline, SplineXL, and SplineXS profiles." ~ CREDIT,
         "Manipulator Change Function" : "robotSplineProfileManipulatorChange",
         "Editing Logic Function" : "robotSplineProfileEditLogic",
         "Icon" : RobotIcon::BLOB_DATA

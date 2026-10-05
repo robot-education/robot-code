@@ -10,7 +10,29 @@ export enum SplineType
     annotation { "Name" : "MAXSpline" }
     MAX_SPLINE,
     annotation { "Name" : "SplineXL" }
-    SPLINE_XL
+    SPLINE_XL,
+    annotation { "Name" : "SplineXS" }
+    SPLINE_XS
+}
+
+/**
+ * The name of a spline, e.g. `MAXSpline`.
+ */
+export function splineName(splineType is SplineType) returns string
+{
+    return switch (splineType) {
+            SplineType.MAX_SPLINE : "MAXSpline",
+            SplineType.SPLINE_XL : "SplineXL",
+            SplineType.SPLINE_XS : "SplineXS"
+        };
+}
+
+/**
+ * Whether a spline's shafts are tubes, with an `ProfileSide.INSIDE` profile. SplineXS shafts are solid.
+ */
+export predicate isTubeSpline(splineType is SplineType)
+{
+    splineType != SplineType.SPLINE_XS;
 }
 
 /**
@@ -32,7 +54,15 @@ precondition
 }
 {
     definition = mergeMaps({ "profileSide" : ProfileSide.OUTSIDE, "location" : zeroVector(2) * meter }, definition);
-    const profileMap = (definition.splineType == SplineType.MAX_SPLINE ? MAX_SPLINE : SPLINE_XL);
+    const profileMap = switch (definition.splineType) {
+            SplineType.MAX_SPLINE : MAX_SPLINE,
+            SplineType.SPLINE_XL : SPLINE_XL,
+            SplineType.SPLINE_XS : SPLINE_XS
+        };
+    if (profileMap[definition.profileSide] == undefined)
+    {
+        throw regenError(splineName(definition.splineType) ~ " shafts are solid, so have no inside profile.");
+    }
     skDataArray(sketch, textId, {
                 "sketchDataArray" : profileMap[definition.profileSide],
                 "location" : definition.location

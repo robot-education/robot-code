@@ -1,8 +1,8 @@
 """The SplineXL (WCP), MAXSpline (REV), and SplineXS shaft profiles. Run `uv run fs gen` after editing.
 
-Each spline has six teeth. The inside profile is the bore of a tube shaft: the outside profile
-offset inward by the tube's wall. Offsetting keeps every arc's center, shrinking convex arcs and
-growing concave fillets.
+SplineXL and MAXSpline have six teeth, and their shafts are tubes: the inside profile is the bore,
+the outside profile offset inward by the tube's wall. Offsetting keeps every arc's center, shrinking
+convex arcs and growing concave fillets. SplineXS is a solid 15 tooth involute spline.
 """
 
 import math
@@ -103,7 +103,9 @@ def internal_spline(
 ) -> list[Entity]:
     """The hole an involute spline shaft fits in (an ISO 4156 internal spline, with flat roots and sharp corners).
 
-    Lengths are in millimeters; the result is in inches.
+    Lengths are in millimeters; the result is in inches. Its spaces are the shape of the shaft's teeth (both are half
+    the circular pitch wide at the pitch circle, and narrow outward along involutes), so with the shaft's diameters,
+    it's the shaft (see `external_spline`).
 
     Args:
         pressure_angle: In degrees.
@@ -158,6 +160,17 @@ def spline_xs_hole() -> list[Entity]:
     return internal_spline(teeth, module, 30, module * (teeth + 1.5), module * (teeth - 1))
 
 
+def spline_xs_shaft() -> list[Entity]:
+    """A SplineXS shaft: the ISO 4156 external spline `EXT 15z x 0.5m x 30R x 5e`, on REV-41-6457's drawing.
+
+    Its major diameter is the drawing's 7.9 mm (a little under the basic m(z + 1) = 8 mm), and its minor diameter
+    the fillet root's m(z - 1.8) = 6.6 mm, drawn flat. A tooth is centered on the x axis, so, like the hole, it's
+    symmetric about it.
+    """
+    teeth, module = 15, 0.5
+    return internal_spline(teeth, module, 30, 7.9, module * (teeth - 1.8))
+
+
 # The order the profiles were originally captured in (see Profile)
 SPLINE_XL_OUTSIDE_ORDER = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 1, 2, 18, 23, 22, 21, 20, 19]
 SPLINE_XL_INSIDE_ORDER = [7, 8, 19, 3, 4, 5, 18, 0, 1, 2, 23, 15, 16, 17, 22, 12, 13, 14, 21, 9, 10, 11, 20, 6]
@@ -184,6 +197,8 @@ CONTENTS = [
     # The outside of a MAXSpline without the stub line, for features with no released versions
     # to keep compatible with (e.g. MAXTube holes)
     Sketch("MAX_SPLINE_HOLE", Profile(max_spline(0))),
+    # A SplineXS shaft, which is solid
+    SketchMap("SPLINE_XS", {"ProfileSide.OUTSIDE": Profile(spline_xs_shaft())}),
     # The hole for a SplineXS shaft, e.g. a SplineXS bore through a print
     Sketch("SPLINE_XS_HOLE", Profile(spline_xs_hole())),
 ]

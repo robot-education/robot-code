@@ -4,7 +4,8 @@ The shaft tables list the shafts teams buy, picked by how often they're used in 
 (see docs/cots-research.md). Each is a vendor's shaft, described by its profile in robotShaftCommon.fs's terms
 (`shaftType`, and `hexType` and `hexSize` or `splineType`), with its `partName` (after its length, e.g. "3 in.
 Rounded Hex Shaft (WCP 1/2 in.)"), `material`, `appearance`, and `stock`: the lengths it's sold in, shortest first
-(see nutStripTables.py). FRC shafts are cut from long stock; goBILDA sells each length.
+(see nutStripTables.py). Most shafts are cut from stock, but some are only sold in set lengths, with machined ends
+(like goBILDA's REX shafts, with e-clip grooves); `fixedLengths` warns when those aren't one of them.
 """
 
 from fs_cli.gen import Import
@@ -103,7 +104,16 @@ def stock(*lengths: tuple[str, str, str]) -> str:
     return f"[{entries}]"
 
 
-def shaft(name: str, part_name: str, profile: dict[str, str], material: str, appearance: str, lengths: str) -> Value:
+def shaft(
+    name: str,
+    part_name: str,
+    profile: dict[str, str],
+    material: str,
+    appearance: str,
+    lengths: str,
+    fixed_lengths: bool = False,
+) -> Value:
+    """A shaft. fixed_lengths: whether it's only sold in its stock's lengths, rather than cut from them."""
     return Value(
         name,
         {
@@ -112,6 +122,7 @@ def shaft(name: str, part_name: str, profile: dict[str, str], material: str, app
             "material": material,
             "appearance": appearance,
             "stock": lengths,
+            **({"fixedLengths": "true"} if fixed_lengths else {}),
         },
     )
 
@@ -158,12 +169,13 @@ WCP = vendor(
 
 def rev(part_number: str) -> str:
     """REV's page for a part, or a search for it, as some parts' pages are only reachable from their families'."""
-    if part_number == "REV-41-3205":
-        return "https://www.revrobotics.com/rev-41-3205/"
+    if part_number in ("REV-41-3205", "REV-41-6457"):
+        return f"https://www.revrobotics.com/{part_number.lower()}/"
     return f"https://www.revrobotics.com/search.php?search_query={part_number}&section=product"
 
 
-# FRCDesign "Hex Shaft (REV)" and "Spline - MAXSpline (REV)"
+# FRCDesign "Hex Shaft (REV)", "Spline - MAXSpline (REV)", and "Spline - 15t SplineXS (REV)". The SplineXS shaft is solid
+# stainless steel, for cutting (REV-41-6457-DR.pdf)
 REV = vendor(
     "REV",
     [
@@ -173,6 +185,8 @@ REV = vendor(
               one(inch(72), "REV-41-3205", rev("REV-41-3205"))),
         shaft("MAXSpline", "MAXSpline Shaft (REV)", spline("MAX_SPLINE"), "ALUMINUM", "WHITE",
               one(inch(47), "REV-21-2520", rev("REV-21-2520"))),
+        shaft("SplineXS", "SplineXS Shaft (REV)", spline("SPLINE_XS"), "STAINLESS_STEEL", "WHITE",
+              one(mm(480), "REV-41-6457", rev("REV-41-6457"))),
     ],
 )
 
@@ -243,7 +257,10 @@ def ttb(handle: str) -> str:
     return f"https://www.thethriftybot.com/products/{handle}"
 
 
-# FRCDesign "Hex Shaft (TTB)"
+TTB_SPLINE_XS_URL = ttb("pre-order-splinexs-shafts")
+
+# FRCDesign "Hex Shaft (TTB)" and "Spline - 15t SplineXS (TTB)". Its SplineXS stub shafts are 1045 steel, tapped #10-32 at
+# each end; its 7075 SplineXS stock has a through hole to tap #10-32, which isn't drawn (TODO)
 TTB = vendor(
     "ThriftyBot",
     [
@@ -254,6 +271,12 @@ TTB = vendor(
               "ALUMINUM", "BLACK", one(inch(36), "TTB-0068", ttb("qty-1-36-inch-long-1-2-rounded-hex-shaft-6061-aluminum"))),
         shaft("3/8 in. Rounded Hex", "Rounded Hex Shaft (ThriftyBot 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS),
               "ALUMINUM", "BLACK", one(inch(36), "TTB-0265", ttb("3-8-rounded-hex-shaft-stock-36-long"))),
+        shaft("SplineXS Stub (steel)", "SplineXS Stub Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL",
+              "DARK_GRAY", lengths(TTB_SPLINE_XS_URL, (2, "TTB-0301"), (2.5, "TTB-0303")), fixed_lengths=True),
+        shaft("SplineXS (7075)", "SplineXS Shaft (ThriftyBot, 7075)", spline("SPLINE_XS"), "ALUMINUM_7075", "BLACK",
+              one(inch(36), "TTB-0357", TTB_SPLINE_XS_URL)),
+        shaft("SplineXS (steel)", "SplineXS Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL", "DARK_GRAY",
+              one(inch(36), "TTB-0366", TTB_SPLINE_XS_URL)),
     ],
 )
 
@@ -280,17 +303,18 @@ REX_12_ALUMINUM_LENGTHS = [43, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 1
                            1200]
 
 # FRCDesign FTC "Custom Shaft": 8mm REX is nearly all of its use. REX is goBILDA's rounded hex: an 8 mm (or 12 mm) round
-# and a 7 mm (or 11 mm) hex (the STEP files); its ends are tapped M4
+# and a 7 mm (or 11 mm) hex (the STEP files); its ends are tapped M4. The stainless steel ones have e-clip grooves, so
+# they're only sold in set lengths; the aluminum one (up to 1200 mm) can be cut
 # TODO: goBILDA's D-shafts and round shafts, and 8mm REX in aluminum; REV's 5mm hex
 GOBILDA = vendor(
     "goBILDA",
     [
         shaft("8mm REX (stainless steel)", "8mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._7_MM"),
               "STAINLESS_STEEL", "WHITE",
-              gobilda("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel", REX_8_LENGTHS)),
+              gobilda("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel", REX_8_LENGTHS), fixed_lengths=True),
         shaft("12mm REX (stainless steel)", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "STAINLESS_STEEL", "WHITE",
-              gobilda("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel", REX_12_LENGTHS)),
+              gobilda("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel", REX_12_LENGTHS), fixed_lengths=True),
         shaft("12mm REX (aluminum)", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "ALUMINUM", "WHITE",
               gobilda("2104", "0012", "12mm-rex-shaft-aluminum", REX_12_ALUMINUM_LENGTHS)),
@@ -302,7 +326,8 @@ ROBITS = vendor(
     "AndyMark",
     [
         shaft("Robits 3/8 in. Hex", "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "DARK_GRAY",
-              lengths("https://andymark.com/products/robits-hex-shafts", *[(n, f"am-5003-{n * 100:04d}") for n in (2, 3, 4, 6, 8, 10, 12)])),
+              lengths("https://andymark.com/products/robits-hex-shafts", *[(n, f"am-5003-{n * 100:04d}") for n in (2, 3, 4, 6, 8, 10, 12)]),
+              fixed_lengths=True),
     ],
 )
 

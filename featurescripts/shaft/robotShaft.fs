@@ -108,7 +108,7 @@ predicate shaftEndPredicate(definition is map)
 {
     annotation { "Group Name" : "Shaft ends", "Collapsed By Default" : false }
     {
-        annotation { "Name" : "Modify first end" }
+        annotation { "Name" : "Modify first end", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.modifyFirstEnd is boolean;
 
         if (definition.modifyFirstEnd)
@@ -172,7 +172,7 @@ predicate shaftEndPredicate(definition is map)
 
         if (!cannotSpecifySecondEnd(definition))
         {
-            annotation { "Name" : "Modify second end" }
+            annotation { "Name" : "Modify second end", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.modifySecondEnd is boolean;
 
             if (definition.modifySecondEnd)
@@ -444,10 +444,13 @@ function createShaftProfile(context is Context, id is Id, definition is map, sha
                     "splineType" : definition.splineType,
                     "profileSide" : ProfileSide.OUTSIDE
                 });
-        skSplineProfile(sketch, "inside", {
-                    "splineType" : definition.splineType,
-                    "profileSide" : ProfileSide.INSIDE
-                });
+        if (isTubeSpline(definition.splineType))
+        {
+            skSplineProfile(sketch, "inside", {
+                        "splineType" : definition.splineType,
+                        "profileSide" : ProfileSide.INSIDE
+                    });
+        }
     }
     skSolve(sketch);
 
@@ -600,112 +603,67 @@ function getPredrilledHoleDiameter(definition is map) returns ValueWithUnits
 }
 
 /**
+ * A length in inches for FRC or millimeters for FTC, e.g. `6 in.` or `136 mm`.
+ */
+function shaftLengthString(definition is map, length is ValueWithUnits) returns string
+{
+    return isFrc(definition) ?
+        roundToPrecision(length / inch, 3) ~ " in." :
+        roundToPrecision(length / millimeter, 1) ~ " mm";
+}
+
+// How close a shaft has to be to a length it's sold in to be that length: lengths are shown to 3 decimal places
+const SOLD_LENGTH_TOLERANCE = 0.001 * inch;
+
+/**
  * Names a COTS shaft (its length, then its `partName`), gives it the part number of the stock it's cut from (or, for a
- * shaft sold in its length, its own) and a link to buy it, and sets its material and appearance. Warns if it's longer
- * than it's sold.
+ * shaft sold in its length, its own) and a link to buy it, and sets its vendor, material, and appearance. Warns if it's
+ * longer than it's sold, or, for a shaft only sold in set lengths (`fixedLengths`), isn't one of them.
  */
 function setCotsShaftProperties(context is Context, id is Id, shaft is Query, definition is map, cots is map, length is ValueWithUnits)
 {
-    const lengthString = isFrc(definition) ?
-        roundToPrecision(length / inch, 3) ~ " in." :
-        roundToPrecision(length / millimeter, 1) ~ " mm";
-    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.NAME, "value" : lengthString ~ " " ~ cots.partName });
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.NAME, "value" : shaftLengthString(definition, length) ~ " " ~ cots.partName });
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.MATERIAL, "value" : cots.material });
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.APPEARANCE, "value" : cots.appearance });
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.VENDOR, "value" : cots.vendor });
 
     var stock = undefined;
+    var shorter = undefined;
     for (var candidate in cots.stock)
     {
-        if (length <= candidate.length + TOLERANCE.zeroLength * meter)
+        if (length <= candidate.length + SOLD_LENGTH_TOLERANCE)
         {
             stock = candidate;
             break;
         }
+        shorter = candidate;
     }
     if (stock == undefined)
     {
-        const longest = cots.stock[size(cots.stock) - 1].length;
-        reportFeatureWarning(context, id, "This shaft is only sold up to " ~
-                (isFrc(definition) ? roundToPrecision(longest / inch, 3) ~ " in." : roundToPrecision(longest / millimeter, 1) ~ " mm") ~ " long.");
+        reportFeatureWarning(context, id, "This shaft is only sold up to " ~ shaftLengthString(definition, shorter.length) ~ " long.");
         return;
+    }
+    if ((cots.fixedLengths ?? false) && stock.length - length > SOLD_LENGTH_TOLERANCE)
+    {
+        const nearest = shorter == undefined ?
+            "the shortest is " ~ shaftLengthString(definition, stock.length) :
+            "the nearest are " ~ shaftLengthString(definition, shorter.length) ~ " and " ~ shaftLengthString(definition, stock.length);
+        reportFeatureWarning(context, id, "This shaft is only sold in set lengths; " ~ nearest ~ ".");
     }
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.PART_NUMBER, "value" : stock.partNumber });
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.DESCRIPTION, "value" : stock.url });
 }
 
+/**
+ * Sets a custom shaft's material and appearance, in the colors its profile is usually sold in.
+ */
 function setShaftProperties(context is Context, definition is map, shaft is Query)
 {
-    var color;
-    var vendor;
-    var partNumber;
-    if (definition.shaftType == ShaftType.HEX)
-    {
-        color = definition.hexType == HexType.ULTRA_HEX ? WHITE : BLACK;
-
-        if (definition.hexType == HexType.STOCK)
-        {
-            // Too bad, REV (and ThriftyBot I guess)
-            vendor = "West Coast Products";
-            partNumber = definition.hexSize == HexSize._1_2_IN ? "WCP-0915" : "WCP-0912";
-        }
-        if (definition.hexType == HexType.ROUNDED_HEX)
-        {
-            vendor = "West Coast Products";
-            partNumber = definition.hexSize == HexSize._1_2_IN ? "WCP-0914" : "WCP-0911";
-        }
-        else if (definition.hexType == HexType.ULTRA_HEX)
-        {
-            vendor = "REV Robotics";
-            partNumber = "REV-41-3205";
-        }
-        else if (definition.hexType == HexType.CHURRO)
-        {
-            vendor = "AndyMark";
-            partNumber = "am-3101";
-        }
-        else if (definition.hexType == HexType.HEX_LITE)
-        {
-            vendor = "West Coast Products";
-            partNumber = definition.hexSize == HexSize._1_2_IN ? "WCP-0917" : "WCP-1418";
-        }
-    }
-    else
-    {
-        color = definition.splineType == SplineType.MAX_SPLINE ? WHITE : BLACK;
-        vendor = definition.splineType == SplineType.MAX_SPLINE ? "REV Robotics" : "West Coast Products";
-        partNumber = definition.splineType == SplineType.MAX_SPLINE ? "REV-21-2520" : "WCP-0918";
-    }
-    setProperty(context, {
-                "entities" : shaft,
-                "propertyType" : PropertyType.APPEARANCE,
-                "value" : color
-            });
-
-    setProperty(context, {
-                "entities" : shaft,
-                "propertyType" : PropertyType.MATERIAL,
-                "value" : ALUMINUM
-            });
-
-    if (definition.vendor != undefined)
-    {
-        setProperty(context, {
-                    "entities" : shaft,
-                    "propertyType" : PropertyType.VENDOR,
-                    "value" : vendor
-                });
-
-    }
-
-    if (definition.partNumber != undefined)
-    {
-        setProperty(context, {
-                    "entities" : shaft,
-                    "propertyType" : PropertyType.PART_NUMBER,
-                    "value" : partNumber
-                });
-    }
+    const white = definition.shaftType == ShaftType.HEX ?
+        definition.hexType == HexType.ULTRA_HEX :
+        definition.splineType != SplineType.SPLINE_XL;
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.APPEARANCE, "value" : white ? WHITE : BLACK });
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.MATERIAL, "value" : ALUMINUM });
 }
 
 /**
@@ -746,7 +704,7 @@ function setShaftName(context is Context, shaft is Query, definition is map, len
     }
     else
     {
-        shaftName = definition.splineType == SplineType.MAX_SPLINE ? "MAXSpline" : "SplineXL";
+        shaftName = splineName(definition.splineType);
     }
 
     const valueString = makeValueString(definition.unitSystem, length);

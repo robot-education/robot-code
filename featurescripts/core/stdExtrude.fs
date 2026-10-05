@@ -13,7 +13,7 @@ export import(path : "onshape/std/extrude.fs", version : "2960.0");
  */
 export predicate extrudePredicate(definition is map)
 {
-    annotation { "Name" : "End type" }
+    annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.endBound is BoundingType;
 
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
@@ -27,7 +27,7 @@ export predicate extrudePredicate(definition is map)
 
     if (definition.endBound == BoundingType.BLIND || definition.endBound == BoundingType.THROUGH_ALL)
     {
-        annotation { "Name" : "Symmetric" }
+        annotation { "Name" : "Symmetric", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.symmetric is boolean;
     }
 
@@ -41,7 +41,7 @@ export predicate extrudePredicate(definition is map)
         {
             if (definition.hasSecondDirection)
             {
-                annotation { "Name" : "End type", "Column Name" : "Second end type" }
+                annotation { "Name" : "End type", "Column Name" : "Second end type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.secondDirectionBound is BoundingType;
 
                 annotation { "Name" : "Opposite direction", "Column Name" : "Second opposite direction",
@@ -73,7 +73,7 @@ export predicate newExtrudePredicate(definition is map)
  */
 export predicate newExtrudeEndTypePredicate(definition is map)
 {
-    annotation { "Name" : "End type" }
+    annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.endBound is SMExtrudeBoundingType;
 
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
@@ -93,7 +93,7 @@ export predicate newExtrudeBoundsPredicate(definition is map)
 
     if (definition.endBound == SMExtrudeBoundingType.BLIND)
     {
-        annotation { "Name" : "Symmetric" }
+        annotation { "Name" : "Symmetric", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.symmetric is boolean;
     }
 
@@ -107,7 +107,7 @@ export predicate newExtrudeBoundsPredicate(definition is map)
         {
             if (definition.hasSecondDirection)
             {
-                annotation { "Name" : "End type", "Column Name" : "Second end type" }
+                annotation { "Name" : "End type", "Column Name" : "Second end type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.secondDirectionBound is SMExtrudeBoundingType;
 
                 annotation { "Name" : "Opposite direction", "Column Name" : "Second opposite direction",

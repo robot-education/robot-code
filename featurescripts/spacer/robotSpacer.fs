@@ -234,7 +234,7 @@ function setSpacerProperties(context is Context, definition is map, spacer is Qu
     var name;
     if (definition.spacerType == SpacerType.SPLINE)
     {
-        name = definition.splineType == SplineType.MAX_SPLINE ? "MAXSpline" : "SplineXL";
+        name = splineName(definition.splineType);
     }
     else
     {
