@@ -4,6 +4,9 @@ Run `uv run fs gen` after editing; adding an adapter only takes an entry in ADAP
 Most adapters are a ring of tabs: a tab has parallel sides, an outer arc, and filleted corners,
 and neighboring tabs are joined by a round relief which both sides are tangent to. Vendor
 drawings and models are in vendor/.
+
+Hex bores always have a corner on the X axis, so switching adapters never turns the shaft; profiles
+are rotated to match how the vendor's hex sits in the adapter.
 """
 
 import dataclasses
@@ -12,9 +15,9 @@ import pathlib
 from typing import Callable
 
 from fs_cli.gen import Code, Constant, Import
-from fs_cli.sketches import MM, ORIGIN, Arc, Entity, Line, Profile, Sketch, polar
+from fs_cli.sketches import MM, ORIGIN, Arc, Entity, Line, Profile, Sketch, polar, rotated
 from fs_cli.step import StepFile
-from fs_cli.tables import Enum, inch, mm, number, string
+from fs_cli.tables import Enum, inch, mm, string
 
 VENDOR = pathlib.Path(__file__).parent / "vendor"
 
@@ -85,6 +88,14 @@ WCP_SPLINE_ADAPTER = adapter(
     half_width=1 / 32,
 )
 TTB_HEX_INSERT = adapter(12, outer_radius=0.5, fillet=0.02, relief_radius=0.05, half_width=1 / 16)
+# TTB-0356's profile with a tab on the X axis, where its hex's corner is
+TTB_HEX_7MM_INSERT = rotated(WCP_SPLINE_ADAPTER, -15)
+TTB_HEX_3_8_INSERT = adapter(12, outer_radius=0.375, fillet=0.02, relief_radius=0.035, half_width=0.047)
+# Measured from vendor/LAI_*.step
+LAST_ANVIL_HEX_INSERT = adapter(12, outer_radius=0.5, fillet=0.75 * MM, relief_radius=1 * MM, half_width=1.5 * MM)
+LAST_ANVIL_HEX_3_8_INSERT = adapter(
+    12, outer_radius=0.4375, fillet=0.5 * MM, relief_radius=1.25 * MM, half_width=1 * MM
+)
 
 
 def andymark_insert(diameter: float, relief_radius: float) -> list[Entity]:
@@ -100,8 +111,8 @@ ANDYMARK_HEX_INSERT = andymark_insert(1, relief_radius=0.07)  # am-5654
 # am-5655 (3/8" hex), am-5656 (8mm keyed), and am-5657 (Kraken spline) share a profile
 ANDYMARK_SMALL_INSERT = andymark_insert(0.75, relief_radius=0.04)
 
-# Ten notches around a circle; the notches are splines in Swyft's model
-SWYFT_HEX_ADAPTER = StepFile(VENDOR / "SR-HEXto3DPRINT-01_v1.step").profile()
+# Ten notches around a circle; the notches are splines in Swyft's model. Its hex has corners at 30 degrees
+SWYFT_HEX_ADAPTER = rotated(StepFile(VENDOR / "SR-HEXto3DPRINT-01_v1.step").profile(), -30)
 
 
 def starting_at(entities: list[Entity], first: int) -> list[int]:
@@ -115,12 +126,12 @@ WCP_SPLINE_ADAPTER_ORDER = starting_at(WCP_SPLINE_ADAPTER, 32)
 TTB_HEX_INSERT_ORDER = starting_at(TTB_HEX_INSERT, 18)
 
 # Bores cut through the print for an adapter's shaft (see robotPrintAdapter's sketchBoreProfile): a hex
-# (across flats, with a corner at vertex_angle to match the adapter), or a clearance circle, which
-# SplineXS adapters can replace with a SplineXS profile.
+# (across flats, with a corner on the X axis), or a clearance circle, which SplineXS adapters can replace with
+# a SplineXS profile.
 
 
-def hex_bore(across_flats: float, vertex_angle: float) -> str:
-    return f"{{ {string('hexSize')} : {inch(across_flats)}, {string('vertexAngle')} : {number(vertex_angle)} * degree }}"
+def hex_bore(across_flats: float) -> str:
+    return f"{{ {string('hexSize')} : {inch(across_flats)} }}"
 
 
 def circle_bore(diameter_mm: float) -> str:
@@ -162,24 +173,24 @@ class Adapter:
 # Every adapter, sorted by vendor and then part number
 ADAPTERS = [
     # AndyMark's inserts have a 0.03" boss (see vendor/am-5654), so the toothed part is 0.22" thick
-    Adapter("AndyMark", "HEX_INSERT", '1/2" Hex Insert (am-5654)', "ANDYMARK_HEX_INSERT_PROFILE", hex_bore(0.5, 90), boss=0.03),
-    Adapter("AndyMark", "HEX_3_8_INSERT", '3/8" Hex Insert (am-5655)', "ANDYMARK_SMALL_INSERT_PROFILE", hex_bore(0.375, 90), boss=0.03),
+    Adapter("AndyMark", "HEX_INSERT", '1/2" Hex Insert (am-5654)', "ANDYMARK_HEX_INSERT_PROFILE", hex_bore(0.5), boss=0.03),
+    Adapter("AndyMark", "HEX_3_8_INSERT", '3/8" Hex Insert (am-5655)', "ANDYMARK_SMALL_INSERT_PROFILE", hex_bore(0.375), boss=0.03),
     # The bore clears the key, which reaches 4.9mm from the center
     Adapter("AndyMark", "KEYED_8MM_INSERT", "8mm Keyed Insert (am-5656)", "ANDYMARK_SMALL_INSERT_PROFILE", circle_bore(10), boss=0.03),
     Adapter("AndyMark", "KRAKEN_INSERT", "Kraken Spline Insert (am-5657)", "ANDYMARK_SMALL_INSERT_PROFILE", SPLINE_XS_BORE, boss=0.03),
-    # FRCDesign models it with WCP's profile, as its photos look. Its store has the part numbers the other way around
-    # from FRCDesign: 260161 is 1/2", and 260160 3/8". TODO: its 3/8" insert (260160), which is smaller
-    Adapter("Last Anvil", "HEX_INSERT", '1/2" Hex Insert (260161)', "WCP_HEX_ADAPTER_PROFILE", hex_bore(0.5, 0)),
-    Adapter("Swyft", "HEX_ADAPTER", '1/2" Hex Adapter (SR-HEXto3DPRINT-01)', "SWYFT_HEX_ADAPTER_PROFILE", hex_bore(0.5, 90)),
-    Adapter("TTB", "HEX_INSERT", '1/2" Hex Insert (TTB-0034)', "TTB_HEX_INSERT_PROFILE", hex_bore(0.5, 0)),
+    # Its store has the part numbers the other way around from FRCDesign: 260161 is 1/2", and 260160 3/8"
+    Adapter("Last Anvil", "HEX_3_8_INSERT", '3/8" Hex Insert (260160)', "LAST_ANVIL_HEX_3_8_INSERT_PROFILE", hex_bore(0.375)),
+    Adapter("Last Anvil", "HEX_INSERT", '1/2" Hex Insert (260161)', "LAST_ANVIL_HEX_INSERT_PROFILE", hex_bore(0.5)),
+    Adapter("Swyft", "HEX_ADAPTER", '1/2" Hex Adapter (SR-HEXto3DPRINT-01)', "SWYFT_HEX_ADAPTER_PROFILE", hex_bore(0.5)),
+    Adapter("TTB", "HEX_INSERT", '1/2" Hex Insert (TTB-0034)', "TTB_HEX_INSERT_PROFILE", hex_bore(0.5)),
     # The same shape as WCP's SplineXS adapter
     Adapter("TTB", "SPLINE_INSERT", "SplineXS Insert (TTB-0356)", "WCP_SPLINE_ADAPTER_PROFILE", SPLINE_XS_BORE),
-    # For goBILDA's 7mm (and 8mm rounded) hex. Its photos look like TTB-0356 with a hex bore, and the hex's corners
-    # (4.04mm out) clear that bore's 4mm about the same. TODO: check its outline and the hex's angle against its CAD
-    Adapter("TTB", "HEX_7MM_INSERT", "7mm Hex Insert (TTB-0437)", "WCP_SPLINE_ADAPTER_PROFILE", hex_bore(7 / 25.4, 0)),
-    # TODO: its 3/8" hex insert (TTB-0438), which is bigger than TTB-0356 (it has no CAD online yet)
+    # For goBILDA's 7mm (and 8mm rounded) hex. Its drawing (vendor/TTB-0437) is TTB-0356 with a hex bore
+    Adapter("TTB", "HEX_7MM_INSERT", "7mm Hex Insert (TTB-0437)", "TTB_HEX_7MM_INSERT_PROFILE", hex_bore(7 / 25.4)),
+    # Its drawing (vendor/TTB-0438) doesn't show its thickness
+    Adapter("TTB", "HEX_3_8_INSERT", '3/8" Hex Insert (TTB-0438)', "TTB_HEX_3_8_INSERT_PROFILE", hex_bore(0.375)),
     Adapter("WCP", "SPLINE_ADAPTER", "SplineXS Adapter (WCP-1021)", "WCP_SPLINE_ADAPTER_PROFILE", SPLINE_XS_BORE),
-    Adapter("WCP", "HEX_ADAPTER", '1/2" Hex Adapter (WCP-1121)', "WCP_HEX_ADAPTER_PROFILE", hex_bore(0.5, 0)),
+    Adapter("WCP", "HEX_ADAPTER", '1/2" Hex Adapter (WCP-1121)', "WCP_HEX_ADAPTER_PROFILE", hex_bore(0.5)),
 ]
 DEFAULT_VENDOR = "TTB"
 
@@ -286,7 +297,7 @@ get_print_adapter = """/**
  * The adapter chosen by printAdapterSelectionPredicate's parameters: its `profile`, its thickness (`depth`), how
  * tall the boss on one side of it is (`boss`, if it has one), and the `bore` cut through the print for its shaft.
  *
- * A bore is a hex (`hexSize` across flats, with a corner at `vertexAngle`, timed to match the adapter), or a
+ * A bore is a hex (`hexSize` across flats, with a corner on the X axis, which the profile is timed to), or a
  * clearance circle (`diameter`), which SplineXS adapters (`splineXs`) can replace with a SplineXS profile.
  */
 export function getPrintAdapter(definition is map) returns map
@@ -316,6 +327,10 @@ CONTENTS = [
     Sketch("WCP_HEX_ADAPTER_PROFILE", Profile(WCP_HEX_ADAPTER, WCP_HEX_ADAPTER_ORDER)),
     Sketch("WCP_SPLINE_ADAPTER_PROFILE", Profile(WCP_SPLINE_ADAPTER, WCP_SPLINE_ADAPTER_ORDER)),
     Sketch("TTB_HEX_INSERT_PROFILE", Profile(TTB_HEX_INSERT, TTB_HEX_INSERT_ORDER)),
+    Sketch("TTB_HEX_7MM_INSERT_PROFILE", Profile(TTB_HEX_7MM_INSERT)),
+    Sketch("TTB_HEX_3_8_INSERT_PROFILE", Profile(TTB_HEX_3_8_INSERT)),
+    Sketch("LAST_ANVIL_HEX_INSERT_PROFILE", Profile(LAST_ANVIL_HEX_INSERT)),
+    Sketch("LAST_ANVIL_HEX_3_8_INSERT_PROFILE", Profile(LAST_ANVIL_HEX_3_8_INSERT)),
     Sketch("ANDYMARK_HEX_INSERT_PROFILE", Profile(ANDYMARK_HEX_INSERT)),
     Sketch("ANDYMARK_SMALL_INSERT_PROFILE", Profile(ANDYMARK_SMALL_INSERT)),
     Sketch("SWYFT_HEX_ADAPTER_PROFILE", Profile(SWYFT_HEX_ADAPTER)),

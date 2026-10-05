@@ -63,7 +63,7 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
             {
                 if (printAdapterHasSplineXsBore(definition))
                 {
-                    annotation { "Name" : "Bore type", "Description" : "A clearance circle, or the SplineXS profile itself.", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+                    annotation { "Name" : "Bore type", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
                     definition.boreType is PrintBoreType;
                 }
 
@@ -211,7 +211,7 @@ function sketchBoreProfile(context is Context, id is Id, definition is map, plan
         const hexRadius = (bore.hexSize / 2) / cos(30 * degree);
         skRegularPolygon(sketch, "polygon1", {
                     "center" : zeroVector(2) * meter,
-                    "firstVertex" : vector(cos(bore.vertexAngle), sin(bore.vertexAngle)) * hexRadius,
+                    "firstVertex" : vector(hexRadius, 0 * meter),
                     "sides" : 6
                 });
     }

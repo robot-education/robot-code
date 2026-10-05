@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "shaft/robotShaftCommon.fs", version : ""); // shaft/robotShaftCommon.fs
-import(path : "core/robotProperties.fs", version : ""); // core/robotProperties.fs
+import(path : "603be214b7d30fd438966545", version : "c79aef057fc8169e90ac278c"); // shaft/robotShaftCommon.fs
+import(path : "0794d10863d10d98a88c2ab4", version : "599a218f6ba935dcd664345c"); // core/robotProperties.fs
 
 /* Generated from robotShaftTables.py by `fs gen` -- DO NOT EDIT */
 

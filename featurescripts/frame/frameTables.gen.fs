@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "core/sketchData.fs", version : ""); // core/sketchData.fs
+import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91"); // core/sketchData.fs
 
 /* Generated from frameTables.py by `fs gen` -- DO NOT EDIT */
 
