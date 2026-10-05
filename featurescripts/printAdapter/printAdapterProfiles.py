@@ -167,6 +167,9 @@ ADAPTERS = [
     # The bore clears the key, which reaches 4.9mm from the center
     Adapter("AndyMark", "KEYED_8MM_INSERT", "8mm Keyed Insert (am-5656)", "ANDYMARK_SMALL_INSERT_PROFILE", circle_bore(10), boss=0.03),
     Adapter("AndyMark", "KRAKEN_INSERT", "Kraken Spline Insert (am-5657)", "ANDYMARK_SMALL_INSERT_PROFILE", SPLINE_XS_BORE, boss=0.03),
+    # FRCDesign models it with WCP's profile, as its photos look. Its store has the part numbers the other way around
+    # from FRCDesign: 260161 is 1/2", and 260160 3/8". TODO: its 3/8" insert (260160), which is smaller
+    Adapter("Last Anvil", "HEX_INSERT", '1/2" Hex Insert (260161)', "WCP_HEX_ADAPTER_PROFILE", hex_bore(0.5, 0)),
     Adapter("Swyft", "HEX_ADAPTER", '1/2" Hex Adapter (SR-HEXto3DPRINT-01)', "SWYFT_HEX_ADAPTER_PROFILE", hex_bore(0.5, 90)),
     Adapter("TTB", "HEX_INSERT", '1/2" Hex Insert (TTB-0034)', "TTB_HEX_INSERT_PROFILE", hex_bore(0.5, 0)),
     # The same shape as WCP's SplineXS adapter
@@ -174,6 +177,7 @@ ADAPTERS = [
     # For goBILDA's 7mm (and 8mm rounded) hex. Its photos look like TTB-0356 with a hex bore, and the hex's corners
     # (4.04mm out) clear that bore's 4mm about the same. TODO: check its outline and the hex's angle against its CAD
     Adapter("TTB", "HEX_7MM_INSERT", "7mm Hex Insert (TTB-0437)", "WCP_SPLINE_ADAPTER_PROFILE", hex_bore(7 / 25.4, 0)),
+    # TODO: its 3/8" hex insert (TTB-0438), which is bigger than TTB-0356 (it has no CAD online yet)
     Adapter("WCP", "SPLINE_ADAPTER", "SplineXS Adapter (WCP-1021)", "WCP_SPLINE_ADAPTER_PROFILE", SPLINE_XS_BORE),
     Adapter("WCP", "HEX_ADAPTER", '1/2" Hex Adapter (WCP-1121)', "WCP_HEX_ADAPTER_PROFILE", hex_bore(0.5, 0)),
 ]
@@ -182,6 +186,7 @@ DEFAULT_VENDOR = "TTB"
 # Each vendor: its value in the PrintAdapterVendor enum, its adapter enum, and that enum's parameter
 VENDORS = {
     "AndyMark": ("ANDYMARK", "AndyMarkAdapter", "andyMarkAdapter"),
+    "Last Anvil": ("LAST_ANVIL", "LastAnvilAdapter", "lastAnvilAdapter"),
     "Swyft": ("SWYFT", "SwyftAdapter", "swyftAdapter"),
     "TTB": ("TTB", "TtbAdapter", "ttbAdapter"),
     "WCP": ("WCP", "WcpAdapter", "wcpAdapter"),

@@ -8,6 +8,8 @@ export enum PrintAdapterVendor
 {
     annotation { "Name" : "AndyMark" }
     ANDYMARK,
+    annotation { "Name" : "Last Anvil" }
+    LAST_ANVIL,
     annotation { "Name" : "Swyft" }
     SWYFT,
     annotation { "Name" : "TTB" }
@@ -26,6 +28,12 @@ export enum AndyMarkAdapter
     KEYED_8MM_INSERT,
     annotation { "Name" : "Kraken Spline Insert (am-5657)" }
     KRAKEN_INSERT
+}
+
+export enum LastAnvilAdapter
+{
+    annotation { "Name" : "1/2\" Hex Insert (260161)" }
+    HEX_INSERT
 }
 
 export enum SwyftAdapter
@@ -64,6 +72,11 @@ export predicate printAdapterSelectionPredicate(definition is map)
     {
         annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.andyMarkAdapter is AndyMarkAdapter;
+    }
+    else if (definition.adapterVendor == PrintAdapterVendor.LAST_ANVIL)
+    {
+        annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.lastAnvilAdapter is LastAnvilAdapter;
     }
     else if (definition.adapterVendor == PrintAdapterVendor.SWYFT)
     {
@@ -500,6 +513,7 @@ export const SWYFT_HEX_ADAPTER_PROFILE = [
 
 export const PRINT_ADAPTER_PARAMETERS = {
         PrintAdapterVendor.ANDYMARK : "andyMarkAdapter",
+        PrintAdapterVendor.LAST_ANVIL : "lastAnvilAdapter",
         PrintAdapterVendor.SWYFT : "swyftAdapter",
         PrintAdapterVendor.TTB : "ttbAdapter",
         PrintAdapterVendor.WCP : "wcpAdapter"
@@ -511,6 +525,9 @@ export const PRINT_ADAPTERS = {
             AndyMarkAdapter.HEX_3_8_INSERT : { "profile" : ANDYMARK_SMALL_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.375 * inch, "vertexAngle" : 90 * degree }, "boss" : 0.03 * inch },
             AndyMarkAdapter.KEYED_8MM_INSERT : { "profile" : ANDYMARK_SMALL_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 10 * millimeter }, "boss" : 0.03 * inch },
             AndyMarkAdapter.KRAKEN_INSERT : { "profile" : ANDYMARK_SMALL_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 8.5 * millimeter, "splineXs" : true }, "boss" : 0.03 * inch }
+        },
+        PrintAdapterVendor.LAST_ANVIL : {
+            LastAnvilAdapter.HEX_INSERT : { "profile" : WCP_HEX_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 0 * degree } }
         },
         PrintAdapterVendor.SWYFT : {
             SwyftAdapter.HEX_ADAPTER : { "profile" : SWYFT_HEX_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 90 * degree } }
