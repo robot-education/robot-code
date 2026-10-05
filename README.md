@@ -14,7 +14,8 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 | -------------------------- | ---------------------------------------------------------------------------- |
 | `featurescripts/`          | The backend document's Feature Studios, organized however you like           |
 | `fs_cli/`                  | The `fs` command                                                             |
-| `onshape_api/`             | A small Onshape REST API client                                              |
+| `onshape_api/`             | A small Onshape REST API client; see [its README](onshape_api/README.md)     |
+| `std/`                     | A read-only copy of the Onshape std library, for reference                   |
 | `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
 | `vscode-extension/server/` | The Python FeatureScript language server the extension runs (`fs_lsp`)       |
 | `pyproject.toml`           | Python dependencies, plus the `[tool.fs]` table configuring the documents    |
@@ -71,8 +72,8 @@ uv run fs push featurescripts/Robot   # ...or by file or folder
 uv run fs push --dry-run     # show what would be pushed
 ```
 
-Any errors or warnings Onshape reports for pushed code are printed. New files become new Feature Studios at the
-top level of the document (the API can't create folders); move the tabs in Onshape if you like, `fs` won't care.
+New files become new Feature Studios at the top level of the document (the API can't create folders); move the
+tabs in Onshape if you like, `fs` won't care. The API doesn't report compile errors, so check new code in Onshape.
 
 For the occasional edit made directly in Onshape:
 
@@ -98,6 +99,11 @@ against the file's recent git history: if Onshape matches a committed version, l
 - Both changed: both commands skip it; inspect with `fs diff`, then pick a side with `fs pull --force` or
   `fs push --force`.
 
+Changes to the `version` of imports of other tabs in the document (`import(path : "<element id>", version :
+"...")`) are never treated as edits, since Onshape manages them itself and may update them when the imported tab
+changes. When Onshape's are newer, `fs push`, `fs pull`, and `fs sync` copy them into the local file, and
+`fs push` never sends older ones.
+
 Files are matched to Feature Studios by element id once synced, so renaming or moving either the file or the tab
 doesn't break the link. (On a fresh clone, studios are matched to the local file with the same name.) Deleting a
 file never deletes the tab in Onshape (delete the tab yourself), and a tab deleted in Onshape is recreated by
@@ -108,10 +114,12 @@ file never deletes the tab in Onshape (delete the tab yourself), and a tab delet
 Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 [API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum:
 
-- `fs status` / `fs push` with nothing to do: 1 call. Studios are only downloaded when their microversion
-  changed since the last sync, so on a new machine the first run downloads each studio once.
+- `fs status` / `fs push` with nothing to do: 1 call, which lists every tab's microversion (and the folders).
+  A studio is only downloaded when its microversion changed since the last sync, so on a new machine the
+  first run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may
+  change when a tab it imports changes); then the download just confirms nothing needs doing.
 - Pushing: 1 call per studio pushed, plus 1 to record the new microversions.
-- Pulling: 1 call per studio pulled, plus 1 to look up folders if any studio is new to the repo.
+- Pulling: 1 call per studio pulled.
 - `fs release`: about 8 calls.
 
 Failed calls (like a 400) don't count.
@@ -169,8 +177,29 @@ It starts the language server with `.venv/bin/fs-lsp`, falling back to `uv run f
   **Run FeatureScript extension** launch configuration) to try it in a new window.
 - The grammar is edited in `vscode-extension/syntaxes/featurescript.tmLanguage.yaml`; `npm run build`
   regenerates the JSON.
-- The server's knowledge of the Onshape standard library lives in `vscode-extension/server/fs_lsp/data/`.
-  Regenerate it from the latest std version in Onshape with `uv run python -m fs_lsp.tools.update_stdlib`.
+- The server's knowledge of the Onshape standard library lives in `vscode-extension/server/fs_lsp/data/`, generated
+  from `std/`. See below to update it.
+
+# The std library
+
+`std/` holds a copy of the Onshape std library ([MIT](std/LICENSE.txt)), with version numbers replaced by `✨` so
+updates only touch the files that changed. Its README notes the version. To update it to the latest std, and
+regenerate the language server's stdlib indexes:
+
+```
+uv run python -m fs_lsp.tools.update_stdlib
+```
+
+This uses the [std library mirror on GitHub](https://github.com/javawizard/onshape-std-library-mirror), so it makes
+no Onshape API calls. If the mirror lags behind Onshape, `--from-onshape` downloads the std from Onshape instead,
+at one API call per std Feature Studio (~270). `--offline` just regenerates the indexes from `std/`.
+
+# The Onshape API
+
+`onshape_api/reference/openapi.json` is a trimmed, committed copy of Onshape's API definition (the one behind the
+[Glassworks API explorer](https://cad.onshape.com/glassworks/explorer)), covering just the endpoints we call.
+`onshape_api/types.py` hand-types the parts of those responses we read. See the
+[onshape_api README](onshape_api/README.md) for how to add an endpoint.
 
 The extension and language server are based on
 [gatrall/featurescript-language-support](https://github.com/gatrall/featurescript-language-support) (MIT).

@@ -49,8 +49,11 @@ def diagnostics(parsed: ParsedProgram) -> list[lsp.Diagnostic]:
         )
 
     stack: list[Token] = []
+    previous: Token | None = None
     for token in parsed.tokens:
-        if token.kind == "invalid":
+        if is_version_placeholder(token, previous):
+            pass
+        elif token.kind == "invalid":
             if token.value in ("++", "--"):
                 error(
                     token,
@@ -75,9 +78,19 @@ def diagnostics(parsed: ParsedProgram) -> list[lsp.Diagnostic]:
                     stack.pop()
                 else:
                     error(token, f"Unmatched '{token.value}'.")
+        previous = token
     for unclosed in stack:
         error(
             unclosed,
             f"'{unclosed.value}' is never closed (expected '{OPENERS[unclosed.value]}').",
         )
     return results
+
+
+def is_version_placeholder(token: Token, previous: Token | None) -> bool:
+    """The checked-in std (std/) replaces version numbers with ✨, e.g. `FeatureScript ✨;`."""
+    return (
+        token.value == "✨"
+        and previous is not None
+        and previous.value == "FeatureScript"
+    )

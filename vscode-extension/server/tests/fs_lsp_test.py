@@ -444,6 +444,11 @@ def test_diagnostics_clean_fixtures():
             assert found == [], path.name
 
 
+def test_diagnostics_allow_std_version_placeholder():
+    assert messages("FeatureScript ✨;\nconst a = 1;") == []
+    assert messages("const ✨ = 1;") != []
+
+
 def test_diagnostics_brackets_and_operators():
     assert any("never closed" in m for m in messages("function f() {\n  g(1;\n}"))
     assert any("Unmatched" in m for m in messages("const a = 1);"))
@@ -534,3 +539,16 @@ def test_bundled_stdlib_data_loads():
     index = stdlib()
     assert "extrude" in index.features
     assert "BoundingType" in index.enum_names
+
+
+# The checked-in std library
+
+
+def test_std_library_parses_cleanly():
+    """The Onshape std (std/) is a large real-world corpus: it should produce no diagnostics."""
+    std = pathlib.Path(__file__).resolve().parents[3] / "std"
+    files = sorted(std.glob("*.fs"))
+    assert len(files) > 200
+    for path in files:
+        parsed = parse(path.read_text())
+        assert [d.message for d in diagnostics(parsed)] == [], path.name

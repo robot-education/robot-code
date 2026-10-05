@@ -14,7 +14,7 @@
     },
     "files.eol": "\n",
     "cSpell.allowCompoundWords": true,
-    "cSpell.ignorePaths": ["build", ".git", ".vscode", ".devcontainer"],
+    "cSpell.ignorePaths": ["build", ".git", ".vscode", ".devcontainer", "std"],
     "cSpell.words": [
         "apikey",
         "creds",

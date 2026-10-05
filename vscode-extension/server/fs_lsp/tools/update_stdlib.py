@@ -1,10 +1,16 @@
-"""Regenerates fs_lsp/data/stdlib_symbols.json and stdlib_metadata.json from the Onshape std library.
+"""Updates the Onshape std library checked in at std/, then regenerates the language server's
+stdlib indexes (fs_lsp/data/stdlib_symbols.json and stdlib_metadata.json) from it.
 
-By default the std library source is downloaded from the latest version of the Onshape std
-document (this requires API keys, see README.md). Alternatively, point --source at a folder of
-std .fs files.
+    uv run python -m fs_lsp.tools.update_stdlib               # latest std, from GitHub
+    uv run python -m fs_lsp.tools.update_stdlib --offline     # just regenerate the indexes
+    uv run python -m fs_lsp.tools.update_stdlib --from-onshape
 
-    uv run python -m fs_lsp.tools.update_stdlib [--source DIR] [--save-source DIR]
+By default the std comes from https://github.com/javawizard/onshape-std-library-mirror, which
+mirrors every std version and costs no Onshape API calls. Its without-versions branch is used:
+version numbers are replaced with "✨", so updating only touches the files that really changed.
+
+--from-onshape downloads the latest std version from Onshape instead, for when the mirror lags
+behind. That's one API call per std Feature Studio (~270), a big bite of the annual API limit.
 
 Ported from gatrall/featurescript-language-support's scripts/update-stdlib-symbols.ts (MIT).
 """
@@ -16,6 +22,9 @@ import dataclasses
 import json
 import pathlib
 import re
+import shutil
+import subprocess
+import tempfile
 from concurrent import futures
 
 from fs_lsp.stdlib import METADATA_PATH, SYMBOLS_PATH
@@ -341,7 +350,7 @@ def extract_fields_from_doc_comment(comment: str) -> list[dict]:
 def extract_predicate_blocks(text: str) -> list[tuple[str, str, str]]:
     predicates = []
     pattern = re.compile(
-        rf"export\s+predicate\s+({IDENTIFIER})\s*\(\s*({IDENTIFIER})\b"
+        rf"\b(?:export\s+)?predicate\s+({IDENTIFIER})\s*\(\s*({IDENTIFIER})\b"
     )
     for match in pattern.finditer(text):
         body_open = text.find("{", match.start())
@@ -623,6 +632,28 @@ def find_matching_brace(text: str, open_offset: int) -> int:
 # Sources
 
 
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
+STD_DIR = REPO_ROOT / "std"
+MIRROR_URL = "https://github.com/javawizard/onshape-std-library-mirror"
+MIRROR_BRANCH = "without-versions"
+STD_README = """# Onshape std library
+
+The [Onshape FeatureScript standard library](https://cad.onshape.com/documents/12312312345abcabcabcdeff),
+version **{version}**, for reference (and for the language server's stdlib indexes). It's MIT licensed;
+see `LICENSE.txt`.
+
+Version numbers are replaced with `✨` to keep diffs between std versions small.
+
+Source: {source}
+
+Don't edit these files. Update them with:
+
+```
+uv run python -m fs_lsp.tools.update_stdlib
+```
+"""
+
+
 def read_source_dir(root: pathlib.Path) -> list[SourceFile]:
     return [
         SourceFile(path.relative_to(root).as_posix(), path.read_text())
@@ -630,29 +661,93 @@ def read_source_dir(root: pathlib.Path) -> list[SourceFile]:
     ]
 
 
-def download_std() -> list[SourceFile]:
-    """Downloads every Feature Studio in the latest version of the Onshape std."""
+def fetch_mirror(directory: pathlib.Path) -> tuple[str, str]:
+    """Clones the latest std from the GitHub mirror into directory.
+
+    Returns the std version (e.g. "2960.0") and a description of the source.
+    """
+    subprocess.run(
+        [
+            "git",
+            "clone",
+            "--quiet",
+            "--depth",
+            "1",
+            "--branch",
+            MIRROR_BRANCH,
+            MIRROR_URL,
+            str(directory),
+        ],
+        check=True,
+    )
+    log = subprocess.run(
+        ["git", "log", "-1", "--format=%H%n%s%n%ad", "--date=short"],
+        cwd=directory,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    commit, subject, date = log
+    match = re.search(r"Version (\S+)", subject)
+    version = match[1] if match else subject
+    return version, f"{MIRROR_URL}/tree/{commit} ({MIRROR_BRANCH} branch, {date})"
+
+
+def download_from_onshape(directory: pathlib.Path, yes: bool) -> tuple[str, str]:
+    """Downloads every Feature Studio in the latest std version into directory, without versions."""
     from onshape_api.api.key_api import make_key_api
-    from onshape_api.endpoints.documents import ElementType, get_document_elements
-    from onshape_api.endpoints.feature_studios import pull_code
+    from onshape_api.endpoints.documents import get_document_contents
+    from onshape_api.endpoints.feature_studios import get_contents
     from onshape_api.endpoints.versions import get_latest_version
     from onshape_api.model.constants import STD_PATH
     from onshape_api.paths.instance_type import InstanceType
-    from onshape_api.paths.paths import ElementPath, InstancePath
+    from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
+    from onshape_api.types import ElementType
 
     api = make_key_api()
     version = get_latest_version(api, STD_PATH)
-    print(f"Downloading Onshape std version {version['name']}...")
     instance = InstancePath.from_path(STD_PATH, version["id"], InstanceType.VERSION)
-    studios = get_document_elements(api, instance, ElementType.FEATURE_STUDIO)
+    studios = [
+        element
+        for element in get_document_contents(api, instance)["elements"]
+        if element["elementType"] == ElementType.FEATURE_STUDIO
+    ]
+    if not yes:
+        answer = input(
+            f"Downloading std version {version['name']} takes {len(studios)} more API calls. Continue? [y/N] "
+        )
+        if answer.strip().lower() != "y":
+            raise SystemExit("Aborted.")
 
-    def pull(studio: dict) -> SourceFile:
-        path = ElementPath.from_path(instance, studio["id"])
-        return SourceFile(studio["name"], pull_code(api, path))
+    def pull(studio: dict) -> None:
+        code = get_contents(api, ElementPath.from_path(instance, studio["id"]))[
+            "contents"
+        ]
+        (directory / studio["name"]).write_text(remove_versions(code))
 
     with futures.ThreadPoolExecutor(8) as executor:
-        files = list(executor.map(pull, studios))
-    return sorted(files, key=lambda file: file.module)
+        list(executor.map(pull, studios))
+    return version["name"], f"{path_to_url(instance)} (downloaded from Onshape)"
+
+
+def remove_versions(code: str) -> str:
+    """Replaces std version numbers with ✨, like the mirror's without-versions branch."""
+    code = re.sub(r"^FeatureScript \d+;", "FeatureScript ✨;", code, flags=re.MULTILINE)
+    return re.sub(r'(version\s*:\s*)"\d+\.0"', r'\1"✨"', code)
+
+
+def replace_std(source: pathlib.Path, version: str, description: str) -> None:
+    """Replaces the contents of std/ with the .fs files (and license) in source."""
+    if STD_DIR.exists():
+        shutil.rmtree(STD_DIR)
+    STD_DIR.mkdir()
+    for path in source.glob("*.fs"):
+        shutil.copyfile(path, STD_DIR / path.name)
+    if (source / "LICENSE.txt").exists():
+        shutil.copyfile(source / "LICENSE.txt", STD_DIR / "LICENSE.txt")
+    (STD_DIR / "README.md").write_text(
+        STD_README.format(version=version, source=description)
+    )
 
 
 def generate(files: list[SourceFile]) -> tuple[list[dict], dict]:
@@ -665,30 +760,47 @@ def generate(files: list[SourceFile]) -> tuple[list[dict], dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument(
-        "--source",
-        type=pathlib.Path,
-        help="a folder of std .fs files to read instead of downloading them from Onshape",
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument(
+        "--offline",
+        action="store_true",
+        help="don't update std/, just regenerate the indexes from it",
+    )
+    source.add_argument(
+        "--from-onshape",
+        action="store_true",
+        help="download the std from Onshape instead of GitHub (~270 API calls)",
+    )
+    source.add_argument(
+        "--source", type=pathlib.Path, help="copy the std from a folder of .fs files"
     )
     parser.add_argument(
-        "--save-source",
-        type=pathlib.Path,
-        help="also save the downloaded std .fs files to this folder",
+        "-y", "--yes", action="store_true", help="don't ask to confirm API usage"
     )
     args = parser.parse_args()
 
-    files = read_source_dir(args.source) if args.source else download_std()
-    if not files:
-        parser.error("No std .fs files were found.")
-    if args.save_source:
-        for file in files:
-            path = args.save_source / file.module
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(file.text)
+    if not args.offline:
+        with tempfile.TemporaryDirectory() as temp:
+            directory = pathlib.Path(temp) / "std"
+            if args.source:
+                if args.source.resolve() == STD_DIR.resolve():
+                    parser.error("--source can't be std/ itself; use --offline.")
+                directory = args.source
+                version, description = "unknown", f"copied from {args.source}"
+            elif args.from_onshape:
+                directory.mkdir()
+                version, description = download_from_onshape(directory, args.yes)
+            else:
+                version, description = fetch_mirror(directory)
+            replace_std(directory, version, description)
+        print(f"Updated std/ to std version {version}.")
 
+    files = read_source_dir(STD_DIR)
+    if not files:
+        parser.error(f"No std .fs files were found in {STD_DIR}.")
     symbols, metadata = generate(files)
-    SYMBOLS_PATH.write_text(json.dumps(symbols, indent=2) + "\n")
-    METADATA_PATH.write_text(json.dumps(metadata, indent=2) + "\n")
+    SYMBOLS_PATH.write_text(json.dumps(symbols, indent=2, ensure_ascii=False) + "\n")
+    METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n")
     print(
         f"Wrote {len(symbols)} symbols, {len(metadata['enums'])} enums, and {len(metadata['features'])} features."
     )

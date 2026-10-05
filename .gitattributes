@@ -1,0 +1,4 @@
+# Third-party and generated files: keep them out of GitHub's language stats and collapse them in diffs
+std/** linguist-vendored linguist-generated
+onshape_api/reference/openapi.json linguist-generated
+vscode-extension/server/fs_lsp/data/*.json linguist-generated
