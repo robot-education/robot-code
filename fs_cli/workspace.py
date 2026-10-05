@@ -98,6 +98,8 @@ class Studio:
     status: Status = Status.IN_SYNC
     # The path it was synced with, if its file has been renamed or moved since
     renamed_from: str | None = None
+    # Whether it's released (see `load_released`)
+    released: bool = False
 
     @property
     def name(self) -> str:
@@ -136,6 +138,8 @@ class Workspace:
         self.use_git = use_git
         self.instance = config.backend
         self.listed_microversions: dict[str, str] = {}
+        # Every tab, as of the last listing
+        self.listed_studios: list[RemoteStudio] = []
 
     def resolve_targets(self, args: Iterable[str]) -> Targets | None:
         """Resolves command line arguments into Targets, or None for everything.
@@ -167,7 +171,23 @@ class Workspace:
 
     def scan(self, targets: Targets | None = None) -> list[Studio]:
         """Loads and classifies every studio (or just those in targets)."""
-        remote_studios = self.remote.list_studios(self.instance)
+        studios = self.match(targets)
+        with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
+            # Fetching code is the slow part, so classify in parallel
+            list(executor.map(self._classify, studios))
+
+        for studio in studios:
+            # Studios with import updates are recorded once the updates are applied, so they're
+            # checked again until then
+            if studio.status == Status.IN_SYNC and not studio.import_updates:
+                assert studio.remote and studio.local_code is not None
+                self._record(studio, studio.local_code, studio.remote.microversion_id)
+        return studios
+
+    def match(self, targets: Targets | None = None) -> list[Studio]:
+        """Pairs every tab with its file (or just those in targets), without classifying them, so it usually
+        takes 1 call (see `_match`)."""
+        remote_studios = self.listed_studios = self.remote.list_studios(self.instance)
         # Every studio's microversion before anything is pushed (see push_studios)
         self.listed_microversions = {
             remote.element_id: remote.microversion_id for remote in remote_studios
@@ -181,17 +201,6 @@ class Workspace:
                     raise UsageError(f'No FeatureScript matches "{target}".')
                 selected.extend(s for s in matched if s not in selected)
             studios = selected
-
-        with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
-            # Fetching code is the slow part, so classify in parallel
-            list(executor.map(self._classify, studios))
-
-        for studio in studios:
-            # Studios with import updates are recorded once the updates are applied, so they're
-            # checked again until then
-            if studio.status == Status.IN_SYNC and not studio.import_updates:
-                assert studio.remote and studio.local_code is not None
-                self._record(studio, studio.local_code, studio.remote.microversion_id)
         return sorted(studios, key=lambda studio: studio.path)
 
     def _match(self, remote_studios: list[RemoteStudio]) -> list[Studio]:
@@ -204,9 +213,16 @@ class Workspace:
         saved = self.state.studios
         remote_ids = {remote.element_id for remote in remote_studios}
         deleted_in_onshape = set()
+        # Released studios deleted in Onshape stay recorded, so they aren't recreated as new tabs (see
+        # `load_released`)
+        released_deleted = set()
         for element_id in list(saved):
             if element_id not in remote_ids:
-                deleted_in_onshape.add(saved.pop(element_id).file)
+                if element_id in self.state.released:
+                    released_deleted.add(saved[element_id].file)
+                    deleted_in_onshape.add(saved[element_id].file)
+                else:
+                    deleted_in_onshape.add(saved.pop(element_id).file)
 
         code_dir = self.config.code_dir
         local = (
@@ -233,10 +249,16 @@ class Workspace:
                     _read(local.get(path)),
                     deleted_in_onshape=remote is None and path in deleted_in_onshape,
                     located=located,
+                    released=(
+                        remote.element_id in self.state.released if remote else path in released_deleted
+                    ),
                 )
             )
 
         unmatched = []
+        for path in released_deleted:
+            # Not a candidate for other studios
+            claimed.add(path)
         for remote in remote_studios:
             entry = saved.get(remote.element_id)
             if entry and entry.file in local and entry.file not in claimed:
@@ -283,7 +305,7 @@ class Workspace:
                 add(relative_path_for(remote.name), remote, located=False)
 
         for path in sorted(local):
-            if path not in claimed:
+            if path not in claimed or path in released_deleted:
                 add(path, None)
         return studios
 

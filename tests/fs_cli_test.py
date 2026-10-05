@@ -126,6 +126,10 @@ class FakeOnshape:
         self.calls["delete"] += 1
         del self.studios(instance.document_id, instance.instance_id)[element_id]
 
+    def rename(self, instance, element_id, name):
+        self.calls["rename"] += 1
+        self.studios(instance.document_id, instance.instance_id)[element_id]["name"] = name
+
     def feature_names(self, instance, element_id):
         self.calls["feature_names"] += 1
         return self.studios(instance.document_id, instance.instance_id)[element_id][
@@ -297,6 +301,7 @@ def test_studio_files_are_checked_in(repo, onshape, capsys):
     assert json.loads((repo / "fs-studios.json").read_text()) == {
         "version": 1,
         "studios": {element_id: "frame.fs"},
+        "released": [],
     }
     state = json.loads((repo / ".fs-state.json").read_text())
     assert "file" not in state["studios"][element_id]
@@ -1040,3 +1045,261 @@ def test_push_suggests_mv_for_renames_it_cant_tell(repo, onshape, capsys):
     out = capsys.readouterr().out
     assert "Would delete the frame.fs tab" in out
     assert "renamed to tube.fs rather than deleted, run `fs mv OLD NEW` first" in out
+
+
+# Released FeatureScripts
+
+
+def released_ids(repo: pathlib.Path) -> list[str]:
+    return json.loads((repo / "fs-studios.json").read_text())["released"]
+
+
+def test_release_marks_released(repo, onshape):
+    element_id = released_frame(repo, onshape)
+    assert released_ids(repo) == []
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    assert released_ids(repo) == [element_id]
+
+
+def test_push_keeps_released_tabs_of_deleted_files(repo, onshape, capsys):
+    element_id = released_frame(repo, onshape)
+    assert cli.main(["released", "robotFrame"]) == 0
+    local(repo, "Robot/robotFrame.fs").unlink()
+    capsys.readouterr()
+    assert run(onshape, "push", "--yes") == 1
+    assert "it's released" in capsys.readouterr().out
+    assert element_id in onshape.studios()
+    run(onshape, "status")
+    assert "released" in capsys.readouterr().out
+
+
+def test_push_doesnt_recreate_released_tabs(repo, onshape, capsys):
+    element_id = released_frame(repo, onshape)
+    assert cli.main(["released", "featurescripts/Robot/robotFrame.fs"]) == 0
+    onshape.delete(onshape_backend(), element_id)
+    capsys.readouterr()
+    assert run(onshape, "push") == 1
+    assert "restore the tab from the document's history" in capsys.readouterr().out.lower()
+    assert onshape.names() == []
+    # Still recorded, so the next push doesn't recreate it either
+    assert studio_files(repo)[element_id] == "Robot/robotFrame.fs"
+    assert run(onshape, "push") == 1
+
+    assert cli.main(["released", "robotFrame", "--remove"]) == 0
+    assert run(onshape, "push") == 0
+    assert onshape.names() == ["robotFrame.fs"]
+
+
+def onshape_backend():
+    from onshape_api.paths.paths import url_to_instance_path
+
+    return url_to_instance_path(BACKEND)
+
+
+def test_released_lists_marks_and_detects(repo, onshape, capsys):
+    frame = released_frame(repo, onshape)
+    bore = onshape.add("robotBore.fs", "bore")
+    old = onshape.add("robotOld.fs", "old")
+    onshape.add("utils.fs", "utils")
+    run(onshape, "pull")
+    capsys.readouterr()
+    assert cli.main(["released"]) == 0
+    assert "Nothing is released" in capsys.readouterr().out
+
+    onshape.versions_by_document["back"] = [
+        Version("1", "Robot frame - v1.0.0"),
+        Version("2", "Robot bore - v0.1.0-beta.1"),
+        Version("3", "Robot old - v1.0.0"),
+        Version("4", "Robot old - deprecated"),
+    ]
+    calls = sum(onshape.calls.values())
+    assert run(onshape, "released", "--detect") == 0
+    assert sum(onshape.calls.values()) - calls == 2
+    assert sorted(released_ids(repo)) == sorted([frame, bore])
+    assert old not in released_ids(repo)
+
+    assert cli.main(["released", "robotBore", "--remove"]) == 0
+    assert released_ids(repo) == [frame]
+    capsys.readouterr()
+    assert cli.main(["released"]) == 0
+    assert capsys.readouterr().out == "Robot/robotFrame.fs\n"
+    assert cli.main(["released", "nothing"]) == 2
+
+
+def test_mv_keeps_released(repo, onshape):
+    element_id = released_frame(repo, onshape)
+    cli.main(["released", "robotFrame"])
+    assert cli.main(["mv", "featurescripts/Robot/robotFrame.fs", "featurescripts/frame.fs"]) == 0
+    assert released_ids(repo) == [element_id]
+    assert studio_files(repo)[element_id] == "frame.fs"
+
+
+# Matching tabs with files by hand
+
+
+def test_tabs_lists_what_isnt_paired(repo, onshape, capsys):
+    onshape.add("frame.fs", "frame")
+    onshape.add("gone.fs", "gone")
+    released = onshape.add("robotFrame.fs", "rf")
+    run(onshape, "pull")
+    cli.main(["released", "robotFrame"])
+    onshape.add("remoteOnly.fs", "r")
+    cli.main(["mv", "featurescripts/frame.fs", "featurescripts/tube.fs"])
+    cli.main(["mv", "featurescripts/robotFrame.fs", "featurescripts/robotTube.fs"])
+    local(repo, "gone.fs").unlink()
+    write(repo, "new.fs", "new")
+    capsys.readouterr()
+    listings = onshape.calls["list_studios"]
+    assert run(onshape, "tabs") == 0
+    assert onshape.calls["list_studios"] - listings == 1
+    out = capsys.readouterr().out
+    assert "Tabs only in Onshape" in out and "remoteOnly.fs  (" in out
+    assert "Tabs whose files were deleted" in out and "was gone.fs" in out
+    assert "Files not in Onshape" in out and "  new.fs" in out
+    assert "  tube.fs  (tab frame.fs)" in out
+    assert "  robotTube.fs  (tab robotFrame.fs)  [released]" in out
+
+    assert run(onshape, "tabs", "--rename", "--yes") == 0
+    out = capsys.readouterr().out
+    assert "Not renaming robotFrame.fs: it's released" in out
+    assert sorted(onshape.names()) == ["gone.fs", "remoteOnly.fs", "robotFrame.fs", "tube.fs"]
+    assert onshape.studios()[released]["name"] == "robotFrame.fs"
+    assert run(onshape, "tabs") == 0
+    assert "tube.fs" not in capsys.readouterr().out
+
+
+def test_tabs_rename_needs_confirmation(repo, onshape, capsys):
+    onshape.add("frame.fs", "frame")
+    run(onshape, "pull")
+    cli.main(["mv", "featurescripts/frame.fs", "featurescripts/tube.fs"])
+    assert run(onshape, "tabs", "--rename", "--dry-run") == 0
+    assert "Would rename the frame.fs tab to tube.fs" in capsys.readouterr().out
+    assert run(onshape, "tabs", "--rename") == 2
+    assert onshape.names() == ["frame.fs"]
+
+
+def test_link_pairs_a_file_with_a_tab(repo, onshape, capsys):
+    tab = onshape.add("frame.fs", "same")
+    write(repo, "tube.fs", "same")
+    run(onshape, "status")
+    assert "only in Onshape" in capsys.readouterr().out
+
+    assert run(onshape, "link", "featurescripts/tube.fs", "frame.fs") == 0
+    assert studio_files(repo)[tab] == "tube.fs"
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+    # Pushing doesn't create a tab for the file
+    assert run(onshape, "push") == 0
+    assert onshape.names() == ["frame.fs"]
+
+    # Relinking the file moves it to the other tab
+    other = onshape.add("other.fs", "o")
+    assert run(onshape, "link", "featurescripts/tube.fs", other) == 0
+    assert studio_files(repo) == {other: "tube.fs"}
+    assert "no longer synced with the frame.fs tab" in capsys.readouterr().out
+
+    assert run(onshape, "link", "featurescripts/tube.fs", "missing") == 2
+    assert run(onshape, "link", "elsewhere/tube.fs", "frame.fs") == 2
+
+
+def test_unlink(repo, onshape, capsys):
+    tab = onshape.add("frame.fs", "f")
+    run(onshape, "pull")
+    assert cli.main(["unlink", "frame"]) == 0
+    assert tab not in studio_files(repo)
+    assert cli.main(["unlink", "frame"]) == 2
+
+
+# Deprecating
+
+FEATURE = 'annotation { "Feature Type Name" : "Robot frame" }\nexport const robotFrame = defineFeature();\n'
+
+
+def deprecatable_frame(repo, onshape) -> str:
+    element_id = onshape.add("robotFrame.fs", FEATURE, features=["Robot frame"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 0
+    return element_id
+
+
+def test_deprecate(repo, onshape, capsys):
+    element_id = deprecatable_frame(repo, onshape)
+    frontend_id = next(iter(onshape.studios("front", "fw")))
+    assert run(onshape, "deprecate", "robotFrame", "-y", "--publish", "-d", "Use robot tube") == 0
+
+    version = onshape.versions_by_document["back"][-1]
+    assert version.name == "Robot frame - deprecated"
+    deprecated = onshape.studios("back", version.id)[element_id]
+    assert '"Feature Type Name" : "Robot frame (deprecated)"' in deprecated["code"]
+    # The frontend studio is kept (with its id), renamed, and imports the deprecated version
+    frontend = onshape.studios("front", "fw")
+    assert list(frontend) == [frontend_id]
+    assert frontend[frontend_id]["name"] == "robotFrame (deprecated).fs"
+    assert f'"back/{version.id}/{element_id}", version : "{deprecated["mv"]}"' in frontend[frontend_id]["code"]
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0", "Robot frame - deprecated"]
+    # Then it's gone from the backend
+    assert onshape.names() == []
+    assert not local(repo, "robotFrame.fs").exists()
+    assert released_ids(repo) == []
+    assert studio_files(repo) == {}
+
+
+def test_deprecate_keep_backend(repo, onshape):
+    element_id = deprecatable_frame(repo, onshape)
+    assert run(onshape, "deprecate", "robotFrame", "-y", "--keep-backend") == 0
+    assert onshape.names() == ["robotFrame.fs"]
+    assert "(deprecated)" in local(repo, "robotFrame.fs").read_text()
+    assert released_ids(repo) == []
+    assert onshape.names("front", "fw") == ["robotFrame (deprecated).fs"]
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0"]
+    assert studio_files(repo)[element_id] == "robotFrame.fs"
+
+
+def test_deprecate_checks_first(repo, onshape, capsys):
+    onshape.add("robotFrame.fs", FEATURE, features=["Robot frame"])
+    run(onshape, "pull")
+    assert run(onshape, "deprecate", "robotFrame", "-y") == 2
+    assert "isn't released" in capsys.readouterr().err
+
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    write(repo, "uses.fs", 'import(path : "' + next(iter(onshape.studios())) + '", version : "");')
+    run(onshape, "push")
+    assert run(onshape, "deprecate", "robotFrame", "-y") == 2
+    assert "is imported by uses.fs" in capsys.readouterr().err
+
+    versions = len(onshape.versions_by_document["back"])
+    assert run(onshape, "deprecate", "robotFrame", "--dry-run", "--keep-backend") == 0
+    out = capsys.readouterr().out
+    assert "Rename it robotFrame (deprecated).fs" in out
+    assert "Delete its tab" not in out
+    assert len(onshape.versions_by_document["back"]) == versions
+
+
+def test_rename_element_sets_the_name_property():
+    from onshape_api.endpoints.metadata import rename_element
+    from onshape_api.paths.paths import ElementPath
+
+    class FakeApi:
+        def __init__(self):
+            self.requests = []
+
+        def get(self, path, **kwargs):
+            self.requests.append(("GET", path, None))
+            return {
+                "jsonType": "metadata-element",
+                "properties": [
+                    {"name": "Description", "propertyId": "d1", "value": "", "editable": True},
+                    {"name": "Name", "propertyId": "n1", "value": "old.fs", "editable": True},
+                ],
+            }
+
+        def post(self, path, body="", **kwargs):
+            self.requests.append(("POST", path, body))
+
+    api = FakeApi()
+    rename_element(api, ElementPath.from_path(onshape_backend(), "e1"), "new.fs")
+    assert api.requests == [
+        ("GET", "/metadata/d/back/w/bw/e/e1", None),
+        ("POST", "/metadata/d/back/w/bw/e/e1", {"properties": [{"propertyId": "n1", "value": "new.fs"}]}),
+    ]

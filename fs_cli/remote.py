@@ -7,7 +7,7 @@ import pathlib
 from typing import Protocol
 
 from onshape_api.api.api_base import Api
-from onshape_api.endpoints import documents, elements, feature_studios, versions
+from onshape_api.endpoints import documents, elements, feature_studios, metadata, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import ElementPath, InstancePath
 from onshape_api.types import ElementGroup, ElementType
@@ -72,6 +72,10 @@ class Remote(Protocol):
         """Deletes a Feature Studio's tab."""
         ...
 
+    def rename(self, instance: InstancePath, element_id: str, name: str) -> None:
+        """Renames a tab (2 calls)."""
+        ...
+
     def feature_names(self, instance: InstancePath, element_id: str) -> list[str]:
         """Returns the names of the custom features defined in a Feature Studio."""
         ...
@@ -123,6 +127,9 @@ class OnshapeRemote:
 
     def delete(self, instance: InstancePath, element_id: str) -> None:
         elements.delete_element(self.api, ElementPath.from_path(instance, element_id))
+
+    def rename(self, instance: InstancePath, element_id: str, name: str) -> None:
+        metadata.rename_element(self.api, ElementPath.from_path(instance, element_id), name)
 
     def feature_names(self, instance: InstancePath, element_id: str) -> list[str]:
         path = ElementPath.from_path(instance, element_id)

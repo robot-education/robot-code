@@ -1,7 +1,8 @@
 """Bookkeeping about the Feature Studios in the backend document.
 
 Which file each Feature Studio is synced with lives in fs-studios.json, which is checked in, so
-every clone (and `fs check`, which never calls Onshape) can resolve imports by element id.
+every clone (and `fs check`, which never calls Onshape) can resolve imports by element id. It also
+lists the studios which are released (see `load_released`).
 
 What each studio looked like the last time it was synced lives in .fs-state.json, which is not
 checked in. It lets the CLI tell apart "I changed this file locally" from "someone changed this
@@ -97,11 +98,14 @@ class State:
         path: pathlib.Path,
         studios_path: pathlib.Path,
         studios: dict[str, StudioState],
+        released: set[str] | None = None,
     ) -> None:
         self.path = path
         self.studios_path = studios_path
         # element id -> state
         self.studios = studios
+        # The element ids of released studios (see `load_released`)
+        self.released = released if released is not None else set()
 
     @classmethod
     def load(cls, path: pathlib.Path, studios_path: pathlib.Path) -> State:
@@ -120,11 +124,15 @@ class State:
             studios[element_id] = StudioState(
                 file, studio.get("hash", ""), studio.get("microversion_id", "")
             )
-        return cls(path, studios_path, studios)
+        return cls(path, studios_path, studios, load_released(studios_path))
 
     def save(self) -> None:
         studios = sorted(self.studios.items())
-        save_studio_files(self.studios_path, {element_id: studio.file for element_id, studio in studios})
+        save_studio_files(
+            self.studios_path,
+            {element_id: studio.file for element_id, studio in studios},
+            self.released,
+        )
         _write_json(
             self.path,
             {
@@ -156,9 +164,35 @@ def load_studio_files(studios_path: pathlib.Path) -> dict[str, str]:
     }
 
 
-def save_studio_files(studios_path: pathlib.Path, files: dict[str, str]) -> None:
-    """Writes fs-studios.json (see `load_studio_files`)."""
-    _write_json(studios_path, {"version": STUDIOS_VERSION, "studios": dict(sorted(files.items()))})
+def load_released(studios_path: pathlib.Path) -> set[str]:
+    """The element ids of the released studios, from fs-studios.json.
+
+    A released studio defines a feature in the frontend document, which re-exports a version of it. Its tab
+    can't be deleted, recreated, or renamed: Part Studios using the feature only update to newer versions of it
+    if it has the same element id, and `fs release` finds its frontend studio by its name. Retire it with
+    `fs deprecate` instead.
+    """
+    data = _read_json(studios_path)
+    if data.get("version") != STUDIOS_VERSION:
+        return set()
+    return {element_id for element_id in data.get("released", []) if isinstance(element_id, str)}
+
+
+def save_studio_files(
+    studios_path: pathlib.Path, files: dict[str, str], released: set[str] | None = None
+) -> None:
+    """Writes fs-studios.json (see `load_studio_files` and `load_released`), keeping its released studios unless
+    `released` is given."""
+    if released is None:
+        released = load_released(studios_path)
+    _write_json(
+        studios_path,
+        {
+            "version": STUDIOS_VERSION,
+            "studios": dict(sorted(files.items())),
+            "released": sorted(released),
+        },
+    )
 
 
 def _read_json(path: pathlib.Path) -> dict:

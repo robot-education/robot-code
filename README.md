@@ -76,7 +76,22 @@ tab and create another, breaking every document that imports it (imports are by 
   synced with, or most like its last committed contents (as git detects renames). If it still can't tell, `fs push`
   says so before asking to delete the tab.
 
-Renaming a file doesn't rename its tab in Onshape.
+Renaming a file doesn't rename its tab in Onshape; `fs tabs --rename` does (see below).
+
+### Matching tabs with files by hand
+
+When `fs` pairs a tab with the wrong file, or can't pair them at all (e.g. a file renamed and rewritten outside
+`fs`), match them up yourself:
+
+```
+uv run fs tabs               # tabs without files, files without tabs, and tabs named differently from their files
+uv run fs link featurescripts/core/tube.fs robotTube.fs   # sync a file with a tab (by name or element id)
+uv run fs unlink featurescripts/old.fs   # stop syncing a file with its tab, leaving the tab alone
+uv run fs tabs --rename      # rename tabs to match their files' names (asks first)
+```
+
+`fs link` doesn't change either side: run `fs status` afterwards to see how they differ. Released tabs (see
+[Releasing](#releasing)) are never renamed.
 
 The repo is the source of truth, so pushing is the default:
 
@@ -137,7 +152,8 @@ Deleting a file and running `fs push` (or `fs sync`) deletes its tab in Onshape,
 (`--yes` skips it). It's skipped if the tab changed in Onshape since it was last synced (`fs push --force` deletes
 it anyway), or if another file still imports it. `fs pull --force` restores a deleted file instead. Only deletions
 `fs` has seen are tracked: on a fresh clone, a tab with no file is just pulled. A tab deleted in Onshape is
-recreated by `fs push` unless you delete the file.
+recreated by `fs push` unless you delete the file. Released FeatureScripts are the exception: their tabs are never
+deleted or recreated (see [Releasing](#releasing)).
 
 ### API usage
 
@@ -154,7 +170,8 @@ Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
   microversions too; `fs` records those from the same listing rather than downloading them later (assuming nobody
   edited them in Onshape during the push).
 - Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
-- `fs release`: 6 to 8 calls.
+- `fs tabs` and `fs link`: 1 call (the listing). `fs tabs --rename`: 2 more per tab renamed.
+- `fs release`: 6 to 8 calls. `fs released --detect`: 2. `fs deprecate`: about 12.
 
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost 1 call (the listing). Failed calls (like a
 400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
@@ -239,6 +256,38 @@ frontend studio of the same name at it (creating the studio if needed). Beta rel
 `frontend_beta` document instead, and the feature's name must contain "beta". The studio must be pushed and in
 sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
 skips the prompt).
+
+### Released FeatureScripts
+
+A released FeatureScript's backend tab has to keep its element id and name: Part Studios using its feature only
+update to newer versions of it from the same tab, and `fs release` finds its frontend studio by its name. So
+`fs-studios.json` lists the released tabs, and `fs` never deletes, recreates, or renames them: `fs push` skips
+deleting the tab of a released file you deleted, and won't recreate a released tab deleted in Onshape (restore it
+from the document's history). Other tabs can be deleted and recreated freely.
+
+`fs release` marks what it releases. Otherwise:
+
+```
+uv run fs released                  # list released FeatureScripts
+uv run fs released robotFrame       # mark one released (--remove unmarks it)
+uv run fs released --detect         # mark every tab with a release version in the backend document
+```
+
+### Deprecating
+
+Deleting a released FeatureScript would break documents using it as soon as they update to a newer version of
+the frontend document, so retire it instead:
+
+```
+uv run fs deprecate robotTube -d "Use Robot frame" --publish
+```
+
+This renames its feature "Robot tube (deprecated)" and pushes it, creates a version named `Robot tube -
+deprecated` in the backend document, points the frontend studio at it and renames that tab
+`robotTube (deprecated).fs`, and (with `--publish`) creates the version in the frontend document. The frontend
+studio keeps its element id, so documents using the feature keep working and keep updating. Then, since the
+frontend studio imports a version, the backend tab and the file are deleted (`--keep-backend` keeps them, e.g. if
+other studios still import it). `--dry-run` shows the steps first.
 
 `uv run fs sync-versions` creates any release versions that exist in the backend document but not in the
 frontend document.

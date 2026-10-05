@@ -15,14 +15,21 @@ import pathlib
 import sys
 
 from fs_cli.config import Config, ConfigError, load_config
-from fs_cli.release import plan_release, run_release, unsynced_versions
-from fs_cli.remote import OnshapeRemote, Remote
+from fs_cli.release import (
+    DEPRECATED_VERSION,
+    plan_deprecate,
+    plan_release,
+    run_deprecate,
+    run_release,
+    unsynced_versions,
+)
+from fs_cli.remote import OnshapeRemote, Remote, file_name_for
 from fs_cli.renames import relative_paths, rename_path_imports, rename_studio_files, renamed
-from fs_cli.state import State, migrate
+from fs_cli.state import State, StudioState, migrate
 from fs_cli.ui import UiError, render_feature, screenshot
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
 from fs_cli.gen import GenerateError, generate
-from fs_cli.versions import VersionType
+from fs_cli.versions import VersionType, feature_name_for, parse_version_name
 from fs_cli.workspace import (
     HINTS,
     PULLABLE,
@@ -39,6 +46,12 @@ from fs_lsp.project import Module, Project
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.paths import path_to_url
 
+# Released tabs are never deleted or recreated (see `load_released`)
+RELEASED_HINTS = {
+    Status.DELETED_LOCALLY: "restore the file, or fs deprecate it",
+    Status.DELETE_CONFLICT: "fs pull --force restores the file, or fs deprecate it",
+    Status.DELETED_IN_ONSHAPE: "restore the tab from the document's history",
+}
 CONFLICT = "changed both locally and in Onshape; see `fs diff`, then `fs pull --force` or `fs push --force`"
 DELETE_CONFLICT = "was deleted locally but changed in Onshape; `fs push --force` deletes the tab, or `fs pull --force` restores the file"
 
@@ -184,6 +197,49 @@ def make_parser() -> argparse.ArgumentParser:
     ui_command.add_argument("-o", "--output", help="the PNG to write (default: <feature>.png)")
     ui_command.add_argument("--html", action="store_true", help="also write the dialog's HTML next to the PNG")
 
+    tabs_command = command(
+        "tabs",
+        "list tabs in Onshape and files which aren't paired, or whose names differ, to match them up by hand (1 API call)",
+    )
+    tabs_command.add_argument("-a", "--all", action="store_true", help="also list tabs paired with files of the same name")
+    tabs_command.add_argument(
+        "--rename",
+        action="store_true",
+        help="rename tabs to match their files, except released ones (2 API calls each)",
+    )
+    tabs_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm renaming")
+    dry_run(tabs_command)
+
+    link_command = command(
+        "link",
+        "sync a file with a tab, e.g. one fs paired with the wrong file, or a file renamed outside fs (1 API call)",
+        targets=False,
+    )
+    link_command.add_argument("file", help="the .fs file (it needn't exist yet; `fs pull` writes it)")
+    link_command.add_argument("tab", help="the tab's name or element id")
+
+    unlink_command = command(
+        "unlink",
+        "stop syncing files with their tabs, which are left alone in Onshape (no API calls)",
+        targets=False,
+    )
+    unlink_command.add_argument("files", nargs="+", metavar="file", help=".fs files or Feature Studio names")
+
+    released_command = command(
+        "released",
+        "list, mark, or unmark released FeatureScripts, whose tabs fs never deletes, recreates, or renames (no API calls, except --detect)",
+        targets=False,
+    )
+    released_command.add_argument(
+        "files", nargs="*", metavar="file", help=".fs files or Feature Studio names to mark released"
+    )
+    released_command.add_argument("--remove", action="store_true", help="unmark them instead")
+    released_command.add_argument(
+        "--detect",
+        action="store_true",
+        help="mark every tab with a release version in the backend document (2 API calls)",
+    )
+
     gen_command = command(
         "gen",
         "regenerate the .gen.fs files (lookup tables, sketch profiles) from their Python definitions (no API calls)",
@@ -228,6 +284,26 @@ def make_parser() -> argparse.ArgumentParser:
     )
     dry_run(release)
 
+    deprecate_command = command(
+        "deprecate",
+        "retire a released FeatureScript without breaking documents using it: rename it deprecated, point its frontend studio at a last version, then delete it from the backend",
+        targets=False,
+    )
+    deprecate_command.add_argument("script", help="the .fs file or Feature Studio name, e.g. robotFrame")
+    deprecate_command.add_argument(
+        "-d", "--description", default="", help="a brief, internal-only description of why"
+    )
+    deprecate_command.add_argument(
+        "--publish", action="store_true", help="also create the version in the frontend document"
+    )
+    deprecate_command.add_argument(
+        "--keep-backend",
+        action="store_true",
+        help="keep its tab in the backend document (and its file), e.g. if something still imports it",
+    )
+    deprecate_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    dry_run(deprecate_command)
+
     sync_versions = command(
         "sync-versions",
         "create release versions which are in the backend document but missing from the frontend document",
@@ -261,7 +337,7 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
     try:
         config = load_config()
         migrate(config.state_path, config.studios_path)
-        if args.command in OFFLINE_COMMANDS:
+        if args.command in OFFLINE_COMMANDS and not getattr(args, "detect", False):
             return OFFLINE_COMMANDS[args.command](config, args)
         if remote is None:
             remote = _onshape_remote(args.log)
@@ -327,13 +403,15 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         args.yes,
         select(studios, Status.LOCAL_ONLY),
     )
-    to_push = [studio for studio in to_push if studio.local_code is not None]
+    to_push, not_recreated = skip_recreating_released(
+        [studio for studio in to_push if studio.local_code is not None]
+    )
     apply_import_updates(workspace, studios, args.dry_run)
     pushed = (
         do_push(workspace, to_push, args.dry_run) if to_push or not to_delete else 0
     )
     do_delete(workspace, to_delete, args.dry_run)
-    return pushed or not_deleted or skipped
+    return pushed or not_deleted or not_recreated or skipped
 
 
 def pull(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -392,11 +470,12 @@ def sync(workspace: Workspace, args: argparse.Namespace) -> int:
         args.yes,
         select(studios, Status.LOCAL_ONLY),
     )
+    to_push, not_recreated = skip_recreating_released(select(studios, *PUSHABLE))
     apply_import_updates(workspace, studios, args.dry_run)
     pulled = do_pull(workspace, select(studios, *PULLABLE), args.dry_run)
-    pushed = do_push(workspace, select(studios, *PUSHABLE), args.dry_run)
+    pushed = do_push(workspace, to_push, args.dry_run)
     do_delete(workspace, to_delete, args.dry_run)
-    return pulled or pushed or not_deleted or skipped
+    return pulled or pushed or not_deleted or not_recreated or skipped
 
 
 def status(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -418,6 +497,9 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
         if studio.renamed_from:
             details.append(f"renamed from {studio.renamed_from}")
         hint = HINTS.get(studio.status)
+        if studio.released:
+            details.append("released")
+            hint = RELEASED_HINTS.get(studio.status, hint)
         if studio.import_updates:
             details.append("import versions updated in Onshape")
             hint = hint or "fs push or fs pull applies them"
@@ -470,6 +552,210 @@ def update_std(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
+# Matching tabs with files
+
+
+def tabs(workspace: Workspace, args: argparse.Namespace) -> int:
+    studios = workspace.match(workspace.resolve_targets(args.targets))
+    paired = [s for s in studios if s.remote and s.local_code is not None]
+    renamed = [s for s in paired if tab_name_for(s) != s.name]
+    sections = [
+        (
+            "Tabs only in Onshape (`fs pull` adds them, or `fs link FILE TAB` pairs one with a file):",
+            [s for s in studios if s.remote and s.local_code is None and not s.saved],
+            lambda s: f"{s.name}  ({s.remote.element_id})",
+        ),
+        (
+            "Tabs whose files were deleted (`fs push` deletes them, or `fs link FILE TAB` pairs one with a file):",
+            [s for s in studios if s.remote and s.local_code is None and s.saved],
+            lambda s: f"{s.name}  ({s.remote.element_id}, was {s.path})",
+        ),
+        (
+            "Files not in Onshape (`fs push` creates them, or `fs link FILE TAB` pairs one with a tab):",
+            [s for s in studios if s.remote is None and not s.deleted_in_onshape],
+            lambda s: s.path,
+        ),
+        (
+            "Files whose tabs were deleted in Onshape (`fs push` recreates them):",
+            [s for s in studios if s.remote is None and s.deleted_in_onshape],
+            lambda s: s.path,
+        ),
+        (
+            "Tabs named differently from their files (`fs tabs --rename` renames the tabs):",
+            renamed,
+            lambda s: f"{s.path}  (tab {s.name})",
+        ),
+    ]
+    if args.all:
+        sections.append(
+            ("Tabs paired with files of the same name:", [s for s in paired if s not in renamed], lambda s: s.path)
+        )
+    shown = False
+    for title, listed, describe in sections:
+        if not listed:
+            continue
+        shown = True
+        print(title)
+        for studio in listed:
+            notes = ["released"] if studio.released else []
+            if studio.renamed_from:
+                notes.append(f"renamed from {studio.renamed_from}")
+            print(f"  {describe(studio)}{'  [' + ', '.join(notes) + ']' if notes else ''}")
+    if not shown:
+        print("Every tab is paired with a file of the same name.")
+    if args.rename:
+        return rename_tabs(workspace, renamed, args)
+    return 0
+
+
+def tab_name_for(studio: Studio) -> str:
+    """The name of a studio's tab which matches its file: the file's name, without .fs unless the tab has it."""
+    stem = pathlib.PurePosixPath(studio.path).name.removesuffix(".fs")
+    return stem + (".fs" if studio.name.endswith(".fs") else "")
+
+
+def rename_tabs(workspace: Workspace, studios: list[Studio], args: argparse.Namespace) -> int:
+    names = collections.Counter(tab_name_for(studio) for studio in studios)
+    taken = {tab.name for tab in workspace.listed_studios}
+    to_rename = []
+    for studio in studios:
+        name = tab_name_for(studio)
+        if studio.released:
+            print(f"Not renaming {studio.name}: it's released, so `fs release` finds its frontend studio by its name.")
+        elif name in taken or names[name] > 1:
+            print(f"Not renaming {studio.name}: there'd be several tabs named {name}.")
+        else:
+            to_rename.append(studio)
+    if not to_rename:
+        print("No tabs to rename.")
+        return 0
+    verb = "Would rename" if args.dry_run else "Will rename"
+    for studio in to_rename:
+        print(f"{verb} the {studio.name} tab to {tab_name_for(studio)}")
+    if args.dry_run:
+        return 0
+    if not args.yes:
+        confirm(f"Renaming {_plural(len(to_rename), 'tab')} takes {2 * len(to_rename)} API calls.")
+    for studio in to_rename:
+        assert studio.remote
+        workspace.remote.rename(workspace.instance, studio.remote.element_id, tab_name_for(studio))
+    print(f"Renamed {_plural(len(to_rename), 'tab')}.")
+    return 0
+
+
+def link(workspace: Workspace, args: argparse.Namespace) -> int:
+    path = _code_path(workspace.config, args.file)
+    workspace.match()
+    tabs = {tab.element_id: tab for tab in workspace.listed_studios}
+    matches = [
+        tab
+        for tab in tabs.values()
+        if args.tab in (tab.element_id, tab.name) or file_name_for(tab.name) == file_name_for(args.tab)
+    ]
+    if not matches:
+        raise UsageError(f'No tab is named "{args.tab}" or has that element id (see `fs tabs`).')
+    if len(matches) > 1:
+        ids = ", ".join(tab.element_id for tab in matches)
+        raise UsageError(f'Several tabs are named "{args.tab}"; give one\'s element id instead: {ids}.')
+    [tab] = matches
+    studios = workspace.state.studios
+    for element_id, entry in list(studios.items()):
+        if entry.file == path and element_id != tab.element_id:
+            del studios[element_id]
+            name = tabs[element_id].name if element_id in tabs else element_id
+            print(f"{path} is no longer synced with the {name} tab.")
+    previous = studios.get(tab.element_id)
+    if previous and previous.file != path:
+        print(f"The {tab.name} tab is no longer synced with {previous.file}.")
+    if not previous or previous.file != path:
+        # Not synced on this machine yet, so its file and tab are compared with the file's git history
+        studios[tab.element_id] = StudioState(path)
+    exists = (workspace.config.code_dir / path).is_file()
+    print(
+        f"Synced {path} with the {tab.name} tab"
+        + ("; see how they differ with `fs status`." if exists else "; `fs pull` writes the file.")
+    )
+    return 0
+
+
+def unlink(config: Config, args: argparse.Namespace) -> int:
+    state = State.load(config.state_path, config.studios_path)
+    for element_id, path in _synced_studios(config, state, args.files):
+        del state.studios[element_id]
+        released = " It's still released (see `fs released`)." if element_id in state.released else ""
+        print(f"{path} is no longer synced with its tab ({element_id}), which is left alone in Onshape.{released}")
+    state.save()
+    return 0
+
+
+def released(config: Config, args: argparse.Namespace) -> int:
+    state = State.load(config.state_path, config.studios_path)
+    if not args.files:
+        files = {element_id: entry.file for element_id, entry in state.studios.items()}
+        for element_id in sorted(state.released, key=lambda element_id: files.get(element_id, "")):
+            print(files.get(element_id, f"{element_id} (not synced with a file)"))
+        if not state.released:
+            print("Nothing is released. Mark released FeatureScripts with `fs released FILE` or `fs released --detect`.")
+        return 0
+    for element_id, path in _synced_studios(config, state, args.files):
+        if args.remove:
+            state.released.discard(element_id)
+            print(f"{path} isn't released.")
+        else:
+            state.released.add(element_id)
+            print(f"{path} is released.")
+    state.save()
+    return 0
+
+
+def detect_released(workspace: Workspace, args: argparse.Namespace) -> int:
+    """Marks every tab with a release version (but no deprecated version) in the backend document."""
+    remote = workspace.remote
+    feature_names = set()
+    deprecated = set()
+    for version in remote.versions(workspace.instance):
+        parsed = parse_version_name(version.name)
+        if parsed:
+            feature_names.add(parsed.feature_name)
+        elif version.name.endswith(DEPRECATED_VERSION):
+            deprecated.add(version.name.removesuffix(DEPRECATED_VERSION))
+    files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
+    marked = 0
+    for tab in remote.list_studios(workspace.instance):
+        feature_name = feature_name_for(tab.name)
+        if feature_name in feature_names - deprecated and tab.element_id not in workspace.state.released:
+            workspace.state.released.add(tab.element_id)
+            print(f"{files.get(tab.element_id, tab.name)} is released ({feature_name}).")
+            marked += 1
+    print(f"Marked {_plural(marked, 'FeatureScript')} released.")
+    return 0
+
+
+def _code_path(config: Config, file: str) -> str:
+    [path] = relative_paths(config.code_dir, [pathlib.Path(file)])
+    if path is None or not path.endswith(".fs"):
+        raise UsageError(f'"{file}" isn\'t a .fs file in {_display_path(config.code_dir)}/.')
+    return path
+
+
+def _synced_studios(config: Config, state: State, args: list[str]) -> list[tuple[str, str]]:
+    """The (element id, file) of the studios synced with each of args: files, or names of files."""
+    result = []
+    for arg in args:
+        [path] = relative_paths(config.code_dir, [pathlib.Path(arg)])
+        matches = [
+            (element_id, entry.file)
+            for element_id, entry in state.studios.items()
+            if entry.file == path or pathlib.PurePosixPath(entry.file).name in (arg, arg + ".fs")
+        ]
+        if not matches:
+            raise UsageError(f'"{arg}" isn\'t synced with a tab (see `fs tabs`).')
+        if len(matches) > 1:
+            raise UsageError(f'"{arg}" matches several files: {", ".join(file for _, file in matches)}.')
+        result.extend(matches)
+    return result
+
+
 # Releasing
 
 
@@ -493,6 +779,33 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
         confirm("Backend versions can't be deleted.")
     run_release(workspace, plan, args.description, args.publish)
     print(f"Released {plan.version_name}.")
+    return 0
+
+
+def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
+    plan = plan_deprecate(workspace, args.script, args.keep_backend)
+    studio = plan.studio
+    print(f"Deprecating {studio.path}:")
+    steps = []
+    if plan.code != studio.local_code:
+        steps.append('Rename its feature "... (deprecated)", and push it')
+    steps += [
+        f"Create version {plan.version_name} in the backend document",
+        f"Point {plan.frontend_studio.name} in the {plan.target_label} document at that version",
+        f"Rename it {plan.frontend_name}",
+    ]
+    if args.publish:
+        steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
+    if not args.keep_backend:
+        steps.append(f"Delete its tab in the backend document, and {studio.path}")
+    for number, step in enumerate(steps, 1):
+        print(f"  {number}. {step}")
+    if args.dry_run:
+        return 0
+    if not args.yes:
+        confirm("Backend versions can't be deleted.")
+    run_deprecate(workspace, plan, args.description, args.publish)
+    print(f"Deprecated {studio.path}.")
     return 0
 
 
@@ -753,6 +1066,9 @@ OFFLINE_COMMANDS = {
     "unused": unused,
     "refs": refs,
     "gen": gen,
+    "unlink": unlink,
+    # Online with --detect
+    "released": released,
 }
 
 COMMANDS = {
@@ -764,7 +1080,11 @@ COMMANDS = {
     "update-std": update_std,
     "pull-std": pull_std,
     "release": release,
+    "deprecate": deprecate,
     "sync-versions": sync_versions,
+    "tabs": tabs,
+    "link": link,
+    "released": detect_released,
 }
 
 
@@ -808,7 +1128,12 @@ def plan_deletes(
     for studio in studios:
         assert studio.remote
         importers = workspace.importers(studio.remote.element_id)
-        if importers:
+        if studio.released:
+            print(
+                f"Skipping deleting {studio.path} in Onshape: it's released, and Part Studios using its feature only "
+                "update to versions of the same tab. Restore the file, or retire the feature with `fs deprecate`."
+            )
+        elif importers:
             print(
                 f"Skipping deleting {studio.path} in Onshape: it's still imported by {', '.join(importers)}."
             )
@@ -829,6 +1154,22 @@ def plan_deletes(
             f"This deletes {_plural(len(to_delete), 'tab')} in Onshape; Part Studios using their features will break."
         )
     return to_delete, skipped
+
+
+def skip_recreating_released(studios: list[Studio]) -> tuple[list[Studio], int]:
+    """Leaves out released studios whose tabs were deleted in Onshape, since recreating them would make new
+    tabs (see `load_released`). Returns the rest, and 1 if any were left out."""
+    kept = []
+    for studio in studios:
+        if studio.released and studio.remote is None:
+            print(
+                f"Skipping {studio.path}: it's released, but its tab was deleted in Onshape, and Part Studios using "
+                "its feature can't update to a new tab. Restore the tab from the document's history, or run "
+                "`fs released --remove` on it to make a new one anyway."
+            )
+        else:
+            kept.append(studio)
+    return kept, 1 if len(kept) < len(studios) else 0
 
 
 def do_delete(workspace: Workspace, studios: list[Studio], dry_run: bool) -> None:
