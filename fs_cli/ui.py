@@ -937,7 +937,8 @@ class Renderer:
                     rows.append([control])
                 continue
             if "DISPLAY_SHORT" in hints and rows and rows[-1][-1].startswith("<span class='short'>") and "FIRST_IN_ROW" not in hints:
-                rows[-1].append(self.short(item))
+                # Joins the row, which already has a label
+                rows[-1].append(self.short(item, labeled=False))
                 continue
             if "DISPLAY_SHORT" in hints:
                 rows.append([self.short(item)])
@@ -964,8 +965,14 @@ class Renderer:
             + "</div></div>"
         )
 
-    def short(self, item: Parameter) -> str:
-        return f"<span class='short'><span class='label'>{html.escape(item.label)}</span><span class='input'>{html.escape(_text(item.value or ''))}</span></span>"
+    def short(self, item: Parameter, labeled: bool = True) -> str:
+        """A parameter displayed short, sharing its row."""
+        label = f"<span class='label'>{html.escape(item.label)}</span>" if labeled else ""
+        if item.kind == "boolean":
+            on = bool(item.value)
+            control = f"<span class='check{' on' if on else ''}'>{'&#x2714;' if on else ''}</span>"
+            return f"<span class='short'>{control}{label}</span>"
+        return f"<span class='short'>{label}<span class='input'>{html.escape(_text(item.value or ''))}</span></span>"
 
     def parameter(self, item: Parameter) -> list[str]:
         label = f"<span class='label'>{html.escape(item.label)}</span>"

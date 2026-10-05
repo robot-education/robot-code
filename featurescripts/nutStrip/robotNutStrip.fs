@@ -67,11 +67,23 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
 
             edgeManipulatorsPredicate(definition);
 
-            annotation { "Name" : "Start offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isLength(definition.startOffset, ZERO_DEFAULT_LENGTH_BOUNDS);
+            annotation { "Name" : "Start offset", "Column Name" : "Has start offset",
+                        "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.hasStartOffset is boolean;
+            if (definition.hasStartOffset)
+            {
+                annotation { "Name" : "Start offset", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.startOffset, NUT_STRIP_OFFSET_BOUNDS);
+            }
 
-            annotation { "Name" : "End offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isLength(definition.endOffset, ZERO_DEFAULT_LENGTH_BOUNDS);
+            annotation { "Name" : "End offset", "Column Name" : "Has end offset",
+                        "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.hasEndOffset is boolean;
+            if (definition.hasEndOffset)
+            {
+                annotation { "Name" : "End offset", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.endOffset, NUT_STRIP_OFFSET_BOUNDS);
+            }
         }
         else
         {
@@ -101,6 +113,8 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
         }
     }, {
             "placement" : NutStripPlacement.EDGE,
+            "hasStartOffset" : false,
+            "hasEndOffset" : false,
             "parameters" : [],
             "edgeQuery" : qNothing(),
             "oppositeDirection" : false,
@@ -122,15 +136,28 @@ const START_OFFSET_MANIPULATOR = "startOffsetManipulator";
 const END_OFFSET_MANIPULATOR = "endOffsetManipulator";
 
 /**
+ * The default end offset: the distance from the end of a WCP nut strip to its closest hole. Editing logic sets the
+ * offset for other nut strips (see `endMargin`).
+ */
+const NUT_STRIP_OFFSET_BOUNDS = {
+            (meter) : [-500, 0.00635, 500],
+            (centimeter) : 0.635,
+            (millimeter) : 6.35,
+            (inch) : 0.25,
+            (foot) : 0.25 / 12,
+            (yard) : 0.25 / 36
+        } as LengthBoundSpec;
+
+/**
  * Places a nut strip along each edge, spanning it apart from `startOffset` and `endOffset` at its ends (which are
- * inset when positive). The offsets' manipulators are shown on the first edge.
+ * inset when positive), if they're on. The offsets' manipulators are shown on the first edge.
  */
 function nutStripsOnEdges(context is Context, id is Id, definition is map, nutStrip is map)
 {
     const edges = verifyNonemptyQuery(context, definition, "edges", "Select one or more edges to add nut strips to.");
     const parameters = edgeParameters(definition, size(edges));
-    const startOffset = definition.startOffset ?? endMargin(nutStrip);
-    const endOffset = definition.endOffset ?? endMargin(nutStrip);
+    const startOffset = definition.hasStartOffset ? definition.startOffset : 0 * meter;
+    const endOffset = definition.hasEndOffset ? definition.endOffset : 0 * meter;
     const radius = norm(vector(nutStrip.width, nutStrip.height));
     for (var i, edge in edges)
     {
@@ -175,7 +202,8 @@ function nutStripsOnEdges(context is Context, id is Id, definition is map, nutSt
 }
 
 /**
- * How far the closest hole of a nut strip is from its start: the default offset for each end of a strip on an edge.
+ * How far the closest hole of a nut strip is from its start: the offset each end of a strip on an edge gets when it's
+ * turned on.
  */
 function endMargin(nutStrip is map) returns ValueWithUnits
 {
@@ -442,12 +470,15 @@ export function robotNutStripManipulatorChange(context is Context, definition is
 {
     if (isEdgePlacement(definition))
     {
+        // Dragging an offset turns it on
         if (newManipulators[START_OFFSET_MANIPULATOR] != undefined)
         {
+            definition.hasStartOffset = true;
             definition.startOffset = newManipulators[START_OFFSET_MANIPULATOR].offset;
         }
         if (newManipulators[END_OFFSET_MANIPULATOR] != undefined)
         {
+            definition.hasEndOffset = true;
             definition.endOffset = newManipulators[END_OFFSET_MANIPULATOR].offset;
         }
         return edgeManipulatorsChange(definition, newManipulators);
@@ -465,16 +496,15 @@ export function robotNutStripEditLogic(context is Context, id is Id, oldDefiniti
 {
     if (isEdgePlacement(definition))
     {
-        if (nutStripChanged(oldDefinition, definition))
+        // When an offset is turned on, or the nut strip changes, offset that end by its distance to the closest hole,
+        // unless the offset has been set
+        const changed = nutStripChanged(oldDefinition, definition);
+        for (var offset in { "startOffset" : "hasStartOffset", "endOffset" : "hasEndOffset" })
         {
-            // Offset each end by its distance to the closest hole, unless the offsets have been set
-            const margin = endMargin(getNutStrip(definition));
-            for (var offset in ["startOffset", "endOffset"])
+            const turnedOn = definition[offset.value] && !(oldDefinition[offset.value] ?? false);
+            if ((turnedOn || changed) && !(specifiedParameters[offset.key] ?? false))
             {
-                if (!(specifiedParameters[offset] ?? false))
-                {
-                    definition[offset] = margin;
-                }
+                definition[offset.key] = endMargin(getNutStrip(definition));
             }
         }
         return edgeManipulatorsEditLogic(context, oldDefinition, definition);

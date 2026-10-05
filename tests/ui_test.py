@@ -84,6 +84,14 @@ export predicate sharedPredicate(definition is map, name is string)
 
     annotation { "Name" : "Flip", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.flip is boolean;
+
+    annotation { "Name" : "Offset", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"] }
+    definition.hasOffset is boolean;
+    if (definition.hasOffset)
+    {
+        annotation { "Name" : "Offset", "UIHint" : ["DISPLAY_SHORT"] }
+        isLength(definition.offset, LENGTH_BOUNDS);
+    }
 }
 """
 
@@ -152,6 +160,7 @@ def test_dialog_follows_the_precondition(repo):
         "Depth",
         "1 in",
         "&#x21C4;",
+        "Offset",
         # The group's driving parameter is its header
         "&#x2714;",
         "Second",
@@ -159,6 +168,13 @@ def test_dialog_follows_the_precondition(repo):
         "1 in",
     ]
     assert "class='tab selected'>Edge<" in page
+
+
+def test_short_parameters_share_a_row(repo):
+    page, _ = render(repo, "hasOffset=true")
+    rows = [row.split("</div>")[0] for row in page.split("<div class='row'>")]
+    [row] = [row for row in rows if "Offset" in row]
+    assert texts("<body>" + row) == ["&#x2714;", "Offset", "1 in"]
 
 
 def test_settings_change_the_dialog(repo):
