@@ -157,7 +157,14 @@ uv run fs check featurescripts/belt   # ...or just some files or folders
 uv run fs deps robotShaft    # what a studio imports, and what imports it
 uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
+uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 ```
+
+`fs ui` renders a feature's dialog roughly as Onshape shows it, from its precondition: parameters take their
+defaults (or the values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides
+them. Editing logic doesn't run, so values it would set (like Robot nut strip's end offsets) show their defaults. It
+needs Chromium, which it finds in Playwright's browsers folder, on the path, or through `CHROMIUM`. The styling is
+an approximation to refine against screenshots of the real dialogs.
 
 `fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
 (following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)

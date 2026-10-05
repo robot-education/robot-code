@@ -18,6 +18,7 @@ from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release import plan_release, run_release, unsynced_versions
 from fs_cli.remote import OnshapeRemote, Remote
 from fs_cli.state import State, migrate
+from fs_cli.ui import UiError, render_feature, screenshot
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
 from fs_cli.gen import GenerateError, generate
 from fs_cli.versions import VersionType
@@ -156,6 +157,24 @@ def make_parser() -> argparse.ArgumentParser:
     )
     refs.add_argument("name", help="the name to look up, e.g. cleanup")
 
+    ui_command = command(
+        "ui",
+        "render a feature's dialog (roughly as Onshape shows it) to a PNG, with headless Chromium (no API calls)",
+        targets=False,
+    )
+    ui_command.add_argument("file", help="the .fs file defining the feature")
+    ui_command.add_argument("--feature", help="the feature to render, if the file defines several")
+    ui_command.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help="set a parameter, e.g. placement=POINT, transform=true, or (for lookup tables) "
+        "'frcNutStrip=REV > 3/8 in. > #10-32'; can be repeated",
+    )
+    ui_command.add_argument("-o", "--output", help="the PNG to write (default: <feature>.png)")
+    ui_command.add_argument("--html", action="store_true", help="also write the dialog's HTML next to the PNG")
+
     gen_command = command(
         "gen",
         "regenerate the .gen.fs files (lookup tables, sketch profiles) from their Python definitions (no API calls)",
@@ -242,7 +261,7 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
             return COMMANDS[args.command](Workspace(config, state, remote), args)
         finally:
             state.save()
-    except (ConfigError, UsageError, GenerateError) as error:
+    except (ConfigError, UsageError, GenerateError, UiError) as error:
         print(f"fs: {error}", file=sys.stderr)
         return 2
     except ApiError as error:
@@ -603,6 +622,27 @@ def unused(config: Config, args: argparse.Namespace) -> int:
     return 1 if found else 0
 
 
+def ui(config: Config, args: argparse.Namespace) -> int:
+    path = pathlib.Path(args.file)
+    if not path.is_file():
+        raise UsageError(f"{args.file} isn't a file.")
+    overrides = {}
+    for setting in args.set:
+        name, separator, value = setting.partition("=")
+        if not separator:
+            raise UsageError(f"--set takes NAME=VALUE, not {setting!r}.")
+        overrides[name.strip()] = value.strip()
+    page, warnings = render_feature(_project(config), config.std_dir, path, args.feature, overrides)
+    for warning in warnings:
+        print(f"Warning: {warning}")
+    output = pathlib.Path(args.output or (args.feature or path.stem) + ".png")
+    if args.html:
+        output.with_suffix(".html").write_text(page)
+    screenshot(page, output)
+    print(f"Saved {output}")
+    return 0
+
+
 def refs(config: Config, args: argparse.Namespace) -> int:
     project = _project(config)
     found = project.references_to_name(args.name)
@@ -662,6 +702,7 @@ def _display_path(path: pathlib.Path) -> str:
 # Commands which don't need Onshape
 OFFLINE_COMMANDS = {
     "check": check,
+    "ui": ui,
     "deps": deps,
     "unused": unused,
     "refs": refs,
