@@ -3,7 +3,8 @@ FeatureScript 2960;
  * Places linear stock, like nut strips and tube: along edges, or extruded from a point.
  *
  * A feature using this module:
- * - Adds `stockPlacementPredicate` at the top, then its part's parameters, then `stockEdgePredicate` or
+ * - Adds `stockPlacementPredicate` at the top (or `programPredicate` and `placementPredicate` around its own
+ *   horizontal enums), then its part's parameters, then `stockEdgePredicate` or
  *   `stockPointPredicate` (see `isEdgePlacement`), then its own tie holes parameters (see `getTie`).
  * - Describes its chosen part with a map of `width` and `height` (its profile's size), `stock` (see `stockFor`),
  *   `appearance`, and `url`, and builds the part with a function (see `placeStock`).
@@ -46,7 +47,14 @@ export predicate isEdgePlacement(definition is map)
 export predicate stockPlacementPredicate(definition is map)
 {
     programPredicate(definition);
+    placementPredicate(definition);
+}
 
+/**
+ * Edge or point, for features with more horizontal enums at the top (see `stockPlacementPredicate`).
+ */
+export predicate placementPredicate(definition is map)
+{
     annotation { "Name" : "Placement", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
     definition.placement is StockPlacement;
 }
@@ -130,62 +138,69 @@ export const STOCK_DEFAULTS = {
 // Tying holes to the end
 
 /**
- * How holes near the end of stock are tied to it, from a feature's `tieHoles` and `tiedHoleCount` parameters, or
- * `undefined` if they aren't.
+ * How holes are spaced along stock, and how many near its end are tied to it, from a feature's `tieHoles` and
+ * `tiedHoleCount` parameters.
  *
  * Holes are spaced from the start of stock, so its pattern is the same either way. Tying holes to the end gives the
- * last `tiedHoleCount` holes that count (and the holes around them) identities from the end instead: they're made from
- * the end, so they stay put relative to it as the stock's length changes.
+ * last `count` holes that count (and the holes around them) identities from the end instead: they're made from the
+ * end, so they stay put relative to it as the stock's length changes.
  *
  * @param start : How far the first hole that counts is from the start of the stock.
  * @param unit : How far apart the holes that count are.
+ * @returns {{
+ *      @field count {number} : How many holes are tied to the end, or 0.
+ *      @field start {ValueWithUnits}
+ *      @field unit {ValueWithUnits}
+ * }}
  */
-export function getTie(definition is map, start is ValueWithUnits, unit is ValueWithUnits)
+export function getTie(definition is map, start is ValueWithUnits, unit is ValueWithUnits) returns map
 {
-    if (!definition.tieHoles)
-    {
-        return undefined;
-    }
-    return { "count" : definition.tiedHoleCount, "start" : start, "unit" : unit };
+    return { "count" : definition.tieHoles ? definition.tiedHoleCount : 0, "start" : start, "unit" : unit };
+}
+
+/**
+ * How many times stock `length` long fits the `unit` between its first and last holes that count: its regular part
+ * is `2 * tie.start + spacings * tie.unit` long, and the rest is at its end.
+ */
+function regularSpacings(length is ValueWithUnits, tie is map) returns number
+{
+    return floor((length - 2 * tie.start + TOLERANCE.zeroLength * meter) / tie.unit);
 }
 
 /**
  * Where a row of holes (or groups of them) goes along stock `length` long: maps of `position`, and whether it's `tied`
- * to the end (see `getTie`), in order from the start. Only holes which fit whole are kept.
+ * to the end (see `getTie`), in order from the start. Only holes which fit whole in its regular part are kept, so if
+ * it isn't a whole number of spacings long (see `isRegularLength`), the extra length at its end has none.
  *
  * @param start : The position of the row's first hole.
  * @param pitch : How far apart the row's holes are.
  * @param extent : How far each hole reaches along the stock from its position, e.g. its radius.
- * @param tie : @seealso [getTie]
+ * @param tie : @see `getTie`
  */
-export function holePositions(start is ValueWithUnits, pitch is ValueWithUnits, extent is ValueWithUnits, length is ValueWithUnits, tie) returns array
+export function holePositions(start is ValueWithUnits, pitch is ValueWithUnits, extent is ValueWithUnits, length is ValueWithUnits,
+    tie is map) returns array
 {
     const tolerance = TOLERANCE.zeroLength * meter;
-    // Holes are tied if they're around the last holes that count: those whose margin to the end is at least the first
-    // one's to the start
-    var firstTied = undefined;
-    if (tie != undefined)
-    {
-        const last = floor((length - 2 * tie.start) / tie.unit + 1e-6);
-        firstTied = last - tie.count + 1;
-    }
+    const spacings = regularSpacings(length, tie);
+    const end = 2 * tie.start + spacings * tie.unit;
+    // Holes are tied if they're around the last holes that count
+    const firstTied = spacings - tie.count + 1;
     var positions = [];
-    for (var position = start; position <= length - extent + tolerance; position += pitch)
+    for (var position = start; spacings >= 0 && position + extent <= end + tolerance; position += pitch)
     {
-        const tied = tie != undefined && floor((position - tie.start) / tie.unit + 0.5 + 1e-6) >= firstTied;
-        positions = append(positions, { "position" : position, "tied" : tied });
+        const spacing = floor((position - tie.start + tie.unit / 2 + tolerance) / tie.unit);
+        positions = append(positions, { "position" : position, "tied" : tie.count > 0 && spacing >= firstTied });
     }
     return positions;
 }
 
 /**
- * Whether stock `length` long has a whole number of hole spacings, so the margin after its last hole that counts is
- * the same as the one before its first. Otherwise, the extra length is at its end.
+ * Whether stock `length` long is a whole number of hole spacings long (see `getTie`), so the margin after its last hole
+ * that counts is the same as the one before its first. Otherwise, the extra length is at its end.
  */
-export function isRegularLength(length is ValueWithUnits, start is ValueWithUnits, unit is ValueWithUnits) returns boolean
+export function isRegularLength(length is ValueWithUnits, tie is map) returns boolean
 {
-    const spacings = (length - 2 * start) / unit;
-    return abs(spacings - round(spacings)) < 1e-6;
+    return length - 2 * tie.start - max(regularSpacings(length, tie), 0) * tie.unit < TOLERANCE.zeroLength * meter;
 }
 
 // Placing

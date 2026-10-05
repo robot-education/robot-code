@@ -89,7 +89,7 @@ function endMargin(nutStrip is map) returns ValueWithUnits
 /**
  * The holes which count for tying holes to the end: each hole, in either row.
  */
-function getNutStripTie(definition is map, nutStrip is map)
+function getNutStripTie(definition is map, nutStrip is map) returns map
 {
     return getTie(definition, endMargin(nutStrip), tieUnit(nutStrip));
 }
@@ -211,7 +211,7 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
     return {
             "endFace" : qOwnedByBody(strip, EntityType.FACE)->qGeometry(GeometryType.PLANE)->qContainsPoint(location.origin + location.zAxis * length),
             "tiedHoles" : qUnion(tiedHoles),
-            "irregular" : !isRegularLength(length, endMargin(nutStrip), tieUnit(nutStrip))
+            "irregular" : !isRegularLength(length, tie)
         };
 }
 

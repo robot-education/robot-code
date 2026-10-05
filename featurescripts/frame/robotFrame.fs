@@ -4,7 +4,9 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "core/frameTags.fs", version : "");
 import(path : "core/robotFeature.fs", version : "");
 import(path : "core/robotProperties.fs", version : "");
+import(path : "core/sketchData.fs", version : "");
 import(path : "frame/frameTables.gen.fs", version : "");
+import(path : "splineProfile/splineProfiles.gen.fs", version : "");
 // Also exports the enums used as parameter types
 export import(path : "core/linearStock.fs", version : "");
 
@@ -81,10 +83,12 @@ annotation { "Feature Type Name" : "Robot frame",
 export const robotFrame = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        stockPlacementPredicate(definition);
+        programPredicate(definition);
 
         annotation { "Name" : "Source", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.source is FrameSource;
+
+        placementPredicate(definition);
 
         if (isCustomFrame(definition))
         {
@@ -105,10 +109,10 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
 
             if (isCustomTube(definition))
             {
-                annotation { "Name" : "Hole rows on sides", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                annotation { "Name" : "Side hole rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isInteger(definition.sideHoleRows, SIDE_HOLE_ROWS_BOUNDS);
 
-                annotation { "Name" : "Hole rows on top and bottom", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                annotation { "Name" : "Top hole rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isInteger(definition.topHoleRows, TOP_HOLE_ROWS_BOUNDS);
 
                 annotation { "Name" : "Hole spacing", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -310,6 +314,11 @@ function buildFrame(context is Context, id is Id, definition is map, frame is ma
                         ]
                 });
     }
+    else if (frame.bore != undefined)
+    {
+        skRectangle(sketch, "outside", { "firstCorner" : vector(-halfWidth, -halfHeight), "secondCorner" : vector(halfWidth, halfHeight) });
+        skCircle(sketch, "bore", { "center" : vector(0, 0) * meter, "radius" : frame.bore / 2 });
+    }
     else
     {
         skRectangle(sketch, "outside", { "firstCorner" : vector(-halfWidth, -halfHeight), "secondCorner" : vector(halfWidth, halfHeight) });
@@ -377,6 +386,7 @@ function buildFrame(context is Context, id is Id, definition is map, frame is ma
         }
     }
 
+    var tiedHoles = [];
     if (seeds != [])
     {
         opBoolean(context, id + "cutHoles", {
@@ -387,23 +397,27 @@ function buildFrame(context is Context, id is Id, definition is map, frame is ma
                     "targets" : body,
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
-        for (var seed in seeds)
+        for (var i, pattern in patterns(seeds))
         {
-            if (seed.count > 1)
+            if (pattern.tied)
             {
-                const instances = range(1, seed.count - 1);
-                opPattern(context, seed.id + "pattern", {
-                            "entities" : qCreatedBy(seed.id + "tool", EntityType.FACE),
-                            "transforms" : mapArray(instances, function(k)
-                                {
-                                    return transform(seed.step * k);
-                                }),
-                            "instanceNames" : mapArray(instances, function(k)
-                                {
-                                    return "" ~ k;
-                                })
-                        });
+                tiedHoles = append(tiedHoles, qCreatedBy(id + ("pattern" ~ i), EntityType.FACE));
             }
+            const instances = range(1, pattern.count - 1);
+            opPattern(context, id + ("pattern" ~ i), {
+                        "entities" : qUnion(mapArray(pattern.seeds, function(seed)
+                                {
+                                    return qCreatedBy(seed.id + "tool", EntityType.FACE);
+                                })),
+                        "transforms" : mapArray(instances, function(k)
+                            {
+                                return transform(pattern.step * k);
+                            }),
+                        "instanceNames" : mapArray(instances, function(k)
+                            {
+                                return "" ~ k;
+                            })
+                    });
         }
     }
     opDeleteBodies(context, id + "deleteSketches", {
@@ -414,20 +428,54 @@ function buildFrame(context is Context, id is Id, definition is map, frame is ma
             });
 
     setStockProperties(context, body, definition, frame, frame.partName, length);
-    var tiedHoles = [];
     for (var seed in seeds)
     {
         if (seed.tied)
         {
-            tiedHoles = append(tiedHoles, qCreatedBy(seed.id, EntityType.FACE));
+            tiedHoles = append(tiedHoles, qCreatedBy(seed.id + "tool", EntityType.FACE));
         }
     }
     return {
             "endFace" : qCapEntity(tubeId, CapType.END, EntityType.FACE),
             "tiedHoles" : qUnion(tiedHoles),
-            "irregular" : seeds != [] && !isRegularLength(length, frame.tieStart, frame.tieUnit)
+            "irregular" : (frame.xRows != [] || frame.yRows != []) && !isRegularLength(length, tie)
         };
 }
+
+/**
+ * Groups the seeds which are patterned the same way (the same number of times, as far, in the same direction), so
+ * they're patterned together, with fewer operations. Holes which cross, like those through each side of a square
+ * beam, have to be.
+ */
+function patterns(seeds is array) returns array
+{
+    var result = [];
+    for (var seed in seeds)
+    {
+        if (seed.count < 2)
+        {
+            continue;
+        }
+        var found = false;
+        for (var i, pattern in result)
+        {
+            if (pattern.count == seed.count && pattern.tied == seed.tied && tolerantEquals(pattern.step, seed.step))
+            {
+                result[i].seeds = append(pattern.seeds, seed);
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            result = append(result, { "count" : seed.count, "step" : seed.step, "tied" : seed.tied, "seeds" : [seed] });
+        }
+    }
+    return result;
+}
+
+/** The radius of the MAXSpline cutouts of MAXTube with MAX Pattern: its teeth's tips (see splineProfiles.py). */
+const MAX_SPLINE_RADIUS = 17.45 * millimeter;
 
 /**
  * How far a row's shapes reach along the frame from its position.
@@ -437,7 +485,8 @@ function rowExtent(row is map, holeDiameter is ValueWithUnits) returns ValueWith
     var extent = 0 * meter;
     for (var shape in row.shapes)
     {
-        extent = max(extent, abs(shape.along) + (shape.slot ?? 0 * meter) / 2 + (shape.diameter ?? holeDiameter) / 2);
+        const radius = (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? holeDiameter) / 2;
+        extent = max(extent, abs(shape.along) + (shape.slot ?? 0 * meter) / 2 + radius);
     }
     return extent;
 }
@@ -452,6 +501,11 @@ function sketchSeed(context is Context, seedId is Id, face is map, shapes is arr
     for (var i, shape in shapes)
     {
         const center = vector(position + shape.along, face.sign * shape.offset);
+        if (shape.maxSpline ?? false)
+        {
+            skDataArray(sketch, "maxSpline" ~ i, { "sketchDataArray" : MAX_SPLINE_HOLE, "location" : center });
+            continue;
+        }
         const radius = (shape.diameter ?? holeDiameter) / 2;
         const slot = shape.slot ?? 0 * meter;
         if (slot < TOLERANCE.zeroLength * meter)

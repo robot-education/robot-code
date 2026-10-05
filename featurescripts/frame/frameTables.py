@@ -1,14 +1,14 @@
 """Tube and channel lookup tables for robotFrame. Run `uv run fs gen` after editing.
 
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
-`wallY` thick on its sides facing Y; `open` channels have no wall on +Y. `holeDiameter` is the diameter of its
-ordinary holes.
+`wallY` thick on its sides facing Y; `open` channels have no wall on +Y, and beams with a `bore` are solid around a
+round hole that diameter instead. `holeDiameter` is the diameter of its ordinary holes.
 
 Its holes are rows along its length: `xRows` go through the walls facing X, and `yRows` through the walls facing Y. A
 row repeats a group of `shapes` every `pitch`, starting `start` from the end; each shape is `along` the tube and
 `offset` across the face (along Y for `xRows`, X for `yRows`) from the row's position on the face's middle. Shapes are
 ordinary holes, or `slot`s that long (between their ends' centers) along the tube, unless they have a `diameter` of
-their own. Each row is cut once and face patterned (see robotFrame.fs), so its shapes mustn't overlap other rows'.
+their own, or are MAXSpline cutouts (`maxSpline`). Each row is cut once and face patterned (see robotFrame.fs), so its shapes mustn't overlap other rows'.
 
 `tieStart` and `tieUnit` say which holes count for tying holes to the end (see linearStock.fs): the first one, and how
 far apart they are. `stock` lists the lengths each is sold in, shortest first (see nutStripTables.py).
@@ -27,12 +27,16 @@ def fs_map(values: dict[str, str]) -> str:
     return "{ " + ", ".join(f"{string(key)} : {value}" for key, value in values.items()) + " }"
 
 
-def shape(offset: str, along: str | None = None, diameter: str | None = None, slot: str | None = None) -> str:
+def shape(
+    offset: str, along: str | None = None, diameter: str | None = None, slot: str | None = None, max_spline: bool = False
+) -> str:
     values = {"along": along or "0 * meter", "offset": offset}
     if diameter is not None:
         values["diameter"] = diameter
     if slot is not None:
         values["slot"] = slot
+    if max_spline:
+        values["maxSpline"] = "true"
     return fs_map(values)
 
 
@@ -69,6 +73,7 @@ def tube(
     lengths: str,
     unit=inch,
     open: bool = False,
+    bore: float | None = None,
 ) -> Value:
     """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`."""
     return Value(
@@ -80,6 +85,7 @@ def tube(
             "wallX": unit(wall_x),
             "wallY": unit(wall_y),
             "open": "true" if open else "false",
+            **({"bore": unit(bore)} if bore is not None else {}),
             "holeDiameter": unit(hole_diameter),
             "xRows": array(x_rows),
             "yRows": array(y_rows),
@@ -120,8 +126,10 @@ def frc_tube(
     x_holes: bool = True,
     y_holes: bool = True,
     diameter: float = 0.196,
+    y_rows: list[str] | None = None,
+    tie_unit: float = 0.5,
 ) -> Value:
-    """A tube with FRC's usual grid of holes, through the walls facing X and/or Y."""
+    """A tube with FRC's usual grid of holes, through the walls facing X and/or Y (or `y_rows`)."""
     size = f"{width:g}x{height:g}"
     return tube(
         name,
@@ -132,9 +140,9 @@ def frc_tube(
         wall_y,
         diameter,
         grid(height) if x_holes else [],
-        grid(width) if y_holes else [],
+        y_rows if y_rows is not None else grid(width) if y_holes else [],
         inch(0.5),
-        inch(0.5),
+        inch(tie_unit),
         lengths,
     )
 
@@ -184,6 +192,29 @@ def rev_tube(part_number: str, url: str, *args, **kwargs) -> Value:
     return frc_tube("REV", *args, lengths=stock((inch(47), part_number, url)), diameter=5 / 25.4, **kwargs)
 
 
+def max_pattern_tube() -> Value:
+    """MAXTube 2x1 with MAX Pattern (drawing: MAXTube-2x1-0.125in_Wall-Max_Pattern-DR.pdf): the standard profile, with
+    the usual grid on the 1 in. sides, and on the 2 in. sides a MAXSpline cutout every 2 in., starting 1.5 in. from the
+    end, with a column of 3 holes between each. It's sold in odd lengths, so the pattern ends the way it starts."""
+    rows = [
+        row(inch(1.5), inch(2), [shape(inch(0), max_spline=True)]),
+        row(inch(0.5), inch(2), [shape(inch(k * 0.5)) for k in (-1, 0, 1)]),
+    ]
+    lengths = [(3, 2163), (5, 2164), (7, 2165), (15, 2169), (23, 2173), (31, 2177), (47, 2185)]
+    return frc_tube(
+        "REV",
+        "Standard, MAX Pattern",
+        2,
+        1,
+        1 / 25.4,
+        0.125,
+        stock(*[(inch(length), f"REV-21-{number}", REV_2X1_URL) for length, number in lengths]),
+        diameter=5 / 25.4,
+        y_rows=rows,
+        tie_unit=2,
+    )
+
+
 # https://www.revrobotics.com/MAXTube (drawings: REV-21-xxxx-DR.pdf); clear anodized
 # TODO: the 1 mm wall MAXTube profiles have #10 nut grooves, which these leave out; and MAX Pattern tube
 REV = vendor(
@@ -209,8 +240,66 @@ REV = vendor(
                 rev_tube("REV-21-2161", REV_2X1_URL, "Light, 1 mm wall", 2, 1, 1 / 25.4, 1 / 25.4, y_holes=False),
                 # 1/8 in. on the 2 in. sides, 1 mm on the 1 in. sides
                 rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, 1 / 25.4, 0.125, y_holes=False),
+                max_pattern_tube(),
             ],
         ),
+    ],
+)
+
+
+AM_URL = "https://andymark.com/products/pre-drilled-box-tube-extrusion"
+
+
+def am_tube(part_number: str, *args, **kwargs) -> Value:
+    return frc_tube("AndyMark", *args, lengths=stock((inch(47), part_number, f"https://andymark.com/{part_number}")), **kwargs)
+
+
+# https://andymark.com/products/pre-drilled-box-tube-extrusion (drawings: am-5177 to am-5180): the same grid as
+# WCP's; raw aluminum
+ANDYMARK = vendor(
+    "AndyMark",
+    AM_URL,
+    WHITE,
+    [
+        size(
+            "1x1",
+            [
+                am_tube("am-5177", "1/16 in. wall", 1, 1, 0.0625, 0.0625),
+                am_tube("am-5178", "1/8 in. wall", 1, 1, 0.125, 0.125),
+            ],
+        ),
+        size(
+            "2x1",
+            [
+                am_tube("am-5179", "1/16 in. wall", 2, 1, 0.0625, 0.0625),
+                am_tube("am-5180", "1/8 in. wall", 2, 1, 0.125, 0.125),
+            ],
+        ),
+    ],
+)
+
+
+TTB_URL = "https://www.thethriftybot.com/products/thrifty-box-extrusion"
+
+
+def ttb_tube(sku: str, *args, **kwargs) -> Value:
+    return frc_tube("TTB", *args, lengths=stock((inch(47), sku, TTB_URL)), diameter=5 / 25.4, **kwargs)
+
+
+# https://www.thethriftybot.com/products/thrifty-box-extrusion: 5 mm holes on a 1/2 in. grid; raw aluminum
+# TODO: ThriftyBot's drawings, to check that their grid starts 1/2 in. from the end like WCP's
+TTB = vendor(
+    "ThriftyBot",
+    TTB_URL,
+    WHITE,
+    [
+        size(
+            "2x1",
+            [
+                ttb_tube("TTB-0291", "0.080 in. wall", 2, 1, 0.08, 0.08),
+                ttb_tube("TTB-0094", "1/8 in. wall", 2, 1, 0.125, 0.125),
+            ],
+        )
     ],
 )
 
@@ -256,20 +345,25 @@ SWYFT = vendor(
 # each bore on a 16 mm diamond; and short slots between bores, where neighboring bores' diamonds meet.
 
 
-def gobilda_rows() -> list[str]:
-    """goBILDA's pattern on a 48 mm face, as rows which don't overlap: holes on the 24 mm circle overlap the grid holes
-    next to them, so they share their rows."""
+def gobilda_rows(face: int = 48) -> list[str]:
+    """goBILDA's pattern on a 48 mm face (or a 32 mm one, which has neither the grid's outer columns nor the holes across
+    each bore), as rows which don't overlap: holes on the 24 mm circle overlap the grid holes next to them, so they share
+    their rows."""
     diagonal = 12 / math.sqrt(2)
     diamond = 8 * math.sqrt(2)
     lean = round(diagonal - 8, 4)
+    bore = [shape(mm(0), diameter=mm(14))]
+    if face == 48:
+        bore += [shape(mm(round(diamond, 4))), shape(mm(round(-diamond, 4)))]
     rows = [
         # Bores, and the holes across them on the diamond
-        row(mm(24), mm(24), [shape(mm(0), diameter=mm(14)), shape(mm(round(diamond, 4))), shape(mm(round(-diamond, 4)))]),
+        row(mm(24), mm(24), bore),
         # Slots between bores, where neighboring bores' diamonds meet
         row(mm(12), mm(24), [shape(mm(0), slot=mm(round(24 - 2 * diamond, 4)))]),
-        # The outer columns of the grid
-        row(mm(8), mm(8), [shape(mm(16)), shape(mm(-16))]),
     ]
+    if face == 48:
+        # The outer columns of the grid
+        rows.append(row(mm(8), mm(8), [shape(mm(16)), shape(mm(-16))]))
     # The inner columns of the grid, either side of each bore, with the holes on the circle beside them
     for start, direction in ((8, 1), (16, -1)):
         shapes = []
@@ -279,14 +373,23 @@ def gobilda_rows() -> list[str]:
     return rows
 
 
-def gobilda_stock(series: str, holes: list[int], url: str) -> str:
-    """goBILDA channel is 48 mm long with 1 hole, and 24 mm longer for each hole after."""
-    return stock(*[(mm(48 + 24 * (n - 1)), f"{series}-{n:04d}-{48 + 24 * (n - 1):04d}", url) for n in holes])
+def gobilda_stock(series: str, name: str, holes: list[int], length=lambda n: 48 + 24 * (n - 1)) -> str:
+    """Lengths of goBILDA structure named e.g. "u-channel" in its pages' urls, each with `holes` holes. Channel is 48 mm
+    long with 1 hole, and 24 mm longer for each hole after."""
+    return stock(
+        *[
+            (
+                mm(length(n)),
+                f"{series}-{n:04d}-{length(n):04d}",
+                f"https://www.gobilda.com/{series}-series-{name}-{n}-hole-{length(n)}mm-length/",
+            )
+            for n in holes
+        ]
+    )
 
 
 GOBILDA_HOLES = [*range(1, 19), 21, 25, 29, 33, 37, 41, 45, 49]
-U_CHANNEL_URL = "https://www.gobilda.com/1120-series-u-channel/"
-LOW_SIDE_URL = "https://www.gobilda.com/1121-series-low-side-u-channel/"
+
 
 # https://www.gobilda.com/structure/ (schematics and STEP files on each product page)
 # TODO: goBILDA's appearance
@@ -310,7 +413,7 @@ GOBILDA = vendor(
                     gobilda_rows(),
                     mm(24),
                     mm(24),
-                    gobilda_stock("1120", GOBILDA_HOLES, U_CHANNEL_URL),
+                    gobilda_stock("1120", "u-channel", GOBILDA_HOLES),
                     unit=mm,
                     open=True,
                 )
@@ -332,16 +435,93 @@ GOBILDA = vendor(
                     gobilda_rows(),
                     mm(24),
                     mm(24),
-                    gobilda_stock("1121", GOBILDA_HOLES, LOW_SIDE_URL),
+                    gobilda_stock("1121", "low-side-u-channel", GOBILDA_HOLES),
                     unit=mm,
                     open=True,
+                )
+            ],
+        ),
+        size(
+            "Mini Low-Side U-Channel",
+            [
+                tube(
+                    "1143 Series",
+                    "Mini Low-Side U-Channel (goBILDA 1143 Series)",
+                    32,
+                    12,
+                    2.5,
+                    2.5,
+                    4,
+                    # As on the 1121's sides (1143-0003-0096's STEP file)
+                    [row(mm(8), mm(8), [shape(mm(2))])],
+                    gobilda_rows(32),
+                    mm(24),
+                    mm(24),
+                    gobilda_stock("1143", "mini-low-side-u-channel", list(range(1, 18))),
+                    unit=mm,
+                    open=True,
+                )
+            ],
+        ),
+        size(
+            "Square Beam",
+            [
+                # Solid around a 4 mm bore, with 4 mm holes through each side every 8 mm, starting 4 mm from the end
+                # (1106-0007-0056's STEP file)
+                # TODO: its ends are tapped M4
+                tube(
+                    "1106 Series",
+                    "Square Beam (goBILDA 1106 Series)",
+                    8,
+                    8,
+                    2,
+                    2,
+                    4,
+                    [row(mm(4), mm(8), [shape(mm(0))])],
+                    [row(mm(4), mm(8), [shape(mm(0))])],
+                    mm(4),
+                    mm(8),
+                    # 8 mm long for each hole
+                    gobilda_stock(
+                        "1106", "square-beam", [*range(2, 14), 15, 17, 19, 21, 23, 29, 33, 35, 41], length=lambda n: 8 * n
+                    ),
+                    unit=mm,
+                    bore=4,
                 )
             ],
         ),
     ],
 )
 
+# https://andymark.com/products/pre-drilled-box-tube-extrusion (drawing: am-5001-4700): AndyMark's Robits FTC system
+ROBITS = vendor(
+    "AndyMark",
+    AM_URL,
+    WHITE,
+    [
+        size(
+            "Robits",
+            [
+                tube(
+                    "1/2 in. Tube",
+                    "1/2x1/2 Tube (AndyMark Robits)",
+                    0.5,
+                    0.5,
+                    0.063,
+                    0.063,
+                    0.201,
+                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                    inch(0.25),
+                    inch(0.5),
+                    stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
+                )
+            ],
+        )
+    ],
+)
+
 CONTENTS = [
-    Table("frcFrameTable", Node("vendor", [WCP, REV, SWYFT])),
-    Table("ftcFrameTable", Node("vendor", [GOBILDA])),
+    Table("frcFrameTable", Node("vendor", [WCP, REV, ANDYMARK, TTB, SWYFT])),
+    Table("ftcFrameTable", Node("vendor", [GOBILDA, ROBITS])),
 ]
