@@ -282,12 +282,13 @@ the frontend document, so retire it instead:
 uv run fs deprecate robotTube -d "Use Robot frame" --publish
 ```
 
-This renames its feature "Robot tube (deprecated)" and pushes it, creates a version named `Robot tube -
-deprecated` in the backend document, points the frontend studio at it and renames that tab
-`robotTube (deprecated).fs`, and (with `--publish`) creates the version in the frontend document. The frontend
-studio keeps its element id, so documents using the feature keep working and keep updating. Then, since the
-frontend studio imports a version, the backend tab and the file are deleted (`--keep-backend` keeps them, e.g. if
-other studios still import it). `--dry-run` shows the steps first.
+This renames its feature "DEPRECATED Robot tube" and pushes it, creates a version named `DEPRECATED Robot tube` in
+the backend document, points the frontend studio at it and renames that tab `DEPRECATED robotTube.fs`, and (with
+`--publish`) creates the version in the frontend document. The frontend studio keeps its element id, so documents
+using the feature keep working and keep updating. Then, since the frontend studio imports a version, the backend tab
+and the file are deleted (`--keep-backend` keeps them, renaming the tab too, e.g. if other studios still import
+it). The API can't rename folders, so rename any folders holding its tabs by hand. `--dry-run` shows the steps
+first.
 
 `uv run fs sync-versions` creates any release versions that exist in the backend document but not in the
 frontend document.

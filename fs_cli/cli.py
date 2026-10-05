@@ -16,7 +16,8 @@ import sys
 
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release import (
-    DEPRECATED_VERSION,
+    DEPRECATED,
+    deprecated_name,
     plan_deprecate,
     plan_release,
     run_deprecate,
@@ -286,7 +287,7 @@ def make_parser() -> argparse.ArgumentParser:
 
     deprecate_command = command(
         "deprecate",
-        "retire a released FeatureScript without breaking documents using it: rename it deprecated, point its frontend studio at a last version, then delete it from the backend",
+        "retire a released FeatureScript without breaking documents using it: rename it DEPRECATED, point its frontend studio at a last version, then delete it from the backend",
         targets=False,
     )
     deprecate_command.add_argument("script", help="the .fs file or Feature Studio name, e.g. robotFrame")
@@ -717,8 +718,8 @@ def detect_released(workspace: Workspace, args: argparse.Namespace) -> int:
         parsed = parse_version_name(version.name)
         if parsed:
             feature_names.add(parsed.feature_name)
-        elif version.name.endswith(DEPRECATED_VERSION):
-            deprecated.add(version.name.removesuffix(DEPRECATED_VERSION))
+        elif version.name.startswith(DEPRECATED):
+            deprecated.add(version.name.removeprefix(DEPRECATED))
     files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
     marked = 0
     for tab in remote.list_studios(workspace.instance):
@@ -788,7 +789,7 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
     print(f"Deprecating {studio.path}:")
     steps = []
     if plan.code != studio.local_code:
-        steps.append('Rename its feature "... (deprecated)", and push it')
+        steps.append(f'Rename its feature "{DEPRECATED}...", and push it')
     steps += [
         f"Create version {plan.version_name} in the backend document",
         f"Point {plan.frontend_studio.name} in the {plan.target_label} document at that version",
@@ -796,8 +797,13 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
     ]
     if args.publish:
         steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
-    if not args.keep_backend:
+    if args.keep_backend:
+        assert studio.remote
+        steps.append(f"Rename its tab in the backend document {deprecated_name(studio.remote.name)}")
+    else:
         steps.append(f"Delete its tab in the backend document, and {studio.path}")
+    # The API can't rename folders
+    steps.append(f"By hand: rename any folders holding its tabs {DEPRECATED}..., so there's no confusion")
     for number, step in enumerate(steps, 1):
         print(f"  {number}. {step}")
     if args.dry_run:
@@ -805,7 +811,7 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
     if not args.yes:
         confirm("Backend versions can't be deleted.")
     run_deprecate(workspace, plan, args.description, args.publish)
-    print(f"Deprecated {studio.path}.")
+    print(f"Deprecated {studio.path}. Now rename any folders holding its tabs by hand (step {len(steps)}).")
     return 0
 
 

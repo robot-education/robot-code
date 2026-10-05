@@ -1110,7 +1110,7 @@ def test_released_lists_marks_and_detects(repo, onshape, capsys):
         Version("1", "Robot frame - v1.0.0"),
         Version("2", "Robot bore - v0.1.0-beta.1"),
         Version("3", "Robot old - v1.0.0"),
-        Version("4", "Robot old - deprecated"),
+        Version("4", "DEPRECATED Robot old"),
     ]
     calls = sum(onshape.calls.values())
     assert run(onshape, "released", "--detect") == 0
@@ -1229,15 +1229,15 @@ def test_deprecate(repo, onshape, capsys):
     assert run(onshape, "deprecate", "robotFrame", "-y", "--publish", "-d", "Use robot tube") == 0
 
     version = onshape.versions_by_document["back"][-1]
-    assert version.name == "Robot frame - deprecated"
+    assert version.name == "DEPRECATED Robot frame"
     deprecated = onshape.studios("back", version.id)[element_id]
-    assert '"Feature Type Name" : "Robot frame (deprecated)"' in deprecated["code"]
+    assert '"Feature Type Name" : "DEPRECATED Robot frame"' in deprecated["code"]
     # The frontend studio is kept (with its id), renamed, and imports the deprecated version
     frontend = onshape.studios("front", "fw")
     assert list(frontend) == [frontend_id]
-    assert frontend[frontend_id]["name"] == "robotFrame (deprecated).fs"
+    assert frontend[frontend_id]["name"] == "DEPRECATED robotFrame.fs"
     assert f'"back/{version.id}/{element_id}", version : "{deprecated["mv"]}"' in frontend[frontend_id]["code"]
-    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0", "Robot frame - deprecated"]
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0", "DEPRECATED Robot frame"]
     # Then it's gone from the backend
     assert onshape.names() == []
     assert not local(repo, "robotFrame.fs").exists()
@@ -1248,10 +1248,10 @@ def test_deprecate(repo, onshape, capsys):
 def test_deprecate_keep_backend(repo, onshape):
     element_id = deprecatable_frame(repo, onshape)
     assert run(onshape, "deprecate", "robotFrame", "-y", "--keep-backend") == 0
-    assert onshape.names() == ["robotFrame.fs"]
-    assert "(deprecated)" in local(repo, "robotFrame.fs").read_text()
+    assert onshape.names() == ["DEPRECATED robotFrame.fs"]
+    assert "DEPRECATED Robot frame" in local(repo, "robotFrame.fs").read_text()
     assert released_ids(repo) == []
-    assert onshape.names("front", "fw") == ["robotFrame (deprecated).fs"]
+    assert onshape.names("front", "fw") == ["DEPRECATED robotFrame.fs"]
     assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0"]
     assert studio_files(repo)[element_id] == "robotFrame.fs"
 
@@ -1271,7 +1271,9 @@ def test_deprecate_checks_first(repo, onshape, capsys):
     versions = len(onshape.versions_by_document["back"])
     assert run(onshape, "deprecate", "robotFrame", "--dry-run", "--keep-backend") == 0
     out = capsys.readouterr().out
-    assert "Rename it robotFrame (deprecated).fs" in out
+    assert "Rename it DEPRECATED robotFrame.fs" in out
+    assert "Rename its tab in the backend document DEPRECATED robotFrame.fs" in out
+    assert "By hand: rename any folders" in out
     assert "Delete its tab" not in out
     assert len(onshape.versions_by_document["back"]) == versions
 

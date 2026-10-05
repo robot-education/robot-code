@@ -10,8 +10,9 @@ Beta releases go to the separate frontend_beta document instead.
 
 Deprecating a released FeatureScript retires it without breaking Part Studios using it: they keep working, and
 still update to newer versions of the frontend document, since its frontend studio is kept (with the same element
-id). Its feature is renamed "<name> (deprecated)", released one last time as "<Feature name> - deprecated", and its
+id). Its feature is renamed "DEPRECATED <name>", released one last time as "DEPRECATED <Feature name>", and its
 frontend tab is renamed to match; then its backend tab can be deleted, since the frontend studio imports a version.
+Folders can't be renamed through the API, so any holding it are renamed by hand.
 """
 
 from __future__ import annotations
@@ -135,9 +136,13 @@ def run_release(
 
 # Deprecating
 
-DEPRECATED = " (deprecated)"
-# The end of the name of a deprecated FeatureScript's last version, e.g. "Robot frame - deprecated"
-DEPRECATED_VERSION = " - deprecated"
+# The start of the names of a deprecated FeatureScript's feature, tabs, and last version, e.g. "DEPRECATED Robot frame"
+DEPRECATED = "DEPRECATED "
+
+
+def deprecated_name(name: str) -> str:
+    """e.g. robotFrame.fs -> DEPRECATED robotFrame.fs"""
+    return name if name.startswith(DEPRECATED) else DEPRECATED + name
 _FEATURE_TYPE_NAME = re.compile(r'("Feature Type Name"\s*:\s*")([^"]*)(")')
 
 
@@ -146,15 +151,7 @@ def deprecated_code(code: str) -> str | None:
     match = _FEATURE_TYPE_NAME.search(code)
     if match is None:
         return None
-    if match[2].endswith(DEPRECATED):
-        return code
-    return code[: match.end(2)] + DEPRECATED + code[match.end(2) :]
-
-
-def deprecated_tab_name(name: str) -> str:
-    """e.g. robotFrame.fs -> robotFrame (deprecated).fs"""
-    stem = name.removesuffix(".fs")
-    return stem + DEPRECATED + name[len(stem) :]
+    return code[: match.start(2)] + deprecated_name(match[2]) + code[match.end(2) :]
 
 
 @dataclasses.dataclass
@@ -169,7 +166,7 @@ class DeprecatePlan:
 
     @property
     def frontend_name(self) -> str:
-        return deprecated_tab_name(self.frontend_studio.name)
+        return deprecated_name(self.frontend_studio.name)
 
 
 def plan_deprecate(workspace: Workspace, script: str, keep_backend: bool) -> DeprecatePlan:
@@ -199,7 +196,7 @@ def plan_deprecate(workspace: Workspace, script: str, keep_backend: bool) -> Dep
         )
     return DeprecatePlan(
         studio,
-        feature_name_for(studio.remote.name) + DEPRECATED_VERSION,
+        deprecated_name(feature_name_for(studio.remote.name)),
         target,
         target_label,
         frontend_studio,
@@ -233,7 +230,10 @@ def run_deprecate(
 
     # The frontend studio imports a version, so the backend tab isn't needed anymore
     workspace.state.released.discard(studio.remote.element_id)
-    if not plan.keep_backend:
+    if plan.keep_backend:
+        log(f"Renaming {studio.remote.name} in the backend document {deprecated_name(studio.remote.name)}...")
+        remote.rename(workspace.instance, studio.remote.element_id, deprecated_name(studio.remote.name))
+    else:
         log(f"Deleting {studio.remote.name} in the backend document, and {studio.path}...")
         workspace.delete_studios([studio])
         studio.file.unlink()
