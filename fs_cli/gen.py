@@ -64,6 +64,16 @@ class Constant:
         return f"export const {self.name} = {self.expression};\n"
 
 
+@dataclasses.dataclass
+class Code:
+    """FeatureScript code, as written (e.g. a predicate built from a definition's data)."""
+
+    code: str
+
+    def render(self) -> str:
+        return self.code.rstrip("\n") + "\n"
+
+
 def render(
     contents: Sequence[Item | Import],
     version: str,

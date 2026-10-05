@@ -9,7 +9,7 @@ import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
 export import(path : "58d66340f7b70cfc86606676", version : "88f7f55d3e4918ee4144e69e");
 export import(path : "aff3918ff64d6eafb99fddcf", version : "dbbeeaaffabb7f49349dbec3");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
-// Exports PrintAdapter, which Onshape requires since it's a parameter type
+// Exports the adapter enums, which Onshape requires since they're parameter types
 export import(path : "6451a02d1f9f40630984864b", version : "bc00aa3012cf45b0d092305a");
 import(path : "aa47f3d3eb754118903deeec", version : "cdbb3e4ffa802ae7b7ce0f89");
 
@@ -36,11 +36,10 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
     {
         annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Adapter", "Lookup Table" : PRINT_ADAPTER_TABLE, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.adapterPath is LookupTablePath;
+            printAdapterSelectionPredicate(definition);
 
-            // The adapter itself, kept in sync with adapterPath by the editing logic. Features made before
-            // the lookup table only have this.
+            // The adapter itself, kept in sync with the vendor and adapter by the editing logic. Features made
+            // before those only have this.
             annotation { "Name" : "Adapter type", "UIHint" : ["ALWAYS_HIDDEN"] }
             definition.printAdapter is PrintAdapter;
 
@@ -263,19 +262,37 @@ export function robotPrintAdapterEditLogic(context is Context, id is Id, oldDefi
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition = mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
-    if (oldDefinition.adapterPath != definition.adapterPath)
+    const selected = getSelectedPrintAdapter(definition);
+    if (oldDefinition == {} || selected != getSelectedPrintAdapter(oldDefinition))
     {
-        definition.printAdapter = getLookupTable(PRINT_ADAPTER_TABLE, definition.adapterPath).adapter;
+        definition.printAdapter = selected;
     }
     else
     {
-        // A feature made before the lookup table, or the adapter changed some other way
-        definition.adapterPath = lookupTablePath(PRINT_ADAPTER_PATHS[definition.printAdapter]);
+        // A feature made before the vendor and adapter parameters, or the adapter changed some other way
+        const choice = PRINT_ADAPTER_CHOICES[definition.printAdapter];
+        definition.adapterVendor = choice.vendor;
+        definition[choice.parameter] = choice.adapter;
     }
     const adapter = PRINT_ADAPTERS[definition.printAdapter];
     definition.hasBoss = adapter.boss != undefined;
     definition.hasSplineXsBore = adapter.bore.splineXs != undefined;
     return definition;
+}
+
+/**
+ * The adapter chosen by the vendor and adapter parameters.
+ */
+function getSelectedPrintAdapter(definition is map)
+{
+    for (var adapter, choice in PRINT_ADAPTER_CHOICES)
+    {
+        if (choice.vendor == definition.adapterVendor && choice.adapter == definition[choice.parameter])
+        {
+            return adapter;
+        }
+    }
+    return undefined;
 }
 
 /**

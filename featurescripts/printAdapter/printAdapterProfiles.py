@@ -9,10 +9,10 @@ drawings and models are in vendor/.
 import math
 import pathlib
 
-from fs_cli.gen import Constant, Import
+from fs_cli.gen import Code, Constant, Import
 from fs_cli.sketches import MM, ORIGIN, Arc, Entity, Line, Profile, Sketch, polar
 from fs_cli.step import StepFile
-from fs_cli.tables import Enum, Node, Table, Value, string
+from fs_cli.tables import Enum, string
 
 VENDOR = pathlib.Path(__file__).parent / "vendor"
 
@@ -112,57 +112,82 @@ WCP_HEX_ADAPTER_ORDER = starting_at(WCP_HEX_ADAPTER, 30)
 WCP_SPLINE_ADAPTER_ORDER = starting_at(WCP_SPLINE_ADAPTER, 32)
 TTB_HEX_INSERT_ORDER = starting_at(TTB_HEX_INSERT, 18)
 
-# Every adapter: its value in the PrintAdapter enum, its vendor, and its name, sorted by vendor
-# and then part number. The enum's values are stored in documents, so never rename them.
+# Every adapter, sorted by vendor and then part number: its value in the PrintAdapter enum, its
+# vendor, its value in that vendor's enum, and its name. Enum values are stored in documents, so
+# never rename them.
 ADAPTERS = [
-    ("ANDYMARK_HEX_INSERT", "AndyMark", '1/2" Hex Insert (am-5654)'),
-    ("ANDYMARK_3_8_HEX_INSERT", "AndyMark", '3/8" Hex Insert (am-5655)'),
-    ("ANDYMARK_8MM_KEYED_INSERT", "AndyMark", "8mm Keyed Insert (am-5656)"),
-    ("ANDYMARK_KRAKEN_INSERT", "AndyMark", "Kraken Spline Insert (am-5657)"),
-    ("SWYFT_HEX_ADAPTER", "Swyft", '1/2" Hex Adapter (SR-HEXto3DPRINT-01)'),
-    ("TTB_HEX_INSERT", "TTB", '1/2" Hex Insert (TTB-0034)'),
-    ("TTB_SPLINE_INSERT", "TTB", "SplineXS Insert (TTB-0356)"),
-    ("WCP_SPLINE_ADAPTER", "WCP", "SplineXS Adapter (WCP-1021)"),
-    ("WCP_HEX_ADAPTER", "WCP", '1/2" Hex Adapter (WCP-1121)'),
+    ("ANDYMARK_HEX_INSERT", "AndyMark", "HEX_INSERT", '1/2" Hex Insert (am-5654)'),
+    ("ANDYMARK_3_8_HEX_INSERT", "AndyMark", "HEX_3_8_INSERT", '3/8" Hex Insert (am-5655)'),
+    ("ANDYMARK_8MM_KEYED_INSERT", "AndyMark", "KEYED_8MM_INSERT", "8mm Keyed Insert (am-5656)"),
+    ("ANDYMARK_KRAKEN_INSERT", "AndyMark", "KRAKEN_INSERT", "Kraken Spline Insert (am-5657)"),
+    ("SWYFT_HEX_ADAPTER", "Swyft", "HEX_ADAPTER", '1/2" Hex Adapter (SR-HEXto3DPRINT-01)'),
+    ("TTB_HEX_INSERT", "TTB", "HEX_INSERT", '1/2" Hex Insert (TTB-0034)'),
+    ("TTB_SPLINE_INSERT", "TTB", "SPLINE_INSERT", "SplineXS Insert (TTB-0356)"),
+    ("WCP_SPLINE_ADAPTER", "WCP", "SPLINE_ADAPTER", "SplineXS Adapter (WCP-1021)"),
+    ("WCP_HEX_ADAPTER", "WCP", "HEX_ADAPTER", '1/2" Hex Adapter (WCP-1121)'),
 ]
-VENDORS = list(dict.fromkeys(vendor for _, vendor, _ in ADAPTERS))
+DEFAULT_VENDOR = "TTB"
 
+# Each vendor: its value in the PrintAdapterVendor enum, its adapter enum, and that enum's parameter
+VENDORS = {
+    "AndyMark": ("ANDYMARK", "AndyMarkAdapter", "andyMarkAdapter"),
+    "Swyft": ("SWYFT", "SwyftAdapter", "swyftAdapter"),
+    "TTB": ("TTB", "TtbAdapter", "ttbAdapter"),
+    "WCP": ("WCP", "WcpAdapter", "wcpAdapter"),
+}
+
+# Every adapter, which the feature stores (and features made before the vendor enums only have)
 PrintAdapter = Enum(
     "PrintAdapter",
-    [value for value, _, _ in ADAPTERS],
-    {value: f"{vendor} {name}" for value, vendor, name in ADAPTERS},
+    [value for value, _, _, _ in ADAPTERS],
+    {value: f"{vendor} {name}" for value, vendor, _, name in ADAPTERS},
+)
+PrintAdapterVendor = Enum(
+    "PrintAdapterVendor", [value for value, _, _ in VENDORS.values()], {value: vendor for vendor, (value, _, _) in VENDORS.items()}
+)
+vendor_enums = {
+    vendor: Enum(
+        enum,
+        [option for _, adapter_vendor, option, _ in ADAPTERS if adapter_vendor == vendor],
+        {option: name for _, adapter_vendor, option, name in ADAPTERS if adapter_vendor == vendor},
+    )
+    for vendor, (_, enum, _) in VENDORS.items()
+}
+
+choices = "".join(
+    f"        {PrintAdapter[value]} : {{ {string('vendor')} : {PrintAdapterVendor[VENDORS[vendor][0]]}, "
+    f"{string('parameter')} : {string(VENDORS[vendor][2])}, {string('adapter')} : {vendor_enums[vendor][option]} }},\n"
+    for value, vendor, option, _ in ADAPTERS
 )
 
-# The adapter parameter: a vendor, then one of its adapters
-adapter_table = Node(
-    "vendor",
-    [
-        Value(
-            vendor,
-            next=Node(
-                "adapter",
-                [
-                    Value(name, {"adapter": PrintAdapter[value]})
-                    for value, adapter_vendor, name in ADAPTERS
-                    if adapter_vendor == vendor
-                ],
-            ),
-        )
-        for vendor in VENDORS
-    ],
+branches = "\n    else ".join(
+    f"if (definition.adapterVendor == {PrintAdapterVendor[value]})\n"
+    f"    {{\n"
+    f'        annotation {{ "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }}\n'
+    f"        definition.{parameter} is {enum};\n"
+    f"    }}"
+    for value, enum, parameter in VENDORS.values()
 )
+selection_predicate = f"""/**
+ * The vendor and adapter parameters. The editing logic keeps the feature's (hidden) PrintAdapter in sync with them,
+ * using PRINT_ADAPTER_CHOICES.
+ */
+export predicate printAdapterSelectionPredicate(definition is map)
+{{
+    annotation {{ "Name" : "Vendor", "Default" : {PrintAdapterVendor[VENDORS[DEFAULT_VENDOR][0]]}, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }}
+    definition.adapterVendor is PrintAdapterVendor;
 
-# The table path of each adapter, for features made before the table (which only stored the enum)
-paths = "".join(
-    f"        {PrintAdapter[value]} : {{ {string('vendor')} : {string(vendor)}, {string('adapter')} : {string(name)} }},\n"
-    for value, vendor, name in ADAPTERS
-)
+    {branches}
+}}"""
 
 CONTENTS = [
     Import("core/sketchData.fs"),
     PrintAdapter,
-    Table("PRINT_ADAPTER_TABLE", adapter_table),
-    Constant("PRINT_ADAPTER_PATHS", "{\n" + paths + "    }"),
+    PrintAdapterVendor,
+    *vendor_enums.values(),
+    # How each adapter is chosen: its vendor, and the parameter and value choosing it from that vendor's adapters
+    Constant("PRINT_ADAPTER_CHOICES", "{\n" + choices + "    }"),
+    Code(selection_predicate),
     Sketch("WCP_HEX_ADAPTER_PROFILE", Profile(WCP_HEX_ADAPTER, WCP_HEX_ADAPTER_ORDER)),
     Sketch("WCP_SPLINE_ADAPTER_PROFILE", Profile(WCP_SPLINE_ADAPTER, WCP_SPLINE_ADAPTER_ORDER)),
     Sketch("TTB_HEX_INSERT_PROFILE", Profile(TTB_HEX_INSERT, TTB_HEX_INSERT_ORDER)),

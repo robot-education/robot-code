@@ -26,57 +26,94 @@ export enum PrintAdapter
     WCP_HEX_ADAPTER
 }
 
-export const PRINT_ADAPTER_TABLE = {
-        "name" : "vendor",
-        "displayName" : "Vendor",
-        "entries" : {
-            "AndyMark" : {
-                "name" : "adapter",
-                "displayName" : "Adapter",
-                "entries" : {
-                    "1/2\" Hex Insert (am-5654)" : { "adapter" : PrintAdapter.ANDYMARK_HEX_INSERT },
-                    "3/8\" Hex Insert (am-5655)" : { "adapter" : PrintAdapter.ANDYMARK_3_8_HEX_INSERT },
-                    "8mm Keyed Insert (am-5656)" : { "adapter" : PrintAdapter.ANDYMARK_8MM_KEYED_INSERT },
-                    "Kraken Spline Insert (am-5657)" : { "adapter" : PrintAdapter.ANDYMARK_KRAKEN_INSERT },
-                },
-            },
-            "Swyft" : {
-                "name" : "adapter",
-                "displayName" : "Adapter",
-                "entries" : {
-                    "1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" : { "adapter" : PrintAdapter.SWYFT_HEX_ADAPTER },
-                },
-            },
-            "TTB" : {
-                "name" : "adapter",
-                "displayName" : "Adapter",
-                "entries" : {
-                    "1/2\" Hex Insert (TTB-0034)" : { "adapter" : PrintAdapter.TTB_HEX_INSERT },
-                    "SplineXS Insert (TTB-0356)" : { "adapter" : PrintAdapter.TTB_SPLINE_INSERT },
-                },
-            },
-            "WCP" : {
-                "name" : "adapter",
-                "displayName" : "Adapter",
-                "entries" : {
-                    "SplineXS Adapter (WCP-1021)" : { "adapter" : PrintAdapter.WCP_SPLINE_ADAPTER },
-                    "1/2\" Hex Adapter (WCP-1121)" : { "adapter" : PrintAdapter.WCP_HEX_ADAPTER },
-                },
-            },
-        },
+export enum PrintAdapterVendor
+{
+    annotation { "Name" : "AndyMark" }
+    ANDYMARK,
+    annotation { "Name" : "Swyft" }
+    SWYFT,
+    annotation { "Name" : "TTB" }
+    TTB,
+    annotation { "Name" : "WCP" }
+    WCP
+}
+
+export enum AndyMarkAdapter
+{
+    annotation { "Name" : "1/2\" Hex Insert (am-5654)" }
+    HEX_INSERT,
+    annotation { "Name" : "3/8\" Hex Insert (am-5655)" }
+    HEX_3_8_INSERT,
+    annotation { "Name" : "8mm Keyed Insert (am-5656)" }
+    KEYED_8MM_INSERT,
+    annotation { "Name" : "Kraken Spline Insert (am-5657)" }
+    KRAKEN_INSERT
+}
+
+export enum SwyftAdapter
+{
+    annotation { "Name" : "1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" }
+    HEX_ADAPTER
+}
+
+export enum TtbAdapter
+{
+    annotation { "Name" : "1/2\" Hex Insert (TTB-0034)" }
+    HEX_INSERT,
+    annotation { "Name" : "SplineXS Insert (TTB-0356)" }
+    SPLINE_INSERT
+}
+
+export enum WcpAdapter
+{
+    annotation { "Name" : "SplineXS Adapter (WCP-1021)" }
+    SPLINE_ADAPTER,
+    annotation { "Name" : "1/2\" Hex Adapter (WCP-1121)" }
+    HEX_ADAPTER
+}
+
+export const PRINT_ADAPTER_CHOICES = {
+        PrintAdapter.ANDYMARK_HEX_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.HEX_INSERT },
+        PrintAdapter.ANDYMARK_3_8_HEX_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.HEX_3_8_INSERT },
+        PrintAdapter.ANDYMARK_8MM_KEYED_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.KEYED_8MM_INSERT },
+        PrintAdapter.ANDYMARK_KRAKEN_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.KRAKEN_INSERT },
+        PrintAdapter.SWYFT_HEX_ADAPTER : { "vendor" : PrintAdapterVendor.SWYFT, "parameter" : "swyftAdapter", "adapter" : SwyftAdapter.HEX_ADAPTER },
+        PrintAdapter.TTB_HEX_INSERT : { "vendor" : PrintAdapterVendor.TTB, "parameter" : "ttbAdapter", "adapter" : TtbAdapter.HEX_INSERT },
+        PrintAdapter.TTB_SPLINE_INSERT : { "vendor" : PrintAdapterVendor.TTB, "parameter" : "ttbAdapter", "adapter" : TtbAdapter.SPLINE_INSERT },
+        PrintAdapter.WCP_SPLINE_ADAPTER : { "vendor" : PrintAdapterVendor.WCP, "parameter" : "wcpAdapter", "adapter" : WcpAdapter.SPLINE_ADAPTER },
+        PrintAdapter.WCP_HEX_ADAPTER : { "vendor" : PrintAdapterVendor.WCP, "parameter" : "wcpAdapter", "adapter" : WcpAdapter.HEX_ADAPTER },
     };
 
-export const PRINT_ADAPTER_PATHS = {
-        PrintAdapter.ANDYMARK_HEX_INSERT : { "vendor" : "AndyMark", "adapter" : "1/2\" Hex Insert (am-5654)" },
-        PrintAdapter.ANDYMARK_3_8_HEX_INSERT : { "vendor" : "AndyMark", "adapter" : "3/8\" Hex Insert (am-5655)" },
-        PrintAdapter.ANDYMARK_8MM_KEYED_INSERT : { "vendor" : "AndyMark", "adapter" : "8mm Keyed Insert (am-5656)" },
-        PrintAdapter.ANDYMARK_KRAKEN_INSERT : { "vendor" : "AndyMark", "adapter" : "Kraken Spline Insert (am-5657)" },
-        PrintAdapter.SWYFT_HEX_ADAPTER : { "vendor" : "Swyft", "adapter" : "1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" },
-        PrintAdapter.TTB_HEX_INSERT : { "vendor" : "TTB", "adapter" : "1/2\" Hex Insert (TTB-0034)" },
-        PrintAdapter.TTB_SPLINE_INSERT : { "vendor" : "TTB", "adapter" : "SplineXS Insert (TTB-0356)" },
-        PrintAdapter.WCP_SPLINE_ADAPTER : { "vendor" : "WCP", "adapter" : "SplineXS Adapter (WCP-1021)" },
-        PrintAdapter.WCP_HEX_ADAPTER : { "vendor" : "WCP", "adapter" : "1/2\" Hex Adapter (WCP-1121)" },
-    };
+/**
+ * The vendor and adapter parameters. The editing logic keeps the feature's (hidden) PrintAdapter in sync with them,
+ * using PRINT_ADAPTER_CHOICES.
+ */
+export predicate printAdapterSelectionPredicate(definition is map)
+{
+    annotation { "Name" : "Vendor", "Default" : PrintAdapterVendor.TTB, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.adapterVendor is PrintAdapterVendor;
+
+    if (definition.adapterVendor == PrintAdapterVendor.ANDYMARK)
+    {
+        annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.andyMarkAdapter is AndyMarkAdapter;
+    }
+    else if (definition.adapterVendor == PrintAdapterVendor.SWYFT)
+    {
+        annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.swyftAdapter is SwyftAdapter;
+    }
+    else if (definition.adapterVendor == PrintAdapterVendor.TTB)
+    {
+        annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.ttbAdapter is TtbAdapter;
+    }
+    else if (definition.adapterVendor == PrintAdapterVendor.WCP)
+    {
+        annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.wcpAdapter is WcpAdapter;
+    }
+}
 
 export const WCP_HEX_ADAPTER_PROFILE = [
             { "operation" : SketchOperation.LINE, "start" : vector(-0.302010543774, 0.237473910525) * inch, "end" : vector(-0.379533055656, 0.282231553628) * inch },
