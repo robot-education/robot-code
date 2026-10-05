@@ -134,6 +134,9 @@ Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
   run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may change
   when a tab it imports changes); then the download just confirms nothing needs doing.
 - Pushing: 1 call per studio pushed or deleted, plus 1 to list the document's new microversions afterwards.
+  Pushing a studio makes Onshape update the versions of its imports in the studios importing it, changing their
+  microversions too; `fs` records those from the same listing rather than downloading them later (assuming nobody
+  edited them in Onshape during the push).
 - Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
 - `fs release`: 6 to 8 calls.
 

@@ -132,6 +132,7 @@ class Workspace:
         self.remote = remote
         self.use_git = use_git
         self.instance = config.backend
+        self.listed_microversions: dict[str, str] = {}
 
     def resolve_targets(self, args: Iterable[str]) -> Targets | None:
         """Resolves command line arguments into Targets, or None for everything.
@@ -169,6 +170,10 @@ class Workspace:
             # A synced studio seems to be gone. The listing may just be stale, so make sure before
             # treating it as deleted
             remote_studios = self.remote.list_studios(self.instance, fresh=True)
+        # Every studio's microversion before anything is pushed (see push_studios)
+        self.listed_microversions = {
+            remote.element_id: remote.microversion_id for remote in remote_studios
+        }
         studios = self._match(remote_studios)
         if targets is not None:
             selected = []
@@ -427,6 +432,20 @@ class Workspace:
             assert studio.remote and studio.local_code is not None
             studio.remote = current.get(studio.remote.element_id, studio.remote)
             self._record(studio, studio.local_code, studio.remote.microversion_id)
+
+        # Onshape updates the versions of imports of the studios just pushed, which changes the
+        # microversions of the studios importing them. Studios which matched their last sync before
+        # the push only changed for that reason (barring edits made during the push), and the
+        # versions of imports aren't part of the content hash, so record their new microversions
+        # rather than downloading them next time
+        pushed = {studio.remote.element_id for studio in studios if studio.remote}
+        for element_id, entry in self.state.studios.items():
+            before = self.listed_microversions.get(element_id)
+            after = current.get(element_id)
+            if element_id in pushed or before is None or after is None:
+                continue
+            if entry.microversion_id == before != after.microversion_id:
+                entry.microversion_id = after.microversion_id
 
     def delete_studios(self, studios: list[Studio]) -> None:
         """Deletes the tabs of studios whose files were deleted locally."""

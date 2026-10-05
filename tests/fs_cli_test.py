@@ -4,6 +4,7 @@ import collections
 import copy
 import itertools
 import pathlib
+import re
 import subprocess
 
 import pytest
@@ -106,6 +107,13 @@ class FakeOnshape:
     def push(self, instance, element_id, code):
         self.calls["push"] += 1
         self.edit(element_id, code, instance.document_id, instance.instance_id)
+        # Like Onshape, update the version of imports of the pushed studio in the studios importing it
+        studios = self.studios(instance.document_id, instance.instance_id)
+        version = studios[element_id]["mv"]
+        for other_id, other in studios.items():
+            if other_id != element_id and f'"{element_id}"' in other["code"]:
+                code = re.sub(rf'("{element_id}", version : ")\w+(")', rf"\g<1>{version}\g<2>", other["code"])
+                self.edit(other_id, code, instance.document_id, instance.instance_id)
         return []
 
     def create(self, instance, name):
@@ -427,6 +435,28 @@ def test_imports_by_path_must_be_pushable(repo, onshape, capsys):
     assert "frame.fs imports shapes.fs, which isn't in Onshape yet; push it too." in err
     assert "plate.fs imports missing.fs, which doesn't exist." in err
     assert onshape.names() == []
+
+
+def test_import_version_updates_after_a_push_are_not_downloaded(repo, onshape, capsys):
+    utils = onshape.add("utils.fs", "u")
+    frame = onshape.add("frame.fs", f'import(path : "{utils}", version : "aaa");\n')
+    run(onshape, "pull")
+    local(repo, "utils.fs").write_text("u2")
+    assert run(onshape, "push") == 0
+    # Onshape updated frame.fs's import of utils.fs, changing its microversion
+    assert '"aaa"' not in onshape.code("frame.fs")
+
+    pulls = onshape.pulls
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+    assert onshape.pulls == pulls
+
+    # Edits in Onshape (outside a push) are still downloaded and noticed
+    onshape.edit(frame, f'import(path : "{utils}", version : "bbb");\nchanged\n')
+    capsys.readouterr()
+    run(onshape, "status")
+    assert Status.REMOTE_CHANGES.value in capsys.readouterr().out
 
 
 def test_stale_listings_are_checked(repo, onshape, capsys):
