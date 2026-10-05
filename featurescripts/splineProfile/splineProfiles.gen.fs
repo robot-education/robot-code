@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "eb11a2948f8123134339137f", version : "aa3b93f58a282fb8286a97ca"); // core/sketchData.fs
-import(path : "b75434df23d86ba9542f761e", version : "ba222d9a7c55b13cef9c1c62"); // core/profileSide.fs
+import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91"); // core/sketchData.fs
+import(path : "b75434df23d86ba9542f761e", version : "410f29dc5fa8b0fe88f1e9c5"); // core/profileSide.fs
 
 /* Generated from splineProfiles.py by `fs gen` -- DO NOT EDIT */
 

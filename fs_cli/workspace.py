@@ -163,7 +163,13 @@ class Workspace:
 
     def scan(self, targets: Targets | None = None) -> list[Studio]:
         """Loads and classifies every studio (or just those in targets)."""
-        studios = self._match(self.remote.list_studios(self.instance))
+        remote_studios = self.remote.list_studios(self.instance)
+        listed = {remote.element_id for remote in remote_studios}
+        if any(element_id not in listed for element_id in self.state.studios):
+            # A synced studio seems to be gone. The listing may just be stale, so make sure before
+            # treating it as deleted
+            remote_studios = self.remote.list_studios(self.instance, fresh=True)
+        studios = self._match(remote_studios)
         if targets is not None:
             selected = []
             for target in sorted(targets.all()):
@@ -415,7 +421,7 @@ class Workspace:
         # command knows Onshape hasn't been modified since
         current = {
             remote.element_id: remote
-            for remote in self.remote.list_studios(self.instance)
+            for remote in self.remote.list_studios(self.instance, fresh=True)
         }
         for studio in studios:
             assert studio.remote and studio.local_code is not None

@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "eb11a2948f8123134339137f", version : "aa3b93f58a282fb8286a97ca"); // core/sketchData.fs
+import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91"); // core/sketchData.fs
 
 /* Generated from printAdapterProfiles.py by `fs gen` -- DO NOT EDIT */
 

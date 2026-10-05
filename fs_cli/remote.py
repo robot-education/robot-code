@@ -53,8 +53,12 @@ class Version:
 
 
 class Remote(Protocol):
-    def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
-        """Lists the Feature Studios in a document, with their microversions (but not folders)."""
+    def list_studios(self, instance: InstancePath, fresh: bool = False) -> list[RemoteStudio]:
+        """Lists the Feature Studios in a document, with their microversions (but not folders).
+
+        Args:
+            fresh: Make sure the listing is up to date, even if that costs an API call.
+        """
         ...
 
     def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
@@ -93,11 +97,13 @@ class OnshapeRemote:
         self.api = api
         self.anonymous_failed = False
 
-    def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
+    def list_studios(self, instance: InstancePath, fresh: bool = False) -> list[RemoteStudio]:
         # Listing a public document works without credentials, and anonymous calls don't count
-        # against Onshape's API limits; fall back to an authenticated call if it's private
+        # against Onshape's API limits; fall back to an authenticated call if it's private. But
+        # anonymous listings are cached, and can miss (or still show) tabs for a while after
+        # they're created (or deleted), so fresh listings are always authenticated.
         elements = None
-        if not self.anonymous_failed:
+        if not self.anonymous_failed and not fresh:
             try:
                 elements = documents.get_document_elements(
                     self.api, instance, ElementType.FEATURE_STUDIO, anonymous=True

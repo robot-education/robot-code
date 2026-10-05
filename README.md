@@ -127,13 +127,15 @@ Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 
 - Listing the backend document's tabs (every command does this to get each tab's microversion) is free: the
   document is public, so `fs` lists it without credentials, and only calls made with your API keys count. If
-  the document is ever made private, listing falls back to 1 call.
+  the document is ever made private, listing falls back to 1 call. The free listing is cached, though, so it can
+  miss tabs created (or still show tabs deleted) in the last little while; when it's missing a studio `fs` has
+  synced, `fs` lists again with credentials (1 call) before treating the studio as deleted.
 - A studio is only downloaded when its microversion changed since the last sync, so on a new machine the first
   run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may change
   when a tab it imports changes); then the download just confirms nothing needs doing.
-- Pushing: 1 call per studio pushed or deleted.
+- Pushing: 1 call per studio pushed or deleted, plus 1 to list the document's new microversions afterwards.
 - Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
-- `fs release`: 5 to 7 calls.
+- `fs release`: 6 to 8 calls.
 
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing. Failed calls (like a 400) don't
 count either.

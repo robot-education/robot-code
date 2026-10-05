@@ -33,6 +33,8 @@ class FakeOnshape:
         # Every API call made, by method
         self.calls: collections.Counter[str] = collections.Counter()
         self.folders_error: Exception | None = None
+        # Element ids missing from listings which aren't fresh, like Onshape's cached anonymous listings
+        self.stale: set[str] = set()
 
     def _id(self, prefix: str) -> str:
         return f"{prefix}{next(self.ids)}"
@@ -73,13 +75,14 @@ class FakeOnshape:
 
     # Remote protocol
 
-    def list_studios(self, instance):
-        self.calls["list_studios"] += 1
+    def list_studios(self, instance, fresh=False):
+        self.calls["fresh_list_studios" if fresh else "list_studios"] += 1
         return [
             RemoteStudio(id, s["name"], s["mv"])
             for id, s in self.studios(
                 instance.document_id, instance.instance_id
             ).items()
+            if fresh or id not in self.stale
         ]
 
     def studio_folders(self, instance):
@@ -426,6 +429,27 @@ def test_imports_by_path_must_be_pushable(repo, onshape, capsys):
     assert onshape.names() == []
 
 
+def test_stale_listings_are_checked(repo, onshape, capsys):
+    write(repo, "utils.fs", "u")
+    run(onshape, "push")
+    [element_id] = onshape.studios()
+    # The cached listing doesn't show the new studio yet
+    onshape.stale.add(element_id)
+    calls = onshape.calls["fresh_list_studios"]
+    capsys.readouterr()
+    assert run(onshape, "status") == 0
+    assert "everything in sync" in capsys.readouterr().out
+    assert onshape.calls["fresh_list_studios"] == calls + 1
+    assert run(onshape, "push") == 0
+    assert onshape.names() == ["utils.fs"]  # Not created again
+
+    # Studios really deleted in Onshape are still noticed
+    del onshape.studios()[element_id]
+    capsys.readouterr()
+    run(onshape, "status")
+    assert Status.DELETED_IN_ONSHAPE.value in capsys.readouterr().out
+
+
 def test_studio_names_without_extension(repo, onshape):
     onshape.add("Robot frame", "x")
     run(onshape, "pull")
@@ -465,8 +489,8 @@ def test_api_calls_are_minimal(repo, onshape):
     onshape.calls.clear()
     local(repo, "Robot/a.fs").write_text("a2")
     run(onshape, "push")
-    # List, push, then list again to record the new microversion
-    assert onshape.calls == {"list_studios": 2, "push": 1}
+    # List, push, then list again (freshly, so it's up to date) to record the new microversion
+    assert onshape.calls == {"list_studios": 1, "push": 1, "fresh_list_studios": 1}
 
 
 def test_onshape_folders_are_ignored_after_the_first_pull(repo, onshape):
