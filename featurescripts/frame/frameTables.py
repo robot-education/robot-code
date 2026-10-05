@@ -1,10 +1,14 @@
 """Tube and channel lookup tables for robotFrame. Run `uv run fs gen` after editing.
 
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
-`wallY` thick on its sides facing Y; `open` channels have no wall on +Y. Its holes are rows along its length:
-`xRows` go through the walls facing X (each `offset` along Y from the profile's middle), and `yRows` through the walls
-facing Y (offset along X). A row's first hole is `start` from the end, and its holes are `pitch` apart; `slot` makes
-them slots that long (between their ends' centers) along the tube.
+`wallY` thick on its sides facing Y; `open` channels have no wall on +Y. `holeDiameter` is the diameter of its
+ordinary holes.
+
+Its holes are rows along its length: `xRows` go through the walls facing X, and `yRows` through the walls facing Y. A
+row repeats a group of `shapes` every `pitch`, starting `start` from the end; each shape is `along` the tube and
+`offset` across the face (along Y for `xRows`, X for `yRows`) from the row's position on the face's middle. Shapes are
+ordinary holes, or `slot`s that long (between their ends' centers) along the tube, unless they have a `diameter` of
+their own. Each row is cut once and face patterned (see robotFrame.fs), so its shapes mustn't overlap other rows'.
 
 `tieStart` and `tieUnit` say which holes count for tying holes to the end (see linearStock.fs): the first one, and how
 far apart they are. `stock` lists the lengths each is sold in, shortest first (see nutStripTables.py).
@@ -19,11 +23,21 @@ WHITE = "color(230 / 255, 230 / 255, 230 / 255)"
 BLACK = "color(0.3, 0.3, 0.3)"
 
 
-def row(offset: str, start: str, pitch: str, diameter: str, slot: str | None = None) -> str:
-    values = {"offset": offset, "start": start, "pitch": pitch, "diameter": diameter}
+def fs_map(values: dict[str, str]) -> str:
+    return "{ " + ", ".join(f"{string(key)} : {value}" for key, value in values.items()) + " }"
+
+
+def shape(offset: str, along: str | None = None, diameter: str | None = None, slot: str | None = None) -> str:
+    values = {"along": along or "0 * meter", "offset": offset}
+    if diameter is not None:
+        values["diameter"] = diameter
     if slot is not None:
         values["slot"] = slot
-    return "{ " + ", ".join(f"{string(key)} : {value}" for key, value in values.items()) + " }"
+    return fs_map(values)
+
+
+def row(start: str, pitch: str, shapes: list[str]) -> str:
+    return fs_map({"start": start, "pitch": pitch, "shapes": array(shapes)})
 
 
 def array(items: list[str]) -> str:
@@ -47,6 +61,7 @@ def tube(
     height: float,
     wall_x: float,
     wall_y: float,
+    hole_diameter: float,
     x_rows: list[str],
     y_rows: list[str],
     tie_start: str,
@@ -65,6 +80,7 @@ def tube(
             "wallX": unit(wall_x),
             "wallY": unit(wall_y),
             "open": "true" if open else "false",
+            "holeDiameter": unit(hole_diameter),
             "xRows": array(x_rows),
             "yRows": array(y_rows),
             "tieStart": tie_start,
@@ -74,10 +90,11 @@ def tube(
     )
 
 
-def grid(face: float, pitch: float = 0.5, diameter: float = 0.196, start: float = 0.5) -> list[str]:
-    """Rows of holes `pitch` apart across a face `face` wide, centered, as on most FRC tube."""
+def grid(face: float, pitch: float = 0.5, start: float = 0.5) -> list[str]:
+    """A row of holes `pitch` apart, in columns `pitch` apart centered across a face `face` wide, as on most FRC
+    tube."""
     count = math.floor((face / 2 - pitch / 2) / pitch + 1e-9)
-    return [row(inch(k * pitch), inch(start), inch(pitch), inch(diameter)) for k in range(-count, count + 1)]
+    return [row(inch(start), inch(pitch), [shape(inch(k * pitch)) for k in range(-count, count + 1)])]
 
 
 def vendor(name: str, url: str, appearance: str, sizes: list[Value]) -> Value:
@@ -103,7 +120,6 @@ def frc_tube(
     x_holes: bool = True,
     y_holes: bool = True,
     diameter: float = 0.196,
-    wall_name: str | None = None,
 ) -> Value:
     """A tube with FRC's usual grid of holes, through the walls facing X and/or Y."""
     size = f"{width:g}x{height:g}"
@@ -114,8 +130,9 @@ def frc_tube(
         height,
         wall_x,
         wall_y,
-        grid(height, diameter=diameter) if x_holes else [],
-        grid(width, diameter=diameter) if y_holes else [],
+        diameter,
+        grid(height) if x_holes else [],
+        grid(width) if y_holes else [],
         inch(0.5),
         inch(0.5),
         lengths,
@@ -239,22 +256,26 @@ SWYFT = vendor(
 # each bore on a 16 mm diamond; and short slots between bores, where neighboring bores' diamonds meet.
 
 
-def gobilda_rows(center: float = 0) -> list[str]:
+def gobilda_rows() -> list[str]:
+    """goBILDA's pattern on a 48 mm face, as rows which don't overlap: holes on the 24 mm circle overlap the grid holes
+    next to them, so they share their rows."""
     diagonal = 12 / math.sqrt(2)
     diamond = 8 * math.sqrt(2)
+    lean = round(diagonal - 8, 4)
     rows = [
-        row(mm(center), mm(24), mm(24), mm(14)),
-        row(mm(center), mm(12), mm(24), mm(4), slot=mm(round(24 - 2 * diamond, 4))),
+        # Bores, and the holes across them on the diamond
+        row(mm(24), mm(24), [shape(mm(0), diameter=mm(14)), shape(mm(round(diamond, 4))), shape(mm(round(-diamond, 4)))]),
+        # Slots between bores, where neighboring bores' diamonds meet
+        row(mm(12), mm(24), [shape(mm(0), slot=mm(round(24 - 2 * diamond, 4)))]),
+        # The outer columns of the grid
+        row(mm(8), mm(8), [shape(mm(16)), shape(mm(-16))]),
     ]
-    for side in (-1, 1):
-        rows += [
-            row(mm(center + side * 16), mm(8), mm(8), mm(4)),
-            row(mm(center + side * 8), mm(8), mm(24), mm(4)),
-            row(mm(center + side * 8), mm(16), mm(24), mm(4)),
-            row(mm(round(center + side * diagonal, 4)), mm(round(diagonal, 4)), mm(24), mm(4)),
-            row(mm(round(center + side * diagonal, 4)), mm(round(24 - diagonal, 4)), mm(24), mm(4)),
-            row(mm(round(center + side * diamond, 4)), mm(24), mm(24), mm(4)),
-        ]
+    # The inner columns of the grid, either side of each bore, with the holes on the circle beside them
+    for start, direction in ((8, 1), (16, -1)):
+        shapes = []
+        for side in (-1, 1):
+            shapes += [shape(mm(side * 8)), shape(mm(round(side * diagonal, 4)), along=mm(direction * lean))]
+        rows.append(row(mm(start), mm(24), shapes))
     return rows
 
 
@@ -284,6 +305,7 @@ GOBILDA = vendor(
                     48,
                     2.5,
                     2.5,
+                    4,
                     gobilda_rows(),
                     gobilda_rows(),
                     mm(24),
@@ -304,8 +326,9 @@ GOBILDA = vendor(
                     12,
                     2.5,
                     2.5,
+                    4,
                     # The sides have one row of holes, 8 mm from the base's outside
-                    [row(mm(2), mm(8), mm(8), mm(4))],
+                    [row(mm(8), mm(8), [shape(mm(2))])],
                     gobilda_rows(),
                     mm(24),
                     mm(24),

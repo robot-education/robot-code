@@ -43,17 +43,20 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
             stockPointPredicate(definition, "nut strip");
         }
 
-        // Forked from robotTube, with its own defaults
-        annotation { "Name" : "Tie holes to end", "Column Name" : "Has tied holes", "Default" : true,
-                    "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW", "REMEMBER_PREVIOUS_VALUE"] }
+        // Forked from robotFrame, with its own defaults
+        annotation { "Name" : "Tie holes to end", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.tieHoles is boolean;
+
         if (definition.tieHoles)
         {
-            annotation { "Name" : "Tied holes", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
-            isInteger(definition.tiedHoleCount, TIED_HOLE_COUNT_BOUNDS);
+            annotation { "Group Name" : "Tie holes to end", "Collapsed By Default" : false, "Driving Parameter" : "tieHoles" }
+            {
+                annotation { "Name" : "Tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.tiedHoleCount, TIED_HOLE_COUNT_BOUNDS);
 
-            annotation { "Name" : "Show tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.showTiedHoles is boolean;
+                annotation { "Name" : "Show tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.showTiedHoles is boolean;
+            }
         }
     }
     {
@@ -88,8 +91,15 @@ function endMargin(nutStrip is map) returns ValueWithUnits
  */
 function getNutStripTie(definition is map, nutStrip is map)
 {
-    const unit = tolerantEquals(nutStrip.xHoleStart, nutStrip.yHoleStart) ? nutStrip.spacing : abs(nutStrip.xHoleStart - nutStrip.yHoleStart);
-    return getTie(definition, endMargin(nutStrip), unit);
+    return getTie(definition, endMargin(nutStrip), tieUnit(nutStrip));
+}
+
+/**
+ * How far apart the holes which count for tying holes to the end are.
+ */
+function tieUnit(nutStrip is map) returns ValueWithUnits
+{
+    return tolerantEquals(nutStrip.xHoleStart, nutStrip.yHoleStart) ? nutStrip.spacing : abs(nutStrip.xHoleStart - nutStrip.yHoleStart);
 }
 
 /**
@@ -200,7 +210,8 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
     }
     return {
             "endFace" : qOwnedByBody(strip, EntityType.FACE)->qGeometry(GeometryType.PLANE)->qContainsPoint(location.origin + location.zAxis * length),
-            "tiedHoles" : qUnion(tiedHoles)
+            "tiedHoles" : qUnion(tiedHoles),
+            "irregular" : !isRegularLength(length, endMargin(nutStrip), tieUnit(nutStrip))
         };
 }
 

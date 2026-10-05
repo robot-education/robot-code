@@ -104,14 +104,11 @@ export predicate stockPointPredicate(definition is map, name is string)
 
     ninePointManipulatorPredicate(definition);
 
-    annotation { "Group Name" : "Extrude", "Collapsed By Default" : false }
-    {
-        // The opposite direction button flips the direction the stock is drawn in, so the rotate button goes next
-        // to it, as in the std Transform feature
-        newExtrudeEndTypePredicate(definition);
-        secondaryAxisPredicate(definition);
-        newExtrudeBoundsPredicate(definition);
-    }
+    // The opposite direction button flips the direction the stock is drawn in, so the rotate button goes next to it,
+    // as in the std Transform feature
+    newExtrudeEndTypePredicate(definition);
+    secondaryAxisPredicate(definition);
+    newExtrudeBoundsPredicate(definition);
 }
 
 /**
@@ -136,10 +133,9 @@ export const STOCK_DEFAULTS = {
  * How holes near the end of stock are tied to it, from a feature's `tieHoles` and `tiedHoleCount` parameters, or
  * `undefined` if they aren't.
  *
- * Holes are spaced from the start of stock. Tying holes to the end places the last `tiedHoleCount` of them (and the
- * holes around them) from the end instead, the way they're placed from the start, so both ends of stock cut to any
- * length get the same pattern. Holes are grouped into cells, one around each hole that counts, so holes measured from
- * either end never crowd each other. Stock whose length suits its pattern (like stock lengths) is left as it is.
+ * Holes are spaced from the start of stock, so its pattern is the same either way. Tying holes to the end gives the
+ * last `tiedHoleCount` holes that count (and the holes around them) identities from the end instead: they're made from
+ * the end, so they stay put relative to it as the stock's length changes.
  *
  * @param start : How far the first hole that counts is from the start of the stock.
  * @param unit : How far apart the holes that count are.
@@ -154,8 +150,8 @@ export function getTie(definition is map, start is ValueWithUnits, unit is Value
 }
 
 /**
- * Where a row of holes (or other features) goes along stock `length` long: maps of `position` and whether it's
- * `tied` to the end (see `getTie`). Only holes which fit whole are kept.
+ * Where a row of holes (or groups of them) goes along stock `length` long: maps of `position`, and whether it's `tied`
+ * to the end (see `getTie`), in order from the start. Only holes which fit whole are kept.
  *
  * @param start : The position of the row's first hole.
  * @param pitch : How far apart the row's holes are.
@@ -165,45 +161,31 @@ export function getTie(definition is map, start is ValueWithUnits, unit is Value
 export function holePositions(start is ValueWithUnits, pitch is ValueWithUnits, extent is ValueWithUnits, length is ValueWithUnits, tie) returns array
 {
     const tolerance = TOLERANCE.zeroLength * meter;
-    // Holes this far from the end are tied to it
-    const tied = tie == undefined ? -1 * meter : tie.start + (tie.count - 1) * tie.unit + tie.unit / 2;
-    var positions = [];
-    if (tie != undefined && !suitsPattern(length, tie))
+    // Holes are tied if they're around the last holes that count: those whose margin to the end is at least the first
+    // one's to the start
+    var firstTied = undefined;
+    if (tie != undefined)
     {
-        for (var distance = start; distance <= tied + tolerance; distance += pitch)
-        {
-            const position = length - distance;
-            if (position >= extent - tolerance)
-            {
-                positions = append(positions, { "position" : position, "tied" : true });
-            }
-        }
-        // Holes from the start, in the cells before the tied ones
-        for (var position = start; position <= length - extent + tolerance; position += pitch)
-        {
-            const cell = floor((position - tie.start) / tie.unit + 0.5 + 1e-9);
-            if (tie.start + (cell + 0.5) * tie.unit > length - tied + tolerance)
-            {
-                break;
-            }
-            positions = append(positions, { "position" : position, "tied" : false });
-        }
-        return positions;
+        const last = floor((length - 2 * tie.start) / tie.unit + 1e-6);
+        firstTied = last - tie.count + 1;
     }
+    var positions = [];
     for (var position = start; position <= length - extent + tolerance; position += pitch)
     {
-        positions = append(positions, { "position" : position, "tied" : length - position <= tied + tolerance });
+        const tied = tie != undefined && floor((position - tie.start) / tie.unit + 0.5 + 1e-6) >= firstTied;
+        positions = append(positions, { "position" : position, "tied" : tied });
     }
     return positions;
 }
 
 /**
- * Whether stock `length` long already has the same holes at both ends, so tying them changes nothing.
+ * Whether stock `length` long has a whole number of hole spacings, so the margin after its last hole that counts is
+ * the same as the one before its first. Otherwise, the extra length is at its end.
  */
-function suitsPattern(length is ValueWithUnits, tie is map) returns boolean
+export function isRegularLength(length is ValueWithUnits, start is ValueWithUnits, unit is ValueWithUnits) returns boolean
 {
-    const cells = (length - 2 * tie.start) / tie.unit;
-    return abs(cells - round(cells)) < 1e-6;
+    const spacings = (length - 2 * start) / unit;
+    return abs(spacings - round(spacings)) < 1e-6;
 }
 
 // Placing
@@ -222,12 +204,14 @@ const END_OFFSET_MANIPULATOR = "endOffsetManipulator";
  * @param build {function} : Builds the stock: `build(context is Context, id is Id, location is CoordSystem, length is
  *          ValueWithUnits) returns map`. `location` is the middle of its start, with Z along its length and its width
  *          along X. It returns a map of `endFace` (the face at its end) and `tiedHoles` (the faces of holes tied to
- *          it), which are highlighted when `showTiedHoles` is on.
+ *          it), which are highlighted when `showTiedHoles` is on, and whether it's `irregular` (see
+ *          `isRegularLength`), which is warned about.
  */
 export function placeStock(context is Context, id is Id, definition is map, part is map, build is function)
 {
     var longest = 0 * meter;
     var highlighted = [];
+    var irregular = false;
     if (isEdgePlacement(definition))
     {
         const edges = verifyNonemptyQuery(context, definition, "edges", "Select one or more edges to place on.");
@@ -257,6 +241,7 @@ export function placeStock(context is Context, id is Id, definition is map, part
             const index = parameters[i].index ?? NINE_POINT_CENTER_INDEX;
             const built = buildAtPoint(context, stockId, part, location, length, index, build);
             highlighted = append(highlighted, built.highlighted);
+            irregular = irregular || built.irregular;
             addEdgeManipulators(context, id, i, middle, parameters[i], built.points, index, radius);
             longest = max(longest, length);
             if (i == 0)
@@ -270,6 +255,7 @@ export function placeStock(context is Context, id is Id, definition is map, part
         const extruded = extrudeLength(context, id, definition);
         const built = buildAtPoint(context, id + "stock", part, extruded.location, extruded.length, getPointIndex(definition, 9), build);
         highlighted = append(highlighted, built.highlighted);
+        irregular = built.irregular;
         addPointManipulator(context, id, definition, built.points);
         longest = extruded.length;
     }
@@ -278,11 +264,18 @@ export function placeStock(context is Context, id is Id, definition is map, part
     {
         addDebugEntities(context, qUnion(highlighted), DebugColor.BLUE);
     }
+    var warnings = [];
     if (part.stock != [] && stockFor(part, longest) == undefined)
     {
-        const stock = part.stock[size(part.stock) - 1];
-        reportFeatureWarning(context, id, "This is only sold up to " ~ lengthString(definition, stock.length) ~ " long.",
-            [isEdgePlacement(definition) ? "edges" : "depth"]);
+        warnings = append(warnings, "This is only sold up to " ~ lengthString(definition, part.stock[size(part.stock) - 1].length) ~ " long.");
+    }
+    if (irregular)
+    {
+        warnings = append(warnings, "This isn't a whole number of hole spacings long, so the extra length is at the end.");
+    }
+    if (warnings != [])
+    {
+        reportFeatureWarning(context, id, join(warnings, " "), [isEdgePlacement(definition) ? "edges" : "depth"]);
     }
 }
 
@@ -301,7 +294,8 @@ function buildAtPoint(context is Context, id is Id, part is map, location is Coo
                 {
                     return toWorld(center, offset);
                 }),
-            "highlighted" : qUnion([built.endFace ?? qNothing(), built.tiedHoles ?? qNothing()])
+            "highlighted" : qUnion([built.endFace ?? qNothing(), built.tiedHoles ?? qNothing()]),
+            "irregular" : built.irregular ?? false
         };
 }
 

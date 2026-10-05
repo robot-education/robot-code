@@ -25,45 +25,49 @@ export predicate isCustomFrame(definition is map)
 }
 
 /**
- * The holes of a custom frame, or of a COTS frame with a custom hole pattern.
+ * A custom frame: a common size of tube with #10 clearance holes on a 1/2 in. grid, or any tube.
  */
-export enum CustomHolePattern
+export enum CustomTube
 {
-    annotation { "Name" : "Grid" }
-    GRID,
-    annotation { "Name" : "Narrow faces only" }
-    NARROW_FACES,
-    annotation { "Name" : "None" }
-    NONE
+    annotation { "Name" : "2x2" }
+    TWO_BY_TWO,
+    annotation { "Name" : "2x1" }
+    TWO_BY_ONE,
+    annotation { "Name" : "1x1" }
+    ONE_BY_ONE,
+    annotation { "Name" : "Custom" }
+    CUSTOM
 }
+
+export predicate isCustomTube(definition is map)
+{
+    isCustomFrame(definition);
+    definition.customTube == CustomTube.CUSTOM;
+}
+
+/**
+ * The common sizes of custom tube: `width` by `height`, with `sideRows` rows of holes on the sides facing X and
+ * `topRows` on those facing Y, `holeSpacing` apart.
+ */
+const CUSTOM_TUBES = {
+        (CustomTube.TWO_BY_TWO) : { "width" : 2 * inch, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3 },
+        (CustomTube.TWO_BY_ONE) : { "width" : 2 * inch, "height" : 1 * inch, "sideRows" : 1, "topRows" : 3 },
+        (CustomTube.ONE_BY_ONE) : { "width" : 1 * inch, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1 }
+    };
+
+const CUSTOM_HOLE_SPACING = 0.5 * inch;
+const CUSTOM_HOLE_DIAMETER = 0.196 * inch;
 
 const WIDTH_BOUNDS = { (meter) : [1e-5, 0.0508, 500], (inch) : 2, (millimeter) : 48 } as LengthBoundSpec;
 const HEIGHT_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 24 } as LengthBoundSpec;
 const WALL_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 2.5 } as LengthBoundSpec;
 const HOLE_SPACING_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 8 } as LengthBoundSpec;
 const HOLE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.0049784, 500], (inch) : 0.196, (millimeter) : 4 } as LengthBoundSpec;
+const SIDE_HOLE_ROWS_BOUNDS = { (unitless) : [0, 1, 1e3] } as IntegerBoundSpec;
+const TOP_HOLE_ROWS_BOUNDS = { (unitless) : [0, 3, 1e3] } as IntegerBoundSpec;
 
 /** The default number of holes tied to the end of a frame. */
 const TIED_HOLE_COUNT_BOUNDS = { (unitless) : [1, 3, 1e3] } as IntegerBoundSpec;
-
-/**
- * The hole pattern of a custom frame: holes `holeSpacing` apart, in centered rows `holeSpacing` apart across each
- * face, starting `holeSpacing` from the end.
- */
-export predicate customHolePatternPredicate(definition is map)
-{
-    annotation { "Name" : "Hole pattern", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
-    definition.holePattern is CustomHolePattern;
-
-    if (definition.holePattern != CustomHolePattern.NONE)
-    {
-        annotation { "Name" : "Hole spacing", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        isLength(definition.holeSpacing, HOLE_SPACING_BOUNDS);
-
-        annotation { "Name" : "Hole diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
-    }
-}
 
 /**
  * Places tube and channel along edges, or extrudes it from a point, tagged as frames so the std frame features work
@@ -84,16 +88,32 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
 
         if (isCustomFrame(definition))
         {
-            annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isLength(definition.width, WIDTH_BOUNDS);
+            annotation { "Name" : "Tube", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
+            definition.customTube is CustomTube;
 
-            annotation { "Name" : "Height", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isLength(definition.height, HEIGHT_BOUNDS);
+            if (isCustomTube(definition))
+            {
+                annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.width, WIDTH_BOUNDS);
+
+                annotation { "Name" : "Height", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.height, HEIGHT_BOUNDS);
+            }
 
             annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             isLength(definition.wallThickness, WALL_BOUNDS);
 
-            customHolePatternPredicate(definition);
+            if (isCustomTube(definition))
+            {
+                annotation { "Name" : "Hole rows on sides", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.sideHoleRows, SIDE_HOLE_ROWS_BOUNDS);
+
+                annotation { "Name" : "Hole rows on top and bottom", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.topHoleRows, TOP_HOLE_ROWS_BOUNDS);
+
+                annotation { "Name" : "Hole spacing", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.holeSpacing, HOLE_SPACING_BOUNDS);
+            }
         }
         else
         {
@@ -107,15 +127,11 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 annotation { "Name" : "Channel", "Lookup Table" : ftcFrameTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.ftcFrame is LookupTablePath;
             }
-
-            annotation { "Name" : "Custom hole pattern", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.customHolePattern is boolean;
-
-            if (definition.customHolePattern)
-            {
-                customHolePatternPredicate(definition);
-            }
         }
+
+        // Set to the frame's by editing logic
+        annotation { "Name" : "Hole diameter" }
+        isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
 
         if (isEdgePlacement(definition))
         {
@@ -127,111 +143,153 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
         }
 
         // Forked from robotNutStrip, with its own defaults
-        annotation { "Name" : "Tie holes to end", "Column Name" : "Has tied holes", "Default" : true,
-                    "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW", "REMEMBER_PREVIOUS_VALUE"] }
+        annotation { "Name" : "Tie holes to end", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.tieHoles is boolean;
+
         if (definition.tieHoles)
         {
-            annotation { "Name" : "Tied holes", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
-            isInteger(definition.tiedHoleCount, TIED_HOLE_COUNT_BOUNDS);
+            annotation { "Group Name" : "Tie holes to end", "Collapsed By Default" : false, "Driving Parameter" : "tieHoles" }
+            {
+                annotation { "Name" : "Tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.tiedHoleCount, TIED_HOLE_COUNT_BOUNDS);
 
-            annotation { "Name" : "Show tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.showTiedHoles is boolean;
+                annotation { "Name" : "Show tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.showTiedHoles is boolean;
+            }
         }
     }
     {
         const frame = getFrame(definition);
+        verifyHoles(definition, frame);
         placeStock(context, id, definition, frame, function(context is Context, id is Id, location is CoordSystem, length is ValueWithUnits)
             {
                 return buildFrame(context, id, definition, frame, location, length);
             });
-    }, mergeMaps(STOCK_DEFAULTS, { "source" : FrameSource.COTS, "customHolePattern" : false, "tiedHoleCount" : 3 }));
+    }, mergeMaps(STOCK_DEFAULTS, {
+            "source" : FrameSource.COTS,
+            "customTube" : CustomTube.TWO_BY_ONE,
+            "holeDiameter" : 0.196 * inch,
+            "tiedHoleCount" : 3
+        }));
 
 /**
- * The selected frame: its entry in its lookup table (see frameTables.py), or a custom one, with a custom hole pattern
- * if it has one.
+ * The selected frame: its entry in its lookup table (see frameTables.py), or a custom one in the same form.
  */
 function getFrame(definition is map) returns map
 {
-    var frame;
-    if (isCustomFrame(definition))
+    if (!isCustomFrame(definition))
     {
-        frame = {
-                "vendor" : "Custom",
-                "url" : "",
-                "appearance" : WHITE,
-                "stock" : [],
-                "partName" : roundToPrecision(definition.width / (isFrc(definition) ? inch : millimeter), 3) ~ "x" ~
-                    roundToPrecision(definition.height / (isFrc(definition) ? inch : millimeter), 3) ~ " Tube (custom, " ~
-                    lengthString(definition, definition.wallThickness) ~ " wall)",
-                "width" : definition.width,
-                "height" : definition.height,
-                "wallX" : definition.wallThickness,
-                "wallY" : definition.wallThickness,
-                "open" : false
-            };
-    }
-    else
-    {
-        frame = isFrc(definition) ?
+        return isFrc(definition) ?
             getLookupTable(frcFrameTable, definition.frcFrame) :
             getLookupTable(ftcFrameTable, definition.ftcFrame);
     }
-    if (isCustomFrame(definition) || definition.customHolePattern)
-    {
-        frame = withCustomHolePattern(definition, frame);
-    }
-    return frame;
+    const tube = getCustomTube(definition);
+    const unit = isFrc(definition) ? inch : millimeter;
+    return {
+            "vendor" : "Custom",
+            "url" : "",
+            "appearance" : WHITE,
+            "stock" : [],
+            // e.g. 2x1 Tube (custom, 0.0625 in. wall)
+            "partName" : roundToPrecision(tube.width / unit, 3) ~ "x" ~ roundToPrecision(tube.height / unit, 3) ~
+                " Tube (custom, " ~ lengthString(definition, definition.wallThickness) ~ " wall)",
+            "width" : tube.width,
+            "height" : tube.height,
+            "wallX" : definition.wallThickness,
+            "wallY" : definition.wallThickness,
+            "open" : false,
+            "holeDiameter" : tube.holeDiameter,
+            "xRows" : gridRows(tube.sideRows, tube.holeSpacing),
+            "yRows" : gridRows(tube.topRows, tube.holeSpacing),
+            "tieStart" : tube.holeSpacing,
+            "tieUnit" : tube.holeSpacing
+        };
 }
 
 /**
- * Replaces a frame's holes with the custom hole pattern.
+ * The size and holes of a custom frame: one of `CUSTOM_TUBES`, or as set.
  */
-function withCustomHolePattern(definition is map, frame is map) returns map
+function getCustomTube(definition is map) returns map
 {
-    frame.xRows = [];
-    frame.yRows = [];
-    frame.tieStart = 0.5 * inch;
-    frame.tieUnit = 0.5 * inch;
-    if (definition.holePattern == CustomHolePattern.NONE)
+    if (isCustomTube(definition))
     {
-        return frame;
+        return {
+                "width" : definition.width,
+                "height" : definition.height,
+                "sideRows" : definition.sideHoleRows,
+                "topRows" : definition.topHoleRows,
+                "holeSpacing" : definition.holeSpacing,
+                "holeDiameter" : definition.holeDiameter
+            };
     }
-    const spacing = definition.holeSpacing;
-    const tolerance = TOLERANCE.zeroLength * meter;
-    // The walls facing X are as wide as the frame is high, and those facing Y as wide as it is wide
-    if (definition.holePattern == CustomHolePattern.GRID || frame.height <= frame.width + tolerance)
-    {
-        frame.xRows = gridRows(frame.height, spacing, definition.holeDiameter);
-    }
-    if (definition.holePattern == CustomHolePattern.GRID || frame.width <= frame.height + tolerance)
-    {
-        frame.yRows = gridRows(frame.width, spacing, definition.holeDiameter);
-    }
-    frame.tieStart = spacing;
-    frame.tieUnit = spacing;
-    return frame;
+    return mergeMaps(CUSTOM_TUBES[definition.customTube], {
+                "holeSpacing" : CUSTOM_HOLE_SPACING,
+                "holeDiameter" : CUSTOM_HOLE_DIAMETER
+            });
 }
 
 /**
- * Rows of holes `spacing` apart, centered across a face `width` wide, starting `spacing` from the end.
+ * A row of holes `spacing` apart, `count` across centered on a face, starting `spacing` from the end.
  */
-function gridRows(width is ValueWithUnits, spacing is ValueWithUnits, diameter is ValueWithUnits) returns array
+function gridRows(count is number, spacing is ValueWithUnits) returns array
 {
-    const count = floor((width / 2 - spacing / 2) / spacing + 1e-9);
-    if (count < 0)
+    if (count == 0)
     {
         return [];
     }
-    return mapArray(range(-count, count), function(i)
+    return [{
+                "start" : spacing,
+                "pitch" : spacing,
+                "shapes" : mapArray(range(0, count - 1), function(i)
+                    {
+                        return { "along" : 0 * meter, "offset" : (i - (count - 1) / 2) * spacing };
+                    })
+            }];
+}
+
+/**
+ * Throws if the holes are smaller than a COTS frame's, which come with them, or a custom frame's don't fit across its
+ * faces.
+ */
+function verifyHoles(definition is map, frame is map)
+{
+    const tolerance = TOLERANCE.zeroLength * meter;
+    if (!isCustomFrame(definition))
+    {
+        if (definition.holeDiameter < frame.holeDiameter - tolerance)
         {
-            return { "offset" : i * spacing, "start" : spacing, "pitch" : spacing, "diameter" : diameter };
-        });
+            throw regenError("This frame's holes are " ~ lengthString(definition, frame.holeDiameter) ~ ", so holes can't be smaller.",
+                ["holeDiameter"]);
+        }
+        return;
+    }
+    // The sides facing X are as wide as the frame is high, inside the walls facing Y, and the other way around
+    const faces = [
+            { "rows" : frame.xRows, "width" : frame.height - 2 * frame.wallY, "parameter" : "sideHoleRows" },
+            { "rows" : frame.yRows, "width" : frame.width - 2 * frame.wallX, "parameter" : "topHoleRows" }
+        ];
+    for (var face in faces)
+    {
+        for (var row in face.rows)
+        {
+            for (var shape in row.shapes)
+            {
+                if (2 * abs(shape.offset) + definition.holeDiameter > face.width + tolerance)
+                {
+                    throw regenError("The holes don't fit across the frame's faces.", [face.parameter, "holeSpacing", "holeDiameter"]);
+                }
+            }
+        }
+    }
 }
 
 /**
  * Builds a frame `length` long, from `location` along its Z axis, with its width along X: its profile is extruded,
- * and each axis's holes (tied to the end, and not) are cut with one extrude each.
+ * then its holes are cut.
+ *
+ * Each row's holes are cut by one seed, a tool for its first hole (or group of holes), which is then face patterned
+ * along the frame; the holes tied to the end have their own seed at the last of them, patterned back toward the start.
+ * The tools are cut with one boolean, and the holes have no hole attributes, for speed.
  */
 function buildFrame(context is Context, id is Id, definition is map, frame is map, location is CoordSystem, length is ValueWithUnits) returns map
 {
@@ -274,123 +332,156 @@ function buildFrame(context is Context, id is Id, definition is map, frame is ma
 
     const tie = getTie(definition, frame.tieStart, frame.tieUnit);
     // Sketched on the walls facing -X and -Y, with X along the frame; the sketch's Y is the frame's -Y and X respectively
-    const xPlane = plane(toWorld(location, vector(-halfWidth, 0 * meter, 0 * meter)), location.xAxis, location.zAxis);
-    const yPlane = plane(toWorld(location, vector(0 * meter, -halfHeight, 0 * meter)), yAxis(location), location.zAxis);
-    const xHoles = holes(frame.xRows, length, tie, -1);
-    const yHoles = holes(frame.yRows, length, tie, 1);
-    const cuts = [
-            cutHoles(context, id + "xHoles", xPlane, xHoles, false, frame.width),
-            cutHoles(context, id + "xTiedHoles", xPlane, xHoles, true, frame.width),
-            cutHoles(context, id + "yHoles", yPlane, yHoles, false, frame.height),
-            cutHoles(context, id + "yTiedHoles", yPlane, yHoles, true, frame.height)
-        ];
-    const tools = qUnion(mapArray(cuts, function(cut)
+    const faces = [
             {
-                return cut.tools;
-            }));
-    if (!isQueryEmpty(context, tools))
+                "name" : "x",
+                "rows" : frame.xRows,
+                "plane" : plane(toWorld(location, vector(-halfWidth, 0 * meter, 0 * meter)), location.xAxis, location.zAxis),
+                "sign" : -1,
+                "depth" : frame.width
+            },
+            {
+                "name" : "y",
+                "rows" : frame.yRows,
+                "plane" : plane(toWorld(location, vector(0 * meter, -halfHeight, 0 * meter)), yAxis(location), location.zAxis),
+                "sign" : 1,
+                "depth" : frame.height
+            }
+        ];
+    var seeds = [];
+    for (var face in faces)
+    {
+        for (var i, row in face.rows)
+        {
+            const positions = holePositions(row.start, row.pitch, rowExtent(row, definition.holeDiameter), length, tie);
+            for (var tied in [false, true])
+            {
+                const group = filter(positions, function(hole)
+                    {
+                        return hole.tied == tied;
+                    });
+                if (group == [])
+                {
+                    continue;
+                }
+                const seedId = id + (face.name ~ "Row" ~ i ~ (tied ? "Tied" : ""));
+                const seedPosition = tied ? group[size(group) - 1].position : group[0].position;
+                sketchSeed(context, seedId, face, row.shapes, seedPosition, definition.holeDiameter);
+                seeds = append(seeds, {
+                            "id" : seedId,
+                            "count" : size(group),
+                            "step" : location.zAxis * (tied ? -row.pitch : row.pitch),
+                            "tied" : tied
+                        });
+            }
+        }
+    }
+
+    if (seeds != [])
     {
         opBoolean(context, id + "cutHoles", {
-                    "tools" : tools,
+                    "tools" : qUnion(mapArray(seeds, function(seed)
+                            {
+                                return qCreatedBy(seed.id + "tool", EntityType.BODY);
+                            })),
                     "targets" : body,
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
+        for (var seed in seeds)
+        {
+            if (seed.count > 1)
+            {
+                const instances = range(1, seed.count - 1);
+                opPattern(context, seed.id + "pattern", {
+                            "entities" : qCreatedBy(seed.id + "tool", EntityType.FACE),
+                            "transforms" : mapArray(instances, function(k)
+                                {
+                                    return transform(seed.step * k);
+                                }),
+                            "instanceNames" : mapArray(instances, function(k)
+                                {
+                                    return "" ~ k;
+                                })
+                        });
+            }
+        }
     }
     opDeleteBodies(context, id + "deleteSketches", {
-                "entities" : qUnion(append(mapArray(cuts, function(cut)
+                "entities" : qUnion(append(mapArray(seeds, function(seed)
                             {
-                                return cut.sketch;
+                                return qCreatedBy(seed.id + "sketch", EntityType.BODY);
                             }), qCreatedBy(profileId, EntityType.BODY)))
             });
 
     setStockProperties(context, body, definition, frame, frame.partName, length);
+    var tiedHoles = [];
+    for (var seed in seeds)
+    {
+        if (seed.tied)
+        {
+            tiedHoles = append(tiedHoles, qCreatedBy(seed.id, EntityType.FACE));
+        }
+    }
     return {
             "endFace" : qCapEntity(tubeId, CapType.END, EntityType.FACE),
-            "tiedHoles" : qUnion([qCreatedBy(id + "xTiedHoles", EntityType.FACE), qCreatedBy(id + "yTiedHoles", EntityType.FACE)])
+            "tiedHoles" : qUnion(tiedHoles),
+            "irregular" : seeds != [] && !isRegularLength(length, frame.tieStart, frame.tieUnit)
         };
 }
 
 /**
- * Each hole of `rows` along a frame `length` long: maps of its `position` along the frame, `offset` across it (times
- * `sign`, for the sketch it's drawn in), `radius`, `slot` length, and whether it's `tied` to the end.
+ * How far a row's shapes reach along the frame from its position.
  */
-function holes(rows is array, length is ValueWithUnits, tie, sign is number) returns array
+function rowExtent(row is map, holeDiameter is ValueWithUnits) returns ValueWithUnits
 {
-    var result = [];
-    for (var row in rows)
+    var extent = 0 * meter;
+    for (var shape in row.shapes)
     {
-        const radius = row.diameter / 2;
-        const slot = row.slot ?? 0 * meter;
-        for (var hole in holePositions(row.start, row.pitch, radius + slot / 2, length, tie))
-        {
-            result = append(result, {
-                        "position" : hole.position,
-                        "offset" : sign * row.offset,
-                        "radius" : radius,
-                        "slot" : slot,
-                        "tied" : hole.tied
-                    });
-        }
+        extent = max(extent, abs(shape.along) + (shape.slot ?? 0 * meter) / 2 + (shape.diameter ?? holeDiameter) / 2);
     }
-    return result;
+    return extent;
 }
 
 /**
- * Extrudes tools for the `holes` which are (or aren't) `tied`, from a sketch on `holePlane`, `depth` deep. Returns
- * queries for the `tools` and the `sketch`.
+ * Sketches a row's `shapes` at `position` along `face`, and extrudes them through the frame as a tool, `seedId +
+ * "tool"`.
  */
-function cutHoles(context is Context, id is Id, holePlane is Plane, holes is array, tied is boolean, depth is ValueWithUnits) returns map
+function sketchSeed(context is Context, seedId is Id, face is map, shapes is array, position is ValueWithUnits, holeDiameter is ValueWithUnits)
 {
-    const result = { "tools" : qCreatedBy(id, EntityType.BODY), "sketch" : qCreatedBy(id + "sketch", EntityType.BODY) };
-    var count = 0;
-    var sketch;
-    for (var hole in holes)
+    const sketch = newSketchOnPlane(context, seedId + "sketch", { "sketchPlane" : face.plane });
+    for (var i, shape in shapes)
     {
-        if (hole.tied != tied)
+        const center = vector(position + shape.along, face.sign * shape.offset);
+        const radius = (shape.diameter ?? holeDiameter) / 2;
+        const slot = shape.slot ?? 0 * meter;
+        if (slot < TOLERANCE.zeroLength * meter)
         {
+            skCircle(sketch, "hole" ~ i, { "center" : center, "radius" : radius });
             continue;
         }
-        if (sketch == undefined)
-        {
-            sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : holePlane });
-        }
-        const center = vector(hole.position, hole.offset);
-        if (hole.slot < TOLERANCE.zeroLength * meter)
-        {
-            skCircle(sketch, "hole" ~ count, { "center" : center, "radius" : hole.radius });
-        }
-        else
-        {
-            // A slot along the frame: two sides and two round ends
-            const along = vector(hole.slot / 2, 0 * meter);
-            const across = vector(0 * meter, hole.radius);
-            skLineSegment(sketch, "side" ~ count, { "start" : center - along - across, "end" : center + along - across });
-            skArc(sketch, "end" ~ count, {
-                        "start" : center + along - across,
-                        "mid" : center + along + vector(hole.radius, 0 * meter),
-                        "end" : center + along + across
-                    });
-            skLineSegment(sketch, "otherSide" ~ count, { "start" : center + along + across, "end" : center - along + across });
-            skArc(sketch, "otherEnd" ~ count, {
-                        "start" : center - along + across,
-                        "mid" : center - along - vector(hole.radius, 0 * meter),
-                        "end" : center - along - across
-                    });
-        }
-        count += 1;
-    }
-    if (sketch == undefined)
-    {
-        return { "tools" : qNothing(), "sketch" : qNothing() };
+        // A slot along the frame: two sides and two round ends
+        const along = vector(slot / 2, 0 * meter);
+        const across = vector(0 * meter, radius);
+        skLineSegment(sketch, "side" ~ i, { "start" : center - along - across, "end" : center + along - across });
+        skArc(sketch, "end" ~ i, {
+                    "start" : center + along - across,
+                    "mid" : center + along + vector(radius, 0 * meter),
+                    "end" : center + along + across
+                });
+        skLineSegment(sketch, "otherSide" ~ i, { "start" : center + along + across, "end" : center - along + across });
+        skArc(sketch, "otherEnd" ~ i, {
+                    "start" : center - along + across,
+                    "mid" : center - along - vector(radius, 0 * meter),
+                    "end" : center - along - across
+                });
     }
     skSolve(sketch);
-    opExtrude(context, id, {
-                "entities" : qSketchRegion(id + "sketch"),
-                "direction" : holePlane.normal,
+    opExtrude(context, seedId + "tool", {
+                "entities" : qSketchRegion(seedId + "sketch"),
+                "direction" : face.plane.normal,
                 "endBound" : BoundingType.BLIND,
-                "endDepth" : depth
+                "endDepth" : face.depth
             });
-    return result;
 }
 
 /**
@@ -404,10 +495,24 @@ export function robotFrameManipulatorChange(context is Context, definition is ma
 
 /**
  * @internal
- * The editing logic function for robot frame.
+ * The editing logic function for robot frame. When the frame changes, its hole diameter is set to the frame's, unless
+ * it's been set larger.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    var changed = false;
+    for (var parameter in ["program", "source", "customTube", "frcFrame", "ftcFrame"])
+    {
+        changed = changed || oldDefinition[parameter] != definition[parameter];
+    }
+    if (changed && !isCustomTube(definition))
+    {
+        const holeDiameter = getFrame(definition).holeDiameter;
+        if (!(specifiedParameters.holeDiameter ?? false) || definition.holeDiameter < holeDiameter)
+        {
+            definition.holeDiameter = holeDiameter;
+        }
+    }
     return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
 }
