@@ -547,6 +547,7 @@ class Project:
         problems.extend(self._bare_key_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
         problems.extend(_precondition_problems(module, providers))
+        problems.extend(self._parameter_enum_problems(module, providers))
         for usage in self.usages([module]):
             if not usage.exported and usage.unused:
                 token = usage.declaration.token
@@ -611,6 +612,96 @@ class Project:
             problems.append(_unused(imported, target.relative))
         return sorted(problems, key=lambda problem: problem.start)
 
+
+    def _parameter_enum_problems(
+        self, module: Module, providers: dict[str, list[Provider]]
+    ) -> list[Problem]:
+        """Enums used as a feature's parameter types which its file doesn't export.
+
+        Onshape requires them to be exported by the feature's file: declared there with `export`, or
+        re-exported with `export import`. Std enums are fine.
+        """
+        exported, _ = self.exported_names(module)
+        problems = []
+        for node in module.parsed.nodes:
+            if node.type != "PreconditionBlock":
+                continue
+            feature = module.index.enclosing(node.token, frozenset(["FeatureDeclaration"]))
+            if feature is None:
+                continue
+            for name, report_at in self._parameter_types(module, node.start, node.end, set()):
+                if not self._is_project_enum(module, name, providers):
+                    continue
+                if any(d.kind == "enum" for _, d in exported.get(name, [])):
+                    continue
+                problems.append(
+                    Problem(
+                        report_at.offset,
+                        report_at.end,
+                        "error",
+                        f"{name} is a parameter type of {feature.name}, so this file must export it "
+                        f"(declare it with export, or export import the file declaring it).",
+                        "unexported-parameter-enum",
+                    )
+                )
+        return _dedupe_problems(problems)
+
+    def _parameter_types(
+        self, module: Module, start: int, end: int, seen: set[tuple[pathlib.Path, int]]
+    ) -> list[tuple[str, Token]]:
+        """The types after `x.y is` in a region, and in the predicates it calls (reported at the call)."""
+        tokens = module.index.tokens
+        found: list[tuple[str, Token]] = []
+        providers, _ = self.providers(module)
+        for position, token in enumerate(tokens):
+            if not start <= token.offset < end:
+                continue
+            following = tokens[position + 1] if position + 1 < len(tokens) else None
+            if (
+                token.value == "is"
+                and position >= 2
+                and tokens[position - 2].value == "."
+                and following is not None
+                and following.kind == "identifier"
+            ):
+                found.append((following.value, following))
+            elif token.kind == "identifier" and following is not None and following.value == "(":
+                targets = [
+                    (module, d)
+                    for d in [module.index.declaration_for_token(token)]
+                    if d is not None and d.kind == "predicate"
+                ] or [
+                    (provider.module, provider.declaration)
+                    for provider in providers.get(token.value, [])
+                    if provider.declaration.kind == "predicate"
+                ]
+                for owner, declaration in targets:
+                    key = (owner.path, declaration.token.offset)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    body = next(
+                        (
+                            n
+                            for n in owner.parsed.nodes
+                            if n.type == "PredicateDeclaration" and n.start <= declaration.token.offset < n.end
+                        ),
+                        None,
+                    )
+                    if body is not None:
+                        found.extend(
+                            (name, token)
+                            for name, _ in self._parameter_types(owner, body.start, body.end, seen)
+                        )
+        return found
+
+    def _is_project_enum(self, module: Module, name: str, providers: dict[str, list[Provider]]) -> bool:
+        """Whether name is an enum declared in the project, rather than in std (or not an enum)."""
+        return (
+            name in module.parsed.enums
+            or any(p.declaration.kind == "enum" for p in providers.get(name, []))
+            or any(name in other.parsed.enums for other in self.modules())
+        )
 
     def _bare_key_problems(
         self, module: Module, providers: dict[str, list[Provider]]
@@ -744,6 +835,17 @@ def _precondition_problems(module: Module, providers: dict[str, list[Provider]])
                     )
                 )
     return problems
+
+
+def _dedupe_problems(problems: list[Problem]) -> list[Problem]:
+    seen = set()
+    unique = []
+    for problem in problems:
+        key = (problem.start, problem.message)
+        if key not in seen:
+            seen.add(key)
+            unique.append(problem)
+    return unique
 
 
 def _unused(imported: Import, name: str) -> Problem:

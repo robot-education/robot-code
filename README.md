@@ -157,8 +157,10 @@ uv run fs unused             # exports nothing uses (--local: also those only th
 ```
 
 `fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
-(following `export import`), and the std library. It also warns about top-level declarations which aren't exported or
-used anywhere, and map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
+(following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)
+which the feature's file doesn't export, as Onshape requires, and warns about comparisons with `true` or `false`,
+precondition conditions Onshape can't evaluate (only parameters, enum values, literals, and predicates work), top-level
+declarations which aren't exported or used anywhere, and map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
 progress in `featurescripts/frame/` doesn't pass yet.
 
 ## Generated files

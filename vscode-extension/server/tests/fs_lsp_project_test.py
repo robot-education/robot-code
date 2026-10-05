@@ -272,3 +272,25 @@ def test_lints(project):
     assert ("precondition", "SIZES") in problems
     assert not any(code == "precondition" and text != "SIZES" for code, text in problems)
     assert ("boolean-comparison", "== true") in problems
+
+
+def test_parameter_enums_must_be_exported(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\nexport enum Shape { CIRCLE }\n"
+        "export predicate shapePredicate(definition is map) { definition.other is Shape; }\n"
+    )
+    feature = (
+        "FeatureScript 2909;\n{imports}"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {{\n        definition.shape is Shape;\n        shapePredicate(definition);\n    }}\n"
+        "    {{\n    }});\n"
+    )
+    path = project.code_dir / "feature2.fs"
+    path.write_text(feature.format(imports=f'import(path : "{SHAPES_ID}", version : "v");\n'))
+    problems = [p for p in project.check(project.module(path)) if p.code == "unexported-parameter-enum"]
+    source = project.module(path).parsed.source
+    # Reported where it's used directly, and at the predicate call
+    assert sorted(source[p.start:p.end] for p in problems) == ["Shape", "shapePredicate"]
+
+    path.write_text(feature.format(imports=f'export import(path : "{SHAPES_ID}", version : "v");\n'))
+    assert not [p for p in project.check(project.module(path)) if p.code == "unexported-parameter-enum"]
