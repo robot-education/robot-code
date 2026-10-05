@@ -151,6 +151,10 @@ def one(length: str, part_number: str, url: str) -> str:
     return stock((length, part_number, url))
 
 
+# A #10-32 tap drill (#21), the hole through shafts which can be tapped #10-32 at their ends
+TAP_10_32 = inch(0.159)
+
+
 def wcp(part_number: str) -> str:
     return f"https://wcproducts.com/products/{part_number.lower()}"
 
@@ -171,10 +175,10 @@ WCP = vendor(
         wcp_shaft("1/2 in. Hex Lite", "Hex Lite Shaft (WCP 1/2 in.)", hex("HEX_LITE", HALF_INCH), "WCP-0917"),
         wcp_shaft("3/8 in. Hex Lite", "Hex Lite Shaft (WCP 3/8 in.)", hex("HEX_LITE", THREE_EIGHTHS), "WCP-1418"),
         shaft("SplineXL", "SplineXL Shaft (WCP)", spline("SPLINE_XL"), "ALUMINUM", "BLACK", one(inch(47), "WCP-0918", wcp("WCP-0918"))),
-        # TODO: check whether the SplineXS stock has a through hole (its page has no drawing yet). The stub's ends look
-        # tapped, which the shaft's ends can draw
+        # Its page has no drawing yet; assumed to have a through hole to tap #10-32, like ThriftyBot's 7075 stock. The
+        # stub's ends look tapped, which the shaft's ends can draw
         shaft("SplineXS (aluminum)", "SplineXS Shaft (WCP, aluminum)", spline("SPLINE_XS"), "ALUMINUM", "BLACK",
-              one(inch(36), "WCP-1379", wcp("WCP-1379"))),
+              one(inch(36), "WCP-1379", wcp("WCP-1379")), predrilled_hole=TAP_10_32),
         shaft("SplineXS Stub (steel)", "SplineXS Stub Shaft (WCP, steel)", spline("SPLINE_XS"), "STEEL", "BLACK",
               one(inch(3), "WCP-0946", wcp("WCP-0946")), fixed_lengths=True),
     ],
@@ -272,9 +276,6 @@ def ttb(handle: str) -> str:
 
 
 TTB_SPLINE_XS_URL = ttb("pre-order-splinexs-shafts")
-
-# A #10-32 tap drill (#21), the hole through shafts which can be tapped #10-32 at their ends
-TAP_10_32 = inch(0.159)
 
 # FRCDesign "Hex Shaft (TTB)" and "Spline - 15t SplineXS (TTB)". Its SplineXS stub shafts are 1045 steel, tapped #10-32 at
 # each end (draw them with the shaft's ends); its 7075 SplineXS stock has a through hole to tap #10-32, and its steel

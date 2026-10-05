@@ -191,8 +191,8 @@ REV_FRC = vendor(
 )
 
 # https://www.revrobotics.com/m3-nut-strips/
-# The rows alternate every 8 mm: one starts 8 mm from the end, the other 16 mm (REV-41-1731's STEP file)
-# TODO: REV's M3 nut strips also have tapped holes in their ends
+# The rows alternate every 8 mm: one starts 8 mm from the end, the other 16 mm (REV-41-1731's STEP file), and a
+# tapped hole runs down the center
 # Matte gray in REV's photos
 REV_FTC_URL = "https://www.revrobotics.com/m3-nut-strips/"
 REV_FTC = vendor(
@@ -207,7 +207,7 @@ REV_FTC = vendor(
             mm(16),
             [
                 with_stock(
-                    M3,
+                    with_center_hole(M3),
                     (mm(32), "REV-41-1731", REV_FTC_URL),
                     (mm(40), "REV-41-1732", REV_FTC_URL),
                     (mm(56), "REV-41-1733", REV_FTC_URL),
