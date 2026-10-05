@@ -4,6 +4,80 @@ import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 
 /* Generated from printAdapterProfiles.py by `fs gen` -- DO NOT EDIT */
 
+export enum PrintAdapter
+{
+    annotation { "Name" : "AndyMark 1/2\" Hex Insert (am-5654)" }
+    ANDYMARK_HEX_INSERT,
+    annotation { "Name" : "AndyMark 3/8\" Hex Insert (am-5655)" }
+    ANDYMARK_3_8_HEX_INSERT,
+    annotation { "Name" : "AndyMark 8mm Keyed Insert (am-5656)" }
+    ANDYMARK_8MM_KEYED_INSERT,
+    annotation { "Name" : "AndyMark Kraken Spline Insert (am-5657)" }
+    ANDYMARK_KRAKEN_INSERT,
+    annotation { "Name" : "Swyft 1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" }
+    SWYFT_HEX_ADAPTER,
+    annotation { "Name" : "TTB 1/2\" Hex Insert (TTB-0034)" }
+    TTB_HEX_INSERT,
+    annotation { "Name" : "TTB SplineXS Insert (TTB-0356)" }
+    TTB_SPLINE_INSERT,
+    annotation { "Name" : "WCP SplineXS Adapter (WCP-1021)" }
+    WCP_SPLINE_ADAPTER,
+    annotation { "Name" : "WCP 1/2\" Hex Adapter (WCP-1121)" }
+    WCP_HEX_ADAPTER
+}
+
+export const PRINT_ADAPTER_TABLE = {
+        "name" : "vendor",
+        "displayName" : "Vendor",
+        "entries" : {
+            "AndyMark" : {
+                "name" : "adapter",
+                "displayName" : "Adapter",
+                "entries" : {
+                    "1/2\" Hex Insert (am-5654)" : { "adapter" : PrintAdapter.ANDYMARK_HEX_INSERT },
+                    "3/8\" Hex Insert (am-5655)" : { "adapter" : PrintAdapter.ANDYMARK_3_8_HEX_INSERT },
+                    "8mm Keyed Insert (am-5656)" : { "adapter" : PrintAdapter.ANDYMARK_8MM_KEYED_INSERT },
+                    "Kraken Spline Insert (am-5657)" : { "adapter" : PrintAdapter.ANDYMARK_KRAKEN_INSERT },
+                },
+            },
+            "Swyft" : {
+                "name" : "adapter",
+                "displayName" : "Adapter",
+                "entries" : {
+                    "1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" : { "adapter" : PrintAdapter.SWYFT_HEX_ADAPTER },
+                },
+            },
+            "TTB" : {
+                "name" : "adapter",
+                "displayName" : "Adapter",
+                "entries" : {
+                    "1/2\" Hex Insert (TTB-0034)" : { "adapter" : PrintAdapter.TTB_HEX_INSERT },
+                    "SplineXS Insert (TTB-0356)" : { "adapter" : PrintAdapter.TTB_SPLINE_INSERT },
+                },
+            },
+            "WCP" : {
+                "name" : "adapter",
+                "displayName" : "Adapter",
+                "entries" : {
+                    "SplineXS Adapter (WCP-1021)" : { "adapter" : PrintAdapter.WCP_SPLINE_ADAPTER },
+                    "1/2\" Hex Adapter (WCP-1121)" : { "adapter" : PrintAdapter.WCP_HEX_ADAPTER },
+                },
+            },
+        },
+    };
+
+export const PRINT_ADAPTER_PATHS = {
+        PrintAdapter.ANDYMARK_HEX_INSERT : { "vendor" : "AndyMark", "adapter" : "1/2\" Hex Insert (am-5654)" },
+        PrintAdapter.ANDYMARK_3_8_HEX_INSERT : { "vendor" : "AndyMark", "adapter" : "3/8\" Hex Insert (am-5655)" },
+        PrintAdapter.ANDYMARK_8MM_KEYED_INSERT : { "vendor" : "AndyMark", "adapter" : "8mm Keyed Insert (am-5656)" },
+        PrintAdapter.ANDYMARK_KRAKEN_INSERT : { "vendor" : "AndyMark", "adapter" : "Kraken Spline Insert (am-5657)" },
+        PrintAdapter.SWYFT_HEX_ADAPTER : { "vendor" : "Swyft", "adapter" : "1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" },
+        PrintAdapter.TTB_HEX_INSERT : { "vendor" : "TTB", "adapter" : "1/2\" Hex Insert (TTB-0034)" },
+        PrintAdapter.TTB_SPLINE_INSERT : { "vendor" : "TTB", "adapter" : "SplineXS Insert (TTB-0356)" },
+        PrintAdapter.WCP_SPLINE_ADAPTER : { "vendor" : "WCP", "adapter" : "SplineXS Adapter (WCP-1021)" },
+        PrintAdapter.WCP_HEX_ADAPTER : { "vendor" : "WCP", "adapter" : "1/2\" Hex Adapter (WCP-1121)" },
+    };
+
 export const WCP_HEX_ADAPTER_PROFILE = [
             { "operation" : SketchOperation.LINE, "start" : vector(-0.302010543774, 0.237473910525) * inch, "end" : vector(-0.379533055656, 0.282231553628) * inch },
             { "operation" : SketchOperation.ARC, "start" : vector(-0.379533055656, 0.282231553628) * inch, "mid" : vector(-0.401174536588, 0.285375333369) * inch, "end" : vector(-0.419043498479, 0.272768301645) * inch },

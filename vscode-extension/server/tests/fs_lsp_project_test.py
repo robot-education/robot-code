@@ -234,3 +234,41 @@ def test_imported_names_are_highlighted(project):
     assert tokens["SIDES"] == ("variable", ("readonly",))
     assert tokens["Shape"][0] == "enum"
     assert tokens["CIRCLE"] == ("enumMember", ("readonly",))
+
+
+def test_imports_and_namespaces_are_highlighted(project):
+    from fs_lsp.semantic import build_semantic_tokens
+
+    path = project.code_dir / "icons.fs"
+    path.write_text(
+        'FeatureScript 2909;\nIcon::import(path : "abc", version : "def");\n'
+        "export const a = [Icon::BLOB_DATA, Icon::build];\n"
+        "export function b() { try silent { return 1; } }\n"
+    )
+    module = project.module(path)
+    tokens = {(t.token.value, t.token.line): t.type for t in build_semantic_tokens(module.parsed)}
+    assert tokens[("path", 1)] == tokens[("version", 1)] == "property"
+    assert tokens[("BLOB_DATA", 2)] == "variable" and tokens[("build", 2)] == "function"
+    assert tokens[("silent", 3)] == "keyword"
+
+
+def test_lints(project):
+    path = project.code_dir / "lint.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'const SIZES = { "a" : true };\n'
+        "predicate isBig(definition is map) { definition.size > 1; }\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        "        if (SIZES[definition.size]) { }\n"
+        "        if (isBig(definition) && definition.flag) { }\n"
+        "        for (var item in definition.items) { if (item.on) { } }\n"
+        "    }\n    {\n"
+        "        if (definition.flag == true) { }\n"
+        "    });\n"
+    )
+    problems = [(p.code, module_text) for p in project.check(project.module(path))
+                for module_text in [project.module(path).parsed.source[p.start:p.end]]]
+    assert ("precondition", "SIZES") in problems
+    assert not any(code == "precondition" and text != "SIZES" for code, text in problems)
+    assert ("boolean-comparison", "== true") in problems

@@ -110,8 +110,11 @@ class Table:
 
 @dataclasses.dataclass
 class Enum:
+    """An exported enum; `names` optionally gives values a name to show in the UI."""
+
     name: str
     values: Sequence[str]
+    names: Mapping[str, str] | None = None
 
     def __getitem__(self, value: str) -> str:
         """Returns the FeatureScript expression for one of the enum's values."""
@@ -120,8 +123,12 @@ class Enum:
         return f"{self.name}.{value}"
 
     def render(self) -> str:
-        values = "".join(f"    {value},\n" for value in self.values)
-        return f"export enum {self.name}\n{{\n{values}}}\n"
+        lines = []
+        for index, value in enumerate(self.values):
+            if self.names and value in self.names:
+                lines.append(f"    annotation {{ {string('Name')} : {string(self.names[value])} }}\n")
+            lines.append(f"    {value}{',' if self.names is None or index < len(self.values) - 1 else ''}\n")
+        return f"export enum {self.name}\n{{\n{''.join(lines)}}}\n"
 
 
 def _render_node(

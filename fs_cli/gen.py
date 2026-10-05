@@ -53,6 +53,17 @@ class Import:
         return f'{export}import(path : "{element_id}", version : "{version}"); // {self.path}\n'
 
 
+@dataclasses.dataclass
+class Constant:
+    """An exported constant set to a FeatureScript expression."""
+
+    name: str
+    expression: str
+
+    def render(self) -> str:
+        return f"export const {self.name} = {self.expression};\n"
+
+
 def render(
     contents: Sequence[Item | Import],
     version: str,

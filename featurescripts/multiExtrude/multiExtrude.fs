@@ -165,7 +165,7 @@ predicate mainViewExtrudePredicate(definition is map)
         annotation { "Name" : "Draft", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"] }
         definition.hasDraft is boolean;
 
-        if (definition.hasDraft == true)
+        if (definition.hasDraft)
         {
             annotation { "Name" : "Draft angle", "UIHint" : UIHint.DISPLAY_SHORT }
             isAngle(definition.draftAngle, ANGLE_STRICT_90_BOUNDS);

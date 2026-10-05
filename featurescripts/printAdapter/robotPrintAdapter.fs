@@ -12,29 +12,6 @@ import(path : "eb11a2948f8123134339137f", version : "aa3b93f58a282fb8286a97ca");
 import(path : "6451a02d1f9f40630984864b", version : "15f0dc87b19ff86905238bab");
 import(path : "aa47f3d3eb754118903deeec", version : "0cf078513442fad9ec35fd7b");
 
-// Sorted by vendor, then part number
-export enum PrintAdapter
-{
-    annotation { "Name" : "AndyMark 1/2\" Hex Insert (am-5654)" }
-    ANDYMARK_HEX_INSERT,
-    annotation { "Name" : "AndyMark 3/8\" Hex Insert (am-5655)" }
-    ANDYMARK_3_8_HEX_INSERT,
-    annotation { "Name" : "AndyMark 8mm Keyed Insert (am-5656)" }
-    ANDYMARK_8MM_KEYED_INSERT,
-    annotation { "Name" : "AndyMark Kraken Spline Insert (am-5657)" }
-    ANDYMARK_KRAKEN_INSERT,
-    annotation { "Name" : "Swyft 1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" }
-    SWYFT_HEX_ADAPTER,
-    annotation { "Name" : "TTB 1/2\" Hex Insert (TTB-0034)" }
-    TTB_HEX_INSERT,
-    annotation { "Name" : "TTB SplineXS Insert (TTB-0356)" }
-    TTB_SPLINE_INSERT,
-    annotation { "Name" : "WCP SplineXS Adapter (WCP-1021)" }
-    WCP_SPLINE_ADAPTER,
-    annotation { "Name" : "WCP 1/2\" Hex Adapter (WCP-1121)" }
-    WCP_HEX_ADAPTER
-}
-
 /**
  * The bores SplineXS adapters can cut.
  */
@@ -58,8 +35,23 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
     {
         annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            annotation { "Name" : "Adapter", "Lookup Table" : PRINT_ADAPTER_TABLE, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.adapterPath is LookupTablePath;
+
+            // The adapter itself, kept in sync with adapterPath by the editing logic. Features made before
+            // the lookup table only have this.
+            annotation { "Name" : "Adapter type", "UIHint" : ["ALWAYS_HIDDEN"] }
             definition.printAdapter is PrintAdapter;
+
+            // Set by the editing logic, since preconditions can't look at the adapter's data
+            annotation { "Name" : "Has boss", "UIHint" : ["ALWAYS_HIDDEN"] }
+            definition.hasBoss is boolean;
+
+            if (definition.hasBoss)
+            {
+                annotation { "Name" : "Use boss", "Default" : true, "Description" : "Leave room for the adapter's boss above the print, instead of sinking the whole adapter in.", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.useBoss is boolean;
+            }
 
             locationPredicate(definition, "print adapter");
 
@@ -71,6 +63,9 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
             holeMergeScopePredicate(definition);
         }
 
+        annotation { "Name" : "Has SplineXS bore", "UIHint" : ["ALWAYS_HIDDEN"] }
+        definition.hasSplineXsBore is boolean;
+
         annotation { "Name" : "Add bore" }
         definition.addBore is boolean;
 
@@ -78,7 +73,7 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
         {
             annotation { "Group Name" : "Add bore", "Collapsed By Default" : false, "Driving Parameter" : "addBore" }
             {
-                if (PRINT_ADAPTERS[definition.printAdapter].bore.splineXs == true)
+                if (definition.hasSplineXsBore)
                 {
                     annotation { "Name" : "Bore type", "Description" : "A clearance circle, or the SplineXS profile itself.", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
                     definition.boreType is PrintBoreType;
@@ -133,7 +128,14 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
                     "defaultScope" : false,
                     "booleanScope" : definition.scope
                 }, reconstructOp);
-    });
+    },
+    {
+            // For features made before these parameters
+            "useBoss" : true,
+            "boreType" : PrintBoreType.CIRCLE,
+            "hasBoss" : false,
+            "hasSplineXsBore" : false
+        });
 
 function createPrintAdapter(context is Context, id is Id, definition is map, plane is Plane)
 {
@@ -149,7 +151,7 @@ function createPrintAdapter(context is Context, id is Id, definition is map, pla
                 "entities" : qCreatedBy(sketchId, EntityType.FACE),
                 "direction" : plane.normal,
                 "endBound" : BoundingType.BLIND,
-                "endDepth" : PRINT_ADAPTERS[definition.printAdapter].depth
+                "endDepth" : getPocketDepth(definition)
             });
     const outsideFaces = qNonCapEntity(adapterId + "extrude", EntityType.FACE);
 
@@ -194,7 +196,7 @@ function createPrintBore(context is Context, id is Id, definition is map, plane 
     const boreOffset = getBoreProfileOffset(definition);
     if (!tolerantEqualsZero(boreOffset))
     {
-        addProfileOffsetManipulator(context, id, BORE_PROFILE_OFFSET_MANIPULATOR, line(plane.origin + plane.normal * PRINT_ADAPTERS[definition.printAdapter].depth, plane.x), outsideFaces, definition[BORE_PROFILE_OFFSET_FLIP]);
+        addProfileOffsetManipulator(context, id, BORE_PROFILE_OFFSET_MANIPULATOR, line(plane.origin + plane.normal * getPocketDepth(definition), plane.x), outsideFaces, definition[BORE_PROFILE_OFFSET_FLIP]);
 
         try
         {
@@ -214,7 +216,7 @@ function sketchBoreProfile(context is Context, id is Id, definition is map, plan
 {
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
     const bore = PRINT_ADAPTERS[definition.printAdapter].bore;
-    if (bore.splineXs == true && definition.boreType == PrintBoreType.SPLINE_XS)
+    if (bore.splineXs != undefined && definition.boreType == PrintBoreType.SPLINE_XS)
     {
         skDataArray(sketch, "splineXs", { "sketchDataArray" : SPLINE_XS_HOLE });
     }
@@ -260,7 +262,32 @@ export function robotPrintAdapterEditLogic(context is Context, id is Id, oldDefi
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition = mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
+    if (oldDefinition.adapterPath != definition.adapterPath)
+    {
+        definition.printAdapter = getLookupTable(PRINT_ADAPTER_TABLE, definition.adapterPath).adapter;
+    }
+    else
+    {
+        // A feature made before the lookup table, or the adapter changed some other way
+        definition.adapterPath = lookupTablePath(PRINT_ADAPTER_PATHS[definition.printAdapter]);
+    }
+    const adapter = PRINT_ADAPTERS[definition.printAdapter];
+    definition.hasBoss = adapter.boss != undefined;
+    definition.hasSplineXsBore = adapter.bore.splineXs != undefined;
     return definition;
+}
+
+/**
+ * The depth of the pocket for the adapter: all of it, or all but its boss.
+ */
+function getPocketDepth(definition is map) returns ValueWithUnits
+{
+    const adapter = PRINT_ADAPTERS[definition.printAdapter];
+    if (adapter.boss != undefined && definition.useBoss)
+    {
+        return adapter.depth - adapter.boss;
+    }
+    return adapter.depth;
 }
 
 
@@ -268,32 +295,37 @@ export function robotPrintAdapterEditLogic(context is Context, id is Id, oldDefi
 const SPLINE_XS_BORE = { "diameter" : 8.5 * millimeter, "splineXs" : true };
 
 /**
- * Each adapter's `profile`, the `depth` of the pocket for it, and the `bore` cut through the print for its shaft.
+ * Each adapter's `profile`, its thickness (`depth`), how tall the boss on one side of it is (`boss`, if it has one),
+ * and the `bore` cut through the print for its shaft.
  *
  * A bore is a hex (`hexSize` across flats, with a corner at `vertexAngle`, timed to match the adapter), or a
  * clearance circle (`diameter`), which SplineXS adapters (`splineXs`) can replace with a SplineXS profile.
  */
 const PRINT_ADAPTERS = {
-        // AndyMark's inserts are 0.25 thick with a boss on one side; the toothed part is 0.22 thick
+        // AndyMark's inserts have a 0.03 boss (see vendor/am-5654), so the toothed part is 0.22 thick
         PrintAdapter.ANDYMARK_HEX_INSERT : {
                 "profile" : ANDYMARK_HEX_INSERT_PROFILE,
-                "depth" : 0.22 * inch,
+                "depth" : 0.25 * inch,
+                "boss" : 0.03 * inch,
                 "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 90 * degree }
             },
         PrintAdapter.ANDYMARK_3_8_HEX_INSERT : {
                 "profile" : ANDYMARK_SMALL_INSERT_PROFILE,
-                "depth" : 0.22 * inch,
+                "depth" : 0.25 * inch,
+                "boss" : 0.03 * inch,
                 "bore" : { "hexSize" : 0.375 * inch, "vertexAngle" : 90 * degree }
             },
         PrintAdapter.ANDYMARK_8MM_KEYED_INSERT : {
                 "profile" : ANDYMARK_SMALL_INSERT_PROFILE,
-                "depth" : 0.22 * inch,
+                "depth" : 0.25 * inch,
+                "boss" : 0.03 * inch,
                 // Clears the key, which reaches 4.9mm from the center
                 "bore" : { "diameter" : 10 * millimeter }
             },
         PrintAdapter.ANDYMARK_KRAKEN_INSERT : {
                 "profile" : ANDYMARK_SMALL_INSERT_PROFILE,
-                "depth" : 0.22 * inch,
+                "depth" : 0.25 * inch,
+                "boss" : 0.03 * inch,
                 "bore" : SPLINE_XS_BORE
             },
         PrintAdapter.SWYFT_HEX_ADAPTER : {

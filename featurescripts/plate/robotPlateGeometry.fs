@@ -149,8 +149,7 @@ function getPlateGeometryArray(context is Context, id is Id, platePlane is Plane
                 }
                 else if (isPlateArc(plateGeometry))
                 {
-                    // == true to handle undefined
-                    plateGeometry.flipped = (flipMap[selection] == true);
+                    plateGeometry.flipped = flipMap[selection] ?? false;
 
                     const edges = evEdgeTangentLines(context, {
                                 "edge" : selection,

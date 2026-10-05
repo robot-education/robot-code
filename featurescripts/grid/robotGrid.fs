@@ -213,7 +213,7 @@ export function robotGridManipulatorChange(context is Context, definition is map
             for (var j = 0; j < maxJ; j += 1)
             {
                 // Skip all unselected holes
-                if (selectedIndicesMap[curr] != true)
+                if (!(selectedIndicesMap[curr] ?? false))
                 {
                     definition.holesToSkip[i ~ "." ~ j] = true;
                 }

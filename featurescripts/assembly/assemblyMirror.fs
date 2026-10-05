@@ -467,7 +467,7 @@ precondition
 {
     definition.baseMate is Query;
     definition.mateToOrigin is boolean || definition.mateToOrigin is undefined;
-    if (definition.mateToOrigin != true)
+    if (!(definition.mateToOrigin ?? false))
     {
         definition.targetMate is Query;
     }

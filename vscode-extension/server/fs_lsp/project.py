@@ -545,6 +545,8 @@ class Project:
             )
 
         problems.extend(self._bare_key_problems(module, providers))
+        problems.extend(_boolean_comparison_problems(module))
+        problems.extend(_precondition_problems(module, providers))
         for usage in self.usages([module]):
             if not usage.exported and usage.unused:
                 token = usage.declaration.token
@@ -643,6 +645,105 @@ class Project:
                 )
             )
         return problems
+
+
+def _boolean_comparison_problems(module: Module) -> list[Problem]:
+    """Comparisons with true or false, which are redundant: `x == true` is `x`."""
+    problems = []
+    tokens = module.index.tokens
+    for index, token in enumerate(tokens):
+        if token.value not in ("==", "!="):
+            continue
+        for neighbor in (tokens[index - 1] if index else None, tokens[index + 1] if index + 1 < len(tokens) else None):
+            if neighbor is not None and neighbor.value in ("true", "false"):
+                problems.append(
+                    Problem(
+                        token.offset,
+                        neighbor.end if neighbor.offset > token.offset else token.end,
+                        "warning",
+                        f"Comparing with {neighbor.value} is redundant; use the value (or ! it) directly.",
+                        "boolean-comparison",
+                    )
+                )
+    return problems
+
+
+def _precondition_problems(module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
+    """Conditions Onshape can't evaluate in a feature's precondition (or a predicate, which may be used in one).
+
+    Onshape works out which parameters to show without running the precondition, so its `if` conditions can
+    only use parameters (`definition.x`, including loop variables over array parameters), enum values,
+    literals, and predicates (which it inlines). Constants and other functions don't work.
+    """
+    index = module.index
+    nodes = module.parsed.nodes
+    regions = []
+    for node in nodes:
+        if node.type == "PreconditionBlock":
+            feature = index.enclosing(node.token, frozenset(["FeatureDeclaration"]))
+            if feature is not None:
+                regions.append((node.start, node.end, {"definition"}))
+        elif node.type == "PredicateDeclaration":
+            parameters = {
+                declaration.name
+                for declaration in index.declarations
+                if declaration.kind == "parameter" and declaration.scope_start == node.start
+            }
+            regions.append((node.start, node.end, parameters))
+
+    enums = set(module.parsed.enums) | {
+        name for name, provided in providers.items() if provided[0].declaration.kind == "enum"
+    } | stdlib().enum_names
+    problems = []
+    tokens = index.tokens
+    for start, end, allowed in regions:
+        for position, token in enumerate(tokens):
+            if token.value != "if" or not start <= token.offset < end:
+                continue
+            if position + 1 >= len(tokens) or tokens[position + 1].value != "(":
+                continue
+            depth, cursor = 0, position + 1
+            while cursor < len(tokens):
+                value = tokens[cursor].value
+                depth += value == "("
+                depth -= value == ")"
+                if depth == 0:
+                    break
+                current = tokens[cursor]
+                cursor += 1
+                if current.kind != "identifier":
+                    continue
+                previous = tokens[cursor - 2]
+                following = tokens[cursor] if cursor < len(tokens) else None
+                if previous.value in (".", "?.", "is", "as", "::") or (following is not None and following.value == "::"):
+                    continue  # A property, a type, or a namespace
+                if current.value in allowed:
+                    continue
+                if current.value in enums and following is not None and following.value == ".":
+                    continue
+                local = index.declaration_for_token(current)
+                if local is not None and (
+                    local.kind == "predicate"
+                    or (local.kind in ("parameter", "variable") and local.scope_start != module.parsed.start)
+                ):
+                    continue  # A predicate, or a local (e.g. loop) variable
+                if any(p.declaration.kind == "predicate" for p in providers.get(current.value, [])):
+                    continue
+                if any(symbol.kind == "predicate" for symbol in stdlib().lookup(current.value)):
+                    continue
+                if local is None and current.value not in providers and not stdlib().lookup(current.value):
+                    continue  # Undefined, which is reported separately
+                problems.append(
+                    Problem(
+                        current.offset,
+                        current.end,
+                        "warning",
+                        f"Onshape can't evaluate {current.value} in a precondition's condition; only parameters "
+                        "(definition.x), enum values, literals, and predicates work there.",
+                        "precondition",
+                    )
+                )
+    return problems
 
 
 def _unused(imported: Import, name: str) -> Problem:

@@ -170,6 +170,18 @@ def _infer(
     if next_value == "::":
         return SemanticToken(token, "namespace", modifiers)
 
+    if previous is not None and previous.value == "::":
+        # A member of a namespaced import: a Part Studio's build function, or an image's BLOB_DATA
+        if token.value == "build" or next_value == "(":
+            return SemanticToken(token, "function", modifiers)
+        return SemanticToken(token, "variable", _unique("readonly", *modifiers))
+
+    if token.value == "silent" and previous is not None and previous.value == "try":
+        return SemanticToken(token, "keyword", ())
+
+    if token.value in ("path", "version") and next_value == ":" and _in_import(parsed, token):
+        return SemanticToken(token, "property", ())
+
     if previous is not None and previous.value in (".", "?."):
         before_previous = _previous(tokens, index - 1)
         if before_previous is not None:
@@ -218,6 +230,14 @@ def _infer(
     if next_value == "(":
         return SemanticToken(token, "function", modifiers)
     return None
+
+
+def _in_import(parsed: ParsedProgram, token: Token) -> bool:
+    return any(
+        node.type in ("ImportDeclaration", "NamespacedImportDeclaration")
+        and node.start <= token.offset < node.end
+        for node in parsed.nodes
+    )
 
 
 def _upgrade_explicit_hint(
