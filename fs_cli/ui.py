@@ -903,48 +903,48 @@ def format_bounds(kind: str, bounds: Any) -> str:
 # Rendering
 
 
-# Icons from onshape_icons/, by number (see its index.html)
+# Icons from onshape_icons/, by name (see its index.html)
 ICON_DIR = pathlib.Path(__file__).resolve().parents[1] / "onshape_icons"
 
 # Buttons for enum and boolean parameters with these UI hints: (icon, whether it's drawn dark and needs inverting)
 BUTTONS = {
-    "OPPOSITE_DIRECTION": (846, True),
-    "OPPOSITE_DIRECTION_CIRCULAR": (849, True),
-    "PRIMARY_AXIS": (848, True),
-    "MATE_CONNECTOR_AXIS_TYPE": (848, True),
+    "OPPOSITE_DIRECTION": ("dialog/flip", True),
+    "OPPOSITE_DIRECTION_CIRCULAR": ("dialog/flipCircular", True),
+    "PRIMARY_AXIS": ("dialog/rotate", True),
+    "MATE_CONNECTOR_AXIS_TYPE": ("dialog/rotate", True),
 }
 
 # Parameters Onshape shows with an icon instead of a label, by id (std's versioned ids, like holeDiameterV2, too)
 PARAMETER_ICONS = {
-    "holeDiameter": 861,
-    "holeDepth": 860,
-    "cBoreDiameter": 857,
-    "cBoreDepth": 856,
-    "cSinkDiameter": 859,
-    "cSinkAngle": 858,
-    "tapDrillDiameter": 865,
-    "tappedDepth": 866,
+    "holeDiameter": "hole/diameter",
+    "holeDepth": "hole/depth",
+    "cBoreDiameter": "hole/counterboreDiameter",
+    "cBoreDepth": "hole/counterboreDepth",
+    "cSinkDiameter": "hole/countersinkDiameter",
+    "cSinkAngle": "hole/countersinkAngle",
+    "tapDrillDiameter": "hole/tapDrillDiameter",
+    "tappedDepth": "hole/tappedDepth",
 }
 
 # Icons chosen with a parameter's "Icon" annotation, by std's Icon enum value
 ICON_VALUES = {
-    "HOLE_DIAMETER": 861,
-    "HOLE_DEPTH": 860,
-    "HOLE_DRILL_ANGLE": 862,
-    "HOLE_COUNTERBORE_DIAMETER": 857,
-    "HOLE_COUNTERBORE_DEPTH": 856,
-    "HOLE_COUNTERSINK_DIAMETER": 859,
-    "HOLE_COUNTERSINK_ANGLE": 858,
-    "HOLE_TAP_DIAMETER": 865,
-    "HOLE_TAPPED_DEPTH": 866,
-    "HOLE_TAP_CLEARANCE": 864,
+    "HOLE_DIAMETER": "hole/diameter",
+    "HOLE_DEPTH": "hole/depth",
+    "HOLE_DRILL_ANGLE": "hole/drillAngle",
+    "HOLE_COUNTERBORE_DIAMETER": "hole/counterboreDiameter",
+    "HOLE_COUNTERBORE_DEPTH": "hole/counterboreDepth",
+    "HOLE_COUNTERSINK_DIAMETER": "hole/countersinkDiameter",
+    "HOLE_COUNTERSINK_ANGLE": "hole/countersinkAngle",
+    "HOLE_TAP_DIAMETER": "hole/tapDrillDiameter",
+    "HOLE_TAPPED_DEPTH": "hole/tappedDepth",
+    "HOLE_TAP_CLEARANCE": "hole/tapClearance",
 }
 
 # The button beside queries which accept mate connectors, to create one
-MATE_CONNECTOR_ICON = 74
+MATE_CONNECTOR_ICON = "dialog/mateConnector"
 
 # The button beside CAN_BE_TOLERANT values, to add a tolerance
-TOLERANCE_ICON = 867
+TOLERANCE_ICON = "dialog/tolerance"
 
 # The annotation key holding the source of a query's filter
 FILTER_TEXT = "__filter"
@@ -953,10 +953,10 @@ FILTER_TEXT = "__filter"
 _inlined = itertools.count()
 
 
-def icon(number: int, invert: bool = False) -> str:
+def icon(name: str, invert: bool = False) -> str:
     """An icon's SVG, inline. Its ids are made unique, since icons often reuse the same ones (like `id="a"`) and
     references to them would find another icon's on the page."""
-    path = ICON_DIR / f"svg-{number}.svg"
+    path = ICON_DIR / f"{name}.svg"
     if not path.is_file():
         return ""
     svg = re.sub(r"<\?xml[^>]*>", "", path.read_text())
@@ -966,7 +966,7 @@ def icon(number: int, invert: bool = False) -> str:
     return f"<span class='icon{' invert' if invert else ''}'>{svg}</span>"
 
 
-def parameter_icon(name: str, annotation: dict) -> int | None:
+def parameter_icon(name: str, annotation: dict) -> str | None:
     """The icon a parameter is shown with instead of its label, if any."""
     chosen = annotation.get("Icon")
     if isinstance(chosen, EnumValue):
@@ -1135,10 +1135,10 @@ class Renderer:
 
     def parameter(self, item: Parameter) -> list[str]:
         label = f"<span class='label'>{html.escape(item.label)}</span>"
-        number = parameter_icon(item.name, item.annotation)
-        if number is not None:
+        chosen = parameter_icon(item.name, item.annotation)
+        if chosen is not None:
             # In place of its label, which shows when it's hovered
-            label = f"<span class='label' title='{html.escape(item.label)}'>{icon(number)}</span>"
+            label = f"<span class='label' title='{html.escape(item.label)}'>{icon(chosen)}</span>"
         if item.kind == "enum" and item.enum is not None:
             names = item.enum.values
             if "HORIZONTAL_ENUM" in item.hints:

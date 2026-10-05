@@ -260,3 +260,11 @@ def test_screenshot(repo, capsys):
         pytest.skip("Chromium isn't installed")
     assert cli.main(["ui", "featurescripts/widget.fs", "-o", "widget.png"]) == 0
     assert (repo / "widget.png").read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_icons_exist():
+    from fs_cli.ui import BUTTONS, ICON_DIR, ICON_VALUES, MATE_CONNECTOR_ICON, PARAMETER_ICONS, TOLERANCE_ICON
+
+    names = {name for name, _ in BUTTONS.values()} | set(PARAMETER_ICONS.values()) | set(ICON_VALUES.values())
+    for name in names | {MATE_CONNECTOR_ICON, TOLERANCE_ICON}:
+        assert (ICON_DIR / f"{name}.svg").is_file(), name
