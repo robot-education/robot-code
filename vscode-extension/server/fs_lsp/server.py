@@ -7,6 +7,7 @@ automatically.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import logging
 import pathlib
 
@@ -19,12 +20,15 @@ from fs_cli.renames import path_import_edits, relative_paths, rename_studio_file
 from fs_lsp import __version__
 from fs_lsp.completion import completion_data, completion_items
 from fs_lsp.diagnostics import diagnostics
+from fs_lsp.fsdoc import parse_doc, render_markdown
 from fs_lsp.hover import declaration_markdown, hover_markdown
 from fs_lsp.navigation import document_symbols, folding_ranges, token_range
 from fs_lsp.parser import ParsedProgram, parse
 from fs_lsp.project import Module, Problem, Project
 from fs_lsp.scanner import LineMap, Token
 from fs_lsp.semantic import TOKEN_MODIFIERS, TOKEN_TYPES, build_semantic_tokens, encode
+from fs_lsp.signatures import Signature, call_at, parse_signature, source_signature
+from fs_lsp.stdlib import stdlib
 from fs_lsp.symbol_index import SymbolIndex
 
 DIAGNOSTICS_DELAY = 0.3
@@ -411,6 +415,65 @@ def completion(
         lsp.Position(*line_map.position(data.replacement_end)),
     )
     return completion_items(data, replace_range)
+
+
+@server.feature(
+    lsp.TEXT_DOCUMENT_SIGNATURE_HELP,
+    lsp.SignatureHelpOptions(trigger_characters=["(", ","], retrigger_characters=[","]),
+)
+def signature_help(ls: FeatureScriptServer, params: lsp.SignatureHelpParams) -> lsp.SignatureHelp | None:
+    document = ls.document(params.text_document.uri)
+    analysis = ls.analysis(document)
+    call = call_at(analysis.parsed.tokens, document.offset_at_position(params.position))
+    if call is None:
+        return None
+    signature = _call_signature(ls, document.uri, analysis, call.callee)
+    if signature is None:
+        return None
+    documentation = None
+    if signature.doc is not None:
+        # Its parameters are shown one at a time
+        overview = dataclasses.replace(signature.doc, params=[])
+        if markdown := render_markdown(overview, signature.label):
+            documentation = lsp.MarkupContent(kind=lsp.MarkupKind.Markdown, value=markdown)
+    parameters = []
+    for index, offsets in enumerate(signature.parameter_offsets()):
+        doc = signature.parameter_doc(index)
+        parameters.append(
+            lsp.ParameterInformation(
+                label=offsets,
+                documentation=lsp.MarkupContent(kind=lsp.MarkupKind.Markdown, value=doc) if doc else None,
+            )
+        )
+    return lsp.SignatureHelp(
+        signatures=[lsp.SignatureInformation(label=signature.label, documentation=documentation, parameters=parameters)],
+        active_signature=0,
+        active_parameter=min(call.argument, max(len(parameters) - 1, 0)),
+    )
+
+
+def _call_signature(ls: FeatureScriptServer, uri: str, analysis: Analysis, callee: Token) -> Signature | None:
+    """The signature of the function, predicate, or feature called by name at callee."""
+    found = ls.project_module(uri)
+    if found:
+        project, module = found
+        for owner, declaration in project.definitions(module, callee.offset):
+            if declaration.kind in ("function", "predicate", "feature"):
+                return source_signature(owner.parsed.source, declaration.name, declaration.token.line)
+    local = analysis.index.declaration_for_token(callee)
+    if local is not None:
+        if local.kind in ("function", "predicate", "feature"):
+            return source_signature(analysis.parsed.source, local.name, local.token.line)
+        return None
+    if not analysis.parsed.imports_stdlib:
+        return None
+    symbol = stdlib().choose(callee.value, "(")
+    if symbol is None or symbol.kind not in ("function", "predicate") or not symbol.signature:
+        return None
+    signature = parse_signature(symbol.name, symbol.signature)
+    if signature is not None and symbol.doc:
+        signature.doc = parse_doc(symbol.doc)
+    return signature
 
 
 def _project_hover(

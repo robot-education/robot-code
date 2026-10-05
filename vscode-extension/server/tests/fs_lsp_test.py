@@ -292,7 +292,7 @@ def test_hover_local_and_stdlib():
     )
     assert token.value == "helper"
     assert "FeatureScript function" in markdown
-    assert "function helper(context is Context" in markdown
+    assert "helper(context is Context, query is Query) returns Query" in markdown
 
     markdown, _ = hover_markdown(parsed, index, offset_of("MyOption\n{"))
     assert "MyOption variants (2)" in markdown

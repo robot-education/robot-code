@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from fs_lsp.completion import enum_members_for, escape_markdown, feature_fields_for
 from fs_lsp.doc_comments import leading_doc_comment
+from fs_lsp.fsdoc import parse_doc, render_markdown
 from fs_lsp.parser import ParsedProgram
 from fs_lsp.scanner import Token
+from fs_lsp.signatures import parse_signature, source_signature
 from fs_lsp.stdlib import (
     EnumMember,
     FeatureField,
@@ -21,6 +23,8 @@ MAX_ENUM_MEMBERS = 80
 MAX_FEATURE_FIELDS = 24
 
 KIND_LABELS = {"definitionProperty": "feature parameter", "enumMember": "enum member"}
+
+CALLABLE_KINDS = ("function", "predicate", "feature")
 
 
 def hover_markdown(
@@ -47,13 +51,18 @@ def _code_block(code: str) -> str:
 
 def declaration_markdown(parsed: ParsedProgram, declaration: Declaration) -> str:
     lines = parsed.source.split("\n")
+    signature = (
+        source_signature(parsed.source, declaration.name, declaration.token.line)
+        if declaration.kind in CALLABLE_KINDS
+        else None
+    )
     sections = [
         f"**FeatureScript {KIND_LABELS.get(declaration.kind, declaration.kind)}**",
-        _code_block(_local_signature(lines, declaration)),
+        _code_block(signature.label if signature else _local_signature(lines, declaration)),
     ]
     doc = leading_doc_comment(lines, declaration.token.line)
     if doc:
-        sections.append(doc)
+        sections.append(render_markdown(parse_doc(doc), signature.label if signature else None))
     if declaration.kind == "enum":
         sections.append(
             _enum_members(declaration.name, enum_members_for(parsed, declaration.name))
@@ -69,11 +78,17 @@ def _stdlib_markdown(symbol: StdlibSymbol) -> str:
     signature = symbol.signature or (
         f"{symbol.parent}.{symbol.name}" if symbol.parent else symbol.name
     )
+    if symbol.kind in ("function", "predicate") and symbol.signature:
+        parsed_signature = parse_signature(symbol.name, symbol.signature)
+        if parsed_signature:
+            signature = parsed_signature.label
     sections = [
         f"**FeatureScript stdlib {'feature' if feature else symbol.kind}**",
         _code_block(signature),
     ]
-    if feature and feature.description:
+    if symbol.doc:
+        sections.append(render_markdown(parse_doc(symbol.doc), signature))
+    elif feature and feature.description:
         sections.append(feature.description)
     details = []
     if symbol.parent:

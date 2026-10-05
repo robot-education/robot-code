@@ -139,7 +139,7 @@ def test_semantic_tokens(client):
 
 def test_hover_definition_and_references(client):
     hover = client.request("textDocument/hover", position(7, 11))
-    assert "function helper" in hover["contents"]["value"]
+    assert "helper(value is number) returns number" in hover["contents"]["value"]
 
     definition = client.request("textDocument/definition", position(7, 11))
     assert definition[0]["targetRange"]["start"] == {"line": 3, "character": 9}
@@ -253,3 +253,14 @@ def test_renames_keep_studios_and_imports(tmp_path):
         assert studios == {utils_id: "shared/utils.fs"}
     finally:
         client.close()
+
+
+def test_signature_help(client):
+    # In helper's parentheses, on its first argument
+    result = client.request("textDocument/signatureHelp", position(7, 17))
+    [signature] = result["signatures"]
+    assert signature["label"] == "helper(value is number) returns number"
+    assert signature["parameters"][0]["label"] == [7, 22]
+    assert result["activeParameter"] == 0
+    # Not in a call
+    assert client.request("textDocument/signatureHelp", position(8, 4)) is None

@@ -16,6 +16,7 @@ import json
 import pathlib
 import re
 
+from fs_lsp.doc_comments import leading_doc_comment
 from fs_lsp.stdlib import METADATA_PATH, SYMBOLS_PATH
 
 UNIT_NAMES = frozenset(
@@ -172,22 +173,22 @@ def extract_symbols(text: str, module: str) -> list[dict]:
         line = lines[index]
         if match := re.match(rf"^\s*export\s+function\s+({IDENTIFIER})\s*\(", line):
             symbols.append(
-                _symbol(match[1], "function", module, read_signature(lines, index))
+                _symbol(match[1], "function", module, read_signature(lines, index), index)
             )
         elif match := re.match(rf"^\s*export\s+predicate\s+({IDENTIFIER})\s*\(", line):
             symbols.append(
-                _symbol(match[1], "predicate", module, read_signature(lines, index))
+                _symbol(match[1], "predicate", module, read_signature(lines, index), index)
             )
         elif match := re.match(rf"^\s*export\s+type\s+({IDENTIFIER})\b", line):
-            symbols.append(_symbol(match[1], "type", module, line.strip()))
+            symbols.append(_symbol(match[1], "type", module, line.strip(), index))
         elif match := re.match(rf"^\s*export\s+const\s+({IDENTIFIER})\b", line):
             name = match[1]
             symbols.append(
-                _symbol(name, const_kind(name, module, line), module, line.strip())
+                _symbol(name, const_kind(name, module, line), module, line.strip(), index)
             )
         elif match := re.match(rf"^\s*export\s+enum\s+({IDENTIFIER})\b", line):
             parent = match[1]
-            symbols.append(_symbol(parent, "enum", module, line.strip()))
+            symbols.append(_symbol(parent, "enum", module, line.strip(), index))
             body = index + 1
             while body < len(lines) and not re.match(r"^\s*\{", lines[body]):
                 body += 1
@@ -205,11 +206,20 @@ def extract_symbols(text: str, module: str) -> list[dict]:
                     )
                 body += 1
         index += 1
+    for symbol in symbols:
+        if symbol["kind"] != "enumMember" and "line" in symbol:
+            if doc := leading_doc_comment(lines, symbol["line"]):
+                symbol["doc"] = doc
+        symbol.pop("line", None)
     return symbols
 
 
-def _symbol(name: str, kind: str, module: str, signature: str) -> dict:
-    return {"name": name, "kind": kind, "module": module, "signature": signature}
+def _symbol(name: str, kind: str, module: str, signature: str, line: int | None = None) -> dict:
+    symbol = {"name": name, "kind": kind, "module": module, "signature": signature}
+    if line is not None:
+        # Where its doc comment is found, then dropped
+        symbol["line"] = line
+    return symbol
 
 
 def dedupe_symbols(symbols: list[dict]) -> list[dict]:

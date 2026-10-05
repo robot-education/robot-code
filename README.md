@@ -306,8 +306,9 @@ The extension provides:
 - Outline, breadcrumbs, sticky scroll, and folding
 - Go to Definition and Find References across files (imports are resolved through `fs-studios.json`), highlights,
   and workspace symbol search (Ctrl+T)
-- Hovers with doc comments, stdlib signatures, enum variants, feature definition fields, and the file an import
-  refers to
+- Hovers with doc comments laid out like Onshape's [FsDoc](https://cad.onshape.com/FsDoc/library.html) (for std
+  symbols too), signatures, enum variants, feature definition fields, and the file an import refers to
+- Signature help in calls, with each parameter's documentation
 - Completions for enum members (`BoundingType.`) and feature definition-map keys
   (`extrude(context, id, { ... })`)
 - Diagnostics: syntax errors, undefined names, and unused or unknown imports (the same as `fs check`)
@@ -317,6 +318,32 @@ The extension provides:
 
 It starts the language server with `.venv/bin/fs-lsp`, falling back to `uv run fs-lsp`; override this with the
 `featurescript.server.command` setting.
+
+## Doc comments
+
+Write doc comments like the std library's, which the hovers and signature help lay out like FsDoc
+(see `vscode-extension/server/fs_lsp/fsdoc.py`):
+
+```
+/**
+ * Extrudes faces. Refer to other functions like [qCreatedBy].
+ * @param id : @autocomplete `id + "extrude1"`
+ * @param definition {{
+ *      @field entities {Query} : Faces to extrude.
+ *      @field endDepth {ValueWithUnits} : @requiredif {`endBound` is `BLIND`.}
+ *              How far to extrude.
+ *              @eg `1 * inch`
+ *      @field startBound {BoundingType} : @optional
+ *              The type of start bound.
+ * }}
+ * @returns {Query} : The new bodies.
+ * @throws {GBTErrorStringEnum.BAD_GEOMETRY} : If there's nothing to extrude.
+ * @seealso [opRevolve]
+ */
+```
+
+Enums document their values with `@value NAME : description`, and `@internal` marks what isn't part of a module's
+interface.
 
 ## Developing the extension and language server
 

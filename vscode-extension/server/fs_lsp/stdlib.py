@@ -48,6 +48,8 @@ class StdlibSymbol:
     module: str | None = None
     signature: str | None = None
     parent: str | None = None
+    # Its doc comment (see fsdoc)
+    doc: str | None = None
 
 
 @dataclasses.dataclass(slots=True)
