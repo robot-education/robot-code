@@ -208,3 +208,48 @@ def test_cross_file_navigation(tmp_path):
         assert [symbol["name"] for symbol in symbols] == ["double"]
     finally:
         client.close()
+
+
+def test_renames_keep_studios_and_imports(tmp_path):
+    """Renaming files and folders in the editor updates fs-studios.json and imports by path."""
+    utils_id = "a" * 24
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+    )
+    code_dir = tmp_path / "featurescripts"
+    (code_dir / "core").mkdir(parents=True)
+    (code_dir / "core" / "utils.fs").write_text("FeatureScript 2909;\n")
+    feature = 'FeatureScript 2909;\nimport(path : "core/utils.fs", version : "");\n'
+    (code_dir / "feature.fs").write_text(feature)
+    (tmp_path / "fs-studios.json").write_text(
+        json.dumps({"version": 1, "studios": {utils_id: "core/utils.fs"}})
+    )
+    old, new = (code_dir / "core").as_uri(), (code_dir / "shared").as_uri()
+    client = Client()
+    try:
+        # Like VS Code's
+        client_capabilities = {"workspace": {"fileOperations": {"willRename": True, "didRename": True}}}
+        capabilities = client.request(
+            "initialize",
+            {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": client_capabilities},
+        )["capabilities"]
+        assert capabilities["workspace"]["fileOperations"]["willRename"]
+        assert capabilities["workspace"]["fileOperations"]["didRename"]
+        client.notify("initialized", {})
+
+        edit = client.request("workspace/willRenameFiles", {"files": [{"oldUri": old, "newUri": new}]})
+        [(uri, [change])] = edit["changes"].items()
+        assert uri.endswith("/feature.fs")
+        assert change == {
+            "range": {"start": {"line": 1, "character": 15}, "end": {"line": 1, "character": 28}},
+            "newText": "shared/utils.fs",
+        }
+
+        (code_dir / "core").rename(code_dir / "shared")
+        client.notify("workspace/didRenameFiles", {"files": [{"oldUri": old, "newUri": new}]})
+        # Notifications aren't answered, so make a request to know it's been handled
+        client.request("workspace/symbol", {"query": ""})
+        studios = json.loads((tmp_path / "fs-studios.json").read_text())["studios"]
+        assert studios == {utils_id: "shared/utils.fs"}
+    finally:
+        client.close()

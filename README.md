@@ -63,6 +63,21 @@ it freely, and the folders in Onshape are ignored. The only time Onshape's folde
 pulled into the repo for the first time, e.g. a studio named `robotFrame.fs` in the document's `Robot` folder
 lands at `featurescripts/Robot/robotFrame.fs`.
 
+### Renaming and moving files
+
+A file stays synced with its Feature Studio through `fs-studios.json`, which maps the studio's element id to the
+file. A rename that `fs` doesn't follow looks like a deleted file and a new one, and pushing that would delete the
+tab and create another, breaking every document that imports it (imports are by element id). So:
+
+- Renaming or moving files and folders in VS Code updates `fs-studios.json` right away, and updates imports of them
+  by path (`import(path : "core/utils.fs", version : "")`), through the language server.
+- Elsewhere, use `uv run fs mv OLD NEW`, which does the same (and also records a move you've already made).
+- Otherwise `fs` follows a missing file to the one new file of the same name, or with the same contents it was last
+  synced with, or most like its last committed contents (as git detects renames). If it still can't tell, `fs push`
+  says so before asking to delete the tab.
+
+Renaming a file doesn't rename its tab in Onshape.
+
 The repo is the source of truth, so pushing is the default:
 
 ```
@@ -156,6 +171,7 @@ uv run fs check              # syntax errors, undefined names, unused or unknown
 uv run fs check featurescripts/belt   # ...or just some files or folders
 uv run fs deps robotShaft    # what a studio imports, and what imports it
 uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used
+uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, keeping its studio and imports
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 ```

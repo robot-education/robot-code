@@ -566,11 +566,56 @@ def test_local_moves_and_renames_are_followed(repo, onshape, capsys):
     local(repo, "frame.fs").rename(local(repo, "renamed.fs"))
     capsys.readouterr()
     run(onshape, "status")
-    assert "everything in sync" in capsys.readouterr().out
+    assert "renamed.fs  in sync, renamed from frame.fs" in capsys.readouterr().out
     local(repo, "renamed.fs").write_text("renamed")
     assert run(onshape, "push") == 0
     assert onshape.names() == ["frame.fs"]
     assert onshape.code("frame.fs") == "renamed"
+
+
+FRAME = "".join(f"line {i}\n" for i in range(20))
+
+
+def test_renamed_and_edited_files_are_followed(repo, onshape, capsys):
+    """A file renamed and edited before the next push is paired with its studio by similarity to its
+    last committed contents, rather than deleting the tab and creating another."""
+    element_id = onshape.add("frame.fs", FRAME)
+    run(onshape, "pull")
+    git(repo, "init", "-q")
+    git(repo, "add", ".")
+    git(repo, "commit", "-qm", "frame")
+
+    local(repo, "frame.fs").unlink()
+    write(repo, "core/tube.fs", FRAME.replace("line 3", "changed"))
+    write(repo, "other.fs", "something else entirely")
+    calls = onshape.calls["pull"]
+    assert run(onshape, "push", "--yes") == 0
+    assert onshape.calls["pull"] == calls  # Compared with git, not Onshape
+    assert onshape.code("frame.fs") == FRAME.replace("line 3", "changed")
+    assert sorted(onshape.names()) == ["frame.fs", "other.fs"]
+    assert json.loads((repo / "fs-studios.json").read_text())["studios"][element_id] == "core/tube.fs"
+
+
+def test_renames_of_uncommitted_files_compare_with_onshape(repo, onshape):
+    element_id = onshape.add("frame.fs", FRAME)
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    write(repo, "tube.fs", FRAME + "added\n")
+    assert run(onshape, "push", "--yes") == 0
+    assert onshape.names() == ["frame.fs"]
+    assert json.loads((repo / "fs-studios.json").read_text())["studios"][element_id] == "tube.fs"
+
+
+def test_dissimilar_files_arent_renames(repo, onshape, capsys):
+    onshape.add("frame.fs", FRAME)
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    write(repo, "tube.fs", "nothing like it")
+    capsys.readouterr()
+    run(onshape, "status")
+    out = capsys.readouterr().out
+    assert "frame.fs" in out and Status.DELETED_LOCALLY.value in out
+    assert "tube.fs" in out and Status.LOCAL_ONLY.value in out
 
 
 def test_fresh_clone_matches_files_by_name(repo, onshape):
@@ -942,3 +987,56 @@ def test_sync_versions(repo, onshape):
         "Robot bore - v0.1.0",
     ]
     assert onshape.versions_by_document["front"][1].description == "Things"
+
+
+# Renaming with fs mv
+
+
+def studio_files(repo: pathlib.Path) -> dict[str, str]:
+    return json.loads((repo / "fs-studios.json").read_text())["studios"]
+
+
+def test_mv_follows_files_and_imports_by_path(repo, onshape):
+    utils = onshape.add("utils.fs", "u")
+    onshape.add("feature.fs", 'import(path : "core/old.fs", version : "");')
+    run(onshape, "pull")
+    write(repo, "uses.fs", 'import(path : "utils.fs", version : "");\nimport(path : "onshape/std/common.fs", version : "1");')
+
+    assert cli.main(["mv", "featurescripts/utils.fs", "featurescripts/core/new.fs"]) == 0
+    assert local(repo, "core/new.fs").read_text() == "u"
+    assert not local(repo, "utils.fs").exists()
+    assert studio_files(repo)[utils] == "core/new.fs"
+    assert local(repo, "uses.fs").read_text().startswith('import(path : "core/new.fs", version : "");')
+    assert "onshape/std/common.fs" in local(repo, "uses.fs").read_text()
+
+    # The tab is kept
+    assert run(onshape, "push", "--yes") == 0
+    assert sorted(onshape.names()) == ["feature.fs", "uses.fs", "utils.fs"]
+
+
+def test_mv_moves_folders(repo, onshape):
+    utils = onshape.add("utils.fs", "u", folders=("Core",))
+    run(onshape, "pull")
+    assert cli.main(["mv", "featurescripts/Core", "featurescripts/Shared"]) == 0
+    assert studio_files(repo)[utils] == "Shared/utils.fs"
+    assert local(repo, "Shared/utils.fs").read_text() == "u"
+
+
+def test_mv_records_moves_already_made(repo, onshape):
+    utils = onshape.add("utils.fs", "u")
+    run(onshape, "pull")
+    local(repo, "utils.fs").rename(local(repo, "moved.fs"))
+    assert cli.main(["mv", "featurescripts/utils.fs", "featurescripts/moved.fs"]) == 0
+    assert studio_files(repo)[utils] == "moved.fs"
+
+
+def test_push_suggests_mv_for_renames_it_cant_tell(repo, onshape, capsys):
+    onshape.add("frame.fs", FRAME)
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    write(repo, "tube.fs", "nothing like it")
+    capsys.readouterr()
+    run(onshape, "push", "--dry-run")
+    out = capsys.readouterr().out
+    assert "Would delete the frame.fs tab" in out
+    assert "renamed to tube.fs rather than deleted, run `fs mv OLD NEW` first" in out

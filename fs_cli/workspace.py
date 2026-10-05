@@ -27,6 +27,7 @@ from typing import Callable, Iterable
 
 from fs_cli import git
 from fs_cli.config import Config
+from fs_cli.renames import most_similar
 from fs_cli.remote import Remote, RemoteStudio, file_name_for, relative_path_for
 from onshape_api.exceptions import ApiError
 from fs_cli.state import (
@@ -95,6 +96,8 @@ class Studio:
     import_updates: dict[str, str] = dataclasses.field(default_factory=dict)
     remote_code: str | None = None
     status: Status = Status.IN_SYNC
+    # The path it was synced with, if its file has been renamed or moved since
+    renamed_from: str | None = None
 
     @property
     def name(self) -> str:
@@ -241,6 +244,8 @@ class Workspace:
             else:
                 unmatched.append(remote)
 
+        # Files synced with other studios aren't candidates for renamed ones
+        mapped = {entry.file for entry in saved.values()}
         by_name = collections.defaultdict(list)
         for path in local:
             if path not in claimed:
@@ -250,18 +255,26 @@ class Workspace:
             name = file_name_for(remote.name)
             candidates = by_name.get(name, [])
             entry = saved.get(remote.element_id)
+            remote_code = None
             if entry and not (len(candidates) == 1 and wanted[name] == 1):
                 # Renamed locally: an untracked file still holds the last synced contents
+                unclaimed = [path for path in local if path not in claimed and path not in mapped]
                 candidates = [
-                    path
-                    for path in local
-                    if path not in claimed
-                    and content_hash(_read(local[path]) or "") == entry.hash
+                    path for path in unclaimed if content_hash(_read(local[path]) or "") == entry.hash
                 ]
+                if len(candidates) != 1 and unclaimed:
+                    # Renamed and edited: the new file most like what it was
+                    previous = self._committed(entry.file)
+                    if previous is None:
+                        previous = remote_code = self.remote.pull(self.instance, remote.element_id)
+                    similar = most_similar(previous, {path: _read(local[path]) or "" for path in unclaimed})
+                    candidates = [similar] if similar else []
             if len(candidates) == 1 and (entry or wanted[name] == 1):
                 add(candidates[0], remote)
-                if entry:
+                studios[-1].remote_code = remote_code
+                if entry and entry.file != candidates[0]:
                     # Moved or renamed locally
+                    studios[-1].renamed_from = entry.file
                     entry.file = candidates[0]
             elif entry:
                 add(entry.file, remote)  # Deleted locally
@@ -318,6 +331,12 @@ class Workspace:
         if saved and saved.hash == local_hash:
             return Status.REMOTE_CHANGES
         return Status.CONFLICT
+
+    def _committed(self, path: str) -> str | None:
+        """The last committed contents of a file in the code folder, if it's been committed."""
+        if not self.use_git:
+            return None
+        return git.committed_contents(self.config.root, self.config.code_dir / path)
 
     def _history(self, studio: Studio) -> set[str]:
         if not self.use_git:

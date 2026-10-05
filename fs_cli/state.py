@@ -124,13 +124,7 @@ class State:
 
     def save(self) -> None:
         studios = sorted(self.studios.items())
-        _write_json(
-            self.studios_path,
-            {
-                "version": STUDIOS_VERSION,
-                "studios": {element_id: studio.file for element_id, studio in studios},
-            },
-        )
+        save_studio_files(self.studios_path, {element_id: studio.file for element_id, studio in studios})
         _write_json(
             self.path,
             {
@@ -160,6 +154,11 @@ def load_studio_files(studios_path: pathlib.Path) -> dict[str, str]:
         for element_id, file in data.get("studios", {}).items()
         if isinstance(file, str)
     }
+
+
+def save_studio_files(studios_path: pathlib.Path, files: dict[str, str]) -> None:
+    """Writes fs-studios.json (see `load_studio_files`)."""
+    _write_json(studios_path, {"version": STUDIOS_VERSION, "studios": dict(sorted(files.items()))})
 
 
 def _read_json(path: pathlib.Path) -> dict:

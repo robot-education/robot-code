@@ -33,3 +33,9 @@ def committed_hashes(root: pathlib.Path, file: pathlib.Path) -> set[str]:
         if contents is not None:
             hashes.add(content_hash(contents))
     return hashes
+
+
+def committed_contents(root: pathlib.Path, file: pathlib.Path) -> str | None:
+    """Returns the contents of file in the last commit, or None if it isn't in it."""
+    relative = file.resolve().relative_to(root.resolve()).as_posix()
+    return _git(root, "show", f"HEAD:{relative}")

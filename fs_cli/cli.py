@@ -17,6 +17,7 @@ import sys
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release import plan_release, run_release, unsynced_versions
 from fs_cli.remote import OnshapeRemote, Remote
+from fs_cli.renames import relative_paths, rename_path_imports, rename_studio_files, renamed
 from fs_cli.state import State, migrate
 from fs_cli.ui import UiError, render_feature, screenshot
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
@@ -156,6 +157,14 @@ def make_parser() -> argparse.ArgumentParser:
         targets=False,
     )
     refs.add_argument("name", help="the name to look up, e.g. cleanup")
+
+    mv_command = command(
+        "mv",
+        "rename or move a file or folder in the code folder, keeping it synced with its Feature Studios and updating imports of it by path (no API calls)",
+        targets=False,
+    )
+    mv_command.add_argument("source", help="the file or folder to move (or that was moved, if it's already gone)")
+    mv_command.add_argument("destination", help="where to move it, or an existing folder to move it into")
 
     ui_command = command(
         "ui",
@@ -316,6 +325,7 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         + select(studios, Status.DELETED_LOCALLY),
         args.dry_run,
         args.yes,
+        select(studios, Status.LOCAL_ONLY),
     )
     to_push = [studio for studio in to_push if studio.local_code is not None]
     apply_import_updates(workspace, studios, args.dry_run)
@@ -376,7 +386,11 @@ def sync(workspace: Workspace, args: argparse.Namespace) -> int:
     )
     check_path_imports(workspace, select(studios, *PUSHABLE))
     to_delete, not_deleted = plan_deletes(
-        workspace, select(studios, Status.DELETED_LOCALLY), args.dry_run, args.yes
+        workspace,
+        select(studios, Status.DELETED_LOCALLY),
+        args.dry_run,
+        args.yes,
+        select(studios, Status.LOCAL_ONLY),
     )
     apply_import_updates(workspace, studios, args.dry_run)
     pulled = do_pull(workspace, select(studios, *PULLABLE), args.dry_run)
@@ -392,13 +406,17 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
         f"{os.path.relpath(config.code_dir)}/ <-> backend document {path_to_url(workspace.instance)}"
     )
     shown = [
-        s for s in studios if args.all or s.status != Status.IN_SYNC or s.import_updates
+        s
+        for s in studios
+        if args.all or s.status != Status.IN_SYNC or s.import_updates or s.renamed_from
     ]
     if not shown:
         print("  everything in sync")
     width = max((len(studio.path) for studio in shown), default=0)
     for studio in shown:
         details = [studio.status.value]
+        if studio.renamed_from:
+            details.append(f"renamed from {studio.renamed_from}")
         hint = HINTS.get(studio.status)
         if studio.import_updates:
             details.append("import versions updated in Onshape")
@@ -622,6 +640,33 @@ def unused(config: Config, args: argparse.Namespace) -> int:
     return 1 if found else 0
 
 
+def mv(config: Config, args: argparse.Namespace) -> int:
+    source, destination = pathlib.Path(args.source), pathlib.Path(args.destination)
+    if destination.is_dir() and source.exists() and not source.samefile(destination):
+        destination = destination / source.name
+    old, new = relative_paths(config.code_dir, [source, destination])
+    if old is None or new is None:
+        raise UsageError(f"Both paths must be in {_display_path(config.code_dir)}/.")
+    if source.exists():
+        if destination.exists():
+            raise UsageError(f"{args.destination} already exists.")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        source.rename(destination)
+        print(f"Moved {old} to {new}")
+    elif not destination.exists():
+        raise UsageError(f"Neither {args.source} nor {args.destination} exists.")
+    renames = {old: new}
+    for file in rename_studio_files(config.studios_path, renames):
+        print(f"{file} stays synced with its Feature Studio as {renamed(file, renames)}")
+    for file in sorted(config.code_dir.rglob("*.fs")):
+        code = file.read_text()
+        updated = rename_path_imports(code, renames)
+        if updated != code:
+            file.write_text(updated, newline="")
+            print(f"Updated imports of it in {_display_path(file)}")
+    return 0
+
+
 def ui(config: Config, args: argparse.Namespace) -> int:
     path = pathlib.Path(args.file)
     if not path.is_file():
@@ -702,6 +747,7 @@ def _display_path(path: pathlib.Path) -> str:
 # Commands which don't need Onshape
 OFFLINE_COMMANDS = {
     "check": check,
+    "mv": mv,
     "ui": ui,
     "deps": deps,
     "unused": unused,
@@ -746,12 +792,17 @@ def check_path_imports(workspace: Workspace, studios: list[Studio]) -> None:
 
 
 def plan_deletes(
-    workspace: Workspace, studios: list[Studio], dry_run: bool, yes: bool
+    workspace: Workspace,
+    studios: list[Studio],
+    dry_run: bool,
+    yes: bool,
+    new: list[Studio] = [],
 ) -> tuple[list[Studio], int]:
     """Picks the tabs of deleted files to delete, skipping any another file still imports.
 
     Lists them and asks for confirmation (unless yes or dry_run), so call this before changing
-    anything. Returns the studios to delete, and 1 if any were skipped.
+    anything. If there are `new` files too, which might be the deleted ones renamed, says how to
+    keep the deleted ones' tabs. Returns the studios to delete, and 1 if any were skipped.
     """
     to_delete = []
     for studio in studios:
@@ -767,6 +818,12 @@ def plan_deletes(
     verb = "Would delete" if dry_run else "Will delete"
     for studio in to_delete:
         print(f"{verb} the {studio.name} tab in Onshape ({studio.path} was deleted)")
+    if to_delete and new:
+        print(
+            f"If {'it was' if len(to_delete) == 1 else 'any were'} renamed to "
+            + ", ".join(studio.path for studio in new)
+            + " rather than deleted, run `fs mv OLD NEW` first, so the tab (which documents import by id) is kept."
+        )
     if to_delete and not dry_run and not yes:
         confirm(
             f"This deletes {_plural(len(to_delete), 'tab')} in Onshape; Part Studios using their features will break."

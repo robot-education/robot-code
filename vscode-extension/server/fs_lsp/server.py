@@ -15,6 +15,7 @@ from pygls.lsp.server import LanguageServer
 from pygls.uris import from_fs_path, to_fs_path
 from pygls.workspace import TextDocument
 
+from fs_cli.renames import path_import_edits, relative_paths, rename_studio_files
 from fs_lsp import __version__
 from fs_lsp.completion import completion_data, completion_items
 from fs_lsp.diagnostics import diagnostics
@@ -22,7 +23,7 @@ from fs_lsp.hover import declaration_markdown, hover_markdown
 from fs_lsp.navigation import document_symbols, folding_ranges, token_range
 from fs_lsp.parser import ParsedProgram, parse
 from fs_lsp.project import Module, Problem, Project
-from fs_lsp.scanner import Token
+from fs_lsp.scanner import LineMap, Token
 from fs_lsp.semantic import TOKEN_MODIFIERS, TOKEN_TYPES, build_semantic_tokens, encode
 from fs_lsp.symbol_index import SymbolIndex
 
@@ -130,7 +131,83 @@ class FeatureScriptServer(LanguageServer):
         )
 
 
+    # Renames
+
+    def renames(self, files: list[lsp.FileRename]) -> list[tuple[Project, dict[str, str]]]:
+        """Groups files and folders renamed in code folders by project, as renames from the old path
+        to the new one (relative to the code folder)."""
+        groups: dict[int, tuple[Project, dict[str, str]]] = {}
+        for file in files:
+            old, new = _path(file.old_uri), _path(file.new_uri)
+            if old is None or new is None:
+                continue
+            project = next((p for p in self.projects if p.contains(old)), None) or Project.find(old)
+            if project is None:
+                continue
+            if project not in self.projects:
+                self.projects.append(project)
+            old_path, new_path = relative_paths(project.code_dir, [old, new])
+            if old_path is None or new_path is None:
+                # Moved out of the code folder, which is like deleting it
+                continue
+            groups.setdefault(id(project), (project, {}))[1][old_path] = new_path
+        return list(groups.values())
+
+    def rename_edits(self, files: list[lsp.FileRename]) -> dict[str, list[lsp.TextEdit]]:
+        """Edits to the imports by path of files being renamed, in every file importing them."""
+        changes: dict[str, list[lsp.TextEdit]] = {}
+        for project, renames in self.renames(files):
+            for path in project.files():
+                source = project.overlays.get(path)
+                if source is None:
+                    source = path.read_text(encoding="utf-8", errors="replace")
+                edits = path_import_edits(source, renames)
+                if not edits:
+                    continue
+                lines = LineMap(source)
+                changes[from_fs_path(str(path)) or path.as_uri()] = [
+                    lsp.TextEdit(
+                        range=lsp.Range(
+                            start=lsp.Position(*lines.position(start)), end=lsp.Position(*lines.position(end))
+                        ),
+                        new_text=new,
+                    )
+                    for start, end, new in edits
+                ]
+        return changes
+
+    def record_renames(self, files: list[lsp.FileRename]) -> None:
+        """Keeps renamed files synced with their Feature Studios, in fs-studios.json."""
+        for project, renames in self.renames(files):
+            rename_studio_files(project.studios_path, renames)
+
+
 server = FeatureScriptServer()
+
+# Files and folders, so renaming a folder renames the files in it
+RENAMED_FILES = lsp.FileOperationRegistrationOptions(
+    filters=[
+        lsp.FileOperationFilter(
+            scheme="file",
+            pattern=lsp.FileOperationPattern(glob="**/*.fs", matches=lsp.FileOperationPatternKind.File),
+        ),
+        lsp.FileOperationFilter(
+            scheme="file",
+            pattern=lsp.FileOperationPattern(glob="**", matches=lsp.FileOperationPatternKind.Folder),
+        ),
+    ]
+)
+
+
+@server.feature(lsp.WORKSPACE_WILL_RENAME_FILES, RENAMED_FILES)
+def will_rename_files(ls: FeatureScriptServer, params: lsp.RenameFilesParams) -> lsp.WorkspaceEdit | None:
+    changes = ls.rename_edits(params.files)
+    return lsp.WorkspaceEdit(changes=changes) if changes else None
+
+
+@server.feature(lsp.WORKSPACE_DID_RENAME_FILES, RENAMED_FILES)
+def did_rename_files(ls: FeatureScriptServer, params: lsp.RenameFilesParams) -> None:
+    ls.record_renames(params.files)
 
 
 @server.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
