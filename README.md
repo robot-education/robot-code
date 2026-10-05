@@ -16,6 +16,7 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 | `fs_cli/`                  | The `fs` command                                                             |
 | `onshape_api/`             | A small Onshape REST API client; see [its README](onshape_api/README.md)     |
 | `std/`                     | A read-only copy of the Onshape std library, for reference                   |
+| `docs/`                    | Conventions for writing FeatureScripts                                       |
 | `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
 | `vscode-extension/server/` | The Python FeatureScript language server the extension runs (`fs_lsp`)       |
 | `pyproject.toml`           | Python dependencies, plus the `[tool.fs]` table configuring the documents    |
@@ -145,6 +146,9 @@ count either.
 
 ## Checking and navigating
 
+Conventions for writing FeatureScripts (UI state predicates, where horizontal enums go, and so on) are in
+[docs/featurescript-style.md](docs/featurescript-style.md).
+
 These read the repo only (no API calls). Imports between studios are resolved through `.fs-state.json`, so run
 `fs status` or `fs pull` once on a new machine first.
 
@@ -176,6 +180,8 @@ sets `CONTENTS` to a list of items:
   outer loop of a planar face into lines, arcs, and fit splines (through enough points to stay within 0.0002" of
   B-spline edges); see `printAdapter/printAdapterProfiles.py`, which keeps vendor models and drawings in
   `printAdapter/vendor/`.
+- `Constant`s and `Code`, e.g. predicates generated from a definition's data so preconditions can show
+  parameters based on it (see `printAdapter/printAdapterProfiles.py`)
 - `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
 
 After editing one:
