@@ -11,6 +11,8 @@ def get_document_elements(
 ) -> list[DocumentElement]:
     """Fetches all elements (tabs) in a document, with each one's microversion.
 
+    Anonymous for public documents (see `Api._request`).
+
     Args:
         element_type: The type of element to get. If None, all elements are returned.
     """
@@ -20,6 +22,7 @@ def get_document_elements(
     return api.get(
         api_path("documents", instance_path, InstancePath, "elements"),
         query=query,
+        anonymous=True,
     )
 
 

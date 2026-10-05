@@ -183,25 +183,32 @@ deleted or recreated (see [Releasing](#releasing)).
 ### API usage
 
 Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
-[API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum:
+[API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum. Requests
+Onshape answers without credentials for public documents (listing tabs, downloading images, and reading a tab's
+metadata) are made anonymously, so they don't count (if a document isn't public, they fall back to signed calls,
+which do); see [the Onshape API](onshape_api/README.md#anonymous-requests). The counts below are of the calls which
+count:
 
-- Listing the backend document's tabs: 1 call. Every command that talks to Onshape does this first, to get each
-  tab's microversion.
+- Listing the backend document's tabs: 1 anonymous call. Every command that talks to Onshape does this first, to
+  get each tab's microversion.
 - A studio is only downloaded when its microversion changed since the last sync, so on a new machine the first
   run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may change
   when a tab it imports changes); then the download just confirms nothing needs doing.
-- Pushing: 1 call per studio pushed or deleted, plus 1 to list the document's new microversions afterwards.
-  Pushing a studio makes Onshape update the versions of its imports in the studios importing it, changing their
+- Pushing: 1 call per studio pushed or deleted, plus an anonymous one to list the document's new microversions
+  afterwards. Pushing a studio makes Onshape update the versions of its imports in the studios importing it, changing their
   microversions too; `fs` records those from the same listing rather than downloading them later (assuming nobody
   edited them in Onshape during the push).
 - Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
-- Images: 1 call to list them (which `fs push` skips when the repo has none), 1 per image downloaded (only when its
-  microversion changed), and 1 per image uploaded, plus 1 to list their new microversions afterwards.
-- `fs tabs` and `fs link`: 1 call (the listing). `fs tabs --rename`: 2 more per tab renamed.
-- `fs release`: 6 to 8 calls. `fs released --detect`: 2. `fs deprecate`: about 12.
+- Images: 1 anonymous call to list them (which `fs push` skips when the repo has none), 1 anonymous call per image
+  downloaded (only when its microversion changed), and 1 per image uploaded, plus 1 anonymous call to list their
+  new microversions afterwards.
+- `fs tabs` and `fs link`: just the anonymous listing. `fs tabs --rename`: 1 more per tab renamed (plus an anonymous
+  one to read its metadata).
+- `fs release`: at most 6 to 8 calls (fewer now that listings are anonymous). `fs released --detect`: 2.
+  `fs deprecate`: about 12.
 
-So `fs status`, and `fs push` or `fs pull` with nothing to do, cost 2 calls (the listings). Failed calls (like a
-400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
+So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing: they only make the anonymous listings.
+Failed calls (like a 400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
 
 ## Checking and navigating
 

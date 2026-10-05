@@ -18,6 +18,8 @@ class ApiArgs(TypedDict):
 class ApiQueryArgs(TypedDict):
     query: NotRequired[str | dict]
     headers: NotRequired[dict[str, str]]
+    # Send the request without credentials (see `Api._request`)
+    anonymous: NotRequired[bool]
 
 
 API_VERSION = 16
@@ -79,6 +81,7 @@ class Api(ABC):
         query: dict | str = "",
         body: dict | str | bytes = "",
         headers: dict[str, str] = {},
+        anonymous: bool = False,
     ) -> Any:
         """
         Issues a request to Onshape.
@@ -89,6 +92,11 @@ class Api(ABC):
             body: A body for the POST request: JSON, or text or bytes (like a multipart form) whose
                 Content-Type is given in headers.
             headers: Extra headers to add to the request.
+            anonymous: Whether to try the request without credentials first. Onshape answers some requests
+                about public documents anonymously (see onshape_api/README.md), and those don't count against
+                the API limits of the credentials' owner. If the document turns out not to be public, the
+                request is made again with credentials, and later anonymous requests about it skip straight to
+                that.
 
         Returns:
             The response from Onshape parsed as json, or the Response itself.

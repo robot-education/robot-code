@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import re
 import secrets
 from typing import Unpack, override
 import string
@@ -49,6 +50,8 @@ class KeyApi(Api):
         super().__init__(**kwargs)
         self._access_key = access_key
         self._secret_key = secret_key
+        # Documents anonymous requests were refused for (see `Api._request`)
+        self._private_documents: set[str | None] = set()
 
         if self._logging:
             logging.info(
@@ -63,6 +66,29 @@ class KeyApi(Api):
         query: dict | str = "",
         body: dict | str | bytes = "",
         headers: dict[str, str] = {},
+        anonymous: bool = False,
+    ):
+        document_id = _document_id(path)
+        if anonymous and document_id not in self._private_documents:
+            try:
+                return self._send(method, path, query, body, headers, signed=False)
+            except exceptions.ApiError as error:
+                if error.status_code not in ANONYMOUS_REFUSALS:
+                    raise
+                # Not public; retry with credentials, and skip the anonymous attempt from now on
+                self._private_documents.add(document_id)
+                if self._logging:
+                    logging.info("anonymous request refused; retrying with credentials")
+        return self._send(method, path, query, body, headers, signed=True)
+
+    def _send(
+        self,
+        method: http.HTTPMethod,
+        path: str,
+        query: dict | str,
+        body: dict | str | bytes,
+        headers: dict[str, str],
+        signed: bool,
     ):
         query_str = query if isinstance(query, str) else parse.urlencode(query)
 
@@ -70,10 +96,13 @@ class KeyApi(Api):
 
         url = self._base_url + path + "?" + query_str
 
-        headers = make_headers(method, headers, url, self._access_key, self._secret_key)
+        if signed:
+            headers = make_headers(method, headers, url, self._access_key, self._secret_key)
+        else:
+            headers = make_anonymous_headers(headers)
 
         if self._logging:
-            logging.info("request url: " + url)
+            logging.info(("request url: " if signed else "anonymous request url: ") + url)
             logging.info("request headers: " + str(headers))
             if len(body) > 0:
                 logging.info(body)
@@ -126,6 +155,26 @@ class KeyApi(Api):
             return res.json()
         except:
             return res
+
+
+# Statuses Onshape answers anonymous requests about documents which aren't public with
+ANONYMOUS_REFUSALS = (http.HTTPStatus.UNAUTHORIZED, http.HTTPStatus.FORBIDDEN, http.HTTPStatus.NOT_FOUND)
+
+
+def _document_id(path: str) -> str | None:
+    match = re.search(r"/d/([0-9a-f]{24})", path)
+    return match[1] if match else None
+
+
+def make_anonymous_headers(headers: dict[str, str]) -> dict[str, str]:
+    """Headers for a request without credentials."""
+    req_headers = {
+        "Content-Type": headers.get("Content-Type", "application/json"),
+        "User-Agent": "Onshape App",
+        "Accept": "application/json",
+    }
+    req_headers.update(headers)
+    return req_headers
 
 
 def make_headers(

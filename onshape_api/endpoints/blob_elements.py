@@ -33,10 +33,11 @@ def upload_file_update_element(
 
 
 def download_file(api: Api, element_path: ElementPath) -> bytes:
-    """Fetches the file in a blob element."""
+    """Fetches the file in a blob element. Anonymous for public documents (see `Api._request`)."""
     response = api.get(
         api_path("blobelements", element_path, ElementPath),
         headers={"Accept": "application/octet-stream"},
+        anonymous=True,
     )
     # Files which aren't JSON come back as the response itself
     return response.content if hasattr(response, "content") else bytes(response)

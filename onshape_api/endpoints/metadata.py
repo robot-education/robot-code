@@ -5,8 +5,11 @@ from onshape_api.paths.paths import ElementPath
 
 
 def get_element_metadata(api: Api, element_path: ElementPath) -> dict:
-    """Fetches an element's (tab's) metadata: its properties, like its name."""
-    return api.get(api_path("metadata", element_path, ElementPath))
+    """Fetches an element's (tab's) metadata: its properties, like its name.
+
+    Anonymous for public documents (see `Api._request`).
+    """
+    return api.get(api_path("metadata", element_path, ElementPath), anonymous=True)
 
 
 def update_element_metadata(api: Api, element_path: ElementPath, properties: list[dict]) -> dict:
