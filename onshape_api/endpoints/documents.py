@@ -1,25 +1,14 @@
-import enum
-
 from onshape_api.api.api_base import Api
 from onshape_api.paths.api_path import api_path
 from onshape_api.paths.paths import InstancePath
-
-
-class ElementType(enum.StrEnum):
-    """Describes possible element (tab) types in a document."""
-
-    PART_STUDIO = "PARTSTUDIO"
-    ASSEMBLY = "ASSEMBLY"
-    DRAWING = "DRAWING"
-    FEATURE_STUDIO = "FEATURESTUDIO"
-    BLOB = "BLOB"
+from onshape_api.types import DocumentContents, DocumentElement, ElementType
 
 
 def get_document_elements(
     api: Api,
     instance_path: InstancePath,
     element_type: ElementType | None = None,
-) -> list[dict]:
+) -> list[DocumentElement]:
     """Fetches all elements (tabs) in a document.
 
     Args:
@@ -34,12 +23,10 @@ def get_document_elements(
     )
 
 
-def get_document_contents(api: Api, instance_path: InstancePath) -> dict:
-    """Fetches the elements (tabs) in a document along with the document's folder structure.
+def get_document_contents(api: Api, instance_path: InstancePath) -> DocumentContents:
+    """Fetches every element (tab) in a document along with the document's folder structure.
 
-    Returns a dict with:
-        elements: The elements, as returned by get_document_elements.
-        folders: The root folder, a tree of {"groupName", "groups"} folders whose groups
-            also contain {"elementId"} references to elements.
+    No query parameters are passed: the elementType filter documented for this endpoint has been
+    seen to fail with 400 "Invalid JSON input".
     """
     return api.get(api_path("documents", instance_path, InstancePath, "contents"))

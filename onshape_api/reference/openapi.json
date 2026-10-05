@@ -1,0 +1,1047 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Onshape REST API",
+    "version": "1.221.89963-13d10d36cb23",
+    "description": "Trimmed from https://cad.onshape.com/api/openapi by onshape_api/reference/generate.py. Do not edit."
+  },
+  "paths": {
+    "/documents/d/{did}/versions": {
+      "get": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Retrieve versions by document ID.",
+        "operationId": "getDocumentVersions",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 20,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BTVersionInfo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      },
+      "post": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Create version by document ID.",
+        "operationId": "createVersion",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json;charset=UTF-8; qs=0.09": {
+              "schema": {
+                "$ref": "#/components/schemas/BTVersionOrWorkspaceParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTVersionInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Write"
+            ],
+            "BasicAuth": [
+              "OAuth2Write"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/documents/d/{did}/{wvm}/{wvmid}/contents": {
+      "get": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Retrieve tabs and folders by document ID and workspace or version or microversion ID.",
+        "description": "Returns information on tabs and folders in the document.",
+        "operationId": "getDocumentContents",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "description": "The id of the document in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkDocumentId",
+            "in": "query",
+            "description": "The id of the document through which the above document should be accessed; only applicable when accessing a version of the document. This allows a user who has access to document a to see data from document b, as long as document b has been linked to document a by a user who has permission to both.",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "wvm",
+            "in": "path",
+            "description": "Indicates which of workspace (w), version (v), or document microversion (m) id is specified below.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "w",
+                "v",
+                "m"
+              ]
+            }
+          },
+          {
+            "name": "wvmid",
+            "in": "path",
+            "description": "The id of the workspace, version or document microversion in which the operation should be performed.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "elementType",
+            "in": "query",
+            "description": "If specified, information for elements of this type are returned. Note, the folder structure is not affected by this filter.",
+            "schema": {
+              "$ref": "#/components/schemas/GBTElementType"
+            }
+          },
+          {
+            "name": "elementId",
+            "in": "query",
+            "description": "If specified, only the element with this id is returned. Note, the folder structure is not affected by this filter.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "withZipContents",
+            "in": "query",
+            "description": "When true, returns the names of the files inside each zip file tab. Ignored if the document contains more than 10 zip files.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTDocumentContentsInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/documents/d/{did}/{wvm}/{wvmid}/elements": {
+      "get": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Retrieve tabs by document ID and workspace or version or microversion ID.",
+        "description": "This endpoint only returns the tabs and not folders in the document. Use the [getDocumentContents](#/Document/getDocumentContents) endpoint to get information about folders and tabs.",
+        "operationId": "getElementsInDocument",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "description": "The id of the document in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkDocumentId",
+            "in": "query",
+            "description": "The id of the document through which the above document should be accessed; only applicable when accessing a version of the document. This allows a user who has access to document a to see data from document b, as long as document b has been linked to document a by a user who has permission to both.",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "wvm",
+            "in": "path",
+            "description": "Indicates which of workspace (w), version (v), or document microversion (m) id is specified below.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "w",
+                "v",
+                "m"
+              ]
+            }
+          },
+          {
+            "name": "wvmid",
+            "in": "path",
+            "description": "The id of the workspace, version or document microversion in which the operation should be performed.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "elementType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "elementId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "withThumbnails",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "withZipContents",
+            "in": "query",
+            "description": "When true, returns the names of the files inside each zip file tab. Ignored if the document contains more than 10 zip files.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BTDocumentElementInfo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/featurestudios/d/{did}/w/{wid}": {
+      "post": {
+        "tags": [
+          "FeatureStudio"
+        ],
+        "summary": "Create a new Feature Studio tab in a document.",
+        "description": "Specify the name for the new tab in the request body.",
+        "operationId": "createFeatureStudio",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json;charset=UTF-8; qs=0.09": {
+              "schema": {
+                "$ref": "#/components/schemas/BTModelElementParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTDocumentElementInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Write"
+            ],
+            "BasicAuth": [
+              "OAuth2Write"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}": {
+      "get": {
+        "tags": [
+          "FeatureStudio"
+        ],
+        "summary": "Get the text for a Feature Studio element.",
+        "operationId": "getFeatureStudioContents",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wvm",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wvmid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTFeatureStudioContents-2239"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      },
+      "post": {
+        "tags": [
+          "FeatureStudio"
+        ],
+        "summary": "Update the text for a Feature Studio element.",
+        "operationId": "updateFeatureStudioContents",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wvm",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wvmid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json;charset=UTF-8; qs=0.09": {
+              "schema": {
+                "$ref": "#/components/schemas/BTFeatureStudioContents-2239"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTFeatureStudioContents-2239"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Write"
+            ],
+            "BasicAuth": [
+              "OAuth2Write"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}/featurespecs": {
+      "get": {
+        "tags": [
+          "FeatureStudio"
+        ],
+        "summary": "Get the feature specs for a Feature Studio element.",
+        "operationId": "getFeatureStudioSpecs",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wvm",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wvmid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTFeatureSpecsResponse-664"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BTDocumentContentsInfo": {
+        "type": "object",
+        "properties": {
+          "elements": {
+            "type": "array",
+            "description": "The elements (tabs) in the document. This does not include folders.",
+            "items": {
+              "$ref": "#/components/schemas/BTDocumentElementInfo"
+            }
+          },
+          "folders": {
+            "$ref": "#/components/schemas/BTElementGroup-1458"
+          }
+        }
+      },
+      "BTDocumentElementInfo": {
+        "type": "object",
+        "properties": {
+          "accelerationUnits": {
+            "type": "string"
+          },
+          "angleUnits": {
+            "type": "string"
+          },
+          "angularVelocityUnits": {
+            "type": "string"
+          },
+          "areaUnits": {
+            "type": "string"
+          },
+          "dataType": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "densityUnits": {
+            "type": "string"
+          },
+          "elementType": {
+            "$ref": "#/components/schemas/GBTElementType"
+          },
+          "energyUnits": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "forceUnits": {
+            "type": "string"
+          },
+          "foreignDataId": {
+            "type": "string"
+          },
+          "frequencyUnits": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lengthUnits": {
+            "type": "string"
+          },
+          "massUnits": {
+            "type": "string"
+          },
+          "microversionId": {
+            "type": "string"
+          },
+          "momentUnits": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pressureUnits": {
+            "type": "string"
+          },
+          "prettyType": {
+            "type": "string"
+          },
+          "safeToShow": {
+            "type": "boolean"
+          },
+          "specifiedUnit": {
+            "type": "string"
+          },
+          "thumbnails": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeUnits": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "unupdatable": {
+            "type": "boolean"
+          },
+          "volumeUnits": {
+            "type": "string"
+          },
+          "zip": {
+            "$ref": "#/components/schemas/BTZipFileInfo"
+          }
+        }
+      },
+      "BTDocumentElementReference-2484": {
+        "type": "object",
+        "properties": {
+          "btType": {
+            "type": "string",
+            "description": "Type of JSON object."
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BTGroupOrElementReference-2205"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "btType": {
+                "type": "string"
+              },
+              "elementId": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "BTElementGroup-1458": {
+        "type": "object",
+        "properties": {
+          "btType": {
+            "type": "string",
+            "description": "Type of JSON object."
+          },
+          "groupName": {
+            "type": "string",
+            "description": "The name of the group (folder)."
+          },
+          "groups": {
+            "type": "array",
+            "description": "List of folders or elements in this group (folder).",
+            "items": {
+              "$ref": "#/components/schemas/BTGroupOrElementReference-2205"
+            }
+          },
+          "nodeId": {
+            "type": "string",
+            "description": "A unique identifier for this folder."
+          }
+        }
+      },
+      "BTFeatureApiBase-1430": {
+        "type": "object",
+        "properties": {
+          "btType": {
+            "type": "string",
+            "description": "Type of JSON object."
+          },
+          "libraryVersion": {
+            "type": "integer",
+            "description": "FeatureScript version used in the Part Studio. Do not modify.",
+            "format": "int32"
+          },
+          "microversionSkew": {
+            "type": "boolean",
+            "description": "On output, `true` indicates a microversion mismatch was encountered."
+          },
+          "rejectMicroversionSkew": {
+            "type": "boolean",
+            "description": "If `true`, the call will refuse to make the addition if the current microversion for the document does not match the source microversion. If `false`, a best-effort attempt is made to re-interpret the feature addition in the context of a newer document microversion."
+          },
+          "serializationVersion": {
+            "type": "string",
+            "description": "Version of the structure serialization rules used to encode the output. This enables incompatibility detection during software updates."
+          },
+          "sourceMicroversion": {
+            "type": "string",
+            "description": "The state from which the result was extracted. Geometry ID interpretation is dependent on this document microversion."
+          }
+        },
+        "discriminator": {
+          "propertyName": "btType",
+          "mapping": {
+            "BTAssemblyFeatureListResponse-1174": "#/components/schemas/BTAssemblyFeatureListResponse-1174",
+            "BTConfigurationResponse-2019": "#/components/schemas/BTConfigurationResponse-2019",
+            "BTConfigurationUpdateCall-2933": "#/components/schemas/BTConfigurationUpdateCall-2933",
+            "BTDeleteFeaturesCall-1432": "#/components/schemas/BTDeleteFeaturesCall-1432",
+            "BTFeatureDefinitionCall-1406": "#/components/schemas/BTFeatureDefinitionCall-1406",
+            "BTFeatureDefinitionResponse-1617": "#/components/schemas/BTFeatureDefinitionResponse-1617",
+            "BTFeatureListResponse-2457": "#/components/schemas/BTFeatureListResponse-2457",
+            "BTFeatureScriptEvalCall-2377": "#/components/schemas/BTFeatureScriptEvalCall-2377",
+            "BTFeatureScriptEvalResponse-1859": "#/components/schemas/BTFeatureScriptEvalResponse-1859",
+            "BTFeatureSpecsResponse-664": "#/components/schemas/BTFeatureSpecsResponse-664",
+            "BTFeatureStudioContents-2239": "#/components/schemas/BTFeatureStudioContents-2239",
+            "BTSetFeatureRollbackCall-1899": "#/components/schemas/BTSetFeatureRollbackCall-1899",
+            "BTSetFeatureRollbackResponse-1042": "#/components/schemas/BTSetFeatureRollbackResponse-1042",
+            "BTUpdateFeaturesCall-1748": "#/components/schemas/BTUpdateFeaturesCall-1748",
+            "BTUpdateFeaturesResponse-1333": "#/components/schemas/BTUpdateFeaturesResponse-1333"
+          }
+        }
+      },
+      "BTFeatureSpec-129": {
+        "type": "object",
+        "description": "A feature's specification. We only read featureTypeName."
+      },
+      "BTFeatureSpecsResponse-664": {
+        "type": "object",
+        "properties": {
+          "btType": {
+            "type": "string",
+            "description": "Type of JSON object."
+          },
+          "libraryVersion": {
+            "type": "integer",
+            "description": "FeatureScript version used in the Part Studio. Do not modify.",
+            "format": "int32"
+          },
+          "microversionSkew": {
+            "type": "boolean",
+            "description": "On output, `true` indicates a microversion mismatch was encountered."
+          },
+          "rejectMicroversionSkew": {
+            "type": "boolean",
+            "description": "If `true`, the call will refuse to make the addition if the current microversion for the document does not match the source microversion. If `false`, a best-effort attempt is made to re-interpret the feature addition in the context of a newer document microversion."
+          },
+          "serializationVersion": {
+            "type": "string",
+            "description": "Version of the structure serialization rules used to encode the output. This enables incompatibility detection during software updates."
+          },
+          "sourceMicroversion": {
+            "type": "string",
+            "description": "The state from which the result was extracted. Geometry ID interpretation is dependent on this document microversion."
+          },
+          "featureSpecs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BTFeatureSpec-129"
+            }
+          }
+        }
+      },
+      "BTFeatureStudioContents-2239": {
+        "type": "object",
+        "properties": {
+          "btType": {
+            "type": "string",
+            "description": "Type of JSON object."
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BTFeatureApiBase-1430"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "btType": {
+                "type": "string"
+              },
+              "contents": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "BTGroupOrElementReference-2205": {
+        "type": "object",
+        "properties": {
+          "btType": {
+            "type": "string",
+            "description": "Type of JSON object."
+          },
+          "nodeId": {
+            "type": "string"
+          }
+        },
+        "description": "List of folders or elements in this group (folder).",
+        "discriminator": {
+          "propertyName": "btType",
+          "mapping": {
+            "BTDocumentElementReference-2484": "#/components/schemas/BTDocumentElementReference-2484",
+            "BTElementGroup-1458": "#/components/schemas/BTElementGroup-1458"
+          }
+        }
+      },
+      "BTModelElementParams": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "BTVersionInfo": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "description": "URI to fetch complete information of the resource.",
+            "format": "uri"
+          },
+          "id": {
+            "type": "string",
+            "description": "Id of the resource."
+          },
+          "metadataWorkspaceId": {
+            "type": "string"
+          },
+          "microversion": {
+            "type": "string"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the resource."
+          },
+          "overrideDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "viewRef": {
+            "type": "string",
+            "description": "URI to visualize the resource in a webclient if applicable.",
+            "format": "uri"
+          }
+        }
+      },
+      "BTVersionOrWorkspaceParams": {
+        "type": "object",
+        "properties": {
+          "clientInteractionMode": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "fromHistory": {
+            "type": "boolean"
+          },
+          "isRelease": {
+            "type": "boolean"
+          },
+          "microversionId": {
+            "type": "string"
+          },
+          "missingBomTableTemplateId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "publishVersion": {
+            "type": "boolean",
+            "description": "Publish FeatureScript at this version.",
+            "default": false
+          },
+          "purpose": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readOnly": {
+            "type": "boolean"
+          },
+          "versionId": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          }
+        }
+      },
+      "BTZipFileInfo": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "GBTElementType": {
+        "type": "string",
+        "enum": [
+          "PARTSTUDIO",
+          "ASSEMBLY",
+          "DRAWING",
+          "FEATURESTUDIO",
+          "BLOB",
+          "APPLICATION",
+          "TABLE",
+          "BILLOFMATERIALS",
+          "VARIABLESTUDIO",
+          "PUBLICATIONITEM",
+          "UNKNOWN"
+        ]
+      }
+    }
+  }
+}

@@ -1,26 +1,19 @@
-from typing import Any
-
 from onshape_api.api.api_base import Api
+from onshape_api.assertions import assert_workspace
 from onshape_api.paths.api_path import api_path
-from onshape_api.assertions import assert_instance_type, assert_workspace
-from onshape_api.paths.instance_type import InstanceType
-from onshape_api.paths.paths import InstancePath, ElementPath
+from onshape_api.paths.paths import ElementPath, InstancePath
+from onshape_api.types import FeatureSpecs, FeatureStudioContents, FeatureStudioInfo
 
 
-def pull_code(
-    api: Api, feature_studio_path: ElementPath, raw_response: bool = False
-) -> Any:
-    """Fetches code from a feature studio.
-
-    Args:
-        raw_response: True to get the entire response, False to get just the code.
-    """
-    response = api.get(api_path("featurestudios", feature_studio_path, ElementPath))
-    return response if raw_response else response["contents"]
+def get_contents(api: Api, feature_studio_path: ElementPath) -> FeatureStudioContents:
+    """Fetches the code in a Feature Studio."""
+    return api.get(api_path("featurestudios", feature_studio_path, ElementPath))
 
 
-def push_code(api: Api, feature_studio_path: ElementPath, code: str) -> dict:
-    """Sends code to the given feature studio specified by path."""
+def update_contents(
+    api: Api, feature_studio_path: ElementPath, code: str
+) -> FeatureStudioContents:
+    """Replaces the code in a Feature Studio."""
     assert_workspace(feature_studio_path)
     return api.post(
         api_path("featurestudios", feature_studio_path, ElementPath),
@@ -29,27 +22,18 @@ def push_code(api: Api, feature_studio_path: ElementPath, code: str) -> dict:
 
 
 def create_feature_studio(
-    api: Api, instance_path: InstancePath, studio_name: str
-) -> dict:
-    """Creates a feature studio with the given name."""
-    assert_instance_type(instance_path, InstanceType.WORKSPACE)
+    api: Api, workspace_path: InstancePath, studio_name: str
+) -> FeatureStudioInfo:
+    """Creates a Feature Studio at the top level of a document."""
+    assert_workspace(workspace_path)
     return api.post(
-        api_path("featurestudios", instance_path, InstancePath),
+        api_path("featurestudios", workspace_path, InstancePath),
         body={"name": studio_name},
     )
 
 
-def get_feature_specs(api: Api, feature_studio_path: ElementPath) -> dict:
+def get_feature_specs(api: Api, feature_studio_path: ElementPath) -> FeatureSpecs:
+    """Fetches the specs of the custom features defined in a Feature Studio."""
     return api.get(
         api_path("featurestudios", feature_studio_path, ElementPath, "featurespecs")
     )
-
-
-def get_feature_spec(api: Api, feature_studio_path: ElementPath) -> dict:
-    """Returns the feature spec for the first custom feature in a given Feature Studio."""
-    feature_specs = get_feature_specs(api, feature_studio_path)
-    if len(feature_specs["featureSpecs"]) < 1:
-        raise ValueError(
-            "The specified feature studio did not have any custom features"
-        )
-    return feature_specs["featureSpecs"][0]

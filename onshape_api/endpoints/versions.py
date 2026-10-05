@@ -1,6 +1,7 @@
 from onshape_api.paths.api_path import api_path
 from onshape_api.api.api_base import Api
 from onshape_api.paths.paths import DocumentPath, InstancePath
+from onshape_api.types import VersionInfo
 
 
 def get_versions(
@@ -8,7 +9,7 @@ def get_versions(
     document_path: DocumentPath,
     offset: int = 0,
     limit: int = 0,
-) -> list[dict]:
+) -> list[VersionInfo]:
     """Fetches a list of versions of a document.
 
     Versions are returned in chronological order, with the oldest version ("Start") first.
@@ -26,7 +27,7 @@ def get_versions(
     )
 
 
-def get_latest_version(api: Api, document_path: DocumentPath) -> dict:
+def get_latest_version(api: Api, document_path: DocumentPath) -> VersionInfo:
     return get_versions(api, document_path)[-1]
 
 
@@ -35,7 +36,7 @@ def create_version(
     instance_path: InstancePath,
     version_name: str,
     description: str,
-) -> dict:
+) -> VersionInfo:
     """Creates a new version of a document from a given instance."""
     body = {
         "name": version_name,

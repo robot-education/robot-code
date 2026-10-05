@@ -1,5 +1,6 @@
 """Tests for the fs CLI, run against an in-memory stand-in for Onshape."""
 
+import collections
 import copy
 import itertools
 import pathlib
@@ -28,8 +29,8 @@ class FakeOnshape:
         self.versions_by_document: dict[str, list[Version]] = {}
         self.ids = itertools.count()
         self.pulls = 0
-        self.folder_lookups = 0
-        self.folders_error: Exception | None = None
+        # Every API call made, by method
+        self.calls: collections.Counter[str] = collections.Counter()
 
     def _id(self, prefix: str) -> str:
         return f"{prefix}{next(self.ids)}"
@@ -71,35 +72,28 @@ class FakeOnshape:
     # Remote protocol
 
     def list_studios(self, instance):
+        self.calls["list_studios"] += 1
         return [
-            RemoteStudio(id, s["name"], s["mv"])
+            RemoteStudio(id, s["name"], s["mv"], s["folders"])
             for id, s in self.studios(
                 instance.document_id, instance.instance_id
             ).items()
         ]
 
-    def studio_folders(self, instance):
-        self.folder_lookups += 1
-        if self.folders_error:
-            raise self.folders_error
-        return {
-            id: s["folders"]
-            for id, s in self.studios(
-                instance.document_id, instance.instance_id
-            ).items()
-        }
-
     def pull(self, instance, element_id):
+        self.calls["pull"] += 1
         self.pulls += 1
         return self.studios(instance.document_id, instance.instance_id)[element_id][
             "code"
         ]
 
     def push(self, instance, element_id, code):
+        self.calls["push"] += 1
         self.edit(element_id, code, instance.document_id, instance.instance_id)
         return []
 
     def create(self, instance, name):
+        self.calls["create"] += 1
         element_id = self.add(
             name, "", document=instance.document_id, instance=instance.instance_id
         )
@@ -107,14 +101,17 @@ class FakeOnshape:
         return RemoteStudio(element_id, name, studio["mv"])
 
     def feature_names(self, instance, element_id):
+        self.calls["feature_names"] += 1
         return self.studios(instance.document_id, instance.instance_id)[element_id][
             "features"
         ]
 
     def versions(self, instance):
+        self.calls["versions"] += 1
         return list(self.versions_by_document.get(instance.document_id, []))
 
     def create_version(self, instance, name, description):
+        self.calls["create_version"] += 1
         version = Version(self._id("v"), name, description)
         self.versions_by_document.setdefault(instance.document_id, []).append(version)
         self.instances[(instance.document_id, version.id)] = copy.deepcopy(
@@ -123,6 +120,7 @@ class FakeOnshape:
         return version
 
     def latest_std_version(self):
+        self.calls["latest_std_version"] += 1
         return "2909"
 
 
@@ -302,23 +300,28 @@ def test_first_pull_mirrors_folders(repo, onshape):
     assert run(onshape, "pull") == 0
     assert local(repo, "Robot/Structure/frame.fs").read_text() == "f"
     assert local(repo, "util.fs").read_text() == "u"
-    assert onshape.folder_lookups == 1
 
     local(repo, "Robot/Structure/frame.fs").write_text("f2")
     assert run(onshape, "push") == 0
     assert onshape.code("frame.fs") == "f2"
 
 
-def test_folders_are_only_looked_up_for_new_pulls(repo, onshape):
-    onshape.add("frame.fs", "f", folders=("Robot",))
-    run(onshape, "status")
-    run(onshape, "pull", "--dry-run")
-    assert onshape.folder_lookups == 0
+def test_api_calls_are_minimal(repo, onshape):
+    onshape.add("a.fs", "a", folders=("Robot",))
+    onshape.add("b.fs", "b")
     run(onshape, "pull")
+    assert onshape.calls == {"list_studios": 1, "pull": 2}
+
+    onshape.calls.clear()
     run(onshape, "status")
     run(onshape, "push")
-    run(onshape, "pull")
-    assert onshape.folder_lookups == 1
+    assert onshape.calls == {"list_studios": 2}
+
+    onshape.calls.clear()
+    local(repo, "Robot/a.fs").write_text("a2")
+    run(onshape, "push")
+    # List, push, then list again to record the new microversion
+    assert onshape.calls == {"list_studios": 2, "push": 1}
 
 
 def test_onshape_folders_are_ignored_after_the_first_pull(repo, onshape):
@@ -361,7 +364,6 @@ def test_fresh_clone_matches_files_by_name(repo, onshape):
     assert run(onshape, "push") == 0
     assert onshape.names() == ["frame.fs"]
     assert onshape.code("frame.fs") == "f2"
-    assert onshape.folder_lookups == 0
 
 
 def test_new_files_in_folders_stay_put(repo, onshape, capsys):
@@ -373,12 +375,117 @@ def test_new_files_in_folders_stay_put(repo, onshape, capsys):
     assert "everything in sync" in capsys.readouterr().out
 
 
-def test_folder_lookup_failure_falls_back_to_top_level(repo, onshape, capsys):
-    onshape.add("frame.fs", "f", folders=("Robot",))
-    onshape.folders_error = ApiError("Invalid JSON input.")
-    assert run(onshape, "pull") == 0
-    assert local(repo, "frame.fs").read_text() == "f"
-    assert "couldn't read the backend document's folders" in capsys.readouterr().out
+def test_contents_failure_falls_back_to_elements(capsys):
+    """If the contents endpoint fails, studios are listed from the elements endpoint without folders."""
+    from fs_cli.remote import OnshapeRemote
+    from onshape_api.paths.paths import url_to_instance_path
+
+    class StubApi:
+        def __init__(self):
+            self.paths = []
+
+        def get(self, path, **kwargs):
+            self.paths.append(path)
+            if path.endswith("/contents"):
+                raise ApiError("Invalid JSON input.")
+            return [
+                {
+                    "id": "e1",
+                    "name": "a.fs",
+                    "elementType": "FEATURESTUDIO",
+                    "microversionId": "m1",
+                }
+            ]
+
+    api = StubApi()
+    remote = OnshapeRemote(api)
+    instance = url_to_instance_path(BACKEND)
+    assert remote.list_studios(instance) == [RemoteStudio("e1", "a.fs", "m1")]
+    assert "couldn't read the document's folders" in capsys.readouterr().out
+    remote.list_studios(instance)
+    # Contents isn't retried once it fails
+    assert [path.rsplit("/", 1)[-1] for path in api.paths] == [
+        "contents",
+        "elements",
+        "elements",
+    ]
+
+
+def test_contents_lists_feature_studios_with_folders():
+    from fs_cli.remote import OnshapeRemote
+    from onshape_api.paths.paths import url_to_instance_path
+
+    class StubApi:
+        def get(self, path, **kwargs):
+            assert path.endswith("/contents") and not kwargs.get("query")
+            return {
+                "elements": [
+                    {
+                        "id": "e1",
+                        "name": "a.fs",
+                        "elementType": "FEATURESTUDIO",
+                        "microversionId": "m1",
+                    },
+                    {
+                        "id": "e2",
+                        "name": "Part Studio 1",
+                        "elementType": "PARTSTUDIO",
+                        "microversionId": "m2",
+                    },
+                ],
+                "folders": {
+                    "groups": [{"groupName": "Robot", "groups": [{"elementId": "e1"}]}]
+                },
+            }
+
+    studios = OnshapeRemote(StubApi()).list_studios(url_to_instance_path(BACKEND))
+    assert studios == [RemoteStudio("e1", "a.fs", "m1", ("Robot",))]
+
+
+# Same-document imports
+
+A_ID = "a" * 24
+OLD = "0" * 24
+NEW = "1" * 24
+
+
+def importing(version: str, body: str = "") -> str:
+    return (
+        f'FeatureScript 2909;\nimport(path : "{A_ID}", version : "{version}");\n{body}'
+    )
+
+
+def test_import_version_changes_are_not_conflicts(repo, onshape, capsys):
+    """Onshape may bump the import versions in tabs which import a changed tab."""
+    element_id = onshape.add("b.fs", importing(OLD))
+    run(onshape, "pull")
+    onshape.edit(element_id, importing(NEW))
+
+    capsys.readouterr()
+    run(onshape, "status")
+    out = capsys.readouterr().out
+    assert "import versions updated in Onshape" in out
+    assert local(repo, "b.fs").read_text() == importing(OLD)
+
+    assert run(onshape, "push") == 0
+    assert "Updated import versions in b.fs" in capsys.readouterr().out
+    assert local(repo, "b.fs").read_text() == importing(NEW)
+    assert onshape.code("b.fs") == importing(NEW)
+
+    onshape.calls.clear()
+    run(onshape, "status")
+    assert onshape.calls == {"list_studios": 1}
+
+
+def test_pushing_keeps_onshapes_import_versions(repo, onshape):
+    element_id = onshape.add("b.fs", importing(OLD))
+    run(onshape, "pull")
+    onshape.edit(element_id, importing(NEW))
+    local(repo, "b.fs").write_text(importing(OLD, "// local edit\n"))
+
+    assert run(onshape, "push") == 0
+    assert onshape.code("b.fs") == importing(NEW, "// local edit\n")
+    assert local(repo, "b.fs").read_text() == importing(NEW, "// local edit\n")
 
 
 def test_folder_paths_from_contents():

@@ -28,8 +28,13 @@ from typing import Callable, Iterable
 from fs_cli import git
 from fs_cli.config import Config
 from fs_cli.remote import Remote, RemoteStudio, file_name_for, relative_path_for
-from onshape_api.exceptions import ApiError
-from fs_cli.state import State, StudioState, content_hash
+from fs_cli.state import (
+    State,
+    StudioState,
+    apply_import_versions,
+    content_hash,
+    import_versions,
+)
 
 MAX_WORKERS = 8
 
@@ -70,7 +75,8 @@ class Studio:
     Attributes:
         path: The local path relative to the code folder (using /), whether or not it exists.
         file: The absolute local path.
-        located: False for studios only in Onshape whose local folder hasn't been looked up yet.
+        import_updates: Same-document import versions which Onshape changed and the local file
+            doesn't have yet, by element id. These aren't treated as edits; see content_hash.
     """
 
     path: str
@@ -79,7 +85,7 @@ class Studio:
     saved: StudioState | None
     local_code: str | None
     deleted_in_onshape: bool = False
-    located: bool = True
+    import_updates: dict[str, str] = dataclasses.field(default_factory=dict)
     remote_code: str | None = None
     status: Status = Status.IN_SYNC
 
@@ -165,7 +171,9 @@ class Workspace:
             list(executor.map(self._classify, studios))
 
         for studio in studios:
-            if studio.status == Status.IN_SYNC:
+            # Studios with import updates are recorded once the updates are applied, so they're
+            # checked again until then
+            if studio.status == Status.IN_SYNC and not studio.import_updates:
                 assert studio.remote and studio.local_code is not None
                 self._record(studio, studio.local_code, studio.remote.microversion_id)
         return sorted(studios, key=lambda studio: studio.path)
@@ -197,7 +205,7 @@ class Workspace:
         studios: list[Studio] = []
         claimed: set[str] = set()
 
-        def add(path: str, remote: RemoteStudio | None, located: bool = True) -> None:
+        def add(path: str, remote: RemoteStudio | None) -> None:
             claimed.add(path)
             entry = saved.get(remote.element_id) if remote else None
             studios.append(
@@ -208,7 +216,6 @@ class Workspace:
                     entry,
                     _read(local.get(path)),
                     deleted_in_onshape=remote is None and path in deleted_in_onshape,
-                    located=located,
                 )
             )
 
@@ -245,7 +252,7 @@ class Workspace:
             elif entry:
                 add(entry.file, remote)  # Deleted locally
             else:
-                add(relative_path_for(remote.name), remote, located=False)
+                add(relative_path_for(remote.name, remote.folders), remote)
 
         for path in sorted(local):
             if path not in claimed:
@@ -273,6 +280,13 @@ class Workspace:
         else:
             remote_hash = content_hash(self.fetch(studio))
 
+        if studio.remote_code is not None:
+            local_versions = import_versions(local)
+            studio.import_updates = {
+                element_id: version
+                for element_id, version in import_versions(studio.remote_code).items()
+                if local_versions.get(element_id, version) != version
+            }
         if local_hash == remote_hash:
             return Status.IN_SYNC
         if (saved and saved.hash == remote_hash) or remote_hash in self._history(
@@ -305,25 +319,49 @@ class Workspace:
 
     # Actions
 
-    def push_studios(self, studios: list[Studio]) -> dict[str, list[str]]:
+    def apply_import_updates(self, studios: list[Studio]) -> list[Studio]:
+        """Writes import versions Onshape changed into local files. Makes no API calls.
+
+        Returns the studios which were updated.
+        """
+        updated = []
+        for studio in studios:
+            if not studio.import_updates or studio.local_code is None:
+                continue
+            if studio.status not in (Status.IN_SYNC, Status.LOCAL_CHANGES):
+                continue
+            code = apply_import_versions(studio.local_code, studio.import_updates)
+            studio.file.write_text(code, newline="")
+            studio.local_code = code
+            studio.import_updates = {}
+            if studio.status == Status.IN_SYNC:
+                assert studio.remote
+                self._record(studio, code, studio.remote.microversion_id)
+            updated.append(studio)
+        return updated
+
+    def push_studios(self, studios: list[Studio]) -> None:
         """Pushes studios to Onshape, creating any which don't exist yet.
 
         New studios are created at the top level of the document, since the API can't place
-        them in folders. Returns a dict mapping studio paths to any notices Onshape reported.
+        them in folders.
         """
 
-        def push(studio: Studio) -> list[str]:
+        def push(studio: Studio) -> None:
             assert studio.local_code is not None
+            code = studio.local_code
+            if studio.remote_code is not None:
+                # Never push import versions older than the ones Onshape has
+                code = apply_import_versions(code, import_versions(studio.remote_code))
+                if code != studio.local_code:
+                    studio.file.write_text(code, newline="")
+                    studio.local_code = code
             if studio.remote is None:
                 studio.remote = self.remote.create(self.instance, studio.name)
-            return self.remote.push(
-                self.instance, studio.remote.element_id, studio.local_code
-            )
+            self.remote.push(self.instance, studio.remote.element_id, code)
 
         with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
-            notices = dict(
-                zip((studio.path for studio in studios), executor.map(push, studios))
-            )
+            list(executor.map(push, studios))
 
         # Pushing changes each studio's microversion; fetch the new ones so the next
         # command knows Onshape hasn't been modified since
@@ -335,11 +373,9 @@ class Workspace:
             assert studio.remote and studio.local_code is not None
             studio.remote = current.get(studio.remote.element_id, studio.remote)
             self._record(studio, studio.local_code, studio.remote.microversion_id)
-        return notices
 
     def pull_studios(self, studios: list[Studio]) -> None:
         """Writes the Onshape contents of studios to their local files."""
-        self._locate([studio for studio in studios if not studio.located])
         with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
             list(executor.map(self.fetch, studios))
         for studio in studios:
@@ -347,30 +383,8 @@ class Workspace:
             studio.file.parent.mkdir(parents=True, exist_ok=True)
             studio.file.write_text(studio.remote_code, newline="")
             studio.local_code = studio.remote_code
+            studio.import_updates = {}
             self._record(studio, studio.remote_code, studio.remote.microversion_id)
-
-    def _locate(self, studios: list[Studio]) -> None:
-        """Places studios new to the repo in the folders they're in in Onshape.
-
-        This takes an extra API call, so it's only done when such a studio is actually pulled.
-        """
-        if not studios:
-            return
-        try:
-            folders = self.remote.studio_folders(self.instance)
-        except ApiError as error:
-            print(
-                f"Warning: couldn't read the backend document's folders, so new files go in the top level folder ({error})."
-            )
-            folders = {}
-        for studio in studios:
-            assert studio.remote
-            path = relative_path_for(
-                studio.remote.name, folders.get(studio.remote.element_id, ())
-            )
-            if not (self.config.code_dir / path).exists():
-                studio.path, studio.file = path, self.config.code_dir / path
-            studio.located = True
 
 
 def select(studios: list[Studio], *statuses: Status) -> list[Studio]:

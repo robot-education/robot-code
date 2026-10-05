@@ -11,13 +11,37 @@ import dataclasses
 import hashlib
 import json
 import pathlib
+import re
 
-STATE_VERSION = 2
+STATE_VERSION = 3
+
+# An import of another tab in the same document: import(path : "<element id>", version : "<id>")
+_SAME_DOCUMENT_IMPORT = re.compile(
+    r'(\bimport\s*\(\s*path\s*:\s*"([0-9a-f]{24})"\s*,\s*version\s*:\s*")([0-9a-f]{24})(")'
+)
+
+
+def import_versions(code: str) -> dict[str, str]:
+    """Maps the element ids of same-document imports to their versions."""
+    return {match[2]: match[3] for match in _SAME_DOCUMENT_IMPORT.finditer(code)}
+
+
+def apply_import_versions(code: str, versions: dict[str, str]) -> str:
+    """Replaces the versions of same-document imports with those in versions."""
+    return _SAME_DOCUMENT_IMPORT.sub(
+        lambda match: match[1] + versions.get(match[2], match[3]) + match[4], code
+    )
 
 
 def content_hash(code: str) -> str:
-    """Hashes Feature Studio contents, ignoring differences in line endings."""
-    return hashlib.sha256(code.replace("\r\n", "\n").encode()).hexdigest()
+    """Hashes Feature Studio contents for comparison.
+
+    Line endings and the versions of same-document imports are ignored. Onshape manages those
+    versions itself (they may change when the imported tab changes), so a difference in them
+    alone isn't an edit to either side.
+    """
+    normalized = _SAME_DOCUMENT_IMPORT.sub(r"\1\4", code.replace("\r\n", "\n"))
+    return hashlib.sha256(normalized.encode()).hexdigest()
 
 
 @dataclasses.dataclass

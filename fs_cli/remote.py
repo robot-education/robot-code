@@ -8,16 +8,25 @@ from typing import Protocol
 
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints import documents, feature_studios, versions
-from onshape_api.endpoints.documents import ElementType
 from onshape_api.endpoints.std_versions import get_latest_std_version
+from onshape_api.exceptions import ApiError
 from onshape_api.paths.paths import ElementPath, InstancePath
+from onshape_api.types import ElementGroup, ElementType
 
 
 @dataclasses.dataclass
 class RemoteStudio:
+    """A Feature Studio in Onshape.
+
+    Attributes:
+        microversion_id: Changes whenever the studio changes in Onshape.
+        folders: The folders containing the studio, outermost first. Empty if unknown.
+    """
+
     element_id: str
     name: str
     microversion_id: str
+    folders: tuple[str, ...] = ()
 
 
 def safe_file_name(name: str) -> str:
@@ -46,17 +55,13 @@ class Version:
 
 
 class Remote(Protocol):
-    def list_studios(self, instance: InstancePath) -> list[RemoteStudio]: ...
-
-    def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
-        """Maps element ids to the folders containing them, outermost first."""
+    def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
+        """Lists the Feature Studios in a document, with their folders when available."""
         ...
 
     def pull(self, instance: InstancePath, element_id: str) -> str: ...
 
-    def push(self, instance: InstancePath, element_id: str, code: str) -> list[str]:
-        """Pushes code to a Feature Studio. Returns any error/warning notices Onshape reported."""
-        ...
+    def push(self, instance: InstancePath, element_id: str, code: str) -> None: ...
 
     def create(self, instance: InstancePath, name: str) -> RemoteStudio:
         """Creates a Feature Studio at the top level of the document."""
@@ -80,8 +85,32 @@ class Remote(Protocol):
 class OnshapeRemote:
     def __init__(self, api: Api) -> None:
         self.api = api
+        self.contents_failed = False
 
     def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
+        # One call gives every tab's microversion and the folder structure. If it fails (it's
+        # been seen to return 400), fall back to the elements endpoint without folders; failed
+        # calls don't count against Onshape's API limits.
+        if not self.contents_failed:
+            try:
+                contents = documents.get_document_contents(self.api, instance)
+            except ApiError as error:
+                self.contents_failed = True
+                print(
+                    f"Warning: couldn't read the document's folders, so newly pulled files go in the top level folder ({error})."
+                )
+            else:
+                folders = folder_paths(contents.get("folders"))
+                return [
+                    RemoteStudio(
+                        element["id"],
+                        element["name"],
+                        element["microversionId"],
+                        folders.get(element["id"], ()),
+                    )
+                    for element in contents["elements"]
+                    if element["elementType"] == ElementType.FEATURE_STUDIO
+                ]
         elements = documents.get_document_elements(
             self.api, instance, ElementType.FEATURE_STUDIO
         )
@@ -90,20 +119,13 @@ class OnshapeRemote:
             for element in elements
         ]
 
-    def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
-        contents = documents.get_document_contents(self.api, instance)
-        return folder_paths(contents.get("folders"))
-
     def pull(self, instance: InstancePath, element_id: str) -> str:
-        return feature_studios.pull_code(
-            self.api, ElementPath.from_path(instance, element_id)
-        )
+        path = ElementPath.from_path(instance, element_id)
+        return feature_studios.get_contents(self.api, path)["contents"]
 
-    def push(self, instance: InstancePath, element_id: str, code: str) -> list[str]:
-        response = feature_studios.push_code(
-            self.api, ElementPath.from_path(instance, element_id), code
-        )
-        return extract_notices(response)
+    def push(self, instance: InstancePath, element_id: str, code: str) -> None:
+        path = ElementPath.from_path(instance, element_id)
+        feature_studios.update_contents(self.api, path, code)
 
     def create(self, instance: InstancePath, name: str) -> RemoteStudio:
         response = feature_studios.create_feature_studio(self.api, instance, name)
@@ -112,10 +134,9 @@ class OnshapeRemote:
         )
 
     def feature_names(self, instance: InstancePath, element_id: str) -> list[str]:
-        specs = feature_studios.get_feature_specs(
-            self.api, ElementPath.from_path(instance, element_id)
-        )
-        return [spec["featureTypeName"] for spec in specs.get("featureSpecs", [])]
+        path = ElementPath.from_path(instance, element_id)
+        specs = feature_studios.get_feature_specs(self.api, path)
+        return [spec["featureTypeName"] for spec in specs["featureSpecs"]]
 
     def versions(self, instance: InstancePath) -> list[Version]:
         return [
@@ -133,7 +154,7 @@ class OnshapeRemote:
         return get_latest_std_version(self.api)
 
 
-def folder_paths(root: dict | None) -> dict[str, tuple[str, ...]]:
+def folder_paths(root: ElementGroup | None) -> dict[str, tuple[str, ...]]:
     """Maps element ids to the folders containing them, given the contents endpoint's folder tree."""
     paths: dict[str, tuple[str, ...]] = {}
 
@@ -149,22 +170,3 @@ def folder_paths(root: dict | None) -> dict[str, tuple[str, ...]]:
     if isinstance(root, dict):
         walk(root, ())
     return paths
-
-
-def extract_notices(response: object) -> list[str]:
-    """Pulls human readable error and warning messages out of a Feature Studio update response."""
-    if not isinstance(response, dict):
-        return []
-    notices = []
-    for notice in response.get("notices") or []:
-        if not isinstance(notice, dict):
-            continue
-        level = str(notice.get("level", "")).upper()
-        if level not in ("ERROR", "WARNING"):
-            continue
-        message = notice.get("message")
-        if isinstance(message, dict):
-            message = message.get("message")
-        if message:
-            notices.append(f"{level.lower()}: {message}")
-    return notices

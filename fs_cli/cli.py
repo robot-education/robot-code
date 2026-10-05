@@ -211,6 +211,7 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         Status.DELETED_LOCALLY,
         "was deleted locally but not in Onshape; delete the tab in Onshape, or run `fs pull --force` to restore it",
     )
+    apply_import_updates(workspace, studios, args.dry_run)
     return (
         do_push(workspace, select(studios, *PUSHABLE, *overwritable), args.dry_run)
         or skipped
@@ -243,6 +244,7 @@ def pull(workspace: Workspace, args: argparse.Namespace) -> int:
         "was deleted in Onshape; delete the file, or run `fs push` to recreate it",
     )
     to_pull = select(studios, *PULLABLE, *overwritable)
+    apply_import_updates(workspace, studios, args.dry_run)
     return do_pull(workspace, to_pull, args.dry_run) or skipped
 
 
@@ -254,6 +256,7 @@ def sync(workspace: Workspace, args: argparse.Namespace) -> int:
         Status.DELETED_LOCALLY,
         "was deleted locally but not in Onshape; delete the tab in Onshape, or run `fs pull --force` to restore it",
     )
+    apply_import_updates(workspace, studios, args.dry_run)
     pulled = do_pull(workspace, select(studios, *PULLABLE), args.dry_run)
     pushed = do_push(workspace, select(studios, *PUSHABLE), args.dry_run)
     return pulled or pushed or skipped
@@ -265,13 +268,18 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
     print(
         f"{os.path.relpath(config.code_dir)}/ <-> backend document {path_to_url(workspace.instance)}"
     )
-    shown = [s for s in studios if args.all or s.status != Status.IN_SYNC]
+    shown = [
+        s for s in studios if args.all or s.status != Status.IN_SYNC or s.import_updates
+    ]
     if not shown:
         print("  everything in sync")
     width = max((len(studio.path) for studio in shown), default=0)
     for studio in shown:
         details = [studio.status.value]
         hint = HINTS.get(studio.status)
+        if studio.import_updates:
+            details.append("import versions updated in Onshape")
+            hint = hint or "fs push or fs pull applies them"
         suffix = f"  ({hint})" if hint else ""
         print(f"  {studio.path:<{width}}  {', '.join(details)}{suffix}")
     return 0
@@ -386,14 +394,9 @@ def do_push(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
         print(f"{verb} {studio.path}{' (new)' if studio.remote is None else ''}")
     if dry_run:
         return 0
-    notices = workspace.push_studios(studios)
-    errors = False
-    for path, messages in notices.items():
-        for message in messages:
-            errors = errors or message.startswith("error")
-            print(f"  {path}: {message}")
+    workspace.push_studios(studios)
     print(f"Pushed {_plural(len(studios), 'Feature Studio')}.")
-    return 1 if errors else 0
+    return 0
 
 
 def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
@@ -402,13 +405,25 @@ def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
         return 0
     if dry_run:
         for studio in studios:
-            print(f"Would pull {studio.path}{'' if studio.located else ' (new)'}")
+            print(f"Would pull {studio.path}")
         return 0
     workspace.pull_studios(studios)
     for studio in studios:
         print(f"Pulled {studio.path}")
     print(f"Pulled {_plural(len(studios), 'Feature Studio')}.")
     return 0
+
+
+def apply_import_updates(
+    workspace: Workspace, studios: list[Studio], dry_run: bool
+) -> None:
+    if dry_run:
+        for studio in studios:
+            if studio.import_updates:
+                print(f"Would update import versions in {studio.path}")
+        return
+    for studio in workspace.apply_import_updates(studios):
+        print(f"Updated import versions in {studio.path} to match Onshape")
 
 
 def report_skipped(
