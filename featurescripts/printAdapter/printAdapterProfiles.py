@@ -171,6 +171,9 @@ ADAPTERS = [
     Adapter("TTB", "HEX_INSERT", '1/2" Hex Insert (TTB-0034)', "TTB_HEX_INSERT_PROFILE", hex_bore(0.5, 0)),
     # The same shape as WCP's SplineXS adapter
     Adapter("TTB", "SPLINE_INSERT", "SplineXS Insert (TTB-0356)", "WCP_SPLINE_ADAPTER_PROFILE", SPLINE_XS_BORE),
+    # For goBILDA's 7mm (and 8mm rounded) hex. Its photos look like TTB-0356 with a hex bore, and the hex's corners
+    # (4.04mm out) clear that bore's 4mm about the same. TODO: check its outline and the hex's angle against its CAD
+    Adapter("TTB", "HEX_7MM_INSERT", "7mm Hex Insert (TTB-0437)", "WCP_SPLINE_ADAPTER_PROFILE", hex_bore(7 / 25.4, 0)),
     Adapter("WCP", "SPLINE_ADAPTER", "SplineXS Adapter (WCP-1021)", "WCP_SPLINE_ADAPTER_PROFILE", SPLINE_XS_BORE),
     Adapter("WCP", "HEX_ADAPTER", '1/2" Hex Adapter (WCP-1121)', "WCP_HEX_ADAPTER_PROFILE", hex_bore(0.5, 0)),
 ]

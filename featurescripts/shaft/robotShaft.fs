@@ -61,6 +61,38 @@ predicate isHoleOperation(endOperation is EndOperation)
     endOperation == EndOperation.TAPPED_HOLE || endOperation == EndOperation.CLEARANCE_HOLE;
 }
 
+/**
+ * Whether a shaft is a SplineXS, whose ends can only be tapped (see `getEndOperation`): it's solid, and too small for
+ * retaining rings or captive ends.
+ */
+predicate isSplineXsShaft(definition is map)
+{
+    definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS;
+}
+
+/**
+ * Whether a shaft's ends can be modified: hex shafts, and SplineXS shafts (tapped). Other splines are tubes.
+ */
+predicate canModifyShaftEnds(definition is map)
+{
+    definition.shaftType == ShaftType.HEX || isSplineXsShaft(definition);
+}
+
+predicate isTappedFirstEnd(definition is map)
+{
+    isSplineXsShaft(definition) || definition.firstEndOperation == EndOperation.TAPPED_HOLE;
+}
+
+predicate isTappedSecondEnd(definition is map)
+{
+    isSplineXsShaft(definition) || definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE;
+}
+
+predicate isClearanceFirstEnd(definition is map)
+{
+    !isSplineXsShaft(definition) && definition.firstEndOperation == EndOperation.CLEARANCE_HOLE;
+}
+
 predicate hexShaftPredicate(definition is map)
 {
     annotation { "Name" : "Hex type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
@@ -101,7 +133,7 @@ predicate hexShaftPredicate(definition is map)
 predicate cannotSpecifySecondEnd(definition is map)
 {
     definition.mirrorShaft ||
-        (definition.modifyFirstEnd && (definition.firstEndOperation == EndOperation.CLEARANCE_HOLE || definition.symmetricEnds));
+        (definition.modifyFirstEnd && (isClearanceFirstEnd(definition) || definition.symmetricEnds));
 }
 
 predicate shaftEndPredicate(definition is map)
@@ -115,15 +147,18 @@ predicate shaftEndPredicate(definition is map)
         {
             annotation { "Group Name" : "First end hardware", "Collapsed By Default" : false, "Driving Parameter" : "modifyFirstEnd" }
             {
-                annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.firstEndOperation is EndOperation;
+                if (!isSplineXsShaft(definition))
+                {
+                    annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.firstEndOperation is EndOperation;
+                }
 
                 // annotation { "Name" : "Flip shaft ends", "UIHint" : ["OPPOSITE_DIRECTION"] }
                 // definition.flipShaftEnds is boolean;
 
-                if (definition.firstEndOperation == EndOperation.CLEARANCE_HOLE || definition.firstEndOperation == EndOperation.TAPPED_HOLE)
+                if (isTappedFirstEnd(definition) || isClearanceFirstEnd(definition))
                 {
-                    if (definition.firstEndOperation == EndOperation.TAPPED_HOLE)
+                    if (isTappedFirstEnd(definition))
                     {
                         annotation { "Name" : "Hole table", "Lookup Table" : tappedHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         definition.firstEndTappedHolePath is LookupTablePath;
@@ -137,7 +172,7 @@ predicate shaftEndPredicate(definition is map)
                     annotation { "Name" : "Hole diameter", "Icon" : Icon.HOLE_DIAMETER }
                     isLength(definition.firstEndHoleDiameter, HOLE_DIAMETER_BOUNDS);
 
-                    if (definition.firstEndOperation == EndOperation.TAPPED_HOLE)
+                    if (isTappedFirstEnd(definition))
                     {
                         annotation { "Name" : "Hole depth", "Icon" : Icon.HOLE_DEPTH }
                         isLength(definition.firstEndHoleDepth, HOLE_DEPTH_BOUNDS);
@@ -163,7 +198,7 @@ predicate shaftEndPredicate(definition is map)
             }
 
             // Mirroring makes the ends symmetric implicitly
-            if (definition.firstEndOperation != EndOperation.CLEARANCE_HOLE && !definition.mirrorShaft)
+            if (!isClearanceFirstEnd(definition) && !definition.mirrorShaft)
             {
                 annotation { "Name" : "Symmetric ends", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.symmetricEnds is boolean;
@@ -179,10 +214,13 @@ predicate shaftEndPredicate(definition is map)
             {
                 annotation { "Group Name" : "Second end hardware", "Collapsed By Default" : false, "Driving Parameter" : "modifySecondEnd" }
                 {
-                    annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.secondEndOperation is SecondEndOperation;
+                    if (!isSplineXsShaft(definition))
+                    {
+                        annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        definition.secondEndOperation is SecondEndOperation;
+                    }
 
-                    if (definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE)
+                    if (isTappedSecondEnd(definition))
                     {
                         annotation { "Name" : "Hole table", "Lookup Table" : tappedHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         definition.secondEndTappedHolePath is LookupTablePath;
@@ -280,7 +318,7 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
             }
         }
 
-        if (definition.shaftType == ShaftType.HEX)
+        if (canModifyShaftEnds(definition))
         {
             shaftEndPredicate(definition);
         }
@@ -304,10 +342,13 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
             mirrorPlane = getMirrorPlane(context, definition, extrudeId, shaft);
         }
 
-        if (definition.shaftType == ShaftType.HEX)
+        if (canModifyShaftEnds(definition))
         {
             const endDefinitions = getShaftEndDefinitions(context, definition, extrudeId, shaft);
-            cutHexShaftFeatures(context, id + "cutFeatures", definition, shaft, shaftPlane, endDefinitions);
+            if (definition.shaftType == ShaftType.HEX)
+            {
+                cutHexShaftFeatures(context, id + "cutFeatures", definition, shaft, shaftPlane, endDefinitions);
+            }
 
             const reconstructOp = function()
                 {
@@ -457,7 +498,7 @@ function createShaftProfile(context is Context, id is Id, definition is map, sha
         {
             skCircle(sketch, "predrilledHole", {
                         "center" : zeroVector(2) * meter,
-                        "radius" : definition.predrilledHoleDiameter / 2
+                        "radius" : predrilledHoleRadius(definition.predrilledHoleDiameter, splineTapDrills(definition))
                     });
         }
     }
@@ -511,25 +552,17 @@ function cutHexShaftFeatures(context is Context, id is Id, definition is map, sh
 
     if (hasPredrilledHole(definition))
     {
-        var radius = getPredrilledHoleDiameter(definition) / 2;
+        var tapDrills = [];
         for (var endDefinition in endDefinitions)
         {
-            if (endDefinition.endOperation != EndOperation.TAPPED_HOLE)
+            if (endDefinition.endOperation == EndOperation.TAPPED_HOLE)
             {
-                continue;
-            }
-
-            if (tolerantEquals(radius * 2, endDefinition.holeDiameter))
-            {
-                // Make it slightly smaller so the hole cut still works
-                // We could make it bigger and cut the holes first instead, but then holes which are too small won't fail correctly
-                // For some reason we need a bigger tolerance when trying to get a hole to successfully boolean
-                radius -= TOLERANCE.zeroLength * meter * 1000;
+                tapDrills = append(tapDrills, endDefinition.holeDiameter);
             }
         }
         skCircle(sketch, "predrilledHoleCircle", {
                     "center" : zeroVector(2) * meter,
-                    "radius" : radius
+                    "radius" : predrilledHoleRadius(getPredrilledHoleDiameter(definition), tapDrills)
                 });
     }
 
@@ -582,6 +615,42 @@ function cutHexShaftFeatures(context is Context, id is Id, definition is map, sh
                 "operationType" : BooleanOperationType.SUBTRACTION
             });
     cleanup(context, id + "delete", qCreatedBy(id + "sketch", EntityType.BODY));
+}
+
+/**
+ * The radius to draw a predrilled hole: its diameter's, made slightly smaller if an end is tapped with a hole that size
+ * (`tapDrills`), so the hole cut still works. (Making it bigger and cutting the holes first would work too, but then
+ * holes which are too small wouldn't fail correctly.)
+ */
+function predrilledHoleRadius(diameter is ValueWithUnits, tapDrills is array) returns ValueWithUnits
+{
+    for (var tapDrill in tapDrills)
+    {
+        if (tolerantEquals(diameter, tapDrill))
+        {
+            // For some reason we need a bigger tolerance when trying to get a hole to successfully boolean
+            return diameter / 2 - TOLERANCE.zeroLength * meter * 1000;
+        }
+    }
+    return diameter / 2;
+}
+
+/**
+ * The tap drills of the ends of a SplineXS shaft which will be tapped, from its definition (its profile is drawn before
+ * its ends are found).
+ */
+function splineTapDrills(definition is map) returns array
+{
+    var tapDrills = [];
+    if (definition.modifyFirstEnd)
+    {
+        tapDrills = append(tapDrills, definition.firstEndHoleDiameter);
+    }
+    if (definition.modifySecondEnd && !cannotSpecifySecondEnd(definition))
+    {
+        tapDrills = append(tapDrills, definition.secondEndHoleDiameter);
+    }
+    return tapDrills;
 }
 
 predicate hasPredrilledHole(definition is map)
@@ -785,7 +854,7 @@ function getShaftEndDefinitions(context is Context, definition is map, extrudeId
 
     if (definition.modifyFirstEnd)
     {
-        if (definition.firstEndOperation == EndOperation.CLEARANCE_HOLE)
+        if (getEndOperation(definition, ShaftEnd.FIRST) == EndOperation.CLEARANCE_HOLE)
         {
             return [getEndDefinition(definition, ShaftEnd.FIRST, firstEndFace)];
         }
@@ -1207,6 +1276,10 @@ function getShaftEndString(shaftEnd is ShaftEnd) returns string
 
 function getEndOperation(definition is map, shaftEnd is ShaftEnd) returns EndOperation
 {
+    if (isSplineXsShaft(definition))
+    {
+        return EndOperation.TAPPED_HOLE;
+    }
     return getShaftEndParameter(definition, shaftEnd, "Operation") as EndOperation;
 }
 

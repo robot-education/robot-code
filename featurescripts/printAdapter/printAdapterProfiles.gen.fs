@@ -39,7 +39,9 @@ export enum TtbAdapter
     annotation { "Name" : "1/2\" Hex Insert (TTB-0034)" }
     HEX_INSERT,
     annotation { "Name" : "SplineXS Insert (TTB-0356)" }
-    SPLINE_INSERT
+    SPLINE_INSERT,
+    annotation { "Name" : "7mm Hex Insert (TTB-0437)" }
+    HEX_7MM_INSERT
 }
 
 export enum WcpAdapter
@@ -515,7 +517,8 @@ export const PRINT_ADAPTERS = {
         },
         PrintAdapterVendor.TTB : {
             TtbAdapter.HEX_INSERT : { "profile" : TTB_HEX_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 0 * degree } },
-            TtbAdapter.SPLINE_INSERT : { "profile" : WCP_SPLINE_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 8.5 * millimeter, "splineXs" : true } }
+            TtbAdapter.SPLINE_INSERT : { "profile" : WCP_SPLINE_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 8.5 * millimeter, "splineXs" : true } },
+            TtbAdapter.HEX_7MM_INSERT : { "profile" : WCP_SPLINE_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.2755905511811024 * inch, "vertexAngle" : 0 * degree } }
         },
         PrintAdapterVendor.WCP : {
             WcpAdapter.SPLINE_ADAPTER : { "profile" : WCP_SPLINE_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 8.5 * millimeter, "splineXs" : true } },
