@@ -18,6 +18,13 @@ class ApiArgs(TypedDict):
 class ApiQueryArgs(TypedDict):
     query: NotRequired[str | dict]
     headers: NotRequired[dict[str, str]]
+    # Send the request without credentials. Works for some reads of public documents, and
+    # such calls don't count against Onshape's API limits.
+    anonymous: NotRequired[bool]
+
+
+API_VERSION = 16
+"""The Onshape API version used. onshape_api/reference/openapi.json describes the current version."""
 
 
 def get_api_base_args() -> ApiArgs:
@@ -31,8 +38,6 @@ def get_api_base_args() -> ApiArgs:
     else:
         kwargs["logging"] = logging.lower() == "true"
 
-    if temp := os.getenv("API_VERSION"):
-        kwargs["version"] = int(temp)
     if base_url := os.getenv("API_BASE_URL"):
         kwargs["base_url"] = base_url
     return kwargs
@@ -54,7 +59,7 @@ class Api(ABC):
         self,
         base_url: str = "https://cad.onshape.com",
         logging: bool = False,
-        version: int | None = 8,
+        version: int | None = API_VERSION,
     ):
         """
         Args:
@@ -77,6 +82,7 @@ class Api(ABC):
         query: dict | str = "",
         body: dict | str = "",
         headers: dict[str, str] = {},
+        anonymous: bool = False,
     ) -> Any:
         """
         Issues a request to Onshape.

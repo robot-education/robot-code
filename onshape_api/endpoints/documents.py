@@ -8,11 +8,14 @@ def get_document_elements(
     api: Api,
     instance_path: InstancePath,
     element_type: ElementType | None = None,
+    anonymous: bool = False,
 ) -> list[DocumentElement]:
-    """Fetches all elements (tabs) in a document.
+    """Fetches all elements (tabs) in a document, with each one's microversion.
 
     Args:
         element_type: The type of element to get. If None, all elements are returned.
+        anonymous: Send the request without credentials, which works for public documents
+            and doesn't count against Onshape's API limits.
     """
     query: dict = {"withThumbnails": False}
     if element_type is not None:
@@ -20,13 +23,13 @@ def get_document_elements(
     return api.get(
         api_path("documents", instance_path, InstancePath, "elements"),
         query=query,
+        anonymous=anonymous,
     )
 
 
 def get_document_contents(api: Api, instance_path: InstancePath) -> DocumentContents:
     """Fetches every element (tab) in a document along with the document's folder structure.
 
-    No query parameters are passed: the elementType filter documented for this endpoint has been
-    seen to fail with 400 "Invalid JSON input".
+    Requires credentials, even for public documents.
     """
     return api.get(api_path("documents", instance_path, InstancePath, "contents"))

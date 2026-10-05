@@ -20,13 +20,11 @@ class RemoteStudio:
 
     Attributes:
         microversion_id: Changes whenever the studio changes in Onshape.
-        folders: The folders containing the studio, outermost first. Empty if unknown.
     """
 
     element_id: str
     name: str
     microversion_id: str
-    folders: tuple[str, ...] = ()
 
 
 def safe_file_name(name: str) -> str:
@@ -56,7 +54,11 @@ class Version:
 
 class Remote(Protocol):
     def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
-        """Lists the Feature Studios in a document, with their folders when available."""
+        """Lists the Feature Studios in a document, with their microversions (but not folders)."""
+        ...
+
+    def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
+        """Maps element ids to the folders containing them, outermost first."""
         ...
 
     def pull(self, instance: InstancePath, element_id: str) -> str: ...
@@ -85,39 +87,31 @@ class Remote(Protocol):
 class OnshapeRemote:
     def __init__(self, api: Api) -> None:
         self.api = api
-        self.contents_failed = False
+        self.anonymous_failed = False
 
     def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
-        # One call gives every tab's microversion and the folder structure. If it fails (it's
-        # been seen to return 400), fall back to the elements endpoint without folders; failed
-        # calls don't count against Onshape's API limits.
-        if not self.contents_failed:
+        # Listing a public document works without credentials, and anonymous calls don't count
+        # against Onshape's API limits; fall back to an authenticated call if it's private
+        elements = None
+        if not self.anonymous_failed:
             try:
-                contents = documents.get_document_contents(self.api, instance)
-            except ApiError as error:
-                self.contents_failed = True
-                print(
-                    f"Warning: couldn't read the document's folders, so newly pulled files go in the top level folder ({error})."
+                elements = documents.get_document_elements(
+                    self.api, instance, ElementType.FEATURE_STUDIO, anonymous=True
                 )
-            else:
-                folders = folder_paths(contents.get("folders"))
-                return [
-                    RemoteStudio(
-                        element["id"],
-                        element["name"],
-                        element["microversionId"],
-                        folders.get(element["id"], ()),
-                    )
-                    for element in contents["elements"]
-                    if element["elementType"] == ElementType.FEATURE_STUDIO
-                ]
-        elements = documents.get_document_elements(
-            self.api, instance, ElementType.FEATURE_STUDIO
-        )
+            except ApiError:
+                self.anonymous_failed = True
+        if elements is None:
+            elements = documents.get_document_elements(
+                self.api, instance, ElementType.FEATURE_STUDIO
+            )
         return [
             RemoteStudio(element["id"], element["name"], element["microversionId"])
             for element in elements
         ]
+
+    def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
+        contents = documents.get_document_contents(self.api, instance)
+        return folder_paths(contents.get("folders"))
 
     def pull(self, instance: InstancePath, element_id: str) -> str:
         path = ElementPath.from_path(instance, element_id)

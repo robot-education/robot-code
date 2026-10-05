@@ -24,7 +24,7 @@ def make_key_api(load_dotenv: bool = True) -> KeyApi:
     Constructs an instance of an ApiKey API using credentials read from a .env file.
 
     The variables API_ACCESS_KEY and API_SECRET_KEY are required.
-    The variables API_BASE_URL, API_VERSION, and API_LOGGING may also be set.
+    The variables API_BASE_URL and API_LOGGING may also be set.
     """
     if load_dotenv:
         env_utils.load_env()
@@ -63,6 +63,7 @@ class KeyApi(Api):
         query: dict | str = "",
         body: dict | str = "",
         headers: dict[str, str] = {},
+        anonymous: bool = False,
     ):
         query_str = query if isinstance(query, str) else parse.urlencode(query)
 
@@ -70,7 +71,12 @@ class KeyApi(Api):
 
         url = self._base_url + path + "?" + query_str
 
-        headers = make_headers(method, headers, url, self._access_key, self._secret_key)
+        if anonymous:
+            headers = {"Accept": "application/json", **headers}
+        else:
+            headers = make_headers(
+                method, headers, url, self._access_key, self._secret_key
+            )
 
         if self._logging:
             logging.info("request url: " + url)
