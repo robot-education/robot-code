@@ -11,7 +11,7 @@ import(path : "splineProfile/splineProfiles.gen.fs", version : "");
 export import(path : "core/linearStock.fs", version : "");
 
 /**
- * Whether a frame is a tube or channel someone sells (see frameTables.py), or custom.
+ * Whether a frame is one someone sells (see frameTables.py), or custom.
  */
 export enum FrameSource
 {
@@ -27,9 +27,9 @@ export predicate isCustomFrame(definition is map)
 }
 
 /**
- * A custom frame: a common size of tube with #10 clearance holes on a 1/2 in. grid, or any tube.
+ * A custom frame: a common size of tube or angle with #10 clearance holes on a 1/2 in. grid, or any tube.
  */
-export enum CustomTube
+export enum CustomProfile
 {
     annotation { "Name" : "2x2" }
     TWO_BY_TWO,
@@ -37,24 +37,27 @@ export enum CustomTube
     TWO_BY_ONE,
     annotation { "Name" : "1x1" }
     ONE_BY_ONE,
-    annotation { "Name" : "Custom" }
+    annotation { "Name" : "1x1 angle" }
+    ONE_BY_ONE_ANGLE,
+    annotation { "Name" : "Custom tube" }
     CUSTOM
 }
 
 export predicate isCustomTube(definition is map)
 {
     isCustomFrame(definition);
-    definition.customTube == CustomTube.CUSTOM;
+    definition.customProfile == CustomProfile.CUSTOM;
 }
 
 /**
- * The common sizes of custom tube: `width` by `height`, with `sideRows` rows of holes on the sides facing X and
- * `topRows` on those facing Y, `holeSpacing` apart.
+ * The common sizes of custom frame: tube (or `angle`) `width` by `height`, with `sideRows` rows of holes on the sides
+ * facing X and `topRows` on those facing Y, `holeSpacing` apart.
  */
-const CUSTOM_TUBES = {
-        (CustomTube.TWO_BY_TWO) : { "width" : 2 * inch, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3 },
-        (CustomTube.TWO_BY_ONE) : { "width" : 2 * inch, "height" : 1 * inch, "sideRows" : 1, "topRows" : 3 },
-        (CustomTube.ONE_BY_ONE) : { "width" : 1 * inch, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1 }
+const CUSTOM_PROFILES = {
+        (CustomProfile.TWO_BY_TWO) : { "width" : 2 * inch, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3 },
+        (CustomProfile.TWO_BY_ONE) : { "width" : 2 * inch, "height" : 1 * inch, "sideRows" : 1, "topRows" : 3 },
+        (CustomProfile.ONE_BY_ONE) : { "width" : 1 * inch, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1 },
+        (CustomProfile.ONE_BY_ONE_ANGLE) : { "width" : 1 * inch, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "angle" : true }
     };
 
 const CUSTOM_HOLE_SPACING = 0.5 * inch;
@@ -72,11 +75,11 @@ const TOP_HOLE_ROWS_BOUNDS = { (unitless) : [0, 3, 1e3] } as IntegerBoundSpec;
 const TIED_HOLE_COUNT_BOUNDS = { (unitless) : [1, 3, 1e3] } as IntegerBoundSpec;
 
 /**
- * Places tube and channel along edges, or extrudes it from a point, tagged as frames so the std frame features work
- * with it.
+ * Places tube, channel, angle, and extrusion along edges, or extrudes it from a point, tagged as frames so the std
+ * frame features work with it.
  */
 annotation { "Feature Type Name" : "Robot frame",
-        "Feature Type Description" : "Add tube and channel along edges, or extrude it from a point." ~ CREDIT,
+        "Feature Type Description" : "Add tube, channel, angle, and extrusion along edges, or extrude it from a point." ~ CREDIT,
         "Manipulator Change Function" : "robotFrameManipulatorChange",
         "Editing Logic Function" : "robotFrameEditLogic"
     }
@@ -92,8 +95,8 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
 
         if (isCustomFrame(definition))
         {
-            annotation { "Name" : "Tube", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
-            definition.customTube is CustomTube;
+            annotation { "Name" : "Profile", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
+            definition.customProfile is CustomProfile;
 
             if (isCustomTube(definition))
             {
@@ -171,7 +174,7 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
             });
     }, mergeMaps(STOCK_DEFAULTS, {
             "source" : FrameSource.COTS,
-            "customTube" : CustomTube.TWO_BY_ONE,
+            "customProfile" : CustomProfile.TWO_BY_ONE,
             "holeDiameter" : 0.196 * inch,
             "tiedHoleCount" : 3
         }));
@@ -196,12 +199,12 @@ function getFrame(definition is map) returns map
             "stock" : [],
             // e.g. 2x1 Tube (custom, 0.0625 in. wall)
             "partName" : roundToPrecision(tube.width / unit, 3) ~ "x" ~ roundToPrecision(tube.height / unit, 3) ~
-                " Tube (custom, " ~ lengthString(definition, definition.wallThickness) ~ " wall)",
+                ((tube.angle ?? false) ? " Angle" : " Tube") ~ " (custom, " ~ lengthString(definition, definition.wallThickness) ~ " wall)",
             "width" : tube.width,
             "height" : tube.height,
             "wallX" : definition.wallThickness,
             "wallY" : definition.wallThickness,
-            "open" : false,
+            "angle" : tube.angle ?? false,
             "holeDiameter" : tube.holeDiameter,
             "xRows" : gridRows(tube.sideRows, tube.holeSpacing),
             "yRows" : gridRows(tube.topRows, tube.holeSpacing),
@@ -211,7 +214,7 @@ function getFrame(definition is map) returns map
 }
 
 /**
- * The size and holes of a custom frame: one of `CUSTOM_TUBES`, or as set.
+ * The size and holes of a custom frame: one of `CUSTOM_PROFILES`, or as set.
  */
 function getCustomTube(definition is map) returns map
 {
@@ -226,7 +229,7 @@ function getCustomTube(definition is map) returns map
                 "holeDiameter" : definition.holeDiameter
             };
     }
-    return mergeMaps(CUSTOM_TUBES[definition.customTube], {
+    return mergeMaps(CUSTOM_PROFILES[definition.customProfile], {
                 "holeSpacing" : CUSTOM_HOLE_SPACING,
                 "holeDiameter" : CUSTOM_HOLE_DIAMETER
             });
@@ -302,7 +305,22 @@ function buildFrame(context is Context, id is Id, definition is map, frame is ma
 
     const profileId = id + "profile";
     const sketch = newSketchOnPlane(context, profileId, { "sketchPlane" : plane(location.origin, location.zAxis, location.xAxis) });
-    if (frame.open)
+    if (frame.profile != undefined)
+    {
+        skDataArray(sketch, "profile", { "sketchDataArray" : frame.profile });
+    }
+    else if (frame.angle ?? false)
+    {
+        // Its legs are the walls facing -X and -Y
+        skPolyline(sketch, "profile", {
+                    "points" : [
+                            vector(-halfWidth, -halfHeight), vector(halfWidth, -halfHeight), vector(halfWidth, -halfHeight + frame.wallY),
+                            vector(-halfWidth + frame.wallX, -halfHeight + frame.wallY), vector(-halfWidth + frame.wallX, halfHeight),
+                            vector(-halfWidth, halfHeight), vector(-halfWidth, -halfHeight)
+                        ]
+                });
+    }
+    else if (frame.open ?? false)
     {
         const innerX = halfWidth - frame.wallX;
         const innerY = -halfHeight + frame.wallY;
@@ -556,7 +574,7 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
     var changed = false;
-    for (var parameter in ["program", "source", "customTube", "frcFrame", "ftcFrame"])
+    for (var parameter in ["program", "source", "customProfile", "frcFrame", "ftcFrame"])
     {
         changed = changed || oldDefinition[parameter] != definition[parameter];
     }

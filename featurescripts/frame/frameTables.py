@@ -1,8 +1,10 @@
 """Tube and channel lookup tables for robotFrame. Run `uv run fs gen` after editing.
 
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
-`wallY` thick on its sides facing Y; `open` channels have no wall on +Y, and beams with a `bore` are solid around a
-round hole that diameter instead. `holeDiameter` is the diameter of its ordinary holes.
+`wallY` thick on its sides facing Y; `open` channels have no wall on +Y, `angle` has only the walls facing -X and
+-Y, and beams with a `bore` are solid around a round hole that diameter instead. Anything else (like T-slot
+extrusion) has a `profile`: a SketchDataArray of its cross section, centered on the origin. `holeDiameter` is the
+diameter of its ordinary holes.
 
 Its holes are rows along its length: `xRows` go through the walls facing X, and `yRows` through the walls facing Y. A
 row repeats a group of `shapes` every `pitch`, starting `start` from the end; each shape is `along` the tube and
@@ -15,8 +17,14 @@ far apart they are. `stock` lists the lengths each is sold in, shortest first (s
 """
 
 import math
+import pathlib
 
+from fs_cli.sketches import Point, Profile, Sketch, translated
+from fs_cli.step import StepFile
+from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
+
+VENDOR = pathlib.Path(__file__).parent / "vendor"
 
 # Placeholder appearances until vendor colors are picked: robotProperties.fs's WHITE and BLACK
 WHITE = "color(230 / 255, 230 / 255, 230 / 255)"
@@ -74,6 +82,8 @@ def tube(
     unit=inch,
     open: bool = False,
     bore: float | None = None,
+    angle: bool = False,
+    profile: str | None = None,
 ) -> Value:
     """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`."""
     return Value(
@@ -86,6 +96,8 @@ def tube(
             "wallY": unit(wall_y),
             "open": "true" if open else "false",
             **({"bore": unit(bore)} if bore is not None else {}),
+            **({"angle": "true"} if angle else {}),
+            **({"profile": profile} if profile is not None else {}),
             "holeDiameter": unit(hole_diameter),
             "xRows": array(x_rows),
             "yRows": array(y_rows),
@@ -103,12 +115,16 @@ def grid(face: float, pitch: float = 0.5, start: float = 0.5) -> list[str]:
     return [row(inch(start), inch(pitch), [shape(inch(k * pitch)) for k in range(-count, count + 1)])]
 
 
-def vendor(name: str, url: str, appearance: str, sizes: list[Value]) -> Value:
-    return Value(name, {"vendor": string(name), "url": string(url), "appearance": appearance}, Node("size", sizes))
+def vendor(name: str, url: str, appearance: str | None, sizes: list[Value]) -> Value:
+    """A vendor's frames, which all have `appearance`, unless it's None (as values closer to the root win)."""
+    values = {"vendor": string(name), "url": string(url)}
+    if appearance is not None:
+        values["appearance"] = appearance
+    return Value(name, values, Node("size", sizes))
 
 
-def size(name: str, variants: list[Value]) -> Value:
-    return Value(name, next=Node("variant", variants, display_name="Type"))
+def size(name: str, variants: list[Value], appearance: str | None = None) -> Value:
+    return Value(name, {"appearance": appearance} if appearance is not None else {}, Node("variant", variants, display_name="Type"))
 
 
 # FRC tube: #10 clearance holes 1/2 in. apart, starting 1/2 in. from the end; one row on a 1 in. face, three on a 2 in.
@@ -155,6 +171,28 @@ def wcp_tube(part_number: str, *args, **kwargs) -> Value:
     return frc_tube("WCP", *args, lengths=stock((inch(47), part_number, wcp(part_number))), **kwargs)
 
 
+WCP_BENT_WALL = 2.5 / 25.4
+
+
+def wcp_bent(part_number: str, name: str, kind: str, width: float, height: float, **kwargs) -> Value:
+    """WCP's angle and C-channel, with holes on its usual grid (see grid) on each face."""
+    return tube(
+        name,
+        f"{name} {kind} (WCP, 2.5 mm wall)",
+        width,
+        height,
+        WCP_BENT_WALL,
+        WCP_BENT_WALL,
+        0.196,
+        grid(height),
+        grid(width),
+        inch(0.5),
+        inch(0.5),
+        stock((inch(47), part_number, wcp(part_number))),
+        **kwargs,
+    )
+
+
 # https://wcproducts.com/products/punched-tubing (drawing: Web-Rectangle Punched Tubing.pdf); raw aluminum
 WCP = vendor(
     "WCP",
@@ -180,6 +218,22 @@ WCP = vendor(
             ],
         ),
         size("2x2", [wcp_tube("WCP-0926", "1/16 in. wall", 2, 2, 0.0625, 0.0625)]),
+        # Bent from 2.5 mm sheet; their bends are left sharp
+        # TODO: WCP's drawings, to check that their holes are on the usual grid, centered on each face
+        size(
+            "Angle",
+            [
+                wcp_bent("WCP-0929", "1x1", "Angle", 1, 1, angle=True),
+                wcp_bent("WCP-0930", "2x2", "Angle", 2, 2, angle=True),
+            ],
+        ),
+        size(
+            "C-Channel",
+            [
+                wcp_bent("WCP-0931", "1x1x1", "C-Channel", 1, 1, open=True),
+                wcp_bent("WCP-0932", "1x2x1", "C-Channel", 2, 1, open=True),
+            ],
+        ),
     ],
 )
 
@@ -215,12 +269,76 @@ def max_pattern_tube() -> Value:
     )
 
 
+def rev_angle() -> Value:
+    """REV's angle (drawing: REV-21-3207-DR.pdf): 5 mm holes every 1/2 in. on each leg, 1/2 in. from the outside of the
+    other, starting 1/2 in. from the end."""
+    holes = [row(inch(0.5), inch(0.5), [shape(inch(0.5 - 0.74 / 2))])]
+    return tube(
+        "0.74x0.74",
+        "0.74x0.74 Angle (REV)",
+        0.74,
+        0.74,
+        0.125,
+        0.125,
+        5 / 25.4,
+        holes,
+        holes,
+        inch(0.5),
+        inch(0.5),
+        stock((inch(47), "REV-21-3207", "https://www.revrobotics.com/rev-21-3207/")),
+        angle=True,
+    )
+
+
+REV_1IN_URL = "https://www.revrobotics.com/1in-extrusion/"
+REV_15MM_URL = "https://www.revrobotics.com/15mm-extrusions/"
+
+
+def extrusion(
+    name: str, description: str, width: float, height: float, profile: str, appearance: str, lengths: str, unit=inch
+) -> Value:
+    """T-slot extrusion, which has no holes: `profile` names its cross section (see PROFILES)."""
+    value = tube(
+        name,
+        description,
+        width,
+        height,
+        0,
+        0,
+        0.196 if unit is inch else 4,
+        [],
+        [],
+        unit(0.5 if unit is inch else 15),
+        unit(0.5 if unit is inch else 15),
+        lengths,
+        unit=unit,
+        profile=profile,
+    )
+    value.values["appearance"] = appearance
+    return value
+
+
+def step_profile(file: str, offset: Point = Point(0, 0)) -> Profile:
+    """The cross section of a vendor's extrusion, with its bores and pockets, from its STEP file."""
+    return Profile(translated(StepFile(VENDOR / file).profile(holes=True), offset))
+
+
+# T-slot extrusion's cross sections, centered on the origin
+PROFILES = [
+    Sketch("REV_1IN_EXTRUSION", step_profile("REV-21-1000.STEP")),
+    Sketch("REV_15MM_EXTRUSION", step_profile("REV-41-1017.STEP")),
+    # Modeled off center
+    Sketch("REV_15X30MM_EXTRUSION", step_profile("REV-41-1093.STEP", Point(7.5 / 25.4, 0))),
+]
+
+
 # https://www.revrobotics.com/MAXTube (drawings: REV-21-xxxx-DR.pdf); clear anodized
-# TODO: the 1 mm wall MAXTube profiles have #10 nut grooves, which these leave out; and MAX Pattern tube
+# TODO: the 1 mm wall MAXTube profiles have #10 nut grooves, which these leave out
 REV = vendor(
     "REV",
     "https://www.revrobotics.com/MAXTube",
-    WHITE,
+    # Each size's own, since the extrusion comes in two
+    None,
     [
         size(
             "1x1",
@@ -229,6 +347,7 @@ REV = vendor(
                 rev_tube("REV-21-3543", REV_1X1_URL, "Grid, 1/8 in. wall", 1, 1, 0.125, 0.125),
                 rev_tube("REV-21-2160", REV_1X1_URL, "Grid, 1 mm wall", 1, 1, 1 / 25.4, 1 / 25.4),
             ],
+            WHITE,
         ),
         size(
             "2x1",
@@ -241,6 +360,18 @@ REV = vendor(
                 # 1/8 in. on the 2 in. sides, 1 mm on the 1 in. sides
                 rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, 1 / 25.4, 0.125, y_holes=False),
                 max_pattern_tube(),
+            ],
+            WHITE,
+        ),
+        size("Angle", [rev_angle()], WHITE),
+        size(
+            "1 in. Extrusion",
+            [
+                # 4 ft (REV-21-1000's STEP file)
+                extrusion("Clear anodized", "1in Extrusion (REV, clear)", 1, 1, "REV_1IN_EXTRUSION", WHITE,
+                          stock((inch(48), "REV-21-1000", REV_1IN_URL))),
+                extrusion("Black anodized", "1in Extrusion (REV, black)", 1, 1, "REV_1IN_EXTRUSION", BLACK,
+                          stock((inch(48), "REV-21-1404", REV_1IN_URL))),
             ],
         ),
     ],
@@ -521,7 +652,40 @@ ROBITS = vendor(
     ],
 )
 
+# https://www.revrobotics.com/15mm-extrusions/ (STEP files on the product page)
+REV_FTC = vendor(
+    "REV",
+    REV_15MM_URL,
+    # Each extrusion's own
+    None,
+    [
+        size(
+            "15mm Extrusion",
+            [
+                extrusion("Clear anodized", "15mm Extrusion (REV, clear)", 15, 15, "REV_15MM_EXTRUSION", WHITE,
+                          stock((mm(120), "REV-41-1568-PK2", REV_15MM_URL), (mm(225), "REV-41-1431-PK2", REV_15MM_URL),
+                                (mm(420), "REV-41-1432-PK4", REV_15MM_URL), (mm(1000), "REV-41-1017", REV_15MM_URL)),
+                          unit=mm),
+                extrusion("Black anodized", "15mm Extrusion (REV, black)", 15, 15, "REV_15MM_EXTRUSION", BLACK,
+                          stock((mm(1000), "REV-41-1569", REV_15MM_URL)), unit=mm),
+            ],
+        ),
+        size(
+            "15x30mm Extrusion",
+            [
+                extrusion("Clear anodized", "15x30mm Extrusion (REV, clear)", 30, 15, "REV_15X30MM_EXTRUSION", WHITE,
+                          stock((mm(420), "REV-41-1587-PK4", REV_15MM_URL), (mm(1000), "REV-41-1093", REV_15MM_URL)),
+                          unit=mm),
+                extrusion("Black anodized", "15x30mm Extrusion (REV, black)", 30, 15, "REV_15X30MM_EXTRUSION", BLACK,
+                          stock((mm(1000), "REV-41-1586", REV_15MM_URL)), unit=mm),
+            ],
+        ),
+    ],
+)
+
 CONTENTS = [
+    Import("core/sketchData.fs"),
+    *PROFILES,
     Table("frcFrameTable", Node("vendor", [WCP, REV, ANDYMARK, TTB, SWYFT])),
-    Table("ftcFrameTable", Node("vendor", [GOBILDA, ROBITS])),
+    Table("ftcFrameTable", Node("vendor", [GOBILDA, REV_FTC, ROBITS])),
 ]

@@ -67,6 +67,9 @@ class Line:
     def rotated(self, degrees: float) -> Line:
         return Line(self.start.rotated(degrees), self.end.rotated(degrees))
 
+    def translated(self, offset: Point) -> Line:
+        return Line(self.start + offset, self.end + offset)
+
     def render(self) -> str:
         return (
             f'{{ "operation" : SketchOperation.LINE, "start" : {self.start.render()}, '
@@ -106,6 +109,9 @@ class Arc:
     def rotated(self, degrees: float) -> Arc:
         return Arc(*(point.rotated(degrees) for point in (self.start, self.mid, self.end)))
 
+    def translated(self, offset: Point) -> Arc:
+        return Arc(self.start + offset, self.mid + offset, self.end + offset)
+
     def render(self) -> str:
         return (
             f'{{ "operation" : SketchOperation.ARC, "start" : {self.start.render()}, '
@@ -120,6 +126,9 @@ class Circle:
 
     def rotated(self, degrees: float) -> Circle:
         return Circle(self.center.rotated(degrees), self.radius)
+
+    def translated(self, offset: Point) -> Circle:
+        return Circle(self.center + offset, self.radius)
 
     def render(self) -> str:
         return (
@@ -145,6 +154,9 @@ class FitSpline:
     def rotated(self, degrees: float) -> FitSpline:
         return FitSpline(tuple(point.rotated(degrees) for point in self.points))
 
+    def translated(self, offset: Point) -> FitSpline:
+        return FitSpline(tuple(point + offset for point in self.points))
+
     def render(self) -> str:
         points = ", ".join(point.render() for point in self.points)
         return f'{{ "operation" : SketchOperation.SPLINE, "points" : [{points}] }}'
@@ -155,6 +167,10 @@ Entity = Line | Arc | Circle | FitSpline
 
 def rotated(entities: Sequence[Entity], degrees: float) -> list[Entity]:
     return [entity.rotated(degrees) for entity in entities]
+
+
+def translated(entities: Sequence[Entity], offset: Point) -> list[Entity]:
+    return [entity.translated(offset) for entity in entities]
 
 
 @dataclasses.dataclass

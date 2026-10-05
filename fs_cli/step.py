@@ -169,13 +169,14 @@ class StepFile:
 
     # Profiles
 
-    def profile(self, z: float | None = None, tolerance: float = 2e-4) -> list[Entity]:
+    def profile(self, z: float | None = None, tolerance: float = 2e-4, holes: bool = False) -> list[Entity]:
         """The outer loop of a planar face perpendicular to Z, as sketch entities in inches.
 
         Args:
             z: The face's height (in inches); defaults to the highest such face.
             tolerance: How far (in inches) a FitSpline may stray from the B-spline it replaces,
                 as estimated by fitting a cubic spline through the points sampled.
+            holes: Also include its inner loops (e.g. an extrusion's center bore), after the outer one.
         """
         faces = []
         for id, instances in self.entities.items():
@@ -195,7 +196,14 @@ class StepFile:
         if not faces:
             raise StepError(f"No planar face perpendicular to Z{'' if z is None else f' at z = {z}'}.")
         _, id, face = max(faces, key=lambda face: face[0])
-        return [self._edge(ref, tolerance) for ref in self._outer_loop(id, face).args[1]]
+        outer = self._outer_loop(id, face)
+        loops = [outer]
+        if holes:
+            for bound in face.args[1]:
+                loop = self.get(self.get(bound).args[1], "EDGE_LOOP")
+                if loop is not outer:
+                    loops.append(loop)
+        return [self._edge(ref, tolerance) for loop in loops for ref in loop.args[1]]
 
     def _outer_loop(self, id: int, face: Instance) -> Instance:
         """A face's outer loop: its FACE_OUTER_BOUND, or (as some exporters only write FACE_BOUNDs)

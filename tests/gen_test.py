@@ -164,8 +164,15 @@ def test_imports(tmp_path):
     [result] = generate(tmp_path, "2960", {})
     assert not result.changed
 
+    # Studios which aren't synced are imported by path, which `fs push` resolves
     result.output.unlink()
-    with pytest.raises(GenerateError, match="imports core/sketchData.fs, which isn't in Onshape"):
+    (tmp_path / "core").mkdir()
+    (tmp_path / "core" / "sketchData.fs").write_text("")
+    (tmp_path / "core" / "a.fs").write_text("")
+    [result] = generate(tmp_path, "2960", {})
+    assert result.code.splitlines()[2] == 'import(path : "core/sketchData.fs", version : ""); // core/sketchData.fs'
+    (tmp_path / "core" / "a.fs").unlink()
+    with pytest.raises(GenerateError, match="imports core/a.fs, which doesn't exist"):
         generate(tmp_path, "2960", {})
 
 

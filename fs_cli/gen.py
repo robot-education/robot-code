@@ -41,7 +41,8 @@ class Item(Protocol):
 class Import:
     """An import of another Feature Studio in the code folder, e.g. Import("core/sketchData.fs").
 
-    The studio must be in Onshape already, since imports are by element id.
+    Studios are imported by element id. One which isn't synced on this machine (or in Onshape yet) is imported by
+    its path instead, which `fs push` resolves.
     """
 
     path: str
@@ -145,11 +146,17 @@ def _resolver(
             return synced[path]
         if path in previous:
             return previous[path]
-        raise GenerateError(
-            f"{source.name} imports {path}, which isn't in Onshape (or hasn't been synced); push or pull it first."
-        )
+        if not (source.parent / path).is_file() and not _code_dir_has(source, path):
+            raise GenerateError(f"{source.name} imports {path}, which doesn't exist.")
+        # By path, which `fs push` resolves
+        return path, ""
 
     return resolve
+
+
+def _code_dir_has(source: pathlib.Path, path: str) -> bool:
+    """Whether a folder containing source (e.g. the code folder) has the file at path."""
+    return any((folder / path).is_file() for folder in source.parents)
 
 
 def _version(code: str) -> str | None:
