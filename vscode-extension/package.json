@@ -199,5 +199,9 @@
     "vscode-oniguruma": "^2.0.1",
     "vscode-textmate": "^9.2.0",
     "yaml": "^2.8.0"
+  },
+  "allowScripts": {
+    "@vscode/vsce-sign@2.1.0": true,
+    "esbuild@0.28.2": true
   }
 }
