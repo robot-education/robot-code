@@ -20,7 +20,7 @@ export predicate pointManipulatorPredicate(definition is map)
 }
 
 /**
- * The index of the center point of a nine point manipulator. @seealso [ninePoints]
+ * The index of the center point of a nine point manipulator. @seealso [ninePointOffsets]
  */
 export const NINE_POINT_CENTER_INDEX = 4;
 
@@ -37,23 +37,19 @@ export predicate ninePointManipulatorPredicate(definition is map)
 }
 
 /**
- * The points of a nine point manipulator, as in the std Frame feature: the corners, edge midpoints, and center of
- * `boundingBox` in X and Y, at its minimum Z. They're ordered:
+ * The points of a nine point manipulator relative to the center of a `width` by `height` rectangle in the XY plane,
+ * as in the std Frame feature: its corners, edge midpoints, and center. They're ordered:
  * ```
  * 8 7 6
  * 5 4 3
  * 2 1 0
  * ```
  */
-export function ninePoints(boundingBox is Box3d) returns array
+export function ninePointOffsets(width is ValueWithUnits, height is ValueWithUnits) returns array
 {
-    const center = box3dCenter(boundingBox);
-    const halfExtents = (boundingBox.maxCorner - boundingBox.minCorner) / 2;
     return mapArray(range(0, 8), function(i)
         {
-            return vector(center[0] + (1 - i % 3) * halfExtents[0],
-                center[1] + (floor(i / 3) - 1) * halfExtents[1],
-                boundingBox.minCorner[2]);
+            return vector((1 - i % 3) * width / 2, (floor(i / 3) - 1) * height / 2, 0 * meter);
         });
 }
 
