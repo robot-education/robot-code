@@ -182,6 +182,19 @@ class LineMap:
         text = self.source[start:offset]
         return line, len(text.encode("utf-16-le")) // 2
 
+    def offset(self, line: int, character: int) -> int:
+        """The inverse of position."""
+        line = min(max(line, 0), len(self.line_starts) - 1)
+        start = self.line_starts[line]
+        if self.ascii:
+            return min(start + character, len(self.source))
+        units = 0
+        offset = start
+        while offset < len(self.source) and units < character:
+            units += 2 if ord(self.source[offset]) > 0xFFFF else 1
+            offset += 1
+        return offset
+
 
 class ScanResult:
     """

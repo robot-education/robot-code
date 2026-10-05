@@ -33,7 +33,7 @@ def hover_markdown(
 
     local = index.declaration_for_token(token)
     if local:
-        return _local_markdown(parsed, local), token
+        return declaration_markdown(parsed, local), token
 
     symbol = _stdlib_symbol(parsed, index, token)
     if symbol:
@@ -45,7 +45,7 @@ def _code_block(code: str) -> str:
     return f"```featurescript\n{code}\n```"
 
 
-def _local_markdown(parsed: ParsedProgram, declaration: Declaration) -> str:
+def declaration_markdown(parsed: ParsedProgram, declaration: Declaration) -> str:
     lines = parsed.source.split("\n")
     sections = [
         f"**FeatureScript {KIND_LABELS.get(declaration.kind, declaration.kind)}**",

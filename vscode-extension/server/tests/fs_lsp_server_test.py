@@ -161,3 +161,55 @@ def test_document_symbols(client):
         "textDocument/documentSymbol", {"textDocument": {"uri": URI}}
     )
     assert {"MyOption", "helper", "a"} <= {s["name"] for s in symbols}
+
+
+def test_cross_file_navigation(tmp_path):
+    """Definitions, hovers, and diagnostics across files in a repo with an fs config."""
+    utils_id = "a" * 24
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+    )
+    code_dir = tmp_path / "featurescripts"
+    code_dir.mkdir()
+    (code_dir / "utils.fs").write_text(
+        "FeatureScript 2909;\n/** Doubles. */\nexport function double(x is number) { return x * 2; }\n"
+    )
+    feature_source = (
+        f'FeatureScript 2909;\nimport(path : "{utils_id}", version : "v");\n'
+        "export const a = double(1) + missing;\n"
+    )
+    (code_dir / "feature.fs").write_text(feature_source)
+    (tmp_path / ".fs-state.json").write_text(
+        json.dumps(
+            {
+                "version": 3,
+                "studios": {utils_id: {"file": "utils.fs", "hash": "", "microversion_id": ""}},
+            }
+        )
+    )
+    uri = (code_dir / "feature.fs").as_uri()
+    client = Client()
+    try:
+        client.request("initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}})
+        client.notify("initialized", {})
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": feature_source}},
+        )
+        message = client.wait_for(lambda m: m.get("method") == "textDocument/publishDiagnostics")
+        assert [d["code"] for d in message["params"]["diagnostics"]] == ["undefined"]
+
+        at = {"textDocument": {"uri": uri}, "position": {"line": 2, "character": 18}}
+        [link] = client.request("textDocument/definition", at)
+        assert link["targetUri"].endswith("/utils.fs")
+        assert link["targetRange"]["start"] == {"line": 2, "character": 16}
+        hover = client.request("textDocument/hover", at)["contents"]["value"]
+        assert "Doubles." in hover and "utils.fs" in hover
+
+        import_at = {"textDocument": {"uri": uri}, "position": {"line": 1, "character": 16}}
+        assert "utils.fs" in client.request("textDocument/hover", import_at)["contents"]["value"]
+
+        symbols = client.request("workspace/symbol", {"query": "doub"})
+        assert [symbol["name"] for symbol in symbols] == ["double"]
+    finally:
+        client.close()

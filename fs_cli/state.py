@@ -33,6 +33,30 @@ def apply_import_versions(code: str, versions: dict[str, str]) -> str:
     )
 
 
+# An import of another studio by its path in the code folder, e.g.
+# `import(path : "core/utils.fs", version : "");`, which `fs push` resolves to an element id
+_PATH_IMPORT = re.compile(
+    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.fs)("\s*,\s*version\s*:\s*")([^"]*)(")'
+)
+
+
+def path_imports(code: str) -> list[str]:
+    """The code folder paths imported by path, which `fs push` resolves to element ids."""
+    return [match[2] for match in _PATH_IMPORT.finditer(code)]
+
+
+def resolve_path_imports(code: str, targets: dict[str, tuple[str, str]]) -> str:
+    """Replaces imports by path with imports by element id.
+
+    Args:
+        targets: The (element id, version) of each imported path.
+    """
+    return _PATH_IMPORT.sub(
+        lambda match: match[1] + targets[match[2]][0] + match[3] + targets[match[2]][1] + match[5],
+        code,
+    )
+
+
 def content_hash(code: str) -> str:
     """Hashes Feature Studio contents for comparison.
 

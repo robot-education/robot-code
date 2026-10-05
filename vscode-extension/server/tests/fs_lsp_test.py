@@ -547,3 +547,10 @@ def test_std_library_parses_cleanly():
     for path in files:
         parsed = parse(path.read_text())
         assert [d.message for d in diagnostics(parsed)] == [], path.name
+
+
+def test_stray_closing_braces_terminate():
+    from fs_lsp.parser import parse
+
+    parsed = parse("enum A { B }\n    C,\n}\n}\nconst d = 1;\n")
+    assert any(node.type == "TopLevelConst" and node.name == "d" for node in parsed.nodes)

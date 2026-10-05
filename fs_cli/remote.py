@@ -7,7 +7,7 @@ import pathlib
 from typing import Protocol
 
 from onshape_api.api.api_base import Api
-from onshape_api.endpoints import documents, feature_studios, versions
+from onshape_api.endpoints import documents, elements, feature_studios, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.paths import ElementPath, InstancePath
@@ -69,6 +69,10 @@ class Remote(Protocol):
         """Creates a Feature Studio at the top level of the document."""
         ...
 
+    def delete(self, instance: InstancePath, element_id: str) -> None:
+        """Deletes a Feature Studio's tab."""
+        ...
+
     def feature_names(self, instance: InstancePath, element_id: str) -> list[str]:
         """Returns the names of the custom features defined in a Feature Studio."""
         ...
@@ -110,6 +114,9 @@ class OnshapeRemote:
         ]
 
     def studio_folders(self, instance: InstancePath) -> dict[str, tuple[str, ...]]:
+        # As of Onshape 1.221 (Oct 2026) the contents endpoint returns 400 "Invalid JSON input."
+        # for every document, regardless of auth, API version or query; callers fall back to
+        # the top level folder until Onshape fixes it
         contents = documents.get_document_contents(self.api, instance)
         return folder_paths(contents.get("folders"))
 
@@ -126,6 +133,9 @@ class OnshapeRemote:
         return RemoteStudio(
             response["id"], response["name"], response["microversionId"]
         )
+
+    def delete(self, instance: InstancePath, element_id: str) -> None:
+        elements.delete_element(self.api, ElementPath.from_path(instance, element_id))
 
     def feature_names(self, instance: InstancePath, element_id: str) -> list[str]:
         path = ElementPath.from_path(instance, element_id)

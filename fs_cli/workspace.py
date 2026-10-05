@@ -35,6 +35,8 @@ from fs_cli.state import (
     apply_import_versions,
     content_hash,
     import_versions,
+    path_imports,
+    resolve_path_imports,
 )
 
 MAX_WORKERS = 8
@@ -48,6 +50,7 @@ class Status(enum.Enum):
     REMOTE_ONLY = "only in Onshape"
     CONFLICT = "changed locally and in Onshape"
     DELETED_LOCALLY = "deleted locally"
+    DELETE_CONFLICT = "deleted locally, changed in Onshape"
     DELETED_IN_ONSHAPE = "deleted in Onshape"
 
 
@@ -57,7 +60,8 @@ HINTS = {
     Status.REMOTE_CHANGES: "fs pull",
     Status.REMOTE_ONLY: "fs pull",
     Status.CONFLICT: "fs diff, then fs pull --force or fs push --force",
-    Status.DELETED_LOCALLY: "delete the tab in Onshape, or fs pull --force to restore it",
+    Status.DELETED_LOCALLY: "fs push deletes the tab, or fs pull --force restores it",
+    Status.DELETE_CONFLICT: "fs push --force deletes the tab, or fs pull --force restores it",
     Status.DELETED_IN_ONSHAPE: "fs push recreates it, or delete the file",
 }
 
@@ -276,7 +280,14 @@ class Workspace:
                 else Status.LOCAL_ONLY
             )
         if local is None:
-            return Status.DELETED_LOCALLY if saved else Status.REMOTE_ONLY
+            if not saved:
+                return Status.REMOTE_ONLY
+            if (
+                saved.microversion_id != remote.microversion_id
+                and content_hash(self.fetch(studio)) != saved.hash
+            ):
+                return Status.DELETE_CONFLICT
+            return Status.DELETED_LOCALLY
 
         local_hash = content_hash(local)
         if saved and saved.microversion_id == remote.microversion_id:
@@ -345,24 +356,56 @@ class Workspace:
             updated.append(studio)
         return updated
 
+    def path_import_problems(self, studios: list[Studio]) -> list[str]:
+        """Checks that the imports by path in studios (about to be pushed) can be resolved.
+
+        A path must be a file in the code folder which is in Onshape, or is being pushed too.
+        Makes no API calls.
+        """
+        synced = {entry.file for entry in self.state.studios.values()}
+        pushing = {studio.path for studio in studios}
+        problems = []
+        for studio in studios:
+            for path in path_imports(studio.local_code or ""):
+                if not (self.config.code_dir / path).is_file():
+                    problems.append(f"{studio.path} imports {path}, which doesn't exist.")
+                elif path not in synced and path not in pushing:
+                    problems.append(
+                        f"{studio.path} imports {path}, which isn't in Onshape yet; push it too."
+                    )
+        return problems
+
     def push_studios(self, studios: list[Studio]) -> None:
         """Pushes studios to Onshape, creating any which don't exist yet.
 
         New studios are created at the top level of the document, since the API can't place
-        them in folders.
+        them in folders. Imports by path (see path_import_problems) are then replaced with
+        imports by element id, in the local files too.
         """
 
+        def create(studio: Studio) -> None:
+            studio.remote = self.remote.create(self.instance, studio.name)
+
+        with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
+            list(executor.map(create, [s for s in studios if s.remote is None]))
+
+        targets = {
+            entry.file: (element_id, entry.microversion_id)
+            for element_id, entry in self.state.studios.items()
+        }
+        for studio in studios:
+            assert studio.remote
+            targets[studio.path] = (studio.remote.element_id, studio.remote.microversion_id)
+
         def push(studio: Studio) -> None:
-            assert studio.local_code is not None
-            code = studio.local_code
+            assert studio.local_code is not None and studio.remote
+            code = resolve_path_imports(studio.local_code, targets)
             if studio.remote_code is not None:
                 # Never push import versions older than the ones Onshape has
                 code = apply_import_versions(code, import_versions(studio.remote_code))
-                if code != studio.local_code:
-                    studio.file.write_text(code, newline="")
-                    studio.local_code = code
-            if studio.remote is None:
-                studio.remote = self.remote.create(self.instance, studio.name)
+            if code != studio.local_code:
+                studio.file.write_text(code, newline="")
+                studio.local_code = code
             self.remote.push(self.instance, studio.remote.element_id, code)
 
         with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
@@ -378,6 +421,32 @@ class Workspace:
             assert studio.remote and studio.local_code is not None
             studio.remote = current.get(studio.remote.element_id, studio.remote)
             self._record(studio, studio.local_code, studio.remote.microversion_id)
+
+    def delete_studios(self, studios: list[Studio]) -> None:
+        """Deletes the tabs of studios whose files were deleted locally."""
+
+        def delete(studio: Studio) -> None:
+            assert studio.remote
+            self.remote.delete(self.instance, studio.remote.element_id)
+
+        with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
+            list(executor.map(delete, studios))
+        for studio in studios:
+            assert studio.remote
+            self.state.studios.pop(studio.remote.element_id, None)
+
+    def importers(self, element_id: str) -> list[str]:
+        """Returns the local files (relative to the code folder) which import a tab. Makes no API calls."""
+        pattern = re.compile(
+            rf'^\s*(export\s+)?import\s*\(\s*path\s*:\s*"{re.escape(element_id)}"',
+            re.MULTILINE,
+        )
+        code_dir = self.config.code_dir
+        return sorted(
+            path.relative_to(code_dir).as_posix()
+            for path in code_dir.rglob("*.fs")
+            if path.is_file() and pattern.search(_read(path) or "")
+        )
 
     def pull_studios(self, studios: list[Studio]) -> None:
         """Writes the Onshape contents of studios to their local files."""

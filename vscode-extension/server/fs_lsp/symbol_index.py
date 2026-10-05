@@ -138,6 +138,12 @@ class SymbolIndex:
             if hint.type in ("mapKey", "annotationKey")
         }
         self._enclosing: dict[frozenset[str], EnclosingNodes] = {}
+        # The end of each local `const`/`var` statement, by the offset of its keyword
+        self._statement_ends = {
+            node.start: node.end
+            for node in parsed.nodes
+            if node.type == "Block" and node.name
+        }
         self._file_scoped: dict[str, list[AstNode]] = {}
         for node in parsed.nodes:
             if node.type in FILE_SCOPED_NODE_TYPES and node.name:
@@ -356,10 +362,15 @@ class SymbolIndex:
         if self._is_file_scoped(token, kind):
             return parsed.start, parsed.end, parsed.start
         node = self.enclosing(token, LOCAL_SCOPE_NODE_TYPES)
+        visible_from = token.offset
+        keyword = self.previous_token(token)
+        if kind == "variable" and keyword is not None and keyword.value in ("const", "var"):
+            # A variable isn't visible in its own initializer: `const f = f(x);` calls the function f
+            visible_from = self._statement_ends.get(keyword.offset, visible_from)
         return (
             node.start if node else token.offset,
             node.end if node else parsed.end,
-            token.offset,
+            visible_from,
         )
 
     def _is_file_scoped(self, token: Token, kind: IndexedKind) -> bool:

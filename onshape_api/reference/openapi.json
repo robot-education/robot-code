@@ -338,6 +338,66 @@
         "x-BTVisibility": "PRODUCTION"
       }
     },
+    "/elements/d/{did}/w/{wid}/e/{eid}": {
+      "delete": {
+        "tags": [
+          "Element"
+        ],
+        "summary": "Delete an element from a document.",
+        "description": "Attempting to delete the last element in a document will result in an error.",
+        "operationId": "deleteElement",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Delete"
+            ],
+            "BasicAuth": [
+              "OAuth2Delete"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
     "/featurestudios/d/{did}/w/{wid}": {
       "post": {
         "tags": [

@@ -8,15 +8,18 @@ The repo is the source of truth, so `fs` (or `fs push`) is the everyday command.
 from __future__ import annotations
 
 import argparse
+import collections
 import difflib
 import os
+import pathlib
 import sys
 
-from fs_cli.config import ConfigError, load_config
+from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release import plan_release, run_release, unsynced_versions
 from fs_cli.remote import OnshapeRemote, Remote
 from fs_cli.state import State
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
+from fs_cli.gen import GenerateError, generate
 from fs_cli.versions import VersionType
 from fs_cli.workspace import (
     HINTS,
@@ -30,10 +33,12 @@ from fs_cli.workspace import (
     select,
     update_std_version,
 )
+from fs_lsp.project import Module, Project
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.paths import path_to_url
 
 CONFLICT = "changed both locally and in Onshape; see `fs diff`, then `fs pull --force` or `fs push --force`"
+DELETE_CONFLICT = "was deleted locally but changed in Onshape; `fs push --force` deletes the tab, or `fs pull --force` restores the file"
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -65,11 +70,23 @@ def make_parser() -> argparse.ArgumentParser:
             help="show what would happen without changing anything",
         )
 
-    push = command("push", "push local changes to Onshape (the default command)")
+    def yes_to_deletes(subparser: argparse.ArgumentParser) -> None:
+        subparser.add_argument(
+            "-y",
+            "--yes",
+            action="store_true",
+            help="don't ask to confirm deleting tabs whose files were deleted",
+        )
+
+    push = command(
+        "push",
+        "push local changes to Onshape, deleting the tabs of deleted files (the default command)",
+    )
     push.add_argument(
         "-f", "--force", action="store_true", help="overwrite changes made in Onshape"
     )
     dry_run(push)
+    yes_to_deletes(push)
 
     pull = command("pull", "pull changes made in Onshape into the repo")
     pull.add_argument(
@@ -77,11 +94,11 @@ def make_parser() -> argparse.ArgumentParser:
     )
     dry_run(pull)
 
-    dry_run(
-        command(
-            "sync", "push local changes and pull Onshape changes, skipping conflicts"
-        )
+    sync = command(
+        "sync", "push local changes and pull Onshape changes, skipping conflicts"
     )
+    dry_run(sync)
+    yes_to_deletes(sync)
 
     command("status", "show how the repo differs from Onshape").add_argument(
         "-a", "--all", action="store_true", help="also list studios which are in sync"
@@ -114,6 +131,37 @@ def make_parser() -> argparse.ArgumentParser:
         "-y", "--yes", action="store_true", help="don't ask to confirm API usage"
     )
     dry_run(pull_std)
+
+    command(
+        "check",
+        "check FeatureScripts for syntax errors, undefined names, and unused or unknown imports (no API calls)",
+    )
+    command(
+        "deps",
+        "show what FeatureScripts import, and what imports them (no API calls)",
+    )
+    unused = command(
+        "unused",
+        "list exported functions, constants, etc. which nothing uses, or only their own file does (no API calls)",
+    )
+    unused.add_argument(
+        "--local",
+        action="store_true",
+        help="also list exports only used in their own file (which needn't be exported)",
+    )
+    refs = command(
+        "refs",
+        "find where a function, constant, enum, etc. is defined and used (no API calls)",
+        targets=False,
+    )
+    refs.add_argument("name", help="the name to look up, e.g. cleanup")
+
+    gen_command = command(
+        "gen",
+        "regenerate the .gen.fs files (lookup tables, sketch profiles) from their Python definitions (no API calls)",
+        targets=False,
+    )
+    dry_run(gen_command)
 
     release = command(
         "release", "release a FeatureScript to the frontend document", targets=False
@@ -170,7 +218,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     index = 0
     while index < len(argv) and argv[index] in ("-l", "--log"):
         index += 1
-    if index == len(argv) or argv[index] not in (*COMMANDS, "-h", "--help"):
+    if index == len(argv) or argv[index] not in (
+        *COMMANDS,
+        *OFFLINE_COMMANDS,
+        "-h",
+        "--help",
+    ):
         argv.insert(index, "push")
     return make_parser().parse_args(argv)
 
@@ -179,6 +232,8 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
     args = parse_args(argv)
     try:
         config = load_config()
+        if args.command in OFFLINE_COMMANDS:
+            return OFFLINE_COMMANDS[args.command](config, args)
         if remote is None:
             remote = _onshape_remote(args.log)
         state = State.load(config.state_path)
@@ -186,7 +241,7 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
             return COMMANDS[args.command](Workspace(config, state, remote), args)
         finally:
             state.save()
-    except (ConfigError, UsageError) as error:
+    except (ConfigError, UsageError, GenerateError) as error:
         print(f"fs: {error}", file=sys.stderr)
         return 2
     except ApiError as error:
@@ -214,12 +269,17 @@ def _onshape_remote(log: bool) -> OnshapeRemote:
 
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
     studios = workspace.scan(workspace.resolve_targets(args.targets))
-    overwritable = (Status.REMOTE_CHANGES, Status.CONFLICT) if args.force else ()
+    overwritable = (
+        (Status.REMOTE_CHANGES, Status.CONFLICT, Status.DELETE_CONFLICT)
+        if args.force
+        else ()
+    )
     skipped = report_skipped(
         studios,
         {
             Status.REMOTE_CHANGES: "changed in Onshape since it was last synced; run `fs pull`, or `fs push --force` to overwrite",
             Status.CONFLICT: CONFLICT,
+            Status.DELETE_CONFLICT: DELETE_CONFLICT,
         },
         skip=overwritable,
     )
@@ -228,22 +288,33 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         Status.REMOTE_ONLY,
         "only exists in Onshape; run `fs pull` to add it to the repo",
     )
-    note(
-        studios,
-        Status.DELETED_LOCALLY,
-        "was deleted locally but not in Onshape; delete the tab in Onshape, or run `fs pull --force` to restore it",
+    to_push = select(studios, *PUSHABLE, *overwritable)
+    check_path_imports(workspace, [s for s in to_push if s.local_code is not None])
+    to_delete, not_deleted = plan_deletes(
+        workspace,
+        [studio for studio in to_push if studio.local_code is None]
+        + select(studios, Status.DELETED_LOCALLY),
+        args.dry_run,
+        args.yes,
     )
+    to_push = [studio for studio in to_push if studio.local_code is not None]
     apply_import_updates(workspace, studios, args.dry_run)
-    return (
-        do_push(workspace, select(studios, *PUSHABLE, *overwritable), args.dry_run)
-        or skipped
+    pushed = (
+        do_push(workspace, to_push, args.dry_run) if to_push or not to_delete else 0
     )
+    do_delete(workspace, to_delete, args.dry_run)
+    return pushed or not_deleted or skipped
 
 
 def pull(workspace: Workspace, args: argparse.Namespace) -> int:
     studios = workspace.scan(workspace.resolve_targets(args.targets))
     overwritable = (
-        (Status.LOCAL_CHANGES, Status.CONFLICT, Status.DELETED_LOCALLY)
+        (
+            Status.LOCAL_CHANGES,
+            Status.CONFLICT,
+            Status.DELETED_LOCALLY,
+            Status.DELETE_CONFLICT,
+        )
         if args.force
         else ()
     )
@@ -252,9 +323,16 @@ def pull(workspace: Workspace, args: argparse.Namespace) -> int:
         {
             Status.LOCAL_CHANGES: "has local changes which haven't been pushed; run `fs push`, or `fs pull --force` to discard them",
             Status.CONFLICT: CONFLICT,
+            Status.DELETE_CONFLICT: DELETE_CONFLICT,
         },
         skip=overwritable,
     )
+    if not args.force:
+        note(
+            studios,
+            Status.DELETED_LOCALLY,
+            "was deleted locally; run `fs push` to delete the tab, or `fs pull --force` to restore it",
+        )
     note(
         studios,
         Status.LOCAL_ONLY,
@@ -272,16 +350,19 @@ def pull(workspace: Workspace, args: argparse.Namespace) -> int:
 
 def sync(workspace: Workspace, args: argparse.Namespace) -> int:
     studios = workspace.scan(workspace.resolve_targets(args.targets))
-    skipped = report_skipped(studios, {Status.CONFLICT: CONFLICT})
-    note(
+    skipped = report_skipped(
         studios,
-        Status.DELETED_LOCALLY,
-        "was deleted locally but not in Onshape; delete the tab in Onshape, or run `fs pull --force` to restore it",
+        {Status.CONFLICT: CONFLICT, Status.DELETE_CONFLICT: DELETE_CONFLICT},
+    )
+    check_path_imports(workspace, select(studios, *PUSHABLE))
+    to_delete, not_deleted = plan_deletes(
+        workspace, select(studios, Status.DELETED_LOCALLY), args.dry_run, args.yes
     )
     apply_import_updates(workspace, studios, args.dry_run)
     pulled = do_pull(workspace, select(studios, *PULLABLE), args.dry_run)
     pushed = do_push(workspace, select(studios, *PUSHABLE), args.dry_run)
-    return pulled or pushed or skipped
+    do_delete(workspace, to_delete, args.dry_run)
+    return pulled or pushed or not_deleted or skipped
 
 
 def status(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -346,7 +427,7 @@ def update_std(workspace: Workspace, args: argparse.Namespace) -> int:
         # Rescan so the updated files are classified as local changes
         return push(
             workspace,
-            argparse.Namespace(targets=args.targets, force=False, dry_run=False),
+            argparse.Namespace(targets=args.targets, force=False, dry_run=False, yes=False),
         )
     return 0
 
@@ -433,6 +514,157 @@ def pull_std(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
+def gen(config: Config, args: argparse.Namespace) -> int:
+    synced = {
+        entry.file: (element_id, entry.microversion_id)
+        for element_id, entry in State.load(config.state_path).studios.items()
+    }
+    generated = generate(config.code_dir, StdMetadata.load(config.std_dir).number, synced)
+    changed = [result for result in generated if result.changed]
+    for result in changed:
+        path = os.path.relpath(result.output)
+        if args.dry_run:
+            print(f"Would update {path}")
+        else:
+            result.output.write_text(result.code, newline="")
+            print(f"Updated {path}")
+    if not generated:
+        print("No definitions found.")
+    elif not changed:
+        print("Every generated file is up to date.")
+    elif not args.dry_run:
+        print("Run `fs push` to push them.")
+    return 0
+
+
+def check(config: Config, args: argparse.Namespace) -> int:
+    project = _project(config)
+    counts = collections.Counter()
+    files = 0
+    for module in _select_modules(project, args.targets):
+        problems = project.check(module)
+        files += 1 if problems else 0
+        for problem in problems:
+            line, character = module.position(problem.start)
+            print(
+                f"{_display_path(module.path)}:{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]"
+            )
+            counts[problem.severity] += 1
+    if not counts:
+        print("No problems found.")
+        return 0
+    summary = " and ".join(
+        _plural(counts[severity], severity) for severity in ("error", "warning") if counts[severity]
+    )
+    print(f"{summary} in {_plural(files, 'file')}.")
+    return 1
+
+
+def deps(config: Config, args: argparse.Namespace) -> int:
+    project = _project(config)
+    for module in _select_modules(project, args.targets):
+        print(module.relative)
+        print("  imports:")
+        for imported in module.imports:
+            if imported.is_std:
+                description = imported.path
+            elif imported.namespace:
+                description = f"{imported.namespace}:: {imported.path} (not a Feature Studio)"
+            else:
+                target = project.resolve(imported)
+                description = target.relative if target else f"{imported.path} (unknown)"
+            print(f"    {'export ' if imported.exported else ''}{description}")
+        importers = project.importers(module)
+        print("  imported by:" + ("" if importers else " nothing"))
+        for importer in importers:
+            print(f"    {importer.relative}")
+    return 0
+
+
+def unused(config: Config, args: argparse.Namespace) -> int:
+    project = _project(config)
+    found = 0
+    for usage in project.usages(_select_modules(project, args.targets)):
+        if not usage.exported or usage.other_files or usage.named_in_strings:
+            continue
+        if usage.local_uses and not args.local:
+            continue
+        line, character = usage.module.position(usage.declaration.token.offset)
+        where = f"only used in {usage.module.relative}" if usage.local_uses else "unused"
+        print(
+            f"{_display_path(usage.module.path)}:{line + 1}:{character + 1}: {usage.declaration.name} ({usage.declaration.kind}) is {where}"
+        )
+        found += 1
+    if not found:
+        print("Every export is used.")
+    return 1 if found else 0
+
+
+def refs(config: Config, args: argparse.Namespace) -> int:
+    project = _project(config)
+    found = project.references_to_name(args.name)
+    if not found:
+        print(f"Nothing called {args.name} is declared at the top level of a FeatureScript.")
+        return 1
+    for module, declaration, references in found:
+        line, character = module.position(declaration.token.offset)
+        print(
+            f"{declaration.name} ({declaration.kind}) defined at {_display_path(module.path)}:{line + 1}:{character + 1}"
+        )
+        for owner, token in references:
+            line, character = owner.position(token.offset)
+            print(
+                f"  {_display_path(owner.path)}:{line + 1}:{character + 1}: {owner.line_text(line).strip()}"
+            )
+        if not references:
+            print("  (unused)")
+    return 0
+
+
+def _project(config: Config) -> Project:
+    return Project(config.root, config.code_dir, config.state_path)
+
+
+def _select_modules(project: Project, targets: list[str]) -> list[Module]:
+    """The modules matching targets (.fs files, folders, or file names), or every module."""
+    modules = project.modules()
+    if not targets:
+        return modules
+    code_dir = project.code_dir.resolve()
+    selected: list[Module] = []
+    for target in targets:
+        path = pathlib.Path(target).resolve()
+        if path == code_dir or code_dir in path.parents:
+            matched = [
+                module
+                for module in modules
+                if module.path == path or path in module.path.parents
+            ]
+        else:
+            matched = [
+                module
+                for module in modules
+                if target in (module.path.name, module.path.stem)
+            ]
+        if not matched:
+            raise UsageError(f'No FeatureScript matches "{target}".')
+        selected.extend(module for module in matched if module not in selected)
+    return selected
+
+
+def _display_path(path: pathlib.Path) -> str:
+    return os.path.relpath(path)
+
+
+# Commands which don't need Onshape
+OFFLINE_COMMANDS = {
+    "check": check,
+    "deps": deps,
+    "unused": unused,
+    "refs": refs,
+    "gen": gen,
+}
+
 COMMANDS = {
     "push": push,
     "pull": pull,
@@ -461,6 +693,48 @@ def do_push(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
     workspace.push_studios(studios)
     print(f"Pushed {_plural(len(studios), 'Feature Studio')}.")
     return 0
+
+
+def check_path_imports(workspace: Workspace, studios: list[Studio]) -> None:
+    problems = workspace.path_import_problems(studios)
+    if problems:
+        raise UsageError("Can't push:\n  " + "\n  ".join(problems))
+
+
+def plan_deletes(
+    workspace: Workspace, studios: list[Studio], dry_run: bool, yes: bool
+) -> tuple[list[Studio], int]:
+    """Picks the tabs of deleted files to delete, skipping any another file still imports.
+
+    Lists them and asks for confirmation (unless yes or dry_run), so call this before changing
+    anything. Returns the studios to delete, and 1 if any were skipped.
+    """
+    to_delete = []
+    for studio in studios:
+        assert studio.remote
+        importers = workspace.importers(studio.remote.element_id)
+        if importers:
+            print(
+                f"Skipping deleting {studio.path} in Onshape: it's still imported by {', '.join(importers)}."
+            )
+        else:
+            to_delete.append(studio)
+    skipped = 1 if len(to_delete) < len(studios) else 0
+    verb = "Would delete" if dry_run else "Will delete"
+    for studio in to_delete:
+        print(f"{verb} the {studio.name} tab in Onshape ({studio.path} was deleted)")
+    if to_delete and not dry_run and not yes:
+        confirm(
+            f"This deletes {_plural(len(to_delete), 'tab')} in Onshape; Part Studios using their features will break."
+        )
+    return to_delete, skipped
+
+
+def do_delete(workspace: Workspace, studios: list[Studio], dry_run: bool) -> None:
+    if dry_run or not studios:
+        return
+    workspace.delete_studios(studios)
+    print(f"Deleted {_plural(len(studios), 'tab')}.")
 
 
 def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:

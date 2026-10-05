@@ -12,7 +12,7 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 
 | Path                       | What it is                                                                   |
 | -------------------------- | ---------------------------------------------------------------------------- |
-| `featurescripts/`          | The backend document's Feature Studios, organized however you like           |
+| `featurescripts/`          | The backend document's Feature Studios, plus the Python lookup table sources |
 | `fs_cli/`                  | The `fs` command                                                             |
 | `onshape_api/`             | A small Onshape REST API client; see [its README](onshape_api/README.md)     |
 | `std/`                     | A read-only copy of the Onshape std library, for reference                   |
@@ -72,7 +72,15 @@ uv run fs push --dry-run     # show what would be pushed
 ```
 
 New files become new Feature Studios at the top level of the document (the API can't create folders); move the
-tabs in Onshape if you like, `fs` won't care. The API doesn't report compile errors, so check new code in Onshape.
+tabs in Onshape if you like, `fs` won't care. The API doesn't report compile errors, so run `fs check` first (see
+below) and check new code in Onshape.
+
+Studios import each other by element id, which a new file doesn't have until it's pushed. Import it by its path in
+`featurescripts/` instead, and `fs push` resolves it (in the local file too) once the studio exists:
+
+```
+import(path : "core/myNewUtils.fs", version : "");
+```
 
 For the occasional edit made directly in Onshape:
 
@@ -104,9 +112,13 @@ changes. When Onshape's are newer, `fs push`, `fs pull`, and `fs sync` copy them
 `fs push` never sends older ones.
 
 Files are matched to Feature Studios by element id once synced, so renaming or moving either the file or the tab
-doesn't break the link. (On a fresh clone, studios are matched to the local file with the same name.) Deleting a
-file never deletes the tab in Onshape (delete the tab yourself), and a tab deleted in Onshape is recreated by
-`fs push` unless you delete the file.
+doesn't break the link. (On a fresh clone, studios are matched to the local file with the same name.)
+
+Deleting a file and running `fs push` (or `fs sync`) deletes its tab in Onshape, after asking for confirmation
+(`--yes` skips it). It's skipped if the tab changed in Onshape since it was last synced (`fs push --force` deletes
+it anyway), or if another file still imports it. `fs pull --force` restores a deleted file instead. Only deletions
+`fs` has seen are tracked: on a fresh clone, a tab with no file is just pulled. A tab deleted in Onshape is
+recreated by `fs push` unless you delete the file.
 
 ### API usage
 
@@ -119,12 +131,60 @@ Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 - A studio is only downloaded when its microversion changed since the last sync, so on a new machine the first
   run downloads each studio once. A changed microversion doesn't always mean changed code (e.g. it may change
   when a tab it imports changes); then the download just confirms nothing needs doing.
-- Pushing: 1 call per studio pushed.
+- Pushing: 1 call per studio pushed or deleted.
 - Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
 - `fs release`: 5 to 7 calls.
 
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing. Failed calls (like a 400) don't
 count either.
+
+## Checking and navigating
+
+These read the repo only (no API calls). Imports between studios are resolved through `.fs-state.json`, so run
+`fs status` or `fs pull` once on a new machine first.
+
+```
+uv run fs check              # syntax errors, undefined names, unused or unknown imports, and more
+uv run fs check featurescripts/belt   # ...or just some files or folders
+uv run fs deps robotShaft    # what a studio imports, and what imports it
+uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used
+uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
+```
+
+`fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
+(following `export import`), and the std library. It also warns about top-level declarations which aren't exported or
+used anywhere, and map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
+progress in `featurescripts/frame/` doesn't pass yet.
+
+## Generated files
+
+Lookup tables and sketch profiles (the `*.gen.fs` files) are generated from Python definitions beside them, e.g.
+`featurescripts/belt/robotBeltTables.py` generates `featurescripts/belt/robotBeltTables.gen.fs`. Each definition
+sets `CONTENTS` to a list of items:
+
+- `Enum`s and `Table`s (lookup tables) from [`fs_cli/tables.py`](fs_cli/tables.py)
+- `Sketch`es and `SketchMap`s of profiles (`SketchDataArray`s, see `core/sketchData.fs`) built from lines, arcs,
+  and fit splines with [`fs_cli/sketches.py`](fs_cli/sketches.py), e.g. `splineProfile/splineProfiles.py`. A
+  profile can also be read from a vendor's STEP model with [`fs_cli/step.py`](fs_cli/step.py), which turns the
+  outer loop of a planar face into lines, arcs, and fit splines (through enough points to stay within 0.0002" of
+  B-spline edges); see `printAdapter/printAdapterProfiles.py`, which keeps vendor models and drawings in
+  `printAdapter/vendor/`.
+- `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
+
+After editing one:
+
+```
+uv run fs gen                # rewrite every .gen.fs file whose definition changed (no API calls)
+uv run fs push               # push them
+```
+
+Every `.py` file in `featurescripts/` is a definition. Generated files keep their `FeatureScript` version
+(`fs update-std` changes it); new ones use the std version in `std/`. Tests fail if a checked-in `.gen.fs` file is
+out of date, or a profile isn't a closed loop.
+
+Sketch entities are named by their position in a profile, and those names end up in the ids of the faces they
+create, so reordering a released profile would break references to its faces in documents using it. `Profile`
+takes an `order` to keep the order a profile was released with.
 
 ## Releasing
 
@@ -157,11 +217,13 @@ The extension provides:
 - TextMate and semantic highlighting (custom features, predicates, enums and members, annotation and map keys,
   stdlib symbols, ...)
 - Outline, breadcrumbs, sticky scroll, and folding
-- Go to Definition, Find References, and highlights for symbols within a file
-- Hovers with doc comments, stdlib signatures, enum variants, and feature definition fields
+- Go to Definition and Find References across files (imports are resolved through `.fs-state.json`), highlights,
+  and workspace symbol search (Ctrl+T)
+- Hovers with doc comments, stdlib signatures, enum variants, feature definition fields, and the file an import
+  refers to
 - Completions for enum members (`BoundingType.`) and feature definition-map keys
   (`extrude(context, id, { ... })`)
-- Syntax diagnostics: unbalanced brackets, unterminated strings and comments, `++`/`--`
+- Diagnostics: syntax errors, undefined names, and unused or unknown imports (the same as `fs check`)
 - Snippets (`fs-header`, `defineFeature`, `annotation`, ...)
 - Commands: **FeatureScript: Push File to Onshape** (also a button in the editor title bar), **Push All**,
   **Pull**, **Sync**, and **Show Onshape Status**, which save and then run `fs` in a terminal

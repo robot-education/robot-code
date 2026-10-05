@@ -113,6 +113,10 @@ class FakeOnshape:
         studio = self.studios(instance.document_id, instance.instance_id)[element_id]
         return RemoteStudio(element_id, name, studio["mv"])
 
+    def delete(self, instance, element_id):
+        self.calls["delete"] += 1
+        del self.studios(instance.document_id, instance.instance_id)[element_id]
+
     def feature_names(self, instance, element_id):
         self.calls["feature_names"] += 1
         return self.studios(instance.document_id, instance.instance_id)[element_id][
@@ -293,6 +297,133 @@ def test_deleted_in_onshape_is_recreated_by_push(repo, onshape, capsys):
     assert Status.DELETED_IN_ONSHAPE.value in capsys.readouterr().out
     assert run(onshape, "push") == 0
     assert onshape.code("frame.fs") == "a"
+
+
+def test_push_deletes_tabs_of_deleted_files(repo, onshape, capsys):
+    onshape.add("frame.fs", "a")
+    onshape.add("plate.fs", "b")
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    capsys.readouterr()
+    run(onshape, "status")
+    assert Status.DELETED_LOCALLY.value in capsys.readouterr().out
+
+    assert run(onshape, "push", "--dry-run") == 0
+    assert "Would delete the frame.fs tab" in capsys.readouterr().out
+    assert onshape.names() == ["frame.fs", "plate.fs"]
+
+    assert run(onshape, "push", "--yes") == 0
+    assert onshape.names() == ["plate.fs"]
+    capsys.readouterr()
+    assert run(onshape, "status") == 0
+    assert "everything in sync" in capsys.readouterr().out
+
+
+def test_deleting_tabs_requires_confirmation(repo, onshape, monkeypatch):
+    onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    write(repo, "plate.fs", "b")
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+    assert run(onshape, "push") == 2
+    # Nothing happens until it's confirmed
+    assert onshape.names() == ["frame.fs"]
+    assert onshape.calls["create"] == 0
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt: "y")
+    assert run(onshape, "push") == 0
+    assert onshape.names() == ["plate.fs"]
+
+
+def test_tabs_still_imported_are_not_deleted(repo, onshape, capsys):
+    utils = onshape.add("utils.fs", "a")
+    onshape.add("frame.fs", f'import(path : "{utils}", version : "v");\n')
+    run(onshape, "pull")
+    local(repo, "utils.fs").unlink()
+    capsys.readouterr()
+    assert run(onshape, "push", "--yes") == 1
+    assert "still imported by frame.fs" in capsys.readouterr().out
+    assert onshape.names() == ["frame.fs", "utils.fs"]
+
+    # Deleting both at once is fine
+    local(repo, "frame.fs").unlink()
+    assert run(onshape, "push", "--yes") == 0
+    assert onshape.names() == []
+
+
+def test_deleted_locally_but_changed_in_onshape(repo, onshape, capsys):
+    element_id = onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    onshape.edit(element_id, "b")
+    capsys.readouterr()
+    assert run(onshape, "push", "--yes") == 1
+    assert "changed in Onshape" in capsys.readouterr().out
+    assert onshape.names() == ["frame.fs"]
+
+    assert run(onshape, "push", "--force", "--yes") == 0
+    assert onshape.names() == []
+
+
+def test_deleted_locally_with_only_a_new_microversion(repo, onshape):
+    element_id = onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    onshape.edit(element_id, "a")  # e.g. an imported tab changed
+    assert run(onshape, "push", "--yes") == 0
+    assert onshape.names() == []
+
+
+def test_pull_force_restores_deleted_files(repo, onshape):
+    onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    assert run(onshape, "pull") == 0
+    assert not local(repo, "frame.fs").exists()
+    assert run(onshape, "pull", "--force") == 0
+    assert local(repo, "frame.fs").read_text() == "a"
+
+
+def test_sync_deletes_tabs_of_deleted_files(repo, onshape):
+    onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    local(repo, "frame.fs").unlink()
+    assert run(onshape, "sync", "--yes") == 0
+    assert onshape.names() == []
+
+
+def test_push_resolves_imports_by_path(repo, onshape, capsys):
+    utils_id = onshape.add("utils.fs", "u")
+    run(onshape, "pull")
+    write(repo, "core/shapes.fs", "s")
+    write(
+        repo,
+        "frame.fs",
+        'import(path : "utils.fs", version : "");\nimport(path : "core/shapes.fs", version : "");\n',
+    )
+    assert run(onshape, "push") == 0
+    shapes_id = next(id for id, s in onshape.studios().items() if s["name"] == "shapes.fs")
+    utils_mv = onshape.studios()[utils_id]["mv"]
+    code = onshape.code("frame.fs")
+    assert f'import(path : "{utils_id}", version : "{utils_mv}");' in code
+    assert f'import(path : "{shapes_id}", version : "' in code
+    # The local file is resolved too, so it's in sync
+    assert local(repo, "frame.fs").read_text() == code
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+
+
+def test_imports_by_path_must_be_pushable(repo, onshape, capsys):
+    write(repo, "shapes.fs", "s")
+    write(repo, "frame.fs", 'import(path : "shapes.fs", version : "");\n')
+    write(repo, "plate.fs", 'import(path : "missing.fs", version : "");\n')
+    assert run(onshape, "push", "frame.fs", "plate.fs") == 2
+    err = capsys.readouterr().err
+    assert "frame.fs imports shapes.fs, which isn't in Onshape yet; push it too." in err
+    assert "plate.fs imports missing.fs, which doesn't exist." in err
+    assert onshape.names() == []
 
 
 def test_studio_names_without_extension(repo, onshape):

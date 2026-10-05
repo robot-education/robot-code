@@ -194,7 +194,11 @@ class Parser:
     def parse(self) -> ParsedProgram:
         start = self.peek()
         while not self.is_at_end():
+            before = self.current
             self.parse_top_level()
+            if self.current == before:
+                # A stray token such as an unmatched "}"; skip it so we can't loop forever
+                self.advance()
         end = self.previous() or start
         return ParsedProgram(
             source=self.source,
@@ -386,7 +390,10 @@ class Parser:
         if self.check_value("("):
             self.parse_parameter_list()
         if self.match_value("returns"):
-            type_token = self.consume_identifier()
+            # `function` is a keyword, but also a return type
+            type_token = self.consume_identifier() or (
+                self.advance() if self.check_value("function") else None
+            )
             if type_token:
                 self.add_hint(type_token, "type")
         if self.check_value("precondition"):
@@ -503,6 +510,36 @@ class Parser:
         elif value == "::":
             start = self.advance()
             self.add_node("NamespaceAccess", start, start)
+        elif (
+            value == "catch"
+            and self.look_value(1) == "("
+            and self.look(2) is not None
+            and self.look(2).kind == "identifier"
+        ):
+            self.advance()
+            self.advance()
+            self.declare_parameter(self.advance())
+            self.consume_optional(")")
+        elif value in ("var", "const") and ";" in stops:
+            # A statement following a block, e.g. after `if (...) { ... }`
+            self.parse_variable_declaration(value == "const", False)
+        elif value in ("var", "const") and self.look(1) and is_identifier_token(
+            self.look(1)
+        ):
+            # A declaration inside parentheses, e.g. `for (var i, value in values)`
+            readonly = self.advance().value == "const"
+            while True:
+                name = self.consume_identifier()
+                if name is None:
+                    break
+                self.declare(name, "variable", readonly)
+                self.add_hint(
+                    name,
+                    "variable",
+                    *(("declaration", "readonly") if readonly else ("declaration",)),
+                )
+                if not self.match_value(","):
+                    break
         elif value in ("is", "as"):
             start = self.advance()
             type_token = self.consume_identifier()
