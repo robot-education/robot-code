@@ -4,28 +4,6 @@ import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 
 /* Generated from printAdapterProfiles.py by `fs gen` -- DO NOT EDIT */
 
-export enum PrintAdapter
-{
-    annotation { "Name" : "AndyMark 1/2\" Hex Insert (am-5654)" }
-    ANDYMARK_HEX_INSERT,
-    annotation { "Name" : "AndyMark 3/8\" Hex Insert (am-5655)" }
-    ANDYMARK_3_8_HEX_INSERT,
-    annotation { "Name" : "AndyMark 8mm Keyed Insert (am-5656)" }
-    ANDYMARK_8MM_KEYED_INSERT,
-    annotation { "Name" : "AndyMark Kraken Spline Insert (am-5657)" }
-    ANDYMARK_KRAKEN_INSERT,
-    annotation { "Name" : "Swyft 1/2\" Hex Adapter (SR-HEXto3DPRINT-01)" }
-    SWYFT_HEX_ADAPTER,
-    annotation { "Name" : "TTB 1/2\" Hex Insert (TTB-0034)" }
-    TTB_HEX_INSERT,
-    annotation { "Name" : "TTB SplineXS Insert (TTB-0356)" }
-    TTB_SPLINE_INSERT,
-    annotation { "Name" : "WCP SplineXS Adapter (WCP-1021)" }
-    WCP_SPLINE_ADAPTER,
-    annotation { "Name" : "WCP 1/2\" Hex Adapter (WCP-1121)" }
-    WCP_HEX_ADAPTER
-}
-
 export enum PrintAdapterVendor
 {
     annotation { "Name" : "AndyMark" }
@@ -72,21 +50,8 @@ export enum WcpAdapter
     HEX_ADAPTER
 }
 
-export const PRINT_ADAPTER_CHOICES = {
-        PrintAdapter.ANDYMARK_HEX_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.HEX_INSERT },
-        PrintAdapter.ANDYMARK_3_8_HEX_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.HEX_3_8_INSERT },
-        PrintAdapter.ANDYMARK_8MM_KEYED_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.KEYED_8MM_INSERT },
-        PrintAdapter.ANDYMARK_KRAKEN_INSERT : { "vendor" : PrintAdapterVendor.ANDYMARK, "parameter" : "andyMarkAdapter", "adapter" : AndyMarkAdapter.KRAKEN_INSERT },
-        PrintAdapter.SWYFT_HEX_ADAPTER : { "vendor" : PrintAdapterVendor.SWYFT, "parameter" : "swyftAdapter", "adapter" : SwyftAdapter.HEX_ADAPTER },
-        PrintAdapter.TTB_HEX_INSERT : { "vendor" : PrintAdapterVendor.TTB, "parameter" : "ttbAdapter", "adapter" : TtbAdapter.HEX_INSERT },
-        PrintAdapter.TTB_SPLINE_INSERT : { "vendor" : PrintAdapterVendor.TTB, "parameter" : "ttbAdapter", "adapter" : TtbAdapter.SPLINE_INSERT },
-        PrintAdapter.WCP_SPLINE_ADAPTER : { "vendor" : PrintAdapterVendor.WCP, "parameter" : "wcpAdapter", "adapter" : WcpAdapter.SPLINE_ADAPTER },
-        PrintAdapter.WCP_HEX_ADAPTER : { "vendor" : PrintAdapterVendor.WCP, "parameter" : "wcpAdapter", "adapter" : WcpAdapter.HEX_ADAPTER },
-    };
-
 /**
- * The vendor and adapter parameters. The editing logic keeps the feature's (hidden) PrintAdapter in sync with them,
- * using PRINT_ADAPTER_CHOICES.
+ * The vendor and adapter parameters. Use getPrintAdapter to get the chosen adapter.
  */
 export predicate printAdapterSelectionPredicate(definition is map)
 {
@@ -113,6 +78,24 @@ export predicate printAdapterSelectionPredicate(definition is map)
         annotation { "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.wcpAdapter is WcpAdapter;
     }
+}
+
+/**
+ * Whether the chosen adapter has a boss on one side.
+ */
+export predicate printAdapterHasBoss(definition is map)
+{
+    definition.adapterVendor == PrintAdapterVendor.ANDYMARK;
+}
+
+/**
+ * Whether the chosen adapter fits a SplineXS shaft.
+ */
+export predicate printAdapterHasSplineXsBore(definition is map)
+{
+    (definition.adapterVendor == PrintAdapterVendor.ANDYMARK && definition.andyMarkAdapter == AndyMarkAdapter.KRAKEN_INSERT) ||
+        (definition.adapterVendor == PrintAdapterVendor.TTB && definition.ttbAdapter == TtbAdapter.SPLINE_INSERT) ||
+        (definition.adapterVendor == PrintAdapterVendor.WCP && definition.wcpAdapter == WcpAdapter.SPLINE_ADAPTER);
 }
 
 export const WCP_HEX_ADAPTER_PROFILE = [
@@ -512,3 +495,42 @@ export const SWYFT_HEX_ADAPTER_PROFILE = [
             { "operation" : SketchOperation.ARC, "start" : vector(-0.560872688884, 0.213123970653) * inch, "mid" : vector(-0.57063390978, 0.185410196626) * inch, "end" : vector(-0.579026663848, 0.157251780774) * inch },
             { "operation" : SketchOperation.SPLINE, "points" : [vector(-0.579026663848, 0.157251780774) * inch, vector(-0.562654812857, 0.136622099466) * inch, vector(-0.560441593603, 0.134065233847) * inch, vector(-0.551595419255, 0.124349734157) * inch, vector(-0.545043216116, 0.11764903875) * inch, vector(-0.540747514502, 0.113473954917) * inch, vector(-0.530220476739, 0.103941470527) * inch, vector(-0.522173012878, 0.097299744912) * inch, vector(-0.512675077304, 0.090158598416) * inch, vector(-0.507187594845, 0.086373063042) * inch, vector(-0.495604676972, 0.079206765534) * inch, vector(-0.484288515137, 0.073332996989) * inch, vector(-0.472887652145, 0.068637142618) * inch, vector(-0.466016430985, 0.067143212556) * inch, vector(-0.456470664588, 0.067599569729) * inch, vector(-0.455843635234, 0.06758853463) * inch, vector(-0.45521637712, 0.067577419083) * inch, vector(-0.442432309485, 0.066770578075) * inch, vector(-0.438346930972, 0.066258311085) * inch, vector(-0.43434843173, 0.065625356553) * inch, vector(-0.425009477663, 0.063585092425) * inch, vector(-0.417710686805, 0.061358890296) * inch, vector(-0.406971715873, 0.056809126364) * inch, vector(-0.397159083811, 0.050821447931) * inch, vector(-0.388063335967, 0.042724764596) * inch, vector(-0.387701828626, 0.042325475847) * inch, vector(-0.384920431728, 0.03896475803) * inch, vector(-0.381209402554, 0.033383856871) * inch, vector(-0.377005319636, 0.023813588656) * inch, vector(-0.374957288319, 0.012509442272) * inch, vector(-0.375, 0) * inch, vector(-0.374891991873, -0.010255528008) * inch, vector(-0.376201425016, -0.02093199657) * inch, vector(-0.377376234526, -0.024944712947) * inch, vector(-0.382077530087, -0.034838677897) * inch, vector(-0.383935513514, -0.037629260474) * inch, vector(-0.387701828626, -0.042325475847) * inch, vector(-0.388063335967, -0.042724764596) * inch, vector(-0.397159083811, -0.050821447931) * inch, vector(-0.406971715873, -0.056809126364) * inch, vector(-0.417710686805, -0.061358890296) * inch, vector(-0.425009477663, -0.063585092425) * inch, vector(-0.43434843173, -0.065625356553) * inch, vector(-0.438346930972, -0.066258311085) * inch, vector(-0.442432309485, -0.066770578075) * inch, vector(-0.45521637712, -0.067577419083) * inch, vector(-0.455843635234, -0.06758853463) * inch, vector(-0.456470664588, -0.067599569729) * inch, vector(-0.466016430985, -0.067143212556) * inch, vector(-0.472887652145, -0.068637142618) * inch, vector(-0.484288515137, -0.073332996989) * inch, vector(-0.495604676972, -0.079206765534) * inch, vector(-0.507187594845, -0.086373063042) * inch, vector(-0.512675077304, -0.090158598416) * inch, vector(-0.522173012878, -0.097299744912) * inch, vector(-0.530220476739, -0.103941470527) * inch, vector(-0.540747514502, -0.113473954917) * inch, vector(-0.545043216116, -0.11764903875) * inch, vector(-0.551595419255, -0.124349734157) * inch, vector(-0.560441593603, -0.134065233847) * inch, vector(-0.562654812857, -0.136622099466) * inch, vector(-0.579026663848, -0.157251780773) * inch] },
         ] as SketchDataArray;
+
+export const PRINT_ADAPTER_PARAMETERS = {
+        PrintAdapterVendor.ANDYMARK : "andyMarkAdapter",
+        PrintAdapterVendor.SWYFT : "swyftAdapter",
+        PrintAdapterVendor.TTB : "ttbAdapter",
+        PrintAdapterVendor.WCP : "wcpAdapter"
+    };
+
+export const PRINT_ADAPTERS = {
+        PrintAdapterVendor.ANDYMARK : {
+            AndyMarkAdapter.HEX_INSERT : { "profile" : ANDYMARK_HEX_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 90 * degree }, "boss" : 0.03 * inch },
+            AndyMarkAdapter.HEX_3_8_INSERT : { "profile" : ANDYMARK_SMALL_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.375 * inch, "vertexAngle" : 90 * degree }, "boss" : 0.03 * inch },
+            AndyMarkAdapter.KEYED_8MM_INSERT : { "profile" : ANDYMARK_SMALL_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 10 * millimeter }, "boss" : 0.03 * inch },
+            AndyMarkAdapter.KRAKEN_INSERT : { "profile" : ANDYMARK_SMALL_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 8.5 * millimeter, "splineXs" : true }, "boss" : 0.03 * inch }
+        },
+        PrintAdapterVendor.SWYFT : {
+            SwyftAdapter.HEX_ADAPTER : { "profile" : SWYFT_HEX_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 90 * degree } }
+        },
+        PrintAdapterVendor.TTB : {
+            TtbAdapter.HEX_INSERT : { "profile" : TTB_HEX_INSERT_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 0 * degree } },
+            TtbAdapter.SPLINE_INSERT : { "profile" : WCP_SPLINE_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 8.5 * millimeter, "splineXs" : true } }
+        },
+        PrintAdapterVendor.WCP : {
+            WcpAdapter.SPLINE_ADAPTER : { "profile" : WCP_SPLINE_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "diameter" : 8.5 * millimeter, "splineXs" : true } },
+            WcpAdapter.HEX_ADAPTER : { "profile" : WCP_HEX_ADAPTER_PROFILE, "depth" : 0.25 * inch, "bore" : { "hexSize" : 0.5 * inch, "vertexAngle" : 0 * degree } }
+        }
+    };
+
+/**
+ * The adapter chosen by printAdapterSelectionPredicate's parameters: its `profile`, its thickness (`depth`), how
+ * tall the boss on one side of it is (`boss`, if it has one), and the `bore` cut through the print for its shaft.
+ *
+ * A bore is a hex (`hexSize` across flats, with a corner at `vertexAngle`, timed to match the adapter), or a
+ * clearance circle (`diameter`), which SplineXS adapters (`splineXs`) can replace with a SplineXS profile.
+ */
+export function getPrintAdapter(definition is map) returns map
+{
+    return PRINT_ADAPTERS[definition.adapterVendor][definition[PRINT_ADAPTER_PARAMETERS[definition.adapterVendor]]];
+}

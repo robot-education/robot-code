@@ -1,18 +1,20 @@
 """The 3D print adapters robotPrintAdapter cuts pockets for: the list of them, and their profiles.
-Run `uv run fs gen` after editing.
+Run `uv run fs gen` after editing; adding an adapter only takes an entry in ADAPTERS.
 
 Most adapters are a ring of tabs: a tab has parallel sides, an outer arc, and filleted corners,
 and neighboring tabs are joined by a round relief which both sides are tangent to. Vendor
 drawings and models are in vendor/.
 """
 
+import dataclasses
 import math
 import pathlib
+from typing import Callable
 
 from fs_cli.gen import Code, Constant, Import
 from fs_cli.sketches import MM, ORIGIN, Arc, Entity, Line, Profile, Sketch, polar
 from fs_cli.step import StepFile
-from fs_cli.tables import Enum, string
+from fs_cli.tables import Enum, inch, mm, number, string
 
 VENDOR = pathlib.Path(__file__).parent / "vendor"
 
@@ -112,19 +114,65 @@ WCP_HEX_ADAPTER_ORDER = starting_at(WCP_HEX_ADAPTER, 30)
 WCP_SPLINE_ADAPTER_ORDER = starting_at(WCP_SPLINE_ADAPTER, 32)
 TTB_HEX_INSERT_ORDER = starting_at(TTB_HEX_INSERT, 18)
 
-# Every adapter, sorted by vendor and then part number: its value in the PrintAdapter enum, its
-# vendor, its value in that vendor's enum, and its name. Enum values are stored in documents, so
-# never rename them.
+# Bores cut through the print for an adapter's shaft (see robotPrintAdapter's sketchBoreProfile): a hex
+# (across flats, with a corner at vertex_angle to match the adapter), or a clearance circle, which
+# SplineXS adapters can replace with a SplineXS profile.
+
+
+def hex_bore(across_flats: float, vertex_angle: float) -> str:
+    return f"{{ {string('hexSize')} : {inch(across_flats)}, {string('vertexAngle')} : {number(vertex_angle)} * degree }}"
+
+
+def circle_bore(diameter_mm: float) -> str:
+    return f"{{ {string('diameter')} : {mm(diameter_mm)} }}"
+
+
+# SplineXS shafts are 8mm across
+SPLINE_XS_BORE = f"{{ {string('diameter')} : {mm(8.5)}, {string('splineXs')} : true }}"
+
+
+@dataclasses.dataclass
+class Adapter:
+    """A 3D print adapter.
+
+    Attributes:
+        vendor: A key of VENDORS.
+        value: The adapter's value in its vendor's enum. Enum values are stored in documents, so never
+            rename them.
+        name: The name shown for the adapter.
+        profile: The generated sketch of its outline.
+        bore: The bore cut through the print for its shaft (hex_bore, circle_bore, or SPLINE_XS_BORE).
+        depth: Its thickness, in inches.
+        boss: How tall the boss on one side of it is, in inches, if it has one.
+    """
+
+    vendor: str
+    value: str
+    name: str
+    profile: str
+    bore: str
+    depth: float = 0.25
+    boss: float | None = None
+
+    @property
+    def splines(self) -> bool:
+        return self.bore == SPLINE_XS_BORE
+
+
+# Every adapter, sorted by vendor and then part number
 ADAPTERS = [
-    ("ANDYMARK_HEX_INSERT", "AndyMark", "HEX_INSERT", '1/2" Hex Insert (am-5654)'),
-    ("ANDYMARK_3_8_HEX_INSERT", "AndyMark", "HEX_3_8_INSERT", '3/8" Hex Insert (am-5655)'),
-    ("ANDYMARK_8MM_KEYED_INSERT", "AndyMark", "KEYED_8MM_INSERT", "8mm Keyed Insert (am-5656)"),
-    ("ANDYMARK_KRAKEN_INSERT", "AndyMark", "KRAKEN_INSERT", "Kraken Spline Insert (am-5657)"),
-    ("SWYFT_HEX_ADAPTER", "Swyft", "HEX_ADAPTER", '1/2" Hex Adapter (SR-HEXto3DPRINT-01)'),
-    ("TTB_HEX_INSERT", "TTB", "HEX_INSERT", '1/2" Hex Insert (TTB-0034)'),
-    ("TTB_SPLINE_INSERT", "TTB", "SPLINE_INSERT", "SplineXS Insert (TTB-0356)"),
-    ("WCP_SPLINE_ADAPTER", "WCP", "SPLINE_ADAPTER", "SplineXS Adapter (WCP-1021)"),
-    ("WCP_HEX_ADAPTER", "WCP", "HEX_ADAPTER", '1/2" Hex Adapter (WCP-1121)'),
+    # AndyMark's inserts have a 0.03" boss (see vendor/am-5654), so the toothed part is 0.22" thick
+    Adapter("AndyMark", "HEX_INSERT", '1/2" Hex Insert (am-5654)', "ANDYMARK_HEX_INSERT_PROFILE", hex_bore(0.5, 90), boss=0.03),
+    Adapter("AndyMark", "HEX_3_8_INSERT", '3/8" Hex Insert (am-5655)', "ANDYMARK_SMALL_INSERT_PROFILE", hex_bore(0.375, 90), boss=0.03),
+    # The bore clears the key, which reaches 4.9mm from the center
+    Adapter("AndyMark", "KEYED_8MM_INSERT", "8mm Keyed Insert (am-5656)", "ANDYMARK_SMALL_INSERT_PROFILE", circle_bore(10), boss=0.03),
+    Adapter("AndyMark", "KRAKEN_INSERT", "Kraken Spline Insert (am-5657)", "ANDYMARK_SMALL_INSERT_PROFILE", SPLINE_XS_BORE, boss=0.03),
+    Adapter("Swyft", "HEX_ADAPTER", '1/2" Hex Adapter (SR-HEXto3DPRINT-01)', "SWYFT_HEX_ADAPTER_PROFILE", hex_bore(0.5, 90)),
+    Adapter("TTB", "HEX_INSERT", '1/2" Hex Insert (TTB-0034)', "TTB_HEX_INSERT_PROFILE", hex_bore(0.5, 0)),
+    # The same shape as WCP's SplineXS adapter
+    Adapter("TTB", "SPLINE_INSERT", "SplineXS Insert (TTB-0356)", "WCP_SPLINE_ADAPTER_PROFILE", SPLINE_XS_BORE),
+    Adapter("WCP", "SPLINE_ADAPTER", "SplineXS Adapter (WCP-1021)", "WCP_SPLINE_ADAPTER_PROFILE", SPLINE_XS_BORE),
+    Adapter("WCP", "HEX_ADAPTER", '1/2" Hex Adapter (WCP-1121)', "WCP_HEX_ADAPTER_PROFILE", hex_bore(0.5, 0)),
 ]
 DEFAULT_VENDOR = "TTB"
 
@@ -136,41 +184,62 @@ VENDORS = {
     "WCP": ("WCP", "WcpAdapter", "wcpAdapter"),
 }
 
-# Every adapter, which the feature stores (and features made before the vendor enums only have)
-PrintAdapter = Enum(
-    "PrintAdapter",
-    [value for value, _, _, _ in ADAPTERS],
-    {value: f"{vendor} {name}" for value, vendor, _, name in ADAPTERS},
-)
 PrintAdapterVendor = Enum(
-    "PrintAdapterVendor", [value for value, _, _ in VENDORS.values()], {value: vendor for vendor, (value, _, _) in VENDORS.items()}
+    "PrintAdapterVendor",
+    [value for value, _, _ in VENDORS.values()],
+    {value: vendor for vendor, (value, _, _) in VENDORS.items()},
 )
 vendor_enums = {
     vendor: Enum(
         enum,
-        [option for _, adapter_vendor, option, _ in ADAPTERS if adapter_vendor == vendor],
-        {option: name for _, adapter_vendor, option, name in ADAPTERS if adapter_vendor == vendor},
+        [adapter.value for adapter in ADAPTERS if adapter.vendor == vendor],
+        {adapter.value: adapter.name for adapter in ADAPTERS if adapter.vendor == vendor},
     )
     for vendor, (_, enum, _) in VENDORS.items()
 }
 
-choices = "".join(
-    f"        {PrintAdapter[value]} : {{ {string('vendor')} : {PrintAdapterVendor[VENDORS[vendor][0]]}, "
-    f"{string('parameter')} : {string(VENDORS[vendor][2])}, {string('adapter')} : {vendor_enums[vendor][option]} }},\n"
-    for value, vendor, option, _ in ADAPTERS
-)
+
+def vendor_is(vendor: str) -> str:
+    return f"definition.adapterVendor == {PrintAdapterVendor[VENDORS[vendor][0]]}"
+
+
+def ui_predicate(name: str, description: str, chosen: Callable[[Adapter], bool]) -> str:
+    """A predicate which is true when the chosen adapter is one of those chosen() picks.
+
+    Preconditions show parameters based on these, rather than on hidden parameters set by editing
+    logic (see docs/featurescript-style.md).
+    """
+    terms = []
+    for vendor, (_, _, parameter) in VENDORS.items():
+        adapters = [adapter for adapter in ADAPTERS if adapter.vendor == vendor]
+        picked = [adapter for adapter in adapters if chosen(adapter)]
+        if len(picked) == len(adapters):
+            terms.append(vendor_is(vendor))
+        elif picked:
+            options = " || ".join(
+                f"definition.{parameter} == {vendor_enums[vendor][adapter.value]}" for adapter in picked
+            )
+            terms.append(f"({vendor_is(vendor)} && ({options}))" if len(picked) > 1 else f"({vendor_is(vendor)} && {options})")
+    condition = " ||\n        ".join(terms) or "false"
+    return f"""/**
+ * {description}
+ */
+export predicate {name}(definition is map)
+{{
+    {condition};
+}}"""
+
 
 branches = "\n    else ".join(
-    f"if (definition.adapterVendor == {PrintAdapterVendor[value]})\n"
+    f"if ({vendor_is(vendor)})\n"
     f"    {{\n"
     f'        annotation {{ "Name" : "Adapter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }}\n'
     f"        definition.{parameter} is {enum};\n"
     f"    }}"
-    for value, enum, parameter in VENDORS.values()
+    for vendor, (_, enum, parameter) in VENDORS.items()
 )
 selection_predicate = f"""/**
- * The vendor and adapter parameters. The editing logic keeps the feature's (hidden) PrintAdapter in sync with them,
- * using PRINT_ADAPTER_CHOICES.
+ * The vendor and adapter parameters. Use getPrintAdapter to get the chosen adapter.
  */
 export predicate printAdapterSelectionPredicate(definition is map)
 {{
@@ -180,18 +249,71 @@ export predicate printAdapterSelectionPredicate(definition is map)
     {branches}
 }}"""
 
+
+def adapter_data(adapter: Adapter) -> str:
+    entries = [
+        (string("profile"), adapter.profile),
+        (string("depth"), inch(adapter.depth)),
+        (string("bore"), adapter.bore),
+    ]
+    if adapter.boss is not None:
+        entries.append((string("boss"), inch(adapter.boss)))
+    return "{ " + ", ".join(f"{key} : {value}" for key, value in entries) + " }"
+
+
+adapters_by_vendor = ",\n".join(
+    f"        {PrintAdapterVendor[value]} : {{\n"
+    + ",\n".join(
+        f"            {vendor_enums[vendor][adapter.value]} : {adapter_data(adapter)}"
+        for adapter in ADAPTERS
+        if adapter.vendor == vendor
+    )
+    + "\n        }"
+    for vendor, (value, _, _) in VENDORS.items()
+)
+parameters_by_vendor = ",\n".join(
+    f"        {PrintAdapterVendor[value]} : {string(parameter)}" for value, _, parameter in VENDORS.values()
+)
+get_print_adapter = """/**
+ * The adapter chosen by printAdapterSelectionPredicate's parameters: its `profile`, its thickness (`depth`), how
+ * tall the boss on one side of it is (`boss`, if it has one), and the `bore` cut through the print for its shaft.
+ *
+ * A bore is a hex (`hexSize` across flats, with a corner at `vertexAngle`, timed to match the adapter), or a
+ * clearance circle (`diameter`), which SplineXS adapters (`splineXs`) can replace with a SplineXS profile.
+ */
+export function getPrintAdapter(definition is map) returns map
+{
+    return PRINT_ADAPTERS[definition.adapterVendor][definition[PRINT_ADAPTER_PARAMETERS[definition.adapterVendor]]];
+}"""
+
 CONTENTS = [
     Import("core/sketchData.fs"),
-    PrintAdapter,
     PrintAdapterVendor,
     *vendor_enums.values(),
-    # How each adapter is chosen: its vendor, and the parameter and value choosing it from that vendor's adapters
-    Constant("PRINT_ADAPTER_CHOICES", "{\n" + choices + "    }"),
     Code(selection_predicate),
+    Code(
+        ui_predicate(
+            "printAdapterHasBoss",
+            "Whether the chosen adapter has a boss on one side.",
+            lambda adapter: adapter.boss is not None,
+        )
+    ),
+    Code(
+        ui_predicate(
+            "printAdapterHasSplineXsBore",
+            "Whether the chosen adapter fits a SplineXS shaft.",
+            lambda adapter: adapter.splines,
+        )
+    ),
     Sketch("WCP_HEX_ADAPTER_PROFILE", Profile(WCP_HEX_ADAPTER, WCP_HEX_ADAPTER_ORDER)),
     Sketch("WCP_SPLINE_ADAPTER_PROFILE", Profile(WCP_SPLINE_ADAPTER, WCP_SPLINE_ADAPTER_ORDER)),
     Sketch("TTB_HEX_INSERT_PROFILE", Profile(TTB_HEX_INSERT, TTB_HEX_INSERT_ORDER)),
     Sketch("ANDYMARK_HEX_INSERT_PROFILE", Profile(ANDYMARK_HEX_INSERT)),
     Sketch("ANDYMARK_SMALL_INSERT_PROFILE", Profile(ANDYMARK_SMALL_INSERT)),
     Sketch("SWYFT_HEX_ADAPTER_PROFILE", Profile(SWYFT_HEX_ADAPTER)),
+    # Each vendor's adapter parameter
+    Constant("PRINT_ADAPTER_PARAMETERS", "{\n" + parameters_by_vendor + "\n    }"),
+    # Every adapter, by vendor and then value
+    Constant("PRINT_ADAPTERS", "{\n" + adapters_by_vendor + "\n    }"),
+    Code(get_print_adapter),
 ]
