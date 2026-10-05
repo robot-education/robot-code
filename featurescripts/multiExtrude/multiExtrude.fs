@@ -3,7 +3,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "onshape/std/extrude.fs", version : "2960.0");
 export import(path : "onshape/std/extrudeCommon.fs", version : "2960.0");
 
-import(path : "6c65805103086c85362ee4b7", version : "06268198ef2566cb246b9f56");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 ExtrudeIcon::import(path : "0d9de9de05469ac12e79dfa9", version : "c3a60d437e0b6b2e5452f17a");
 
