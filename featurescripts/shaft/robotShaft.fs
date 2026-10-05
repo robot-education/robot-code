@@ -16,7 +16,7 @@ import(path : "0195d390c3944cd4fab21ce0", version : "eb719b1576c924e1ac6e1ffa");
 import(path : "6c65805103086c85362ee4b7", version : "06268198ef2566cb246b9f56");
 import(path : "0794d10863d10d98a88c2ab4", version : "90bbee184f6552271649afea");
 // Also exports the enum used as a parameter type
-export import(path : "core/program.fs", version : "");
+export import(path : "3651d7ff6d8577f322b85723", version : "bd1f8dd236054c189347634f");
 
 /**
  * Whether a shaft is one someone sells (see robotShaftTables.py), or custom.

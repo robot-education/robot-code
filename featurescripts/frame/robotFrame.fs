@@ -1,14 +1,14 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "core/frameTags.fs", version : "");
-import(path : "core/robotFeature.fs", version : "");
-import(path : "core/robotProperties.fs", version : "");
-import(path : "core/sketchData.fs", version : "");
-import(path : "frame/frameTables.gen.fs", version : "");
-import(path : "splineProfile/splineProfiles.gen.fs", version : "");
+import(path : "72b77780ed382be329401627", version : "c007335a53e017e87fb72abc");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+import(path : "0794d10863d10d98a88c2ab4", version : "599a218f6ba935dcd664345c");
+import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
+import(path : "ff444db0395e01aaa8c7e555", version : "2035cadd8237ea6f5a32ef6a");
+import(path : "aa47f3d3eb754118903deeec", version : "cdbb3e4ffa802ae7b7ce0f89");
 // Also exports the enums used as parameter types
-export import(path : "core/linearStock.fs", version : "");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "96c729d8e6fb2f0289f4a22d");
 
 /**
  * Whether a frame is one someone sells (see frameTables.py), or custom.

@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "45dff3bbc433a900eed1ccbc", version : "14842857f454165acd38a67e");
 
-import(path : "core/edgeManipulators.fs", version : "");
+import(path : "0fb7aae3e8fad817927ae062", version : "22c5f762329d1b71c9e2a020");
 
 /**
  * A feature which derives a Part Studio onto each of several edges (see derive/opPointTransform.fs).

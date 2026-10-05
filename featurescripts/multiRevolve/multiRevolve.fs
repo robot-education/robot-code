@@ -3,7 +3,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 // The std revolve feature, its manipulators, and its editing logic; also exports RevolveBoundingType, a parameter type
 export import(path : "onshape/std/revolve.fs", version : "2960.0");
 
-import(path : "core/robotFeature.fs", version : "");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 RevolveIcon::import(path : "c0e2bec1df9e786c331121f2", version : "7171f9f8ff4b0789740f2a0e");
 

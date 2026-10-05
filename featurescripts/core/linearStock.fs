@@ -15,14 +15,14 @@ FeatureScript 2960;
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "core/robotProperties.fs", version : "");
+import(path : "0794d10863d10d98a88c2ab4", version : "599a218f6ba935dcd664345c");
 // Exported since features' preconditions use their predicates (and enums) through this module's
-export import(path : "core/edgeManipulators.fs", version : "");
-export import(path : "core/location.fs", version : "");
-export import(path : "core/mounting.fs", version : "");
-export import(path : "core/pointManipulator.fs", version : "");
-export import(path : "core/program.fs", version : "");
-export import(path : "core/stdExtrude.fs", version : "");
+export import(path : "0fb7aae3e8fad817927ae062", version : "22c5f762329d1b71c9e2a020");
+export import(path : "0195d390c3944cd4fab21ce0", version : "71278ebc72b57aad713b49aa");
+export import(path : "58d66340f7b70cfc86606676", version : "88f7f55d3e4918ee4144e69e");
+export import(path : "554542fc345271814c4463b0", version : "7b51d4ee67ff00292b209c0a");
+export import(path : "3651d7ff6d8577f322b85723", version : "bd1f8dd236054c189347634f");
+export import(path : "21762d39019c8b2289e2fbb8", version : "647a15cef06a2b54daee84a1");
 export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960.0");
 
 /**

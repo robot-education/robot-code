@@ -1,11 +1,11 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "core/robotFeature.fs", version : "");
-import(path : "core/tappedHole.fs", version : "");
-import(path : "nutStrip/nutStripTables.gen.fs", version : "");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+import(path : "f58a965fe7005e2e3c9a67c7", version : "677bf3922dfa094b531db36f");
+import(path : "e316d3a31f8726cbc70fe081", version : "5869fb5c760ae5caba16f64a");
 // Also exports the enums used as parameter types
-export import(path : "core/linearStock.fs", version : "");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "96c729d8e6fb2f0289f4a22d");
 
 /** The default number of holes tied to the end of a nut strip. */
 const TIED_HOLE_COUNT_BOUNDS = { (unitless) : [1, 1, 1e3] } as IntegerBoundSpec;
