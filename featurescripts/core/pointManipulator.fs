@@ -2,7 +2,7 @@ FeatureScript 2960;
 /**
  * Defines utilities for adding a point manipulator to a feature.
  *
- * To use, add `pointManipulatorPredicate` to the feature predicate
+ * To use, add `pointManipulatorPredicate` (or `ninePointManipulatorPredicate`) to the feature predicate
  * and `pointManipulatorChange` to the manipulator change function,
  * then call `addPointManipulator` and, optionally, `getPointIndex`.
  */
@@ -17,6 +17,44 @@ export predicate pointManipulatorPredicate(definition is map)
 {
     annotation { "Name" : "Index", "UIHint" : ["ALWAYS_HIDDEN"] }
     isInteger(definition.index, INDEX_BOUNDS);
+}
+
+/**
+ * The index of the center point of a nine point manipulator. @seealso [ninePoints]
+ */
+export const NINE_POINT_CENTER_INDEX = 4;
+
+export const NINE_POINT_INDEX_BOUNDS = { (unitless) : [0, NINE_POINT_CENTER_INDEX, 8] } as IntegerBoundSpec;
+
+/**
+ * Creates a hidden `index` parameter for a nine point manipulator, which defaults to the center point.
+ * Use it in place of `pointManipulatorPredicate`.
+ */
+export predicate ninePointManipulatorPredicate(definition is map)
+{
+    annotation { "Name" : "Index", "UIHint" : ["ALWAYS_HIDDEN"] }
+    isInteger(definition.index, NINE_POINT_INDEX_BOUNDS);
+}
+
+/**
+ * The points of a nine point manipulator, as in the std Frame feature: the corners, edge midpoints, and center of
+ * `boundingBox` in X and Y, at its minimum Z. They're ordered:
+ * ```
+ * 8 7 6
+ * 5 4 3
+ * 2 1 0
+ * ```
+ */
+export function ninePoints(boundingBox is Box3d) returns array
+{
+    const center = box3dCenter(boundingBox);
+    const halfExtents = (boundingBox.maxCorner - boundingBox.minCorner) / 2;
+    return mapArray(range(0, 8), function(i)
+        {
+            return vector(center[0] + (1 - i % 3) * halfExtents[0],
+                center[1] + (floor(i / 3) - 1) * halfExtents[1],
+                boundingBox.minCorner[2]);
+        });
 }
 
 const POINT_MANIPULATOR = "pointManipulator";
