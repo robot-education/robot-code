@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "derive/opPointTransform.fs", version : "");
+import(path : "45dff3bbc433a900eed1ccbc", version : "14842857f454165acd38a67e");
 
 const POINT_MANIPULATOR = "edgePointManipulator";
 const FLIP_MANIPULATOR = "edgeFlipManipulator";

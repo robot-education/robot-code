@@ -7,7 +7,7 @@ export import(path : "onshape/std/frameUtils.fs", version : "2960.0");
 
 import(path : "a816414b5bd99693e25e303c", version : "021db05cf4ac12aff11e01b6");
 import(path : "eb11a2948f8123134339137f", version : "aa3b93f58a282fb8286a97ca");
-import(path : "splineProfile/splineProfiles.gen.fs", version : "");
+import(path : "aa47f3d3eb754118903deeec", version : "0cf078513442fad9ec35fd7b");
 
 export const ROBOT_FRAME_ATTRIBUTE = "robotFrame";
 const ROBOT_FRAME_FACE_ATTRIBUTE = "robotFrameFace";

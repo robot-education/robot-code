@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 
-export import(path : "6e24956e9977116c79280620", version : "1cdcfd6334c53e51fef6f5f5");
+export import(path : "6e24956e9977116c79280620", version : "4deaa9512490955da06665c4");
 
 export enum ShaftType
 {
