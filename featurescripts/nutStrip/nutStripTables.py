@@ -166,7 +166,7 @@ LAST_ANVIL = vendor(
 # https://www.revrobotics.com/3-8in-nut-strips/
 # The rows line up (their holes cross), starting 0.24 in. from the end (REV-21-3420's STEP file)
 # Black anodized
-# REV's parts don't have their own pages; lengths are from the product page (sold in 2-packs)
+# REV's parts don't have their own pages (and are sold in 2-packs)
 REV_FRC_URL = "https://www.revrobotics.com/3-8in-nut-strips/"
 REV_FRC = vendor(
     "REV",
@@ -181,10 +181,8 @@ REV_FRC = vendor(
             [
                 with_stock(
                     NUMBER_10_32,
-                    *[
-                        (mm(length), f"REV-21-{3420 + 2 * i}-PK2", REV_FRC_URL)
-                        for i, length in enumerate([37.59, 62.99, 88.39, 113.79, 139.19, 164.59])
-                    ],
+                    # 1.48 in. to 6.48 in., with 3 to 13 holes in each row (drawing: 0.375in-Nut-Strip-DR.pdf)
+                    *[(inch(1.48 + i), f"REV-21-{3420 + 2 * i}-PK2", REV_FRC_URL) for i in range(6)],
                 )
             ],
         )

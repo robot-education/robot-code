@@ -150,7 +150,7 @@ const NUT_STRIP_OFFSET_BOUNDS = {
 
 /**
  * Places a nut strip along each edge, spanning it apart from `startOffset` and `endOffset` at its ends (which are
- * inset when positive), if they're on. The offsets' manipulators are shown on the first edge.
+ * inset when positive), if they're on. The offsets' manipulators are shown on the first edge, when they're on.
  */
 function nutStripsOnEdges(context is Context, id is Id, definition is map, nutStrip is map)
 {
@@ -159,6 +159,7 @@ function nutStripsOnEdges(context is Context, id is Id, definition is map, nutSt
     const startOffset = definition.hasStartOffset ? definition.startOffset : 0 * meter;
     const endOffset = definition.hasEndOffset ? definition.endOffset : 0 * meter;
     const radius = norm(vector(nutStrip.width, nutStrip.height));
+    var longest = 0 * meter;
     for (var i, edge in edges)
     {
         const stripId = id + unstableIdComponent(i);
@@ -181,7 +182,8 @@ function nutStripsOnEdges(context is Context, id is Id, definition is map, nutSt
         const index = parameters[i].index ?? NINE_POINT_CENTER_INDEX;
         const points = buildNutStrip(context, stripId, definition, nutStrip, location, length, index);
         addEdgeManipulators(context, id, i, middle, parameters[i], points, index, radius);
-        if (i == 0)
+        longest = max(longest, length);
+        if (i == 0 && definition.hasStartOffset)
         {
             addManipulators(context, id, {
                         (START_OFFSET_MANIPULATOR) : linearManipulator({
@@ -189,7 +191,12 @@ function nutStripsOnEdges(context is Context, id is Id, definition is map, nutSt
                                 "direction" : location.zAxis,
                                 "offset" : startOffset,
                                 "primaryParameterId" : "startOffset"
-                            }),
+                            })
+                    });
+        }
+        if (i == 0 && definition.hasEndOffset)
+        {
+            addManipulators(context, id, {
                         (END_OFFSET_MANIPULATOR) : linearManipulator({
                                 "base" : edgeStart + location.zAxis * edgeLength,
                                 "direction" : -location.zAxis,
@@ -198,6 +205,19 @@ function nutStripsOnEdges(context is Context, id is Id, definition is map, nutSt
                             })
                     });
         }
+    }
+    warnIfTooLong(context, id, definition, nutStrip, longest, ["edges"]);
+}
+
+/**
+ * Warns if a nut strip `length` long is longer than the nut strip is sold in.
+ */
+function warnIfTooLong(context is Context, id is Id, definition is map, nutStrip is map, length is ValueWithUnits, parameters is array)
+{
+    if (stockFor(nutStrip, length) == undefined)
+    {
+        const longest = nutStrip.stock[size(nutStrip.stock) - 1].length;
+        reportFeatureWarning(context, id, "This nut strip is only sold up to " ~ lengthString(definition, longest) ~ " long.", parameters);
     }
 }
 
@@ -240,6 +260,7 @@ function extrudeNutStrip(context is Context, id is Id, definition is map, nutStr
 
     const index = getPointIndex(definition, 9);
     addPointManipulator(context, id, definition, buildNutStrip(context, id + "nutStrip", definition, nutStrip, location, length, index));
+    warnIfTooLong(context, id, definition, nutStrip, length, ["depth"]);
 }
 
 /**
@@ -272,10 +293,9 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
 
     const offsets = ninePointOffsets(nutStrip.width, nutStrip.height);
     const center = -offsets[index];
-    const margin = endMargin(nutStrip);
 
     // Sketched on the strip's bottom with X along its length, so its sketch Y is the strip's X
-    const yHoles = holePositions(nutStrip.yHoleStart, nutStrip.spacing, length, margin);
+    const yHoles = holePositions(nutStrip.yHoleStart, nutStrip, length);
     const stripPlane = plane(toWorld(location, center - vector(0 * meter, nutStrip.height / 2, 0 * meter)), yAxis(location), location.zAxis);
     const stripSketch = newSketchOnPlane(context, id + "stripSketch", { "sketchPlane" : stripPlane });
     skRectangle(stripSketch, "outline", {
@@ -293,7 +313,7 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
     const strip = qCreatedBy(id + "strip", EntityType.BODY);
 
     // Sketched on the strip's side with X along its length, so its sketch Y is the strip's -Y
-    const xHoles = holePositions(nutStrip.xHoleStart, nutStrip.spacing, length, margin);
+    const xHoles = holePositions(nutStrip.xHoleStart, nutStrip, length);
     const holePlane = plane(toWorld(location, center - vector(nutStrip.width / 2, 0 * meter, 0 * meter)), location.xAxis, location.zAxis);
     if (xHoles != [])
     {
@@ -363,12 +383,14 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
 }
 
 /**
- * Where holes go along a strip `length` long: `spacing` apart from `start`, and at least `endMargin` from its end.
+ * Where a row of holes goes along a strip `length` long: `spacing` apart from `start`, while they fit whole. So a
+ * strip cut from a longer one has the holes it would keep, and stock lengths have the holes they're sold with.
  */
-function holePositions(start is ValueWithUnits, spacing is ValueWithUnits, length is ValueWithUnits, endMargin is ValueWithUnits) returns array
+function holePositions(start is ValueWithUnits, nutStrip is map, length is ValueWithUnits) returns array
 {
     var positions = [];
-    for (var position = start; position <= length - endMargin + TOLERANCE.zeroLength * meter; position += spacing)
+    const last = length - nutStrip.tapDrillDiameter / 2 + TOLERANCE.zeroLength * meter;
+    for (var position = start; position <= last; position += nutStrip.spacing)
     {
         positions = append(positions, position);
     }
@@ -407,16 +429,23 @@ function holesInRow(context is Context, extrudeId is Id, holePlane is Plane, nut
         });
 }
 
+/**
+ * A length in inches for FRC or millimeters for FTC, e.g. `6 in.` or `136 mm`.
+ */
+function lengthString(definition is map, length is ValueWithUnits) returns string
+{
+    return isFrc(definition) ?
+        roundToPrecision(length / inch, 3) ~ " in." :
+        roundToPrecision(length / millimeter, 1) ~ " mm";
+}
+
 function setNutStripProperties(context is Context, strip is Query, definition is map, nutStrip is map, length is ValueWithUnits)
 {
     // e.g. 6 in. Nut Strip (WCP 1/2 in., #10-32)
-    const lengthString = isFrc(definition) ?
-        roundToPrecision(length / inch, 3) ~ " in." :
-        roundToPrecision(length / millimeter, 1) ~ " mm";
     setProperty(context, {
                 "entities" : strip,
                 "propertyType" : PropertyType.NAME,
-                "value" : lengthString ~ " Nut Strip (" ~ nutStrip.vendor ~ " " ~ nutStrip.sizeName ~ ", " ~ nutStrip.threadName ~ ")"
+                "value" : lengthString(definition, length) ~ " Nut Strip (" ~ nutStrip.vendor ~ " " ~ nutStrip.sizeName ~ ", " ~ nutStrip.threadName ~ ")"
             });
     // The part number of the stock it's cut from, and a link to buy it
     const stock = stockFor(nutStrip, length);
@@ -470,15 +499,12 @@ export function robotNutStripManipulatorChange(context is Context, definition is
 {
     if (isEdgePlacement(definition))
     {
-        // Dragging an offset turns it on
         if (newManipulators[START_OFFSET_MANIPULATOR] != undefined)
         {
-            definition.hasStartOffset = true;
             definition.startOffset = newManipulators[START_OFFSET_MANIPULATOR].offset;
         }
         if (newManipulators[END_OFFSET_MANIPULATOR] != undefined)
         {
-            definition.hasEndOffset = true;
             definition.endOffset = newManipulators[END_OFFSET_MANIPULATOR].offset;
         }
         return edgeManipulatorsChange(definition, newManipulators);
