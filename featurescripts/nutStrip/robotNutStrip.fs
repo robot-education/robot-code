@@ -66,6 +66,12 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
             definition.edges is Query;
 
             edgeManipulatorsPredicate(definition);
+
+            annotation { "Name" : "Start offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            isLength(definition.startOffset, ZERO_DEFAULT_LENGTH_BOUNDS);
+
+            annotation { "Name" : "End offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            isLength(definition.endOffset, ZERO_DEFAULT_LENGTH_BOUNDS);
         }
         else
         {
@@ -112,13 +118,19 @@ function getNutStrip(definition is map) returns map
         getLookupTable(ftcNutStripTable, definition.ftcNutStrip);
 }
 
+const START_OFFSET_MANIPULATOR = "startOffsetManipulator";
+const END_OFFSET_MANIPULATOR = "endOffsetManipulator";
+
 /**
- * Places a nut strip along each edge, spanning it.
+ * Places a nut strip along each edge, spanning it apart from `startOffset` and `endOffset` at its ends (which are
+ * inset when positive). The offsets' manipulators are shown on the first edge.
  */
 function nutStripsOnEdges(context is Context, id is Id, definition is map, nutStrip is map)
 {
     const edges = verifyNonemptyQuery(context, definition, "edges", "Select one or more edges to add nut strips to.");
     const parameters = edgeParameters(definition, size(edges));
+    const startOffset = definition.startOffset ?? endMargin(nutStrip);
+    const endOffset = definition.endOffset ?? endMargin(nutStrip);
     const radius = norm(vector(nutStrip.width, nutStrip.height));
     for (var i, edge in edges)
     {
@@ -126,14 +138,48 @@ function nutStripsOnEdges(context is Context, id is Id, definition is map, nutSt
         setExternalDisambiguation(context, stripId, edge);
 
         const middle = edgeCoordSystem(context, edge);
-        const length = evLength(context, { "entities" : edge });
+        const edgeLength = evLength(context, { "entities" : edge });
+        // At the start of the edge, in the direction the strip is drawn
         var location = applyEdgeParameters(middle, parameters[i]);
-        location.origin -= location.zAxis * length / 2;
+        location.origin -= location.zAxis * edgeLength / 2;
+        const edgeStart = location.origin;
+        location.origin += location.zAxis * startOffset;
+
+        const length = edgeLength - startOffset - endOffset;
+        if (length < TOLERANCE.zeroLength * meter)
+        {
+            throw regenError("The offsets leave no room for a nut strip.", ["startOffset", "endOffset"], edge);
+        }
 
         const index = parameters[i].index ?? NINE_POINT_CENTER_INDEX;
         const points = buildNutStrip(context, stripId, definition, nutStrip, location, length, index);
         addEdgeManipulators(context, id, i, middle, parameters[i], points, index, radius);
+        if (i == 0)
+        {
+            addManipulators(context, id, {
+                        (START_OFFSET_MANIPULATOR) : linearManipulator({
+                                "base" : edgeStart,
+                                "direction" : location.zAxis,
+                                "offset" : startOffset,
+                                "primaryParameterId" : "startOffset"
+                            }),
+                        (END_OFFSET_MANIPULATOR) : linearManipulator({
+                                "base" : edgeStart + location.zAxis * edgeLength,
+                                "direction" : -location.zAxis,
+                                "offset" : endOffset,
+                                "primaryParameterId" : "endOffset"
+                            })
+                    });
+        }
     }
+}
+
+/**
+ * How far the closest hole of a nut strip is from its start: the default offset for each end of a strip on an edge.
+ */
+function endMargin(nutStrip is map) returns ValueWithUnits
+{
+    return min(nutStrip.xHoleStart, nutStrip.yHoleStart);
 }
 
 /**
@@ -198,10 +244,10 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
 
     const offsets = ninePointOffsets(nutStrip.width, nutStrip.height);
     const center = -offsets[index];
-    const endMargin = min(nutStrip.xHoleStart, nutStrip.yHoleStart);
+    const margin = endMargin(nutStrip);
 
     // Sketched on the strip's bottom with X along its length, so its sketch Y is the strip's X
-    const yHoles = holePositions(nutStrip.yHoleStart, nutStrip.spacing, length, endMargin);
+    const yHoles = holePositions(nutStrip.yHoleStart, nutStrip.spacing, length, margin);
     const stripPlane = plane(toWorld(location, center - vector(0 * meter, nutStrip.height / 2, 0 * meter)), yAxis(location), location.zAxis);
     const stripSketch = newSketchOnPlane(context, id + "stripSketch", { "sketchPlane" : stripPlane });
     skRectangle(stripSketch, "outline", {
@@ -219,7 +265,7 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
     const strip = qCreatedBy(id + "strip", EntityType.BODY);
 
     // Sketched on the strip's side with X along its length, so its sketch Y is the strip's -Y
-    const xHoles = holePositions(nutStrip.xHoleStart, nutStrip.spacing, length, endMargin);
+    const xHoles = holePositions(nutStrip.xHoleStart, nutStrip.spacing, length, margin);
     const holePlane = plane(toWorld(location, center - vector(nutStrip.width / 2, 0 * meter, 0 * meter)), location.xAxis, location.zAxis);
     if (xHoles != [])
     {
@@ -364,6 +410,14 @@ export function robotNutStripManipulatorChange(context is Context, definition is
 {
     if (isEdgePlacement(definition))
     {
+        if (newManipulators[START_OFFSET_MANIPULATOR] != undefined)
+        {
+            definition.startOffset = newManipulators[START_OFFSET_MANIPULATOR].offset;
+        }
+        if (newManipulators[END_OFFSET_MANIPULATOR] != undefined)
+        {
+            definition.endOffset = newManipulators[END_OFFSET_MANIPULATOR].offset;
+        }
         return edgeManipulatorsChange(definition, newManipulators);
     }
     definition = pointManipulatorChange(definition, newManipulators);
@@ -379,6 +433,18 @@ export function robotNutStripEditLogic(context is Context, id is Id, oldDefiniti
 {
     if (isEdgePlacement(definition))
     {
+        if (nutStripChanged(oldDefinition, definition))
+        {
+            // Offset each end by its distance to the closest hole, unless the offsets have been set
+            const margin = endMargin(getNutStrip(definition));
+            for (var offset in ["startOffset", "endOffset"])
+            {
+                if (!(specifiedParameters[offset] ?? false))
+                {
+                    definition[offset] = margin;
+                }
+            }
+        }
         return edgeManipulatorsEditLogic(context, oldDefinition, definition);
     }
     definition.entities = qNothing();
@@ -390,4 +456,11 @@ export function robotNutStripEditLogic(context is Context, id is Id, oldDefiniti
         }
     }
     return stdNewExtrudeEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
+}
+
+function nutStripChanged(oldDefinition is map, definition is map) returns boolean
+{
+    return oldDefinition.program != definition.program ||
+        oldDefinition.frcNutStrip != definition.frcNutStrip ||
+        oldDefinition.ftcNutStrip != definition.ftcNutStrip;
 }
