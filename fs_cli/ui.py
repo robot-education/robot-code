@@ -308,7 +308,11 @@ UNITS = {"meter", "centimeter", "millimeter", "inch", "foot", "yard", "degree", 
 
 
 class Declarations:
-    """The predicates, enums, constants and features of a set of files, parsed lazily."""
+    """The predicates, enums, constants and features of a set of files, parsed lazily.
+
+    The first file added to declare a name wins, so files should be added nearest first (as
+    `load_declarations` does), the way a file's own declarations hide those of files it imports.
+    """
 
     def __init__(self) -> None:
         self.predicates: dict[str, Predicate] = {}
@@ -356,7 +360,7 @@ class Declarations:
                 parser.advance()
             parser.accept(",")
         parser.expect(")")
-        self.predicates[name] = Predicate(name, parameters, parser.block())
+        self.predicates.setdefault(name, Predicate(name, parameters, parser.block()))
 
     def _enum(self, parser: Parser) -> None:
         parser.advance()
@@ -374,7 +378,7 @@ class Declarations:
                     values[value] = annotation.get("Name", value)
                 annotation = {}
         parser.expect("}")
-        self.enums[name] = EnumType(name, values)
+        self.enums.setdefault(name, EnumType(name, values))
 
     def _constant(self, parser: Parser, tokens: list[Token], annotation: Node | None) -> None:
         parser.advance()
@@ -384,9 +388,9 @@ class Declarations:
         parser.expect("=")
         start = parser.position
         if parser.check("defineFeature"):
-            self.features[name] = self._feature(parser, name, annotation)
+            self.features.setdefault(name, self._feature(parser, name, annotation))
             return
-        self.constants[name] = (tokens, start)
+        self.constants.setdefault(name, (tokens, start))
         # Skip to the end of the constant
         while not parser.check(";") and parser.peek().kind != "eof":
             if parser.peek().value in ("(", "[", "{"):
@@ -424,7 +428,7 @@ def load_declarations(project: Project, std_dir: pathlib.Path, path: pathlib.Pat
     seen: set[pathlib.Path] = set()
     pending = [path.resolve()]
     while pending:
-        current = pending.pop()
+        current = pending.pop(0)
         if current in seen or not current.is_file():
             continue
         seen.add(current)
