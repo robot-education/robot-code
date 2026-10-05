@@ -28,7 +28,7 @@ from typing import Callable, Iterable
 from fs_cli import git
 from fs_cli.config import Config
 from fs_cli.renames import most_similar
-from fs_cli.remote import Remote, RemoteStudio, file_name_for, relative_path_for
+from fs_cli.remote import Remote, RemoteStudio, file_name_for, image_type, relative_path_for
 from onshape_api.exceptions import ApiError
 from fs_cli.state import (
     State,
@@ -140,11 +140,13 @@ class Workspace:
         self.listed_microversions: dict[str, str] = {}
         # Every tab, as of the last listing
         self.listed_studios: list[RemoteStudio] = []
+        # The element ids of tabs whose imports were just pointed at new versions locally (see `push_studios`)
+        self.updated_imports: set[str] = set()
 
     def resolve_targets(self, args: Iterable[str]) -> Targets | None:
         """Resolves command line arguments into Targets, or None for everything.
 
-        Arguments may be .fs files or folders inside the code folder, or Feature Studio names.
+        Arguments may be .fs files, images, or folders inside the code folder, or Feature Studio or image names.
         """
         args = list(args)
         if not args:
@@ -154,7 +156,7 @@ class Workspace:
         for arg in args:
             path = pathlib.Path(arg).resolve()
             inside = path == code_dir or code_dir in path.parents
-            if inside and (path.is_dir() or path.suffix != ".fs"):
+            if inside and (path.is_dir() or (path.suffix != ".fs" and not image_type(path.name))):
                 relative = path.relative_to(code_dir).as_posix()
                 targets.folders.add("" if relative == "." else relative)
             elif inside:
@@ -197,7 +199,8 @@ class Workspace:
             selected = []
             for target in sorted(targets.all()):
                 matched = [s for s in studios if targets.matches(target, s)]
-                if not matched and target not in targets.folders:
+                if not matched and target not in targets.folders and not image_type(target):
+                    # Images are matched by `Images.scan`
                     raise UsageError(f'No FeatureScript matches "{target}".')
                 selected.extend(s for s in matched if s not in selected)
             studios = selected
@@ -403,14 +406,15 @@ class Workspace:
             updated.append(studio)
         return updated
 
-    def path_import_problems(self, studios: list[Studio]) -> list[str]:
+    def path_import_problems(self, studios: list[Studio], images: Iterable[str] = ()) -> list[str]:
         """Checks that the imports by path in studios (about to be pushed) can be resolved.
 
-        A path must be a file in the code folder which is in Onshape, or is being pushed too.
-        Makes no API calls.
+        A path must be a file in the code folder which is in Onshape, or is being pushed too (like images, the
+        paths of the images being pushed). Makes no API calls.
         """
         synced = {entry.file for entry in self.state.studios.values()}
-        pushing = {studio.path for studio in studios}
+        synced.update(entry.file for entry in self.state.images.values())
+        pushing = {studio.path for studio in studios} | set(images)
         problems = []
         for studio in studios:
             for path in path_imports(studio.local_code or ""):
@@ -438,7 +442,7 @@ class Workspace:
 
         targets = {
             entry.file: (element_id, entry.microversion_id)
-            for element_id, entry in self.state.studios.items()
+            for element_id, entry in {**self.state.images, **self.state.studios}.items()
         }
         for studio in studios:
             assert studio.remote
@@ -448,8 +452,11 @@ class Workspace:
             assert studio.local_code is not None and studio.remote
             code = resolve_path_imports(studio.local_code, targets)
             if studio.remote_code is not None:
-                # Never push import versions older than the ones Onshape has
-                code = apply_import_versions(code, import_versions(studio.remote_code))
+                # Never push import versions older than the ones Onshape has, except of tabs just pushed
+                versions = import_versions(studio.remote_code)
+                code = apply_import_versions(
+                    code, {id: version for id, version in versions.items() if id not in self.updated_imports}
+                )
             if code != studio.local_code:
                 studio.file.write_text(code, newline="")
                 studio.local_code = code
@@ -497,9 +504,10 @@ class Workspace:
             self.state.studios.pop(studio.remote.element_id, None)
 
     def importers(self, element_id: str) -> list[str]:
-        """Returns the local files (relative to the code folder) which import a tab. Makes no API calls."""
+        """Returns the local files (relative to the code folder) which import a tab (a studio, or an image into a
+        namespace). Makes no API calls."""
         pattern = re.compile(
-            rf'^\s*(export\s+)?import\s*\(\s*path\s*:\s*"{re.escape(element_id)}"',
+            rf'^\s*(export\s+)?(\w+::)?import\s*\(\s*path\s*:\s*"{re.escape(element_id)}"',
             re.MULTILINE,
         )
         code_dir = self.config.code_dir

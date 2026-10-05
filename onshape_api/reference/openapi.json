@@ -6,6 +6,260 @@
     "description": "Trimmed from https://cad.onshape.com/api/openapi by onshape_api/reference/generate.py. Do not edit."
   },
   "paths": {
+    "/blobelements/d/{did}/w/{wid}": {
+      "post": {
+        "tags": [
+          "BlobElement"
+        ],
+        "summary": "Upload a file and create a blob element from it.",
+        "description": "Request body parameters are multipart fields, so you must use `\"Content-Type\":\"multipart/form-data\"` in the request header.",
+        "operationId": "uploadFileCreateElement",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "description": "The id of the document in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkDocumentId",
+            "in": "query",
+            "description": "The id of the document through which the above document should be accessed; only applicable when accessing a version of the document. This allows a user who has access to document a to see data from document b, as long as document b has been linked to document a by a user who has permission to both.",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "wid",
+            "in": "path",
+            "description": "The id of the workspace in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/BTBTranslationRequestParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTDocumentElementProcessingInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Write"
+            ],
+            "BasicAuth": [
+              "OAuth2Write"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/blobelements/d/{did}/w/{wid}/e/{eid}": {
+      "post": {
+        "tags": [
+          "BlobElement"
+        ],
+        "summary": "Update a blob element by uploading a file.",
+        "description": "Request body parameters are multipart fields, so you must use `\"Content-Type\":\"multipart/form-data\"` in the request header.",
+        "operationId": "uploadFileUpdateElement",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "description": "The id of the document in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkDocumentId",
+            "in": "query",
+            "description": "The id of the document through which the above document should be accessed; only applicable when accessing a version of the document. This allows a user who has access to document a to see data from document b, as long as document b has been linked to document a by a user who has permission to both.",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "wid",
+            "in": "path",
+            "description": "The id of the workspace in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "description": "The id of the element in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parentChangeId",
+            "in": "query",
+            "description": "The id of the last change made to this application element. This can be retrieved from the response for any app element modification endpoint.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/BTBTranslationRequestParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTDocumentElementProcessingInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Write"
+            ],
+            "BasicAuth": [
+              "OAuth2Write"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      },
+      "get": {
+        "tags": [
+          "BlobElement"
+        ],
+        "summary": "Download a file from a blob element for the specified workspace/version/microversion.",
+        "description": "See [API Guide: Model Translation](https://onshape-public.github.io/docs/api-adv/translation/) for more details.",
+        "operationId": "downloadFileWorkspace",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "description": "The id of the document in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkDocumentId",
+            "in": "query",
+            "description": "The id of the document through which the above document should be accessed; only applicable when accessing a version of the document. This allows a user who has access to document a to see data from document b, as long as document b has been linked to document a by a user who has permission to both.",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "wid",
+            "in": "path",
+            "description": "The id of the workspace in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "description": "The id of the element in which to perform the operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contentDisposition",
+            "in": "query",
+            "description": "If \"attachment\", includes a Content-Disposition return header with the filename.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "Entity tag; an md5 checksum of the data in double quotes. If the data to download has the same checksum as this entity tag, a 304 'Not Modified' status will be returned. The entity tag is returned in the response headers as ETag.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "File download.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
     "/documents/d/{did}/versions": {
       "get": {
         "tags": [
@@ -671,6 +925,131 @@
   },
   "components": {
     "schemas": {
+      "BTApplicationTargetInfo": {
+        "type": "object",
+        "properties": {
+          "baseHref": {
+            "type": "string",
+            "format": "uri"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "supportsCollaboration": {
+            "type": "boolean"
+          },
+          "tabIconHref": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "BTBTranslationRequestParams": {
+        "type": "object",
+        "properties": {
+          "allowFaultyParts": {
+            "type": "boolean"
+          },
+          "createComposite": {
+            "type": "boolean"
+          },
+          "createDrawingIfPossible": {
+            "type": "boolean"
+          },
+          "encodedFilename": {
+            "type": "string"
+          },
+          "extractAssemblyHierarchy": {
+            "type": "boolean"
+          },
+          "file": {
+            "type": "string",
+            "description": "The file to upload.",
+            "format": "binary"
+          },
+          "flattenAssemblies": {
+            "type": "boolean"
+          },
+          "formatName": {
+            "type": "string"
+          },
+          "importAppearances": {
+            "type": "boolean"
+          },
+          "importMaterialDensity": {
+            "type": "boolean"
+          },
+          "importWithinDocument": {
+            "type": "boolean"
+          },
+          "joinAdjacentSurfaces": {
+            "type": "boolean"
+          },
+          "locationElementId": {
+            "type": "string"
+          },
+          "locationGroupId": {
+            "type": "string"
+          },
+          "locationPosition": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "makePublic": {
+            "type": "boolean"
+          },
+          "notifyUser": {
+            "type": "boolean"
+          },
+          "onePartPerDoc": {
+            "type": "boolean"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "repointAppElementVersionRefs": {
+            "type": "boolean"
+          },
+          "splitAssembliesIntoMultipleDocuments": {
+            "type": "boolean"
+          },
+          "storeInDocument": {
+            "type": "boolean"
+          },
+          "translate": {
+            "type": "boolean"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "uploadId": {
+            "type": "string"
+          },
+          "useIGESImportPostProcessing": {
+            "type": "boolean"
+          },
+          "versionString": {
+            "type": "string"
+          },
+          "yAxisIsUp": {
+            "type": "boolean"
+          }
+        },
+        "x-BTVisibility-properties": {
+          "versionDescription": "INTERNAL",
+          "versionId": "INTERNAL",
+          "upgradeFeatureScriptVersion": "INTERNAL",
+          "documentId": "INTERNAL",
+          "versionName": "INTERNAL",
+          "preserveSourceIds": "INTERNAL"
+        }
+      },
       "BTDocumentContentsInfo": {
         "type": "object",
         "properties": {
@@ -763,6 +1142,111 @@
             "format": "uri"
           },
           "timeUnits": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "unupdatable": {
+            "type": "boolean"
+          },
+          "volumeUnits": {
+            "type": "string"
+          },
+          "zip": {
+            "$ref": "#/components/schemas/BTZipFileInfo"
+          }
+        }
+      },
+      "BTDocumentElementProcessingInfo": {
+        "type": "object",
+        "properties": {
+          "accelerationUnits": {
+            "type": "string"
+          },
+          "angleUnits": {
+            "type": "string"
+          },
+          "angularVelocityUnits": {
+            "type": "string"
+          },
+          "applicationTarget": {
+            "$ref": "#/components/schemas/BTApplicationTargetInfo"
+          },
+          "areaUnits": {
+            "type": "string"
+          },
+          "dataType": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "densityUnits": {
+            "type": "string"
+          },
+          "elementType": {
+            "$ref": "#/components/schemas/GBTElementType"
+          },
+          "energyUnits": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "forceUnits": {
+            "type": "string"
+          },
+          "foreignDataId": {
+            "type": "string"
+          },
+          "frequencyUnits": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lengthUnits": {
+            "type": "string"
+          },
+          "massUnits": {
+            "type": "string"
+          },
+          "microversionId": {
+            "type": "string"
+          },
+          "momentUnits": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pressureUnits": {
+            "type": "string"
+          },
+          "prettyType": {
+            "type": "string"
+          },
+          "safeToShow": {
+            "type": "boolean"
+          },
+          "specifiedUnit": {
+            "type": "string"
+          },
+          "thumbnailInfo": {
+            "$ref": "#/components/schemas/BTThumbnailInfo"
+          },
+          "thumbnails": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeUnits": {
+            "type": "string"
+          },
+          "translationEventKey": {
+            "type": "string"
+          },
+          "translationId": {
             "type": "string"
           },
           "type": {
@@ -967,6 +1451,60 @@
         "type": "object",
         "properties": {
           "name": {
+            "type": "string"
+          }
+        }
+      },
+      "BTThumbnailInfo": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "id": {
+            "type": "string"
+          },
+          "secondarySizes": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/BTThumbnailSizeInfo"
+              }
+            }
+          },
+          "sizes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BTThumbnailSizeInfo"
+            }
+          }
+        }
+      },
+      "BTThumbnailSizeInfo": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "renderMode": {
+            "type": "string"
+          },
+          "sheetName": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "uniqueId": {
+            "type": "string"
+          },
+          "viewOrientation": {
             "type": "string"
           }
         }

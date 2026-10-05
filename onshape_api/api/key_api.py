@@ -61,12 +61,12 @@ class KeyApi(Api):
         method: http.HTTPMethod,
         path: str,
         query: dict | str = "",
-        body: dict | str = "",
+        body: dict | str | bytes = "",
         headers: dict[str, str] = {},
     ):
         query_str = query if isinstance(query, str) else parse.urlencode(query)
 
-        body_str = body if isinstance(body, str) else json.dumps(body)
+        body_str = body if isinstance(body, (str, bytes)) else json.dumps(body)
 
         url = self._base_url + path + "?" + query_str
 

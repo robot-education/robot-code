@@ -175,6 +175,17 @@ def test_imports_by_path(project):
     assert owner.relative == "core/utils.fs"
 
 
+def test_images_imported_by_path(project):
+    (project.code_dir / "icon.svg").write_text("<svg/>")
+    path = project.code_dir / "withIcon.fs"
+    path.write_text(
+        'FeatureScript 2909;\nexport Icon::import(path : "icon.svg", version : "");\n'
+        'export Missing::import(path : "core/nope.svg", version : "");\n'
+    )
+    problems = [(p.code, p.message) for p in project.check(project.module(path))]
+    assert problems == [("unknown-import", "core/nope.svg doesn't exist in the code folder.")]
+
+
 def test_bare_map_keys(project):
     path = project.code_dir / "keys.fs"
     path.write_text(

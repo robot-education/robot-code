@@ -114,6 +114,30 @@ Studios import each other by element id, which a new file doesn't have until it'
 import(path : "core/myNewUtils.fs", version : "");
 ```
 
+### Images
+
+Images (SVGs and PNGs) in `featurescripts/` are synced with image tabs in the backend document the same way, so
+icons live in the repo too: `fs push` uploads new and changed ones, and `fs pull` downloads ones changed in Onshape
+(placing new ones beside the files which import them). Studios import them like other tabs, by element id, and use
+their `BLOB_DATA`:
+
+```
+RobotIcon::import(path : "233760ca14ddd2085de9c219", version : "f7c25b250b6b31d37d4e95ff");
+
+annotation { "Feature Type Name" : "Robot grid", "Icon" : RobotIcon::BLOB_DATA }
+```
+
+A new image doesn't have an element id until it's pushed, so import it by its path, and `fs push` uploads it and
+resolves the import:
+
+```
+GridIcon::import(path : "grid/gridIcon.svg", version : "");
+```
+
+When an image changes, `fs push` also points the imports of it at its new version, and pushes the studios importing
+it. `fs-studios.json` maps image tabs to files under `images`; `fs mv` and `fs status` treat images like studios.
+`fs tabs`, `fs link`, and `fs unlink` are for studios only.
+
 For the occasional edit made directly in Onshape:
 
 ```
@@ -171,10 +195,12 @@ Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
   microversions too; `fs` records those from the same listing rather than downloading them later (assuming nobody
   edited them in Onshape during the push).
 - Pulling: 1 call per studio pulled, plus 1 to look up folders when a studio is new to the repo.
+- Images: 1 call to list them (which `fs push` skips when the repo has none), 1 per image downloaded (only when its
+  microversion changed), and 1 per image uploaded, plus 1 to list their new microversions afterwards.
 - `fs tabs` and `fs link`: 1 call (the listing). `fs tabs --rename`: 2 more per tab renamed.
 - `fs release`: 6 to 8 calls. `fs released --detect`: 2. `fs deprecate`: about 12.
 
-So `fs status`, and `fs push` or `fs pull` with nothing to do, cost 1 call (the listing). Failed calls (like a
+So `fs status`, and `fs push` or `fs pull` with nothing to do, cost 2 calls (the listings). Failed calls (like a
 400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
 
 ## Checking and navigating

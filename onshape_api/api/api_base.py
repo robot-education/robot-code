@@ -77,7 +77,7 @@ class Api(ABC):
         method: http.HTTPMethod,
         path: str,
         query: dict | str = "",
-        body: dict | str = "",
+        body: dict | str | bytes = "",
         headers: dict[str, str] = {},
     ) -> Any:
         """
@@ -86,7 +86,8 @@ class Api(ABC):
             method: An HTTP method.
             path: A path for the request, e.g. "documents/...".
             query: Query parameters for the request.
-            body: A body for the POST request.
+            body: A body for the POST request: JSON, or text or bytes (like a multipart form) whose
+                Content-Type is given in headers.
             headers: Extra headers to add to the request.
 
         Returns:
@@ -101,7 +102,7 @@ class Api(ABC):
         return self._request(http.HTTPMethod.GET, path=path, **kwargs)
 
     def post(
-        self, path: str, body: dict | str = "", **kwargs: Unpack[ApiQueryArgs]
+        self, path: str, body: dict | str | bytes = "", **kwargs: Unpack[ApiQueryArgs]
     ) -> Any:
         return self._request(http.HTTPMethod.POST, path, body=body, **kwargs)
 

@@ -32,6 +32,8 @@ class DocumentElement(TypedDict):
     elementType: str
     # Changes whenever the element changes (including, possibly, indirectly)
     microversionId: str
+    # The MIME type of a blob element's file, like "image/svg+xml"
+    dataType: NotRequired[str]
 
 
 class ElementReference(TypedDict):
@@ -103,3 +105,14 @@ class FeatureSpecs(TypedDict):
     """GET /featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}/featurespecs. BTFeatureSpecsResponse-664."""
 
     featureSpecs: list[FeatureSpec]
+
+
+# === blobelements ===
+
+
+class BlobElementInfo(TypedDict):
+    """POST /blobelements/d/{did}/w/{wid}[/e/{eid}]. BTDocumentElementProcessingInfo."""
+
+    id: str
+    name: str
+    microversionId: str

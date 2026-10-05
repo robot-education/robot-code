@@ -7,7 +7,7 @@ import pathlib
 from typing import Protocol
 
 from onshape_api.api.api_base import Api
-from onshape_api.endpoints import documents, elements, feature_studios, metadata, versions
+from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import ElementPath, InstancePath
 from onshape_api.types import ElementGroup, ElementType
@@ -24,6 +24,31 @@ class RemoteStudio:
     element_id: str
     name: str
     microversion_id: str
+
+
+# The images which can be synced, by extension: an image tab's file can be imported for a feature's or parameter's
+# "Icon", or a "Description Image"
+IMAGE_TYPES = {".svg": "image/svg+xml", ".png": "image/png"}
+
+
+@dataclasses.dataclass
+class RemoteImage:
+    """An image in Onshape: a blob element (tab) holding an image file."""
+
+    element_id: str
+    name: str
+    microversion_id: str
+    # Its file's MIME type
+    data_type: str = "image/svg+xml"
+
+    @property
+    def extension(self) -> str:
+        return next((extension for extension, type in IMAGE_TYPES.items() if type == self.data_type), ".svg")
+
+
+def image_type(name: str) -> str | None:
+    """The MIME type of an image file name, if it's an image which can be synced."""
+    return IMAGE_TYPES.get(pathlib.PurePosixPath(name).suffix.lower())
 
 
 def safe_file_name(name: str) -> str:
@@ -90,6 +115,20 @@ class Remote(Protocol):
 
     def latest_std_version(self) -> str: ...
 
+    def list_images(self, instance: InstancePath) -> list[RemoteImage]:
+        """Lists the images (blob elements holding SVGs or PNGs) in a document, with their microversions."""
+        ...
+
+    def download_image(self, instance: InstancePath, element_id: str) -> bytes: ...
+
+    def upload_image(self, instance: InstancePath, name: str, data: bytes) -> RemoteImage:
+        """Creates an image tab named name (a file name, like robotIcon.svg) at the top level of the document."""
+        ...
+
+    def update_image(self, instance: InstancePath, element_id: str, name: str, data: bytes) -> RemoteImage:
+        """Replaces an image tab's file, returning its new microversion."""
+        ...
+
 
 class OnshapeRemote:
     def __init__(self, api: Api) -> None:
@@ -150,6 +189,35 @@ class OnshapeRemote:
 
     def latest_std_version(self) -> str:
         return get_latest_std_version(self.api)
+
+    def list_images(self, instance: InstancePath) -> list[RemoteImage]:
+        elements = documents.get_document_elements(self.api, instance, ElementType.BLOB)
+        return [
+            RemoteImage(element["id"], element["name"], element["microversionId"], element.get("dataType", ""))
+            for element in elements
+            if element.get("dataType") in IMAGE_TYPES.values()
+        ]
+
+    def download_image(self, instance: InstancePath, element_id: str) -> bytes:
+        return blob_elements.download_file(self.api, ElementPath.from_path(instance, element_id))
+
+    def upload_image(self, instance: InstancePath, name: str, data: bytes) -> RemoteImage:
+        content_type = _image_type(name)
+        response = blob_elements.upload_file_create_element(self.api, instance, name, data, content_type)
+        return RemoteImage(response["id"], response["name"], response["microversionId"], content_type)
+
+    def update_image(self, instance: InstancePath, element_id: str, name: str, data: bytes) -> RemoteImage:
+        path = ElementPath.from_path(instance, element_id)
+        content_type = _image_type(name)
+        response = blob_elements.upload_file_update_element(self.api, path, name, data, content_type)
+        return RemoteImage(response["id"], response["name"], response["microversionId"], content_type)
+
+
+def _image_type(name: str) -> str:
+    content_type = image_type(name)
+    if content_type is None:
+        raise ValueError(f"{name} isn't an image which can be synced ({', '.join(IMAGE_TYPES)}).")
+    return content_type
 
 
 def folder_paths(root: ElementGroup | None) -> dict[str, tuple[str, ...]]:

@@ -2,7 +2,8 @@
 
 Which file each Feature Studio is synced with lives in fs-studios.json, which is checked in, so
 every clone (and `fs check`, which never calls Onshape) can resolve imports by element id. It also
-lists the studios which are released (see `load_released`).
+lists the studios which are released (see `load_released`), and which file each image tab (see
+fs_cli/images.py) is synced with.
 
 What each studio looked like the last time it was synced lives in .fs-state.json, which is not
 checked in. It lets the CLI tell apart "I changed this file locally" from "someone changed this
@@ -41,10 +42,11 @@ def apply_import_versions(code: str, versions: dict[str, str]) -> str:
     )
 
 
-# An import of another studio by its path in the code folder, e.g.
-# `import(path : "core/utils.fs", version : "");`, which `fs push` resolves to an element id
+# An import of another studio or an image by its path in the code folder, e.g.
+# `import(path : "core/utils.fs", version : "");` or `Icon::import(path : "core/robotIcon.svg", version : "");`,
+# which `fs push` resolves to an element id
 _PATH_IMPORT = re.compile(
-    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.fs)("\s*,\s*version\s*:\s*")([^"]*)(")'
+    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png))("\s*,\s*version\s*:\s*")([^"]*)(")'
 )
 
 
@@ -61,6 +63,18 @@ def resolve_path_imports(code: str, targets: dict[str, tuple[str, str]]) -> str:
     """
     return _PATH_IMPORT.sub(
         lambda match: match[1] + targets[match[2]][0] + match[3] + targets[match[2]][1] + match[5],
+        code,
+    )
+
+
+def retarget_imports(code: str, targets: dict[str, tuple[str, str]]) -> str:
+    """Replaces same-document imports of element ids in targets with imports of their (element id, version)."""
+    return _SAME_DOCUMENT_IMPORT.sub(
+        lambda match: (
+            match[1].replace(match[2], targets[match[2]][0]) + targets[match[2]][1] + match[4]
+            if match[2] in targets
+            else match[0]
+        ),
         code,
     )
 
@@ -99,6 +113,7 @@ class State:
         studios_path: pathlib.Path,
         studios: dict[str, StudioState],
         released: set[str] | None = None,
+        images: dict[str, StudioState] | None = None,
     ) -> None:
         self.path = path
         self.studios_path = studios_path
@@ -106,6 +121,8 @@ class State:
         self.studios = studios
         # The element ids of released studios (see `load_released`)
         self.released = released if released is not None else set()
+        # element id -> state, for image tabs; their hashes are of their bytes (see `image_hash`)
+        self.images = images if images is not None else {}
 
     @classmethod
     def load(cls, path: pathlib.Path, studios_path: pathlib.Path) -> State:
@@ -117,33 +134,43 @@ class State:
                     files.setdefault(element_id, studio["file"])
         elif synced.get("version") != STATE_VERSION:
             synced = {}
-        studios = {}
-        for element_id, file in files.items():
-            studio = synced.get("studios", {}).get(element_id)
-            studio = studio if isinstance(studio, dict) else {}
-            studios[element_id] = StudioState(
-                file, studio.get("hash", ""), studio.get("microversion_id", "")
-            )
-        return cls(path, studios_path, studios, load_released(studios_path))
+        def states(files: dict[str, str], key: str) -> dict[str, StudioState]:
+            result = {}
+            for element_id, file in files.items():
+                entry = synced.get(key, {}).get(element_id)
+                entry = entry if isinstance(entry, dict) else {}
+                result[element_id] = StudioState(file, entry.get("hash", ""), entry.get("microversion_id", ""))
+            return result
+
+        return cls(
+            path,
+            studios_path,
+            states(files, "studios"),
+            load_released(studios_path),
+            states(load_image_files(studios_path), "images"),
+        )
 
     def save(self) -> None:
         studios = sorted(self.studios.items())
+        images = sorted(self.images.items())
         save_studio_files(
             self.studios_path,
             {element_id: studio.file for element_id, studio in studios},
             self.released,
+            {element_id: image.file for element_id, image in images},
         )
-        _write_json(
-            self.path,
-            {
-                "version": STATE_VERSION,
-                "studios": {
-                    element_id: {"hash": studio.hash, "microversion_id": studio.microversion_id}
-                    for element_id, studio in studios
-                    if studio.hash or studio.microversion_id
-                },
-            },
-        )
+
+        def synced(entries: list[tuple[str, StudioState]]) -> dict:
+            return {
+                element_id: {"hash": entry.hash, "microversion_id": entry.microversion_id}
+                for element_id, entry in entries
+                if entry.hash or entry.microversion_id
+            }
+
+        data = {"version": STATE_VERSION, "studios": synced(studios)}
+        if images:
+            data["images"] = synced(images)
+        _write_json(self.path, data)
 
 
 def migrate(path: pathlib.Path, studios_path: pathlib.Path) -> None:
@@ -164,6 +191,23 @@ def load_studio_files(studios_path: pathlib.Path) -> dict[str, str]:
     }
 
 
+def load_image_files(studios_path: pathlib.Path) -> dict[str, str]:
+    """Maps the element ids of image tabs to files in the code folder, from fs-studios.json."""
+    data = _read_json(studios_path)
+    if data.get("version") != STUDIOS_VERSION:
+        return {}
+    return {
+        element_id: file
+        for element_id, file in data.get("images", {}).items()
+        if isinstance(file, str)
+    }
+
+
+def image_hash(data: bytes) -> str:
+    """Hashes an image's bytes for comparison."""
+    return hashlib.sha256(data).hexdigest()
+
+
 def load_released(studios_path: pathlib.Path) -> set[str]:
     """The element ids of the released studios, from fs-studios.json.
 
@@ -179,20 +223,25 @@ def load_released(studios_path: pathlib.Path) -> set[str]:
 
 
 def save_studio_files(
-    studios_path: pathlib.Path, files: dict[str, str], released: set[str] | None = None
+    studios_path: pathlib.Path,
+    files: dict[str, str],
+    released: set[str] | None = None,
+    images: dict[str, str] | None = None,
 ) -> None:
-    """Writes fs-studios.json (see `load_studio_files` and `load_released`), keeping its released studios unless
-    `released` is given."""
+    """Writes fs-studios.json (see `load_studio_files`, `load_released`, and `load_image_files`), keeping its
+    released studios and images unless they're given."""
     if released is None:
         released = load_released(studios_path)
-    _write_json(
-        studios_path,
-        {
-            "version": STUDIOS_VERSION,
-            "studios": dict(sorted(files.items())),
-            "released": sorted(released),
-        },
-    )
+    if images is None:
+        images = load_image_files(studios_path)
+    data: dict = {
+        "version": STUDIOS_VERSION,
+        "studios": dict(sorted(files.items())),
+        "released": sorted(released),
+    }
+    if images:
+        data["images"] = dict(sorted(images.items()))
+    _write_json(studios_path, data)
 
 
 def _read_json(path: pathlib.Path) -> dict:

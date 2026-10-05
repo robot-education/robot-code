@@ -11,7 +11,7 @@ import subprocess
 import pytest
 
 from fs_cli import cli
-from fs_cli.remote import RemoteStudio, Version, folder_paths
+from fs_cli.remote import RemoteImage, RemoteStudio, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
@@ -35,9 +35,12 @@ class FakeOnshape:
         # Every API call made, by method
         self.calls: collections.Counter[str] = collections.Counter()
         self.folders_error: Exception | None = None
+        # (document id, instance id) -> element id -> image tab
+        self.image_tabs: dict[tuple[str, str], dict[str, dict]] = {}
 
     def _id(self, prefix: str) -> str:
-        return f"{prefix}{next(self.ids)}"
+        # Like Onshape's: 24 hex digits
+        return f"{prefix.encode().hex()}{next(self.ids):022x}"
 
     def studios(self, document: str = "back", instance: str = "bw") -> dict[str, dict]:
         return self.instances.setdefault((document, instance), {})
@@ -59,6 +62,14 @@ class FakeOnshape:
             "folders": folders,
             "features": features or [],
         }
+        return element_id
+
+    def images(self, document: str = "back", instance: str = "bw") -> dict[str, dict]:
+        return self.image_tabs.setdefault((document, instance), {})
+
+    def add_image(self, name: str, data: bytes, document="back", instance="bw") -> str:
+        element_id = self._id("i")
+        self.images(document, instance)[element_id] = {"name": name, "data": data, "mv": self._id("m")}
         return element_id
 
     def edit(self, element_id: str, code: str, document="back", instance="bw") -> None:
@@ -124,7 +135,8 @@ class FakeOnshape:
 
     def delete(self, instance, element_id):
         self.calls["delete"] += 1
-        del self.studios(instance.document_id, instance.instance_id)[element_id]
+        self.studios(instance.document_id, instance.instance_id).pop(element_id, None)
+        self.images(instance.document_id, instance.instance_id).pop(element_id, None)
 
     def rename(self, instance, element_id, name):
         self.calls["rename"] += 1
@@ -152,6 +164,26 @@ class FakeOnshape:
     def latest_std_version(self):
         self.calls["latest_std_version"] += 1
         return "2909"
+
+    def list_images(self, instance):
+        self.calls["list_images"] += 1
+        images = self.images(instance.document_id, instance.instance_id)
+        return [RemoteImage(id, image["name"], image["mv"]) for id, image in images.items()]
+
+    def download_image(self, instance, element_id):
+        self.calls["download_image"] += 1
+        return self.images(instance.document_id, instance.instance_id)[element_id]["data"]
+
+    def upload_image(self, instance, name, data):
+        self.calls["upload_image"] += 1
+        element_id = self.add_image(name, data, instance.document_id, instance.instance_id)
+        return RemoteImage(element_id, name, self.images(instance.document_id, instance.instance_id)[element_id]["mv"])
+
+    def update_image(self, instance, element_id, name, data):
+        self.calls["update_image"] += 1
+        image = self.images(instance.document_id, instance.instance_id)[element_id]
+        image.update(data=data, mv=self._id("m"))
+        return RemoteImage(element_id, name, image["mv"])
 
 
 @pytest.fixture
@@ -534,12 +566,13 @@ def test_api_calls_are_minimal(repo, onshape):
     onshape.add("b.fs", "b")
     run(onshape, "pull")
     # Folders are only looked up because these studios are new to the repo
-    assert onshape.calls == {"list_studios": 1, "studio_folders": 1, "pull": 2}
+    assert onshape.calls == {"list_studios": 1, "studio_folders": 1, "pull": 2, "list_images": 1}
 
     onshape.calls.clear()
     run(onshape, "status")
     run(onshape, "push")
-    assert onshape.calls == {"list_studios": 2}
+    # Pushing only lists images when there are any
+    assert onshape.calls == {"list_studios": 2, "list_images": 1}
 
     onshape.calls.clear()
     local(repo, "Robot/a.fs").write_text("a2")
@@ -719,7 +752,7 @@ def test_import_version_changes_are_not_conflicts(repo, onshape, capsys):
 
     onshape.calls.clear()
     run(onshape, "status")
-    assert onshape.calls == {"list_studios": 1}
+    assert onshape.calls == {"list_studios": 1, "list_images": 1}
 
 
 def test_pushing_keeps_onshapes_import_versions(repo, onshape):
@@ -1364,3 +1397,187 @@ def test_cots_ranks_parts_and_shows_options():
     assert [(part.name, part.uses) for part in parts] == [("Hex Shaft (WCP)", 800), ("Hex Shaft (REV)", 300)]
     assert library.options(parts[0]) == ['Type (3): 1/2" Rounded Hex = 2, 1/2" Hex = 1', "Length (quantity)"]
     assert library.records(parts[0])[0]["partNumber"] == "WCP-0914"
+
+
+# Images
+
+ICON = b"<svg>robot</svg>"
+
+
+def image_import(element_id: str, version: str) -> str:
+    return f'Icon::import(path : "{element_id}", version : "{version}");\n'
+
+
+def test_pull_places_images_beside_their_importers(repo, onshape, capsys):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    version = onshape.images()[icon]["mv"]
+    onshape.add("robotFeature.fs", image_import(icon, version), folders=("core",))
+    onshape.add_image("unused.svg", b"<svg/>")
+    assert run(onshape, "pull") == 0
+    assert "Pulled core/robotIcon.svg" in capsys.readouterr().out
+    assert local(repo, "core/robotIcon.svg").read_bytes() == ICON
+    assert local(repo, "unused.svg").read_bytes() == b"<svg/>"
+    assert json.loads((repo / "fs-studios.json").read_text())["images"][icon] == "core/robotIcon.svg"
+
+    onshape.calls.clear()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+    # Unchanged images aren't downloaded
+    assert onshape.calls == {"list_studios": 1, "list_images": 1}
+
+
+def test_push_uploads_images_imported_by_path(repo, onshape, capsys):
+    write(repo, "grid/gridIcon.svg", "<svg>grid</svg>")
+    write(repo, "grid/grid.fs", 'Icon::import(path : "grid/gridIcon.svg", version : "");\n')
+    assert run(onshape, "push") == 0
+    [(icon, image)] = onshape.images().items()
+    assert (image["name"], image["data"]) == ("gridIcon.svg", b"<svg>grid</svg>")
+    assert onshape.code("grid.fs") == image_import(icon, image["mv"])
+    assert local(repo, "grid/grid.fs").read_text() == image_import(icon, image["mv"])
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+
+
+def test_imported_images_must_exist(repo, onshape, capsys):
+    write(repo, "grid.fs", 'Icon::import(path : "missing.svg", version : "");\n')
+    assert run(onshape, "push") == 2
+    assert "grid.fs imports missing.svg, which doesn't exist." in capsys.readouterr().err
+
+
+def test_pushing_a_changed_image_updates_its_imports(repo, onshape, capsys):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    old = onshape.images()[icon]["mv"]
+    onshape.add("robotFeature.fs", image_import(icon, old))
+    run(onshape, "pull")
+    local(repo, "robotIcon.svg").write_bytes(b"<svg>new</svg>")
+    capsys.readouterr()
+    run(onshape, "status")
+    assert re.search(rf"robotIcon.svg +{Status.LOCAL_CHANGES.value}", capsys.readouterr().out)
+
+    assert run(onshape, "push") == 0
+    new = onshape.images()[icon]["mv"]
+    assert new != old and onshape.images()[icon]["data"] == b"<svg>new</svg>"
+    # The importer was in sync, but now imports the new version
+    assert onshape.code("robotFeature.fs") == image_import(icon, new)
+    assert local(repo, "robotFeature.fs").read_text() == image_import(icon, new)
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+
+
+def test_images_changed_in_onshape_are_pulled(repo, onshape, capsys):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    run(onshape, "pull")
+    onshape.images()[icon].update(data=b"<svg>edited</svg>", mv="f" * 24)
+    capsys.readouterr()
+    assert run(onshape, "push") == 1
+    assert "Skipping robotIcon.svg: changed in Onshape" in capsys.readouterr().out
+    assert run(onshape, "pull") == 0
+    assert local(repo, "robotIcon.svg").read_bytes() == b"<svg>edited</svg>"
+
+
+def test_deleted_images_are_deleted_once_not_imported(repo, onshape, capsys):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    onshape.add("robotFeature.fs", image_import(icon, onshape.images()[icon]["mv"]))
+    run(onshape, "pull")
+    local(repo, "robotIcon.svg").unlink()
+    capsys.readouterr()
+    run(onshape, "push", "-y")
+    assert "Skipping deleting robotIcon.svg in Onshape: it's still imported by robotFeature.fs." in capsys.readouterr().out
+    assert icon in onshape.images()
+
+    local(repo, "robotFeature.fs").write_text("x")
+    assert run(onshape, "push", "-y") == 0
+    assert onshape.images() == {}
+    assert "images" not in json.loads((repo / "fs-studios.json").read_text())
+
+
+def test_images_deleted_in_onshape_are_recreated(repo, onshape, capsys):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    onshape.add("robotFeature.fs", image_import(icon, onshape.images()[icon]["mv"]))
+    run(onshape, "pull")
+    del onshape.images()[icon]
+    capsys.readouterr()
+    run(onshape, "status")
+    assert re.search(rf"robotIcon.svg +{Status.DELETED_IN_ONSHAPE.value}", capsys.readouterr().out)
+
+    assert run(onshape, "push") == 0
+    [(new_icon, image)] = onshape.images().items()
+    assert new_icon != icon and image["data"] == ICON
+    # Its importer imports the new tab
+    assert onshape.code("robotFeature.fs") == image_import(new_icon, image["mv"])
+    assert local(repo, "robotFeature.fs").read_text() == image_import(new_icon, image["mv"])
+
+
+def test_moved_images_are_followed(repo, onshape, capsys):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    run(onshape, "pull")
+    write(repo, "core/robotIcon.svg", "")
+    local(repo, "robotIcon.svg").rename(local(repo, "core/robotIcon.svg"))
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "renamed from robotIcon.svg" in capsys.readouterr().out
+    assert run(onshape, "push") == 0
+    assert json.loads((repo / "fs-studios.json").read_text())["images"] == {icon: "core/robotIcon.svg"}
+    assert onshape.calls["update_image"] == 0
+
+
+def test_images_can_be_targeted(repo, onshape, capsys):
+    onshape.add_image("robotIcon.svg", ICON)
+    onshape.add("a.fs", "a")
+    assert run(onshape, "pull", "robotIcon.svg") == 0
+    assert local(repo, "robotIcon.svg").is_file() and not local(repo, "a.fs").exists()
+    assert run(onshape, "pull", "nope.svg") == 2
+    assert 'No image matches "nope.svg"' in capsys.readouterr().err
+
+
+def test_mv_follows_images(repo, onshape, capsys):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    run(onshape, "pull")
+    write(repo, "a.fs", 'Icon::import(path : "robotIcon.svg", version : "");\n')
+    assert run(onshape, "mv", "featurescripts/robotIcon.svg", "featurescripts/core/robotIcon.svg") == 0
+    assert json.loads((repo / "fs-studios.json").read_text())["images"] == {icon: "core/robotIcon.svg"}
+    assert local(repo, "a.fs").read_text() == 'Icon::import(path : "core/robotIcon.svg", version : "");\n'
+
+
+class RecordingApi:
+    """Records each request's method, path, and arguments; answers with `response`."""
+
+    def __init__(self, response):
+        self.response = response
+        self.requests = []
+
+    def get(self, path, **kwargs):
+        self.requests.append(("get", path, kwargs))
+        return self.response
+
+    def post(self, path, body="", **kwargs):
+        self.requests.append(("post", path, {"body": body, **kwargs}))
+        return self.response
+
+
+def test_onshape_remote_images():
+    from fs_cli.remote import OnshapeRemote
+    from onshape_api.paths.paths import url_to_instance_path
+
+    instance = url_to_instance_path(BACKEND)
+    elements = [
+        {"id": "i1", "name": "icon.svg", "elementType": "BLOB", "microversionId": "m1", "dataType": "image/svg+xml"},
+        {"id": "i2", "name": "part.step", "elementType": "BLOB", "microversionId": "m2", "dataType": "application/step"},
+    ]
+    api = RecordingApi(elements)
+    assert OnshapeRemote(api).list_images(instance) == [RemoteImage("i1", "icon.svg", "m1", "image/svg+xml")]
+    assert api.requests[0][2]["query"]["elementType"] == "BLOB"
+
+    api = RecordingApi({"id": "i3", "name": "new.svg", "microversionId": "m3"})
+    assert OnshapeRemote(api).upload_image(instance, "new.svg", b"<svg/>") == RemoteImage("i3", "new.svg", "m3")
+    method, path, kwargs = api.requests[0]
+    assert (method, path) == ("post", "/blobelements/d/back/w/bw")
+    assert kwargs["headers"]["Content-Type"].startswith("multipart/form-data; boundary=")
+    assert b'name="file"; filename="new.svg"' in kwargs["body"] and b"<svg/>" in kwargs["body"]
+
+    OnshapeRemote(api).update_image(instance, "i3", "new.svg", b"<svg>2</svg>")
+    assert api.requests[1][1] == "/blobelements/d/back/w/bw/e/i3"
+    with pytest.raises(ValueError, match="isn't an image"):
+        OnshapeRemote(api).upload_image(instance, "part.step", b"")

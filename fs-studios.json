@@ -78,5 +78,12 @@
     "c9dd8f6ce3af5ba6be6b6fb1",
     "d22e6409e86d7c19c6dfcbfe",
     "f9a57bf84c97524d1eb789d6"
-  ]
+  ],
+  "images": {
+    "0d9de9de05469ac12e79dfa9": "multiExtrude/extrude.svg",
+    "233760ca14ddd2085de9c219": "core/robotIcon.svg",
+    "bd6028cdede1b8e094b97d84": "core/wallThickness.svg",
+    "f4499b93a8838a7034e96418": "plate/Plate_v2.svg",
+    "f7208b20c64f74041af4afa2": "belt/beltIcon.svg"
+  }
 }

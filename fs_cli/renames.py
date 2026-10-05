@@ -17,11 +17,11 @@ import pathlib
 import re
 from typing import Iterable, Mapping
 
-from fs_cli.state import load_studio_files, save_studio_files
+from fs_cli.state import load_image_files, load_studio_files, save_studio_files
 
 # An import by path in the code folder: group 2 is the path
 _PATH_IMPORT = re.compile(
-    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.fs)("\s*,\s*version\s*:\s*"[^"]*")'
+    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png))("\s*,\s*version\s*:\s*"[^"]*")'
 )
 
 # How alike a new file has to be to a missing one to be taken as it renamed, as in git
@@ -40,12 +40,15 @@ def renamed(path: str, renames: Mapping[str, str]) -> str:
 
 
 def rename_studio_files(studios_path: pathlib.Path, renames: Mapping[str, str]) -> list[str]:
-    """Follows `renames` in fs-studios.json. Returns the files whose mapping changed."""
+    """Follows `renames` in fs-studios.json (for studios and images). Returns the files whose mapping changed."""
     files = load_studio_files(studios_path)
-    changed = [file for file in files.values() if renamed(file, renames) != file]
+    images = load_image_files(studios_path)
+    changed = [file for file in [*files.values(), *images.values()] if renamed(file, renames) != file]
     if changed:
         save_studio_files(
-            studios_path, {element_id: renamed(file, renames) for element_id, file in files.items()}
+            studios_path,
+            {element_id: renamed(file, renames) for element_id, file in files.items()},
+            images={element_id: renamed(file, renames) for element_id, file in images.items()},
         )
     return changed
 

@@ -2,7 +2,8 @@
 releases them to the frontend document.
 
 The repo is the source of truth, so `fs` (or `fs push`) is the everyday command. `fs pull` and
-`fs sync` exist for the occasional edit made directly in Onshape.
+`fs sync` exist for the occasional edit made directly in Onshape. Images (for icons) are synced with
+image tabs the same way (see fs_cli/images.py).
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import pathlib
 import sys
 
 from fs_cli.config import Config, ConfigError, load_config
+from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
     deprecated_name,
@@ -74,7 +76,7 @@ def make_parser() -> argparse.ArgumentParser:
                 "targets",
                 nargs="*",
                 metavar="target",
-                help=".fs files, folders, or Feature Studio names (default: everything)",
+                help=".fs files, images, folders, or Feature Studio or image names (default: everything)",
             )
         return subparser
 
@@ -389,14 +391,18 @@ def _onshape_remote(log: bool) -> OnshapeRemote:
 
 
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
-    studios = workspace.scan(workspace.resolve_targets(args.targets))
+    targets = workspace.resolve_targets(args.targets)
+    studios = workspace.scan(targets)
+    images = Images(workspace)
+    image_list = images.scan(targets, discover=False)
+    everything = [*studios, *image_list]
     overwritable = (
         (Status.REMOTE_CHANGES, Status.CONFLICT, Status.DELETE_CONFLICT)
         if args.force
         else ()
     )
     skipped = report_skipped(
-        studios,
+        everything,
         {
             Status.REMOTE_CHANGES: "changed in Onshape since it was last synced; run `fs pull`, or `fs push --force` to overwrite",
             Status.CONFLICT: CONFLICT,
@@ -405,33 +411,46 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         skip=overwritable,
     )
     note(
-        studios,
+        everything,
         Status.REMOTE_ONLY,
         "only exists in Onshape; run `fs pull` to add it to the repo",
     )
     to_push = select(studios, *PUSHABLE, *overwritable)
-    check_path_imports(workspace, [s for s in to_push if s.local_code is not None])
+    images_to_push = select(image_list, *PUSHABLE, *overwritable)
+    check_path_imports(
+        workspace,
+        [s for s in to_push if s.local_code is not None],
+        [image.path for image in images_to_push if image.local_data is not None],
+    )
     to_delete, not_deleted = plan_deletes(
         workspace,
-        [studio for studio in to_push if studio.local_code is None]
-        + select(studios, Status.DELETED_LOCALLY),
+        [item for item in [*to_push, *images_to_push] if not _exists_locally(item)]
+        + select(everything, Status.DELETED_LOCALLY),
         args.dry_run,
         args.yes,
-        select(studios, Status.LOCAL_ONLY),
+        select(everything, Status.LOCAL_ONLY),
     )
     to_push, not_recreated = skip_recreating_released(
         [studio for studio in to_push if studio.local_code is not None]
     )
+    images_to_push = [image for image in images_to_push if image.local_data is not None]
     apply_import_updates(workspace, studios, args.dry_run)
+    to_push += do_push_images(images, images_to_push, studios, to_push, args.dry_run)
     pushed = (
-        do_push(workspace, to_push, args.dry_run) if to_push or not to_delete else 0
+        do_push(workspace, to_push, args.dry_run, quiet=bool(images_to_push))
+        if to_push or not to_delete
+        else 0
     )
-    do_delete(workspace, to_delete, args.dry_run)
+    do_delete(workspace, to_delete, args.dry_run, images)
     return pushed or not_deleted or not_recreated or skipped
 
 
 def pull(workspace: Workspace, args: argparse.Namespace) -> int:
-    studios = workspace.scan(workspace.resolve_targets(args.targets))
+    targets = workspace.resolve_targets(args.targets)
+    studios = workspace.scan(targets)
+    images = Images(workspace)
+    image_list = images.scan(targets)
+    everything = [*studios, *image_list]
     overwritable = (
         (
             Status.LOCAL_CHANGES,
@@ -443,7 +462,7 @@ def pull(workspace: Workspace, args: argparse.Namespace) -> int:
         else ()
     )
     skipped = report_skipped(
-        studios,
+        everything,
         {
             Status.LOCAL_CHANGES: "has local changes which haven't been pushed; run `fs push`, or `fs pull --force` to discard them",
             Status.CONFLICT: CONFLICT,
@@ -453,49 +472,63 @@ def pull(workspace: Workspace, args: argparse.Namespace) -> int:
     )
     if not args.force:
         note(
-            studios,
+            everything,
             Status.DELETED_LOCALLY,
             "was deleted locally; run `fs push` to delete the tab, or `fs pull --force` to restore it",
         )
     note(
-        studios,
+        everything,
         Status.LOCAL_ONLY,
         "doesn't exist in Onshape yet; run `fs push` to create it",
     )
     note(
-        studios,
+        everything,
         Status.DELETED_IN_ONSHAPE,
         "was deleted in Onshape; delete the file, or run `fs push` to recreate it",
     )
     to_pull = select(studios, *PULLABLE, *overwritable)
     apply_import_updates(workspace, studios, args.dry_run)
-    return do_pull(workspace, to_pull, args.dry_run) or skipped
+    images_to_pull = select(image_list, *PULLABLE, *overwritable)
+    # Studios first, so new images are placed beside the studios importing them
+    pulled = do_pull(workspace, to_pull, args.dry_run, quiet=bool(images_to_pull))
+    do_pull_images(images, images_to_pull, args.dry_run)
+    return pulled or skipped
 
 
 def sync(workspace: Workspace, args: argparse.Namespace) -> int:
-    studios = workspace.scan(workspace.resolve_targets(args.targets))
+    targets = workspace.resolve_targets(args.targets)
+    studios = workspace.scan(targets)
+    images = Images(workspace)
+    image_list = images.scan(targets)
+    everything = [*studios, *image_list]
     skipped = report_skipped(
-        studios,
+        everything,
         {Status.CONFLICT: CONFLICT, Status.DELETE_CONFLICT: DELETE_CONFLICT},
     )
-    check_path_imports(workspace, select(studios, *PUSHABLE))
+    images_to_push = select(image_list, *PUSHABLE)
+    check_path_imports(workspace, select(studios, *PUSHABLE), [image.path for image in images_to_push])
     to_delete, not_deleted = plan_deletes(
         workspace,
-        select(studios, Status.DELETED_LOCALLY),
+        select(everything, Status.DELETED_LOCALLY),
         args.dry_run,
         args.yes,
-        select(studios, Status.LOCAL_ONLY),
+        select(everything, Status.LOCAL_ONLY),
     )
     to_push, not_recreated = skip_recreating_released(select(studios, *PUSHABLE))
     apply_import_updates(workspace, studios, args.dry_run)
-    pulled = do_pull(workspace, select(studios, *PULLABLE), args.dry_run)
-    pushed = do_push(workspace, to_push, args.dry_run)
-    do_delete(workspace, to_delete, args.dry_run)
+    images_to_pull = select(image_list, *PULLABLE)
+    pulled = do_pull(workspace, select(studios, *PULLABLE), args.dry_run, quiet=bool(images_to_pull))
+    do_pull_images(images, images_to_pull, args.dry_run)
+    to_push += do_push_images(images, images_to_push, studios, to_push, args.dry_run)
+    pushed = do_push(workspace, to_push, args.dry_run, quiet=bool(images_to_push))
+    do_delete(workspace, to_delete, args.dry_run, images)
     return pulled or pushed or not_deleted or not_recreated or skipped
 
 
 def status(workspace: Workspace, args: argparse.Namespace) -> int:
-    studios = workspace.scan(workspace.resolve_targets(args.targets))
+    targets = workspace.resolve_targets(args.targets)
+    studios: list[Studio | Image] = [*workspace.scan(targets), *Images(workspace).scan(targets)]
+    studios.sort(key=lambda studio: studio.path)
     config = workspace.config
     print(
         f"{os.path.relpath(config.code_dir)}/ <-> backend document {path_to_url(workspace.instance)}"
@@ -503,7 +536,7 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
     shown = [
         s
         for s in studios
-        if args.all or s.status != Status.IN_SYNC or s.import_updates or s.renamed_from
+        if args.all or s.status != Status.IN_SYNC or getattr(s, "import_updates", None) or s.renamed_from
     ]
     if not shown:
         print("  everything in sync")
@@ -516,7 +549,7 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
         if studio.released:
             details.append("released")
             hint = RELEASED_HINTS.get(studio.status, hint)
-        if studio.import_updates:
+        if getattr(studio, "import_updates", None):
             details.append("import versions updated in Onshape")
             hint = hint or "fs push or fs pull applies them"
         suffix = f"  ({hint})" if hint else ""
@@ -525,7 +558,11 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
 
 
 def diff(workspace: Workspace, args: argparse.Namespace) -> int:
-    studios = workspace.scan(workspace.resolve_targets(args.targets))
+    targets = workspace.resolve_targets(args.targets)
+    studios = workspace.scan(targets)
+    differing_images = [image for image in Images(workspace).scan(targets) if image.status != Status.IN_SYNC]
+    for image in differing_images:
+        print(f"Image {image.path} differs ({image.status.value})")
     differing = [studio for studio in studios if studio.status != Status.IN_SYNC]
     for studio in differing:
         remote_code = workspace.fetch(studio) if studio.remote else ""
@@ -537,7 +574,7 @@ def diff(workspace: Workspace, args: argparse.Namespace) -> int:
                 tofile=f"local/{studio.path}",
             )
         )
-    if not differing:
+    if not differing and not differing_images:
         print("No differences.")
     return 0
 
@@ -991,7 +1028,7 @@ def mv(config: Config, args: argparse.Namespace) -> int:
         raise UsageError(f"Neither {args.source} nor {args.destination} exists.")
     renames = {old: new}
     for file in rename_studio_files(config.studios_path, renames):
-        print(f"{file} stays synced with its Feature Studio as {renamed(file, renames)}")
+        print(f"{file} stays synced with its tab as {renamed(file, renames)}")
     for file in sorted(config.code_dir.rglob("*.fs")):
         code = file.read_text()
         updated = rename_path_imports(code, renames)
@@ -1137,9 +1174,11 @@ COMMANDS = {
 # Helpers
 
 
-def do_push(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
+def do_push(workspace: Workspace, studios: list[Studio], dry_run: bool, quiet: bool = False) -> int:
+    """Pushes studios. quiet leaves out "Nothing to push." (when images were pushed)."""
     if not studios:
-        print("Nothing to push.")
+        if not quiet:
+            print("Nothing to push.")
         return 0
     verb = "Would push" if dry_run else "Pushing"
     for studio in studios:
@@ -1151,8 +1190,55 @@ def do_push(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
     return 0
 
 
-def check_path_imports(workspace: Workspace, studios: list[Studio]) -> None:
-    problems = workspace.path_import_problems(studios)
+def do_push_images(
+    images: Images, to_push: list[Image], studios: list[Studio], pushing: list[Studio], dry_run: bool
+) -> list[Studio]:
+    """Pushes images, then points their imports at the versions just pushed (and at the new tabs of images whose
+    tabs were deleted in Onshape). Returns the studios this changed which weren't being pushed, to push too."""
+    if not to_push:
+        return []
+    verb = "Would push" if dry_run else "Pushing"
+    for image in to_push:
+        print(f"{verb} {image.path}{' (new)' if image.remote is None else ''}")
+    if dry_run:
+        return []
+    imports = images.push(to_push)
+    print(f"Pushed {_plural(len(to_push), 'image')}.")
+    # Onshape may keep the old versions until they're pushed (see `Workspace.push_studios`)
+    images.workspace.updated_imports.update(element_id for element_id, _ in imports.values())
+    scanned = {studio.path: studio for studio in studios}
+    extra = []
+    for path in images.retarget(imports):
+        studio = scanned.get(path)
+        if studio is None or studio.local_code is None:
+            print(f"Note: updated the imports of images in {path}; run `fs push` on it to push them.")
+            continue
+        with studio.file.open(newline="") as file:
+            studio.local_code = file.read()
+        if studio not in pushing and studio.status == Status.IN_SYNC:
+            extra.append(studio)
+    return extra
+
+
+def do_pull_images(images: Images, to_pull: list[Image], dry_run: bool) -> None:
+    if not to_pull:
+        return
+    if dry_run:
+        for image in to_pull:
+            print(f"Would pull {image.path}{'' if image.saved else ' (new)'}")
+        return
+    images.pull(to_pull)
+    for image in to_pull:
+        print(f"Pulled {image.path}")
+    print(f"Pulled {_plural(len(to_pull), 'image')}.")
+
+
+def _exists_locally(item: Studio | Image) -> bool:
+    return (item.local_code if isinstance(item, Studio) else item.local_data) is not None
+
+
+def check_path_imports(workspace: Workspace, studios: list[Studio], images: list[str] = []) -> None:
+    problems = workspace.path_import_problems(studios, images)
     if problems:
         raise UsageError("Can't push:\n  " + "\n  ".join(problems))
 
@@ -1218,16 +1304,22 @@ def skip_recreating_released(studios: list[Studio]) -> tuple[list[Studio], int]:
     return kept, 1 if len(kept) < len(studios) else 0
 
 
-def do_delete(workspace: Workspace, studios: list[Studio], dry_run: bool) -> None:
+def do_delete(
+    workspace: Workspace, studios: list[Studio | Image], dry_run: bool, images: Images | None = None
+) -> None:
     if dry_run or not studios:
         return
-    workspace.delete_studios(studios)
+    workspace.delete_studios([studio for studio in studios if isinstance(studio, Studio)])
+    if images is not None:
+        images.delete([image for image in studios if isinstance(image, Image)])
     print(f"Deleted {_plural(len(studios), 'tab')}.")
 
 
-def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool) -> int:
+def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool, quiet: bool = False) -> int:
+    """Pulls studios. quiet leaves out "Nothing to pull." (when images were pulled)."""
     if not studios:
-        print("Nothing to pull.")
+        if not quiet:
+            print("Nothing to pull.")
         return 0
     if dry_run:
         for studio in studios:

@@ -565,6 +565,17 @@ class Project:
         known_ids = self.element_ids()
         for imported in module.imports:
             if imported.namespace:
+                if not (imported.is_std or imported.element_id or (self.code_dir / imported.path).is_file()):
+                    # An image (or a studio) imported by path, which `fs push` uploads and resolves
+                    problems.append(
+                        Problem(
+                            imported.token.offset,
+                            imported.token.end,
+                            "error",
+                            f"{imported.path} doesn't exist in the code folder.",
+                            "unknown-import",
+                        )
+                    )
                 if not imported.exported and not any(
                     token.value == imported.namespace
                     and token.offset >= imported.end

@@ -38,6 +38,9 @@ OPERATIONS = [
     ("get", "/featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}"),
     ("post", "/featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}"),
     ("get", "/featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}/featurespecs"),
+    ("post", "/blobelements/d/{did}/w/{wid}"),
+    ("post", "/blobelements/d/{did}/w/{wid}/e/{eid}"),
+    ("get", "/blobelements/d/{did}/w/{wid}/e/{eid}"),
 ]
 
 # Polymorphic base schemas whose subtypes (from their discriminator mapping) should be kept.
