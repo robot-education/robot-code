@@ -5,6 +5,8 @@ export import(path : "onshape/std/revolve.fs", version : "2960.0");
 
 import(path : "core/robotFeature.fs", version : "");
 
+RevolveIcon::import(path : "c0e2bec1df9e786c331121f2", version : "7171f9f8ff4b0789740f2a0e");
+
 /**
  * Revolves each selected face, sketch region, or curve on its own, so that adjacent regions become separate parts
  * (or surfaces) instead of merging. The revolve version of Multi extrude.
@@ -16,7 +18,8 @@ annotation {
         "Feature Type Description" : "Revolve distinct faces as new parts even when they're adjacent to each other." ~ CREDIT,
         "Manipulator Change Function" : "revolveManipulatorChange",
         "Filter Selector" : "allparts",
-        "Editing Logic Function" : "revolveEditLogic"
+        "Editing Logic Function" : "revolveEditLogic",
+        "Icon" : RevolveIcon::BLOB_DATA
     }
 export const multiRevolve = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
