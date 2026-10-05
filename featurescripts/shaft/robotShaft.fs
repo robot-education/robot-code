@@ -15,6 +15,24 @@ import(path : "ea127c07807644fb48d3a1ae", version : "72fbd92d548c811d10a5d2f3");
 import(path : "0195d390c3944cd4fab21ce0", version : "eb719b1576c924e1ac6e1ffa");
 import(path : "6c65805103086c85362ee4b7", version : "06268198ef2566cb246b9f56");
 import(path : "0794d10863d10d98a88c2ab4", version : "90bbee184f6552271649afea");
+// Also exports the enum used as a parameter type
+export import(path : "core/program.fs", version : "");
+
+/**
+ * Whether a shaft is one someone sells (see robotShaftTables.py), or custom.
+ */
+export enum ShaftSource
+{
+    annotation { "Name" : "COTS" }
+    COTS,
+    annotation { "Name" : "Custom" }
+    CUSTOM
+}
+
+export predicate isCotsShaft(definition is map)
+{
+    definition.shaftSource == ShaftSource.COTS;
+}
 
 export enum EndOperation
 {
@@ -200,7 +218,7 @@ predicate shaftEndPredicate(definition is map)
 
 
 annotation { "Feature Type Name" : "Robot shaft",
-        "Feature Type Description" : "Create common robot shafts." ~ CREDIT,
+        "Feature Type Description" : "Create the shafts FRC and FTC teams buy, or custom ones." ~ CREDIT,
         "Manipulator Change Function" : "extrudeManipulatorChange",
         "Editing Logic Function" : "robotShaftEditLogic",
         "Icon" : RobotIcon::BLOB_DATA
@@ -208,23 +226,43 @@ annotation { "Feature Type Name" : "Robot shaft",
 export const robotShaft = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        unitSystemPredicate(definition);
+        programPredicate(definition);
+
+        annotation { "Name" : "Source", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+        definition.shaftSource is ShaftSource;
 
         locationPredicate(definition, "shaft");
 
-        annotation { "Group Name" : "Shaft", "Collapsed By Default" : false }
+        if (isCotsShaft(definition))
         {
-            annotation { "Name" : "Shaft type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-            definition.shaftType is ShaftType;
-
-            if (definition.shaftType == ShaftType.HEX)
+            // Sets the shaft's profile parameters, through editing logic (see withShaft)
+            if (isFrc(definition))
             {
-                hexShaftPredicate(definition);
+                annotation { "Name" : "Shaft", "Lookup Table" : frcShaftTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.frcShaft is LookupTablePath;
             }
             else
             {
-                annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                definition.splineType is SplineType;
+                annotation { "Name" : "Shaft", "Lookup Table" : ftcShaftTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.ftcShaft is LookupTablePath;
+            }
+        }
+        else
+        {
+            annotation { "Group Name" : "Shaft", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Shaft type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.shaftType is ShaftType;
+
+                if (definition.shaftType == ShaftType.HEX)
+                {
+                    hexShaftPredicate(definition);
+                }
+                else
+                {
+                    annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    definition.splineType is SplineType;
+                }
             }
         }
 
@@ -248,6 +286,7 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         }
     }
     {
+        definition = withShaft(definition);
         const shaftPlane = getLocationPlane(context, definition);
         const shaftProfile = createShaftProfile(context, id + "profile", definition, shaftPlane);
         definition = transformDefintionForNewExtrude(definition, shaftProfile);
@@ -337,13 +376,54 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
             mirrorShaftAcrossEnd(context, id + "mirrorShaft", shaft, mirrorPlane);
         }
 
-        setShaftProperties(context, definition, shaft);
-        setShaftName(context, shaft, definition, shaftLength);
+        const cots = getCotsShaft(definition);
+        if (cots != undefined)
+        {
+            setCotsShaftProperties(context, id, shaft, definition, cots, shaftLength);
+        }
+        else
+        {
+            setShaftProperties(context, definition, shaft);
+            setShaftName(context, shaft, definition, shaftLength);
+        }
 
         // Cleanup after boolean to avoid deleting profile faces to early
         cleanup(context, id + "deleteProfiles", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
     });
 
+
+/**
+ * The selected COTS shaft's entry in its lookup table (see robotShaftTables.py), or `undefined` for a custom shaft.
+ */
+function getCotsShaft(definition is map)
+{
+    if (!isCotsShaft(definition))
+    {
+        return undefined;
+    }
+    return isFrc(definition) ? getLookupTable(frcShaftTable, definition.frcShaft) : getLookupTable(ftcShaftTable, definition.ftcShaft);
+}
+
+/**
+ * The definition with the unit system its program uses (inches for FRC, millimeters for FTC), and a COTS shaft's
+ * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), so the rest of the feature can treat it as custom.
+ */
+function withShaft(definition is map) returns map
+{
+    definition.unitSystem = isFrc(definition) ? UnitSystem.IMPERIAL : UnitSystem.METRIC;
+    const shaft = getCotsShaft(definition);
+    if (shaft != undefined)
+    {
+        for (var key in ["shaftType", "hexType", "hexSize", "splineType"])
+        {
+            if (shaft[key] != undefined)
+            {
+                definition[key] = shaft[key];
+            }
+        }
+    }
+    return definition;
+}
 
 function createShaftProfile(context is Context, id is Id, definition is map, shaftPlane is Plane) returns Query
 {
@@ -470,7 +550,7 @@ function cutHexShaftFeatures(context is Context, id is Id, definition is map, sh
 
     if (definition.hexType == HexType.ROUNDED_HEX)
     {
-        const innerRadius = (getHexSize(definition) == HexSize._1_2_IN ? 13.75 * millimeter : 10.25 * millimeter) / 2;
+        const innerRadius = getRoundedDiameter(getHexSize(definition)) / 2;
         const outerRadius = getHexWidth(definition)->getHexCircleRadius();
         // Sketch annulus seperately since filter inner loops will otherwise fail
         sketchRegions = qUnion(sketchRegions, sketchAnnulus(context, id + "annulus", shaftPlane, innerRadius, outerRadius));
@@ -494,8 +574,9 @@ function cutHexShaftFeatures(context is Context, id is Id, definition is map, sh
 
 predicate hasPredrilledHole(definition is map)
 {
-    // Ultra hex has a hexagon, not a hole
+    // Ultra hex has a hexagon, not a hole, and REX is solid (tapped at its ends)
     definition.hexType != HexType.STOCK && definition.hexType != HexType.ULTRA_HEX;
+    !isMetricHex(getHexSize(definition));
 }
 
 function getPredrilledHoleDiameter(definition is map) returns ValueWithUnits
@@ -516,6 +597,41 @@ function getPredrilledHoleDiameter(definition is map) returns ValueWithUnits
                     HexType.HEX_LITE : 0.159 * inch
                 };
     }
+}
+
+/**
+ * Names a COTS shaft (its length, then its `partName`), gives it the part number of the stock it's cut from (or, for a
+ * shaft sold in its length, its own) and a link to buy it, and sets its material and appearance. Warns if it's longer
+ * than it's sold.
+ */
+function setCotsShaftProperties(context is Context, id is Id, shaft is Query, definition is map, cots is map, length is ValueWithUnits)
+{
+    const lengthString = isFrc(definition) ?
+        roundToPrecision(length / inch, 3) ~ " in." :
+        roundToPrecision(length / millimeter, 1) ~ " mm";
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.NAME, "value" : lengthString ~ " " ~ cots.partName });
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.MATERIAL, "value" : cots.material });
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.APPEARANCE, "value" : cots.appearance });
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.VENDOR, "value" : cots.vendor });
+
+    var stock = undefined;
+    for (var candidate in cots.stock)
+    {
+        if (length <= candidate.length + TOLERANCE.zeroLength * meter)
+        {
+            stock = candidate;
+            break;
+        }
+    }
+    if (stock == undefined)
+    {
+        const longest = cots.stock[size(cots.stock) - 1].length;
+        reportFeatureWarning(context, id, "This shaft is only sold up to " ~
+                (isFrc(definition) ? roundToPrecision(longest / inch, 3) ~ " in." : roundToPrecision(longest / millimeter, 1) ~ " mm") ~ " long.");
+        return;
+    }
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.PART_NUMBER, "value" : stock.partNumber });
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.DESCRIPTION, "value" : stock.url });
 }
 
 function setShaftProperties(context is Context, definition is map, shaft is Query)
@@ -1003,6 +1119,10 @@ function sketchAnnulus(context is Context, id is Id, sketchPlane is Plane, inner
 
 function getGrooveDefinition(sideMount is boolean, hexSize is HexSize, unitSystem is UnitSystem) returns map
 {
+    if (isMetricHex(hexSize))
+    {
+        throw regenError("Retaining ring grooves are only defined for 1/2 in. and 3/8 in. hex.", ["firstEndOperation", "secondEndOperation"]);
+    }
     if (sideMount)
     {
         return switch (hexSize) {
@@ -1035,6 +1155,8 @@ function getGrooveDefinition(sideMount is boolean, hexSize is HexSize, unitSyste
 
 export function robotShaftEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    // So the precondition shows what suits a COTS shaft (e.g. no shaft ends on splines)
+    definition = withShaft(definition);
     // Extrude edit logic only runs when we're creating
     if (isCreating)
     {
@@ -1084,7 +1206,12 @@ function updateCaptiveShaftParameters(definition is map, shaftEnd is ShaftEnd) r
     }
 
     const endString = getShaftEndString(shaftEnd);
-    if (definition.hexSize == HexSize._1_2_IN)
+    if (isMetricHex(definition.hexSize))
+    {
+        definition[endString ~ "Diameter"] = toString(getHexWidth(definition) / millimeter - 1) ~ " mm";
+        definition[endString ~ "Length"] = "6 mm";
+    }
+    else if (definition.hexSize == HexSize._1_2_IN)
     {
         definition[endString ~ "Diameter"] = "0.5 in";
         definition[endString ~ "Length"] = "0.3125 in";

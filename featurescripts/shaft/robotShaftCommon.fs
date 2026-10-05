@@ -51,7 +51,19 @@ export enum HexSize
     annotation { "Name" : "1/2 in." }
     _1_2_IN,
     annotation { "Name" : "3/8 in." }
-    _3_8_IN
+    _3_8_IN,
+    annotation { "Name" : "7 mm (8mm REX)" }
+    _7_MM,
+    annotation { "Name" : "11 mm (12mm REX)" }
+    _11_MM
+}
+
+/**
+ * Whether a hex size is metric, like goBILDA's REX (see `getRoundedDiameter`).
+ */
+export predicate isMetricHex(hexSize is HexSize)
+{
+    hexSize == HexSize._7_MM || hexSize == HexSize._11_MM;
 }
 
 export function getHexSize(definition is map) returns HexSize
@@ -68,7 +80,26 @@ export function getHexSize(definition is map) returns HexSize
  */
 export function getHexWidth(definition is map) returns ValueWithUnits
 {
-    return getHexSize(definition) == HexSize._1_2_IN ? 0.5 * inch : 0.375 * inch;
+    return switch (getHexSize(definition)) {
+                HexSize._1_2_IN : 0.5 * inch,
+                HexSize._3_8_IN : 0.375 * inch,
+                HexSize._7_MM : 7 * millimeter,
+                HexSize._11_MM : 11 * millimeter
+            };
+}
+
+/**
+ * The diameter of the round a rounded hex of a size is cut to: 13.75 mm for 1/2 in. (WCP, REV, VEX ThunderHex, ...),
+ * 10.25 mm for 3/8 in., and 8 mm and 12 mm for goBILDA's 8mm and 12mm REX.
+ */
+export function getRoundedDiameter(hexSize is HexSize) returns ValueWithUnits
+{
+    return switch (hexSize) {
+                HexSize._1_2_IN : 13.75 * millimeter,
+                HexSize._3_8_IN : 10.25 * millimeter,
+                HexSize._7_MM : 8 * millimeter,
+                HexSize._11_MM : 12 * millimeter
+            };
 }
 
 /**

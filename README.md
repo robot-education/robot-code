@@ -17,7 +17,7 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 | `onshape_api/`             | A small Onshape REST API client; see [its README](onshape_api/README.md)     |
 | `std/`                     | A read-only copy of the Onshape std library, for reference                   |
 | `onshape_icons/`           | Onshape's UI icons, for `fs ui`; browse them with its `index.html`           |
-| `docs/`                    | Conventions for writing FeatureScripts                                       |
+| `docs/`                    | Conventions for writing FeatureScripts, and researching COTS parts           |
 | `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
 | `vscode-extension/server/` | The Python FeatureScript language server the extension runs (`fs_lsp`)       |
 | `pyproject.toml`           | Python dependencies, plus the `[tool.fs]` table configuring the documents    |
@@ -192,6 +192,7 @@ uv run fs refs cleanup       # where a function, constant, enum, etc. is defined
 uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, keeping its studio and imports
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
+uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 ```
 
 `fs ui` renders a feature's dialog roughly as Onshape shows it (in its dark theme, with its icons from

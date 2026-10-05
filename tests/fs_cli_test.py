@@ -1305,3 +1305,62 @@ def test_rename_element_sets_the_name_property():
         ("GET", "/metadata/d/back/w/bw/e/e1", None),
         ("POST", "/metadata/d/back/w/bw/e/e1", {"properties": [{"propertyId": "n1", "value": "new.fs"}]}),
     ]
+
+
+# COTS research
+
+
+class FakeFrcDesign:
+    """Answers FRCDesign's API from canned responses."""
+
+    def __init__(self, responses: dict[str, object]) -> None:
+        self.responses = responses
+        self.paths: list[str] = []
+
+    def get(self, url, params=None, timeout=None):
+        path = url.removeprefix("https://app.frcdesign.org/api")
+        self.paths.append(path)
+
+        class Response:
+            status_code = 200 if path in self.responses else 404
+            text = ""
+
+            def json(_):
+                return self.responses[path]
+
+        return Response()
+
+
+def test_cots_ranks_parts_and_shows_options():
+    from fs_cli.cots import FrcDesign, find
+
+    session = FakeFrcDesign(
+        {
+            "/library-version/library/frc-design-lib": {"version": 3},
+            "/library-data/library/frc-design-lib": {
+                "groups": {"g": {"name": "Extrusions & Shafts"}},
+                "insertables": {
+                    "a": {"id": "a", "elementId": "ea", "groupId": "g", "name": "Hex Shaft (WCP)", "vendors": ["WCP"]},
+                    "b": {"id": "b", "elementId": "eb", "groupId": "g", "name": "Hex Shaft (REV)", "vendors": ["REV"]},
+                    "c": {"id": "c", "elementId": "ec", "groupId": "g", "name": "Box Tube", "vendors": []},
+                },
+            },
+            "/analytics/parts/library/frc-design-lib": [
+                {"path": {"elementId": "ea"}, "insertCount": 800},
+                {"path": {"elementId": "eb"}, "insertCount": 300},
+            ],
+            "/analytics/insertable/library/frc-design-lib/element/ea": {
+                "parameters": [
+                    {"name": "Type", "type": "enum", "path": [], "total": 3,
+                     "values": [{"label": "1/2\" Hex", "count": 1}, {"label": "1/2\" Rounded Hex", "count": 2}]},
+                    {"name": "Length", "type": "quantity"},
+                ]
+            },
+            "/configuration/insertable/a": {"records": [{"partNumber": "WCP-0914", "name": "1/2\" Rounded Hex", "url": "u"}]},
+        }
+    )
+    library = FrcDesign("frc", session=session)
+    parts = find(library.parts(), "hex shaft")
+    assert [(part.name, part.uses) for part in parts] == [("Hex Shaft (WCP)", 800), ("Hex Shaft (REV)", 300)]
+    assert library.options(parts[0]) == ['Type (3): 1/2" Rounded Hex = 2, 1/2" Hex = 1', "Length (quantity)"]
+    assert library.records(parts[0])[0]["partNumber"] == "WCP-0914"

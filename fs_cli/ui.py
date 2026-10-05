@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import dataclasses
 import html
+import itertools
 import os
 import pathlib
 import re
@@ -889,6 +890,20 @@ PARAMETER_ICONS = {
     "tappedDepth": 866,
 }
 
+# Icons chosen with a parameter's "Icon" annotation, by std's Icon enum value
+ICON_VALUES = {
+    "HOLE_DIAMETER": 861,
+    "HOLE_DEPTH": 860,
+    "HOLE_DRILL_ANGLE": 862,
+    "HOLE_COUNTERBORE_DIAMETER": 857,
+    "HOLE_COUNTERBORE_DEPTH": 856,
+    "HOLE_COUNTERSINK_DIAMETER": 859,
+    "HOLE_COUNTERSINK_ANGLE": 858,
+    "HOLE_TAP_DIAMETER": 865,
+    "HOLE_TAPPED_DEPTH": 866,
+    "HOLE_TAP_CLEARANCE": 864,
+}
+
 # The button beside queries which accept mate connectors, to create one
 MATE_CONNECTOR_ICON = 74
 
@@ -896,16 +911,27 @@ MATE_CONNECTOR_ICON = 74
 FILTER_TEXT = "__filter"
 
 
+_inlined = itertools.count()
+
+
 def icon(number: int, invert: bool = False) -> str:
-    """An icon's SVG, inline."""
+    """An icon's SVG, inline. Its ids are made unique, since icons often reuse the same ones (like `id="a"`) and
+    references to them would find another icon's on the page."""
     path = ICON_DIR / f"svg-{number}.svg"
     if not path.is_file():
         return ""
     svg = re.sub(r"<\?xml[^>]*>", "", path.read_text())
+    prefix = f"i{next(_inlined)}-"
+    svg = re.sub(r'\bid="([^"]+)"', lambda match: f'id="{prefix}{match[1]}"', svg)
+    svg = re.sub(r'(href="#|url\(#)([^")]+)', lambda match: f"{match[1]}{prefix}{match[2]}", svg)
     return f"<span class='icon{' invert' if invert else ''}'>{svg}</span>"
 
 
-def parameter_icon(name: str) -> int | None:
+def parameter_icon(name: str, annotation: dict) -> int | None:
+    """The icon a parameter is shown with instead of its label, if any."""
+    chosen = annotation.get("Icon")
+    if isinstance(chosen, EnumValue):
+        return ICON_VALUES.get(chosen.value)
     return PARAMETER_ICONS.get(re.sub(r"V\d+$", "", name))
 
 
@@ -1031,7 +1057,7 @@ class Renderer:
 
     def parameter(self, item: Parameter) -> list[str]:
         label = f"<span class='label'>{html.escape(item.label)}</span>"
-        number = parameter_icon(item.name)
+        number = parameter_icon(item.name, item.annotation)
         if number is not None:
             # In place of its label, which shows when it's hovered
             label = f"<span class='label' title='{html.escape(item.label)}'>{icon(number)}</span>"

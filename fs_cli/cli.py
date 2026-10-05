@@ -241,6 +241,21 @@ def make_parser() -> argparse.ArgumentParser:
         help="mark every tab with a release version in the backend document (2 API calls)",
     )
 
+    cots_command = command(
+        "cots",
+        "rank COTS parts by how often teams use them, from FRCDesign's libraries, or show one part's configuration usage and part numbers (no Onshape API calls)",
+        targets=False,
+    )
+    cots_command.add_argument("query", nargs="?", default="", help="a regular expression matching parts' names or groups, e.g. 'hex shaft'")
+    cots_command.add_argument(
+        "-l", "--library", default="frc", help="frc, ftc, or mkcad (FRCDesign's FRC, FTC, and MKCad libraries)"
+    )
+    cots_command.add_argument("--days", type=int, default=365, help="how many days of usage to count (default: 365)")
+    cots_command.add_argument("-n", "--limit", type=int, default=40, help="how many parts to list (default: 40)")
+    cots_command.add_argument(
+        "-d", "--details", action="store_true", help="also show each part's configuration usage and part numbers"
+    )
+
     gen_command = command(
         "gen",
         "regenerate the .gen.fs files (lookup tables, sketch profiles) from their Python definitions (no API calls)",
@@ -986,6 +1001,30 @@ def mv(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def cots(config: Config, args: argparse.Namespace) -> int:
+    from fs_cli.cots import CotsError, FrcDesign, find
+
+    library = FrcDesign(args.library, args.days)
+    try:
+        parts = find(library.parts(), args.query)[: args.limit]
+        if not parts:
+            print("No parts match.")
+            return 1
+        width = max(len(str(part.uses)) for part in parts)
+        for rank, part in enumerate(parts, 1):
+            vendors = f" [{', '.join(part.vendors)}]" if part.vendors else ""
+            print(f"{part.uses:>{width}}  {part.name} ({part.group}){vendors}")
+            if args.details:
+                for line in library.options(part):
+                    print(f"{'':>{width}}    {line}")
+                for record in library.records(part):
+                    if record.get("partNumber"):
+                        print(f"{'':>{width}}    {record['partNumber']}: {record.get('name')} {record.get('url') or ''}".rstrip())
+    except CotsError as error:
+        raise UsageError(str(error)) from error
+    return 0
+
+
 def ui(config: Config, args: argparse.Namespace) -> int:
     path = pathlib.Path(args.file)
     if not path.is_file():
@@ -1072,6 +1111,7 @@ OFFLINE_COMMANDS = {
     "unused": unused,
     "refs": refs,
     "gen": gen,
+    "cots": cots,
     "unlink": unlink,
     # Online with --detect
     "released": released,

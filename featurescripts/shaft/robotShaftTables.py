@@ -1,6 +1,14 @@
-"""Hole tables for robotShaft and robotSpacer. Run `uv run fs gen-tables` after editing."""
+"""Shaft and hole tables for robotShaft and robotSpacer. Run `uv run fs gen` after editing.
 
-from fs_cli.tables import Node, Table, Value, inch, string
+The shaft tables list the shafts teams buy, picked by how often they're used in FRCDesign's FRC and FTC libraries
+(see docs/cots-research.md). Each is a vendor's shaft, described by its profile in robotShaftCommon.fs's terms
+(`shaftType`, and `hexType` and `hexSize` or `splineType`), with its `partName` (after its length, e.g. "3 in.
+Rounded Hex Shaft (WCP 1/2 in.)"), `material`, `appearance`, and `stock`: the lengths it's sold in, shortest first
+(see nutStripTables.py). FRC shafts are cut from long stock; goBILDA sells each length.
+"""
+
+from fs_cli.gen import Import
+from fs_cli.tables import Node, Table, Value, inch, mm, string
 
 
 def fit_node(close: str, free: str) -> Node:
@@ -79,7 +87,230 @@ clearance_hole = Node(
     default="#10",
 )
 
+
+# Shafts
+
+HALF_INCH = "HexSize._1_2_IN"
+THREE_EIGHTHS = "HexSize._3_8_IN"
+
+
+def stock(*lengths: tuple[str, str, str]) -> str:
+    """Lengths it's sold in: (length, part number, url)."""
+    entries = ", ".join(
+        f"{{ {string('length')} : {length}, {string('partNumber')} : {string(part_number)}, {string('url')} : {string(url)} }}"
+        for length, part_number, url in lengths
+    )
+    return f"[{entries}]"
+
+
+def shaft(name: str, part_name: str, profile: dict[str, str], material: str, appearance: str, lengths: str) -> Value:
+    return Value(
+        name,
+        {
+            **profile,
+            "partName": string(part_name),
+            "material": material,
+            "appearance": appearance,
+            "stock": lengths,
+        },
+    )
+
+
+def hex(hex_type: str, size: str) -> dict[str, str]:
+    return {"shaftType": "ShaftType.HEX", "hexType": f"HexType.{hex_type}", "hexSize": size}
+
+
+def spline(spline_type: str) -> dict[str, str]:
+    return {"shaftType": "ShaftType.SPLINE", "splineType": f"SplineType.{spline_type}"}
+
+
+def vendor(name: str, shafts: list[Value]) -> Value:
+    return Value(name, {"vendor": string(name)}, Node("shaft", shafts, display_name="Shaft"))
+
+
+def one(length: str, part_number: str, url: str) -> str:
+    """Stock sold in one length."""
+    return stock((length, part_number, url))
+
+
+def wcp(part_number: str) -> str:
+    return f"https://wcproducts.com/products/{part_number.lower()}"
+
+
+def wcp_shaft(name: str, part_name: str, profile: dict[str, str], part_number: str) -> Value:
+    return shaft(name, part_name, profile, "ALUMINUM", "BLACK", one(inch(36), part_number, wcp(part_number)))
+
+
+# FRCDesign "Hex Shaft (WCP)" and "Spline - SplineXL (WCP)"; 1/2 in. rounded hex is most of their use
+WCP = vendor(
+    "WCP",
+    [
+        wcp_shaft("1/2 in. Rounded Hex", "Rounded Hex Shaft (WCP 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "WCP-0914"),
+        wcp_shaft("3/8 in. Rounded Hex", "Rounded Hex Shaft (WCP 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS), "WCP-0911"),
+        wcp_shaft("1/2 in. Hex", "Hex Shaft (WCP 1/2 in.)", hex("STOCK", HALF_INCH), "WCP-0915"),
+        wcp_shaft("3/8 in. Hex", "Hex Shaft (WCP 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "WCP-0912"),
+        wcp_shaft("1/2 in. Hex Lite", "Hex Lite Shaft (WCP 1/2 in.)", hex("HEX_LITE", HALF_INCH), "WCP-0917"),
+        wcp_shaft("3/8 in. Hex Lite", "Hex Lite Shaft (WCP 3/8 in.)", hex("HEX_LITE", THREE_EIGHTHS), "WCP-1418"),
+        shaft("SplineXL", "SplineXL Shaft (WCP)", spline("SPLINE_XL"), "ALUMINUM", "BLACK", one(inch(47), "WCP-0918", wcp("WCP-0918"))),
+    ],
+)
+
+
+def rev(part_number: str) -> str:
+    """REV's page for a part, or a search for it, as some parts' pages are only reachable from their families'."""
+    if part_number == "REV-41-3205":
+        return "https://www.revrobotics.com/rev-41-3205/"
+    return f"https://www.revrobotics.com/search.php?search_query={part_number}&section=product"
+
+
+# FRCDesign "Hex Shaft (REV)" and "Spline - MAXSpline (REV)"
+REV = vendor(
+    "REV",
+    [
+        shaft("1/2 in. Rounded Hex", "Rounded Hex Shaft (REV 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "ALUMINUM", "BLACK",
+              one(inch(36), "REV-21-1135", rev("REV-21-1135"))),
+        shaft("1/2 in. UltraHex", "UltraHex Shaft (REV 1/2 in.)", hex("ULTRA_HEX", HALF_INCH), "ALUMINUM", "WHITE",
+              one(inch(72), "REV-41-3205", rev("REV-41-3205"))),
+        shaft("MAXSpline", "MAXSpline Shaft (REV)", spline("MAX_SPLINE"), "ALUMINUM", "WHITE",
+              one(inch(47), "REV-21-2520", rev("REV-21-2520"))),
+    ],
+)
+
+
+AM_CHURRO_URL = "https://andymark.com/products/1-2-in-churro-different-lengths"
+AM_CHURRO_LITE_URL = "https://andymark.com/products/3-8-in-churro-lite-different-lengths"
+AM_HEX_URL = "https://andymark.com/products/0-5-in-7075-aluminum-hex-shaft-stock"
+AM_STEEL_HEX_URL = "https://andymark.com/products/3-8-in-steel-hex-shaft-stock"
+
+
+def lengths(url: str, *sizes: tuple[float, str]) -> str:
+    """Stock sold in several lengths (in inches), each (length, part number), all on one page."""
+    return stock(*[(inch(length), part_number, url) for length, part_number in sizes])
+
+
+# FRCDesign "Hex Shaft (AM)": mostly 1/2 in. churro, then 1/2 in. hex. Lengths from AndyMark's store; its 1/2 in. steel
+# and 3/8 in. 7075 hex (am-0856, am-3807) aren't sold anymore
+ANDYMARK = vendor(
+    "AndyMark",
+    [
+        shaft("1/2 in. Churro", "Churro Shaft (AndyMark 1/2 in.)", hex("CHURRO", HALF_INCH), "ALUMINUM", "WHITE",
+              lengths(AM_CHURRO_URL, (2.48, "am-3399"), (3.375, "am-2569"), (3.875, "am-3087"), (6.25, "am-5724"),
+                      (11.25, "am-3398"), (12, "am-3101-1"), (17.313, "am-5218"), (17.8, "am-3101-1780"),
+                      (24, "am-3101-2"), (36, "am-3101-3"), (47, "am-3101-4700"))),
+        shaft("1/2 in. Hex (7075)", "Hex Shaft (AndyMark 1/2 in., 7075)", hex("STOCK", HALF_INCH), "ALUMINUM_7075", "WHITE",
+              lengths(AM_HEX_URL, (12, "am-2291-1"), (47, "am-2291-4700"))),
+        shaft("3/8 in. Churro Lite", "Churro Lite Shaft (AndyMark 3/8 in.)", hex("CHURRO", THREE_EIGHTHS), "ALUMINUM",
+              "WHITE", lengths(AM_CHURRO_LITE_URL, (10.5, "am-5867"), (36, "am-3666-3"), (47, "am-3666-4700"))),
+        shaft("3/8 in. Hex (steel)", "Hex Shaft (AndyMark 3/8 in., steel)", hex("STOCK", THREE_EIGHTHS), "STEEL", "DARK_GRAY",
+              lengths(AM_STEEL_HEX_URL, (1.85, "am-2356"), (12, "am-2356-1"), (36, "am-2356-3"), (47, "am-2356-4700"))),
+    ],
+)
+
+SWYFT_URL = "https://swyftrobotics.com/structure/swyft-axles"
+
+# FRCDesign "Hex Shaft (SWYFT)": nearly all 7075
+SWYFT = vendor(
+    "Swyft",
+    [
+        shaft("1/2 in. Rounded Hex (7075)", "Rounded Hex Shaft (Swyft 1/2 in., 7075)", hex("ROUNDED_HEX", HALF_INCH),
+              "ALUMINUM_7075", "BLACK", one(inch(36), "SR-AXLE-HEX-0.5in-36in-AL7075", SWYFT_URL)),
+        shaft("1/2 in. Rounded Hex (6061)", "Rounded Hex Shaft (Swyft 1/2 in., 6061)", hex("ROUNDED_HEX", HALF_INCH),
+              "ALUMINUM", "BLACK", one(inch(36), "SR-AXLE-HEXtoSPLINE-0.5in-36in-AL6061", SWYFT_URL)),
+    ],
+)
+
+
+def vex(part_number: str) -> str:
+    return f"https://www.vexrobotics.com/{part_number}.html"
+
+
+# FRCDesign "Hex Shaft (VEX)": ThunderHex is VEX's rounded hex
+VEX = vendor(
+    "VEX",
+    [
+        shaft("1/2 in. ThunderHex", "ThunderHex Shaft (VEX 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "ALUMINUM", "BLACK",
+              one(inch(36), "217-8631", vex("217-8631"))),
+        shaft("3/8 in. ThunderHex", "ThunderHex Shaft (VEX 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS), "ALUMINUM", "BLACK",
+              one(inch(36), "217-5837", vex("217-5837"))),
+        shaft("1/2 in. Hex", "Hex Shaft (VEX 1/2 in.)", hex("STOCK", HALF_INCH), "ALUMINUM", "WHITE",
+              one(inch(36), "217-2753", vex("217-2753"))),
+        shaft("3/8 in. Hex", "Hex Shaft (VEX 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "ALUMINUM", "WHITE",
+              one(inch(36), "217-2754", vex("217-2754"))),
+    ],
+)
+
+def ttb(handle: str) -> str:
+    return f"https://www.thethriftybot.com/products/{handle}"
+
+
+# FRCDesign "Hex Shaft (TTB)"
+TTB = vendor(
+    "ThriftyBot",
+    [
+        shaft("1/2 in. Rounded Hex (7075)", "Rounded Hex Shaft (ThriftyBot 1/2 in., 7075)", hex("ROUNDED_HEX", HALF_INCH),
+              "ALUMINUM_7075", "BLACK",
+              one(inch(36), "TTB-0069", ttb("copy-of-qty-1-36-inch-long-1-2-rounded-hex-shaft-7075-aluminum"))),
+        shaft("1/2 in. Rounded Hex (6061)", "Rounded Hex Shaft (ThriftyBot 1/2 in., 6061)", hex("ROUNDED_HEX", HALF_INCH),
+              "ALUMINUM", "BLACK", one(inch(36), "TTB-0068", ttb("qty-1-36-inch-long-1-2-rounded-hex-shaft-6061-aluminum"))),
+        shaft("3/8 in. Rounded Hex", "Rounded Hex Shaft (ThriftyBot 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS),
+              "ALUMINUM", "BLACK", one(inch(36), "TTB-0265", ttb("3-8-rounded-hex-shaft-stock-36-long"))),
+    ],
+)
+
+
+def gobilda(series: str, profile: str, name: str, lengths: list[float]) -> str:
+    """goBILDA sells each length: SKUs like 2106-4008-0560 for 56 mm, with a page each."""
+    return stock(
+        *[
+            (
+                mm(length),
+                f"{series}-{profile}-{round(length * 10):04d}" if series != "2104" else f"{series}-{profile}-{round(length):04d}",
+                f"https://www.gobilda.com/{name}-{length:g}mm-length/",
+            )
+            for length in lengths
+        ]
+    )
+
+
+REX_8_LENGTHS = [24, 32, 40, 43, 48, 52, 54, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 168, 192, 216, 240, 264, 288,
+                 312, 336, 384, 432, 624]
+REX_12_LENGTHS = [32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 168, 192, 216, 240, 264, 288, 312, 336, 384,
+                  432, 528, 624]
+REX_12_ALUMINUM_LENGTHS = [43, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 192, 240, 288, 336, 384, 432, 528, 624,
+                           1200]
+
+# FRCDesign FTC "Custom Shaft": 8mm REX is nearly all of its use. REX is goBILDA's rounded hex: an 8 mm (or 12 mm) round
+# and a 7 mm (or 11 mm) hex (the STEP files); its ends are tapped M4
+# TODO: goBILDA's D-shafts and round shafts, and 8mm REX in aluminum; REV's 5mm hex
+GOBILDA = vendor(
+    "goBILDA",
+    [
+        shaft("8mm REX (stainless steel)", "8mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._7_MM"),
+              "STAINLESS_STEEL", "WHITE",
+              gobilda("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel", REX_8_LENGTHS)),
+        shaft("12mm REX (stainless steel)", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
+              "STAINLESS_STEEL", "WHITE",
+              gobilda("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel", REX_12_LENGTHS)),
+        shaft("12mm REX (aluminum)", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
+              "ALUMINUM", "WHITE",
+              gobilda("2104", "0012", "12mm-rex-shaft-aluminum", REX_12_ALUMINUM_LENGTHS)),
+    ],
+)
+
+# AndyMark's Robits FTC system: 3/8 in. steel hex, tapped #10-32 at each end, in lengths on its grid
+ROBITS = vendor(
+    "AndyMark",
+    [
+        shaft("Robits 3/8 in. Hex", "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "DARK_GRAY",
+              lengths("https://andymark.com/products/robits-hex-shafts", *[(n, f"am-5003-{n * 100:04d}") for n in (2, 3, 4, 6, 8, 10, 12)])),
+    ],
+)
+
 CONTENTS = [
+    Import("shaft/robotShaftCommon.fs"),
+    Import("core/robotProperties.fs"),
     Table("tappedHoleTable", tapped_hole),
     Table("clearanceHoleTable", clearance_hole),
+    Table("frcShaftTable", Node("vendor", [WCP, REV, ANDYMARK, SWYFT, VEX, TTB])),
+    Table("ftcShaftTable", Node("vendor", [GOBILDA, ROBITS])),
 ]
