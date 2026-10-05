@@ -548,6 +548,7 @@ class Project:
         problems.extend(_boolean_comparison_problems(module))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
+        problems.extend(self._precondition_predicate_problems(module, providers))
         for usage in self.usages([module]):
             if not usage.exported and usage.unused:
                 token = usage.declaration.token
@@ -693,6 +694,103 @@ class Project:
                             (name, token)
                             for name, _ in self._parameter_types(owner, body.start, body.end, seen)
                         )
+        return found
+
+    def _precondition_predicate_problems(
+        self, module: Module, providers: dict[str, list[Provider]]
+    ) -> list[Problem]:
+        """Predicates a feature's precondition uses (directly or through other predicates) which its file can't see.
+
+        Onshape inlines every predicate a precondition calls, looking each one up from the feature's file. A
+        predicate another file declares without exporting it (or which isn't exported to the feature's file)
+        makes Onshape's precondition analysis fail, so it can't show the feature's parameters.
+        """
+        problems = []
+        for node in module.parsed.nodes:
+            if node.type != "PreconditionBlock":
+                continue
+            feature = module.index.enclosing(
+                node.token, frozenset(["FeatureDeclaration"])
+            )
+            if feature is None:
+                continue
+            for owner, declaration, report_at in self._called_predicates(
+                module, node.start, node.end, set()
+            ):
+                if owner.path == module.path or declaration.name in providers:
+                    continue
+                problems.append(
+                    Problem(
+                        report_at.offset,
+                        report_at.end,
+                        "error",
+                        f"{feature.name}'s precondition uses the predicate {declaration.name}, which "
+                        f"{owner.path.name} doesn't export to this file, so Onshape can't analyze the precondition. "
+                        f"Export it.",
+                        "unexported-predicate",
+                    )
+                )
+        return _dedupe_problems(problems)
+
+    def _called_predicates(
+        self, module: Module, start: int, end: int, seen: set[tuple[pathlib.Path, int]]
+    ) -> list[tuple[Module, Declaration, Token]]:
+        """The project predicates called in a region and, transitively, by them.
+
+        Each is returned with the module declaring it, and the call in the original region it's reached through.
+        """
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+        found: list[tuple[Module, Declaration, Token]] = []
+        for position, token in enumerate(tokens):
+            if not start <= token.offset < end or token.kind != "identifier":
+                continue
+            following = tokens[position + 1] if position + 1 < len(tokens) else None
+            if following is None or following.value != "(":
+                continue
+            local = module.index.declaration_for_token(token)
+            targets = (
+                [(module, local)]
+                if local is not None and local.kind == "predicate"
+                else [
+                    (provider.module, provider.declaration)
+                    for provider in providers.get(token.value, [])
+                    if provider.declaration.kind == "predicate"
+                ]
+            )
+            if not targets and not stdlib().lookup(token.value):
+                # Not visible here: find it anywhere in the project
+                targets = [
+                    (other, declaration)
+                    for other in self.modules()
+                    for declaration in other.index.declarations_by_name.get(
+                        token.value, []
+                    )
+                    if declaration.kind == "predicate"
+                    and declaration.scope_start == other.parsed.start
+                ]
+            for owner, declaration in targets[:1]:
+                key = (owner.path, declaration.token.offset)
+                if key in seen:
+                    continue
+                seen.add(key)
+                found.append((owner, declaration, token))
+                body = next(
+                    (
+                        n
+                        for n in owner.parsed.nodes
+                        if n.type == "PredicateDeclaration"
+                        and n.start <= declaration.token.offset < n.end
+                    ),
+                    None,
+                )
+                if body is not None:
+                    found.extend(
+                        (inner_owner, inner, token)
+                        for inner_owner, inner, _ in self._called_predicates(
+                            owner, body.start, body.end, seen
+                        )
+                    )
         return found
 
     def _is_project_enum(self, module: Module, name: str, providers: dict[str, list[Provider]]) -> bool:

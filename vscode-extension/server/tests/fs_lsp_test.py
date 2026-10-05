@@ -444,6 +444,13 @@ def test_diagnostics_clean_fixtures():
             assert found == [], path.name
 
 
+def test_diagnostics_reserved_type_names():
+    found = messages("function f(context is Context)\n{\n    const box = 1;\n    var map = {};\n}")
+    assert sum("reserves" in m for m in found) == 2
+    assert messages("function f(value is box, other is map)\n{\n    return value[];\n}") == []
+    assert messages("const lookup = (name is string, data is map) => data[name];") == []
+
+
 def test_diagnostics_brackets_and_operators():
     assert any("never closed" in m for m in messages("function f() {\n  g(1;\n}"))
     assert any("Unmatched" in m for m in messages("const a = 1);"))

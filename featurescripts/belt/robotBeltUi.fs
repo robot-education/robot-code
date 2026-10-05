@@ -53,7 +53,7 @@ export enum SelectionType
     PITCH_CIRCLE
 }
 
-predicate selectionPredicate(definition is map)
+export predicate selectionPredicate(definition is map)
 {
     annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
     {
@@ -73,7 +73,7 @@ predicate selectionPredicate(definition is map)
     }
 }
 
-predicate simpleBeltSelectionPredicate(definition is map)
+export predicate simpleBeltSelectionPredicate(definition is map)
 {
     annotation { "Name" : "Standalone belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.isStandaloneBelt is boolean;
@@ -118,7 +118,7 @@ predicate simpleBeltSelectionPredicate(definition is map)
 }
 
 
-predicate complexBeltSelectionPredicate(definition is map)
+export predicate complexBeltSelectionPredicate(definition is map)
 {
     annotation {
                 "Name" : "Pulleys",
@@ -161,7 +161,7 @@ predicate complexBeltSelectionPredicate(definition is map)
 }
 
 
-predicate beltPredicate(definition is map)
+export predicate beltPredicate(definition is map)
 {
     annotation { "Group Name" : "Belt", "Collapsed By Default" : false }
     {
@@ -203,7 +203,7 @@ export function pulleyString(pulley is Pulley) returns string
     return "pulley" ~ (pulley == Pulley.ONE ? "One" : "Two");
 }
 
-predicate optionsPredicate(definition is map)
+export predicate optionsPredicate(definition is map)
 {
     annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
     {

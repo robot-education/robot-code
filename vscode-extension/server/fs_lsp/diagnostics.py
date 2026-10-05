@@ -14,6 +14,9 @@ from fs_lsp.scanner import Token
 
 SOURCE = "featurescript"
 
+# Built-in type names, which Onshape's parser treats as their own token, so they can't name anything
+RESERVED_TYPE_NAMES = frozenset(["boolean", "number", "string", "array", "map", "box", "builtin"])
+
 OPENERS = {"(": ")", "[": "]", "{": "}", "?[": "]"}
 CLOSERS = {")", "]", "}"}
 
@@ -47,6 +50,22 @@ def diagnostics(parsed: ParsedProgram) -> list[lsp.Diagnostic]:
                 source=SOURCE,
             )
         )
+
+    previous = {
+        token.offset: parsed.tokens[index - 1].value if index else None
+        for index, token in enumerate(parsed.tokens)
+    }
+    for hint in parsed.hints:
+        if (
+            "declaration" in hint.modifiers
+            and hint.token.value in RESERVED_TYPE_NAMES
+            # A type, e.g. in an arrow function's parameters: `(name is string) => ...`
+            and previous.get(hint.token.offset) not in ("is", "returns", "as")
+        ):
+            error(
+                hint.token,
+                f"'{hint.token.value}' is a built-in type name, which FeatureScript reserves; rename it.",
+            )
 
     stack: list[Token] = []
     for token in parsed.tokens:

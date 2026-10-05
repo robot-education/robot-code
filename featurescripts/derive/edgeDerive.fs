@@ -121,8 +121,8 @@ export const edgeDerive = defineFeature(function(context is Context, id is Id, d
 
             if (manipulatorRadius == undefined)
             {
-                const box = evBox3d(context, { "topology" : entities, "tight" : false });
-                manipulatorRadius = norm(project(XY_PLANE, box.minCorner) - project(XY_PLANE, box.maxCorner)) * 1.25;
+                const boundingBox = evBox3d(context, { "topology" : entities, "tight" : false });
+                manipulatorRadius = norm(project(XY_PLANE, boundingBox.minCorner) - project(XY_PLANE, boundingBox.maxCorner)) * 1.25;
             }
 
             const result = callSubfeatureAndProcessStatus(id, opPointPattern, context, deriveId, {

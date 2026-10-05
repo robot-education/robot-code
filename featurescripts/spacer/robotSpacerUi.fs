@@ -77,7 +77,7 @@ export predicate robotSpacerPredicate(definition is map)
 }
 
 
-predicate generalPredicate(definition is map)
+export predicate generalPredicate(definition is map)
 {
     annotation { "Group Name" : "Spacer", "Collapsed By Default" : false }
     {
@@ -137,12 +137,12 @@ export predicate canHaveProfileOffset(definition is map)
     (definition.spacerType == SpacerType.HEX && definition.hexSize != HexSize.CUSTOM) || definition.spacerType == SpacerType.SPLINE;
 }
 
-predicate isCustomSizeSpacer(definition is map)
+export predicate isCustomSizeSpacer(definition is map)
 {
     (definition.spacerType == SpacerType.HEX && definition.hexSize == HexSize.CUSTOM);
 }
 
-predicate hexSizePredicate(definition is map)
+export predicate hexSizePredicate(definition is map)
 {
     annotation { "Name" : "Hex size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
     definition.hexSize is HexSize;
@@ -170,7 +170,7 @@ function getHexWidth(definition is map) returns ValueWithUnits
     }
 }
 
-predicate holeSizePredicate(definition is map)
+export predicate holeSizePredicate(definition is map)
 {
     annotation { "Name" : "Hole table", "Lookup Table" : clearanceHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.clearanceHolePath is LookupTablePath;
@@ -184,13 +184,13 @@ export function getTableAndPath(definition is map) returns map
     return { "table" : clearanceHoleTable, "path" : definition.clearanceHolePath };
 }
 
-predicate snapOnPredicate(definition is map)
+export predicate snapOnPredicate(definition is map)
 {
     annotation { "Name" : "Snap on", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Use a snap on design." }
     definition.snapOn is boolean;
 }
 
-predicate canBeSnapOnSpacer(definition is map)
+export predicate canBeSnapOnSpacer(definition is map)
 {
     definition.spacerType == SpacerType.HEX && definition.hexSize != HexSize.CUSTOM;
 }
