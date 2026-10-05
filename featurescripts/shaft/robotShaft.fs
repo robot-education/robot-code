@@ -407,6 +407,7 @@ function getCotsShaft(definition is map)
 /**
  * The definition with the unit system its program uses (inches for FRC, millimeters for FTC), and a COTS shaft's
  * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), so the rest of the feature can treat it as custom.
+ * A COTS spline shaft may also have a `predrilledHoleDiameter`: a hole through a solid spline (see `isTubeSpline`).
  */
 function withShaft(definition is map) returns map
 {
@@ -421,6 +422,7 @@ function withShaft(definition is map) returns map
                 definition[key] = shaft[key];
             }
         }
+        definition.predrilledHoleDiameter = shaft.predrilledHoleDiameter;
     }
     return definition;
 }
@@ -449,6 +451,13 @@ function createShaftProfile(context is Context, id is Id, definition is map, sha
             skSplineProfile(sketch, "inside", {
                         "splineType" : definition.splineType,
                         "profileSide" : ProfileSide.INSIDE
+                    });
+        }
+        else if (definition.predrilledHoleDiameter != undefined)
+        {
+            skCircle(sketch, "predrilledHole", {
+                        "center" : zeroVector(2) * meter,
+                        "radius" : definition.predrilledHoleDiameter / 2
                     });
         }
     }

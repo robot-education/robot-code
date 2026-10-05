@@ -112,8 +112,14 @@ def shaft(
     appearance: str,
     lengths: str,
     fixed_lengths: bool = False,
+    predrilled_hole: str | None = None,
 ) -> Value:
-    """A shaft. fixed_lengths: whether it's only sold in its stock's lengths, rather than cut from them."""
+    """A shaft.
+
+    Args:
+        fixed_lengths: Whether it's only sold in its stock's lengths, rather than cut from them.
+        predrilled_hole: The diameter of a hole through a solid spline shaft (hex shafts' come from their types).
+    """
     return Value(
         name,
         {
@@ -123,6 +129,7 @@ def shaft(
             "appearance": appearance,
             "stock": lengths,
             **({"fixedLengths": "true"} if fixed_lengths else {}),
+            **({"predrilledHoleDiameter": predrilled_hole} if predrilled_hole else {}),
         },
     )
 
@@ -152,7 +159,8 @@ def wcp_shaft(name: str, part_name: str, profile: dict[str, str], part_number: s
     return shaft(name, part_name, profile, "ALUMINUM", "BLACK", one(inch(36), part_number, wcp(part_number)))
 
 
-# FRCDesign "Hex Shaft (WCP)" and "Spline - SplineXL (WCP)"; 1/2 in. rounded hex is most of their use
+# FRCDesign "Hex Shaft (WCP)" and "Spline - SplineXL (WCP)"; 1/2 in. rounded hex is most of their use. Its SplineXS shafts
+# aren't in FRCDesign (they're from WCP's store)
 WCP = vendor(
     "WCP",
     [
@@ -163,6 +171,12 @@ WCP = vendor(
         wcp_shaft("1/2 in. Hex Lite", "Hex Lite Shaft (WCP 1/2 in.)", hex("HEX_LITE", HALF_INCH), "WCP-0917"),
         wcp_shaft("3/8 in. Hex Lite", "Hex Lite Shaft (WCP 3/8 in.)", hex("HEX_LITE", THREE_EIGHTHS), "WCP-1418"),
         shaft("SplineXL", "SplineXL Shaft (WCP)", spline("SPLINE_XL"), "ALUMINUM", "BLACK", one(inch(47), "WCP-0918", wcp("WCP-0918"))),
+        # TODO: check whether the SplineXS stock has a through hole (its page has no drawing yet), and draw the stub's
+        # tapped ends
+        shaft("SplineXS (aluminum)", "SplineXS Shaft (WCP, aluminum)", spline("SPLINE_XS"), "ALUMINUM", "BLACK",
+              one(inch(36), "WCP-1379", wcp("WCP-1379"))),
+        shaft("SplineXS Stub (steel)", "SplineXS Stub Shaft (WCP, steel)", spline("SPLINE_XS"), "STEEL", "BLACK",
+              one(inch(3), "WCP-0946", wcp("WCP-0946")), fixed_lengths=True),
     ],
 )
 
@@ -259,8 +273,12 @@ def ttb(handle: str) -> str:
 
 TTB_SPLINE_XS_URL = ttb("pre-order-splinexs-shafts")
 
+# A #10-32 tap drill (#21), the hole through shafts which can be tapped #10-32 at their ends
+TAP_10_32 = inch(0.159)
+
 # FRCDesign "Hex Shaft (TTB)" and "Spline - 15t SplineXS (TTB)". Its SplineXS stub shafts are 1045 steel, tapped #10-32 at
-# each end; its 7075 SplineXS stock has a through hole to tap #10-32, which isn't drawn (TODO)
+# each end (TODO: draw the tapped holes); its 7075 SplineXS stock has a through hole to tap #10-32, and its steel stock
+# doesn't
 TTB = vendor(
     "ThriftyBot",
     [
@@ -274,7 +292,7 @@ TTB = vendor(
         shaft("SplineXS Stub (steel)", "SplineXS Stub Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL",
               "DARK_GRAY", lengths(TTB_SPLINE_XS_URL, (2, "TTB-0301"), (2.5, "TTB-0303")), fixed_lengths=True),
         shaft("SplineXS (7075)", "SplineXS Shaft (ThriftyBot, 7075)", spline("SPLINE_XS"), "ALUMINUM_7075", "BLACK",
-              one(inch(36), "TTB-0357", TTB_SPLINE_XS_URL)),
+              one(inch(36), "TTB-0357", TTB_SPLINE_XS_URL), predrilled_hole=TAP_10_32),
         shaft("SplineXS (steel)", "SplineXS Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL", "DARK_GRAY",
               one(inch(36), "TTB-0366", TTB_SPLINE_XS_URL)),
     ],

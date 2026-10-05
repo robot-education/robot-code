@@ -42,6 +42,8 @@ Prefer the vendor's own drawings and CAD to anyone's model of them:
 - **Product data**: Shopify stores (WCP, ThriftyBot, AndyMark, Swyft) list every product and variant, with SKUs, at
   `https://{store}/products.json?limit=250&page={n}`, and one product at `/products/{handle}.json`. Variants are
   often the lengths a part is sold in.
+  WCP's product pages all say "This Page is for Reference Only" (their description is just that); that isn't a
+  problem, and doesn't mean the part is discontinued. Their titles, SKUs, and prices are still right.
 - **Drawings**: WCP, REV (`https://revrobotics.com/content/docs/{part number}-DR.pdf`), and AndyMark (linked from
   the product page) publish PDF drawings with hole patterns and lengths; `pdftotext -layout` and `pdftoppm -png`
   read them.
