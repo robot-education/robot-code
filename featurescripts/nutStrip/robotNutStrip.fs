@@ -349,14 +349,11 @@ function setNutStripProperties(context is Context, strip is Query, definition is
                 "propertyType" : PropertyType.MATERIAL,
                 "value" : ALUMINUM
             });
-    if (nutStrip.appearance != undefined)
-    {
-        setProperty(context, {
-                    "entities" : strip,
-                    "propertyType" : PropertyType.APPEARANCE,
-                    "value" : nutStrip.appearance
-                });
-    }
+    setProperty(context, {
+                "entities" : strip,
+                "propertyType" : PropertyType.APPEARANCE,
+                "value" : nutStrip.appearance
+            });
 }
 
 /**

@@ -10,8 +10,10 @@ import dataclasses
 
 from fs_cli.tables import Node, Table, Value, inch, mm, string
 
-# robotProperties.fs's BLACK
+# Placeholder appearances until vendor colors are picked: robotProperties.fs's WHITE, BLACK, and DARK_GRAY
+WHITE = "color(230 / 255, 230 / 255, 230 / 255)"
 BLACK = "color(0.3, 0.3, 0.3)"
+DARK_GRAY = "color(135 / 255, 135 / 255, 135 / 255)"
 
 
 def thread(name: str, size: str, pitch: str, major_diameter: str, tap_drill_diameter: str) -> Value:
@@ -61,34 +63,36 @@ def size(
     )
 
 
-def vendor(name: str, sizes: list[Value], appearance: str | None = None, default_size: str | None = None) -> Value:
-    values = {"vendor": string(name)}
-    if appearance is not None:
-        values["appearance"] = appearance
-    return Value(name, values, Node("size", sizes, default=default_size))
+def vendor(name: str, sizes: list[Value], appearance: str, default_size: str | None = None) -> Value:
+    return Value(
+        name, {"vendor": string(name), "appearance": appearance}, Node("size", sizes, default=default_size)
+    )
 
 
 # https://wcproducts.com/products/nut-strips
 # The rows alternate: one starts 1/4 in. from the end, the other 1/2 in. (drawing: Web-Aluminum Nut Strip.pdf)
-# TODO: WCP's appearance
+# Raw aluminum
 WCP = vendor(
     "WCP",
     [
         size("1/2 in.", inch(0.5), inch(0.5), inch(0.25), inch(0.5), [NUMBER_10_32, NUMBER_8_32]),
         size("3/8 in.", inch(0.375), inch(0.5), inch(0.25), inch(0.5), [NUMBER_10_32]),
     ],
+    appearance=WHITE,
 )
 
 # https://lastanvil.com/products/nut-strip
 # The rows alternate like WCP's (both STEP files); the #10-32 strip also has a hole down its center
-# TODO: Last Anvil's appearance (the #10-32 strip is sandblasted, the #8-32 strip unfinished)
+# Raw aluminum (the #10-32 strip is sandblasted, the #8-32 strip unfinished)
 LAST_ANVIL = vendor(
     "Last Anvil",
     [size("1/2 in.", inch(0.5), inch(0.5), inch(0.25), inch(0.5), [with_center_hole(NUMBER_10_32), NUMBER_8_32])],
+    appearance=WHITE,
 )
 
 # https://www.revrobotics.com/3-8in-nut-strips/
 # The rows line up (their holes cross), starting 0.24 in. from the end (REV-21-3420's STEP file)
+# Black anodized
 REV_FRC = vendor(
     "REV",
     [size("3/8 in.", inch(0.375), inch(0.5), inch(0.24), inch(0.24), [NUMBER_10_32])],
@@ -98,9 +102,11 @@ REV_FRC = vendor(
 # https://www.revrobotics.com/m3-nut-strips/
 # The rows alternate every 8 mm: one starts 8 mm from the end, the other 16 mm (REV-41-1731's STEP file)
 # TODO: REV's M3 nut strips also have tapped holes in their ends
+# Matte gray in REV's photos
 REV_FTC = vendor(
     "REV",
     [size("8 mm", mm(8), mm(16), mm(8), mm(16), [M3])],
+    appearance=DARK_GRAY,
 )
 
 CONTENTS = [
