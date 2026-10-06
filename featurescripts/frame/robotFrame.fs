@@ -6,7 +6,7 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
 import(path : "ff444db0395e01aaa8c7e555", version : "e4db7164a5fde703c448de5f");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "c7a62e7e90cd9bb42c507670");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "3e1a1a3e6b103a1480625571");
 
 /**
  * Whether a frame is one someone sells (see frameTables.py), or custom.

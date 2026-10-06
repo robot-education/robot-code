@@ -1,17 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-  <g stroke="#333" stroke-width="0.6" stroke-linejoin="round">
-    <!-- A short 2x1 tube drawn like std Frame: its profile at the front, extruded back to the upper left -->
-    <path d="M11 7 L5 1 L5 13 L11 19 Z" fill="#ddd"/>
-    <path d="M11 7 L5 1 L11 1 L17 7 Z" fill="#fff"/>
-    <path d="M11 7 H17 V19 H11 Z M12.4 8.4 V17.6 H15.6 V8.4 Z" fill="#999" fill-rule="evenodd"/>
-    <!-- Inside it, its right wall and its floor -->
-    <path d="M15.6 8.4 V17.6 L12.4 14.4 V8.4 Z" fill="#666"/>
-    <path d="M12.4 14.4 L15.6 17.6 H12.4 Z" fill="#ccc"/>
-  </g>
-  <!-- Two holes stacked in its side, and one in its top: circles in each face's plane -->
-  <g fill="#333">
-    <circle r="1.5" transform="matrix(-0.7 -0.7 0 1 8 7.5)"/>
-    <circle r="1.5" transform="matrix(-0.7 -0.7 0 1 8 12.5)"/>
-    <circle r="1.5" transform="matrix(1 0 -0.7 -0.7 11 4)"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.00 7.00 L9.00 19.00 L3.00 13.00 L3.00 1.00 Z" fill="#ddd" stroke="#333" stroke-width="0.6" stroke-linejoin="round"/><path d="M9.00 7.00 L17.00 7.00 L11.00 1.00 L3.00 1.00 Z" fill="#fff" stroke="#333" stroke-width="0.6" stroke-linejoin="round"/><path d="M9.0 7.0 H17.0 V19.0 H9.0 Z M10.3 8.3 V17.7 H15.7 V8.3 Z" fill="#999" fill-rule="evenodd" stroke="#333" stroke-width="0.6" stroke-linejoin="round"/><path d="M15.70 8.30 L15.70 17.70 L10.30 12.30 L10.30 8.30 Z" fill="#666" stroke="#333" stroke-width="0.6" stroke-linejoin="round"/><path d="M10.30 12.30 L15.70 17.70 L10.30 17.70 Z" fill="#ccc" stroke="#333" stroke-width="0.6" stroke-linejoin="round"/><circle r="1.8" fill="#999" transform="matrix(0.000 1.000 -0.530 -0.530 6.00 7.60)" stroke="#333" stroke-width="0.9"/><circle r="1.4040000000000001" fill="#333" transform="matrix(0.000 1.000 -0.530 -0.530 6.80 7.60)"/><circle r="1.8" fill="none" transform="matrix(0.000 1.000 -0.530 -0.530 6.00 7.60)" stroke="#333" stroke-width="0.9"/><circle r="1.8" fill="#999" transform="matrix(0.000 1.000 -0.530 -0.530 6.00 12.64)" stroke="#333" stroke-width="0.9"/><circle r="1.4040000000000001" fill="#333" transform="matrix(0.000 1.000 -0.530 -0.530 6.80 12.64)"/><circle r="1.8" fill="none" transform="matrix(0.000 1.000 -0.530 -0.530 6.00 12.64)" stroke="#333" stroke-width="0.9"/><circle r="1.8" fill="#999" transform="matrix(1.000 0.000 -0.530 -0.530 10.00 4.00)" stroke="#333" stroke-width="0.9"/><circle r="1.4040000000000001" fill="#333" transform="matrix(1.000 0.000 -0.530 -0.530 10.00 4.70)"/><circle r="1.8" fill="none" transform="matrix(1.000 0.000 -0.530 -0.530 10.00 4.00)" stroke="#333" stroke-width="0.9"/></svg>

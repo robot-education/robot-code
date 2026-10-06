@@ -5,7 +5,7 @@ RobotNutStripIcon::import(path : "70fa8905356b9bb43809037c", version : "72309621
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "e316d3a31f8726cbc70fe081", version : "f8720e7e64d2b639cd3f03d8");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "c7a62e7e90cd9bb42c507670");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "3e1a1a3e6b103a1480625571");
 
 /**
  * Places a nut strip along an edge, or extrudes one from a point.

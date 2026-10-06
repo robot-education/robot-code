@@ -25,7 +25,7 @@ export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f5
 export import(path : "58d66340f7b70cfc86606676", version : "c66f2cde90ee0c14ff94cd63");
 export import(path : "554542fc345271814c4463b0", version : "9c477217d62dbff99c9b2ad2");
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
-export import(path : "21762d39019c8b2289e2fbb8", version : "8f82cf693e7833130ba80201");
+export import(path : "21762d39019c8b2289e2fbb8", version : "c49d2d2fae0776d783a28e44");
 export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960.0");
 
 /**
@@ -59,9 +59,10 @@ const OFFSET_BOUNDS = {
 
 /**
  * Where stock goes: the edge to place it along and the offsets of its ends, or the point to extrude it from and the
- * extrude's options (see `isEdgePlacement`), in a Position group. Either way, `flip` draws it from the other end, a
- * button rotates it in 90 degree increments, and a nine point manipulator chooses which point of its profile is on the
- * edge or point (see `orientStock`). From a point, `oppositeDirection` (Flip primary axis) is the extrude's.
+ * extrude's options (see `isEdgePlacement`), in a Position group. Either way, `flip` (Flip hole pattern, and a flip
+ * manipulator) draws it from the other end, a button rotates it in 90 degree increments, and a nine point manipulator
+ * chooses which point of its profile is on the edge or point (see `orientStock`). From a point, `oppositeDirection`
+ * (Flip primary axis) is the extrude's.
  *
  * @param name : What's placed, e.g. `"nut strip"`.
  */
@@ -93,7 +94,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
         // Shared by both placements, since Onshape doesn't allow declaring a parameter twice (even in different branches)
         secondaryAxisPredicate(definition);
 
-        annotation { "Name" : "Flip " ~ name }
+        annotation { "Name" : "Flip hole pattern" }
         definition.flip is boolean;
 
         ninePointManipulatorPredicate(definition);
@@ -105,14 +106,9 @@ export predicate stockLocationPredicate(definition is map, name is string)
         else
         {
             lengthBoundParametersPredicate(definition);
+            extrudeDirectionPredicate(definition);
+            newExtrudeOptionsPredicate(definition);
         }
-    }
-
-    // After the group, since they're groups of their own
-    if (!isEdgePlacement(definition))
-    {
-        extrudeDirectionPredicate(definition);
-        newExtrudeOptionsPredicate(definition);
     }
 }
 
@@ -249,7 +245,7 @@ export predicate tieHolesPredicate(definition is map)
     {
         annotation { "Group Name" : "Tie holes to end", "Collapsed By Default" : false, "Driving Parameter" : "tieHoles" }
         {
-            annotation { "Name" : "Tie hole method", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            annotation { "Name" : "Tie hole method", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.tieHolesBy is TieHolesBy;
 
             if (definition.tieHolesBy == TieHolesBy.LENGTH)
@@ -780,13 +776,6 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
             throw regenError("The offsets leave no room.", ["edgeStartOffset", "edgeEndOffset"], edge);
         }
         addOffsetManipulators(context, id, definition, edgeStart, location.zAxis, edgeLength, startOffset, endOffset);
-        addManipulators(context, id, {
-                    (FLIP_MANIPULATOR) : flipManipulator({
-                            "base" : middle.origin,
-                            "direction" : middle.zAxis,
-                            "flipped" : isFlipped(definition)
-                        })
-                });
     }
     else
     {
@@ -806,6 +795,14 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
             {
                 return toWorld(center, offset + vector(0 * meter, 0 * meter, length / 2));
             }), getNinePointIndex(definition));
+    addManipulators(context, id, {
+                (FLIP_MANIPULATOR) : flipManipulator({
+                        "base" : center.origin + center.zAxis * length / 2,
+                        // The way it's drawn unflipped
+                        "direction" : isFlipped(definition) ? -center.zAxis : center.zAxis,
+                        "flipped" : isFlipped(definition)
+                    })
+            });
 
     if (definition.tieHoles && definition.showTiedHoles)
     {
@@ -818,17 +815,18 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
         {
             addDebugEntities(context, shown, DebugColor.BLUE);
         }
+        showTieMark(context, id + "tieMark", definition, stock, center, length);
     }
-    const sold = stock.stock == [] || stockFor(stock, length) != undefined ? undefined :
-        "This is only sold up to " ~ lengthString(definition, stock.stock[size(stock.stock) - 1].length) ~ " long.";
-    const irregular = built.tie == undefined || isRegularLength(length, built.tie) ? undefined : regularLengthMessage(definition, name, built.tie);
-    if (sold != undefined)
+    // Being too long to buy matters more than not being a regular length
+    if (stock.stock != [] && stockFor(stock, length) == undefined)
     {
-        reportFeatureWarning(context, id, sold ~ (irregular == undefined ? "" : " " ~ irregular), [isEdgePlacement(definition) ? "edge" : "depth"]);
+        const longest = stock.stock[size(stock.stock) - 1].length;
+        reportFeatureWarning(context, id, "The " ~ name ~ " exceeds the max length sold by the vendor (" ~ lengthString(definition, longest) ~ ").",
+            [isEdgePlacement(definition) ? "edge" : "depth"]);
     }
-    else if (irregular != undefined)
+    else if (built.tie != undefined && !isRegularLength(length, built.tie))
     {
-        reportFeatureInfo(context, id, irregular);
+        reportFeatureInfo(context, id, regularLengthMessage(definition, name, built.tie));
     }
 }
 
@@ -908,6 +906,33 @@ function regularLengthMessage(definition is map, name is string, tie is map) ret
         return sentence("The " ~ name ~ "'s length should be " ~ multiple);
     }
     return sentence("The " ~ name ~ "'s length should be " ~ lengthString(definition, extra) ~ " more than " ~ multiple);
+}
+
+/**
+ * Shows where holes start being tied to the end, when they're tied by half or by length (see `getTie`): a rectangle
+ * across the stock, a little bigger than its profile, there.
+ */
+function showTieMark(context is Context, id is Id, definition is map, stock is Stock, center is CoordSystem, length is ValueWithUnits)
+{
+    var mark;
+    if (definition.tieHolesBy == TieHolesBy.HALF)
+    {
+        mark = length / 2;
+    }
+    else if (definition.tieHolesBy == TieHolesBy.LENGTH && isLength(definition.tieLength))
+    {
+        mark = length - definition.tieLength;
+    }
+    if (mark == undefined || tolerantLessThanOrEqual(mark, 0 * meter) || tolerantLessThanOrEqual(length, mark))
+    {
+        return;
+    }
+    const corner = vector(stock.width, stock.height) * 0.75;
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane(center.origin + center.zAxis * mark, center.zAxis, center.xAxis) });
+    skRectangle(sketch, "mark", { "firstCorner" : -corner, "secondCorner" : corner });
+    skSolve(sketch);
+    addDebugEntities(context, qCreatedBy(id, EntityType.EDGE), DebugColor.BLUE);
+    opDeleteBodies(context, id + "delete", { "entities" : qCreatedBy(id, EntityType.BODY) });
 }
 
 /**
@@ -1070,13 +1095,13 @@ export function stockManipulatorChange(context is Context, definition is map, ne
     // The nine points are numbered in the unflipped stock's orientation (see `stockPointOffsets`), so the manipulator's
     // index is the parameter's either way
     definition = pointManipulatorChange(definition, newManipulators);
+    const flip = newManipulators[FLIP_MANIPULATOR];
+    if (flip != undefined && flip.flipped is boolean)
+    {
+        definition.flip = flip.flipped;
+    }
     if (isEdgePlacement(definition))
     {
-        const flip = newManipulators[FLIP_MANIPULATOR];
-        if (flip != undefined && flip.flipped is boolean)
-        {
-            definition.flip = flip.flipped;
-        }
         const startOffset = newManipulators[START_OFFSET_MANIPULATOR];
         if (startOffset != undefined && isLength(startOffset.offset))
         {
