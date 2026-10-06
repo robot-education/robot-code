@@ -91,6 +91,7 @@ class StdlibIndex:
         symbols: list[StdlibSymbol],
         enums: dict[str, list[EnumMember]],
         features: dict[str, FeatureMetadata],
+        exports: dict[str, list[str]] | None = None,
     ) -> None:
         self.symbols = symbols
         self.by_name: dict[str, list[StdlibSymbol]] = {}
@@ -101,6 +102,19 @@ class StdlibIndex:
                 self.enum_names.add(symbol.name)
         self.enums = enums
         self.features = features
+        # The std modules each module re-exports
+        self.exports = exports or {}
+
+    def visible_modules(self, module: str) -> set[str]:
+        """The std modules whose exports importing module (e.g. "common.fs") makes visible."""
+        visible: set[str] = set()
+        pending = [module]
+        while pending:
+            current = pending.pop()
+            if current not in visible:
+                visible.add(current)
+                pending.extend(self.exports.get(current, []))
+        return visible
 
     def lookup(self, name: str) -> list[StdlibSymbol]:
         return self.by_name.get(name, [])
@@ -146,7 +160,7 @@ def stdlib() -> StdlibIndex:
         )
         for entry in raw_metadata["features"]
     }
-    return StdlibIndex(symbols, enums, features)
+    return StdlibIndex(symbols, enums, features, raw_metadata.get("exports"))
 
 
 def top_level_fields(feature: FeatureMetadata) -> list[FeatureField]:

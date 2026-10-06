@@ -46,9 +46,16 @@ class RemoteImage:
         return next((extension for extension, type in IMAGE_TYPES.items() if type == self.data_type), ".svg")
 
 
+# Images named like `screenshot.local.png` stay in the repo, and aren't synced with image tabs
+LOCAL_IMAGE_SUFFIX = ".local"
+
+
 def image_type(name: str) -> str | None:
-    """The MIME type of an image file name, if it's an image which can be synced."""
-    return IMAGE_TYPES.get(pathlib.PurePosixPath(name).suffix.lower())
+    """The MIME type of an image file name, if it's an image which can be synced (not a `.local.png` or `.local.svg`)."""
+    path = pathlib.PurePosixPath(name)
+    if path.stem.lower().endswith(LOCAL_IMAGE_SUFFIX):
+        return None
+    return IMAGE_TYPES.get(path.suffix.lower())
 
 
 def safe_file_name(name: str) -> str:

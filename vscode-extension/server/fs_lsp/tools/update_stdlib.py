@@ -292,13 +292,24 @@ def extract_metadata(files: list[SourceFile], symbols: list[dict]) -> dict:
             entry["fields"] = fields
             features.append(entry)
 
+    # The std modules each module re-exports with `export import`
+    exports = {}
+    for file in files:
+        reexported = sorted(set(STD_EXPORT_IMPORT.findall(file.text)))
+        if reexported:
+            exports[file.module] = reexported
+
     return {
         "enums": [
             entry | {"members": sorted(entry["members"], key=lambda m: m["name"])}
             for entry in sorted(enums.values(), key=lambda e: e["name"])
         ],
         "features": sorted(features, key=lambda f: f["name"]),
+        "exports": dict(sorted(exports.items())),
     }
+
+
+STD_EXPORT_IMPORT = re.compile(r'\bexport\s+import\s*\(\s*path\s*:\s*"onshape/std/([^"]+)"')
 
 
 def _with_module(entry: dict, module: str | None) -> dict:

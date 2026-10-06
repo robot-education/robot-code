@@ -64,6 +64,9 @@ predicate isHoleOperation(endOperation is EndOperation)
 /**
  * Whether a shaft is a SplineXS, whose ends can only be tapped (see `getEndOperation`): it's solid, and too small for
  * retaining rings or captive ends.
+ *
+ * The predicates below repeat its condition, as Onshape doesn't allow predicates used in a precondition's if conditions
+ * to call other predicates.
  */
 predicate isSplineXsShaft(definition is map)
 {
@@ -75,22 +78,26 @@ predicate isSplineXsShaft(definition is map)
  */
 predicate canModifyShaftEnds(definition is map)
 {
-    definition.shaftType == ShaftType.HEX || isSplineXsShaft(definition);
+    definition.shaftType == ShaftType.HEX ||
+        (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS);
 }
 
 predicate isTappedFirstEnd(definition is map)
 {
-    isSplineXsShaft(definition) || definition.firstEndOperation == EndOperation.TAPPED_HOLE;
+    (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
+        definition.firstEndOperation == EndOperation.TAPPED_HOLE;
 }
 
 predicate isTappedSecondEnd(definition is map)
 {
-    isSplineXsShaft(definition) || definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE;
+    (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
+        definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE;
 }
 
 predicate isClearanceFirstEnd(definition is map)
 {
-    !isSplineXsShaft(definition) && definition.firstEndOperation == EndOperation.CLEARANCE_HOLE;
+    !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
+        definition.firstEndOperation == EndOperation.CLEARANCE_HOLE;
 }
 
 predicate hexShaftPredicate(definition is map)
@@ -133,7 +140,9 @@ predicate hexShaftPredicate(definition is map)
 predicate cannotSpecifySecondEnd(definition is map)
 {
     definition.mirrorShaft ||
-        (definition.modifyFirstEnd && (isClearanceFirstEnd(definition) || definition.symmetricEnds));
+        (definition.modifyFirstEnd && (definition.symmetricEnds ||
+                (!(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
+                    definition.firstEndOperation == EndOperation.CLEARANCE_HOLE)));
 }
 
 predicate shaftEndPredicate(definition is map)

@@ -88,7 +88,7 @@ export predicate stockEdgePredicate(definition is map)
     if (definition.hasStartOffset)
     {
         annotation { "Name" : "Start offset", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
-        isLength(definition.startOffset, OFFSET_BOUNDS);
+        isLength(definition.edgeStartOffset, OFFSET_BOUNDS);
     }
 
     annotation { "Name" : "End offset", "Column Name" : "Has end offset",
@@ -97,7 +97,7 @@ export predicate stockEdgePredicate(definition is map)
     if (definition.hasEndOffset)
     {
         annotation { "Name" : "End offset", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
-        isLength(definition.endOffset, OFFSET_BOUNDS);
+        isLength(definition.edgeEndOffset, OFFSET_BOUNDS);
     }
 }
 
@@ -231,8 +231,8 @@ export function placeStock(context is Context, id is Id, definition is map, part
     {
         const edges = verifyNonemptyQuery(context, definition, "edges", "Select one or more edges to place on.");
         const parameters = edgeParameters(definition, size(edges));
-        const startOffset = definition.hasStartOffset ? definition.startOffset : 0 * meter;
-        const endOffset = definition.hasEndOffset ? definition.endOffset : 0 * meter;
+        const startOffset = definition.hasStartOffset ? definition.edgeStartOffset : 0 * meter;
+        const endOffset = definition.hasEndOffset ? definition.edgeEndOffset : 0 * meter;
         const radius = norm(vector(part.width, part.height));
         for (var i, edge in edges)
         {
@@ -250,7 +250,7 @@ export function placeStock(context is Context, id is Id, definition is map, part
             const length = edgeLength - startOffset - endOffset;
             if (length < TOLERANCE.zeroLength * meter)
             {
-                throw regenError("The offsets leave no room.", ["startOffset", "endOffset"], edge);
+                throw regenError("The offsets leave no room.", ["edgeStartOffset", "edgeEndOffset"], edge);
             }
 
             const index = parameters[i].index ?? NINE_POINT_CENTER_INDEX;
@@ -324,7 +324,7 @@ function addOffsetManipulators(context is Context, id is Id, definition is map, 
                             "base" : edgeStart,
                             "direction" : direction,
                             "offset" : startOffset,
-                            "primaryParameterId" : "startOffset"
+                            "primaryParameterId" : "edgeStartOffset"
                         })
                 });
     }
@@ -335,7 +335,7 @@ function addOffsetManipulators(context is Context, id is Id, definition is map, 
                             "base" : edgeStart + direction * edgeLength,
                             "direction" : -direction,
                             "offset" : endOffset,
-                            "primaryParameterId" : "endOffset"
+                            "primaryParameterId" : "edgeEndOffset"
                         })
                 });
     }
@@ -459,11 +459,11 @@ export function stockManipulatorChange(context is Context, definition is map, ne
     {
         if (newManipulators[START_OFFSET_MANIPULATOR] != undefined)
         {
-            definition.startOffset = newManipulators[START_OFFSET_MANIPULATOR].offset;
+            definition.edgeStartOffset = newManipulators[START_OFFSET_MANIPULATOR].offset;
         }
         if (newManipulators[END_OFFSET_MANIPULATOR] != undefined)
         {
-            definition.endOffset = newManipulators[END_OFFSET_MANIPULATOR].offset;
+            definition.edgeEndOffset = newManipulators[END_OFFSET_MANIPULATOR].offset;
         }
         return edgeManipulatorsChange(definition, newManipulators);
     }
@@ -485,7 +485,7 @@ export function stockEditLogic(context is Context, id is Id, oldDefinition is ma
     {
         if (defaultOffset != undefined)
         {
-            for (var offset in { "startOffset" : "hasStartOffset", "endOffset" : "hasEndOffset" })
+            for (var offset in { "edgeStartOffset" : "hasStartOffset", "edgeEndOffset" : "hasEndOffset" })
             {
                 const turnedOn = definition[offset.value] && !(oldDefinition[offset.value] ?? false);
                 if ((turnedOn || partChanged) && !(specifiedParameters[offset.key] ?? false))

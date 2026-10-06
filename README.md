@@ -118,7 +118,8 @@ import(path : "core/myNewUtils.fs", version : "");
 
 Images (SVGs and PNGs) in `featurescripts/` are synced with image tabs in the backend document the same way, so
 icons live in the repo too: `fs push` uploads new and changed ones, and `fs pull` downloads ones changed in Onshape
-(placing new ones beside the files which import them). Studios import them like other tabs, by element id, and use
+(placing new ones beside the files which import them). Images named `*.local.png` (or `*.local.svg`), like screenshots
+for reference, stay in the repo and aren't synced. Studios import them like other tabs, by element id, and use
 their `BLOB_DATA`:
 
 ```
@@ -235,13 +236,19 @@ would set (like Robot nut strip's end offsets) show their defaults. Like Onshape
 `holeDiameter`) as an icon instead of a label, and a mate connector button beside queries which accept them. It
 needs Chromium, which it finds in Playwright's browsers folder, on the path, or through `CHROMIUM`.
 
-Arrays start empty, as in a new feature; `--set holes=2` shows two items. `featurescripts/tools/uiTestBench.fs` has one
+Arrays start empty, as in a new feature; `--set holes=2` shows two items. `featurescripts/uiTestBench/uiTestBench.fs` has one
 of every kind of parameter and UI hint, for comparing `fs ui` with Onshape (`uv run fs ui
-featurescripts/tools/uiTestBench.fs --set items=2`).
+featurescripts/uiTestBench/uiTestBench.fs --set items=2`). To capture how Onshape draws a dialog, open it in Onshape and
+paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with the CSS
+rules which apply to it and the icons it uses.
 
 `fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
 (following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)
-which the feature's file doesn't export, as Onshape requires, and warns about comparisons with `true` or `false`,
+which the feature's file doesn't export, as Onshape requires (std enums too: `export import` the std module declaring
+one, not `common.fs`, which it reports exporting), top-level constants, enums, and types whose names the file or its
+imports already declare, parameters a feature's precondition declares more than once
+(directly or through predicates, even in different branches of an if), and predicates in a precondition's `if`
+conditions which call other predicates (Onshape doesn't inline those). It warns about comparisons with `true` or `false`,
 precondition conditions Onshape can't evaluate (only parameters, enum values, literals, and predicates work), top-level
 declarations which aren't exported or used anywhere, and map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
 progress in `featurescripts/frame/` doesn't pass yet.

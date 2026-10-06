@@ -295,3 +295,109 @@ def test_parameter_enums_must_be_exported(project):
 
     path.write_text(feature.format(imports=f'export import(path : "{SHAPES_ID}", version : "v");\n'))
     assert not [p for p in project.check(project.module(path)) if p.code == "unexported-parameter-enum"]
+
+
+def test_duplicate_parameters(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export predicate offsetPredicate(definition is map) { definition.offset is boolean; }\n"
+        "export predicate stockPredicate(settings is map, name is string)\n"
+        "{\n    annotation { \"Name\" : name }\n    offsetPredicate(settings);\n}\n"
+    )
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f'FeatureScript 2909;\nimport(path : "{SHAPES_ID}", version : "v");\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        "        if (definition.edge)\n        {\n"
+        "            isLength(definition.offset, LENGTH_BOUNDS);\n"
+        "            definition.width is boolean;\n"
+        "        }\n        else\n        {\n"
+        '            stockPredicate(definition, "strip");\n'
+        "        }\n"
+        "        if (definition.offset is boolean) { }\n"
+        "    }\n    {\n    });\n"
+    )
+    source = project.module(path).parsed.source
+    problems = [p for p in project.check(project.module(path)) if p.code == "duplicate-parameter"]
+    # Reported at the predicate call which declares it again, even in the other branch of an if
+    assert [source[p.start:p.end] for p in problems] == ["stockPredicate"]
+    assert "offset" in problems[0].message and "line 8" in problems[0].message
+
+
+def test_nested_predicates_in_conditions(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "predicate isCustom(definition is map) { definition.source == 1; }\n"
+        "predicate isCustomTube(definition is map) { isCustom(definition); definition.profile == 2; }\n"
+        "predicate tubePredicate(definition is map) { if (isCustomTube(definition)) { definition.wall is boolean; } }\n"
+        "predicate isItem(value is map) { isCustom(value); }\n"
+        "predicate canBeItem(value) { if (isItem(value)) { value.size is number; } }\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        "        if (isCustom(definition) || isCustomTube(definition)) { }\n"
+        "        tubePredicate(definition);\n"
+        "    }\n    {\n"
+        "        if (isCustomTube(definition)) { }\n"
+        "    });\n"
+    )
+    source = project.module(path).parsed.source
+    problems = [p for p in project.check(project.module(path)) if p.code == "nested-predicate"]
+    # In the precondition and the predicate it calls, but not in the feature's body or a type predicate
+    assert [(source[p.start:p.end], module(project, "feature2.fs").position(p.start)[0]) for p in problems] == [
+        ("isCustomTube", 3),
+        ("isCustomTube", 9),
+    ]
+    assert "isCustom" in problems[0].message
+
+
+def test_duplicate_top_level_symbols(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\nexport const SIZE = 1;\nexport function area(x is number) returns number { return x; }\n"
+    )
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f'FeatureScript 2909;\n{STD}\nimport(path : "{SHAPES_ID}", version : "v");\n'
+        # Std constants visible through common.fs, and the project's constants, can't be redeclared
+        "const LENGTH_BOUNDS = 1;\n"
+        "const SIZE = 2;\n"
+        "const WIDTH = 1;\n"
+        "const WIDTH = 2;\n"
+        # Overloads, std names common.fs doesn't export, and std enum members are fine
+        "function area(x is string) returns string { return x; }\n"
+        "enum TransformType { ONE }\n"
+        "const BLACK = 3;\n"
+    )
+    source = project.module(path).parsed.source
+    problems = [p for p in project.check(project.module(path)) if p.code == "duplicate-symbol"]
+    assert [(source[p.start:p.end], p.message.split(": ")[1].split(" already")[0]) for p in problems] == [
+        ("LENGTH_BOUNDS", "the std library (valueBounds.fs)"),
+        ("SIZE", "core/shapes.fs"),
+        ("WIDTH", "this file (line 6)"),
+    ]
+
+
+def test_std_parameter_enums_must_be_exported(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        'export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2909.0");\n'
+    )
+    feature = (
+        "FeatureScript 2909;\n" + STD + "\n{imports}"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {{\n        definition.axis is MateConnectorAxisType;\n    }}\n"
+        "    {{\n    }});\n"
+    )
+    path = project.code_dir / "feature2.fs"
+
+    def problems(imports: str) -> list[str]:
+        path.write_text(feature.format(imports=imports))
+        return sorted(p.code for p in project.check(project.module(path)) if p.code != "unused-import")
+
+    assert problems("") == ["unexported-parameter-enum"]
+    assert problems('export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2909.0");\n') == []
+    # Through a project file which re-exports the std module
+    assert problems(f'export import(path : "{SHAPES_ID}", version : "v");\n') == []
+    # Exporting common.fs exports the enum, but everything else in std too
+    assert problems('export import(path : "onshape/std/common.fs", version : "2909.0");\n') == ["exported-common"]

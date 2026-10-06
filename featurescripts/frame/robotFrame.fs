@@ -43,9 +43,11 @@ export enum CustomProfile
     CUSTOM
 }
 
+// Repeats isCustomFrame's condition, as Onshape doesn't allow predicates used in a precondition's if conditions to call
+// other predicates
 export predicate isCustomTube(definition is map)
 {
-    isCustomFrame(definition);
+    definition.source == FrameSource.CUSTOM;
     definition.customProfile == CustomProfile.CUSTOM;
 }
 

@@ -28780,5 +28780,594 @@
         }
       ]
     }
-  ]
+  ],
+  "exports": {
+    "bodyDraft.fs": [
+      "bodydraftconcaverepairtype.gen.fs",
+      "bodydraftcornertype.gen.fs",
+      "bodydraftmatchfacetype.gen.fs",
+      "bodydraftselectiontype.gen.fs"
+    ],
+    "boolean.fs": [
+      "booleanoperationtype.gen.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "booleanHeuristics.fs": [
+      "booleanoperationtype.gen.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "bsurf.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "chamfer.fs": [
+      "chamfermethod.gen.fs",
+      "chamfertype.gen.fs",
+      "edgeBlendCommon.fs",
+      "query.fs"
+    ],
+    "circularPattern.fs": [
+      "patternUtils.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "common.fs": [
+      "approximationUtils.fs",
+      "attributes.fs",
+      "boolean.fs",
+      "booleanHeuristics.fs",
+      "box.fs",
+      "computedPartProperty.fs",
+      "containers.fs",
+      "context.fs",
+      "coordSystem.fs",
+      "curveGeometry.fs",
+      "debug.fs",
+      "defaultFeatures.fs",
+      "derive.fs",
+      "edgetopology.gen.fs",
+      "evaluate.fs",
+      "feature.fs",
+      "featureList.fs",
+      "icon.gen.fs",
+      "instantiator.fs",
+      "libraryValidation.fs",
+      "lookupTablePath.fs",
+      "manipulator.fs",
+      "mateconnectoraxistype.gen.fs",
+      "mathUtils.fs",
+      "nurbsUtils.fs",
+      "partStudio.fs",
+      "path.fs",
+      "patternUtils.fs",
+      "primitives.fs",
+      "properties.fs",
+      "query.fs",
+      "sheetMetalAttribute.fs",
+      "sketch.fs",
+      "splineUtils.fs",
+      "string.fs",
+      "surfaceGeometry.fs",
+      "tabReferences.fs",
+      "table.fs",
+      "templatestring.fs",
+      "topologyUtils.fs",
+      "units.fs",
+      "valueBounds.fs",
+      "variable.fs",
+      "wrapSurface.fs"
+    ],
+    "compositePart.fs": [
+      "query.fs"
+    ],
+    "computedPartProperty.fs": [
+      "context.fs",
+      "feature.fs",
+      "query.fs",
+      "units.fs"
+    ],
+    "context.fs": [
+      "featurescriptversionnumber.gen.fs"
+    ],
+    "cplane.fs": [
+      "manipulator.fs",
+      "query.fs"
+    ],
+    "cpoint.fs": [
+      "query.fs"
+    ],
+    "curveGeometry.fs": [
+      "curvetype.gen.fs"
+    ],
+    "curvePattern.fs": [
+      "curvepatternorientationtype.gen.fs",
+      "path.fs",
+      "patternUtils.fs"
+    ],
+    "debug.fs": [
+      "debugcolor.gen.fs"
+    ],
+    "deleteBodies.fs": [
+      "query.fs"
+    ],
+    "deleteFace.fs": [
+      "query.fs"
+    ],
+    "draft.fs": [
+      "query.fs"
+    ],
+    "enclose.fs": [
+      "boolean.fs",
+      "query.fs"
+    ],
+    "error.fs": [
+      "errorstringenum.gen.fs",
+      "query.fs"
+    ],
+    "evaluate.fs": [
+      "box.fs",
+      "clashtype.gen.fs",
+      "edgeconvexitytype.gen.fs",
+      "smcornertype.gen.fs",
+      "volumeaccuracy.gen.fs"
+    ],
+    "extend.fs": [
+      "extendendtype.gen.fs",
+      "extendsheetshapetype.gen.fs",
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "externalThread.fs": [
+      "hole.fs",
+      "holeAttribute.fs",
+      "holesectionfacetype.gen.fs",
+      "manipulator.fs",
+      "moveFace.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "extrude.fs": [
+      "extrudeCommon.fs",
+      "flatOperationType.fs",
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "extrudeCommon.fs": [
+      "boundingtype.gen.fs"
+    ],
+    "faceBlend.fs": [
+      "blendcontroltype.gen.fs",
+      "faceblendcrosssection.gen.fs",
+      "faceblendcrosssectionshape.gen.fs",
+      "faceblendpropagation.gen.fs",
+      "faceblendtrimtype.gen.fs",
+      "manipulator.fs"
+    ],
+    "feature.fs": [
+      "context.fs",
+      "dimensionmeasurementreferencetype.gen.fs",
+      "error.fs",
+      "featuredimensiontype.gen.fs",
+      "geomOperations.fs",
+      "query.fs",
+      "toleranceTypes.fs",
+      "toleranceschemaclass.gen.fs",
+      "uihint.gen.fs"
+    ],
+    "fillSurface.fs": [
+      "geometriccontinuity.gen.fs",
+      "tool.fs"
+    ],
+    "fillet.fs": [
+      "blendcontroltype.gen.fs",
+      "edgeBlendCommon.fs",
+      "filletcrosssection.gen.fs",
+      "manipulator.fs",
+      "query.fs",
+      "surfacetype.gen.fs"
+    ],
+    "fitSpline.fs": [
+      "query.fs"
+    ],
+    "frame.fs": [
+      "frameUtils.fs",
+      "profilecontrolmode.gen.fs"
+    ],
+    "geomOperations.fs": [
+      "bodydraftconcaverepairtype.gen.fs",
+      "bodydraftcornertype.gen.fs",
+      "bodydraftmatchfacetype.gen.fs",
+      "bodydraftselectiontype.gen.fs",
+      "boundingtype.gen.fs",
+      "chamfertype.gen.fs",
+      "coordSystem.fs",
+      "drafttype.gen.fs",
+      "extendsheetboundingtype.gen.fs",
+      "extractsurfaceredundancytype.gen.fs",
+      "facecurvecreationtype.gen.fs",
+      "filletcrosssection.gen.fs",
+      "geometriccontinuity.gen.fs",
+      "holeUtils.fs",
+      "splitoperationkeeptype.gen.fs",
+      "topologymatchtype.gen.fs",
+      "wraptype.gen.fs"
+    ],
+    "geometry.fs": [
+      "annotationdimensiondirection.gen.fs",
+      "bodyDraft.fs",
+      "bridgingCurve.fs",
+      "bsurf.fs",
+      "chamfer.fs",
+      "common.fs",
+      "compositeCurve.fs",
+      "compositePart.fs",
+      "constrainedSurface.fs",
+      "cplane.fs",
+      "cpoint.fs",
+      "cutlist.fs",
+      "decal.fs",
+      "deleteBodies.fs",
+      "deleteFace.fs",
+      "derivedMirror.fs",
+      "draft.fs",
+      "editCurve.fs",
+      "enclose.fs",
+      "endcap.fs",
+      "extend.fs",
+      "externalThread.fs",
+      "extrude.fs",
+      "faceBlend.fs",
+      "faceIntersection.fs",
+      "fieldweldflag.gen.fs",
+      "fillSurface.fs",
+      "fillet.fs",
+      "fitSpline.fs",
+      "frame.fs",
+      "frameAttributes.fs",
+      "frameTrim.fs",
+      "frameUtils.fs",
+      "gtolconstrainttype.gen.fs",
+      "gtolextendedconstrainttype.gen.fs",
+      "gusset.fs",
+      "helix.fs",
+      "hole.fs",
+      "holeTable.fs",
+      "importDerived.fs",
+      "importForeign.fs",
+      "isocline.fs",
+      "isoparametricCurve.fs",
+      "loft.fs",
+      "lofttopology.gen.fs",
+      "massProperty.fs",
+      "mateConnector.fs",
+      "mirror.fs",
+      "modifyFillet.fs",
+      "moveCurveBoundary.fs",
+      "moveFace.fs",
+      "mutualTrim.fs",
+      "nameEntity.fs",
+      "offsetCurveOnFace.fs",
+      "offsetSurface.fs",
+      "pattern.fs",
+      "projectCurves.fs",
+      "queryVariable.fs",
+      "replaceFace.fs",
+      "revolve.fs",
+      "rib.fs",
+      "routingCurve.fs",
+      "ruledSurface.fs",
+      "sectionpart.fs",
+      "sheetMetalBend.fs",
+      "sheetMetalBendRelief.fs",
+      "sheetMetalCorner.fs",
+      "sheetMetalCornerBreak.fs",
+      "sheetMetalCornerBreakAttributeBased.fs",
+      "sheetMetalEnd.fs",
+      "sheetMetalFlange.fs",
+      "sheetMetalFormed.fs",
+      "sheetMetalHem.fs",
+      "sheetMetalJoint.fs",
+      "sheetMetalLoft.fs",
+      "sheetMetalMakeJoint.fs",
+      "sheetMetalRip.fs",
+      "sheetMetalStart.fs",
+      "sheetMetalTab.fs",
+      "shell.fs",
+      "splitpart.fs",
+      "sweep.fs",
+      "tag.fs",
+      "thicken.fs",
+      "transformCopy.fs",
+      "weldcontourtype.gen.fs",
+      "weldfinishing.gen.fs",
+      "weldjointtype.gen.fs",
+      "weldstandard.gen.fs",
+      "weldtype.gen.fs",
+      "wrap.fs"
+    ],
+    "helix.fs": [
+      "manipulator.fs",
+      "query.fs"
+    ],
+    "hole.fs": [
+      "holeAttribute.fs",
+      "holeUtils.fs",
+      "holesectionfacetype.gen.fs",
+      "tolerance.fs"
+    ],
+    "holeUtils.fs": [
+      "holepositionreference.gen.fs",
+      "holeprofiletype.gen.fs"
+    ],
+    "importDerived.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "instantiator.fs": [
+      "tabReferences.fs"
+    ],
+    "isoparametricCurve.fs": [
+      "facecurvecreationtype.gen.fs"
+    ],
+    "jogPolygons.fs": [
+      "surfaceGeometry.fs"
+    ],
+    "libraryValidation.fs": [
+      "context.fs",
+      "templatestring.fs"
+    ],
+    "linearPattern.fs": [
+      "patternUtils.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "loft.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "sidegeometryrule.gen.fs",
+      "tool.fs"
+    ],
+    "manipulator.fs": [
+      "manipulatordragtypeenum.gen.fs",
+      "manipulatorstyleenum.gen.fs",
+      "manipulatortype.gen.fs",
+      "math.fs"
+    ],
+    "mateConnector.fs": [
+      "entityinferencetype.gen.fs",
+      "mateconnectoraxistype.gen.fs",
+      "origincreationtype.gen.fs",
+      "query.fs",
+      "rotationtype.gen.fs"
+    ],
+    "mathUtils.fs": [
+      "math.fs",
+      "matrix.fs",
+      "matrixWithUnits.fs",
+      "transform.fs",
+      "vector.fs"
+    ],
+    "mirror.fs": [
+      "patternUtils.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "modifyFillet.fs": [
+      "query.fs"
+    ],
+    "moveCurveBoundary.fs": [
+      "curveextensionendcondition.gen.fs",
+      "curveextensionshape.gen.fs",
+      "movecurveboundarytype.gen.fs"
+    ],
+    "moveFace.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "offsetCurveOnFace.fs": [
+      "movecurveboundarytype.gen.fs",
+      "offsetcurvetype.gen.fs"
+    ],
+    "offsetSurface.fs": [
+      "context.fs",
+      "manipulator.fs",
+      "query.fs"
+    ],
+    "path.fs": [
+      "context.fs",
+      "query.fs",
+      "units.fs"
+    ],
+    "pattern.fs": [
+      "circularPattern.fs",
+      "curvePattern.fs",
+      "linearPattern.fs"
+    ],
+    "patternUtils.fs": [
+      "boolean.fs",
+      "containers.fs",
+      "evaluate.fs",
+      "feature.fs",
+      "featureList.fs",
+      "patternCommon.fs",
+      "valueBounds.fs"
+    ],
+    "primitives.fs": [
+      "query.fs"
+    ],
+    "projectCurves.fs": [
+      "projectiontype.gen.fs"
+    ],
+    "properties.fs": [
+      "propertytype.gen.fs"
+    ],
+    "query.fs": [
+      "edgetopology.gen.fs"
+    ],
+    "queryVariable.fs": [
+      "booleanoperationtype.gen.fs",
+      "edgeconvexitytype.gen.fs",
+      "query.fs"
+    ],
+    "replaceFace.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "revolve.fs": [
+      "manipulator.fs",
+      "sidegeometryrule.gen.fs",
+      "tool.fs"
+    ],
+    "routingCurve.fs": [
+      "importForeign.fs"
+    ],
+    "ruledSurface.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "ruledsurfacecornertype.gen.fs",
+      "ruledsurfacetype.gen.fs",
+      "tool.fs"
+    ],
+    "sectionpart.fs": [
+      "query.fs",
+      "surfaceGeometry.fs"
+    ],
+    "sheetMetalAttribute.fs": [
+      "context.fs",
+      "query.fs",
+      "smbendtype.gen.fs",
+      "smcornerbreakstyle.gen.fs",
+      "smjointstyle.gen.fs",
+      "smjointtype.gen.fs",
+      "smobjecttype.gen.fs",
+      "smreliefstyle.gen.fs"
+    ],
+    "sheetMetalBendRelief.fs": [
+      "smbendreliefstyle.gen.fs"
+    ],
+    "sheetMetalCorner.fs": [
+      "smcornerreliefstyle.gen.fs"
+    ],
+    "sheetMetalCornerBreak.fs": [
+      "blendcontroltype.gen.fs",
+      "chamfermethod.gen.fs",
+      "chamfertype.gen.fs",
+      "edgeBlendCommon.fs",
+      "filletcrosssection.gen.fs",
+      "manipulator.fs",
+      "query.fs"
+    ],
+    "sheetMetalCornerBreakAttributeBased.fs": [
+      "smcornerbreakstyle.gen.fs"
+    ],
+    "sheetMetalJoint.fs": [
+      "smjointstyle.gen.fs",
+      "smjointtype.gen.fs"
+    ],
+    "sheetMetalLoft.fs": [
+      "sheetMetalStart.fs",
+      "tool.fs"
+    ],
+    "sheetMetalMakeJoint.fs": [
+      "smjointstyle.gen.fs",
+      "smjointtype.gen.fs"
+    ],
+    "sheetMetalStart.fs": [
+      "extrudeCommon.fs",
+      "query.fs"
+    ],
+    "sheetMetalTab.fs": [
+      "query.fs",
+      "tool.fs"
+    ],
+    "shell.fs": [
+      "query.fs"
+    ],
+    "sketch.fs": [
+      "constrainttype.gen.fs",
+      "dimensionalignment.gen.fs",
+      "dimensionhalfspace.gen.fs",
+      "fixedparameterposition.gen.fs",
+      "query.fs",
+      "radiusdisplay.gen.fs",
+      "sketchsilhouettedisambiguation.gen.fs",
+      "sketchtooltype.gen.fs"
+    ],
+    "splitpart.fs": [
+      "projectiontype.gen.fs",
+      "query.fs"
+    ],
+    "standardContentUtils.fs": [
+      "standardcontentvaluefieldtype.gen.fs"
+    ],
+    "surfaceBoolean.fs": [
+      "booleanoperationtype.gen.fs",
+      "splitoperationkeeptype.gen.fs"
+    ],
+    "surfaceGeometry.fs": [
+      "surfacetype.gen.fs"
+    ],
+    "sweep.fs": [
+      "profilecontrolmode.gen.fs",
+      "query.fs",
+      "sidegeometryrule.gen.fs",
+      "sweeptwisttype.gen.fs",
+      "tool.fs"
+    ],
+    "tabReferences.fs": [
+      "partstudioitemtype.gen.fs"
+    ],
+    "table.fs": [
+      "containers.fs",
+      "context.fs",
+      "evaluate.fs",
+      "math.fs",
+      "properties.fs",
+      "query.fs",
+      "string.fs",
+      "tabletextalignment.gen.fs",
+      "templatestring.fs",
+      "tolerance.fs",
+      "valueBounds.fs"
+    ],
+    "templatestring.fs": [
+      "units.fs"
+    ],
+    "thicken.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "tolerance.fs": [
+      "fittolerancetables.gen.fs",
+      "toleranceTypes.fs"
+    ],
+    "transformCopy.fs": [
+      "manipulator.fs",
+      "mateconnectoraxistype.gen.fs",
+      "query.fs",
+      "tool.fs"
+    ],
+    "valueBounds.fs": [
+      "units.fs"
+    ],
+    "variable.fs": [
+      "query.fs",
+      "variabletype.gen.fs"
+    ],
+    "wrap.fs": [
+      "manipulator.fs",
+      "query.fs",
+      "tool.fs",
+      "wraptype.gen.fs"
+    ]
+  }
 }

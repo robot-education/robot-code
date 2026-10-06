@@ -1439,6 +1439,16 @@ def test_push_uploads_images_imported_by_path(repo, onshape, capsys):
     assert "everything in sync" in capsys.readouterr().out
 
 
+def test_local_images_are_not_synced(repo, onshape, capsys):
+    write(repo, "grid/screenshot.local.png", "png")
+    write(repo, "grid/gridIcon.png", "png")
+    run(onshape, "status")
+    out = capsys.readouterr().out
+    assert "grid/gridIcon.png" in out and "screenshot" not in out
+    assert run(onshape, "push", "-y") == 0
+    assert [image["name"] for image in onshape.images().values()] == ["gridIcon.png"]
+
+
 def test_imported_images_must_exist(repo, onshape, capsys):
     write(repo, "grid.fs", 'Icon::import(path : "missing.svg", version : "");\n')
     assert run(onshape, "push") == 2

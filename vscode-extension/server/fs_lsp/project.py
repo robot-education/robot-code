@@ -17,7 +17,7 @@ import re
 from typing import Iterable, Literal
 
 from fs_lsp.diagnostics import diagnostics as syntax_diagnostics
-from fs_lsp.parser import ParsedProgram, parse
+from fs_lsp.parser import AstNode, ParsedProgram, parse
 from fs_lsp.scanner import Token
 from fs_lsp.semantic import ImportedNames
 from fs_lsp.stdlib import built_in_type, stdlib
@@ -25,6 +25,7 @@ from fs_lsp.symbol_index import Declaration, SymbolIndex
 
 ELEMENT_ID = re.compile(r"[0-9a-f]{24}")
 STD_PREFIX = "onshape/std/"
+COMMON_STD = STD_PREFIX + "common.fs"
 
 TOP_LEVEL_KINDS = frozenset(
     ["feature", "function", "predicate", "operator", "enum", "type", "variable"]
@@ -34,6 +35,12 @@ DECLARATION_KEYWORDS = frozenset(
 )
 # Identifiers FeatureScript treats specially which aren't declared anywhere
 IMPLICIT_NAMES = frozenset(["silent"])
+# Kinds of top-level declarations which can't share a name with anything else; functions, predicates, and operators
+# can be overloaded
+UNIQUE_KINDS = frozenset(["variable", "enum", "type"])
+STD_UNIQUE_KINDS = frozenset(["constant", "enum", "type", "unit"])
+# Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
+PARAMETER_PREDICATES = frozenset(["isLength", "isAngle", "isInteger", "isReal", "isAnything"])
 
 Severity = Literal["error", "warning"]
 
@@ -191,6 +198,7 @@ class Project:
         self.overlays: dict[pathlib.Path, str] = {}
         self._modules: dict[pathlib.Path, tuple[object, Module]] = {}
         self._element_ids: tuple[object, dict[str, pathlib.Path]] | None = None
+        self._precondition_predicate_cache: tuple[tuple[int, ...], set[tuple[pathlib.Path, int]]] | None = None
 
     @classmethod
     def find(cls, path: pathlib.Path) -> Project | None:
@@ -302,6 +310,24 @@ class Project:
             for name, declarations in more.items():
                 names.setdefault(name, []).extend(declarations)
         return names, exports_std
+
+    def exported_std_modules(self, module: Module, seen: set[pathlib.Path] | None = None) -> set[str]:
+        """The std modules (e.g. "tool.fs") a module re-exports with `export import`, directly or through the files
+        it re-exports, and what they re-export in turn."""
+        seen = seen if seen is not None else set()
+        seen.add(module.path)
+        library = stdlib()
+        modules: set[str] = set()
+        for imported in module.imports:
+            if not imported.exported or imported.namespace:
+                continue
+            if imported.is_std:
+                modules |= library.visible_modules(imported.path.removeprefix(STD_PREFIX))
+                continue
+            target = self.resolve(imported)
+            if target is not None and target.path not in seen:
+                modules |= self.exported_std_modules(target, seen)
+        return modules
 
     def providers(self, module: Module) -> tuple[dict[str, list[Provider]], bool]:
         """The names a module can use from its imports, and whether it can use the std library."""
@@ -544,10 +570,13 @@ class Project:
             )
 
         problems.extend(self._bare_key_problems(module, providers))
+        problems.extend(_duplicate_symbol_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
         problems.extend(self._precondition_predicate_problems(module, providers))
+        problems.extend(self._duplicate_parameter_problems(module))
+        problems.extend(self._nested_predicate_problems(module, providers))
         for usage in self.usages([module]):
             if not usage.exported and usage.unused:
                 token = usage.declaration.token
@@ -564,6 +593,17 @@ class Project:
 
         known_ids = self.element_ids()
         for imported in module.imports:
+            if imported.exported and imported.path == COMMON_STD and not imported.namespace:
+                problems.append(
+                    Problem(
+                        imported.start,
+                        imported.end,
+                        "error",
+                        "Don't export common.fs: everything importing this file would see all of std through it. "
+                        "To export a std enum a parameter uses, export import just the std module declaring it.",
+                        "exported-common",
+                    )
+                )
             if imported.namespace:
                 if not (imported.is_std or imported.element_id or (self.code_dir / imported.path).is_file()):
                     # An image (or a studio) imported by path, which `fs push` uploads and resolves
@@ -629,10 +669,12 @@ class Project:
     ) -> list[Problem]:
         """Enums used as a feature's parameter types which its file doesn't export.
 
-        Onshape requires them to be exported by the feature's file: declared there with `export`, or
-        re-exported with `export import`. Std enums are fine.
+        Onshape requires them to be exported by the feature's file: declared there with `export`, or re-exported
+        with `export import` (of the project file, or the std module, declaring it).
         """
         exported, _ = self.exported_names(module)
+        exported_std: set[str] | None = None
+        library = stdlib()
         problems = []
         for node in module.parsed.nodes:
             if node.type != "PreconditionBlock":
@@ -642,6 +684,24 @@ class Project:
                 continue
             for name, report_at in self._parameter_types(module, node.start, node.end, set()):
                 if not self._is_project_enum(module, name, providers):
+                    std_modules = [symbol.module for symbol in library.lookup(name) if symbol.kind == "enum"]
+                    if not std_modules or None in std_modules:
+                        continue
+                    if exported_std is None:
+                        exported_std = self.exported_std_modules(module)
+                    if any(std_module in exported_std for std_module in std_modules):
+                        continue
+                    problems.append(
+                        Problem(
+                            report_at.offset,
+                            report_at.end,
+                            "error",
+                            f"{name} is a parameter type of {feature.name}, so this file must export it: export import "
+                            f'"{STD_PREFIX}{std_modules[0]}", which declares it (not common.fs, which would export all '
+                            "of std).",
+                            "unexported-parameter-enum",
+                        )
+                    )
                     continue
                 if any(d.kind == "enum" for _, d in exported.get(name, [])):
                     continue
@@ -803,6 +863,178 @@ class Project:
                     )
         return found
 
+    def _duplicate_parameter_problems(self, module: Module) -> list[Problem]:
+        """Parameters a feature's precondition declares more than once, directly or through predicates.
+
+        Onshape rejects these ("Duplicate feature parameter"), even when they're in different branches of an if.
+        """
+        problems = []
+        for node in module.parsed.nodes:
+            if node.type != "PreconditionBlock":
+                continue
+            feature = module.index.enclosing(node.token, frozenset(["FeatureDeclaration"]))
+            if feature is None:
+                continue
+            first: dict[str, Token] = {}
+            for name, report_at in self._declared_parameters(module, node.start, node.end, "definition", frozenset()):
+                if name not in first:
+                    first[name] = report_at
+                    continue
+                line = module.position(first[name].offset)[0] + 1
+                problems.append(
+                    Problem(
+                        report_at.offset,
+                        report_at.end,
+                        "error",
+                        f"Duplicate feature parameter {name}: {feature.name}'s precondition already declares it "
+                        f"(line {line}). Onshape rejects this even in different branches of an if.",
+                        "duplicate-parameter",
+                    )
+                )
+        return _dedupe_problems(problems)
+
+    def _declared_parameters(
+        self, module: Module, start: int, end: int, map_name: str, path: frozenset[tuple[pathlib.Path, int]]
+    ) -> list[tuple[str, Token]]:
+        """The parameters a region of a precondition declares on map_name, in order, and through the predicates it
+        passes map_name to (reported at the call).
+
+        A declaration is a statement `map_name.x is Type;` or `isLength(map_name.x, ...);` (see PARAMETER_PREDICATES).
+        """
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+        found: list[tuple[str, Token]] = []
+
+        def value(position: int) -> str | None:
+            return tokens[position].value if position < len(tokens) else None
+
+        for position, token in enumerate(tokens):
+            if not start <= token.offset < end or token.kind != "identifier":
+                continue
+            if position and tokens[position - 1].value not in (";", "{", "}"):
+                continue  # Not the start of a statement
+            if token.value == map_name and value(position + 1) == "." and value(position + 3) == "is":
+                found.append((tokens[position + 2].value, tokens[position + 2]))
+            elif value(position + 1) != "(":
+                continue
+            elif token.value in PARAMETER_PREDICATES:
+                if value(position + 2) == map_name and value(position + 3) == "." and value(position + 5) in (",", ")"):
+                    found.append((tokens[position + 4].value, tokens[position + 4]))
+            else:
+                for owner, declaration in self._predicate_targets(module, token, providers)[:1]:
+                    key = (owner.path, declaration.token.offset)
+                    body = _predicate_node(owner, declaration)
+                    if key in path or body is None:
+                        continue
+                    names = _parameter_names(owner, body)
+                    inner = next(
+                        (
+                            names[index]
+                            for index, argument in enumerate(_call_arguments(tokens, position + 1))
+                            if index < len(names) and [t.value for t in argument] == [map_name]
+                        ),
+                        None,
+                    )
+                    if inner is not None:
+                        found.extend(
+                            (name, token)
+                            for name, _ in self._declared_parameters(owner, body.start, body.end, inner, path | {key})
+                        )
+        return found
+
+    def _nested_predicate_problems(self, module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
+        """Predicates in a precondition's if conditions which call other predicates.
+
+        Onshape inlines a predicate in a condition, but not the predicates it calls ("Nesting predicates are not
+        allowed in if statements in preconditions"). Conditions in feature preconditions, and in predicates which
+        some feature's precondition calls, are checked.
+        """
+        in_preconditions = self._precondition_predicates()
+        regions = []
+        for node in module.parsed.nodes:
+            if node.type == "PreconditionBlock":
+                if module.index.enclosing(node.token, frozenset(["FeatureDeclaration"])) is not None:
+                    regions.append(node)
+            elif node.type == "PredicateDeclaration" and (module.path, node.start) in in_preconditions:
+                regions.append(node)
+
+        tokens = module.index.tokens
+        problems = []
+        for region in regions:
+            for open_index, close_index in _if_conditions(tokens, region.start, region.end):
+                for position in range(open_index + 1, close_index):
+                    token = tokens[position]
+                    if token.kind != "identifier" or tokens[position + 1].value != "(":
+                        continue
+                    for owner, declaration in self._predicate_targets(module, token, providers)[:1]:
+                        body = _predicate_node(owner, declaration)
+                        nested = None if body is None else self._first_predicate_call(owner, declaration, body)
+                        if nested is None:
+                            continue
+                        problems.append(
+                            Problem(
+                                token.offset,
+                                token.end,
+                                "error",
+                                f"{declaration.name} calls the predicate {nested}, and Onshape doesn't allow nesting "
+                                f"predicates in a precondition's if conditions. Write out {nested}'s condition in "
+                                f"{declaration.name} instead.",
+                                "nested-predicate",
+                            )
+                        )
+        return _dedupe_problems(problems)
+
+    def _precondition_predicates(self) -> set[tuple[pathlib.Path, int]]:
+        """The (path, start) of every PredicateDeclaration which a feature's precondition calls, directly or not."""
+        modules = self.modules()
+        key = tuple(id(module) for module in modules)
+        if self._precondition_predicate_cache is not None and self._precondition_predicate_cache[0] == key:
+            return self._precondition_predicate_cache[1]
+        found = set()
+        for module in modules:
+            for node in module.parsed.nodes:
+                if node.type != "PreconditionBlock":
+                    continue
+                if module.index.enclosing(node.token, frozenset(["FeatureDeclaration"])) is None:
+                    continue
+                for owner, declaration, _ in self._called_predicates(module, node.start, node.end, set()):
+                    body = _predicate_node(owner, declaration)
+                    if body is not None:
+                        found.add((owner.path, body.start))
+        self._precondition_predicate_cache = (key, found)
+        return found
+
+    def _first_predicate_call(self, module: Module, declaration: Declaration, node: AstNode) -> str | None:
+        """The name of the first predicate (in the project or std) called in a predicate's body."""
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+        for position, token in enumerate(tokens):
+            if not node.start <= token.offset < node.end or token.kind != "identifier":
+                continue
+            if position + 1 >= len(tokens) or tokens[position + 1].value != "(":
+                continue
+            if token.offset == declaration.token.offset:
+                continue  # The predicate's own name
+            if self._predicate_targets(module, token, providers) or (
+                module.index.declaration_for_token(token) is None
+                and any(symbol.kind == "predicate" for symbol in stdlib().lookup(token.value))
+            ):
+                return token.value
+        return None
+
+    def _predicate_targets(
+        self, module: Module, token: Token, providers: dict[str, list[Provider]]
+    ) -> list[tuple[Module, Declaration]]:
+        """The project predicates a call in module may be to, with the modules declaring them."""
+        local = module.index.declaration_for_token(token)
+        if local is not None:
+            return [(module, local)] if local.kind == "predicate" else []
+        return [
+            (provider.module, provider.declaration)
+            for provider in providers.get(token.value, [])
+            if provider.declaration.kind == "predicate"
+        ]
+
     def _is_project_enum(self, module: Module, name: str, providers: dict[str, list[Provider]]) -> bool:
         """Whether name is an enum declared in the project, rather than in std (or not an enum)."""
         return (
@@ -844,6 +1076,63 @@ class Project:
                 )
             )
         return problems
+
+
+def _duplicate_symbol_problems(module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
+    """Top-level constants, enums, and types whose names are already declared in the file or anything it imports.
+
+    Onshape rejects these ("Duplicate top level symbol name"), even when neither is exported. Functions, predicates,
+    and operators may share names, as overloads. Std is checked against the std modules the file imports (and what
+    they re-export).
+    """
+    library = stdlib()
+    std_modules: set[str] = set()
+    for imported in module.imports:
+        if imported.is_std and not imported.namespace:
+            std_modules |= library.visible_modules(imported.path.removeprefix(STD_PREFIX))
+    problems = []
+    for name, declarations in module.top_level.items():
+        ordered = sorted(declarations, key=lambda declaration: declaration.token.offset)
+        for position, declaration in enumerate(ordered):
+            unique = declaration.kind in UNIQUE_KINDS
+            earlier = next(
+                (other for other in ordered[:position] if unique or other.kind in UNIQUE_KINDS), None
+            )
+            if earlier is not None:
+                where = f"this file (line {module.position(earlier.token.offset)[0] + 1})"
+            else:
+                imported = next(
+                    (
+                        provider
+                        for provider in providers.get(name, [])
+                        if unique or provider.declaration.kind in UNIQUE_KINDS
+                    ),
+                    None,
+                )
+                std = [
+                    symbol
+                    for symbol in library.lookup(name)
+                    if symbol.module in std_modules
+                    and symbol.parent is None
+                    and symbol.kind != "enumMember"
+                    and (unique or symbol.kind in STD_UNIQUE_KINDS)
+                ]
+                if imported is not None:
+                    where = imported.module.relative
+                elif std:
+                    where = f"the std library ({std[0].module})" if std[0].module else "the std library"
+                else:
+                    continue
+            problems.append(
+                Problem(
+                    declaration.token.offset,
+                    declaration.token.end,
+                    "error",
+                    f"Duplicate top level symbol name {name}: {where} already declares it. Rename it.",
+                    "duplicate-symbol",
+                )
+            )
+    return problems
 
 
 def _boolean_comparison_problems(module: Module) -> list[Problem]:
@@ -943,6 +1232,63 @@ def _precondition_problems(module: Module, providers: dict[str, list[Provider]])
                     )
                 )
     return problems
+
+
+def _predicate_node(module: Module, declaration: Declaration) -> AstNode | None:
+    """The PredicateDeclaration node of a predicate's declaration."""
+    return next(
+        (
+            node
+            for node in module.parsed.nodes
+            if node.type == "PredicateDeclaration" and node.start <= declaration.token.offset < node.end
+        ),
+        None,
+    )
+
+
+def _parameter_names(module: Module, node: AstNode) -> list[str]:
+    """The names of a function or predicate's parameters, in order."""
+    return [
+        declaration.name
+        for declaration in sorted(module.index.declarations, key=lambda declaration: declaration.token.offset)
+        if declaration.kind == "parameter" and declaration.scope_start == node.start
+    ]
+
+
+def _call_arguments(tokens: list[Token], open_index: int) -> list[list[Token]]:
+    """The tokens of each argument of a call whose ( is at open_index."""
+    arguments: list[list[Token]] = [[]]
+    depth = 0
+    for token in tokens[open_index:]:
+        if token.value in ("(", "[", "{", "?["):
+            depth += 1
+            if depth == 1:
+                continue
+        elif token.value in (")", "]", "}"):
+            depth -= 1
+            if depth == 0:
+                break
+        elif token.value == "," and depth == 1:
+            arguments.append([])
+            continue
+        arguments[-1].append(token)
+    return arguments if arguments[0] else []
+
+
+def _if_conditions(tokens: list[Token], start: int, end: int) -> Iterable[tuple[int, int]]:
+    """The indexes of the parentheses around each if's condition in a region."""
+    for position, token in enumerate(tokens):
+        if token.value != "if" or not start <= token.offset < end:
+            continue
+        if position + 1 >= len(tokens) or tokens[position + 1].value != "(":
+            continue
+        depth = 0
+        for cursor in range(position + 1, len(tokens)):
+            depth += tokens[cursor].value == "("
+            depth -= tokens[cursor].value == ")"
+            if depth == 0:
+                yield position + 1, cursor
+                break
 
 
 def _dedupe_problems(problems: list[Problem]) -> list[Problem]:
