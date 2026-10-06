@@ -1,16 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
   <g stroke="#333" stroke-width="0.6" stroke-linejoin="round">
-    <!-- A long square bar drawn like std Frame: its profile at the front, extruded back to the upper left -->
-    <path d="M12.5 12.5 L1.5 1.5 L1.5 7.5 L12.5 18.5 Z" fill="#ddd"/>
-    <path d="M12.5 12.5 L1.5 1.5 L7.5 1.5 L18.5 12.5 Z" fill="#fff"/>
-    <path d="M12.5 12.5 H18.5 V18.5 H12.5 Z" fill="#999"/>
+    <!-- A short square bar drawn like std Frame: its profile at the front, extruded back to the upper left -->
+    <path d="M10 10 L2 2 L2 10 L10 18 Z" fill="#ddd"/>
+    <path d="M10 10 L2 2 L10 2 L18 10 Z" fill="#fff"/>
+    <path d="M10 10 H18 V18 H10 Z" fill="#999"/>
   </g>
-  <!-- Tapped holes, alternating between its top and side, and down its center -->
+  <!-- A hole in its top and one in its side: circles in each face's plane -->
   <g fill="#333">
-    <ellipse cx="13.3" cy="10.3" rx="1.15" ry="0.7" transform="rotate(45 13.3 10.3)"/>
-    <ellipse cx="7.5" cy="4.5" rx="1.15" ry="0.7" transform="rotate(45 7.5 4.5)"/>
-    <ellipse cx="9.6" cy="12.6" rx="0.7" ry="1.15" transform="rotate(45 9.6 12.6)"/>
-    <ellipse cx="3.9" cy="6.9" rx="0.7" ry="1.15" transform="rotate(45 3.9 6.9)"/>
-    <circle cx="15.5" cy="15.5" r="1.2"/>
+    <circle r="1.7" transform="matrix(1 0 -0.7 -0.7 10 6)"/>
+    <circle r="1.7" transform="matrix(-0.7 -0.7 0 1 6.5 11)"/>
   </g>
 </svg>

@@ -401,3 +401,61 @@ def test_std_parameter_enums_must_be_exported(project):
     assert problems(f'export import(path : "{SHAPES_ID}", version : "v");\n') == []
     # Exporting common.fs exports the enum, but everything else in std too
     assert problems('export import(path : "onshape/std/common.fs", version : "2909.0");\n') == ["exported-common"]
+
+
+def test_annotation_strings_resolve(project, tmp_path):
+    (project.code_dir / "core" / "utils.fs").write_text(
+        "FeatureScript 2909;\nexport function sharedChange(context is Context, definition is map, newManipulators is map) returns map\n"
+        "{\n    return definition;\n}\n"
+    )
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f'FeatureScript 2909;\n{STD}\nimport(path : "{UTILS_ID}", version : "v");\n'
+        'annotation { "Feature Type Name" : "F", "Manipulator Change Function" : "localChange",\n'
+        '        "Editing Logic Function" : "sharedChange" }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        '    precondition\n    {\n        annotation { "Name" : "Flag", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }\n'
+        "        definition.flag is boolean;\n    }\n    {\n    });\n"
+        "export function localChange(context is Context, definition is map, newManipulators is map) returns map\n"
+        "{\n    return definition;\n}\n"
+    )
+    (tmp_path / "std").mkdir()
+    (tmp_path / "std" / "uihint.gen.fs").write_text(
+        "FeatureScript 2909;\nexport enum UIHint\n{\n    REMEMBER_PREVIOUS_VALUE,\n    SHOW_LABEL\n}\n"
+    )
+    module = project.module(path)
+    source = module.parsed.source
+
+    def definitions(text: str) -> list[tuple[str, str]]:
+        return [(owner.relative, declaration.name) for owner, declaration in project.definitions(module, source.index(text) + 2)]
+
+    assert definitions('"localChange"') == [("feature2.fs", "localChange")]
+    assert definitions('"sharedChange"') == [("core/utils.fs", "sharedChange")]
+    # Other strings in annotations aren't names
+    assert definitions('"F"') == []
+
+    std = project.std_definition(module, source.index('"SHOW_LABEL"') + 2)
+    assert std is not None and std[0].name == "uihint.gen.fs" and std[1:] == (4, 4, 14)
+    assert project.std_definition(module, source.index('"Flag"') + 2) is None
+
+
+def test_functions_used_as_values(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "function name(k is number) returns string { return '' ~ k; }\n"
+        "predicate canBeThing(value) { value is map; }\n"
+        "export type Thing typecheck canBeThing;\n"
+        "const named = function(k) { return name(k); };\n"
+        "export function run() returns array\n"
+        "{\n"
+        "    const a = mapArray([1, 2], name);\n"
+        "    const b = mapArray([1, 2], named);\n"
+        "    const c = mapArray([1, 2], function(k) { return name(k); });\n"
+        "    return concatenateArrays([a, b, c]);\n"
+        "}\n"
+    )
+    module = project.module(path)
+    problems = [p for p in project.check(module) if p.code == "function-value"]
+    # Only `name` passed as a value: not calls, function values, or the type's typecheck predicate
+    assert [(module.parsed.source[p.start:p.end], module.position(p.start)[0]) for p in problems] == [("name", 7)]

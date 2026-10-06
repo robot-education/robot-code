@@ -1,4 +1,4 @@
-"""Tube and channel lookup tables for robotFrame. Run `uv run fs gen` after editing.
+"""Frame lookup tables for robotFrame: tube, channel, angle, and extrusion. Run `uv run fs gen` after editing.
 
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
 `wallY` thick on its sides facing Y; `open` channels have no wall on +Y, `angle` has only the walls facing -X and
@@ -7,10 +7,10 @@ extrusion) has a `profile`: a SketchDataArray of its cross section, centered on 
 diameter of its ordinary holes.
 
 Its holes are rows along its length: `xRows` go through the walls facing X, and `yRows` through the walls facing Y. A
-row repeats a group of `shapes` every `pitch`, starting `start` from the end; each shape is `along` the tube and
+row repeats a group of `shapes` every `pitch`, starting `start` from the end; each shape is `along` the frame and
 `offset` across the face (along Y for `xRows`, X for `yRows`) from the row's position on the face's middle. Shapes are
-ordinary holes, or `slot`s that long (between their ends' centers) along the tube, unless they have a `diameter` of
-their own, or are MAXSpline cutouts (`maxSpline`). Each row is cut once and face patterned (see robotFrame.fs), so its shapes mustn't overlap other rows'.
+ordinary holes, or `slot`s that long (between their ends' centers) along the frame, unless they have a `diameter` of
+their own, or are MAXSpline cutouts (`maxSpline`). Each entry is a `Stock`, and is built by linearStock.fs's `buildStock`.
 
 `tieStart` and `tieUnit` say which holes count for tying holes to the end (see linearStock.fs): the first one, and how
 far apart they are. `stock` lists the lengths each is sold in, shortest first (see nutStripTables.py).

@@ -323,6 +323,18 @@ def _project_definition_links(
         )
         for owner, declaration in project.definitions(module, offset)
     ]
+    std = None if links else project.std_definition(module, offset)
+    if std is not None:
+        path, line, start, end = std
+        target = lsp.Range(lsp.Position(line, start), lsp.Position(line, end))
+        links = [
+            lsp.LocationLink(
+                target_uri=from_fs_path(str(path)) or "",
+                target_range=target,
+                target_selection_range=target,
+                origin_selection_range=token_range(origin) if origin else None,
+            )
+        ]
     return links or None
 
 

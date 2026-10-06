@@ -3,15 +3,15 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "6b7d5995c565ae73c7740b0b");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
-import(path : "0195d390c3944cd4fab21ce0", version : "71278ebc72b57aad713b49aa");
+import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
 export import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b3763f68");
 import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
-export import(path : "58d66340f7b70cfc86606676", version : "88f7f55d3e4918ee4144e69e");
-export import(path : "aff3918ff64d6eafb99fddcf", version : "dbbeeaaffabb7f49349dbec3");
+export import(path : "58d66340f7b70cfc86606676", version : "c66f2cde90ee0c14ff94cd63");
+export import(path : "aff3918ff64d6eafb99fddcf", version : "4661373950000ab2acd87f53");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 // Exports the adapter enums, which Onshape requires since they're parameter types
-export import(path : "6451a02d1f9f40630984864b", version : "bc00aa3012cf45b0d092305a");
-import(path : "aa47f3d3eb754118903deeec", version : "cdbb3e4ffa802ae7b7ce0f89");
+export import(path : "6451a02d1f9f40630984864b", version : "ef6cb5b6d8c95ab1a3e79148");
+import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
 
 /**
  * The bores SplineXS adapters can cut.
@@ -63,7 +63,7 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
             {
                 if (printAdapterHasSplineXsBore(definition))
                 {
-                    annotation { "Name" : "Bore type", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+                    annotation { "Name" : "Bore type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     definition.boreType is PrintBoreType;
                 }
 
@@ -116,12 +116,7 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
                     "defaultScope" : false,
                     "booleanScope" : definition.scope
                 }, reconstructOp);
-    },
-    {
-            // For features made before these parameters
-            "useBoss" : true,
-            "boreType" : PrintBoreType.CIRCLE
-        });
+    });
 
 function createPrintAdapter(context is Context, id is Id, definition is map, plane is Plane)
 {

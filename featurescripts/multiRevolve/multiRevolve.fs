@@ -57,8 +57,7 @@ export const multiRevolve = defineFeature(function(context is Context, id is Id,
                         "propagateErrorDisplay" : true
                     });
         }
-    }, { bodyType : ExtendedToolBodyType.SOLID, oppositeDirection : false, operationType : NewBodyOperationType.NEW, surfaceOperationType : NewSurfaceOperationType.NEW, defaultSurfaceScope : true,
-            fullRevolve : true, endBound : RevolveBoundingType.BLIND, symmetric : false, hasStartBound : false, endBoundHasOffset : false, startBoundHasOffset : false, startOppositeDirection : false });
+    });
 
 /**
  * The parameter holding the selections to revolve, which depends on the creation type.

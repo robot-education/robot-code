@@ -1,13 +1,13 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
+import(path : "8b8c46128a5dbc2594925f4a", version : "6b7d5995c565ae73c7740b0b");
 
-export import(path : "21762d39019c8b2289e2fbb8", version : "06bafd6cfddc3fbe92c47892");
-export import(path : "0195d390c3944cd4fab21ce0", version : "eb719b1576c924e1ac6e1ffa");
-export import(path : "b75434df23d86ba9542f761e", version : "ba222d9a7c55b13cef9c1c62");
-export import(path : "6e24956e9977116c79280620", version : "1cdcfd6334c53e51fef6f5f5");
-import(path : "0103ad63394d7713fbf44448", version : "d9ead1a79bded860ba8f3ddf");
-import(path : "6c65805103086c85362ee4b7", version : "06268198ef2566cb246b9f56");
+export import(path : "21762d39019c8b2289e2fbb8", version : "8f82cf693e7833130ba80201");
+export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
+export import(path : "b75434df23d86ba9542f761e", version : "410f29dc5fa8b0fe88f1e9c5");
+export import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
+import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 annotation { "Feature Type Name" : "Robot spline profile",
         "Feature Type Description" : "Create MAXSpline, SplineXL, and SplineXS profiles." ~ CREDIT,

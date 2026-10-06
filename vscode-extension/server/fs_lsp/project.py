@@ -39,6 +39,10 @@ IMPLICIT_NAMES = frozenset(["silent"])
 # can be overloaded
 UNIQUE_KINDS = frozenset(["variable", "enum", "type"])
 STD_UNIQUE_KINDS = frozenset(["constant", "enum", "type", "unit"])
+# Annotation keys whose values name a function (in the file, or one it imports) by its name
+FUNCTION_ANNOTATION_KEYS = frozenset(["Manipulator Change Function", "Editing Logic Function"])
+# Annotation keys whose values (or values in an array) name a member of a std enum, e.g. `"UIHint" : ["SHOW_LABEL"]`
+ENUM_ANNOTATION_KEYS = {"UIHint": "UIHint"}
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
 PARAMETER_PREDICATES = frozenset(["isLength", "isAngle", "isInteger", "isReal", "isAnything"])
 
@@ -190,11 +194,14 @@ class Project:
     """The FeatureScripts in a repo's code folder (see the fs CLI's [tool.fs] config)."""
 
     def __init__(
-        self, root: pathlib.Path, code_dir: pathlib.Path, studios_path: pathlib.Path
+        self, root: pathlib.Path, code_dir: pathlib.Path, studios_path: pathlib.Path,
+        std_dir: pathlib.Path | None = None,
     ) -> None:
         self.root = root
         self.code_dir = code_dir
         self.studios_path = studios_path
+        # A copy of the std library's source (see `fs pull-std`), if there is one
+        self.std_dir = std_dir
         self.overlays: dict[pathlib.Path, str] = {}
         self._modules: dict[pathlib.Path, tuple[object, Module]] = {}
         self._element_ids: tuple[object, dict[str, pathlib.Path]] | None = None
@@ -209,7 +216,7 @@ class Project:
             config = load_config(path if path.is_dir() else path.parent)
         except ConfigError:
             return None
-        project = cls(config.root, config.code_dir, config.studios_path)
+        project = cls(config.root, config.code_dir, config.studios_path, config.std_dir)
         return project if project.contains(path) else None
 
     def contains(self, path: pathlib.Path) -> bool:
@@ -392,6 +399,8 @@ class Project:
         token = module.index.token_at(offset)
         if token is None:
             return []
+        if token.kind == "string":
+            return self._annotation_function(module, token)
         local = module.index.declaration_for_token(token)
         if local:
             return [(module, local)]
@@ -418,6 +427,37 @@ class Project:
             (provider.module, provider.declaration)
             for provider in providers.get(token.value, [])
         ]
+
+    def _annotation_function(self, module: Module, token: Token) -> list[tuple[Module, Declaration]]:
+        """The function a string in an annotation names, e.g. `"Manipulator Change Function" : "stockManipulatorChange"`."""
+        found = annotation_string(module, token)
+        if found is None or found[0] not in FUNCTION_ANNOTATION_KEYS:
+            return []
+        name = found[1]
+        local = [(module, declaration) for declaration in module.top_level.get(name, []) if declaration.kind == "function"]
+        if local:
+            return local
+        providers, _ = self.providers(module)
+        return [
+            (provider.module, provider.declaration)
+            for provider in providers.get(name, [])
+            if provider.declaration.kind == "function"
+        ]
+
+    def std_definition(self, module: Module, offset: int) -> tuple[pathlib.Path, int, int, int] | None:
+        """Where in the std library's source the token at offset is declared, as (path, line, start character, end
+        character): for now, the std enum member a string in an annotation names, e.g. `"UIHint" : ["SHOW_LABEL"]`."""
+        token = module.index.token_at(offset)
+        found = annotation_string(module, token) if token is not None else None
+        if found is None or found[0] not in ENUM_ANNOTATION_KEYS or self.std_dir is None:
+            return None
+        enum, member = ENUM_ANNOTATION_KEYS[found[0]], found[1]
+        for symbol in stdlib().lookup(member):
+            if symbol.kind == "enumMember" and symbol.parent == enum and symbol.module:
+                location = _std_enum_member(self.std_dir / symbol.module, enum, member)
+                if location is not None:
+                    return location
+        return None
 
     def references(
         self, module: Module, offset: int, include_declaration: bool = True
@@ -572,6 +612,7 @@ class Project:
         problems.extend(self._bare_key_problems(module, providers))
         problems.extend(_duplicate_symbol_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
+        problems.extend(_function_value_problems(module, providers))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
         problems.extend(self._precondition_predicate_problems(module, providers))
@@ -1135,6 +1176,46 @@ def _duplicate_symbol_problems(module: Module, providers: dict[str, list[Provide
     return problems
 
 
+def _function_value_problems(module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
+    """Functions and predicates declared with `function` or `predicate` and used as values, e.g. `mapArray(a, f)`.
+
+    FeatureScript only allows calling them ("Cannot reference function f as a variable"); declare one which is passed
+    around as a const set to a function, `const f = function(...) { ... };`, instead. Std's names aren't checked, since many of std's
+    "functions" are consts which can be passed around.
+    """
+    index = module.index
+    problems = []
+    for token in index.tokens:
+        if not _is_reference(module, token):
+            continue
+        previous = index.previous_token(token)
+        following = index.next_token(token)
+        if following is not None and following.value == "(":
+            continue
+        if previous is not None and previous.value in (".", "?.", "typecheck", "is", "as", "returns"):
+            continue
+        local = index.declaration_for_token(token)
+        kinds = (
+            [local.kind]
+            if local is not None
+            else [provider.declaration.kind for provider in providers.get(token.value, [])]
+        )
+        if not kinds or any(kind not in ("function", "predicate") for kind in kinds):
+            continue
+        kind = kinds[0]
+        problems.append(
+            Problem(
+                token.offset,
+                token.end,
+                "error",
+                f"{token.value} is a {kind}, which FeatureScript can only call, not use as a value; declare it as a "
+                f"const set to a function instead (`const {token.value} = function(...) {{ ... }};`).",
+                "function-value",
+            )
+        )
+    return problems
+
+
 def _boolean_comparison_problems(module: Module) -> list[Problem]:
     """Comparisons with true or false, which are redundant: `x == true` is `x`."""
     problems = []
@@ -1232,6 +1313,49 @@ def _precondition_problems(module: Module, providers: dict[str, list[Provider]])
                     )
                 )
     return problems
+
+
+def annotation_string(module: Module, token: Token) -> tuple[str, str] | None:
+    """The key and value (without quotes) of a string value in an annotation, e.g. `"Editing Logic Function" : "name"`,
+    or of one of the strings in an array value, e.g. `"UIHint" : ["SHOW_LABEL"]`."""
+    if token.kind != "string" or not any(
+        node.type == "AnnotationMap" and node.start <= token.offset < node.end for node in module.parsed.nodes
+    ):
+        return None
+    index = module.index
+    previous = index.previous_token(token)
+    if previous is not None and previous.value in ("[", ","):
+        # An item of an array: its key is before the array
+        while previous is not None and previous.value != "[":
+            if previous.value in (":", "{", "}"):
+                return None
+            previous = index.previous_token(previous)
+        previous = index.previous_token(previous) if previous is not None else None
+    if previous is None or previous.value != ":":
+        return None
+    key = index.previous_token(previous)
+    if key is None or key.kind != "string":
+        return None
+    return key.value[1:-1], token.value[1:-1]
+
+
+def _std_enum_member(path: pathlib.Path, enum: str, member: str) -> tuple[pathlib.Path, int, int, int] | None:
+    """Where an enum member is declared in a std source file."""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
+    except OSError:
+        return None
+    in_enum = False
+    for number, line in enumerate(lines):
+        if re.search(rf"\benum\s+{re.escape(enum)}\b", line):
+            in_enum = True
+        elif in_enum:
+            match = re.match(rf"\s*({re.escape(member)})\b", line)
+            if match:
+                return path, number, match.start(1), match.end(1)
+            if line.strip().startswith("}"):
+                return None
+    return None
 
 
 def _predicate_node(module: Module, declaration: Declaration) -> AstNode | None:

@@ -38,12 +38,26 @@
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  // Search only featurescripts/: everything else at the top of the repo is excluded
   "search.exclude": {
     "**/node_modules": true,
     "**/*.pyc": true,
     "**/assets": true,
     "**/dist": true,
-    "**/*.code-search": true
+    "**/*.code-search": true,
+    "docs": true,
+    "fs_cli": true,
+    "onshape_api": true,
+    "onshape_icons": true,
+    "std": true,
+    "temp": true,
+    "tests": true,
+    "vscode-extension": true,
+    "*.md": true,
+    "*.json": true,
+    "*.toml": true,
+    "*.lock": true,
+    "LICENSE": true
   },
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false

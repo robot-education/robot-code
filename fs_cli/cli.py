@@ -197,7 +197,9 @@ def make_parser() -> argparse.ArgumentParser:
         help="set a parameter, e.g. placement=POINT, transform=true, or (for lookup tables) "
         "'frcNutStrip=REV > 3/8 in. > #10-32', or (for arrays) how many items to show; can be repeated",
     )
-    ui_command.add_argument("-o", "--output", help="the PNG to write (default: <feature>.png)")
+    ui_command.add_argument(
+        "-o", "--output", help="the PNG to write (default: <feature>.png), or - to print the dialog's HTML instead"
+    )
     ui_command.add_argument("--html", action="store_true", help="also write the dialog's HTML next to the PNG")
 
     tabs_command = command(
@@ -1073,6 +1075,12 @@ def ui(config: Config, args: argparse.Namespace) -> int:
             raise UsageError(f"--set takes NAME=VALUE, not {setting!r}.")
         overrides[name.strip()] = value.strip()
     page, warnings = render_feature(_project(config), config.std_dir, path, args.feature, overrides)
+    if args.output == "-":
+        # For the VS Code extension's preview
+        for warning in warnings:
+            print(f"Warning: {warning}", file=sys.stderr)
+        print(page)
+        return 0
     for warning in warnings:
         print(f"Warning: {warning}")
     output = pathlib.Path(args.output or (args.feature or path.stem) + ".png")

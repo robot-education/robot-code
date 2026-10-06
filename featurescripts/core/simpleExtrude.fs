@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-export import(path : "21762d39019c8b2289e2fbb8", version : "06bafd6cfddc3fbe92c47892");
+export import(path : "21762d39019c8b2289e2fbb8", version : "8f82cf693e7833130ba80201");
 
 /**
  * Parameters for configuring an extrude along a predefined direction.

@@ -93,6 +93,12 @@ def parse_doc(text: str) -> DocComment:
             doc.values.append(scanner.item(tag, 0))
         elif tag == "field":
             doc.fields.append(scanner.item(tag, 0))
+        elif tag == "type":
+            # A type's fields, as `@type {{ @field ... }}`
+            item = scanner.item(tag, 0)
+            doc.fields.extend(item.fields)
+            if item.description:
+                doc.description = f"{doc.description}\n\n{item.description}".strip()
         elif tag == "internal":
             doc.internal = True
             if more := scanner.body(0).description:

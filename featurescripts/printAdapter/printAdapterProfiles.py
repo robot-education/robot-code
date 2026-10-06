@@ -293,16 +293,38 @@ adapters_by_vendor = ",\n".join(
 parameters_by_vendor = ",\n".join(
     f"        {PrintAdapterVendor[value]} : {string(parameter)}" for value, _, parameter in VENDORS.values()
 )
-get_print_adapter = """/**
- * The adapter chosen by printAdapterSelectionPredicate's parameters: its `profile`, its thickness (`depth`), how
- * tall the boss on one side of it is (`boss`, if it has one), and the `bore` cut through the print for its shaft.
+print_adapter_type = """/**
+ * A 3D print adapter (see printAdapterProfiles.py).
  *
- * A bore is a hex (`hexSize` across flats, with a corner on the X axis, which the profile is timed to), or a
- * clearance circle (`diameter`), which SplineXS adapters (`splineXs`) can replace with a SplineXS profile.
+ * @type {{
+ *      @field profile {SketchDataArray} : Its outline.
+ *      @field depth {ValueWithUnits} : Its thickness.
+ *      @field boss {ValueWithUnits} : @optional How tall the boss on one side of it is, if it has one.
+ *      @field bore {map} : The bore cut through the print for its shaft: a hex (`hexSize` across flats, with a corner
+ *              on the X axis, which the profile is timed to), or a clearance circle (`diameter`), which SplineXS
+ *              adapters (`splineXs`) can replace with a SplineXS profile.
+ * }}
  */
-export function getPrintAdapter(definition is map) returns map
+export type PrintAdapter typecheck canBePrintAdapter;
+
+export predicate canBePrintAdapter(value)
 {
-    return PRINT_ADAPTERS[definition.adapterVendor][definition[PRINT_ADAPTER_PARAMETERS[definition.adapterVendor]]];
+    value is map;
+    value.profile is SketchDataArray;
+    isLength(value.depth);
+    value.boss == undefined || isLength(value.boss);
+    value.bore is map;
+}"""
+
+get_print_adapter = """/**
+ * The adapter chosen by printAdapterSelectionPredicate's parameters.
+ */
+export function getPrintAdapter(definition is map) returns PrintAdapter
+{
+    const vendor = definition.adapterVendor;
+    // Each vendor's adapters are chosen with a parameter of their own
+    const adapter = definition[PRINT_ADAPTER_PARAMETERS[vendor]];
+    return PRINT_ADAPTERS[vendor][adapter] as PrintAdapter;
 }"""
 
 CONTENTS = [
@@ -338,5 +360,6 @@ CONTENTS = [
     Constant("PRINT_ADAPTER_PARAMETERS", "{\n" + parameters_by_vendor + "\n    }"),
     # Every adapter, by vendor and then value
     Constant("PRINT_ADAPTERS", "{\n" + adapters_by_vendor + "\n    }"),
+    Code(print_adapter_type),
     Code(get_print_adapter),
 ]

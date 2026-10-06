@@ -90,3 +90,17 @@ def test_call_at():
     call = call_at(tokens, source.index("c)"))
     assert (call.callee.value, call.argument) == ("f", 2)
     assert call_at(tokens, 0) is None
+
+
+def test_type_fields():
+    doc = parse_doc(
+        "A length of stock.\n\n@type {{\n     @field width {ValueWithUnits} : Its width.\n"
+        "     @field holes {array} : @optional Its holes.\n}}\n@seealso [stockFor]\n"
+    )
+    assert doc.description == "A length of stock."
+    assert [(field.name, field.type, field.optional) for field in doc.fields] == [
+        ("width", "ValueWithUnits", False),
+        ("holes", "array", True),
+    ]
+    assert doc.see_also == ["[stockFor]"]
+    assert "{{" not in render_markdown(doc) and "}}" not in render_markdown(doc)

@@ -134,6 +134,12 @@
         "icon": "$(cloud-upload)"
       },
       {
+        "command": "featurescript.previewUi",
+        "title": "Preview Feature UI",
+        "category": "FeatureScript",
+        "icon": "$(open-preview)"
+      },
+      {
         "command": "featurescript.pull",
         "title": "Pull from Onshape",
         "category": "FeatureScript"
@@ -157,6 +163,11 @@
     "menus": {
       "editor/title": [
         {
+          "command": "featurescript.previewUi",
+          "when": "editorLangId == featurescript && featurescript.definesFeature",
+          "group": "navigation"
+        },
+        {
           "command": "featurescript.pushFile",
           "when": "editorLangId == featurescript",
           "group": "navigation"
@@ -172,6 +183,10 @@
       "commandPalette": [
         {
           "command": "featurescript.pushFile",
+          "when": "editorLangId == featurescript"
+        },
+        {
+          "command": "featurescript.previewUi",
           "when": "editorLangId == featurescript"
         }
       ]

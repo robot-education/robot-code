@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
+import(path : "8b8c46128a5dbc2594925f4a", version : "6b7d5995c565ae73c7740b0b");
 
 /**
  * @param name {string} : A string used for the name. Appended to the string `"Sketch point to place "`.

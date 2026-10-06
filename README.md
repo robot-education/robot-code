@@ -350,7 +350,11 @@ The extension provides:
   stdlib symbols, ...)
 - Outline, breadcrumbs, sticky scroll, and folding
 - Go to Definition and Find References across files (imports are resolved through `fs-studios.json`), highlights,
-  and workspace symbol search (Ctrl+T)
+  and workspace symbol search (Ctrl+T). Go to Definition also works on the function names in a feature's
+  `"Manipulator Change Function"` and `"Editing Logic Function"`, and on `"UIHint"` strings (into `std/`)
+- A Preview Feature UI button (in the editor's title bar, for files defining a feature) which shows the feature's
+  dialog as `fs ui` renders it, beside the file, updating when it's saved. Clicking a tab, checkbox, or dropdown in
+  it changes that parameter, to see the dialog's other states
 - Hovers with doc comments laid out like Onshape's [FsDoc](https://cad.onshape.com/FsDoc/library.html) (for std
   symbols too), signatures, enum variants, feature definition fields, and the file an import refers to
 - Signature help in calls, with each parameter's documentation

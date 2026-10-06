@@ -73,20 +73,11 @@ export predicate newExtrudePredicate(definition is map)
  */
 export predicate newExtrudeEndTypePredicate(definition is map)
 {
-    newExtrudeEndBoundPredicate(definition);
+    annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.endBound is SMExtrudeBoundingType;
 
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.oppositeDirection is boolean;
-}
-
-/**
- * The end type of `newExtrudeEndTypePredicate`, without its opposite direction button, for features which declare
- * `oppositeDirection` elsewhere.
- */
-export predicate newExtrudeEndBoundPredicate(definition is map)
-{
-    annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-    definition.endBound is SMExtrudeBoundingType;
 }
 
 /**
@@ -95,19 +86,6 @@ export predicate newExtrudeEndBoundPredicate(definition is map)
 export predicate newExtrudeBoundsPredicate(definition is map)
 {
     extrudeBoundParametersPredicate(definition);
-
-    newExtrudeOptionsPredicate(definition);
-}
-
-/**
- * Like `newExtrudeBoundsPredicate`, for extruding something a `Length` (with no tolerance options), with a direction
- * option.
- */
-export predicate newExtrudeLengthPredicate(definition is map)
-{
-    lengthBoundParametersPredicate(definition);
-
-    extrudeDirectionPredicate(definition);
 
     newExtrudeOptionsPredicate(definition);
 }
@@ -260,6 +238,19 @@ export function processExtrudeDirection(context is Context, definition is map, p
     const userProvidedExtrudeDirection = extractDirection(context, definition.extrudeDirection);
     // Makes sure the direction picked by the user aligns with the original extrude direction to avoid flips
     return dot(userProvidedExtrudeDirection, planeNormal) < 0 ? -userProvidedExtrudeDirection : userProvidedExtrudeDirection;
+}
+
+/**
+ * The plane at `profilePlane`'s origin normal to the extrude's direction (see `processExtrudeDirection`), with X as
+ * close to `profilePlane`'s as it can be. Sketching a profile on it extrudes it straight along the direction; std's
+ * extrude doesn't allow a direction parallel to the profile, as a direction in `profilePlane` would be.
+ */
+export function extrudeDirectionPlane(context is Context, definition is map, profilePlane is Plane) returns Plane
+{
+    const direction = processExtrudeDirection(context, definition, profilePlane.normal);
+    const projectedX = profilePlane.x - direction * dot(profilePlane.x, direction);
+    const xAxis = tolerantEquals(norm(projectedX), 0) ? perpendicularVector(direction) : normalize(projectedX);
+    return plane(profilePlane.origin, direction, xAxis);
 }
 
 /**

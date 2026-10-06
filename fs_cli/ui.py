@@ -1090,7 +1090,7 @@ class Renderer:
         collapsed = group.annotation.get("Collapsed By Default") is True
         if driving:
             on = bool(driving_values.get(driving))
-            check = f"<span class='check{' on' if on else ''}'>{'&#x2714;' if on else ''}</span>"
+            check = _check(driving, on)
             # Its contents are only shown when it's checked
             collapsed = collapsed or not on
         return (
@@ -1128,9 +1128,7 @@ class Renderer:
         """A parameter displayed short, sharing its row."""
         label = f"<span class='label'>{html.escape(item.label)}</span>" if labeled else ""
         if item.kind == "boolean":
-            on = bool(item.value)
-            control = f"<span class='check{' on' if on else ''}'>{'&#x2714;' if on else ''}</span>"
-            return f"<span class='short'>{control}{label}</span>"
+            return f"<span class='short'>{_check(item.name, bool(item.value))}{label}</span>"
         return f"<span class='short'>{label}<span class='input'>{html.escape(_text(item.value or ''))}</span></span>"
 
     def parameter(self, item: Parameter) -> list[str]:
@@ -1143,17 +1141,18 @@ class Renderer:
             names = item.enum.values
             if "HORIZONTAL_ENUM" in item.hints:
                 tabs = "".join(
-                    f"<span class='tab{' selected' if value == item.value else ''}'>{html.escape(name)}</span>"
+                    f"<span class='tab{' selected' if value == item.value else ''}'{_setting(item.name, value)}>"
+                    f"{html.escape(name)}</span>"
                     for value, name in names.items()
                 )
                 return [f"<span class='tabs'>{tabs}</span>"]
             selected = html.escape(names.get(item.value, item.value or ""))
+            options = _options(item.name, names)
             if "SHOW_LABEL" in item.hints:
-                return [label.replace("class='label'", "class='label right'") + f"<span class='select'>{selected}</span>"]
-            return [f"<span class='select wide'>{selected}</span>"]
+                return [label.replace("class='label'", "class='label right'") + f"<span class='select'{options}>{selected}</span>"]
+            return [f"<span class='select wide'{options}>{selected}</span>"]
         if item.kind == "boolean":
-            on = bool(item.value)
-            return [f"<span class='check{' on' if on else ''}'>{'&#x2714;' if on else ''}</span>" + label]
+            return [_check(item.name, bool(item.value)) + label]
         if item.kind in ("query", "reference"):
             focus = not self.focused
             self.focused = True
@@ -1175,6 +1174,26 @@ class Renderer:
                 row += f"<span class='button' title='Add tolerance'>{icon(TOLERANCE_ICON)}</span>"
             return [row]
         return [label]
+
+
+def _setting(name: str, value: Any) -> str:
+    """Attributes saying which parameter a control sets (with `fs ui --set`), and to what, for the VS Code extension's
+    preview to change it when it's clicked."""
+    return f" data-name='{html.escape(name)}' data-value='{html.escape(_text(value))}'"
+
+
+def _options(name: str, names: dict) -> str:
+    """Attributes listing an enum's values (as `value=Name` lines), for the preview to offer them."""
+    listed = "\n".join(f"{value}={label}" for value, label in names.items())
+    return f" data-name='{html.escape(name)}' data-options='{html.escape(listed)}'"
+
+
+def _check(name: str, on: bool) -> str:
+    """A checkbox, which sets its parameter to the opposite when clicked in the preview."""
+    return (
+        f"<span class='check{' on' if on else ''}'{_setting(name, 'false' if on else 'true')}>"
+        f"{'&#x2714;' if on else ''}</span>"
+    )
 
 
 # Screenshots

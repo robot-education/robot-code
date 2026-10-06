@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from "vscode-languageclient/node";
+import { UiPreview, featureNames } from "./uiPreview";
 
 const CONFIG_FILE = "pyproject.toml";
 
@@ -27,10 +28,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand("featurescript.pull", () => runFs(["pull"])),
     vscode.commands.registerCommand("featurescript.sync", () => runFs(["sync"])),
-    vscode.commands.registerCommand("featurescript.status", () => runFs(["status"]))
+    vscode.commands.registerCommand("featurescript.status", () => runFs(["status"])),
+    vscode.commands.registerCommand("featurescript.previewUi", (uri?: vscode.Uri) => {
+      const target = uri ?? vscode.window.activeTextEditor?.document.uri;
+      const root = repoRoot();
+      if (!target || target.scheme !== "file" || !root || !isRepoRoot(root)) {
+        void vscode.window.showWarningMessage("Open a FeatureScript file defining a feature in the robot-code repo to preview it.");
+        return;
+      }
+      UiPreview.show(target, { ...pythonCommand("fs.command", "fs", root), cwd: root });
+    }),
+    vscode.workspace.onDidSaveTextDocument((document) => UiPreview.saved(document)),
+    // Shows the preview button for files defining a feature
+    vscode.window.onDidChangeActiveTextEditor(updateDefinesFeature),
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document === vscode.window.activeTextEditor?.document) {
+        updateDefinesFeature(vscode.window.activeTextEditor);
+      }
+    })
   );
+  updateDefinesFeature(vscode.window.activeTextEditor);
 
   await startClient(output);
+}
+
+function updateDefinesFeature(editor: vscode.TextEditor | undefined): void {
+  const defines = editor?.document.languageId === "featurescript" && featureNames(editor.document.getText()).length > 0;
+  void vscode.commands.executeCommand("setContext", "featurescript.definesFeature", defines);
 }
 
 export async function deactivate(): Promise<void> {

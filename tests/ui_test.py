@@ -166,7 +166,7 @@ def test_dialog_follows_the_precondition(repo):
         "Second depth",
         "1 in",
     ]
-    assert "class='tab selected'>Edge<" in page
+    assert "class='tab selected' data-name='placement' data-value='EDGE'>Edge<" in page
     # The flip button, with Onshape's icon
     assert "<span class='button' title='Flip'><span class='icon invert'><svg" in page
 
@@ -268,3 +268,13 @@ def test_icons_exist():
     names = {name for name, _ in BUTTONS.values()} | set(PARAMETER_ICONS.values()) | set(ICON_VALUES.values())
     for name in names | {MATE_CONNECTOR_ICON, TOLERANCE_ICON}:
         assert (ICON_DIR / f"{name}.svg").is_file(), name
+
+
+def test_html_for_the_preview(repo, capsys):
+    # `-o -` prints the dialog's HTML (for the VS Code extension's preview), without taking a screenshot
+    assert cli.main(["ui", "featurescripts/widget.fs", "-o", "-", "--set", "placement=POINT"]) == 0
+    page = capsys.readouterr().out
+    assert page.startswith("<!doctype html>")
+    # Controls say which parameter they set, and to what
+    assert "data-name='placement' data-value='EDGE'>Edge<" in page
+    assert not (repo / "widget.png").exists()
