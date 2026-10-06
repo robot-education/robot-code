@@ -1,14 +1,15 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
+RobotFrameIcon::import(path : "frame/robotFrameIcon.svg", version : "");
 
-import(path : "72b77780ed382be329401627", version : "c007335a53e017e87fb72abc");
+import(path : "72b77780ed382be329401627", version : "7de6aa047e083395d076d674");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "0794d10863d10d98a88c2ab4", version : "599a218f6ba935dcd664345c");
+import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
-import(path : "ff444db0395e01aaa8c7e555", version : "2035cadd8237ea6f5a32ef6a");
-import(path : "aa47f3d3eb754118903deeec", version : "cdbb3e4ffa802ae7b7ce0f89");
+import(path : "ff444db0395e01aaa8c7e555", version : "e4db7164a5fde703c448de5f");
+import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "96c729d8e6fb2f0289f4a22d");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "70ced71f4553cf02ff68a84b");
 
 /**
  * Whether a frame is one someone sells (see frameTables.py), or custom.
@@ -77,13 +78,14 @@ const TOP_HOLE_ROWS_BOUNDS = { (unitless) : [0, 3, 1e3] } as IntegerBoundSpec;
 const TIED_HOLE_COUNT_BOUNDS = { (unitless) : [1, 3, 1e3] } as IntegerBoundSpec;
 
 /**
- * Places tube, channel, angle, and extrusion along edges, or extrudes it from a point, tagged as frames so the std
+ * Places tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so the std
  * frame features work with it.
  */
 annotation { "Feature Type Name" : "Robot frame",
-        "Feature Type Description" : "Add tube, channel, angle, and extrusion along edges, or extrude it from a point." ~ CREDIT,
+        "Feature Type Description" : "Add tube, channel, angle, or extrusion along an edge, or extrude it from a point." ~ CREDIT,
         "Manipulator Change Function" : "robotFrameManipulatorChange",
-        "Editing Logic Function" : "robotFrameEditLogic"
+        "Editing Logic Function" : "robotFrameEditLogic",
+        "Icon" : RobotFrameIcon::BLOB_DATA
     }
 export const robotFrame = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
@@ -142,14 +144,7 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Hole diameter" }
         isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
 
-        if (isEdgePlacement(definition))
-        {
-            stockEdgePredicate(definition);
-        }
-        else
-        {
-            stockPointPredicate(definition, "frame");
-        }
+        stockLocationPredicate(definition, "frame");
 
         // Forked from robotNutStrip, with its own defaults
         annotation { "Name" : "Tie holes to end", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -162,7 +157,7 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 annotation { "Name" : "Tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isInteger(definition.tiedHoleCount, TIED_HOLE_COUNT_BOUNDS);
 
-                annotation { "Name" : "Show tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                annotation { "Name" : "Show tied holes", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.showTiedHoles is boolean;
             }
         }
@@ -170,7 +165,7 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
     {
         const frame = getFrame(definition);
         verifyHoles(definition, frame);
-        placeStock(context, id, definition, frame, function(context is Context, id is Id, location is CoordSystem, length is ValueWithUnits)
+        placeStock(context, id, definition, frame, "frame", function(context is Context, id is Id, location is CoordSystem, length is ValueWithUnits)
             {
                 return buildFrame(context, id, definition, frame, location, length);
             });
@@ -458,7 +453,7 @@ function buildFrame(context is Context, id is Id, definition is map, frame is ma
     return {
             "endFace" : qCapEntity(tubeId, CapType.END, EntityType.FACE),
             "tiedHoles" : qUnion(tiedHoles),
-            "irregular" : (frame.xRows != [] || frame.yRows != []) && !isRegularLength(length, tie)
+            "tie" : frame.xRows != [] || frame.yRows != [] ? tie : undefined
         };
 }
 

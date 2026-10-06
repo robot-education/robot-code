@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <g stroke="#333" stroke-width="0.6" stroke-linejoin="round">
+    <!-- A 2x1 tube drawn like std Frame: its profile at the front, extruded back to the upper left -->
+    <path d="M10.5 7.5 L3.5 0.5 L3.5 12.5 L10.5 19.5 Z" fill="#ddd"/>
+    <path d="M10.5 7.5 L3.5 0.5 L9.5 0.5 L16.5 7.5 Z" fill="#fff"/>
+    <path d="M10.5 7.5 H16.5 V19.5 H10.5 Z M11.9 8.9 V18.1 H15.1 V8.9 Z" fill="#999" fill-rule="evenodd"/>
+    <!-- Inside it, its right wall and its floor -->
+    <path d="M15.1 8.9 V18.1 L11.9 14.9 V8.9 Z" fill="#666"/>
+    <path d="M11.9 14.9 L15.1 18.1 H11.9 Z" fill="#ccc"/>
+  </g>
+  <!-- Holes along its side -->
+  <g fill="#333">
+    <ellipse cx="8.6" cy="11.6" rx="1.05" ry="0.75" transform="rotate(45 8.6 11.6)"/>
+    <ellipse cx="5.4" cy="8.4" rx="1.05" ry="0.75" transform="rotate(45 5.4 8.4)"/>
+  </g>
+</svg>

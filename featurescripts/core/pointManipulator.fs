@@ -56,18 +56,30 @@ export function ninePointOffsets(width is ValueWithUnits, height is ValueWithUni
 const POINT_MANIPULATOR = "pointManipulator";
 
 /**
- * Returns the current index.
+ * Returns the current index, or 0 if it isn't a valid one.
  *
  * @param numPoints {number} : The current number of points. Used to properly clamp the bounds.
  */
 export function getPointIndex(definition is map, numPoints is number) returns number
 {
+    return getPointIndex(definition, numPoints, 0);
+}
+
+/**
+ * Returns the current index, or `defaultIndex` if it isn't a valid one.
+ */
+export function getPointIndex(definition is map, numPoints is number, defaultIndex is number) returns number
+{
     const index = definition.index;
-    if (index < 0 || index >= numPoints)
-    {
-        return 0;
-    }
-    return index;
+    return index is number && index >= 0 && index < numPoints ? index : defaultIndex;
+}
+
+/**
+ * Returns the current index of a nine point manipulator, or its center if it isn't a valid one.
+ */
+export function getNinePointIndex(definition is map) returns number
+{
+    return getPointIndex(definition, 9, NINE_POINT_CENTER_INDEX);
 }
 
 export function getPointDistance(definition is map, pointDistances is array) returns ValueWithUnits
@@ -95,10 +107,18 @@ precondition
 
 export function addPointManipulator(context is Context, id is Id, definition is map, points is array)
 {
+    addPointManipulator(context, id, definition, points, getPointIndex(definition, size(points)));
+}
+
+/**
+ * Adds the point manipulator with `index` chosen, e.g. from `getNinePointIndex`.
+ */
+export function addPointManipulator(context is Context, id is Id, definition is map, points is array, index is number)
+{
     addManipulators(context, id, {
                 (POINT_MANIPULATOR) : pointsManipulator({
                         "points" : points,
-                        "index" : getPointIndex(definition, size(points))
+                        "index" : index
                     })
             });
 }
@@ -106,7 +126,7 @@ export function addPointManipulator(context is Context, id is Id, definition is 
 export function pointManipulatorChange(definition is map, newManipulators is map) returns map
 {
     const manipulator = newManipulators[POINT_MANIPULATOR];
-    if (manipulator == undefined)
+    if (manipulator == undefined || !(manipulator.index is number))
     {
         return definition;
     }

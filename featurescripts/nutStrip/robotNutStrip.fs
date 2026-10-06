@@ -1,22 +1,24 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
+RobotNutStripIcon::import(path : "nutStrip/robotNutStripIcon.svg", version : "");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "f58a965fe7005e2e3c9a67c7", version : "677bf3922dfa094b531db36f");
-import(path : "e316d3a31f8726cbc70fe081", version : "5869fb5c760ae5caba16f64a");
+import(path : "f58a965fe7005e2e3c9a67c7", version : "b5ccca2891edfadb45a47aac");
+import(path : "e316d3a31f8726cbc70fe081", version : "f8720e7e64d2b639cd3f03d8");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "96c729d8e6fb2f0289f4a22d");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "70ced71f4553cf02ff68a84b");
 
 /** The default number of holes tied to the end of a nut strip. */
-const TIED_HOLE_COUNT_BOUNDS = { (unitless) : [1, 1, 1e3] } as IntegerBoundSpec;
+const TIED_HOLE_COUNT_BOUNDS = { (unitless) : [1, 3, 1e3] } as IntegerBoundSpec;
 
 /**
- * Places nut strips along edges, or extrudes one from a point.
+ * Places a nut strip along an edge, or extrudes one from a point.
  */
 annotation { "Feature Type Name" : "Robot nut strip",
-        "Feature Type Description" : "Add nut strips along edges, such as the inside edges of tube, or extrude one from a point." ~ CREDIT,
+        "Feature Type Description" : "Add a nut strip along an edge, such as an inside edge of tube, or extrude one from a point." ~ CREDIT,
         "Manipulator Change Function" : "robotNutStripManipulatorChange",
-        "Editing Logic Function" : "robotNutStripEditLogic"
+        "Editing Logic Function" : "robotNutStripEditLogic",
+        "Icon" : RobotNutStripIcon::BLOB_DATA
     }
 export const robotNutStrip = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
@@ -34,14 +36,7 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
             definition.ftcNutStrip is LookupTablePath;
         }
 
-        if (isEdgePlacement(definition))
-        {
-            stockEdgePredicate(definition);
-        }
-        else
-        {
-            stockPointPredicate(definition, "nut strip");
-        }
+        stockLocationPredicate(definition, "nut strip");
 
         // Forked from robotFrame, with its own defaults
         annotation { "Name" : "Tie holes to end", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -54,18 +49,18 @@ export const robotNutStrip = defineFeature(function(context is Context, id is Id
                 annotation { "Name" : "Tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isInteger(definition.tiedHoleCount, TIED_HOLE_COUNT_BOUNDS);
 
-                annotation { "Name" : "Show tied holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                annotation { "Name" : "Show tied holes", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.showTiedHoles is boolean;
             }
         }
     }
     {
         const nutStrip = getNutStrip(definition);
-        placeStock(context, id, definition, nutStrip, function(context is Context, id is Id, location is CoordSystem, length is ValueWithUnits)
+        placeStock(context, id, definition, nutStrip, "nut strip", function(context is Context, id is Id, location is CoordSystem, length is ValueWithUnits)
             {
                 return buildNutStrip(context, id, definition, nutStrip, location, length);
             });
-    }, mergeMaps(STOCK_DEFAULTS, { "tiedHoleCount" : 1 }));
+    }, mergeMaps(STOCK_DEFAULTS, { "tiedHoleCount" : 3 }));
 
 /**
  * The selected nut strip's entry in its lookup table (see nutStripTables.py).
@@ -105,8 +100,8 @@ function tieUnit(nutStrip is map) returns ValueWithUnits
 /**
  * Builds a nut strip `length` long, from `location` along its Z axis, with its width along X.
  *
- * The strip and its Y row of holes are one extrude of a sketch; its X row of holes (and center hole, if it has one)
- * are cut with one more.
+ * As in robot frame, the strip is its profile extruded along its length, and its holes are cut with tools: its X and
+ * Y rows of holes, and its center hole if it has one.
  */
 function buildNutStrip(context is Context, id is Id, definition is map, nutStrip is map, location is CoordSystem,
     length is ValueWithUnits) returns map
@@ -114,45 +109,58 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
     const tie = getNutStripTie(definition, nutStrip);
     const radius = nutStrip.tapDrillDiameter / 2;
 
-    // Sketched on the strip's bottom with X along its length, so its sketch Y is the strip's X
-    const yHoles = holePositions(nutStrip.yHoleStart, nutStrip.spacing, radius, length, tie);
-    const stripPlane = plane(toWorld(location, vector(0 * meter, -nutStrip.height / 2, 0 * meter)), yAxis(location), location.zAxis);
-    const stripSketch = newSketchOnPlane(context, id + "stripSketch", { "sketchPlane" : stripPlane });
-    skRectangle(stripSketch, "outline", {
-                "firstCorner" : vector(0 * meter, -nutStrip.width / 2),
-                "secondCorner" : vector(length, nutStrip.width / 2)
+    const profileSketch = newSketchOnPlane(context, id + "profileSketch", { "sketchPlane" : plane(location) });
+    skRectangle(profileSketch, "outline", {
+                "firstCorner" : vector(-nutStrip.width / 2, -nutStrip.height / 2),
+                "secondCorner" : vector(nutStrip.width / 2, nutStrip.height / 2)
             });
-    sketchHoles(stripSketch, yHoles, radius);
-    skSolve(stripSketch);
+    skSolve(profileSketch);
     opExtrude(context, id + "strip", {
-                "entities" : qSketchRegion(id + "stripSketch", true),
-                "direction" : stripPlane.normal,
+                "entities" : qSketchRegion(id + "profileSketch"),
+                "direction" : location.zAxis,
                 "endBound" : BoundingType.BLIND,
-                "endDepth" : nutStrip.height
+                "endDepth" : length
             });
     const strip = qCreatedBy(id + "strip", EntityType.BODY);
 
-    // Sketched on the strip's side with X along its length, so its sketch Y is the strip's -Y
-    const xHoles = holePositions(nutStrip.xHoleStart, nutStrip.spacing, radius, length, tie);
-    const holePlane = plane(toWorld(location, vector(-nutStrip.width / 2, 0 * meter, 0 * meter)), location.xAxis, location.zAxis);
-    if (xHoles != [])
+    // Each row is cut from the side its holes go in from: the Y row from the strip's bottom, and the X row from its
+    // side. Their sketches have X along the strip's length.
+    const rows = [
+            {
+                "holes" : holePositions(nutStrip.yHoleStart, nutStrip.spacing, radius, length, tie),
+                "plane" : plane(toWorld(location, vector(0 * meter, -nutStrip.height / 2, 0 * meter)), yAxis(location), location.zAxis),
+                "depth" : nutStrip.height
+            },
+            {
+                "holes" : holePositions(nutStrip.xHoleStart, nutStrip.spacing, radius, length, tie),
+                "plane" : plane(toWorld(location, vector(-nutStrip.width / 2, 0 * meter, 0 * meter)), location.xAxis, location.zAxis),
+                "depth" : nutStrip.width
+            }
+        ];
+    var tools = [];
+    var sketches = [qCreatedBy(id + "profileSketch", EntityType.BODY)];
+    for (var i, row in rows)
     {
-        const holeSketch = newSketchOnPlane(context, id + "holeSketch", { "sketchPlane" : holePlane });
-        sketchHoles(holeSketch, xHoles, radius);
-        skSolve(holeSketch);
-        opExtrude(context, id + "holeTools", {
-                    "entities" : qSketchRegion(id + "holeSketch"),
-                    "direction" : holePlane.normal,
+        if (row.holes == [])
+        {
+            continue;
+        }
+        const sketchId = id + ("rowSketch" ~ i);
+        const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : row.plane });
+        sketchHoles(sketch, row.holes, radius);
+        skSolve(sketch);
+        opExtrude(context, id + ("rowTools" ~ i), {
+                    "entities" : qSketchRegion(sketchId),
+                    "direction" : row.plane.normal,
                     "endBound" : BoundingType.BLIND,
-                    "endDepth" : nutStrip.width
+                    "endDepth" : row.depth
                 });
+        tools = append(tools, qCreatedBy(id + ("rowTools" ~ i), EntityType.BODY));
+        sketches = append(sketches, qCreatedBy(sketchId, EntityType.BODY));
     }
-    const hasCenterHole = nutStrip.centerHole ?? false;
-    if (hasCenterHole)
+    if (nutStrip.centerHole ?? false)
     {
-        const centerHoleSketch = newSketchOnPlane(context, id + "centerHoleSketch", {
-                    "sketchPlane" : plane(location.origin, location.zAxis, location.xAxis)
-                });
+        const centerHoleSketch = newSketchOnPlane(context, id + "centerHoleSketch", { "sketchPlane" : plane(location) });
         skCircle(centerHoleSketch, "hole", { "center" : vector(0, 0) * meter, "radius" : radius });
         skSolve(centerHoleSketch);
         opExtrude(context, id + "centerHoleTool", {
@@ -161,47 +169,27 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
                     "endBound" : BoundingType.BLIND,
                     "endDepth" : length
                 });
+        tools = append(tools, qCreatedBy(id + "centerHoleTool", EntityType.BODY));
+        sketches = append(sketches, qCreatedBy(id + "centerHoleSketch", EntityType.BODY));
     }
-    if (xHoles != [] || hasCenterHole)
+    if (tools != [])
     {
         opBoolean(context, id + "cutHoles", {
-                    "tools" : qUnion([qCreatedBy(id + "holeTools", EntityType.BODY), qCreatedBy(id + "centerHoleTool", EntityType.BODY)]),
+                    "tools" : qUnion(tools),
                     "targets" : strip,
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
     }
+    opDeleteBodies(context, id + "deleteSketches", { "entities" : qUnion(sketches) });
 
-    // Found once the holes are cut, since holes which cross are split
-    const rows = concatenateArrays([
-                holesInRow(context, id + "strip", stripPlane, yHoles),
-                holesInRow(context, id + "holeTools", holePlane, xHoles)
-            ]);
-    var holes = mapArray(rows, function(hole)
-        {
-            return { "faces" : hole.faces, "coordSystem" : hole.coordSystem };
-        });
-    if (hasCenterHole)
-    {
-        holes = append(holes, {
-                    "faces" : qCreatedBy(id + "centerHoleTool", EntityType.FACE)->qGeometry(GeometryType.CYLINDER),
-                    "coordSystem" : coordSystem(location.origin, location.xAxis, location.zAxis)
-                });
-    }
-    opDeleteBodies(context, id + "deleteSketches", {
-                "entities" : qUnion([
-                        qCreatedBy(id + "stripSketch", EntityType.BODY),
-                        qCreatedBy(id + "holeSketch", EntityType.BODY),
-                        qCreatedBy(id + "centerHoleSketch", EntityType.BODY)
-                    ])
-            });
-
+    const holes = findHoles(context, strip, location, rows);
     setTappedThroughHoles(context, id, holes, nutStrip);
     // e.g. 6 in. Nut Strip (WCP 1/2 in., #10-32)
     setStockProperties(context, strip, definition, nutStrip,
         "Nut Strip (" ~ nutStrip.vendor ~ " " ~ nutStrip.sizeName ~ ", " ~ nutStrip.threadName ~ ")", length);
 
     var tiedHoles = [];
-    for (var hole in rows)
+    for (var hole in holes)
     {
         if (hole.tied)
         {
@@ -209,9 +197,9 @@ function buildNutStrip(context is Context, id is Id, definition is map, nutStrip
         }
     }
     return {
-            "endFace" : qOwnedByBody(strip, EntityType.FACE)->qGeometry(GeometryType.PLANE)->qContainsPoint(location.origin + location.zAxis * length),
+            "endFace" : qCapEntity(id + "strip", CapType.END, EntityType.FACE),
             "tiedHoles" : qUnion(tiedHoles),
-            "irregular" : !isRegularLength(length, tie)
+            "tie" : tie
         };
 }
 
@@ -224,35 +212,69 @@ function sketchHoles(sketch is Sketch, holes is array, radius is ValueWithUnits)
 }
 
 /**
- * The holes created by extruding the circles of a row from `holePlane`: maps of their `faces`, `coordSystem` (for
- * `setTappedThroughHoles`), and whether they're `tied`. Faces are matched to holes by where they are along the strip,
- * since a hole crossing another one is split.
+ * The holes in a cut nut strip: maps of their `faces`, `coordSystem` (for `setTappedThroughHoles`), and whether
+ * they're `tied`. Each cylindrical face of the strip is matched to a hole by its axis (which says which row it's in, or
+ * whether it's the center hole) and where it is along the strip, since a hole crossing another one is split. Holes
+ * with no faces are left out.
  */
-function holesInRow(context is Context, extrudeId is Id, holePlane is Plane, holes is array) returns array
+function findHoles(context is Context, strip is Query, location is CoordSystem, rows is array) returns array
 {
-    var faces = makeArray(size(holes), []);
-    for (var face in evaluateQuery(context, qCreatedBy(extrudeId, EntityType.FACE)->qGeometry(GeometryType.CYLINDER)))
-    {
-        const position = dot(evSurfaceDefinition(context, { "face" : face }).coordSystem.origin - holePlane.origin, holePlane.x);
-        var closest = 0;
-        for (var i, hole in holes)
+    var faces = mapArray(rows, function(row)
         {
-            if (abs(hole.position - position) < abs(holes[closest].position - position))
+            return makeArray(size(row.holes), []);
+        });
+    var centerFaces = [];
+    for (var face in evaluateQuery(context, qOwnedByBody(strip, EntityType.FACE)->qGeometry(GeometryType.CYLINDER)))
+    {
+        const axis = evSurfaceDefinition(context, { "face" : face }).coordSystem;
+        if (parallelVectors(axis.zAxis, location.zAxis))
+        {
+            centerFaces = append(centerFaces, face);
+            continue;
+        }
+        for (var r, row in rows)
+        {
+            if (row.holes == [] || !parallelVectors(axis.zAxis, row.plane.normal))
             {
-                closest = i;
+                continue;
+            }
+            const position = dot(axis.origin - row.plane.origin, row.plane.x);
+            var closest = 0;
+            for (var i, hole in row.holes)
+            {
+                if (abs(hole.position - position) < abs(row.holes[closest].position - position))
+                {
+                    closest = i;
+                }
+            }
+            faces[r][closest] = append(faces[r][closest], face);
+        }
+    }
+
+    var holes = [];
+    for (var r, row in rows)
+    {
+        for (var i, hole in row.holes)
+        {
+            if (faces[r][i] != [])
+            {
+                holes = append(holes, {
+                            "faces" : qUnion(faces[r][i]),
+                            "coordSystem" : coordSystem(row.plane.origin + row.plane.x * hole.position, row.plane.x, row.plane.normal),
+                            "tied" : hole.tied
+                        });
             }
         }
-        faces[closest] = append(faces[closest], face);
     }
-    return mapArray(range(0, size(holes) - 1), function(i)
-        {
-            const origin = holePlane.origin + holePlane.x * holes[i].position;
-            return {
-                    "faces" : qUnion(faces[i]),
-                    "coordSystem" : coordSystem(origin, holePlane.x, holePlane.normal),
-                    "tied" : holes[i].tied
-                };
-        });
+    if (centerFaces != [])
+    {
+        holes = append(holes, {
+                    "faces" : qUnion(centerFaces),
+                    "coordSystem" : coordSystem(location.origin, location.xAxis, location.zAxis),
+                    "tied" : false
+                });
+    }
+    return holes;
 }
 
 /**

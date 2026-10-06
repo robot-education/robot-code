@@ -73,11 +73,20 @@ export predicate newExtrudePredicate(definition is map)
  */
 export predicate newExtrudeEndTypePredicate(definition is map)
 {
-    annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-    definition.endBound is SMExtrudeBoundingType;
+    newExtrudeEndBoundPredicate(definition);
 
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.oppositeDirection is boolean;
+}
+
+/**
+ * The end type of `newExtrudeEndTypePredicate`, without its opposite direction button, for features which declare
+ * `oppositeDirection` elsewhere.
+ */
+export predicate newExtrudeEndBoundPredicate(definition is map)
+{
+    annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.endBound is SMExtrudeBoundingType;
 }
 
 /**
@@ -87,8 +96,77 @@ export predicate newExtrudeBoundsPredicate(definition is map)
 {
     extrudeBoundParametersPredicate(definition);
 
-    // extrudeDirectionPredicate(definition);
+    newExtrudeOptionsPredicate(definition);
+}
 
+/**
+ * Like `newExtrudeBoundsPredicate`, for extruding something a `Length` (with no tolerance options), with a direction
+ * option.
+ */
+export predicate newExtrudeLengthPredicate(definition is map)
+{
+    lengthBoundParametersPredicate(definition);
+
+    extrudeDirectionPredicate(definition);
+
+    newExtrudeOptionsPredicate(definition);
+}
+
+/**
+ * The bounds of `extrudeBoundParametersPredicate` in std's `extrudeCommon.fs` for an `SMExtrudeBoundingType`, with
+ * `depth` named Length and no tolerance options.
+ */
+export predicate lengthBoundParametersPredicate(definition is map)
+{
+    if (definition.endBound == SMExtrudeBoundingType.BLIND)
+    {
+        annotation { "Name" : "Length" }
+        isLength(definition.depth, LENGTH_BOUNDS);
+    }
+    else if (definition.endBound == SMExtrudeBoundingType.UP_TO_SURFACE)
+    {
+        annotation { "Name" : "Up to face",
+                    "Filter" : (EntityType.FACE && SketchObject.NO && AllowMeshGeometry.YES) || BodyType.MATE_CONNECTOR,
+                    "MaxNumberOfPicks" : 1 }
+        definition.endBoundEntityFace is Query;
+    }
+    else if (definition.endBound == SMExtrudeBoundingType.UP_TO_BODY)
+    {
+        annotation { "Name" : "Up to surface or part",
+                    "Filter" : EntityType.BODY && (BodyType.SOLID || BodyType.SHEET) && SketchObject.NO && AllowMeshGeometry.YES,
+                    "MaxNumberOfPicks" : 1 }
+        definition.endBoundEntityBody is Query;
+    }
+    else if (definition.endBound == SMExtrudeBoundingType.UP_TO_VERTEX)
+    {
+        annotation { "Name" : "Up to vertex or mate connector", "Filter" : QueryFilterCompound.ALLOWS_VERTEX, "MaxNumberOfPicks" : 1 }
+        definition.endBoundEntityVertex is Query;
+    }
+
+    if (definition.endBound == SMExtrudeBoundingType.UP_TO_NEXT ||
+        definition.endBound == SMExtrudeBoundingType.UP_TO_SURFACE ||
+        definition.endBound == SMExtrudeBoundingType.UP_TO_BODY ||
+        definition.endBound == SMExtrudeBoundingType.UP_TO_VERTEX)
+    {
+        annotation { "Name" : "Offset distance", "Column Name" : "Has offset", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"] }
+        definition.hasOffset is boolean;
+
+        if (definition.hasOffset)
+        {
+            annotation { "Name" : "Offset distance", "UIHint" : ["DISPLAY_SHORT"] }
+            isLength(definition.offsetDistance, LENGTH_BOUNDS);
+
+            annotation { "Name" : "Opposite direction", "Column Name" : "Offset opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+            definition.offsetOppositeDirection is boolean;
+        }
+    }
+}
+
+/**
+ * The options of a new extrude after its bounds: starting offset, symmetric, and second end position.
+ */
+export predicate newExtrudeOptionsPredicate(definition is map)
+{
     extrudeOffsetPredicate(definition);
 
     if (definition.endBound == SMExtrudeBoundingType.BLIND)
@@ -121,22 +199,22 @@ export predicate newExtrudeBoundsPredicate(definition is map)
 }
 
 /**
- * Copied from `extrude.fs`.
+ * Copied from `extrude.fs`, which std's extrude reads: `hasExtrudeDirection` and `extrudeDirection`.
  */
-// export predicate extrudeDirectionPredicate(definition is map)
-// {
-//     annotation { "Name" : "Direction" }
-//     definition.hasExtrudeDirection is boolean;
+export predicate extrudeDirectionPredicate(definition is map)
+{
+    annotation { "Name" : "Direction" }
+    definition.hasExtrudeDirection is boolean;
 
-//     annotation { "Group Name" : "Direction", "Driving Parameter" : "hasExtrudeDirection", "Collapsed By Default" : false }
-//     {
-//         if (definition.hasExtrudeDirection)
-//         {
-//             annotation { "Name" : "Extrude direction", "Filter" : QueryFilterCompound.ALLOWS_DIRECTION || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
-//             definition.extrudeDirection is Query;
-//         }
-//     }
-// }
+    annotation { "Group Name" : "Direction", "Driving Parameter" : "hasExtrudeDirection", "Collapsed By Default" : false }
+    {
+        if (definition.hasExtrudeDirection)
+        {
+            annotation { "Name" : "Extrude direction", "Filter" : QueryFilterCompound.ALLOWS_DIRECTION || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
+            definition.extrudeDirection is Query;
+        }
+    }
+}
 
 /**
  * Copied from `extrude.fs`.
@@ -173,24 +251,16 @@ export predicate extrudeOffsetPredicate(definition is map)
  * Copied from `extrude.fs`.
  * Applies the user selected extrude direction to `planeNormal`.
  */
-// export function processExtrudeDirection(context is Context, definition is map, planeNormal is Vector) returns Vector
-// {
-//     if (!definition.hasExtrudeDirection)
-//     {
-//         return planeNormal;
-//     }
-//     const userProvidedExtrudeDirection = extractDirection(context, definition.extrudeDirection);
-//     const dotProduct = dot(userProvidedExtrudeDirection, planeNormal);
-//     // Makes sure the direction picked by the user aligns with the original extrude direction to avoid flips
-//     if (dotProduct < 0)
-//     {
-//         return -userProvidedExtrudeDirection;
-//     }
-//     else
-//     {
-//         return userProvidedExtrudeDirection;
-//     }
-// }
+export function processExtrudeDirection(context is Context, definition is map, planeNormal is Vector) returns Vector
+{
+    if (!(definition.hasExtrudeDirection ?? false) || isQueryEmpty(context, definition.extrudeDirection ?? qNothing()))
+    {
+        return planeNormal;
+    }
+    const userProvidedExtrudeDirection = extractDirection(context, definition.extrudeDirection);
+    // Makes sure the direction picked by the user aligns with the original extrude direction to avoid flips
+    return dot(userProvidedExtrudeDirection, planeNormal) < 0 ? -userProvidedExtrudeDirection : userProvidedExtrudeDirection;
+}
 
 /**
  * A wrapper for extrude logic.
