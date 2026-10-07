@@ -1,8 +1,9 @@
 """Frame lookup tables for robotFrame: tube, channel, angle, and extrusion. Run `uv run fs gen` after editing.
 
 Each vendor's frames are chosen by size, then (where a size comes in more than one) by hole pattern, then by wall
-thickness; a choice with only one option is left out, so tables vary in depth. Options follow FRCDesign's (see
-docs/cots-research.md), checked against the vendors' drawings.
+thickness. A choice with only one option is kept when it says something (like the wall thickness), and left out when
+it wouldn't (like goBILDA's series), so tables vary in depth. Options follow FRCDesign's (see docs/cots-research.md),
+checked against the vendors' drawings and CAD (in vendor/).
 
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
 `wallY` thick on its sides facing Y; `open` channels have no wall on +Y, `angle` has only the walls facing -X and
@@ -143,7 +144,9 @@ def pattern(name: str, walls: list[Value]) -> Value:
 
 
 def only(name: str, frame: Value, appearance: str | None = None) -> Value:
-    """A choice that's a frame itself, as a size or pattern which comes in only one wall thickness."""
+    """A choice that's a frame itself, for a size which comes in only one kind, when choosing that one would say
+    nothing (like goBILDA's series). Where the only option says something (a wall thickness, an angle's size), it's
+    kept as a choice."""
     values = dict(frame.values)
     if appearance is not None:
         values["appearance"] = appearance
@@ -445,19 +448,21 @@ REV = vendor(
     # Each size's own, since the extrusion comes in two
     None,
     [
-        only(
+        size(
             "1/2x1/2",
-            rev_tube(
-                "REV-21-3289",
-                REV_HALF_URL,
-                "1/16 in.",
-                0.5,
-                0.5,
-                0.0625,
-                x_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                y_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                tie_start=0.25,
-            ),
+            [
+                rev_tube(
+                    "REV-21-3289",
+                    REV_HALF_URL,
+                    "1/16 in.",
+                    0.5,
+                    0.5,
+                    0.0625,
+                    x_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                    y_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                    tie_start=0.25,
+                )
+            ],
             WHITE,
         ),
         size(
@@ -507,19 +512,20 @@ REV = vendor(
         size(
             "2x2",
             [
-                only("Grid", rev_tube("REV-21-3288", REV_2X2_URL, "Grid", 2, 2, 0.125, detail="grid",
-                                      profile="REV_MAXTUBE_2X2")),
-                only("MAX Pattern", rev_tube("REV-21-3286", REV_2X2_URL, "MAX Pattern", 2, 2, 0.125,
-                                             detail="MAX Pattern", x_rows=max_pattern(), y_rows=max_pattern(),
-                                             tie_unit=2, profile="REV_MAXTUBE_2X2_MAX")),
-                only("MAX Pattern and grid", rev_tube("REV-21-3287", REV_2X2_URL, "MAX Pattern and grid", 2, 2, 0.125,
-                                                      detail="MAX Pattern and grid", y_rows=max_pattern(),
-                                                      profile="REV_MAXTUBE_2X2")),
+                # 1/8 in. walls, with hollow corners
+                pattern("Grid", [rev_tube("REV-21-3288", REV_2X2_URL, "1/8 in.", 2, 2, 0.125, detail="grid",
+                                          profile="REV_MAXTUBE_2X2")]),
+                pattern("MAX Pattern", [rev_tube("REV-21-3286", REV_2X2_URL, "1/8 in.", 2, 2, 0.125,
+                                                 detail="MAX Pattern", x_rows=max_pattern(), y_rows=max_pattern(),
+                                                 tie_unit=2, profile="REV_MAXTUBE_2X2_MAX")]),
+                pattern("MAX Pattern and grid", [rev_tube("REV-21-3287", REV_2X2_URL, "1/8 in.", 2, 2, 0.125,
+                                                          detail="MAX Pattern and grid", y_rows=max_pattern(),
+                                                          profile="REV_MAXTUBE_2X2")]),
             ],
             WHITE,
             level="pattern",
         ),
-        only("Angle", rev_angle(), WHITE),
+        size("Angle", [rev_angle()], WHITE, level="variant"),
         size(
             "1 in. Extrusion",
             [
@@ -618,11 +624,13 @@ TTB = vendor(
 )
 
 
-SWYFT_URL = "https://swyftrobotics.com/products/swyft-super-tube"
+SWYFT_URL = "https://swyftrobotics.com/structure/swyft-super-tube"
 
 
 def swyft_tube(sku: str, wall: str, width: float, height: float, thickness: float, plain: bool = False) -> Value:
-    """Swyft's tube, with holes on every side (Grid), or none (`plain`)."""
+    """Swyft's tube, with its grid of holes, or none (`plain`). Its grid has one column of holes on each side but for
+    2x1's 2 in. sides, which have two, 1/2 in. either side of the middle, and none in it."""
+    columns = [shape(inch(-0.5)), shape(inch(0.5))] if width == 2 else [shape(inch(0))]
     return frc_tube(
         "Swyft",
         wall,
@@ -632,13 +640,15 @@ def swyft_tube(sku: str, wall: str, width: float, height: float, thickness: floa
         thickness,
         stock((inch(47), sku, SWYFT_URL)),
         detail=f"{'plain' if plain else 'grid'}, {wall} wall",
-        x_holes=not plain,
-        y_holes=not plain,
+        diameter=5 / 25.4,
+        x_rows=[] if plain else grid(height),
+        y_rows=[] if plain else [row(inch(0.5), inch(0.5), columns)],
     )
 
 
-# https://swyftrobotics.com/products/swyft-super-tube; black anodized
-# TODO: Swyft's drawings (their CAD is only on Google Drive) to check that their grid is like WCP's, and Grid+Bearing
+# https://swyftrobotics.com/structure/swyft-super-tube; black anodized. Its CAD (in the Google Drive folder linked from
+# the page; SR-TUBE STEP files.zip): 5 mm holes every 1/2 in., starting 1/2 in. from the end (see swyft_tube). It's also
+# sold with a Grid + Bearing pattern, which is left out.
 SWYFT = vendor(
     "Swyft",
     SWYFT_URL,
@@ -679,25 +689,26 @@ SWYFT = vendor(
 
 LAST_ANVIL_URL = "https://lastanvil.com/products/patterned-tube"
 
-# https://lastanvil.com/products/patterned-tube: 7075, black anodized, #10 holes every 1/2 in. (on every side, as
-# FRCDesign's model has them), with filleted corners which this leaves sharp
-# TODO: Last Anvil's drawings, to check that their grid is like WCP's
+# https://lastanvil.com/products/patterned-tube: 7075, black anodized, with WCP's pattern (#10 holes every 1/2 in., on
+# every side), and filleted corners which this leaves sharp
 LAST_ANVIL = vendor(
     "Last Anvil",
     LAST_ANVIL_URL,
     BLACK,
     [
-        only(
+        size(
             "2x1",
-            frc_tube(
-                "Last Anvil",
-                "1/16 in.",
-                2,
-                1,
-                0.0625,
-                0.0625,
-                stock((inch(47), "240114", LAST_ANVIL_URL + "?variant=42303483773134")),
-            ),
+            [
+                frc_tube(
+                    "Last Anvil",
+                    "1/16 in.",
+                    2,
+                    1,
+                    0.0625,
+                    0.0625,
+                    stock((inch(47), "240114", LAST_ANVIL_URL + "?variant=42303483773134")),
+                )
+            ],
         )
     ],
 )
@@ -854,22 +865,24 @@ ROBITS = vendor(
     AM_URL,
     WHITE,
     [
-        only(
+        size(
             "1/2x1/2 (Robits)",
-            tube(
-                "1/2 in. Tube",
-                "1/2x1/2 Tube (AndyMark Robits)",
-                0.5,
-                0.5,
-                0.063,
-                0.063,
-                0.201,
-                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                inch(0.25),
-                inch(0.5),
-                stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
-            ),
+            [
+                tube(
+                    "1/16 in.",
+                    "1/2x1/2 Tube (AndyMark Robits)",
+                    0.5,
+                    0.5,
+                    0.063,
+                    0.063,
+                    0.201,
+                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                    inch(0.25),
+                    inch(0.5),
+                    stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
+                )
+            ],
         )
     ],
 )

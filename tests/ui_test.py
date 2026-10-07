@@ -240,13 +240,97 @@ export const widget = defineFeature(function(context is Context, id is Id, defin
 """
 
 
+def test_nested_groups(repo):
+    (repo / "featurescripts" / "widget.fs").write_text(NESTED_GROUP_FEATURE)
+    page, warnings = render(repo)
+    assert warnings == []
+    assert texts(page)[1:] == ["Outer", "Outer depth", "1 in", "Inner", "Inner depth", "1 in", "Extra"]
+    # Each nested group is a row of the outer group, with its driving parameter in its header
+    assert page.count(" data-group=") == 3
+    inner = page.index("data-group='Inner'")
+    assert page.rindex("<div class='os-param-subgroup-row'>", 0, inner) > page.index("data-group='Outer'")
+    assert "data-driving-parameter-id='hasExtra'" in page
+    page, _ = render(repo, "hasExtra=true")
+    assert texts(page)[1:] == ["Outer", "Outer depth", "1 in", "Inner", "Inner depth", "1 in", "Extra", "Extra depth", "1 in"]
+
+
+NESTED_GROUP_FEATURE = """FeatureScript 1;
+import(path : "onshape/std/common.fs", version : "1.0");
+
+annotation { "Feature Type Name" : "Widget" }
+export const widget = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Group Name" : "Outer", "Collapsed By Default" : false }
+        {
+            annotation { "Name" : "Outer depth" }
+            isLength(definition.outerDepth, LENGTH_BOUNDS);
+
+            annotation { "Group Name" : "Inner", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Inner depth" }
+                isLength(definition.innerDepth, LENGTH_BOUNDS);
+            }
+
+            annotation { "Name" : "Extra" }
+            definition.hasExtra is boolean;
+
+            annotation { "Group Name" : "Extra", "Driving Parameter" : "hasExtra", "Collapsed By Default" : false }
+            {
+                if (definition.hasExtra)
+                {
+                    annotation { "Name" : "Extra depth" }
+                    isLength(definition.extraDepth, LENGTH_BOUNDS);
+                }
+            }
+        }
+    }
+    {
+    });
+"""
+
+
 def test_bad_settings_are_reported(repo):
     with pytest.raises(UiError, match="no value SIDEWAYS"):
         render(repo, "placement=SIDEWAYS")
     with pytest.raises(UiError, match="no 'AndyMark'"):
         render(repo, "size=AndyMark")
-    _, warnings = render(repo, "point=x")
-    assert warnings == ["point isn't shown, so --set point did nothing."]
+    _, warnings = render(repo, "point=x", "nothing=1")
+    assert warnings == [
+        "nothing isn't a parameter, so --set nothing did nothing.",
+        "point isn't shown, so --set point did nothing.",
+    ]
+
+
+def test_conditions_read_parameters_declared_anywhere(repo):
+    # Every parameter has a value, even where it isn't shown, and conditions before its declaration read it
+    (repo / "featurescripts" / "widget.fs").write_text(FORWARD_FEATURE)
+    page, warnings = render(repo)
+    assert warnings == []
+    assert texts(page)[1:] == ["Shown by a later default", "Flag"]
+    page, _ = render(repo, "flag=false")
+    assert texts(page)[1:] == ["Flag"]
+
+
+FORWARD_FEATURE = """FeatureScript 1;
+import(path : "onshape/std/common.fs", version : "1.0");
+
+annotation { "Feature Type Name" : "Widget" }
+export const widget = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        if (definition.flag)
+        {
+            annotation { "Name" : "Shown by a later default" }
+            definition.shown is boolean;
+        }
+
+        annotation { "Name" : "Flag", "Default" : true }
+        definition.flag is boolean;
+    }
+    {
+    });
+"""
 
 
 ARRAY_FEATURE = """FeatureScript 1;

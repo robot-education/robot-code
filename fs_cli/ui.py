@@ -749,8 +749,11 @@ class DialogBuilder:
         self.arrays: dict[str, Parameter] = {}
         # The prefix of the keys (see Parameter.key) of the parameters being declared, inside an array's item
         self.prefix = ""
-        # Every parameter's key, to warn about settings which do nothing
+        # The keys of the parameters shown, and of every parameter, to warn about settings which do nothing
         self.keys: set[str] = set()
+        self.all_keys: set[str] = set()
+        # Whether to walk both branches of every if, to declare every parameter (see build)
+        self.every_branch = False
 
     def build(self, feature: Feature) -> list:
         if feature.defaults is not None:
@@ -759,6 +762,15 @@ class DialogBuilder:
                 for key, value in defaults.items():
                     if isinstance(key, str) and value is not UNKNOWN:
                         self.definition.values[key] = value
+        # The definition is a map with a key for every parameter, which has a value (its default, until it's set) even
+        # where it isn't shown. So first every parameter is declared, down every branch, for conditions which read
+        # ones declared after them or in other branches; then the dialog is walked as Onshape shows it.
+        warnings = list(self.warnings)
+        self.every_branch = True
+        self.walk(feature.precondition, {"definition": self.definition}, [], {})
+        self.every_branch = False
+        self.warnings, self.declared, self.arrays = warnings, set(), {}
+        self.all_keys, self.keys = self.keys, set()
         items: list = []
         self.walk(feature.precondition, {"definition": self.definition}, items, {})
         return items
@@ -783,6 +795,10 @@ class DialogBuilder:
                 self.walk(inner, scope, group.children, {})
             else:
                 self.walk(inner, scope, items, annotation)
+        elif kind == "if" and self.every_branch:
+            for branch in node.args[1:]:
+                if branch is not None:
+                    self.walk(branch, scope, [], {})
         elif kind == "if":
             condition = self.evaluator.value(node.args[0], scope)
             if condition is UNKNOWN:
@@ -1091,6 +1107,17 @@ def _is_button(item: Parameter) -> bool:
     return item.kind in ("boolean", "enum") and any(hint in BUTTONS for hint in item.hints)
 
 
+def _allows_mate_connectors(filter: str) -> bool:
+    """Whether a query's filter accepts mate connectors, as `BodyType.MATE_CONNECTOR` and some compound filters do."""
+    return any(name in filter for name in ("MATE_CONNECTOR", "ALLOWS_AXIS", "ALLOWS_PLANE", "ALLOWS_VERTEX"))
+
+
+def _driving_parameters(items: list) -> dict[str, Parameter]:
+    """The parameters among `items` which drive groups among them (shown in the groups' headers), by name."""
+    driving = {item.annotation.get("Driving Parameter") for item in items if isinstance(item, Group)}
+    return {item.name: item for item in items if isinstance(item, Parameter) and item.name in driving}
+
+
 def _is_checkbox(item: Parameter) -> bool:
     return item.kind == "boolean" and not _is_button(item)
 
@@ -1128,8 +1155,8 @@ class Renderer:
         """A list of parameters and groups: runs of parameters are each a parameter group, as are groups."""
         parts = []
         run: list[Parameter] = []
-        driving = {item.annotation.get("Driving Parameter") for item in items if isinstance(item, Group)}
-        driving_parameters = {item.name: item for item in items if isinstance(item, Parameter) and item.name in driving}
+        driving_parameters = _driving_parameters(items)
+        driving = set(driving_parameters)
 
         def flush() -> None:
             if run:
@@ -1166,7 +1193,15 @@ class Renderer:
                 f"<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='{_attribute(driving.name)}'>"
                 f"{self.boolean(driving)}</div>"
             )
-        rows = self.subgroup_rows([item for item in group.children if isinstance(item, Parameter) and "ALWAYS_HIDDEN" not in item.hints])
+        nested_driving = _driving_parameters(group.children)
+        rows = self.subgroup_rows(
+            [
+                item
+                for item in group.children
+                if isinstance(item, Group) or (item.name not in nested_driving and "ALWAYS_HIDDEN" not in item.hints)
+            ],
+            nested_driving,
+        )
         return (
             f"<div class='os-param-group-collapsible-container' data-group='{_attribute(group.name)}'>"
             f"<div class='os-param-group-header' data-driving-parameter-id='{_attribute(driving.name if driving else '')}'>"
@@ -1174,25 +1209,29 @@ class Renderer:
             f"<div class='os-param-group-collapsible-contents{'' if expanded else ' ng-hide'}'>{rows}</div></div>"
         )
 
-    def subgroup_rows(self, items: list[Parameter]) -> str:
-        """A group's parameters, in rows of the indent line beside them: as Onshape splits them, each checkbox (and
-        the short parameters beside it) is a row of its own, and the last row ends the line."""
-        rows: list[list[Parameter]] = []
+    def subgroup_rows(self, items: list, driving_parameters: dict[str, Parameter]) -> str:
+        """A group's parameters and nested groups, in rows of the indent line beside them: as Onshape splits them,
+        each checkbox (and the short parameters beside it) and each nested group is a row of its own, and the last
+        row ends the line."""
+        rows: list[list] = []
         for item in items:
+            previous = rows[-1][0] if rows else None
+            if isinstance(item, Group) or previous is None or isinstance(previous, Group):
+                rows.append([item])
+                continue
             joins_checkbox = (
-                rows
-                and _is_checkbox(rows[-1][0])
-                and "DISPLAY_SHORT" in item.hints
-                and "FIRST_IN_ROW" not in item.hints
+                _is_checkbox(previous) and "DISPLAY_SHORT" in item.hints and "FIRST_IN_ROW" not in item.hints
             )
-            if joins_checkbox or (rows and not _is_checkbox(item) and not _is_checkbox(rows[-1][0])):
+            if joins_checkbox or (not _is_checkbox(item) and not _is_checkbox(previous)):
                 rows[-1].append(item)
             else:
                 rows.append([item])
         return "".join(
             "<div class='os-param-subgroup-row'>"
             f"<div class='os-param-group-indent {'node-indent-line-end' if index == len(rows) - 1 else 'node-indent-line'}'></div>"
-            f"<os-parameter-group>{self.parameters(row)}</os-parameter-group></div>"
+            "<os-parameter-group>"
+            + (self.group(row[0], driving_parameters) if isinstance(row[0], Group) else self.parameters(row))
+            + "</os-parameter-group></div>"
             for index, row in enumerate(rows)
         )
 
@@ -1373,7 +1412,7 @@ class Renderer:
         side = (
             "<osc-svg-icon class='query-side-button' style='display: inline-flex;' title='Create mate connector'>"
             f"{sprite('mate-connector-button', ' height=20 width=20')}</osc-svg-icon>"
-            if "MATE_CONNECTOR" in str(item.annotation.get(FILTER_TEXT, ""))
+            if _allows_mate_connectors(str(item.annotation.get(FILTER_TEXT, "")))
             else ""
         )
         return (
@@ -1510,5 +1549,10 @@ def render_feature(
     # As Onshape names a new feature
     title = f"{title} 1"
     unused = set(overrides) - builder.keys
-    warnings = builder.warnings + [f"{name} isn't shown, so --set {name} did nothing." for name in sorted(unused)]
+    warnings = builder.warnings + [
+        f"{name} isn't shown, so --set {name} did nothing."
+        if name in builder.all_keys
+        else f"{name} isn't a parameter, so --set {name} did nothing."
+        for name in sorted(unused)
+    ]
     return Renderer(theme).page(str(title), items), warnings

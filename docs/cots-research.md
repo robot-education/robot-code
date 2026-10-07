@@ -67,6 +67,9 @@ Prefer the vendor's own drawings and CAD to anyone's model of them:
   its inner loops); keep the files in a `vendor/` folder beside the definition, as `frame/vendor/` and
   `printAdapter/vendor/` do. Long parts' files can be many megabytes: `uv run fs step {file} {output}` keeps only the
   cross section `profile()` reads.
+- **Google Drive**: some vendors (like Swyft) only share CAD in public Drive folders. List one with
+  `https://drive.google.com/embeddedfolderview?id={folder id}` (each file links to `/file/d/{file id}/view`), and
+  download a file with `https://drive.usercontent.google.com/download?id={file id}&export=download&confirm=t`.
 - **Links**: check every URL a table uses with `curl -sS -o /dev/null -L -w '%{http_code} %{url_effective}'`; vendors
   move pages, and some (like REV's) only have pages for part families, so link a search for the part number
   instead.

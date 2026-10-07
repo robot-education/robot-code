@@ -319,7 +319,7 @@ def test_render_ui(tmp_path):
         assert result["features"] == ["widget"] and result["feature"] == "widget"
         assert "data-os-theme='light'" in result["html"]
         assert "os-param-query-list-label os-grow'>Point<" in result["html"]
-        assert result["warnings"] == ["nothing isn't shown, so --set nothing did nothing."]
+        assert result["warnings"] == ["nothing isn't a parameter, so --set nothing did nothing."]
 
         # Unsaved changes are rendered
         client.notify(

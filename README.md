@@ -237,17 +237,17 @@ Onshape's own markup and styled with Onshape's own styles and icons (in its dark
 the same, down to the layout of rows. It needs Chromium, which it finds in Playwright's browsers folder, on the path,
 or through `CHROMIUM`.
 
-The styles and icons are in `fs_cli/onshape_ui/`, extracted from a saved Onshape page with a dialog open
+The styles and icons are in `fs_cli/onshape_ui/`, extracted from a capture of Onshape with UI test bench's dialog open
 (`featurescripts/uiTestBench/uiTestBench.html`): the rules which apply to the dialog's elements, and the theme variables
-they use. To update them, save the page again, and run `uv run --group onshape-ui python -m fs_cli.onshape_ui.extract
-featurescripts/uiTestBench/uiTestBench.html`.
+they use. To update them, capture the dialog again (below), save it over that file, and run `uv run --group onshape-ui
+python -m fs_cli.onshape_ui.extract featurescripts/uiTestBench/uiTestBench.html`.
 
 Arrays start empty, as in a new feature; `--set holes=2` shows two items, and `--set holes.1.depth=2in` sets the second
 item's depth. `featurescripts/uiTestBench/uiTestBench.fs` has one
-of every kind of parameter and UI hint, for comparing `fs ui` with Onshape (`uv run fs ui
+of every kind of parameter and UI hint (and groups nested in groups, and in array items), for comparing `fs ui` with Onshape (`uv run fs ui
 featurescripts/uiTestBench/uiTestBench.fs --set items=2`). To capture how Onshape draws a dialog, open it in Onshape and
-paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with the CSS
-rules which apply to it and the icons it uses.
+paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with what's
+typed and checked in it, the CSS rules which apply to it, and the icons it uses. It only reads the page.
 
 `fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
 (following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)

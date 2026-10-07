@@ -3,6 +3,31 @@
 Conventions for the FeatureScripts in `featurescripts/`. `fs check` enforces some of them (see the end); the rest are
 up to review.
 
+## Definitions are maps
+
+A feature's `definition` is a map, and each parameter its precondition declares is a key in it: `definition.depth is
+...` declares the key `"depth"`. Most of how features behave follows from that:
+
+- The precondition isn't run like a function. Onshape reads it to learn the keys, their types, and their annotations,
+  and to lay out the dialog, deciding its `if`s with the current values.
+- Every parameter declared anywhere in the precondition (in any branch of an `if`, or in a predicate it calls) is a key
+  with a value, its default until it's set, whether or not it's shown, and it keeps its value while it's hidden. A
+  condition can read a parameter declared after it or in another branch.
+- So a parameter can't be declared twice, even in different branches of an `if`: both would be the same key. Declare
+  it once where both branches can share it (as `stockLocationPredicate` does with the secondary axis), and `fs check`
+  reports it if you don't.
+- Groups (nested or not) and their driving parameters only lay the dialog out: `definition.x` is the same key whatever
+  group it's in, and a driving parameter is an ordinary boolean key.
+- An array parameter's value is an array of maps, one per item, each with its items' parameters as keys
+  (`item.depth`). A lookup table's value (a `LookupTablePath`) maps each level's `"name"` to the option chosen there.
+- Editing logic and manipulator change functions take this map and return it changed; setting a key sets that
+  parameter. Subfeatures take a map too: calling std's `extrude` with our definition works because our features name
+  their parameters as std's do (`endBound`, `depth`, `oppositeDirection`), and convert any of our own types first
+  (see `transformDefintionForNewExtrude`).
+
+`fs ui` (see README.md) follows the same model: settings are keys (`--set depth=2in`, `--set items.0.depth=2in`), and
+every parameter has its default value before the dialog is laid out, so conditions see the values Onshape's would.
+
 ## UI state: predicates, not editing logic
 
 When which parameters are shown depends on other parameters, write a predicate for each UI state and use it in the

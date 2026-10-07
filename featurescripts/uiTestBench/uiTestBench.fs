@@ -207,6 +207,58 @@ export const uiTestBench = defineFeature(function(context is Context, id is Id, 
             }
         }
 
+        // Groups inside groups: plain, collapsed, driven by a checkbox (checked and not), and two levels deep
+        annotation { "Group Name" : "Nested groups", "Collapsed By Default" : false }
+        {
+            annotation { "Name" : "Before nested groups" }
+            isLength(definition.nestedLength, BENCH_LENGTH_BOUNDS);
+
+            annotation { "Group Name" : "Nested group", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Inside a nested group" }
+                isLength(definition.innerLength, BENCH_LENGTH_BOUNDS);
+
+                annotation { "Group Name" : "Doubly nested group", "Collapsed By Default" : false }
+                {
+                    annotation { "Name" : "Two groups deep" }
+                    definition.deepCheckbox is boolean;
+                }
+            }
+
+            annotation { "Group Name" : "Collapsed nested group", "Collapsed By Default" : true }
+            {
+                annotation { "Name" : "Hidden until its group is expanded" }
+                definition.collapsedNestedCheckbox is boolean;
+            }
+
+            annotation { "Name" : "Checked nested group", "Default" : true }
+            definition.checkedNestedGroup is boolean;
+
+            if (definition.checkedNestedGroup)
+            {
+                annotation { "Group Name" : "Checked nested group", "Collapsed By Default" : false, "Driving Parameter" : "checkedNestedGroup" }
+                {
+                    annotation { "Name" : "Inside a checked nested group" }
+                    isLength(definition.checkedNestedLength, BENCH_LENGTH_BOUNDS);
+                }
+            }
+
+            annotation { "Name" : "Unchecked nested group" }
+            definition.uncheckedNestedGroup is boolean;
+
+            if (definition.uncheckedNestedGroup)
+            {
+                annotation { "Group Name" : "Unchecked nested group", "Collapsed By Default" : false, "Driving Parameter" : "uncheckedNestedGroup" }
+                {
+                    annotation { "Name" : "Inside an unchecked nested group" }
+                    isLength(definition.uncheckedNestedLength, BENCH_LENGTH_BOUNDS);
+                }
+            }
+
+            annotation { "Name" : "After nested groups" }
+            definition.afterNestedCheckbox is boolean;
+        }
+
         annotation { "Name" : "Items", "Item name" : "item", "Item label template" : "#itemName" }
         definition.items is array;
         for (var item in definition.items)
@@ -216,6 +268,13 @@ export const uiTestBench = defineFeature(function(context is Context, id is Id, 
 
             annotation { "Name" : "Item length" }
             isLength(item.itemLength, BENCH_LENGTH_BOUNDS);
+
+            // A group in an array item
+            annotation { "Group Name" : "Item group", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Inside an item's group" }
+                item.itemCheckbox is boolean;
+            }
         }
     }
     {
