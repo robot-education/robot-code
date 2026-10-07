@@ -255,7 +255,7 @@ which the feature's file doesn't export, as Onshape requires (std enums too: `ex
 one, not `common.fs`, which it reports exporting), top-level constants, enums, and types whose names the file or its
 imports already declare, parameters a feature's precondition declares more than once
 (directly or through predicates, even in different branches of an if), and predicates in a precondition's `if`
-conditions which call other predicates (Onshape doesn't inline those). It warns about comparisons with `true` or `false`,
+conditions which call other predicates (Onshape doesn't inline those). It warns about parameters which can be toleranced (`CAN_BE_TOLERANT`, ours never are; directly or through std's predicates), comparisons with `true` or `false`,
 precondition conditions Onshape can't evaluate (only parameters, enum values, literals, and predicates work), top-level
 declarations which aren't exported or used anywhere, and map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
 progress in `featurescripts/frame/` doesn't pass yet.

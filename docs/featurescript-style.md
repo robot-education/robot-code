@@ -116,6 +116,14 @@ the choices the user made last time: which part, its options, the placement, and
 parameters which should logically start over in each new feature, such as an opposite direction (or another flip),
 which only means something for the geometry it's used with.
 
+## No field tolerancing
+
+Don't let parameters be toleranced (`"UIHint" : ["CAN_BE_TOLERANT"]`, which adds a tolerance to a length or angle
+field), and don't use std predicates which declare parameters that can be, like std's
+`extrudeBoundParametersPredicate`: use the copies without it in `core/stdExtrude.fs` (`extrudeBoundsPredicate`,
+`extrudeSecondBoundsPredicate`, and the `extrudePredicate` built from them). `fs check` warns about both
+(`tolerant-parameter`), reading std's predicates from its copy of std's source.
+
 ## Selections
 
 A selection of where to place something takes one pick (`"MaxNumberOfPicks" : 1`), and is named for it, e.g. "Edge to
@@ -240,6 +248,7 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - Functions and predicates declared with `function` or `predicate` can only be called, not used as values (see
   "Functions as values").
 - No comparisons with `true` or `false`; use the value, or `!` it.
+- No parameters which can be toleranced, directly or through std's predicates (see "No field tolerancing").
 - Precondition conditions may only use parameters, enum values, literals, and predicates.
 - No unused or unknown imports, and no top-level declarations which aren't exported or used.
 - No map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string `"KEY"`;

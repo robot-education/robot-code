@@ -2,6 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "onshape/std/extrude.fs", version : "2960.0");
 export import(path : "onshape/std/extrudeCommon.fs", version : "2960.0");
+import(path : "core/stdExtrude.fs", version : "");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
@@ -122,21 +123,6 @@ export const multiExtrude = defineFeature(function(context is Context, id is Id,
         }
     });
 
-predicate extrudeDirectionPredicate(definition is map)
-{
-    annotation { "Name" : "Direction" }
-    definition.hasExtrudeDirection is boolean;
-
-    annotation { "Group Name" : "Direction", "Driving Parameter" : "hasExtrudeDirection", "Collapsed By Default" : false }
-    {
-        if (definition.hasExtrudeDirection)
-        {
-            annotation { "Name" : "Extrude direction", "Filter" : QueryFilterCompound.ALLOWS_DIRECTION || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
-            definition.extrudeDirection is Query;
-        }
-    }
-}
-
 predicate mainViewExtrudePredicate(definition is map)
 {
     annotation { "Name" : "End type" }
@@ -145,7 +131,7 @@ predicate mainViewExtrudePredicate(definition is map)
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.oppositeDirection is boolean;
 
-    extrudeBoundParametersPredicate(definition);
+    extrudeBoundsPredicate(definition);
 
     if (definition.bodyType != ExtendedToolBodyType.THIN)
     {
@@ -192,7 +178,7 @@ predicate mainViewExtrudePredicate(definition is map)
                             "UIHint" : UIHint.OPPOSITE_DIRECTION, "Default" : true }
                 definition.secondDirectionOppositeDirection is boolean;
 
-                extrudeSecondDirectionBoundParametersPredicate(definition);
+                extrudeSecondBoundsPredicate(definition);
 
                 if ((definition.bodyType == ExtendedToolBodyType.SOLID || definition.bodyType == ExtendedToolBodyType.THIN) &&
                     ((definition.secondDirectionOppositeDirection && !definition.oppositeDirection) ||

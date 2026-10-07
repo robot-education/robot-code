@@ -116,18 +116,18 @@ predicate revolvePredicate(definition is map)
 
         if (!definition.midplane)
         {
-            annotation { "Name" : "Thickness 1", "UIHint" : UIHint.CAN_BE_TOLERANT }
+            annotation { "Name" : "Thickness 1" }
             isLength(definition.thickness1, ZERO_INCLUSIVE_OFFSET_BOUNDS);
 
             annotation { "Name" : "Flip wall", "UIHint" : UIHint.OPPOSITE_DIRECTION }
             definition.flipWall is boolean;
 
-            annotation { "Name" : "Thickness 2", "UIHint" : UIHint.CAN_BE_TOLERANT }
+            annotation { "Name" : "Thickness 2" }
             isLength(definition.thickness2, NONNEGATIVE_ZERO_DEFAULT_LENGTH_BOUNDS);
         }
         else
         {
-            annotation { "Name" : "Thickness", "UIHint" : UIHint.CAN_BE_TOLERANT }
+            annotation { "Name" : "Thickness" }
             isLength(definition.thickness, ZERO_INCLUSIVE_OFFSET_BOUNDS);
         }
     }
@@ -147,7 +147,7 @@ predicate revolvePredicate(definition is map)
 
         if (definition.endBound == RevolveBoundingType.BLIND)
         {
-            annotation { "Name" : "Revolve angle", "UIHint" : UIHint.CAN_BE_TOLERANT }
+            annotation { "Name" : "Revolve angle" }
             isAngle(definition.angle, ANGLE_360_BOUNDS);
 
             annotation { "Name" : "Symmetric" }

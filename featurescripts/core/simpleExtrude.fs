@@ -11,7 +11,7 @@ export predicate simpleExtrudePredicate(definition is map)
     annotation { "Name" : "End type" }
     definition.endBound is BoundingType;
 
-    extrudeBoundParametersPredicate(definition);
+    extrudeBoundsPredicate(definition);
     
     
 }

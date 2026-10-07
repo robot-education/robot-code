@@ -325,6 +325,33 @@ def test_duplicate_parameters(project):
     assert "offset" in problems[0].message and "line 8" in problems[0].message
 
 
+def test_tolerant_parameters(project):
+    # A copy of std's source, where std's own predicates are read from
+    std = project.root / "std"
+    std.mkdir()
+    (std / "extrudeCommon.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export predicate extrudeBoundParametersPredicate(definition is map)\n{\n"
+        '    annotation { "Name" : "Depth", "UIHint" : UIHint.CAN_BE_TOLERANT }\n'
+        "    isLength(definition.depth, LENGTH_BOUNDS);\n}\n"
+    )
+    project.std_dir = std
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        'FeatureScript 2909;\nimport(path : "onshape/std/extrudeCommon.fs", version : "1.0");\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "CAN_BE_TOLERANT"] }\n'
+        "        isLength(definition.width, LENGTH_BOUNDS);\n"
+        "        extrudeBoundParametersPredicate(definition);\n"
+        "    }\n    {\n    });\n"
+    )
+    source = project.module(path).parsed.source
+    problems = [p for p in project.check(project.module(path)) if p.code == "tolerant-parameter"]
+    # The hint itself, and the call to a std predicate declaring a tolerant parameter
+    assert [source[p.start:p.end] for p in problems] == ['"CAN_BE_TOLERANT"', "extrudeBoundParametersPredicate"]
+
+
 def test_nested_predicates_in_conditions(project):
     path = project.code_dir / "feature2.fs"
     path.write_text(

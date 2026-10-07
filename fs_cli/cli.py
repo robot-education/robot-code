@@ -1138,7 +1138,7 @@ def refs(config: Config, args: argparse.Namespace) -> int:
 
 
 def _project(config: Config) -> Project:
-    return Project(config.root, config.code_dir, config.studios_path)
+    return Project(config.root, config.code_dir, config.studios_path, config.std_dir)
 
 
 def _select_modules(project: Project, targets: list[str]) -> list[Module]:

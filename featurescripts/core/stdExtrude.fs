@@ -9,9 +9,23 @@ export import(path : "onshape/std/extrude.fs", version : "2960.0");
 
 
 /**
- * A predicate for most generic extrude parameters with the exception of draft and extrude direction.
+ * A predicate for most generic extrude parameters with the exception of draft and extrude direction: `extrudeEndPredicate`,
+ * `extrudeOffsetPredicate`, and `extrudeOptionsPredicate`, which features can call themselves to put parameters of
+ * their own between them.
  */
 export predicate extrudePredicate(definition is map)
+{
+    extrudeEndPredicate(definition);
+
+    extrudeOffsetPredicate(definition);
+
+    extrudeOptionsPredicate(definition);
+}
+
+/**
+ * The end type of a generic extrude, the opposite direction button next to it, and its bounds.
+ */
+export predicate extrudeEndPredicate(definition is map)
 {
     annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.endBound is BoundingType;
@@ -19,12 +33,14 @@ export predicate extrudePredicate(definition is map)
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.oppositeDirection is boolean;
 
-    extrudeBoundParametersPredicate(definition);
+    extrudeBoundsPredicate(definition);
+}
 
-    // extrudeDirectionPredicate(definition);
-
-    extrudeOffsetPredicate(definition);
-
+/**
+ * Symmetric, and the second end position, of a generic extrude.
+ */
+export predicate extrudeOptionsPredicate(definition is map)
+{
     if (definition.endBound == BoundingType.BLIND || definition.endBound == BoundingType.THROUGH_ALL)
     {
         annotation { "Name" : "Symmetric", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -48,8 +64,104 @@ export predicate extrudePredicate(definition is map)
                             "UIHint" : UIHint.OPPOSITE_DIRECTION, "Default" : true }
                 definition.secondDirectionOppositeDirection is boolean;
 
-                extrudeSecondDirectionBoundParametersPredicate(definition);
+                extrudeSecondBoundsPredicate(definition);
             }
+        }
+    }
+}
+
+/**
+ * Std's `extrudeBoundParametersPredicate` (in `extrudeCommon.fs`) for a `BoundingType`, without field tolerancing,
+ * which our parameters never allow (see docs/featurescript-style.md).
+ */
+export predicate extrudeBoundsPredicate(definition is map)
+{
+    if (definition.endBound == BoundingType.BLIND)
+    {
+        annotation { "Name" : "Depth" }
+        isLength(definition.depth, LENGTH_BOUNDS);
+    }
+    else if (definition.endBound == BoundingType.UP_TO_SURFACE)
+    {
+        annotation { "Name" : "Up to face",
+                    "Filter" : (EntityType.FACE && SketchObject.NO && AllowMeshGeometry.YES) || BodyType.MATE_CONNECTOR,
+                    "MaxNumberOfPicks" : 1 }
+        definition.endBoundEntityFace is Query;
+    }
+    else if (definition.endBound == BoundingType.UP_TO_BODY)
+    {
+        annotation { "Name" : "Up to surface or part",
+                    "Filter" : EntityType.BODY && (BodyType.SOLID || BodyType.SHEET) && SketchObject.NO && AllowMeshGeometry.YES,
+                    "MaxNumberOfPicks" : 1 }
+        definition.endBoundEntityBody is Query;
+    }
+    else if (definition.endBound == BoundingType.UP_TO_VERTEX)
+    {
+        annotation { "Name" : "Up to vertex or mate connector", "Filter" : QueryFilterCompound.ALLOWS_VERTEX, "MaxNumberOfPicks" : 1 }
+        definition.endBoundEntityVertex is Query;
+    }
+
+    if (definition.endBound == BoundingType.UP_TO_NEXT || definition.endBound == BoundingType.UP_TO_SURFACE ||
+        definition.endBound == BoundingType.UP_TO_BODY || definition.endBound == BoundingType.UP_TO_VERTEX)
+    {
+        annotation { "Name" : "Offset distance", "Column Name" : "Has offset", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"] }
+        definition.hasOffset is boolean;
+
+        if (definition.hasOffset)
+        {
+            annotation { "Name" : "Offset distance", "UIHint" : ["DISPLAY_SHORT"] }
+            isLength(definition.offsetDistance, LENGTH_BOUNDS);
+
+            annotation { "Name" : "Opposite direction", "Column Name" : "Offset opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+            definition.offsetOppositeDirection is boolean;
+        }
+    }
+}
+
+/**
+ * Std's `extrudeSecondDirectionBoundParametersPredicate` for a `BoundingType`, without field tolerancing.
+ */
+export predicate extrudeSecondBoundsPredicate(definition is map)
+{
+    if (definition.secondDirectionBound == BoundingType.BLIND)
+    {
+        annotation { "Name" : "Depth", "Column Name" : "Second depth" }
+        isLength(definition.secondDirectionDepth, LENGTH_BOUNDS);
+    }
+    else if (definition.secondDirectionBound == BoundingType.UP_TO_SURFACE)
+    {
+        annotation { "Name" : "Up to face", "Column Name" : "Second up to face",
+                    "Filter" : (EntityType.FACE && SketchObject.NO && AllowMeshGeometry.YES) || BodyType.MATE_CONNECTOR,
+                    "MaxNumberOfPicks" : 1 }
+        definition.secondDirectionBoundEntityFace is Query;
+    }
+    else if (definition.secondDirectionBound == BoundingType.UP_TO_BODY)
+    {
+        annotation { "Name" : "Up to surface or part", "Column Name" : "Second up to surface or part",
+                    "Filter" : EntityType.BODY && (BodyType.SOLID || BodyType.SHEET) && SketchObject.NO && AllowMeshGeometry.YES,
+                    "MaxNumberOfPicks" : 1 }
+        definition.secondDirectionBoundEntityBody is Query;
+    }
+    else if (definition.secondDirectionBound == BoundingType.UP_TO_VERTEX)
+    {
+        annotation { "Name" : "Up to vertex or mate connector", "Column Name" : "Second up to vertex or mate connector",
+                    "Filter" : QueryFilterCompound.ALLOWS_VERTEX, "MaxNumberOfPicks" : 1 }
+        definition.secondDirectionBoundEntityVertex is Query;
+    }
+
+    if (definition.secondDirectionBound == BoundingType.UP_TO_NEXT || definition.secondDirectionBound == BoundingType.UP_TO_SURFACE ||
+        definition.secondDirectionBound == BoundingType.UP_TO_BODY || definition.secondDirectionBound == BoundingType.UP_TO_VERTEX)
+    {
+        annotation { "Name" : "Offset distance", "Column Name" : "Second direction has offset", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"] }
+        definition.hasSecondDirectionOffset is boolean;
+
+        if (definition.hasSecondDirectionOffset)
+        {
+            annotation { "Name" : "Offset distance", "Column Name" : "Second offset distance", "UIHint" : ["DISPLAY_SHORT"] }
+            isLength(definition.secondDirectionOffsetDistance, LENGTH_BOUNDS);
+
+            annotation { "Name" : "Opposite direction", "Column Name" : "Second offset opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+            definition.secondDirectionOffsetOppositeDirection is boolean;
         }
     }
 }

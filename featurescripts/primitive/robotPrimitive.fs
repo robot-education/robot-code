@@ -36,7 +36,9 @@ predicate isRectangle(definition is map)
 /**
  * Extrudes a cylinder, rectangle, or square from a sketch point or mate connector, with the usual extrude options, as
  * a new part or added to, removed from, or intersected with others. A rectangle or square is centered on the point,
- * or has the corner or edge chosen with its point manipulator there, with its width along the point's X.
+ * or has the corner or edge chosen with its point manipulator there, with its width along the point's X turned by its
+ * angle (from the angle reference's direction, if there is one), which an angle manipulator also sets, as in std's
+ * Frame.
  */
 annotation { "Feature Type Name" : "Robot primitive",
         "Feature Type Description" : "Quickly extrude cylinders, rectangles, and squares from a point, and add them to or remove them from parts." ~ CREDIT,
@@ -51,8 +53,6 @@ export const robotPrimitive = defineFeature(function(context is Context, id is I
 
         annotation { "Name" : "Shape", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.shape is PrimitiveShape;
-
-        locationPredicate(definition, "primitive");
 
         if (isCylinder(definition))
         {
@@ -73,10 +73,30 @@ export const robotPrimitive = defineFeature(function(context is Context, id is I
             isLength(definition.size, PRIMITIVE_HEIGHT_BOUNDS);
         }
 
+        locationPredicate(definition, "primitive");
+
         // Which point of a rectangle or square is on the location (see `ninePointOffsets`)
         ninePointManipulatorPredicate(definition);
 
-        extrudePredicate(definition);
+        extrudeEndPredicate(definition);
+
+        extrudeOffsetPredicate(definition);
+
+        if (!isCylinder(definition))
+        {
+            annotation { "Group Name" : "Angle", "Collapsed By Default" : false }
+            {
+                // As std's Frame: the angle from the location's X axis, or from the angle reference's direction
+                annotation { "Name" : "Angle" }
+                isAngle(definition.angle, ANGLE_360_ZERO_DEFAULT_BOUNDS);
+
+                annotation { "Name" : "Angle reference", "Filter" : QueryFilterCompound.ALLOWS_DIRECTION || BodyType.MATE_CONNECTOR,
+                            "MaxNumberOfPicks" : 1 }
+                definition.angleReference is Query;
+            }
+        }
+
+        extrudeOptionsPredicate(definition);
 
         booleanStepScopePredicate(definition);
     }
@@ -86,7 +106,7 @@ export const robotPrimitive = defineFeature(function(context is Context, id is I
         callSubfeatureAndProcessStatus(id, extrude, context, id, definition, { "featureParameterMap" : { "entities" : "location" } });
         if (!isCylinder(definition))
         {
-            addPrimitivePointManipulator(context, id, definition);
+            addPrimitiveManipulators(context, id, definition);
         }
         // After the boolean, which uses the profile
         opDeleteBodies(context, id + "deleteProfile", { "entities" : qCreatedBy(id + "profile", EntityType.BODY) });
@@ -114,11 +134,38 @@ function primitiveCenter(definition is map) returns Vector
 }
 
 /**
- * Sketches the primitive's profile on the location's plane, and returns its face.
+ * The plane a primitive's profile is sketched on: the location's, with its X along the angle reference's direction (if
+ * there is one), turned by the angle (for a rectangle or square). Also returns the X it's turned from, `zeroX`.
+ */
+function primitivePlane(context is Context, definition is map) returns map
+{
+    const location = getLocationPlane(context, definition);
+    if (isCylinder(definition))
+    {
+        return { "plane" : location, "zeroX" : location.x };
+    }
+    var zeroX = location.x;
+    if (!isQueryEmpty(context, definition.angleReference))
+    {
+        const reference = extractDirection(context, definition.angleReference);
+        const across = reference == undefined ? undefined : reference - location.normal * dot(reference, location.normal);
+        if (across == undefined || tolerantEquals(norm(across), 0))
+        {
+            throw regenError("The angle reference must have a direction which isn't along the primitive's.", ["angleReference"],
+                definition.angleReference);
+        }
+        zeroX = normalize(across);
+    }
+    const x = zeroX * cos(definition.angle) + cross(location.normal, zeroX) * sin(definition.angle);
+    return { "plane" : plane(location.origin, location.normal, x), "zeroX" : zeroX };
+}
+
+/**
+ * Sketches the primitive's profile, and returns its face.
  */
 function sketchPrimitive(context is Context, id is Id, definition is map) returns Query
 {
-    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : getLocationPlane(context, definition) });
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : primitivePlane(context, definition).plane });
     if (isCylinder(definition))
     {
         skCircle(sketch, "circle", { "center" : vector(0, 0) * meter, "radius" : definition.diameter / 2 });
@@ -137,23 +184,44 @@ function sketchPrimitive(context is Context, id is Id, definition is map) return
     return qCreatedBy(id, EntityType.FACE);
 }
 
+const ANGLE_MANIPULATOR = "angleManipulator";
+
 /**
- * Adds the nine point manipulator choosing which point of a rectangle or square is on the location.
+ * Adds a rectangle or square's manipulators: the nine point manipulator choosing which of its points is on the
+ * location, and the angle manipulator, as std's Frame's: around the location's axis, from the zero angle's direction,
+ * as far out as the profile is wide.
  */
-function addPrimitivePointManipulator(context is Context, id is Id, definition is map)
+function addPrimitiveManipulators(context is Context, id is Id, definition is map)
 {
-    const location = coordSystem(getLocationPlane(context, definition));
+    const profile = primitivePlane(context, definition);
+    const location = coordSystem(profile.plane);
     const size = primitiveSize(definition);
     const center = primitiveCenter(definition);
     addPointManipulator(context, id, definition, mapArray(ninePointOffsets(size.width, size.height), function(offset)
             {
                 return toWorld(location, center + offset);
             }), getNinePointIndex(definition));
+    addManipulators(context, id, {
+                (ANGLE_MANIPULATOR) : angularManipulator({
+                        "primaryParameterId" : "angle",
+                        "axisOrigin" : profile.plane.origin,
+                        "axisDirection" : profile.plane.normal,
+                        "rotationOrigin" : profile.plane.origin + profile.zeroX * max(size.width, size.height),
+                        "angle" : definition.angle,
+                        "minValue" : 0 * degree,
+                        "maxValue" : 360 * degree
+                    })
+            });
 }
 
 export function robotPrimitiveManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
     definition = pointManipulatorChange(definition, newManipulators);
+    const angle = newManipulators[ANGLE_MANIPULATOR];
+    if (angle != undefined && isAngle(angle.angle))
+    {
+        definition.angle = angle.angle;
+    }
     return extrudeManipulatorChange(context, definition, newManipulators);
 }
 

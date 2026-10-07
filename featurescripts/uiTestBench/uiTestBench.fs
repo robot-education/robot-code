@@ -111,9 +111,6 @@ export const uiTestBench = defineFeature(function(context is Context, id is Id, 
             annotation { "Name" : "Length" }
             isLength(definition.length, BENCH_LENGTH_BOUNDS);
 
-            annotation { "Name" : "Tolerant length", "UIHint" : ["CAN_BE_TOLERANT"] }
-            isLength(definition.tolerantLength, BENCH_LENGTH_BOUNDS);
-
             annotation { "Name" : "Expression length", "UIHint" : ["SHOW_EXPRESSION"] }
             isLength(definition.expressionLength, BENCH_LENGTH_BOUNDS);
 

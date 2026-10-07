@@ -207,6 +207,8 @@ class Project:
         self._modules: dict[pathlib.Path, tuple[object, Module]] = {}
         self._element_ids: tuple[object, dict[str, pathlib.Path]] | None = None
         self._precondition_predicate_cache: tuple[tuple[int, ...], set[tuple[pathlib.Path, int]]] | None = None
+        # Whether each std predicate declares parameters which can be toleranced (see _std_tolerant)
+        self._std_tolerant_cache: dict[str, bool] = {}
         # While a snapshot is taken (see `snapshot`): how deep, and its files, resolved paths, and modules
         self._snapshot_depth = 0
         self._snapshot_files: list[pathlib.Path] | None = None
@@ -669,6 +671,7 @@ class Project:
         problems.extend(self._parameter_enum_problems(module, providers))
         problems.extend(self._precondition_predicate_problems(module, providers))
         problems.extend(self._duplicate_parameter_problems(module))
+        problems.extend(self._tolerant_parameter_problems(module))
         problems.extend(self._nested_predicate_problems(module, providers))
         for usage in self.usages([module]):
             if not usage.exported and usage.unused:
@@ -985,6 +988,74 @@ class Project:
                     )
                 )
         return _dedupe_problems(problems)
+
+    def _tolerant_parameter_problems(self, module: Module) -> list[Problem]:
+        """Parameters which allow field tolerancing ("UIHint" CAN_BE_TOLERANT), which ours never do (see
+        docs/featurescript-style.md): in annotations, and declared by std predicates the file calls (like std's
+        extrudeBoundParametersPredicate)."""
+        problems = []
+        index = module.index
+        annotations = [node for node in module.parsed.nodes if node.type == "AnnotationMap"]
+        for position, token in enumerate(index.tokens):
+            if token.value in ("CAN_BE_TOLERANT", '"CAN_BE_TOLERANT"') and any(
+                node.start <= token.offset < node.end for node in annotations
+            ):
+                problems.append(
+                    Problem(
+                        token.offset,
+                        token.end,
+                        "warning",
+                        "Don't allow field tolerancing (CAN_BE_TOLERANT): our parameters never do.",
+                        "tolerant-parameter",
+                    )
+                )
+                continue
+            if (
+                token.kind != "identifier"
+                or position + 1 >= len(index.tokens)
+                or index.tokens[position + 1].value != "("
+                or index.declaration_for_token(token) is not None
+            ):
+                continue
+            previous = index.previous_token(token)
+            if previous is not None and previous.value in (".", "function", "predicate"):
+                continue
+            if self._std_tolerant(token.value):
+                problems.append(
+                    Problem(
+                        token.offset,
+                        token.end,
+                        "warning",
+                        f"std's {token.value} declares parameters which allow field tolerancing (CAN_BE_TOLERANT), "
+                        "which ours never do. Use a copy without it, like core/stdExtrude.fs's extrudeBoundsPredicate.",
+                        "tolerant-parameter",
+                    )
+                )
+        return problems
+
+    def _std_tolerant(self, name: str, seen: frozenset[str] = frozenset()) -> bool:
+        """Whether a std predicate declares a parameter which allows field tolerancing, directly or through the std
+        predicates it calls. Needs the copy of std's source (`std_dir`)."""
+        if name in self._std_tolerant_cache:
+            return self._std_tolerant_cache[name]
+        result = False
+        if self.std_dir is not None and name not in seen:
+            for symbol in stdlib().lookup(name):
+                if symbol.kind != "predicate" or not symbol.module:
+                    continue
+                path = self.std_dir / symbol.module
+                body = _std_predicate_body(path, name)
+                if body is None:
+                    continue
+                if "CAN_BE_TOLERANT" in body or any(
+                    self._std_tolerant(called, seen | {name})
+                    for called in set(re.findall(r"\b([A-Za-z_]\w*)\s*\(", body))
+                    if called != name and any(s.kind == "predicate" for s in stdlib().lookup(called))
+                ):
+                    result = True
+                    break
+        self._std_tolerant_cache[name] = result
+        return result
 
     def _declared_parameters(
         self, module: Module, start: int, end: int, map_name: str, path: frozenset[tuple[pathlib.Path, int]]
@@ -1408,6 +1479,23 @@ def _std_enum_member(path: pathlib.Path, enum: str, member: str) -> tuple[pathli
             if line.strip().startswith("}"):
                 return None
     return None
+
+
+def _std_predicate_body(path: pathlib.Path, name: str) -> str | None:
+    """The source of a predicate's body in a std file, without its comments, or None if it isn't there."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    text = re.sub(r"//[^\n]*|/\*.*?\*/", "", text, flags=re.S)
+    match = re.search(r"\bpredicate\s+" + re.escape(name) + r"\s*\([^)]*\)\s*\{", text)
+    if match is None:
+        return None
+    depth, position = 1, match.end()
+    while depth and position < len(text):
+        depth += {"{": 1, "}": -1}.get(text[position], 0)
+        position += 1
+    return text[match.end() : position - 1]
 
 
 def _predicate_node(module: Module, declaration: Declaration) -> AstNode | None:
