@@ -32,3 +32,14 @@ export function tagExtrudeAsFrame(context is Context, extrudeId is Id, descripti
     setFrameTopologyAttribute(context, qCapEntity(extrudeId, CapType.START, EntityType.FACE), frameTopologyAttributeForCapFace(true, true, false));
     setFrameTopologyAttribute(context, qCapEntity(extrudeId, CapType.END, EntityType.FACE), frameTopologyAttributeForCapFace(false, true, false));
 }
+
+/**
+ * Tags faces which end a frame, like those left by trimming it, as its start (or end) cap faces.
+ */
+export function tagFrameCaps(context is Context, faces is Query, isStart is boolean)
+{
+    if (!isQueryEmpty(context, faces))
+    {
+        setFrameTopologyAttribute(context, faces, frameTopologyAttributeForCapFace(isStart, true, false));
+    }
+}

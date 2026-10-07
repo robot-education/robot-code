@@ -342,21 +342,42 @@ function regularSpacings(length is ValueWithUnits, tie is map) returns number
 }
 
 /**
+ * The shortest regular length (see `isRegularLength`) at least `length` long: what stock is built as before it's trimmed
+ * to `length` (see `buildStock`), so a part which isn't a regular length has the holes it would have if it were cut from
+ * longer stock, the last of them cut through by its end.
+ */
+export function regularLength(length is ValueWithUnits, tie is map) returns ValueWithUnits
+{
+    var spacings = ceil((length - 2 * tie.start) / tie.unit);
+    // Not one more for a length just over a whole number of units
+    if (tolerantEquals(length - 2 * tie.start, (spacings - 1) * tie.unit))
+    {
+        spacings -= 1;
+    }
+    return max(length, 2 * tie.start + max(spacings, 0) * tie.unit);
+}
+
+/**
  * Where a row's holes (or groups of them) go along stock `length` long: maps of `position`, and whether it's `tied` to
- * the end (see `getTie`), in order from the start. Only holes which fit whole in its regular part are kept, so the
- * extra length at the end of a part which isn't a regular length (see `isRegularLength`) has none.
+ * the end (see `getTie`), in order from the start. Holes are laid out on the regular length at least `length` long (see
+ * `regularLength`), and those which start before its end are kept, so the last of them may be cut through by the end.
  *
  * @param extent : How far each hole reaches along the stock from its position, e.g. its radius.
  */
 export function holePositions(row is HoleRow, extent is ValueWithUnits, length is ValueWithUnits, tie is map) returns array
 {
-    const spacings = regularSpacings(length, tie);
-    const end = 2 * tie.start + spacings * tie.unit;
+    const built = regularLength(length, tie);
+    const spacings = regularSpacings(built, tie);
     // Holes are tied if they're around the holes which count that are
     const firstTied = firstTiedHole(length, spacings, tie);
     var positions = [];
-    for (var position = row.start; spacings >= 0 && tolerantLessThanOrEqual(position + extent, end); position += row.pitch)
+    for (var position = row.start; spacings >= 0 && tolerantLessThanOrEqual(position + extent, built); position += row.pitch)
     {
+        if (tolerantLessThanOrEqual(length, position - extent))
+        {
+            // Wholly past the end
+            break;
+        }
         const spacing = round((position - tie.start) / tie.unit);
         positions = append(positions, { "position" : position, "tied" : spacing >= firstTied });
     }
@@ -365,7 +386,8 @@ export function holePositions(row is HoleRow, extent is ValueWithUnits, length i
 
 /**
  * Whether stock `length` long is a whole number of hole spacings long (see `getTie`), so the margin after its last hole
- * which counts is the same as the one before its first. Otherwise, the extra length is at its end.
+ * which counts is the same as the one before its first. Otherwise, the extra length is at its end, where the pattern
+ * of holes carries on, cut through by the end (see `regularLength`).
  */
 export function isRegularLength(length is ValueWithUnits, tie is map) returns boolean
 {
@@ -379,7 +401,12 @@ const MAX_SPLINE_RADIUS = 17.45 * millimeter;
 
 /**
  * Builds stock `length` long from `location` (the middle of its start, with Z along its length and its width along
- * X): its profile is extruded along its length, then its holes are cut.
+ * X): its profile is extruded along its length, then its holes are cut, then its ends are trimmed.
+ *
+ * Stock with holes is built as the regular length at least `length` long (see `regularLength`), so its holes are all
+ * whole while they're cut, and is then trimmed to `length`, cutting through any holes the end crosses, as cutting it
+ * from longer stock would. Ends can be slanted (like miters): `ends` has the planes they're on, which are inside its
+ * length; it's trimmed to them.
  *
  * Booleans are slow, so each row's holes are cut by one seed (a tool for its first hole), and the seed's faces are face
  * patterned along the stock. A row's holes tied to the end (see `getTie`) have a seed of their own at the last of them,
@@ -395,8 +422,11 @@ const MAX_SPLINE_RADIUS = 17.45 * millimeter;
  * }}
  */
 export function buildStock(context is Context, id is Id, definition is map, stock is Stock, location is CoordSystem,
-    length is ValueWithUnits) returns map
+    length is ValueWithUnits, ends is map) returns map
 {
+    const tie = getTie(definition, stock.tieStart, stock.tieUnit);
+    const hasHoles = stock.xRows != [] || stock.yRows != [];
+    const built = hasHoles ? regularLength(length, tie) : length;
     const profileId = id + "profile";
     const sketch = newSketchOnPlane(context, profileId, { "sketchPlane" : plane(location) });
     sketchProfile(sketch, stock);
@@ -406,7 +436,7 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
                 "entities" : qSketchRegion(profileId, true),
                 "direction" : location.zAxis,
                 "endBound" : BoundingType.BLIND,
-                "endDepth" : length
+                "endDepth" : built
             });
     opDeleteBodies(context, id + "deleteProfile", { "entities" : qCreatedBy(profileId, EntityType.BODY) });
     const body = qCreatedBy(stockId, EntityType.BODY);
@@ -416,10 +446,9 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
         tagExtrudeAsFrame(context, stockId, stock.partName, stock.vendor);
     }
 
-    const tie = getTie(definition, stock.tieStart, stock.tieUnit);
     var tiedHoles = [];
-    var threadedHoles = [];
-    for (var i, group in seedGroups(stock, location, length, tie))
+    const groups = seedGroups(stock, location, length, tie);
+    for (var i, group in groups)
     {
         const groupId = id + ("holes" ~ i);
         cutHoles(context, groupId, group, body, stock.holeDiameter);
@@ -427,13 +456,37 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
         {
             tiedHoles = append(tiedHoles, qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body));
         }
-        if (stock.thread != undefined)
+    }
+
+    // Trimmed to its ends (after its holes are cut, so they're cut through like the stock it's cut from)
+    var endFace = qCapEntity(stockId, CapType.END, EntityType.FACE);
+    const reach = built + stock.width + stock.height;
+    if (ends.endPlane != undefined || !tolerantEquals(built, length))
+    {
+        const endPlane = ends.endPlane ?? plane(location.origin + location.zAxis * length, location.zAxis);
+        endFace = trimBeyond(context, id + "trimEnd", body, endPlane, location.zAxis, reach);
+        if (stock.isFrame ?? false)
         {
-            threadedHoles = concatenateArrays([threadedHoles, groupHoles(context, groupId, group, body)]);
+            tagFrameCaps(context, endFace, false);
         }
     }
+    if (ends.startPlane != undefined)
+    {
+        const startFace = trimBeyond(context, id + "trimStart", body, ends.startPlane, -location.zAxis, reach);
+        if (stock.isFrame ?? false)
+        {
+            tagFrameCaps(context, startFace, true);
+        }
+    }
+
+    // After trimming, so holes the trims removed aren't threaded
     if (stock.thread != undefined)
     {
+        var threadedHoles = [];
+        for (var i, group in groups)
+        {
+            threadedHoles = concatenateArrays([threadedHoles, groupHoles(context, id + ("holes" ~ i), group, body)]);
+        }
         if (stock.centerHole ?? false)
         {
             threadedHoles = concatenateArrays([threadedHoles, centerHole(context, body, location)]);
@@ -442,10 +495,36 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
     }
     return {
             "body" : body,
-            "endFace" : qCapEntity(stockId, CapType.END, EntityType.FACE),
+            "endFace" : endFace,
             "tiedHoles" : qUnion(tiedHoles),
-            "tie" : stock.xRows != [] || stock.yRows != [] ? tie : undefined
+            "tie" : hasHoles ? tie : undefined
         };
+}
+
+/**
+ * Cuts away the part of `body` beyond `cut`, in `direction` (which way is out of the body, for either way the plane
+ * faces), with a block `reach` across. Returns the face the cut leaves.
+ */
+function trimBeyond(context is Context, id is Id, body is Query, cut is Plane, direction is Vector, reach is ValueWithUnits) returns Query
+{
+    const outward = dot(cut.normal, direction) > 0 ? cut.normal : -cut.normal;
+    const sketchPlane = plane(cut.origin, outward);
+    const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : sketchPlane });
+    skRectangle(sketch, "block", { "firstCorner" : vector(-reach, -reach), "secondCorner" : vector(reach, reach) });
+    skSolve(sketch);
+    opExtrude(context, id + "tool", {
+                "entities" : qSketchRegion(id + "sketch"),
+                "direction" : outward,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : reach
+            });
+    opDeleteBodies(context, id + "deleteSketch", { "entities" : qCreatedBy(id + "sketch", EntityType.BODY) });
+    opBoolean(context, id + "cut", {
+                "tools" : qCreatedBy(id + "tool", EntityType.BODY),
+                "targets" : body,
+                "operationType" : BooleanOperationType.SUBTRACTION
+            });
+    return qCreatedBy(id + "tool", EntityType.FACE)->qOwnedByBody(body);
 }
 
 /**
@@ -757,6 +836,7 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
 {
     var length;
     var location;
+    var extruded;
     if (isEdgePlacement(definition))
     {
         const edge = verifyNonemptyQuery(context, definition, "edge", "Select an edge to place the " ~ name ~ " on.")[0];
@@ -779,7 +859,7 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
     }
     else
     {
-        const extruded = extrudeLength(context, id, definition);
+        extruded = extrudeLength(context, id, definition);
         location = extruded.location;
         length = extruded.length;
     }
@@ -788,7 +868,16 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
     const offsets = stockPointOffsets(definition, stock);
     var center = location;
     center.origin = toWorld(location, -offsets[getNinePointIndex(definition)]);
-    const built = buildStock(context, id, definition, stock, center, length);
+    var ends = {};
+    if (extruded != undefined)
+    {
+        // From the farthest back point of a slanted start to the farthest point of a slanted end
+        const span = stockSpan(center, stock, extruded.startPlane, extruded.endPlane, length);
+        center.origin += center.zAxis * span.start;
+        length = span.end - span.start;
+        ends = { "startPlane" : extruded.startPlane, "endPlane" : extruded.endPlane };
+    }
+    const built = buildStock(context, id, definition, stock, center, length, ends);
     setStockProperties(context, built.body, definition, stock, length);
     // Halfway along it
     addPointManipulator(context, id, definition, mapArray(offsets, function(offset)
@@ -971,9 +1060,58 @@ function addOffsetManipulators(context is Context, id is Id, definition is map, 
 }
 
 /**
+ * How far along `center`'s Z axis stock with slanted ends reaches: from where its start plane is farthest back across
+ * its profile (or 0, for a square start) to where its end plane is farthest forward (or `length`).
+ */
+function stockSpan(center is CoordSystem, stock is Stock, startPlane, endPlane, length is ValueWithUnits) returns map
+{
+    var span = { "start" : 0 * meter, "end" : length };
+    for (var x in [-1, 1])
+    {
+        for (var y in [-1, 1])
+        {
+            const corner = toWorld(center, vector(x * stock.width / 2, y * stock.height / 2, 0 * meter));
+            if (startPlane != undefined)
+            {
+                span.start = min(span.start, alongTo(corner, center.zAxis, startPlane));
+            }
+            if (endPlane != undefined)
+            {
+                span.end = max(span.end, alongTo(corner, center.zAxis, endPlane));
+            }
+        }
+    }
+    return span;
+}
+
+/**
+ * How far from `point` along `direction` `cut` is.
+ */
+function alongTo(point is Vector, direction is Vector, cut is Plane) returns ValueWithUnits
+{
+    return dot(cut.origin - point, cut.normal) / dot(direction, cut.normal);
+}
+
+/**
+ * The plane an end of the measured extrude is on, if it's slanted (planar, but not square to `direction`, like a miter),
+ * which stock's end is trimmed to; otherwise `undefined`, and the end is square. Ends nearly along the stock are
+ * treated as square.
+ */
+function slantedEnd(context is Context, cap is Query, direction is Vector)
+{
+    const end = try silent(evPlane(context, { "face" : cap }));
+    if (end == undefined || parallelVectors(end.normal, direction) || abs(dot(end.normal, direction)) < 0.1)
+    {
+        return undefined;
+    }
+    return end;
+}
+
+/**
  * Extrudes a small face from the selected point with the extrude options and measures it, so they (and their
  * manipulators) work as usual. Returns the `location` stock starts at (along the extrude's direction, oriented by
- * `orientStock`) and its `length`.
+ * `orientStock`), its `length`, and the `startPlane` and `endPlane` its ends are on, if they're slanted (see
+ * `slantedEnd`): up to a plane or face at an angle, like a miter.
  */
 function extrudeLength(context is Context, id is Id, definition is map) returns map
 {
@@ -986,16 +1124,20 @@ function extrudeLength(context is Context, id is Id, definition is map) returns 
 
     const location = orientStock(definition, coordSystem(facePlane));
     // The extruded face's ends, which are on its axis
-    const ends = mapArray([CapType.START, CapType.END], function(capType)
+    const caps = [qCapEntity(id, CapType.START, EntityType.FACE), qCapEntity(id, CapType.END, EntityType.FACE)];
+    const ends = mapArray(caps, function(cap)
         {
-            const cap = evApproximateCentroid(context, { "entities" : qCapEntity(id, capType, EntityType.FACE) });
-            return dot(cap - location.origin, location.zAxis);
+            return dot(evApproximateCentroid(context, { "entities" : cap }) - location.origin, location.zAxis);
         });
+    // The cap nearer the start along the stock is its start
+    const startIndex = ends[0] <= ends[1] ? 0 : 1;
+    const startPlane = slantedEnd(context, caps[startIndex], location.zAxis);
+    const endPlane = slantedEnd(context, caps[1 - startIndex], location.zAxis);
     opDeleteBodies(context, id + "deleteLength", { "entities" : qCreatedBy(id, EntityType.BODY) });
 
     var start = location;
     start.origin += location.zAxis * min(ends);
-    return { "location" : start, "length" : abs(ends[1] - ends[0]) };
+    return { "location" : start, "length" : abs(ends[1] - ends[0]), "startPlane" : startPlane, "endPlane" : endPlane };
 }
 
 /**
