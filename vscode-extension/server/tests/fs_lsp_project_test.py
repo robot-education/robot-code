@@ -459,3 +459,16 @@ def test_functions_used_as_values(project):
     problems = [p for p in project.check(module) if p.code == "function-value"]
     # Only `name` passed as a value: not calls, function values, or the type's typecheck predicate
     assert [(module.parsed.source[p.start:p.end], module.position(p.start)[0]) for p in problems] == [("name", 7)]
+
+
+def test_snapshots_see_files_once(project):
+    new = project.code_dir / "new.fs"
+    with project.snapshot():
+        before = project.files()
+        assert project.module(new) is None
+        new.write_text("FeatureScript 2909;\nexport const n = 1;\n")
+        # Inside a snapshot, what's been looked up stays as it was
+        assert project.files() == before and project.module(new) is None
+    # Afterwards, changes are seen again
+    assert new.resolve() in project.files()
+    assert project.module(new) is not None

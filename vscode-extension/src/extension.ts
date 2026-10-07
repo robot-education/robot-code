@@ -36,12 +36,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void vscode.window.showWarningMessage("Open a FeatureScript file defining a feature in the robot-code repo to preview it.");
         return;
       }
-      UiPreview.show(target, { ...pythonCommand("fs.command", "fs", root), cwd: root });
+      UiPreview.show(target, () => client);
     }),
-    vscode.workspace.onDidSaveTextDocument((document) => UiPreview.saved(document)),
+    vscode.workspace.onDidSaveTextDocument((document) => UiPreview.changed(document)),
+    vscode.window.onDidChangeActiveColorTheme(() => UiPreview.renderAll()),
     // Shows the preview button for files defining a feature
     vscode.window.onDidChangeActiveTextEditor(updateDefinesFeature),
     vscode.workspace.onDidChangeTextDocument((event) => {
+      UiPreview.changed(event.document);
       if (event.document === vscode.window.activeTextEditor?.document) {
         updateDefinesFeature(vscode.window.activeTextEditor);
       }

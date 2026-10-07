@@ -7,6 +7,8 @@ automatically.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import functools
 import dataclasses
 import logging
 import pathlib
@@ -63,6 +65,7 @@ class FeatureScriptServer(LanguageServer):
         self.pending_diagnostics: dict[str, asyncio.TimerHandle] = {}
         self.projects: list[Project] = []
         self.open_uris: set[str] = set()
+        self.publishing_others: asyncio.Future | None = None
 
     def analysis(self, document: TextDocument) -> Analysis:
         cached = self.analyses.get(document.uri)
@@ -113,13 +116,25 @@ class FeatureScriptServer(LanguageServer):
     def publish_diagnostics(self, uri: str) -> None:
         self.pending_diagnostics.pop(uri, None)
         found = self.project_module(uri)
-        self._publish(uri, found)
+        with found[0].snapshot() if found else contextlib.nullcontext():
+            self._publish(uri, found)
         if found:
-            # Other files' diagnostics depend on what this one exports
-            for other in sorted(self.open_uris - {uri}):
-                other_found = self.project_module(other)
-                if other_found and other_found[0] is found[0]:
-                    self._publish(other, other_found)
+            # Other files' diagnostics depend on this one (on what it exports and uses); they're published one at a
+            # time, so requests (like hovers) can be answered in between, and a newer edit cancels the rest
+            if self.publishing_others is not None:
+                self.publishing_others.cancel()
+            others = [other for other in sorted(self.open_uris - {uri})]
+            self.publishing_others = asyncio.ensure_future(self._publish_others(others, found[0]))
+
+    async def _publish_others(self, uris: list[str], project: Project) -> None:
+        for uri in uris:
+            await asyncio.sleep(0)
+            if uri not in self.open_uris:
+                continue
+            found = self.project_module(uri)
+            if found and found[0] is project:
+                with project.snapshot():
+                    self._publish(uri, found)
 
     def _publish(self, uri: str, found: tuple[Project, Module] | None) -> None:
         document = self.document(uri)
@@ -188,6 +203,19 @@ class FeatureScriptServer(LanguageServer):
 
 server = FeatureScriptServer()
 
+
+def snapshotted(handler):
+    """Runs a request in a snapshot of every project (see `Project.snapshot`), so it looks at each file once."""
+
+    @functools.wraps(handler)
+    def wrapped(ls: FeatureScriptServer, params):
+        with contextlib.ExitStack() as stack:
+            for project in list(ls.projects):
+                stack.enter_context(project.snapshot())
+            return handler(ls, params)
+
+    return wrapped
+
 # Files and folders, so renaming a folder renames the files in it
 RENAMED_FILES = lsp.FileOperationRegistrationOptions(
     filters=[
@@ -204,6 +232,7 @@ RENAMED_FILES = lsp.FileOperationRegistrationOptions(
 
 
 @server.feature(lsp.WORKSPACE_WILL_RENAME_FILES, RENAMED_FILES)
+@snapshotted
 def will_rename_files(ls: FeatureScriptServer, params: lsp.RenameFilesParams) -> lsp.WorkspaceEdit | None:
     changes = ls.rename_edits(params.files)
     return lsp.WorkspaceEdit(changes=changes) if changes else None
@@ -339,6 +368,7 @@ def _project_definition_links(
 
 
 @server.feature(lsp.TEXT_DOCUMENT_DEFINITION)
+@snapshotted
 def definition(
     ls: FeatureScriptServer, params: lsp.DefinitionParams
 ) -> list[lsp.LocationLink] | None:
@@ -346,6 +376,7 @@ def definition(
 
 
 @server.feature(lsp.TEXT_DOCUMENT_DECLARATION)
+@snapshotted
 def declaration(
     ls: FeatureScriptServer, params: lsp.DeclarationParams
 ) -> list[lsp.LocationLink] | None:
@@ -353,6 +384,7 @@ def declaration(
 
 
 @server.feature(lsp.TEXT_DOCUMENT_REFERENCES)
+@snapshotted
 def references(
     ls: FeatureScriptServer, params: lsp.ReferenceParams
 ) -> list[lsp.Location]:
@@ -375,6 +407,7 @@ def references(
 
 
 @server.feature(lsp.TEXT_DOCUMENT_DOCUMENT_HIGHLIGHT)
+@snapshotted
 def document_highlight(
     ls: FeatureScriptServer, params: lsp.DocumentHighlightParams
 ) -> list[lsp.DocumentHighlight]:
@@ -388,6 +421,7 @@ def document_highlight(
 
 
 @server.feature(lsp.TEXT_DOCUMENT_HOVER)
+@snapshotted
 def hover(ls: FeatureScriptServer, params: lsp.HoverParams) -> lsp.Hover | None:
     document = ls.document(params.text_document.uri)
     analysis = ls.analysis(document)
@@ -411,6 +445,7 @@ def hover(ls: FeatureScriptServer, params: lsp.HoverParams) -> lsp.Hover | None:
     lsp.TEXT_DOCUMENT_COMPLETION,
     lsp.CompletionOptions(trigger_characters=[".", '"', "'", "{", ","]),
 )
+@snapshotted
 def completion(
     ls: FeatureScriptServer, params: lsp.CompletionParams
 ) -> list[lsp.CompletionItem] | None:
@@ -433,6 +468,7 @@ def completion(
     lsp.TEXT_DOCUMENT_SIGNATURE_HELP,
     lsp.SignatureHelpOptions(trigger_characters=["(", ","], retrigger_characters=[","]),
 )
+@snapshotted
 def signature_help(ls: FeatureScriptServer, params: lsp.SignatureHelpParams) -> lsp.SignatureHelp | None:
     document = ls.document(params.text_document.uri)
     analysis = ls.analysis(document)
@@ -520,6 +556,7 @@ def _project_hover(
 
 
 @server.feature(lsp.WORKSPACE_SYMBOL)
+@snapshotted
 def workspace_symbol(
     ls: FeatureScriptServer, params: lsp.WorkspaceSymbolParams
 ) -> list[lsp.SymbolInformation]:
@@ -560,6 +597,50 @@ def _workspace_projects(ls: FeatureScriptServer) -> list[Project]:
         if path is not None and (project := Project.find(path / "featurescripts")):
             ls.projects.append(project)
     return ls.projects
+
+
+# A feature's dialog, as `fs ui` renders it, for the extension's preview (see vscode-extension/src/uiPreview.ts).
+# Rendering here, rather than with `fs ui`, keeps the parsed std library between renders, and renders unsaved changes.
+RENDER_UI = "featurescript/renderUi"
+
+
+@server.feature(RENDER_UI)
+async def render_ui(ls: FeatureScriptServer, params) -> dict:
+    """Params: `uri`, `feature` (optional), `settings` (`fs ui --set` settings, as [name, value] pairs, since pygls
+    gives maps as named tuples, whose fields can't be names like `items.0.length`), and `theme`. Returns the dialog's
+    `html` (or an `error`), any `warnings`, the `features` the file defines, and the `feature` shown."""
+    from fs_cli.config import ConfigError, load_config
+    from fs_cli.ui import UiError, parse_file, render_feature
+
+    uri = _param(params, "uri")
+    path = _path(uri) if uri else None
+    found = ls.project_module(uri) if path else None
+    if path is None or found is None:
+        return {"error": "Open a FeatureScript file in the robot-code repo to preview it.", "features": []}
+    project, _ = found
+    sources = dict(project.overlays)
+    own = parse_file(path.resolve(), sources.get(path.resolve()))
+    features = list(own.declarations.features) if own else []
+    feature = _param(params, "feature")
+    if feature not in features:
+        feature = features[0] if features else None
+    if feature is None:
+        return {"error": f"{path.name} doesn't define a feature.", "features": []}
+    settings = {str(key): str(value) for key, value in _param(params, "settings") or []}
+    theme = _param(params, "theme") or "dark"
+    try:
+        std_dir = load_config(project.root).std_dir
+        page, warnings = await asyncio.to_thread(render_feature, project, std_dir, path, feature, settings, theme, sources)
+    except (UiError, ConfigError) as error:
+        return {"error": str(error), "features": features, "feature": feature}
+    return {"html": page, "warnings": warnings, "features": features, "feature": feature}
+
+
+def _param(params, name: str):
+    """A field of a custom request's params, which pygls gives as an object (or a map)."""
+    if isinstance(params, dict):
+        return params.get(name)
+    return getattr(params, name, None)
 
 
 def _path(uri: str) -> pathlib.Path | None:

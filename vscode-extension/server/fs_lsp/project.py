@@ -10,6 +10,7 @@ Files are re-read when they change on disk, and open editors can overlay their u
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import json
 import pathlib
@@ -206,6 +207,12 @@ class Project:
         self._modules: dict[pathlib.Path, tuple[object, Module]] = {}
         self._element_ids: tuple[object, dict[str, pathlib.Path]] | None = None
         self._precondition_predicate_cache: tuple[tuple[int, ...], set[tuple[pathlib.Path, int]]] | None = None
+        # While a snapshot is taken (see `snapshot`): how deep, and its files, resolved paths, and modules
+        self._snapshot_depth = 0
+        self._snapshot_files: list[pathlib.Path] | None = None
+        self._snapshot_paths: dict[pathlib.Path, pathlib.Path] = {}
+        self._snapshot_modules: dict[pathlib.Path, Module | None] = {}
+        self._snapshot_providers: dict[int, tuple[Module, tuple[dict[str, list[Provider]], bool]]] = {}
 
     @classmethod
     def find(cls, path: pathlib.Path) -> Project | None:
@@ -219,25 +226,62 @@ class Project:
         project = cls(config.root, config.code_dir, config.studios_path, config.std_dir)
         return project if project.contains(path) else None
 
+    @contextlib.contextmanager
+    def snapshot(self):
+        """Treats the files as unchanged while it's taken, so they're listed, resolved, and checked for changes once
+        (rather than by every lookup, which made checking a file take seconds). Take one around each batch of work,
+        like a request or publishing diagnostics."""
+        self._snapshot_depth += 1
+        try:
+            yield self
+        finally:
+            self._snapshot_depth -= 1
+            if self._snapshot_depth == 0:
+                self._snapshot_files = None
+                self._snapshot_paths.clear()
+                self._snapshot_modules.clear()
+                self._snapshot_providers.clear()
+
+    def _resolve(self, path: pathlib.Path) -> pathlib.Path:
+        if not self._snapshot_depth:
+            return path.resolve()
+        resolved = self._snapshot_paths.get(path)
+        if resolved is None:
+            resolved = self._snapshot_paths[path] = path.resolve()
+        return resolved
+
     def contains(self, path: pathlib.Path) -> bool:
-        code_dir = self.code_dir.resolve()
-        path = path.resolve()
+        code_dir = self._resolve(self.code_dir)
+        path = self._resolve(path)
         return path == code_dir or code_dir in path.parents
 
     # Files
 
     def files(self) -> list[pathlib.Path]:
+        if self._snapshot_files is not None:
+            return self._snapshot_files
         if not self.code_dir.is_dir():
             return []
         paths = {path.resolve() for path in self.code_dir.rglob("*.fs") if path.is_file()}
         paths.update(path for path in self.overlays if self.contains(path))
-        return sorted(paths)
+        files = sorted(paths)
+        if self._snapshot_depth:
+            self._snapshot_files = files
+        return files
 
     def modules(self) -> list[Module]:
         return [module for path in self.files() if (module := self.module(path))]
 
     def module(self, path: pathlib.Path) -> Module | None:
-        path = path.resolve()
+        if self._snapshot_depth and path in self._snapshot_modules:
+            return self._snapshot_modules[path]
+        module = self._module(path)
+        if self._snapshot_depth:
+            self._snapshot_modules[path] = module
+        return module
+
+    def _module(self, path: pathlib.Path) -> Module | None:
+        path = self._resolve(path)
         if path in self.overlays:
             source = self.overlays[path]
             key: object = ("overlay", hash(source))
@@ -253,7 +297,7 @@ class Project:
             return cached[1]
         if source is None:
             source = path.read_text(encoding="utf-8", errors="replace")
-        relative = path.relative_to(self.code_dir.resolve()).as_posix()
+        relative = path.relative_to(self._resolve(self.code_dir)).as_posix()
         module = Module(path, relative, source)
         self._modules[path] = (key, module)
         return module
@@ -338,6 +382,14 @@ class Project:
 
     def providers(self, module: Module) -> tuple[dict[str, list[Provider]], bool]:
         """The names a module can use from its imports, and whether it can use the std library."""
+        if self._snapshot_depth:
+            cached = self._snapshot_providers.get(id(module))
+            if cached is None or cached[0] is not module:
+                cached = self._snapshot_providers[id(module)] = (module, self._providers(module))
+            return cached[1]
+        return self._providers(module)
+
+    def _providers(self, module: Module) -> tuple[dict[str, list[Provider]], bool]:
         names: dict[str, list[Provider]] = {}
         sees_std = False
         for imported in module.imports:

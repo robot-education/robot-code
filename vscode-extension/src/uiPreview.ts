@@ -1,7 +1,7 @@
-import { execFile } from "node:child_process";
 import * as crypto from "node:crypto";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import type { LanguageClient } from "vscode-languageclient/node";
 
 /** Features a FeatureScript defines: `export const name = defineFeature(...)`. */
 const FEATURE = /\bexport\s+const\s+(\w+)\s*=\s*defineFeature\s*\(/g;
@@ -10,16 +10,25 @@ export function featureNames(text: string): string[] {
   return [...text.matchAll(FEATURE)].map((match) => match[1]!);
 }
 
-/** How to run the fs CLI: its command and arguments before the subcommand, from the repo root. */
-export interface FsCommand {
-  command: string;
-  args: string[];
-  cwd: string;
+/** What the language server's featurescript/renderUi request returns (see fs_lsp/server.py). */
+interface RenderResult {
+  html?: string;
+  error?: string;
+  warnings?: string[];
+  features: string[];
+  feature?: string;
 }
 
+// How long to wait after an edit before rendering it
+const EDIT_DELAY_MS = 250;
+
 /**
- * A panel showing a feature's dialog as `fs ui` renders it, which updates when its file is saved. Clicking a tab,
- * checkbox, or dropdown in it changes that parameter (with `fs ui --set`), to preview the dialog's other states.
+ * A panel showing a feature's dialog as `fs ui` renders it (with Onshape's own markup and styles), rendered by the
+ * language server, which keeps the parsed std library between renders. It follows edits to the file, saved or not.
+ *
+ * The dialog works like Onshape's: clicking a tab, checkbox, button, or dropdown option, or entering a value, changes
+ * that parameter (as `fs ui --set` does), which shows and hides the parameters which depend on it; groups and array
+ * items open and close; and array items can be added and removed.
  */
 export class UiPreview {
   private static readonly previews = new Map<string, UiPreview>();
@@ -27,8 +36,9 @@ export class UiPreview {
   private feature: string | undefined;
   private readonly settings = new Map<string, string>();
   private rendering = 0;
+  private pendingEdit: NodeJS.Timeout | undefined;
 
-  static show(uri: vscode.Uri, fs: FsCommand): void {
+  static show(uri: vscode.Uri, client: () => LanguageClient | undefined): void {
     const existing = UiPreview.previews.get(uri.fsPath);
     if (existing) {
       existing.panel.reveal(vscode.ViewColumn.Beside, true);
@@ -38,141 +48,308 @@ export class UiPreview {
       "featurescriptUiPreview",
       `Preview ${path.basename(uri.fsPath)}`,
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
-      { enableScripts: true, localResourceRoots: [] }
+      { enableScripts: true, localResourceRoots: [], retainContextWhenHidden: true }
     );
-    UiPreview.previews.set(uri.fsPath, new UiPreview(panel, uri, fs));
+    UiPreview.previews.set(uri.fsPath, new UiPreview(panel, uri, client));
   }
 
-  /** Re-renders the previews of a saved file. */
-  static saved(document: vscode.TextDocument): void {
-    UiPreview.previews.get(document.uri.fsPath)?.render();
+  /** Re-renders a document's preview (debounced while it's being edited). */
+  static changed(document: vscode.TextDocument): void {
+    UiPreview.previews.get(document.uri.fsPath)?.renderSoon();
   }
 
-  private constructor(private readonly panel: vscode.WebviewPanel, private readonly uri: vscode.Uri, private readonly fs: FsCommand) {
-    panel.onDidDispose(() => UiPreview.previews.delete(uri.fsPath));
-    panel.webview.onDidReceiveMessage((message: { type: string; name?: string; value?: string }) => {
-      if (message.type === "set" && message.name !== undefined && message.value !== undefined) {
-        this.settings.set(message.name, message.value);
-      } else if (message.type === "feature" && message.value !== undefined) {
+  /** Re-renders every preview, e.g. when the color theme changes. */
+  static renderAll(): void {
+    for (const preview of UiPreview.previews.values()) {
+      void preview.render();
+    }
+  }
+
+  private constructor(
+    private readonly panel: vscode.WebviewPanel,
+    private readonly uri: vscode.Uri,
+    private readonly client: () => LanguageClient | undefined
+  ) {
+    panel.onDidDispose(() => {
+      UiPreview.previews.delete(uri.fsPath);
+      clearTimeout(this.pendingEdit);
+    });
+    panel.webview.onDidReceiveMessage((message: Message) => this.receive(message));
+    panel.webview.html = this.shell();
+  }
+
+  private receive(message: Message): void {
+    switch (message.type) {
+      case "ready":
+        break;
+      case "set":
+        this.set(message.name, message.value);
+        break;
+      case "remove":
+        this.removeItem(message.name, message.index);
+        break;
+      case "feature":
         this.feature = message.value;
         this.settings.clear();
-      } else if (message.type === "reset") {
+        break;
+      case "reset":
         this.settings.clear();
-      } else {
+        break;
+      default:
         return;
-      }
-      void this.render();
-    });
+    }
     void this.render();
+  }
+
+  private set(name: string, value: string): void {
+    this.settings.set(name, value);
+    // Shrinking an array forgets its removed items' settings
+    if (/^\d+$/.test(value)) {
+      for (const key of [...this.settings.keys()]) {
+        const index = itemIndex(key, name);
+        if (index !== undefined && index >= Number(value)) {
+          this.settings.delete(key);
+        }
+      }
+    }
+  }
+
+  /** Removes an array's item, moving the settings of the items after it up. */
+  private removeItem(name: string, index: number): void {
+    const count = Number(this.settings.get(name) ?? "0");
+    const moved = new Map<string, string>();
+    for (const [key, value] of this.settings) {
+      const item = itemIndex(key, name);
+      if (item === undefined || item < index) {
+        moved.set(key, value);
+      } else if (item > index) {
+        moved.set(`${name}.${item - 1}${key.slice(`${name}.${item}`.length)}`, value);
+      }
+    }
+    moved.set(name, String(Math.max(0, count - 1)));
+    this.settings.clear();
+    for (const [key, value] of moved) {
+      this.settings.set(key, value);
+    }
+  }
+
+  private renderSoon(): void {
+    clearTimeout(this.pendingEdit);
+    this.pendingEdit = setTimeout(() => void this.render(), EDIT_DELAY_MS);
   }
 
   private async render(): Promise<void> {
     const rendering = ++this.rendering;
-    const document = await vscode.workspace.openTextDocument(this.uri);
-    const features = featureNames(document.getText());
-    if (this.feature === undefined || !features.includes(this.feature)) {
-      this.feature = features[0];
+    const client = this.client();
+    let result: RenderResult;
+    if (!client) {
+      result = { error: "The FeatureScript language server isn't running.", features: [] };
+    } else {
+      try {
+        result = await client.sendRequest<RenderResult>("featurescript/renderUi", {
+          uri: this.uri.toString(),
+          feature: this.feature,
+          settings: [...this.settings],
+          theme: isLightTheme() ? "light" : "dark"
+        });
+      } catch (error) {
+        result = { error: error instanceof Error ? error.message : String(error), features: [] };
+      }
     }
-    const args = [...this.fs.args, "ui", this.uri.fsPath, "-o", "-"];
-    if (this.feature !== undefined && features.length > 1) {
-      args.push("--feature", this.feature);
-    }
-    for (const [name, value] of this.settings) {
-      args.push("--set", `${name}=${value}`);
-    }
-    const result = await new Promise<{ page: string; messages: string }>((resolve) => {
-      execFile(this.fs.command, args, { cwd: this.fs.cwd, maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
-        resolve({ page: error ? "" : stdout, messages: (stderr || (error ? error.message : "")).trim() });
-      });
-    });
     // A newer render started while this one ran
     if (rendering !== this.rendering) {
       return;
     }
-    this.panel.webview.html = this.page(result.page, result.messages, features);
+    this.feature = result.feature ?? this.feature;
+    void this.panel.webview.postMessage({
+      type: "render",
+      ...result,
+      settings: [...this.settings].map(([name, value]) => `${name}=${value}`)
+    });
   }
 
-  /** The dialog's page, with a toolbar above it and a script which sends clicks back as settings. */
-  private page(dialog: string, messages: string, features: string[]): string {
+  /** The page the dialog is shown in: a toolbar, and a script which shows renders and sends changes back. */
+  private shell(): string {
     const nonce = crypto.randomBytes(16).toString("base64");
     const csp = `default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'nonce-${nonce}';`;
-    const options = features
-      .map((name) => `<option value="${escape(name)}"${name === this.feature ? " selected" : ""}>${escape(name)}</option>`)
-      .join("");
-    const toolbar =
-      `<div class="toolbar">` +
-      (features.length > 1 ? `<select id="feature">${options}</select>` : "") +
-      (this.settings.size > 0
-        ? `<span class="settings">${escape([...this.settings].map(([name, value]) => `${name}=${value}`).join(", "))}</span>` +
-          `<button id="reset">Reset</button>`
-        : "") +
-      `</div>` +
-      (messages ? `<pre class="messages">${escape(messages)}</pre>` : "");
-    const head =
-      `<meta http-equiv="Content-Security-Policy" content="${csp}">` +
-      `<style>${TOOLBAR_STYLE}</style>`;
-    const script = `<script nonce="${nonce}">${SCRIPT}</script>`;
-    if (!dialog) {
-      return `<!doctype html><html><head><meta charset="utf-8">${head}</head><body>${toolbar}${script}</body></html>`;
-    }
-    return dialog
-      .replace("<head>", `<head>${head}`)
-      .replace(/<body>/, `<body>${toolbar}`)
-      .replace("</body>", `${script}</body>`);
+    return (
+      `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}">` +
+      `<style>${TOOLBAR_STYLE}</style><style id="dialog-style"></style></head><body>` +
+      `<div class="toolbar"><select id="feature" hidden></select><span id="settings"></span>` +
+      `<button id="reset" hidden>Reset</button></div><pre id="messages" hidden></pre><div id="dialog"></div>` +
+      `<script nonce="${nonce}">${SCRIPT}</script></body></html>`
+    );
   }
 }
 
-function escape(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+type Message =
+  | { type: "ready" }
+  | { type: "set"; name: string; value: string }
+  | { type: "remove"; name: string; index: number }
+  | { type: "feature"; value: string }
+  | { type: "reset" };
+
+/** The index of the array item a setting is for (like 1 for `items.1.length`), if it's for one of `array`'s. */
+function itemIndex(key: string, array: string): number | undefined {
+  const match = key.startsWith(`${array}.`) ? /^(\d+)\./.exec(key.slice(array.length + 1)) : null;
+  return match ? Number(match[1]) : undefined;
+}
+
+function isLightTheme(): boolean {
+  const kind = vscode.window.activeColorTheme.kind;
+  return kind === vscode.ColorThemeKind.Light || kind === vscode.ColorThemeKind.HighContrastLight;
 }
 
 const TOOLBAR_STYLE = `
-.toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font: 12px sans-serif; color: #ccc; }
-.toolbar .settings { flex: 1; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar button, .toolbar select { background: #333; color: #ddd; border: 1px solid #555; border-radius: 2px; }
-.messages { color: #e0a040; white-space: pre-wrap; font: 11px monospace; margin: 0 0 8px; }
-[data-name] { cursor: pointer; }
-.options { position: absolute; z-index: 10; background: #2b2b2b; border: 1px solid #555; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
-.options div { padding: 3px 8px; color: #ddd; cursor: pointer; white-space: nowrap; }
-.options div:hover { background: #3d5975; }
+body { margin: 0; }
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font: 12px var(--vscode-font-family, sans-serif); color: var(--vscode-foreground); }
+.toolbar #settings { flex: 1; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar button, .toolbar select { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: 1px solid var(--vscode-contrastBorder, transparent); border-radius: 2px; }
+#messages { color: var(--vscode-editorWarning-foreground); white-space: pre-wrap; font: 11px var(--vscode-editor-font-family, monospace); margin: 0 10px 6px; }
 `;
 
-/** Sends clicked tabs and checkboxes back as settings, and opens a list of a dropdown's options. */
+/**
+ * Shows renders, and sends changes back. Groups and array items are opened and closed here, and which were toggled
+ * is kept across renders (and reloads).
+ */
 const SCRIPT = `
 const vscode = acquireVsCodeApi();
-document.getElementById("feature")?.addEventListener("change", (event) => vscode.postMessage({ type: "feature", value: event.target.value }));
-document.getElementById("reset")?.addEventListener("click", () => vscode.postMessage({ type: "reset" }));
-document.addEventListener("click", (event) => {
-  document.querySelectorAll(".options").forEach((list) => list.remove());
-  const control = event.target.closest("[data-name]");
-  if (!control) {
+const state = vscode.getState() || { toggled: {} };
+const dialog = document.getElementById("dialog");
+const style = document.getElementById("dialog-style");
+const messages = document.getElementById("messages");
+const featureSelect = document.getElementById("feature");
+const reset = document.getElementById("reset");
+
+featureSelect.addEventListener("change", () => vscode.postMessage({ type: "feature", value: featureSelect.value }));
+reset.addEventListener("click", () => vscode.postMessage({ type: "reset" }));
+
+window.addEventListener("message", (event) => {
+  const message = event.data;
+  if (message.type !== "render") {
     return;
   }
-  const name = control.dataset.name;
-  if (control.dataset.value !== undefined) {
-    vscode.postMessage({ type: "set", name, value: control.dataset.value });
-    return;
+  featureSelect.replaceChildren(...message.features.map((name) => new Option(name, name, false, name === message.feature)));
+  featureSelect.hidden = message.features.length < 2;
+  document.getElementById("settings").textContent = message.settings.join(", ");
+  reset.hidden = message.settings.length === 0;
+  const notes = [message.error, ...(message.warnings || [])].filter(Boolean);
+  messages.textContent = notes.join("\\n");
+  messages.hidden = notes.length === 0;
+  if (message.html) {
+    const page = new DOMParser().parseFromString(message.html, "text/html");
+    document.documentElement.setAttribute("data-os-theme", page.documentElement.getAttribute("data-os-theme") || "dark");
+    const css = page.querySelector("style").textContent;
+    if (style.textContent !== css) {
+      style.textContent = css;
+    }
+    dialog.replaceChildren(...page.body.childNodes);
+    for (const [key, open] of Object.entries(state.toggled)) {
+      const expander = expanderFor(key);
+      if (expander) {
+        setOpen(expander, open);
+      }
+    }
   }
-  if (control.dataset.options === undefined) {
-    return;
-  }
-  const list = document.createElement("div");
-  list.className = "options";
-  for (const line of control.dataset.options.split("\\n")) {
-    const separator = line.indexOf("=");
-    const option = document.createElement("div");
-    option.textContent = line.slice(separator + 1);
-    option.addEventListener("click", (choice) => {
-      choice.stopPropagation();
-      vscode.postMessage({ type: "set", name, value: line.slice(0, separator) });
-    });
-    list.appendChild(option);
-  }
-  const box = control.getBoundingClientRect();
-  list.style.left = box.left + window.scrollX + "px";
-  list.style.top = box.bottom + window.scrollY + "px";
-  list.style.minWidth = box.width + "px";
-  document.body.appendChild(list);
-  event.stopPropagation();
 });
+
+/** A key for an expander, to remember whether it's open: its group's name, or its array item's position. */
+function keyOf(expander) {
+  const group = expander.closest("[data-group]");
+  if (expander.classList.contains("os-param-group-expander") && group) {
+    return "group:" + group.dataset.group;
+  }
+  const item = expander.closest(".os-param-array-item");
+  if (item) {
+    const index = [...item.parentElement.children].indexOf(item);
+    return "item:" + item.dataset.parentParameterId + ":" + index;
+  }
+  return undefined;
+}
+
+function expanderFor(key) {
+  return [...dialog.querySelectorAll("[data-toggle]")].find((expander) => keyOf(expander) === key);
+}
+
+function contentsOf(expander) {
+  const item = expander.closest(".os-param-array-item");
+  if (item && !expander.classList.contains("os-param-group-expander")) {
+    return item.querySelector(".os-param-array-item-contents");
+  }
+  return expander.closest(".os-param-group-collapsible-container").querySelector(".os-param-group-collapsible-contents");
+}
+
+function setOpen(expander, open) {
+  contentsOf(expander).classList.toggle("ng-hide", !open);
+  expander.querySelector("svg").classList.toggle("expanded", open);
+}
+
+function closeMenus() {
+  for (const menu of dialog.querySelectorAll(".os-select-dropdown.open")) {
+    menu.classList.remove("open");
+    menu.classList.add("ng-hide");
+  }
+}
+
+function send(control) {
+  vscode.postMessage({ type: "set", name: control.dataset.set, value: control.dataset.value ?? control.value });
+}
+
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  const option = target.closest(".os-select-choices-row[data-set]");
+  if (option) {
+    closeMenus();
+    send(option);
+    return;
+  }
+  const toggle = target.closest(".os-select-toggle");
+  if (toggle) {
+    const menu = toggle.closest(".os-select-container").querySelector(".os-select-dropdown");
+    const open = menu.classList.contains("open");
+    closeMenus();
+    if (!open) {
+      menu.classList.remove("ng-hide");
+      menu.classList.add("open");
+    }
+    return;
+  }
+  closeMenus();
+  const expander = target.closest("[data-toggle]");
+  if (expander) {
+    const key = keyOf(expander);
+    const open = !expander.querySelector("svg").classList.contains("expanded");
+    setOpen(expander, open);
+    if (key) {
+      state.toggled[key] = open;
+      vscode.setState(state);
+    }
+    return;
+  }
+  const remove = target.closest("[data-remove]");
+  if (remove) {
+    vscode.postMessage({ type: "remove", name: remove.dataset.remove, index: Number(remove.dataset.index) });
+    return;
+  }
+  const control = target.closest("[data-set]");
+  if (control && control.tagName !== "INPUT") {
+    // Checkboxes change when the dialog is rendered with the new value
+    event.preventDefault();
+    send(control);
+  }
+});
+
+// Values are set when they're entered: Enter commits a value (which changes it, if it's new)
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && event.target.matches("input[data-set]")) {
+    event.target.blur();
+  }
+});
+document.addEventListener("change", (event) => {
+  if (event.target.matches("input[data-set]:not([type=checkbox])")) {
+    send(event.target);
+  }
+});
+
+vscode.postMessage({ type: "ready" });
 `;

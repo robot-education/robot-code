@@ -264,3 +264,72 @@ def test_signature_help(client):
     assert result["activeParameter"] == 0
     # Not in a call
     assert client.request("textDocument/signatureHelp", position(8, 4)) is None
+
+
+WIDGET = """FeatureScript 1;
+import(path : "onshape/std/common.fs", version : "1.0");
+
+export enum Placement
+{
+    annotation { "Name" : "Edge" }
+    EDGE,
+    annotation { "Name" : "Point" }
+    POINT
+}
+
+annotation { "Feature Type Name" : "Widget" }
+export const widget = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "Placement", "UIHint" : ["HORIZONTAL_ENUM"] }
+        definition.placement is Placement;
+
+        if (definition.placement == Placement.POINT)
+        {
+            annotation { "Name" : "Point" }
+            definition.point is Query;
+        }
+    }
+    {
+    });
+"""
+
+
+def test_render_ui(tmp_path):
+    """The extension's dialog preview renders through the server, with unsaved changes."""
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    code_dir = tmp_path / "featurescripts"
+    code_dir.mkdir()
+    (tmp_path / "std").mkdir()
+    (tmp_path / "std" / "common.fs").write_text("FeatureScript 1;\n")
+    path = code_dir / "widget.fs"
+    path.write_text("FeatureScript 1;\n")
+    uri = path.as_uri()
+    client = Client()
+    try:
+        client.request("initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}})
+        client.notify("initialized", {})
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": WIDGET}},
+        )
+        result = client.request(
+            "featurescript/renderUi", {"uri": uri, "settings": [["placement", "POINT"], ["nothing", "1"]], "theme": "light"}
+        )
+        assert result["features"] == ["widget"] and result["feature"] == "widget"
+        assert "data-os-theme='light'" in result["html"]
+        assert "os-param-query-list-label os-grow'>Point<" in result["html"]
+        assert result["warnings"] == ["nothing isn't shown, so --set nothing did nothing."]
+
+        # Unsaved changes are rendered
+        client.notify(
+            "textDocument/didChange",
+            {
+                "textDocument": {"uri": uri, "version": 2},
+                "contentChanges": [{"text": WIDGET.replace('"Name" : "Point" }\n            definition', '"Name" : "Spot" }\n            definition')}],
+            },
+        )
+        result = client.request("featurescript/renderUi", {"uri": uri, "settings": [["placement", "POINT"]]})
+        assert "os-param-query-list-label os-grow'>Spot<" in result["html"]
+    finally:
+        client.close()

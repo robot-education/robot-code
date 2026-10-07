@@ -331,6 +331,13 @@ class Declarations:
         self.constants: dict[str, tuple[list[Token], int]] = {}
         self.features: dict[str, Feature] = {}
 
+    def merge(self, other: Declarations) -> None:
+        """Adds another file's declarations, after this one's (so this one's win)."""
+        for name in ("predicates", "enums", "constants", "features"):
+            mine: dict = getattr(self, name)
+            for key, value in getattr(other, name).items():
+                mine.setdefault(key, value)
+
     def add_source(self, source: str) -> None:
         tokens = scan(source).tokens
         parser = Parser(tokens)
@@ -432,20 +439,63 @@ def _literal_map(node: Node) -> dict:
 _IMPORT = re.compile(r'(\w+\s*::\s*)?\bimport\s*\(\s*path\s*:\s*"([^"]+)"')
 
 
-def load_declarations(project: Project, std_dir: pathlib.Path, path: pathlib.Path) -> Declarations:
-    """Parses `path` and every file it imports, directly or not."""
+@dataclasses.dataclass
+class ParsedFile:
+    declarations: Declarations
+    # (namespace, path) of each import
+    imports: list[tuple[str, str]]
+
+
+# Each file's parsed declarations, with the modification time and size (or the source) they were parsed from. Parsing
+# the std library takes seconds, so the language server keeps these between renders.
+_parsed_files: dict[pathlib.Path, tuple[object, ParsedFile]] = {}
+
+
+def parse_file(path: pathlib.Path, source: str | None = None) -> ParsedFile | None:
+    """A file's declarations and imports (from `source`, its unsaved contents, if given), cached."""
+    if source is None:
+        try:
+            stat = path.stat()
+        except OSError:
+            return None
+        key: object = (stat.st_mtime_ns, stat.st_size)
+    else:
+        key = ("source", source)
+    cached = _parsed_files.get(path)
+    if cached is not None and cached[0] == key:
+        return cached[1]
+    if source is None:
+        source = path.read_text(encoding="utf-8", errors="replace")
+    declarations = Declarations()
+    declarations.add_source(source)
+    parsed = ParsedFile(declarations, _IMPORT.findall(source))
+    _parsed_files[path] = (key, parsed)
+    return parsed
+
+
+def load_declarations(
+    project: Project, std_dir: pathlib.Path, path: pathlib.Path, sources: dict[pathlib.Path, str] | None = None
+) -> Declarations:
+    """Parses `path` and every file it imports, directly or not.
+
+    Args:
+        sources: Unsaved contents of files, by resolved path.
+    """
+    sources = sources or {}
     declarations = Declarations()
     element_ids = project.element_ids()
     seen: set[pathlib.Path] = set()
     pending = [path.resolve()]
     while pending:
-        current = pending.pop(0)
-        if current in seen or not current.is_file():
+        current = pending.pop(0).resolve()
+        if current in seen:
             continue
         seen.add(current)
-        source = current.read_text(encoding="utf-8", errors="replace")
-        declarations.add_source(source)
-        for namespace, imported in _IMPORT.findall(source):
+        parsed = parse_file(current, sources.get(current))
+        if parsed is None:
+            continue
+        declarations.merge(parsed.declarations)
+        for namespace, imported in parsed.imports:
             if namespace:
                 continue
             if imported.startswith(STD_PREFIX):
@@ -1432,11 +1482,18 @@ def render_feature(
     feature_name: str | None,
     overrides: dict[str, str],
     theme: str = "dark",
+    sources: dict[pathlib.Path, str] | None = None,
 ) -> tuple[str, list[str]]:
-    """Returns the HTML of a feature's dialog (in Onshape's `dark` or `light` theme), and any warnings."""
-    declarations = load_declarations(project, std_dir, path)
-    own = Declarations()
-    own.add_source(path.read_text(encoding="utf-8", errors="replace"))
+    """Returns the HTML of a feature's dialog (in Onshape's `dark` or `light` theme), and any warnings.
+
+    Args:
+        sources: Unsaved contents of files, by resolved path.
+    """
+    declarations = load_declarations(project, std_dir, path, sources)
+    own = parse_file(path.resolve(), (sources or {}).get(path.resolve()))
+    if own is None:
+        raise UiError(f"Couldn't read {path}.")
+    own = own.declarations
     if not own.features:
         raise UiError(f"{path.name} doesn't define a feature.")
     if feature_name is None:
