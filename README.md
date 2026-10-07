@@ -229,14 +229,20 @@ uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # 
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 ```
 
-`fs ui` renders a feature's dialog roughly as Onshape shows it (in its dark theme, with its icons from
-`onshape_icons/`), from its precondition: parameters take their defaults (or the values given with `--set`),
-predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic doesn't run, so values it
-would set (like Robot nut strip's end offsets) show their defaults. Like Onshape, it shows some parameters (like
-`holeDiameter`) as an icon instead of a label, and a mate connector button beside queries which accept them. It
-needs Chromium, which it finds in Playwright's browsers folder, on the path, or through `CHROMIUM`.
+`fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
+values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic
+doesn't run, so values it would set (like Robot nut strip's end offsets) show their defaults. The dialog is written with
+Onshape's own markup and styled with Onshape's own styles and icons (in its dark theme, or `--theme light`), so it looks
+the same, down to the layout of rows. It needs Chromium, which it finds in Playwright's browsers folder, on the path,
+or through `CHROMIUM`.
 
-Arrays start empty, as in a new feature; `--set holes=2` shows two items. `featurescripts/uiTestBench/uiTestBench.fs` has one
+The styles and icons are in `fs_cli/onshape_ui/`, extracted from a saved Onshape page with a dialog open
+(`featurescripts/uiTestBench/uiTestBench.html`): the rules which apply to the dialog's elements, and the theme variables
+they use. To update them, save the page again, and run `uv run --group onshape-ui python -m fs_cli.onshape_ui.extract
+featurescripts/uiTestBench/uiTestBench.html`.
+
+Arrays start empty, as in a new feature; `--set holes=2` shows two items, and `--set holes.1.depth=2in` sets the second
+item's depth. `featurescripts/uiTestBench/uiTestBench.fs` has one
 of every kind of parameter and UI hint, for comparing `fs ui` with Onshape (`uv run fs ui
 featurescripts/uiTestBench/uiTestBench.fs --set items=2`). To capture how Onshape draws a dialog, open it in Onshape and
 paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with the CSS
@@ -353,8 +359,11 @@ The extension provides:
   and workspace symbol search (Ctrl+T). Go to Definition also works on the function names in a feature's
   `"Manipulator Change Function"` and `"Editing Logic Function"`, and on `"UIHint"` strings (into `std/`)
 - A Preview Feature UI button (in the editor's title bar, for files defining a feature) which shows the feature's
-  dialog as `fs ui` renders it, beside the file, updating when it's saved. Clicking a tab, checkbox, or dropdown in
-  it changes that parameter, to see the dialog's other states
+  dialog as `fs ui` renders it, beside the file, following edits as they're made (saved or not), in VS Code's light
+  or dark theme. It works like Onshape's dialog: clicking a tab, checkbox, button, or dropdown option, or entering a
+  value, changes that parameter (showing and hiding the parameters which depend on it); groups and array items open
+  and close; and array items can be added and removed. The language server renders it, keeping the parsed std library
+  between renders, so it updates in tens of milliseconds
 - Hovers with doc comments laid out like Onshape's [FsDoc](https://cad.onshape.com/FsDoc/library.html) (for std
   symbols too), signatures, enum variants, feature definition fields, and the file an import refers to
 - Signature help in calls, with each parameter's documentation
