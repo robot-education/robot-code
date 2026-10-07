@@ -1389,14 +1389,24 @@ def test_cots_ranks_parts_and_shows_options():
                     {"name": "Length", "type": "quantity"},
                 ]
             },
-            "/configuration/insertable/a": {"records": [{"partNumber": "WCP-0914", "name": "1/2\" Rounded Hex", "url": "u"}]},
+            "/configuration/insertable/a": {
+                "parameters": [{"id": "List_a", "name": "Type", "options": [{"id": "Rounded", "name": "1/2\" Rounded Hex"}]}],
+                "records": [
+                    {"partNumber": "WCP-0913", "name": "1/2\" Hex", "url": "u", "configurationKey": ""},
+                    {"partNumber": "WCP-0914", "name": "1/2\" Rounded Hex", "url": "u", "configurationKey": "List_a=Rounded"},
+                ],
+            },
         }
     )
     library = FrcDesign("frc", session=session)
     parts = find(library.parts(), "hex shaft")
     assert [(part.name, part.uses) for part in parts] == [("Hex Shaft (WCP)", 800), ("Hex Shaft (REV)", 300)]
     assert library.options(parts[0]) == ['Type (3): 1/2" Rounded Hex = 2, 1/2" Hex = 1', "Length (quantity)"]
-    assert library.records(parts[0])[0]["partNumber"] == "WCP-0914"
+    records = library.records(parts[0])
+    assert [(record["partNumber"], record["options"]) for record in records] == [
+        ("WCP-0913", ""),
+        ("WCP-0914", 'Type = 1/2" Rounded Hex'),
+    ]
 
 
 # Images

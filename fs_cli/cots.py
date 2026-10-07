@@ -1,7 +1,8 @@
 """Researching COTS parts with FRCDesign's usage data (see docs/cots-research.md).
 
 FRCDesign (https://app.frcdesign.org) is an Onshape app whose libraries hold most of the COTS parts FRC and FTC teams
-use. Its API is public and needs no sign-in (and isn't Onshape's, so it doesn't count against Onshape's API limits):
+use. The endpoints used here need no sign-in (and aren't Onshape's, so they don't count against Onshape's API limits);
+docs/cots-research.md lists the others:
 
 - `/api/library-version/library/{library}`: the library's current version, which the data below is cached by.
 - `/api/library-data/library/{library}?v={version}`: its groups and parts ("insertables").
@@ -9,7 +10,7 @@ use. Its API is public and needs no sign-in (and isn't Onshape's, so it doesn't 
 - `/api/analytics/insertable/library/{library}/element/{element id}?from=...&to=...`: how often each of a part's
   configuration options was chosen.
 - `/api/configuration/insertable/{insertable id}?v={version}`: a part's configuration parameters, and its
-  configurations' part numbers, names, and vendor links.
+  configurations' part numbers, names, and vendor links (each for a `configurationKey` of parameter and option ids).
 """
 
 from __future__ import annotations
@@ -95,9 +96,21 @@ class FrcDesign:
         return lines
 
     def records(self, part: Part) -> list[dict]:
-        """A part's configurations with part numbers: maps of `partNumber`, `name`, and `url`."""
+        """A part's configurations with part numbers: maps of `partNumber`, `name`, and `url`, and `options`, the options
+        its `configurationKey` chooses (e.g. `Tube Type = 2" x 1" x 0.125"`; options left at their defaults aren't
+        in it)."""
         configuration = self.get(f"/configuration/insertable/{part.insertable_id}", v=self.version)
-        return configuration.get("records", [])
+        parameters = {parameter["id"]: parameter for parameter in configuration.get("parameters", [])}
+        records = configuration.get("records", [])
+        for record in records:
+            options = []
+            for pair in filter(None, (record.get("configurationKey") or "").split(";")):
+                parameter_id, _, value = pair.partition("=")
+                parameter = parameters.get(parameter_id, {"name": parameter_id})
+                names = {option["id"]: option["name"] for option in parameter.get("options") or []}
+                options.append(f"{parameter['name']} = {names.get(value, value)}")
+            record["options"] = ", ".join(options)
+        return records
 
 
 def find(parts: list[Part], query: str) -> list[Part]:

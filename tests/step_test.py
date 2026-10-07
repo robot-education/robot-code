@@ -82,3 +82,15 @@ def test_profile_needs_a_face(step):
     with pytest.raises(StepError, match="z = 5"):
         step.profile(z=5)
     assert len(step.profile(z=1 * MM)) == 3
+
+
+def test_trimmed(step, tmp_path):
+    # A second solid's entities, which the face doesn't need
+    path = tmp_path / "extra.step"
+    path.write_text(STEP.replace("ENDSEC;\nEND", "#70 = CARTESIAN_POINT('', (5., 5., 5.));\n#71 = VERTEX_POINT('', #70);\nENDSEC;\nEND"))
+    trimmed = tmp_path / "trimmed.step"
+    trimmed.write_text(StepFile(path).trimmed())
+    kept = StepFile(trimmed)
+    assert 70 not in kept.entities and 55 in kept.entities
+    assert kept.inches_per_unit == pytest.approx(MM)
+    assert kept.profile(tolerance=1e-6) == step.profile(tolerance=1e-6)

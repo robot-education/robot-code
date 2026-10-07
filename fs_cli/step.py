@@ -106,9 +106,12 @@ class StepFile:
         text = path.read_text(errors="replace")
         text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
         data = text[text.index("DATA;") + len("DATA;") :]
+        self.header = text[: text.index("DATA;")]
         self.entities: dict[int, list[Instance]] = {}
+        self.text: dict[int, str] = {}
         for match in re.finditer(r"#(\d+)\s*=\s*(.*?);(?=\s*(?:#\d+\s*=|ENDSEC))", data, re.S):
             self.entities[int(match[1])] = _parse_instances(match[2])
+            self.text[int(match[1])] = match[2].strip()
         self.inches_per_unit = self._length_unit()
 
     def get(self, ref: Ref, type: str | None = None) -> Instance:
@@ -178,6 +181,18 @@ class StepFile:
                 as estimated by fitting a cubic spline through the points sampled.
             holes: Also include its inner loops (e.g. an extrusion's center bore), after the outer one.
         """
+        id, face = self._face(z)
+        outer = self._outer_loop(id, face)
+        loops = [outer]
+        if holes:
+            for bound in face.args[1]:
+                loop = self.get(self.get(bound).args[1], "EDGE_LOOP")
+                if loop is not outer:
+                    loops.append(loop)
+        return [self._edge(ref, tolerance) for loop in loops for ref in loop.args[1]]
+
+    def _face(self, z: float | None) -> tuple[int, Instance]:
+        """The planar face perpendicular to Z at height z (in inches), or the highest one."""
         faces = []
         for id, instances in self.entities.items():
             face = instances[0]
@@ -196,14 +211,31 @@ class StepFile:
         if not faces:
             raise StepError(f"No planar face perpendicular to Z{'' if z is None else f' at z = {z}'}.")
         _, id, face = max(faces, key=lambda face: face[0])
-        outer = self._outer_loop(id, face)
-        loops = [outer]
-        if holes:
-            for bound in face.args[1]:
-                loop = self.get(self.get(bound).args[1], "EDGE_LOOP")
-                if loop is not outer:
-                    loops.append(loop)
-        return [self._edge(ref, tolerance) for loop in loops for ref in loop.args[1]]
+        return id, face
+
+    def trimmed(self, z: float | None = None) -> str:
+        """A STEP file holding only the face `profile` reads (and its units), so a vendor's long extrusion can be kept
+        as just its cross section."""
+        id, _ = self._face(z)
+        contexts = [
+            instances[0].args[2].id
+            for instances in self.entities.values()
+            if instances[0].type in ("ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION")
+        ]
+        if not contexts:
+            raise StepError("Couldn't find the file's representation context.")
+        kept: set[int] = set()
+        pending = [id, contexts[0]]
+        while pending:
+            current = pending.pop()
+            if current in kept:
+                continue
+            kept.add(current)
+            pending += _refs(self.entities[current])
+        representation = max(self.entities) + 1
+        lines = [f"#{entity} = {self.text[entity]};" for entity in sorted(kept)]
+        lines.append(f"#{representation} = ADVANCED_BREP_SHAPE_REPRESENTATION('', (#{id}), #{contexts[0]});")
+        return self.header + "DATA;\n" + "\n".join(lines) + "\nENDSEC;\nEND-ISO-10303-21;\n"
 
     def _outer_loop(self, id: int, face: Instance) -> Instance:
         """A face's outer loop: its FACE_OUTER_BOUND, or (as some exporters only write FACE_BOUNDs)
@@ -248,6 +280,17 @@ class StepFile:
             # The ends must be exactly the vertices, so the profile closes
             return FitSpline((start, *points[1:-1], end))
         raise StepError(f"Unsupported curve {curve.type} in edge #{oriented.args[3].id}.")
+
+
+def _refs(value: Any) -> list[int]:
+    """The ids of the entities a parsed value refers to."""
+    if isinstance(value, Ref):
+        return [value.id]
+    if isinstance(value, Instance):
+        return _refs(value.args)
+    if isinstance(value, list):
+        return [id for item in value for id in _refs(item)]
+    return []
 
 
 @dataclasses.dataclass

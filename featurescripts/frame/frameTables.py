@@ -1,5 +1,9 @@
 """Frame lookup tables for robotFrame: tube, channel, angle, and extrusion. Run `uv run fs gen` after editing.
 
+Each vendor's frames are chosen by size, then (where a size comes in more than one) by hole pattern, then by wall
+thickness; a choice with only one option is left out, so tables vary in depth. Options follow FRCDesign's (see
+docs/cots-research.md), checked against the vendors' drawings.
+
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
 `wallY` thick on its sides facing Y; `open` channels have no wall on +Y, `angle` has only the walls facing -X and
 -Y, and beams with a `bore` are solid around a round hole that diameter instead. Anything else (like T-slot
@@ -19,7 +23,7 @@ far apart they are. `stock` lists the lengths each is sold in, shortest first (s
 import math
 import pathlib
 
-from fs_cli.sketches import Point, Profile, Sketch, translated
+from fs_cli.sketches import Point, Profile, Sketch, rotated, translated
 from fs_cli.step import StepFile
 from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
@@ -123,8 +127,27 @@ def vendor(name: str, url: str, appearance: str | None, sizes: list[Value]) -> V
     return Value(name, values, Node("size", sizes))
 
 
-def size(name: str, variants: list[Value], appearance: str | None = None) -> Value:
-    return Value(name, {"appearance": appearance} if appearance is not None else {}, Node("variant", variants, display_name="Type"))
+# The choices after size, by the key they're stored under
+LEVELS = {"pattern": "Pattern", "wall": "Wall", "finish": "Finish", "variant": "Type"}
+
+
+def size(name: str, entries: list[Value], appearance: str | None = None, level: str = "wall") -> Value:
+    """A size of a vendor's frames, with a choice between `entries`: of wall thickness, unless `level` says otherwise."""
+    values = {"appearance": appearance} if appearance is not None else {}
+    return Value(name, values, Node(level, entries, display_name=LEVELS[level]))
+
+
+def pattern(name: str, walls: list[Value]) -> Value:
+    """A hole pattern a size comes in, with a choice of wall thickness."""
+    return Value(name, {}, Node("wall", walls, display_name="Wall"))
+
+
+def only(name: str, frame: Value, appearance: str | None = None) -> Value:
+    """A choice that's a frame itself, as a size or pattern which comes in only one wall thickness."""
+    values = dict(frame.values)
+    if appearance is not None:
+        values["appearance"] = appearance
+    return Value(name, values)
 
 
 # FRC tube: #10 clearance holes 1/2 in. apart, starting 1/2 in. from the end; one row on a 1 in. face, three on a 2 in.
@@ -139,36 +162,58 @@ def frc_tube(
     wall_x: float,
     wall_y: float,
     lengths: str,
+    detail: str | None = None,
     x_holes: bool = True,
     y_holes: bool = True,
     diameter: float = 0.196,
+    x_rows: list[str] | None = None,
     y_rows: list[str] | None = None,
+    tie_start: float = 0.5,
     tie_unit: float = 0.5,
+    profile: str | None = None,
 ) -> Value:
-    """A tube with FRC's usual grid of holes, through the walls facing X and/or Y (or `y_rows`)."""
-    size = f"{width:g}x{height:g}"
+    """A tube with FRC's usual grid of holes, through the walls facing X and/or Y (or `x_rows` and `y_rows`). It's
+    `name` in the table, a wall thickness like "1/16 in.", and is described with `detail` (by default, its wall)."""
+    size = f"{fraction(width)}x{fraction(height)}"
     return tube(
         name,
-        f"{size} Tube ({vendor_name}, {name[:1].lower() + name[1:]})",
+        f"{size} Tube ({vendor_name}, {detail or name + ' wall'})",
         width,
         height,
         wall_x,
         wall_y,
         diameter,
-        grid(height) if x_holes else [],
+        x_rows if x_rows is not None else grid(height) if x_holes else [],
         y_rows if y_rows is not None else grid(width) if y_holes else [],
-        inch(0.5),
+        inch(tie_start),
         inch(tie_unit),
         lengths,
+        profile=profile,
     )
+
+
+def fraction(value: float) -> str:
+    return {0.5: "1/2"}.get(value, f"{value:g}")
 
 
 def wcp(part_number: str) -> str:
     return f"https://wcproducts.com/products/{part_number.lower()}"
 
 
-def wcp_tube(part_number: str, *args, **kwargs) -> Value:
-    return frc_tube("WCP", *args, lengths=stock((inch(47), part_number, wcp(part_number))), **kwargs)
+def wcp_tube(part_number: str, wall: str, width: float, height: float, thickness: float, sides_only: bool = False) -> Value:
+    """WCP's tube with a `wall` (its name in the table) `thickness` thick, with holes on every side, or (`sides_only`)
+    only through its 1 in. sides."""
+    return frc_tube(
+        "WCP",
+        wall,
+        width,
+        height,
+        thickness,
+        thickness,
+        stock((inch(47), part_number, wcp(part_number))),
+        detail=f"{wall} wall" + (", 1 in. sides only" if sides_only else ""),
+        y_holes=not sides_only,
+    )
 
 
 WCP_BENT_WALL = 2.5 / 25.4
@@ -202,23 +247,43 @@ WCP = vendor(
         size(
             "1x1",
             [
-                wcp_tube("WCP-0924", "1/16 in. wall", 1, 1, 0.0625, 0.0625),
-                wcp_tube("WCP-1023", "1/8 in. wall", 1, 1, 0.125, 0.125),
+                wcp_tube("WCP-0924", "1/16 in.", 1, 1, 0.0625),
+                # Sold as 0.093 in.
+                wcp_tube("WCP-1586", "3/32 in.", 1, 1, 0.093),
+                wcp_tube("WCP-1023", "1/8 in.", 1, 1, 0.125),
             ],
         ),
         size(
             "2x1",
             [
-                wcp_tube("WCP-0895", "1/16 in. wall", 2, 1, 0.0625, 0.0625),
-                wcp_tube("WCP-0894", "1/16 in. wall, 1 in. sides only", 2, 1, 0.0625, 0.0625, y_holes=False),
-                wcp_tube("WCP-1428", "3/32 in. wall", 2, 1, 0.09375, 0.09375),
-                wcp_tube("WCP-1427", "3/32 in. wall, 1 in. sides only", 2, 1, 0.09375, 0.09375, y_holes=False),
-                wcp_tube("WCP-1025", "1/8 in. wall", 2, 1, 0.125, 0.125),
-                wcp_tube("WCP-1024", "1/8 in. wall, 1 in. sides only", 2, 1, 0.125, 0.125, y_holes=False),
+                pattern(
+                    "Full",
+                    [
+                        wcp_tube("WCP-0895", "1/16 in.", 2, 1, 0.0625),
+                        wcp_tube("WCP-1428", "3/32 in.", 2, 1, 0.09375),
+                        wcp_tube("WCP-1025", "1/8 in.", 2, 1, 0.125),
+                    ],
+                ),
+                pattern(
+                    "1 in. sides only",
+                    [
+                        wcp_tube("WCP-0894", "1/16 in.", 2, 1, 0.0625, sides_only=True),
+                        wcp_tube("WCP-1427", "3/32 in.", 2, 1, 0.09375, sides_only=True),
+                        wcp_tube("WCP-1024", "1/8 in.", 2, 1, 0.125, sides_only=True),
+                    ],
+                ),
+            ],
+            level="pattern",
+        ),
+        size(
+            "2x2",
+            [
+                wcp_tube("WCP-0926", "1/16 in.", 2, 2, 0.0625),
+                # Sold as 0.093 in.
+                wcp_tube("WCP-1587", "3/32 in.", 2, 2, 0.093),
             ],
         ),
-        size("2x2", [wcp_tube("WCP-0926", "1/16 in. wall", 2, 2, 0.0625, 0.0625)]),
-        # Bent from 2.5 mm sheet; their bends are left sharp
+        # Bent from 2.5 mm sheet (FRCDesign has 0.090 in., but WCP's pages say 2.5 mm); their bends are left sharp
         # TODO: WCP's drawings, to check that their holes are on the usual grid, centered on each face
         size(
             "Angle",
@@ -226,6 +291,7 @@ WCP = vendor(
                 wcp_bent("WCP-0929", "1x1", "Angle", 1, 1, angle=True),
                 wcp_bent("WCP-0930", "2x2", "Angle", 2, 2, angle=True),
             ],
+            level="variant",
         ),
         size(
             "C-Channel",
@@ -233,39 +299,53 @@ WCP = vendor(
                 wcp_bent("WCP-0931", "1x1x1", "C-Channel", 1, 1, open=True),
                 wcp_bent("WCP-0932", "1x2x1", "C-Channel", 2, 1, open=True),
             ],
+            level="variant",
         ),
     ],
 )
 
 
+REV_HALF_URL = "https://www.revrobotics.com/MAXTube-0.5x0.5/"
 REV_1X1_URL = "https://www.revrobotics.com/MAXTube-1x1/"
-REV_2X1_URL = "https://www.revrobotics.com/MAXTube-2x1"
+REV_2X1_URL = "https://www.revrobotics.com/MAXTube-2x1/"
+REV_2X2_URL = "https://www.revrobotics.com/MAXTube-2x2/"
+REV_MM = 1 / 25.4
 
 
-def rev_tube(part_number: str, url: str, *args, **kwargs) -> Value:
-    return frc_tube("REV", *args, lengths=stock((inch(47), part_number, url)), diameter=5 / 25.4, **kwargs)
+def rev_tube(part_number: str, url: str, name: str, width: float, height: float, wall: float, **kwargs) -> Value:
+    """MAXTube, 47 in. long, with 5 mm holes on FRC's usual grid (unless given other rows)."""
+    return frc_tube(
+        "REV", name, width, height, wall, wall, stock((inch(47), part_number, url)), diameter=5 * REV_MM, **kwargs
+    )
 
 
-def max_pattern_tube() -> Value:
-    """MAXTube 2x1 with MAX Pattern (drawing: MAXTube-2x1-0.125in_Wall-Max_Pattern-DR.pdf): the standard profile, with
-    the usual grid on the 1 in. sides, and on the 2 in. sides a MAXSpline cutout every 2 in., starting 1.5 in. from the
-    end, with a column of 3 holes between each. It's sold in odd lengths, so the pattern ends the way it starts."""
-    rows = [
+def max_pattern() -> list[str]:
+    """REV's MAX Pattern (drawings: MAXTube-2x1_MAX_Pattern-DR.pdf and MAXTube-2x1-0.125in_Wall-Max_Pattern-DR.pdf):
+    on a 2 in. face, a MAXSpline cutout every 2 in., starting 1.5 in. from the end, with a column of 3 holes between
+    each."""
+    return [
         row(inch(1.5), inch(2), [shape(inch(0), max_spline=True)]),
         row(inch(0.5), inch(2), [shape(inch(k * 0.5)) for k in (-1, 0, 1)]),
     ]
-    lengths = [(3, 2163), (5, 2164), (7, 2165), (15, 2169), (23, 2173), (31, 2177), (47, 2185)]
+
+
+def max_pattern_tube(name: str, detail: str, numbers: list[int], **kwargs) -> Value:
+    """MAXTube 2x1 with MAX Pattern on its 2 in. sides, and the usual grid on its 1 in. sides. It's sold in odd
+    lengths (3, 5, 7, 15, 23, 31, and 47 in.: `numbers`' part numbers), so the pattern ends the way it starts."""
+    lengths = (3, 5, 7, 15, 23, 31, 47)
     return frc_tube(
         "REV",
-        "Standard, MAX Pattern",
+        name,
         2,
         1,
-        1 / 25.4,
         0.125,
-        stock(*[(inch(length), f"REV-21-{number}", REV_2X1_URL) for length, number in lengths]),
-        diameter=5 / 25.4,
-        y_rows=rows,
+        0.125,
+        stock(*[(inch(length), f"REV-21-{number}", REV_2X1_URL) for length, number in zip(lengths, numbers)]),
+        detail=detail,
+        diameter=5 * REV_MM,
+        y_rows=max_pattern(),
         tie_unit=2,
+        **kwargs,
     )
 
 
@@ -318,52 +398,118 @@ def extrusion(
     return value
 
 
-def step_profile(file: str, offset: Point = Point(0, 0)) -> Profile:
-    """The cross section of a vendor's extrusion, with its bores and pockets, from its STEP file."""
-    return Profile(translated(StepFile(VENDOR / file).profile(holes=True), offset))
+def step_profile(file: str, offset: Point = Point(0, 0), degrees: float = 0) -> Profile:
+    """The cross section of a vendor's extrusion, with its bores and pockets, from its STEP file (some trimmed to just
+    that with `fs step`), rotated then moved to center it on the origin with its width along X."""
+    return Profile(translated(rotated(StepFile(VENDOR / file).profile(holes=True), degrees), offset))
 
 
-# T-slot extrusion's cross sections, centered on the origin
+# Cross sections which aren't plain rectangles, centered on the origin
 PROFILES = [
+    # T-slot extrusion
     Sketch("REV_1IN_EXTRUSION", step_profile("REV-21-1000.STEP")),
     Sketch("REV_15MM_EXTRUSION", step_profile("REV-41-1017.STEP")),
     # Modeled off center
     Sketch("REV_15X30MM_EXTRUSION", step_profile("REV-41-1093.STEP", Point(7.5 / 25.4, 0))),
+    # MAXTube which isn't a plain tube: hollow corners, with thinner walls between them (and the 2x1s modeled with
+    # their 2 in. sides facing X)
+    Sketch("REV_MAXTUBE_1X1", step_profile("REV-21-2160.STEP")),
+    Sketch("REV_MAXTUBE_2X1", step_profile("REV-21-2162.STEP", degrees=90)),
+    Sketch("REV_MAXTUBE_2X1_MAX", step_profile("REV-21-2163.STEP", degrees=90)),
+    Sketch("REV_MAXTUBE_2X1_LIGHT", step_profile("REV-21-2161.STEP", degrees=90)),
+    Sketch("REV_MAXTUBE_2X1_LIGHT_GRID", step_profile("REV-21-2289.STEP", degrees=90)),
+    # REV-21-3287's is REV-21-3288's
+    Sketch("REV_MAXTUBE_2X2", step_profile("REV-21-3288.STEP")),
+    Sketch("REV_MAXTUBE_2X2_MAX", step_profile("REV-21-3286.STEP")),
 ]
 
 
-# https://www.revrobotics.com/MAXTube (drawings: REV-21-xxxx-DR.pdf); clear anodized
-# TODO: the 1 mm wall MAXTube profiles have #10 nut grooves, which these leave out
+# https://www.revrobotics.com/MAXTube (drawings: REV-21-xxxx-DR.pdf, and STEP files on each product page); clear
+# anodized. The original profiles (REV's plain "MAXTube") have hollow corners, with 1 mm walls between them on the
+# 1 in. sides of 2x1 (1/8 in. on its 2 in. sides; 1 mm on each side of Light); the grid pattern ones are plain tube,
+# but for 2x2's, which also has hollow corners. Holes are 5 mm, every 1/2 in. starting 1/2 in. from the end (1/4 in. on
+# 1/2x1/2), in each side's middle, three across 2 in. sides (the STEP files).
 REV = vendor(
     "REV",
     "https://www.revrobotics.com/MAXTube",
     # Each size's own, since the extrusion comes in two
     None,
     [
+        only(
+            "1/2x1/2",
+            rev_tube(
+                "REV-21-3289",
+                REV_HALF_URL,
+                "1/16 in.",
+                0.5,
+                0.5,
+                0.0625,
+                x_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                y_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                tie_start=0.25,
+            ),
+            WHITE,
+        ),
         size(
             "1x1",
             [
-                rev_tube("REV-21-3540", REV_1X1_URL, "Grid, 1/16 in. wall", 1, 1, 0.0625, 0.0625),
-                rev_tube("REV-21-3543", REV_1X1_URL, "Grid, 1/8 in. wall", 1, 1, 0.125, 0.125),
-                rev_tube("REV-21-2160", REV_1X1_URL, "Grid, 1 mm wall", 1, 1, 1 / 25.4, 1 / 25.4),
+                rev_tube("REV-21-2160", REV_1X1_URL, "Standard", 1, 1, REV_MM, detail="standard",
+                         profile="REV_MAXTUBE_1X1"),
+                rev_tube("REV-21-3540", REV_1X1_URL, "1/16 in.", 1, 1, 0.0625),
+                rev_tube("REV-21-3543", REV_1X1_URL, "1/8 in.", 1, 1, 0.125),
             ],
             WHITE,
         ),
         size(
             "2x1",
             [
-                rev_tube("REV-21-3552", REV_2X1_URL, "Grid, 1/16 in. wall", 2, 1, 0.0625, 0.0625),
-                rev_tube("REV-21-3555", REV_2X1_URL, "Grid, 1/8 in. wall", 2, 1, 0.125, 0.125),
-                rev_tube("REV-21-3586", REV_2X1_URL, "Grid, 3/16 in. wall", 2, 1, 0.1875, 0.1875),
-                rev_tube("REV-21-2289", REV_2X1_URL, "Light grid, 1 mm wall", 2, 1, 1 / 25.4, 1 / 25.4),
-                rev_tube("REV-21-2161", REV_2X1_URL, "Light, 1 mm wall", 2, 1, 1 / 25.4, 1 / 25.4, y_holes=False),
-                # 1/8 in. on the 2 in. sides, 1 mm on the 1 in. sides
-                rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, 1 / 25.4, 0.125, y_holes=False),
-                max_pattern_tube(),
+                pattern(
+                    "Grid",
+                    [
+                        rev_tube("REV-21-2289", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light",
+                                 profile="REV_MAXTUBE_2X1_LIGHT_GRID"),
+                        rev_tube("REV-21-3552", REV_2X1_URL, "1/16 in.", 2, 1, 0.0625),
+                        rev_tube("REV-21-3555", REV_2X1_URL, "1/8 in.", 2, 1, 0.125),
+                        rev_tube("REV-21-3586", REV_2X1_URL, "3/16 in.", 2, 1, 0.1875),
+                    ],
+                ),
+                pattern(
+                    "1 in. sides only",
+                    [
+                        rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light, 1 in. sides only",
+                                 y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT"),
+                        rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_MM,
+                                 detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1"),
+                    ],
+                ),
+                pattern(
+                    "MAX Pattern",
+                    [
+                        max_pattern_tube("Standard", "standard, MAX Pattern", [2163, 2164, 2165, 2169, 2173, 2177, 2185],
+                                         profile="REV_MAXTUBE_2X1_MAX"),
+                        max_pattern_tube("1/8 in.", "1/8 in. wall, MAX Pattern", [3558, 3559, 3560, 3564, 3568, 3572, 3580]),
+                    ],
+                ),
             ],
             WHITE,
+            level="pattern",
         ),
-        size("Angle", [rev_angle()], WHITE),
+        size(
+            "2x2",
+            [
+                only("Grid", rev_tube("REV-21-3288", REV_2X2_URL, "Grid", 2, 2, 0.125, detail="grid",
+                                      profile="REV_MAXTUBE_2X2")),
+                only("MAX Pattern", rev_tube("REV-21-3286", REV_2X2_URL, "MAX Pattern", 2, 2, 0.125,
+                                             detail="MAX Pattern", x_rows=max_pattern(), y_rows=max_pattern(),
+                                             tie_unit=2, profile="REV_MAXTUBE_2X2_MAX")),
+                only("MAX Pattern and grid", rev_tube("REV-21-3287", REV_2X2_URL, "MAX Pattern and grid", 2, 2, 0.125,
+                                                      detail="MAX Pattern and grid", y_rows=max_pattern(),
+                                                      profile="REV_MAXTUBE_2X2")),
+            ],
+            WHITE,
+            level="pattern",
+        ),
+        only("Angle", rev_angle(), WHITE),
         size(
             "1 in. Extrusion",
             [
@@ -373,6 +519,7 @@ REV = vendor(
                 extrusion("Black anodized", "1in Extrusion (REV, black)", 1, 1, "REV_1IN_EXTRUSION", BLACK,
                           stock((inch(48), "REV-21-1404", REV_1IN_URL))),
             ],
+            level="finish",
         ),
     ],
 )
@@ -381,12 +528,24 @@ REV = vendor(
 AM_URL = "https://andymark.com/products/pre-drilled-box-tube-extrusion"
 
 
-def am_tube(part_number: str, *args, **kwargs) -> Value:
-    return frc_tube("AndyMark", *args, lengths=stock((inch(47), part_number, f"https://andymark.com/{part_number}")), **kwargs)
+def am_tube(part_number: str, wall: str, width: float, height: float, thickness: float, plain: bool = False) -> Value:
+    """AndyMark's tube, with holes on every side, or none (`plain`)."""
+    return frc_tube(
+        "AndyMark",
+        wall,
+        width,
+        height,
+        thickness,
+        thickness,
+        stock((inch(47), part_number, f"https://andymark.com/{part_number}")),
+        detail=f"{wall} wall" + (", no holes" if plain else ""),
+        x_holes=not plain,
+        y_holes=not plain,
+    )
 
 
 # https://andymark.com/products/pre-drilled-box-tube-extrusion (drawings: am-5177 to am-5180): the same grid as
-# WCP's; raw aluminum
+# WCP's; or without holes (am-4203, am-4204, am-3214, am-4205); raw aluminum
 ANDYMARK = vendor(
     "AndyMark",
     AM_URL,
@@ -395,16 +554,30 @@ ANDYMARK = vendor(
         size(
             "1x1",
             [
-                am_tube("am-5177", "1/16 in. wall", 1, 1, 0.0625, 0.0625),
-                am_tube("am-5178", "1/8 in. wall", 1, 1, 0.125, 0.125),
+                pattern("Full", [am_tube("am-5177", "1/16 in.", 1, 1, 0.0625), am_tube("am-5178", "1/8 in.", 1, 1, 0.125)]),
+                pattern(
+                    "No holes",
+                    [
+                        am_tube("am-4203", "1/16 in.", 1, 1, 0.0625, plain=True),
+                        am_tube("am-4204", "1/8 in.", 1, 1, 0.125, plain=True),
+                    ],
+                ),
             ],
+            level="pattern",
         ),
         size(
             "2x1",
             [
-                am_tube("am-5179", "1/16 in. wall", 2, 1, 0.0625, 0.0625),
-                am_tube("am-5180", "1/8 in. wall", 2, 1, 0.125, 0.125),
+                pattern("Full", [am_tube("am-5179", "1/16 in.", 2, 1, 0.0625), am_tube("am-5180", "1/8 in.", 2, 1, 0.125)]),
+                pattern(
+                    "No holes",
+                    [
+                        am_tube("am-3214", "1/16 in.", 2, 1, 0.0625, plain=True),
+                        am_tube("am-4205", "1/8 in.", 2, 1, 0.125, plain=True),
+                    ],
+                ),
             ],
+            level="pattern",
         ),
     ],
 )
@@ -413,8 +586,8 @@ ANDYMARK = vendor(
 TTB_URL = "https://www.thethriftybot.com/products/thrifty-box-extrusion"
 
 
-def ttb_tube(sku: str, *args, **kwargs) -> Value:
-    return frc_tube("TTB", *args, lengths=stock((inch(47), sku, TTB_URL)), diameter=5 / 25.4, **kwargs)
+def ttb_tube(sku: str, wall: str, thickness: float) -> Value:
+    return frc_tube("TTB", wall, 2, 1, thickness, thickness, stock((inch(47), sku, TTB_URL)), diameter=5 / 25.4)
 
 
 # https://www.thethriftybot.com/products/thrifty-box-extrusion: 5 mm holes on a 1/2 in. grid; raw aluminum
@@ -427,8 +600,8 @@ TTB = vendor(
         size(
             "2x1",
             [
-                ttb_tube("TTB-0291", "0.080 in. wall", 2, 1, 0.08, 0.08),
-                ttb_tube("TTB-0094", "1/8 in. wall", 2, 1, 0.125, 0.125),
+                ttb_tube("TTB-0291", "0.080 in.", 0.08),
+                ttb_tube("TTB-0094", "1/8 in.", 0.125),
             ],
         )
     ],
@@ -438,8 +611,20 @@ TTB = vendor(
 SWYFT_URL = "https://swyftrobotics.com/products/swyft-super-tube"
 
 
-def swyft_tube(sku: str, *args, **kwargs) -> Value:
-    return frc_tube("Swyft", *args, lengths=stock((inch(47), sku, SWYFT_URL)), **kwargs)
+def swyft_tube(sku: str, wall: str, width: float, height: float, thickness: float, plain: bool = False) -> Value:
+    """Swyft's tube, with holes on every side (Grid), or none (`plain`)."""
+    return frc_tube(
+        "Swyft",
+        wall,
+        width,
+        height,
+        thickness,
+        thickness,
+        stock((inch(47), sku, SWYFT_URL)),
+        detail=f"{'plain' if plain else 'grid'}, {wall} wall",
+        x_holes=not plain,
+        y_holes=not plain,
+    )
 
 
 # https://swyftrobotics.com/products/swyft-super-tube; black anodized
@@ -452,21 +637,58 @@ SWYFT = vendor(
         size(
             "1x1",
             [
-                swyft_tube("SR-TUBE-0625-GRID-1X1-47", "Grid, 1/16 in. wall", 1, 1, 0.0625, 0.0625),
-                swyft_tube("SR-TUBE-125-GRID-1X1-47", "Grid, 1/8 in. wall", 1, 1, 0.125, 0.125),
+                swyft_tube("SR-TUBE-0625-GRID-1X1-47", "1/16 in.", 1, 1, 0.0625),
+                swyft_tube("SR-TUBE-125-GRID-1X1-47", "1/8 in.", 1, 1, 0.125),
             ],
         ),
         size(
             "2x1",
             [
-                swyft_tube("SR-TUBE-035-GRID-2X1-47", "Grid, 0.035 in. wall", 2, 1, 0.035, 0.035),
-                swyft_tube("SR-TUBE-0625-GRID-2X1-47", "Grid, 1/16 in. wall", 2, 1, 0.0625, 0.0625),
-                swyft_tube("SR-TUBE-125-GRID-2X1-47", "Grid, 1/8 in. wall", 2, 1, 0.125, 0.125),
-                swyft_tube("SR-TUBE-035-PLAIN-2X1-47", "Plain, 0.035 in. wall", 2, 1, 0.035, 0.035, x_holes=False, y_holes=False),
-                swyft_tube("SR-TUBE-0625-PLAIN-2X1-47", "Plain, 1/16 in. wall", 2, 1, 0.0625, 0.0625, x_holes=False, y_holes=False),
-                swyft_tube("SR-TUBE-125-PLAIN-2X1-47", "Plain, 1/8 in. wall", 2, 1, 0.125, 0.125, x_holes=False, y_holes=False),
+                pattern(
+                    "Grid",
+                    [
+                        swyft_tube("SR-TUBE-035-GRID-2X1-47", "0.035 in.", 2, 1, 0.035),
+                        swyft_tube("SR-TUBE-0625-GRID-2X1-47", "1/16 in.", 2, 1, 0.0625),
+                        swyft_tube("SR-TUBE-125-GRID-2X1-47", "1/8 in.", 2, 1, 0.125),
+                    ],
+                ),
+                pattern(
+                    "Plain",
+                    [
+                        swyft_tube("SR-TUBE-035-PLAIN-2X1-47", "0.035 in.", 2, 1, 0.035, plain=True),
+                        swyft_tube("SR-TUBE-0625-PLAIN-2X1-47", "1/16 in.", 2, 1, 0.0625, plain=True),
+                        swyft_tube("SR-TUBE-125-PLAIN-2X1-47", "1/8 in.", 2, 1, 0.125, plain=True),
+                    ],
+                ),
             ],
+            level="pattern",
         ),
+    ],
+)
+
+
+LAST_ANVIL_URL = "https://lastanvil.com/products/patterned-tube"
+
+# https://lastanvil.com/products/patterned-tube: 7075, black anodized, #10 holes every 1/2 in. (on every side, as
+# FRCDesign's model has them), with filleted corners which this leaves sharp
+# TODO: Last Anvil's drawings, to check that their grid is like WCP's
+LAST_ANVIL = vendor(
+    "Last Anvil",
+    LAST_ANVIL_URL,
+    BLACK,
+    [
+        only(
+            "2x1",
+            frc_tube(
+                "Last Anvil",
+                "1/16 in.",
+                2,
+                1,
+                0.0625,
+                0.0625,
+                stock((inch(47), "240114", LAST_ANVIL_URL + "?variant=42303483773134")),
+            ),
+        )
     ],
 )
 
@@ -529,97 +751,89 @@ GOBILDA = vendor(
     "https://www.gobilda.com/channel/",
     WHITE,
     [
-        size(
+        only(
             "U-Channel",
-            [
-                tube(
-                    "1120 Series",
-                    "U-Channel (goBILDA 1120 Series)",
-                    48,
-                    48,
-                    2.5,
-                    2.5,
-                    4,
-                    gobilda_rows(),
-                    gobilda_rows(),
-                    mm(24),
-                    mm(24),
-                    gobilda_stock("1120", "u-channel", GOBILDA_HOLES),
-                    unit=mm,
-                    open=True,
-                )
-            ],
+            tube(
+                "1120 Series",
+                "U-Channel (goBILDA 1120 Series)",
+                48,
+                48,
+                2.5,
+                2.5,
+                4,
+                gobilda_rows(),
+                gobilda_rows(),
+                mm(24),
+                mm(24),
+                gobilda_stock("1120", "u-channel", GOBILDA_HOLES),
+                unit=mm,
+                open=True,
+            ),
         ),
-        size(
+        only(
             "Low-Side U-Channel",
-            [
-                tube(
-                    "1121 Series",
-                    "Low-Side U-Channel (goBILDA 1121 Series)",
-                    48,
-                    12,
-                    2.5,
-                    2.5,
-                    4,
-                    # The sides have one row of holes, 8 mm from the base's outside
-                    [row(mm(8), mm(8), [shape(mm(2))])],
-                    gobilda_rows(),
-                    mm(24),
-                    mm(24),
-                    gobilda_stock("1121", "low-side-u-channel", GOBILDA_HOLES),
-                    unit=mm,
-                    open=True,
-                )
-            ],
+            tube(
+                "1121 Series",
+                "Low-Side U-Channel (goBILDA 1121 Series)",
+                48,
+                12,
+                2.5,
+                2.5,
+                4,
+                # The sides have one row of holes, 8 mm from the base's outside
+                [row(mm(8), mm(8), [shape(mm(2))])],
+                gobilda_rows(),
+                mm(24),
+                mm(24),
+                gobilda_stock("1121", "low-side-u-channel", GOBILDA_HOLES),
+                unit=mm,
+                open=True,
+            ),
         ),
-        size(
+        only(
             "Mini Low-Side U-Channel",
-            [
-                tube(
-                    "1143 Series",
-                    "Mini Low-Side U-Channel (goBILDA 1143 Series)",
-                    32,
-                    12,
-                    2.5,
-                    2.5,
-                    4,
-                    # As on the 1121's sides (1143-0003-0096's STEP file)
-                    [row(mm(8), mm(8), [shape(mm(2))])],
-                    gobilda_rows(32),
-                    mm(24),
-                    mm(24),
-                    gobilda_stock("1143", "mini-low-side-u-channel", list(range(1, 18))),
-                    unit=mm,
-                    open=True,
-                )
-            ],
+            tube(
+                "1143 Series",
+                "Mini Low-Side U-Channel (goBILDA 1143 Series)",
+                32,
+                12,
+                2.5,
+                2.5,
+                4,
+                # As on the 1121's sides (1143-0003-0096's STEP file)
+                [row(mm(8), mm(8), [shape(mm(2))])],
+                gobilda_rows(32),
+                mm(24),
+                mm(24),
+                gobilda_stock("1143", "mini-low-side-u-channel", list(range(1, 18))),
+                unit=mm,
+                open=True,
+            ),
         ),
-        size(
+        only(
             "Square Beam",
-            [
-                # Solid around a 4 mm bore, with 4 mm holes through each side every 8 mm, starting 4 mm from the end
-                # (1106-0007-0056's STEP file)
-                # TODO: its ends are tapped M4
-                tube(
-                    "1106 Series",
-                    "Square Beam (goBILDA 1106 Series)",
-                    8,
-                    8,
-                    2,
-                    2,
-                    4,
-                    [row(mm(4), mm(8), [shape(mm(0))])],
-                    [row(mm(4), mm(8), [shape(mm(0))])],
-                    mm(4),
-                    mm(8),
-                    # 8 mm long for each hole
-                    gobilda_stock(
-                        "1106", "square-beam", [*range(2, 14), 15, 17, 19, 21, 23, 29, 33, 35, 41], length=lambda n: 8 * n
-                    ),
-                    unit=mm,
-                    bore=4,
-                )
-            ],
+            # Solid around a 4 mm bore, with 4 mm holes through each side every 8 mm, starting 4 mm from the end
+            # (1106-0007-0056's STEP file)
+            # TODO: its ends are tapped M4
+            tube(
+                "1106 Series",
+                "Square Beam (goBILDA 1106 Series)",
+                8,
+                8,
+                2,
+                2,
+                4,
+                [row(mm(4), mm(8), [shape(mm(0))])],
+                [row(mm(4), mm(8), [shape(mm(0))])],
+                mm(4),
+                mm(8),
+                # 8 mm long for each hole
+                gobilda_stock(
+                    "1106", "square-beam", [*range(2, 14), 15, 17, 19, 21, 23, 29, 33, 35, 41], length=lambda n: 8 * n
+                ),
+                unit=mm,
+                bore=4,
+            ),
         ),
     ],
 )
@@ -630,24 +844,22 @@ ROBITS = vendor(
     AM_URL,
     WHITE,
     [
-        size(
-            "Robits",
-            [
-                tube(
-                    "1/2 in. Tube",
-                    "1/2x1/2 Tube (AndyMark Robits)",
-                    0.5,
-                    0.5,
-                    0.063,
-                    0.063,
-                    0.201,
-                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    inch(0.25),
-                    inch(0.5),
-                    stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
-                )
-            ],
+        only(
+            "1/2x1/2 (Robits)",
+            tube(
+                "1/2 in. Tube",
+                "1/2x1/2 Tube (AndyMark Robits)",
+                0.5,
+                0.5,
+                0.063,
+                0.063,
+                0.201,
+                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                inch(0.25),
+                inch(0.5),
+                stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
+            ),
         )
     ],
 )
@@ -669,6 +881,7 @@ REV_FTC = vendor(
                 extrusion("Black anodized", "15mm Extrusion (REV, black)", 15, 15, "REV_15MM_EXTRUSION", BLACK,
                           stock((mm(1000), "REV-41-1569", REV_15MM_URL)), unit=mm),
             ],
+            level="finish",
         ),
         size(
             "15x30mm Extrusion",
@@ -679,6 +892,7 @@ REV_FTC = vendor(
                 extrusion("Black anodized", "15x30mm Extrusion (REV, black)", 30, 15, "REV_15X30MM_EXTRUSION", BLACK,
                           stock((mm(1000), "REV-41-1586", REV_15MM_URL)), unit=mm),
             ],
+            level="finish",
         ),
     ],
 )
@@ -686,6 +900,6 @@ REV_FTC = vendor(
 CONTENTS = [
     Import("core/sketchData.fs"),
     *PROFILES,
-    Table("frcFrameTable", Node("vendor", [WCP, REV, ANDYMARK, TTB, SWYFT])),
+    Table("frcFrameTable", Node("vendor", [WCP, REV, ANDYMARK, TTB, SWYFT, LAST_ANVIL])),
     Table("ftcFrameTable", Node("vendor", [GOBILDA, REV_FTC, ROBITS])),
 ]

@@ -13,7 +13,7 @@ FRCDesign's public API (no sign-in, and no Onshape API calls):
 ```
 uv run fs cots 'hex shaft'                 # FRC parts matching a regular expression, most used first
 uv run fs cots 'channel|beam' -l ftc       # the FTC library (-l mkcad for MKCad's)
-uv run fs cots 'hex shaft' -d              # also each part's configuration usage and part numbers
+uv run fs cots 'hex shaft' -d              # also each part's configuration usage, and part numbers with the options they're for
 uv run fs cots --days 90 -n 100            # the top 100 parts over the last 90 days
 ```
 
@@ -22,18 +22,32 @@ adding if it's cheap to, and a handful usually isn't. Configuration usage says w
 the default), and which to leave out. The part numbers (with names and vendor links) FRCDesign's configurations
 carry are a good starting point, but check them against the vendor (below): some are out of date.
 
-FRCDesign's API (see `fs_cli/cots.py`), in case `fs cots` doesn't show what you need:
+FRCDesign's API (`https://app.frcdesign.org/api`; see `fs_cli/cots.py`), in case `fs cots` doesn't show what you
+need. These work without signing in; `{date}`s are like `2026-01-31`:
 
 | Endpoint | Returns |
 | --- | --- |
-| `/api/library-version/library/{library}` | The library's version, which the data below is cached by |
-| `/api/library-data/library/{library}?v={version}` | Its groups and parts ("insertables"), with their vendors |
-| `/api/analytics/parts/library/{library}?from={date}&to={date}` | How often each part was inserted |
-| `/api/analytics/insertable/library/{library}/element/{element id}?from=...&to=...` | How often each configuration option was chosen |
-| `/api/configuration/insertable/{insertable id}?v={version}` | Its configuration parameters, and its configurations' part numbers, names, and links |
+| `/library-version/library/{library}` | The library's version, which the data below is cached by |
+| `/library-data/library/{library}?v={version}` | Its groups and parts ("insertables": each part's id, its Onshape document, version, and element, its name, group, and vendors) |
+| `/configuration/insertable/{insertable id}?v={version}` | A part's configuration: its `parameters` (each enum's options, by id and name, and `optionConditions` saying when options show), and its `records`: part numbers, names, and vendor links, each for a `configurationKey` like `List_l2QKrmBsSfWUeG=_2__x_1__x_0_125_;List_42mcINAxohfhAK=Top` (parameter id = option id, for the options not left at their defaults) |
+| `/analytics/parts/library/{library}?from={date}&to={date}` | How often each part was inserted |
+| `/analytics/insertable/library/{library}/element/{element id}?from=...&to=...` | How often each of a part's configuration options was chosen |
+| `/analytics/unused-options/library/{library}?threshold={n}&from=...&to=...` | Every configuration option chosen fewer than `threshold` times, in every part (large: over 1 MB) |
+| `/analytics/unused/library/{library}?threshold={n}&from=...&to=...` | The parts inserted fewer than `threshold` times |
+| `/analytics/summary/library/{library}?from=...&to=...` | The library's totals (inserts, users, ...) by day |
+| `/analytics/overview?from=...&to=...` | The same for every library |
+| `/analytics/health/library/{library}?v={version}` | How many of its parts have errors or warnings |
+| `/search-db/library/{library}?v={version}` | The app's search index (a serialized MiniSearch index of part names, groups, and part numbers) |
 
-Libraries are `frc-design-lib`, `ftc-design-lib`, and `mkcad`. It rejects Python's `urllib` (by its user agent),
-so use `requests` or `curl`.
+Others (`/build-status/library/{library}`, `/job-status/library/{library}`, and `/favorites/library/{library}`) need
+signing in to Onshape. Libraries are `frc-design-lib`, `ftc-design-lib`, and `mkcad`. A part's page in the app, like
+`https://app.frcdesign.org/app/library/frc-design-lib?part={insertable id}`, shows the options its configuration
+endpoint returns. It rejects Python's `urllib` (by its user agent), so use `requests` or `curl`.
+
+FRCDesign's options are what teams expect to choose between, so tables follow them (in how they're named and
+grouped, too), but its models are a team's, not the vendor's: check its sizes and part numbers against the vendor.
+In Robot frame, for example, FRCDesign names its WCP-1586 (1x1 tube with a 0.093 in. wall) 0.0625 in., and has one
+MAXTube 2x1 with MAX Pattern, which REV sells in two profiles (its original one, and plain 1/8 in. wall).
 
 ## 2. Get each part's details from its vendor
 
@@ -51,7 +65,8 @@ Prefer the vendor's own drawings and CAD to anyone's model of them:
   (`https://www.revrobotics.com/content/cad/{part number}.STEP`) publish one per part. Measure them by listing their
   planes and cylinders, or read a cross section with `fs_cli.step.StepFile(path).profile()` (with `holes=True` for
   its inner loops); keep the files in a `vendor/` folder beside the definition, as `frame/vendor/` and
-  `printAdapter/vendor/` do.
+  `printAdapter/vendor/` do. Long parts' files can be many megabytes: `uv run fs step {file} {output}` keeps only the
+  cross section `profile()` reads.
 - **Links**: check every URL a table uses with `curl -sS -o /dev/null -L -w '%{http_code} %{url_effective}'`; vendors
   move pages, and some (like REV's) only have pages for part families, so link a search for the part number
   instead.

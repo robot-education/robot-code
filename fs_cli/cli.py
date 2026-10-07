@@ -261,6 +261,17 @@ def make_parser() -> argparse.ArgumentParser:
         "-d", "--details", action="store_true", help="also show each part's configuration usage and part numbers"
     )
 
+    step_command = command(
+        "step",
+        "trim a vendor's STEP file of an extrusion or tube down to the cross section it's read for (see fs_cli/step.py), to keep in the repo",
+        targets=False,
+    )
+    step_command.add_argument("file", help="the STEP file")
+    step_command.add_argument("output", help="where to save the trimmed file (may be the same file)")
+    step_command.add_argument(
+        "--z", type=float, help="the height (in inches) of the face perpendicular to Z to keep (default: the highest)"
+    )
+
     gen_command = command(
         "gen",
         "regenerate the .gen.fs files (lookup tables, sketch profiles) from their Python definitions (no API calls)",
@@ -1059,9 +1070,22 @@ def cots(config: Config, args: argparse.Namespace) -> int:
                     print(f"{'':>{width}}    {line}")
                 for record in library.records(part):
                     if record.get("partNumber"):
-                        print(f"{'':>{width}}    {record['partNumber']}: {record.get('name')} {record.get('url') or ''}".rstrip())
+                        options = f" [{record['options']}]" if record["options"] else ""
+                        print(f"{'':>{width}}    {record['partNumber']}: {record.get('name')}{options} {record.get('url') or ''}".rstrip())
     except CotsError as error:
         raise UsageError(str(error)) from error
+    return 0
+
+
+def step(config: Config, args: argparse.Namespace) -> int:
+    from fs_cli.step import StepError, StepFile
+
+    try:
+        trimmed = StepFile(pathlib.Path(args.file)).trimmed(args.z)
+    except (OSError, StepError) as error:
+        raise UsageError(str(error)) from error
+    pathlib.Path(args.output).write_text(trimmed)
+    print(f"Saved {args.output} ({len(trimmed) // 1024} KB)")
     return 0
 
 
@@ -1158,6 +1182,7 @@ OFFLINE_COMMANDS = {
     "refs": refs,
     "gen": gen,
     "cots": cots,
+    "step": step,
     "unlink": unlink,
     # Online with --detect
     "released": released,

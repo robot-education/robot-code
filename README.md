@@ -227,6 +227,7 @@ uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, ke
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
+uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
