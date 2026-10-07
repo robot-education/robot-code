@@ -406,7 +406,8 @@ const MAX_SPLINE_RADIUS = 17.45 * millimeter;
  * Stock with holes is built as the regular length at least `length` long (see `regularLength`), so its holes are all
  * whole while they're cut, and is then trimmed to `length`, cutting through any holes the end crosses, as cutting it
  * from longer stock would. Ends can be slanted (like miters): `ends` has the planes they're on, which are inside its
- * length; it's trimmed to them.
+ * length; it's trimmed to them. It's trimmed by moving the extrude's caps (see `trimEnd`), so its end faces are always
+ * the caps.
  *
  * Booleans are slow, so each row's holes are cut by one seed (a tool for its first hole), and the seed's faces are face
  * patterned along the stock. A row's holes tied to the end (see `getTie`) have a seed of their own at the last of them,
@@ -464,19 +465,13 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
     if (ends.endPlane != undefined || !tolerantEquals(built, length))
     {
         const endPlane = ends.endPlane ?? plane(location.origin + location.zAxis * length, location.zAxis);
-        endFace = trimBeyond(context, id + "trimEnd", body, endPlane, location.zAxis, reach);
-        if (stock.isFrame ?? false)
-        {
-            tagFrameCaps(context, endFace, false);
-        }
+        const endCap = plane(location.origin + location.zAxis * built, location.zAxis);
+        endFace = trimEnd(context, id + "trimEnd", body, endFace, endCap, endPlane, reach, stock.isFrame ?? false, false);
     }
     if (ends.startPlane != undefined)
     {
-        const startFace = trimBeyond(context, id + "trimStart", body, ends.startPlane, -location.zAxis, reach);
-        if (stock.isFrame ?? false)
-        {
-            tagFrameCaps(context, startFace, true);
-        }
+        trimEnd(context, id + "trimStart", body, qCapEntity(stockId, CapType.START, EntityType.FACE),
+            plane(location.origin, -location.zAxis), ends.startPlane, reach, stock.isFrame ?? false, true);
     }
 
     // After trimming, so holes the trims removed aren't threaded
@@ -499,6 +494,48 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
             "tiedHoles" : qUnion(tiedHoles),
             "tie" : hasHoles ? tie : undefined
         };
+}
+
+/**
+ * Trims stock `body` back to `target` at one end: its extrude's cap there, `cap`, on `capPlane` (facing out of it, and
+ * centered on its axis), is moved onto `target`. Moving the cap, rather than cutting the stock, keeps the end face the
+ * extrude's cap whether or not the stock was built longer, so references to it survive changes in length. Returns the
+ * face at the end.
+ *
+ * If the face can't be moved, the stock is cut instead (see `trimBeyond`), and the face that leaves is tagged as the
+ * frame's cap (if it's a frame), as the cap was.
+ */
+function trimEnd(context is Context, id is Id, body is Query, cap is Query, capPlane is Plane, target is Plane,
+    reach is ValueWithUnits, isFrame is boolean, isStart is boolean) returns Query
+{
+    try silent
+    {
+        opMoveFace(context, id + "moveCap", { "moveFaces" : cap, "transform" : capTransform(capPlane, target) });
+        return cap;
+    }
+    const face = trimBeyond(context, id, body, target, capPlane.normal, reach);
+    if (isFrame)
+    {
+        tagFrameCaps(context, face, isStart);
+    }
+    return face;
+}
+
+/**
+ * A transform taking `capPlane` onto `target`, keeping it facing the same way (out of the stock): along its normal (the
+ * stock's axis) to where `target` crosses it, then turned about that point to `target`'s angle (for a miter).
+ */
+function capTransform(capPlane is Plane, target is Plane) returns Transform
+{
+    const normal = dot(target.normal, capPlane.normal) > 0 ? target.normal : -target.normal;
+    const crossing = capPlane.origin + capPlane.normal * alongTo(capPlane.origin, capPlane.normal, target);
+    const moved = transform(crossing - capPlane.origin);
+    if (parallelVectors(normal, capPlane.normal))
+    {
+        return moved;
+    }
+    const axis = line(crossing, normalize(cross(capPlane.normal, normal)));
+    return rotationAround(axis, angleBetween(capPlane.normal, normal)) * moved;
 }
 
 /**
