@@ -84,7 +84,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
             locationPredicate(definition, name);
 
             annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.endBound is SMExtrudeBoundingType;
+            definition.endBound is StockBoundingType;
 
             // The extrude's opposite direction, on the row with the rotate button
             annotation { "Name" : "Flip primary axis", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
@@ -1093,14 +1093,14 @@ function alongTo(point is Vector, direction is Vector, cut is Plane) returns Val
 }
 
 /**
- * The plane an end of the measured extrude is on, if it's slanted (planar, but not square to `direction`, like a miter),
- * which stock's end is trimmed to; otherwise `undefined`, and the end is square. Ends nearly along the stock are
- * treated as square.
+ * The plane an end of the measured extrude is on, if it's slanted (not square to `direction`, like a miter), which
+ * stock's end is trimmed to; otherwise `undefined`, and the end is square. Ends are flat (see `verifyFlatEnds`); ends
+ * nearly along the stock are treated as square.
  */
 function slantedEnd(context is Context, cap is Query, direction is Vector)
 {
-    const end = try silent(evPlane(context, { "face" : cap }));
-    if (end == undefined || parallelVectors(end.normal, direction) || abs(dot(end.normal, direction)) < 0.1)
+    const end = evPlane(context, { "face" : cap });
+    if (parallelVectors(end.normal, direction) || abs(dot(end.normal, direction)) < 0.1)
     {
         return undefined;
     }
@@ -1122,6 +1122,7 @@ function extrudeLength(context is Context, id is Id, definition is map) returns 
                 "featureParameterMap" : { "entities" : "location" }
             });
 
+    verifyFlatEnds(context, id, qCreatedBy(id, EntityType.BODY));
     const location = orientStock(definition, coordSystem(facePlane));
     // The extruded face's ends, which are on its axis
     const caps = [qCapEntity(id, CapType.START, EntityType.FACE), qCapEntity(id, CapType.END, EntityType.FACE)];

@@ -72,7 +72,10 @@ Prefer the vendor's own drawings and CAD to anyone's model of them:
   instead.
 
 Record where each number came from in a comment beside it (e.g. "REV-21-3207-DR.pdf", "1143-0003-0096's STEP file"),
-and leave a `TODO` for anything assumed.
+and leave a `TODO` for anything assumed. Save every drawing, STEP file, and spec sheet you use in the `vendor/` folder
+beside the definition (`frame/vendor/`, `nutStrip/vendor/`, `shaft/vendor/`, `printAdapter/vendor/`), named as the
+vendor names it (goBILDA's as the zips they come in), so the next person can check the numbers without finding them
+again; vendors take old revisions down.
 
 ## 3. Put it in a table
 

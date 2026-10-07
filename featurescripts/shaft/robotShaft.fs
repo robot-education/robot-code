@@ -343,6 +343,7 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         callSubfeatureAndProcessStatus(id, extrude, context, extrudeId, definition, { "featureParameterMap" : { "entities" : "location" } });
         // Need makeRobustQuery here since otherwise shaft will always include any other solids produced by the feature
         const shaft = makeRobustQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID));
+        verifyFlatEnds(context, extrudeId, shaft);
 
         // Capture the mirror plane before the shaft ends are modified
         var mirrorPlane = undefined;

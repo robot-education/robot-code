@@ -23,7 +23,7 @@ far apart they are. `stock` lists the lengths each is sold in, shortest first (s
 import math
 import pathlib
 
-from fs_cli.sketches import Point, Profile, Sketch, rotated, translated
+from fs_cli.sketches import Line, Point, Profile, Sketch, rotated, translated
 from fs_cli.step import StepFile
 from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
@@ -398,10 +398,20 @@ def extrusion(
     return value
 
 
-def step_profile(file: str, offset: Point = Point(0, 0), degrees: float = 0) -> Profile:
+def step_profile(file: str, offset: Point = Point(0, 0), degrees: float = 0, plain_outside: bool = False) -> Profile:
     """The cross section of a vendor's extrusion, with its bores and pockets, from its STEP file (some trimmed to just
-    that with `fs step`), rotated then moved to center it on the origin with its width along X."""
-    return Profile(translated(rotated(StepFile(VENDOR / file).profile(holes=True), degrees), offset))
+    that with `fs step`), rotated then moved to center it on the origin with its width along X. A `plain_outside` is
+    left a rectangle, as MAXTube's is but for the shallow grooves along it to drill on, which aren't worth modeling."""
+    step = StepFile(VENDOR / file)
+    entities = step.profile(holes=True)
+    if plain_outside:
+        outside = len(step.profile())
+        points = [point for entity in entities[:outside] for point in (entity.start, entity.end)]
+        low = Point(min(point.x for point in points), min(point.y for point in points))
+        high = Point(max(point.x for point in points), max(point.y for point in points))
+        corners = [low, Point(high.x, low.y), high, Point(low.x, high.y)]
+        entities = [Line(corners[i], corners[(i + 1) % 4]) for i in range(4)] + entities[outside:]
+    return Profile(translated(rotated(entities, degrees), offset))
 
 
 # Cross sections which aren't plain rectangles, centered on the origin
@@ -413,14 +423,14 @@ PROFILES = [
     Sketch("REV_15X30MM_EXTRUSION", step_profile("REV-41-1093.STEP", Point(7.5 / 25.4, 0))),
     # MAXTube which isn't a plain tube: hollow corners, with thinner walls between them (and the 2x1s modeled with
     # their 2 in. sides facing X)
-    Sketch("REV_MAXTUBE_1X1", step_profile("REV-21-2160.STEP")),
-    Sketch("REV_MAXTUBE_2X1", step_profile("REV-21-2162.STEP", degrees=90)),
-    Sketch("REV_MAXTUBE_2X1_MAX", step_profile("REV-21-2163.STEP", degrees=90)),
-    Sketch("REV_MAXTUBE_2X1_LIGHT", step_profile("REV-21-2161.STEP", degrees=90)),
-    Sketch("REV_MAXTUBE_2X1_LIGHT_GRID", step_profile("REV-21-2289.STEP", degrees=90)),
+    Sketch("REV_MAXTUBE_1X1", step_profile("REV-21-2160.STEP", plain_outside=True)),
+    Sketch("REV_MAXTUBE_2X1", step_profile("REV-21-2162.STEP", degrees=90, plain_outside=True)),
+    Sketch("REV_MAXTUBE_2X1_MAX", step_profile("REV-21-2163.STEP", degrees=90, plain_outside=True)),
+    Sketch("REV_MAXTUBE_2X1_LIGHT", step_profile("REV-21-2161.STEP", degrees=90, plain_outside=True)),
+    Sketch("REV_MAXTUBE_2X1_LIGHT_GRID", step_profile("REV-21-2289.STEP", degrees=90, plain_outside=True)),
     # REV-21-3287's is REV-21-3288's
-    Sketch("REV_MAXTUBE_2X2", step_profile("REV-21-3288.STEP")),
-    Sketch("REV_MAXTUBE_2X2_MAX", step_profile("REV-21-3286.STEP")),
+    Sketch("REV_MAXTUBE_2X2", step_profile("REV-21-3288.STEP", plain_outside=True)),
+    Sketch("REV_MAXTUBE_2X2_MAX", step_profile("REV-21-3286.STEP", plain_outside=True)),
 ]
 
 

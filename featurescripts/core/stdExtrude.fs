@@ -55,8 +55,25 @@ export predicate extrudePredicate(definition is map)
 }
 
 /**
- * A predicate for common std extrude parameters relevant to an extrude which only creates new parts.
- * Identical to `extrudePredicate`, expect the two endBounds are `SMExtrudeBoundingType` to hide `THROUGH_ALL`.
+ * The end types of an extrude of a part cut from stock, like a shaft, spacer, or frame: std's, but for Through all
+ * and Up to part. Stock is cut flat, so its ends must be flat: up to faces must be planar (see `verifyFlatEnds`).
+ * Std's extrude takes them as `BoundingType`s (see `transformDefintionForNewExtrude`).
+ */
+export enum StockBoundingType
+{
+    annotation { "Name" : "Blind" }
+    BLIND,
+    annotation { "Name" : "Up to next" }
+    UP_TO_NEXT,
+    annotation { "Name" : "Up to face" }
+    UP_TO_SURFACE,
+    annotation { "Name" : "Up to vertex" }
+    UP_TO_VERTEX
+}
+
+/**
+ * A predicate for common std extrude parameters relevant to an extrude of stock (which only creates new parts), with
+ * the end types of `StockBoundingType`.
  *
  * @seealso `transformDefinitionForNewExtrude`
  */
@@ -74,7 +91,7 @@ export predicate newExtrudePredicate(definition is map)
 export predicate newExtrudeEndTypePredicate(definition is map)
 {
     annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-    definition.endBound is SMExtrudeBoundingType;
+    definition.endBound is StockBoundingType;
 
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.oppositeDirection is boolean;
@@ -85,46 +102,49 @@ export predicate newExtrudeEndTypePredicate(definition is map)
  */
 export predicate newExtrudeBoundsPredicate(definition is map)
 {
-    extrudeBoundParametersPredicate(definition);
+    if (definition.endBound == StockBoundingType.BLIND)
+    {
+        annotation { "Name" : "Depth" }
+        isLength(definition.depth, LENGTH_BOUNDS);
+    }
+    upToBoundParametersPredicate(definition);
 
     newExtrudeOptionsPredicate(definition);
 }
 
 /**
- * The bounds of `extrudeBoundParametersPredicate` in std's `extrudeCommon.fs` for an `SMExtrudeBoundingType`, with
- * `depth` named Length and no tolerance options.
+ * The bounds of `newExtrudeBoundsPredicate`, with `depth` named Length, for stock placed by length (see linearStock.fs).
  */
 export predicate lengthBoundParametersPredicate(definition is map)
 {
-    if (definition.endBound == SMExtrudeBoundingType.BLIND)
+    if (definition.endBound == StockBoundingType.BLIND)
     {
         annotation { "Name" : "Length" }
         isLength(definition.depth, LENGTH_BOUNDS);
     }
-    else if (definition.endBound == SMExtrudeBoundingType.UP_TO_SURFACE)
+    upToBoundParametersPredicate(definition);
+}
+
+/**
+ * The bounds of std's `extrudeBoundParametersPredicate` other than Blind's depth, for a `StockBoundingType`, without
+ * tolerances: up to a planar face or vertex, and an offset.
+ */
+export predicate upToBoundParametersPredicate(definition is map)
+{
+    if (definition.endBound == StockBoundingType.UP_TO_SURFACE)
     {
         annotation { "Name" : "Up to face",
-                    "Filter" : (EntityType.FACE && SketchObject.NO && AllowMeshGeometry.YES) || BodyType.MATE_CONNECTOR,
+                    "Filter" : (EntityType.FACE && GeometryType.PLANE && SketchObject.NO) || BodyType.MATE_CONNECTOR,
                     "MaxNumberOfPicks" : 1 }
         definition.endBoundEntityFace is Query;
     }
-    else if (definition.endBound == SMExtrudeBoundingType.UP_TO_BODY)
-    {
-        annotation { "Name" : "Up to surface or part",
-                    "Filter" : EntityType.BODY && (BodyType.SOLID || BodyType.SHEET) && SketchObject.NO && AllowMeshGeometry.YES,
-                    "MaxNumberOfPicks" : 1 }
-        definition.endBoundEntityBody is Query;
-    }
-    else if (definition.endBound == SMExtrudeBoundingType.UP_TO_VERTEX)
+    else if (definition.endBound == StockBoundingType.UP_TO_VERTEX)
     {
         annotation { "Name" : "Up to vertex or mate connector", "Filter" : QueryFilterCompound.ALLOWS_VERTEX, "MaxNumberOfPicks" : 1 }
         definition.endBoundEntityVertex is Query;
     }
 
-    if (definition.endBound == SMExtrudeBoundingType.UP_TO_NEXT ||
-        definition.endBound == SMExtrudeBoundingType.UP_TO_SURFACE ||
-        definition.endBound == SMExtrudeBoundingType.UP_TO_BODY ||
-        definition.endBound == SMExtrudeBoundingType.UP_TO_VERTEX)
+    if (definition.endBound != StockBoundingType.BLIND)
     {
         annotation { "Name" : "Offset distance", "Column Name" : "Has offset", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"] }
         definition.hasOffset is boolean;
@@ -147,13 +167,13 @@ export predicate newExtrudeOptionsPredicate(definition is map)
 {
     extrudeOffsetPredicate(definition);
 
-    if (definition.endBound == SMExtrudeBoundingType.BLIND)
+    if (definition.endBound == StockBoundingType.BLIND)
     {
         annotation { "Name" : "Symmetric", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.symmetric is boolean;
     }
 
-    if (!isSymmetricExtrude(definition))
+    if (!(definition.endBound == StockBoundingType.BLIND && definition.symmetric))
     {
         annotation { "Name" : "Second end position",
                     "UIHint" : UIHint.FIRST_IN_ROW }
@@ -164,14 +184,70 @@ export predicate newExtrudeOptionsPredicate(definition is map)
             if (definition.hasSecondDirection)
             {
                 annotation { "Name" : "End type", "Column Name" : "Second end type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.secondDirectionBound is SMExtrudeBoundingType;
+                definition.secondDirectionBound is StockBoundingType;
 
                 annotation { "Name" : "Opposite direction", "Column Name" : "Second opposite direction",
                             "UIHint" : UIHint.OPPOSITE_DIRECTION, "Default" : true }
                 definition.secondDirectionOppositeDirection is boolean;
 
-                extrudeSecondDirectionBoundParametersPredicate(definition);
+                secondDirectionBoundParametersPredicate(definition);
             }
+        }
+    }
+}
+
+/**
+ * Std's `extrudeSecondDirectionBoundParametersPredicate` for a `StockBoundingType`, without tolerances.
+ */
+export predicate secondDirectionBoundParametersPredicate(definition is map)
+{
+    if (definition.secondDirectionBound == StockBoundingType.BLIND)
+    {
+        annotation { "Name" : "Depth", "Column Name" : "Second depth" }
+        isLength(definition.secondDirectionDepth, LENGTH_BOUNDS);
+    }
+    else if (definition.secondDirectionBound == StockBoundingType.UP_TO_SURFACE)
+    {
+        annotation { "Name" : "Up to face", "Column Name" : "Second up to face",
+                    "Filter" : (EntityType.FACE && GeometryType.PLANE && SketchObject.NO) || BodyType.MATE_CONNECTOR,
+                    "MaxNumberOfPicks" : 1 }
+        definition.secondDirectionBoundEntityFace is Query;
+    }
+    else if (definition.secondDirectionBound == StockBoundingType.UP_TO_VERTEX)
+    {
+        annotation { "Name" : "Up to vertex or mate connector", "Column Name" : "Second up to vertex or mate connector",
+                    "Filter" : QueryFilterCompound.ALLOWS_VERTEX, "MaxNumberOfPicks" : 1 }
+        definition.secondDirectionBoundEntityVertex is Query;
+    }
+
+    if (definition.secondDirectionBound != StockBoundingType.BLIND)
+    {
+        annotation { "Name" : "Offset distance", "Column Name" : "Second direction has offset", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"] }
+        definition.hasSecondDirectionOffset is boolean;
+
+        if (definition.hasSecondDirectionOffset)
+        {
+            annotation { "Name" : "Offset distance", "Column Name" : "Second offset distance", "UIHint" : ["DISPLAY_SHORT"] }
+            isLength(definition.secondDirectionOffsetDistance, LENGTH_BOUNDS);
+
+            annotation { "Name" : "Opposite direction", "Column Name" : "Second offset opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+            definition.secondDirectionOffsetOppositeDirection is boolean;
+        }
+    }
+}
+
+/**
+ * Throws an error unless the ends of the stock extruded by `id` (its caps) are flat, as when it's extruded up to the
+ * next face and that face is curved.
+ */
+export function verifyFlatEnds(context is Context, id is Id, body is Query)
+{
+    for (var capType in [CapType.START, CapType.END])
+    {
+        const cap = qCapEntity(id, capType, EntityType.FACE)->qOwnedByBody(body);
+        if (!isQueryEmpty(context, cap) && size(evaluateQuery(context, cap)) != size(evaluateQuery(context, cap->qGeometry(GeometryType.PLANE))))
+        {
+            throw regenError("The ends must be flat: extrude up to a planar face.", ["endBound"], cap);
         }
     }
 }
@@ -293,6 +369,9 @@ export function transformDefintionForNewExtrude(definition is map, entities is Q
 export function stdNewExtrudeEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    // Std's logic knows its own end types, which are named the same
+    definition.endBound = definition.endBound as SMExtrudeBoundingType;
+    definition.secondDirectionBound = definition.secondDirectionBound as SMExtrudeBoundingType;
     if (canSetExtrudeFlips(definition, specifiedParameters))
     {
         if (canSetExtrudeUpToFlip(definition, specifiedParameters))
@@ -303,6 +382,8 @@ export function stdNewExtrudeEditLogic(context is Context, id is Id, oldDefiniti
     definition = setExtrudeSecondDirectionFlip(definition, specifiedParameters);
 
     definition.entities = undefined;
+    definition.endBound = definition.endBound as StockBoundingType;
+    definition.secondDirectionBound = definition.secondDirectionBound as StockBoundingType;
     return definition;
 }
 
