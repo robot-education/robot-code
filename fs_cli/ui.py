@@ -647,11 +647,16 @@ class Parameter:
     annotation: dict
     value: Any = None
     enum: EnumType | None = None
-    # For lookup tables, the (label, choice) of each level
-    levels: list[tuple[str, str]] = dataclasses.field(default_factory=list)
+    # For lookup tables, the (label, choice, and choices) of each level
+    levels: list[tuple[str, str, list[str]]] = dataclasses.field(default_factory=list)
     # For arrays, how many items to show, and each one's parameters
     count: int = 0
     items: list[list] = dataclasses.field(default_factory=list)
+    # What sets it with `fs ui --set`: its name, or for an array item's parameter, like `items.0.length`
+    key: str = ""
+
+    def __post_init__(self) -> None:
+        self.key = self.key or self.name
 
     @property
     def label(self) -> str:
@@ -692,6 +697,10 @@ class DialogBuilder:
         self.warnings: list[str] = []
         self.declared: set[str] = set()
         self.arrays: dict[str, Parameter] = {}
+        # The prefix of the keys (see Parameter.key) of the parameters being declared, inside an array's item
+        self.prefix = ""
+        # Every parameter's key, to warn about settings which do nothing
+        self.keys: set[str] = set()
 
     def build(self, feature: Feature) -> list:
         if feature.defaults is not None:
@@ -732,6 +741,9 @@ class DialogBuilder:
             branch = node.args[1] if condition else node.args[2]
             if branch is not None:
                 self.walk(branch, scope, items, {})
+            if not condition:
+                # Onshape still shows the header of a group driven by a parameter which is off
+                items.extend(self.driving_groups(node.args[1], scope))
         elif kind == "declare":
             name, value = node.args
             scope[name] = self.evaluator.value(value, scope)
@@ -743,15 +755,27 @@ class DialogBuilder:
             if name in self.arrays:
                 self.array_items(self.arrays[name], body, variable, scope)
 
+    def driving_groups(self, node: Node, scope: dict[str, Any]) -> list[Group]:
+        """The groups with driving parameters directly in a block (or statement), empty."""
+        statements = node.args if node.kind == "block" else (node,)
+        groups = []
+        for statement in statements:
+            if statement.kind == "annotated" and statement.args[1].kind == "block":
+                annotation = self.evaluator.value(statement.args[0], scope)
+                if isinstance(annotation, dict) and "Group Name" in annotation and annotation.get("Driving Parameter"):
+                    groups.append(Group(str(annotation["Group Name"]), annotation))
+        return groups
+
     def array_items(self, array: Parameter, body: Node, variable: str, scope: dict[str, Any]) -> None:
         """Walks an array parameter's loop once for each item, as each item's parameters are declared in it."""
-        outer = self.definition, self.declared
-        for _ in range(array.count):
+        outer = self.definition, self.declared, self.prefix
+        for index in range(array.count):
             self.definition, self.declared = Definition({}), set()
+            self.prefix = f"{array.key}.{index}."
             children: list = []
             self.walk(body, {**scope, variable: self.definition}, children, {})
             array.items.append(children)
-        self.definition, self.declared = outer
+        self.definition, self.declared, self.prefix = outer
 
     def expression(self, node: Node, scope: dict[str, Any], items: list, annotation: dict) -> None:
         if node.kind == "is":
@@ -793,26 +817,28 @@ class DialogBuilder:
         if name in self.declared:
             return
         self.declared.add(name)
-        parameter = Parameter(name, "other", annotation)
+        key = self.prefix + name
+        self.keys.add(key)
+        parameter = Parameter(name, "other", annotation, key=key)
         enum = self.declarations.enums.get(type_name)
         if enum is not None:
             parameter.kind = "enum"
             parameter.enum = enum
             default = annotation.get("Default")
             value = default.value if isinstance(default, EnumValue) else next(iter(enum.values), None)
-            if name in self.overrides:
-                value = self.overrides[name]
+            if key in self.overrides:
+                value = self.overrides[key]
                 if value not in enum.values:
                     raise UiError(f"{name} is a {enum.name}, which has no value {value}.")
-            if name not in self.overrides and isinstance(self.definition.values.get(name), EnumValue):
+            if key not in self.overrides and isinstance(self.definition.values.get(name), EnumValue):
                 value = self.definition.values[name].value
             parameter.value = value
             self.definition.values[name] = EnumValue(enum.name, value)
         elif type_name == "boolean":
             parameter.kind = "boolean"
             value = bool(annotation.get("Default", self.definition.values.get(name, False)))
-            if name in self.overrides:
-                value = self.overrides[name].lower() in ("true", "1", "yes")
+            if key in self.overrides:
+                value = self.overrides[key].lower() in ("true", "1", "yes")
             parameter.value = value
             self.definition.values[name] = value
         elif type_name == "Query":
@@ -820,12 +846,12 @@ class DialogBuilder:
         elif type_name == "LookupTablePath":
             parameter.kind = "lookup"
             table = annotation.get("Lookup Table")
-            override = self.overrides.get(name)
+            override = self.overrides.get(key)
             choices = [part.strip() for part in override.split(">")] if override else []
             parameter.levels = lookup_levels(table, choices) if isinstance(table, dict) else []
         elif type_name == "array":
             parameter.kind = "array"
-            count = self.overrides.get(name, "0")
+            count = self.overrides.get(key, "0")
             if not count.isdigit():
                 raise UiError(f"{name} is an array, so --set it to how many items to show, not {count}.")
             parameter.count = int(count)
@@ -834,10 +860,10 @@ class DialogBuilder:
             parameter.kind = "reference"
         elif type_name == "string":
             parameter.kind = "string"
-            parameter.value = self.overrides.get(name, annotation.get("Default", ""))
+            parameter.value = self.overrides.get(key, annotation.get("Default", ""))
         elif type_name in ("length", "angle", "integer", "real"):
             parameter.kind = type_name
-            parameter.value = self.overrides.get(name) or format_bounds(type_name, bounds)
+            parameter.value = self.overrides.get(key) or format_bounds(type_name, bounds)
         items.append(parameter)
 
 
@@ -863,8 +889,8 @@ def describe(node: Node) -> str:
     return "..."
 
 
-def lookup_levels(table: dict, choices: list[str]) -> list[tuple[str, str]]:
-    """The label and choice of each level of a lookup table, following `choices` (then defaults)."""
+def lookup_levels(table: dict, choices: list[str]) -> list[tuple[str, str, list[str]]]:
+    """The label, choice, and choices of each level of a lookup table, following `choices` (then defaults)."""
     levels = []
     node: Any = table
     while isinstance(node, dict) and isinstance(node.get("entries"), dict):
@@ -877,7 +903,7 @@ def lookup_levels(table: dict, choices: list[str]) -> list[tuple[str, str]]:
             if index < len(choices):
                 raise UiError(f"The lookup table has no {choices[index]!r} at level {index + 1}; choose one of {list(entries)}.")
             choice = next(iter(entries))
-        levels.append((str(node.get("displayName", node.get("name", ""))), str(choice)))
+        levels.append((str(node.get("displayName", node.get("name", ""))), str(choice), [str(entry) for entry in entries]))
         node = entries[choice]
     return levels
 
@@ -901,17 +927,31 @@ def format_bounds(kind: str, bounds: Any) -> str:
 
 
 # Rendering
+#
+# The dialog is written with Onshape's own markup (its elements and classes, from a saved Onshape page; see
+# fs_cli/onshape_ui/extract.py), and styled with Onshape's own styles, so it looks the same. Controls carry
+# `data-set` (the parameter, or for an array's items `items.0.name`) and `data-value` attributes saying what clicking
+# them sets, for the VS Code extension's preview to change them (see vscode-extension/src/uiPreview.ts).
 
 
-# Icons from onshape_icons/, by name (see its index.html)
+ONSHAPE_UI = pathlib.Path(__file__).resolve().parent / "onshape_ui"
+
+# Icons from onshape_icons/, by name (see its index.html), for icons Onshape's page doesn't define
 ICON_DIR = pathlib.Path(__file__).resolve().parents[1] / "onshape_icons"
 
-# Buttons for enum and boolean parameters with these UI hints: (icon, whether it's drawn dark and needs inverting)
+# Icons Onshape's page defines (see onshape_ui/icons.svg), by name
+SPRITE_ICONS = {
+    "hole/diameter": "hole-diameter",
+    "hole/depth": "hole-depth",
+    "hole/tapDrillDiameter": "hole-tap-diameter",
+}
+
+# Buttons for enum and boolean parameters with these UI hints, by the icon Onshape shows
 BUTTONS = {
-    "OPPOSITE_DIRECTION": ("dialog/flip", True),
-    "OPPOSITE_DIRECTION_CIRCULAR": ("dialog/flipCircular", True),
-    "PRIMARY_AXIS": ("dialog/rotate", True),
-    "MATE_CONNECTOR_AXIS_TYPE": ("dialog/rotate", True),
+    "OPPOSITE_DIRECTION": "flip-direction-opposite",
+    "OPPOSITE_DIRECTION_CIRCULAR": "flip-rotation-opposite",
+    "PRIMARY_AXIS": "flip-direction-opposite",
+    "MATE_CONNECTOR_AXIS_TYPE": "realign-mate-dialog",
 }
 
 # Parameters Onshape shows with an icon instead of a label, by id (std's versioned ids, like holeDiameterV2, too)
@@ -940,20 +980,29 @@ ICON_VALUES = {
     "HOLE_TAP_CLEARANCE": "hole/tapClearance",
 }
 
-# The button beside queries which accept mate connectors, to create one
-MATE_CONNECTOR_ICON = "dialog/mateConnector"
-
-# The button beside CAN_BE_TOLERANT values, to add a tolerance
-TOLERANCE_ICON = "dialog/tolerance"
-
 # The annotation key holding the source of a query's filter
 FILTER_TEXT = "__filter"
 
+# Styles of our own, on top of Onshape's: the page around the dialog, and open dropdowns (which Onshape's page didn't
+# have open)
+PAGE_STYLE = """
+html, body { margin: 0; }
+body { padding: 10px; background: var(--os-graphics-background, #1d1d1d); }
+html[data-os-theme="light"] body { background: #e8e8e8; }
+#feature-dialog { position: relative; inset: auto; width: 278px; pointer-events: auto; }
+#feature-dialog .ns-parameter-list { margin: 0; }
+#feature-dialog [data-set], #feature-dialog [data-toggle], #feature-dialog .os-select-toggle { cursor: pointer; }
+#feature-dialog .os-select-dropdown.open { display: block; opacity: 1; position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; }
+#feature-dialog .os-select-choices-row { padding: 2px 10px; white-space: nowrap; color: var(--os-text-primary); }
+#feature-dialog .os-select-choices-row:hover, #feature-dialog .os-select-choices-row.active { background: var(--os-select-active-background, var(--os-accent-quaternary)); }
+#feature-dialog .os-svg-icon.expanded { transform: rotate(90deg); }
+#feature-dialog .os-parameter-icon image { width: 100%; height: 100%; }
+"""
 
 _inlined = itertools.count()
 
 
-def icon(name: str, invert: bool = False) -> str:
+def icon(name: str) -> str:
     """An icon's SVG, inline. Its ids are made unique, since icons often reuse the same ones (like `id="a"`) and
     references to them would find another icon's on the page."""
     path = ICON_DIR / f"{name}.svg"
@@ -962,8 +1011,12 @@ def icon(name: str, invert: bool = False) -> str:
     svg = re.sub(r"<\?xml[^>]*>", "", path.read_text())
     prefix = f"i{next(_inlined)}-"
     svg = re.sub(r'\bid="([^"]+)"', lambda match: f'id="{prefix}{match[1]}"', svg)
-    svg = re.sub(r'(href="#|url\(#)([^")]+)', lambda match: f"{match[1]}{prefix}{match[2]}", svg)
-    return f"<span class='icon{' invert' if invert else ''}'>{svg}</span>"
+    return re.sub(r'(href="#|url\(#)([^")]+)', lambda match: f"{match[1]}{prefix}{match[2]}", svg)
+
+
+def sprite(name: str, attributes: str = "") -> str:
+    """An icon from Onshape's page (onshape_ui/icons.svg), by its symbol's name without `svg-icon-`."""
+    return f"<svg{attributes}><use href='#svg-icon-{name}'></use></svg>"
 
 
 def parameter_icon(name: str, annotation: dict) -> str | None:
@@ -974,132 +1027,315 @@ def parameter_icon(name: str, annotation: dict) -> str | None:
     return PARAMETER_ICONS.get(re.sub(r"V\d+$", "", name))
 
 
-STYLE = """
-body { margin: 0; padding: 10px; background: #1b1b1b; font: 12px Roboto, "Helvetica Neue", Arial, sans-serif; color: #dcdcdc; }
-.dialog { width: 236px; background: #2b2b2b; border: 1px solid #444; border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
-.header { display: flex; align-items: center; padding: 5px 6px 5px 8px; background: #333; border-bottom: 1px solid #444; font-size: 13px; color: #eee; }
-.header .title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.header .ok { width: 24px; height: 22px; display: inline-flex; align-items: center; justify-content: center; background: #2f6f2a; color: #fff; border-radius: 2px; font-size: 14px; margin-left: 6px; }
-.header .cancel { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: #e04b3a; font-size: 14px; margin-left: 2px; }
-.body { padding: 4px 6px 6px; }
-.row { display: flex; align-items: center; min-height: 24px; margin: 3px 0; gap: 6px; }
-.label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #d0d0d0; }
-.label.right { text-align: right; }
-.input, .select { min-width: 92px; height: 20px; border-bottom: 1px solid #8a8a8a; padding: 0 3px; display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box; color: #eee; }
-.select { justify-content: space-between; gap: 6px; }
-.select.wide { flex: 1; width: auto; border: none; border-bottom: 1px solid #8a8a8a; }
-.select::after { content: ""; border: 4px solid transparent; border-top: 5px solid #ccc; margin-top: 4px; }
-.tabs { display: flex; flex: 1; border-bottom: 1px solid #444; }
-.tab { flex: 1; text-align: center; padding: 4px 2px; white-space: nowrap; color: #ddd; }
-.tab.selected { background: #3d5975; color: #a9d4ff; box-shadow: inset 0 -2px #5aa9f0; }
-.query { flex: 1; min-height: 34px; border: 1px solid #3b7bc4; border-radius: 2px; padding: 3px 6px; color: #8fb8e6; background: #1f2732; box-sizing: border-box; }
-.query.focus { border-color: #58a3f2; background: #22344a; color: #b7d8fb; }
-.check { width: 13px; height: 13px; border: 1px solid #bbb; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; flex: none; }
-.check.on { background: #3d8ee0; border-color: #3d8ee0; }
-.button { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: #ddd; flex: none; }
-.icon { display: inline-flex; width: 18px; height: 18px; flex: none; }
-.icon svg { width: 100%; height: 100%; }
-.icon.invert { filter: invert(1); }
-.icon.parameter { width: 22px; height: 22px; }
-.group { margin: 4px 0 2px; }
-.group-header { display: flex; align-items: center; gap: 6px; padding: 4px 0 3px; color: #ddd; }
-.group-header::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid #bbb; border-bottom: 1.5px solid #bbb; transform: rotate(45deg); margin: 0 3px 3px 2px; }
-.collapsed .group-header::before { transform: rotate(-45deg); margin-bottom: 0; }
-.group-body { margin-left: 5px; padding-left: 8px; border-left: 1px solid #555; }
-.short { display: flex; gap: 6px; flex: 1; align-items: center; }
-.short .input { flex: 1; min-width: 0; }
-.input.read-only { color: #8c8c8c; border-bottom-style: dotted; }
-.chevron { width: 5px; height: 5px; border-right: 1.5px solid #bbb; border-bottom: 1.5px solid #bbb; transform: rotate(-45deg); margin: 0 2px 0 1px; flex: none; }
-.chevron.open { transform: rotate(45deg); margin-bottom: 3px; }
-.array { margin: 4px 0; }
-.array-header { padding: 4px 0 3px; color: #ddd; }
-.array-list { border: 1px solid #484848; border-radius: 2px; }
-.array-item + .array-item { border-top: 1px solid #484848; }
-.item-header { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: #313131; }
-.item-header .label { color: #ddd; }
-.item-header .remove { color: #999; font-size: 11px; }
-.item-header .grip { width: 6px; height: 10px; flex: none; background: radial-gradient(circle, #888 1px, transparent 1.2px) 0 0 / 3px 3.4px; }
-.item-body { padding: 0 6px 2px 18px; }
-.array-add { display: flex; align-items: center; gap: 5px; padding: 5px 2px 2px; color: #79b4f0; }
-.array-add::before { content: "+"; font-size: 15px; line-height: 12px; }
-.slider { margin: 8px 6px 2px; height: 2px; background: #666; position: relative; }
-.slider::after { content: ""; position: absolute; left: 52%; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #2b2b2b; border: 1.5px solid #ccc; }
-"""
+def _attribute(text: Any) -> str:
+    return html.escape(_text(text), quote=True)
+
+
+def _setting(key: str, value: Any) -> str:
+    """Attributes saying what clicking a control sets."""
+    return f" data-set='{_attribute(key)}' data-value='{_attribute(value)}'"
+
+
+def _is_button(item: Parameter) -> bool:
+    """Whether a parameter is shown as an icon button (like a flip button), in the right column."""
+    return item.kind in ("boolean", "enum") and any(hint in BUTTONS for hint in item.hints)
+
+
+def _is_checkbox(item: Parameter) -> bool:
+    return item.kind == "boolean" and not _is_button(item)
 
 
 class Renderer:
-    def __init__(self) -> None:
+    """Writes a dialog's parameters with Onshape's markup."""
+
+    def __init__(self, theme: str = "dark") -> None:
+        self.theme = theme
         self.focused = False
 
     def page(self, title: str, items: list) -> str:
-        body = self.items(items)
+        style = (ONSHAPE_UI / "dialog.css").read_text() + PAGE_STYLE
         return (
-            "<!doctype html><html><head><meta charset='utf-8'><style>"
-            + STYLE
-            + "</style></head><body><div class='dialog'><div class='header'><span class='title'>"
-            + html.escape(title)
-            + "</span><span class='ok'>&#x2714;</span><span class='cancel'>&#x2716;</span></div><div class='body'>"
-            + body
-            + "<div class='slider'></div></div></div></body></html>"
+            f"<!doctype html><html data-os-theme='{self.theme}'><head><meta charset='utf-8'><style>{style}</style></head>"
+            f"<body>{(ONSHAPE_UI / 'icons.svg').read_text()}"
+            "<div id='feature-dialog' class='ns-dialog-panel feature-dialog feature-dialog-resize has-resized'><div class='feature-dialog-main ns-dialog-frame'>"
+            "<div class='ns-dialog-header'><div class='ns-drag-area'><div class='ns-dialog-title-container'>"
+            f"<span class='ns-dialog-title'>{html.escape(title)}</span></div></div>"
+            "<div class='ns-dialog-button-ok button-ok'><osc-svg-icon class='osc-svg-vertical-align' style='display: inline-flex;'>"
+            f"{sprite('ok-button', ' height=24 width=28')}</osc-svg-icon></div>"
+            "<div class='ns-dialog-button-cancel backbone-cancel'><osc-svg-icon class='osc-svg-vertical-align' style='display: inline-flex;'>"
+            f"{sprite('cancel-button', ' height=24 width=28')}</osc-svg-icon></div></div>"
+            "<div class='ns-dialog-fixed-content'><ul class='ns-parameter-list'><os-parameter-list-view>"
+            + self.items(items)
+            + "</os-parameter-list-view></ul>"
+            "<div class='ns-preview-control'><div><div class='clearfix'></div><div class='ns-preview-slider-container'>"
+            "<div class='ns-preview-alpha-slider active noUi-target'><div class='noUi-base noUi-background noUi-horizontal'>"
+            "<div class='noUi-origin noUi-origin-lower' style='left: 70%;'><div class='noUi-handle noUi-handle-lower'></div></div>"
+            "</div></div></div><div class='clearfix'></div></div></div><div class='clearfix'></div>"
+            "</div></div></div></body></html>"
         )
 
     def items(self, items: list) -> str:
-        rows: list[list[str]] = []
-        driving = {
-            item.annotation.get("Driving Parameter")
-            for item in items
-            if isinstance(item, Group) and item.annotation.get("Driving Parameter")
-        }
-        driving_values = {
-            item.name: item.value for item in items if isinstance(item, Parameter) and item.name in driving
-        }
+        """A list of parameters and groups: runs of parameters are each a parameter group, as are groups."""
+        parts = []
+        run: list[Parameter] = []
+        driving = {item.annotation.get("Driving Parameter") for item in items if isinstance(item, Group)}
+        driving_parameters = {item.name: item for item in items if isinstance(item, Parameter) and item.name in driving}
+
+        def flush() -> None:
+            if run:
+                parts.append(f"<os-parameter-group>{self.parameters(run)}</os-parameter-group>")
+                run.clear()
+
         for item in items:
             if isinstance(item, Group):
-                rows.append([self.group(item, driving_values)])
-                continue
-            if item.kind == "array":
-                rows.append([self.array(item)])
-                continue
-            hints = item.hints
-            if "ALWAYS_HIDDEN" in hints or item.name in driving:
-                continue
-            button = next((hint for hint in BUTTONS if hint in hints), None)
-            if button and (item.kind in ("boolean", "enum")):
-                control = f"<span class='button' title='{html.escape(item.label)}'>{icon(*BUTTONS[button])}</span>"
-                if rows and "FIRST_IN_ROW" not in hints and not rows[-1][0].startswith("<div"):
-                    rows[-1].append(control)
-                else:
-                    rows.append([control])
-                continue
-            if "DISPLAY_SHORT" in hints and rows and rows[-1][-1].startswith("<span class='short'>") and "FIRST_IN_ROW" not in hints:
-                # Joins the row, which already has a label
-                rows[-1].append(self.short(item, labeled=False))
-                continue
-            if "DISPLAY_SHORT" in hints:
-                rows.append([self.short(item)])
-                continue
-            rows.extend([row] for row in self.parameter(item))
-        return "".join(
-            row[0] if row[0].startswith("<div") else "<div class='row'>" + "".join(row) + "</div>"
-            for row in rows
+                flush()
+                parts.append(f"<os-parameter-group>{self.group(item, driving_parameters)}</os-parameter-group>")
+            elif item.name not in driving and "ALWAYS_HIDDEN" not in item.hints:
+                run.append(item)
+        flush()
+        return "".join(parts)
+
+    def parameters(self, items: list[Parameter]) -> str:
+        return "".join(self.list_item(item, items[index + 1] if index + 1 < len(items) else None) for index, item in enumerate(items))
+
+    def group(self, group: Group, driving_parameters: dict[str, Parameter]) -> str:
+        """A collapsible group, with its driving parameter (a checkbox) in its header, if it has one."""
+        driving = driving_parameters.get(group.annotation.get("Driving Parameter"))
+        enabled = driving is None or bool(driving.value)
+        expanded = enabled and group.annotation.get("Collapsed By Default") is not True
+        expander = (
+            f"<div class='node-expander-wrapper'><node-expander class='os-param-group-expander{'' if enabled else ' node-expander-disabled'}'"
+            f"{' data-toggle' if enabled else ''}>"
+            f"<div class='os-center-content'>{sprite('collapsed', f' class=\"os-svg-icon{' expanded' if expanded else ''}\"')}</div>"
+            "</node-expander></div>"
+        )
+        if driving is None:
+            name = f"<span class='os-param-group-name'>{html.escape(group.name)}</span>"
+        else:
+            name = (
+                f"<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='{_attribute(driving.name)}'>"
+                f"{self.boolean(driving)}</div>"
+            )
+        rows = self.subgroup_rows([item for item in group.children if isinstance(item, Parameter) and "ALWAYS_HIDDEN" not in item.hints])
+        return (
+            f"<div class='os-param-group-collapsible-container' data-group='{_attribute(group.name)}'>"
+            f"<div class='os-param-group-header' data-driving-parameter-id='{_attribute(driving.name if driving else '')}'>"
+            f"{expander}{name}</div>"
+            f"<div class='os-param-group-collapsible-contents{'' if expanded else ' ng-hide'}'>{rows}</div></div>"
         )
 
-    def group(self, group: Group, driving_values: dict[str, Any]) -> str:
-        driving = group.annotation.get("Driving Parameter")
-        check = ""
-        collapsed = group.annotation.get("Collapsed By Default") is True
-        if driving:
-            on = bool(driving_values.get(driving))
-            check = _check(driving, on)
-            # Its contents are only shown when it's checked
-            collapsed = collapsed or not on
+    def subgroup_rows(self, items: list[Parameter]) -> str:
+        """A group's parameters, in rows of the indent line beside them: as Onshape splits them, each checkbox (and
+        the short parameters beside it) is a row of its own, and the last row ends the line."""
+        rows: list[list[Parameter]] = []
+        for item in items:
+            joins_checkbox = (
+                rows
+                and _is_checkbox(rows[-1][0])
+                and "DISPLAY_SHORT" in item.hints
+                and "FIRST_IN_ROW" not in item.hints
+            )
+            if joins_checkbox or (rows and not _is_checkbox(item) and not _is_checkbox(rows[-1][0])):
+                rows[-1].append(item)
+            else:
+                rows.append([item])
+        return "".join(
+            "<div class='os-param-subgroup-row'>"
+            f"<div class='os-param-group-indent {'node-indent-line-end' if index == len(rows) - 1 else 'node-indent-line'}'></div>"
+            f"<os-parameter-group>{self.parameters(row)}</os-parameter-group></div>"
+            for index, row in enumerate(rows)
+        )
+
+    def list_item(self, item: Parameter, following: Parameter | None) -> str:
+        """A parameter in a list, with the classes which lay it out (as Onshape's do)."""
+        classes = ["os-parameter-list-item"]
+        hints = item.hints
+        fills_both = item.kind in ("query", "reference", "lookup", "array") or (
+            item.kind == "enum" and "HORIZONTAL_ENUM" in hints
+        )
+        if _is_button(item):
+            classes.append("os-param-fits-in-right-column")
+        elif "DISPLAY_SHORT" in hints:
+            classes.append("os-param-display-short")
+        else:
+            if not fills_both or (following is not None and _is_button(following)):
+                classes.append("os-param-fill-first-column")
+            if fills_both:
+                classes.append("os-param-fill-both-columns")
+        if item.kind in ("query", "reference", "array"):
+            classes.append("os-param-requires-margin")
         return (
-            f"<div class='group{' collapsed' if collapsed else ''}'><div class='group-header'>"
-            + check
-            + html.escape(group.name)
-            + "</div><div class='group-body'>"
-            + ("" if collapsed else self.items(group.children))
-            + "</div></div>"
+            f"<div class='{' '.join(classes)}' data-parameter-id='{_attribute(item.name)}'"
+            f"{' title=' + chr(39) + _attribute(item.annotation['Description']) + chr(39) if item.annotation.get('Description') else ''}>"
+            f"{self.parameter(item)}</div>"
+        )
+
+    def parameter(self, item: Parameter) -> str:
+        if item.kind == "enum" and item.enum is not None:
+            return self.enum(item)
+        if item.kind == "boolean":
+            return self.boolean(item)
+        if item.kind in ("query", "reference"):
+            return self.query(item)
+        if item.kind == "lookup":
+            return self.lookup(item)
+        if item.kind == "array":
+            return self.array(item)
+        if item.kind == "string":
+            return (
+                "<osx-string-parameter data-parameter-type='os-string-parameter'>"
+                f"<span class='os-param-wrapper os-param-container' data-parameter-id='{_attribute(item.name)}'>"
+                f"<label class='os-param-label'>{html.escape(item.label)}</label>"
+                f"<input type='text' class='os-param-text os-param-form-item' value='{_attribute(item.value or '')}' data-set='{_attribute(item.key)}'>"
+                "</span></osx-string-parameter>"
+            )
+        if item.kind in ("length", "angle", "integer", "real"):
+            return self.quantity(item)
+        return f"<span class='os-param-wrapper os-param-container'><label class='os-param-label'>{html.escape(item.label)}</label></span>"
+
+    def label(self, item: Parameter) -> str:
+        chosen = parameter_icon(item.name, item.annotation)
+        if chosen is None:
+            return f"<label class='os-param-label'><span>{html.escape(item.label)}</span></label>"
+        if chosen in SPRITE_ICONS:
+            graphic = sprite(SPRITE_ICONS[chosen], " class='os-parameter-icon os-svg-icon'")
+        else:
+            graphic = f"<span class='os-parameter-icon os-svg-icon'>{icon(chosen)}</span>"
+        return f"<label class='ns-parameter-label icon-label' title='{_attribute(item.label)}'>{graphic}</label>"
+
+    def quantity(self, item: Parameter) -> str:
+        hints = item.hints
+        read_only = "READ_ONLY" in hints
+        tolerant = "CAN_BE_TOLERANT" in hints
+        expander = (
+            f"<node-expander class='node-expander-disabled pe-none'><div class='os-center-content'>{sprite('collapsed', ' class=os-svg-icon')}</div></node-expander>"
+            if tolerant
+            else ""
+        )
+        # Short parameters share a row, without labels
+        label = "" if "DISPLAY_SHORT" in hints else self.label(item)
+        toggle = (
+            f"<button class='parameter-state-toggle is-button pe-auto'>{sprite('hole-tolerance-precision', ' class=os-svg-icon')}</button>"
+            if tolerant
+            else ""
+        )
+        return (
+            "<os-quantity-parameter data-parameter-type='os-quantity-parameter'>"
+            f"<div class='os-param-wrapper os-param-container{' os-param-readonly' if read_only else ''}' data-parameter-id='{_attribute(item.name)}'>"
+            f"{expander}{label}<div class='quantity-autocomplete-holder dropdown'>"
+            f"<input class='os-param-number dropdown-source os-param-form-item' type='text' value='{_attribute(item.value or '')}'"
+            f"{' readonly' if read_only else f' data-set={chr(39)}{_attribute(item.key)}{chr(39)}'}>"
+            f"</div>{toggle}</div></os-quantity-parameter>"
+        )
+
+    def boolean(self, item: Parameter) -> str:
+        on = bool(item.value)
+        toggle = _setting(item.key, "false" if on else "true")
+        button = next((BUTTONS[hint] for hint in BUTTONS if hint in item.hints), None)
+        if button is not None:
+            return (
+                "<osx-boolean-parameter data-parameter-type='os-boolean-parameter'>"
+                f"<div class='os-param-wrapper os-param-container' data-parameter-id='{_attribute(item.name)}'>"
+                f"<div class='os-inline-icon-button-wrapper'><osc-svg-icon class='os-param-icon-button os-inline-icon-button'"
+                f" style='display: inline-flex;' title='{_attribute(item.label)}'{toggle}>{sprite(button, ' height=100% width=100%')}"
+                "</osc-svg-icon></div></div></osx-boolean-parameter>"
+            )
+        return (
+            "<osx-boolean-parameter data-parameter-type='os-boolean-parameter'>"
+            f"<div class='os-param-wrapper os-param-container' data-parameter-id='{_attribute(item.name)}'>"
+            f"<label class='os-param-checkbox'{toggle}>"
+            f"<input type='checkbox' class='os-param-checkbox-input' data-parameter-value='{'true' if on else 'false'}'{' checked' if on else ''}>"
+            f"<span class='os-checkbox-indicator'></span><span class='os-param-checkbox-label'>{html.escape(item.label)}</span>"
+            "</label></div></osx-boolean-parameter>"
+        )
+
+    def enum(self, item: Parameter) -> str:
+        assert item.enum is not None
+        names = item.enum.values
+        hints = item.hints
+        if "MATE_CONNECTOR_AXIS_TYPE" in hints:
+            # A button which steps through the values
+            values = list(names)
+            following = values[(values.index(item.value) + 1) % len(values)] if item.value in values else values[0]
+            return (
+                "<os-enum-parameter data-parameter-type='os-enum-parameter'>"
+                f"<div class='os-param-container os-row' data-parameter-id='{_attribute(item.name)}' title='{_attribute(item.label)}'"
+                f"{_setting(item.key, following)}>{sprite(BUTTONS['MATE_CONNECTOR_AXIS_TYPE'], ' class=' + chr(34) + 'os-param-icon-button ns-dialog-button-rotatexy os-svg-icon' + chr(34))}"
+                "</div></os-enum-parameter>"
+            )
+        if "HORIZONTAL_ENUM" in hints:
+            options = "".join(
+                f"<div class='option{' os-active' if value == item.value else ''} os-param-form-item' data-enum-param-value='{_attribute(value)}'"
+                f"{_setting(item.key, value)}><span>{html.escape(name)}</span></div>"
+                for value, name in names.items()
+            )
+            return (
+                "<os-enum-parameter data-parameter-type='os-enum-parameter'>"
+                f"<span class='os-param-wrapper os-param-container' data-parameter-id='{_attribute(item.name)}'>"
+                f"<div class='os-param-tabs'>{options}</div></span></os-enum-parameter>"
+            )
+        label = self.label(item) if "SHOW_LABEL" in hints else ""
+        options = [(name, _setting(item.key, value)) for value, name in names.items()]
+        select = self.select(item.name, names.get(item.value, item.value or ""), options, "select-input ")
+        return (
+            "<os-enum-parameter data-parameter-type='os-enum-parameter'><span class='os-param-wrapper os-param-select'>"
+            f"{label}<div class='select-container-wrapper'>{select}</div></span></os-enum-parameter>"
+        )
+
+    def select(self, name: str, selected: str, options: list[tuple[str, str]], classes: str = "") -> str:
+        """A dropdown, showing `selected`, with `options` (each its text and the attributes setting it)."""
+        rows = "".join(f"<div class='os-select-choices-row'{setting}>{html.escape(text)}</div>" for text, setting in options)
+        return (
+            f"<div class='{classes}os-select-container os-select-bootstrap dropdown' data-parameter-id='{_attribute(name)}'>"
+            "<div class='os-select-match'><span class='btn btn-secondary form-control os-select-toggle' style='outline: 0;'>"
+            f"<span class='os-select-match-text float-start'><span>{html.escape(selected)}</span></span><i class='caret float-end'></i>"
+            "</span></div>"
+            "<span class='os-spinner-small os-spinner-spinning ng-hide'></span>"
+            "<input type='search' class='form-control os-select-search ng-hide'>"
+            f"<ul class='os-select-choices os-select-choices-content os-select-dropdown dropdown-menu ng-hide'>"
+            f"<li class='os-select-choices-group'>{rows}</li></ul>"
+            # Onshape's hidden parts, which affect the layout
+            "<div class='os-select-no-choice'></div><os-select-single></os-select-single>"
+            "<input class='os-select-focusser os-select-offscreen' type='text' tabindex='-1'></div>"
+        )
+
+    def lookup(self, item: Parameter) -> str:
+        """A lookup table: a dropdown for each level. Choosing a value keeps the levels above it, and takes the
+        defaults below."""
+        rows = []
+        for index, (level, choice, choices) in enumerate(item.levels):
+            above = [chosen for _, chosen, _ in item.levels[:index]]
+            options = [(option, _setting(item.key, " > ".join([*above, option]))) for option in choices]
+            rows.append(
+                "<tr class='os-param-lookup-table-selector-container'>"
+                f"<td class='os-param-table-label'><span>{html.escape(level)}</span></td>"
+                f"<td class='os-param-table-value'><div class='os-param-lookup-table-selector'>{self.select(level, choice, options)}</div></td></tr>"
+            )
+        return (
+            "<os-lookup-table-parameter data-parameter-type='os-lookup-table-parameter'>"
+            f"<table class='os-param-lookup-table' data-parameter-id='{_attribute(item.name)}'><tbody>{''.join(rows)}</tbody></table>"
+            "</os-lookup-table-parameter>"
+        )
+
+    def query(self, item: Parameter) -> str:
+        focus = not self.focused
+        self.focused = True
+        side = (
+            "<osc-svg-icon class='query-side-button' style='display: inline-flex;' title='Create mate connector'>"
+            f"{sprite('mate-connector-button', ' height=20 width=20')}</osc-svg-icon>"
+            if "MATE_CONNECTOR" in str(item.annotation.get(FILTER_TEXT, ""))
+            else ""
+        )
+        return (
+            "<os-query-list-parameter data-parameter-type='os-query-list-parameter'>"
+            f"<div class='os-param-wrapper os-param-query-list-container os-param-container' data-parameter-id='{_attribute(item.name)}'>"
+            "<div class='os-row os-grow'>"
+            f"<div class='os-param-query-list os-param-selection-list os-grow os-param-query-list-resize{' os-param-query-list-focus' if focus else ''}'>"
+            "<div class='slimScrollDiv' style='position: relative; overflow: hidden; width: auto;'>"
+            "<div class='os-param-query-list-scroll-box' style='overflow: hidden; width: calc(100% + 20px); padding-right: 20px; height: auto; min-height: auto;'>"
+            f"<div class='os-param-query-list-header'><label class='os-param-query-list-label os-grow'>{html.escape(item.label)}</label></div>"
+            "<ul class='os-param-list-container'></ul></div></div></div>"
+            f"{side}</div></div></os-query-list-parameter>"
         )
 
     def array(self, array: Parameter) -> str:
@@ -1107,93 +1343,33 @@ class Renderer:
         add one."""
         item_name = str(array.annotation.get("Item name", "item"))
         template = array.annotation.get("Item label template")
-        items = []
+        entries = []
         for index, children in enumerate(array.items):
             values = {child.name: _text(child.value) for child in children if isinstance(child, Parameter)}
             label = f"{item_name.capitalize()} {index + 1}"
             if isinstance(template, str):
                 label = re.sub(r"#(\w+)", lambda match: values.get(match[1], match[0]), template)
-            items.append(
-                "<div class='array-item'><div class='item-header'><span class='grip'></span><span class='chevron open'>"
-                f"</span><span class='label'>{html.escape(label)}</span><span class='remove'>&#x2716;</span></div>"
-                f"<div class='item-body'>{self.items(children)}</div></div>"
+            entries.append(
+                f"<li class='os-param-array-item' data-parent-parameter-id='{_attribute(array.name)}'>"
+                "<div class='os-param-selection-list-entry'>"
+                f"<node-expander class='os-param-array-item-expander hidden-on-init visible' data-toggle>"
+                f"<div class='os-center-content'>{sprite('collapsed', ' class=' + chr(34) + 'os-svg-icon expanded' + chr(34))}</div></node-expander>"
+                f"<span class='os-param-query-list-entry-text os-param-array-item-title'>{html.escape(label)}</span>"
+                f"<span class='os-param-selection-list-entry-delete' data-remove='{_attribute(array.key)}' data-index='{index}'>&times;</span></div>"
+                f"<div class='os-param-array-item-contents'><os-parameter-list-view>{self.items(children)}</os-parameter-list-view></div></li>"
             )
-        listed = f"<div class='array-list'>{''.join(items)}</div>" if items else ""
         return (
-            f"<div class='array'><div class='array-header'>{html.escape(array.label)}</div>{listed}"
-            f"<div class='array-add'>Add {html.escape(item_name)}</div></div>"
+            "<os-array-parameter data-parameter-type='os-array-parameter'>"
+            f"<div class='os-param-array os-param-container os-param-query-list-resize os-param-selection-list' data-parameter-id='{_attribute(array.name)}'>"
+            "<div class='os-param-query-list-scroll-box os-param-array-list' style='overflow: hidden; width: calc(100% + 20px); padding-right: 20px; height: auto; min-height: auto;'>"
+            "<div class='os-param-query-list-header'>"
+            f"<label class='os-param-query-list-label os-grow os-param-query-list-small-label'>{html.escape(array.label)}</label>"
+            f"<button class='os-param-query-list-reorder-button'>{sprite('reorder-items-button', ' class=os-svg-icon')}</button>"
+            f"<button class='os-param-array-clear-button'{_setting(array.key, 0)}><small>CLEAR</small></button></div>"
+            f"<ul class='os-param-list-container'>{''.join(entries)}</ul>"
+            f"<button class='btn btn-secondary os-param-button os-param-array-add-button os-no-shrink'{_setting(array.key, array.count + 1)}>"
+            f"Add {html.escape(item_name)}</button></div></div></os-array-parameter>"
         )
-
-    def short(self, item: Parameter, labeled: bool = True) -> str:
-        """A parameter displayed short, sharing its row."""
-        label = f"<span class='label'>{html.escape(item.label)}</span>" if labeled else ""
-        if item.kind == "boolean":
-            return f"<span class='short'>{_check(item.name, bool(item.value))}{label}</span>"
-        return f"<span class='short'>{label}<span class='input'>{html.escape(_text(item.value or ''))}</span></span>"
-
-    def parameter(self, item: Parameter) -> list[str]:
-        label = f"<span class='label'>{html.escape(item.label)}</span>"
-        chosen = parameter_icon(item.name, item.annotation)
-        if chosen is not None:
-            # In place of its label, which shows when it's hovered
-            label = f"<span class='label' title='{html.escape(item.label)}'>{icon(chosen)}</span>"
-        if item.kind == "enum" and item.enum is not None:
-            names = item.enum.values
-            if "HORIZONTAL_ENUM" in item.hints:
-                tabs = "".join(
-                    f"<span class='tab{' selected' if value == item.value else ''}'{_setting(item.name, value)}>"
-                    f"{html.escape(name)}</span>"
-                    for value, name in names.items()
-                )
-                return [f"<span class='tabs'>{tabs}</span>"]
-            selected = html.escape(names.get(item.value, item.value or ""))
-            options = _options(item.name, names)
-            if "SHOW_LABEL" in item.hints:
-                return [label.replace("class='label'", "class='label right'") + f"<span class='select'{options}>{selected}</span>"]
-            return [f"<span class='select wide'{options}>{selected}</span>"]
-        if item.kind == "boolean":
-            return [_check(item.name, bool(item.value)) + label]
-        if item.kind in ("query", "reference"):
-            focus = not self.focused
-            self.focused = True
-            query = f"<span class='query{' focus' if focus else ''}'>{html.escape(item.label)}</span>"
-            if "MATE_CONNECTOR" in str(item.annotation.get(FILTER_TEXT, "")):
-                query += f"<span class='button' title='Create mate connector'>{icon(MATE_CONNECTOR_ICON)}</span>"
-            return [query]
-        if item.kind == "lookup":
-            return [
-                f"<span class='label right'>{html.escape(level)}</span><span class='select'>{html.escape(choice)}</span>"
-                for level, choice in item.levels
-            ]
-        if item.kind in ("length", "angle", "integer", "real", "string"):
-            read_only = " read-only" if "READ_ONLY" in item.hints else ""
-            row = label + f"<span class='input{read_only}'>{html.escape(_text(item.value or ''))}</span>"
-            if "CAN_BE_TOLERANT" in item.hints:
-                # Expands to show the tolerance, once one's added with the button
-                row = "<span class='chevron'></span>" + row
-                row += f"<span class='button' title='Add tolerance'>{icon(TOLERANCE_ICON)}</span>"
-            return [row]
-        return [label]
-
-
-def _setting(name: str, value: Any) -> str:
-    """Attributes saying which parameter a control sets (with `fs ui --set`), and to what, for the VS Code extension's
-    preview to change it when it's clicked."""
-    return f" data-name='{html.escape(name)}' data-value='{html.escape(_text(value))}'"
-
-
-def _options(name: str, names: dict) -> str:
-    """Attributes listing an enum's values (as `value=Name` lines), for the preview to offer them."""
-    listed = "\n".join(f"{value}={label}" for value, label in names.items())
-    return f" data-name='{html.escape(name)}' data-options='{html.escape(listed)}'"
-
-
-def _check(name: str, on: bool) -> str:
-    """A checkbox, which sets its parameter to the opposite when clicked in the preview."""
-    return (
-        f"<span class='check{' on' if on else ''}'{_setting(name, 'false' if on else 'true')}>"
-        f"{'&#x2714;' if on else ''}</span>"
-    )
 
 
 # Screenshots
@@ -1225,7 +1401,7 @@ def screenshot(page: str, output: pathlib.Path, run: Callable = subprocess.run) 
         measured.write_text(
             page.replace(
                 "</body>",
-                "<script>document.title = document.querySelector('.dialog').getBoundingClientRect().bottom + 12;</script></body>",
+                "<script>document.title = document.querySelector('#feature-dialog').getBoundingClientRect().bottom + 10;</script></body>",
             )
         )
         dom = run(
@@ -1241,7 +1417,7 @@ def screenshot(page: str, output: pathlib.Path, run: Callable = subprocess.run) 
         source = pathlib.Path(directory) / "dialog.html"
         source.write_text(page)
         run(
-            [chromium, *flags, f"--window-size=326,{height}", f"--screenshot={output.resolve()}", source.as_uri()],
+            [chromium, *flags, f"--window-size=298,{height}", f"--screenshot={output.resolve()}", source.as_uri()],
             capture_output=True,
             timeout=120,
         )
@@ -1255,8 +1431,9 @@ def render_feature(
     path: pathlib.Path,
     feature_name: str | None,
     overrides: dict[str, str],
+    theme: str = "dark",
 ) -> tuple[str, list[str]]:
-    """Returns the HTML of a feature's dialog, and any warnings."""
+    """Returns the HTML of a feature's dialog (in Onshape's `dark` or `light` theme), and any warnings."""
     declarations = load_declarations(project, std_dir, path)
     own = Declarations()
     own.add_source(path.read_text(encoding="utf-8", errors="replace"))
@@ -1275,6 +1452,6 @@ def render_feature(
     title = annotation.get("Feature Type Name", feature_name) if isinstance(annotation, dict) else feature_name
     # As Onshape names a new feature
     title = f"{title} 1"
-    unused = set(overrides) - builder.declared
+    unused = set(overrides) - builder.keys
     warnings = builder.warnings + [f"{name} isn't shown, so --set {name} did nothing." for name in sorted(unused)]
-    return Renderer().page(str(title), items), warnings
+    return Renderer(theme).page(str(title), items), warnings

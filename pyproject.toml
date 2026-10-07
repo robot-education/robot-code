@@ -18,6 +18,8 @@ fs-lsp = "fs_lsp.server:main"
 
 [dependency-groups]
 dev = ["pytest>=8.0.0"]
+# For regenerating fs_cli/onshape_ui (see its extract.py)
+onshape-ui = ["beautifulsoup4>=4.12", "tinycss2>=1.3"]
 
 [tool.fs]
 # Folder the backend document's Feature Studios are mirrored to (Onshape folders become subfolders).

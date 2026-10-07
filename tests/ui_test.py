@@ -135,8 +135,20 @@ def render(repo, *settings):
 
 
 def texts(page: str) -> list[str]:
+    """The text shown in a dialog: its text and its inputs' values, without dropdowns' (closed) options or icons."""
     body = page[page.index("<body>") :]
+    body = re.sub(r"<ul class='os-select-choices.*?</ul>", "", body)
+    body = re.sub(r"<svg.*?</svg>", "", body, flags=re.S)
+    body = re.sub(r"<input[^>]* value='([^']*)'[^>]*>", r"<i>\1</i>", body)
     return [text for text in re.split(r"<[^>]+>", body) if text.strip()]
+
+
+def parameter(page: str, name: str) -> str:
+    """The markup of a parameter in a list."""
+    start = page.index(f" data-parameter-id='{name}'")
+    start = page.rindex("<div class='os-parameter-list-item", 0, start)
+    ends = [page.find(marker, start + 1) for marker in ("<div class='os-parameter-list-item", "</os-parameter-group>")]
+    return page[start : min(end for end in ends if end >= 0)]
 
 
 def test_dialog_follows_the_precondition(repo):
@@ -144,8 +156,6 @@ def test_dialog_follows_the_precondition(repo):
     assert warnings == []
     assert texts(page) == [
         "Widget 1",
-        "&#x2714;",
-        "&#x2716;",
         # A horizontal enum, without the hidden value
         "Edge",
         "Point",
@@ -161,21 +171,28 @@ def test_dialog_follows_the_precondition(repo):
         "1 in",
         "Offset",
         # The group's driving parameter is its header
-        "&#x2714;",
         "Second",
         "Second depth",
         "1 in",
     ]
-    assert "class='tab selected' data-name='placement' data-value='EDGE'>Edge<" in page
-    # The flip button, with Onshape's icon
-    assert "<span class='button' title='Flip'><span class='icon invert'><svg" in page
+    # Onshape's markup: the chosen tab is active, and clicking a tab sets it
+    assert "<div class='option os-active os-param-form-item' data-enum-param-value='EDGE' data-set='placement' data-value='EDGE'>" in page
+    # The flip button, with Onshape's icon, in the column beside the depth
+    flip = parameter(page, "flip")
+    assert "os-param-fits-in-right-column" in flip and "#svg-icon-flip-direction-opposite" in flip
+    assert "data-set='flip' data-value='true'" in flip
+    assert "os-param-fill-first-column" in parameter(page, "depth")
+    # The group's driving parameter is a checkbox in its header
+    assert "<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='hasSecond'>" in page
 
 
 def test_short_parameters_share_a_row(repo):
     page, _ = render(repo, "hasOffset=true")
-    rows = [row.split("</div>")[0] for row in page.split("<div class='row'>")]
-    [row] = [row for row in rows if "Offset" in row]
-    assert texts("<body>" + row) == ["&#x2714;", "Offset", "1 in"]
+    # Onshape lays out short parameters beside each other, and doesn't label short values
+    has_offset, offset = parameter(page, "hasOffset"), parameter(page, "offset")
+    assert "os-param-display-short" in has_offset and "os-param-display-short" in offset
+    assert texts("<body>" + has_offset) == ["Offset"] and " checked" in has_offset
+    assert texts("<body>" + offset) == ["1 in"]
 
 
 def test_settings_change_the_dialog(repo):
@@ -185,6 +202,42 @@ def test_settings_change_the_dialog(repo):
     assert shown[shown.index("Vendor") + 1] == "REV"
     assert "Second depth" not in shown
     assert "2 in" in shown
+    # The unchecked group keeps its header, closed
+    assert "Second" in shown and "os-param-group-expander node-expander-disabled" in page
+    assert "<div class='os-param-group-collapsible-contents ng-hide'>" in page
+
+
+def test_groups_inside_false_conditions_keep_their_headers(repo):
+    (repo / "featurescripts" / "widget.fs").write_text(DRIVEN_GROUP_FEATURE)
+    page, _ = render(repo)
+    assert texts(page)[1:] == ["Extra"]
+    assert "data-driving-parameter-id='hasExtra'" in page and "ng-hide" in page
+    page, _ = render(repo, "hasExtra=true")
+    assert texts(page)[1:] == ["Extra", "Extra depth", "1 in"]
+
+
+DRIVEN_GROUP_FEATURE = """FeatureScript 1;
+import(path : "onshape/std/common.fs", version : "1.0");
+
+annotation { "Feature Type Name" : "Widget" }
+export const widget = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "Extra" }
+        definition.hasExtra is boolean;
+
+        if (definition.hasExtra)
+        {
+            annotation { "Group Name" : "Extra", "Driving Parameter" : "hasExtra", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Extra depth" }
+                isLength(definition.extraDepth, LENGTH_BOUNDS);
+            }
+        }
+    }
+    {
+    });
+"""
 
 
 def test_bad_settings_are_reported(repo):
@@ -227,28 +280,33 @@ def test_arrays(repo):
     page, warnings = render(repo)
     assert warnings == []
     # New features start with no items
-    assert texts(page)[3:] == ["Holes", "Add hole", "Total", "1 in"]
-    assert "class='input read-only'" in page
-    page, _ = render(repo, "holes=2")
-    assert texts(page)[3:] == [
+    assert texts(page)[1:] == ["Holes", "CLEAR", "Add hole", "Total", "1 in"]
+    assert "os-param-readonly" in parameter(page, "total")
+    page, _ = render(repo, "holes=2", "holes.1.name=Big", "holes.1.depth=2 in")
+    assert texts(page)[1:] == [
         "Holes",
+        "CLEAR",
         "Hole (1 in)",
-        "&#x2716;",
+        "&times;",
         "Name",
         "Hole",
         "Depth",
         "1 in",
-        "Hole (1 in)",
-        "&#x2716;",
+        # Each item's parameters can be set
+        "Big (2 in)",
+        "&times;",
         "Name",
-        "Hole",
+        "Big",
         "Depth",
-        "1 in",
+        "2 in",
         "Add hole",
         "Total",
         "1 in",
     ]
-    assert "title='Add tolerance'" in page
+    assert "data-set='holes.1.depth'" in page
+    assert "data-remove='holes' data-index='1'" in page
+    assert "data-set='holes' data-value='3'>Add hole" in page
+    assert "#svg-icon-hole-tolerance-precision" in page
     with pytest.raises(UiError, match="how many items"):
         render(repo, "holes=many")
 
@@ -263,11 +321,13 @@ def test_screenshot(repo, capsys):
 
 
 def test_icons_exist():
-    from fs_cli.ui import BUTTONS, ICON_DIR, ICON_VALUES, MATE_CONNECTOR_ICON, PARAMETER_ICONS, TOLERANCE_ICON
+    from fs_cli.ui import BUTTONS, ICON_DIR, ICON_VALUES, ONSHAPE_UI, PARAMETER_ICONS, SPRITE_ICONS
 
-    names = {name for name, _ in BUTTONS.values()} | set(PARAMETER_ICONS.values()) | set(ICON_VALUES.values())
-    for name in names | {MATE_CONNECTOR_ICON, TOLERANCE_ICON}:
+    for name in set(PARAMETER_ICONS.values()) | set(ICON_VALUES.values()):
         assert (ICON_DIR / f"{name}.svg").is_file(), name
+    sprite = (ONSHAPE_UI / "icons.svg").read_text()
+    for name in {*BUTTONS.values(), *SPRITE_ICONS.values(), "collapsed", "mate-connector-button", "ok-button"}:
+        assert f'id="svg-icon-{name}"' in sprite, name
 
 
 def test_html_for_the_preview(repo, capsys):
@@ -276,5 +336,5 @@ def test_html_for_the_preview(repo, capsys):
     page = capsys.readouterr().out
     assert page.startswith("<!doctype html>")
     # Controls say which parameter they set, and to what
-    assert "data-name='placement' data-value='EDGE'>Edge<" in page
+    assert "data-set='placement' data-value='EDGE'><span>Edge</span>" in page
     assert not (repo / "widget.png").exists()

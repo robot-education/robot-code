@@ -201,6 +201,7 @@ def make_parser() -> argparse.ArgumentParser:
         "-o", "--output", help="the PNG to write (default: <feature>.png), or - to print the dialog's HTML instead"
     )
     ui_command.add_argument("--html", action="store_true", help="also write the dialog's HTML next to the PNG")
+    ui_command.add_argument("--theme", choices=["dark", "light"], default="dark", help="Onshape's theme (default: dark)")
 
     tabs_command = command(
         "tabs",
@@ -1074,7 +1075,7 @@ def ui(config: Config, args: argparse.Namespace) -> int:
         if not separator:
             raise UsageError(f"--set takes NAME=VALUE, not {setting!r}.")
         overrides[name.strip()] = value.strip()
-    page, warnings = render_feature(_project(config), config.std_dir, path, args.feature, overrides)
+    page, warnings = render_feature(_project(config), config.std_dir, path, args.feature, overrides, args.theme)
     if args.output == "-":
         # For the VS Code extension's preview
         for warning in warnings:

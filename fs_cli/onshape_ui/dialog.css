@@ -1,0 +1,357 @@
+/* Onshape's feature dialog styles, extracted from uiTestBench.html by extract.py. Don't edit. */
+:root, [data-os-theme] {--os-color-aquarium: #3e94ff; --os-color-boston-terrier: #333; --os-color-boston-terrier-rgba95: #333333f2; --os-color-charles-500: #1651b0; --os-color-charles-800: #094174; --os-color-charles-950: #142434; --os-color-clover-300: #74ce3a; --os-color-clover-500: #009400; --os-color-constitution-rgba10: #00000019; --os-color-constitution-rgba12: #0000001f; --os-color-constitution-rgba20: #00000033; --os-color-constitution-rgba25: #0000003f; --os-color-constitution-rgba40: #00000066; --os-color-constitution-rgba60: #00000099; --os-color-molasses: #2c2c2c; --os-color-noreaster-100: #d7d7d7; --os-color-noreaster-20: #f5f5f5; --os-color-noreaster-200: #ccc; --os-color-noreaster-40: #eee; --os-color-noreaster-400: #aaa; --os-color-noreaster-50: #eaeaea; --os-color-noreaster-500: #999; --os-color-noreaster-600: #888; --os-color-noreaster-700: #777; --os-color-noreaster-800: #666; --os-color-noreaster-900: #555; --os-color-red-sox-100: #f9ebec; --os-color-red-sox-400: #ff6b6b; --os-color-red-sox-500: #bd3039; --os-color-red-sox-800: #683232; --os-color-seaport-300: #def1fb; --os-color-seaport-400: #b2ddf6; --os-color-seaport-500: #90cef1; --os-color-zakim: #fff; --os-color-zakim-rgba95: #fffffff2}
+:root, [data-os-theme="light"] {--os-accent-primary: var(--os-color-charles-500); --os-accent-primary--static: var(--os-color-charles-500); --os-accent-quaternary: var(--os-color-boston-terrier); --os-accent-tertiary--static: var(--os-color-zakim); --os-active: var(--os-color-charles-500); --os-background-primary: var(--os-color-zakim); --os-background-secondary: var(--os-color-noreaster-20); --os-background-septenary: var(--os-color-noreaster-50); --os-background-transparent-primary: var(--os-color-zakim-rgba95); --os-emphasis-fill--static: var(--os-color-charles-500); --os-error-background: var(--os-color-red-sox-100); --os-fill-denary--static: var(--os-color-noreaster-200); --os-fill-octonary: var(--os-color-noreaster-100); --os-fill-primary: var(--os-color-zakim); --os-fill-quaternary: var(--os-color-noreaster-100); --os-fill-quaternary--static: var(--os-color-noreaster-100); --os-fill-quinary--static: var(--os-color-noreaster-40); --os-fill-secondary: var(--os-color-noreaster-500); --os-fill-secondary--static: var(--os-color-noreaster-500); --os-fill-tertiary: var(--os-color-noreaster-800); --os-focus: var(--os-color-aquarium); --os-hover-secondary: var(--os-color-noreaster-50); --os-info-background-secondary: var(--os-color-seaport-300); --os-link: var(--os-color-charles-800); --os-outline-emphasis: var(--os-color-charles-500); --os-outline-primary: var(--os-color-boston-terrier); --os-outline-primary--static: var(--os-color-boston-terrier); --os-outline-quinary: var(--os-color-noreaster-600); --os-outline-secondary: var(--os-color-noreaster-400); --os-outline-secondary--static: var(--os-color-noreaster-400); --os-outline-senary: var(--os-color-noreaster-700); --os-outline-tertiary: var(--os-color-noreaster-100); --os-outline-tertiary--static: var(--os-color-noreaster-100); --os-shadow-primary: var(--os-color-constitution-rgba20); --os-shadow-quaternary--static: var(--os-color-constitution-rgba25); --os-shadow-tertiary--static: var(--os-color-constitution-rgba12); --os-stop: var(--os-color-red-sox-500); --os-success: var(--os-color-clover-500); --os-success-hover--static: var(--os-color-clover-300); --os-text-emphasis: var(--os-color-charles-500); --os-text-primary: var(--os-color-boston-terrier); --os-text-primary--static: var(--os-color-boston-terrier); --os-text-quaternary: var(--os-color-noreaster-900); --os-text-secondary: var(--os-color-noreaster-800)}
+[data-os-theme="dark"] {--os-accent-primary: var(--os-color-aquarium); --os-accent-primary--static: var(--os-color-charles-500); --os-accent-quaternary: var(--os-color-zakim); --os-accent-tertiary--static: var(--os-color-zakim); --os-active: var(--os-color-aquarium); --os-background-primary: var(--os-color-boston-terrier); --os-background-secondary: var(--os-color-molasses); --os-background-septenary: var(--os-color-noreaster-900); --os-background-transparent-primary: var(--os-color-boston-terrier-rgba95); --os-emphasis-fill--static: var(--os-color-charles-500); --os-error-background: var(--os-color-red-sox-800); --os-fill-denary--static: var(--os-color-noreaster-200); --os-fill-octonary: var(--os-color-noreaster-800); --os-fill-primary: var(--os-color-boston-terrier); --os-fill-quaternary: var(--os-color-noreaster-900); --os-fill-quaternary--static: var(--os-color-noreaster-100); --os-fill-quinary--static: var(--os-color-noreaster-40); --os-fill-secondary: var(--os-color-noreaster-100); --os-fill-secondary--static: var(--os-color-noreaster-500); --os-fill-tertiary: var(--os-color-noreaster-500); --os-focus: var(--os-color-aquarium); --os-hover-secondary: var(--os-color-noreaster-800); --os-info-background-secondary: var(--os-color-charles-950); --os-link: var(--os-color-seaport-400); --os-outline-emphasis: var(--os-color-seaport-500); --os-outline-primary: var(--os-color-zakim); --os-outline-primary--static: var(--os-color-boston-terrier); --os-outline-quinary: var(--os-color-noreaster-200); --os-outline-secondary: var(--os-color-noreaster-600); --os-outline-secondary--static: var(--os-color-noreaster-400); --os-outline-senary: var(--os-color-noreaster-500); --os-outline-tertiary: var(--os-color-noreaster-800); --os-outline-tertiary--static: var(--os-color-noreaster-100); --os-shadow-primary: var(--os-color-constitution-rgba40); --os-shadow-quaternary--static: var(--os-color-constitution-rgba25); --os-shadow-tertiary--static: var(--os-color-constitution-rgba12); --os-stop: var(--os-color-red-sox-400); --os-success: var(--os-color-clover-500); --os-success-hover--static: var(--os-color-clover-300); --os-text-emphasis: var(--os-color-seaport-500); --os-text-primary: var(--os-color-zakim); --os-text-primary--static: var(--os-color-boston-terrier); --os-text-quaternary: var(--os-color-noreaster-100); --os-text-secondary: var(--os-color-noreaster-200)}
+:root, [data-os-theme] {--os-accordion-fill--active: var(--os-fill-tertiary); --os-accordion-fill--inactive: var(--os-fill-quaternary); --os-button-fill-secondary--hover: var(--os-hover-secondary); --os-button-fill-secondary--idle: var(--os-fill-primary); --os-button-outline: var(--os-outline-secondary--static); --os-button-text-secondary: var(--os-text-primary); --os-dropdown-menu-outline: var(--os-outline-tertiary--static); --os-dropdown-menu-text: var(--os-text-quaternary); --os-effect-shadow-button-primary: var(--os-shadow-tertiary--static); --os-effect-shadow-button-secondary: var(--os-shadow-quaternary--static); --os-effect-shadow-drop-primary: var(--os-shadow-primary); --os-feature-dialog-accept--hover: var(--os-success-hover--static); --os-feature-dialog-accept--idle: var(--os-success); --os-feature-dialog-background: var(--os-background-transparent-primary); --os-feature-dialog-cancel--hover: var(--os-hover-secondary); --os-feature-dialog-divider: var(--os-outline-tertiary); --os-feature-dialog-edit--hover: var(--os-hover-secondary); --os-feature-dialog-header-background: var(--os-background-primary); --os-feature-dialog-name--valid: var(--os-text-primary); --os-feature-dialog-textbox-outline: var(--os-active); --os-icon-button-fill--hover-group: var(--os-fill-octonary); --os-icon-button-fill--selected: var(--os-background-septenary); --os-icon-accent-cancel: var(--os-stop); --os-icon-accent-primary: var(--os-accent-primary); --os-icon-accent-tertiary: var(--os-accent-quaternary); --os-icon-fill-primary: var(--os-fill-primary); --os-icon-fill-primary--static: var(--os-accent-tertiary--static); --os-icon-fill-quaternary--static: var(--os-fill-quaternary--static); --os-icon-fill-quinary--static: var(--os-fill-quinary--static); --os-icon-fill-secondary: var(--os-fill-secondary); --os-icon-fill-secondary--static: var(--os-fill-secondary--static); --os-icon-outline-primary: var(--os-outline-primary); --os-icon-outline-primary--static: var(--os-outline-primary--static); --os-parameter-checkbox-border--hover: var(--os-outline-primary); --os-parameter-checkbox-border--idle: var(--os-outline-quinary); --os-parameter-checkbox-check: var(--os-accent-tertiary--static); --os-parameter-checkbox-fill--checked: var(--os-active); --os-parameter-checkbox-fill--unchecked: var(--os-fill-primary); --os-parameter-checkbox-text--hover: var(--os-text-primary); --os-parameter-checkbox-text--idle: var(--os-text-secondary); --os-parameter-dropdown-button--hover: var(--os-hover-secondary); --os-parameter-enum-border--idle: var(--os-outline-tertiary--static); --os-parameter-enum-text--selected: var(--os-text-emphasis); --os-parameter-form-input-text: var(--os-text-primary); --os-parameter-form-text--hover: var(--os-text-primary); --os-parameter-form-text--idle: var(--os-text-secondary); --os-parameter-form-underline--idle: var(--os-outline-tertiary--static); --os-parameter-qlv-fill--selected: var(--os-info-background-secondary); --os-parameter-qlv-outline--idle: var(--os-outline-tertiary); --os-parameter-qlv-outline--selected: var(--os-active); --os-parameter-qlv-text--idle: var(--os-text-secondary); --os-parameter-qlv-text--selected: var(--os-text-quaternary); --os-parameter-slider-bar--active: var(--os-outline-senary); --os-parameter-slider-control-fill--idle: var(--os-fill-primary); --os-parameter-slider-control-outline--active: var(--os-outline-quinary); --os-parameter-underline--active: var(--os-active); --os-spinner-indicator: var(--os-accent-primary)}
+.ng-hide:not(.ng-hide-animate) {display: none !important}
+.clearfix::after, .clearfix::before {content: ""; display: table; line-height: 0}
+.clearfix::after {clear: both}
+:root {--bs-font-sans-serif: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans","Liberation Sans",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"; --bs-body-font-family: var(--bs-font-sans-serif); --bs-body-font-size: 1rem; --bs-body-font-weight: 400; --bs-body-line-height: 1.5; --bs-body-color: #212529; --bs-body-bg: #fff; --bs-secondary-color: rgba(33,37,41,.75); --bs-secondary-bg: #e9ecef; --bs-tertiary-bg: #f8f9fa; --bs-link-color: #0d6efd; --bs-link-color-rgb: 13,110,253; --bs-link-hover-color: #0a58ca; --bs-link-hover-color-rgb: 10,88,202; --bs-border-width: 1px; --bs-border-color: #dee2e6; --bs-border-color-translucent: rgba(0,0,0,.175); --bs-border-radius: 0.375rem; --bs-border-radius-sm: 0.25rem}
+*, ::after, ::before {box-sizing: border-box}
+@media (prefers-reduced-motion: no-preference) {
+:root {scroll-behavior: smooth}
+}
+body {background-color: var(--bs-body-bg); color: var(--bs-body-color); font-family: var(--bs-body-font-family); font-size: var(--bs-body-font-size); font-weight: var(--bs-body-font-weight); line-height: var(--bs-body-line-height); margin: 0px; text-align: var(--bs-body-text-align)}
+ul {padding-left: 2rem}
+ul {margin-bottom: 1rem; margin-top: 0px}
+ul ul {margin-bottom: 0px}
+small {font-size: 0.875em}
+a {color: rgba(var(--bs-link-color-rgb),var(--bs-link-opacity,1)); text-decoration: underline}
+a:hover {--bs-link-color-rgb: var(--bs-link-hover-color-rgb)}
+svg {vertical-align: middle}
+table {border-collapse: collapse; caption-side: bottom}
+tbody, td, tr {border-width: 0px; border-style: solid; border-image: none; border-color: inherit}
+label {display: inline-block}
+button {border-radius: 0px}
+button:focus:not(:focus-visible) {outline: 0px}
+button, input {font-family: inherit; font-size: inherit; line-height: inherit; margin: 0px}
+button {text-transform: none}
+[role="button"] {cursor: pointer}
+button {appearance: button}
+button:not(:disabled) {cursor: pointer}
+::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-fields-wrapper, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-text, ::-webkit-datetime-edit-year-field {padding: 0px}
+::-webkit-inner-spin-button {height: auto}
+[type="search"] {appearance: textfield; outline-offset: -2px}
+::-webkit-search-decoration {appearance: none}
+::-webkit-color-swatch-wrapper {padding: 0px}
+::-webkit-file-upload-button {appearance: button; font: inherit}
+::file-selector-button {appearance: button; font: inherit}
+.form-control {appearance: none; background-clip: padding-box; background-color: var(--bs-body-bg); border: var(--bs-border-width) solid var(--bs-border-color); border-radius: var(--bs-border-radius); color: var(--bs-body-color); display: block; font-size: 1rem; font-weight: 400; line-height: 1.5; padding: 0.375rem 0.75rem; transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; width: 100%}
+@media (prefers-reduced-motion: reduce) {
+.form-control {transition: none}
+}
+.form-control:focus {background-color: var(--bs-body-bg); border-color: rgb(134, 183, 254); box-shadow: rgba(13, 110, 253, 0.25) 0px 0px 0px 0.25rem; color: var(--bs-body-color); outline: 0px}
+.form-control::-webkit-date-and-time-value {height: 1.5em; margin: 0px; min-width: 85px}
+.form-control::-webkit-datetime-edit {display: block; padding: 0px}
+.form-control::placeholder {color: var(--bs-secondary-color); opacity: 1}
+.form-control::placeholder {color: var(--bs-secondary-color); opacity: 1}
+.form-control::-webkit-file-upload-button {background-color: var(--bs-tertiary-bg); border-width: 0px; border-style: solid; border-image: none; border-color: inherit; border-inline-end-width: var(--bs-border-width); border-radius: 0px; color: var(--bs-body-color); margin: -0.375rem -0.75rem; margin-inline-end: 0.75rem; padding: 0.375rem 0.75rem; pointer-events: none; transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out}
+.form-control::file-selector-button {background-color: var(--bs-tertiary-bg); border-width: 0px; border-style: solid; border-image: none; border-color: inherit; border-inline-end-width: var(--bs-border-width); border-radius: 0px; color: var(--bs-body-color); margin: -0.375rem -0.75rem; margin-inline-end: 0.75rem; padding: 0.375rem 0.75rem; pointer-events: none; transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out}
+@media (prefers-reduced-motion: reduce) {
+.form-control::-webkit-file-upload-button {transition: none}
+.form-control::file-selector-button {transition: none}
+}
+.form-control:hover:not(:disabled):not([readonly])::-webkit-file-upload-button {background-color: var(--bs-secondary-bg)}
+.form-control:hover:not(:disabled):not([readonly])::file-selector-button {background-color: var(--bs-secondary-bg)}
+.btn {--bs-btn-padding-x: 0.75rem; --bs-btn-padding-y: 0.375rem; --bs-btn-font-size: 1rem; --bs-btn-font-weight: 400; --bs-btn-line-height: 1.5; --bs-btn-color: var(--bs-body-color); --bs-btn-bg: transparent; --bs-btn-border-width: var(--bs-border-width); --bs-btn-border-color: transparent; --bs-btn-border-radius: var(--bs-border-radius); --bs-btn-hover-border-color: transparent; --bs-btn-focus-box-shadow: 0 0 0 0.25rem rgba(var(--bs-btn-focus-shadow-rgb),.5); background-color: var(--bs-btn-bg); border: var(--bs-btn-border-width) solid var(--bs-btn-border-color); border-radius: var(--bs-btn-border-radius); color: var(--bs-btn-color); cursor: pointer; display: inline-block; font-family: var(--bs-btn-font-family); font-size: var(--bs-btn-font-size); font-weight: var(--bs-btn-font-weight); line-height: var(--bs-btn-line-height); padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x); text-align: center; text-decoration: none; transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; user-select: none; vertical-align: middle}
+@media (prefers-reduced-motion: reduce) {
+.btn {transition: none}
+}
+.btn:hover {background-color: var(--bs-btn-hover-bg); border-color: var(--bs-btn-hover-border-color); color: var(--bs-btn-hover-color)}
+.btn:focus-visible {background-color: var(--bs-btn-hover-bg); border-color: var(--bs-btn-hover-border-color); box-shadow: var(--bs-btn-focus-box-shadow); color: var(--bs-btn-hover-color); outline: 0px}
+.btn:first-child:active, :not(.btn-check) + .btn:active {background-color: var(--bs-btn-active-bg); border-color: var(--bs-btn-active-border-color); color: var(--bs-btn-active-color)}
+.btn:first-child:active:focus-visible, :not(.btn-check) + .btn:active:focus-visible {box-shadow: var(--bs-btn-focus-box-shadow)}
+.btn-secondary {--bs-btn-color: #fff; --bs-btn-bg: #6c757d; --bs-btn-border-color: #6c757d; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #5c636a; --bs-btn-hover-border-color: #565e64; --bs-btn-focus-shadow-rgb: 130,138,145; --bs-btn-active-color: #fff; --bs-btn-active-bg: #565e64; --bs-btn-active-border-color: #51585e}
+.btn-link {--bs-btn-font-weight: 400; --bs-btn-color: var(--bs-link-color); --bs-btn-hover-color: var(--bs-link-hover-color); --bs-btn-active-color: var(--bs-link-hover-color); --bs-btn-focus-shadow-rgb: 49,132,253; text-decoration: underline}
+.btn-link:focus-visible {color: var(--bs-btn-color)}
+.btn-link:hover {color: var(--bs-btn-hover-color)}
+.btn-sm {--bs-btn-padding-y: 0.25rem; --bs-btn-padding-x: 0.5rem; --bs-btn-font-size: 0.875rem; --bs-btn-border-radius: var(--bs-border-radius-sm)}
+.dropdown {position: relative}
+.dropdown-menu {--bs-dropdown-zindex: 1000; --bs-dropdown-min-width: 10rem; --bs-dropdown-padding-x: 0; --bs-dropdown-padding-y: 0.5rem; --bs-dropdown-font-size: 1rem; --bs-dropdown-color: var(--bs-body-color); --bs-dropdown-bg: var(--bs-body-bg); --bs-dropdown-border-color: var(--bs-border-color-translucent); --bs-dropdown-border-radius: var(--bs-border-radius); --bs-dropdown-border-width: var(--bs-border-width); --bs-dropdown-divider-bg: var(--bs-border-color-translucent); --bs-dropdown-divider-margin-y: 0.5rem; --bs-dropdown-header-color: #6c757d; --bs-dropdown-header-padding-x: 1rem; --bs-dropdown-header-padding-y: 0.5rem; background-clip: padding-box; background-color: var(--bs-dropdown-bg); border: var(--bs-dropdown-border-width) solid var(--bs-dropdown-border-color); border-radius: var(--bs-dropdown-border-radius); color: var(--bs-dropdown-color); display: none; font-size: var(--bs-dropdown-font-size); list-style: none; margin: 0px; min-width: var(--bs-dropdown-min-width); padding: var(--bs-dropdown-padding-y) var(--bs-dropdown-padding-x); position: absolute; text-align: left; z-index: var(--bs-dropdown-zindex)}
+.dropdown-divider {border-top: 1px solid var(--bs-dropdown-divider-bg); height: 0px; margin: var(--bs-dropdown-divider-margin-y) 0; opacity: 1; overflow: hidden}
+.dropdown-header {color: var(--bs-dropdown-header-color); display: block; font-size: 0.875rem; margin-bottom: 0px; padding: var(--bs-dropdown-header-padding-y) var(--bs-dropdown-header-padding-x); white-space: nowrap}
+.clearfix::after {clear: both; content: ""; display: block}
+.float-start {float: left !important}
+.float-end {float: right !important}
+.text-muted {color: var(--bs-secondary-color) !important}
+.pe-none {pointer-events: none !important}
+.pe-auto {pointer-events: auto !important}
+.visible {visibility: visible !important}
+.glyphicon {font-family: Glyphicons Halflings}
+.glyphicon-remove::before {content: ""}
+li, ul {margin-left: 0px}
+.noUi-target * {box-sizing: border-box; cursor: default; user-select: none}
+.noUi-base {background-color: transparent; height: 10px; max-height: 100%; max-width: 100%; z-index: 1}
+.noUi-base, .noUi-base::after {border: medium; position: relative; width: 100%}
+.noUi-base::after {background-color: var(--os-color-noreaster-700); content: ""; display: block; height: 2px; top: 5px; z-index: -1}
+.noUi-handle {background: var(--os-color-zakim); border: 1px solid var(--os-color-noreaster-600); border-radius: 40px; box-shadow: 0 0 3px 0 var(--os-color-constitution-rgba60); cursor: pointer; height: 11px; margin: 1px 0px 0px -6px; position: relative; top: 0px; width: 11px; z-index: 3}
+.noUi-origin {border-radius: inherit; bottom: 0px; position: absolute; right: 0px; top: 0px; z-index: 0}
+a {color: var(--os-link,var(--os-accent-primary--static))}
+body {color: var(--os-text-primary,var(--os-text-primary--static))}
+:root, [data-os-theme] {--osx-pressed: 0px 3px 5px 0px var(--os-effect-shadow-button-primary) inset; --osx-pressed-secondary: 0px 1px 1px 0px var(--os-effect-shadow-button-secondary) inset; --osx-drop-shadow-primary: 0 5px 10px var(--os-effect-shadow-drop-primary)}
+.ns-preview-slider-container {display: inline-block; margin: 3px 10px 0px 7px; vertical-align: middle; width: 112px}
+.ns-preview-final-button {line-height: 1em; margin-left: 0px; margin-right: 26px; margin-top: 3px; min-width: 49px; padding-left: 10px; padding-right: 10px; vertical-align: top}
+.ns-preview-final-button:active {background-color: var(--os-color-constitution-rgba10)}
+.ns-preview-final-button {float: right; margin-left: -22px; min-height: 22px}
+.ns-preview-alpha-slider .noUi-handle {background: var(--os-parameter-slider-control-fill--idle); border: 1px solid var(--os-parameter-slider-control-outline--active)}
+.ns-preview-alpha-slider .noUi-base::after {background: var(--os-parameter-slider-bar--active)}
+.ns-preview-control {margin-bottom: 3px}
+.os-svg-icon {height: 20px; width: 20px}
+.os-svg-icon {vertical-align: middle}
+@media print {
+body.printing, html {display: block; height: 100%; text-align: center; width: 100%}
+body {position: static}
+}
+a:focus {outline: none}
+.os-param-icon-button, .query-side-button {-moz-box-align: center; align-items: center; border-bottom: 1px solid transparent; height: 26px; outline: none; padding: 3px; position: relative; width: 26px}
+.os-param-container:not(.os-param-readonly) .os-param-icon-button:hover, .os-param-container:not(.os-param-readonly) .query-side-button:hover {background-color: var(--os-parameter-dropdown-button--hover); border-bottom: 1px solid var(--os-parameter-underline--active)}
+.os-param-container:not(.os-param-readonly) .os-param-icon-button:active, .os-param-container:not(.os-param-readonly) .os-param-icon-button:focus, .os-param-container:not(.os-param-readonly) .query-side-button:active, .os-param-container:not(.os-param-readonly) .query-side-button:focus {border-bottom: 1px solid var(--os-parameter-underline--active); box-shadow: inset 0 -1px 0 var(--os-emphasis-fill--static)}
+.os-param-container:not(.os-param-readonly) .os-param-icon-button:active, .os-param-container:not(.os-param-readonly) .query-side-button:active {background-color: var(--os-parameter-dropdown-button--hover)}
+.feature-dialog.feature-dialog-resize {box-shadow: var(--osx-drop-shadow-primary); min-width: 220px; overflow: hidden; width: 220px}
+.feature-dialog.feature-dialog-resize os-enum-parameter {min-height: 28px}
+.feature-dialog .ns-dialog-header {background-color: var(--os-feature-dialog-header-background); border-bottom: 1px solid var(--os-feature-dialog-divider); color: var(--os-feature-dialog-name--valid); display: flex; font-size: 12pt; font-weight: 500}
+.feature-dialog .ns-dialog-title {padding-left: 6px}
+.os-dialog-button-edit-name {background-color: transparent; cursor: default; display: inline-block; flex-shrink: 0; height: 28px; padding-left: 4px; padding-top: 1px; width: 28px}
+.os-dialog-button-edit-name:hover {background-color: var(--os-feature-dialog-edit--hover)}
+.ns-dialog-button-ok {align-content: center; background-color: var(--os-feature-dialog-accept--idle); cursor: default; flex-shrink: 0; padding: 0px}
+.ns-dialog-button-ok svg {height: 24px; width: 28px}
+.ns-dialog-button-ok:hover {background-color: var(--os-feature-dialog-accept--hover)}
+.ns-dialog-button-cancel {align-content: center; background-color: transparent; cursor: default; flex-shrink: 0; padding: 0px}
+.ns-dialog-button-cancel svg {height: 24px; width: 28px}
+.ns-dialog-button-cancel:hover {background-color: var(--os-feature-dialog-cancel--hover)}
+.feature-dialog .ns-dialog-title-container {-moz-box-flex: 1; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; transition-property: cursor; white-space: nowrap}
+.feature-dialog .ns-dialog-title {color: var(--os-feature-dialog-name--valid); font-size: 13px; font-weight: 500; line-height: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+.feature-dialog .ns-dialog-title:not(.ns-dialog-default-hidden) {display: block}
+.ns-dialog-header .ns-drag-area {-moz-box-flex: 1; background-color: transparent; display: flex; flex-grow: 1; height: 28px; position: relative; width: 164px}
+.ns-dialog-edit-hover-area {bottom: 0px; pointer-events: none; position: absolute; right: 0px; top: 0px; width: 28px}
+.os-dialog-header-rename-textbox {-moz-box-flex: 1; background-color: transparent; border-width: 0px; flex: 1 1 100%; font-size: 13px; min-width: 0px; outline-width: 0px; padding: 4px 4px 3px 6px; width: 0px}
+.os-dialog-header-rename-textbox:focus {border: 1px solid var(--os-feature-dialog-textbox-outline); padding-left: 5px}
+.os-dialog-header-rename-textbox:focus-visible {outline: none}
+.feature-dialog {left: 161px; top: 85px}
+.ns-dialog-button-rotatexy {margin-left: 0px}
+.osc-svg-vertical-align {vertical-align: middle}
+.ns-dialog-panel {font-size: 9pt; font-weight: 400; line-height: 1.8em; pointer-events: none; position: fixed; z-index: 1002}
+.ns-dialog-fixed-content {max-width: 500px; min-width: 220px}
+.feature-dialog-resize .ns-dialog-fixed-content {height: calc(100% - 60px); max-width: 100%}
+.ns-dialog-frame {background-color: var(--os-feature-dialog-background); box-shadow: var(--osx-drop-shadow-primary); outline: none; padding: 0px; pointer-events: auto}
+.feature-dialog-resize .ns-dialog-frame {height: 100%}
+.ns-dialog-frame:hover {background-color: var(--os-feature-dialog-background)}
+.ns-dialog-default-hidden {display: none}
+.ns-drag-area:hover {cursor: grab}
+.ns-parameter-list {margin-bottom: 0px}
+.feature-dialog-resize .ns-parameter-list {height: 100%; overflow: hidden auto}
+.ns-parameter-label {color: var(--os-text-secondary); line-height: 16px; margin: 0px; min-width: 50px; padding: 5px 5px 0px}
+.ns-parameter-label.icon-label {min-width: 26px; padding: 0px}
+.ns-parameter-label:hover {color: var(--os-text-primary)}
+input::-webkit-input-placeholder {font-style: italic; font-weight: 300}
+.os-parameter-icon {height: 26px; width: 26px}
+osc-resize-handle {background-color: transparent; bottom: 0px; display: block; pointer-events: auto; position: absolute; right: 0px; z-index: 1004}
+osc-resize-handle.osc-y {cursor: ns-resize; height: 3px; left: 0px}
+osc-resize-handle.osc-x {cursor: ew-resize; top: 0px; width: 3px}
+.os-row {-moz-box-orient: horizontal; -moz-box-direction: normal; display: flex; flex-direction: row}
+.os-col {-moz-box-orient: vertical; -moz-box-direction: normal; display: flex; flex-direction: column}
+.os-center-content {-moz-box-pack: center; -moz-box-align: center; align-items: center; display: flex; justify-content: center}
+.os-grow {-moz-box-flex: 1; flex-grow: 1}
+.os-no-shrink {flex-shrink: 0}
+.advanced-search-panel criteria-group > * input:not([type="radio"], [type="checkbox"], [type="search"]), .search-box criteria-group > * input:not([type="radio"], [type="checkbox"], [type="search"]) {margin: 0px}
+.node-indent-line {-moz-box-pack: center; -moz-box-align: center; align-items: center; display: flex; justify-content: center}
+.node-indent-line::before {background: var(--os-feature-dialog-divider); content: ""; height: 100%; width: 1px}
+.node-indent-line-end {-moz-box-orient: vertical; -moz-box-direction: normal; -moz-box-align: center; align-items: center; display: flex; flex-direction: column}
+.node-indent-line-end::before {background: var(--os-feature-dialog-divider); content: ""; height: 100%; width: 1px}
+.node-indent-line-end::after {background: var(--os-feature-dialog-divider); content: ""; height: 1px; width: 50%}
+node-expander {color: var(--os-accordion-fill--active); cursor: pointer; display: flex}
+node-expander svg {padding: 4px; transform: rotate(0deg); transition: transform 0.2s, -webkit-transform 0.2s}
+node-expander svg.expanded {transform: rotate(90deg)}
+.drop-indicator {border: 1px solid var(--os-color-charles-500); box-shadow: inset 0 0 0 1px var(--os-emphasis-fill--static); display: block; pointer-events: none; position: absolute; right: 0px; top: 0px; transition: transform 0.1s, height 0.1s, -webkit-transform 0.1s; will-change: transform, height; z-index: 1}
+.drop-indicator .drop-indicator-dot {background: var(--os-background-primary); border: 2px solid var(--os-color-charles-500); border-radius: 50%; height: 6px; left: -1px; margin-top: -3px; position: absolute; top: 50%; width: 6px}
+os-parameter-group {display: flex; flex-wrap: wrap; width: 220px}
+.os-param-group-collapsible-container {width: 100%}
+.os-param-group-header {color: var(--os-accordion-fill--active); width: 100%}
+.os-param-group-header, .os-param-group-header .node-expander-wrapper {display: flex; position: relative}
+.os-param-group-header node-expander.node-expander-disabled {color: var(--os-accordion-fill--inactive)}
+.os-param-group-header .os-param-group-driving-parameter {-moz-box-flex: 1; flex-grow: 1; margin-right: 25px; overflow: hidden}
+.os-param-group-header .os-param-group-name {-moz-box-flex: 1; cursor: pointer; flex-grow: 1; font-size: 10pt; line-height: 1.3; margin: 0px; overflow: hidden; padding: 5px 4px; text-overflow: ellipsis; white-space: nowrap}
+.os-param-group-collapsible-contents {display: flex; flex-wrap: wrap}
+.os-param-group-collapsible-contents .os-param-subgroup-row {display: flex; width: 100%}
+.os-param-group-collapsible-contents .os-param-group-indent {flex-shrink: 0; width: 20px}
+os-parameter-list-view os-parameter-group .os-param-fill-first-column {width: 194px}
+os-parameter-list-view os-parameter-group .os-param-fill-first-column.os-param-requires-margin {width: 188px}
+os-parameter-list-view os-parameter-group os-parameter-group .os-param-fill-first-column {width: 174px}
+os-parameter-list-view os-parameter-group os-parameter-group .os-param-fill-first-column.os-param-requires-margin {width: 168px}
+os-parameter-list-view os-parameter-group .os-param-array .os-param-fill-first-column {width: 170px}
+.feature-dialog-resize os-parameter-list-view os-parameter-group {width: 100%}
+.feature-dialog-resize os-parameter-list-view os-parameter-group .os-param-fill-first-column {width: calc(100% - 26px)}
+.feature-dialog-resize os-parameter-list-view os-parameter-group .os-param-fill-first-column.os-param-requires-margin, .feature-dialog-resize os-parameter-list-view os-parameter-group os-parameter-group .os-param-fill-first-column.os-param-requires-margin {width: calc(100% - 32px)}
+.feature-dialog-resize os-parameter-list-view os-parameter-group os-quantity-parameter .os-param-wrapper {flex-wrap: nowrap}
+os-quantity-parameter node-expander.node-expander-disabled {color: var(--os-accordion-fill--inactive)}
+div.os-parameter-list-item {position: relative}
+div.os-parameter-list-item.os-param-fill-both-columns {width: 100%}
+div.os-parameter-list-item.os-param-display-short + .os-param-display-short {-moz-box-flex: 1; flex-grow: 1}
+div.os-parameter-list-item.os-param-requires-margin {margin: 5px 3px}
+div.os-parameter-list-item.os-param-fill-first-column.os-param-requires-margin + .os-param-fits-in-right-column {margin: 5px 0px 0px}
+div.os-parameter-list-item.os-param-requires-margin + .os-param-requires-margin {margin: 0px 3px 5px}
+div.os-parameter-list-item.os-param-requires-margin + .os-param-fill-first-column.os-param-requires-margin + .os-param-fits-in-right-column {margin: 0px}
+div.os-parameter-list-item .os-param-wrapper input[type="text"], div.os-parameter-list-item span.os-select-toggle {border-top: medium; border-right: medium; border-left: medium; border-image: none; border-bottom: 1px solid var(--os-parameter-form-underline--idle)}
+div.os-parameter-list-item os-enum-parameter input.os-select-search, div.os-parameter-list-item os-enum-parameter span.os-select-toggle {background-color: transparent; height: 26px; margin: 0px; padding: 2px 0px 1px 6px}
+.os-param-array os-parameter-list-view os-parameter-group {width: 100%}
+.os-param-container:not(.os-param-readonly) div.os-parameter-list-item .os-param-wrapper input[type="text"] {color: var(--os-parameter-form-text--idle)}
+.os-param-container:not(.os-param-readonly) div.os-parameter-list-item .os-param-wrapper input[type="text"]:hover {border-bottom: 1px solid var(--os-parameter-underline--active); color: var(--os-parameter-form-text--hover)}
+.os-param-container:not(.os-param-readonly) div.os-parameter-list-item .os-param-wrapper input[type="text"]:focus.os-param-form-item {border-bottom: 1px solid var(--os-parameter-underline--active); box-shadow: inset 0 -1px 0 var(--os-parameter-underline--active); color: var(--os-parameter-form-text--hover)}
+.os-param-checkbox-label {-moz-box-flex: 0; color: var(--os-parameter-checkbox-text--idle); flex: 0 1 auto; font-size: 10pt; line-height: 1.3; margin: 0px; overflow: hidden; padding: 5px 4px 5px 0px; text-overflow: ellipsis; white-space: nowrap}
+label.os-param-checkbox {-moz-box-align: center; align-items: center; display: flex; margin: 0px; max-width: 100%; min-width: 0px}
+label.os-param-checkbox .os-checkbox-indicator {align-self: flex-start; background: var(--os-parameter-checkbox-fill--unchecked); border-color: var(--os-parameter-checkbox-border--idle); border-radius: 3px; color: transparent; display: inline-block; flex-shrink: 0; font-weight: 400; height: 12px; margin: 8px 4px 6px; width: 12px}
+label.os-param-checkbox input.os-param-checkbox-input {appearance: unset; opacity: 0; width: 0px}
+label.os-param-checkbox input.os-param-checkbox-input:focus ~ .os-checkbox-indicator {border-color: var(--os-focus); box-shadow: 0 0 0 1px var(--os-focus)}
+label.os-param-checkbox input.os-param-checkbox-input:checked ~ .os-checkbox-indicator {background-image: url("data:image/svg+xml;charset=utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-1 -1 10 10'><path fill='white' style='fill=var(--os-parameter-checkbox-check)' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z'/></svg>"); border-color: var(--os-parameter-checkbox-fill--checked)}
+.os-param-wrapper {-moz-box-align: center; align-items: center; display: flex; flex-wrap: wrap; font-size: 10pt}
+.os-param-wrapper:not(.os-param-select) {overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+.os-param-wrapper .os-select-container, .os-param-wrapper .select-container-wrapper {-moz-box-flex: 1; flex-grow: 1; max-width: 100%}
+.os-param-wrapper .select-container-wrapper {-moz-box-align: center; align-items: center; display: flex}
+.os-param-wrapper .select-container-wrapper .select-input {width: 75%}
+.parameter-state-toggle {background: transparent; border: medium; border-radius: 3px; height: 20px; margin: 0px 5px -5px; outline: none; padding: 0px; width: 20px}
+.parameter-state-toggle .os-svg-icon {vertical-align: initial}
+.parameter-state-toggle.is-button:active {background-color: var(--os-icon-button-fill--selected)}
+.os-param-wrapper > .os-param-label {overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+.os-param-label {align-self: flex-start; font-size: 9pt; line-height: 16px; margin: 0px; overflow: hidden}
+.os-param-label {color: var(--os-parameter-form-text--idle); min-width: 30px; padding: 7px 5px 0px}
+.os-param-number, .os-param-tabs .option, .os-param-text {-moz-box-flex: 1; appearance: none; background: none; border: medium; border-radius: 0px; color: var(--os-parameter-form-input-text); flex: 1 0 30px; height: 26px; min-width: 0px; outline: none; padding: 6px 3px 2px; width: 30px}
+.os-param-number:not(:focus), .os-param-tabs .option:not(:focus), .os-param-text:not(:focus) {overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+.os-param-number.os-param-form-item, .os-param-tabs .option.os-param-form-item, .os-param-text.os-param-form-item {border-bottom: 1px solid var(--os-parameter-enum-border--idle)}
+.os-param-tabs .option.os-active:not(:disabled).os-param-form-item {border-bottom: 1px solid var(--os-parameter-underline--active); box-shadow: inset 0 -1px 0 var(--os-parameter-underline--active); color: var(--os-parameter-form-text--hover)}
+.os-param-number:invalid, .os-param-tabs .option:invalid, .os-param-text:invalid {background: var(--os-error-background); border-bottom: 1px solid var(--os-color-red-sox-500); box-shadow: inset 0 -1px 0 var(--os-color-red-sox-500)}
+.os-param-number:disabled {box-shadow: none !important; cursor: not-allowed}
+.os-param-number.os-param-form-item:disabled {border-bottom: 1px solid var(--os-outline-tertiary) !important}
+.os-param-readonly input {color: var(--os-parameter-form-text--idle); cursor: default}
+.os-param-tabs .option {flex: 1 0 auto; width: auto}
+.os-param-number {text-align: right}
+.os-param-tabs {flex: 1 0 100px; flex-wrap: wrap}
+.os-param-tabs, .os-param-tabs .option {-moz-box-flex: 1; -moz-box-align: center; align-items: center; display: flex; max-width: 100%}
+.os-param-tabs .option {-moz-box-pack: center; flex-grow: 1; font-size: 9pt; justify-content: center; overflow: hidden; padding: 2px; text-align: center; text-overflow: ellipsis; white-space: nowrap}
+.os-param-tabs .option.os-active {color: var(--os-text-secondary); font-weight: 500}
+.os-param-lookup-table-selector, os-enum-parameter {display: block}
+.os-param-lookup-table-selector .btn.os-select-toggle, os-enum-parameter .btn.os-select-toggle {background-color: transparent; border-radius: 0px; box-shadow: none}
+.os-param-lookup-table-selector input.os-select-search:focus, os-enum-parameter input.os-select-search:focus {border: 1px solid var(--os-color-charles-500); border-radius: 0px}
+os-enum-parameter .btn.os-select-toggle {border: medium; height: 32px; padding: 7px 0px 0px 6px}
+os-enum-parameter .os-select-match-text {-moz-box-align: center; align-items: center; display: flex}
+.os-param-lookup-table {table-layout: fixed; width: 100%}
+.os-param-lookup-table tr {font-size: 10pt; line-height: normal}
+.os-param-table-label {font-size: 11px; line-height: 0.9; opacity: 0.5; padding: 0px 5px 2px; text-align: right; width: 40%}
+.os-param-table-value {padding: 0px}
+.os-param-table-value input.os-select-search, .os-param-table-value span.os-select-toggle {height: 21px; padding: 0px 0px 0px 5px}
+.quantity-autocomplete-holder {-moz-box-flex: 1; display: flex; flex-grow: 1; max-width: 100%}
+.quantity-parameter-autocomplete-menu {color: var(--os-text-primary); margin-top: -1px; min-width: 11rem; overflow-y: auto; padding-bottom: 0px; padding-top: 0px}
+os-array-parameter {display: flex}
+.os-param-array {-moz-box-flex: 1; flex-grow: 1; max-height: 30em}
+.os-param-array.os-param-query-list-resize {max-height: 100em}
+.os-param-array.os-param-query-list-resize ul.os-param-list-container {-moz-box-flex: 0; flex-grow: 0}
+.os-param-array-item {padding-bottom: 2px; padding-top: 3px}
+.os-param-array-item:not(:last-child) {border-bottom: 1px solid var(--os-effect-shadow-drop-primary)}
+.os-param-array-item-contents {margin-left: 16px}
+.os-param-button {color: var(--os-text-secondary); margin: 3px; padding: 3px; width: calc(100% - 6px)}
+.os-param-button.os-param-array-add-button {margin-top: 0px}
+.os-param-container:not(.os-param-readonly) .os-param-tabs .option.os-active:not(:disabled):not(.os-invalid-textbox):not(.os-warning-textbox).os-param-form-item {border-bottom: 1px solid var(--os-parameter-underline--active); box-shadow: inset 0 -1px 0 var(--os-parameter-underline--active)}
+.os-param-container:not(.os-param-readonly) .os-param-tabs .option.os-active {color: var(--os-parameter-enum-text--selected)}
+.os-param-container:not(.os-param-readonly) .os-param-number:active:not(:disabled):not(.os-invalid-textbox):not(.os-warning-textbox).os-param-form-item, .os-param-container:not(.os-param-readonly) .os-param-number:focus:not(:disabled):not(.os-invalid-textbox):not(.os-warning-textbox).os-param-form-item, .os-param-container:not(.os-param-readonly) .os-param-tabs .option:active:not(:disabled):not(.os-invalid-textbox):not(.os-warning-textbox).os-param-form-item, .os-param-container:not(.os-param-readonly) .os-param-tabs .option:focus:not(:disabled):not(.os-invalid-textbox):not(.os-warning-textbox).os-param-form-item, .os-param-container:not(.os-param-readonly) .os-param-text:active:not(:disabled):not(.os-invalid-textbox):not(.os-warning-textbox).os-param-form-item, .os-param-container:not(.os-param-readonly) .os-param-text:focus:not(:disabled):not(.os-invalid-textbox):not(.os-warning-textbox).os-param-form-item {border-bottom: 1px solid var(--os-parameter-underline--active); box-shadow: inset 0 -1px 0 var(--os-parameter-underline--active)}
+.os-param-container:not(.os-param-readonly) .os-param-label:hover {color: var(--os-parameter-form-text--hover)}
+.os-param-container:not(.os-param-readonly) .os-param-label:hover + input[type="text"], .os-param-container:not(.os-param-readonly) .os-param-number.os-param-form-item:hover:not(.os-invalid-textbox):not(.os-warning-textbox), .os-param-container:not(.os-param-readonly) .os-param-tabs .option.os-param-form-item:hover:not(.os-invalid-textbox):not(.os-warning-textbox), .os-param-container:not(.os-param-readonly) .os-param-text.os-param-form-item:hover:not(.os-invalid-textbox):not(.os-warning-textbox) {border-bottom: 1px solid var(--os-parameter-underline--active)}
+.os-param-container:not(.os-param-readonly) .os-param-tabs .option:not(:only-child) {cursor: pointer}
+.os-param-container:not(.os-param-readonly) .os-param-tabs .option:hover {color: var(--os-parameter-enum-text--selected)}
+.os-param-container:not(.os-param-readonly) label.os-param-checkbox:hover:not(.os-param-readonly-checkbox):not(.disabled) .os-checkbox-indicator {border-color: var(--os-parameter-checkbox-border--hover)}
+.os-param-container:not(.os-param-readonly) label.os-param-checkbox:hover:not(.os-param-readonly-checkbox):not(.disabled) .os-param-checkbox-label {color: var(--os-parameter-checkbox-text--hover)}
+.os-param-container:not(.os-param-readonly) label.os-param-checkbox {cursor: pointer}
+.os-param-container:not(.os-param-readonly) label.os-param-checkbox input.os-param-checkbox-input:focus ~ .os-checkbox-indicator {border-color: var(--os-focus); box-shadow: 0 0 0 1px var(--os-focus)}
+.os-param-container:not(.os-param-readonly) .os-param-array-item .os-param-array-item-title {cursor: pointer}
+.os-param-query-list-container {display: flex; line-height: 0}
+.os-param-selection-list {background: transparent; border-color: var(--os-parameter-qlv-outline--idle); border-radius: 2px; border-style: solid; border-width: 1px; color: var(--os-parameter-qlv-text--idle); cursor: default; line-height: 24px; outline: none; overflow: hidden; position: relative; width: 0px}
+.os-param-selection-list .os-param-query-list-scroll-box {-moz-box-orient: vertical; -moz-box-direction: normal; -moz-box-flex: 1; display: flex; flex-direction: column; flex-grow: 1; max-height: 7.5em}
+.os-param-selection-list .os-param-query-list-scroll-box.os-param-array-list {max-height: 30em}
+.os-param-selection-list .os-param-query-list-scroll-box > ul {margin-bottom: 0px; position: relative}
+.os-param-selection-list osc-resize-handle {display: none}
+.os-param-selection-list.os-param-query-list-resize ul.os-param-list-container {-moz-box-flex: 0; flex-grow: 0}
+.os-param-selection-list.os-param-query-list-resize .os-param-query-list-scroll-box {height: 100%; transition: max-height 0.3s}
+.os-param-selection-list.os-param-query-list-resize osc-resize-handle {display: block}
+.os-param-selection-list.os-param-query-list-focus {background: var(--os-parameter-qlv-fill--selected); border-color: var(--os-parameter-qlv-outline--selected); color: var(--os-parameter-qlv-text--selected)}
+.os-param-selection-list .os-param-query-list-reorder-button {background: transparent; border: medium; color: var(--os-parameter-qlv-text--idle); font-size: 12px; font-weight: 600; margin: 0px 5px -5px; opacity: 0.5; outline: none; padding: 0px}
+.os-param-selection-list .os-param-query-list-reorder-button:hover {opacity: 1}
+.os-param-selection-list .os-param-array-clear-button {background: transparent; border: medium; font-size: 12px; font-weight: 600; margin: 0px 5px -5px 0px; opacity: 0.5; outline: none; padding: 0px}
+.os-param-selection-list .os-param-array-clear-button:hover {opacity: 1}
+.os-param-selection-list .os-param-query-list-header {display: flex; flex-shrink: 0}
+.os-param-selection-list label.os-param-query-list-label {font-size: 9pt; line-height: 10pt; margin: 0px; overflow: hidden; padding: 6px 6px 5px; text-overflow: ellipsis; transform-origin: left top 0px; transition: transform 0.2s, -webkit-transform 0.2s; white-space: nowrap}
+.os-param-selection-list label.os-param-query-list-label.os-param-query-list-small-label {margin-bottom: -5px; padding-bottom: 2px; transform: scale(0.85); transition-duration: 0s}
+.os-param-selection-list ul {-moz-box-flex: 1; -moz-box-orient: vertical; -moz-box-direction: normal; display: flex; flex: 1 0 auto; flex-direction: column}
+.os-param-selection-list-entry {-moz-box-align: center; align-items: center; cursor: default; display: flex; font-size: 10pt; font-weight: 400; height: 24px; overflow: hidden; padding: 0px 20px 0px 6px; position: relative; text-overflow: ellipsis; white-space: nowrap; width: 100%}
+.os-param-query-list-entry-text {-moz-box-flex: 1; flex-grow: 1; max-width: 100%; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; width: 100px}
+.os-param-selection-list-entry-delete {color: var(--os-fill-tertiary); font-size: 125%; list-style-type: none; margin-left: auto; padding: 0px 5px; position: absolute; right: 5px; text-align: center; top: 0px; width: 20px}
+.os-param-container:not(.os-param-readonly).os-param-selection-list:focus {border: 1px solid var(--os-color-charles-500)}
+.os-param-container:not(.os-param-readonly).os-param-selection-list:focus label {opacity: 1}
+.os-param-container:not(.os-param-readonly).os-param-selection-list:hover {border: 1px solid var(--os-outline-emphasis)}
+.os-param-container:not(.os-param-readonly) .os-param-selection-list-entry-delete {cursor: pointer}
+.os-param-container:not(.os-param-readonly) .os-param-selection-list-entry-delete:hover {color: var(--os-color-red-sox-500); font-weight: 600}
+a, a:active, a:focus, a:visited {text-decoration: none}
+.os-svg-icon > image {height: inherit; width: inherit}
+.os-select-offscreen {clip: rect(0px, 0px, 0px, 0px) !important; border: 0px !important; height: 1px !important; left: 0px !important; margin: 0px !important; outline: 0px !important; overflow: hidden !important; padding: 0px !important; position: absolute !important; top: 0px !important; width: 1px !important}
+.os-select-bootstrap .os-select-toggle {position: relative}
+.os-select-bootstrap .os-select-toggle > .caret {height: 10px; margin-top: -2px; position: absolute; right: 6px; top: 50%}
+.os-select-bootstrap > input.os-select-search.form-control {border-radius: 0px; border-top-style: none; border-right-style: none; border-left-style: none; border-bottom: 2px solid var(--os-parameter-underline--active); font-size: 10pt; padding: 3px}
+.os-select-bootstrap > input.os-select-search.form-control::-webkit-search-cancel-button {cursor: pointer}
+.os-select-bootstrap > .os-select-match > .btn {text-align: left !important}
+.os-select-bootstrap > .os-select-choices, .os-select-bootstrap > .os-select-no-choice {border-radius: 0px; height: auto; margin-top: -1px; max-height: 200px; min-width: 100%; overflow-x: hidden}
+.os-select-bootstrap .os-select-match-text {padding-right: 20px; width: 100%}
+.os-select-bootstrap .os-select-match-text span {display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%}
+.os-select-bootstrap .os-select-toggle > a.btn {height: 10px; margin-top: -2px; position: absolute; right: 10px}
+.os-select-bootstrap .os-select-search {max-width: 100%}
+.is-button {cursor: pointer}
+.is-button:focus {outline: transparent solid 1px}
+.is-button:active {background-color: var(--os-icon-button-fill--hover-group); box-shadow: var(--osx-pressed-secondary)}
+.dropdown-menu {overflow-wrap: normal}
+body {inset: 0px; position: fixed}
+ul {padding-left: 0px}
+li, ul {margin-left: 0px}
+li {list-style: none}
+input[type="text"] {margin: 0px}
+td {padding-left: 10px; text-align: left}
+[data-os-theme] {--bs-body-color: var(--os-text-primary); --bs-body-bg: var(--os-background-primary); --bs-secondary-color: var(--os-text-secondary); --bs-secondary-bg: var(--os-background-secondary)}
+[data-os-theme="dark"] {color-scheme: dark}
+body {background-color: var(--os-fill-primary) !important; color: var(--os-text-primary) !important}
+input.form-control {border-color: var(--os-outline-secondary); position: relative}
+input.form-control::-webkit-input-placeholder {color: var(--os-text-secondary)}
+input.form-control::placeholder {color: var(--os-text-secondary)}
+input.form-control::placeholder {color: var(--os-text-secondary)}
+input::-webkit-input-placeholder {color: var(--os-text-secondary)}
+input::placeholder {color: var(--os-text-secondary)}
+input::placeholder {color: var(--os-text-secondary)}
+.form-control {border-width: 1px; height: 34px; margin: 1px; padding: 5px 15px 5px 10px}
+.form-control:focus {border-color: var(--os-focus); border-width: 2px; box-shadow: none; outline: none; padding: 4px 14px 4px 9px}
+label {font-weight: 400}
+a {color: var(--os-link); cursor: pointer}
+button {background: var(--os-fill-denary--static)}
+.btn:focus-visible, a:focus-visible {box-shadow: 0 0 0 2px var(--os-focus); outline: none}
+a:focus-visible {border-radius: 2px}
+.glyphicon {display: inline-block; font-family: Glyphicons; font-style: normal; font-weight: 400; line-height: 1; position: relative; top: 1px}
+.glyphicon {color: var(--os-text-primary)}
+.glyphicon-remove::before {content: ""}
+.caret {border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid; display: inline-block; height: 0px; margin-left: 2px; vertical-align: middle; width: 0px}
+html {font-size: 14px}
+label {margin-bottom: 5px}
+.btn-secondary {--bs-btn-color: var(--os-button-text-secondary); --bs-btn-bg: var(--os-button-fill-secondary--idle); --bs-btn-border-color: var(--os-button-outline); --bs-btn-hover-color: var(--os-button-text-secondary); --bs-btn-hover-bg: var(--os-button-fill-secondary--hover); --bs-btn-hover-border-color: var(--os-button-outline); --bs-btn-active-color: var(--os-button-text-secondary); --bs-btn-active-bg: var(--os-button-fill-secondary--hover); --bs-btn-active-border-color: var(--os-button-outline)}
+.btn-secondary:focus {background-color: var(--bs-btn-active-bg)}
+.btn-link {--bs-btn-color: var(--os-link); --bs-btn-bg: transparent; --bs-btn-border-color: transparent; --bs-btn-hover-color: var(--os-link); --bs-btn-hover-border-color: transparent; --bs-btn-active-color: var(--os-link); --bs-btn-active-border-color: transparent; --bs-btn-active-bg: transparent; text-decoration: none}
+.btn-link:focus, .btn-link:hover {text-decoration: underline}
+.btn-secondary:focus {box-shadow: 0 0 0 2px var(--os-focus); outline: none}
+.btn:not(.btn-link) {white-space: nowrap}
+.btn:not(.btn-link):active {box-shadow: var(--osx-pressed)}
+a:focus, a:hover {text-decoration: underline}
+.dropdown-menu {--bs-dropdown-color: var(--os-dropdown-menu-text); --bs-dropdown-padding-y: 0.3rem; --bs-dropdown-border-color: var(--os-dropdown-menu-outline); --bs-dropdown-divider-bg: var(--os-dropdown-menu-outline)}
+.dropdown-menu:focus-visible {outline: none}
+.dialog-help-container {bottom: 4px; position: absolute; right: 4px; z-index: 100}
+.os-spinner-spinning {animation: 1.1s linear infinite osSpinnerSpinning; border-left-color: var(--os-spinner-indicator); border-radius: 50%; height: 10em; transform: translateZ(0px); width: 10em}
+.os-spinner-small {font-size: 2px}
+body {color: var(--os-text-primary--static); font-family: Flama, Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif}
+os-parameter-list-view  .os-param-wrapper {flex-wrap: nowrap}
+.os-inline-icon-button-wrapper {display: flex}
+ {display: none}
+
+/* Repairs of shorthands lost in the saved page (see extract.py) */
+.btn {border: var(--bs-btn-border-width) solid var(--bs-btn-border-color)}
+label.os-param-checkbox .os-checkbox-indicator {border: 1px solid var(--os-parameter-checkbox-border--idle)}
+label.os-param-checkbox input.os-param-checkbox-input:checked ~ .os-checkbox-indicator {background-color: var(--os-parameter-checkbox-fill--checked); background-repeat: no-repeat; background-position: center; background-size: 100%}
