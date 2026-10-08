@@ -252,14 +252,16 @@ featurescripts/uiTestBench/uiTestBench.fs --set items=2`). To capture how Onshap
 paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with what's
 typed and checked in it, the CSS rules which apply to it, and the icons it uses. It only reads the page.
 
-`fs check` exits with 1 if it finds anything. Undefined names are checked against the file, everything it imports
+`fs check` exits with 1 if it finds anything. A comment on a problem's line, or alone on the line before it, ignores it:
+`// fs check: ignore keyword-key (std's hole attributes name it "type")`, with the problem's code (in brackets after
+its message) and why. Undefined names are checked against the file, everything it imports
 (following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)
 which the feature's file doesn't export, as Onshape requires (std enums too: `export import` the std module declaring
 one, not `common.fs`, which it reports exporting), top-level constants, enums, and types whose names the file or its
 imports already declare, functions and predicates declared with the same name and parameter types as another in the file
 or its imports (overloads Onshape can't choose between), groups in array parameters' items, parameters a feature's precondition declares more than once
 (directly or through predicates, even in different branches of an if), and predicates in a precondition's `if`
-conditions which call other predicates (Onshape doesn't inline those). It warns about parameters which can be toleranced (`CAN_BE_TOLERANT`, ours never are; directly or through std's predicates), comparisons with `true` or `false`,
+conditions which call other predicates (Onshape doesn't inline those). It warns about parameters which can be toleranced (`CAN_BE_TOLERANT`, ours never are; directly or through std's predicates), comparisons with `true` or `false`, map keys which are keywords (like `"type"`, which can't be read as `.type`; reading one that way is an error),
 precondition conditions Onshape can't evaluate (only parameters, enum values, literals, and predicates work), top-level
 declarations which aren't exported or used anywhere, and map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
 progress in `featurescripts/frame/` doesn't pass yet.

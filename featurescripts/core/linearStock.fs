@@ -1225,7 +1225,7 @@ function extrudePlacement(context is Context, id is Id, definition is map, name 
     else
     {
         end = boundAlong(context, {
-                        "type" : definition.endBound,
+                        "boundType" : definition.endBound,
                         "depth" : definition.depth,
                         "face" : definition.endBoundEntityFace,
                         "vertex" : definition.endBoundEntityVertex,
@@ -1238,7 +1238,7 @@ function extrudePlacement(context is Context, id is Id, definition is map, name 
             // Back from the profile, unless its direction is flipped to match the first's (as std's extrude decides it)
             const sign = definition.secondDirectionOppositeDirection != definition.oppositeDirection ? -1 : 1;
             const second = boundAlong(context, {
-                            "type" : definition.secondDirectionBound,
+                            "boundType" : definition.secondDirectionBound,
                             "depth" : definition.secondDirectionDepth,
                             "face" : definition.secondDirectionBoundEntityFace,
                             "vertex" : definition.secondDirectionBoundEntityVertex,
@@ -1270,7 +1270,7 @@ function extrudePlacement(context is Context, id is Id, definition is map, name 
  * face in front of `origin` (as an extrude of a point would be), which must be flat.
  *
  * @param bound {{
- *      @field type {StockBoundingType}
+ *      @field boundType {StockBoundingType}
  *      @field depth {ValueWithUnits} : For `BLIND`.
  *      @field face {Query} : For `UP_TO_SURFACE`: a planar face or mate connector.
  *      @field vertex {Query} : For `UP_TO_VERTEX`: a vertex or mate connector.
@@ -1282,12 +1282,12 @@ function extrudePlacement(context is Context, id is Id, definition is map, name 
  */
 function boundAlong(context is Context, bound is map, origin is Vector, direction is Vector, name is string, parameters is array) returns map
 {
-    if (bound.type == StockBoundingType.BLIND)
+    if (bound.boundType == StockBoundingType.BLIND)
     {
         return { "along" : bound.depth };
     }
     const offset = bound.hasOffset ? (bound.offsetOppositeDirection ? 1 : -1) * bound.offsetDistance : 0 * meter;
-    if (bound.type == StockBoundingType.UP_TO_VERTEX)
+    if (bound.boundType == StockBoundingType.UP_TO_VERTEX)
     {
         if (isQueryEmpty(context, bound.vertex))
         {
@@ -1297,7 +1297,7 @@ function boundAlong(context is Context, bound is map, origin is Vector, directio
         return { "along" : dot(evVertexPoint(context, { "vertex" : bound.vertex }) - origin, direction) + offset };
     }
     var face;
-    if (bound.type == StockBoundingType.UP_TO_SURFACE)
+    if (bound.boundType == StockBoundingType.UP_TO_SURFACE)
     {
         if (isQueryEmpty(context, bound.face))
         {

@@ -544,3 +544,30 @@ def test_snapshots_see_files_once(project):
     # Afterwards, changes are seen again
     assert new.resolve() in project.files()
     assert project.module(new) is not None
+
+
+def test_keyword_keys(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f"FeatureScript 2909;\n{STD}\n"
+        "export function f(bound is map) returns map\n"
+        "{\n"
+        '    const a = { "type" : 1, "kind" : 2 };\n'
+        '    // fs check: ignore keyword-key (std needs it)\n'
+        '    const b = { "type" : 1 };\n'
+        '    return { "c" : bound.type + bound["type"] + a.kind + b["type"] };\n'
+        "}\n"
+    )
+    module = project.module(path)
+    problems = [p for p in project.check(module) if p.code == "keyword-key"]
+    assert [(module.position(p.start)[0], p.severity, module.parsed.source[p.start : p.end]) for p in problems] == [
+        # A keyword as a map key, unless ignored
+        (4, "warning", '"type"'),
+        # After a ".", which Onshape can't parse
+        (7, "error", "type"),
+    ]
+
+    # Generated files need keys like "default"
+    generated = project.code_dir / "tables.gen.fs"
+    generated.write_text(f'FeatureScript 2909;\n{STD}\nexport const t = {{ "default" : "a" }};\n')
+    assert [p for p in project.check(project.module(generated)) if p.code == "keyword-key"] == []

@@ -19,7 +19,7 @@ from typing import Iterable, Literal
 
 from fs_lsp.diagnostics import diagnostics as syntax_diagnostics
 from fs_lsp.parser import AstNode, ParsedProgram, parse
-from fs_lsp.scanner import Token
+from fs_lsp.scanner import KEYWORDS, Token
 from fs_lsp.semantic import ImportedNames
 from fs_lsp.stdlib import built_in_type, stdlib
 from fs_lsp.symbol_index import Declaration, SymbolIndex
@@ -669,6 +669,7 @@ class Project:
         problems.extend(_duplicate_symbol_problems(module, providers))
         problems.extend(_duplicate_overload_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
+        problems.extend(_keyword_key_problems(module))
         problems.extend(_function_value_problems(module, providers))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
@@ -761,6 +762,7 @@ class Project:
                 # Operators are used without naming them
                 continue
             problems.append(_unused(imported, target.relative))
+        problems = [problem for problem in problems if not _is_ignored(module, problem)]
         return sorted(problems, key=lambda problem: problem.start)
 
 
@@ -1440,6 +1442,63 @@ def _function_value_problems(module: Module, providers: dict[str, list[Provider]
                 "function-value",
             )
         )
+    return problems
+
+
+_IGNORE = re.compile(r"//\s*fs check: ignore ([\w, -]+)")
+
+
+def _is_ignored(module: Module, problem: Problem) -> bool:
+    """Whether a problem is ignored by a comment on its line, or alone on the line before it:
+    `// fs check: ignore keyword-key` (codes separated by commas), with why, e.g. `std's hole attributes need it`."""
+    line = module.position(problem.start)[0]
+    for text in (module.line_text(line), module.line_text(line - 1)):
+        match = _IGNORE.search(text)
+        if match and problem.code in {code.strip() for code in match.group(1).split(",")}:
+            return True
+    return False
+
+
+def _keyword_key_problems(module: Module) -> list[Problem]:
+    """Keywords used as map keys. `x.type` is a syntax error in Onshape (it expects a name after the `.`), so a key like
+    `"type"` can only be read as `x["type"]`; avoid such keys unless a format needs them (like a lookup table's
+    `"default"`, so generated files aren't checked for those)."""
+    problems = []
+    tokens = module.index.tokens
+    generated = module.path.name.endswith(".gen.fs")
+    for index, token in enumerate(tokens):
+        previous = tokens[index - 1] if index else None
+        following = tokens[index + 1] if index + 1 < len(tokens) else None
+        if token.kind == "keyword" and previous is not None and previous.value in (".", "?."):
+            problems.append(
+                Problem(
+                    token.offset,
+                    token.end,
+                    "error",
+                    f'{token.value} is a keyword, so Onshape can\'t read it after a "."; write ["{token.value}"], or '
+                    f"better, rename the key.",
+                    "keyword-key",
+                )
+            )
+        elif (
+            not generated
+            and token.kind == "string"
+            and token.value[1:-1] in KEYWORDS
+            and previous is not None
+            and previous.value in ("{", ",")
+            and following is not None
+            and following.value == ":"
+        ):
+            problems.append(
+                Problem(
+                    token.offset,
+                    token.end,
+                    "warning",
+                    f'The key {token.value} is a keyword, so it can only be read as ["{token.value[1:-1]}"], not '
+                    f".{token.value[1:-1]}; use another name unless something needs this one.",
+                    "keyword-key",
+                )
+            )
     return problems
 
 

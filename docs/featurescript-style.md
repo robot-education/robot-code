@@ -189,6 +189,12 @@ what failed before rethrowing), and a `try silent` guard is fine in editing logi
 is being filled in; but say so in a comment, and call out every `try` in the feature's writeup (see
 `docs/feature-writeups.md`).
 
+## Keywords as map keys
+
+Don't name map keys after keywords (`type`, `default`, `function`, ...): `x.type` is a syntax error in Onshape, so such
+a key can only be read as `x["type"]`. Use them only where a format needs them (std's hole attributes, lookup tables'
+`"default"`); `fs check` warns about the rest.
+
 ## Types for structured data
 
 When a map with a known shape is passed between functions, like the stock robot frame and robot nut strip place,

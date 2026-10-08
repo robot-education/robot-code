@@ -48,6 +48,7 @@ export function setTappedThroughHoles(context is Context, id is Id, holes is arr
     attribute.isTappedThrough = true;
     attribute.tappedDepth = 0 * meter;
     attribute.tolerances = {};
+    // fs check: ignore keyword-key (std's hole attributes name it "type")
     attribute.sectionFace = { "type" : HoleSectionFaceType.THROUGH_FACE };
 
     for (var i, hole in holes)
