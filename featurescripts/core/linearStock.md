@@ -27,7 +27,7 @@ hidden; the manipulator sets it.
 | The `<name>`'s ends must be flat. | error | Point, Up to next: the next face is curved | the bound's parameters, the face |
 | std's `EXTRUDE_FAILED` (Failed to extrude selections, check input.) | error | Point: up to next finds nothing in front of the point, or an up to face runs along the extrude | the bound's parameters (and face) |
 | std's `EXTRUDE_SELECT_TERMINATING_SURFACE`, `EXTRUDE_SELECT_TERMINATING_VERTEX` | error | Point, Up to face / vertex with nothing selected | the bound's parameters |
-| std's `EXTRUDE_SELECT_DIRECTION`, `EXTRUDE_DIRECTION_INVALID_ENTITY`, `EXTRUDE_DIRECTION_COPLANAR` | error | Point, Direction on: no direction, not a direction, or in the profile's plane | `extrudeDirection` |
+| std's `EXTRUDE_SELECT_DIRECTION`, `EXTRUDE_DIRECTION_INVALID_ENTITY` | error | Point, Direction on: no direction, or not a direction | `extrudeDirection` |
 | The `<name>` exceeds the max length sold by the vendor (`<longest>`). | warning | the stock is longer than its longest `stock` length | `edge` or `depth` |
 | The `<name>`'s length should be a multiple of `<unit>`. / ... should be `<extra>` more than a multiple of `<unit>`. | info | stock with holes isn't a regular length (see Tying holes) | |
 
@@ -92,7 +92,8 @@ edge; X along its sketch's normal, or any perpendicular for edges not in a sketc
 `extrudePlacement` works out where an extrude from the selected point would go, without extruding, as std's extrude
 decides it:
 
-1. The axis: from the point, along its normal or the selected direction (`extrudeDirectionPlane`). The stock runs along
+1. The axis: from the point, along its normal or the selected direction, which may lie in the point's plane (like a
+   sketch line beside it), since the profile is sketched square to it (`extrudeDirectionPlane`). The stock runs along
    the extrude's direction, which Opposite direction flips.
 2. The starting offset moves the point along the axis (blind, or to where the entity is, measured with `evDistance`).
 3. The end (`boundAlong`): a blind length; the distance to a vertex or mate connector (square to the extrude); where an

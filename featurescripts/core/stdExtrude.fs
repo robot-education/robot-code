@@ -411,8 +411,10 @@ export predicate extrudeOffsetPredicate(definition is map)
 }
 
 /**
- * Copied from `extrude.fs`, which doesn't export it: the extrude's direction, `planeNormal` (its profile's normal)
- * unless a direction is selected.
+ * The extrude's direction: `planeNormal` (its profile's normal), unless a direction is selected. Based on `extrude.fs`'s,
+ * which doesn't export it, but a direction may lie in the profile's plane (like a sketch line beside the point stock is
+ * placed at): stock's profile is sketched square to the direction (see `extrudeDirectionPlane`), so std's error for
+ * that (`EXTRUDE_DIRECTION_COPLANAR`) doesn't apply.
  */
 export function processExtrudeDirection(context is Context, definition is map, planeNormal is Vector) returns Vector
 {
@@ -429,13 +431,10 @@ export function processExtrudeDirection(context is Context, definition is map, p
     {
         throw regenError(ErrorStringEnum.EXTRUDE_DIRECTION_INVALID_ENTITY, ["extrudeDirection"], definition.extrudeDirection);
     }
+    // Points the direction picked away from the profile's back, as std's extrude does, so picking it doesn't flip the
+    // extrude; a direction in the profile's plane is used as it's picked
     const dotProduct = dot(userProvidedExtrudeDirection, planeNormal);
-    if (tolerantEqualsZero(dotProduct))
-    {
-        throw regenError(ErrorStringEnum.EXTRUDE_DIRECTION_COPLANAR, ["extrudeDirection"], definition.extrudeDirection);
-    }
-    // Makes sure the direction picked by the user aligns with the original extrude direction to avoid flips
-    return dotProduct < 0 ? -userProvidedExtrudeDirection : userProvidedExtrudeDirection;
+    return dotProduct < 0 && !tolerantEqualsZero(dotProduct) ? -userProvidedExtrudeDirection : userProvidedExtrudeDirection;
 }
 
 /**
