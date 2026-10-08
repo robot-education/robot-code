@@ -248,19 +248,19 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
 - **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes (like the
   faces a shell opens) finds nothing after it. Evaluate one first (`qUnion(evaluateQuery(...))`) to keep what it found,
   as long as those entities last, or show something that lasts instead.
-- **Warnings can be hidden by later statuses**: report a warning of the feature's own (`reportFeatureWarning`, with
-  `setErrorEntities` to show what it's about) after its last step.
+- **Report a warning when it's found** (`reportFeatureWarning`, with `setErrorEntities` to show what it's about). An
+  error later takes precedence over it, which is fine: don't hold a warning back in the hope that nothing fails.
 - **Trial runs**: editing logic (and std's boolean heuristics) can run operations to see what they'd do between
   `startFeature` and `abortFeature`, which rolls them back.
 
 `core/steps.fs` puts this together. Run each step that can fail (each operation, or std feature) with `runStep`,
 giving it what to say if it fails: its message, the feature's parameters to highlight, what to show (`entities`), and a
-`reconstruct` function for what the feature made which the failure rolls back. It copies the step's warnings and info,
+`reconstruct` function for anything to show which earlier steps used up. It copies the step's warnings and info,
 and when it fails, its error display, then throws the feature's error, with the step's own message after it when it's
-a custom one. A failing fillet, for example, shows the edges it was given and its own highlights, with "Couldn't fillet
-the pockets' corners. Is the radius too large?" and the Radius highlighted. Run steps one operation at a time: a
-function of the feature's own which runs several operations has no status of its own for `runStep` to read, since each
-operation reports on its own id.
+a custom one. A failing fillet, for example, shows the edges it was given and its own highlights, with "Couldn't
+fillet the pockets' corners." and the Radius highlighted. Run steps one operation at a time: a function of the
+feature's own which runs several operations has no status of its own for `runStep` to read, since each operation
+reports on its own id.
 
 ## Keywords as map keys
 

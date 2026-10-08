@@ -12,8 +12,8 @@ const CORNER_RADIUS_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625
 
 /**
  * Lightens parts with pockets: everything within the extrude of the faces to lighten (into their parts, as the end type
- * says) is cut away, but for walls along the parts' sides and around their holes (a shell of them), and ribs along the
- * rib sketch's edges, with the pockets' corners filleted.
+ * says) is cut away, but for walls along the faces' edges (their parts' sides and holes) and ribs along the rib
+ * sketch's edges, with the pockets' corners rounded as a router bit leaves them.
  */
 annotation { "Feature Type Name" : "Robot lighten",
         "Feature Type Description" : "Lighten parts with pockets, leaving walls around their edges and holes, and ribs along a sketch." ~ CREDIT,
@@ -25,8 +25,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
     precondition
     {
         annotation { "Name" : "Faces to lighten",
-                    "Filter" : (EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && ModifiableEntityOnly.YES) || (EntityType.FACE && SketchObject.YES),
-                    "Description" : "The flat faces pockets are cut into, parallel to the rib sketch. A sketch region on a face selects the face." }
+                    "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES,
+                    "Description" : "The flat faces pockets are cut into, parallel to the rib sketch." }
         definition.faces is Query;
 
         annotation { "Name" : "Rib sketch", "Filter" : EntityType.EDGE && SketchObject.YES,
@@ -70,6 +70,9 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const ribEdges = getRibEdges(context, definition);
         const plane = ribPlane(context, ribEdges);
         verifyParallel(context, faces, ribEdges, plane);
+        // To round the pockets' corners, they're cut with walls and ribs this much thicker on each side, then grown back
+        // by it (see `roundPockets`)
+        const radius = definition.filletCorners ? definition.cornerRadius : 0 * meter;
 
         // The pockets: the extrude of the faces, as the end type says. Std's extrude, at the top level id, so its
         // manipulators are the feature's
@@ -81,74 +84,77 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     "featureParameterMappingFunction" : function(parameter) { return parameter; },
                     "entities" : faces
                 });
-        const pockets = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
+        const extruded = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
 
-        // Ribs, cut from the pockets so they're left
-        const ribs = buildRibs(context, id, id + "ribs", definition, plane, ribEdges);
-        runStep(context, id, id + "cutRibs", opBoolean, {
-                    "targets" : pockets,
-                    "tools" : ribs,
+        // The walls, along the faces' edges (but those of the ignored faces), and the ribs, cut from the pockets
+        const wallEdges = qSubtraction(qLoopEdges(faces), qLoopEdges(definition.ignoredFaces));
+        const walls = buildBands(context, id, id + "walls", plane, wallEdges, definition.wallThickness + radius, {
+                    "message" : "Couldn't make the walls along the faces' edges.",
+                    "faultyParameters" : ["faces", "wallThickness", "ignoredFaces"]
+                });
+        const ribs = buildBands(context, id, id + "ribs", plane, ribEdges, definition.ribThickness / 2 + radius, {
+                    "message" : "Couldn't make the ribs along the rib sketch's edges.",
+                    "faultyParameters" : ["ribEdges", "ribThickness"]
+                });
+        runStep(context, id, id + "cutWallsAndRibs", opBoolean, {
+                    "targets" : extruded,
+                    "tools" : qUnion([walls, ribs]),
                     "operationType" : BooleanOperationType.SUBTRACTION
                 }, {
-                    "message" : "Couldn't cut the ribs from the pockets.",
-                    "faultyParameters" : ["ribEdges", "ribThickness"],
+                    "message" : "Couldn't cut the walls and ribs from the pockets.",
+                    "faultyParameters" : ["wallThickness", "ribThickness"],
                     // A failed operation changes nothing, so they're still there to show
-                    "entities" : qUnion([pockets, ribs])
+                    "entities" : qUnion([extruded, walls, ribs])
                 });
+        // The pockets left between them, which the walls and ribs (used up) split into pieces
+        const pockets = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
 
-        var loose = [];
-        for (var i, part in evaluateQuery(context, qOwnerBody(faces)))
+        if (definition.filletCorners)
         {
-            const partId = id + unstableIdComponent(i);
-            setExternalDisambiguation(context, partId, part);
-            loose = concatenateArrays([loose, lightenPart(context, id, partId, definition, plane, part, faces, pockets)]);
+            roundPockets(context, id, plane, pockets, radius);
         }
 
-        opDeleteBodies(context, id + "cleanup", { "entities" : qUnion([pockets, qCreatedBy(id + "ribs", EntityType.BODY)]) });
-
-        // Last, so no step's status hides it
-        if (loose != [])
+        if (isQueryEmpty(context, pockets))
         {
-            reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ["ribEdges"]);
-            setErrorEntities(context, id, { "entities" : qUnion(loose) });
+            reportFeatureWarning(context, id, "There's no room for pockets between the walls and ribs.",
+                ["wallThickness", "ribThickness", "cornerRadius"]);
         }
+        else
+        {
+            runStep(context, id, id + "cut", opBoolean, {
+                        "targets" : qOwnerBody(faces),
+                        "tools" : pockets,
+                        "operationType" : BooleanOperationType.SUBTRACTION
+                    }, {
+                        "message" : "Couldn't cut the pockets from the parts.",
+                        "faultyParameters" : ["faces"],
+                        "entities" : qUnion([pockets, faces])
+                    });
+            // Pieces of ribs which touch no wall or other rib are cut free, as parts of their own
+            const loose = qCreatedBy(id + "cut", EntityType.BODY);
+            if (!isQueryEmpty(context, loose))
+            {
+                reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ["ribEdges"]);
+                setErrorEntities(context, id, { "entities" : loose });
+            }
+        }
+
+        opDeleteBodies(context, id + "cleanup", {
+                    "entities" : qUnion([pockets, qCreatedBy(id + "walls", EntityType.BODY), qCreatedBy(id + "ribs", EntityType.BODY)])
+                });
     });
 
 /**
- * The faces to lighten: those selected, and the parts' faces under the sketch regions selected (as a sketch on a face
- * covers it, making the face itself hard to click).
+ * The faces to lighten.
  */
 function getFaces(context is Context, definition is map) returns Query
 {
-    const selected = qEntityFilter(definition.faces, EntityType.FACE);
-    if (isQueryEmpty(context, selected))
+    const faces = qEntityFilter(definition.faces, EntityType.FACE);
+    if (isQueryEmpty(context, faces))
     {
         throw regenError("Select the faces to lighten.", ["faces"]);
     }
-    var faces = [qSketchFilter(selected, SketchObject.NO)];
-    for (var region in evaluateQuery(context, qSketchFilter(selected, SketchObject.YES)))
-    {
-        const under = partFacesUnder(context, region);
-        if (under == [])
-        {
-            throw regenError("A sketch region selected to lighten isn't on a part's face.", ["faces"], region);
-        }
-        faces = append(faces, qUnion(under));
-    }
-    return qUnion(faces);
-}
-
-/**
- * The flat faces of modifiable parts which a sketch region lies on: in its plane, and touching it.
- */
-function partFacesUnder(context is Context, region is Query) returns array
-{
-    const plane = evPlane(context, { "face" : region });
-    const candidates = qCoincidesWithPlane(qOwnedByBody(qAllModifiableSolidBodiesNoMesh(), EntityType.FACE), plane);
-    return filter(evaluateQuery(context, candidates), function(face)
-        {
-            return tolerantEqualsZero(evDistance(context, { "side0" : region, "side1" : face }).distance);
-        });
+    return faces;
 }
 
 /**
@@ -209,117 +215,63 @@ function buildPockets(context is Context, extrudeId is Id, definition is map, fa
 }
 
 /**
- * Ribs along `ribEdges` (under `ribsId`): their extrudes along the sketch's normal through everything, as sheets,
- * thickened to the rib thickness, half on each side. Returns them. `id` is the feature's.
+ * Bands along `edges` (under `bandsId`), `halfWidth` to each side: their extrudes along the sketch's normal through
+ * everything, as sheets (a circle's is a tube), thickened. Returns them. `id` is the feature's; `failure` says what
+ * failed if they can't be made (see `runStep`).
  */
-function buildRibs(context is Context, id is Id, ribsId is Id, definition is map, plane is Plane, ribEdges is Query) returns Query
+function buildBands(context is Context, id is Id, bandsId is Id, plane is Plane, edges is Query, halfWidth is ValueWithUnits,
+    failure is map) returns Query
 {
-    runStep(context, id, ribsId + "sheets", opExtrude, {
-                "entities" : ribEdges,
+    failure.entities = edges;
+    runStep(context, id, bandsId + "sheets", opExtrude, {
+                "entities" : edges,
                 "direction" : plane.normal,
                 "startBound" : BoundingType.THROUGH_ALL,
                 "endBound" : BoundingType.THROUGH_ALL
-            }, {
-                "message" : "Couldn't extrude the rib sketch's edges.",
-                "faultyParameters" : ["ribEdges"],
-                "entities" : ribEdges
-            });
-    runStep(context, id, ribsId + "thicken", opThicken, {
-                "entities" : qCreatedBy(ribsId + "sheets", EntityType.BODY),
-                "thickness1" : definition.ribThickness / 2,
-                "thickness2" : definition.ribThickness / 2
-            }, {
-                "message" : "Couldn't thicken the ribs.",
-                "faultyParameters" : ["ribEdges", "ribThickness"],
-                "entities" : ribEdges
-            });
-    return qCreatedBy(ribsId + "thicken", EntityType.BODY);
+            }, failure);
+    runStep(context, id, bandsId + "thicken", opThicken, {
+                "entities" : qCreatedBy(bandsId + "sheets", EntityType.BODY),
+                "thickness1" : halfWidth,
+                "thickness2" : halfWidth
+            }, failure);
+    return qCreatedBy(bandsId + "thicken", EntityType.BODY);
 }
 
 /**
- * Lightens `part` (with steps under `partId`): a copy of it has the pockets (less the ribs) cut from it, leaving what's
- * outside them and the ribs; the part is shelled, removing its faces parallel to the faces to lighten (and the ignored
- * ones), to leave walls; the two are joined, and the pockets' corners are filleted. Returns the pieces of the copy which
- * didn't join the part (ribs touching no wall or other rib), which are left as parts of their own.
+ * Rounds the pockets' corners, as a router bit of `radius` leaves them: they were cut with walls and ribs `radius`
+ * thicker on each side, so a pocket narrower than the bit is gone, and the rest are grown back by `radius` and their
+ * corners filleted. Every corner then has room for its fillet, and a pocket which narrows (between ribs meeting at a
+ * sharp angle) ends in one round, rather than failing to fit a fillet into each side.
  */
-function lightenPart(context is Context, id is Id, partId is Id, definition is map, plane is Plane, part is Query, faces is Query,
-    pockets is Query) returns array
+function roundPockets(context is Context, id is Id, plane is Plane, pockets is Query, radius is ValueWithUnits)
 {
-    const partFaces = qOwnedByBody(part, EntityType.FACE);
-    const openFaces = qUnion([qParallelPlanes(partFaces, plane.normal, true), qIntersection([definition.ignoredFaces, partFaces])]);
-    const lightened = qIntersection([faces, partFaces]);
-
-    // What's left of a copy of the part outside the pockets, and its ribs
-    runStep(context, id, partId + "copy", opPattern, {
-                "entities" : part,
-                "transforms" : [identityTransform()],
-                "instanceNames" : ["copy"]
-            }, { "message" : "Couldn't copy a part to lighten.", "entities" : part });
-    const kept = qCreatedBy(partId + "copy", EntityType.BODY);
-    runStep(context, id, partId + "cutPockets", opBoolean, {
-                "targets" : kept,
-                "tools" : pockets,
-                "operationType" : BooleanOperationType.SUBTRACTION,
-                "keepTools" : true
-            }, {
-                "message" : "Couldn't cut the pockets from a part.",
-                "faultyParameters" : ["faces"],
-                "entities" : qUnion([lightened, pockets])
-            });
-
-    // The walls
-    runStep(context, id, partId + "shell", opShell, {
-                "entities" : openFaces,
-                // Inward
-                "thickness" : -definition.wallThickness
-            }, {
-                "message" : "Couldn't shell a part to leave its walls. Are they too thick?",
-                "faultyParameters" : ["wallThickness", "ignoredFaces"],
-                "entities" : qUnion([part, openFaces])
-            });
-
-    // Pockets through all with no ribs across the part leave nothing of the copy
-    if (!isQueryEmpty(context, kept))
+    if (isQueryEmpty(context, pockets))
     {
-        runStep(context, id, partId + "join", opBoolean, {
-                    "targets" : part,
-                    "tools" : kept,
-                    "operationType" : BooleanOperationType.UNION,
-                    "targetsAndToolsNeedGrouping" : true
-                }, {
-                    "message" : "Couldn't join a part's walls to its ribs and what's outside its pockets.",
-                    "faultyParameters" : ["faces"],
-                    "entities" : qUnion([part, kept])
-                });
+        return;
     }
-
-    if (definition.filletCorners)
-    {
-        filletCorners(context, id, partId + "fillet", definition, plane, part);
-    }
-    // Pieces of the copy touching the part's walls were joined to it
-    return evaluateQuery(context, qSubtraction(kept, part));
-}
-
-/**
- * Fillets the pockets' corners in `part`: the concave edges along the sketch's normal which the feature made.
- */
-function filletCorners(context is Context, id is Id, filletId is Id, definition is map, plane is Plane, part is Query)
-{
-    const candidates = qParallelEdges(qIntersection([qOwnedByBody(part, EntityType.EDGE), qCreatedBy(id, EntityType.EDGE)]), plane.normal);
-    const corners = filter(evaluateQuery(context, candidates), function(edge)
+    const faces = qOwnedByBody(pockets, EntityType.FACE);
+    runStep(context, id, id + "grow", opOffsetFace, {
+                // Their sides, not their ends
+                "moveFaces" : qSubtraction(faces, qParallelPlanes(faces, plane.normal, true)),
+                "offsetDistance" : radius
+            }, {
+                "message" : "Couldn't grow the pockets back to round their corners.",
+                "faultyParameters" : ["cornerRadius"],
+                "entities" : pockets
+            });
+    const corners = filter(evaluateQuery(context, qParallelEdges(qOwnedByBody(pockets, EntityType.EDGE), plane.normal)), function(edge)
         {
-            return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONCAVE;
+            return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
         });
     if (corners == [])
     {
         return;
     }
-    runStep(context, id, filletId, opFillet, {
+    runStep(context, id, id + "fillet", opFillet, {
                 "entities" : qUnion(corners),
-                "radius" : definition.cornerRadius
+                "radius" : radius
             }, {
-                "message" : "Couldn't fillet the pockets' corners. Is the radius too large?",
+                "message" : "Couldn't fillet the pockets' corners.",
                 "faultyParameters" : ["cornerRadius"],
                 "entities" : qUnion(corners)
             });

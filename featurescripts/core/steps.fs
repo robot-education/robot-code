@@ -22,8 +22,8 @@ import(path : "onshape/std/common.fs", version : "2960.0");
  *              name (like `function(name) { return name; }`, for a step given the feature's own definition).
  *      @field entities {Query} : @optional What to show in red, which exists before the step (like its inputs).
  *      @field reconstruct {function} : @optional `function(errorId)`, which builds what to show in red under
- *              `errorId`, for what the feature made before the step, which is rolled back with the feature: like std's
- *              `reconstructOp` (see `processNewBodyIfNeeded`).
+ *              `errorId`, for what earlier steps used up (a failed step itself changes nothing, so what it was given
+ *              can be shown as `entities`): like std's `reconstructOp` (see `processNewBodyIfNeeded`).
  * }}
  */
 export function runStep(context is Context, id is Id, subId is Id, operation is function, definition is map, failure is map)
