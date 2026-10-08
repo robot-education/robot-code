@@ -20,7 +20,7 @@ import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b3763f68");
 
 /**
  * Creates two buttons for flipping and rotating in 90 degree increments about the selected location.
- * Parameters have the names `oppositeDirection` and `secondaryAxisType`. 
+ * Parameters have the names `oppositeDirection` and `secondaryAxisType`.
  */
 export predicate axisOrientationPredicate(definition is map)
 {
@@ -212,7 +212,7 @@ export function mountingEditLogic(context is Context, id is Id, oldDefinition is
             "startStyle" : HoleStartStyle.SKETCH,
             "endStyle" : HoleEndStyle.THROUGH
         };
-        
+
     const oldHoleDefinition = oldDefinition == {} ? {} : {
                 "locations" : oldLocation,
                 "scope" : oldDefinition.scope,

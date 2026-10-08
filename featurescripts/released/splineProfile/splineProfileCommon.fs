@@ -68,4 +68,3 @@ precondition
                 "location" : definition.location
             });
 }
-

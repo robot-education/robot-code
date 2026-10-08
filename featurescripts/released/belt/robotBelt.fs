@@ -952,7 +952,6 @@ function syncBeltParameters(definition is map) returns map
 }
 
 
-
 // /**
 //  * Attempts to set the belt size whenever a pulley mate connector is selected.
 //  */

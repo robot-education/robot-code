@@ -304,4 +304,3 @@ function connectElements(start is BoundaryElement, end is BoundaryElement) retur
     }
     return [start.location, end.location];
 }
-

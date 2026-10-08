@@ -252,7 +252,7 @@ precondition
     is2dPointVector(locations);
 }
 {
-    return isCounterClockwise(computeCentroid(locations), locations);   
+    return isCounterClockwise(computeCentroid(locations), locations);
 }
 
 /**

@@ -271,4 +271,3 @@ export function getBeltTableAndPath(definition is map) returns map
             "path" : path
         };
 }
-

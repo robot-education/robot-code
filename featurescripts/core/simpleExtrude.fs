@@ -12,8 +12,8 @@ export predicate simpleExtrudePredicate(definition is map)
     definition.endBound is BoundingType;
 
     extrudeBoundsPredicate(definition);
-    
-    
+
+
 }
 
 /**

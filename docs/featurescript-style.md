@@ -3,6 +3,11 @@
 Conventions for the FeatureScripts in `featurescripts/`. `fs check` enforces some of them (see the end); the rest are
 up to review.
 
+## Formatting
+
+Format like std, with `fs format` or the editor's Format Document (see the README): line breaks are yours, the
+indentation of blocks and the spacing within lines aren't.
+
 ## Definitions are maps
 
 A feature's `definition` is a map, and each parameter its precondition declares is a key in it: `definition.depth is

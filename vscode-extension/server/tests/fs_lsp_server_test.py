@@ -255,6 +255,64 @@ def test_renames_keep_studios_and_imports(tmp_path):
         client.close()
 
 
+def test_formatting(tmp_path):
+    """Formatting fixes whitespace, by changed lines, but not in std's files, generated files, or while there are
+    syntax errors."""
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    (tmp_path / "featurescripts").mkdir()
+    (tmp_path / "std").mkdir()
+    messy = "FeatureScript 2909;\nfunction f(a,b)\n{\n  return a;  \n}\n"
+    files = {
+        "featurescripts/feature.fs": messy,
+        "featurescripts/tables.gen.fs": messy,
+        "std/geometry.fs": messy,
+        "featurescripts/broken.fs": messy + "const c = (1;\n",
+    }
+    client = Client()
+    try:
+        client.capabilities = client.request(
+            "initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}}
+        )["capabilities"]
+        assert client.capabilities["documentFormattingProvider"]
+        assert client.capabilities["documentRangeFormattingProvider"]
+        client.notify("initialized", {})
+        edits = {}
+        for name, text in files.items():
+            (tmp_path / name).write_text(text)
+            uri = (tmp_path / name).as_uri()
+            client.notify(
+                "textDocument/didOpen",
+                {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": text}},
+            )
+            options = {"tabSize": 4, "insertSpaces": True}
+            edits[name] = client.request(
+                "textDocument/formatting", {"textDocument": {"uri": uri}, "options": options}
+            )
+        assert edits["featurescripts/feature.fs"] == [
+            {
+                "range": {"start": {"line": 1, "character": 0}, "end": {"line": 2, "character": 0}},
+                "newText": "function f(a, b)\n",
+            },
+            {
+                "range": {"start": {"line": 3, "character": 0}, "end": {"line": 4, "character": 0}},
+                "newText": "    return a;\n",
+            },
+        ]
+        assert edits["featurescripts/tables.gen.fs"] == []
+        assert edits["std/geometry.fs"] == []
+        assert edits["featurescripts/broken.fs"] == []
+
+        uri = (tmp_path / "featurescripts/feature.fs").as_uri()
+        selected = {"start": {"line": 3, "character": 0}, "end": {"line": 3, "character": 2}}
+        [edit] = client.request(
+            "textDocument/rangeFormatting",
+            {"textDocument": {"uri": uri}, "range": selected, "options": {"tabSize": 4, "insertSpaces": True}},
+        )
+        assert edit["newText"] == "    return a;\n"
+    finally:
+        client.close()
+
+
 def test_signature_help(client):
     # In helper's parentheses, on its first argument
     result = client.request("textDocument/signatureHelp", position(7, 17))

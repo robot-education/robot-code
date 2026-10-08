@@ -22,6 +22,7 @@ from fs_cli.renames import path_import_edits, relative_paths, rename_studio_file
 from fs_lsp import __version__
 from fs_lsp.completion import completion_data, completion_items
 from fs_lsp.diagnostics import diagnostics
+from fs_lsp.formatter import edits, is_generated
 from fs_lsp.fsdoc import parse_doc, render_markdown
 from fs_lsp.hover import declaration_markdown, hover_markdown
 from fs_lsp.navigation import document_symbols, folding_ranges, token_range
@@ -297,6 +298,49 @@ def folding_range(
     ls: FeatureScriptServer, params: lsp.FoldingRangeParams
 ) -> list[lsp.FoldingRange]:
     return folding_ranges(ls.analysis(ls.document(params.text_document.uri)).parsed)
+
+
+@server.feature(lsp.TEXT_DOCUMENT_FORMATTING)
+def formatting(ls: FeatureScriptServer, params: lsp.DocumentFormattingParams) -> list[lsp.TextEdit]:
+    return _formatting_edits(ls, params.text_document.uri)
+
+
+@server.feature(lsp.TEXT_DOCUMENT_RANGE_FORMATTING)
+def range_formatting(ls: FeatureScriptServer, params: lsp.DocumentRangeFormattingParams) -> list[lsp.TextEdit]:
+    # Changes to the selected lines (the whole file is formatted, since a line's indentation depends on those before)
+    first, last = params.range.start.line, params.range.end.line
+    if params.range.end.character == 0 and last > first:
+        last -= 1
+    return [
+        edit
+        for edit in _formatting_edits(ls, params.text_document.uri)
+        if edit.range.start.line <= last and edit.range.end.line >= first
+    ]
+
+
+def _formatting_edits(ls: FeatureScriptServer, uri: str) -> list[lsp.TextEdit]:
+    """The edits formatting a document makes, if it's formatted: not generated files or std's (which are formatted
+    by what makes them), or files with syntax errors (which may not be what's meant yet)."""
+    path = _path(uri)
+    if path is not None and (is_generated(path.name) or _in_std(ls, path)):
+        return []
+    document = ls.document(uri)
+    analysis = ls.analysis(document)
+    if diagnostics(analysis.parsed):
+        return []
+    lines = analysis.parsed.line_map
+    return [
+        lsp.TextEdit(
+            range=lsp.Range(start=lsp.Position(*lines.position(start)), end=lsp.Position(*lines.position(end))),
+            new_text=text,
+        )
+        for start, end, text in edits(document.source)
+    ]
+
+
+def _in_std(ls: FeatureScriptServer, path: pathlib.Path) -> bool:
+    """Whether a file is in a project's copy of std."""
+    return any(project.in_std(path) for project in ls.projects) or Project.find_std(path) is not None
 
 
 def _definition_links(

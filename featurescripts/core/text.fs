@@ -18,7 +18,7 @@ export predicate textPredicate(definition is map)
 {
     annotation { "Name" : "Text size", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"], "Default" : TextSize.MEDIUM }
     definition.textSize is TextSize;
-    
+
     annotation { "Name" : "Bold text", "UIHint" : "REMEMBER_PREVIOUS_VALUE", "Default" : true }
     definition.boldText is boolean;
 }
@@ -48,7 +48,7 @@ export function getTextDepth(definition is map) returns ValueWithUnits
  * @param definition {{
  *          @field text {string} :
  *          @field bold {boolean} : @optional
- *                  Defaults to `false`. 
+ *                  Defaults to `false`.
  *          @field height {ValueWithUnits} :
  *          @field plane {Plane} :
  *          @field mirrorHorizontal {boolean} : @optional
@@ -60,7 +60,7 @@ export function getTextDepth(definition is map) returns ValueWithUnits
 export const opText = function(context is Context, id is Id, definition is map) returns Query
     {
         definition = mergeMaps({ "mirrorHorizontal" : false, "mirrorVertical" : false, "bold" : false }, definition);
-        
+
         const fontName = "OpenSans-" ~ (definition.bold ? "Bold" : "Regular") ~ ".ttf";
 
         const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : XY_PLANE });

@@ -87,7 +87,7 @@ precondition
 {
     isLengthVector(pointDistances);
 }
-{ 
+{
     const pointIndex = getPointIndex(definition, size(pointDistances));
     return pointDistances[pointIndex];
 }

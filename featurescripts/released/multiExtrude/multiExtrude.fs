@@ -100,14 +100,14 @@ export const multiExtrude = defineFeature(function(context is Context, id is Id,
     {
 
         const entities = verifyNonemptyQuery(context, definition, "entities", ErrorStringEnum.EXTRUDE_NO_SELECTED_REGION);
-        
+
         // Extrude new, then delete so we get manipulators
         const operationType = definition.newBodyOperationType;
         definition.newBodyOperationType = NewBodyOperationType.NEW;
-        
+
         extrude(context, id, definition);
         opDeleteBodies(context, id + "deleteExtrude", { "entities" : qCreatedBy(id, EntityType.BODY) });
-        
+
         definition.newBodyOperationType = operationType;
 
         for (var i, entity in entities)

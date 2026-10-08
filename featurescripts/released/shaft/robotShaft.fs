@@ -1334,7 +1334,6 @@ function applyTableDefinition(definition is map, shaftEnd is ShaftEnd) returns m
 }
 
 
-
 // function getPitch(definition is map, shaftEnd is ShaftEnd) returns ValueWithUnits
 // {
 //     // 32 Threads per inch

@@ -287,4 +287,3 @@ function autoFillPlatePlane(context is Context, oldDefinition is map, definition
     }
     return definition.platePlane;
 }
-

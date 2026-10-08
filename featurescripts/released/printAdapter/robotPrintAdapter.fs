@@ -119,7 +119,7 @@ function createPrintAdapter(context is Context, id is Id, definition is map, pla
 {
     const adapterId = id + "adapter";
     const sketchId = adapterId + "sketchAdapter";
-    
+
     createSketchDataArray(context, sketchId, {
                 "plane" : plane,
                 "sketchDataArray" : getPrintAdapter(definition).profile
@@ -159,7 +159,7 @@ function createPrintBore(context is Context, id is Id, definition is map, plane 
 {
     // We need to use top level id for the extrude here, so don't make a specific boreId
     const sketchId = id + "sketch";
-    
+
     plane.normal *= definition.oppositeDirection ? -1 : 1;
     const boreProfile = sketchBoreProfile(context, sketchId, definition, plane);
 

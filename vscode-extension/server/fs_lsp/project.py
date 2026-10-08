@@ -230,6 +230,25 @@ class Project:
         project = cls(config.root, config.code_dir, config.studios_path, config.std_dir)
         return project if project.contains(path) else None
 
+    @classmethod
+    def find_std(cls, path: pathlib.Path) -> Project | None:
+        """Returns the project whose copy of std (`std_dir`) path is in, if any."""
+        from fs_cli.config import ConfigError, load_config
+
+        try:
+            config = load_config(path if path.is_dir() else path.parent)
+        except ConfigError:
+            return None
+        project = cls(config.root, config.code_dir, config.studios_path, config.std_dir)
+        return project if project.in_std(path) else None
+
+    def in_std(self, path: pathlib.Path) -> bool:
+        """Whether path is in the project's copy of std."""
+        if self.std_dir is None:
+            return False
+        std_dir = self._resolve(self.std_dir)
+        return std_dir in self._resolve(path).parents
+
     @contextlib.contextmanager
     def snapshot(self):
         """Treats the files as unchanged while it's taken, so they're listed, resolved, and checked for changes once

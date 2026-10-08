@@ -55,4 +55,3 @@ export const pulleyText = defineFeature(function(context is Context, id is Id, d
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
     });
-

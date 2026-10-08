@@ -65,7 +65,7 @@ export enum HexSize
 export predicate robotSpacerPredicate(definition is map)
 {
     unitSystemPredicate(definition);
-    
+
     locationPredicate(definition, "spacer");
 
     generalPredicate(definition);

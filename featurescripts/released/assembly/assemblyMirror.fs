@@ -448,10 +448,10 @@ export const ASSEMBLY_MIRROR_ATTRIBUTE = "assemblyMirrorAttribute";
 
 /**
  * Marks the mate connectors of a part which can be mirrored automatically.
- * 
+ *
  * Formally, assembly mirror works by instantiating a copy of the owner part of `baseMate`.
- * If `mateToOrigin` is true, the `baseMate` is then mated to the origin. Otherwise, it is mated to an instance of `targetMate` 
- * on a seperate instance of the owner part of `baseMate`. 
+ * If `mateToOrigin` is true, the `baseMate` is then mated to the origin. Otherwise, it is mated to an instance of `targetMate`
+ * on a seperate instance of the owner part of `baseMate`.
  *
  * @param definition {{
  *          @field baseMate {Query} :

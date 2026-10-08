@@ -1,4 +1,4 @@
-"""Tests for the offline analysis commands: fs check, fs deps, and fs refs."""
+"""Tests for the offline analysis commands: fs check, fs format, fs deps, and fs refs."""
 
 import json
 
@@ -46,6 +46,28 @@ def test_check(repo, capsys):
     # Targets can be folders
     assert cli.main(["check", "featurescripts/core"]) == 0
     assert cli.main(["check", "nothing"]) == 2
+
+
+def test_format(repo, capsys):
+    utils = repo / "featurescripts" / "core" / "utils.fs"
+    formatted = utils.read_text()
+    messy = formatted.replace("(x is number)", "( x is number )") + "\n\n\n"
+    utils.write_text(messy)
+    generated = repo / "featurescripts" / "tables.gen.fs"
+    generated.write_text(messy)
+
+    assert cli.main(["format", "--check"]) == 1
+    assert capsys.readouterr().out == "featurescripts/core/utils.fs\n1 file would be formatted.\n"
+    assert utils.read_text() == messy
+
+    assert cli.main(["format"]) == 0
+    assert capsys.readouterr().out == "featurescripts/core/utils.fs\nFormatted 1 file.\n"
+    assert utils.read_text() == formatted
+    # Generated files are formatted by what generates them
+    assert generated.read_text() == messy
+
+    assert cli.main(["format", "--check"]) == 0
+    assert "Everything is formatted." in capsys.readouterr().out
 
 
 def test_deps(repo, capsys):

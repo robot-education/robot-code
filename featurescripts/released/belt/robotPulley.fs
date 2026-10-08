@@ -766,5 +766,3 @@ export function robotPulleyManipulatorChange(context is Context, definition is m
     definition = textPositionManipulatorChange(context, definition, newManipulators);
     return definition;
 }
-
-

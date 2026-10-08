@@ -15,6 +15,7 @@ import os
 import pathlib
 import sys
 
+from fs_lsp.formatter import format_source, is_generated
 from fs_lsp.project import Module, Project
 
 from fs_cli.config import Config, ConfigError, load_config
@@ -182,6 +183,13 @@ def make_parser() -> argparse.ArgumentParser:
     command(
         "check",
         "check FeatureScripts for syntax errors, undefined names, and unused or unknown imports (no API calls)",
+    )
+    format_command = command(
+        "format",
+        "format FeatureScripts like std (indentation and spacing; not generated .gen.fs files) (no API calls)",
+    )
+    format_command.add_argument(
+        "--check", action="store_true", help="list the files formatting would change, without changing them"
     )
     command(
         "deps",
@@ -1093,6 +1101,27 @@ def check(config: Config, args: argparse.Namespace) -> int:
     return 1
 
 
+def format_files(config: Config, args: argparse.Namespace) -> int:
+    project = _project(config)
+    changed = []
+    for module in _select_modules(project, args.targets):
+        if is_generated(module.path.name):
+            continue
+        source = module.path.read_text(encoding="utf-8")
+        formatted = format_source(source)
+        if formatted == source:
+            continue
+        changed.append(module)
+        if not args.check:
+            module.path.write_text(formatted, encoding="utf-8")
+        print(_display_path(module.path))
+    if args.check:
+        print(f"{_plural(len(changed), 'file')} would be formatted." if changed else "Everything is formatted.")
+        return 1 if changed else 0
+    print(f"Formatted {_plural(len(changed), 'file')}." if changed else "Everything is formatted.")
+    return 0
+
+
 def deps(config: Config, args: argparse.Namespace) -> int:
     project = _project(config)
     for module in _select_modules(project, args.targets):
@@ -1283,6 +1312,7 @@ def _display_path(path: pathlib.Path) -> str:
 # Commands which don't need Onshape
 OFFLINE_COMMANDS = {
     "check": check,
+    "format": format_files,
     "mv": mv,
     "ui": ui,
     "deps": deps,

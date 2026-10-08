@@ -336,4 +336,3 @@ function applyTableDefinition(definition is map) returns map
     definition.holeDiameter = getLookupTable(tableAndPath.table, tableAndPath.path).holeDiameter;
     return definition;
 }
-

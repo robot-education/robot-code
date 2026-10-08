@@ -88,4 +88,3 @@ export const HOLE_DEPTH_BOUNDS =
             (foot) : 0.04,
             (yard) : 0.014
         } as LengthBoundSpec;
-

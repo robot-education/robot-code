@@ -1,7 +1,7 @@
 # FeatureScript for VS Code
 
 Onshape FeatureScript support for the [robot-code](https://github.com/robot-education/robot-code) repo:
-highlighting, navigation, hovers, completions, diagnostics, and commands for pushing to Onshape.
+highlighting, navigation, hovers, completions, diagnostics, formatting, and commands for pushing to Onshape.
 
 - `src/extension.ts`: the extension itself, a thin client which starts the language server and runs the `fs` CLI.
 - `server/fs_lsp/`: the Python language server, where all the language smarts live. It's installed into the

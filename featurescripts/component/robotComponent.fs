@@ -203,6 +203,6 @@ export function robotComponentEditLogic(context is Context, id is Id, oldDefinit
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition = mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
-    
+
     return definition;
 }

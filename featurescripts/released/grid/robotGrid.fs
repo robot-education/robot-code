@@ -304,4 +304,3 @@ function collidesWithGeometry(context is Context, tool is Query, targets is Quer
             });
     return collisions != [];
 }
-

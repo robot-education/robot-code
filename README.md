@@ -223,6 +223,7 @@ These read the repo only (no API calls). Imports between studios are resolved th
 ```
 uv run fs check              # syntax errors, undefined names, unused or unknown imports, and more
 uv run fs check featurescripts/released/belt   # ...or just some files or folders
+uv run fs format             # indentation and spacing like std's (--check: list what it would change)
 uv run fs deps robotShaft    # what a studio imports, and what imports it
 uv run fs strings robotShaft # strings it shows users (names, descriptions, errors), with those of what it imports
 uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used
@@ -251,6 +252,12 @@ of every kind of parameter and UI hint (and groups nested in groups), for compar
 featurescripts/uiTestBench/uiTestBench.fs --set items=2`). To capture how Onshape draws a dialog, open it in Onshape and
 paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with what's
 typed and checked in it, the CSS rules which apply to it, and the icons it uses. It only reads the page.
+
+`fs format` formats like the std library (see `vscode-extension/server/fs_lsp/formatter.py`): it keeps line breaks,
+indents blocks (Allman style, 4 spaces), keeps continuation lines where they are relative to their statement's first
+line (std indents those several ways), and fixes spacing (`f(a, b)`, `if (x)`, `a == b`, `{ "key" : value }`). Only
+whitespace changes; generated `.gen.fs` files are left to `fs gen`. Formatting std's own files changes about 2% of
+their lines, mostly where std's indentation is inconsistent. `--check` exits with 1 if anything would change.
 
 `fs check` exits with 1 if it finds anything. A comment on a problem's line, or alone on the line before it, ignores it:
 `// fs check: ignore keyword-key (std's hole attributes name it "type")`, with the problem's code (in brackets after
@@ -382,6 +389,8 @@ The extension provides:
 - Completions for enum members (`BoundingType.`) and feature definition-map keys
   (`extrude(context, id, { ... })`)
 - Diagnostics: syntax errors, undefined names, and unused or unknown imports (the same as `fs check`)
+- Formatting (Format Document, Format Selection, or `editor.formatOnSave`), the same as `fs format`. Files with syntax
+  errors, generated files, and std's files are left as they are
 - Snippets (`fs-header`, `defineFeature`, `annotation`, ...)
 - Commands: **FeatureScript: Push File to Onshape** (also a button in the editor title bar), **Push All**,
   **Pull**, **Sync**, and **Show Onshape Status**, which save and then run `fs` in a terminal

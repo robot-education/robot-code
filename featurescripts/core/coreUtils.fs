@@ -201,4 +201,3 @@ export function getParameter(definition is map, parameterName is string)
     }
     return definition[parameterName];
 }
-

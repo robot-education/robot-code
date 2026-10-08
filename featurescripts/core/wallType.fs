@@ -45,7 +45,7 @@ export predicate wallPredicate(definition is map)
 export function getWallDiameter(definition is map, diameter is ValueWithUnits) returns ValueWithUnits
 {
     verifyWallDiameter(definition, diameter);
-    
+
     if (definition.wallType == WallType.WALL_THICKNESS)
     {
         return diameter + definition.wallThickness * 2;
@@ -79,5 +79,3 @@ export function wallEditLogic(oldDefinition is map, definition is map, specified
     }
     return definition;
 }
-
-
