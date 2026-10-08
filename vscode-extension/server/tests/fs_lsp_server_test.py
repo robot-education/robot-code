@@ -210,6 +210,61 @@ def test_cross_file_navigation(tmp_path):
         client.close()
 
 
+def test_std_navigation(tmp_path):
+    """Go to Definition into the copy of std, and in std's files, which get no diagnostics."""
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    (tmp_path / "featurescripts").mkdir()
+    (tmp_path / "std").mkdir()
+    std_source = (
+        "FeatureScript 2909;\n"
+        'import(path : "onshape/std/context.fs", version : "");\n'
+        "export const opDeleteBodies = function(context is Context, id is Id, definition is map)\n"
+        "{\n    undefinedInStd(definition);\n};\n"
+    )
+    (tmp_path / "std" / "geomOperations.fs").write_text(std_source)
+    (tmp_path / "std" / "context.fs").write_text("FeatureScript 2909;\nexport type Context typecheck canBeContext;\n")
+    feature_source = (
+        'FeatureScript 2909;\nimport(path : "onshape/std/geomOperations.fs", version : "2909.0");\n'
+        "export function f(context is Context, id is Id) { opDeleteBodies(context, id, {}); }\n"
+    )
+    (tmp_path / "featurescripts" / "feature.fs").write_text(feature_source)
+    uri = (tmp_path / "featurescripts" / "feature.fs").as_uri()
+    std_uri = (tmp_path / "std" / "geomOperations.fs").as_uri()
+    client = Client()
+    try:
+        client.request("initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}})
+        client.notify("initialized", {})
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": feature_source}},
+        )
+        [link] = client.request(
+            "textDocument/definition", {"textDocument": {"uri": uri}, "position": {"line": 2, "character": 52}}
+        )
+        assert link["targetUri"] == std_uri
+        assert link["targetRange"]["start"] == {"line": 2, "character": 13}
+        # The file an import of std refers to
+        [link] = client.request(
+            "textDocument/definition", {"textDocument": {"uri": uri}, "position": {"line": 1, "character": 20}}
+        )
+        assert link["targetUri"] == std_uri
+
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": std_uri, "languageId": "featurescript", "version": 1, "text": std_source}},
+        )
+        message = client.wait_for(
+            lambda m: m.get("method") == "textDocument/publishDiagnostics" and m["params"]["uri"] == std_uri
+        )
+        assert message["params"]["diagnostics"] == []
+        [link] = client.request(
+            "textDocument/definition", {"textDocument": {"uri": std_uri}, "position": {"line": 2, "character": 50}}
+        )
+        assert link["targetUri"] == (tmp_path / "std" / "context.fs").as_uri()
+    finally:
+        client.close()
+
+
 def test_renames_keep_studios_and_imports(tmp_path):
     """Renaming files and folders in the editor updates fs-studios.json and imports by path."""
     utils_id = "a" * 24

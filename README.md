@@ -226,7 +226,7 @@ uv run fs check featurescripts/released/belt   # ...or just some files or folder
 uv run fs format             # indentation and spacing like std's (--check: list what it would change)
 uv run fs deps robotShaft    # what a studio imports, and what imports it
 uv run fs strings robotShaft # strings it shows users (names, descriptions, errors), with those of what it imports
-uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used
+uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used (std's too)
 uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, keeping its studio and imports
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
@@ -375,7 +375,12 @@ The extension provides:
 - Outline, breadcrumbs, sticky scroll, and folding
 - Go to Definition and Find References across files (imports are resolved through `fs-studios.json`), highlights,
   and workspace symbol search (Ctrl+T). Go to Definition also works on the function names in a feature's
-  `"Manipulator Change Function"` and `"Editing Logic Function"`, and on `"UIHint"` strings (into `std/`)
+  `"Manipulator Change Function"` and `"Editing Logic Function"`, and on `"UIHint"` strings
+- Go to Definition into std (`std/`, the copy `fs pull-std` keeps): on its functions, constants, enums and their
+  members, types, and the files imports of it refer to. Find References on a std symbol lists where the repo uses it
+  (as `fs refs` does). Std's files navigate the same way, and get no diagnostics or formatting. Completions, hovers,
+  and signature help for std come from an index of it built by `fs pull-std`, which is quick to load; its files are
+  only parsed when they're navigated to
 - A Preview Feature UI button (in the editor's title bar, for files defining a feature) which shows the feature's
   dialog as `fs ui` renders it, beside the file, following edits as they're made (saved or not), in VS Code's light
   or dark theme. It works like Onshape's dialog: clicking a tab, checkbox, button, or dropdown option, or entering a

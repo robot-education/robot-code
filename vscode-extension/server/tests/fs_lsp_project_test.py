@@ -506,9 +506,9 @@ def test_annotation_strings_resolve(project, tmp_path):
     # Other strings in annotations aren't names
     assert definitions('"F"') == []
 
-    std = project.std_definition(module, source.index('"SHOW_LABEL"') + 2)
-    assert std is not None and std[0].name == "uihint.gen.fs" and std[1:] == (4, 4, 14)
-    assert project.std_definition(module, source.index('"Flag"') + 2) is None
+    [(owner, member)] = project.std_definitions(module, source.index('"SHOW_LABEL"') + 2)
+    assert owner.path.name == "uihint.gen.fs" and owner.position(member.token.offset) == (4, 4)
+    assert project.std_definitions(module, source.index('"Flag"') + 2) == []
 
 
 def test_functions_used_as_values(project):
@@ -571,3 +571,53 @@ def test_keyword_keys(project):
     generated = project.code_dir / "tables.gen.fs"
     generated.write_text(f'FeatureScript 2909;\n{STD}\nexport const t = {{ "default" : "a" }};\n')
     assert [p for p in project.check(project.module(generated)) if p.code == "keyword-key"] == []
+
+
+REPO_STD = pathlib.Path(__file__).parents[3] / "std"
+
+
+@pytest.mark.skipif(not REPO_STD.is_dir(), reason="needs the copy of std")
+def test_std_navigation(project):
+    """Std's declarations are found in its source, parsed as they're needed, and std's files navigate like ours."""
+    project.std_dir = REPO_STD
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f"FeatureScript 2909;\n{STD}\n"
+        f'import(path : "{UTILS_ID}", version : "v");\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Faces", "Filter" : EntityType.FACE, "UIHint" : ["ALWAYS_HIDDEN"] }\n'
+        "        definition.faces is Query;\n"
+        "    }\n    {\n"
+        '        opDeleteBodies(context, id + "delete", { "entities" : qCreatedBy(id, EntityType.BODY) });\n'
+        "        double(1);\n"
+        "    });\n"
+    )
+    feature = project.module(path)
+
+    def definitions(text: str, skip: int = 0) -> list[tuple[str, str, str]]:
+        offset = offset_of(project, "feature2.fs", text, skip)
+        found = project.definitions(feature, offset) or project.std_definitions(feature, offset)
+        return [(owner.relative, declaration.name, declaration.kind) for owner, declaration in found]
+
+    assert definitions("Context") == [("onshape/std/context.fs", "Context", "type")]
+    assert definitions("opDeleteBodies") == [("onshape/std/geomOperations.fs", "opDeleteBodies", "variable")]
+    assert definitions("FACE") == [("onshape/std/query.fs", "FACE", "enumMember")]
+    assert definitions("BODY") == [("onshape/std/query.fs", "BODY", "enumMember")]
+    assert definitions("ALWAYS_HIDDEN") == [("onshape/std/uihint.gen.fs", "ALWAYS_HIDDEN", "enumMember")]
+    # Ours come first
+    assert definitions("double") == [("core/utils.fs", "double", "function")]
+    # Keys and the like aren't references
+    assert definitions('"entities"') == []
+
+    # Every use in the project, and std's own
+    references = project.references(feature, offset_of(project, "feature2.fs", "opDeleteBodies"))
+    assert ("feature2.fs", "opDeleteBodies") in {(owner.relative, token.value) for owner, token in references}
+    assert "onshape/std/geomOperations.fs" in {owner.relative for owner, _ in references}
+
+    # Std's files see each other, and aren't the project's
+    extrude = project.std_module("onshape/std/extrude.fs")
+    assert extrude is not None and extrude.relative == "onshape/std/extrude.fs"
+    offset = extrude.parsed.source.index("opExtrude(")
+    assert [owner.relative for owner, _ in project.std_definitions(extrude, offset)] == ["onshape/std/geomOperations.fs"]
+    assert extrude not in project.modules()

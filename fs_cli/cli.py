@@ -1255,9 +1255,10 @@ def ui(config: Config, args: argparse.Namespace) -> int:
 
 def refs(config: Config, args: argparse.Namespace) -> int:
     project = _project(config)
-    found = project.references_to_name(args.name)
+    with project.snapshot():
+        found = project.references_to_name(args.name) or project.std_references_to_name(args.name)
     if not found:
-        print(f"Nothing called {args.name} is declared at the top level of a FeatureScript.")
+        print(f"Nothing called {args.name} is declared at the top level of a FeatureScript or std.")
         return 1
     for module, declaration, references in found:
         line, character = module.position(declaration.token.offset)

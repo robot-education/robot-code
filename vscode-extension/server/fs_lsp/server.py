@@ -80,13 +80,14 @@ class FeatureScriptServer(LanguageServer):
         return self.workspace.get_text_document(uri)
 
     def project_module(self, uri: str) -> tuple[Project, Module] | None:
-        """The project containing a document (with its unsaved contents), if any."""
+        """The project containing a document (with its unsaved contents), if any: in its code folder, or its copy of
+        std (so std's files can be navigated like the project's)."""
         path = _path(uri)
         if path is None:
             return None
-        project = next((p for p in self.projects if p.contains(path)), None)
+        project = next((p for p in self.projects if p.contains(path) or p.in_std(path)), None)
         if project is None:
-            project = Project.find(path)
+            project = Project.find(path) or Project.find_std(path)
             if project is None:
                 return None
             self.projects.append(project)
@@ -139,7 +140,10 @@ class FeatureScriptServer(LanguageServer):
 
     def _publish(self, uri: str, found: tuple[Project, Module] | None) -> None:
         document = self.document(uri)
-        if found:
+        if found and found[0].in_std(found[1].path):
+            # Std's files aren't ours to fix
+            results = []
+        elif found:
             project, module = found
             results = [_diagnostic(module, problem) for problem in project.check(module)]
         else:
@@ -374,7 +378,7 @@ def _project_definition_links(
     project, module = found
     imported = module.import_at(offset)
     if imported:
-        target_module = project.resolve(imported)
+        target_module = project.std_module(imported.path) if imported.is_std else project.resolve(imported)
         if target_module is None:
             return None
         start = lsp.Range(lsp.Position(0, 0), lsp.Position(0, 0))
@@ -387,28 +391,16 @@ def _project_definition_links(
             )
         ]
     origin = module.index.token_at(offset)
-    links = [
+    definitions = project.definitions(module, offset) or project.std_definitions(module, offset)
+    return [
         lsp.LocationLink(
             target_uri=from_fs_path(str(owner.path)) or "",
             target_range=token_range(declaration.token),
             target_selection_range=token_range(declaration.token),
             origin_selection_range=token_range(origin) if origin else None,
         )
-        for owner, declaration in project.definitions(module, offset)
-    ]
-    std = None if links else project.std_definition(module, offset)
-    if std is not None:
-        path, line, start, end = std
-        target = lsp.Range(lsp.Position(line, start), lsp.Position(line, end))
-        links = [
-            lsp.LocationLink(
-                target_uri=from_fs_path(str(path)) or "",
-                target_range=target,
-                target_selection_range=target,
-                origin_selection_range=token_range(origin) if origin else None,
-            )
-        ]
-    return links or None
+        for owner, declaration in definitions
+    ] or None
 
 
 @server.feature(lsp.TEXT_DOCUMENT_DEFINITION)

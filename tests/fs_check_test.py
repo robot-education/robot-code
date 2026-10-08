@@ -88,6 +88,22 @@ def test_refs(repo, capsys):
     assert cli.main(["refs", "triple"]) == 1
 
 
+def test_refs_to_std(repo, capsys):
+    (repo / "std").mkdir()
+    (repo / "std" / "geomOperations.fs").write_text(
+        "FeatureScript 1;\nexport const opExtrude = function(context is Context, id is Id, definition is map)\n{\n};\n"
+    )
+    (repo / "featurescripts" / "core" / "utils.fs").write_text(
+        'FeatureScript 1;\nimport(path : "onshape/std/common.fs", version : "1.0");\n'
+        "export function f(context is Context, id is Id) { opExtrude(context, id, {}); }\n"
+    )
+    assert cli.main(["refs", "opExtrude"]) == 0
+    assert capsys.readouterr().out == (
+        "opExtrude (variable) defined at std/geomOperations.fs:2:14\n"
+        "  featurescripts/core/utils.fs:3:51: export function f(context is Context, id is Id) { opExtrude(context, id, {}); }\n"
+    )
+
+
 def test_check_moves_studio_files_out_of_old_state(repo, capsys):
     # Even if fs-studios.json was already made (e.g. on another machine)
     (repo / "fs-studios.json").write_text(json.dumps({"version": 1, "studios": {}}))

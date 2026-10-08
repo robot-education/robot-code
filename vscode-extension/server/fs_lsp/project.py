@@ -320,7 +320,11 @@ class Project:
             return cached[1]
         if source is None:
             source = path.read_text(encoding="utf-8", errors="replace")
-        relative = path.relative_to(self._resolve(self.code_dir)).as_posix()
+        if self.in_std(path):
+            # As std's files import each other
+            relative = STD_PREFIX + path.relative_to(self._resolve(self.std_dir)).as_posix()
+        else:
+            relative = path.relative_to(self._resolve(self.code_dir)).as_posix()
         module = Module(path, relative, source)
         self._modules[path] = (key, module)
         return module
@@ -355,6 +359,13 @@ class Project:
             return None
         path = self.element_ids().get(element_id)
         return self.module(path) if path else None
+
+    def std_module(self, name: str) -> Module | None:
+        """A module of the copy of std, by its name (e.g. "extrude.fs", or "onshape/std/extrude.fs" as it's imported),
+        parsed when it's first needed (and again when it changes)."""
+        if self.std_dir is None:
+            return None
+        return self.module(self.std_dir / name.removeprefix(STD_PREFIX))
 
     def exported_names(
         self, module: Module, seen: set[pathlib.Path] | None = None
@@ -519,28 +530,96 @@ class Project:
             if provider.declaration.kind == "function"
         ]
 
-    def std_definition(self, module: Module, offset: int) -> tuple[pathlib.Path, int, int, int] | None:
-        """Where in the std library's source the token at offset is declared, as (path, line, start character, end
-        character): for now, the std enum member a string in an annotation names, e.g. `"UIHint" : ["SHOW_LABEL"]`."""
+    def std_definitions(self, module: Module, offset: int) -> list[tuple[Module, Declaration]]:
+        """The declarations in the copy of std that the token at offset refers to, when it isn't declared in the
+        project: a std function, constant, enum, or type, an enum's member (`BoundingType.BLIND`), or the enum member
+        a string in an annotation names (`"UIHint" : ["SHOW_LABEL"]`). Std's files are parsed as they're needed."""
         token = module.index.token_at(offset)
-        found = annotation_string(module, token) if token is not None else None
-        if found is None or found[0] not in ENUM_ANNOTATION_KEYS or self.std_dir is None:
-            return None
-        enum, member = ENUM_ANNOTATION_KEYS[found[0]], found[1]
-        for symbol in stdlib().lookup(member):
-            if symbol.kind == "enumMember" and symbol.parent == enum and symbol.module:
-                location = _std_enum_member(self.std_dir / symbol.module, enum, member)
-                if location is not None:
-                    return location
-        return None
+        if token is None or self.std_dir is None:
+            return []
+        if token.kind == "string":
+            found = annotation_string(module, token)
+            if found is None or found[0] not in ENUM_ANNOTATION_KEYS:
+                return []
+            return self._std_declarations(module, found[1], ENUM_ANNOTATION_KEYS[found[0]])
+        if not _is_reference(module, token) or self.definitions(module, offset):
+            return []
+        previous = module.index.previous_token(token)
+        if previous is not None and previous.value in (".", "?."):
+            parent = module.index.previous_token(previous)
+            return self._std_declarations(module, token.value, parent.value) if parent is not None else []
+        return self._std_declarations(module, token.value)
+
+    def _std_declarations(
+        self, module: Module, name: str, enum: str | None = None
+    ) -> list[tuple[Module, Declaration]]:
+        """Std's declarations of name (as a member of enum, if given), preferring those module can see."""
+        symbols = [
+            symbol
+            for symbol in stdlib().lookup(name)
+            if symbol.module and (symbol.kind == "enumMember") == (enum is not None) and symbol.parent == enum
+        ]
+        visible = self.std_modules_seen(module)
+        std_modules = list(dict.fromkeys(symbol.module for symbol in symbols if symbol.module in visible))
+        if not std_modules:
+            std_modules = list(dict.fromkeys(symbol.module for symbol in symbols))
+        results = []
+        for name_of_module in std_modules:
+            owner = self.std_module(name_of_module)
+            if owner is None:
+                continue
+            if enum is None:
+                results.extend((owner, declaration) for declaration in owner.top_level.get(name, []))
+            else:
+                results.extend(
+                    (owner, declaration)
+                    for declaration in owner.index.declarations_by_name.get(name, [])
+                    if declaration.kind == "enumMember" and declaration.parent == enum
+                )
+        return results
+
+    def std_modules_seen(self, module: Module) -> set[str]:
+        """The std modules (e.g. "tool.fs") whose exports a module can use: through its imports of std, and what the
+        files it imports re-export. A std module sees itself too."""
+        library = stdlib()
+        seen = {module.relative.removeprefix(STD_PREFIX)} if module.relative.startswith(STD_PREFIX) else set()
+        for imported in module.imports:
+            if imported.namespace:
+                continue
+            if imported.is_std:
+                seen |= library.visible_modules(imported.path.removeprefix(STD_PREFIX))
+            elif (target := self.resolve(imported)) is not None:
+                seen |= self.exported_std_modules(target)
+        return seen
+
+    def _std_uses(self, definitions: list[tuple[Module, Declaration]]) -> list[tuple[Module, Token]]:
+        """Where the project's files use std declarations."""
+        targets = {(owner.path, declaration.token.offset) for owner, declaration in definitions}
+        results = []
+        for name in {declaration.name for _, declaration in definitions}:
+            for other in self.modules():
+                for token in other.index.tokens:
+                    if token.value != name or not _is_reference(other, token):
+                        continue
+                    if any(
+                        (owner.path, declaration.token.offset) in targets
+                        for owner, declaration in self.std_definitions(other, token.offset)
+                    ):
+                        results.append((other, token))
+        return results
 
     def references(
         self, module: Module, offset: int, include_declaration: bool = True
     ) -> list[tuple[Module, Token]]:
-        """Every use of the declaration at offset, across every file which can see it."""
+        """Every use of the declaration at offset, across every file which can see it (for std's declarations, every
+        file in the project, and the std file declaring it)."""
+        definitions = self.definitions(module, offset) or self.std_definitions(module, offset)
         results: list[tuple[Module, Token]] = []
-        for owner, declaration in self.definitions(module, offset):
+        for owner, declaration in definitions:
             results.extend(self._references_to(owner, declaration, include_declaration))
+        std = [(owner, declaration) for owner, declaration in definitions if self.in_std(owner.path)]
+        if std:
+            results.extend(self._std_uses(std))
         return _dedupe(results)
 
     def references_to_name(self, name: str) -> list[tuple[Module, Declaration, list[tuple[Module, Token]]]]:
@@ -550,6 +629,19 @@ class Project:
             for module in self.modules()
             for declaration in module.top_level.get(name, [])
         ]
+
+    def std_references_to_name(self, name: str) -> list[tuple[Module, Declaration, list[tuple[Module, Token]]]]:
+        """Every top-level declaration in the copy of std called name, with where the project uses it."""
+        library = stdlib()
+        std_modules = dict.fromkeys(
+            symbol.module for symbol in library.lookup(name) if symbol.module and symbol.kind != "enumMember"
+        )
+        results = []
+        for std_module in std_modules:
+            owner = self.std_module(std_module)
+            for declaration in owner.top_level.get(name, []) if owner else []:
+                results.append((owner, declaration, self._std_uses([(owner, declaration)])))
+        return results
 
     def _references_to(
         self, owner: Module, declaration: Declaration, include_declaration: bool
@@ -1642,25 +1734,6 @@ def annotation_string(module: Module, token: Token) -> tuple[str, str] | None:
     if key is None or key.kind != "string":
         return None
     return key.value[1:-1], token.value[1:-1]
-
-
-def _std_enum_member(path: pathlib.Path, enum: str, member: str) -> tuple[pathlib.Path, int, int, int] | None:
-    """Where an enum member is declared in a std source file."""
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-    except OSError:
-        return None
-    in_enum = False
-    for number, line in enumerate(lines):
-        if re.search(rf"\benum\s+{re.escape(enum)}\b", line):
-            in_enum = True
-        elif in_enum:
-            match = re.match(rf"\s*({re.escape(member)})\b", line)
-            if match:
-                return path, number, match.start(1), match.end(1)
-            if line.strip().startswith("}"):
-                return None
-    return None
 
 
 def _std_predicate_body(path: pathlib.Path, name: str) -> str | None:
