@@ -80,8 +80,11 @@ their ends are cut to.
 
 ### Placing
 
-Stock always runs the same way along its edge or extrude, so editing never turns it around; Flip hole pattern (and its
-manipulator) draws it from the other end.
+Stock always runs the same way along its edge or extrude, so editing never turns it around. Flip `<name>` ends (and
+its manipulator) draws it from the other end, so its holes start from that end; nothing else moves. Its frame is turned
+180 degrees about its Y axis, which turns X around too, so everything across X is mirrored back (`acrossSign`): the
+profile (`sketchProfile`), the offsets of holes through the walls facing Y (`stockFaces`), and the nine points
+(`stockPointOffsets`).
 
 `edgePlacement`: along the edge, from its start to its end as `evEdgeTangentLine` runs (`edgeCoordSystem`: Z along the
 edge; X along its sketch's normal, or any perpendicular for edges not in a sketch), between its offsets.

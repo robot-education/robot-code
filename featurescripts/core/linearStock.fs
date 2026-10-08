@@ -60,7 +60,8 @@ const OFFSET_BOUNDS = {
 /**
  * Where stock goes: the edge to place it along and the offsets of its ends, or the point to extrude it from and the
  * extrude's options (see `isEdgePlacement`), in a Position group; then, on an edge, a Trim ends group of faces to trim
- * its ends to (like miters). Either way, `flip` (Flip hole pattern, and a flip manipulator) draws it from the other end, a button rotates it in 90 degree increments, and a nine point manipulator
+ * its ends to (like miters). Either way, `flip` (Flip `<name>` ends, and a flip manipulator) draws it from the other end
+ * (see `acrossSign`), a button rotates it in 90 degree increments, and a nine point manipulator
  * chooses which point of its profile is on the edge or point (see `orientStock`). From a point, `oppositeDirection`
  * (Flip primary axis) is the extrude's.
  *
@@ -94,7 +95,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
         // Shared by both placements, since Onshape doesn't allow declaring a parameter twice (even in different branches)
         secondaryAxisPredicate(definition);
 
-        annotation { "Name" : "Flip hole pattern" }
+        annotation { "Name" : "Flip " ~ name ~ " ends" }
         definition.flip is boolean;
 
         ninePointManipulatorPredicate(definition);
@@ -446,7 +447,8 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
     const built = hasHoles ? regularLength(length, tie) : length;
     const profileId = id + "profile";
     const sketch = newSketchOnPlane(context, profileId, { "sketchPlane" : plane(location) });
-    sketchProfile(sketch, stock);
+    const across = acrossSign(definition);
+    sketchProfile(sketch, stock, across);
     skSolve(sketch);
     const stockId = id + "stock";
     opExtrude(context, stockId, {
@@ -464,7 +466,7 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
     }
 
     var tiedHoles = [];
-    const groups = seedGroups(stock, location, length, tie);
+    const groups = seedGroups(stock, location, length, tie, across);
     for (var i, group in groups)
     {
         const groupId = id + ("holes" ~ i);
@@ -551,16 +553,22 @@ function trimBeyond(context is Context, id is Id, body is Query, cut is Plane, d
 }
 
 /**
- * Sketches stock's profile, centered on the origin with its width along X.
+ * Sketches stock's profile, centered on the origin with its width along X, mirrored across its Y axis if `across` is -1
+ * (see `acrossSign`).
  */
-function sketchProfile(sketch is Sketch, stock is Stock)
+function sketchProfile(sketch is Sketch, stock is Stock, across is number)
 {
     const halfWidth = stock.width / 2;
     const halfHeight = stock.height / 2;
-    const outside = { "firstCorner" : vector(-halfWidth, -halfHeight), "secondCorner" : vector(halfWidth, halfHeight) };
+    // A point of the unmirrored profile
+    const at = function(x is ValueWithUnits, y is ValueWithUnits) returns Vector
+        {
+            return vector(across * x, y);
+        };
+    const outside = { "firstCorner" : at(-halfWidth, -halfHeight), "secondCorner" : at(halfWidth, halfHeight) };
     if (stock.profile != undefined)
     {
-        skDataArray(sketch, "profile", { "sketchDataArray" : stock.profile });
+        skDataArray(sketch, "profile", { "sketchDataArray" : across == 1 ? stock.profile : mirroredAcrossY(stock.profile) });
     }
     else if (stock.solid ?? false)
     {
@@ -575,9 +583,9 @@ function sketchProfile(sketch is Sketch, stock is Stock)
         // Its legs are the walls facing -X and -Y
         skPolyline(sketch, "profile", {
                     "points" : [
-                            vector(-halfWidth, -halfHeight), vector(halfWidth, -halfHeight), vector(halfWidth, -halfHeight + stock.wallY),
-                            vector(-halfWidth + stock.wallX, -halfHeight + stock.wallY), vector(-halfWidth + stock.wallX, halfHeight),
-                            vector(-halfWidth, halfHeight), vector(-halfWidth, -halfHeight)
+                            at(-halfWidth, -halfHeight), at(halfWidth, -halfHeight), at(halfWidth, -halfHeight + stock.wallY),
+                            at(-halfWidth + stock.wallX, -halfHeight + stock.wallY), at(-halfWidth + stock.wallX, halfHeight),
+                            at(-halfWidth, halfHeight), at(-halfWidth, -halfHeight)
                         ]
                 });
     }
@@ -587,9 +595,9 @@ function sketchProfile(sketch is Sketch, stock is Stock)
         const innerY = -halfHeight + stock.wallY;
         skPolyline(sketch, "profile", {
                     "points" : [
-                            vector(-halfWidth, halfHeight), vector(-halfWidth, -halfHeight), vector(halfWidth, -halfHeight),
-                            vector(halfWidth, halfHeight), vector(innerX, halfHeight), vector(innerX, innerY),
-                            vector(-innerX, innerY), vector(-innerX, halfHeight), vector(-halfWidth, halfHeight)
+                            at(-halfWidth, halfHeight), at(-halfWidth, -halfHeight), at(halfWidth, -halfHeight),
+                            at(halfWidth, halfHeight), at(innerX, halfHeight), at(innerX, innerY),
+                            at(-innerX, innerY), at(-innerX, halfHeight), at(-halfWidth, halfHeight)
                         ]
                 });
     }
@@ -602,18 +610,44 @@ function sketchProfile(sketch is Sketch, stock is Stock)
     {
         skRectangle(sketch, "outside", outside);
         skRectangle(sketch, "inside", {
-                    "firstCorner" : vector(-halfWidth + stock.wallX, -halfHeight + stock.wallY),
-                    "secondCorner" : vector(halfWidth - stock.wallX, halfHeight - stock.wallY)
+                    "firstCorner" : at(-halfWidth + stock.wallX, -halfHeight + stock.wallY),
+                    "secondCorner" : at(halfWidth - stock.wallX, halfHeight - stock.wallY)
                 });
     }
 }
 
 /**
- * The faces of stock its rows of holes go in from: the walls facing -X and -Y. Each has its rows, the `plane` its holes
- * are sketched on (with X along the stock, so its Y is the stock's -Y and X respectively, as `sign` says), and how
- * `deep` its holes go to get through the stock.
+ * A profile sketch (a SketchDataArray) mirrored across its Y axis: every point's X negated.
  */
-function stockFaces(stock is Stock, location is CoordSystem) returns array
+function mirroredAcrossY(profile is array) returns array
+{
+    const mirror = function(point is Vector) returns Vector
+        {
+            return vector(-point[0], point[1]);
+        };
+    return mapArray(profile, function(entity is map) returns map
+        {
+            for (var key in ["start", "mid", "end", "center"])
+            {
+                if (entity[key] != undefined)
+                {
+                    entity[key] = mirror(entity[key]);
+                }
+            }
+            if (entity.points != undefined)
+            {
+                entity.points = mapArray(entity.points, mirror);
+            }
+            return entity;
+        }) as SketchDataArray;
+}
+
+/**
+ * The faces of stock its rows of holes go in from: the walls facing -X and -Y. Each has its rows, the `plane` its holes
+ * are sketched on (with X along the stock, so its Y is the stock's -Y and X respectively, as `sign` says, which is
+ * mirrored across the stock's Y axis with it; see `acrossSign`), and how `deep` its holes go to get through the stock.
+ */
+function stockFaces(stock is Stock, location is CoordSystem, across is number) returns array
 {
     return [
             {
@@ -627,7 +661,7 @@ function stockFaces(stock is Stock, location is CoordSystem) returns array
                 "name" : "y",
                 "rows" : stock.yRows,
                 "plane" : plane(toWorld(location, vector(0 * meter, -stock.height / 2, 0 * meter)), yAxis(location), location.zAxis),
-                "sign" : 1,
+                "sign" : across,
                 "depth" : stock.height
             }
         ];
@@ -642,10 +676,10 @@ function stockFaces(stock is Stock, location is CoordSystem) returns array
  *          the `step` between them, whether they're `tied`, and its `seeds`: maps of the `face` (see `stockFaces`) and
  *          row `shapes` they cut, and their `position` along the stock.
  */
-function seedGroups(stock is Stock, location is CoordSystem, length is ValueWithUnits, tie is map) returns array
+function seedGroups(stock is Stock, location is CoordSystem, length is ValueWithUnits, tie is map, across is number) returns array
 {
     var groups = [];
-    for (var face in stockFaces(stock, location))
+    for (var face in stockFaces(stock, location, across))
     {
         for (var row in face.rows)
         {
@@ -1030,8 +1064,8 @@ function edgeCoordSystem(context is Context, edge is Query) returns CoordSystem
  * The coordinate system stock is drawn in from `base` (Z along the edge or extrude), rotated by `secondaryAxisType` and
  * flipped (see `isFlipped`).
  *
- * Flipping turns it about its Y axis rather than mirroring it, so X runs the other way too; `stockPointOffsets` mirrors
- * the nine points to match, so flipped stock stays where it was, and only which end it's drawn from changes.
+ * Flipping turns it about its Y axis rather than mirroring it, so X runs the other way too; everything placed across X
+ * is mirrored back (see `acrossSign`), so flipped stock stays where it was, and only which end it's drawn from changes.
  */
 function orientStock(definition is map, base is CoordSystem) returns CoordSystem
 {
@@ -1060,19 +1094,26 @@ function isFlipped(definition is map) returns boolean
 
 /**
  * The nine points of stock's profile, relative to its center (see `ninePointOffsets`), mirrored across its Y axis when
- * it's flipped (see `orientStock`), so each index stays at the same place.
+ * it's flipped (see `acrossSign`), so each index stays at the same place.
  */
 function stockPointOffsets(definition is map, stock is Stock) returns array
 {
-    const offsets = ninePointOffsets(stock.width, stock.height);
-    if (!isFlipped(definition))
-    {
-        return offsets;
-    }
-    return mapArray(offsets, function(offset)
+    const across = acrossSign(definition);
+    return mapArray(ninePointOffsets(stock.width, stock.height), function(offset)
         {
-            return vector(-offset[0], offset[1], offset[2]);
+            return vector(across * offset[0], offset[1], offset[2]);
         });
+}
+
+/**
+ * -1 when stock is flipped, and 1 otherwise. Flipped stock is drawn from its other end by turning it 180 degrees about
+ * its Y axis (see `orientStock`), which also turns X around; everything placed across X (its profile, the offsets of the
+ * holes through its walls facing Y, and its nine points) is mirrored by this, so it's back where it was. So flipping
+ * only changes which end the stock (and its holes) start from.
+ */
+function acrossSign(definition is map) returns number
+{
+    return isFlipped(definition) ? -1 : 1;
 }
 
 /**
