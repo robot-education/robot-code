@@ -1254,9 +1254,10 @@ function extrudePlacement(context is Context, id is Id, definition is map, name 
     }
     const origin = extrudeAxis.origin + extrudeAxis.direction * shift;
 
+    // From the moved profile, as std's extrude adds them
     var manipulatorDefinition = transformDefintionForNewExtrude(definition, qNothing());
     manipulatorDefinition.distanceForManipulator = shift;
-    addExtrudeManipulator(context, id, manipulatorDefinition, qNothing(), extrudeAxis, false);
+    addExtrudeManipulator(context, id, manipulatorDefinition, qNothing(), line(origin, extrudeAxis.direction), false);
 
     const direction = definition.oppositeDirection ? -extrudeAxis.direction : extrudeAxis.direction;
     var start = { "along" : 0 * meter };

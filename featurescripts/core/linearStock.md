@@ -73,7 +73,7 @@ their ends are cut to.
    4. `buildStock` builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
    5. `setStockProperties` names it and sets its properties.
    6. The nine point and flip manipulators are added (and, by `edgePlacement`, the offset manipulators; by
-      `extrudePlacement`, std's depth and flip manipulators).
+      `extrudePlacement`, std's depth and flip manipulators, from the point moved by the starting offset).
    7. Tied holes are shown, then a warning if it's longer than it's sold, or else info if it isn't a regular length.
 4. **Manipulator change** (`stockManipulatorChange`): the nine point, flip, and offset manipulators set their
    parameters; std's extrude manipulators set depth and direction (`extrudeManipulatorChange`).
