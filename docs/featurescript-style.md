@@ -241,10 +241,15 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   one's. Copy a step's status only when it isn't OK (`featureHasNonTrivialStatus`).
 - **Std's messages can't be quoted.** Std's errors are `ErrorStringEnum`s, translated only in Onshape's UI, so a
   feature can't put one in its own message. Custom messages (a feature's `regenError("...")`) are strings, and can.
-- **Reconstruct what's gone.** When a step fails after earlier steps consumed what it was given (a boolean's tools),
-  std rebuilds the inputs under another id, shows them as error entities, and deletes them: `processNewBodyIfNeeded`
-  takes a `reconstructOp(errorId)` for this, which extrude, revolve, and the rest pass. Inputs which existed before the
-  feature (its selections) can just be shown.
+- **A failed operation changes nothing**, so what it was given is still there to show, as is everything earlier steps
+  made (until the feature's rolled back, which leaves the display). Reconstruct only what's gone: when earlier steps
+  consumed or changed what's to be shown, std rebuilds it under another id, shows it as error entities, and deletes
+  it: `processNewBodyIfNeeded` takes a `reconstructOp(errorId)` for this, which extrude, revolve, and the rest pass.
+- **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes (like the
+  faces a shell opens) finds nothing after it. Evaluate one first (`qUnion(evaluateQuery(...))`) to keep what it found,
+  as long as those entities last, or show something that lasts instead.
+- **Warnings can be hidden by later statuses**: report a warning of the feature's own (`reportFeatureWarning`, with
+  `setErrorEntities` to show what it's about) after its last step.
 - **Trial runs**: editing logic (and std's boolean heuristics) can run operations to see what they'd do between
   `startFeature` and `abortFeature`, which rolls them back.
 

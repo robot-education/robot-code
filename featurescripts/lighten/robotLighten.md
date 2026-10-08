@@ -25,7 +25,7 @@ Unreleased.
 
 | Parameter | Description |
 | --- | --- |
-| Faces to lighten (`faces`) | The flat faces pockets are cut into, parallel to the rib sketch. |
+| Faces to lighten (`faces`) | The flat faces pockets are cut into, parallel to the rib sketch. A sketch region on a face selects the face. |
 | Rib sketch (`ribEdges`) | The sketch whose edges (lines, arcs, circles, or splines) ribs are left along. |
 | Wall thickness (`wallThickness`) | How thick the walls left along the parts' sides and around their holes are. |
 | Fillet corners (`filletCorners`) | Round the pockets' corners, as a router bit leaves them. |
@@ -41,18 +41,20 @@ custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feat
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
 | Select the faces to lighten. | error | no faces to lighten | `faces` |
+| A sketch region selected to lighten isn't on a part's face. | error | a selected sketch region touches no part's face in its plane | `faces`, the region |
 | Select the edges of a sketch to leave ribs along. | error | no rib sketch edges (or only construction ones, excluded) | `ribEdges` |
 | The rib sketch's edges must all be in one plane. | error | edges from sketches on different planes | `ribEdges`, the edges |
 | The faces to lighten must be parallel to the rib sketch. | error | a face to lighten isn't | `faces`, `ribEdges`, those faces |
 | Couldn't extrude the faces to lighten. | error | std's extrude of the faces fails (like an up to face which isn't reached) | the extrude's parameters, the faces |
 | Couldn't extrude the rib sketch's edges. | error | extruding the edges as sheets fails | `ribEdges`, the edges |
 | Couldn't thicken the ribs. | error | thickening those sheets fails | `ribEdges`, `ribThickness`, the edges |
-| Couldn't cut the ribs from the pockets. | error | the boolean fails | `ribEdges`, `ribThickness`, the pockets and ribs, rebuilt |
+| Couldn't cut the ribs from the pockets. | error | the boolean fails | `ribEdges`, `ribThickness`, the pockets and ribs |
 | Couldn't copy a part to lighten. | error | `opPattern` fails | the part |
-| Couldn't cut the pockets from a part. | error | the boolean fails | `faces`, its faces to lighten, its pockets, rebuilt |
+| Couldn't cut the pockets from a part. | error | the boolean fails | `faces`, its faces to lighten, the pockets |
 | Couldn't shell a part to leave its walls. Are they too thick? | error | `opShell` fails | `wallThickness`, `ignoredFaces`, the part and the faces it removes |
-| Couldn't join a part's walls to its ribs and what's outside its pockets. | error | the union fails | `faces`, the part, its pockets, rebuilt |
+| Couldn't join a part's walls to its ribs and what's outside its pockets. | error | the union fails | `faces`, the part, what's left of its copy |
 | Couldn't fillet the pockets' corners. Is the radius too large? | error | `opFillet` fails | `cornerRadius`, the corners |
+| Some ribs touch no wall or other rib, so they're left as loose parts. | warning | pieces of a part's copy (ribs in pockets through all) don't join the part | `ribEdges`, the loose parts |
 
 ## How it works
 
@@ -68,7 +70,8 @@ custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feat
       sketch's plane of the parts a through-all extrude of the sketch's bounding rectangle hits (run between
       `startFeature` and `abortFeature`, so it's rolled back).
 3. **Body**:
-   1. The faces to lighten (`getFaces`), the rib edges (`getRibEdges`, less construction ones) and their plane
+   1. The faces to lighten (`getFaces`: those selected, and the parts' faces under selected sketch regions, by
+      `partFacesUnder`: in the region's plane, touching it), the rib edges (`getRibEdges`, less construction ones) and their plane
       (`ribPlane`) are found, and the faces are checked to be parallel to it (`verifyParallel`).
    2. `buildPockets`: the faces are extruded with std's `extrude`, at the top level id (so its manipulators are the
       feature's), as a new body.
@@ -83,16 +86,18 @@ custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feat
          leave nothing).
       4. With Fillet corners, its concave edges along the sketch's normal which the feature made are filleted
          (`filletCorners`).
+      5. Pieces of the copy which didn't join the part are returned: they're left as parts of their own.
    5. The pockets and ribs are deleted.
+   6. If any pieces were left loose, a warning says so, and shows them.
 4. **Manipulator change** (`robotLightenManipulatorChange`): std's extrude manipulators.
 
 ### Error handling
 
 Every operation runs through `runStep` (`core/steps.fs`): its warnings and info are shown as the feature's, and when it
-fails, its error display is kept, what it was given is shown in red (the parts and selections, which exist before the
-feature, or the pockets and ribs, rebuilt by `reconstructPockets`, since they're rolled back with the feature), and an
-error of the feature's own is thrown, highlighting the parameters which set what failed. Selections are checked before
-anything's built.
+fails, its error display is kept, what it was given is shown in red (the selections, or the pockets and ribs, which a
+failed step leaves as they were), and an error of the feature's own is thrown, highlighting the parameters which set
+what failed. Selections are checked before anything's built. The loose parts warning is reported last, so no step's
+status hides it.
 
 ### `try`s
 
@@ -106,8 +111,6 @@ anything's built.
 ## Issues found
 
 - Untested in Onshape: nothing here has run yet.
-- A rib which touches no other rib or wall (like a lone circle) in a pocket through all is left as a loose piece of
-  the part.
 - Walls come from shelling the part with its faces parallel to the sketch removed, so a part with a step (a face part
   way through it) gets walls along the step's sides too, and none across the step.
 - The icon is the generic robot icon.

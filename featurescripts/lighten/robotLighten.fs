@@ -24,8 +24,9 @@ annotation { "Feature Type Name" : "Robot lighten",
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Faces to lighten", "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && ModifiableEntityOnly.YES,
-                    "Description" : "The flat faces pockets are cut into, parallel to the rib sketch." }
+        annotation { "Name" : "Faces to lighten",
+                    "Filter" : (EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && ModifiableEntityOnly.YES) || (EntityType.FACE && SketchObject.YES),
+                    "Description" : "The flat faces pockets are cut into, parallel to the rib sketch. A sketch region on a face selects the face." }
         definition.faces is Query;
 
         annotation { "Name" : "Rib sketch", "Filter" : EntityType.EDGE && SketchObject.YES,
@@ -91,34 +92,63 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                 }, {
                     "message" : "Couldn't cut the ribs from the pockets.",
                     "faultyParameters" : ["ribEdges", "ribThickness"],
-                    "reconstruct" : function(errorId is Id)
-                        {
-                            buildPockets(context, errorId + "pockets", definition, faces);
-                            buildRibs(context, id, errorId + "ribs", definition, plane, ribEdges);
-                        }
+                    // A failed operation changes nothing, so they're still there to show
+                    "entities" : qUnion([pockets, ribs])
                 });
 
+        var loose = [];
         for (var i, part in evaluateQuery(context, qOwnerBody(faces)))
         {
             const partId = id + unstableIdComponent(i);
             setExternalDisambiguation(context, partId, part);
-            lightenPart(context, id, partId, definition, plane, part, pockets);
+            loose = concatenateArrays([loose, lightenPart(context, id, partId, definition, plane, part, faces, pockets)]);
         }
 
         opDeleteBodies(context, id + "cleanup", { "entities" : qUnion([pockets, qCreatedBy(id + "ribs", EntityType.BODY)]) });
+
+        // Last, so no step's status hides it
+        if (loose != [])
+        {
+            reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ["ribEdges"]);
+            setErrorEntities(context, id, { "entities" : qUnion(loose) });
+        }
     });
 
 /**
- * The faces to lighten.
+ * The faces to lighten: those selected, and the parts' faces under the sketch regions selected (as a sketch on a face
+ * covers it, making the face itself hard to click).
  */
 function getFaces(context is Context, definition is map) returns Query
 {
-    const faces = qEntityFilter(definition.faces, EntityType.FACE);
-    if (isQueryEmpty(context, faces))
+    const selected = qEntityFilter(definition.faces, EntityType.FACE);
+    if (isQueryEmpty(context, selected))
     {
         throw regenError("Select the faces to lighten.", ["faces"]);
     }
-    return faces;
+    var faces = [qSketchFilter(selected, SketchObject.NO)];
+    for (var region in evaluateQuery(context, qSketchFilter(selected, SketchObject.YES)))
+    {
+        const under = partFacesUnder(context, region);
+        if (under == [])
+        {
+            throw regenError("A sketch region selected to lighten isn't on a part's face.", ["faces"], region);
+        }
+        faces = append(faces, qUnion(under));
+    }
+    return qUnion(faces);
+}
+
+/**
+ * The flat faces of modifiable parts which a sketch region lies on: in its plane, and touching it.
+ */
+function partFacesUnder(context is Context, region is Query) returns array
+{
+    const plane = evPlane(context, { "face" : region });
+    const candidates = qCoincidesWithPlane(qOwnedByBody(qAllModifiableSolidBodiesNoMesh(), EntityType.FACE), plane);
+    return filter(evaluateQuery(context, candidates), function(face)
+        {
+            return tolerantEqualsZero(evDistance(context, { "side0" : region, "side1" : face }).distance);
+        });
 }
 
 /**
@@ -209,13 +239,15 @@ function buildRibs(context is Context, id is Id, ribsId is Id, definition is map
 /**
  * Lightens `part` (with steps under `partId`): a copy of it has the pockets (less the ribs) cut from it, leaving what's
  * outside them and the ribs; the part is shelled, removing its faces parallel to the faces to lighten (and the ignored
- * ones), to leave walls; the two are joined, and the pockets' corners are filleted.
+ * ones), to leave walls; the two are joined, and the pockets' corners are filleted. Returns the pieces of the copy which
+ * didn't join the part (ribs touching no wall or other rib), which are left as parts of their own.
  */
-function lightenPart(context is Context, id is Id, partId is Id, definition is map, plane is Plane, part is Query, pockets is Query)
+function lightenPart(context is Context, id is Id, partId is Id, definition is map, plane is Plane, part is Query, faces is Query,
+    pockets is Query) returns array
 {
     const partFaces = qOwnedByBody(part, EntityType.FACE);
     const openFaces = qUnion([qParallelPlanes(partFaces, plane.normal, true), qIntersection([definition.ignoredFaces, partFaces])]);
-    const lightened = qIntersection([definition.faces, partFaces]);
+    const lightened = qIntersection([faces, partFaces]);
 
     // What's left of a copy of the part outside the pockets, and its ribs
     runStep(context, id, partId + "copy", opPattern, {
@@ -232,11 +264,7 @@ function lightenPart(context is Context, id is Id, partId is Id, definition is m
             }, {
                 "message" : "Couldn't cut the pockets from a part.",
                 "faultyParameters" : ["faces"],
-                "entities" : lightened,
-                "reconstruct" : function(errorId is Id)
-                    {
-                        reconstructPockets(context, id, errorId, definition, plane, lightened);
-                    }
+                "entities" : qUnion([lightened, pockets])
             });
 
     // The walls
@@ -261,11 +289,7 @@ function lightenPart(context is Context, id is Id, partId is Id, definition is m
                 }, {
                     "message" : "Couldn't join a part's walls to its ribs and what's outside its pockets.",
                     "faultyParameters" : ["faces"],
-                    "entities" : part,
-                    "reconstruct" : function(errorId is Id)
-                        {
-                            reconstructPockets(context, id, errorId, definition, plane, lightened);
-                        }
+                    "entities" : qUnion([part, kept])
                 });
     }
 
@@ -273,21 +297,8 @@ function lightenPart(context is Context, id is Id, partId is Id, definition is m
     {
         filletCorners(context, id, partId + "fillet", definition, plane, part);
     }
-}
-
-/**
- * Rebuilds the pockets of `faces` (less the ribs) under `errorId`, to show where they'd cut their part when cutting or
- * joining them fails (what the feature built is rolled back with it).
- */
-function reconstructPockets(context is Context, id is Id, errorId is Id, definition is map, plane is Plane, faces is Query)
-{
-    buildPockets(context, errorId + "pockets", definition, faces);
-    const ribs = buildRibs(context, id, errorId + "ribs", definition, plane, getRibEdges(context, definition));
-    opBoolean(context, errorId + "cutRibs", {
-                "targets" : qCreatedBy(errorId + "pockets", EntityType.BODY)->qBodyType(BodyType.SOLID),
-                "tools" : ribs,
-                "operationType" : BooleanOperationType.SUBTRACTION
-            });
+    // Pieces of the copy touching the part's walls were joined to it
+    return evaluateQuery(context, qSubtraction(kept, part));
 }
 
 /**
