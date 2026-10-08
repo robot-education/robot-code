@@ -36,7 +36,9 @@ No parameters are hidden. Editing logic sets the shown Faces to lighten and Oppo
 ### Errors, warnings, and info
 
 Each step's own error display (what it highlights) is shown with these, and its own message after them when it's a
-custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feature's.
+custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feature's. When a step's diagnosis (see
+Error handling) finds what fails on its own, its message follows the step's, and what fails is shown in red instead
+of everything the step was given.
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
@@ -54,6 +56,16 @@ custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feat
 | Couldn't cut the pockets from the parts. | error | the boolean fails | `faces`, the pockets and faces |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, the loose parts |
 
+Diagnoses, after their step's message:
+
+| Message | After | Shows |
+| --- | --- | --- |
+| The ones along the sheets shown can't be made on their own. | Couldn't make the walls (or ribs)... | the sheets which fail to thicken alone |
+| The walls or ribs shown can't be cut on their own: look for one which nearly lines up with a part's side or another rib, or meets one at a tangent. | Couldn't cut the walls and ribs... | the walls and ribs which fail to cut from the extrude alone |
+| The pockets shown can't be grown back on their own. | Couldn't grow the pockets back... | the pockets whose sides fail to offset alone |
+| The corners of the pockets shown can't be filleted on their own. | Couldn't fillet the pockets' corners. | the pockets whose corners fail to fillet alone |
+| The pockets shown can't be cut on their own: look for one which nearly lines up with a part's face or edge. | Couldn't cut the pockets from the parts. | the pockets which fail to cut from the parts alone |
+
 ## How it works
 
 ### Execution order
@@ -65,8 +77,9 @@ custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feat
    1. Unless Opposite direction has been set, sets it, so the pockets go into the faces' parts (an extrude of a part's
       face goes out of it).
    2. Unless Faces to lighten has been set, and once there's a rib sketch, `facesUnder` fills it: the faces in the
-      sketch's plane of the parts a through-all extrude of the sketch's bounding rectangle hits (run between
-      `startFeature` and `abortFeature`, so it's rolled back).
+      sketch's plane (of parts which aren't hidden) whose bounding boxes, in the plane, overlap the sketch's. It only
+      evaluates: building anything in editing logic (a trial feature, between `startFeature` and `abortFeature`) can
+      crash the Part Studio.
 3. **Body**:
    1. The faces to lighten (`getFaces`), the rib edges (`getRibEdges`, less construction ones) and their plane
       (`ribPlane`) are found, and the faces are checked to be parallel to it (`verifyParallel`).
@@ -93,13 +106,20 @@ fails, its error display is kept, what it was given is shown in red (the selecti
 failed step leaves as they were), and an error of the feature's own is thrown, highlighting the parameters which set
 what failed. Selections are checked before anything's built. Warnings are reported when they're found.
 
+Once a step has failed, and only then, its diagnosis narrows down what failed (`failingItems`): it tries the step
+again on each sheet, wall or rib, or pocket alone, on copies of what it's cut from or changes (`copyBodies`), so each
+try sees what the step was given. What fails alone is shown in red, with the diagnosis's message after the step's. If
+nothing fails alone (the step fails only on everything together), everything the step was given is shown, as before.
+The diagnosis runs an operation per item, but only on the way to an error, which rolls it all back.
+
 ### `try`s
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
 | `runStep` (`core/steps.fs`) | Each step | Throws the step's error (above). |
 | `robotLightenEditLogic` (`try silent`) | Finding the rib sketch's edges and plane | A guard: with no rib sketch yet, editing logic leaves the definition as it is. |
-| `facesUnder` (`try silent`) | Extruding the sketch's footprint to find the parts it's over | A guard: no faces are found. |
+| `stepError` (`core/steps.fs`, `try silent`) | A failed step's diagnosis | A guard: the step's error is thrown without it. |
+| `failingItems` (`core/steps.fs`, `try silent`) | Each try of a step on one item | What it's looking for: the item is one which fails alone. |
 
 ## Issues found
 

@@ -258,12 +258,20 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   as long as those entities last, or show something that lasts instead.
 - **Report a warning when it's found** (`reportFeatureWarning`, with `setErrorEntities` to show what it's about). An
   error later takes precedence over it, which is fine: don't hold a warning back in the hope that nothing fails.
-- **Trial runs**: editing logic (and std's boolean heuristics) can run operations to see what they'd do between
-  `startFeature` and `abortFeature`, which rolls them back.
+- **Don't run trial features in editing logic.** `startFeature` and `abortFeature` roll back operations run between
+  them (std's boolean heuristics use them), but `abortFeature` with no feature started crashes the Part Studio, so
+  editing logic should only evaluate (queries, `evBox3d`, `evDistance`), never build.
+- **Diagnose on the cold path.** A feature regenerates whenever anything before it changes, so checks run before its
+  operations cost every regeneration, though they're only needed when something fails. Pin down what failed after it
+  has (a failed operation changed nothing, so what it was given is still there): try the operation again on each part
+  of what it was given, alone (on copies, so each try sees the same inputs), and show the parts which fail. The
+  feature's about to throw, so everything the diagnosis builds is rolled back with it, and its error display stays.
 
 `core/steps.fs` puts this together. Run each step that can fail (each operation, or std feature) with `runStep`,
 giving it what to say if it fails: its message, the feature's parameters to highlight, what to show (`entities`), and a
-`reconstruct` function for anything to show which earlier steps used up. It copies the step's warnings and info,
+`reconstruct` function for anything to show which earlier steps used up, and optionally a `diagnose` function, run only
+when the step fails, which narrows what to show down to the parts which fail on their own (`failingItems`, trying
+each on copies made with `copyBodies`). It copies the step's warnings and info,
 and when it fails, its error display, then throws the feature's error, with the step's own message after it when it's
 a custom one. A failing fillet, for example, shows the edges it was given and its own highlights, with "Couldn't
 fillet the pockets' corners." and the Radius highlighted. Run steps one operation at a time: a function of the

@@ -24,6 +24,11 @@ import(path : "onshape/std/common.fs", version : "2960.0");
  *      @field reconstruct {function} : @optional `function(errorId)`, which builds what to show in red under
  *              `errorId`, for what earlier steps used up (a failed step itself changes nothing, so what it was given
  *              can be shown as `entities`): like std's `reconstructOp` (see `processNewBodyIfNeeded`).
+ *      @field diagnose {function} : @optional `function(diagnosisId)`, which pins down what failed, by trying the
+ *              step again on parts of what it was given (see `failingItems`), under `diagnosisId`. It runs only after
+ *              the step has failed, so it costs nothing when the feature works. Returns `undefined` if it finds
+ *              nothing, or a map: `entities` (a query of what fails, shown in red instead of `failure.entities`) and
+ *              `message` (said after `failure.message`, like `"The pockets shown fail."`).
  * }}
  */
 export function runStep(context is Context, id is Id, subId is Id, operation is function, definition is map, failure is map)
@@ -54,9 +59,24 @@ export function runStep(context is Context, id is Id, subId is Id, operation is 
 export function stepError(context is Context, id is Id, subId is Id, failure is map, thrown) returns map
 {
     processSubfeatureStatus(context, id, statusOptions(subId, failure));
+    var message = failure.message;
+    var diagnosis;
+    if (failure.diagnose != undefined)
+    {
+        // A guard: the diagnosis only adds to the error, which is thrown whatever it finds
+        try silent
+        {
+            diagnosis = failure.diagnose(id + "diagnosis");
+        }
+    }
+    if (diagnosis != undefined && !isQueryEmpty(context, diagnosis.entities))
+    {
+        setErrorEntities(context, id, { "entities" : diagnosis.entities });
+        failure.entities = undefined;
+        message ~= " " ~ diagnosis.message;
+    }
     showErrorEntities(context, id, failure);
 
-    var message = failure.message;
     // A step which isn't a feature or an operation (a function of the feature's own) reports no status of its own
     var stepMessage = getFeatureError(context, subId);
     if (stepMessage == undefined && thrown is map)
@@ -95,6 +115,42 @@ export function showErrorEntities(context is Context, id is Id, failure is map)
             opDeleteBodies(context, errorId + "delete", { "entities" : built });
         }
     }
+}
+
+/**
+ * Which of `items` `operation(context, itemId, item)` fails for, run for each in turn, under an id of its own in `id`:
+ * to diagnose a failed step (see `runStep`'s `failure.diagnose`), by trying it on its parts one at a time. Each should
+ * be tried alone, on what the step was given: an operation which changes what it's given should work on a copy (see
+ * `copyBodies`). Only for the cold path: it runs an operation per item.
+ */
+export function failingItems(context is Context, id is Id, items is array, operation is function) returns array
+{
+    var failing = [];
+    for (var i, item in items)
+    {
+        try silent
+        {
+            operation(context, id + unstableIdComponent(i), item);
+        }
+        catch
+        {
+            failing = append(failing, item);
+        }
+    }
+    return failing;
+}
+
+/**
+ * Copies `bodies` (under `id`), and returns the copies: for trying an operation without changing what it's given.
+ */
+export function copyBodies(context is Context, id is Id, bodies is Query) returns Query
+{
+    opPattern(context, id, {
+                "entities" : bodies,
+                "transforms" : [identityTransform()],
+                "instanceNames" : ["copy"]
+            });
+    return qCreatedBy(id, EntityType.BODY);
 }
 
 function statusOptions(subId is Id, failure is map) returns map

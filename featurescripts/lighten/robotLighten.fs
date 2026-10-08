@@ -104,7 +104,20 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     "message" : "Couldn't cut the walls and ribs from the pockets.",
                     "faultyParameters" : ["wallThickness", "ribThickness"],
                     // A failed operation changes nothing, so they're still there to show
-                    "entities" : qUnion([extruded, walls, ribs])
+                    "entities" : qUnion([extruded, walls, ribs]),
+                    "diagnose" : function(diagnosisId)
+                        {
+                            // Each wall and rib, cut alone from a copy of the extrude
+                            return showFailing(failingItems(context, diagnosisId, evaluateQuery(context, qUnion([walls, ribs])), function(context is Context, trialId is Id, band is Query)
+                                    {
+                                        opBoolean(context, trialId + "cut", {
+                                                    "targets" : copyBodies(context, trialId + "copy", extruded),
+                                                    "tools" : band,
+                                                    "operationType" : BooleanOperationType.SUBTRACTION,
+                                                    "keepTools" : true
+                                                });
+                                    }), "The walls or ribs shown can't be cut on their own: look for one which nearly lines up with a part's side or another rib, or meets one at a tangent.");
+                        }
                 });
         // The pockets left between them, which the walls and ribs (used up) split into pieces
         const pockets = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
@@ -121,14 +134,28 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         else
         {
+            const parts = qOwnerBody(faces);
             runStep(context, id, id + "cut", opBoolean, {
-                        "targets" : qOwnerBody(faces),
+                        "targets" : parts,
                         "tools" : pockets,
                         "operationType" : BooleanOperationType.SUBTRACTION
                     }, {
                         "message" : "Couldn't cut the pockets from the parts.",
                         "faultyParameters" : ["faces"],
-                        "entities" : qUnion([pockets, faces])
+                        "entities" : qUnion([pockets, faces]),
+                        "diagnose" : function(diagnosisId)
+                            {
+                                // Each pocket, cut alone from a copy of the parts
+                                return showFailing(failingItems(context, diagnosisId, evaluateQuery(context, pockets), function(context is Context, trialId is Id, pocket is Query)
+                                        {
+                                            opBoolean(context, trialId + "cut", {
+                                                        "targets" : copyBodies(context, trialId + "copy", parts),
+                                                        "tools" : pocket,
+                                                        "operationType" : BooleanOperationType.SUBTRACTION,
+                                                        "keepTools" : true
+                                                    });
+                                        }), "The pockets shown can't be cut on their own: look for one which nearly lines up with a part's face or edge.");
+                            }
                     });
             // Pieces of ribs which touch no wall or other rib are cut free, as parts of their own
             const loose = qCreatedBy(id + "cut", EntityType.BODY);
@@ -229,8 +256,21 @@ function buildBands(context is Context, id is Id, bandsId is Id, plane is Plane,
                 "startBound" : BoundingType.THROUGH_ALL,
                 "endBound" : BoundingType.THROUGH_ALL
             }, failure);
+    const sheets = qCreatedBy(bandsId + "sheets", EntityType.BODY);
+    failure.diagnose = function(diagnosisId)
+        {
+            // Each sheet (along an edge, through everything), thickened alone
+            return showFailing(failingItems(context, diagnosisId, evaluateQuery(context, sheets), function(context is Context, trialId is Id, sheet is Query)
+                    {
+                        opThicken(context, trialId + "thicken", {
+                                    "entities" : sheet,
+                                    "thickness1" : halfWidth,
+                                    "thickness2" : halfWidth
+                                });
+                    }), "The ones along the sheets shown can't be made on their own.");
+        };
     runStep(context, id, bandsId + "thicken", opThicken, {
-                "entities" : qCreatedBy(bandsId + "sheets", EntityType.BODY),
+                "entities" : sheets,
                 "thickness1" : halfWidth,
                 "thickness2" : halfWidth
             }, failure);
@@ -249,32 +289,82 @@ function roundPockets(context is Context, id is Id, plane is Plane, pockets is Q
     {
         return;
     }
-    const faces = qOwnedByBody(pockets, EntityType.FACE);
     runStep(context, id, id + "grow", opOffsetFace, {
-                // Their sides, not their ends
-                "moveFaces" : qSubtraction(faces, qParallelPlanes(faces, plane.normal, true)),
+                "moveFaces" : pocketSides(pockets, plane),
                 "offsetDistance" : radius
             }, {
                 "message" : "Couldn't grow the pockets back to round their corners.",
                 "faultyParameters" : ["cornerRadius"],
-                "entities" : pockets
+                "entities" : pockets,
+                "diagnose" : function(diagnosisId)
+                    {
+                        // Each pocket, grown alone (a copy of it)
+                        return showFailing(failingItems(context, diagnosisId, evaluateQuery(context, pockets), function(context is Context, trialId is Id, pocket is Query)
+                                {
+                                    opOffsetFace(context, trialId + "grow", {
+                                                "moveFaces" : pocketSides(copyBodies(context, trialId + "copy", pocket), plane),
+                                                "offsetDistance" : radius
+                                            });
+                                }), "The pockets shown can't be grown back on their own.");
+                    }
             });
-    const corners = filter(evaluateQuery(context, qParallelEdges(qOwnedByBody(pockets, EntityType.EDGE), plane.normal)), function(edge)
-        {
-            return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
-        });
-    if (corners == [])
+    const corners = pocketCorners(context, pockets, plane);
+    if (isQueryEmpty(context, corners))
     {
         return;
     }
     runStep(context, id, id + "fillet", opFillet, {
-                "entities" : qUnion(corners),
+                "entities" : corners,
                 "radius" : radius
             }, {
                 "message" : "Couldn't fillet the pockets' corners.",
                 "faultyParameters" : ["cornerRadius"],
-                "entities" : qUnion(corners)
+                "entities" : corners,
+                "diagnose" : function(diagnosisId)
+                    {
+                        // Each pocket's corners, filleted alone (on a copy of it)
+                        return showFailing(failingItems(context, diagnosisId, evaluateQuery(context, pockets), function(context is Context, trialId is Id, pocket is Query)
+                                {
+                                    opFillet(context, trialId + "fillet", {
+                                                "entities" : pocketCorners(context, copyBodies(context, trialId + "copy", pocket), plane),
+                                                "radius" : radius
+                                            });
+                                }), "The corners of the pockets shown can't be filleted on their own.");
+                    }
             });
+}
+
+/**
+ * The pockets' sides (not their ends, in the sketch's plane and parallel to it).
+ */
+function pocketSides(pockets is Query, plane is Plane) returns Query
+{
+    const faces = qOwnedByBody(pockets, EntityType.FACE);
+    return qSubtraction(faces, qParallelPlanes(faces, plane.normal, true));
+}
+
+/**
+ * The pockets' corners: their convex edges along the sketch's normal.
+ */
+function pocketCorners(context is Context, pockets is Query, plane is Plane) returns Query
+{
+    return qUnion(filter(evaluateQuery(context, qParallelEdges(qOwnedByBody(pockets, EntityType.EDGE), plane.normal)), function(edge)
+            {
+                return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
+            }));
+}
+
+/**
+ * A diagnosis (see `runStep`'s `failure.diagnose`) showing `failing`, with `message`, or `undefined` if nothing failed
+ * on its own.
+ */
+function showFailing(failing is array, message is string)
+{
+    if (failing == [])
+    {
+        return undefined;
+    }
+    return { "entities" : qUnion(failing), "message" : message };
 }
 
 export function robotLightenManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
@@ -283,8 +373,8 @@ export function robotLightenManipulatorChange(context is Context, definition is 
 }
 
 /**
- * Fills in the faces to lighten, unless they've been set: the faces in the rib sketch's plane of the parts it's over or
- * under. Points the pockets into the faces' parts (against their normals), unless Opposite direction has been set.
+ * Fills in the faces to lighten, unless they've been set: the faces in the rib sketch's plane which it's over. Points
+ * the pockets into the faces' parts (against their normals), unless Opposite direction has been set.
  */
 export function robotLightenEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
@@ -308,44 +398,25 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
     }
     if (plane != undefined)
     {
-        definition.faces = facesUnder(context, id + "heuristics", plane, edges, hiddenBodies);
+        definition.faces = facesUnder(context, plane, edges, hiddenBodies);
     }
     return definition;
 }
 
 /**
- * The faces in `plane` of the parts `footprint` (the rib sketch's edges) is over or under, through everything along
- * the plane's normal. Works it out in a feature it aborts (under `id`), as std's boolean heuristics do, so nothing's left
- * in the Part Studio.
+ * The faces in `plane` (of parts which aren't hidden) which overlap `footprint` (the rib sketch's edges), seen along
+ * the plane's normal: their bounding boxes in it overlap. Only evaluates, as editing logic should: running operations
+ * to see what they'd do (between `startFeature` and `abortFeature`) can crash the Part Studio.
  */
-function facesUnder(context is Context, id is Id, plane is Plane, footprint is Query, hiddenBodies is Query) returns Query
+function facesUnder(context is Context, plane is Plane, footprint is Query, hiddenBodies is Query) returns Query
 {
-    const candidates = qSubtraction(qAllModifiableSolidBodiesNoMesh(), hiddenBodies);
-    var parts = [];
-    startFeature(context, id);
-    // A guard: if the footprint can't be extruded, no parts are found
-    try silent
-    {
-        const bounds = evBox3d(context, { "topology" : footprint, "cSys" : coordSystem(plane), "tight" : false });
-        // A little bigger, so a sketch of one line still has an area
-        const margin = 1 * millimeter;
-        const sketch = newSketchOnPlane(context, id + "footprint", { "sketchPlane" : plane });
-        skRectangle(sketch, "rectangle", {
-                    "firstCorner" : vector(bounds.minCorner[0] - margin, bounds.minCorner[1] - margin),
-                    "secondCorner" : vector(bounds.maxCorner[0] + margin, bounds.maxCorner[1] + margin)
-                });
-        skSolve(sketch);
-        opExtrude(context, id + "extrude", {
-                    "entities" : qCreatedBy(id + "footprint", EntityType.FACE),
-                    "direction" : plane.normal,
-                    "startBound" : BoundingType.THROUGH_ALL,
-                    "endBound" : BoundingType.THROUGH_ALL
-                });
-        for (var clash in evCollision(context, { "tools" : qCreatedBy(id + "extrude", EntityType.BODY), "targets" : candidates }))
-        {
-            parts = append(parts, clash.targetBody);
-        }
-    }
-    abortFeature(context, id);
-    return qCoincidesWithPlane(qOwnedByBody(qUnion(parts), EntityType.FACE), plane);
+    const cSys = coordSystem(plane);
+    const area = evBox3d(context, { "topology" : footprint, "cSys" : cSys, "tight" : false });
+    const parts = qSubtraction(qAllModifiableSolidBodiesNoMesh(), hiddenBodies);
+    return qUnion(filter(evaluateQuery(context, qCoincidesWithPlane(qOwnedByBody(parts, EntityType.FACE), plane)), function(face)
+            {
+                const bounds = evBox3d(context, { "topology" : face, "cSys" : cSys, "tight" : false });
+                return bounds.minCorner[0] <= area.maxCorner[0] && area.minCorner[0] <= bounds.maxCorner[0] &&
+                    bounds.minCorner[1] <= area.maxCorner[1] && area.minCorner[1] <= bounds.maxCorner[1];
+            }));
 }
