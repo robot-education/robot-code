@@ -17,11 +17,11 @@ Since v1.1.0 (`fs changes robotSplineProfile`).
 
 ### Changes to existing features when their documents update
 
-- **Fit replaces Offset profile, and its manipulator is gone.** Fit is Free, Close, None, or Custom (a clearance);
-  Free and Close are ISO 286's free and close running fits for the spline's size. What it fits follows Profile
-  side: an outside profile grows (it's what goes on the shaft, like a bore), and an inside profile shrinks (it's what
-  goes in the tube). Existing features get Free, so their profiles grow (or shrink) by its clearance; set None to
-  keep the shaft's own size.
+- **Fit replaces Offset profile, and its manipulator is gone.** Fit is Close, Free, None, or Custom (a clearance);
+  Close and Free are std's clearance holes for a fastener the spline's size (1/64 and 1/32 in. across). What it fits
+  follows Profile side: an outside profile grows (it's what goes on the shaft, like a bore), and an inside profile
+  shrinks (it's what goes in the tube). Existing features get Close, so their profiles grow (or shrink) by 1/64 in.;
+  set None to keep the shaft's own size.
 - **Field tolerancing is gone** from the extrude's lengths (depth, offsets).
 - End type, Symmetric, and the second end type remember their previous values.
 
@@ -43,7 +43,7 @@ from the center to a tooth of the outside profiles, which didn't change the sket
 
 | Parameter | Description |
 | --- | --- |
-| Fit (`fit`) | How loosely it fits. Free and close fits follow the standards for its size: ISO 286's free running (H9/d9) and close running (H8/f7) fits, or for a fastener, the standard free and close clearance holes. |
+| Fit (`fit`) | How loosely it fits. Close and free fits are the standard clearance holes for a fastener its size, as in the Hole feature's tables. |
 | Clearance (`fitClearance`) | How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit. |
 
 ### Errors, warnings, and info

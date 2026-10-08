@@ -21,10 +21,11 @@ Since v1.0.0 (`fs changes robotPrintAdapter`).
   defaults, ThriftyBot's 1/2" Hex Insert (TTB-0034), until they're set again; WCP adapters change shape.
 - The Selections group is gone; its parameters are at the top of the dialog.
 - **Fit and Bore fit replace Offset profile and Offset bore profile, and their manipulators are gone.** Each is
-  Free, Close, None, or Custom (a clearance); Free and Close are ISO 286's free and close running fits for the
-  adapter's size across its outline, or the shaft's (a hex's width across flats, SplineXS's 8mm, or the clearance
-  circle's diameter). A fit always grows the pocket or bore. Existing features get Free for both, so their pockets and
-  bores grow by its clearance; set None to keep the adapter's own size.
+  Close, Free, None, or Custom (a clearance); Close and Free are std's clearance holes for a fastener the size of the
+  adapter's outline (its widest), or of the shaft (a hex's width across flats, SplineXS's 8mm, or the clearance
+  circle's diameter): 1/64 and 1/32 in. across for 7/16 in. and up, less below. A fit always grows the pocket or bore.
+  Existing features get Close for both, so their pockets and bores grow by its clearance; set None to keep the
+  adapter's own size.
 - **Field tolerancing is gone** from the bore's lengths.
 
 ### New
@@ -51,7 +52,7 @@ The three v1.0.0 outlines are generated now (`printAdapterProfiles.py`), with th
 | Parameter | Description |
 | --- | --- |
 | Use boss (`useBoss`) | Leave room for the adapter's boss above the print, instead of sinking the whole adapter in. |
-| Fit (`fit`), Bore fit (`boreFit`) | How loosely it fits. Free and close fits follow the standards for its size: ISO 286's free running (H9/d9) and close running (H8/f7) fits, or for a fastener, the standard free and close clearance holes. |
+| Fit (`fit`), Bore fit (`boreFit`) | How loosely it fits. Close and free fits are the standard clearance holes for a fastener its size, as in the Hole feature's tables. |
 | Clearance (`fitClearance`), Bore clearance (`boreFitClearance`) | How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit. |
 
 No parameters are hidden. Editing logic sets the shown Merge scope and Opposite direction (see Execution order).

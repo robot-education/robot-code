@@ -141,14 +141,15 @@ field), and don't use std predicates which declare parameters that can be, like 
 
 Wherever one part goes in or over another (a bore on a shaft, a pocket for a part, a hole for a screw), use the fit
 in `core/fit.fs` rather than a gap of your own or a profile offset: `fitPredicate` (or `boreFitPredicate` for a second
-fit in the same feature) declares Fit (Free, Close, None, or Custom, with a Clearance), and the feature applies it:
+fit in the same feature) declares Fit (Close, Free, None, or Custom, with a Clearance), and the feature applies it:
 
-- `fitClearance` (`boreFitClearance`) for shafts and parts: ISO 286's free running (H9/d9) or close running (H8/f7)
-  fit for their size, as the mean clearance across (add it to a hole's size, or offset a sketched profile's sides by
-  half of it). The size is the shaft's (a hex's width across flats, a spline's `splineDiameter`), or a sketched
-  profile's widest (`profileAcross`).
-- `fastenerHoleDiameter` for screws: the standard close or free clearance hole for the screw's size (the usual drills
-  for inch screws, ISO 273's fine and medium series for metric ones), which hole tables then pick only the size of.
+- `fitClearance` (`boreFitClearance`) for shafts and parts: as much as std's close or free clearance hole
+  (`ANSI_V2ClearanceHoleTable`, the Hole feature's) is bigger than the inch fastener nearest their size, across (add
+  it to a hole's size, or offset a sketched profile's sides by half of it): 1/64 in. close and 1/32 in. free from
+  7/16 in. up, less below. The size is the shaft's (a hex's width across flats, a spline's `splineDiameter`), or a
+  sketched profile's widest (`profileAcross`).
+- `fastenerHoleDiameter` for screws: std's close or free clearance hole for the screw's size (ANSI's Close or Free, or
+  ISO's Close or Normal), which hole tables then pick only the size of.
 
 A fit's direction is always plain from what's made (a hole grows, a part going into something shrinks), so fits have
 no flip manipulator; a custom clearance is negative for an interference fit. Profile offsets (`core/profileOffset.fs`)
