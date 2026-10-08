@@ -411,7 +411,7 @@ function setBearingHatProperties(context is Context, bearingHat is Query)
     setProperty(context, {
                 "entities" : bearingHat,
                 "propertyType" : PropertyType.APPEARANCE,
-                "value" : BLACK
+                "value" : PRINTED_GREEN
             });
 
     setProperty(context, {

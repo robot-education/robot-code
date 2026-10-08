@@ -343,7 +343,7 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         callSubfeatureAndProcessStatus(id, extrude, context, extrudeId, definition, { "featureParameterMap" : { "entities" : "location" } });
         // Need makeRobustQuery here since otherwise shaft will always include any other solids produced by the feature
         const shaft = makeRobustQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID));
-        verifyFlatEnds(context, extrudeId, shaft);
+        verifyFlatEnds(context, extrudeId, shaft, "shaft");
 
         // Capture the mirror plane before the shaft ends are modified
         var mirrorPlane = undefined;
@@ -747,10 +747,10 @@ function setCotsShaftProperties(context is Context, id is Id, shaft is Query, de
  */
 function setShaftProperties(context is Context, definition is map, shaft is Query)
 {
-    const white = definition.shaftType == ShaftType.HEX ?
+    const bare = definition.shaftType == ShaftType.HEX ?
         definition.hexType == HexType.ULTRA_HEX :
         definition.splineType != SplineType.SPLINE_XL;
-    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.APPEARANCE, "value" : white ? WHITE : BLACK });
+    setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.APPEARANCE, "value" : bare ? MEDIUM_GRAY : BLACK });
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.MATERIAL, "value" : ALUMINUM });
 }
 

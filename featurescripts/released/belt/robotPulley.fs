@@ -432,7 +432,7 @@ function setPulleyProperties(context is Context, pulleyDefinition is PulleyDefin
     setProperty(context, {
                 "entities" : pulley,
                 "propertyType" : PropertyType.APPEARANCE,
-                "value" : BLACK
+                "value" : PRINTED_GREEN
             });
 }
 

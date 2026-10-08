@@ -278,7 +278,7 @@ function computeTriangleMap(definition is map) returns map
 {
     const minOffset = definition.minFit / 2;
     const maxOffset = definition.maxFit / 2;
-    if (tolerantEquals(minOffset, 0 * meter))
+    if (tolerantEqualsZero(minOffset))
     {
         return {
                 "splitOffset" : 0 * meter,

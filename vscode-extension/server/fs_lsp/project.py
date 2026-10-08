@@ -40,6 +40,8 @@ IMPLICIT_NAMES = frozenset(["silent"])
 # can be overloaded
 UNIQUE_KINDS = frozenset(["variable", "enum", "type"])
 STD_UNIQUE_KINDS = frozenset(["constant", "enum", "type", "unit"])
+# Kinds of declarations which may share names, as overloads with different parameter types
+CALLABLE_KINDS = frozenset(["function", "predicate"])
 # Annotation keys whose values name a function (in the file, or one it imports) by its name
 FUNCTION_ANNOTATION_KEYS = frozenset(["Manipulator Change Function", "Editing Logic Function"])
 # Annotation keys whose values (or values in an array) name a member of a std enum, e.g. `"UIHint" : ["SHOW_LABEL"]`
@@ -665,12 +667,14 @@ class Project:
 
         problems.extend(self._bare_key_problems(module, providers))
         problems.extend(_duplicate_symbol_problems(module, providers))
+        problems.extend(_duplicate_overload_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
         problems.extend(_function_value_problems(module, providers))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
         problems.extend(self._precondition_predicate_problems(module, providers))
         problems.extend(self._duplicate_parameter_problems(module))
+        problems.extend(self._array_group_problems(module))
         problems.extend(self._tolerant_parameter_problems(module))
         problems.extend(self._nested_predicate_problems(module, providers))
         for usage in self.usages([module]):
@@ -989,6 +993,36 @@ class Project:
                 )
         return _dedupe_problems(problems)
 
+    def _array_group_problems(self, module: Module) -> list[Problem]:
+        """Groups ("Group Name" annotations) in array parameters' items, which Onshape rejects ("Parameter groups not
+        permitted inside array parameters"). Only those directly in a precondition's loops are found."""
+        problems = []
+        tokens = module.index.tokens
+        for node in module.parsed.nodes:
+            if node.type != "PreconditionBlock":
+                continue
+            inside = [index for index, token in enumerate(tokens) if node.start <= token.offset < node.end]
+            for index in inside:
+                if tokens[index].value != "for" or tokens[index].kind == "string":
+                    continue
+                # The loop's body: the block after its parenthesized header
+                after_header = _matching_index(tokens, index + 1)
+                if after_header is None or after_header + 1 >= len(tokens) or tokens[after_header + 1].value != "{":
+                    continue
+                end = _matching_index(tokens, after_header + 1)
+                for token in tokens[after_header + 1 : end]:
+                    if token.kind == "string" and token.value == '"Group Name"':
+                        problems.append(
+                            Problem(
+                                token.offset,
+                                token.end,
+                                "error",
+                                "Onshape doesn't allow groups in array parameters' items.",
+                                "array-group",
+                            )
+                        )
+        return _dedupe_problems(problems)
+
     def _tolerant_parameter_problems(self, module: Module) -> list[Problem]:
         """Parameters which allow field tolerancing ("UIHint" CAN_BE_TOLERANT), which ours never do (see
         docs/featurescript-style.md): in annotations, and declared by std predicates the file calls (like std's
@@ -1299,6 +1333,76 @@ def _duplicate_symbol_problems(module: Module, providers: dict[str, list[Provide
     return problems
 
 
+def _duplicate_overload_problems(module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
+    """Functions and predicates with the same name and parameter types as others in the file or anything it imports.
+
+    They're overloads Onshape can't choose between, so it rejects calls to them ("More than one matching predicate
+    declaration"), often by failing to analyze a precondition calling one. Std isn't checked.
+    """
+    problems = []
+    for name, declarations in module.top_level.items():
+        ordered = sorted(
+            (declaration for declaration in declarations if declaration.kind in CALLABLE_KINDS),
+            key=lambda declaration: declaration.token.offset,
+        )
+        for position, declaration in enumerate(ordered):
+            types = _parameter_types(module, declaration)
+            earlier = next((other for other in ordered[:position] if _parameter_types(module, other) == types), None)
+            if earlier is not None:
+                where = f"this file (line {module.position(earlier.token.offset)[0] + 1})"
+            else:
+                imported = next(
+                    (
+                        provider
+                        for provider in providers.get(name, [])
+                        if provider.declaration.kind in CALLABLE_KINDS
+                        and _parameter_types(provider.module, provider.declaration) == types
+                    ),
+                    None,
+                )
+                if imported is None:
+                    continue
+                where = imported.module.relative
+            problems.append(
+                Problem(
+                    declaration.token.offset,
+                    declaration.token.end,
+                    "error",
+                    f"Duplicate {declaration.kind} {name}({', '.join(types)}): {where} already declares one with the "
+                    "same parameter types, so Onshape can't tell which to call. Remove or rename one.",
+                    "duplicate-overload",
+                )
+            )
+    return problems
+
+
+def _parameter_types(module: Module, declaration: Declaration) -> tuple[str, ...]:
+    """The types of a function's or predicate's parameters (empty for untyped ones), which tell overloads apart."""
+    tokens = module.index.tokens
+    index = module.index.token_index_by_offset.get(declaration.token.offset)
+    if index is None or index + 1 >= len(tokens) or tokens[index + 1].value != "(":
+        return ()
+    parameters: list[list[str]] = [[]]
+    depth = 0
+    for token in tokens[index + 2 :]:
+        if token.kind == "string":
+            parameters[-1].append(token.value)
+            continue
+        if token.value in ("(", "[", "{"):
+            depth += 1
+        elif token.value in (")", "]", "}"):
+            if depth == 0:
+                break
+            depth -= 1
+        elif token.value == "," and depth == 0:
+            parameters.append([])
+            continue
+        parameters[-1].append(token.value)
+    if parameters == [[]]:
+        return ()
+    return tuple(" ".join(values[values.index("is") + 1 :]) if "is" in values else "" for values in parameters)
+
+
 def _function_value_problems(module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
     """Functions and predicates declared with `function` or `predicate` and used as values, e.g. `mapArray(a, f)`.
 
@@ -1553,6 +1657,24 @@ def _if_conditions(tokens: list[Token], start: int, end: int) -> Iterable[tuple[
             if depth == 0:
                 yield position + 1, cursor
                 break
+
+
+def _matching_index(tokens: list[Token], index: int) -> int | None:
+    """The index of the bracket closing the one at `index`, or None if there's no opening bracket there."""
+    if index >= len(tokens) or tokens[index].kind == "string" or tokens[index].value not in ("(", "[", "{"):
+        return None
+    depth = 0
+    for position in range(index, len(tokens)):
+        token = tokens[position]
+        if token.kind == "string":
+            continue
+        if token.value in ("(", "[", "{"):
+            depth += 1
+        elif token.value in (")", "]", "}"):
+            depth -= 1
+            if depth == 0:
+                return position
+    return None
 
 
 def _dedupe_problems(problems: list[Problem]) -> list[Problem]:

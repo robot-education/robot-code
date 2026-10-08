@@ -58,8 +58,8 @@ const OFFSET_BOUNDS = {
         } as LengthBoundSpec;
 
 /**
- * Where stock goes: the edge to place it along and the offsets of its ends, or the point to extrude it from and the
- * extrude's options (see `isEdgePlacement`), in a Position group. Either way, `flip` (Flip hole pattern, and a flip
+ * Where stock goes: the edge to place it along, the offsets of its ends, and faces to trim its ends to (like miters), or
+ * the point to extrude it from and the extrude's options (see `isEdgePlacement`), in a Position group. Either way, `flip` (Flip hole pattern, and a flip
  * manipulator) draws it from the other end, a button rotates it in 90 degree increments, and a nine point manipulator
  * chooses which point of its profile is on the edge or point (see `orientStock`). From a point, `oppositeDirection`
  * (Flip primary axis) is the extrude's.
@@ -102,10 +102,23 @@ export predicate stockLocationPredicate(definition is map, name is string)
         if (isEdgePlacement(definition))
         {
             stockOffsetsPredicate(definition);
+
+            annotation { "Name" : "Trim " ~ name ~ " ends" }
+            definition.trimEnds is boolean;
+
+            annotation { "Group Name" : "Trim " ~ name ~ " ends", "Driving Parameter" : "trimEnds", "Collapsed By Default" : false }
+            {
+                if (definition.trimEnds)
+                {
+                    annotation { "Name" : "Faces to trim to", "Filter" : (EntityType.FACE && GeometryType.PLANE) || BodyType.MATE_CONNECTOR,
+                                "MaxNumberOfPicks" : 2 }
+                    definition.trimFaces is Query;
+                }
+            }
         }
         else
         {
-            lengthBoundParametersPredicate(definition);
+            stockBoundsPredicate(definition);
             extrudeDirectionPredicate(definition);
             newExtrudeOptionsPredicate(definition);
         }
@@ -313,11 +326,11 @@ function firstTiedHole(length is ValueWithUnits, spacings is number, tie is map)
         // The middle hole of an odd number stays with the start
         first = spacings + 1 - floor((spacings + 1) / 2);
     }
-    else if (tie.by == TieHolesBy.COUNT && tie.count is number)
+    else if (tie.by == TieHolesBy.COUNT)
     {
         first = spacings + 1 - tie.count;
     }
-    else if (tie.by == TieHolesBy.LENGTH && isLength(tie.length))
+    else if (tie.by == TieHolesBy.LENGTH)
     {
         // Hole k is length - tie.start - k * tie.unit from the end
         const fromStart = (length - tie.start - tie.length) / tie.unit;
@@ -404,10 +417,10 @@ const MAX_SPLINE_RADIUS = 17.45 * millimeter;
  * X): its profile is extruded along its length, then its holes are cut, then its ends are trimmed.
  *
  * Stock with holes is built as the regular length at least `length` long (see `regularLength`), so its holes are all
- * whole while they're cut, and is then trimmed to `length`, cutting through any holes the end crosses, as cutting it
- * from longer stock would. Ends can be slanted (like miters): `ends` has the planes they're on, which are inside its
- * length; it's trimmed to them. It's trimmed by moving the extrude's caps (see `trimEnd`), so its end faces are always
- * the caps.
+ * whole while they're cut, and is then cut to `length`, cutting through any holes the end crosses, as cutting it from
+ * longer stock would. Ends can be slanted (like miters): `ends` has the `startPlane` and `endPlane` they're on, which
+ * are inside its length, and other `cuts` to make (see `trimCuts`); it's cut to each (see `trimBeyond`), and the face
+ * each cut leaves is a frame's cap.
  *
  * Booleans are slow, so each row's holes are cut by one seed (a tool for its first hole), and the seed's faces are face
  * patterned along the stock. A row's holes tied to the end (see `getTie`) have a seed of their own at the last of them,
@@ -459,19 +472,31 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
         }
     }
 
-    // Trimmed to its ends (after its holes are cut, so they're cut through like the stock it's cut from)
-    var endFace = qCapEntity(stockId, CapType.END, EntityType.FACE);
-    const reach = built + stock.width + stock.height;
+    // Cut to its ends and trims (after its holes are cut, so they're cut through like the stock it's cut from)
+    var cuts = ends.cuts;
     if (ends.endPlane != undefined || !tolerantEquals(built, length))
     {
         const endPlane = ends.endPlane ?? plane(location.origin + location.zAxis * length, location.zAxis);
-        const endCap = plane(location.origin + location.zAxis * built, location.zAxis);
-        endFace = trimEnd(context, id + "trimEnd", body, endFace, endCap, endPlane, reach, stock.isFrame ?? false, false);
+        cuts = append(cuts, { "plane" : endPlane, "away" : location.zAxis });
     }
     if (ends.startPlane != undefined)
     {
-        trimEnd(context, id + "trimStart", body, qCapEntity(stockId, CapType.START, EntityType.FACE),
-            plane(location.origin, -location.zAxis), ends.startPlane, reach, stock.isFrame ?? false, true);
+        cuts = append(cuts, { "plane" : ends.startPlane, "away" : -location.zAxis });
+    }
+    var endFace = qCapEntity(stockId, CapType.END, EntityType.FACE);
+    const reach = built + stock.width + stock.height;
+    for (var i, cut in cuts)
+    {
+        const isEnd = dot(cut.away, location.zAxis) > 0;
+        const face = trimBeyond(context, id + ("cut" ~ i), body, cut.plane, cut.away, reach);
+        if (stock.isFrame ?? false)
+        {
+            tagFrameCaps(context, face, !isEnd);
+        }
+        if (isEnd)
+        {
+            endFace = qUnion([endFace->qOwnedByBody(body), face]);
+        }
     }
 
     // After trimming, so holes the trims removed aren't threaded
@@ -494,48 +519,6 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
             "tiedHoles" : qUnion(tiedHoles),
             "tie" : hasHoles ? tie : undefined
         };
-}
-
-/**
- * Trims stock `body` back to `target` at one end: its extrude's cap there, `cap`, on `capPlane` (facing out of it, and
- * centered on its axis), is moved onto `target`. Moving the cap, rather than cutting the stock, keeps the end face the
- * extrude's cap whether or not the stock was built longer, so references to it survive changes in length. Returns the
- * face at the end.
- *
- * If the face can't be moved, the stock is cut instead (see `trimBeyond`), and the face that leaves is tagged as the
- * frame's cap (if it's a frame), as the cap was.
- */
-function trimEnd(context is Context, id is Id, body is Query, cap is Query, capPlane is Plane, target is Plane,
-    reach is ValueWithUnits, isFrame is boolean, isStart is boolean) returns Query
-{
-    try silent
-    {
-        opMoveFace(context, id + "moveCap", { "moveFaces" : cap, "transform" : capTransform(capPlane, target) });
-        return cap;
-    }
-    const face = trimBeyond(context, id, body, target, capPlane.normal, reach);
-    if (isFrame)
-    {
-        tagFrameCaps(context, face, isStart);
-    }
-    return face;
-}
-
-/**
- * A transform taking `capPlane` onto `target`, keeping it facing the same way (out of the stock): along its normal (the
- * stock's axis) to where `target` crosses it, then turned about that point to `target`'s angle (for a miter).
- */
-function capTransform(capPlane is Plane, target is Plane) returns Transform
-{
-    const normal = dot(target.normal, capPlane.normal) > 0 ? target.normal : -target.normal;
-    const crossing = capPlane.origin + capPlane.normal * alongTo(capPlane.origin, capPlane.normal, target);
-    const moved = transform(crossing - capPlane.origin);
-    if (parallelVectors(normal, capPlane.normal))
-    {
-        return moved;
-    }
-    const axis = line(crossing, normalize(cross(capPlane.normal, normal)));
-    return rotationAround(axis, angleBetween(capPlane.normal, normal)) * moved;
 }
 
 /**
@@ -835,7 +818,7 @@ function sketchShape(sketch is Sketch, name is string, center is Vector, shape i
     }
     const radius = (shape.diameter ?? holeDiameter) / 2;
     const slot = shape.slot ?? 0 * meter;
-    if (tolerantEquals(slot, 0 * meter))
+    if (tolerantEqualsZero(slot))
     {
         skCircle(sketch, name, { "center" : center, "radius" : radius });
         return;
@@ -861,7 +844,8 @@ function sketchShape(sketch is Sketch, name is string, center is Vector, shape i
 
 const START_OFFSET_MANIPULATOR = "startOffsetManipulator";
 const END_OFFSET_MANIPULATOR = "endOffsetManipulator";
-const FLIP_MANIPULATOR = "flipManipulator";
+// Not "flipManipulator", which is std's extrude's (see `addExtrudeManipulator`)
+const FLIP_MANIPULATOR = "stockFlipManipulator";
 
 /**
  * Builds stock (see `buildStock`) along the selected edge, or extrudes it from the selected point, and names it and
@@ -871,50 +855,31 @@ const FLIP_MANIPULATOR = "flipManipulator";
  */
 export function placeStock(context is Context, id is Id, definition is map, stock is Stock, name is string)
 {
-    var length;
-    var location;
-    var extruded;
-    if (isEdgePlacement(definition))
-    {
-        const edge = verifyNonemptyQuery(context, definition, "edge", "Select an edge to place the " ~ name ~ " on.")[0];
-        const startOffset = definition.hasStartOffset ? definition.edgeStartOffset : 0 * meter;
-        const endOffset = definition.hasEndOffset ? definition.edgeEndOffset : 0 * meter;
-        const middle = edgeCoordSystem(context, edge);
-        const edgeLength = evLength(context, { "entities" : edge });
-        // At the start of the edge, in the direction the stock is drawn
-        location = orientStock(definition, middle);
-        location.origin -= location.zAxis * edgeLength / 2;
-        const edgeStart = location.origin;
-        location.origin += location.zAxis * startOffset;
-
-        length = edgeLength - startOffset - endOffset;
-        if (tolerantLessThanOrEqual(length, 0 * meter))
-        {
-            throw regenError("The offsets leave no room.", ["edgeStartOffset", "edgeEndOffset"], edge);
-        }
-        addOffsetManipulators(context, id, definition, edgeStart, location.zAxis, edgeLength, startOffset, endOffset);
-    }
-    else
-    {
-        extruded = extrudeLength(context, id, definition);
-        location = extruded.location;
-        length = extruded.length;
-    }
+    const placement = isEdgePlacement(definition) ?
+        edgePlacement(context, id, definition, name) :
+        extrudePlacement(context, id, definition, name);
 
     // Centered on the chosen point of its profile
     const offsets = stockPointOffsets(definition, stock);
-    var center = location;
-    center.origin = toWorld(location, -offsets[getNinePointIndex(definition)]);
-    var ends = {};
-    if (extruded != undefined)
+    var center = placement.location;
+    center.origin = toWorld(placement.location, -offsets[getNinePointIndex(definition)]);
+    // From the farthest back point of a slanted start to the farthest point of a slanted end, as an extrude up to them
+    // would reach
+    const span = stockSpan(center, stock, placement.startPlane, placement.endPlane, placement.length);
+    center.origin += center.zAxis * span.start;
+    var length = span.end - span.start;
+    if (tolerantLessThanOrEqual(length, 0 * meter))
     {
-        // From the farthest back point of a slanted start to the farthest point of a slanted end
-        const span = stockSpan(center, stock, extruded.startPlane, extruded.endPlane, length);
-        center.origin += center.zAxis * span.start;
-        length = span.end - span.start;
-        ends = { "startPlane" : extruded.startPlane, "endPlane" : extruded.endPlane };
+        throw regenError("The " ~ name ~ " has no length.", placement.errorParameters);
     }
-    const built = buildStock(context, id, definition, stock, center, length, ends);
+    const cuts = definition.trimEnds && isEdgePlacement(definition) ? trimCuts(context, definition, stock, center, length, name) : [];
+    const built = buildStock(context, id, definition, stock, center, length,
+        { "startPlane" : placement.startPlane, "endPlane" : placement.endPlane, "cuts" : cuts });
+    if (cuts != [])
+    {
+        // Trimming shortens it
+        length = stockExtent(context, built.body, center);
+    }
     setStockProperties(context, built.body, definition, stock, length);
     // Halfway along it
     addPointManipulator(context, id, definition, mapArray(offsets, function(offset)
@@ -933,7 +898,7 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
     if (definition.tieHoles && definition.showTiedHoles)
     {
         const shown = qUnion([built.endFace, built.tiedHoles]);
-        if (definition.colorTiedHoles ?? false)
+        if (definition.colorTiedHoles)
         {
             setProperty(context, { "entities" : shown, "propertyType" : PropertyType.APPEARANCE, "value" : TIED_HOLE_COLOR });
         }
@@ -954,6 +919,95 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
     {
         reportFeatureInfo(context, id, regularLengthMessage(definition, name, built.tie));
     }
+}
+
+/**
+ * Where stock goes along the selected edge, between its offsets: from the edge's start to its end (as
+ * `evEdgeTangentLine` runs), unless it's flipped. Returns the `location` its start is at (oriented by `orientStock`)
+ * and its `length`.
+ */
+function edgePlacement(context is Context, id is Id, definition is map, name is string) returns map
+{
+    const edge = verifyNonemptyQuery(context, definition, "edge", "Select an edge to use.")[0];
+    const startOffset = definition.hasStartOffset ? definition.edgeStartOffset : 0 * meter;
+    const endOffset = definition.hasEndOffset ? definition.edgeEndOffset : 0 * meter;
+    const middle = edgeCoordSystem(context, edge);
+    const edgeLength = evLength(context, { "entities" : edge });
+    // At the start of the edge, in the direction the stock is drawn
+    var location = orientStock(definition, middle);
+    location.origin -= location.zAxis * edgeLength / 2;
+    const edgeStart = location.origin;
+    location.origin += location.zAxis * startOffset;
+    addOffsetManipulators(context, id, definition, edgeStart, location.zAxis, edgeLength, startOffset, endOffset);
+
+    const length = edgeLength - startOffset - endOffset;
+    if (tolerantLessThanOrEqual(length, 0 * meter))
+    {
+        throw regenError("Specified offsets are too long.", ["edgeStartOffset", "edgeEndOffset"], edge);
+    }
+    return { "location" : location, "length" : length, "errorParameters" : ["trimFaces"] };
+}
+
+/**
+ * The cuts trimming stock to the selected faces (or mate connectors): each cuts it with its plane, keeping the side it
+ * faces (out of the part it's a face of, or along a mate connector's Z), so trimming only ever shortens stock. Throws if
+ * a plane misses the stock, or would leave none of it.
+ *
+ * @returns {array} : Maps of each cut's `plane`, and the direction `away` it removes stock in.
+ */
+function trimCuts(context is Context, definition is map, stock is Stock, center is CoordSystem, length is ValueWithUnits, name is string) returns array
+{
+    var corners = [];
+    for (var z in [0 * meter, length])
+    {
+        for (var x in [-1, 1])
+        {
+            for (var y in [-1, 1])
+            {
+                corners = append(corners, toWorld(center, vector(x * stock.width / 2, y * stock.height / 2, z)));
+            }
+        }
+    }
+    var cuts = [];
+    for (var face in evaluateQuery(context, definition.trimFaces))
+    {
+        const cut = boundPlane(context, face);
+        var kept = false;
+        var removed = false;
+        for (var corner in corners)
+        {
+            const distance = dot(corner - cut.origin, cut.normal);
+            kept = kept || tolerantGreaterThan(distance, 0 * meter);
+            removed = removed || tolerantLessThan(distance, 0 * meter);
+        }
+        if (!kept || !removed)
+        {
+            throw regenError("The selected face does not intersect the " ~ name ~ ".", ["trimFaces"], face);
+        }
+        cuts = append(cuts, { "plane" : cut, "away" : -cut.normal });
+    }
+    return cuts;
+}
+
+/**
+ * How long stock is along `center`'s Z axis, from its body.
+ */
+function stockExtent(context is Context, body is Query, center is CoordSystem) returns ValueWithUnits
+{
+    const bounds = evBox3d(context, { "topology" : body, "cSys" : center, "tight" : true });
+    return bounds.maxCorner[2] - bounds.minCorner[2];
+}
+
+/**
+ * The plane of a planar face, or a mate connector's XY plane.
+ */
+function boundPlane(context is Context, entity is Query) returns Plane
+{
+    if (!isQueryEmpty(context, entity->qBodyType(BodyType.MATE_CONNECTOR)))
+    {
+        return plane(evMateConnector(context, { "mateConnector" : entity }));
+    }
+    return evPlane(context, { "face" : entity });
 }
 
 /**
@@ -998,7 +1052,7 @@ function orientStock(definition is map, base is CoordSystem) returns CoordSystem
  */
 function isFlipped(definition is map) returns boolean
 {
-    return definition.flip is boolean && definition.flip;
+    return definition.flip;
 }
 
 /**
@@ -1027,7 +1081,7 @@ function regularLengthMessage(definition is map, name is string, tie is map) ret
     const multiple = "a multiple of " ~ lengthString(definition, tie.unit);
     // Regular lengths are 2 * tie.start more than a multiple of tie.unit
     const extra = (2 * tie.start) % tie.unit;
-    if (tolerantEquals(extra, 0 * meter) || tolerantEquals(extra, tie.unit))
+    if (tolerantEqualsZero(extra) || tolerantEquals(extra, tie.unit))
     {
         return sentence("The " ~ name ~ "'s length should be " ~ multiple);
     }
@@ -1035,21 +1089,17 @@ function regularLengthMessage(definition is map, name is string, tie is map) ret
 }
 
 /**
- * Shows where holes start being tied to the end, when they're tied by half or by length (see `getTie`): a rectangle
- * across the stock, a little bigger than its profile, there.
+ * Shows where holes start being tied to the end, when they're tied by length (see `getTie`): a rectangle across the
+ * stock, a little bigger than its profile, there.
  */
 function showTieMark(context is Context, id is Id, definition is map, stock is Stock, center is CoordSystem, length is ValueWithUnits)
 {
-    var mark;
-    if (definition.tieHolesBy == TieHolesBy.HALF)
+    if (definition.tieHolesBy != TieHolesBy.LENGTH)
     {
-        mark = length / 2;
+        return;
     }
-    else if (definition.tieHolesBy == TieHolesBy.LENGTH && isLength(definition.tieLength))
-    {
-        mark = length - definition.tieLength;
-    }
-    if (mark == undefined || tolerantLessThanOrEqual(mark, 0 * meter) || tolerantLessThanOrEqual(length, mark))
+    const mark = length - definition.tieLength;
+    if (tolerantLessThanOrEqual(mark, 0 * meter) || tolerantLessThanOrEqual(length, mark))
     {
         return;
     }
@@ -1097,28 +1147,31 @@ function addOffsetManipulators(context is Context, id is Id, definition is map, 
 }
 
 /**
- * How far along `center`'s Z axis stock with slanted ends reaches: from where its start plane is farthest back across
- * its profile (or 0, for a square start) to where its end plane is farthest forward (or `length`).
+ * How far along `center`'s Z axis stock reaches: from where its start plane is farthest back across its profile (or 0,
+ * for a square start) to where its end plane is farthest forward (or `length`, for a square end), as an extrude up to a
+ * slanted face reaches it. Stock is built that long, then cut to the planes (see `buildStock`).
  */
 function stockSpan(center is CoordSystem, stock is Stock, startPlane, endPlane, length is ValueWithUnits) returns map
 {
-    var span = { "start" : 0 * meter, "end" : length };
+    var corners = [];
     for (var x in [-1, 1])
     {
         for (var y in [-1, 1])
         {
-            const corner = toWorld(center, vector(x * stock.width / 2, y * stock.height / 2, 0 * meter));
-            if (startPlane != undefined)
-            {
-                span.start = min(span.start, alongTo(corner, center.zAxis, startPlane));
-            }
-            if (endPlane != undefined)
-            {
-                span.end = max(span.end, alongTo(corner, center.zAxis, endPlane));
-            }
+            corners = append(corners, toWorld(center, vector(x * stock.width / 2, y * stock.height / 2, 0 * meter)));
         }
     }
-    return span;
+    const along = function(cut)
+        {
+            return mapArray(corners, function(corner)
+                {
+                    return alongTo(corner, center.zAxis, cut);
+                });
+        };
+    return {
+            "start" : startPlane == undefined ? 0 * meter : min(along(startPlane)),
+            "end" : endPlane == undefined ? length : max(along(endPlane))
+        };
 }
 
 /**
@@ -1130,68 +1183,166 @@ function alongTo(point is Vector, direction is Vector, cut is Plane) returns Val
 }
 
 /**
- * The plane an end of the measured extrude is on, if it's slanted (not square to `direction`, like a miter), which
- * stock's end is trimmed to; otherwise `undefined`, and the end is square. Ends are flat (see `verifyFlatEnds`); ends
- * nearly along the stock are treated as square.
+ * Where stock extruded from the selected point goes, worked out from the extrude's options as std's extrude would
+ * extrude it, without extruding. Its manipulators are std's extrude's (see `addExtrudeManipulator`).
+ *
+ * The stock runs along the extrude's direction (which Opposite direction flips), from its start (the profile, half a
+ * symmetric length back, or the second end) to its end, unless it's flipped. Returns the `location` its start is at
+ * (oriented by `orientStock`), its `length`, and the `startPlane` and `endPlane` its ends are on, if they're slanted
+ * (up to faces at an angle, like miters).
  */
-function slantedEnd(context is Context, cap is Query, direction is Vector)
+function extrudePlacement(context is Context, id is Id, definition is map, name is string) returns map
 {
-    const end = evPlane(context, { "face" : cap });
-    if (parallelVectors(end.normal, direction) || abs(dot(end.normal, direction)) < 0.1)
+    const profilePlane = getLocationPlane(context, definition);
+    const axisPlane = extrudeDirectionPlane(context, definition, profilePlane);
+    const extrudeAxis = line(axisPlane.origin, axisPlane.normal);
+
+    // The profile moved by the starting offset, along the extrude's axis, as std's extrude moves it
+    var shift = 0 * meter;
+    if (definition.startOffset)
     {
-        return undefined;
+        shift = definition.startOffsetBound == StartOffsetType.BLIND ?
+            (definition.startOffsetOppositeDirection ? -1 : 1) * definition.startOffsetDistance :
+            alongTo(extrudeAxis.origin, extrudeAxis.direction, plane(evDistance(context, {
+                                    "side0" : extrudeAxis.origin,
+                                    "side1" : definition.startOffsetEntity
+                                }).sides[1].point, profilePlane.normal));
     }
-    return end;
-}
+    const origin = extrudeAxis.origin + extrudeAxis.direction * shift;
 
-/**
- * Extrudes a small face from the selected point with the extrude options and measures it, so they (and their
- * manipulators) work as usual. Returns the `location` stock starts at (along the extrude's direction, oriented by
- * `orientStock`), its `length`, and the `startPlane` and `endPlane` its ends are on, if they're slanted (see
- * `slantedEnd`): up to a plane or face at an angle, like a miter.
- */
-function extrudeLength(context is Context, id is Id, definition is map) returns map
-{
-    const facePlane = lengthFacePlane(context, definition);
-    // Use the top level id to get extrude's manipulators
-    const extrudeDefinition = transformDefintionForNewExtrude(definition, sketchLengthFace(context, id + "lengthFace", facePlane));
-    callSubfeatureAndProcessStatus(id, extrude, context, id, extrudeDefinition, {
-                "featureParameterMap" : { "entities" : "location" }
-            });
+    var manipulatorDefinition = transformDefintionForNewExtrude(definition, qNothing());
+    manipulatorDefinition.distanceForManipulator = shift;
+    addExtrudeManipulator(context, id, manipulatorDefinition, qNothing(), extrudeAxis, false);
 
-    verifyFlatEnds(context, id, qCreatedBy(id, EntityType.BODY));
-    const location = orientStock(definition, coordSystem(facePlane));
-    // The extruded face's ends, which are on its axis
-    const caps = [qCapEntity(id, CapType.START, EntityType.FACE), qCapEntity(id, CapType.END, EntityType.FACE)];
-    const ends = mapArray(caps, function(cap)
+    const direction = definition.oppositeDirection ? -extrudeAxis.direction : extrudeAxis.direction;
+    var start = { "along" : 0 * meter };
+    var end;
+    if (definition.endBound == StockBoundingType.BLIND && definition.symmetric)
+    {
+        start = { "along" : -definition.depth / 2 };
+        end = { "along" : definition.depth / 2 };
+    }
+    else
+    {
+        end = boundAlong(context, {
+                        "type" : definition.endBound,
+                        "depth" : definition.depth,
+                        "face" : definition.endBoundEntityFace,
+                        "vertex" : definition.endBoundEntityVertex,
+                        "hasOffset" : definition.hasOffset,
+                        "offsetDistance" : definition.offsetDistance,
+                        "offsetOppositeDirection" : definition.offsetOppositeDirection
+                    }, origin, direction, name, ["endBound", "endBoundEntityFace", "endBoundEntityVertex"]);
+        if (definition.hasSecondDirection)
         {
-            return dot(evApproximateCentroid(context, { "entities" : cap }) - location.origin, location.zAxis);
-        });
-    // The cap nearer the start along the stock is its start
-    const startIndex = ends[0] <= ends[1] ? 0 : 1;
-    const startPlane = slantedEnd(context, caps[startIndex], location.zAxis);
-    const endPlane = slantedEnd(context, caps[1 - startIndex], location.zAxis);
-    opDeleteBodies(context, id + "deleteLength", { "entities" : qCreatedBy(id, EntityType.BODY) });
+            // Back from the profile, unless its direction is flipped to match the first's (as std's extrude decides it)
+            const sign = definition.secondDirectionOppositeDirection != definition.oppositeDirection ? -1 : 1;
+            const second = boundAlong(context, {
+                            "type" : definition.secondDirectionBound,
+                            "depth" : definition.secondDirectionDepth,
+                            "face" : definition.secondDirectionBoundEntityFace,
+                            "vertex" : definition.secondDirectionBoundEntityVertex,
+                            "hasOffset" : definition.hasSecondDirectionOffset,
+                            "offsetDistance" : definition.secondDirectionOffsetDistance,
+                            "offsetOppositeDirection" : definition.secondDirectionOffsetOppositeDirection
+                        }, origin, sign * direction, name,
+                ["secondDirectionBound", "secondDirectionBoundEntityFace", "secondDirectionBoundEntityVertex"]);
+            start = mergeMaps(second, { "along" : sign * second.along });
+        }
+    }
 
-    var start = location;
-    start.origin += location.zAxis * min(ends);
-    return { "location" : start, "length" : abs(ends[1] - ends[0]), "startPlane" : startPlane, "endPlane" : endPlane };
+    // Drawn from its start, or from its end if it's flipped (see `orientStock`)
+    var location = orientStock(definition, coordSystem(origin, axisPlane.x, direction));
+    const flipped = isFlipped(definition);
+    location.origin = origin + direction * (flipped ? end.along : start.along);
+    return {
+            "location" : location,
+            "length" : end.along - start.along,
+            "startPlane" : slantedEnd((flipped ? end : start).plane, location.zAxis),
+            "endPlane" : slantedEnd((flipped ? start : end).plane, location.zAxis),
+            "errorParameters" : ["depth", "endBound", "secondDirectionBound"]
+        };
 }
 
 /**
- * The plane the extruded face is sketched on: at the selected point, normal to the extrude's direction.
+ * Where one bound of an extrude from `origin` along `direction` is: how far `along` it, and the `plane` it ends on if
+ * it's up to a face. Its offset pulls it back toward `origin`, unless it's flipped. Up to next is up to the nearest
+ * face in front of `origin` (as an extrude of a point would be), which must be flat.
+ *
+ * @param bound {{
+ *      @field type {StockBoundingType}
+ *      @field depth {ValueWithUnits} : For `BLIND`.
+ *      @field face {Query} : For `UP_TO_SURFACE`: a planar face or mate connector.
+ *      @field vertex {Query} : For `UP_TO_VERTEX`: a vertex or mate connector.
+ *      @field hasOffset {boolean}
+ *      @field offsetDistance {ValueWithUnits}
+ *      @field offsetOppositeDirection {boolean}
+ * }}
+ * @param parameters : The bound's parameters, which errors highlight.
  */
-function lengthFacePlane(context is Context, definition is map) returns Plane
+function boundAlong(context is Context, bound is map, origin is Vector, direction is Vector, name is string, parameters is array) returns map
 {
-    return extrudeDirectionPlane(context, definition, getLocationPlane(context, definition));
+    if (bound.type == StockBoundingType.BLIND)
+    {
+        return { "along" : bound.depth };
+    }
+    const offset = bound.hasOffset ? (bound.offsetOppositeDirection ? 1 : -1) * bound.offsetDistance : 0 * meter;
+    if (bound.type == StockBoundingType.UP_TO_VERTEX)
+    {
+        if (isQueryEmpty(context, bound.vertex))
+        {
+            throw regenError(ErrorStringEnum.EXTRUDE_SELECT_TERMINATING_VERTEX, parameters);
+        }
+        // Square to the extrude, as std's extrude ends up to a vertex
+        return { "along" : dot(evVertexPoint(context, { "vertex" : bound.vertex }) - origin, direction) + offset };
+    }
+    var face;
+    if (bound.type == StockBoundingType.UP_TO_SURFACE)
+    {
+        if (isQueryEmpty(context, bound.face))
+        {
+            throw regenError(ErrorStringEnum.EXTRUDE_SELECT_TERMINATING_SURFACE, parameters);
+        }
+        face = bound.face;
+    }
+    else
+    {
+        // Up to next
+        var nearest;
+        for (var hit in evRaycast(context, { "entities" : qAllModifiableSolidBodiesNoMesh(), "ray" : line(origin, direction), "closest" : false }))
+        {
+            if (!tolerantEqualsZero(hit.distance) && (nearest == undefined || hit.distance < nearest.distance))
+            {
+                nearest = hit;
+            }
+        }
+        if (nearest == undefined)
+        {
+            throw regenError(ErrorStringEnum.EXTRUDE_FAILED, parameters);
+        }
+        face = nearest.entity;
+        if (isQueryEmpty(context, face->qGeometry(GeometryType.PLANE)))
+        {
+            throw regenError(flatEndsMessage(name), parameters, face);
+        }
+    }
+    var cut = boundPlane(context, face);
+    if (tolerantEqualsZero(dot(cut.normal, direction)))
+    {
+        // Parallel to the extrude, so it never reaches it
+        throw regenError(ErrorStringEnum.EXTRUDE_FAILED, parameters, face);
+    }
+    cut.origin += direction * offset;
+    return { "along" : alongTo(origin, direction, cut), "plane" : cut };
 }
 
-function sketchLengthFace(context is Context, id is Id, plane is Plane) returns Query
+/**
+ * `cut`, if it's slanted (not square to `direction`, like a miter), which stock's end is cut to; otherwise
+ * `undefined`, and the end is square.
+ */
+function slantedEnd(cut, direction is Vector)
 {
-    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    skCircle(sketch, "circle", { "center" : vector(0, 0) * meter, "radius" : 1 * millimeter });
-    skSolve(sketch);
-    return qCreatedBy(id, EntityType.FACE);
+    return cut == undefined || parallelVectors(cut.normal, direction) ? undefined : cut;
 }
 
 // Properties
@@ -1276,19 +1427,19 @@ export function stockManipulatorChange(context is Context, definition is map, ne
     // index is the parameter's either way
     definition = pointManipulatorChange(definition, newManipulators);
     const flip = newManipulators[FLIP_MANIPULATOR];
-    if (flip != undefined && flip.flipped is boolean)
+    if (flip != undefined)
     {
         definition.flip = flip.flipped;
     }
     if (isEdgePlacement(definition))
     {
         const startOffset = newManipulators[START_OFFSET_MANIPULATOR];
-        if (startOffset != undefined && isLength(startOffset.offset))
+        if (startOffset != undefined)
         {
             definition.edgeStartOffset = startOffset.offset;
         }
         const endOffset = newManipulators[END_OFFSET_MANIPULATOR];
-        if (endOffset != undefined && isLength(endOffset.offset))
+        if (endOffset != undefined)
         {
             definition.edgeEndOffset = endOffset.offset;
         }
@@ -1327,13 +1478,13 @@ export function stockEditLogic(context is Context, id is Id, oldDefinition is ma
         }
         return definition;
     }
-    definition.entities = qNothing();
-    if (!isQueryEmpty(context, definition.location))
+    // Along the extrude's direction from the selected point. A guard, not a fallback: editing logic mustn't throw while
+    // the dialog is being filled in (no point, or no direction, selected yet), so then there's no axis, and no flips
+    var extrudeAxis;
+    try silent
     {
-        try silent
-        {
-            definition.entities = sketchLengthFace(context, id + "lengthFace", lengthFacePlane(context, definition));
-        }
+        const axisPlane = extrudeDirectionPlane(context, definition, getLocationPlane(context, definition));
+        extrudeAxis = line(axisPlane.origin, axisPlane.normal);
     }
-    return stdNewExtrudeEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
+    return newExtrudeEditLogicAlong(context, definition, specifiedParameters, extrudeAxis);
 }

@@ -198,7 +198,7 @@ function computePlacement(context is Context, definition is map, locations is ar
     if (definition.transform)
     {
         const translation = vector([definition.translationX, definition.translationY, definition.translationZ]);
-        const rotation = tolerantEquals(definition.rotation, 0 * degree) ? identityTransform() :
+        const rotation = tolerantEqualsZero(definition.rotation) ? identityTransform() :
             rotationAround(ROTATION_AXES[definition.rotationType], definition.rotation);
         if (definition.absoluteToWorld)
         {

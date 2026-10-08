@@ -199,11 +199,11 @@ REV = vendor(
     [
         shaft("1/2 in. Rounded Hex", "Rounded Hex Shaft (REV 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "ALUMINUM", "BLACK",
               one(inch(36), "REV-21-1135", rev("REV-21-1135"))),
-        shaft("1/2 in. UltraHex", "UltraHex Shaft (REV 1/2 in.)", hex("ULTRA_HEX", HALF_INCH), "ALUMINUM", "WHITE",
+        shaft("1/2 in. UltraHex", "UltraHex Shaft (REV 1/2 in.)", hex("ULTRA_HEX", HALF_INCH), "ALUMINUM", "MEDIUM_GRAY",
               one(inch(72), "REV-41-3205", rev("REV-41-3205"))),
-        shaft("MAXSpline", "MAXSpline Shaft (REV)", spline("MAX_SPLINE"), "ALUMINUM", "WHITE",
+        shaft("MAXSpline", "MAXSpline Shaft (REV)", spline("MAX_SPLINE"), "ALUMINUM", "MEDIUM_GRAY",
               one(inch(47), "REV-21-2520", rev("REV-21-2520"))),
-        shaft("SplineXS", "SplineXS Shaft (REV)", spline("SPLINE_XS"), "STAINLESS_STEEL", "WHITE",
+        shaft("SplineXS", "SplineXS Shaft (REV)", spline("SPLINE_XS"), "STAINLESS_STEEL", "STEEL_GRAY",
               one(mm(480), "REV-41-6457", rev("REV-41-6457"))),
     ],
 )
@@ -225,15 +225,15 @@ def lengths(url: str, *sizes: tuple[float, str]) -> str:
 ANDYMARK = vendor(
     "AndyMark",
     [
-        shaft("1/2 in. Churro", "Churro Shaft (AndyMark 1/2 in.)", hex("CHURRO", HALF_INCH), "ALUMINUM", "WHITE",
+        shaft("1/2 in. Churro", "Churro Shaft (AndyMark 1/2 in.)", hex("CHURRO", HALF_INCH), "ALUMINUM", "MEDIUM_GRAY",
               lengths(AM_CHURRO_URL, (2.48, "am-3399"), (3.375, "am-2569"), (3.875, "am-3087"), (6.25, "am-5724"),
                       (11.25, "am-3398"), (12, "am-3101-1"), (17.313, "am-5218"), (17.8, "am-3101-1780"),
                       (24, "am-3101-2"), (36, "am-3101-3"), (47, "am-3101-4700"))),
-        shaft("1/2 in. Hex (7075)", "Hex Shaft (AndyMark 1/2 in., 7075)", hex("STOCK", HALF_INCH), "ALUMINUM_7075", "WHITE",
+        shaft("1/2 in. Hex (7075)", "Hex Shaft (AndyMark 1/2 in., 7075)", hex("STOCK", HALF_INCH), "ALUMINUM_7075", "MEDIUM_GRAY",
               lengths(AM_HEX_URL, (12, "am-2291-1"), (47, "am-2291-4700"))),
         shaft("3/8 in. Churro Lite", "Churro Lite Shaft (AndyMark 3/8 in.)", hex("CHURRO", THREE_EIGHTHS), "ALUMINUM",
-              "WHITE", lengths(AM_CHURRO_LITE_URL, (10.5, "am-5867"), (36, "am-3666-3"), (47, "am-3666-4700"))),
-        shaft("3/8 in. Hex (steel)", "Hex Shaft (AndyMark 3/8 in., steel)", hex("STOCK", THREE_EIGHTHS), "STEEL", "DARK_GRAY",
+              "MEDIUM_GRAY", lengths(AM_CHURRO_LITE_URL, (10.5, "am-5867"), (36, "am-3666-3"), (47, "am-3666-4700"))),
+        shaft("3/8 in. Hex (steel)", "Hex Shaft (AndyMark 3/8 in., steel)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
               lengths(AM_STEEL_HEX_URL, (1.85, "am-2356"), (12, "am-2356-1"), (36, "am-2356-3"), (47, "am-2356-4700"))),
     ],
 )
@@ -264,9 +264,9 @@ VEX = vendor(
               one(inch(36), "217-8631", vex("217-8631"))),
         shaft("3/8 in. ThunderHex", "ThunderHex Shaft (VEX 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS), "ALUMINUM", "BLACK",
               one(inch(36), "217-5837", vex("217-5837"))),
-        shaft("1/2 in. Hex", "Hex Shaft (VEX 1/2 in.)", hex("STOCK", HALF_INCH), "ALUMINUM", "WHITE",
+        shaft("1/2 in. Hex", "Hex Shaft (VEX 1/2 in.)", hex("STOCK", HALF_INCH), "ALUMINUM", "MEDIUM_GRAY",
               one(inch(36), "217-2753", vex("217-2753"))),
-        shaft("3/8 in. Hex", "Hex Shaft (VEX 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "ALUMINUM", "WHITE",
+        shaft("3/8 in. Hex", "Hex Shaft (VEX 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "ALUMINUM", "MEDIUM_GRAY",
               one(inch(36), "217-2754", vex("217-2754"))),
     ],
 )
@@ -291,10 +291,10 @@ TTB = vendor(
         shaft("3/8 in. Rounded Hex", "Rounded Hex Shaft (ThriftyBot 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS),
               "ALUMINUM", "BLACK", one(inch(36), "TTB-0265", ttb("3-8-rounded-hex-shaft-stock-36-long"))),
         shaft("SplineXS Stub (steel)", "SplineXS Stub Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL",
-              "DARK_GRAY", lengths(TTB_SPLINE_XS_URL, (2, "TTB-0301"), (2.5, "TTB-0303")), fixed_lengths=True),
+              "STEEL_GRAY", lengths(TTB_SPLINE_XS_URL, (2, "TTB-0301"), (2.5, "TTB-0303")), fixed_lengths=True),
         shaft("SplineXS (7075)", "SplineXS Shaft (ThriftyBot, 7075)", spline("SPLINE_XS"), "ALUMINUM_7075", "BLACK",
               one(inch(36), "TTB-0357", TTB_SPLINE_XS_URL), predrilled_hole=TAP_10_32),
-        shaft("SplineXS (steel)", "SplineXS Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL", "DARK_GRAY",
+        shaft("SplineXS (steel)", "SplineXS Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL", "STEEL_GRAY",
               one(inch(36), "TTB-0366", TTB_SPLINE_XS_URL)),
     ],
 )
@@ -329,13 +329,13 @@ GOBILDA = vendor(
     "goBILDA",
     [
         shaft("8mm REX (stainless steel)", "8mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._7_MM"),
-              "STAINLESS_STEEL", "WHITE",
+              "STAINLESS_STEEL", "STEEL_GRAY",
               gobilda("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel", REX_8_LENGTHS), fixed_lengths=True),
         shaft("12mm REX (stainless steel)", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
-              "STAINLESS_STEEL", "WHITE",
+              "STAINLESS_STEEL", "STEEL_GRAY",
               gobilda("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel", REX_12_LENGTHS), fixed_lengths=True),
         shaft("12mm REX (aluminum)", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
-              "ALUMINUM", "WHITE",
+              "ALUMINUM", "MEDIUM_GRAY",
               gobilda("2104", "0012", "12mm-rex-shaft-aluminum", REX_12_ALUMINUM_LENGTHS)),
     ],
 )
@@ -344,14 +344,14 @@ GOBILDA = vendor(
 ROBITS = vendor(
     "AndyMark",
     [
-        shaft("Robits 3/8 in. Hex", "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "DARK_GRAY",
+        shaft("Robits 3/8 in. Hex", "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
               lengths("https://andymark.com/products/robits-hex-shafts", *[(n, f"am-5003-{n * 100:04d}") for n in (2, 3, 4, 6, 8, 10, 12)]),
               fixed_lengths=True),
     ],
 )
 
 CONTENTS = [
-    Import("shaft/robotShaftCommon.fs"),
+    Import("released/shaft/robotShaftCommon.fs"),
     Import("core/robotProperties.fs"),
     Table("tappedHoleTable", tapped_hole),
     Table("clearanceHoleTable", clearance_hole),

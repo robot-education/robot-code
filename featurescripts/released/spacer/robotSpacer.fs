@@ -42,7 +42,7 @@ export function doRobotSpacer(context is Context, id is Id, definition is map)
                 "featureParameterMap" : { "entities" : "location" }
             });
     const spacerBody = makeRobustQuery(context, qCreatedBy(extrudeId, EntityType.BODY)->qBodyType(BodyType.SOLID));
-    verifyFlatEnds(context, extrudeId, spacerBody);
+    verifyFlatEnds(context, extrudeId, spacerBody, "spacer");
 
     // Extrude inner bore seperately for error display
     // const innerFaces = qUnion(spacerProfile.innerFace, spacerProfile.snapOnFace ?? qNothing());
@@ -277,7 +277,7 @@ function setSpacerProperties(context is Context, definition is map, spacer is Qu
     setProperty(context, {
                 "entities" : spacer,
                 "propertyType" : PropertyType.APPEARANCE,
-                "value" : BLACK
+                "value" : PRINTED_GREEN
             });
 
     setProperty(context, {

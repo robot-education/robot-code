@@ -15,11 +15,15 @@ import os
 import pathlib
 import sys
 
+from fs_lsp.project import Module, Project
+
 from fs_cli.config import Config, ConfigError, load_config
+from fs_cli.gen import GenerateError, generate
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
     deprecated_name,
+    find_studio,
     plan_deprecate,
     plan_release,
     run_deprecate,
@@ -27,12 +31,22 @@ from fs_cli.release import (
     unsynced_versions,
 )
 from fs_cli.remote import OnshapeRemote, Remote, file_name_for
-from fs_cli.renames import relative_paths, rename_path_imports, rename_studio_files, renamed
+from fs_cli.renames import (
+    relative_paths,
+    rename_path_imports,
+    rename_studio_files,
+    renamed,
+)
 from fs_cli.state import State, StudioState, migrate
-from fs_cli.ui import UiError, render_feature, screenshot
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
-from fs_cli.gen import GenerateError, generate
-from fs_cli.versions import VersionType, feature_name_for, parse_version_name
+from fs_cli.strings import user_strings
+from fs_cli.ui import UiError, render_feature, screenshot
+from fs_cli.versions import (
+    VersionType,
+    feature_name_for,
+    latest_release,
+    parse_version_name,
+)
 from fs_cli.workspace import (
     HINTS,
     PULLABLE,
@@ -45,9 +59,9 @@ from fs_cli.workspace import (
     select,
     update_std_version,
 )
-from fs_lsp.project import Module, Project
 from onshape_api.exceptions import ApiError
-from onshape_api.paths.paths import path_to_url
+from onshape_api.paths.instance_type import InstanceType
+from onshape_api.paths.paths import InstancePath, path_to_url
 
 # Released tabs are never deleted or recreated (see `load_released`)
 RELEASED_HINTS = {
@@ -122,6 +136,21 @@ def make_parser() -> argparse.ArgumentParser:
         "-a", "--all", action="store_true", help="also list studios which are in sync"
     )
     command("diff", "show differences between Onshape and the repo")
+    strings_command = command(
+        "strings",
+        "list the strings a FeatureScript shows users (names, descriptions, errors, ...), with those of what it imports",
+        targets=False,
+    )
+    strings_command.add_argument("script", help="the .fs file or Feature Studio name, e.g. robotShaft")
+    changes_command = command(
+        "changes",
+        "show what changed in a FeatureScript, and the Feature Studios it imports, since its last release",
+        targets=False,
+    )
+    changes_command.add_argument("script", help="the .fs file or Feature Studio name, e.g. robotShaft")
+    changes_command.add_argument(
+        "--stat", action="store_true", help="only list the files which changed, with how many lines did"
+    )
     update_std = command(
         "update-std",
         "update FeatureScript versions and std imports to the std version in std/",
@@ -590,6 +619,85 @@ def diff(workspace: Workspace, args: argparse.Namespace) -> int:
         )
     if not differing and not differing_images:
         print("No differences.")
+    return 0
+
+
+def imported_modules(project: Project, module: Module) -> list[Module]:
+    """A module and every module in the repo it imports, directly or not, in the order they're found."""
+    modules = [module]
+    for current in modules:
+        for imported in current.imports:
+            target = None if imported.is_std or imported.namespace else project.resolve(imported)
+            if target is not None and target not in modules:
+                modules.append(target)
+    return modules
+
+
+def strings(config: Config, args: argparse.Namespace) -> int:
+    project = _project(config)
+    selected = _select_modules(project, [args.script])
+    if len(selected) != 1:
+        raise UsageError(f'"{args.script}" should match one FeatureScript, not {len(selected)}.')
+    for module in imported_modules(project, selected[0]):
+        found = user_strings(module.path.read_text(encoding="utf-8"))
+        if not found:
+            continue
+        print(module.relative)
+        for user_string in found:
+            print(f"  {user_string.line:>5}  {user_string.kind:<20}  {user_string.text}")
+    return 0
+
+
+def changes(workspace: Workspace, args: argparse.Namespace) -> int:
+    """Diffs a FeatureScript, and each Feature Studio in the repo it imports (directly or not), against their code in
+    the backend document's version of its last release. Studios are as released, since `fs release` requires them to
+    be pushed and in sync."""
+    studio = find_studio(workspace, args.script)
+    assert studio.remote is not None
+    versions = workspace.remote.versions(workspace.instance)
+    released = latest_release(feature_name_for(studio.remote.name), versions)
+    if released is None:
+        raise UsageError(f"{studio.path} hasn't been released.")
+    version = next(version for version in reversed(versions) if version.name == released.name)
+    at_release = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
+
+    project = _project(workspace.config)
+    element_ids = {path: element_id for element_id, path in project.element_ids().items()}
+    module = project.module(workspace.config.code_dir / studio.path)
+    if module is None:
+        raise UsageError(f"Couldn't read {studio.path}.")
+    modules = imported_modules(project, module)
+
+    print(f"Changes since {released.name}:")
+    unchanged = []
+    for current in modules:
+        element_id = element_ids.get(current.path)
+        local = current.path.read_text(encoding="utf-8")
+        try:
+            old = workspace.remote.pull(at_release, element_id) if element_id else None
+        except ApiError:
+            old = None
+        if old is None:
+            print(f"{current.relative}: new since the release")
+            continue
+        diff = list(
+            difflib.unified_diff(
+                old.splitlines(keepends=True),
+                local.splitlines(keepends=True),
+                fromfile=f"released/{current.relative}",
+                tofile=f"local/{current.relative}",
+            )
+        )
+        if not diff:
+            unchanged.append(current.relative)
+        elif args.stat:
+            added = sum(1 for line in diff if line.startswith("+") and not line.startswith("+++"))
+            removed = sum(1 for line in diff if line.startswith("-") and not line.startswith("---"))
+            print(f"{current.relative}: +{added} -{removed}")
+        else:
+            sys.stdout.writelines(diff)
+    if unchanged:
+        print("Unchanged: " + ", ".join(unchanged))
     return 0
 
 
@@ -1178,6 +1286,7 @@ OFFLINE_COMMANDS = {
     "mv": mv,
     "ui": ui,
     "deps": deps,
+    "strings": strings,
     "unused": unused,
     "refs": refs,
     "gen": gen,
@@ -1194,6 +1303,7 @@ COMMANDS = {
     "sync": sync,
     "status": status,
     "diff": diff,
+    "changes": changes,
     "update-std": update_std,
     "pull-std": pull_std,
     "release": release,

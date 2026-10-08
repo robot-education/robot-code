@@ -194,11 +194,6 @@ function sketchMountingPattern(context is Context, id is Id, definition is map, 
     return qSketchRegion(id);
 }
 
-function getComponentHoleDiameter(definition is map) returns ValueWithUnits
-{
-    return 0.201 * inch;
-}
-
 export function robotComponentManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
     return angleOffsetManipulatorChange(definition, newManipulators);

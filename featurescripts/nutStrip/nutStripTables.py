@@ -12,12 +12,13 @@ given the part number of the shortest stock it can be cut from; strips longer th
 
 import dataclasses
 
+from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
 
-# Placeholder appearances until vendor colors are picked: robotProperties.fs's WHITE, BLACK, and DARK_GRAY
-WHITE = "color(230 / 255, 230 / 255, 230 / 255)"
-BLACK = "color(0.3, 0.3, 0.3)"
-DARK_GRAY = "color(135 / 255, 135 / 255, 135 / 255)"
+# Appearances: robotProperties.fs's colors, for raw aluminum, other aluminum, and black anodized
+LIGHT_GRAY = "LIGHT_GRAY"
+MEDIUM_GRAY = "MEDIUM_GRAY"
+BLACK = "BLACK"
 
 
 def thread(name: str, size: str, pitch: str, major_diameter: str, tap_drill_diameter: str) -> Value:
@@ -133,7 +134,7 @@ WCP = vendor(
             ],
         ),
     ],
-    appearance=WHITE,
+    appearance=LIGHT_GRAY,
 )
 
 # https://lastanvil.com/products/nut-strip
@@ -160,7 +161,7 @@ LAST_ANVIL = vendor(
             ],
         )
     ],
-    appearance=WHITE,
+    appearance=LIGHT_GRAY,
 )
 
 # https://www.revrobotics.com/3-8in-nut-strips/
@@ -216,10 +217,11 @@ REV_FTC = vendor(
             ],
         )
     ],
-    appearance=DARK_GRAY,
+    appearance=MEDIUM_GRAY,
 )
 
 CONTENTS = [
+    Import("core/robotProperties.fs"),
     Table("frcNutStripTable", Node("vendor", [WCP, REV_FRC, LAST_ANVIL])),
     Table("ftcNutStripTable", Node("vendor", [REV_FTC])),
 ]

@@ -77,7 +77,7 @@ def plan_release(
     workspace: Workspace, script: str, bump: VersionType | None, beta: bool
 ) -> ReleasePlan:
     remote = workspace.remote
-    studio = _find_studio(workspace, script)
+    studio = find_studio(workspace, script)
     _check_in_sync(studio, "releasing")
     assert studio.remote
     is_beta_feature = _is_beta(workspace, studio)
@@ -170,7 +170,7 @@ class DeprecatePlan:
 
 
 def plan_deprecate(workspace: Workspace, script: str, keep_backend: bool) -> DeprecatePlan:
-    studio = _find_studio(workspace, script)
+    studio = find_studio(workspace, script)
     if not studio.released:
         raise UsageError(
             f"{studio.path} isn't released, so it can just be deleted (delete the file, then `fs push`). If it is "
@@ -326,7 +326,7 @@ def unsynced_versions(workspace: Workspace) -> list[Version]:
     return missing[::-1]
 
 
-def _find_studio(workspace: Workspace, script: str) -> Studio:
+def find_studio(workspace: Workspace, script: str) -> Studio:
     studios = workspace.scan(workspace.resolve_targets([script]))
     if len(studios) != 1:
         names = ", ".join(studio.path for studio in studios)

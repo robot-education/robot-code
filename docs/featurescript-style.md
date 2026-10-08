@@ -13,6 +13,14 @@ A feature's `definition` is a map, and each parameter its precondition declares 
 - Every parameter declared anywhere in the precondition (in any branch of an `if`, or in a predicate it calls) is a key
   with a value, its default until it's set, whether or not it's shown, and it keeps its value while it's hidden. A
   condition can read a parameter declared after it or in another branch.
+- While a feature runs (its body, editing logic, and manipulator change functions), every parameter has a value of
+  its type: don't guard parameters with `?? false`, `is boolean`, `isLength(...)`, and the like, even ones whose
+  conditions say they aren't shown (`definition.tieLength` is a length whatever `definition.tieHolesBy` is). Where a
+  value really can be missing (an optional field of a map, a lookup that can fail), check `!= undefined` rather than
+  its type.
+- Conditions can't read a lookup table's value. To show parameters by what's chosen in one, set a hidden
+  (`ALWAYS_HIDDEN`) parameter from it in editing logic, and use that, as std's hole does with `threadStandard` and
+  robotFrame does with `rectangularFrame`.
 - So a parameter can't be declared twice, even in different branches of an `if`: both would be the same key. Declare
   it once where both branches can share it (as `stockLocationPredicate` does with the secondary axis), and `fs check`
   reports it if you don't.
@@ -68,7 +76,7 @@ The feature's body should use the same predicates, so the parameters it reads ar
 A precondition's conditions can only use parameters, enum values, literals, and predicates, because Onshape works
 out which parameters to show without running the feature. Constants and functions don't work (`fs check` warns about
 them). When a UI state depends on data, like whether the chosen part has some property, generate the predicate from
-that data with `fs gen` rather than reading a constant. For example, `printAdapter/printAdapterProfiles.py`
+that data with `fs gen` rather than reading a constant. For example, `released/printAdapter/printAdapterProfiles.py`
 generates `printAdapterHasBoss` and `printAdapterHasSplineXsBore` from its list of adapters:
 
 ```
@@ -137,9 +145,10 @@ which ours never are; in a dialog, parameters take their defaults from their ann
 
 ## Editing logic and manipulator change functions
 
-Write these defensively: check that values are what they should be before using them (a manipulator's `index` or
-`flipped`, a hidden parameter, a field of `oldDefinition`), and fall back to a default rather than throwing. An error in
-one surfaces when the user clicks a manipulator or edits a parameter, far from its cause.
+Write these defensively where values can be missing: check with `!= undefined` before using them (a manipulator in
+`newManipulators`, a field of `oldDefinition`), and fall back to a default rather than throwing. An error in one
+surfaces when the user clicks a manipulator or edits a parameter, far from its cause. Parameters themselves are never
+missing (see "Definitions are maps").
 
 The first time editing logic runs (when the feature is created), `oldDefinition` is the empty map `{}`. Usually there's
 nothing to do then, so return early:
@@ -159,9 +168,26 @@ annotation (`"Manipulator Change Function" : "stockManipulatorChange"`) rather t
 
 ## Comparing lengths and angles
 
-Compare measured values with std's tolerant functions (`tolerantEquals`, `tolerantLessThan`,
+Compare measured values with std's tolerant functions (`tolerantEquals`, `tolerantEqualsZero`, `tolerantLessThan`,
 `tolerantLessThanOrEqual`, `tolerantGreaterThan`, ...) rather than `<`, `>`, and `==`, or adding
-`TOLERANCE.zeroLength` by hand. This goes for editing logic too.
+`TOLERANCE.zeroLength` by hand. This goes for editing logic too. Use `tolerantEqualsZero(x)` rather than
+`tolerantEquals(x, 0 * meter)`.
+
+Std's functions already allow for tolerance (`parallelVectors`, `perpendicularVectors`, the evaluation functions, and
+operations), so don't add margins of your own, like treating nearly parallel vectors as parallel.
+
+## No fallbacks or retries
+
+FeatureScript is deterministic: an operation which fails will fail the same way every time it's run with the same
+inputs, so retrying it never helps. Don't write fallbacks either (`try` one operation and do another if it fails):
+- They're slow, since the failing operation runs (and fails) on every regeneration.
+- They're fragile: which branch runs can change with a small edit upstream, and the branches make different
+  geometry with different ids, so references to it break.
+
+Pick the one operation which works and use it. Catching an error is fine to replace it with a clearer one (or to show
+what failed before rethrowing), and a `try silent` guard is fine in editing logic, which mustn't throw while the dialog
+is being filled in; but say so in a comment, and call out every `try` in the feature's writeup (see
+`docs/feature-writeups.md`).
 
 ## Types for structured data
 

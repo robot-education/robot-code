@@ -163,7 +163,7 @@ function checkLineParallel(context is Context, edge is Query, planeNormal is Vec
         // The entity is not a line
         return false;
     }
-    if (!tolerantEquals(dot(line.direction, planeNormal), 0))
+    if (!tolerantEqualsZero(dot(line.direction, planeNormal)))
     {
         throw regenError(ErrorStringEnum.EXTRUDE_START_OFFSET_BOUND_NOT_PARALLEL_TO_EXTRUDED_ENTITIES, ["startOffsetEntity"], edge);
     }

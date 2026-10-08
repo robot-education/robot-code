@@ -266,12 +266,9 @@ export const uiTestBench = defineFeature(function(context is Context, id is Id, 
             annotation { "Name" : "Item length" }
             isLength(item.itemLength, BENCH_LENGTH_BOUNDS);
 
-            // A group in an array item
-            annotation { "Group Name" : "Item group", "Collapsed By Default" : false }
-            {
-                annotation { "Name" : "Inside an item's group" }
-                item.itemCheckbox is boolean;
-            }
+            // Onshape doesn't allow groups in array items
+            annotation { "Name" : "Item checkbox" }
+            item.itemCheckbox is boolean;
         }
     }
     {

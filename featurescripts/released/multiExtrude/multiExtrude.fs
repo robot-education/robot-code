@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "onshape/std/extrude.fs", version : "2960.0");
 export import(path : "onshape/std/extrudeCommon.fs", version : "2960.0");
-import(path : "core/stdExtrude.fs", version : "");
+import(path : "21762d39019c8b2289e2fbb8", version : "f40a9d160de84aecb5b2c022");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
@@ -206,33 +206,5 @@ predicate mainViewExtrudePredicate(definition is map)
     else
     {
         surfaceJoinStepScopePredicate(definition);
-    }
-}
-
-predicate extrudeOffsetPredicate(definition is map)
-{
-    annotation { "Name" : "Starting offset" }
-    definition.startOffset is boolean;
-    if (definition.startOffset)
-    {
-        annotation { "Group Name" : "Starting offset", "Driving Parameter" : "startOffset", "Collapsed By Default" : false }
-        {
-            annotation { "Name" : "Starting offset bound" }
-            definition.startOffsetBound is StartOffsetType;
-            if (definition.startOffsetBound == StartOffsetType.BLIND)
-            {
-                annotation { "Name" : "Depth", "Column Name" : "Starting offset depth" }
-                isLength(definition.startOffsetDistance, LENGTH_BOUNDS);
-                annotation { "Name" : "Opposite direction", "Column Name" : "Starting offset opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
-                definition.startOffsetOppositeDirection is boolean;
-            }
-            else
-            {
-                annotation { "Name" : "Entity",
-                            "Filter" : (GeometryType.PLANE && EntityType.FACE) || EntityType.EDGE || EntityType.VERTEX || BodyType.MATE_CONNECTOR,
-                            "MaxNumberOfPicks" : 1, "Column Name" : "Starting offset entity" }
-                definition.startOffsetEntity is Query;
-            }
-        }
     }
 }

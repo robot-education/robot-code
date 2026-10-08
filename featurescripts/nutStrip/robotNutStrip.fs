@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-RobotNutStripIcon::import(path : "70fa8905356b9bb43809037c", version : "723096218434914d6c71e0ec");
+RobotNutStripIcon::import(path : "70fa8905356b9bb43809037c", version : "12b10c2429507285a4d9cef1");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "e316d3a31f8726cbc70fe081", version : "f8720e7e64d2b639cd3f03d8");

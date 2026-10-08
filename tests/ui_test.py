@@ -183,7 +183,7 @@ def test_dialog_follows_the_precondition(repo):
     assert "data-set='flip' data-value='true'" in flip
     assert "os-param-fill-first-column" in parameter(page, "depth")
     # The group's driving parameter is a checkbox in its header
-    assert "<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='hasSecond'>" in page
+    assert "<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='hasSecond' data-tip-name='Second'" in page
 
 
 def test_short_parameters_share_a_row(repo):
@@ -214,6 +214,53 @@ def test_groups_inside_false_conditions_keep_their_headers(repo):
     assert "data-driving-parameter-id='hasExtra'" in page and "ng-hide" in page
     page, _ = render(repo, "hasExtra=true")
     assert texts(page)[1:] == ["Extra", "Extra depth", "1 in"]
+
+
+def test_groups_hidden_with_their_driving_parameters(repo):
+    (repo / "featurescripts" / "widget.fs").write_text(HIDDEN_DRIVEN_GROUP_FEATURE)
+    page, _ = render(repo, "hasSecond=true")
+    assert texts(page)[1:] == ["Symmetric", "Second", "Offset", "1 in"]
+    # A button after a checkbox and a short value stays in their row
+    row = page[page.index("data-parameter-id='hasOffset'") :]
+    row = row[: row.index("</os-parameter-group>")]
+    assert "data-parameter-id='offsetOpposite'" in row
+    # Hiding the group's driving parameter hides the group, header and all
+    page, _ = render(repo, "symmetric=true", "hasSecond=true")
+    assert texts(page)[1:] == ["Symmetric"]
+    assert "data-group=" not in page
+
+
+HIDDEN_DRIVEN_GROUP_FEATURE = """FeatureScript 1;
+import(path : "onshape/std/common.fs", version : "1.0");
+
+annotation { "Feature Type Name" : "Widget" }
+export const widget = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "Symmetric" }
+        definition.symmetric is boolean;
+
+        if (!definition.symmetric)
+        {
+            annotation { "Name" : "Second" }
+            definition.hasSecond is boolean;
+
+            annotation { "Group Name" : "Group", "Driving Parameter" : "hasSecond", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Offset", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW"], "Default" : true }
+                definition.hasOffset is boolean;
+
+                annotation { "Name" : "Offset", "UIHint" : ["DISPLAY_SHORT"] }
+                isLength(definition.offset, LENGTH_BOUNDS);
+
+                annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+                definition.offsetOpposite is boolean;
+            }
+        }
+    }
+    {
+    });
+"""
 
 
 DRIVEN_GROUP_FEATURE = """FeatureScript 1;
@@ -422,3 +469,20 @@ def test_html_for_the_preview(repo, capsys):
     # Controls say which parameter they set, and to what
     assert "data-set='placement' data-value='EDGE'><span>Edge</span>" in page
     assert not (repo / "widget.png").exists()
+
+
+def test_tooltips(repo):
+    # Each parameter says what the preview's tooltip for it shows: its name, its default, and its UI hints
+    page, _ = render(repo, "placement=POINT", "size=REV", "depth=3 in", "hasSecond=false")
+    tips = {
+        name: dict(re.findall(r" data-tip-(\w+)='([^']*)'", re.search(rf"<div [^>]*data-parameter-id='{name}' data-tip-[^>]*>", page)[0]))
+        for name in ("placement", "size", "depth", "flip", "hasSecond")
+    }
+    assert tips == {
+        # The feature's defaults map gives placement's default
+        "placement": {"name": "Placement", "default": "Edge", "hints": "HORIZONTAL_ENUM"},
+        "size": {"name": "Size", "default": "WCP &gt; 1/2 in."},
+        "depth": {"name": "Depth", "default": "1 in"},
+        "flip": {"name": "Flip", "default": "false", "hints": "OPPOSITE_DIRECTION"},
+        "hasSecond": {"name": "Second", "default": "true"},
+    }

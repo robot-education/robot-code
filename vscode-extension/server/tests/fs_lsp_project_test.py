@@ -405,6 +405,51 @@ def test_duplicate_top_level_symbols(project):
     ]
 
 
+def test_groups_in_array_items(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f"FeatureScript 2909;\n{STD}\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Group Name" : "Outside" }\n        {\n            definition.a is boolean;\n        }\n'
+        "        definition.items is array;\n"
+        "        for (var item in definition.items)\n        {\n"
+        '            annotation { "Group Name" : "Inside" }\n            {\n                item.b is boolean;\n            }\n'
+        "        }\n"
+        "    }\n    {\n    });\n"
+    )
+    source = project.module(path).parsed.source
+    problems = [p for p in project.check(project.module(path)) if p.code == "array-group"]
+    assert [(source[p.start : p.end], project.module(path).position(p.start)[0]) for p in problems] == [
+        ('"Group Name"', 12)
+    ]
+
+
+def test_duplicate_overloads(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export function area(x is number) returns number { return x; }\n"
+        "export predicate sizePredicate(definition is map) { definition.size is boolean; }\n"
+    )
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f'FeatureScript 2909;\n{STD}\nimport(path : "{SHAPES_ID}", version : "v");\n'
+        # Overloads with the same parameter types as the project's, or each other, can't be told apart
+        "predicate sizePredicate(definition is map) { definition.size is boolean; }\n"
+        "function volume(x is number, y) returns number { return x; }\n"
+        "function volume(x is number, y) returns number { return x; }\n"
+        # Different parameter types are fine
+        "function area(x is string) returns string { return x; }\n"
+        "function volume(x is number) returns number { return x; }\n"
+    )
+    source = project.module(path).parsed.source
+    problems = [p for p in project.check(project.module(path)) if p.code == "duplicate-overload"]
+    assert [(source[p.start:p.end], p.message.split(": ")[0], p.message.split(": ")[1].split(" already")[0]) for p in problems] == [
+        ("sizePredicate", "Duplicate predicate sizePredicate(map)", "core/shapes.fs"),
+        ("volume", "Duplicate function volume(number, )", "this file (line 5)"),
+    ]
+
+
 def test_std_parameter_enums_must_be_exported(project):
     (project.code_dir / "core" / "shapes.fs").write_text(
         "FeatureScript 2909;\n"

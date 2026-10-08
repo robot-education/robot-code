@@ -34,25 +34,22 @@ annotation {
 export const robotPrintAdapter = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
+        printAdapterSelectionPredicate(definition);
+
+        if (printAdapterHasBoss(definition))
         {
-            printAdapterSelectionPredicate(definition);
-
-            if (printAdapterHasBoss(definition))
-            {
-                annotation { "Name" : "Use boss", "Default" : true, "Description" : "Leave room for the adapter's boss above the print, instead of sinking the whole adapter in.", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.useBoss is boolean;
-            }
-
-            locationPredicate(definition, "print adapter");
-
-            annotation { "Name" : "Opposite direction", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
-            definition.oppositeDirection is boolean;
-
-            profileOffsetPredicate(definition);
-
-            holeMergeScopePredicate(definition);
+            annotation { "Name" : "Use boss", "Default" : true, "Description" : "Leave room for the adapter's boss above the print, instead of sinking the whole adapter in.", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.useBoss is boolean;
         }
+
+        locationPredicate(definition, "print adapter");
+
+        annotation { "Name" : "Opposite direction", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
+        definition.oppositeDirection is boolean;
+
+        profileOffsetPredicate(definition);
+
+        holeMergeScopePredicate(definition);
 
         annotation { "Name" : "Add bore" }
         definition.addBore is boolean;

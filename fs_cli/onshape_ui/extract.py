@@ -34,6 +34,13 @@ label.os-param-checkbox .os-checkbox-indicator {border: 1px solid var(--os-param
 label.os-param-checkbox input.os-param-checkbox-input:checked ~ .os-checkbox-indicator {background-color: var(--os-parameter-checkbox-fill--checked); background-repeat: no-repeat; background-position: center; background-size: 100%}
 """
 
+# Variables fs ui's own styles use (see PAGE_STYLE in fs_cli/ui.py), for things Onshape's page didn't show, like the
+# tooltips of parameters
+OWN_VARIABLES = """
+var(--os-tooltip-fill) var(--os-tooltip-text) var(--os-tooltip-padding-top) var(--os-tooltip-padding-bottom)
+var(--os-padding-sm) var(--os-radius-xs) var(--os-hover-secondary)
+"""
+
 # Rules which apply to the whole page or define variables, kept whatever they match
 _GLOBAL = re.compile(r"(?:^|[\s,>])(?::root|html|body|\[data-os-theme[^\]]*\])")
 
@@ -146,7 +153,7 @@ def main() -> None:
     rules = tinycss2.parse_stylesheet(css, skip_comments=True, skip_whitespace=True)
     pruned = prune(rules, soup)
     symbols = soup.find_all("symbol")
-    variables = used_variables(pruned, "".join(map(str, symbols)))
+    variables = used_variables(pruned, "".join(map(str, symbols)) + OWN_VARIABLES)
     kept = [text for rule in pruned if (text := rule.text(variables))]
     header = f"/* Onshape's feature dialog styles, extracted from {args.page.name} by extract.py. Don't edit. */\n"
     (HERE / "dialog.css").write_text(header + "\n".join(kept) + "\n" + REPAIRS)

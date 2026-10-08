@@ -1,6 +1,7 @@
 """Frame lookup tables for robotFrame: tube, channel, angle, and extrusion. Run `uv run fs gen` after editing.
 
-Each vendor's frames are chosen by size, then (where a size comes in more than one) by hole pattern, then by wall
+Each vendor's frames are chosen by profile (tube, with channel and extrusion, or angle) where it sells more than one,
+then by size, then (where a size comes in more than one) by hole pattern, then by wall
 thickness. A choice with only one option is kept when it says something (like the wall thickness), and left out when
 it wouldn't (like goBILDA's series), so tables vary in depth. Options follow FRCDesign's (see docs/cots-research.md),
 checked against the vendors' drawings and CAD (in vendor/).
@@ -31,9 +32,10 @@ from fs_cli.tables import Node, Table, Value, inch, mm, string
 
 VENDOR = pathlib.Path(__file__).parent / "vendor"
 
-# Placeholder appearances until vendor colors are picked: robotProperties.fs's WHITE and BLACK
-WHITE = "color(230 / 255, 230 / 255, 230 / 255)"
-BLACK = "color(0.3, 0.3, 0.3)"
+# Appearances: robotProperties.fs's colors, for raw aluminum, other (like clear anodized) aluminum, and black anodized
+LIGHT_GRAY = "LIGHT_GRAY"
+MEDIUM_GRAY = "MEDIUM_GRAY"
+BLACK = "BLACK"
 
 
 def fs_map(values: dict[str, str]) -> str:
@@ -120,12 +122,32 @@ def grid(face: float, pitch: float = 0.5, start: float = 0.5) -> list[str]:
     return [row(inch(start), inch(pitch), [shape(inch(k * pitch)) for k in range(-count, count + 1)])]
 
 
-def vendor(name: str, url: str, appearance: str | None, sizes: list[Value]) -> Value:
-    """A vendor's frames, which all have `appearance`, unless it's None (as values closer to the root win)."""
+# What's chosen by default, where it's an option: the most common size of tube, and wall
+DEFAULT_SIZE = "2x1"
+DEFAULT_WALL = "1/16 in."
+
+
+def default(entries: list[Value], name: str) -> str | None:
+    """`name`, if it's one of `entries`, to choose it by default."""
+    return name if any(entry.name == name for entry in entries) else None
+
+
+def sizes_node(sizes: list[Value]) -> Node:
+    return Node("size", sizes, default=default(sizes, DEFAULT_SIZE))
+
+
+def vendor(name: str, url: str, appearance: str | None, sizes: list[Value] | Node) -> Value:
+    """A vendor's frames, by size (or by `profiles`), which all have `appearance`, unless it's None (as values closer
+    to the root win)."""
     values = {"vendor": string(name), "url": string(url)}
     if appearance is not None:
         values["appearance"] = appearance
-    return Value(name, values, Node("size", sizes))
+    return Value(name, values, sizes if isinstance(sizes, Node) else sizes_node(sizes))
+
+
+def profiles(tube: list[Value], angle: list[Value]) -> Node:
+    """A choice of profile, then size, for a vendor which sells tube (with channel and extrusion) and angle."""
+    return Node("profile", [Value("Tube", {}, sizes_node(tube)), Value("Angle", {}, sizes_node(angle))])
 
 
 # The choices after size, by the key they're stored under
@@ -135,12 +157,13 @@ LEVELS = {"pattern": "Pattern", "wall": "Wall", "finish": "Finish", "variant": "
 def size(name: str, entries: list[Value], appearance: str | None = None, level: str = "wall") -> Value:
     """A size of a vendor's frames, with a choice between `entries`: of wall thickness, unless `level` says otherwise."""
     values = {"appearance": appearance} if appearance is not None else {}
-    return Value(name, values, Node(level, entries, display_name=LEVELS[level]))
+    wall = default(entries, DEFAULT_WALL) if level == "wall" else None
+    return Value(name, values, Node(level, entries, display_name=LEVELS[level], default=wall))
 
 
 def pattern(name: str, walls: list[Value]) -> Value:
     """A hole pattern a size comes in, with a choice of wall thickness."""
-    return Value(name, {}, Node("wall", walls, display_name="Wall"))
+    return Value(name, {}, Node("wall", walls, display_name="Wall", default=default(walls, DEFAULT_WALL)))
 
 
 def only(name: str, frame: Value, appearance: str | None = None) -> Value:
@@ -245,66 +268,65 @@ def wcp_bent(part_number: str, name: str, kind: str, width: float, height: float
 WCP = vendor(
     "WCP",
     "https://wcproducts.com/products/punched-tubing",
-    WHITE,
-    [
-        size(
-            "1x1",
-            [
-                wcp_tube("WCP-0924", "1/16 in.", 1, 1, 0.0625),
-                # Sold as 0.093 in.
-                wcp_tube("WCP-1586", "3/32 in.", 1, 1, 0.093),
-                wcp_tube("WCP-1023", "1/8 in.", 1, 1, 0.125),
-            ],
-        ),
-        size(
-            "2x1",
-            [
-                pattern(
-                    "Full",
-                    [
-                        wcp_tube("WCP-0895", "1/16 in.", 2, 1, 0.0625),
-                        wcp_tube("WCP-1428", "3/32 in.", 2, 1, 0.09375),
-                        wcp_tube("WCP-1025", "1/8 in.", 2, 1, 0.125),
-                    ],
-                ),
-                pattern(
-                    "1 in. sides only",
-                    [
-                        wcp_tube("WCP-0894", "1/16 in.", 2, 1, 0.0625, sides_only=True),
-                        wcp_tube("WCP-1427", "3/32 in.", 2, 1, 0.09375, sides_only=True),
-                        wcp_tube("WCP-1024", "1/8 in.", 2, 1, 0.125, sides_only=True),
-                    ],
-                ),
-            ],
-            level="pattern",
-        ),
-        size(
-            "2x2",
-            [
-                wcp_tube("WCP-0926", "1/16 in.", 2, 2, 0.0625),
-                # Sold as 0.093 in.
-                wcp_tube("WCP-1587", "3/32 in.", 2, 2, 0.093),
-            ],
-        ),
+    LIGHT_GRAY,
+    profiles(
+        [
+            size(
+                "1x1",
+                [
+                    wcp_tube("WCP-0924", "1/16 in.", 1, 1, 0.0625),
+                    # Sold as 0.093 in.
+                    wcp_tube("WCP-1586", "3/32 in.", 1, 1, 0.093),
+                    wcp_tube("WCP-1023", "1/8 in.", 1, 1, 0.125),
+                ],
+            ),
+            size(
+                "2x1",
+                [
+                    pattern(
+                        "Full",
+                        [
+                            wcp_tube("WCP-0895", "1/16 in.", 2, 1, 0.0625),
+                            wcp_tube("WCP-1428", "3/32 in.", 2, 1, 0.09375),
+                            wcp_tube("WCP-1025", "1/8 in.", 2, 1, 0.125),
+                        ],
+                    ),
+                    pattern(
+                        "1 in. sides only",
+                        [
+                            wcp_tube("WCP-0894", "1/16 in.", 2, 1, 0.0625, sides_only=True),
+                            wcp_tube("WCP-1427", "3/32 in.", 2, 1, 0.09375, sides_only=True),
+                            wcp_tube("WCP-1024", "1/8 in.", 2, 1, 0.125, sides_only=True),
+                        ],
+                    ),
+                ],
+                level="pattern",
+            ),
+            size(
+                "2x2",
+                [
+                    wcp_tube("WCP-0926", "1/16 in.", 2, 2, 0.0625),
+                    # Sold as 0.093 in.
+                    wcp_tube("WCP-1587", "3/32 in.", 2, 2, 0.093),
+                ],
+            ),
+            # Bent from 2.5 mm sheet, as the angle is
+            size(
+                "C-Channel",
+                [
+                    wcp_bent("WCP-0931", "1x1x1", "C-Channel", 1, 1, open=True),
+                    wcp_bent("WCP-0932", "1x2x1", "C-Channel", 2, 1, open=True),
+                ],
+                level="variant",
+            ),
+        ],
         # Bent from 2.5 mm sheet (FRCDesign has 0.090 in., but WCP's pages say 2.5 mm); their bends are left sharp
         # TODO: WCP's drawings, to check that their holes are on the usual grid, centered on each face
-        size(
-            "Angle",
-            [
-                wcp_bent("WCP-0929", "1x1", "Angle", 1, 1, angle=True),
-                wcp_bent("WCP-0930", "2x2", "Angle", 2, 2, angle=True),
-            ],
-            level="variant",
-        ),
-        size(
-            "C-Channel",
-            [
-                wcp_bent("WCP-0931", "1x1x1", "C-Channel", 1, 1, open=True),
-                wcp_bent("WCP-0932", "1x2x1", "C-Channel", 2, 1, open=True),
-            ],
-            level="variant",
-        ),
-    ],
+        [
+            wcp_bent("WCP-0929", "1x1", "Angle", 1, 1, angle=True),
+            wcp_bent("WCP-0930", "2x2", "Angle", 2, 2, angle=True),
+        ],
+    ),
 )
 
 
@@ -356,7 +378,7 @@ def rev_angle() -> Value:
     """REV's angle (drawing: REV-21-3207-DR.pdf): 5 mm holes every 1/2 in. on each leg, 1/2 in. from the outside of the
     other, starting 1/2 in. from the end."""
     holes = [row(inch(0.5), inch(0.5), [shape(inch(0.5 - 0.74 / 2))])]
-    return tube(
+    value = tube(
         "0.74x0.74",
         "0.74x0.74 Angle (REV)",
         0.74,
@@ -371,6 +393,8 @@ def rev_angle() -> Value:
         stock((inch(47), "REV-21-3207", "https://www.revrobotics.com/rev-21-3207/")),
         angle=True,
     )
+    value.values["appearance"] = MEDIUM_GRAY
+    return value
 
 
 REV_1IN_URL = "https://www.revrobotics.com/1in-extrusion/"
@@ -447,97 +471,99 @@ REV = vendor(
     "https://www.revrobotics.com/MAXTube",
     # Each size's own, since the extrusion comes in two
     None,
-    [
-        size(
-            "1/2x1/2",
-            [
-                rev_tube(
-                    "REV-21-3289",
-                    REV_HALF_URL,
-                    "1/16 in.",
-                    0.5,
-                    0.5,
-                    0.0625,
-                    x_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    y_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    tie_start=0.25,
-                )
-            ],
-            WHITE,
-        ),
-        size(
-            "1x1",
-            [
-                rev_tube("REV-21-2160", REV_1X1_URL, "Standard", 1, 1, REV_MM, detail="standard",
-                         profile="REV_MAXTUBE_1X1"),
-                rev_tube("REV-21-3540", REV_1X1_URL, "1/16 in.", 1, 1, 0.0625),
-                rev_tube("REV-21-3543", REV_1X1_URL, "1/8 in.", 1, 1, 0.125),
-            ],
-            WHITE,
-        ),
-        size(
-            "2x1",
-            [
-                pattern(
-                    "Grid",
-                    [
-                        rev_tube("REV-21-2289", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light",
-                                 profile="REV_MAXTUBE_2X1_LIGHT_GRID"),
-                        rev_tube("REV-21-3552", REV_2X1_URL, "1/16 in.", 2, 1, 0.0625),
-                        rev_tube("REV-21-3555", REV_2X1_URL, "1/8 in.", 2, 1, 0.125),
-                        rev_tube("REV-21-3586", REV_2X1_URL, "3/16 in.", 2, 1, 0.1875),
-                    ],
-                ),
-                pattern(
-                    "1 in. sides only",
-                    [
-                        rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light, 1 in. sides only",
-                                 y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT"),
-                        rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_MM,
-                                 detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1"),
-                    ],
-                ),
-                pattern(
-                    "MAX Pattern",
-                    [
-                        max_pattern_tube("Standard", "standard, MAX Pattern", [2163, 2164, 2165, 2169, 2173, 2177, 2185],
-                                         profile="REV_MAXTUBE_2X1_MAX"),
-                        max_pattern_tube("1/8 in.", "1/8 in. wall, MAX Pattern", [3558, 3559, 3560, 3564, 3568, 3572, 3580]),
-                    ],
-                ),
-            ],
-            WHITE,
-            level="pattern",
-        ),
-        size(
-            "2x2",
-            [
-                # 1/8 in. walls, with hollow corners
-                pattern("Grid", [rev_tube("REV-21-3288", REV_2X2_URL, "1/8 in.", 2, 2, 0.125, detail="grid",
-                                          profile="REV_MAXTUBE_2X2")]),
-                pattern("MAX Pattern", [rev_tube("REV-21-3286", REV_2X2_URL, "1/8 in.", 2, 2, 0.125,
-                                                 detail="MAX Pattern", x_rows=max_pattern(), y_rows=max_pattern(),
-                                                 tie_unit=2, profile="REV_MAXTUBE_2X2_MAX")]),
-                pattern("MAX Pattern and grid", [rev_tube("REV-21-3287", REV_2X2_URL, "1/8 in.", 2, 2, 0.125,
-                                                          detail="MAX Pattern and grid", y_rows=max_pattern(),
-                                                          profile="REV_MAXTUBE_2X2")]),
-            ],
-            WHITE,
-            level="pattern",
-        ),
-        size("Angle", [rev_angle()], WHITE, level="variant"),
-        size(
-            "1 in. Extrusion",
-            [
-                # 4 ft (REV-21-1000's STEP file)
-                extrusion("Clear anodized", "1in Extrusion (REV, clear)", 1, 1, "REV_1IN_EXTRUSION", WHITE,
-                          stock((inch(48), "REV-21-1000", REV_1IN_URL))),
-                extrusion("Black anodized", "1in Extrusion (REV, black)", 1, 1, "REV_1IN_EXTRUSION", BLACK,
-                          stock((inch(48), "REV-21-1404", REV_1IN_URL))),
-            ],
-            level="finish",
-        ),
-    ],
+    profiles(
+        [
+            size(
+                "1/2x1/2",
+                [
+                    rev_tube(
+                        "REV-21-3289",
+                        REV_HALF_URL,
+                        "1/16 in.",
+                        0.5,
+                        0.5,
+                        0.0625,
+                        x_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                        y_rows=[row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                        tie_start=0.25,
+                    )
+                ],
+                MEDIUM_GRAY,
+            ),
+            size(
+                "1x1",
+                [
+                    rev_tube("REV-21-2160", REV_1X1_URL, "Standard", 1, 1, REV_MM, detail="standard",
+                             profile="REV_MAXTUBE_1X1"),
+                    rev_tube("REV-21-3540", REV_1X1_URL, "1/16 in.", 1, 1, 0.0625),
+                    rev_tube("REV-21-3543", REV_1X1_URL, "1/8 in.", 1, 1, 0.125),
+                ],
+                MEDIUM_GRAY,
+            ),
+            size(
+                "2x1",
+                [
+                    pattern(
+                        "Grid",
+                        [
+                            rev_tube("REV-21-2289", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light",
+                                     profile="REV_MAXTUBE_2X1_LIGHT_GRID"),
+                            rev_tube("REV-21-3552", REV_2X1_URL, "1/16 in.", 2, 1, 0.0625),
+                            rev_tube("REV-21-3555", REV_2X1_URL, "1/8 in.", 2, 1, 0.125),
+                            rev_tube("REV-21-3586", REV_2X1_URL, "3/16 in.", 2, 1, 0.1875),
+                        ],
+                    ),
+                    pattern(
+                        "1 in. sides only",
+                        [
+                            rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light, 1 in. sides only",
+                                     y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT"),
+                            rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_MM,
+                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1"),
+                        ],
+                    ),
+                    pattern(
+                        "MAX Pattern",
+                        [
+                            max_pattern_tube("Standard", "standard, MAX Pattern", [2163, 2164, 2165, 2169, 2173, 2177, 2185],
+                                             profile="REV_MAXTUBE_2X1_MAX"),
+                            max_pattern_tube("1/8 in.", "1/8 in. wall, MAX Pattern", [3558, 3559, 3560, 3564, 3568, 3572, 3580]),
+                        ],
+                    ),
+                ],
+                MEDIUM_GRAY,
+                level="pattern",
+            ),
+            size(
+                "2x2",
+                [
+                    # 1/8 in. walls, with hollow corners
+                    pattern("Grid", [rev_tube("REV-21-3288", REV_2X2_URL, "1/8 in.", 2, 2, 0.125, detail="grid",
+                                              profile="REV_MAXTUBE_2X2")]),
+                    pattern("MAX Pattern", [rev_tube("REV-21-3286", REV_2X2_URL, "1/8 in.", 2, 2, 0.125,
+                                                     detail="MAX Pattern", x_rows=max_pattern(), y_rows=max_pattern(),
+                                                     tie_unit=2, profile="REV_MAXTUBE_2X2_MAX")]),
+                    pattern("MAX Pattern and grid", [rev_tube("REV-21-3287", REV_2X2_URL, "1/8 in.", 2, 2, 0.125,
+                                                              detail="MAX Pattern and grid", y_rows=max_pattern(),
+                                                              profile="REV_MAXTUBE_2X2")]),
+                ],
+                MEDIUM_GRAY,
+                level="pattern",
+            ),
+            size(
+                "1 in. Extrusion",
+                [
+                    # 4 ft (REV-21-1000's STEP file)
+                    extrusion("Clear anodized", "1in Extrusion (REV, clear)", 1, 1, "REV_1IN_EXTRUSION", MEDIUM_GRAY,
+                              stock((inch(48), "REV-21-1000", REV_1IN_URL))),
+                    extrusion("Black anodized", "1in Extrusion (REV, black)", 1, 1, "REV_1IN_EXTRUSION", BLACK,
+                              stock((inch(48), "REV-21-1404", REV_1IN_URL))),
+                ],
+                level="finish",
+            ),
+        ],
+        [rev_angle()],
+    ),
 )
 
 
@@ -565,7 +591,7 @@ def am_tube(part_number: str, wall: str, width: float, height: float, thickness:
 ANDYMARK = vendor(
     "AndyMark",
     AM_URL,
-    WHITE,
+    LIGHT_GRAY,
     [
         size(
             "1x1",
@@ -611,7 +637,7 @@ def ttb_tube(sku: str, wall: str, thickness: float) -> Value:
 TTB = vendor(
     "ThriftyBot",
     TTB_URL,
-    WHITE,
+    LIGHT_GRAY,
     [
         size(
             "2x1",
@@ -770,7 +796,7 @@ GOBILDA_HOLES = [*range(1, 19), 21, 25, 29, 33, 37, 41, 45, 49]
 GOBILDA = vendor(
     "goBILDA",
     "https://www.gobilda.com/channel/",
-    WHITE,
+    MEDIUM_GRAY,
     [
         only(
             "U-Channel",
@@ -863,7 +889,7 @@ GOBILDA = vendor(
 ROBITS = vendor(
     "AndyMark",
     AM_URL,
-    WHITE,
+    LIGHT_GRAY,
     [
         size(
             "1/2x1/2 (Robits)",
@@ -897,7 +923,7 @@ REV_FTC = vendor(
         size(
             "15mm Extrusion",
             [
-                extrusion("Clear anodized", "15mm Extrusion (REV, clear)", 15, 15, "REV_15MM_EXTRUSION", WHITE,
+                extrusion("Clear anodized", "15mm Extrusion (REV, clear)", 15, 15, "REV_15MM_EXTRUSION", MEDIUM_GRAY,
                           stock((mm(120), "REV-41-1568-PK2", REV_15MM_URL), (mm(225), "REV-41-1431-PK2", REV_15MM_URL),
                                 (mm(420), "REV-41-1432-PK4", REV_15MM_URL), (mm(1000), "REV-41-1017", REV_15MM_URL)),
                           unit=mm),
@@ -909,7 +935,7 @@ REV_FTC = vendor(
         size(
             "15x30mm Extrusion",
             [
-                extrusion("Clear anodized", "15x30mm Extrusion (REV, clear)", 30, 15, "REV_15X30MM_EXTRUSION", WHITE,
+                extrusion("Clear anodized", "15x30mm Extrusion (REV, clear)", 30, 15, "REV_15X30MM_EXTRUSION", MEDIUM_GRAY,
                           stock((mm(420), "REV-41-1587-PK4", REV_15MM_URL), (mm(1000), "REV-41-1093", REV_15MM_URL)),
                           unit=mm),
                 extrusion("Black anodized", "15x30mm Extrusion (REV, black)", 30, 15, "REV_15X30MM_EXTRUSION", BLACK,
@@ -920,9 +946,63 @@ REV_FTC = vendor(
     ],
 )
 
+
+# Custom frames: a profile and size, and how many rows of holes go on each face, which robotFrame spaces and sizes as the feature
+# says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y.
+
+
+def custom_size(name: str, width: float, height: float, rows: Node, angle: bool = False) -> Value:
+    return Value(
+        name, {"width": inch(width), "height": inch(height), "angle": "true" if angle else "false"}, rows
+    )
+
+
+def rows(name: str, most: int, default: int, keys: tuple[str, ...], display_name: str = "Rows", next: Node | None = None) -> Node:
+    """A choice of 1 to `most` rows of holes, stored under each of `keys`."""
+    return Node(
+        name,
+        [Value(str(count), {key: str(count) for key in keys}, next) for count in range(1, most + 1)],
+        display_name=display_name,
+        default=str(default),
+    )
+
+
+def square(name: str, side: float, most: int, default: int, angle: bool = False) -> Value:
+    """A square profile, with the same number of rows of holes on each face."""
+    return custom_size(name, side, side, rows("rows", most, default, ("sideRows", "topRows")), angle)
+
+
+CUSTOM_TUBE = Node(
+    "size",
+    [
+        square("1x1", 1, 2, 1),
+        custom_size(
+            "2x1",
+            2,
+            1,
+            rows(
+                "wideRows",
+                3,
+                3,
+                ("topRows",),
+                "2 in. face rows",
+                rows("narrowRows", 2, 1, ("sideRows",), "1 in. face rows"),
+            ),
+        ),
+        square("2x2", 2, 3, 3),
+    ],
+    default=DEFAULT_SIZE,
+)
+
+CUSTOM_ANGLE = Node("size", [square("1x1", 1, 2, 1, angle=True), square("2x2", 2, 3, 3, angle=True)])
+
+CUSTOM = Node("profile", [Value("Tube", {}, CUSTOM_TUBE), Value("Angle", {}, CUSTOM_ANGLE)])
+
 CONTENTS = [
     Import("core/sketchData.fs"),
+    Import("core/robotProperties.fs"),
     *PROFILES,
     Table("frcFrameTable", Node("vendor", [WCP, REV, ANDYMARK, TTB, SWYFT, LAST_ANVIL])),
+    Table("customFrameTable", CUSTOM),
     Table("ftcFrameTable", Node("vendor", [GOBILDA, REV_FTC, ROBITS])),
 ]

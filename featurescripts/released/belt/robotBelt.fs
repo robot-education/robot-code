@@ -625,27 +625,28 @@ precondition
     }
 }
 
-/**
- * Computes the number of teeth required to achieve the specified `targetCenterToCenter` distance.
- * Note the number of teeth may be a fraction.
- */
-function computeTargetBeltTeeth(pitch is ValueWithUnits, pulleyTeethArray is array, targetCenterToCenter is ValueWithUnits) returns number
-precondition
-{
-    size(pulleyTeethArray) == 2;
-}
-{
-    const pulleyDiameters = getPulleyDiameters(pitch, pulleyTeethArray);
-    const largePulleyDiameter = max(pulleyDiameters);
-    const smallPulleyDiameter = min(pulleyDiameters);
-
-    const term = -largePulleyDiameter * smallPulleyDiameter +
-        4 * targetCenterToCenter ^ 2 +
-        largePulleyDiameter * targetCenterToCenter * PI +
-        smallPulleyDiameter * targetCenterToCenter * PI;
-    const numerator = (largePulleyDiameter ^ 2 + smallPulleyDiameter ^ 2 + 2 * term);
-    return numerator / (4 * targetCenterToCenter * pitch);
-}
+// Unused: sizing a belt to a center-to-center distance, kept for when it's wanted again
+// /**
+//  * Computes the number of teeth required to achieve the specified `targetCenterToCenter` distance.
+//  * Note the number of teeth may be a fraction.
+//  */
+// function computeTargetBeltTeeth(pitch is ValueWithUnits, pulleyTeethArray is array, targetCenterToCenter is ValueWithUnits) returns number
+// precondition
+// {
+//     size(pulleyTeethArray) == 2;
+// }
+// {
+//     const pulleyDiameters = getPulleyDiameters(pitch, pulleyTeethArray);
+//     const largePulleyDiameter = max(pulleyDiameters);
+//     const smallPulleyDiameter = min(pulleyDiameters);
+//
+//     const term = -largePulleyDiameter * smallPulleyDiameter +
+//         4 * targetCenterToCenter ^ 2 +
+//         largePulleyDiameter * targetCenterToCenter * PI +
+//         smallPulleyDiameter * targetCenterToCenter * PI;
+//     const numerator = (largePulleyDiameter ^ 2 + smallPulleyDiameter ^ 2 + 2 * term);
+//     return numerator / (4 * targetCenterToCenter * pitch);
+// }
 
 /**
  * Creates the belt.
@@ -804,7 +805,7 @@ function setBeltProperties(context is Context, beltQuery is Query, beltAttribute
     setProperty(context, {
                 "entities" : beltQuery,
                 "propertyType" : PropertyType.APPEARANCE,
-                "value" : DARK_GRAY
+                "value" : BLACK
             });
 
     const beltName = getBeltName(beltAttribute.beltTeeth, beltAttribute.isDoubleSidedBelt, beltAttribute.beltType);
@@ -1022,32 +1023,33 @@ function setClosestBelt(context is Context, id is Id, definition is map) returns
     return definition;
 }
 
-/**
- * Returns the number of teeth the belt should use based on the options currently available in the lookup table.
- */
-function getClosestBeltTeeth(tableAndPath is map, targetTeeth is number) returns number
-{
-    if (hasCustomTeeth(tableAndPath.path))
-    {
-        return round(targetTeeth);
-    }
-    const beltArray = getCurrentBeltOptionsArray(tableAndPath);
-    var bestBelt = beltArray[0];
-    for (var belt in beltArray)
-    {
-        if (belt <= targetTeeth)
-        {
-            bestBelt = belt;
-        }
-        else // belt is larger; maybe terminate search
-        {
-            // smaller belt, larger belt
-            if (abs(bestBelt - targetTeeth) >= abs(belt - targetTeeth))
-            {
-                bestBelt = belt;
-            }
-            break;
-        }
-    }
-    return bestBelt;
-}
+// Unused: sizing a belt to a center-to-center distance, kept for when it's wanted again
+// /**
+//  * Returns the number of teeth the belt should use based on the options currently available in the lookup table.
+//  */
+// function getClosestBeltTeeth(tableAndPath is map, targetTeeth is number) returns number
+// {
+//     if (hasCustomTeeth(tableAndPath.path))
+//     {
+//         return round(targetTeeth);
+//     }
+//     const beltArray = getCurrentBeltOptionsArray(tableAndPath);
+//     var bestBelt = beltArray[0];
+//     for (var belt in beltArray)
+//     {
+//         if (belt <= targetTeeth)
+//         {
+//             bestBelt = belt;
+//         }
+//         else // belt is larger; maybe terminate search
+//         {
+//             // smaller belt, larger belt
+//             if (abs(bestBelt - targetTeeth) >= abs(belt - targetTeeth))
+//             {
+//                 bestBelt = belt;
+//             }
+//             break;
+//         }
+//     }
+//     return bestBelt;
+// }

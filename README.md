@@ -13,11 +13,13 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 | Path                       | What it is                                                                   |
 | -------------------------- | ---------------------------------------------------------------------------- |
 | `featurescripts/`          | The backend document's Feature Studios, plus the Python lookup table sources |
+| `featurescripts/released/` | Released FeatureScripts (see [Releasing](#releasing)), each with its own files |
+| `featurescripts/core/`     | Modules shared between FeatureScripts                                        |
 | `fs_cli/`                  | The `fs` command                                                             |
 | `onshape_api/`             | A small Onshape REST API client; see [its README](onshape_api/README.md)     |
 | `std/`                     | A read-only copy of the Onshape std library, for reference                   |
 | `onshape_icons/`           | Onshape's UI icons, for `fs ui`; browse them with its `index.html`           |
-| `docs/`                    | Conventions for writing FeatureScripts, and researching COTS parts           |
+| `docs/`                    | Conventions for writing FeatureScripts and their writeups, and COTS research |
 | `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
 | `vscode-extension/server/` | The Python FeatureScript language server the extension runs (`fs_lsp`)       |
 | `pyproject.toml`           | Python dependencies, plus the `[tool.fs]` table configuring the documents    |
@@ -220,8 +222,9 @@ These read the repo only (no API calls). Imports between studios are resolved th
 
 ```
 uv run fs check              # syntax errors, undefined names, unused or unknown imports, and more
-uv run fs check featurescripts/belt   # ...or just some files or folders
+uv run fs check featurescripts/released/belt   # ...or just some files or folders
 uv run fs deps robotShaft    # what a studio imports, and what imports it
+uv run fs strings robotShaft # strings it shows users (names, descriptions, errors), with those of what it imports
 uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used
 uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, keeping its studio and imports
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
@@ -244,7 +247,7 @@ python -m fs_cli.onshape_ui.extract featurescripts/uiTestBench/uiTestBench.html`
 
 Arrays start empty, as in a new feature; `--set holes=2` shows two items, and `--set holes.1.depth=2in` sets the second
 item's depth. `featurescripts/uiTestBench/uiTestBench.fs` has one
-of every kind of parameter and UI hint (and groups nested in groups, and in array items), for comparing `fs ui` with Onshape (`uv run fs ui
+of every kind of parameter and UI hint (and groups nested in groups), for comparing `fs ui` with Onshape (`uv run fs ui
 featurescripts/uiTestBench/uiTestBench.fs --set items=2`). To capture how Onshape draws a dialog, open it in Onshape and
 paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with what's
 typed and checked in it, the CSS rules which apply to it, and the icons it uses. It only reads the page.
@@ -253,7 +256,8 @@ typed and checked in it, the CSS rules which apply to it, and the icons it uses.
 (following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)
 which the feature's file doesn't export, as Onshape requires (std enums too: `export import` the std module declaring
 one, not `common.fs`, which it reports exporting), top-level constants, enums, and types whose names the file or its
-imports already declare, parameters a feature's precondition declares more than once
+imports already declare, functions and predicates declared with the same name and parameter types as another in the file
+or its imports (overloads Onshape can't choose between), groups in array parameters' items, parameters a feature's precondition declares more than once
 (directly or through predicates, even in different branches of an if), and predicates in a precondition's `if`
 conditions which call other predicates (Onshape doesn't inline those). It warns about parameters which can be toleranced (`CAN_BE_TOLERANT`, ours never are; directly or through std's predicates), comparisons with `true` or `false`,
 precondition conditions Onshape can't evaluate (only parameters, enum values, literals, and predicates work), top-level
@@ -263,18 +267,18 @@ progress in `featurescripts/frame/` doesn't pass yet.
 ## Generated files
 
 Lookup tables and sketch profiles (the `*.gen.fs` files) are generated from Python definitions beside them, e.g.
-`featurescripts/belt/robotBeltTables.py` generates `featurescripts/belt/robotBeltTables.gen.fs`. Each definition
+`featurescripts/released/belt/robotBeltTables.py` generates `featurescripts/released/belt/robotBeltTables.gen.fs`. Each definition
 sets `CONTENTS` to a list of items:
 
 - `Enum`s and `Table`s (lookup tables) from [`fs_cli/tables.py`](fs_cli/tables.py)
 - `Sketch`es and `SketchMap`s of profiles (`SketchDataArray`s, see `core/sketchData.fs`) built from lines, arcs,
-  and fit splines with [`fs_cli/sketches.py`](fs_cli/sketches.py), e.g. `splineProfile/splineProfiles.py`. A
+  and fit splines with [`fs_cli/sketches.py`](fs_cli/sketches.py), e.g. `released/splineProfile/splineProfiles.py`. A
   profile can also be read from a vendor's STEP model with [`fs_cli/step.py`](fs_cli/step.py), which turns the
   outer loop of a planar face into lines, arcs, and fit splines (through enough points to stay within 0.0002" of
-  B-spline edges); see `printAdapter/printAdapterProfiles.py`, which keeps vendor models and drawings in
+  B-spline edges); see `released/printAdapter/printAdapterProfiles.py`, which keeps vendor models and drawings in
   `printAdapter/vendor/`.
 - `Constant`s and `Code`, e.g. predicates generated from a definition's data so preconditions can show
-  parameters based on it (see `printAdapter/printAdapterProfiles.py`)
+  parameters based on it (see `released/printAdapter/printAdapterProfiles.py`)
 - `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
 
 After editing one:
@@ -327,6 +331,10 @@ uv run fs released robotFrame       # mark one released (--remove unmarks it)
 uv run fs released --detect         # mark every tab with a release version in the backend document
 ```
 
+`uv run fs changes robotShaft` diffs a released FeatureScript, and every Feature Studio it imports, against the version
+of its last release (`--stat` lists only the files which changed). See [docs/feature-writeups.md](docs/feature-writeups.md)
+for how it's used.
+
 ### Deprecating
 
 Deleting a released FeatureScript would break documents using it as soon as they update to a newer version of
@@ -363,8 +371,9 @@ The extension provides:
   dialog as `fs ui` renders it, beside the file, following edits as they're made (saved or not), in VS Code's light
   or dark theme. It works like Onshape's dialog: clicking a tab, checkbox, button, or dropdown option, or entering a
   value, changes that parameter (showing and hiding the parameters which depend on it); groups and array items open
-  and close; and array items can be added and removed. The language server renders it, keeping the parsed std library
-  between renders, so it updates in tens of milliseconds
+  and close; and array items can be added and removed. Clicking a number selects it all. Hovering over a parameter shows
+  a tooltip like Onshape's (its name, a number's value, and its description), with its default and UI hints under it.
+  The language server renders it, keeping the parsed std library between renders, so it updates in tens of milliseconds
 - Hovers with doc comments laid out like Onshape's [FsDoc](https://cad.onshape.com/FsDoc/library.html) (for std
   symbols too), signatures, enum variants, feature definition fields, and the file an import refers to
 - Signature help in calls, with each parameter's documentation

@@ -1,6 +1,6 @@
 """Generates Feature Studios (the `.gen.fs` files) from Python definitions.
 
-A definition is a Python file in the code folder, such as belt/robotBeltTables.py, which sets
+A definition is a Python file in the code folder, such as released/belt/robotBeltTables.py, which sets
 CONTENTS to a list of items: lookup tables and enums (fs_cli.tables), sketch profiles
 (fs_cli.sketches), and Imports of other studios they use. `fs gen` writes them to the .gen.fs file
 beside it (belt/robotBeltTables.gen.fs), which `fs push` then pushes like any other file.

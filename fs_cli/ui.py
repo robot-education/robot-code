@@ -704,6 +704,8 @@ class Parameter:
     items: list[list] = dataclasses.field(default_factory=list)
     # What sets it with `fs ui --set`: its name, or for an array item's parameter, like `items.0.length`
     key: str = ""
+    # Its default, as text, if it has one (for the preview's tooltips)
+    default: str = ""
 
     def __post_init__(self) -> None:
         self.key = self.key or self.name
@@ -714,10 +716,15 @@ class Parameter:
 
     @property
     def hints(self) -> set[str]:
+        return set(self.hint_names)
+
+    @property
+    def hint_names(self) -> list[str]:
+        """Its UI hints, in the order its annotation gives them."""
         hints = self.annotation.get("UIHint", [])
         if not isinstance(hints, list):
             hints = [hints]
-        return {hint.value if isinstance(hint, EnumValue) else str(hint) for hint in hints}
+        return [hint.value if isinstance(hint, EnumValue) else str(hint) for hint in hints]
 
 
 @dataclasses.dataclass
@@ -744,6 +751,8 @@ class DialogBuilder:
         self.evaluator = Evaluator(declarations)
         self.overrides = overrides
         self.definition = Definition({})
+        # The values the feature's defaults map gives parameters
+        self.feature_defaults: dict[str, Any] = {}
         self.warnings: list[str] = []
         self.declared: set[str] = set()
         self.arrays: dict[str, Parameter] = {}
@@ -762,6 +771,7 @@ class DialogBuilder:
                 for key, value in defaults.items():
                     if isinstance(key, str) and value is not UNKNOWN:
                         self.definition.values[key] = value
+                        self.feature_defaults[key] = value
         # The definition is a map with a key for every parameter, which has a value (its default, until it's set) even
         # where it isn't shown. So first every parameter is declared, down every branch, for conditions which read
         # ones declared after them or in other branches; then the dialog is walked as Onshape shows it.
@@ -808,7 +818,7 @@ class DialogBuilder:
             if branch is not None:
                 self.walk(branch, scope, items, {})
             if not condition:
-                # Onshape still shows the header of a group driven by a parameter which is off
+                # Onshape still shows the header of a group driven by a parameter which is off (but shown)
                 items.extend(self.driving_groups(node.args[1], scope))
         elif kind == "declare":
             name, value = node.args
@@ -822,13 +832,16 @@ class DialogBuilder:
                 self.array_items(self.arrays[name], body, variable, scope)
 
     def driving_groups(self, node: Node, scope: dict[str, Any]) -> list[Group]:
-        """The groups with driving parameters directly in a block (or statement), empty."""
+        """The groups with driving parameters directly in a block (or statement), empty, whose driving parameters are
+        shown: a group whose driving parameter is hidden with it (like extrude's second end position, when it's
+        symmetric) is hidden entirely."""
         statements = node.args if node.kind == "block" else (node,)
         groups = []
         for statement in statements:
             if statement.kind == "annotated" and statement.args[1].kind == "block":
                 annotation = self.evaluator.value(statement.args[0], scope)
-                if isinstance(annotation, dict) and "Group Name" in annotation and annotation.get("Driving Parameter"):
+                driving = annotation.get("Driving Parameter") if isinstance(annotation, dict) else None
+                if driving and "Group Name" in annotation and self.prefix + str(driving) in self.keys:
                     groups.append(Group(str(annotation["Group Name"]), annotation))
         return groups
 
@@ -886,12 +899,16 @@ class DialogBuilder:
         key = self.prefix + name
         self.keys.add(key)
         parameter = Parameter(name, "other", annotation, key=key)
+        # An array item's parameters take only their annotations' defaults
+        feature_default = self.feature_defaults.get(name) if not self.prefix else None
         enum = self.declarations.enums.get(type_name)
         if enum is not None:
             parameter.kind = "enum"
             parameter.enum = enum
             default = annotation.get("Default")
             value = default.value if isinstance(default, EnumValue) else next(iter(enum.values), None)
+            default_value = feature_default.value if isinstance(feature_default, EnumValue) and not isinstance(default, EnumValue) else value
+            parameter.default = enum.values.get(default_value, default_value or "")
             if key in self.overrides:
                 value = self.overrides[key]
                 if value not in enum.values:
@@ -902,6 +919,7 @@ class DialogBuilder:
             self.definition.values[name] = EnumValue(enum.name, value)
         elif type_name == "boolean":
             parameter.kind = "boolean"
+            parameter.default = "true" if annotation.get("Default", feature_default or False) else "false"
             value = bool(annotation.get("Default", self.definition.values.get(name, False)))
             if key in self.overrides:
                 value = self.overrides[key].lower() in ("true", "1", "yes")
@@ -915,6 +933,7 @@ class DialogBuilder:
             override = self.overrides.get(key)
             choices = [part.strip() for part in override.split(">")] if override else []
             parameter.levels = lookup_levels(table, choices) if isinstance(table, dict) else []
+            parameter.default = " > ".join(choice for _, choice, _ in lookup_levels(table, [])) if isinstance(table, dict) else ""
         elif type_name == "array":
             parameter.kind = "array"
             count = self.overrides.get(key, "0")
@@ -926,10 +945,12 @@ class DialogBuilder:
             parameter.kind = "reference"
         elif type_name == "string":
             parameter.kind = "string"
+            parameter.default = _text(annotation.get("Default", feature_default or ""))
             parameter.value = self.overrides.get(key, annotation.get("Default", ""))
         elif type_name in ("length", "angle", "integer", "real"):
             parameter.kind = type_name
-            parameter.value = self.overrides.get(key) or format_bounds(type_name, bounds)
+            parameter.default = format_bounds(type_name, bounds)
+            parameter.value = self.overrides.get(key) or parameter.default
         items.append(parameter)
 
 
@@ -1050,18 +1071,32 @@ ICON_VALUES = {
 FILTER_TEXT = "__filter"
 
 # Styles of our own, on top of Onshape's: the page around the dialog, and open dropdowns (which Onshape's page didn't
-# have open)
+# have open), and the preview's tooltips. The preview places open dropdowns and tooltips (see
+# vscode-extension/src/uiPreview.ts): they're fixed, as Onshape's float above the dialog, since the dialog's parameter
+# list would cut them off. Tooltips use Onshape's tooltip colors and spacing (see extract.py's OWN_VARIABLES).
 PAGE_STYLE = """
 html, body { margin: 0; }
-body { padding: 10px; background: var(--os-graphics-background, #1d1d1d); }
+/* Onshape fixes its page in place, which would keep a long dialog from scrolling */
+body { position: static; padding: 10px; background: var(--os-graphics-background, #1d1d1d); }
 html[data-os-theme="light"] body { background: #e8e8e8; }
 #feature-dialog { position: relative; inset: auto; width: 278px; pointer-events: auto; }
 #feature-dialog .ns-parameter-list { margin: 0; }
 #feature-dialog [data-set], #feature-dialog [data-toggle], #feature-dialog .os-select-toggle { cursor: pointer; }
-#feature-dialog .os-select-dropdown.open { display: block; opacity: 1; position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; }
+#feature-dialog input[data-set]:not([type=checkbox]) { cursor: text; }
+#feature-dialog .os-param-group-header:has([data-toggle]), #feature-dialog .os-param-selection-list-entry:has([data-toggle]) { cursor: pointer; }
+#feature-dialog .os-select-dropdown.open { display: block; opacity: 1; position: fixed; z-index: 1000; min-width: 0; overflow-y: auto; }
 #feature-dialog .os-select-choices-row { padding: 2px 10px; white-space: nowrap; color: var(--os-text-primary); }
-#feature-dialog .os-select-choices-row:hover, #feature-dialog .os-select-choices-row.active { background: var(--os-select-active-background, var(--os-accent-quaternary)); }
+#feature-dialog .os-select-choices-row:hover, #feature-dialog .os-select-choices-row.active { background: var(--os-hover-secondary); }
 #feature-dialog .os-svg-icon.expanded { transform: rotate(90deg); }
+.fs-tooltip { position: fixed; z-index: 2000; box-sizing: border-box; max-width: 278px; padding: var(--os-tooltip-padding-top) var(--os-padding-sm) var(--os-tooltip-padding-bottom); border-radius: var(--os-radius-xs); background: var(--os-tooltip-fill); color: var(--os-tooltip-text); font-size: 9pt; line-height: 1.4; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: none; }
+.fs-tooltip[hidden] { display: none; }
+.fs-tooltip-name { font-weight: 700; }
+.fs-tooltip-description { margin-top: var(--os-tooltip-padding-bottom); }
+.fs-tooltip-details { margin-top: var(--os-padding-sm); padding-top: var(--os-padding-sm); border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+.fs-tooltip-details dt { display: inline; font-weight: 700; }
+.fs-tooltip-details dt::after { content: ": "; }
+.fs-tooltip-details dd { display: inline; margin: 0; }
+.fs-tooltip-details dd::after { content: "\\A"; }
 #feature-dialog .os-parameter-icon image { width: 100%; height: 100%; }
 """
 
@@ -1100,6 +1135,18 @@ def _attribute(text: Any) -> str:
 def _setting(key: str, value: Any) -> str:
     """Attributes saying what clicking a control sets."""
     return f" data-set='{_attribute(key)}' data-value='{_attribute(value)}'"
+
+
+def _tooltip(item: Parameter) -> str:
+    """Attributes giving what the preview's tooltip for a parameter shows: its name and description, as Onshape's does,
+    then its default and UI hints."""
+    contents = {
+        "name": item.label,
+        "description": item.annotation.get("Description", ""),
+        "default": item.default,
+        "hints": ", ".join(item.hint_names),
+    }
+    return "".join(f" data-tip-{key}='{_attribute(value)}'" for key, value in contents.items() if value or key == "name")
 
 
 def _is_button(item: Parameter) -> bool:
@@ -1190,7 +1237,8 @@ class Renderer:
             name = f"<span class='os-param-group-name'>{html.escape(group.name)}</span>"
         else:
             name = (
-                f"<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='{_attribute(driving.name)}'>"
+                f"<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='{_attribute(driving.name)}'"
+                f"{_tooltip(driving)}>"
                 f"{self.boolean(driving)}</div>"
             )
         nested_driving = _driving_parameters(group.children)
@@ -1222,7 +1270,8 @@ class Renderer:
             joins_checkbox = (
                 _is_checkbox(previous) and "DISPLAY_SHORT" in item.hints and "FIRST_IN_ROW" not in item.hints
             )
-            if joins_checkbox or (not _is_checkbox(item) and not _is_checkbox(previous)):
+            # A button (like an opposite direction button) goes beside what's before it
+            if joins_checkbox or _is_button(item) or (not _is_checkbox(item) and not _is_checkbox(previous)):
                 rows[-1].append(item)
             else:
                 rows.append([item])
@@ -1254,8 +1303,7 @@ class Renderer:
         if item.kind in ("query", "reference", "array"):
             classes.append("os-param-requires-margin")
         return (
-            f"<div class='{' '.join(classes)}' data-parameter-id='{_attribute(item.name)}'"
-            f"{' title=' + chr(39) + _attribute(item.annotation['Description']) + chr(39) if item.annotation.get('Description') else ''}>"
+            f"<div class='{' '.join(classes)}' data-parameter-id='{_attribute(item.name)}'{_tooltip(item)}>"
             f"{self.parameter(item)}</div>"
         )
 

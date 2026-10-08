@@ -1,10 +1,10 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-export import(path : "core/stdExtrude.fs", version : "");
-export import(path : "core/location.fs", version : "");
-import(path : "core/pointManipulator.fs", version : "");
-import(path : "core/robotFeature.fs", version : "");
+export import(path : "21762d39019c8b2289e2fbb8", version : "f40a9d160de84aecb5b2c022");
+export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
+import(path : "554542fc345271814c4463b0", version : "9c477217d62dbff99c9b2ad2");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 /**
  * The shapes Robot primitive makes.
@@ -149,7 +149,7 @@ function primitivePlane(context is Context, definition is map) returns map
     {
         const reference = extractDirection(context, definition.angleReference);
         const across = reference == undefined ? undefined : reference - location.normal * dot(reference, location.normal);
-        if (across == undefined || tolerantEquals(norm(across), 0))
+        if (across == undefined || tolerantEqualsZero(norm(across)))
         {
             throw regenError("The angle reference must have a direction which isn't along the primitive's.", ["angleReference"],
                 definition.angleReference);

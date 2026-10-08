@@ -210,40 +210,27 @@ export predicate newExtrudeEndTypePredicate(definition is map)
 }
 
 /**
- * The rest of `newExtrudePredicate`, after `newExtrudeEndTypePredicate`.
+ * The rest of `newExtrudePredicate`, after `newExtrudeEndTypePredicate`: the bounds, then the options.
  */
 export predicate newExtrudeBoundsPredicate(definition is map)
 {
-    if (definition.endBound == StockBoundingType.BLIND)
-    {
-        annotation { "Name" : "Depth" }
-        isLength(definition.depth, LENGTH_BOUNDS);
-    }
-    upToBoundParametersPredicate(definition);
+    stockBoundsPredicate(definition);
 
     newExtrudeOptionsPredicate(definition);
 }
 
 /**
- * The bounds of `newExtrudeBoundsPredicate`, with `depth` named Length, for stock placed by length (see linearStock.fs).
+ * The bounds of std's `extrudeBoundParametersPredicate` for a `StockBoundingType`, without tolerances: Blind's `depth`
+ * (named Length, as stock is cut to a length), up to a planar face or vertex, and an offset.
  */
-export predicate lengthBoundParametersPredicate(definition is map)
+export predicate stockBoundsPredicate(definition is map)
 {
     if (definition.endBound == StockBoundingType.BLIND)
     {
         annotation { "Name" : "Length" }
         isLength(definition.depth, LENGTH_BOUNDS);
     }
-    upToBoundParametersPredicate(definition);
-}
-
-/**
- * The bounds of std's `extrudeBoundParametersPredicate` other than Blind's depth, for a `StockBoundingType`, without
- * tolerances: up to a planar face or vertex, and an offset.
- */
-export predicate upToBoundParametersPredicate(definition is map)
-{
-    if (definition.endBound == StockBoundingType.UP_TO_SURFACE)
+    else if (definition.endBound == StockBoundingType.UP_TO_SURFACE)
     {
         annotation { "Name" : "Up to face",
                     "Filter" : (EntityType.FACE && GeometryType.PLANE && SketchObject.NO) || BodyType.MATE_CONNECTOR,
@@ -315,7 +302,7 @@ export predicate secondDirectionBoundParametersPredicate(definition is map)
 {
     if (definition.secondDirectionBound == StockBoundingType.BLIND)
     {
-        annotation { "Name" : "Depth", "Column Name" : "Second depth" }
+        annotation { "Name" : "Length", "Column Name" : "Second length" }
         isLength(definition.secondDirectionDepth, LENGTH_BOUNDS);
     }
     else if (definition.secondDirectionBound == StockBoundingType.UP_TO_SURFACE)
@@ -351,17 +338,27 @@ export predicate secondDirectionBoundParametersPredicate(definition is map)
 /**
  * Throws an error unless the ends of the stock extruded by `id` (its caps) are flat, as when it's extruded up to the
  * next face and that face is curved.
+ *
+ * @param name : What the stock is, e.g. `"shaft"`, for the message.
  */
-export function verifyFlatEnds(context is Context, id is Id, body is Query)
+export function verifyFlatEnds(context is Context, id is Id, body is Query, name is string)
 {
     for (var capType in [CapType.START, CapType.END])
     {
         const cap = qCapEntity(id, capType, EntityType.FACE)->qOwnedByBody(body);
         if (!isQueryEmpty(context, cap) && size(evaluateQuery(context, cap)) != size(evaluateQuery(context, cap->qGeometry(GeometryType.PLANE))))
         {
-            throw regenError("The ends must be flat: extrude up to a planar face.", ["endBound"], cap);
+            throw regenError(flatEndsMessage(name), ["endBound"], cap);
         }
     }
+}
+
+/**
+ * The error when stock's ends aren't flat, e.g. "The shaft's ends must be flat."
+ */
+export function flatEndsMessage(name is string) returns string
+{
+    return "The " ~ name ~ "'s ends must be flat.";
 }
 
 /**
@@ -414,18 +411,31 @@ export predicate extrudeOffsetPredicate(definition is map)
 }
 
 /**
- * Copied from `extrude.fs`.
- * Applies the user selected extrude direction to `planeNormal`.
+ * Copied from `extrude.fs`, which doesn't export it: the extrude's direction, `planeNormal` (its profile's normal)
+ * unless a direction is selected.
  */
 export function processExtrudeDirection(context is Context, definition is map, planeNormal is Vector) returns Vector
 {
-    if (!(definition.hasExtrudeDirection ?? false) || isQueryEmpty(context, definition.extrudeDirection ?? qNothing()))
+    if (!definition.hasExtrudeDirection)
     {
         return planeNormal;
     }
+    if (isQueryEmpty(context, definition.extrudeDirection))
+    {
+        throw regenError(ErrorStringEnum.EXTRUDE_SELECT_DIRECTION, ["extrudeDirection"]);
+    }
     const userProvidedExtrudeDirection = extractDirection(context, definition.extrudeDirection);
+    if (userProvidedExtrudeDirection == undefined)
+    {
+        throw regenError(ErrorStringEnum.EXTRUDE_DIRECTION_INVALID_ENTITY, ["extrudeDirection"], definition.extrudeDirection);
+    }
+    const dotProduct = dot(userProvidedExtrudeDirection, planeNormal);
+    if (tolerantEqualsZero(dotProduct))
+    {
+        throw regenError(ErrorStringEnum.EXTRUDE_DIRECTION_COPLANAR, ["extrudeDirection"], definition.extrudeDirection);
+    }
     // Makes sure the direction picked by the user aligns with the original extrude direction to avoid flips
-    return dot(userProvidedExtrudeDirection, planeNormal) < 0 ? -userProvidedExtrudeDirection : userProvidedExtrudeDirection;
+    return dotProduct < 0 ? -userProvidedExtrudeDirection : userProvidedExtrudeDirection;
 }
 
 /**
@@ -437,7 +447,7 @@ export function extrudeDirectionPlane(context is Context, definition is map, pro
 {
     const direction = processExtrudeDirection(context, definition, profilePlane.normal);
     const projectedX = profilePlane.x - direction * dot(profilePlane.x, direction);
-    const xAxis = tolerantEquals(norm(projectedX), 0) ? perpendicularVector(direction) : normalize(projectedX);
+    const xAxis = tolerantEqualsZero(norm(projectedX)) ? perpendicularVector(direction) : normalize(projectedX);
     return plane(profilePlane.origin, direction, xAxis);
 }
 
@@ -481,38 +491,31 @@ export function transformDefintionForNewExtrude(definition is map, entities is Q
 export function stdNewExtrudeEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    const resolvedEntities = evaluateQuery(context, getEntitiesToUse(context, definition));
+    const extrudeAxis = resolvedEntities == [] ? undefined :
+        computeProfilePlaneNormal(context, definition, resolvedEntities[0], definition.transform);
+    definition.entities = undefined;
+    return newExtrudeEditLogicAlong(context, definition, specifiedParameters, extrudeAxis);
+}
+
+/**
+ * `stdNewExtrudeEditLogic` for a new extrude along `extrudeAxis` (from its profile, along its normal), or `undefined` if
+ * there's no profile yet, for features which work out where an extrude goes without extruding (see linearStock.fs).
+ * Points the extrude at what it's extruded up to, and its second direction away from its first.
+ */
+export function newExtrudeEditLogicAlong(context is Context, definition is map, specifiedParameters is map, extrudeAxis) returns map
+{
     // Std's logic knows its own end types, which are named the same
     definition.endBound = definition.endBound as SMExtrudeBoundingType;
     definition.secondDirectionBound = definition.secondDirectionBound as SMExtrudeBoundingType;
-    if (canSetExtrudeFlips(definition, specifiedParameters))
+    if (extrudeAxis != undefined && canSetExtrudeFlips(definition, specifiedParameters) && canSetExtrudeUpToFlip(definition, specifiedParameters))
     {
-        if (canSetExtrudeUpToFlip(definition, specifiedParameters))
-        {
-            definition = upToBoundaryFlip(context, definition);
-        }
+        definition = extrudeUpToBoundaryFlipCommon(context, extrudeAxis, definition);
     }
     definition = setExtrudeSecondDirectionFlip(definition, specifiedParameters);
-
-    definition.entities = undefined;
     definition.endBound = definition.endBound as StockBoundingType;
     definition.secondDirectionBound = definition.secondDirectionBound as StockBoundingType;
     return definition;
-}
-
-function upToBoundaryFlip(context is Context, definition is map) returns map
-{
-    const usedEntities = getEntitiesToUse(context, definition);
-    const resolvedEntities = evaluateQuery(context, usedEntities);
-    if (size(resolvedEntities) == 0)
-    {
-        return definition;
-    }
-    const profilePlaneNormal = computeProfilePlaneNormal(context, definition, resolvedEntities[0], definition.transform);
-    if (profilePlaneNormal == undefined)
-    {
-        return definition;
-    }
-    return extrudeUpToBoundaryFlipCommon(context, profilePlaneNormal, definition);
 }
 
 /**
