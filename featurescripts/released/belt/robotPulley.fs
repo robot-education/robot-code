@@ -10,7 +10,7 @@ import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
 annotation {
         "Feature Type Name" : "Robot pulley",
         "Manipulator Change Function" : "robotPulleyManipulatorChange",
-        "Feature Type Description" : "Create GT2, HTD, and RT25 pulleys." ~
+        "Feature Type Description" : "Create GT2, HTD, and RT25 pulleys and idlers." ~
         "<br>See also the Robot belt FeatureScript, which works directly with this feature." ~ CREDIT,
         "Icon" : RobotIcon::BLOB_DATA
     }
@@ -39,7 +39,7 @@ function doRobotPulley(context is Context, id is Id, definition is map)
     }
 
     // Try to add manipulators as early as possible
-    if (definition.addFlanges && definition.addText)
+    if (hasText(definition, pulleyDefinitions[0]))
     {
         addTextPositionManipulator(context, id, definition, pulleyDefinitions[0]);
     }
@@ -53,7 +53,7 @@ function doRobotPulley(context is Context, id is Id, definition is map)
 
     for (var i, pulleyDefinition in pulleyDefinitions)
     {
-        setPulleyProperties(context, pulleyDefinition, pulleys[i]);
+        setPulleyProperties(context, definition, pulleyDefinition, pulleys[i]);
     }
 
     if (definition.addFlanges)
@@ -73,7 +73,10 @@ function doRobotPulley(context is Context, id is Id, definition is map)
     }
 
     // Add last to allow handling bore overlap error
-    if (definition.addFlanges && definition.addText)
+    if (any(pulleyDefinitions, function(pulleyDefinition)
+                {
+                    return hasText(definition, pulleyDefinition);
+                }))
     {
         addText(context, id + "text", definition, pulleyDefinitions, pulleys);
     }
@@ -103,12 +106,39 @@ function addProfileManipulator(context is Context, id is Id, definition is map, 
 }
 
 /**
+ * Whether a pulley's tooth count is engraved on it (an idler's has none).
+ */
+predicate hasText(definition is map, pulleyDefinition is PulleyDefinition)
+{
+    definition.addFlanges && definition.addText && !isIdlerDefinition(pulleyDefinition);
+}
+
+predicate isIdlerDefinition(pulleyDefinition is PulleyDefinition)
+{
+    pulleyDefinition.idlerRadius != undefined;
+}
+
+/**
+ * How far out the belt on it reaches, less the thickness of its back (which a flange's offset covers): a pulley's
+ * pitch radius, or an idler's radius plus the belt's teeth, which point out from it.
+ */
+function getBeltReach(pulleyDefinition is PulleyDefinition) returns ValueWithUnits
+{
+    if (isIdlerDefinition(pulleyDefinition))
+    {
+        const belt = getBeltModelInfo(pulleyDefinition.beltType);
+        return pulleyDefinition.idlerRadius + belt.toothOffset + belt.toothRadius;
+    }
+    return getPulleyRadius(getBeltPitch(pulleyDefinition.beltType), pulleyDefinition.teeth);
+}
+
+/**
  * Computes the radius of a flange.
  */
-function getFlangeRadius(definition is map, beltType is BeltType, teeth is number) returns ValueWithUnits
+function getFlangeRadius(definition is map, pulleyDefinition is PulleyDefinition) returns ValueWithUnits
 {
-    const pulleyRadius = getPulleyRadius(getBeltPitch(beltType), teeth) + getProfileOffset(definition);
-    return pulleyRadius + getFlangeRadiusOffset(beltType, definition.flangeSize, definition.unitSystem);
+    const reach = getBeltReach(pulleyDefinition) + getProfileOffset(definition);
+    return reach + getFlangeRadiusOffset(pulleyDefinition.beltType, definition.flangeSize, definition.unitSystem);
 }
 
 /**
@@ -150,23 +180,24 @@ function getPointDistances(definition is map) returns array
 }
 
 /**
- * A collection of information specific to each pulley used for modeling.
+ * A pulley or idler to make.
  * @type {{
- *      @field plane : A plane at the center of the pulley.
- *      @field width : The width of the pulley face.
+ *      @field identity {Query} : @optional What it was selected with, to disambiguate what's made for it.
+ *      @field plane {Plane} : A plane at its center.
+ *      @field teeth {number} : A pulley's teeth. An idler has none, but an `idlerRadius`.
+ *      @field idlerRadius {ValueWithUnits} : An idler's radius.
  * }}
  */
 type PulleyDefinition typecheck canBePulleyDefinition;
 
-export predicate canBePulleyDefinition(value)
+predicate canBePulleyDefinition(value)
 {
     value is map;
-    value.identity is Query;
+    value.identity is Query || value.identity == undefined;
     value.plane is Plane;
     value.beltType is BeltType;
     value.beltWidth is ValueWithUnits;
-    value.teeth is number;
-    // value.width is ValueWithUnits;
+    value.teeth is number || isLength(value.idlerRadius);
 }
 
 function getManualPulleyDefinition(context is Context, definition is map, pointDistances is array) returns PulleyDefinition
@@ -177,14 +208,21 @@ function getManualPulleyDefinition(context is Context, definition is map, pointD
     plane = applyPointManipulator(definition, plane, pointDistances);
 
     const beltValue = getBeltTypeValue(definition);
-
-    return {
-                "identity" : undefined, // Don't use identity to improve robustness
-                "plane" : plane,
-                "beltType" : beltValue.beltType,
-                "beltWidth" : beltValue.beltWidth,
-                "teeth" : definition.pulleyTeeth,
-            } as PulleyDefinition;
+    var pulleyDefinition = {
+        // No identity, to improve robustness
+        "plane" : plane,
+        "beltType" : beltValue.beltType,
+        "beltWidth" : beltValue.beltWidth
+    };
+    if (isManualIdler(definition))
+    {
+        pulleyDefinition.idlerRadius = definition.idlerDiameter / 2;
+    }
+    else
+    {
+        pulleyDefinition.teeth = definition.pulleyTeeth;
+    }
+    return pulleyDefinition as PulleyDefinition;
 }
 
 function getBeltPulleyDefinitions(context is Context, definition is map) returns array
@@ -197,13 +235,9 @@ function getBeltPulleyDefinitions(context is Context, definition is map) returns
     for (var selection in beltSelections)
     {
         const attribute = getBeltPulleyFaceAttribute(context, selection);
-        if (attribute == undefined)
+        if (attribute == undefined || !canBeBeltFaceAttribute(attribute))
         {
-            throw regenError("Selected face is not a valid pulley face belonging to a robot belt.", ["beltSelections"], selection);
-        }
-        else if (attribute.pulleyType == PulleyType.IDLER)
-        {
-            throw regenError("Cannot add pulley to idler location.", ["beltSelections"], selection);
+            throw regenError("Select a curved face or mate connector of a belt made by Robot belt (one made by an older Robot belt needs updating first).", ["beltSelections"], selection);
         }
 
         var pulleyPlane; // Avoid shadowing the plane function
@@ -232,14 +266,21 @@ function getBeltPulleyDefinitions(context is Context, definition is map) returns
         }
         usedLocations[pulleyPlane.origin] = true;
 
-        const pulleyDefinition = {
-                    "identity" : selection,
-                    "plane" : pulleyPlane,
-                    "beltType" : attribute.beltType,
-                    "beltWidth" : attribute.beltWidth,
-                    "teeth" : attribute.pulleyTeeth,
-                } as PulleyDefinition;
-        pulleyDefinitions = append(pulleyDefinitions, pulleyDefinition);
+        var pulleyDefinition = {
+            "identity" : selection,
+            "plane" : pulleyPlane,
+            "beltType" : attribute.beltType,
+            "beltWidth" : attribute.beltWidth
+        };
+        if (isIdler(attribute.pulleyType))
+        {
+            pulleyDefinition.idlerRadius = attribute.idlerRadius;
+        }
+        else
+        {
+            pulleyDefinition.teeth = attribute.pulleyTeeth;
+        }
+        pulleyDefinitions = append(pulleyDefinitions, pulleyDefinition as PulleyDefinition);
     }
     return pulleyDefinitions;
 }
@@ -264,7 +305,21 @@ function createPulleys(context is Context, id is Id, definition is map, pulleyDe
             setExternalDisambiguation(context, pulleyId, pulleyDefinition.identity);
         }
         const plane = pulleyDefinition.plane;
-        const profile = sketchPulleyProfile(context, pulleyId + "profile", plane, pulleyDefinition.beltType, pulleyDefinition.teeth, profileOffset);
+        var profile;
+        if (isIdlerDefinition(pulleyDefinition))
+        {
+            const sketch = newSketchOnPlane(context, pulleyId + "profile", { "sketchPlane" : plane });
+            skCircle(sketch, "idler", {
+                        "center" : vector(0, 0) * meter,
+                        "radius" : pulleyDefinition.idlerRadius + profileOffset
+                    });
+            skSolve(sketch);
+            profile = qCreatedBy(pulleyId + "profile", EntityType.FACE);
+        }
+        else
+        {
+            profile = sketchPulleyProfile(context, pulleyId + "profile", plane, pulleyDefinition.beltType, pulleyDefinition.teeth, profileOffset);
+        }
         const teethWidth = getPulleyTeethWidth(definition, pulleyDefinition.beltType, pulleyDefinition.beltWidth);
         opExtrude(context, pulleyId + "extrude", {
                     "entities" : profile,
@@ -337,6 +392,7 @@ function pulleyAttribute(definition is map, pulleyDefinition is PulleyDefinition
     return {
                 "beltType" : pulleyDefinition.beltType,
                 "pulleyTeeth" : pulleyDefinition.teeth,
+                "idlerRadius" : pulleyDefinition.idlerRadius,
                 "twoBelts" : definition.twoBelts,
                 "coordSystem" : persistentCoordSystem(pulleyDefinition.plane->coordSystem(), coordSystemId, true)
             } as PulleyAttribute;
@@ -351,7 +407,7 @@ function addFlanges(context is Context, id is Id, definition is map, pulleyDefin
         const pulleyTeethWidth = getPulleyTeethWidth(definition, beltType, pulleyDefinition.beltWidth);
 
         const flangeRadiusOffset = getFlangeRadiusOffset(beltType, definition.flangeSize, definition.unitSystem);
-        const flangeRadius = getFlangeRadius(definition, beltType, pulleyDefinition.teeth);
+        const flangeRadius = getFlangeRadius(definition, pulleyDefinition);
         const radius = flangeRadius - flangeRadiusOffset;
 
         const flangeWidth = getFlangeWidth(beltType, definition.flangeSize, definition.unitSystem);
@@ -417,13 +473,27 @@ function addFlanges(context is Context, id is Id, definition is map, pulleyDefin
 }
 
 
-function setPulleyProperties(context is Context, pulleyDefinition is PulleyDefinition, pulley is Query)
+/**
+ * An idler's diameter, for its name: like `1.125 in` or `28.5 mm`.
+ */
+function idlerSizeString(definition is map, diameter is ValueWithUnits) returns string
+{
+    if (isImperial(definition))
+    {
+        return roundToPrecision(diameter / inch, 3) ~ " in";
+    }
+    return roundToPrecision(diameter / millimeter, 2) ~ " mm";
+}
+
+function setPulleyProperties(context is Context, definition is map, pulleyDefinition is PulleyDefinition, pulley is Query)
 {
     setProperty(context, {
                 "entities" : pulley,
                 "propertyType" : PropertyType.NAME,
-                // 24T RT25 Pulley
-                "value" : pulleyDefinition.teeth ~ "T " ~ getBeltTypeName(pulleyDefinition.beltType) ~ " Pulley"
+                // 24T RT25 Pulley, or 1.125 in 5mm HTD Idler
+                "value" : isIdlerDefinition(pulleyDefinition) ?
+                    idlerSizeString(definition, pulleyDefinition.idlerRadius * 2) ~ " " ~ getBeltTypeName(pulleyDefinition.beltType) ~ " Idler" :
+                    pulleyDefinition.teeth ~ "T " ~ getBeltTypeName(pulleyDefinition.beltType) ~ " Pulley"
             });
 
     setProperty(context, {
@@ -616,6 +686,10 @@ function createAllText(context is Context, id is Id, definition is map, pulleyDe
 {
     for (var i, pulleyDefinition in pulleyDefinitions)
     {
+        if (!hasText(definition, pulleyDefinition))
+        {
+            continue;
+        }
         const textId = id + unstableIdComponent(i);
         if (pulleyDefinition.identity != undefined)
         {
@@ -636,7 +710,7 @@ function createText(context is Context, id is Id, definition is map, pulleyDefin
     var textPlane = plane;
     textPlane.origin += textPlane.normal * pulleyWidth / 2;
 
-    const flangeRadius = getFlangeRadius(definition, pulleyDefinition.beltType, pulleyDefinition.teeth);
+    const flangeRadius = getFlangeRadius(definition, pulleyDefinition);
     const textPosition = flangeRadius * definition.textPosition;
 
     textPlane.origin += textPlane->yAxis() * textPosition;
@@ -710,7 +784,7 @@ function addTextPositionManipulator(context is Context, id is Id, definition is 
     var textPlane = pulleyDefinition.plane;
     textPlane.origin += textPlane.normal * pulleyWidth / 2;
 
-    const flangeRadius = getFlangeRadius(definition, pulleyDefinition.beltType, pulleyDefinition.teeth);
+    const flangeRadius = getFlangeRadius(definition, pulleyDefinition);
 
     addManipulators(context, id, {
                 (TEXT_POSITION_MANIPULATOR) : linearManipulator({
@@ -733,25 +807,25 @@ function textPositionManipulatorChange(context is Context, definition is map, ne
         return definition;
     }
 
-    var pulleyTeeth;
-    var beltType;
+    // Only on a pulley (see hasText): its flange's radius is all that matters here
+    var pulleyDefinition = { "plane" : XY_PLANE, "beltWidth" : 0 * meter };
     if (definition.creationMethod == CreationMethod.MANUAL)
     {
-        beltType = getBeltTypeValue(definition).beltType;
-        pulleyTeeth = definition.pulleyTeeth;
+        pulleyDefinition.beltType = getBeltTypeValue(definition).beltType;
+        pulleyDefinition.teeth = definition.pulleyTeeth;
     }
     else
     {
         const attribute = getBeltPulleyFaceAttribute(context, definition.beltSelections->qNthElement(0));
-        if (attribute == undefined || attribute.pulleyType == PulleyType.IDLER)
+        if (attribute == undefined || !canBeBeltFaceAttribute(attribute) || isIdler(attribute.pulleyType))
         {
             return definition;
         }
-        beltType = attribute.beltType;
-        pulleyTeeth = attribute.pulleyTeeth;
+        pulleyDefinition.beltType = attribute.beltType;
+        pulleyDefinition.teeth = attribute.pulleyTeeth;
     }
 
-    definition.textPosition = roundToPrecision(manipulator.offset / getFlangeRadius(definition, beltType, pulleyTeeth), 2);
+    definition.textPosition = roundToPrecision(manipulator.offset / getFlangeRadius(definition, pulleyDefinition as PulleyDefinition), 2);
     return definition;
 }
 

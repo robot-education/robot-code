@@ -117,6 +117,14 @@ precondition
 A horizontal enum lower down would read as a set of tabs in the middle of the dialog. Use a normal enum (a dropdown)
 there instead, with `"SHOW_LABEL"` if its options don't say what they choose.
 
+## Released feature constants
+
+A feature's constant (`export const frcBeltCalculator = defineFeature(...)`) is its type: documents store it, and a
+Part Studio can't find a feature whose constant changed. So never rename a released feature's constant, even when
+the feature itself is renamed: change its `"Feature Type Name"` annotation (what users see) and its file (with
+`fs mv`), and leave the constant. Robot belt is still `frcBeltCalculator`, and Robot tensioner `robotBeltTuner`. An
+unreleased feature's constant can change freely.
+
 ## Enums stored in documents
 
 Enum values used as parameter types are stored in documents, so never rename or remove them once released. Generated

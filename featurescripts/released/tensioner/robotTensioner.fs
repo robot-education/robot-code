@@ -26,7 +26,7 @@ annotation {
         "<br>Works with belts and chains made by the Robot belt and Robot chain FeatureScripts." ~ CREDIT,
         "Icon" : RobotIcon::BLOB_DATA
     }
-export const robotTensioner = defineFeature(function(context is Context, id is Id, definition is map)
+export const robotBeltTuner = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
         unitSystemPredicate(definition);

@@ -23,14 +23,41 @@ export enum CreationMethod
     BELT
 }
 
+export enum PulleyKind
+{
+    annotation { "Name" : "Pulley" }
+    PULLEY,
+    annotation { "Name" : "Idler" }
+    IDLER
+}
+
+/**
+ * Whether the feature makes an idler (in Manual; in Belt, each is whatever the belt has at the face).
+ */
+export predicate isManualIdler(definition is map)
+{
+    definition.creationMethod == CreationMethod.MANUAL && definition.pulleyKind == PulleyKind.IDLER;
+}
+
 export predicate pulleyGeneralPredicate(definition is map)
 {
     annotation { "Group Name" : "Pulley", "Collapsed By Default" : false }
     {
+        annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"], "Description" : "A pulley, with teeth, or an idler, smooth, for a belt's back." }
+        definition.pulleyKind is PulleyKind;
+
         beltTypePredicate(definition);
 
-        annotation { "Name" : "Pulley teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        isInteger(definition.pulleyTeeth, PULLEY_TEETH_BOUNDS);
+        if (definition.pulleyKind == PulleyKind.PULLEY)
+        {
+            annotation { "Name" : "Pulley teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            isInteger(definition.pulleyTeeth, PULLEY_TEETH_BOUNDS);
+        }
+        else
+        {
+            annotation { "Name" : "Idler diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            isLength(definition.idlerDiameter, IDLER_DIAMETER_BOUNDS);
+        }
     }
 }
 
@@ -169,7 +196,8 @@ export predicate pulleyPredicate(definition is map)
 
     pulleyBorePredicate(definition);
 
-    if (definition.addFlanges)
+    // An idler has no teeth to engrave the count of
+    if (definition.addFlanges && !isManualIdler(definition))
     {
         pulleyTextPredicate(definition);
     }

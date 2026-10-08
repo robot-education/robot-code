@@ -12,5 +12,9 @@ Don't consider older versions of features or documents made with them: renaming 
 defaults, or changing what's built is fine, with no migration or fallback for old values. Don't add code to handle
 values saved by an older version.
 
-The exception is attributes, which other features and documents read back. When an attribute's format changes, either
+Never rename a released feature's constant (the name `defineFeature` is exported as, like `frcBeltCalculator`):
+documents store it as the feature's type, and lose the feature if it changes. Rename its Feature Type Name and its file
+instead (see `docs/featurescript-style.md`'s "Released feature constants").
+
+The other exception is attributes, which other features and documents read back. When an attribute's format changes, either
 handle old attributes or report them as an error; either is fine.

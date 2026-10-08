@@ -10,17 +10,24 @@ export const PULLEY_TEETH_BOUNDS = { (unitless) : [2, 24, 1e50] } as IntegerBoun
 export const PULLEY_ATTRIBUTE = "robotPulley";
 
 /**
- * An attribute used to define information set on pulleys.
+ * Set on pulleys and idlers (and their mate connectors), for Robot belt to put belts on them.
+ * @type {{
+ *      @field pulleyTeeth {number} : A pulley's teeth. An idler has none, but an `idlerRadius`.
+ *      @field idlerRadius {ValueWithUnits} : An idler's radius.
+ * }}
  */
 export type PulleyAttribute typecheck canBePulleyAttribute;
 
 export predicate canBePulleyAttribute(value)
 {
+    value is map;
     value.beltType is BeltType;
-    value.pulleyTeeth is number;
+    value.pulleyTeeth is number || isLength(value.idlerRadius);
     value.twoBelts is boolean;
     value.coordSystem is PersistentCoordSystem;
 }
+
+export const IDLER_DIAMETER_BOUNDS = { (meter) : [1e-4, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
 
 export enum FlangeSize
 {

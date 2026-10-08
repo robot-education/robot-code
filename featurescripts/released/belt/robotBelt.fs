@@ -22,7 +22,7 @@ annotation {
         "Feature Type Description" : "Create GT2, HTD, and RT25 belts and position and size them automatically based on model geometry." ~
         "<br>See also the Robot pulley and Robot tensioner FeatureScripts, which work with this feature directly." ~ CREDIT
     }
-export const robotBelt = defineFeature(function(context is Context, id is Id, definition is map)
+export const frcBeltCalculator = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
         robotBeltPredicate(definition);
@@ -167,6 +167,13 @@ function getSimpleBeltPulleys(context is Context, definition is map, beltType is
     verifyNonemptyQuery(context, definition, "pulleyTwoSelection", "Select a sketch point, circle, mate connector, or Robot pulley to use for pulley two.");
     const one = getPulleySelection(context, definition, beltType, definition.pulleyOneSelectionType, "pulleyOneSelection", definition.pulleyOneTeeth);
     const two = getPulleySelection(context, definition, beltType, definition.pulleyTwoSelectionType, "pulleyTwoSelection", definition.pulleyTwoTeeth);
+    for (var selection in [[one, "pulleyOneSelection"], [two, "pulleyTwoSelection"]])
+    {
+        if (selection[0].idler)
+        {
+            throw regenError("A simple belt's pulleys are both inside it: select a pulley, not an idler.", [selection[1]], definition[selection[1]]);
+        }
+    }
     const beltPlane = applyStartOffset(context, definition, one.plane);
     const secondPoint = project(beltPlane, two.plane.origin);
     if (tolerantEquals(secondPoint, beltPlane.origin))
@@ -275,7 +282,7 @@ function getComplexBeltDefinition(context is Context, id is Id, definition is ma
             {
                 reportFeatureWarning(context, id, "A selected Robot pulley isn't lined up with the belt.", [parameterName]);
             }
-            if (pulleyDefinition.pulleyType == PulleyType.IDLER)
+            if (pulleyDefinition.pulleyType == PulleyType.IDLER && !selection.idler)
             {
                 reportFeatureInfo(context, id, "A Robot pulley is being used as an idler.");
             }
@@ -283,11 +290,15 @@ function getComplexBeltDefinition(context is Context, id is Id, definition is ma
 
         if (isPulley(pulleyDefinition.pulleyType))
         {
+            if (selection.idler)
+            {
+                throw regenError("The selected Robot pulley is an idler, which only goes on a single sided belt's outside.", [parameterName], pulley.pulleySelection);
+            }
             pulleyDefinition.pulleyTeeth = selection.pulleyTeeth;
         }
         else
         {
-            pulleyDefinition.idlerRadius = pulley.idlerDiameter / 2;
+            pulleyDefinition.idlerRadius = getIdlerRadius(pulley, selection);
             // An idler's teeth don't matter
             selections[i].fractionalTeeth = false;
         }
@@ -305,6 +316,14 @@ function getComplexBeltDefinition(context is Context, id is Id, definition is ma
 }
 
 /**
+ * An idler's radius: a Robot pulley's (see `getPulleySelection`), or its Idler diameter's.
+ */
+function getIdlerRadius(pulley is map, selection is map) returns ValueWithUnits
+{
+    return selection.selectionType == SelectionType.ROBOT_PULLEY ? selection.idlerRadius : pulley.idlerDiameter / 2;
+}
+
+/**
  * Where a pulley is, and its teeth, from its selection of `selectionType` (the parameter `parameterName`): a sketch
  * point, circle, or mate connector (geometry, with `teeth`), a Robot pulley or one of its mate connectors, or a
  * pitch circle (whose size gives its teeth).
@@ -312,7 +331,10 @@ function getComplexBeltDefinition(context is Context, id is Id, definition is ma
  * @returns {{
  *      @field selectionType {SelectionType} :
  *      @field plane {Plane} : Its plane, at its center.
- *      @field pulleyTeeth {number} :
+ *      @field pulleyTeeth {number} : `undefined` for a Robot pulley idler.
+ *      @field idler {boolean} : It's a Robot pulley idler.
+ *      @field idlerRadius {ValueWithUnits} : A Robot pulley's, as an idler: an idler's radius, or a pulley's teeth's
+ *              tips'.
  *      @field fractionalTeeth {boolean} : A pitch circle's teeth aren't a whole number (`pulleyTeeth` is rounded).
  *      @field otherBeltType {boolean} : A Robot pulley's for another type of belt.
  * }}
@@ -320,7 +342,7 @@ function getComplexBeltDefinition(context is Context, id is Id, definition is ma
 function getPulleySelection(context is Context, definition is map, beltType is BeltType, selectionType is SelectionType, parameterName is string, teeth) returns map
 {
     const selection = getParameter(definition, parameterName);
-    var result = { "selectionType" : selectionType, "fractionalTeeth" : false, "otherBeltType" : false };
+    var result = { "selectionType" : selectionType, "idler" : false, "fractionalTeeth" : false, "otherBeltType" : false };
     if (selectionType == SelectionType.ROBOT_PULLEY)
     {
         // A two belt pulley's mate connectors have attributes of their own, for each belt
@@ -337,7 +359,11 @@ function getPulleySelection(context is Context, definition is map, beltType is B
             throw regenError("A pulley for two belts has a mate connector for each: select one.", [parameterName], selection);
         }
         result.plane = attribute.coordSystem.coordSystem->plane();
+        result.idler = attribute.idlerRadius != undefined;
         result.pulleyTeeth = attribute.pulleyTeeth;
+        // A pulley used as an idler has the belt's back on its teeth's tips
+        result.idlerRadius = result.idler ? attribute.idlerRadius :
+            getPulleyRadius(getBeltPitch(attribute.beltType), attribute.pulleyTeeth) - getBeltModelInfo(attribute.beltType).insideThickness;
         result.otherBeltType = attribute.beltType != beltType;
     }
     else if (selectionType == SelectionType.PITCH_CIRCLE)
@@ -753,7 +779,7 @@ function closestBeltTeeth(context is Context, definition is map) returns number
             circles = append(circles, {
                             "location" : worldToPlane(pulleys.beltPlane, pulleys.selections[i].plane.origin),
                             "radius" : isPulley(pulleyType) ? getPulleyRadius(pitch, pulleys.selections[i].pulleyTeeth) :
-                                pulley.idlerDiameter / 2 + getBeltOutsideThickness(beltValue.beltType),
+                                getIdlerRadius(pulley, pulleys.selections[i]) + getBeltOutsideThickness(beltValue.beltType),
                             "flipped" : isOutside(pulleyType)
                         } as BoundaryCircle);
         }

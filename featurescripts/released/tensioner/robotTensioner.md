@@ -13,7 +13,8 @@ nothing.
 
 Since its last release, as Robot belt tuner:
 
-- Renamed Robot tensioner (its feature type is now `robotTensioner`), and it works with chains made by Robot chain.
+- Renamed Robot tensioner, and it works with chains made by Robot chain. Its constant is still `robotBeltTuner`
+  (released features' constants are never renamed), and its tab is still `robotBeltTuner.fs`.
 - Its parameters are renamed: Robot belt is Belt or chain (`loop`), Curved belt face to adjust is Pulley, sprocket, or
   idler (`adjust`), which can be a mate connector of the belt's too, and Adjustment axis is Direction (`direction`),
   which takes anything with a direction.

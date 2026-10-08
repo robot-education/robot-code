@@ -125,7 +125,7 @@ export predicate complexBeltSelectionPredicate(definition is map)
                 "Item name" : "Pulley",
                 "Item label template" : "#beltSide pulley",
                 "UIHint" : [UIHint.FOCUS_INNER_QUERY],
-                "Driving query" : "pulleyLocation"
+                "Driving query" : "pulleySelection"
             }
     definition.pulleys is array;
     for (var pulley in definition.pulleys)
@@ -135,21 +135,23 @@ export predicate complexBeltSelectionPredicate(definition is map)
 
         annotation {
                     "Name" : "Pulley location",
-                    "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES),
+                    "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES) || (EntityType.EDGE && GeometryType.CIRCLE),
                     "MaxNumberOfPicks" : 1
                 }
         pulley.pulleySelection is Query;
 
-        // We won't worry about trying to prevent selecting a robot pulley and then using it as an idler since it greatly complicates the UI
-        // Instead we'll just flag it as an warning in the feature later
+        // A Robot pulley used as an idler (or a Robot pulley idler used as a pulley) is flagged by the feature
         annotation { "Name" : "Belt side", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
         pulley.beltSide is BeltSide;
 
-        // Always show idler diamter when we have an idler
         if (!isDoubleSidedBelt(definition) && pulley.beltSide == BeltSide.OUTSIDE)
         {
-            annotation { "Name" : "Idler diameter" }
-            isLength(pulley.idlerDiameter, NONNEGATIVE_LENGTH_BOUNDS);
+            // A Robot pulley's size is its own
+            if (pulley.selectionType != SelectionType.ROBOT_PULLEY)
+            {
+                annotation { "Name" : "Idler diameter" }
+                isLength(pulley.idlerDiameter, NONNEGATIVE_LENGTH_BOUNDS);
+            }
         }
         // Only show pulley teeth when it's not an idler and it's not a robot pulley
         else if (pulley.selectionType == SelectionType.GEOMETRY)
