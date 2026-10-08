@@ -191,6 +191,18 @@ def make_parser() -> argparse.ArgumentParser:
     format_command.add_argument(
         "--check", action="store_true", help="list the files formatting would change, without changing them"
     )
+    eval_command = command(
+        "eval",
+        "evaluate a FeatureScript expression locally, with the evaluator the FeatureScript tests use (no API calls)",
+        targets=False,
+    )
+    eval_command.add_argument("expression", help='e.g. "getSprocketRadius(0.25 * inch, 16) / inch"')
+    eval_command.add_argument(
+        "-m",
+        "--module",
+        default="onshape/std/common.fs",
+        help="the file whose names (exported or not) the expression can use, e.g. chain/robotChain.fs (default: std)",
+    )
     command(
         "deps",
         "show what FeatureScripts import, and what imports them (no API calls)",
@@ -1226,6 +1238,17 @@ def step(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def evaluate(config: Config, args: argparse.Namespace) -> int:
+    from fs_eval import Evaluator, FSError, to_display
+
+    try:
+        print(to_display(Evaluator(config.root).eval(args.expression, args.module)))
+    except FSError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def ui(config: Config, args: argparse.Namespace) -> int:
     path = pathlib.Path(args.file)
     if not path.is_file():
@@ -1316,6 +1339,7 @@ OFFLINE_COMMANDS = {
     "format": format_files,
     "mv": mv,
     "ui": ui,
+    "eval": evaluate,
     "deps": deps,
     "strings": strings,
     "unused": unused,

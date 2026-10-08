@@ -202,3 +202,4 @@ creds.json
 # VS Code extension build output
 node_modules/
 out/
+.fs-eval-cache/

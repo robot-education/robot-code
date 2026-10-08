@@ -3,6 +3,10 @@
 See `README.md` for how the repo and the `fs` CLI work, and `docs/featurescript-style.md` for how to write
 FeatureScript here (including selections, editing logic, and manipulator change functions).
 
+Test FeatureScript which computes values (math, lookup tables, editing logic, manipulator change functions,
+sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval`; see
+README's "Testing FeatureScript". `uv run pytest` runs them all.
+
 Features with a writeup (a `.md` beside the `.fs`, like `frame/robotFrame.md`) need it updated when they change; see
 `docs/feature-writeups.md`.
 

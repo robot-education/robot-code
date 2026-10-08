@@ -36,7 +36,7 @@ testpaths = ["tests", "vscode-extension/server/tests"]
 python_files = ["*test*.py"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["onshape_api", "fs_cli", "vscode-extension/server/fs_lsp"]
+packages = ["onshape_api", "fs_cli", "fs_eval", "vscode-extension/server/fs_lsp"]
 
 [build-system]
 requires = ["hatchling"]
