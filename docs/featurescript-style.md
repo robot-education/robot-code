@@ -141,7 +141,8 @@ field), and don't use std predicates which declare parameters that can be, like 
 
 Wherever one part goes in or over another (a bore on a shaft, a pocket for a part, a hole for a screw), use the fit
 in `core/fit.fs` rather than a gap of your own or a profile offset: `fitPredicate` (or `boreFitPredicate` for a second
-fit in the same feature) declares Fit (Close, Free, None, or Custom, with a Clearance), and the feature applies it:
+fit in the same feature) declares Fit (Free, Close, None, or Custom, with a Clearance; Free by default, since printed
+parts rarely need a close fit), and the feature applies it:
 
 - `fitClearance` (`boreFitClearance`) for shafts and parts: as much as std's close or free clearance hole
   (`ANSI_V2ClearanceHoleTable`, the Hole feature's) is bigger than the inch fastener nearest their size, across (add

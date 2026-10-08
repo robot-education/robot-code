@@ -29,10 +29,10 @@ Since v2.2.0 (`fs changes robotShaft`).
 - **Ends must be flat**: up to next onto a curved face is now an error (`The shaft's ends must be flat.`) rather than
   a shaft with a curved end.
 - **Depth is now Length**, for the end and the second end.
-- **Clearance holes take a Fit, not a hole diameter.** The hole table picks the screw's size alone, and Fit (Close,
-  Free, None, or Custom: a clearance over the screw's size) picks the hole from std's clearance hole table, as before
+- **Clearance holes take a Fit, not a hole diameter.** The hole table picks the screw's size alone, and Fit (Free,
+  Close, None, or Custom: a clearance over the screw's size) picks the hole from std's clearance hole table, as before
   (#8: 0.1695 / 0.177 in., #10: 0.196 / 0.201 in., 1/4: 0.257 / 0.266 in.). The first end's Hole diameter is only shown
-  for tapped holes. Existing clearance holes get Close, so ones set to Free (or to a diameter of their own) change.
+  for tapped holes. Existing clearance holes get Free, so ones set to Close (or to a diameter of their own) change.
 - **Custom shaft colors**: SplineXL and hex shafts other than UltraHex are black; UltraHex, MAXSpline, and SplineXS are
   medium gray (were: hex black but UltraHex white; splines white).
 - **Custom shaft names** are measured the same way; FTC ones are in centimeters, with a stray period (see Issues

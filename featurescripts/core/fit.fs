@@ -9,10 +9,10 @@ import(path : "onshape/std/holetables.gen.fs", version : "2960.0");
  */
 export enum Fit
 {
-    annotation { "Name" : "Close" }
-    CLOSE,
     annotation { "Name" : "Free" }
     FREE,
+    annotation { "Name" : "Close" }
+    CLOSE,
     annotation { "Name" : "None" }
     NONE,
     annotation { "Name" : "Custom" }

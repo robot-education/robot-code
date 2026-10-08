@@ -17,10 +17,10 @@ Since v1.1.0 (`fs changes robotSplineProfile`).
 
 ### Changes to existing features when their documents update
 
-- **Fit replaces Offset profile, and its manipulator is gone.** Fit is Close, Free, None, or Custom (a clearance);
+- **Fit replaces Offset profile, and its manipulator is gone.** Fit is Free, Close, None, or Custom (a clearance);
   Close and Free are std's clearance holes for a fastener the spline's size (1/64 and 1/32 in. across). What it fits
   follows Profile side: an outside profile grows (it's what goes on the shaft, like a bore), and an inside profile
-  shrinks (it's what goes in the tube). Existing features get Close, so their profiles grow (or shrink) by 1/64 in.;
+  shrinks (it's what goes in the tube). Existing features get Free, so their profiles grow (or shrink) by 1/32 in.;
   set None to keep the shaft's own size.
 - **Field tolerancing is gone** from the extrude's lengths (depth, offsets).
 - End type, Symmetric, and the second end type remember their previous values.

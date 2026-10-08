@@ -21,7 +21,7 @@ hidden; the manipulator sets it.
 | --- | --- | --- | --- |
 | Select an edge to use. | error | Edge, nothing selected | `edge` |
 | Select a sketch point, circle, or mate connector to use. | error | Point, nothing selected | `location` |
-| Specified offsets are too long. | error | Edge: the offsets add up to the edge's length or more | `edgeStartOffset`, `edgeEndOffset`, the edge |
+| Specified offsets are too long. | error | Edge: the offsets add up to the edge's length or more | `edgeStartOffset`, `edgeEndOffset` and their Opposite directions, the edge |
 | The selected face does not intersect the `<name>`. | error | Edge, Trim: a face's plane misses the stock, or would cut all of it away | `trimFaces`, the face |
 | The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start | `depth`, `endBound`, `secondDirectionBound` |
 | The `<name>`'s ends must be flat. | error | Point, Up to next: the next face is curved | the bound's parameters, the face |
@@ -87,7 +87,9 @@ profile (`sketchProfile`), the offsets of holes through the walls facing Y (`sto
 (`stockPointOffsets`).
 
 `edgePlacement`: along the edge, from its start to its end as `evEdgeTangentLine` runs (`edgeCoordSystem`: Z along the
-edge; X along its sketch's normal, or any perpendicular for edges not in a sketch), between its offsets.
+edge; X along its sketch's normal, or any perpendicular for edges not in a sketch), between its offsets. Each offset
+moves its end in from the end of the edge, or out past it with its Opposite direction (`edgeOffset`); dragging an
+offset's manipulator past the end of the edge flips it.
 
 `extrudePlacement` works out where an extrude from the selected point would go, without extruding, as std's extrude
 decides it:

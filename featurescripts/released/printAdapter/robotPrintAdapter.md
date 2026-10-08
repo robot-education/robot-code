@@ -21,10 +21,10 @@ Since v1.0.0 (`fs changes robotPrintAdapter`).
   defaults, ThriftyBot's 1/2" Hex Insert (TTB-0034), until they're set again; WCP adapters change shape.
 - The Selections group is gone; its parameters are at the top of the dialog.
 - **Fit and Bore fit replace Offset profile and Offset bore profile, and their manipulators are gone.** Each is
-  Close, Free, None, or Custom (a clearance); Close and Free are std's clearance holes for a fastener the size of the
+  Free, Close, None, or Custom (a clearance); Free and Close are std's clearance holes for a fastener the size of the
   adapter's outline (its widest), or of the shaft (a hex's width across flats, SplineXS's 8mm, or the clearance
   circle's diameter): 1/64 and 1/32 in. across for 7/16 in. and up, less below. A fit always grows the pocket or bore.
-  Existing features get Close for both, so their pockets and bores grow by its clearance; set None to keep the
+  Existing features get Free for both, so their pockets and bores grow by its clearance; set None to keep the
   adapter's own size.
 - **Field tolerancing is gone** from the bore's lengths.
 

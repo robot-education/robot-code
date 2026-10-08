@@ -3,7 +3,7 @@
   "studios": {
     "00b10ef1fb1a7418097fc0af": "released/belt/robotBeltCommon.fs",
     "0103ad63394d7713fbf44448": "core/profileOffset.fs",
-    "01286571f64f95abc865c937": "primitive/robotPrimitive.fs",
+    "01286571f64f95abc865c937": "primitive/primitive.fs",
     "01402b7c9eebd8bf0b5d3e52": "core/stdHole.fs",
     "0195d390c3944cd4fab21ce0": "core/location.fs",
     "032a0037ea2335b45777aeca": "released/belt/robotBeltTuner.fs",

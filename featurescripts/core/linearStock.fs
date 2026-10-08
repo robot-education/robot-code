@@ -49,7 +49,7 @@ export predicate isEdgePlacement(definition is map)
  * `stockEditLogic`).
  */
 const OFFSET_BOUNDS = {
-            (meter) : [-500, 0.00635, 500],
+            (meter) : [0, 0.00635, 500],
             (centimeter) : 0.635,
             (millimeter) : 6.35,
             (inch) : 0.25,
@@ -130,7 +130,8 @@ export predicate stockLocationPredicate(definition is map, name is string)
 }
 
 /**
- * The offsets of the ends of stock on edges.
+ * The offsets of the ends of stock on edges: each moves its end in from the end of the edge, or out past it with its
+ * Opposite direction (see `edgeOffset`).
  */
 export predicate stockOffsetsPredicate(definition is map)
 {
@@ -141,6 +142,10 @@ export predicate stockOffsetsPredicate(definition is map)
     {
         annotation { "Name" : "Start offset", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.edgeStartOffset, OFFSET_BOUNDS);
+
+        annotation { "Name" : "Opposite direction", "Column Name" : "Start offset opposite direction",
+                    "UIHint" : ["OPPOSITE_DIRECTION", "REMEMBER_PREVIOUS_VALUE"] }
+        definition.edgeStartOffsetOppositeDirection is boolean;
     }
 
     annotation { "Name" : "End offset", "Column Name" : "Has end offset",
@@ -150,7 +155,24 @@ export predicate stockOffsetsPredicate(definition is map)
     {
         annotation { "Name" : "End offset", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.edgeEndOffset, OFFSET_BOUNDS);
+
+        annotation { "Name" : "Opposite direction", "Column Name" : "End offset opposite direction",
+                    "UIHint" : ["OPPOSITE_DIRECTION", "REMEMBER_PREVIOUS_VALUE"] }
+        definition.edgeEndOffsetOppositeDirection is boolean;
     }
+}
+
+/**
+ * How far an end of stock on an edge is moved in from the end of the edge (`"Start"` or `"End"`): its offset, or out
+ * past it (negative) with its Opposite direction, or 0 without one.
+ */
+function edgeOffset(definition is map, end is string) returns ValueWithUnits
+{
+    if (!definition["has" ~ end ~ "Offset"])
+    {
+        return 0 * meter;
+    }
+    return definition["edge" ~ end ~ "Offset"] * (definition["edge" ~ end ~ "OffsetOppositeDirection"] ? -1 : 1);
 }
 
 // What stock is
@@ -966,8 +988,8 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
 function edgePlacement(context is Context, id is Id, definition is map, name is string) returns map
 {
     const edge = verifyNonemptyQuery(context, definition, "edge", "Select an edge to use.")[0];
-    const startOffset = definition.hasStartOffset ? definition.edgeStartOffset : 0 * meter;
-    const endOffset = definition.hasEndOffset ? definition.edgeEndOffset : 0 * meter;
+    const startOffset = edgeOffset(definition, "Start");
+    const endOffset = edgeOffset(definition, "End");
     const middle = edgeCoordSystem(context, edge);
     const edgeLength = evLength(context, { "entities" : edge });
     // At the start of the edge, in the direction the stock is drawn
@@ -980,7 +1002,8 @@ function edgePlacement(context is Context, id is Id, definition is map, name is 
     const length = edgeLength - startOffset - endOffset;
     if (tolerantLessThanOrEqual(length, 0 * meter))
     {
-        throw regenError("Specified offsets are too long.", ["edgeStartOffset", "edgeEndOffset"], edge);
+        throw regenError("Specified offsets are too long.", ["edgeStartOffset", "edgeStartOffsetOppositeDirection",
+                    "edgeEndOffset", "edgeEndOffsetOppositeDirection"], edge);
     }
     return { "location" : location, "length" : length, "errorParameters" : ["trimFaces"] };
 }
@@ -1478,15 +1501,18 @@ export function stockManipulatorChange(context is Context, definition is map, ne
     }
     if (isEdgePlacement(definition))
     {
+        // Dragged past the end of the edge, an offset flips
         const startOffset = newManipulators[START_OFFSET_MANIPULATOR];
         if (startOffset != undefined)
         {
-            definition.edgeStartOffset = startOffset.offset;
+            definition.edgeStartOffset = abs(startOffset.offset);
+            definition.edgeStartOffsetOppositeDirection = startOffset.offset < 0 * meter;
         }
         const endOffset = newManipulators[END_OFFSET_MANIPULATOR];
         if (endOffset != undefined)
         {
-            definition.edgeEndOffset = endOffset.offset;
+            definition.edgeEndOffset = abs(endOffset.offset);
+            definition.edgeEndOffsetOppositeDirection = endOffset.offset < 0 * meter;
         }
         return definition;
     }
@@ -1518,6 +1544,7 @@ export function stockEditLogic(context is Context, id is Id, oldDefinition is ma
                 if ((turnedOn || partChanged) && !(specifiedParameters[offset.key] ?? false))
                 {
                     definition[offset.key] = defaultOffset;
+                    definition[offset.key ~ "OppositeDirection"] = false;
                 }
             }
         }

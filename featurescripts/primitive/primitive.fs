@@ -1,5 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
+PrimitiveIcon::import(path : "primitive/primitiveIcon.svg", version : "");
 
 export import(path : "21762d39019c8b2289e2fbb8", version : "f40a9d160de84aecb5b2c022");
 export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
@@ -7,7 +8,7 @@ import(path : "554542fc345271814c4463b0", version : "9c477217d62dbff99c9b2ad2");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 /**
- * The shapes Robot primitive makes.
+ * The shapes Primitive makes.
  */
 export enum PrimitiveShape
 {
@@ -40,13 +41,13 @@ predicate isRectangle(definition is map)
  * angle (from the angle reference's direction, if there is one), which an angle manipulator also sets, as in std's
  * Frame.
  */
-annotation { "Feature Type Name" : "Robot primitive",
+annotation { "Feature Type Name" : "Primitive",
         "Feature Type Description" : "Quickly extrude cylinders, rectangles, and squares from a point, and add them to or remove them from parts." ~ CREDIT,
-        "Manipulator Change Function" : "robotPrimitiveManipulatorChange",
-        "Editing Logic Function" : "robotPrimitiveEditLogic",
-        "Icon" : RobotIcon::BLOB_DATA
+        "Manipulator Change Function" : "primitiveManipulatorChange",
+        "Editing Logic Function" : "primitiveEditLogic",
+        "Icon" : PrimitiveIcon::BLOB_DATA
     }
-export const robotPrimitive = defineFeature(function(context is Context, id is Id, definition is map)
+export const primitive = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
         booleanStepTypePredicate(definition);
@@ -102,12 +103,24 @@ export const robotPrimitive = defineFeature(function(context is Context, id is I
     }
     {
         definition.entities = sketchPrimitive(context, id + "profile", definition);
-        // The top level id, so the extrude's manipulators are the feature's; extrude does the boolean
+        // Extruded as a new body first, so it can be measured for the manipulators, then booleaned. The top level id, so
+        // the extrude's manipulators are the feature's
+        const operationType = definition.operationType;
+        definition.operationType = NewBodyOperationType.NEW;
         callSubfeatureAndProcessStatus(id, extrude, context, id, definition, { "featureParameterMap" : { "entities" : "location" } });
         if (!isCylinder(definition))
         {
-            addPrimitiveManipulators(context, id, definition);
+            addPrimitiveManipulators(context, id, definition, qCreatedBy(id, EntityType.BODY));
         }
+        definition.operationType = operationType;
+        // Rebuilds it to show for an error
+        const reconstructOp = function(errorId)
+            {
+                var errorDefinition = definition;
+                errorDefinition.operationType = NewBodyOperationType.NEW;
+                extrude(context, errorId, errorDefinition);
+            };
+        processNewBodyIfNeeded(context, id, definition, reconstructOp);
         // After the boolean, which uses the profile
         opDeleteBodies(context, id + "deleteProfile", { "entities" : qCreatedBy(id + "profile", EntityType.BODY) });
     });
@@ -188,15 +201,17 @@ const ANGLE_MANIPULATOR = "angleManipulator";
 
 /**
  * Adds a rectangle or square's manipulators: the nine point manipulator choosing which of its points is on the
- * location, and the angle manipulator, as std's Frame's: around the location's axis, from the zero angle's direction,
- * as far out as the profile is wide.
+ * location, halfway along the extruded `body` (so on the part, wherever its extrude's options put it), and the angle
+ * manipulator, as std's Frame's: around the location's axis, from the zero angle's direction, as far out as the profile
+ * is wide.
  */
-function addPrimitiveManipulators(context is Context, id is Id, definition is map)
+function addPrimitiveManipulators(context is Context, id is Id, definition is map, body is Query)
 {
     const profile = primitivePlane(context, definition);
     const location = coordSystem(profile.plane);
     const size = primitiveSize(definition);
-    const center = primitiveCenter(definition);
+    const bounds = evBox3d(context, { "topology" : body, "cSys" : location, "tight" : true });
+    const center = primitiveCenter(definition) + vector(0 * meter, 0 * meter, (bounds.minCorner[2] + bounds.maxCorner[2]) / 2);
     addPointManipulator(context, id, definition, mapArray(ninePointOffsets(size.width, size.height), function(offset)
             {
                 return toWorld(location, center + offset);
@@ -214,7 +229,7 @@ function addPrimitiveManipulators(context is Context, id is Id, definition is ma
             });
 }
 
-export function robotPrimitiveManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
+export function primitiveManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
     definition = pointManipulatorChange(definition, newManipulators);
     const angle = newManipulators[ANGLE_MANIPULATOR];
@@ -225,7 +240,7 @@ export function robotPrimitiveManipulatorChange(context is Context, definition i
     return extrudeManipulatorChange(context, definition, newManipulators);
 }
 
-export function robotPrimitiveEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map,
+export function primitiveEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map,
     hiddenBodies is Query) returns map
 {
     // The profile, so the merge scope is filled in from what it touches
