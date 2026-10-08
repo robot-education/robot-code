@@ -5,12 +5,13 @@ export import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b376
 
 export import(path : "a6eeed056b8f09ac4e8ae12e", version : "cdc5301e6447c69b96168ead");
 export import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
-export import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
 export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
 
 
 import(path : "8fc3df84a88e74d27ad43d26", version : "a29c4701c1348914e6f1f6c4");
+// Exports Fit, a parameter type
+export import(path : "core/fit.fs", version : "");
 
 
 export enum SpacerType
@@ -42,14 +43,6 @@ export predicate splineSpacer(definition is map)
 // {
 //     definition.spacerType == SpacerType.SQUARE;
 // }
-
-export enum Fit
-{
-    annotation { "Name" : "Close" }
-    CLOSE,
-    annotation { "Name" : "Free" }
-    FREE
-}
 
 export enum HexSize
 {
@@ -109,10 +102,8 @@ export predicate generalPredicate(definition is map)
         //     isLength(definition.width, LENGTH_BOUNDS);
         // }
 
-        if (canHaveProfileOffset(definition))
-        {
-            profileOffsetPredicate(definition);
-        }
+        // Of its bore on the shaft or fastener
+        fitPredicate(definition);
 
         // Option is required for custom spacers
         if (!isCustomSizeSpacer(definition))
@@ -129,12 +120,6 @@ export predicate generalPredicate(definition is map)
             }
         }
     }
-}
-
-export predicate canHaveProfileOffset(definition is map)
-{
-    // !isCustomSizeSpacer, as all non-custom spacers can have a profile offset
-    (definition.spacerType == SpacerType.HEX && definition.hexSize != HexSize.CUSTOM) || definition.spacerType == SpacerType.SPLINE;
 }
 
 export predicate isCustomSizeSpacer(definition is map)
@@ -174,8 +159,6 @@ export predicate holeSizePredicate(definition is map)
 {
     annotation { "Name" : "Hole table", "Lookup Table" : clearanceHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.clearanceHolePath is LookupTablePath;
-
-    holeDiameterPredicate(definition);
 }
 
 
@@ -200,20 +183,22 @@ export predicate isSnapOnSpacer(definition is map)
     canBeSnapOnSpacer(definition) && definition.snapOn;
 }
 
+/**
+ * The size across a spacer's bore, with its fit: a hex's width across its flats, a round spacer's clearance hole, or a
+ * spline's major diameter.
+ */
 export function getInnerDiameter(definition is map) returns ValueWithUnits
 {
     if (hexSpacer(definition))
     {
-        return getHexWidth(definition) + (definition.fit == Fit.CLOSE ? 0.008 * inch : 0.016 * inch);
+        return getHexWidth(definition) + fitClearance(definition, getHexWidth(definition));
     }
     else if (roundSpacer(definition))
     {
-        return definition.holeDiameter;
+        return fastenerHoleDiameter(definition, getTableAndPath(definition).path.size);
     }
-    else if (splineSpacer(definition))
-    {
-        return 1.375 * inch;
-    }
+    const diameter = splineDiameter(definition.splineType);
+    return diameter + fitClearance(definition, diameter);
 }
 
 export function getOuterDiameter(definition is map, innerDiameter is ValueWithUnits) returns ValueWithUnits

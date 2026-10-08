@@ -5,13 +5,15 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
 export import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b3763f68");
-import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
+import(path : "released/splineProfile/splineProfileCommon.fs", version : "");
 export import(path : "58d66340f7b70cfc86606676", version : "c66f2cde90ee0c14ff94cd63");
 export import(path : "aff3918ff64d6eafb99fddcf", version : "4661373950000ab2acd87f53");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 // Exports the adapter enums, which Onshape requires since they're parameter types
 export import(path : "6451a02d1f9f40630984864b", version : "ef6cb5b6d8c95ab1a3e79148");
 import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
+// Exports Fit, a parameter type
+export import(path : "core/fit.fs", version : "");
 
 /**
  * The bores SplineXS adapters can cut.
@@ -47,7 +49,8 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
         annotation { "Name" : "Opposite direction", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
         definition.oppositeDirection is boolean;
 
-        profileOffsetPredicate(definition);
+        // Of the adapter in its pocket
+        fitPredicate(definition);
 
         holeMergeScopePredicate(definition);
 
@@ -64,7 +67,8 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
                     definition.boreType is PrintBoreType;
                 }
 
-                boreProfileOffsetPredicate(definition);
+                // Of the bore on its shaft
+                boreFitPredicate(definition);
 
                 simpleExtrudePredicate(definition);
             }
@@ -132,25 +136,24 @@ function createPrintAdapter(context is Context, id is Id, definition is map, pla
                 "endDepth" : getPocketDepth(definition)
             });
     const outsideFaces = qNonCapEntity(adapterId + "extrude", EntityType.FACE);
+    // The fit's for the adapter's size across its outline
+    const clearance = fitClearance(definition, profileAcross(context, qCreatedBy(sketchId, EntityType.FACE), plane));
 
     cleanup(context, adapterId + "delete", qCreatedBy(sketchId, EntityType.BODY));
 
-    const profileOffset = getProfileOffset(definition);
-    if (!tolerantEqualsZero(profileOffset))
+    if (!tolerantEqualsZero(clearance))
     {
-
-        addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, line(plane.origin, plane.x), outsideFaces, definition[PROFILE_OFFSET_FLIP]);
-
+        // The pocket's a tool, so growing it (half the clearance on each side) grows the pocket
         try
         {
             opOffsetFace(context, adapterId + "offset", {
                         "moveFaces" : outsideFaces,
-                        "offsetDistance" : profileOffset
+                        "offsetDistance" : clearance / 2
                     });
         }
         catch
         {
-            throw regenError("Failed to offset print adapter. Is the offset too large?", ["profileOffsetDistance"], qCreatedBy(id, EntityType.BODY));
+            throw regenError("Failed to fit the print adapter's pocket. Is its clearance too large?", ["fit", "fitClearance"], qCreatedBy(id, EntityType.BODY));
         }
     }
 }
@@ -171,23 +174,36 @@ function createPrintBore(context is Context, id is Id, definition is map, plane 
 
     cleanup(context, id + "deleteBore", qCreatedBy(sketchId, EntityType.BODY));
 
-    const boreOffset = getBoreProfileOffset(definition);
-    if (!tolerantEqualsZero(boreOffset))
+    const clearance = boreFitClearance(definition, boreAcross(definition));
+    if (!tolerantEqualsZero(clearance))
     {
-        addProfileOffsetManipulator(context, id, BORE_PROFILE_OFFSET_MANIPULATOR, line(plane.origin + plane.normal * getPocketDepth(definition), plane.x), outsideFaces, definition[BORE_PROFILE_OFFSET_FLIP]);
-
+        // The bore's a tool, so growing it (half the clearance on each side) grows the bore
         try
         {
             opOffsetFace(context, id + "offsetBoreFaces", {
                         "moveFaces" : outsideFaces,
-                        "offsetDistance" : boreOffset
+                        "offsetDistance" : clearance / 2
                     });
         }
         catch
         {
-            throw regenError("Failed to offset bore. Is the offset too large?", ["boreProfileOffsetDistance"], qCreatedBy(id, EntityType.BODY));
+            throw regenError("Failed to fit the bore. Is its clearance too large?", ["boreFit", "boreFitClearance"], qCreatedBy(id, EntityType.BODY));
         }
     }
+}
+
+/**
+ * The size across the shaft the bore fits: a SplineXS shaft's major diameter, a hex's width across its flats, or the
+ * clearance circle's diameter.
+ */
+function boreAcross(definition is map) returns ValueWithUnits
+{
+    const bore = getPrintAdapter(definition).bore;
+    if (printAdapterHasSplineXsBore(definition) && definition.boreType == PrintBoreType.SPLINE_XS)
+    {
+        return splineDiameter(SplineType.SPLINE_XS);
+    }
+    return bore.hexSize ?? bore.diameter;
 }
 
 function sketchBoreProfile(context is Context, id is Id, definition is map, plane is Plane) returns Query
@@ -221,11 +237,8 @@ function sketchBoreProfile(context is Context, id is Id, definition is map, plan
 
 export function robotPrintAdapterManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
-    definition = profileOffsetManipulatorChange(definition, newManipulators[PROFILE_OFFSET_MANIPULATOR], PROFILE_OFFSET_FLIP);
     if (definition.addBore)
     {
-        definition = profileOffsetManipulatorChange(definition, newManipulators[BORE_PROFILE_OFFSET_MANIPULATOR], BORE_PROFILE_OFFSET_FLIP);
-
         var extrudeDefinition = definition;
         extrudeDefinition.hasSecondDirection = false;
         extrudeDefinition.symmetric = false;

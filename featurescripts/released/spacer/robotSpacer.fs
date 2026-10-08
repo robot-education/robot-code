@@ -54,31 +54,15 @@ export function doRobotSpacer(context is Context, id is Id, definition is map)
             });
     var spacerBore = qCreatedBy(id + "spacerBore", EntityType.BODY);
 
-    if (canHaveProfileOffset(definition) && offsetProfile(definition))
+    if (splineSpacer(definition))
     {
-        offsetFaces(context, id, qNonCapEntity(id + "spacerBore", EntityType.FACE), getProfileOffset(definition));
-
-        // A collection of heuristics to find the middle of the extrude
-        const firstProfile = qCreatedBy(extrudeId, EntityType.BODY)->qBodyType(BodyType.SOLID)->qNthElement(0);
-        const firstProfileEdge = qNonCapEntity(extrudeId, EntityType.EDGE)->qSketchFilter(SketchObject.NO)->qNthElement(0);
-
-        const planeNormal = evEdgeTangentLine(context, {
-                        "edge" : firstProfileEdge,
-                        "parameter" : 0.5
-                    }).direction;
-
-        const boundingBox = evBox3d(context, {
-                    "topology" : firstProfile,
-                    "tight" : false
-                });
-        const center = box3dCenter(boundingBox);
-        const profileAxis = line(center, perpendicularVector(plane.normal));
-
-        const flipped = definition.profileOffsetOppositeDirection;
-        const flipDirection = definition.profileSide == ProfileSide.INSIDE;
-        addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, profileAxis, qNonCapEntity(extrudeId, EntityType.FACE), flipped, flipDirection);
+        // A spline bore's sketched at its nominal size, so its fit is added here (half on each side)
+        const clearance = fitClearance(definition, splineDiameter(definition.splineType));
+        if (!tolerantEqualsZero(clearance))
+        {
+            offsetFaces(context, id, qNonCapEntity(id + "spacerBore", EntityType.FACE), clearance / 2);
+        }
     }
-
 
     if (isSnapOnSpacer(definition))
     {
@@ -96,7 +80,7 @@ export function doRobotSpacer(context is Context, id is Id, definition is map)
     if (tolerantGreaterThanOrEqual(innerDiameter, outerDiameter))
     {
         addDebugEntities(context, spacerBody, DebugColor.BLUE);
-        throw regenError("The inner diameter must be less than the outer diameter.", ["innerDiameter", "outerDiameter", "offset", "wallThickness"], spacerBore);
+        throw regenError("The inner diameter must be less than the outer diameter.", ["outerDiameter", "wallThickness", "fit", "fitClearance"], spacerBore);
     }
 
     try
@@ -197,7 +181,7 @@ precondition
     }
     catch
     {
-        throw regenError("Failed to offset spacer faces.", ["offset"]);
+        throw regenError("Failed to fit the spacer's bore.", ["fit", "fitClearance"]);
     }
 }
 
@@ -289,7 +273,6 @@ function setSpacerProperties(context is Context, definition is map, spacer is Qu
 
 export function robotSpacerManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
-    definition = profileOffsetManipulatorChange(definition, newManipulators[PROFILE_OFFSET_MANIPULATOR], PROFILE_OFFSET_FLIP);
     return extrudeManipulatorChange(context, definition, newManipulators);
 }
 
@@ -298,11 +281,6 @@ export function robotSpacerEditLogic(context is Context, id is Id, oldDefinition
     if (oldDefinition != {})
     {
         definition = wallEditLogic(oldDefinition, definition, specifiedParameters, getInnerDiameter(definition), getInnerDiameter(oldDefinition));
-    }
-
-    if (activePathChanged(oldDefinition, definition))
-    {
-        definition = applyTableDefinition(definition);
     }
 
     if (!isQueryEmpty(context, definition.location))
@@ -318,21 +296,4 @@ export function robotSpacerEditLogic(context is Context, id is Id, oldDefinition
         }
     }
     return stdNewExtrudeEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
-}
-
-function activePathChanged(oldDefinition is map, definition is map) returns boolean
-{
-    if (oldDefinition == {})
-    {
-        return true;
-    }
-    // Either change in table or path requires update
-    return getTableAndPath(oldDefinition) != getTableAndPath(definition);
-}
-
-function applyTableDefinition(definition is map) returns map
-{
-    const tableAndPath = getTableAndPath(definition);
-    definition.holeDiameter = getLookupTable(tableAndPath.table, tableAndPath.path).holeDiameter;
-    return definition;
 }

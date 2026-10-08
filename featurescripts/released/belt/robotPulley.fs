@@ -442,14 +442,6 @@ function addBores(context is Context, id is Id, definition is map, pulleyDefinit
     // This guarantees that we'll be able to find a suitable bore face to attach the manipulator to
     const boreResult = createBores(context, id + "bore", definition, pulleyDefinitions, pulleys);
     const bores = boreResult.bores;
-    const firstBoreFaces = boreResult.firstBoreFaces;
-
-    if (definition.boreType == BoreType.SPLINE && definition.offsetBoreProfile)
-    {
-        const plane = pulleyDefinitions[0].plane;
-        const profileAxis = line(plane.origin, plane.x);
-        addProfileOffsetManipulator(context, id, BORE_PROFILE_OFFSET_MANIPULATOR, profileAxis, firstBoreFaces, definition.boreOppositeDirection);
-    }
 
     const insideEdges = startTracking(context, qNonCapEntity(id + "bore", EntityType.EDGE));
 
@@ -464,13 +456,13 @@ function addBores(context is Context, id is Id, definition is map, pulleyDefinit
     catch
     {
         addBoreDebugEntities(context, id, definition, pulleyDefinitions);
-        throw regenError("Failed to add bore. Check input.", ["hexSize", "holeDiameter"]);
+        throw regenError("Failed to add bore. Check input.", ["hexWidth", "boreDiameter", "fit", "fitClearance"]);
     }
 
     if (size(evaluateQuery(context, qUnion(pulleys))) != size(pulleys))
     {
         addBoreDebugEntities(context, id, definition, pulleyDefinitions);
-        throw regenError("Failed to add bore. Check input.", ["hexSize", "holeDiameter"]);
+        throw regenError("Failed to add bore. Check input.", ["hexWidth", "boreDiameter", "fit", "fitClearance"]);
     }
 
     if (definition.entranceChamfer)
@@ -488,7 +480,7 @@ function addBores(context is Context, id is Id, definition is map, pulleyDefinit
         catch
         {
             addBoreDebugEntities(context, id, definition, pulleyDefinitions);
-            throw regenError("Failed to chamfer bore. Check input.", ["hexSize", "holeDiameter", "chamferDistance"]);
+            throw regenError("Failed to chamfer bore. Check input.", ["hexWidth", "boreDiameter", "fit", "fitClearance", "chamferDistance"]);
         }
     }
 }
@@ -513,10 +505,7 @@ function createBores(context is Context, id is Id, definition is map, pulleyDefi
     }
     cleanup(context, id + "delete", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
 
-    return {
-            "bores" : bores,
-            "firstBoreFaces" : qNonCapEntity(id + unstableIdComponent(0), EntityType.FACE)
-        };
+    return { "bores" : bores };
 }
 
 function createBore(context is Context, id is Id, definition is map, plane is Plane, extrudeDistance is ValueWithUnits) returns Query
@@ -530,12 +519,17 @@ function createBore(context is Context, id is Id, definition is map, plane is Pl
                 "startBound" : BoundingType.BLIND,
                 "startDepth" : extrudeDistance / 2
             });
-    if (definition.boreType == BoreType.SPLINE && definition.offsetBoreProfile)
+    if (definition.boreType == BoreType.SPLINE)
     {
-        opOffsetFace(context, id + "offsetFace", {
-                    "moveFaces" : qNonCapEntity(id + "extrude", EntityType.FACE),
-                    "offsetDistance" : getBoreProfileOffset(definition)
-                });
+        // A spline's sketched at its nominal size, so its fit is added here (half on each side)
+        const clearance = fitClearance(definition, splineDiameter(definition.splineType));
+        if (!tolerantEqualsZero(clearance))
+        {
+            opOffsetFace(context, id + "offsetFace", {
+                        "moveFaces" : qNonCapEntity(id + "extrude", EntityType.FACE),
+                        "offsetDistance" : clearance / 2
+                    });
+        }
     }
     return qCreatedBy(id + "extrude", EntityType.BODY);
 }
@@ -546,7 +540,8 @@ function sketchBoreProfile(context is Context, id is Id, definition is map, plan
 
     if (definition.boreType == BoreType.HEX)
     {
-        const hexRadius = (definition.hexWidth / 2) / cos(30 * degree);
+        const width = definition.hexWidth + fitClearance(definition, definition.hexWidth);
+        const hexRadius = (width / 2) / cos(30 * degree);
         skRegularPolygon(sketch, "hex", {
                     "center" : zeroVector(2) * meter,
                     "firstVertex" : vector(hexRadius, 0 * meter),
@@ -557,7 +552,7 @@ function sketchBoreProfile(context is Context, id is Id, definition is map, plan
     {
         skCircle(sketch, "circle", {
                     "center" : zeroVector(2) * meter,
-                    "radius" : definition.holeDiameter
+                    "radius" : (definition.boreDiameter + fitClearance(definition, definition.boreDiameter)) / 2
                 });
     }
     else if (definition.boreType == BoreType.SPLINE)
@@ -760,7 +755,6 @@ function textPositionManipulatorChange(context is Context, definition is map, ne
 export function robotPulleyManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
     definition = profileOffsetManipulatorChange(definition, newManipulators[PROFILE_OFFSET_MANIPULATOR], PROFILE_OFFSET_FLIP);
-    definition = profileOffsetManipulatorChange(definition, newManipulators[BORE_PROFILE_OFFSET_MANIPULATOR], BORE_PROFILE_OFFSET_FLIP);
     definition = startOffsetManipulatorChange(definition, newManipulators);
     definition = pointManipulatorChange(definition, newManipulators);
     definition = textPositionManipulatorChange(context, definition, newManipulators);

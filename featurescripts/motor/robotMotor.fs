@@ -5,6 +5,8 @@ export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960
 
 import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
 import(path : "2a1fbdd680ed055fe57e372f", version : "c2a95165e2ec309bb41cf58f");
+// Exports Fit, a parameter type
+export import(path : "core/fit.fs", version : "");
 
 export enum ComponentType
 {
@@ -42,24 +44,6 @@ export enum GearboxType
     SPORT
 }
 
-export enum ImperialHoleFit
-{
-    annotation { "Name" : "Close" }
-    CLOSE,
-    annotation { "Name" : "Free" }
-    FREE
-}
-
-export enum MetricHoleFit
-{
-    annotation { "Name" : "Close" }
-    CLOSE,
-    annotation { "Name" : "Normal" }
-    NORMAL,
-    annotation { "Name" : "Loose" }
-    LOOSE
-}
-
 // export enum MotorControllerType
 // {
 //     annotation { "Name" : "Spark MAX" }
@@ -71,15 +55,6 @@ export enum MetricHoleFit
 //     annotation { "Name" : "Spark" }
 //     SPARK,
 // }
-
-predicate isMotorMetric(definition is map)
-{
-    (definition.componentType == ComponentType.MOTOR &&
-                (definition.motorType == MotorType.NEO_550 ||
-                        definition.motorType == MotorType._775_PRO)) ||
-        (definition.componentType == ComponentType.GEARBOX &&
-                definition.gearboxType == GearboxType.ULTRA_PLANETARY);
-}
 
 predicate isMotorSquare(definition is map)
 {
@@ -112,16 +87,11 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
             definition.gearboxType is GearboxType;
         }
 
-        if (!isMotorMetric(definition))
-        {
-            annotation { "Name" : "Fit", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-            definition.imperialHoleFit is ImperialHoleFit;
-        }
-        else
-        {
-            annotation { "Name" : "Fit", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-            definition.metricHoleFit is MetricHoleFit;
-        }
+        // Of the mounting holes' screws (#10, or M3 or M4 for metric motors)
+        fitPredicate(definition);
+
+        // Of the hole for the motor's boss
+        boreFitPredicate(definition);
 
         annotation { "Name" : "All mounting holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.allHoles is boolean;
@@ -304,7 +274,8 @@ function doRobotMotor(context is Context, id is Id, definition is map)
 function createMotorSketch(context is Context, id is Id, definition is map, motorPattern is Pattern, plane is Plane) returns Query
 {
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    const centerId = skCircle(sketch, "circle", { "radius" : motorPattern.bossDiameter / 2 }).centerId;
+    const bossHole = motorPattern.bossDiameter + boreFitClearance(definition, motorPattern.bossDiameter);
+    const centerId = skCircle(sketch, "circle", { "radius" : bossHole / 2 }).centerId;
     drawMountingHoles(sketch, motorPattern, definition.allHoles);
     skSolve(sketch);
     return sketchEntityQuery(id, EntityType.VERTEX, centerId);
@@ -369,7 +340,11 @@ function pattern(definition is map, value is map) returns Pattern
 
 function getHoleDiameter(definition is map, holeType is HoleType) returns ValueWithUnits
 {
-    return HOLE_SIZE_MAP[holeType][(holeType == HoleType.NUMBER_10) ? definition.imperialHoleFit : definition.metricHoleFit];
+    return fastenerHoleDiameter(definition, switch (holeType) {
+                HoleType.NUMBER_10 : "#10",
+                HoleType.M3 : "M3",
+                HoleType.M4 : "M4"
+            });
 }
 
 function drawMountingHoles(sketch is Sketch, motorPattern is Pattern, createAllHoles is boolean)
@@ -422,23 +397,6 @@ enum MotorBodyType
     CIRCLE,
     SQUARE
 }
-
-const HOLE_SIZE_MAP = {
-        HoleType.NUMBER_10 : {
-            ImperialHoleFit.CLOSE : 0.196 * inch,
-            ImperialHoleFit.FREE : 0.201 * inch
-        },
-        HoleType.M3 : {
-            MetricHoleFit.CLOSE : 3.2 * millimeter,
-            MetricHoleFit.NORMAL : 3.4 * millimeter,
-            MetricHoleFit.LOOSE : 3.6 * millimeter
-        },
-        HoleType.M4 : {
-            MetricHoleFit.CLOSE : 4.3 * millimeter,
-            MetricHoleFit.NORMAL : 4.5 * millimeter,
-            MetricHoleFit.LOOSE : 4.8 * millimeter
-        }
-    };
 
 const CIM_DEFAULTS = {
         "boltCircleDiameter" : 2 * inch,

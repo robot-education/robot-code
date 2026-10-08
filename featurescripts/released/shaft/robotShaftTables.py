@@ -12,17 +12,6 @@ from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
 
 
-def fit_node(close: str, free: str) -> Node:
-    return Node(
-        "fit",
-        [
-            Value("Close", {"holeDiameter": string(close)}),
-            Value("Free", {"holeDiameter": string(free)}),
-        ],
-        display_name="Fastener fit",
-    )
-
-
 def pitch_node(pitches: dict[str, str | None], default: str | None = None) -> Node:
     """Maps each pitch to its tap drill diameter, or None to use the size's."""
     return Node(
@@ -78,13 +67,10 @@ tapped_hole = Node(
     default="#10",
 )
 
+# Sizes of fasteners for clearance holes; their diameters come from core/fit.fs's `fastenerHoleDiameter`, by fit
 clearance_hole = Node(
     "size",
-    [
-        Value("#8", next=fit_node("0.1695 in", "0.177 in")),
-        Value("#10", next=fit_node("0.196 in", "0.201 in")),
-        Value("1/4", next=fit_node("0.257 in", "0.266 in")),
-    ],
+    [Value("#8"), Value("#10"), Value("1/4")],
     default="#10",
 )
 

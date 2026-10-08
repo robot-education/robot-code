@@ -6,7 +6,8 @@ export import(path : "21762d39019c8b2289e2fbb8", version : "8f82cf693e7833130ba8
 export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
 export import(path : "b75434df23d86ba9542f761e", version : "410f29dc5fa8b0fe88f1e9c5");
 export import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
-import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
+// Exports Fit, a parameter type
+export import(path : "core/fit.fs", version : "");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 annotation { "Feature Type Name" : "Robot spline profile",
@@ -27,7 +28,8 @@ export const robotSplineProfile = defineFeature(function(context is Context, id 
 
         locationPredicate(definition, "spline");
 
-        profileOffsetPredicate(definition);
+        // Of what goes on the shaft (an outside profile) or in it (an inside profile)
+        fitPredicate(definition);
 
         extrudePredicate(definition);
 
@@ -41,7 +43,7 @@ export const robotSplineProfile = defineFeature(function(context is Context, id 
         definition.operationType = NewBodyOperationType.NEW;
         callSubfeatureAndProcessStatus(id, extrude, context, id, definition, { "featureParameterMap" : { "entities" : "location" } });
 
-        // Sometimes offset is needed even if offsetProfile is false
+        // An inside profile is always offset, from the outside profile it's sketched as
         const profileOffset = getSplineProfileOffset(definition);
         if (!tolerantEqualsZero(profileOffset))
         {
@@ -55,11 +57,9 @@ export const robotSplineProfile = defineFeature(function(context is Context, id 
             }
             catch
             {
-                throw regenError("Failed to apply profile offset.", ["profileOffsetDistance"]);
+                throw regenError("Failed to fit the spline profile.", ["fit", "fitClearance"]);
             }
         }
-
-        addSplineProfileOffsetManipulator(context, id, definition);
 
         // Boolean after extruding so we can add manipulators in the right spots
         const reconstructOp = function(id)
@@ -96,50 +96,25 @@ function createEntities(context is Context, id is Id, definition is map) returns
     return qCreatedBy(id, EntityType.FACE);
 }
 
-function addSplineProfileOffsetManipulator(context is Context, id is Id, definition is map)
-{
-    if (!offsetProfile(definition))
-    {
-        return;
-    }
-    // A collection of heuristics to find the middle of the extrude
-    const firstProfile = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)->qNthElement(0);
-    const firstProfileEdge = qNonCapEntity(id, EntityType.EDGE)->qSketchFilter(SketchObject.NO)->qNthElement(0);
-
-    const extrudeDirection = evEdgeTangentLine(context, {
-                    "edge" : firstProfileEdge,
-                    "parameter" : 0.5
-                }).direction;
-
-    const boundingBox = evBox3d(context, {
-                "topology" : firstProfile,
-                "tight" : false
-            });
-    const center = box3dCenter(boundingBox);
-    const profileAxis = line(center, perpendicularVector(extrudeDirection));
-
-    const flipped = definition.profileOffsetOppositeDirection;
-    const flipDirection = definition.profileSide == ProfileSide.INSIDE;
-    addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, profileAxis, qNonCapEntity(id, EntityType.FACE), flipped, flipDirection);
-}
-
+/**
+ * How far to offset the outside profile the spline's sketched as: for an outside profile, out by half its fit's
+ * clearance (as what goes on the shaft is bigger than it); for an inside profile, in by the tube's wall (1/16 in.), and
+ * half its fit's clearance more (as what goes in the tube is smaller than it).
+ */
 function getSplineProfileOffset(definition is map) returns ValueWithUnits
 {
-    var profileOffset = getProfileOffset(definition);
+    // The fit's for the shaft's size, inside it or out (its range is the same)
+    const clearance = fitClearance(definition, splineDiameter(definition.splineType));
     if (definition.profileSide == ProfileSide.INSIDE)
     {
-        profileOffset += 0.0625 * inch;
-        // Positive values point inwards
-        profileOffset *= -1;
+        return -(0.0625 * inch + clearance / 2);
     }
-    return profileOffset;
+    return clearance / 2;
 }
 
 export function robotSplineProfileManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
-    definition = extrudeManipulatorChange(context, definition, newManipulators);
-    definition = profileOffsetManipulatorChange(definition, newManipulators[PROFILE_OFFSET_MANIPULATOR], PROFILE_OFFSET_FLIP);
-    return definition;
+    return extrudeManipulatorChange(context, definition, newManipulators);
 }
 
 export function robotSplineProfileEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map, hiddenBodies is Query) returns map

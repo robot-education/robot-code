@@ -1,15 +1,15 @@
 # Robot spline profile
 
 Extrudes a MAXSpline, SplineXL, or SplineXS profile from a point, to cut a spline bore or make a spline boss: the
-shaft's outside, or (for tube splines) the tube's inside, optionally offset for fit. It's std's extrude with a spline
+shaft's outside, or (for tube splines) the tube's inside, with a fit. It's std's extrude with a spline
 profile, so it can create, add, remove, or intersect.
 
 | File | What it is |
 | --- | --- |
-| `robotSplineProfile.fs` | The feature: its dialog, sketching the profile, the extrude and offset, and editing logic |
-| `splineProfileCommon.fs` | `SplineType`, and `skSplineProfile`, which sketches a spline's outside or inside profile (shared with Robot shaft) |
+| `robotSplineProfile.fs` | The feature: its dialog, sketching the profile, the extrude and its fit, and editing logic |
+| `splineProfileCommon.fs` | `SplineType`, `skSplineProfile`, which sketches a spline's outside or inside profile (shared with Robot shaft), and `splineDiameter`, the size fits are for |
 | `splineProfiles.py` | The profiles' source; `fs gen` writes `splineProfiles.gen.fs` |
-| `../../core/stdExtrude.fs`, `../../core/profileSide.fs`, `../../core/profileOffset.fs` | The extrude's dialog, Profile side, and Offset profile |
+| `../../core/stdExtrude.fs`, `../../core/profileSide.fs`, `../../core/fit.fs` | The extrude's dialog, Profile side, and Fit |
 
 ## Changelog
 
@@ -17,17 +17,17 @@ Since v1.1.0 (`fs changes robotSplineProfile`).
 
 ### Changes to existing features when their documents update
 
+- **Fit replaces Offset profile, and its manipulator is gone.** Fit is Free, Close, None, or Custom (a clearance);
+  Free and Close are ISO 286's free and close running fits for the spline's size. What it fits follows Profile
+  side: an outside profile grows (it's what goes on the shaft, like a bore), and an inside profile shrinks (it's what
+  goes in the tube). Existing features get Free, so their profiles grow (or shrink) by its clearance; set None to
+  keep the shaft's own size.
 - **Field tolerancing is gone** from the extrude's lengths (depth, offsets).
 - End type, Symmetric, and the second end type remember their previous values.
 
 ### New
 
 - SplineXS (a solid 15 tooth spline). The description is now "Create MAXSpline, SplineXL, and SplineXS profiles."
-
-### Fixes
-
-- Offsetting the profile no longer fails when its manipulator can't be placed: the manipulator is left out instead,
-  a fallback (see `try`s).
 
 The MAXSpline and SplineXL profiles are generated now (`splineProfiles.py`), with the same geometry: only a stray line
 from the center to a tooth of the outside profiles, which didn't change the sketch's region, is gone.
@@ -41,14 +41,17 @@ from the center to a tooth of the outside profiles, which didn't change the sket
 
 ### Descriptions and hidden parameters
 
-None.
+| Parameter | Description |
+| --- | --- |
+| Fit (`fit`) | How loosely it fits. Free and close fits follow the standards for its size: ISO 286's free running (H9/d9) and close running (H8/f7) fits, or for a fastener, the standard free and close clearance holes. |
+| Clearance (`fitClearance`) | How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit. |
 
 ### Errors, warnings, and info
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
 | Select a sketch point, circle, or mate connector to use. | error | no location | `location` |
-| Failed to apply profile offset. | error | offsetting the extruded faces fails (too big an offset) | `profileOffsetDistance` |
+| Failed to fit the spline profile. | error | offsetting the extruded faces fails (too big a clearance) | `fit`, `fitClearance` |
 | std's extrude and boolean errors | error | the extrude or boolean fails (std's `extrude` as a subfeature, `processNewBodyIfNeeded`) | (std's) |
 
 `splineProfileCommon.fs` also has `<spline> shafts are solid, so have no inside profile.`, but this feature never
@@ -58,7 +61,7 @@ sketches an inside profile, so never shows it.
 
 ### Execution order
 
-1. **Precondition**: std's operation type, Spline type, Profile side, location, Offset profile, the extrude
+1. **Precondition**: std's operation type, Spline type, Profile side, location, Fit, the extrude
    (`extrudePredicate`: end type and bounds, starting offset, symmetric, second end position), std's merge scope.
 2. **Editing logic** (`robotSplineProfileEditLogic`): meant to sketch the profile so std's extrude editing logic
    (`stdExtrudeEditLogic`: up to flips, merge scope) can use it, then run it; but it throws first (see Issues found).
@@ -66,29 +69,24 @@ sketches an inside profile, so never shows it.
    1. `createEntities` sketches the spline's outside profile at the location (always the outside; Inside is made by
       offsetting it).
    2. Std's `extrude` runs as a subfeature at the top level id, as a new body (the operation type is restored after).
-   3. The profile offset (`getSplineProfileOffset`: Profile offset, signed by its flip, plus 1/16 in. inward for
-      Inside) is applied by offsetting the extrude's side faces (`opOffsetFace`).
-   4. The profile offset's flip manipulator is added, if Offset profile is on (`addSplineProfileOffsetManipulator`,
-      placed by the extrude's bounding box).
-   5. `processNewBodyIfNeeded` applies the operation type (add, remove, intersect) with the merge scope; if that needs
+   3. The offset (`getSplineProfileOffset`) is applied by offsetting the extrude's side faces (`opOffsetFace`).
+   4. `processNewBodyIfNeeded` applies the operation type (add, remove, intersect) with the merge scope; if that needs
       the tools rebuilt for an error display, `reconstructOp` extrudes and offsets them again.
-   6. The profile sketch is deleted.
-4. **Manipulator change** (`robotSplineProfileManipulatorChange`): std's extrude manipulators, then the profile
-   offset's flip.
+   5. The profile sketch is deleted.
+4. **Manipulator change** (`robotSplineProfileManipulatorChange`): std's extrude manipulators.
 
 ### Functions
 
 | Function | What it does |
 | --- | --- |
 | `createEntities` | Sketches the outside profile at the location's plane; returns its faces. |
-| `getSplineProfileOffset` | The offset applied to the extrude's sides: Profile offset (negated by its flip), and for Inside, 1/16 in. more, inward. |
-| `addSplineProfileOffsetManipulator` | The profile offset's flip manipulator, on a side face, found by casting a ray from the middle of the extrude. |
+| `getSplineProfileOffset` | The offset applied to the extrude's sides: for Outside, out by half the fit's clearance (`fitClearance`, for `splineDiameter`); for Inside, in by the tube's wall (1/16 in.) and half the clearance more. |
 | `robotSplineProfileManipulatorChange`, `robotSplineProfileEditLogic` | Above. |
 | `skSplineProfile`, `splineName`, `isTubeSpline` (`splineProfileCommon.fs`) | Sketch a profile from the generated data; a spline's name; whether its shafts are tubes. |
 
 ### Data flow
 
-The only geometry the feature creates is the extrude of the outside profile; Profile side and Offset profile only
+The only geometry the feature creates is the extrude of the outside profile; Profile side and Fit only
 change how far its sides are offset (`getSplineProfileOffset`). Everything else is std's extrude reading the
 definition as it is (this feature names its parameters as std's do).
 
@@ -101,8 +99,7 @@ its own; std's extrude and boolean report their own errors.
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| The body | Offsetting the extrude's sides (`opOffsetFace`) | Throws "Failed to apply profile offset." |
-| `addProfileOffsetManipulator` (`core/profileOffset.fs`) | Casting a ray to place the profile offset's manipulator | **Fallback**: the manipulator is left out. |
+| The body | Offsetting the extrude's sides (`opOffsetFace`) | Throws "Failed to fit the spline profile." |
 | `robotSplineProfileEditLogic` (`try silent`) | Sketching the profile for std's extrude editing logic | A guard (but editing logic throws before it; see Issues found). |
 
 ## Issues found
@@ -112,5 +109,4 @@ its own; std's extrude and boolean report their own errors.
   scope defaults never happen. This was in v1.1.0 too.
 - Profile side is offered for SplineXS, whose shafts are solid: Inside shrinks the outside profile by 1/16 in. (the
   tube wall of MAXSpline and SplineXL), which matches nothing.
-- "Profile offset" here is "Offset distance" for the bore in Robot print adapter.
 - "Sketch point to place spline" also takes circles and mate connectors.

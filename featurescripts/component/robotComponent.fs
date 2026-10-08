@@ -182,12 +182,12 @@ function sketchMountingPattern(context is Context, id is Id, definition is map, 
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
     skCircle(sketch, "circle1", {
                 "center" : vector(1, 1) * inch,
-                "radius" : definition.holeDiameter
+                "radius" : definition.holeDiameter / 2
             });
 
     skCircle(sketch, "circle2", {
                 "center" : vector(-1, -1) * inch,
-                "radius" : definition.holeDiameter
+                "radius" : definition.holeDiameter / 2
             });
 
     skSolve(sketch);

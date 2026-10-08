@@ -28,6 +28,18 @@ export function splineName(splineType is SplineType) returns string
 }
 
 /**
+ * The size across a spline's shafts (their nominal major diameter), which fits on them are for.
+ */
+export function splineDiameter(splineType is SplineType) returns ValueWithUnits
+{
+    return switch (splineType) {
+            SplineType.MAX_SPLINE : 1.375 * inch,
+            SplineType.SPLINE_XL : 1.375 * inch,
+            SplineType.SPLINE_XS : 8 * millimeter
+        };
+}
+
+/**
  * Whether a spline's shafts are tubes, with an `ProfileSide.INSIDE` profile. SplineXS shafts are solid.
  */
 export predicate isTubeSpline(splineType is SplineType)

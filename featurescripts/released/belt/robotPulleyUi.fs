@@ -12,6 +12,8 @@ export import(path : "554542fc345271814c4463b0", version : "9c477217d62dbff99c9b
 export import(path : "b82468283e5ec09720bad185", version : "c1982c22aa4741f71a6e97cf");
 export import(path : "962bbb367fd7d91fae71cd4c", version : "0230c5f617a7df45c9349b96");
 export import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
+// Exports Fit, a parameter type
+export import(path : "core/fit.fs", version : "");
 
 export enum CreationMethod
 {
@@ -112,15 +114,17 @@ export predicate pulleyBorePredicate(definition is map)
             }
             else if (definition.boreType == BoreType.HOLE)
             {
-                holeDiameterPredicate(definition);
+                annotation { "Name" : "Diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_EXPRESSION"], "Description" : "The diameter of the shaft it goes on." }
+                isLength(definition.boreDiameter, HOLE_DIAMETER_BOUNDS);
             }
             else if (definition.boreType == BoreType.SPLINE)
             {
                 annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
                 definition.splineType is SplineType;
-
-                boreProfileOffsetPredicate(definition);
             }
+
+            // Of the bore on its shaft
+            fitPredicate(definition);
 
             annotation { "Name" : "Entrance chamfer", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.entranceChamfer is boolean;

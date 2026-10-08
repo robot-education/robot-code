@@ -29,6 +29,10 @@ Since v2.2.0 (`fs changes robotShaft`).
 - **Ends must be flat**: up to next onto a curved face is now an error (`The shaft's ends must be flat.`) rather than
   a shaft with a curved end.
 - **Depth is now Length**, for the end and the second end.
+- **Clearance holes take a Fit, not a hole diameter.** The hole table picks the screw's size alone, and Fit (Free,
+  Close, None, or Custom: a clearance over the screw's size) picks the hole: the same close and free holes as before
+  (#8: 0.1695 / 0.177 in., #10: 0.196 / 0.201 in., 1/4: 0.257 / 0.266 in.). The first end's Hole diameter is only shown
+  for tapped holes. Existing clearance holes get Free, so ones set to Close (or to a diameter of their own) change.
 - **Custom shaft colors**: SplineXL and hex shafts other than UltraHex are black; UltraHex, MAXSpline, and SplineXS are
   medium gray (were: hex black but UltraHex white; splines white).
 - **Custom shaft names** are measured the same way; FTC ones are in centimeters, with a stray period (see Issues
@@ -68,8 +72,10 @@ from the center to a tooth of the outside profiles, which didn't affect the shaf
 | Mirror shaft (`mirrorShaft`) | Mirror the shaft across one of its ends. Useful when the shaft is modeled up to a plane of symmetry. |
 | Side mount ring (`firstEndSideMount`, `secondEndSideMount`) | Whether to use a side-mountable retaining ring. |
 | Extend shaft (`extendFirstEnd`, `extendSecondEnd`) | Whether to extend the shaft to accommodate hardware. |
+| Fit (`fit`) | How loosely it fits. Free and close fits follow the standards for its size: ISO 286's free running (H9/d9) and close running (H8/f7) fits, or for a fastener, the standard free and close clearance holes. |
+| Clearance (`fitClearance`) | How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit. |
 
-No parameters are hidden, but editing logic sets some shown ones: each end's Hole diameter (from its hole table), and
+No parameters are hidden, but editing logic sets some shown ones: each end's tapped Hole diameter (from its hole table), and
 its captive shaft Diameter and Length (from the shaft's size). A COTS shaft's profile (`shaftType`, `hexType`,
 `hexSize`, `splineType`) is copied into the definition by editing logic though the parameters aren't shown, which
 decides whether Shaft ends is.
@@ -118,8 +124,8 @@ Holes get std's hole attributes (they're made by std's `hole`).
       `hexSize`, `splineType`, `predrilledHoleDiameter`) into the definition, so the precondition shows what suits it.
    2. When the feature is created: sketches the profile and runs std's extrude editing logic on it
       (`stdNewExtrudeEditLogic`), which points the extrude at what it's up to and sets the merge scope.
-   3. For each end: if its hole table path changed (or the feature is new), sets its Hole diameter from the table
-      (`applyTableDefinition`: the tap drill or clearance diameter); if the shaft type or hex size changed (or the
+   3. For each end: if its hole table path changed (or the feature is new), sets a tapped hole's Hole diameter from
+      the table (`applyTableDefinition`: the tap drill; a clearance hole's diameter comes from its fit); if the shaft type or hex size changed (or the
       feature is new), sets its captive shaft Diameter and Length (`updateCaptiveShaftParameters`).
 3. **Body**:
    1. `withShaft` again, then the profile is sketched at the location (`createShaftProfile`: a hexagon, or a spline's
@@ -146,7 +152,7 @@ Holes get std's hole attributes (they're made by std's `hole`).
 | `getMirrorPlane`, `mirrorShaftAcrossEnd` | The end's plane; pattern the shaft across it and union the two. |
 | `cutHexShaftFeatures` | Cuts what makes a hex shaft not stock hex, through its whole length: a predrilled hole (`hasPredrilledHole`, `getPredrilledHoleDiameter`, made slightly smaller than a tap drill the same size by `predrilledHoleRadius`), churro or Hex Lite flutes, UltraHex's inner hex, or a rounded hex's round (`getRoundedDiameter`). |
 | `splineTapDrills` | The tap drills of a SplineXS shaft's tapped ends, from the definition, for its predrilled hole. |
-| `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. |
+| `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. A clearance hole's diameter is its fit's (`fastenerHoleDiameter`, `core/fit.fs`). |
 | `modifyShaftEnd` | A hole: std's `hole` as a subfeature, tapped (blind) or clearance (through), at the end's center, with the definition's diameter and depth. A groove or captive end: `extendShaftEnd` (offsets the end face out by the hardware's length, if extending), then cuts a tool (`extrudeShaftGrooveTool`, `extrudeCaptiveShaftTool`) from the shaft (`cutShaft`). |
 | `getGrooveDefinition` | A retaining ring groove's diameter and width, and how far from the end it is, for 1/2 in. and 3/8 in. hex, side mount or not. |
 | `measureShaftLength` | The distance between the extrude's caps, or the longest edge if a cap is gone. |

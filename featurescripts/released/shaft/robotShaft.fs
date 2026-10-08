@@ -17,6 +17,8 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
 // Also exports the enum used as a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
+// Exports Fit, a parameter type
+export import(path : "core/fit.fs", version : "");
 
 /**
  * Whether a shaft is one someone sells (see robotShaftTables.py), or custom.
@@ -176,13 +178,15 @@ predicate shaftEndPredicate(definition is map)
                     {
                         annotation { "Name" : "Hole table", "Lookup Table" : clearanceHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         definition.firstEndClearanceHolePath is LookupTablePath;
-                    }
 
-                    annotation { "Name" : "Hole diameter", "Icon" : Icon.HOLE_DIAMETER }
-                    isLength(definition.firstEndHoleDiameter, HOLE_DIAMETER_BOUNDS);
+                        fitPredicate(definition);
+                    }
 
                     if (isTappedFirstEnd(definition))
                     {
+                        annotation { "Name" : "Hole diameter", "Icon" : Icon.HOLE_DIAMETER }
+                        isLength(definition.firstEndHoleDiameter, HOLE_DIAMETER_BOUNDS);
+
                         annotation { "Name" : "Hole depth", "Icon" : Icon.HOLE_DEPTH }
                         isLength(definition.firstEndHoleDepth, HOLE_DEPTH_BOUNDS);
                     }
@@ -901,8 +905,10 @@ function getEndDefinition(definition is map, shaftEnd is ShaftEnd, endFace is Qu
         if (endOperation == EndOperation.TAPPED_HOLE)
         {
             base.holeDepth = definition[endString ~ "HoleDepth"];
+            return mergeMaps(base, { "holeDiameter" : definition[endString ~ "HoleDiameter"] }) as EndDefinition;
         }
-        return mergeMaps(base, { "holeDiameter" : definition[endString ~ "HoleDiameter"] }) as EndDefinition;
+        const size = getTableAndPath(definition, shaftEnd).path.size;
+        return mergeMaps(base, { "holeDiameter" : fastenerHoleDiameter(definition, size) }) as EndDefinition;
     }
     else if (endOperation == EndOperation.RETAINING_RING)
     {
@@ -974,6 +980,8 @@ precondition
         {
             var holePath = tableAndPath.path;
             holePath.holeType = "Clearance";
+            // For the hole's callout; its diameter is the fit's
+            holePath.fit = definition.fit == Fit.CLOSE ? "Close" : "Free";
 
             holeDefinition = {
                     "isV2" : true,
@@ -1320,15 +1328,11 @@ function activePathChanged(oldDefinition is map, definition is map, shaftEnd is 
 
 function applyTableDefinition(definition is map, shaftEnd is ShaftEnd) returns map
 {
-    const tableAndPath = getTableAndPath(definition, shaftEnd);
-    const endString = getShaftEndString(shaftEnd);
+    // A clearance hole's diameter comes from its fit
     if (getEndOperation(definition, shaftEnd) == EndOperation.TAPPED_HOLE)
     {
-        definition[endString ~ "HoleDiameter"] = getLookupTable(tableAndPath.table, tableAndPath.path).tapDrillDiameter;
-    }
-    else
-    {
-        definition[endString ~ "HoleDiameter"] = getLookupTable(tableAndPath.table, tableAndPath.path).holeDiameter;
+        const tableAndPath = getTableAndPath(definition, shaftEnd);
+        definition[getShaftEndString(shaftEnd) ~ "HoleDiameter"] = getLookupTable(tableAndPath.table, tableAndPath.path).tapDrillDiameter;
     }
     return definition;
 }

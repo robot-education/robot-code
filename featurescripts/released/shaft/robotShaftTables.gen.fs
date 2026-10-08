@@ -53,30 +53,9 @@ export const clearanceHoleTable = {
         "displayName" : "Size",
         "default" : "#10",
         "entries" : {
-            "#8" : {
-                "name" : "fit",
-                "displayName" : "Fastener fit",
-                "entries" : {
-                    "Close" : { "holeDiameter" : "0.1695 in" },
-                    "Free" : { "holeDiameter" : "0.177 in" },
-                },
-            },
-            "#10" : {
-                "name" : "fit",
-                "displayName" : "Fastener fit",
-                "entries" : {
-                    "Close" : { "holeDiameter" : "0.196 in" },
-                    "Free" : { "holeDiameter" : "0.201 in" },
-                },
-            },
-            "1/4" : {
-                "name" : "fit",
-                "displayName" : "Fastener fit",
-                "entries" : {
-                    "Close" : { "holeDiameter" : "0.257 in" },
-                    "Free" : { "holeDiameter" : "0.266 in" },
-                },
-            },
+            "#8" : {},
+            "#10" : {},
+            "1/4" : {},
         },
     };
 
