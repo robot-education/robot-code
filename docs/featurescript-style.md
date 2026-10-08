@@ -137,6 +137,13 @@ field), and don't use std predicates which declare parameters that can be, like 
 `extrudeSecondBoundsPredicate`, and the `extrudePredicate` built from them). `fs check` warns about both
 (`tolerant-parameter`), reading std's predicates from its copy of std's source.
 
+## Negative values
+
+Let lengths and angles be negative, as std does, unless a negative value truly makes no sense (a width, a diameter, a
+wall). An offset or distance with an Opposite direction (or a flip manipulator) can be negative too: the flip reverses
+it, and a negative value goes the other way again, as std's extrude offsets do. Manipulator change functions that set
+one from a dragged manipulator set its absolute value and the flip, as std's do.
+
 ## Fits
 
 Wherever one part goes in or over another (a bore on a shaft, a pocket for a part, a hole for a screw), use the fit
@@ -212,6 +219,43 @@ Pick the one operation which works and use it. Catching an error is fine to repl
 what failed before rethrowing), and a `try silent` guard is fine in editing logic, which mustn't throw while the dialog
 is being filled in; but say so in a comment, and call out every `try` in the feature's writeup (see
 `docs/feature-writeups.md`).
+
+## Errors
+
+A feature which fails should say what failed, in its own terms, and show it. How std's machinery works, from its
+source (`error.fs`, `feature.fs`, `boolean.fs`):
+
+- **A thrown `regenError` is the feature's status.** `defineFeature` catches it, reports it (message, faulty
+  parameters, and its `entities`, highlighted while the dialog is open), and rolls back everything the feature made.
+  Only one status is shown: the last one reported.
+- **Error entities outlive the rollback.** `setErrorEntities` shows entities in red, and that display stays after the
+  feature's rolled back, though the entities don't. So a feature can show bodies it made before failing, as long as it
+  shows them before it throws.
+- **Subfeatures and operations report their own statuses**, on their own ids: std's features (`extrude`, `fillet`) and
+  operations (`opShell`, `opBoolean`) set an error when they fail (and some warnings and info when they don't), with
+  their own error display (what they highlight). `processSubfeatureStatus` copies a subfeature's status onto the
+  feature, mapping its faulty parameters to the feature's (`featureParameterMap`, or `featureParameterMappingFunction`),
+  and with `propagateErrorDisplay`, its error display too. `callSubfeatureAndProcessStatus` runs one and does that.
+- **Copying an OK status hides an earlier warning**: `processSubfeatureStatus` reports the subfeature's status even
+  when it's OK, so a feature which runs several steps through `callSubfeatureAndProcessStatus` only shows the last
+  one's. Copy a step's status only when it isn't OK (`featureHasNonTrivialStatus`).
+- **Std's messages can't be quoted.** Std's errors are `ErrorStringEnum`s, translated only in Onshape's UI, so a
+  feature can't put one in its own message. Custom messages (a feature's `regenError("...")`) are strings, and can.
+- **Reconstruct what's gone.** When a step fails after earlier steps consumed what it was given (a boolean's tools),
+  std rebuilds the inputs under another id, shows them as error entities, and deletes them: `processNewBodyIfNeeded`
+  takes a `reconstructOp(errorId)` for this, which extrude, revolve, and the rest pass. Inputs which existed before the
+  feature (its selections) can just be shown.
+- **Trial runs**: editing logic (and std's boolean heuristics) can run operations to see what they'd do between
+  `startFeature` and `abortFeature`, which rolls them back.
+
+`core/steps.fs` puts this together. Run each step that can fail (each operation, or std feature) with `runStep`,
+giving it what to say if it fails: its message, the feature's parameters to highlight, what to show (`entities`), and a
+`reconstruct` function for what the feature made which the failure rolls back. It copies the step's warnings and info,
+and when it fails, its error display, then throws the feature's error, with the step's own message after it when it's
+a custom one. A failing fillet, for example, shows the edges it was given and its own highlights, with "Couldn't fillet
+the pockets' corners. Is the radius too large?" and the Radius highlighted. Run steps one operation at a time: a
+function of the feature's own which runs several operations has no status of its own for `runStep` to read, since each
+operation reports on its own id.
 
 ## Keywords as map keys
 

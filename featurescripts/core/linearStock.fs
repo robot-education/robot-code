@@ -49,7 +49,7 @@ export predicate isEdgePlacement(definition is map)
  * `stockEditLogic`).
  */
 const OFFSET_BOUNDS = {
-            (meter) : [0, 0.00635, 500],
+            (meter) : [-500, 0.00635, 500],
             (centimeter) : 0.635,
             (millimeter) : 6.35,
             (inch) : 0.25,
@@ -130,8 +130,8 @@ export predicate stockLocationPredicate(definition is map, name is string)
 }
 
 /**
- * The offsets of the ends of stock on edges: each moves its end in from the end of the edge, or out past it with its
- * Opposite direction (see `edgeOffset`).
+ * The offsets of the ends of stock on edges: each moves its end in from the end of the edge, or out past it when it's
+ * negative; its Opposite direction reverses it, as std's offsets' do (see `edgeOffset`).
  */
 export predicate stockOffsetsPredicate(definition is map)
 {
@@ -163,8 +163,8 @@ export predicate stockOffsetsPredicate(definition is map)
 }
 
 /**
- * How far an end of stock on an edge is moved in from the end of the edge (`"Start"` or `"End"`): its offset, or out
- * past it (negative) with its Opposite direction, or 0 without one.
+ * How far an end of stock on an edge is moved in from the end of the edge (`"Start"` or `"End"`), or out past it when
+ * negative: its offset, negated by its Opposite direction, or 0 without one.
  */
 function edgeOffset(definition is map, end is string) returns ValueWithUnits
 {

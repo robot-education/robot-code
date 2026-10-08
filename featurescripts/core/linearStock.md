@@ -88,8 +88,8 @@ profile (`sketchProfile`), the offsets of holes through the walls facing Y (`sto
 
 `edgePlacement`: along the edge, from its start to its end as `evEdgeTangentLine` runs (`edgeCoordSystem`: Z along the
 edge; X along its sketch's normal, or any perpendicular for edges not in a sketch), between its offsets. Each offset
-moves its end in from the end of the edge, or out past it with its Opposite direction (`edgeOffset`); dragging an
-offset's manipulator past the end of the edge flips it.
+moves its end in from the end of the edge, or out past it when it's negative; its Opposite direction reverses it
+(`edgeOffset`), and dragging an offset's manipulator past the end of the edge flips it.
 
 `extrudePlacement` works out where an extrude from the selected point would go, without extruding, as std's extrude
 decides it:
