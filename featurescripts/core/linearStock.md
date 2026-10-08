@@ -55,8 +55,9 @@ their ends are cut to.
 
 ### Execution order
 
-1. **Precondition**: the feature's parameters, then `stockLocationPredicate` (Position: Edge or Point, and their
-   options; Point's extrude options are std's, from `core/stdExtrude.fs`) and `tieHolesPredicate`.
+1. **Precondition**: the feature's parameters, then `stockLocationPredicate` (the Position group: Edge or Point, and
+   their options, Point's extrude options being std's, from `core/stdExtrude.fs`; then, on an edge, the Trim ends
+   group) and `tieHolesPredicate`.
 2. **Editing logic** (the feature's, which calls `stockEditLogic`): nothing when the feature is created. On edge
    placement, turning an offset on (or changing the part, if the feature says so) sets it to the feature's default
    offset, unless it's been set. On point placement, `newExtrudeEditLogicAlong` (`core/stdExtrude.fs`) points the

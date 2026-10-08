@@ -33,6 +33,7 @@ const CUSTOM_HOLE_DIAMETER = 0.196 * inch;
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 2.5 } as LengthBoundSpec;
 const SPACING_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
+const START_BOUNDS = { (meter) : [0, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
 const HOLE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.0049784, 500], (inch) : 0.196, (millimeter) : 4 } as LengthBoundSpec;
 
 /**
@@ -87,6 +88,10 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
 
                 annotation { "Name" : "Distance between holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.holeSpacing, SPACING_BOUNDS);
+
+                annotation { "Name" : "Start distance", "Description" : "The distance from the start of the frame to its first hole.",
+                            "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.holeStart, START_BOUNDS);
             }
             else if (isFrc(definition))
             {
@@ -146,10 +151,10 @@ function getFrame(definition is map) returns Stock
             "wallY" : definition.wallThickness,
             "angle" : entry.angle,
             "holeDiameter" : definition.holeDiameter,
-            "xRows" : gridRows(entry.sideRows, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
-            "yRows" : gridRows(entry.topRows, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
+            "xRows" : gridRows(entry.sideRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
+            "yRows" : gridRows(entry.topRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
             "isFrame" : true,
-            "tieStart" : definition.holeSpacing,
+            "tieStart" : definition.holeStart,
             "tieUnit" : definition.holeSpacing
         } as Stock;
 }
@@ -209,17 +214,17 @@ function rowSpacing(definition is map, entry is map, face is ValueWithUnits) ret
 }
 
 /**
- * A row of holes `pitch` apart, starting `pitch` from the end, with `count` holes across it `spacing` apart, centered on
- * a face; or none.
+ * A row of holes `pitch` apart, the first `start` from the start, with `count` holes across it `spacing` apart, centered
+ * on a face; or none.
  */
-function gridRows(count is number, pitch is ValueWithUnits, spacing is ValueWithUnits) returns array
+function gridRows(count is number, start is ValueWithUnits, pitch is ValueWithUnits, spacing is ValueWithUnits) returns array
 {
     if (count == 0)
     {
         return [];
     }
     return [{
-                "start" : pitch,
+                "start" : start,
                 "pitch" : pitch,
                 "shapes" : mapArray(range(0, count - 1), function(i)
                     {

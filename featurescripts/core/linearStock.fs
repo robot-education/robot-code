@@ -58,9 +58,9 @@ const OFFSET_BOUNDS = {
         } as LengthBoundSpec;
 
 /**
- * Where stock goes: the edge to place it along, the offsets of its ends, and faces to trim its ends to (like miters), or
- * the point to extrude it from and the extrude's options (see `isEdgePlacement`), in a Position group. Either way, `flip` (Flip hole pattern, and a flip
- * manipulator) draws it from the other end, a button rotates it in 90 degree increments, and a nine point manipulator
+ * Where stock goes: the edge to place it along and the offsets of its ends, or the point to extrude it from and the
+ * extrude's options (see `isEdgePlacement`), in a Position group; then, on an edge, a Trim ends group of faces to trim
+ * its ends to (like miters). Either way, `flip` (Flip hole pattern, and a flip manipulator) draws it from the other end, a button rotates it in 90 degree increments, and a nine point manipulator
  * chooses which point of its profile is on the edge or point (see `orientStock`). From a point, `oppositeDirection`
  * (Flip primary axis) is the extrude's.
  *
@@ -102,25 +102,28 @@ export predicate stockLocationPredicate(definition is map, name is string)
         if (isEdgePlacement(definition))
         {
             stockOffsetsPredicate(definition);
-
-            annotation { "Name" : "Trim " ~ name ~ " ends" }
-            definition.trimEnds is boolean;
-
-            annotation { "Group Name" : "Trim " ~ name ~ " ends", "Driving Parameter" : "trimEnds", "Collapsed By Default" : false }
-            {
-                if (definition.trimEnds)
-                {
-                    annotation { "Name" : "Faces to trim to", "Filter" : (EntityType.FACE && GeometryType.PLANE) || BodyType.MATE_CONNECTOR,
-                                "MaxNumberOfPicks" : 2 }
-                    definition.trimFaces is Query;
-                }
-            }
         }
         else
         {
             stockBoundsPredicate(definition);
             extrudeDirectionPredicate(definition);
             newExtrudeOptionsPredicate(definition);
+        }
+    }
+
+    if (isEdgePlacement(definition))
+    {
+        annotation { "Name" : "Trim " ~ name ~ " ends" }
+        definition.trimEnds is boolean;
+
+        annotation { "Group Name" : "Trim " ~ name ~ " ends", "Driving Parameter" : "trimEnds", "Collapsed By Default" : false }
+        {
+            if (definition.trimEnds)
+            {
+                annotation { "Name" : "Faces to trim to", "Filter" : (EntityType.FACE && GeometryType.PLANE) || BodyType.MATE_CONNECTOR,
+                            "MaxNumberOfPicks" : 2 }
+                definition.trimFaces is Query;
+            }
         }
     }
 }
