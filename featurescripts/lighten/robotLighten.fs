@@ -11,9 +11,9 @@ const RIB_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimete
 const CORNER_RADIUS_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 1.5 } as LengthBoundSpec;
 
 /**
- * Lightens parts with pockets: everything within the extrude of the rib sketch's plane (as its end type says) is cut
- * away, but for walls along the parts' sides and around their holes (a shell of them), and ribs along the sketch's
- * edges, with the pockets' corners filleted.
+ * Lightens parts with pockets: everything within the extrude of the faces to lighten (into their parts, as the end type
+ * says) is cut away, but for walls along the parts' sides and around their holes (a shell of them), and ribs along the
+ * rib sketch's edges, with the pockets' corners filleted.
  */
 annotation { "Feature Type Name" : "Robot lighten",
         "Feature Type Description" : "Lighten parts with pockets, leaving walls around their edges and holes, and ribs along a sketch." ~ CREDIT,
@@ -24,11 +24,15 @@ annotation { "Feature Type Name" : "Robot lighten",
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
+        annotation { "Name" : "Faces to lighten", "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && ModifiableEntityOnly.YES,
+                    "Description" : "The flat faces pockets are cut into, parallel to the rib sketch." }
+        definition.faces is Query;
+
         annotation { "Name" : "Rib sketch", "Filter" : EntityType.EDGE && SketchObject.YES,
-                    "Description" : "The sketch whose edges ribs are left along. Its plane is where the pockets start." }
+                    "Description" : "The sketch whose edges (lines, arcs, circles, or splines) ribs are left along." }
         definition.ribEdges is Query;
 
-        annotation { "Name" : "Exclude construction", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        annotation { "Name" : "Exclude construction lines", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.excludeConstruction is boolean;
 
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
@@ -59,30 +63,22 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                         "Description" : "Faces no wall is left along, so pockets run out through them." }
             definition.ignoredFaces is Query;
         }
-
-        annotation { "Name" : "Merge scope", "Filter" : EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES,
-                    "Description" : "The parts to lighten." }
-        definition.booleanScope is Query;
     }
     {
+        const faces = getFaces(context, definition);
         const ribEdges = getRibEdges(context, definition);
         const plane = ribPlane(context, ribEdges);
-        const parts = evaluateQuery(context, qEntityFilter(definition.booleanScope, EntityType.BODY)->qBodyType(BodyType.SOLID));
-        if (parts == [])
-        {
-            throw regenError("Select the parts to lighten.", ["booleanScope"]);
-        }
-        const partsQuery = qUnion(parts);
+        verifyParallel(context, faces, ribEdges, plane);
 
-        // The pockets: the extrude of a face covering the parts, as the end type says. Std's extrude, at the top level
-        // id, so its manipulators are the feature's
+        // The pockets: the extrude of the faces, as the end type says. Std's extrude, at the top level id, so its
+        // manipulators are the feature's
         runStep(context, id, id, function(context is Context, extrudeId is Id, extrudeDefinition is map)
             {
-                buildPockets(context, id + "region", extrudeId, definition, plane, partsQuery);
+                buildPockets(context, extrudeId, definition, faces);
             }, {}, {
-                    "message" : "Couldn't extrude the pockets.",
+                    "message" : "Couldn't extrude the faces to lighten.",
                     "featureParameterMappingFunction" : function(parameter) { return parameter; },
-                    "entities" : partsQuery
+                    "entities" : faces
                 });
         const pockets = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
 
@@ -97,22 +93,45 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     "faultyParameters" : ["ribEdges", "ribThickness"],
                     "reconstruct" : function(errorId is Id)
                         {
-                            buildPockets(context, errorId + "region", errorId + "pockets", definition, plane, partsQuery);
+                            buildPockets(context, errorId + "pockets", definition, faces);
                             buildRibs(context, id, errorId + "ribs", definition, plane, ribEdges);
                         }
                 });
 
-        for (var i, part in parts)
+        for (var i, part in evaluateQuery(context, qOwnerBody(faces)))
         {
             const partId = id + unstableIdComponent(i);
             setExternalDisambiguation(context, partId, part);
             lightenPart(context, id, partId, definition, plane, part, pockets);
         }
 
-        opDeleteBodies(context, id + "cleanup", {
-                    "entities" : qUnion([pockets, qCreatedBy(id + "region", EntityType.BODY), qCreatedBy(id + "ribs", EntityType.BODY)])
-                });
+        opDeleteBodies(context, id + "cleanup", { "entities" : qUnion([pockets, qCreatedBy(id + "ribs", EntityType.BODY)]) });
     });
+
+/**
+ * The faces to lighten.
+ */
+function getFaces(context is Context, definition is map) returns Query
+{
+    const faces = qEntityFilter(definition.faces, EntityType.FACE);
+    if (isQueryEmpty(context, faces))
+    {
+        throw regenError("Select the faces to lighten.", ["faces"]);
+    }
+    return faces;
+}
+
+/**
+ * Throws unless every face to lighten is parallel to the rib sketch, so its ribs go straight into it.
+ */
+function verifyParallel(context is Context, faces is Query, ribEdges is Query, plane is Plane)
+{
+    const skewed = qSubtraction(faces, qParallelPlanes(faces, plane.normal, true));
+    if (!isQueryEmpty(context, skewed))
+    {
+        throw regenError("The faces to lighten must be parallel to the rib sketch.", ["faces", "ribEdges"], skewed);
+    }
+}
 
 /**
  * The rib sketch's edges (its construction edges too, unless they're excluded).
@@ -149,32 +168,14 @@ function ribPlane(context is Context, edges is Query) returns Plane
 }
 
 /**
- * Extrudes a face on `plane` covering `parts` (sketched under `sketchId`), with std's extrude at `extrudeId`, as the
- * definition's end type says.
+ * Extrudes `faces` with std's extrude at `extrudeId`, as the definition's end type says.
  */
-function buildPockets(context is Context, sketchId is Id, extrudeId is Id, definition is map, plane is Plane, parts is Query)
+function buildPockets(context is Context, extrudeId is Id, definition is map, faces is Query)
 {
     var extrudeDefinition = definition;
-    extrudeDefinition.entities = sketchCovering(context, sketchId, plane, parts);
+    extrudeDefinition.entities = faces;
     extrudeDefinition.operationType = NewBodyOperationType.NEW;
     extrude(context, extrudeId, extrudeDefinition);
-}
-
-/**
- * A rectangle on `plane` covering `bodies` (as they'd be projected onto it), with room to spare, so an extrude of it
- * reaches past their sides. Returns its face.
- */
-function sketchCovering(context is Context, id is Id, plane is Plane, bodies is Query) returns Query
-{
-    const bounds = evBox3d(context, { "topology" : bodies, "cSys" : coordSystem(plane), "tight" : false });
-    const margin = norm(bounds.maxCorner - bounds.minCorner) * 0.1;
-    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    skRectangle(sketch, "rectangle", {
-                "firstCorner" : vector(bounds.minCorner[0] - margin, bounds.minCorner[1] - margin),
-                "secondCorner" : vector(bounds.maxCorner[0] + margin, bounds.maxCorner[1] + margin)
-            });
-    skSolve(sketch);
-    return qCreatedBy(id, EntityType.FACE);
 }
 
 /**
@@ -207,17 +208,14 @@ function buildRibs(context is Context, id is Id, ribsId is Id, definition is map
 
 /**
  * Lightens `part` (with steps under `partId`): a copy of it has the pockets (less the ribs) cut from it, leaving what's
- * outside them and the ribs; the part is shelled, removing its faces parallel to the sketch (and the ignored ones), to
- * leave walls; the two are joined, and the pockets' corners are filleted.
+ * outside them and the ribs; the part is shelled, removing its faces parallel to the faces to lighten (and the ignored
+ * ones), to leave walls; the two are joined, and the pockets' corners are filleted.
  */
 function lightenPart(context is Context, id is Id, partId is Id, definition is map, plane is Plane, part is Query, pockets is Query)
 {
-    const faces = qOwnedByBody(part, EntityType.FACE);
-    const openFaces = qUnion([qParallelPlanes(faces, plane.normal, true), qIntersection([definition.ignoredFaces, faces])]);
-    if (isQueryEmpty(context, qParallelPlanes(faces, plane.normal, true)))
-    {
-        throw regenError("A part has no faces parallel to the rib sketch, which pockets are cut into.", ["booleanScope"], part);
-    }
+    const partFaces = qOwnedByBody(part, EntityType.FACE);
+    const openFaces = qUnion([qParallelPlanes(partFaces, plane.normal, true), qIntersection([definition.ignoredFaces, partFaces])]);
+    const lightened = qIntersection([definition.faces, partFaces]);
 
     // What's left of a copy of the part outside the pockets, and its ribs
     runStep(context, id, partId + "copy", opPattern, {
@@ -233,11 +231,11 @@ function lightenPart(context is Context, id is Id, partId is Id, definition is m
                 "keepTools" : true
             }, {
                 "message" : "Couldn't cut the pockets from a part.",
-                "faultyParameters" : ["booleanScope"],
-                "entities" : part,
+                "faultyParameters" : ["faces"],
+                "entities" : lightened,
                 "reconstruct" : function(errorId is Id)
                     {
-                        reconstructPockets(context, id, errorId, definition, plane, part);
+                        reconstructPockets(context, id, errorId, definition, plane, lightened);
                     }
             });
 
@@ -262,11 +260,11 @@ function lightenPart(context is Context, id is Id, partId is Id, definition is m
                     "targetsAndToolsNeedGrouping" : true
                 }, {
                     "message" : "Couldn't join a part's walls to its ribs and what's outside its pockets.",
-                    "faultyParameters" : ["booleanScope"],
+                    "faultyParameters" : ["faces"],
                     "entities" : part,
                     "reconstruct" : function(errorId is Id)
                         {
-                            reconstructPockets(context, id, errorId, definition, plane, part);
+                            reconstructPockets(context, id, errorId, definition, plane, lightened);
                         }
                 });
     }
@@ -278,19 +276,18 @@ function lightenPart(context is Context, id is Id, partId is Id, definition is m
 }
 
 /**
- * Rebuilds the pockets (less the ribs) under `errorId`, to show where they'd cut `part` when cutting or joining them
- * fails (what the feature built is rolled back with it).
+ * Rebuilds the pockets of `faces` (less the ribs) under `errorId`, to show where they'd cut their part when cutting or
+ * joining them fails (what the feature built is rolled back with it).
  */
-function reconstructPockets(context is Context, id is Id, errorId is Id, definition is map, plane is Plane, part is Query)
+function reconstructPockets(context is Context, id is Id, errorId is Id, definition is map, plane is Plane, faces is Query)
 {
-    buildPockets(context, errorId + "region", errorId + "pockets", definition, plane, part);
+    buildPockets(context, errorId + "pockets", definition, faces);
     const ribs = buildRibs(context, id, errorId + "ribs", definition, plane, getRibEdges(context, definition));
     opBoolean(context, errorId + "cutRibs", {
                 "targets" : qCreatedBy(errorId + "pockets", EntityType.BODY)->qBodyType(BodyType.SOLID),
                 "tools" : ribs,
                 "operationType" : BooleanOperationType.SUBTRACTION
             });
-    opDeleteBodies(context, errorId + "deleteRegion", { "entities" : qCreatedBy(errorId + "region", EntityType.BODY) });
 }
 
 /**
@@ -323,44 +320,42 @@ export function robotLightenManipulatorChange(context is Context, definition is 
 }
 
 /**
- * Fills in the merge scope, unless it's been set: the parts the rib sketch is on (with a face in its plane) among
- * those it's over or under, or else all of those. Points the pockets into them, unless Opposite direction has been set.
+ * Fills in the faces to lighten, unless they've been set: the faces in the rib sketch's plane of the parts it's over or
+ * under. Points the pockets into the faces' parts (against their normals), unless Opposite direction has been set.
  */
 export function robotLightenEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    // A guard: editing logic mustn't throw while the dialog's being filled in, so without a rib sketch yet, it's left
-    var plane;
-    var footprint;
-    try silent
+    if (!(specifiedParameters.oppositeDirection ?? false))
     {
-        const edges = getRibEdges(context, definition);
-        plane = ribPlane(context, edges);
-        footprint = edges;
+        // An extrude of a part's face goes out of it, along its normal
+        definition.oppositeDirection = true;
     }
-    if (plane == undefined)
+    if (specifiedParameters.faces ?? false)
     {
         return definition;
     }
-    if (!(specifiedParameters.booleanScope ?? false))
+    // A guard: editing logic mustn't throw while the dialog's being filled in, so without a rib sketch yet, it's left
+    var plane;
+    var edges;
+    try silent
     {
-        definition.booleanScope = partsUnder(context, id + "heuristics", plane, footprint, hiddenBodies);
+        edges = getRibEdges(context, definition);
+        plane = ribPlane(context, edges);
     }
-    if (!(specifiedParameters.oppositeDirection ?? false) && !isQueryEmpty(context, definition.booleanScope))
+    if (plane != undefined)
     {
-        // Into the parts: the extrude goes along the sketch's normal unless it's flipped
-        const center = box3dCenter(evBox3d(context, { "topology" : definition.booleanScope, "tight" : false }));
-        definition.oppositeDirection = dot(center - plane.origin, plane.normal) < 0;
+        definition.faces = facesUnder(context, id + "heuristics", plane, edges, hiddenBodies);
     }
     return definition;
 }
 
 /**
- * The parts `footprint` (the rib sketch's edges) is over or under, through everything along `plane`'s normal: those
- * with a face in `plane`, if any, or else all of them. Works it out in a feature it aborts (under `id`), as std's
- * boolean heuristics do, so nothing's left in the Part Studio.
+ * The faces in `plane` of the parts `footprint` (the rib sketch's edges) is over or under, through everything along
+ * the plane's normal. Works it out in a feature it aborts (under `id`), as std's boolean heuristics do, so nothing's left
+ * in the Part Studio.
  */
-function partsUnder(context is Context, id is Id, plane is Plane, footprint is Query, hiddenBodies is Query) returns Query
+function facesUnder(context is Context, id is Id, plane is Plane, footprint is Query, hiddenBodies is Query) returns Query
 {
     const candidates = qSubtraction(qAllModifiableSolidBodiesNoMesh(), hiddenBodies);
     var parts = [];
@@ -389,7 +384,5 @@ function partsUnder(context is Context, id is Id, plane is Plane, footprint is Q
         }
     }
     abortFeature(context, id);
-    const hit = qUnion(parts);
-    const onPlane = qOwnerBody(qCoincidesWithPlane(qOwnedByBody(hit, EntityType.FACE), plane));
-    return isQueryEmpty(context, onPlane) ? hit : onPlane;
+    return qCoincidesWithPlane(qOwnedByBody(qUnion(parts), EntityType.FACE), plane);
 }
