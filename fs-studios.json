@@ -6,7 +6,7 @@
     "01286571f64f95abc865c937": "primitive/primitive.fs",
     "01402b7c9eebd8bf0b5d3e52": "core/stdHole.fs",
     "0195d390c3944cd4fab21ce0": "core/location.fs",
-    "032a0037ea2335b45777aeca": "released/belt/robotBeltTuner.fs",
+    "032a0037ea2335b45777aeca": "released/tensioner/robotTensioner.fs",
     "07577f926d77f76e2938528f": "released/printAdapter/robotPrintAdapter.fs",
     "0794d10863d10d98a88c2ab4": "core/robotProperties.fs",
     "0f49cec93d41f796943a8662": "frame/robotFrame.fs",

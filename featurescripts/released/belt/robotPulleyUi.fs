@@ -187,8 +187,12 @@ export predicate pulleyPredicate(definition is map)
 
         profileOffsetPredicate(definition);
 
-        annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.addMateConnectors is boolean;
+        // A two belt pulley always has them, for its belts
+        if (!definition.twoBelts)
+        {
+            annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.addMateConnectors is boolean;
+        }
     }
 
     pointManipulatorPredicate(definition);

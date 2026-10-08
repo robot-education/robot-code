@@ -1,39 +1,12 @@
 FeatureScript 2960;
 /**
- * Belt modeling utilities shared by robotBelt and robotBeltTuner.
+ * Modeling a belt's body.
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
-import(path : "452d43a015d17145ad7775e4", version : "e68e283095fa8403f8fa0213");
 
 import(path : "00b10ef1fb1a7418097fc0af", version : "3ba879cf97235b1a292f0dbc");
 import(path : "4d2d3f0157d54e1b6a06420a", version : "b17a9f4837591274d709d92b");
-
-export function getConnectingPointsArray(circles is array, counterClockwise is boolean) returns array
-{
-    return mapArrayIndices(circles, function(i)
-        {
-            const prev = getPrevious(circles, i);
-            const curr = circles[i];
-            return circleToCircle(prev, curr, counterClockwise);
-        });
-}
-
-/**
- * Computes the length of a belt defined by `circles`.
- */
-export function computeBeltLength(circles is array, counterClockwise is boolean)
-{
-    const connectingPointsArray = getConnectingPointsArray(circles, counterClockwise);
-    var length = 0 * meter;
-    for (var i, points in connectingPointsArray)
-    {
-        length += norm(points[1] - points[0]);
-        const nextPoints = getNext(connectingPointsArray, i);
-        length += arcLength(points[1], nextPoints[0], circles[i], counterClockwise);
-    }
-    return length;
-}
 
 /**
  * Sketches and extrudes the belt. Returns a query for the created belt as well as the belt start face.
@@ -43,15 +16,15 @@ export function computeBeltLength(circles is array, counterClockwise is boolean)
  *      @field belt : A query for the created belt.
  * }}
  */
-export function extrudeBelt(context is Context, id is Id, beltAttribute is BeltAttribute, beltPlane is Plane, beltLoop is Query, counterClockwise is boolean) returns map
+export function extrudeBelt(context is Context, id is Id, beltModel is BeltModel, beltPlane is Plane, beltLoop is Query, counterClockwise is boolean) returns map
 {
-    const beltInfo = getBeltModelInfo(beltAttribute.beltType);
+    const beltInfo = getBeltModelInfo(beltModel.beltType);
 
     try
     {
         // create the outer belt profile by thickening the surface of the belt profile
-        const insideBeltThickness = getBeltModelInsideThickness(beltInfo, beltAttribute.modelBeltTeeth);
-        const outsideBeltThickness = beltAttribute.isDoubleSidedBelt ? insideBeltThickness : beltInfo.outsideThickness;
+        const insideBeltThickness = getBeltModelInsideThickness(beltInfo, beltModel.modelBeltTeeth);
+        const outsideBeltThickness = beltModel.isDoubleSidedBelt ? insideBeltThickness : beltInfo.outsideThickness;
         opOffsetWire(context, id + "beltSurface", {
                     "edges" : beltLoop,
                     "normal" : beltPlane.normal,
@@ -66,9 +39,9 @@ export function extrudeBelt(context is Context, id is Id, beltAttribute is BeltA
     }
 
     var beltFaces = qCreatedBy(id + "beltSurface", EntityType.FACE);
-    if (beltAttribute.modelBeltTeeth)
+    if (beltModel.modelBeltTeeth)
     {
-        const toothFaces = sketchBeltTeeth(context, id + "beltTeeth", beltAttribute, beltPlane, beltLoop);
+        const toothFaces = sketchBeltTeeth(context, id + "beltTeeth", beltModel, beltPlane, beltLoop);
         beltFaces = qUnion(beltFaces, toothFaces);
     }
 
@@ -78,9 +51,9 @@ export function extrudeBelt(context is Context, id is Id, beltAttribute is BeltA
                     "entities" : beltFaces,
                     "direction" : beltPlane.normal,
                     "endBound" : BoundingType.BLIND,
-                    "endDepth" : beltAttribute.beltWidth / 2,
+                    "endDepth" : beltModel.beltWidth / 2,
                     "startBound" : BoundingType.BLIND,
-                    "startDepth" : beltAttribute.beltWidth / 2,
+                    "startDepth" : beltModel.beltWidth / 2,
                 });
     }
     catch
@@ -89,7 +62,7 @@ export function extrudeBelt(context is Context, id is Id, beltAttribute is BeltA
     }
 
     const belt = qCreatedBy(id + "belt", EntityType.BODY);
-    if (beltAttribute.modelBeltTeeth)
+    if (beltModel.modelBeltTeeth)
     {
         opBoolean(context, id + "booleanBelt", {
                     "tools" : qCreatedBy(id + "belt", EntityType.BODY),
@@ -121,9 +94,9 @@ export function extrudeBelt(context is Context, id is Id, beltAttribute is BeltA
  * Sketches the teeth belonging to a belt.
  * @return {Query} : A query for the faces of the sketched teeth.
  */
-function sketchBeltTeeth(context is Context, id is Id, beltAttribute is BeltAttribute, beltPlane is Plane, beltLoop is Query) returns Query
+function sketchBeltTeeth(context is Context, id is Id, beltModel is BeltModel, beltPlane is Plane, beltLoop is Query) returns Query
 {
-    const beltInfo = getBeltModelInfo(beltAttribute.beltType);
+    const beltInfo = getBeltModelInfo(beltModel.beltType);
 
     const path = constructPath(context, beltLoop);
     // Arbitrary start point
@@ -141,7 +114,7 @@ function sketchBeltTeeth(context is Context, id is Id, beltAttribute is BeltAttr
                 "radius" : beltInfo.toothRadius
             });
 
-    if (beltAttribute.isDoubleSidedBelt)
+    if (beltModel.isDoubleSidedBelt)
     {
         const startPoint = startLine.origin - insideDirection * beltInfo.toothOffset;
         skCircle(toothSketch, "doubleSidedTooth", {
@@ -151,7 +124,7 @@ function sketchBeltTeeth(context is Context, id is Id, beltAttribute is BeltAttr
     }
     skSolve(toothSketch);
     const seed = qSketchRegion(id + "toothSketch");
-    const patternDefinition = getClosedPathPatternDefinition(context, path, seed, beltAttribute.beltTeeth);
+    const patternDefinition = getClosedPathPatternDefinition(context, path, seed, beltModel.beltTeeth);
     opPattern(context, id + "toothPattern", patternDefinition);
     return qUnion(seed, qCreatedBy(id + "toothPattern", EntityType.FACE));
 }

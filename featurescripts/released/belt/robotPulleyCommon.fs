@@ -124,3 +124,76 @@ export function getTwoBeltPulleyExtraWidth(beltType is BeltType, beltWidth is Va
     // We just round up the beltWidth to the nearest nice unit system value
     return ceil(beltWidth, unitSystemValue(unitSystem, 1 / 16 * inch, 1 * millimeter));
 }
+
+/**
+ * Sketches the toothed profile of a pulley for a belt of `beltType` with `teeth` teeth, centered on `plane`, and returns
+ * its face. Each groove is the belt's tooth (as Robot belt models it: a circle `toothOffset` inside the pitch circle,
+ * of `toothRadius`), between lands at the belt's inside (`insideThickness` inside the pitch circle), with the lands'
+ * corners rounded by the belt's tooth fillet, so the belt's modeled teeth sit in the grooves.
+ *
+ * @param profileOffset : How far the profile is offset outward (inward, if negative): to make the pulley a little
+ *          bigger or smaller, for a tighter or looser belt.
+ */
+export function sketchPulleyProfile(context is Context, id is Id, plane is Plane, beltType is BeltType, teeth is number,
+    profileOffset is ValueWithUnits) returns Query
+{
+    const belt = getBeltModelInfo(beltType);
+    const pitchRadius = getPulleyRadius(getBeltPitch(beltType), teeth);
+    // The lands' circle, and each groove's and fillet's, offset: convex arcs grow, and concave ones shrink
+    const landRadius = pitchRadius - belt.insideThickness + profileOffset;
+    const grooveCenterRadius = pitchRadius - belt.toothOffset;
+    const grooveRadius = belt.toothRadius - profileOffset;
+    const filletRadius = belt.toothFilletRadius + profileOffset;
+    if (grooveRadius <= 0 * meter || filletRadius <= 0 * meter)
+    {
+        throw regenError("The profile offset is too large for this belt's teeth.", ["profileOffsetDistance"]);
+    }
+
+    // Each fillet's center is tangent inside the lands' circle and outside the groove: the angle between it and the
+    // groove's center, about the pulley's
+    const toFillet = landRadius - filletRadius;
+    const cosine = (grooveCenterRadius ^ 2 + toFillet ^ 2 - (grooveRadius + filletRadius) ^ 2) / (2 * grooveCenterRadius * toFillet);
+    const toothAngle = 360 * degree / teeth;
+    if (abs(cosine) > 1 || acos(cosine) >= toothAngle / 2)
+    {
+        throw regenError("A " ~ getBeltTypeName(beltType) ~ " pulley needs more teeth than " ~ teeth ~ ".", ["pulleyTeeth"]);
+    }
+    const filletAngle = acos(cosine);
+
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    const at = function(radius is ValueWithUnits, angle is ValueWithUnits) returns Vector
+        {
+            return vector(cos(angle), sin(angle)) * radius;
+        };
+    for (var tooth = 0; tooth < teeth; tooth += 1)
+    {
+        const angle = tooth * toothAngle;
+        const grooveCenter = at(grooveCenterRadius, angle);
+        var landEnds = [];
+        var grooveEnds = [];
+        for (var side in [-1, 1])
+        {
+            const filletCenter = at(toFillet, angle + side * filletAngle);
+            const onLand = at(landRadius, angle + side * filletAngle);
+            const onGroove = grooveCenter + normalize(filletCenter - grooveCenter) * grooveRadius;
+            const middle = filletCenter + normalize(normalize(onLand - filletCenter) + normalize(onGroove - filletCenter)) * filletRadius;
+            skArc(sketch, "fillet" ~ tooth ~ "_" ~ (side + 1), { "start" : onLand, "mid" : middle, "end" : onGroove });
+            landEnds = append(landEnds, onLand);
+            grooveEnds = append(grooveEnds, onGroove);
+        }
+        // The groove, through its bottom
+        skArc(sketch, "groove" ~ tooth, {
+                    "start" : grooveEnds[0],
+                    "mid" : grooveCenter - at(grooveRadius, angle),
+                    "end" : grooveEnds[1]
+                });
+        // The land to the next groove
+        skArc(sketch, "land" ~ tooth, {
+                    "start" : landEnds[1],
+                    "mid" : at(landRadius, angle + toothAngle / 2),
+                    "end" : at(landRadius, angle + toothAngle - filletAngle)
+                });
+    }
+    skSolve(sketch);
+    return qCreatedBy(id, EntityType.FACE);
+}

@@ -1,6 +1,5 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
 
 import(path : "d82c5bf9082d0054f8f0b419", version : "5ddffe8574f5098d20aa559d");
 
@@ -31,9 +30,18 @@ export function getCurrentBeltOptionsArray(tableAndPath is map)
     {
         return undefined;
     }
-    path.teeth = undefined; // Remove teeth so we end on the teethNode
-    const teethNode = getLookupTable(tableAndPath.table, path);
-    return extractFromArrayOfMaps(teethNode.entries, "beltTeeth");
+    // Follow the path to the teeth node, whose entries are the belts
+    var node = tableAndPath.table;
+    while (node.name != "teeth")
+    {
+        node = node.entries[path[node.name]];
+    }
+    var options = [];
+    for (var name, belt in node.entries)
+    {
+        options = append(options, belt.beltTeeth);
+    }
+    return options;
 }
 
 /**

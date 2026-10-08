@@ -1,4 +1,4 @@
-"""Belt tables for robotBelt, robotBeltTuner, and robotPulley. Run `uv run fs gen-tables` after editing."""
+"""Belt tables for robotBelt and robotPulley. Run `uv run fs gen` after editing."""
 
 from fs_cli.tables import Enum, Node, Table, Value, inch, mm
 
@@ -40,7 +40,13 @@ belt_type = Node(
 belt = belt_type.with_next(
     {
         "2mm GT2": supplier_node(
-            {"goBILDA": [44, 68, 108, 116, 132, 164, 188, 204, 209, 212, 233, 236, 252, 257]}
+            # vendor/goBILDA-2mm-GT2-belts.md
+            {
+                "goBILDA": [
+                    44, 68, 92, 108, 116, 132, 140, 156, 164, 180, 188, 204, 209, 212, 228, 233, 236,
+                    252, 257, 276, 300, 324,
+                ]
+            }
         ),
         "3mm GT2": supplier_node(
             {

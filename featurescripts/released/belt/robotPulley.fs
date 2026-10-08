@@ -7,13 +7,10 @@ export import(path : "484d2d590d4a2ab919981b0e", version : "7137aa56702a1f5e3955
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
 
-
-Pulley::import(path : "14228cd65b8beec25eef8b1d", version : "90bba59ac1ef54e6aab802c9");
-
 annotation {
         "Feature Type Name" : "Robot pulley",
         "Manipulator Change Function" : "robotPulleyManipulatorChange",
-        "Feature Type Description" : "Create GT2 and HTD pulleys." ~
+        "Feature Type Description" : "Create GT2, HTD, and RT25 pulleys." ~
         "<br>See also the Robot belt FeatureScript, which works directly with this feature." ~ CREDIT,
         "Icon" : RobotIcon::BLOB_DATA
     }
@@ -64,7 +61,11 @@ function doRobotPulley(context is Context, id is Id, definition is map)
         addFlanges(context, id + "flange", definition, pulleyDefinitions, pulleys);
     }
 
-    addMateConnectors(context, id + "mateConnector", definition, pulleyDefinitions, pulleys);
+    // A two belt pulley's belts are added to its mate connectors
+    if (definition.addMateConnectors || definition.twoBelts)
+    {
+        addMateConnectors(context, id + "mateConnector", definition, pulleyDefinitions, pulleys);
+    }
 
     if (definition.addBore)
     {
@@ -214,9 +215,15 @@ function getBeltPulleyDefinitions(context is Context, definition is map) returns
         {
             pulleyPlane = evSurfaceDefinition(context, { "face" : selection }).coordSystem->plane();
             pulleyPlane.x = pulleyPlane->yAxis(); // Rotate plane to be consistent with belts
-
-            // const beltWidth = getBeltWidth(attribute.beltType);
-            pulleyPlane.origin += pulleyPlane.normal * attribute.beltWidth / 2;
+            // The cylinder's origin is anywhere on its axis: the belt's middle is the face's
+            const centroid = evApproximateCentroid(context, { "entities" : selection });
+            pulleyPlane.origin += pulleyPlane.normal * dot(centroid - pulleyPlane.origin, pulleyPlane.normal);
+        }
+        if (definition.twoBelts)
+        {
+            // The selected belt runs on the pulley's first side (see addMateConnectors), or its second, flipped
+            const extraWidth = getTwoBeltPulleyExtraWidth(attribute.beltType, attribute.beltWidth, definition.unitSystem);
+            pulleyPlane.origin += pulleyPlane.normal * extraWidth / 2 * (definition.flipTwoBeltSide ? -1 : 1);
         }
 
         if (usedLocations[pulleyPlane.origin] != undefined)
@@ -247,39 +254,35 @@ function getBeltPulleyFaceAttribute(context is Context, selection is Query)
 
 function createPulleys(context is Context, id is Id, definition is map, pulleyDefinitions is array) returns array
 {
-    const instantiator = newInstantiator(id);
     const profileOffset = getProfileOffset(definition);
-
     var pulleys = [];
-    for (var pulleyDefinition in pulleyDefinitions)
-    {
-        const teethWidth = getPulleyTeethWidth(definition, pulleyDefinition.beltType, pulleyDefinition.beltWidth);
-        const configuration = {
-                "beltType" : pulleyDefinition.beltType,
-                "width" : teethWidth,
-                "teeth" : pulleyDefinition.teeth,
-                "profileOffset" : abs(profileOffset),
-                "oppositeDirection" : profileOffset < 0
-            };
-
-        const pulley = addInstance(instantiator, Pulley::build, {
-                    "identity" : pulleyDefinition.identity,
-                    "transform" : pulleyDefinition.plane->coordSystem()->toWorld(),
-                    "configuration" : configuration
-                });
-        pulleys = append(pulleys, pulley);
-    }
-
-    instantiate(context, instantiator);
-
     for (var i, pulleyDefinition in pulleyDefinitions)
     {
+        const pulleyId = id + unstableIdComponent(i);
+        if (pulleyDefinition.identity != undefined)
+        {
+            setExternalDisambiguation(context, pulleyId, pulleyDefinition.identity);
+        }
+        const plane = pulleyDefinition.plane;
+        const profile = sketchPulleyProfile(context, pulleyId + "profile", plane, pulleyDefinition.beltType, pulleyDefinition.teeth, profileOffset);
+        const teethWidth = getPulleyTeethWidth(definition, pulleyDefinition.beltType, pulleyDefinition.beltWidth);
+        opExtrude(context, pulleyId + "extrude", {
+                    "entities" : profile,
+                    "direction" : plane.normal,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : teethWidth / 2,
+                    "startBound" : BoundingType.BLIND,
+                    "startDepth" : teethWidth / 2
+                });
+        const pulley = qCreatedBy(pulleyId + "extrude", EntityType.BODY);
         setAttribute(context, {
-                    "entities" : pulleys[i],
+                    "entities" : pulley,
                     "name" : PULLEY_ATTRIBUTE,
                     "attribute" : pulleyAttribute(definition, pulleyDefinition, "body")
                 });
+        pulleys = append(pulleys, pulley);
     }
+    cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
     return pulleys;
 }
 

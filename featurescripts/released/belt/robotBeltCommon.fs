@@ -5,29 +5,23 @@ export import(path : "20659432897c109a97ad647f", version : "23d745831493ea6e2cb7
 export import(path : "d82c5bf9082d0054f8f0b419", version : "5ddffe8574f5098d20aa559d");
 
 /**
- * Set (with an arbitrary value) on the flat start face of a belt.
+ * What a belt's body is modeled as (see `extrudeBelt`).
  */
-export const BELT_START_FACE_ATTRIBUTE = "robotBeltStartFace";
+export type BeltModel typecheck canBeBeltModel;
 
-export const BELT_ATTRIBUTE = "robotBelt";
-
-export type BeltAttribute typecheck canBeBeltAttribute;
-
-export predicate canBeBeltAttribute(value)
+export predicate canBeBeltModel(value)
 {
-    // Used to exclude simple belts on belt tuner
-    value.beltMode is BeltMode;
-    // Used to reverse-engineer belt thickness from belt model
-    value.modelBeltTeeth is boolean;
-    value.isDoubleSidedBelt is boolean;
-
+    value is map;
     value.beltType is BeltType;
     value.beltTeeth is number;
     value.beltWidth is ValueWithUnits;
+    value.modelBeltTeeth is boolean;
+    value.isDoubleSidedBelt is boolean;
 }
 
 /**
- * Set on each face of a belt corresponding to an idler or pulley.
+ * Set on each of a belt's curved faces around a pulley or idler, and on its mate connectors, as a `BeltFaceAttribute`:
+ * Robot pulley makes pulleys on them.
  */
 export const BELT_PULLEY_FACE_ATTRIBUTE = "robotBeltPulleyFace";
 
@@ -35,7 +29,7 @@ export type BeltFaceAttribute typecheck canBeBeltFaceAttribute;
 
 export predicate canBeBeltFaceAttribute(value)
 {
-    // Include beltType for simplicity
+    value is map;
     value.beltType is BeltType;
     value.beltWidth is ValueWithUnits;
 
@@ -48,19 +42,6 @@ export predicate canBeBeltFaceAttribute(value)
     {
         value.idlerRadius is ValueWithUnits;
     }
-}
-
-/**
- * Set (with an arbitrary value) on one (and only one) face corresponding to each belt face.
- * Used to faciliate effecient belt reconstruction.
- */
-export const BELT_PRIMARY_PULLEY_FACE_ATTRIBUTE = "robotBeltPrimaryPulleyFace";
-
-
-export function qPrimaryPulleyFaces(belt is Query)
-{
-    const faces = qOwnedByBody(belt, EntityType.FACE);
-    return faces->qHasAttribute(BELT_PRIMARY_PULLEY_FACE_ATTRIBUTE);
 }
 
 /**
@@ -125,8 +106,10 @@ export function getBeltTypeName(beltType is BeltType) returns string
             };
 }
 
-// Broken out because it's used for pulley radius calculations
-export function getBeltOusideThickness(beltType is BeltType) returns ValueWithUnits
+/**
+ * The thickness of a belt's back, outside its pitch line: an idler's path is this much bigger than it.
+ */
+export function getBeltOutsideThickness(beltType is BeltType) returns ValueWithUnits
 {
     return getBeltModelInfo(beltType).outsideThickness;
 }
@@ -171,6 +154,18 @@ export function getBeltModelInfo(beltType is BeltType)
                 "toothOffset" : 0.73 * millimeter,
                 "toothRadius" : 0.87 * millimeter,
                 "toothFilletRadius" : 0.42 * millimeter,
+            };
+    }
+    else if (beltType == BeltType._3_MM_HTD)
+    {
+        // 5mm HTD's, scaled by the pitch: HTD teeth are the same shape at every pitch, and this gives the standard
+        // 0.381mm pitch line differential
+        return {
+                "outsideThickness" : 1.16 * 0.6 * millimeter,
+                "insideThickness" : 0.381 * millimeter,
+                "toothOffset" : 1.16 * 0.6 * millimeter,
+                "toothRadius" : 1.49 * 0.6 * millimeter,
+                "toothFilletRadius" : 0.42 * 0.6 * millimeter,
             };
     }
     else if (beltType == BeltType._5_MM_HTD)
