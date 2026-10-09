@@ -31,7 +31,7 @@ from fs_cli.release import (
     run_release,
     unsynced_versions,
 )
-from fs_cli.remote import OnshapeRemote, Remote, file_name_for
+from fs_cli.remote import OnshapeRemote, Remote, file_name_for, is_local
 from fs_cli.renames import (
     relative_paths,
     rename_path_imports,
@@ -1307,10 +1307,11 @@ def _project(config: Config) -> Project:
 
 
 def _select_modules(project: Project, targets: list[str]) -> list[Module]:
-    """The modules matching targets (.fs files, folders, or file names), or every module."""
+    """The modules matching targets (.fs files, folders, or file names), or every module. Local files (like
+    `example.local.fs`, kept for reference) are only included when they're named."""
     modules = project.modules()
     if not targets:
-        return modules
+        return [module for module in modules if not is_local(module.path.name)]
     code_dir = project.code_dir.resolve()
     selected: list[Module] = []
     for target in targets:
@@ -1319,7 +1320,7 @@ def _select_modules(project: Project, targets: list[str]) -> list[Module]:
             matched = [
                 module
                 for module in modules
-                if module.path == path or path in module.path.parents
+                if module.path == path or (path in module.path.parents and not is_local(module.path.name))
             ]
         else:
             matched = [

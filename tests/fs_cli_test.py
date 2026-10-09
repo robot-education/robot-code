@@ -1459,6 +1459,18 @@ def test_local_images_are_not_synced(repo, onshape, capsys):
     assert [image["name"] for image in onshape.images().values()] == ["gridIcon.png"]
 
 
+def test_local_featurescripts_are_not_synced(repo, onshape, capsys):
+    write(repo, "lighten/example.local.fs", "FeatureScript 1;\n")
+    write(repo, "lighten/lighten.fs", "FeatureScript 1;\n")
+    run(onshape, "status")
+    out = capsys.readouterr().out
+    assert "lighten/lighten.fs" in out and "example" not in out
+    assert run(onshape, "push", "-y") == 0
+    assert [studio["name"] for studio in onshape.studios().values()] == ["lighten.fs"]
+    assert run(onshape, "push", str(local(repo, "lighten/example.local.fs"))) == 2
+    assert "is a local file" in capsys.readouterr().err
+
+
 def test_imported_images_must_exist(repo, onshape, capsys):
     write(repo, "grid.fs", 'Icon::import(path : "missing.svg", version : "");\n')
     assert run(onshape, "push") == 2

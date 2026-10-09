@@ -48,6 +48,17 @@ def test_check(repo, capsys):
     assert cli.main(["check", "nothing"]) == 2
 
 
+def test_local_files_are_only_checked_when_named(repo, capsys):
+    example = repo / "featurescripts" / "core" / "example.local.fs"
+    example.write_text("FeatureScript 1;\nexport const b = triple(1);\n")
+    assert cli.main(["check"]) == 0
+    assert cli.main(["check", "featurescripts/core"]) == 0
+    assert cli.main(["format", "--check"]) == 0
+    capsys.readouterr()
+    assert cli.main(["check", "featurescripts/core/example.local.fs"]) == 1
+    assert "triple isn't defined" in capsys.readouterr().out
+
+
 def test_format(repo, capsys):
     utils = repo / "featurescripts" / "core" / "utils.fs"
     formatted = utils.read_text()

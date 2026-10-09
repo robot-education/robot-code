@@ -124,6 +124,10 @@ Studios import each other by element id, which a new file doesn't have until it'
 import(path : "core/myNewUtils.fs", version : "");
 ```
 
+FeatureScripts named `*.local.fs`, like another lighten feature kept for reference, stay in the repo too: they
+aren't synced with tabs, and `fs check` and `fs format` skip them unless they're named (`fs check
+featurescripts/lighten/partLighten.local.fs`).
+
 ### Images
 
 Images (SVGs and PNGs) in `featurescripts/` are synced with image tabs in the backend document the same way, so

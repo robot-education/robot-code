@@ -28,7 +28,7 @@ from typing import Callable, Iterable
 from fs_cli import git
 from fs_cli.config import Config
 from fs_cli.renames import most_similar
-from fs_cli.remote import Remote, RemoteStudio, file_name_for, image_type, relative_path_for
+from fs_cli.remote import Remote, RemoteStudio, file_name_for, image_type, is_local, relative_path_for
 from onshape_api.exceptions import ApiError
 from fs_cli.state import (
     State,
@@ -159,6 +159,8 @@ class Workspace:
             if inside and (path.is_dir() or (path.suffix != ".fs" and not image_type(path.name))):
                 relative = path.relative_to(code_dir).as_posix()
                 targets.folders.add("" if relative == "." else relative)
+            elif inside and is_local(path.name):
+                raise UsageError(f'"{arg}" is a local file: it stays in the repo, and isn\'t synced.')
             elif inside:
                 targets.paths.add(path.relative_to(code_dir).as_posix())
             elif path.exists():
@@ -232,7 +234,7 @@ class Workspace:
             {
                 path.relative_to(code_dir).as_posix(): path
                 for path in code_dir.rglob("*.fs")
-                if path.is_file()
+                if path.is_file() and not is_local(path.name)
             }
             if code_dir.is_dir()
             else {}
@@ -514,7 +516,7 @@ class Workspace:
         return sorted(
             path.relative_to(code_dir).as_posix()
             for path in code_dir.rglob("*.fs")
-            if path.is_file() and pattern.search(_read(path) or "")
+            if path.is_file() and not is_local(path.name) and pattern.search(_read(path) or "")
         )
 
     def pull_studios(self, studios: list[Studio]) -> None:
