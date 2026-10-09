@@ -19,6 +19,7 @@ from pygls.uris import from_fs_path, to_fs_path
 from pygls.workspace import TextDocument
 
 from fs_cli.renames import path_import_edits, relative_paths, rename_studio_files
+from fs_cli.state import state_lock
 from fs_lsp import __version__
 from fs_lsp.completion import completion_data, completion_items
 from fs_lsp.diagnostics import diagnostics
@@ -203,7 +204,9 @@ class FeatureScriptServer(LanguageServer):
     def record_renames(self, files: list[lsp.FileRename]) -> None:
         """Keeps renamed files synced with their Feature Studios, in fs-studios.json."""
         for project, renames in self.renames(files):
-            rename_studio_files(project.studios_path, renames)
+            # Waits for an fs command changing fs-studios.json to finish, so neither loses the other's changes
+            with state_lock(project.studios_path):
+                rename_studio_files(project.studios_path, renames)
 
 
 server = FeatureScriptServer()

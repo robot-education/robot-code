@@ -13,11 +13,15 @@ comparing against git history.
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
+import fcntl
 import hashlib
 import json
 import pathlib
 import re
+import sys
+from collections.abc import Iterator
 
 STATE_VERSION = 4
 STUDIOS_VERSION = 1
@@ -174,9 +178,11 @@ class State:
 
 
 def migrate(path: pathlib.Path, studios_path: pathlib.Path) -> None:
-    """Moves which file each studio is synced with out of a state file from before version 4."""
+    """Moves which file each studio is synced with out of a state file from before version 4, holding the state's
+    lock if it does (see `state_lock`), so call it before taking the lock."""
     if _read_json(path).get("version") == _STATE_VERSION_WITH_FILES:
-        State.load(path, studios_path).save()
+        with state_lock(studios_path):
+            State.load(path, studios_path).save()
 
 
 def load_studio_files(studios_path: pathlib.Path) -> dict[str, str]:
@@ -242,6 +248,28 @@ def save_studio_files(
     if images:
         data["images"] = dict(sorted(images.items()))
     _write_json(studios_path, data)
+
+
+@contextlib.contextmanager
+def state_lock(studios_path: pathlib.Path) -> Iterator[None]:
+    """Holds the lock on fs-studios.json and .fs-state.json (a `.fs.lock` file beside fs-studios.json) while reading
+    and changing them.
+
+    Commands load the state when they start and save it when they finish, so two at once (from two terminals, or two
+    agents) would each write back what they loaded, losing the other's changes, like new studios' element ids. With
+    the lock, the second waits for the first.
+    """
+    path = studios_path.with_name(".fs.lock")
+    with path.open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print("fs: waiting for another fs command (or the editor) to finish...", file=sys.stderr)
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
 
 
 def _read_json(path: pathlib.Path) -> dict:

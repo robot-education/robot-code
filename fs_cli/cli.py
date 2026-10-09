@@ -38,7 +38,7 @@ from fs_cli.renames import (
     rename_studio_files,
     renamed,
 )
-from fs_cli.state import State, StudioState, migrate
+from fs_cli.state import State, StudioState, migrate, state_lock
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
 from fs_cli.strings import user_strings
 from fs_cli.ui import UiError, render_feature, screenshot
@@ -418,15 +418,19 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
     try:
         config = load_config()
         migrate(config.state_path, config.studios_path)
-        if args.command in OFFLINE_COMMANDS and not getattr(args, "detect", False):
+        if args.command in OFFLINE_COMMANDS and args.command not in STATE_COMMANDS and not getattr(args, "detect", False):
             return OFFLINE_COMMANDS[args.command](config, args)
-        if remote is None:
-            remote = _onshape_remote(args.log)
-        state = State.load(config.state_path, config.studios_path)
-        try:
-            return COMMANDS[args.command](Workspace(config, state, remote), args)
-        finally:
-            state.save()
+        # Commands which change the state hold its lock, so two at once don't lose each other's changes
+        with state_lock(config.studios_path):
+            if args.command in OFFLINE_COMMANDS and not getattr(args, "detect", False):
+                return OFFLINE_COMMANDS[args.command](config, args)
+            if remote is None:
+                remote = _onshape_remote(args.log)
+            state = State.load(config.state_path, config.studios_path)
+            try:
+                return COMMANDS[args.command](Workspace(config, state, remote), args)
+            finally:
+                state.save()
     except (ConfigError, UsageError, GenerateError, UiError) as error:
         print(f"fs: {error}", file=sys.stderr)
         return 2
@@ -1334,6 +1338,9 @@ def _display_path(path: pathlib.Path) -> str:
 
 
 # Commands which don't need Onshape
+# Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
+STATE_COMMANDS = {"mv", "unlink", "released"}
+
 OFFLINE_COMMANDS = {
     "check": check,
     "format": format_files,

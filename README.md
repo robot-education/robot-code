@@ -105,6 +105,14 @@ uv run fs push featurescripts/Robot   # ...or by file or folder
 uv run fs push --dry-run     # show what would be pushed
 ```
 
+Commands which sync or change `fs-studios.json` hold a lock (`.fs.lock`) while they run, so two at once (from two
+terminals, or two agents) don't lose each other's changes, like the element ids of tabs a push creates; the second
+waits for the first.
+
+Close a Feature Studio's tab in Onshape before pushing it, or reload the tab after: Onshape merges changes made
+through the API into an open editor's text, and can garble it (an element id glued to the front of an import has been
+seen), and editing in that tab would save the garbled text.
+
 New files become new Feature Studios at the top level of the document (the API can't create folders); move the
 tabs in Onshape if you like, `fs` won't care. The API doesn't report compile errors, so run `fs check` first (see
 below) and check new code in Onshape.
