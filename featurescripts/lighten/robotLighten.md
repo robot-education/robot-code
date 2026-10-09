@@ -79,8 +79,9 @@ it's tried alone (see Error handling).
       left along them (below).
    4. The walls (`insetPockets`), as Ilya Baran and Morgan Bartlett's Lighten (and Part Lighten, `partLighten.local.fs`,
       which builds on it) make them: the extrude is inset by the wall thickness (and, with Fillet corners, the fillet
-      radius), all at once. Its ends (`qCapEntity`), and its sides along parts' faces to ignore (`sidesAlong`: those
-      whose middles are in one), are offset out by that much; its concave edges are filleted by a hair (std's boolean
+      radius), all at once. Its ends (`qCapEntity`), and its sides along parts' faces to ignore (found by tracking the
+      edges the faces to lighten share with them, which the extrude sweeps into those sides), are offset out by that
+      much; its concave edges are filleted by a hair (std's boolean
       tolerance, 0.01 mm); and it's hollowed (`opShell`) by that much, which moves every face in by it. Inside each,
       what's enclosed (`opEnclose`) is the inset, and the hollowed extrudes are deleted. So the ends, and the sides
       along ignored faces, are back where they were, and walls are left along every other side: around holes of any
@@ -92,11 +93,13 @@ it's tried alone (see Error handling).
       hardly more than that (up to 5% more) can't be thickened toward its center, so its rib is a cylinder around its
       center (`fCylinder`), that much bigger than it, instead (a little more than its rib, near its center). Arcs of
       one circle share a cylinder. They're cut from the inset pockets, which they split into the pockets.
-   6. With Fillet corners, `roundPockets` rounds them, as Lighten does: their convex edges along the sketch's normal
-      (their corners) are filleted by a hair, and their sides offset out by the radius, growing them back from the
+   6. With Fillet corners, `roundPockets` rounds them, as Lighten does: their convex edges between sides (their
+      corners) are filleted by a hair, and their sides offset out by the radius, growing them back from the
       thicker walls and ribs, which grows those fillets to the radius (and the hair). A pocket narrower than the bit
       is gone before then, and one which narrows between ribs ends in one round, as a router bit of that radius would
-      cut it. Filleting the corners by the radius after growing them would fail where pockets narrow.
+      cut it. Filleting the corners by the radius after growing them would fail where pockets narrow. Their ends
+      (`pocketEnds`), which stay put, are the extrude's ends, tracked since they were made (so an up to face end on a
+      curved face is one), and any faces parallel to the sketch, in case tracking misses them.
    7. If no pockets are left, a warning says so; otherwise they're cut from the faces' parts, and pieces they cut
       free (ribs touching no wall or other rib) are warned about and shown. Otherwise, info says how much lighter the
       parts are: how much less their volume is (to 0.1%), as they're one material.
@@ -126,7 +129,5 @@ together). That runs an operation per body, but only on the way to an error, whi
 - Untested in Onshape: nothing here has run yet.
 - Walls are an inset of the faces' extrude, so a part whose sides slope or step gets walls of the faces' outline, not
   of its sides.
-- An extrude side is along an ignored face if its middle is in one, so a side only partly along one is treated as
-  wholly along it, or not at all.
 - Rounded corners are 0.01 mm (std's boolean tolerance) bigger than asked: the hair they're rounded by first.
 - The icon is the generic robot icon.

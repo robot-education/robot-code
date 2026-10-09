@@ -66,6 +66,10 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // `roundPockets`)
         const radius = definition.filletCorners ? definition.filletRadius : 0 * meter;
 
+        // The edges the faces to lighten share with the parts' faces to ignore, which the extrude sweeps into its sides
+        // along them
+        const ignoredEdges = qIntersection([qLoopEdges(faces), qLoopEdges(qSketchFilter(definition.ignoredFaces, SketchObject.NO))]);
+        const ignoredSides = startTracking(context, ignoredEdges);
         // The pockets: the extrude of the faces, as the end type says. Std's extrude, at the top level id, so its
         // manipulators are the feature's
         buildPockets(context, id, definition, faces);
@@ -74,10 +78,12 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             qSketchFilter(definition.ignoredFaces, SketchObject.YES));
         const extruded = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
         const ends = qUnion(evaluateQuery(context, qCapEntity(id, CapType.EITHER, EntityType.FACE)));
+        // The pockets' ends, through the walls, ribs, and rounding (see `pocketEnds`)
+        const trackedEnds = startTracking(context, ends);
 
         // The walls: the pockets, inset by them, but along the parts' faces to ignore
-        insetPockets(context, id + "walls", extruded, ends,
-            sidesAlong(context, extruded, ends, qSketchFilter(definition.ignoredFaces, SketchObject.NO)), definition.wallThickness + radius);
+        insetPockets(context, id + "walls", extruded, ends, qIntersection([qOwnedByBody(extruded, EntityType.FACE), ignoredSides]),
+            definition.wallThickness + radius);
 
         // The ribs, cut from what's left
         const inset = qUnion(evaluateQuery(context, qCreatedBy(id + "walls", EntityType.BODY)->qBodyType(BodyType.SOLID)));
@@ -110,7 +116,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         if (definition.filletCorners)
         {
-            roundPockets(context, id, plane, pockets, radius);
+            roundPockets(context, id, pocketEnds(pockets, plane, trackedEnds), pockets, radius);
         }
 
         if (isQueryEmpty(context, pockets))
@@ -274,22 +280,6 @@ function excludeRegions(context is Context, id is Id, plane is Plane, pockets is
     {
         throw regenError("Failed to cut regions to ignore from pockets.", ["ignoredFaces"], regions);
     }
-}
-
-/**
- * The pockets' sides along `ignoredFaces`: those whose middles are in one.
- */
-function sidesAlong(context is Context, pockets is Query, ends is Query, ignoredFaces is Query) returns Query
-{
-    if (isQueryEmpty(context, ignoredFaces))
-    {
-        return qNothing();
-    }
-    return qUnion(filter(evaluateQuery(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends)), function(side)
-            {
-                const middle = evFaceTangentPlane(context, { "face" : side, "parameter" : vector(0.5, 0.5) }).origin;
-                return !isQueryEmpty(context, qContainsPoint(ignoredFaces, middle));
-            }));
 }
 
 /**
@@ -469,13 +459,13 @@ function buildRibs(context is Context, id is Id, extent is map, edges is Query, 
  * than filleting them after, which can fail where a pocket narrows. Their inside corners (the walls' and ribs'
  * outside ones) stay sharp.
  */
-function roundPockets(context is Context, id is Id, plane is Plane, pockets is Query, radius is ValueWithUnits)
+function roundPockets(context is Context, id is Id, ends is Query, pockets is Query, radius is ValueWithUnits)
 {
     if (isQueryEmpty(context, pockets))
     {
         return;
     }
-    const corners = pocketCorners(context, pockets, plane);
+    const corners = pocketCorners(context, pockets, ends);
     if (!isQueryEmpty(context, corners))
     {
         try
@@ -493,7 +483,7 @@ function roundPockets(context is Context, id is Id, plane is Plane, pockets is Q
     try
     {
         opOffsetFace(context, id + "grow", {
-                    "moveFaces" : pocketSides(pockets, plane),
+                    "moveFaces" : qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends),
                     "offsetDistance" : radius
                 });
     }
@@ -503,7 +493,7 @@ function roundPockets(context is Context, id is Id, plane is Plane, pockets is Q
         const failing = failingBodies(context, id + "error", pockets, function(errorId is Id, pocket is Query)
             {
                 opOffsetFace(context, errorId, {
-                            "moveFaces" : pocketSides(pocket, plane),
+                            "moveFaces" : qSubtraction(qOwnedByBody(pocket, EntityType.FACE), ends),
                             "offsetDistance" : radius
                         });
             });
@@ -512,20 +502,22 @@ function roundPockets(context is Context, id is Id, plane is Plane, pockets is Q
 }
 
 /**
- * The pockets' sides (not their ends, in the sketch's plane and parallel to it).
+ * The pockets' ends (`trackedEnds`, the extrude's, tracked through the operations since), and their faces parallel to
+ * `plane`, which are ends too: so their flat ends are found even if tracking misses them.
  */
-function pocketSides(pockets is Query, plane is Plane) returns Query
+function pocketEnds(pockets is Query, plane is Plane, trackedEnds is Query) returns Query
 {
     const faces = qOwnedByBody(pockets, EntityType.FACE);
-    return qSubtraction(faces, qParallelPlanes(faces, plane.normal, true));
+    return qUnion([qIntersection([faces, trackedEnds]), qParallelPlanes(faces, plane.normal, true)]);
 }
 
 /**
- * The pockets' corners: their convex edges along the sketch's normal.
+ * The pockets' corners: their convex edges between sides (not along `ends`).
  */
-function pocketCorners(context is Context, pockets is Query, plane is Plane) returns Query
+function pocketCorners(context is Context, pockets is Query, ends is Query) returns Query
 {
-    return qUnion(filter(evaluateQuery(context, qParallelEdges(qOwnedByBody(pockets, EntityType.EDGE), plane.normal)), function(edge)
+    const edges = qSubtraction(qOwnedByBody(pockets, EntityType.EDGE), qAdjacent(ends, AdjacencyType.EDGE, EntityType.EDGE));
+    return qUnion(filter(evaluateQuery(context, edges), function(edge)
             {
                 return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
             }));
