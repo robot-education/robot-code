@@ -20,6 +20,8 @@ it.
    - the feature's name and description;
    - parameters' descriptions (their tooltips), and hidden parameters (which editing logic sets);
    - errors, warnings, and info messages: the message, when it's shown, and what it highlights;
+   - how to make each of those show up in Onshape, to test them: a setup which should, or may, trigger it, or that
+     it's a guard no valid input reaches (for which, change the operation's input in the code to see its display);
    - part names and other properties it sets.
 
    Labels and options are left out: they're easy to audit in the dialog itself (`fs ui`, or the VS Code preview).

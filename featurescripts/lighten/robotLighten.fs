@@ -162,7 +162,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             {
                 // Only without the warning, which this would replace
                 const lightened = 1 - evVolume(context, { "entities" : parts }) / volume;
-                reportFeatureInfo(context, id, "Lightened the parts by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
+                const what = size(evaluateQuery(context, parts)) == 1 ? "part" : "parts";
+                reportFeatureInfo(context, id, "Lightened the " ~ what ~ " by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
             }
         }
 

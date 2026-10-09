@@ -51,7 +51,37 @@ it's tried alone (see Error handling).
 | There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `ribThickness`, `filletRadius` |
 | Failed to cut pockets. | error | cutting them from the parts fails | `faces`, the pockets which fail alone |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, the loose parts |
-| Lightened the parts by `<percent>`%. | info | the pockets are cut, and nothing's cut free (the warning above would be replaced) | |
+| Lightened the `<part or parts>` by `<percent>`%. | info | the pockets are cut, and nothing's cut free (the warning above would be replaced) | |
+
+### Triggering them
+
+How to make each message show up in Onshape, to check its wording and what it highlights. None of these have been
+tried yet. "Should" means the setup is invalid input that the feature checks for, or geometry an operation can't build;
+"may" means it depends on how Parasolid handles the geometry. The rest are guards around operations which don't fail
+on any input I know of: to see their display, temporarily change the operation's input in the code to something
+impossible (like a hollow's thickness to `-1 * meter`), and push it to a scratch studio.
+
+| Message | Setup | |
+| --- | --- | --- |
+| Select the faces to lighten. | Clear Faces to lighten. | should |
+| Select ribs to use. | Clear Ribs to use, or select only construction lines with Exclude construction lines on. | should |
+| The ribs must be in parallel sketches. | Select ribs from a sketch on Top and one on Front. | should |
+| The faces to lighten must be parallel to the ribs. | Lighten a plate's top face with ribs sketched on Front. | should |
+| std's extrude's errors | Up to face, with a face the extrude can't reach (one beside the plate, not under it). | should |
+| Failed to extrude regions to ignore. | Ignore a sketch region on a plane perpendicular to the face to lighten (on Front, lightening a top face): it can't be extruded along its own plane. | should |
+| Failed to cut regions to ignore from pockets. | A guard. | |
+| Failed to extend pockets past their ends. | A guard: moving the extrude's ends outward. | |
+| Failed to round walls' inside corners. | A guard: a 0.01 mm fillet of concave edges. | |
+| Failed to make walls. | The hollow moves each side in by the wall thickness (plus the fillet radius): a convex curve in the face's outline tighter than that can't be. Lighten a plate whose outer corners are rounded smaller than the wall (a 1/32 in. corner radius with 1/8 in. walls), or whose outline has a spline with a tight bend; or make the walls thicker than half the face is wide. Two holes closer together than twice the wall is the other likely case. | may |
+| Failed to extrude rib. | A guard. | |
+| Failed to thicken rib. | A spline rib with a bend tighter than half the rib thickness (plus the fillet radius). An arc that tight is made as a cylinder instead, so it won't fail. | should |
+| Failed to cut ribs. | A rib which only touches a wall, rather than crossing into a pocket (an arc around a hole, exactly as far out as the wall's inside, plus half the rib). Booleans usually handle this. | may |
+| Failed to round pocket corners. | A guard: a 0.01 mm fillet of convex edges. | |
+| Failed to grow pockets back to round their corners. | A guard: growing pockets back out to where they were. | |
+| There's no room for pockets between the walls and ribs. | Ribs thick enough to cover everything inside the walls (a rib thickness wider than the gaps between ribs). | should |
+| Failed to cut pockets. | A guard. | |
+| Some ribs touch no wall or other rib, so they're left as loose parts. | A short rib in the middle of a pocket, touching nothing. | should |
+| Lightened the `<part or parts>` by `<percent>`%. | Any lighten which works, of one part and of two. | should |
 
 ## How it works
 
@@ -102,7 +132,7 @@ it's tried alone (see Error handling).
       curved face is one), and any faces parallel to the sketch, in case tracking misses them.
    7. If no pockets are left, a warning says so; otherwise they're cut from the faces' parts, and pieces they cut
       free (ribs touching no wall or other rib) are warned about and shown. Otherwise, info says how much lighter the
-      parts are: how much less their volume is (to 0.1%), as they're one material.
+      part (or parts) are: how much less their volume is (to 0.1%), as they're one material.
    8. What's left of the ribs (their sheets) is deleted.
 4. **Manipulator change** (`robotLightenManipulatorChange`): std's extrude manipulators.
 
