@@ -101,8 +101,25 @@ def kraken(name: str, bolt_circle: str, option: str) -> Value:
 
 
 FALCON = Holes("#10", inch(2), FALCON_ANGLES)
-# REV-21-1650-DR: 4x #10-32, a 19.1 mm pilot
+FALCON_VERSIONS = Node(
+    "version",
+    [
+        leaf("V1/2", "Falcon 500", FALCON, CIM_PILOT, block_motor("KrakenX60")),
+        leaf("V3", "Falcon 500", FALCON, CIM_PILOT, block_motor("Falcon_500_V3")),
+    ],
+)
+
+# REV-21-1650-DR: 4x #10-32, a 19.1 mm pilot (V1.0 and V1.1 alike)
 NEO = Holes("#10", inch(2), [0, 90, 180, 270])
+NEO_VERSIONS = Node(
+    "version",
+    [
+        leaf("V1.1", "NEO", NEO, mm(19.1), block_motor("NEO_V1_1")),
+        # REV-21-1653-DR: a 19 mm pilot, with holes but at its flats
+        leaf("V2.0", "NEO 2.0", Holes("#10", inch(2), FLATS_ANGLES), mm(19), block_motor("Copy_of_NEO_Vortex")),
+        leaf("V1.0", "NEO", NEO, mm(19.1), block_motor("NEO_V1_0")),
+    ],
+)
 
 # CTRE's Minion.STEP (github.com/CrossTheRoadElec/Device-CADs): its holes are tapped for three screws; an 18.8 mm pilot
 # 2 mm tall, a 38 mm body 49.5 mm long, and a SplineXS shaft 23 mm past the face
@@ -134,23 +151,19 @@ FRC_MOTORS = Node(
     "motor",
     [
         kraken("Kraken X60", inch(2), "Kraken_X60"),
-        leaf("Falcon 500 V1/2", "Falcon 500", FALCON, CIM_PILOT, block_motor("KrakenX60")),
+        Value("Falcon 500", next=FALCON_VERSIONS),
         kraken("Kraken X44", inch(1.375), "Kraken_X44"),
-        leaf("NEO V1.1", "NEO", NEO, mm(19.1), block_motor("NEO_V1_1")),
+        Value("NEO", next=NEO_VERSIONS),
         # REV-21-1652-REV-11-2159-DR; its pilot isn't dimensioned: 1.25 in. is measured from the drawing
         leaf("NEO Vortex", "NEO Vortex", Holes("#10", inch(2), FLATS_ANGLES), inch(1.25), block_motor("NEO_Vortex")),
-        leaf("Falcon 500 V3", "Falcon 500", FALCON, CIM_PILOT, block_motor("Falcon_500_V3")),
         # REV-21-1651-DR: M3 on a 25 mm bolt circle, a 13 mm pilot
         leaf("NEO 550", "NEO 550", Holes("M3", mm(25), [90, 270]), mm(13), block_motor("NEO_550")),
-        # REV-21-1653-DR: a 19 mm pilot
-        leaf("NEO V2.0", "NEO 2.0", Holes("#10", inch(2), FLATS_ANGLES), mm(19), block_motor("Copy_of_NEO_Vortex")),
         leaf("CIM", "CIM", Holes("#10", inch(2), CIM_ANGLES), CIM_PILOT),
         # 2x M4 (REV's MAXPlanetary 775 guide); 29 mm and 17.5 mm are from the previous version of Robot motor
         leaf("RS-775", "RS-775", Holes("M4", mm(29), [0, 180]), mm(17.5)),
         Value("Minion", next=MINION),
         leaf("Mini CIM", "Mini CIM", Holes("#10", inch(2), CIM_ANGLES), CIM_PILOT),
         Value("Thrifty Pulsar", next=PULSAR),
-        leaf("NEO V1.0", "NEO", NEO, mm(19.1), block_motor("NEO_V1_0")),
     ],
 )
 

@@ -79,11 +79,12 @@ None of these have been tried in Onshape yet.
 
 1. **Precondition**, top to bottom:
    - Program (FRC or FTC) and Component type (Motor or Gearbox), and the hidden Has block model.
-   - The sketch point (`locationPredicate`).
-   - The Motor group: Motor (`frcMotorTable` or `ftcMotorTable`, with a Hole pattern level for motors with several);
-     or for a gearbox, the Gearbox group: Gearbox (`frcGearboxTable` or `ftcGearboxTable`).
-   - The Position group: Flip primary axis and Reorient secondary axis (on one row, from `axisOrientationPredicate` in
-     `core/mounting.fs`), Angle reference, and Angle with its Opposite direction.
+   - The Motor group: Motor (`frcMotorTable` or `ftcMotorTable`, with a Version level for the Falcon 500 and NEO, and a
+     Hole pattern level for motors with several); or for a gearbox, the Gearbox group: Gearbox (`frcGearboxTable` or
+     `ftcGearboxTable`).
+   - The Position group: the sketch point (`locationPredicate`), Flip primary axis and Reorient secondary axis (on one
+     row, from `axisOrientationPredicate` in `core/mounting.fs`), Angle reference, and Angle with its Opposite
+     direction.
    - The Holes group: Merge scope (`holeMergeScopePredicate`), Fit (the screws' holes), Bore fit (the pilot's hole),
      and Skip holes, with Holes to skip (indices, from 1) as std's patterns' Skip instances have it.
    - Block motor, for a motor with Has block model.
@@ -120,10 +121,11 @@ None of these have been tried in Onshape yet.
 ### The data
 
 `motorTables.py` lists each face: its screws, bolt circle and holes' angles (or holes' positions), and pilot; and for
-motors with block models, FRCDesign's Block Motor's option and angle, or our own envelope's sizes. Motors with several
-hole patterns have a Hole pattern level: the Krakens' (X60: all 11, a Falcon 500's 6, or a CIM's 2), the Minion's
+motors with block models, FRCDesign's Block Motor's option and angle, or our own envelope's sizes. The Falcon 500 has
+a Version level (V1/2 or V3: the same face, but its own block model), and so does the NEO (V1.1, V2.0, or V1.0; the
+V2.0's face is its own). Motors with several hole patterns have a Hole pattern level: the Krakens' (X60: all 11, a Falcon 500's 6, or a CIM's 2), the Minion's
 (#10-32, 550, or 775), the Thrifty Pulsar's (#10-32 or 775), and goBILDA's (their 16 mm square, or all 6). Names and
-order follow FRCDesign's (most used first; FRC motors as its Block Motor names them). Its comments give each value's
+order follow FRCDesign's (most used first). Its comments give each value's
 source:
 
 - REV's drawings (`vendor/`) for the NEOs, MAXPlanetary, and UltraPlanetary; WCP's docs and drawings for the Krakens

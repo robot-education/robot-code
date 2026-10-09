@@ -16,13 +16,26 @@ export const frcMotorTable = {
                     "CIM" : { "blockAngle" : -90 * degree, "blockMotor" : "Kraken_X60", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 180 * degree], "partName" : "Kraken X60", "pilotDiameter" : 0.75 * inch, "screw" : "#10" },
                 },
             },
-            "Falcon 500 V1/2" : { "blockAngle" : 0 * degree, "blockMotor" : "KrakenX60", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 60 * degree, 120 * degree, 180 * degree, 240 * degree, 300 * degree], "partName" : "Falcon 500", "pilotDiameter" : 0.75 * inch, "screw" : "#10" },
+            "Falcon 500" : {
+                "name" : "version",
+                "displayName" : "Version",
+                "entries" : {
+                    "V1/2" : { "blockAngle" : 0 * degree, "blockMotor" : "KrakenX60", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 60 * degree, 120 * degree, 180 * degree, 240 * degree, 300 * degree], "partName" : "Falcon 500", "pilotDiameter" : 0.75 * inch, "screw" : "#10" },
+                    "V3" : { "blockAngle" : 0 * degree, "blockMotor" : "Falcon_500_V3", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 60 * degree, 120 * degree, 180 * degree, 240 * degree, 300 * degree], "partName" : "Falcon 500", "pilotDiameter" : 0.75 * inch, "screw" : "#10" },
+                },
+            },
             "Kraken X44" : { "blockAngle" : -90 * degree, "blockMotor" : "Kraken_X44", "boltCircleDiameter" : 1.375 * inch, "holeAngles" : [0 * degree, 30 * degree, 60 * degree, 90 * degree, 120 * degree, 150 * degree, 180 * degree, 210 * degree, 240 * degree, 300 * degree, 330 * degree], "partName" : "Kraken X44", "pilotDiameter" : 0.75 * inch, "screw" : "#10" },
-            "NEO V1.1" : { "blockAngle" : 0 * degree, "blockMotor" : "NEO_V1_1", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 90 * degree, 180 * degree, 270 * degree], "partName" : "NEO", "pilotDiameter" : 19.1 * millimeter, "screw" : "#10" },
+            "NEO" : {
+                "name" : "version",
+                "displayName" : "Version",
+                "entries" : {
+                    "V1.1" : { "blockAngle" : 0 * degree, "blockMotor" : "NEO_V1_1", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 90 * degree, 180 * degree, 270 * degree], "partName" : "NEO", "pilotDiameter" : 19.1 * millimeter, "screw" : "#10" },
+                    "V2.0" : { "blockAngle" : 0 * degree, "blockMotor" : "Copy_of_NEO_Vortex", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 45 * degree, 135 * degree, 180 * degree, 225 * degree, 315 * degree], "partName" : "NEO 2.0", "pilotDiameter" : 19 * millimeter, "screw" : "#10" },
+                    "V1.0" : { "blockAngle" : 0 * degree, "blockMotor" : "NEO_V1_0", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 90 * degree, 180 * degree, 270 * degree], "partName" : "NEO", "pilotDiameter" : 19.1 * millimeter, "screw" : "#10" },
+                },
+            },
             "NEO Vortex" : { "blockAngle" : 0 * degree, "blockMotor" : "NEO_Vortex", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 45 * degree, 135 * degree, 180 * degree, 225 * degree, 315 * degree], "partName" : "NEO Vortex", "pilotDiameter" : 1.25 * inch, "screw" : "#10" },
-            "Falcon 500 V3" : { "blockAngle" : 0 * degree, "blockMotor" : "Falcon_500_V3", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 60 * degree, 120 * degree, 180 * degree, 240 * degree, 300 * degree], "partName" : "Falcon 500", "pilotDiameter" : 0.75 * inch, "screw" : "#10" },
             "NEO 550" : { "blockAngle" : 0 * degree, "blockMotor" : "NEO_550", "boltCircleDiameter" : 25 * millimeter, "holeAngles" : [90 * degree, 270 * degree], "partName" : "NEO 550", "pilotDiameter" : 13 * millimeter, "screw" : "M3" },
-            "NEO V2.0" : { "blockAngle" : 0 * degree, "blockMotor" : "Copy_of_NEO_Vortex", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 45 * degree, 135 * degree, 180 * degree, 225 * degree, 315 * degree], "partName" : "NEO 2.0", "pilotDiameter" : 19 * millimeter, "screw" : "#10" },
             "CIM" : { "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 180 * degree], "partName" : "CIM", "pilotDiameter" : 0.75 * inch, "screw" : "#10" },
             "RS-775" : { "boltCircleDiameter" : 29 * millimeter, "holeAngles" : [0 * degree, 180 * degree], "partName" : "RS-775", "pilotDiameter" : 17.5 * millimeter, "screw" : "M4" },
             "Minion" : {
@@ -43,7 +56,6 @@ export const frcMotorTable = {
                     "775" : { "blockAngle" : 0 * degree, "blockMotor" : "Copy_of_NEO_V1_1", "boltCircleDiameter" : 29 * millimeter, "holeAngles" : [0 * degree, 90 * degree, 180 * degree, 270 * degree], "partName" : "Thrifty Pulsar", "pilotDiameter" : 19 * millimeter, "screw" : "M4" },
                 },
             },
-            "NEO V1.0" : { "blockAngle" : 0 * degree, "blockMotor" : "NEO_V1_0", "boltCircleDiameter" : 2 * inch, "holeAngles" : [0 * degree, 90 * degree, 180 * degree, 270 * degree], "partName" : "NEO", "pilotDiameter" : 19.1 * millimeter, "screw" : "#10" },
         },
     };
 

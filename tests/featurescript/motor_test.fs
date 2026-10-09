@@ -77,7 +77,7 @@ function expectAt(position is Vector, expected is Vector)
 export function testHolePositions()
 {
     // As drawn looking at the face: counterclockwise from the right. The plane's x axis points left, so 0° is at -x.
-    const neo = holePositions(motor(frcMotorTable, { "motor" : "NEO V1.1" }));
+    const neo = holePositions(motor(frcMotorTable, { "motor" : "NEO", "version" : "V1.1" }));
     expectEqual(size(neo), 4);
     expectAt(neo[0], vector(-1, 0) * inch);
     expectAt(neo[1], vector(0, 1) * inch);
@@ -110,8 +110,11 @@ export function testBlockModels()
     const kraken = motor(frcMotorTable, { "motor" : "Kraken X44" });
     expectEqual(kraken.blockMotor, "Kraken_X44");
     expectNear(kraken.blockAngle, -90 * degree, 1e-9 * degree);
-    expectTrue(hasBlockModel(motor(frcMotorTable, { "motor" : "NEO V2.0" })), "No block model of the NEO V2.0");
+    expectTrue(hasBlockModel(motor(frcMotorTable, { "motor" : "NEO", "version" : "V2.0" })), "No block model of the NEO 2.0");
     expectTrue(!hasBlockModel(motor(frcMotorTable, { "motor" : "CIM" })), "A block model of the CIM");
+    // Versions with the same face, with their own block models
+    expectEqual(motor(frcMotorTable, { "motor" : "Falcon 500", "version" : "V3" }).blockMotor, "Falcon_500_V3");
+    expectEqual(motor(frcMotorTable, { "motor" : "Falcon 500", "version" : "V1/2" }).blockMotor, "KrakenX60");
     // Our own, longer for gearboxes with more stages
     const fast = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "1620 RPM", "pattern" : "All" });
     const slow = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "30 RPM", "pattern" : "All" });

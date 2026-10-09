@@ -60,8 +60,6 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Has block model", "UIHint" : ["ALWAYS_HIDDEN"] }
         definition.hasBlockModel is boolean;
 
-        locationPredicate(definition, "motor");
-
         if (isMotor(definition))
         {
             annotation { "Group Name" : "Motor", "Collapsed By Default" : false }
@@ -97,6 +95,8 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         annotation { "Group Name" : "Position", "Collapsed By Default" : false }
         {
+            locationPredicate(definition, "motor");
+
             axisOrientationPredicate(definition);
 
             angleReferencePredicate(definition);
