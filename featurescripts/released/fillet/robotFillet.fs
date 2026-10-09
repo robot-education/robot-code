@@ -106,8 +106,6 @@ function doOneDogBoneFillet(context is Context, id is Id, definition is map, edg
         throw regenError("Selected edges must be concave.", ["entities"], edge);
     }
 
-    const adjacentFaces = qAdjacent(edge, AdjacencyType.EDGE, EntityType.FACE);
-
     const origin = evEdgeTangentLine(context, { "edge" : edge, "parameter" : 0.5 }).origin;
     const normals = findSurfaceNormalsAtEdge(context, edge, origin);
 

@@ -376,5 +376,9 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - No parameters which can be toleranced, directly or through std's predicates (see "No field tolerancing").
 - Precondition conditions may only use parameters, enum values, literals, and predicates.
 - No unused or unknown imports, and no top-level declarations which aren't exported or used.
+- No local variables which are set but never used; name one you don't need `_` (see "Unused variables").
+- No keywords as map keys (see "Keywords as map keys"); `x.type` is an error.
+- Functions and predicates with the same name and parameter types as another in the file or its imports, and groups
+  in array parameters' items, which Onshape rejects.
 - No map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string `"KEY"`;
   write `{ (KEY) : 1 }` to use KEY's value).

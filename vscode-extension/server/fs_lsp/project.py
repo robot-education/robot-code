@@ -781,6 +781,7 @@ class Project:
         problems.extend(_duplicate_overload_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
         problems.extend(_keyword_key_problems(module))
+        problems.extend(_unused_variable_problems(module))
         problems.extend(_function_value_problems(module, providers))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
@@ -1568,6 +1569,37 @@ def _is_ignored(module: Module, problem: Problem) -> bool:
         if match and problem.code in {code.strip() for code in match.group(1).split(",")}:
             return True
     return False
+
+
+def _unused_variable_problems(module: Module) -> list[Problem]:
+    """Local variables (and loop variables) which are set but never read, which Onshape warns about. One that isn't
+    needed, like the key of a map being looped over, should be named `_` (see docs/featurescript-style.md)."""
+    index = module.index
+    problems = []
+    for declaration in index.declarations:
+        if declaration.kind != "variable" or declaration.name == "_" or module._is_top_level(declaration):
+            continue
+        read = False
+        for reference in index.references_by_key.get(declaration.key, []):
+            if reference.token.offset == declaration.token.offset:
+                continue
+            following = index.next_token(reference.token)
+            # Assigning it isn't using it
+            if following is None or following.value != "=":
+                read = True
+                break
+        if not read:
+            problems.append(
+                Problem(
+                    declaration.token.offset,
+                    declaration.token.end,
+                    "warning",
+                    f"{declaration.name} is set but never used; name it _ if it isn't needed.",
+                    "unused-variable",
+                    unnecessary=True,
+                )
+            )
+    return problems
 
 
 def _keyword_key_problems(module: Module) -> list[Problem]:

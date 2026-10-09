@@ -199,7 +199,6 @@ export function sketchConnectingArcs(context is Context, id is Id, circles is ar
     for (var i, curr in circles)
     {
         const nextIndex = getNext(size(circles), i);
-        const next = circles[nextIndex];
 
         if (curr.identity != undefined)
         {

@@ -37,7 +37,7 @@ export function getCurrentBeltOptionsArray(tableAndPath is map)
         node = node.entries[path[node.name]];
     }
     var options = [];
-    for (var name, belt in node.entries)
+    for (var _, belt in node.entries)
     {
         options = append(options, belt.beltTeeth);
     }

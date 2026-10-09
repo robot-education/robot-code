@@ -621,3 +621,31 @@ def test_std_navigation(project):
     offset = extrude.parsed.source.index("opExtrude(")
     assert [owner.relative for owner, _ in project.std_definitions(extrude, offset)] == ["onshape/std/geomOperations.fs"]
     assert extrude not in project.modules()
+
+
+def test_unused_variables(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f"FeatureScript 2909;\n{STD}\n"
+        "export const TOP = 1;\n"
+        "export function f(rows is map, unusedParameter) returns number\n"
+        "{\n"
+        "    const unused = 1;\n"
+        "    var onlySet = 1;\n"
+        "    onlySet = 2;\n"
+        "    var total = 0;\n"
+        "    for (var key, row in rows)\n"
+        "    {\n"
+        "        total += row;\n"
+        "    }\n"
+        "    for (var _, row in rows)\n"
+        "    {\n"
+        "        total += row;\n"
+        "    }\n"
+        "    return total;\n"
+        "}\n"
+    )
+    module = project.module(path)
+    problems = [p for p in project.check(module) if p.code == "unused-variable"]
+    # Not top-level constants, parameters, or _
+    assert [module.parsed.source[p.start : p.end] for p in problems] == ["unused", "onlySet", "key"]
