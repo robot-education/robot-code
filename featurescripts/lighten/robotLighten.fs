@@ -66,13 +66,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const radius = definition.filletCorners ? definition.filletRadius : 0 * meter;
 
         // The pockets: the extrude of the faces, as the end type says. Std's extrude, at the top level id, so its
-        // manipulators are the feature's. It reports its errors as the feature's own (highlighting the end type's
-        // parameters), rather than throwing them, so the feature stops there.
+        // manipulators are the feature's
         buildPockets(context, id, definition, faces);
-        if (hasError(context, id))
-        {
-            return;
-        }
         const extruded = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
 
         // The walls, along the faces' edges (but those of the ignored faces), and the ribs, cut from the pockets
@@ -160,15 +155,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     "entities" : qUnion([pockets, qCreatedBy(sheetsId, EntityType.BODY), qCreatedBy(thickenId, EntityType.BODY)])
                 });
     });
-
-/**
- * Whether the feature `id` has reported an error.
- */
-function hasError(context is Context, id is Id) returns boolean
-{
-    const error = getFeatureError(context, id);
-    return error != undefined && error != ErrorStringEnum.NO_ERROR;
-}
 
 /**
  * The faces to lighten.

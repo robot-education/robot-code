@@ -291,9 +291,6 @@ catch
 }
 ```
 
-A std feature run at the feature's own id (to use its manipulators, like `extrude`) doesn't throw: it reports its
-error as the feature's, and returns. Check for it (`getFeatureError`), and return, so the feature stops with it.
-
 ## Keywords as map keys
 
 Don't name map keys after keywords (`type`, `default`, `function`, ...): `x.type` is a syntax error in Onshape, so such

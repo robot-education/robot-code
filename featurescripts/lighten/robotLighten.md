@@ -67,7 +67,7 @@ it's tried alone (see Error handling).
       (`ribPlane`: the first's sketch plane, which the rest's must be parallel to) are found, and the faces are checked
       to be parallel to it (`verifyParallel`). The ribs can be from any number of sketches.
    2. `buildPockets`: the faces are extruded with std's `extrude`, at the top level id (so its manipulators are the
-      feature's), as a new body: the most the pockets can be. If it reports an error, the feature returns, with it.
+      feature's), as a new body: the most the pockets can be.
    3. The walls, along the faces' edges (but those also of an ignored face), and the ribs: their edges are extruded
       through everything both ways as sheets (`extrudeSheets`; a circle's is a tube), and thickened to each side
       (`thickenSheets`), by the wall thickness, or half the rib thickness. With Fillet corners, each is the fillet radius
