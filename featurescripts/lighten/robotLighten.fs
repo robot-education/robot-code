@@ -72,14 +72,9 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         // The walls, along the faces' edges (but those of the ignored faces), and the ribs, cut from the pockets
         const wallEdges = qSubtraction(qLoopEdges(faces), qLoopEdges(definition.ignoredFaces));
-        const wallParameters = ["faces", "wallThickness", "ignoredFaces"];
-        const sheetsId = id + "sheets";
-        const thickenId = id + "thicken";
-        const wallSheets = extrudeSheets(context, sheetsId + "walls", plane, wallEdges, "Failed to extrude walls.", wallParameters);
-        const walls = thickenSheets(context, thickenId + "walls", wallSheets, definition.wallThickness + radius, "Failed to thicken walls.", wallParameters);
-        const ribParameters = ["ribEdges", "ribThickness"];
-        const ribSheets = extrudeSheets(context, sheetsId + "ribs", plane, ribEdges, "Failed to extrude ribs.", ribParameters);
-        const ribs = thickenSheets(context, thickenId + "ribs", ribSheets, definition.ribThickness / 2 + radius, "Failed to thicken ribs.", ribParameters);
+        const extent = bandExtent(context, plane, qUnion([extruded, wallEdges, ribEdges]));
+        const walls = buildBands(context, id + "walls", extent, wallEdges, definition.wallThickness + radius, "walls", ["wallThickness"]);
+        const ribs = buildBands(context, id + "ribs", extent, ribEdges, definition.ribThickness / 2 + radius, "ribs", ["ribEdges", "ribThickness"]);
 
         const bands = qUnion([walls, ribs]);
         try
@@ -152,7 +147,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
 
         opDeleteBodies(context, id + "cleanup", {
-                    "entities" : qUnion([pockets, qCreatedBy(sheetsId, EntityType.BODY), qCreatedBy(thickenId, EntityType.BODY)])
+                    "entities" : qUnion([pockets, qCreatedBy(id + "walls", EntityType.BODY), qCreatedBy(id + "ribs", EntityType.BODY)])
                 });
     });
 
@@ -229,56 +224,153 @@ function buildPockets(context is Context, extrudeId is Id, definition is map, fa
 }
 
 /**
- * Extrudes `edges` along `plane`'s normal through everything, as sheets (a circle's is a tube), and returns them.
- * Throws `message`, highlighting `faultyParameters` and the edges, if they can't be.
+ * Where walls and ribs go, along `plane`'s normal: through `bounds` (the pockets and the edges along which they go),
+ * and a little past it.
+ *
+ * @returns {{
+ *      @field plane {Plane} : `plane`, moved halfway through them.
+ *      @field depth {ValueWithUnits} : How far each band goes each way from its edge: through all of them, from any edge.
+ *      @field halfDepth {ValueWithUnits} : How far a band goes each way from `plane`.
+ * }}
  */
-function extrudeSheets(context is Context, id is Id, plane is Plane, edges is Query, message is string, faultyParameters is array) returns Query
+function bandExtent(context is Context, plane is Plane, bounds is Query) returns map
 {
-    try
-    {
-        opExtrude(context, id, {
-                    "entities" : edges,
-                    "direction" : plane.normal,
-                    "startBound" : BoundingType.THROUGH_ALL,
-                    "endBound" : BoundingType.THROUGH_ALL
-                });
-    }
-    catch
-    {
-        throw regenError(message, faultyParameters, edges);
-    }
-    return qCreatedBy(id, EntityType.BODY);
+    const boundingBox = evBox3d(context, { "topology" : bounds, "cSys" : coordSystem(plane), "tight" : false });
+    const height = boundingBox.maxCorner[2] - boundingBox.minCorner[2];
+    const margin = max(height * 0.05, 0.1 * millimeter);
+    var middle = plane;
+    middle.origin += plane.normal * (boundingBox.minCorner[2] + boundingBox.maxCorner[2]) / 2;
+    return { "plane" : middle, "depth" : height + margin, "halfDepth" : height / 2 + margin };
 }
 
 /**
- * Thickens `sheets` by `halfWidth` to each side, into walls or ribs, and returns them. Throws `message`, highlighting
- * `faultyParameters` and the sheets which can't be thickened, if they can't be.
+ * The bands along `edges` (walls or ribs, as `name` says), `halfWidth` to each side, through `extent` (see
+ * `bandExtent`). Each is an edge's sheet, thickened; but an arc or circle hardly bigger than `halfWidth` can't be
+ * thickened toward its center, so its band is a cylinder around its center, `halfWidth` bigger than it. That's its
+ * band exactly for a circle (a hole's), and a little more (nearer its center than `halfWidth`) for an arc. Failures
+ * highlight `faultyParameters`, and the edges which failed.
  */
-function thickenSheets(context is Context, id is Id, sheets is Query, halfWidth is ValueWithUnits, message is string,
+function buildBands(context is Context, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits, name is string,
     faultyParameters is array) returns Query
+{
+    var swept = [];
+    var arcs = [];
+    var arcEdges = [];
+    for (var edge in evaluateQuery(context, edges))
+    {
+        const curve = evCurveDefinition(context, { "edge" : edge });
+        if (!(curve is Circle) || curve.radius > halfWidth * 1.05)
+        {
+            swept = append(swept, edge);
+            continue;
+        }
+        arcEdges = append(arcEdges, edge);
+        // A circle split into arcs needs just one cylinder
+        if (!any(arcs, function(arc)
+                {
+                    return tolerantEquals(arc.coordSystem.origin, curve.coordSystem.origin) && tolerantEquals(arc.radius, curve.radius);
+                }))
+        {
+            arcs = append(arcs, curve);
+        }
+    }
+
+    if (swept != [])
+    {
+        thickenEdges(context, id + "thicken", extent, qUnion(swept), halfWidth, name, faultyParameters);
+    }
+    if (arcs != [])
+    {
+        const sketch = newSketchOnPlane(context, id + "cylinderSketch", { "sketchPlane" : extent.plane });
+        for (var i, arc in arcs)
+        {
+            skCircle(sketch, "circle" ~ i, {
+                        "center" : worldToPlane(extent.plane, arc.coordSystem.origin),
+                        "radius" : arc.radius + halfWidth
+                    });
+        }
+        skSolve(sketch);
+        try
+        {
+            opExtrude(context, id + "cylinders", {
+                        "entities" : qCreatedBy(id + "cylinderSketch", EntityType.FACE),
+                        "direction" : extent.plane.normal,
+                        "endBound" : BoundingType.BLIND,
+                        "endDepth" : extent.halfDepth,
+                        "startBound" : BoundingType.BLIND,
+                        "startDepth" : extent.halfDepth
+                    });
+        }
+        catch
+        {
+            throw regenError("Failed to extrude " ~ name ~ ".", faultyParameters, qUnion(arcEdges));
+        }
+        opDeleteBodies(context, id + "deleteCylinderSketch", { "entities" : qCreatedBy(id + "cylinderSketch", EntityType.BODY) });
+    }
+    return qUnion([qCreatedBy(id + "thicken" + "bands", EntityType.BODY), qCreatedBy(id + "cylinders", EntityType.BODY)]);
+}
+
+/**
+ * Bands along `edges` (see `buildBands`): each extruded as a sheet, under `id + "sheets"`, and thickened to each side,
+ * under `id + "bands"`.
+ */
+function thickenEdges(context is Context, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits, name is string,
+    faultyParameters is array)
 {
     try
     {
-        opThicken(context, id, {
-                    "entities" : sheets,
+        extrudeEdges(context, id + "sheets", extent, edges);
+    }
+    catch
+    {
+        throw regenError("Failed to extrude " ~ name ~ ".", faultyParameters, edges);
+    }
+    try
+    {
+        opThicken(context, id + "bands", {
+                    "entities" : qCreatedBy(id + "sheets", EntityType.BODY),
                     "thickness1" : halfWidth,
                     "thickness2" : halfWidth
                 });
     }
     catch
     {
-        // Each sheet, thickened alone
-        const failing = failingBodies(context, id + "error", sheets, function(errorId is Id, sheet is Query)
+        // Each edge's band made alone, to show which fail
+        var failing = [];
+        for (var i, edge in evaluateQuery(context, edges))
+        {
+            const edgeId = id + "error" + unstableIdComponent(i);
+            try silent
             {
-                opThicken(context, errorId, {
-                            "entities" : sheet,
+                extrudeEdges(context, edgeId + "sheet", extent, edge);
+                opThicken(context, edgeId + "band", {
+                            "entities" : qCreatedBy(edgeId + "sheet", EntityType.BODY),
                             "thickness1" : halfWidth,
                             "thickness2" : halfWidth
                         });
-            });
-        throw regenError(message, faultyParameters, failing);
+            }
+            catch
+            {
+                failing = append(failing, edge);
+            }
+        }
+        throw regenError("Failed to thicken " ~ name ~ ".", faultyParameters, failing == [] ? edges : qUnion(failing));
     }
-    return qCreatedBy(id, EntityType.BODY);
+}
+
+/**
+ * Extrudes `edges` as sheets, each way from them through `extent` (see `bandExtent`).
+ */
+function extrudeEdges(context is Context, id is Id, extent is map, edges is Query)
+{
+    opExtrude(context, id, {
+                "entities" : edges,
+                "direction" : extent.plane.normal,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : extent.depth,
+                "startBound" : BoundingType.BLIND,
+                "startDepth" : extent.depth
+            });
 }
 
 /**
