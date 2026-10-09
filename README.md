@@ -255,7 +255,7 @@ them, else millimeters), and the parameters which use the table (their `"Lookup 
 one page of every table, with a filter, to audit them in a browser.
 
 `fs audit` writes one page (`.fs-audit/<feature>.html`, or `-o`) to audit a feature by: its dialog, which works,
-the lookup tables its parameters use (every option at once, as `fs table` shows them), its writeup, and its file's
+the lookup tables its parameters use (every option at once, without their values), its writeup, and its file's
 `fs check` problems. The page is static, so the dialog's states are rendered ahead of time:
 from its defaults, each choice a click could make (a dropdown option, checkbox, tab, or lookup table level) is
 rendered in turn, choices which show or hide parameters first, up to `--max-states` (200). Clicking swaps between them,

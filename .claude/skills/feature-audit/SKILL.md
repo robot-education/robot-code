@@ -20,8 +20,8 @@ the user's say-so).
    by default; past that, choices say they aren't rendered). Typed values aren't rendered;
    `uv run fs ui <file> --set name=value` renders any state as a PNG.
 
-The page also lists every lookup table the feature's parameters use, a row per option with its values, to glance
-through rather than clicking through the dialog. For a writeup, `uv run fs table <file or folder> -n <table> --md`
+The page also lists every option of each lookup table the feature's parameters use (a row per path through its
+levels, without values), to glance through rather than clicking through the dialog. For a writeup, `uv run fs table <file or folder> -n <table> --md`
 prints one as Markdown.
 
 Say in the reply what wasn't checked: nothing here runs the feature in Onshape, so its geometry, and whether its

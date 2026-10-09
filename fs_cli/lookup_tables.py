@@ -248,6 +248,10 @@ def _uses(table: Table) -> str:
     return "; ".join(table.used_by) or "nothing (no parameter's Lookup Table)"
 
 
+def _options(table: Table) -> str:
+    return f"{len(table.rows)} option" + ("" if len(table.rows) == 1 else "s")
+
+
 def _count(table: Table) -> str:
     return f"{len(table.rows)} row" + ("" if len(table.rows) == 1 else "s")
 
@@ -260,12 +264,13 @@ def to_html(tables: list[Table], title: str = "Lookup tables") -> str:
     return _PAGE.format(title=html.escape(title), nav=nav, sections=sections, table_style=TABLE_STYLE)
 
 
-def table_section(table: Table, anchor: str, heading: str = "h2") -> str:
+def table_section(table: Table, anchor: str, heading: str = "h2", values: bool = True) -> str:
     """A table's section of a page (in an element with the `lookup` class, styled by `TABLE_STYLE`): its rows, with
-    repeated path prefixes dimmed, defaults bold, and empty leaves called out. Each row's `data-text` is its text, to
-    filter by."""
+    repeated path prefixes dimmed, defaults bold, and empty leaves called out; or without `values`, just its options
+    (each path through its levels). Each row's `data-text` is its text, to filter by."""
+    fields = table.fields if values else []
     head = "".join(f'<th class="level">{html.escape(level)}</th>' for level in table.levels)
-    head += "".join(f"<th>{html.escape(field)}</th>" for field in table.fields)
+    head += "".join(f"<th>{html.escape(field)}</th>" for field in fields)
     body = []
     previous: list[str] = []
     for row in table.rows:
@@ -281,16 +286,19 @@ def table_section(table: Table, anchor: str, heading: str = "h2") -> str:
             if row.defaults[depth]:
                 classes.append("default")
             cells.append(f'<td class="{" ".join(classes)}">{html.escape(key)}</td>')
-        if not row.values:
-            cells.append(f'<td class="empty" colspan="{max(1, len(table.fields))}">no values</td>')
+        if not values:
+            pass
+        elif not row.values:
+            cells.append(f'<td class="empty" colspan="{max(1, len(fields))}">no values</td>')
         else:
-            cells += [f'<td class="value">{_value_html(row.values.get(field, ""))}</td>' for field in table.fields]
+            cells += [f'<td class="value">{_value_html(row.values.get(field, ""))}</td>' for field in fields]
         previous = row.path
-        text = " ".join([*row.path, *row.values.values()]).lower()
+        text = " ".join([*row.path, *(row.values.values() if values else [])]).lower()
         body.append(f'<tr data-text="{html.escape(text)}">{"".join(cells)}</tr>')
     return (
         f'<section id="{anchor}"><{heading}>{html.escape(table.name)}</{heading}>'
-        f'<p class="meta">{html.escape(table.module)} · {_count(table)} · defaults in bold<br>Used by: {html.escape(_uses(table))}</p>'
+        f'<p class="meta">{html.escape(table.module)} · {_count(table) if values else _options(table)} · defaults in bold<br>'
+        f'Used by: {html.escape(_uses(table))}</p>'
         f'<div class="scroll"><table><thead><tr>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
         "</section>"
     )

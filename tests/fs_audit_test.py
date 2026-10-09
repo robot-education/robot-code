@@ -71,3 +71,5 @@ def test_command_shows_lookup_tables(tmp_path, capsys):
     tables = re.findall(r"<h3>(\w+Table)</h3>", page)
     assert tables == ["tappedHoleTable", "clearanceHoleTable", "frcShaftTable", "ftcShaftTable"]
     assert "32 tpi (UNF)" in page and "id='table-filter'" in page
+    # Options only: no values
+    assert "0.1590 in" not in page and "10 options" in page

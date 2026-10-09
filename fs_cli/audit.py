@@ -105,7 +105,7 @@ def render_markdown(text: str) -> str:
 def audit_page(title: str, source: str, shell: str, states: list[dict], truncated: bool, writeup: str | None,
                problems: list[str], theme: str, tables: list[Table] | None = None) -> str:
     """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), the lookup tables its
-    parameters use (every option at once, with its values), the writeup, and problems."""
+    parameters use (every option at once), the writeup, and problems."""
     pieces, layouts = _pieces(states)
     data = {
         "pieces": pieces,
@@ -133,9 +133,9 @@ def audit_page(title: str, source: str, shell: str, states: list[dict], truncate
     )
     if tables:
         tables_html = (
-            "<p class='limit'>Every option, a row per path through them, with its values; each level's default is bold.</p>"
+            "<p class='limit'>Every option, a row per path through its levels; each level's default is bold.</p>"
             "<input id='table-filter' type='search' placeholder='Filter rows (all words must match)'>"
-            "<div class='lookup'>" + "".join(table_section(table, f"table-{index}", "h3") for index, table in enumerate(tables)) + "</div>"
+            "<div class='lookup'>" + "".join(table_section(table, f"table-{index}", "h3", values=False) for index, table in enumerate(tables)) + "</div>"
         )
     else:
         tables_html = "<p>Its parameters use no lookup tables.</p>"
