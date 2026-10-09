@@ -97,7 +97,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         annotation { "Group Name" : "Position", "Collapsed By Default" : false }
         {
-            mateAxesPredicate(definition);
+            axisOrientationPredicate(definition);
 
             angleReferencePredicate(definition);
 
@@ -146,7 +146,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         var plane = getLocationPlane(context, definition);
         plane = applyAngleReference(context, definition, plane);
-        plane = applyMateAxes(definition, plane);
+        plane = applyAxisOrientation(definition, plane);
         const positions = holePositions(face);
         // Outside the holes, so its handle isn't on one
         addAngleOffsetManipulator(context, id, definition, plane, 1.5 * max(mapArray(positions, norm)));
@@ -353,25 +353,7 @@ export function robotMotorEditLogic(context is Context, id is Id, oldDefinition 
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition.hasBlockModel = isMotor(definition) && hasBlockModel(getMotorFace(definition));
-    // Std's hole heuristics flip `oppositeDirection`, which is Flip primary axis here
-    const flipped = mountingEditLogic(context, id, withHoleFlip(oldDefinition), withHoleFlip(definition),
-        mergeMaps(specifiedParameters, { "oppositeDirection" : specifiedParameters.flipPrimaryAxis ?? false }), hiddenBodies);
-    definition.scope = flipped.scope;
-    definition.flipPrimaryAxis = flipped.oppositeDirection;
-    return definition;
-}
-
-/**
- * The definition with `oppositeDirection` (std's hole heuristics' flip) set from Flip primary axis.
- */
-function withHoleFlip(definition is map) returns map
-{
-    if (definition == {})
-    {
-        return definition;
-    }
-    definition.oppositeDirection = definition.flipPrimaryAxis;
-    return definition;
+    return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
 }
 
 /**
@@ -384,7 +366,7 @@ function cutMountingFace(context is Context, id is Id, definition is map, face i
     const depth = -bounds.minCorner[2];
     if (!tolerantGreaterThan(depth, 0 * meter))
     {
-        throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["flipPrimaryAxis", "scope"], definition.scope);
+        throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["oppositeDirection", "scope"], definition.scope);
     }
 
     const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : plane });
