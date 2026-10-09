@@ -243,9 +243,15 @@ uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, ke
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 uv run fs eval "getSprocketRadius(0.25 * inch, 16) / inch" -m chain/robotChain.fs   # evaluate an expression (see below)
+uv run fs table featurescripts/released/shaft -n frcShaft   # lookup tables as rows (--md, or --html page.html)
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
+
+`fs table` shows lookup tables as the evaluator builds them (generated or written by hand): a row per path through the
+options, with each level's default marked, the leaf's values in readable units (lengths in inches if they're round in
+them, else millimeters), and the parameters which use the table (their `"Lookup Table"` annotations). `--html` writes
+one page of every table, with a filter, to audit them in a browser.
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
 values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic

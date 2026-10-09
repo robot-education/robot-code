@@ -203,6 +203,14 @@ def make_parser() -> argparse.ArgumentParser:
         default="onshape/std/common.fs",
         help="the file whose names (exported or not) the expression can use, e.g. chain/robotChain.fs (default: std)",
     )
+    table_command = command(
+        "table",
+        "show lookup tables as flat rows, one per option path, with their values, as the evaluator builds them (no API calls)",
+    )
+    table_command.add_argument("-n", "--name", action="append", default=[], help="only tables whose names contain this; can be repeated")
+    table_output = table_command.add_mutually_exclusive_group()
+    table_output.add_argument("--md", action="store_true", help="print Markdown tables")
+    table_output.add_argument("--html", metavar="FILE", help="write one HTML page of them all, with a filter")
     command(
         "deps",
         "show what FeatureScripts import, and what imports them (no API calls)",
@@ -1253,6 +1261,37 @@ def evaluate(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def table(config: Config, args: argparse.Namespace) -> int:
+    from fs_cli.lookup_tables import find_tables, find_uses, to_html, to_markdown, to_text
+    from fs_eval import Evaluator
+
+    project = _project(config)
+    evaluator = Evaluator(config.root)
+    tables = []
+    for module in _select_modules(project, args.targets):
+        # Only files which could hold one, as evaluating every constant everywhere is slow
+        if '"entries"' not in module.path.read_text():
+            continue
+        tables += [
+            found
+            for found in find_tables(evaluator, module.path, config.code_dir)
+            if not args.name or any(name.lower() in found.name.lower() for name in args.name)
+        ]
+    if not tables:
+        print("No lookup tables found.")
+        return 1
+    find_uses(tables, config.code_dir)
+    if args.html:
+        output = pathlib.Path(args.html)
+        output.write_text(to_html(tables))
+        print(f"Wrote {len(tables)} tables to {_display_path(output)}")
+    elif args.md:
+        print(to_markdown(tables))
+    else:
+        print(to_text(tables))
+    return 0
+
+
 def ui(config: Config, args: argparse.Namespace) -> int:
     path = pathlib.Path(args.file)
     if not path.is_file():
@@ -1348,6 +1387,7 @@ OFFLINE_COMMANDS = {
     "mv": mv,
     "ui": ui,
     "eval": evaluate,
+    "table": table,
     "deps": deps,
     "strings": strings,
     "unused": unused,
