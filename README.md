@@ -291,7 +291,9 @@ their lines, mostly where std's indentation is inconsistent. `--check` exits wit
 `fs check` exits with 1 if it finds anything. A comment on a problem's line, or alone on the line before it, ignores it:
 `// fs check: ignore keyword-key (std's hole attributes name it "type")`, with the problem's code (in brackets after
 its message) and why. Undefined names are checked against the file, everything it imports
-(following `export import`), and the std library. It also reports enums used as a feature's parameter types (directly or through predicates)
+(following `export import`), and the std library. Imports of other documents' Part Studios or Feature Studios (by
+`document id/version id/element id`, like Robot motor's of FRCDesign's Block Motor) aren't checked: nothing here can
+read them, and `fs push` leaves them as they are. It also reports enums used as a feature's parameter types (directly or through predicates)
 which the feature's file doesn't export, as Onshape requires (std enums too: `export import` the std module declaring
 one, not `common.fs`, which it reports exporting), top-level constants, enums, and types whose names the file or its
 imports already declare, functions and predicates declared with the same name and parameter types as another in the file

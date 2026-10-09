@@ -13,6 +13,8 @@ export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05
 // Exports Program, a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 export import(path : "motor/motorTables.gen.fs", version : "");
+// FRCDesign's Block Motor (in its FRC library), a configurable Part Studio
+BlockMotor::import(path : "5e3874e07384706ec3840340/5657eb187a0b8ed8fb95125a/c0895459c41bc1da9850fd7e", version : "4173ef57af8115dabb532b5d");
 
 export enum ComponentType
 {
@@ -148,7 +150,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         }
 
         const buildBlock = showBlockMotor(definition) && definition.blockMotor;
-        if (buildBlock && face.bodyDiameter == undefined)
+        if (buildBlock && !hasBlockModel(face))
         {
             // Has block model is stale: the motor was changed some way other than in the dialog
             throw regenError("There's no block model of the " ~ face.partName ~ ".", ["blockMotor"]);
@@ -176,31 +178,31 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
     });
 
 /**
- * A motor's or gearbox's mounting face, from `motorTables.gen.fs`'s tables, and for motors with block models, the
- * envelope behind it.
+ * A motor's or gearbox's mounting face, from `motorTables.gen.fs`'s tables, and for motors with block models, how to
+ * build one.
  */
 export type MotorFace typecheck canBeMotorFace;
 
 /**
+ * Holes are as the face's drawing shows them, looking at the face (its shaft toward you).
+ *
  * @param value {{
- *      @field partName {string} : The motor's or gearbox's name, as FRCDesign names it.
+ *      @field partName {string} : The motor's or gearbox's name.
  *      @field screw {string} : The mounting screws' size, as std's hole tables name it (`"#10"`, `"M3"`).
  *      @field boltCircleDiameter {ValueWithUnits} : @requiredif {`holePositions` isn't given.}
  *      @field holeAngles {array} : @requiredif {`holePositions` isn't given.} Each hole's angle on the bolt circle,
- *              counterclockwise from the face's x axis.
- *      @field holePositions {array} : @optional Each hole's position on the face, for holes on several circles.
+ *              counterclockwise from the right.
+ *      @field holePositions {array} : @optional Each hole's position (right, up), for holes on several circles.
  *      @field pilotDiameter {ValueWithUnits} : The boss the face's hole must clear.
- *      @field pilotHeight {ValueWithUnits} : @optional How far the pilot stands off the face, for block models.
- *      @field bodyDiameter {ValueWithUnits} : @optional The diameter of a motor's body. Motors without one have no
- *              block model.
- *      @field bodyFlats {ValueWithUnits} : @optional The width across flats of a body cut flat on its top and bottom.
- *      @field bumpDistance {ValueWithUnits} : @optional How far the end of a bump in the body (at 270°) is from its
- *              axis. Its sides are tangent to the body.
- *      @field bumpWidth {ValueWithUnits} : @requiredif {`bumpDistance` is given.} How wide the bump's end is.
- *      @field bodyLength {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} How far the body goes behind the face.
- *      @field shaftDiameter {ValueWithUnits} : @optional
- *      @field shaftLength {ValueWithUnits} : @requiredif {`shaftDiameter` is given.} How far the shaft goes in front
- *              of the face.
+ *      @field blockMotor {string} : @optional The option of FRCDesign's Block Motor's Motor list which models the motor.
+ *      @field blockAngle {ValueWithUnits} : @requiredif {`blockMotor` is given.} How far to turn FRCDesign's Block
+ *              Motor (counterclockwise, looking at the face) to line it up with the holes.
+ *      @field bodyDiameter {ValueWithUnits} : @optional For motors FRCDesign's Block Motor doesn't have, a block
+ *              model of our own: a cylinder this wide,
+ *      @field bodyLength {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} this long behind the face,
+ *      @field pilotHeight {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} the pilot, this tall,
+ *      @field shaftDiameter {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} and a shaft this wide,
+ *      @field shaftLength {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} going this far past the face.
  * }}
  */
 export predicate canBeMotorFace(value)
@@ -226,6 +228,19 @@ export predicate canBeMotorFace(value)
         }
     }
     isLength(value.pilotDiameter);
+    if (value.blockMotor != undefined)
+    {
+        value.blockMotor is string;
+        isAngle(value.blockAngle);
+    }
+}
+
+/**
+ * Whether a face's motor has a block model.
+ */
+export function hasBlockModel(face is MotorFace) returns boolean
+{
+    return face.blockMotor != undefined || face.bodyDiameter != undefined;
 }
 
 function getMotorFace(definition is map) returns MotorFace
@@ -246,18 +261,16 @@ function getMotorFace(definition is map) returns MotorFace
 }
 
 /**
- * Where each of a face's holes is, on its plane.
+ * Where each of a face's holes is, on its plane. The plane's normal points behind the face (toward the motor's body),
+ * so looking at the face, its x axis points left.
  */
 export function holePositions(face is MotorFace) returns array
 {
-    if (face.holePositions != undefined)
-    {
-        return face.holePositions;
-    }
-    return mapArray(face.holeAngles, function(angle is ValueWithUnits) returns Vector
-        {
-            return vector(cos(angle), sin(angle)) * face.boltCircleDiameter / 2;
-        });
+    const drawn = face.holePositions ?? mapArray(face.holeAngles, function(angle is ValueWithUnits) returns Vector
+            {
+                return vector(cos(angle), sin(angle)) * face.boltCircleDiameter / 2;
+            });
+    return mapArray(drawn, position => vector(-position[0], position[1]));
 }
 
 /**
@@ -327,7 +340,7 @@ export function robotMotorManipulatorChange(context is Context, definition is ma
 export function robotMotorEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    definition.hasBlockModel = isMotor(definition) && getMotorFace(definition).bodyDiameter != undefined;
+    definition.hasBlockModel = isMotor(definition) && hasBlockModel(getMotorFace(definition));
     return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
 }
 
@@ -378,88 +391,100 @@ function cutMountingFace(context is Context, id is Id, definition is map, face i
 }
 
 /**
- * Builds a block model of a motor on `plane`: its body behind the face (along the plane's normal), and its pilot and
- * shaft in front, as one part named for the motor, with a mate connector on its face.
+ * Builds a block model of a motor on `plane`, its body behind the face (along the plane's normal), and its pilot and
+ * shaft in front, as one part named for the motor, with a mate connector on its face: FRCDesign's Block Motor, or for
+ * motors it doesn't have, a model of our own.
  */
 function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane is Plane)
 {
-    sketchBodyProfile(context, id + "sketch", plane, face);
-
-    opExtrude(context, id + "body", {
-                "entities" : qSketchRegion(id + "sketch"),
-                "direction" : plane.normal,
-                "endBound" : BoundingType.BLIND,
-                "endDepth" : face.bodyLength
-            });
-
-    if (face.pilotHeight != undefined)
+    if (face.blockMotor != undefined)
     {
+        deriveBlockMotor(context, id + "derive", face, plane);
+    }
+    else
+    {
+        fCylinder(context, id + "body", {
+                    "bottomCenter" : plane.origin,
+                    "topCenter" : plane.origin + plane.normal * face.bodyLength,
+                    "radius" : face.bodyDiameter / 2
+                });
         fCylinder(context, id + "pilot", {
                     "bottomCenter" : plane.origin,
                     "topCenter" : plane.origin - plane.normal * face.pilotHeight,
                     "radius" : face.pilotDiameter / 2
                 });
-    }
-
-    if (face.shaftDiameter != undefined)
-    {
         fCylinder(context, id + "shaft", {
                     "bottomCenter" : plane.origin,
                     "topCenter" : plane.origin - plane.normal * face.shaftLength,
                     "radius" : face.shaftDiameter / 2
                 });
-    }
-
-    const motor = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
-    if (size(evaluateQuery(context, motor)) > 1)
-    {
         opBoolean(context, id + "union", {
-                    "tools" : motor,
+                    "tools" : qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID),
                     "operationType" : BooleanOperationType.UNION
                 });
     }
 
+    const motor = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
     setProperty(context, { "entities" : motor, "propertyType" : PropertyType.NAME, "value" : face.partName });
-    setProperty(context, { "entities" : motor, "propertyType" : PropertyType.APPEARANCE, "value" : BLACK });
+    if (face.blockMotor == undefined)
+    {
+        setProperty(context, { "entities" : motor, "propertyType" : PropertyType.APPEARANCE, "value" : BLACK });
+    }
 
     opMateConnector(context, id + "mateConnector", {
                 "coordSystem" : coordSystem(plane),
-                "owner" : motor
+                "owner" : motor->qNthElement(0)
             });
 }
 
+/** FRCDesign's Block Motor's Motor list, by its FeatureScript id. */
+const BLOCK_MOTOR_LIST = "List_SctRc1by7v7Fbg";
+
 /**
- * Sketches a motor body's profile on `plane`, centered on its origin: a circle `bodyDiameter` across, cut flat
- * `bodyFlats` across on its top and bottom (along the plane's y axis), or with a bump at 270° whose sides are tangent
- * to it, ending `bumpDistance` from its center, `bumpWidth` wide.
+ * Brings in FRCDesign's Block Motor, configured as `face.blockMotor`, without its pinion, spacer, or Powerpole board.
+ * Its face is on its Top plane, its shaft pointing up (+z), so it's placed with its z axis against `plane`'s normal,
+ * and turned `face.blockAngle`.
  */
-export function sketchBodyProfile(context is Context, id is Id, plane is Plane, face is MotorFace)
+function deriveBlockMotor(context is Context, id is Id, face is MotorFace, plane is Plane)
 {
-    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    const radius = face.bodyDiameter / 2;
-    if (face.bodyFlats != undefined && tolerantLessThan(face.bodyFlats, face.bodyDiameter))
+    // Looking at the face, the plane's x axis points left, and the Block Motor's (from its shaft's side) right
+    const placement = coordSystem(plane.origin, -plane.x, -plane.normal);
+    const instantiator = newInstantiator(id);
+    addInstance(instantiator, BlockMotor::build, {
+                "configuration" : {
+                    (BLOCK_MOTOR_LIST) : blockMotorOption(face.blockMotor),
+                    "Has_Pinion" : false,
+                    "Has_spacer" : false,
+                    "Has_Powerpole_Board" : false
+                },
+                "transform" : toWorld(placement) * rotationAround(Z_AXIS, face.blockAngle),
+                "name" : "motor"
+            });
+    try
     {
-        const halfFlats = face.bodyFlats / 2;
-        const x = sqrt(radius ^ 2 - halfFlats ^ 2);
-        skLineSegment(sketch, "top", { "start" : vector(x, halfFlats), "end" : vector(-x, halfFlats) });
-        skArc(sketch, "left", { "start" : vector(-x, halfFlats), "mid" : vector(-radius, 0 * meter), "end" : vector(-x, -halfFlats) });
-        skLineSegment(sketch, "bottom", { "start" : vector(-x, -halfFlats), "end" : vector(x, -halfFlats) });
-        skArc(sketch, "right", { "start" : vector(x, -halfFlats), "mid" : vector(radius, 0 * meter), "end" : vector(x, halfFlats) });
+        instantiate(context, instantiator);
     }
-    else if (face.bumpDistance != undefined && tolerantGreaterThan(face.bumpDistance, radius))
+    catch
     {
-        // The bump's end's right corner, and where the line from it is tangent to the body
-        const corner = vector(face.bumpWidth / 2, -face.bumpDistance);
-        const tangentAngle = atan2(corner[1], corner[0]) + acos(radius / norm(corner));
-        const tangent = vector(cos(tangentAngle), sin(tangentAngle)) * radius;
-        skArc(sketch, "body", { "start" : tangent, "mid" : vector(0 * meter, radius), "end" : vector(-tangent[0], tangent[1]) });
-        skLineSegment(sketch, "bumpLeft", { "start" : vector(-tangent[0], tangent[1]), "end" : vector(-corner[0], corner[1]) });
-        skLineSegment(sketch, "bumpEnd", { "start" : vector(-corner[0], corner[1]), "end" : corner });
-        skLineSegment(sketch, "bumpRight", { "start" : corner, "end" : tangent });
+        throw regenError("Failed to bring in FRCDesign's Block Motor.", ["blockMotor"]);
     }
-    else
-    {
-        skCircle(sketch, "body", { "center" : vector(0, 0) * meter, "radius" : radius });
-    }
-    skSolve(sketch);
+}
+
+/**
+ * An option of FRCDesign's Block Motor's Motor list, by its id.
+ */
+function blockMotorOption(option is string)
+{
+    return {
+                "Kraken_X60" : BlockMotor::List_SctRc1by7v7Fbg_conf.Kraken_X60,
+                "Kraken_X44" : BlockMotor::List_SctRc1by7v7Fbg_conf.Kraken_X44,
+                "NEO_Vortex" : BlockMotor::List_SctRc1by7v7Fbg_conf.NEO_Vortex,
+                "Copy_of_NEO_Vortex" : BlockMotor::List_SctRc1by7v7Fbg_conf.Copy_of_NEO_Vortex,
+                "Copy_of_NEO_V1_1" : BlockMotor::List_SctRc1by7v7Fbg_conf.Copy_of_NEO_V1_1,
+                "KrakenX60" : BlockMotor::List_SctRc1by7v7Fbg_conf.KrakenX60,
+                "Falcon_500_V3" : BlockMotor::List_SctRc1by7v7Fbg_conf.Falcon_500_V3,
+                "NEO_V1_1" : BlockMotor::List_SctRc1by7v7Fbg_conf.NEO_V1_1,
+                "NEO_V1_0" : BlockMotor::List_SctRc1by7v7Fbg_conf.NEO_V1_0,
+                "NEO_550" : BlockMotor::List_SctRc1by7v7Fbg_conf.NEO_550
+            }[option];
 }

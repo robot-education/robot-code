@@ -35,10 +35,12 @@ export function testEveryEntryIsAFace()
     {
         // Throws if it doesn't typecheck
         face as MotorFace;
-        // A block model needs its body's length, and a shaft its length
-        expectEqual(face.bodyDiameter == undefined, face.bodyLength == undefined);
-        expectEqual(face.shaftDiameter == undefined, face.shaftLength == undefined);
-        expectEqual(face.bumpDistance == undefined, face.bumpWidth == undefined);
+        // A block model of our own needs all of its sizes
+        for (var key in ["bodyLength", "pilotHeight", "shaftDiameter", "shaftLength"])
+        {
+            expectEqual(face.bodyDiameter == undefined, face[key] == undefined);
+        }
+        expectTrue(face.blockMotor == undefined || face.bodyDiameter == undefined, face.partName ~ " has two block models");
         // Screws std's hole tables know
         fastenerHoleDiameter({ "fit" : Fit.FREE }, face.screw);
     }
@@ -67,32 +69,53 @@ export function testHolesClearThePilot()
     }
 }
 
+function expectAt(position is Vector, expected is Vector)
+{
+    expectNear(norm(position - expected), 0 * meter, 1e-9 * meter);
+}
+
 export function testHolePositions()
 {
-    const neo = motor(frcMotorTable, { "motor" : "NEO" });
-    const positions = holePositions(neo);
-    expectEqual(size(positions), 4);
-    expectNear(norm(positions[0] - vector(1, 0) * inch), 0 * meter, 1e-9 * meter);
-    expectNear(norm(positions[1] - vector(0, 1) * inch), 0 * meter, 1e-9 * meter);
-    // The Kraken X60 has every 30°, but for 270°
-    expectEqual(size(holePositions(motor(frcMotorTable, { "motor" : "Kraken X60" }))), 11);
-    // The Minion's, by the pattern chosen
-    expectEqual(motor(frcMotorTable, { "motor" : "Minion", "pattern" : "550 (M3)" }).screw, "M3");
-    expectEqual(size(holePositions(motor(frcMotorTable, { "motor" : "Minion", "pattern" : "#10-32" }))), 5);
-    // goBILDA's 16 mm square, and two more 24 mm apart
-    const yellowJacket = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "435 RPM" });
-    expectEqual(size(holePositions(yellowJacket)), 6);
-    expectNear(norm(holePositions(yellowJacket)[1]), 8 * sqrt(2) * millimeter, 1e-9 * meter);
+    // As drawn looking at the face: counterclockwise from the right. The plane's x axis points left, so 0° is at -x.
+    const neo = holePositions(motor(frcMotorTable, { "motor" : "NEO V1.1" }));
+    expectEqual(size(neo), 4);
+    expectAt(neo[0], vector(-1, 0) * inch);
+    expectAt(neo[1], vector(0, 1) * inch);
+    // The Minion's 775 holes, at 53.5° and 233.5°, are up and to the right
+    const minion = holePositions(motor(frcMotorTable, { "motor" : "Minion", "pattern" : "775" }));
+    expectAt(minion[0], vector(-cos(53.5 * degree), sin(53.5 * degree)) * 14.5 * millimeter);
+}
+
+export function testHolePatterns()
+{
+    // A Kraken X60 fits all its 11 holes, or a Falcon 500's 6, or a CIM's 2
+    for (var pattern in [["All", 11], ["Falcon 500", 6], ["CIM", 2]])
+    {
+        const kraken = motor(frcMotorTable, { "motor" : "Kraken X60", "pattern" : pattern[0] });
+        expectEqual(size(holePositions(kraken)), pattern[1]);
+        expectEqual(kraken.blockMotor, "Kraken_X60");
+    }
+    expectEqual(motor(frcMotorTable, { "motor" : "Minion", "pattern" : "550" }).screw, "M3");
+    expectEqual(motor(frcMotorTable, { "motor" : "Thrifty Pulsar", "pattern" : "775" }).screw, "M4");
+    // goBILDA's 16 mm square, or with two more 24 mm apart
+    const square = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "435 RPM", "pattern" : "16 mm square" });
+    expectEqual(size(holePositions(square)), 4);
+    expectAt(holePositions(square)[0], vector(-8, 8) * millimeter);
+    expectEqual(size(holePositions(motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "435 RPM", "pattern" : "All" }))), 6);
 }
 
 export function testBlockModels()
 {
-    // Longer gearboxes for more stages
-    const fast = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "1620 RPM" });
-    const slow = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "30 RPM" });
+    // FRCDesign's Block Motor, its Krakens turned so their bumps are by the missing hole
+    const kraken = motor(frcMotorTable, { "motor" : "Kraken X44" });
+    expectEqual(kraken.blockMotor, "Kraken_X44");
+    expectNear(kraken.blockAngle, -90 * degree, 1e-9 * degree);
+    expectTrue(hasBlockModel(motor(frcMotorTable, { "motor" : "NEO V2.0" })), "No block model of the NEO V2.0");
+    expectTrue(!hasBlockModel(motor(frcMotorTable, { "motor" : "CIM" })), "A block model of the CIM");
+    // Our own, longer for gearboxes with more stages
+    const fast = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "1620 RPM", "pattern" : "All" });
+    const slow = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "30 RPM", "pattern" : "All" });
     expectTrue(slow.bodyLength > fast.bodyLength, "A 4 stage gearbox isn't longer than a 1 stage one");
-    expectEqual(motor(frcMotorTable, { "motor" : "CIM" }).bodyDiameter, undefined);
-    expectNear(motor(frcMotorTable, { "motor" : "Kraken X60" }).bumpDistance, 33.5 * millimeter, 1e-9 * meter);
 }
 
 export function testSkippedHoles()

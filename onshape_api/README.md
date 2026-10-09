@@ -47,6 +47,9 @@ Tested in October 2026 (API v16), on public documents:
 | `GET /documents/d/{did}/versions` | No (401) | `versions.get_versions` (and so the std's versions) |
 | `GET /featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}` | No (401) | `feature_studios.get_contents` |
 | `GET /featurestudios/d/{did}/{wvm}/{wvmid}/e/{eid}/featurespecs` | No (401) | `feature_studios.get_feature_specs` |
+| `GET /partstudios/d/{did}/{wvm}/{wvmid}/e/{eid}/features` | Yes | (none: read by hand for Robot motor's Block Motor) |
+| `GET /partstudios/d/{did}/{wvm}/{wvmid}/e/{eid}/boundingboxes` | No (401) | |
+| `GET /parts/d/{did}/{wvm}/{wvmid}/e/{eid}` | No (401) | |
 
 Anything that changes a document always needs credentials. To check an endpoint, request it with `curl` and no
 credentials (e.g. `curl -sS "https://cad.onshape.com/api/v16/documents/d/{did}/w/{wid}/elements"`); when one

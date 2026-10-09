@@ -25,6 +25,8 @@ from fs_lsp.stdlib import built_in_type, stdlib
 from fs_lsp.symbol_index import Declaration, SymbolIndex
 
 ELEMENT_ID = re.compile(r"[0-9a-f]{24}")
+# Another document's Part Studio or Feature Studio, by document, version, and element id
+OTHER_DOCUMENT = re.compile(r"[0-9a-f]{24}/[0-9a-f]{24}/[0-9a-f]{24}")
 STD_PREFIX = "onshape/std/"
 COMMON_STD = STD_PREFIX + "common.fs"
 
@@ -68,6 +70,11 @@ class Import:
     @property
     def element_id(self) -> str | None:
         return self.path if ELEMENT_ID.fullmatch(self.path) else None
+
+    @property
+    def other_document(self) -> bool:
+        """Whether it imports from another document (`document id/version id/element id`), which nothing here checks."""
+        return OTHER_DOCUMENT.fullmatch(self.path) is not None
 
     @property
     def code_path(self) -> str | None:
@@ -818,7 +825,12 @@ class Project:
                     )
                 )
             if imported.namespace:
-                if not (imported.is_std or imported.element_id or (self.code_dir / imported.path).is_file()):
+                if not (
+                    imported.is_std
+                    or imported.element_id
+                    or imported.other_document
+                    or (self.code_dir / imported.path).is_file()
+                ):
                     # An image (or a studio) imported by path, which `fs push` uploads and resolves
                     problems.append(
                         Problem(

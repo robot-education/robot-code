@@ -189,6 +189,16 @@ def test_images_imported_by_path(project):
     assert problems == [("unknown-import", "core/nope.svg doesn't exist in the code folder.")]
 
 
+def test_part_studios_of_other_documents(project):
+    # Imported by document, version, and element id: nothing here can check them
+    path = project.code_dir / "withPartStudio.fs"
+    path.write_text(
+        'FeatureScript 2909;\nexport Block::import(path : "5e3874e07384706ec3840340/5657eb187a0b8ed8fb95125a/'
+        'c0895459c41bc1da9850fd7e", version : "4173ef57af8115dabb532b5d");\n'
+    )
+    assert project.check(project.module(path)) == []
+
+
 def test_bare_map_keys(project):
     path = project.code_dir / "keys.fs"
     path.write_text(
