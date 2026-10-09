@@ -4,7 +4,6 @@ import(path : "onshape/std/hole.fs", version : "2960.0");
 export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960.0");
 
 import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
-import(path : "2a1fbdd680ed055fe57e372f", version : "c2a95165e2ec309bb41cf58f");
 // Exports Fit, a parameter type
 export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
 
@@ -120,21 +119,6 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Reference direction", "Filter" : (QueryFilterCompound.ALLOWS_VERTEX || QueryFilterCompound.ALLOWS_DIRECTION), "MaxNumberOfPicks" : 1 }
         definition.direction is Query;
 
-        if (!isMotorSquare(definition))
-        {
-            annotation { "Name" : "Expand plate corners" }
-            definition.expandPlates is boolean;
-        }
-
-        // if (definition.expandPlates && isMotorSquare(definition))
-        // {
-        //     annotation { "Name" : "First connection", "UIHint" : ["FIRST_IN_ROW", "MATE_CONNECTOR_AXIS_TYPE"] }
-        //     definition.firstConnection is MateConnectorAxisType;
-
-        //     annotation { "Name" : "First connection", "UIHint" : ["MATE_CONNECTOR_AXIS_TYPE"] }
-        //     definition.secondConnection is MateConnectorAxisType;
-        // }
-
         annotation { "Name" : "Merge scope", "Filter" : EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES && ActiveSheetMetal.NO }
         definition.booleanScope is Query;
     }
@@ -198,23 +182,6 @@ function doRobotMotor(context is Context, id is Id, definition is map)
     verifyNonemptyQuery(context, definition, "booleanScope", ErrorStringEnum.HOLE_EMPTY_SCOPE);
 
     var motorPattern = getMotorPattern(definition);
-
-    if (definition.expandPlates)
-    {
-        const points = mapArray(definition.locations, function(location is Query)
-            {
-                return evVertexPoint(context, { "vertex" : location });
-            });
-        for (var plate in evaluateQuery(context, qPlateFilter(context, definition.booleanScope)))
-        {
-            opExpandPlate(context, id + "expandPlate", {
-                        "plate" : plate,
-                        "points" : points,
-                        "identities" : definition.locations,
-                        "radius" : motorPattern.bodyDiameter / 2
-                    });
-        }
-    }
 
     const diagonalLength = boundingBoxLength(context, definition.booleanScope);
 
