@@ -71,6 +71,7 @@
     "ff444db0395e01aaa8c7e555": "frame/frameTables.gen.fs"
   },
   "released": [
+    "01286571f64f95abc865c937",
     "032a0037ea2335b45777aeca",
     "07577f926d77f76e2938528f",
     "14320b03695982a66d6b3903",
@@ -87,6 +88,7 @@
   ],
   "images": {
     "0d9de9de05469ac12e79dfa9": "released/multiExtrude/extrude.svg",
+    "216fd46dc4cc0dc762d882f9": "primitive/primitiveIcon.svg",
     "233760ca14ddd2085de9c219": "core/robotIcon.svg",
     "70fa8905356b9bb43809037c": "nutStrip/robotNutStripIcon.svg",
     "94bcdc0a50ec32f81a3aa449": "frame/robotFrameIcon.svg",

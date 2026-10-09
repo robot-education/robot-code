@@ -5,7 +5,7 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
 export import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b3763f68");
-import(path : "released/splineProfile/splineProfileCommon.fs", version : "");
+import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
 export import(path : "58d66340f7b70cfc86606676", version : "c66f2cde90ee0c14ff94cd63");
 export import(path : "aff3918ff64d6eafb99fddcf", version : "4661373950000ab2acd87f53");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
@@ -13,8 +13,8 @@ import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 export import(path : "6451a02d1f9f40630984864b", version : "ef6cb5b6d8c95ab1a3e79148");
 import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
 // Exports Fit, a parameter type
-export import(path : "core/fit.fs", version : "");
-import(path : "core/bore.fs", version : "");
+export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
+import(path : "01f0c5634015659514b83da1", version : "5054ae3d069649e06068d82b");
 
 /**
  * The bores SplineXS adapters can cut.

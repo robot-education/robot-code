@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "onshape/std/persistentCoordSystem.fs", version : "2960.0");
 
-export import(path : "core/boundary.fs", version : "");
+export import(path : "452d43a015d17145ad7775e4", version : "4782711fb59152ce45a9c992");
 
 /**
  * Belts and chains: loops of a pitch (a belt's teeth, or a chain's links) along a path around pulleys, sprockets, and

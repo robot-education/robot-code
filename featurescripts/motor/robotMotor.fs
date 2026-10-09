@@ -6,7 +6,7 @@ export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960
 import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
 import(path : "2a1fbdd680ed055fe57e372f", version : "c2a95165e2ec309bb41cf58f");
 // Exports Fit, a parameter type
-export import(path : "core/fit.fs", version : "");
+export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
 
 export enum ComponentType
 {

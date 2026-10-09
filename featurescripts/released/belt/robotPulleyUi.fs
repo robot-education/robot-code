@@ -13,7 +13,7 @@ export import(path : "b82468283e5ec09720bad185", version : "c1982c22aa4741f71a6e
 export import(path : "962bbb367fd7d91fae71cd4c", version : "0230c5f617a7df45c9349b96");
 export import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
 // Exports Fit, a parameter type
-export import(path : "core/fit.fs", version : "");
+export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
 
 export enum CreationMethod
 {

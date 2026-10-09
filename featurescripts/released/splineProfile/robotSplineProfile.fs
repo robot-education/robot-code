@@ -7,7 +7,7 @@ export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f5
 export import(path : "b75434df23d86ba9542f761e", version : "410f29dc5fa8b0fe88f1e9c5");
 export import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
 // Exports Fit, a parameter type
-export import(path : "core/fit.fs", version : "");
+export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 
 annotation { "Feature Type Name" : "Robot spline profile",

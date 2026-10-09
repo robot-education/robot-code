@@ -11,7 +11,7 @@ export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34
 
 import(path : "8fc3df84a88e74d27ad43d26", version : "a29c4701c1348914e6f1f6c4");
 // Exports Fit, a parameter type
-export import(path : "core/fit.fs", version : "");
+export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
 
 
 export enum SpacerType

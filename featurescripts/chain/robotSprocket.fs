@@ -1,17 +1,17 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "core/coreUtils.fs", version : "");
-export import(path : "core/unitSystem.fs", version : "");
-export import(path : "core/startOffset.fs", version : "");
-import(path : "core/location.fs", version : "");
-import(path : "core/robotFeature.fs", version : "");
-import(path : "core/robotProperties.fs", version : "");
-import(path : "core/profileOffset.fs", version : "");
+import(path : "8b8c46128a5dbc2594925f4a", version : "6b7d5995c565ae73c7740b0b");
+export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
+export import(path : "b82468283e5ec09720bad185", version : "14dff717b9d5fa647fc2ea5f");
+import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
+import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
 // Exports BoreShape, Fit, and SplineType, parameter types
-export import(path : "core/bore.fs", version : "");
+export import(path : "01f0c5634015659514b83da1", version : "5054ae3d069649e06068d82b");
 // Exports ChainType, a parameter type
-export import(path : "chain/chainCommon.fs", version : "");
+export import(path : "93af3f24abb0f9f345268c81", version : "f700a9a0059810f562c0d48a");
 
 export enum SprocketCreationMethod
 {

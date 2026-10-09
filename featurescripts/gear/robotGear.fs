@@ -1,17 +1,17 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "core/coreUtils.fs", version : "");
-import(path : "core/unitSystemDisplay.fs", version : "");
-export import(path : "core/unitSystem.fs", version : "");
-export import(path : "core/startOffset.fs", version : "");
-import(path : "core/location.fs", version : "");
-import(path : "core/robotFeature.fs", version : "");
-import(path : "core/robotProperties.fs", version : "");
-import(path : "core/profileOffset.fs", version : "");
+import(path : "8b8c46128a5dbc2594925f4a", version : "6b7d5995c565ae73c7740b0b");
+import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
+export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
+export import(path : "b82468283e5ec09720bad185", version : "14dff717b9d5fa647fc2ea5f");
+import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
+import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
 // Exports BoreShape, Fit, and SplineType, parameter types
-export import(path : "core/bore.fs", version : "");
-import(path : "gear/gearCommon.fs", version : "");
+export import(path : "01f0c5634015659514b83da1", version : "5054ae3d069649e06068d82b");
+import(path : "f9a7532fe0d68211bd3a8112", version : "ab52a2e93d3dee266621edd0");
 
 export enum GearType
 {

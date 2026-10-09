@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-PrimitiveIcon::import(path : "primitive/primitiveIcon.svg", version : "");
+PrimitiveIcon::import(path : "216fd46dc4cc0dc762d882f9", version : "aa1903cf7745ce1692488a95");
 
 export import(path : "21762d39019c8b2289e2fbb8", version : "f40a9d160de84aecb5b2c022");
 export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
