@@ -101,6 +101,9 @@ def test_problems(project):
         ("undefined", "missing"),
         ("undefined", "hidden"),
         ("unknown-import", f'"{"d" * 24}"'),
+        # ... and set but never used
+        ("unused-variable", "x"),
+        ("unused-variable", "shape"),
     }
 
 
