@@ -7,6 +7,9 @@ Test FeatureScript which computes values (math, lookup tables, editing logic, ma
 sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval`; see
 README's "Testing FeatureScript". `uv run pytest` runs them all.
 
+After changing a feature, check, test, and show it as `.claude/skills/feature-audit/SKILL.md` says: it ends with its
+`fs audit` page, sent to the user.
+
 Features with a writeup (a `.md` beside the `.fs`, like `frame/robotFrame.md`) need it updated when they change; see
 `docs/feature-writeups.md`.
 

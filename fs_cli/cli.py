@@ -11,8 +11,10 @@ from __future__ import annotations
 import argparse
 import collections
 import difflib
+import html
 import os
 import pathlib
+import re
 import sys
 
 from fs_lsp.formatter import format_source, is_generated
@@ -259,6 +261,19 @@ def make_parser() -> argparse.ArgumentParser:
     )
     ui_command.add_argument("--html", action="store_true", help="also write the dialog's HTML next to the PNG")
     ui_command.add_argument("--theme", choices=["dark", "light"], default="dark", help="Onshape's theme (default: dark)")
+
+    audit_command = command(
+        "audit",
+        "write one page to audit a feature: its dialog, which works (choices are pre-rendered), its writeup, and its problems (no API calls)",
+        targets=False,
+    )
+    audit_command.add_argument("file", help="the .fs file defining the feature")
+    audit_command.add_argument("--feature", help="the feature, if the file defines several")
+    audit_command.add_argument("-o", "--output", help="the HTML to write (default: .fs-audit/<feature>.html)")
+    audit_command.add_argument("--theme", choices=["dark", "light"], default="dark", help="the dialog's Onshape theme (default: dark)")
+    audit_command.add_argument(
+        "--max-states", type=int, default=200, help="how many of the dialog's states to pre-render at most (default: 200)"
+    )
 
     tabs_command = command(
         "tabs",
@@ -1261,6 +1276,39 @@ def evaluate(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def audit(config: Config, args: argparse.Namespace) -> int:
+    from fs_cli.audit import audit_page, explore_dialog
+
+    path = pathlib.Path(args.file)
+    if not path.is_file():
+        raise UsageError(f"{args.file} isn't a file.")
+    project = _project(config)
+    feature = args.feature
+
+    def render(settings: dict[str, str]) -> str:
+        return render_feature(project, config.std_dir, path, feature, settings, args.theme)[0]
+
+    shell, states, truncated = explore_dialog(render, args.max_states)
+    title = re.search(r"<span class='ns-dialog-title'>(.*?) 1</span>", shell)
+    name = html.unescape(title.group(1)) if title else path.stem
+    writeup_path = path.with_suffix(".md")
+    writeup = writeup_path.read_text() if writeup_path.is_file() else None
+    module = project.module(path.resolve())
+    problems = []
+    if module is not None:
+        for problem in project.check(module):
+            line, character = module.position(problem.start)
+            problems.append(f"{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]")
+    source = os.path.relpath(path.resolve(), config.root)
+    page = audit_page(name, source, shell, states, truncated, writeup, problems, args.theme)
+    output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(page)
+    more = " (the limit; raise it with --max-states)" if truncated else ""
+    print(f"Wrote {_display_path(output)}: {len(states)} dialog states{more}, {len(problems)} problems.")
+    return 0
+
+
 def table(config: Config, args: argparse.Namespace) -> int:
     from fs_cli.lookup_tables import find_tables, find_uses, to_html, to_markdown, to_text
     from fs_eval import Evaluator
@@ -1388,6 +1436,7 @@ OFFLINE_COMMANDS = {
     "ui": ui,
     "eval": evaluate,
     "table": table,
+    "audit": audit,
     "deps": deps,
     "strings": strings,
     "unused": unused,

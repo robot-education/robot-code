@@ -244,6 +244,7 @@ uv run fs unused             # exports nothing uses (--local: also those only th
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 uv run fs eval "getSprocketRadius(0.25 * inch, 16) / inch" -m chain/robotChain.fs   # evaluate an expression (see below)
 uv run fs table featurescripts/released/shaft -n frcShaft   # lookup tables as rows (--md, or --html page.html)
+uv run fs audit featurescripts/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
@@ -252,6 +253,13 @@ uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   #
 options, with each level's default marked, the leaf's values in readable units (lengths in inches if they're round in
 them, else millimeters), and the parameters which use the table (their `"Lookup Table"` annotations). `--html` writes
 one page of every table, with a filter, to audit them in a browser.
+
+`fs audit` writes one page (`.fs-audit/<feature>.html`, or `-o`) to audit a feature by: its dialog, which works,
+its writeup, and its file's `fs check` problems. The page is static, so the dialog's states are rendered ahead of time:
+from its defaults, each choice a click could make (a dropdown option, checkbox, tab, or lookup table level) is
+rendered in turn, choices which show or hide parameters first, up to `--max-states` (200). Clicking swaps between them,
+and hovering a parameter shows its description, default, and UI hints, as the VS Code preview does. Values typed into
+fields aren't rendered (`fs ui --set` renders any state).
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
 values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic

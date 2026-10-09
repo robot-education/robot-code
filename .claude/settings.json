@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run fs check *)",
+      "Bash(uv run fs format *)",
+      "Bash(uv run fs eval *)",
+      "Bash(uv run fs table *)",
+      "Bash(uv run fs audit *)",
+      "Bash(uv run fs ui *)",
+      "Bash(uv run fs deps *)",
+      "Bash(uv run fs refs *)",
+      "Bash(uv run fs strings *)",
+      "Bash(uv run fs unused *)",
+      "Bash(uv run pytest *)",
+      "Bash(uv run ruff check *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ]
+  }
+}
