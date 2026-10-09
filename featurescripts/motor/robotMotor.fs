@@ -1,11 +1,16 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "onshape/std/hole.fs", version : "2960.0");
-export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960.0");
 
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
+import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
+import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
+// Exports MateConnectorAxisType, a parameter type
+export import(path : "58d66340f7b70cfc86606676", version : "c9963ef4d574eccc05ff889f");
 // Exports Fit, a parameter type
 export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
+export import(path : "motor/motorTables.gen.fs", version : "");
 
 export enum ComponentType
 {
@@ -15,59 +20,22 @@ export enum ComponentType
     GEARBOX
 }
 
-export enum MotorType
+predicate isMotor(definition is map)
 {
-    annotation { "Name" : "Falcon 500" }
-    FALCON_500,
-    annotation { "Name" : "NEO" }
-    NEO,
-    annotation { "Name" : "NEO 550" }
-    NEO_550,
-    annotation { "Name" : "775pro" }
-    _775_PRO,
-    annotation { "Name" : "CIM" }
-    CIM,
-    annotation { "Name" : "Bag" }
-    BAG
+    definition.componentType == ComponentType.MOTOR;
 }
 
-export enum GearboxType
-{
-    annotation { "Name" : "MAXPlanetary" }
-    MAX_PLANETARY,
-    annotation { "Name" : "UltraPlanetary" }
-    ULTRA_PLANETARY,
-    annotation { "Name" : "VersaPlanetary" }
-    VERSA_PLANETARY,
-    annotation { "Name" : "Sport" }
-    SPORT
-}
+const HOLE_INDEX_BOUNDS = { (unitless) : [1, 1, 1e5] } as IntegerBoundSpec;
 
-// export enum MotorControllerType
-// {
-//     annotation { "Name" : "Spark MAX" }
-//     SPARK_MAX,
-//     annotation { "Name" : "Victor SPX" }
-//     VICTOR_SPX,
-//     annotation { "Name" : "Talon SRX" }
-//     TALON_SRX,
-//     annotation { "Name" : "Spark" }
-//     SPARK,
-// }
-
-predicate isMotorSquare(definition is map)
-{
-    (definition.componentType == ComponentType.GEARBOX &&
-            definition.gearboxType != GearboxType.MAX_PLANETARY &&
-            definition.gearboxType != GearboxType.ULTRA_PLANETARY);
-}
-
-annotation {
-        "Feature Type Name" : "Robot motor",
+/**
+ * Cuts a motor's or gearbox's mounting face into parts (its screws' holes, and a hole for its pilot), and builds a block
+ * model of a motor: its envelope, pilot, and shaft.
+ */
+annotation { "Feature Type Name" : "Robot motor",
+        "Feature Type Description" : "Cut the mounting holes of a motor or gearbox, and model a block motor." ~ CREDIT,
         "Editing Logic Function" : "robotMotorEditLogic",
         "Manipulator Change Function" : "robotMotorManipulatorChange",
-        "Feature Type Description" : "Creates a variety of motor mounting patterns for motors and gearboxes.<br>" ~
-        "FeatureScript by Alex Kempen."
+        "Icon" : RobotIcon::BLOB_DATA
     }
 export const robotMotor = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
@@ -75,375 +43,346 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Component type", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.componentType is ComponentType;
 
-        if (definition.componentType == ComponentType.MOTOR)
+        if (isMotor(definition))
         {
-            annotation { "Name" : "Motor type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-            definition.motorType is MotorType;
+            annotation { "Name" : "Motor", "Lookup Table" : motorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.motor is LookupTablePath;
+
+            annotation { "Name" : "Block motor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "Model the motor as a block: its body's envelope, its pilot, and its shaft." }
+            definition.blockMotor is boolean;
         }
-        else if (definition.componentType == ComponentType.GEARBOX)
+        else
         {
-            annotation { "Name" : "Gearbox type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-            definition.gearboxType is GearboxType;
+            annotation { "Name" : "Gearbox", "Lookup Table" : gearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.gearbox is LookupTablePath;
         }
 
-        // Of the mounting holes' screws (#10, or M3 or M4 for metric motors)
+        locationPredicate(definition, "motor");
+
+        axisOrientationPredicate(definition);
+
+        angleReferencePredicate(definition);
+
+        angleOffsetPredicate(definition);
+
+        holeMergeScopePredicate(definition);
+
+        // Of the mounting holes' screws
         fitPredicate(definition);
 
-        // Of the hole for the motor's boss
+        // Of the hole for the pilot
         boreFitPredicate(definition);
 
-        annotation { "Name" : "All mounting holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.allHoles is boolean;
+        annotation { "Name" : "Skip holes" }
+        definition.skipHoles is boolean;
 
-        if (definition.motorType == MotorType._775_PRO)
+        annotation { "Group Name" : "Skip holes", "Driving Parameter" : "skipHoles", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Vent holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.ventHoles is boolean;
+            if (definition.skipHoles)
+            {
+                annotation { "Name" : "Holes to skip", "Item name" : "hole", "Item label template" : "#index", "Show labels only" : true,
+                            "UIHint" : [UIHint.INITIAL_FOCUS, UIHint.PREVENT_ARRAY_REORDER, UIHint.ALLOW_ARRAY_FOCUS] }
+                definition.skippedHoles is array;
+
+                for (var hole in definition.skippedHoles)
+                {
+                    annotation { "Name" : "Index" }
+                    isInteger(hole.index, HOLE_INDEX_BOUNDS);
+                }
+            }
         }
-
-        annotation { "Name" : "Sketch points to place motors", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR }
-        definition.locations is Query;
-
-        annotation { "Name" : "Flip primary axis", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
-        definition.flipPrimary is boolean;
-
-        annotation { "Name" : "Reorient secondary axis", "UIHint" : ["MATE_CONNECTOR_AXIS_TYPE"] }
-        definition.secondaryAxisType is MateConnectorAxisType;
-
-        annotation { "Name" : "Angle" }
-        isAngle(definition.angle, ANGLE_360_ZERO_DEFAULT_BOUNDS);
-
-        annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION_CIRCULAR }
-        definition.oppositeDirection is boolean;
-
-        annotation { "Name" : "Reference direction", "Filter" : (QueryFilterCompound.ALLOWS_VERTEX || QueryFilterCompound.ALLOWS_DIRECTION), "MaxNumberOfPicks" : 1 }
-        definition.direction is Query;
-
-        annotation { "Name" : "Merge scope", "Filter" : EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES && ActiveSheetMetal.NO }
-        definition.booleanScope is Query;
     }
     {
-        doRobotMotor(context, id, definition);
+        const face = getMotorFace(definition);
+
+        var plane = getLocationPlane(context, definition);
+        plane = applyAngleReference(context, definition, plane);
+        plane = applyAxisOrientation(definition, plane);
+        addAngleOffsetManipulator(context, id, definition, plane, face.boltCircleDiameter * 0.75);
+        plane = applyAngleOffset(definition, plane);
+
+        const positions = holePositions(face);
+        if (definition.skipHoles)
+        {
+            addSkippedHolesManipulator(context, id, definition, plane, positions);
+            if (any(definition.skippedHoles, hole => hole.index > size(positions)))
+            {
+                reportFeatureInfo(context, id, "The " ~ face.partName ~ " has " ~ size(positions) ~ " holes, so holes to skip past " ~ size(positions) ~ " are ignored.");
+            }
+        }
+
+        const buildBlock = isMotor(definition) && definition.blockMotor;
+        if (buildBlock && face.bodyDiameter == undefined)
+        {
+            throw regenError("There's no block model of the " ~ face.partName ~ " yet.", ["blockMotor"]);
+        }
+
+        if (isQueryEmpty(context, definition.scope))
+        {
+            // A block motor alone needs nothing to cut
+            if (!buildBlock)
+            {
+                throw regenError(ErrorStringEnum.HOLE_EMPTY_SCOPE, ["scope"]);
+            }
+        }
+        else
+        {
+            cutMountingFace(context, id + "cut", definition, face, plane, keptHolePositions(definition, positions));
+        }
+
+        if (buildBlock)
+        {
+            buildBlockMotor(context, id + "block", face, plane);
+        }
+
+        cleanup(context, id + "delete", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
     });
 
-function getMotorPattern(definition is map) returns Pattern
+/**
+ * A motor's or gearbox's mounting face, from `motorTable` or `gearboxTable`, and for motors with block models, the
+ * envelope behind it.
+ */
+export type MotorFace typecheck canBeMotorFace;
+
+/**
+ * @param value {{
+ *      @field partName {string} : The motor's or gearbox's name, as FRCDesign names it.
+ *      @field screw {string} : The mounting screws' size, as std's hole tables name it (`"#10"`, `"M3"`).
+ *      @field boltCircleDiameter {ValueWithUnits} :
+ *      @field holeAngles {array} : Each hole's angle on the bolt circle, counterclockwise from the face's x axis.
+ *      @field pilotDiameter {ValueWithUnits} : The boss the face's hole must clear.
+ *      @field pilotHeight {ValueWithUnits} : @optional How far the pilot stands off the face, for block models.
+ *      @field bodyDiameter {ValueWithUnits} : @optional The diameter of a motor's body. Motors without one have no
+ *              block model.
+ *      @field bodyFlats {ValueWithUnits} : @optional The width across flats of a body cut flat on its top and bottom.
+ *      @field bodyLength {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} How far the body goes behind the face.
+ *      @field shaftDiameter {ValueWithUnits} : @optional
+ *      @field shaftLength {ValueWithUnits} : @requiredif {`shaftDiameter` is given.} How far the shaft goes in front
+ *              of the face.
+ * }}
+ */
+export predicate canBeMotorFace(value)
 {
-    return pattern(definition, (definition.componentType == ComponentType.MOTOR) ?
-            MOTOR_PATTERNS[definition.motorType] :
-            GEARBOX_PATTERNS[definition.gearboxType]);
+    value is map;
+    value.partName is string;
+    value.screw is string;
+    isLength(value.boltCircleDiameter);
+    value.holeAngles is array;
+    for (var angle in value.holeAngles)
+    {
+        isAngle(angle);
+    }
+    isLength(value.pilotDiameter);
 }
 
-function adjustPlanePosition(context is Context, definition is map, plane is Plane) returns Plane
+function getMotorFace(definition is map) returns MotorFace
 {
-    if (isQueryEmpty(context, definition.direction))
+    if (isMotor(definition))
     {
-        return plane;
+        return getLookupTable(motorTable, definition.motor) as MotorFace;
     }
-
-    if (!isQueryEmpty(context, definition.direction->qEntityFilter(EntityType.VERTEX)) || !isQueryEmpty(context, definition.direction->qBodyType(BodyType.MATE_CONNECTOR)))
-    {
-        const point = project(plane, evVertexPoint(context, { "vertex" : definition.direction }));
-        plane.x = normalize(point - plane.origin);
-    }
-    else
-    {
-        plane.x = worldToPlane3D(plane, extractDirection(context, definition.direction) * meter)->normalize();
-    }
-    return plane;
-}
-
-function getStartAngle(definition is map) returns ValueWithUnits
-{
-    var angle = (isMotorSquare(definition) ? 45 : 0) * degree + 90 * degree;
-    if (definition.secondaryAxisType == MateConnectorAxisType.PLUS_Y)
-    {
-        angle += 90 * degree;
-    }
-    else if (definition.secondaryAxisType == MateConnectorAxisType.MINUS_X)
-    {
-        angle += 180 * degree;
-    }
-    else if (definition.secondaryAxisType == MateConnectorAxisType.MINUS_Y)
-    {
-        angle += 270 * degree;
-    }
-    return angle;
-}
-
-function getClockAngle(definition is map) returns ValueWithUnits
-{
-    return definition.angle * (definition.oppositeDirection ? -1 : 1);
-}
-
-function doRobotMotor(context is Context, id is Id, definition is map)
-{
-    var remainingTransform = getRemainderPatternTransform(context, { "references" : definition.locations });
-    definition.locations = verifyNonemptyQuery(context, definition, "location", "Select motor locations.");
-    verifyNonemptyQuery(context, definition, "booleanScope", ErrorStringEnum.HOLE_EMPTY_SCOPE);
-
-    var motorPattern = getMotorPattern(definition);
-
-    const diagonalLength = boundingBoxLength(context, definition.booleanScope);
-
-    for (var i, location in definition.locations)
-    {
-        const motorId = id + "motor" + unstableIdComponent(i);
-        setExternalDisambiguation(context, motorId, location);
-
-        var plane = evVertexCoordSystem(context, { "vertex" : location })->plane();
-        plane = adjustPlanePosition(context, definition, plane);
-        const startAngle = getStartAngle(definition);
-        const clockAngle = getClockAngle(definition);
-
-        if (i == 0)
-        {
-            addAngularManipulator(context, id, plane, startAngle, clockAngle, motorPattern.bodyDiameter / 2);
-        }
-
-        plane = rotationAround(line(plane.origin, plane.normal), startAngle + clockAngle) * plane;
-
-        const centerVertex = createMotorSketch(context, motorId + "sketch", definition, motorPattern, plane);
-
-        opExtrude(context, motorId + "extrude", {
-                    "entities" : qCreatedBy(motorId + "sketch", EntityType.FACE),
-                    "direction" : plane.normal * (definition.flipPrimary ? 1 : -1),
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : diagonalLength
-                });
-
-        callSubfeatureAndProcessStatus(id, hole, context, motorId + "hole", {
-                    "locations" : qCreatedBy(motorId + "sketch", EntityType.VERTEX)->qSubtraction(centerVertex),
-                    "holeDiameter" : motorPattern.holeDiameter,
-                    "endStyle" : HoleEndStyle.THROUGH,
-                    "scope" : definition.booleanScope,
-                    "oppositeDirection" : definition.flipPrimary
-                },
-            {
-                    "featureParameterMap" : { "scope" : "booleanScope" },
-                    "additionalErrorEntities" : qCreatedBy(motorId + "extrude", EntityType.BODY),
-                    "propagateErrorDisplay" : true
-                });
-    }
-
-    transformResultIfNecessary(context, id, remainingTransform);
-    opBoolean(context, id + "boolean", {
-                "tools" : qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID),
-                "targets" : definition.booleanScope,
-                "operationType" : BooleanOperationType.SUBTRACTION
-            });
-
-    opDeleteBodies(context, id + "cleanup", { "entities" : qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES) });
+    return getLookupTable(gearboxTable, definition.gearbox) as MotorFace;
 }
 
 /**
- * @return {Query} : A query for the center point of the sketch.
+ * Where each of a face's holes is, on its plane.
  */
-function createMotorSketch(context is Context, id is Id, definition is map, motorPattern is Pattern, plane is Plane) returns Query
+export function holePositions(face is MotorFace) returns array
 {
-    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    const bossHole = motorPattern.bossDiameter + boreFitClearance(definition, motorPattern.bossDiameter);
-    const centerId = skCircle(sketch, "circle", { "radius" : bossHole / 2 }).centerId;
-    drawMountingHoles(sketch, motorPattern, definition.allHoles);
-    skSolve(sketch);
-    return sketchEntityQuery(id, EntityType.VERTEX, centerId);
+    return mapArray(face.holeAngles, function(angle is ValueWithUnits) returns Vector
+        {
+            return vector(cos(angle), sin(angle)) * face.boltCircleDiameter / 2;
+        });
 }
 
-const ANGULAR_MANIPULATOR = "angularManipulator";
-
-function addAngularManipulator(context is Context, id is Id, plane is Plane, startAngle is ValueWithUnits, clockAngle is ValueWithUnits, rotationRadius is ValueWithUnits)
+/**
+ * The holes to skip, as indices into the face's holes (Holes to skip counts from 1), leaving out those past the last
+ * hole.
+ */
+export function skippedHoleIndices(definition is map, holeCount is number) returns array
 {
-    const rotatedPlane = rotationAround(line(plane.origin, plane.normal), startAngle) * plane;
-    addManipulators(context, id, { (ANGULAR_MANIPULATOR) : angularManipulator({
-                        "axisOrigin" : plane.origin,
-                        "axisDirection" : plane.normal,
-                        "rotationOrigin" : plane.origin + rotatedPlane.x * rotationRadius,
-                        "angle" : clockAngle,
-                        "minValue" : -2 * PI * radian,
-                        "maxValue" : 2 * PI * radian,
-                        "primaryParameterId" : "clockAngle"
+    if (!definition.skipHoles)
+    {
+        return [];
+    }
+    var indices = [];
+    for (var hole in definition.skippedHoles)
+    {
+        if (hole.index <= holeCount && !isIn(hole.index - 1, indices))
+        {
+            indices = append(indices, hole.index - 1);
+        }
+    }
+    return indices;
+}
+
+/**
+ * The positions of the holes which aren't skipped.
+ */
+export function keptHolePositions(definition is map, positions is array) returns array
+{
+    const skipped = skippedHoleIndices(definition, size(positions));
+    var kept = [];
+    for (var i, position in positions)
+    {
+        if (!isIn(i, skipped))
+        {
+            kept = append(kept, position);
+        }
+    }
+    return kept;
+}
+
+const SKIPPED_HOLES_MANIPULATOR = "skippedHoles";
+
+/**
+ * A point on each hole, which toggles whether it's skipped, as std's patterns' Skip instances do.
+ */
+function addSkippedHolesManipulator(context is Context, id is Id, definition is map, plane is Plane, positions is array)
+{
+    addManipulators(context, id, {
+                (SKIPPED_HOLES_MANIPULATOR) : togglePointsManipulator({
+                        "points" : mapArray(positions, position => planeToWorld(plane, position)),
+                        "selectedIndices" : skippedHoleIndices(definition, size(positions)),
+                        "suppressedIndices" : []
                     })
             });
 }
 
-type Pattern typecheck canBePattern;
-
-predicate canBePattern(value)
-{
-    value is map;
-    value.holeType is HoleType;
-    value.bodyType is MotorBodyType;
-
-    value.bodyDiameter is ValueWithUnits;
-    value.boltCircleDiameter is ValueWithUnits;
-    value.bossDiameter is ValueWithUnits;
-
-    value.numberOfHoles is number;
-    value.holeDiameter is ValueWithUnits;
-
-    if (value.numberOfHoles == 4)
-    {
-        value.verticalAngle is ValueWithUnits;
-    }
-}
-
-/**
- * @param value {{
- *      @field holeType {HoleType} :
- *      @field bodyType {MotorBodyType} : @optional
- *              Defaults to `MotorBodyType.CIRCLE`.
- *      @field bodyDiameter {ValueWithUnits} :
- *      @field boltCircleDiameter {ValueWithUnits} :
- *      @field bossDiameter {ValueWithUnits} :
- *      @field numberOfHoles {number} :
- *      @field verticalAngle {ValueWithUnits} : @optional
- *              Defaults to `90 * degree`.
- * }}
- */
-function pattern(definition is map, value is map) returns Pattern
-{
-    value.holeDiameter = getHoleDiameter(definition, value.holeType);
-    return mergeMaps({ "verticalAngle" : 90 * degree, "bodyType" : MotorBodyType.CIRCLE }, value) as Pattern;
-}
-
-function getHoleDiameter(definition is map, holeType is HoleType) returns ValueWithUnits
-{
-    return fastenerHoleDiameter(definition, switch (holeType) {
-                HoleType.NUMBER_10 : "#10",
-                HoleType.M3 : "M3",
-                HoleType.M4 : "M4"
-            });
-}
-
-function drawMountingHoles(sketch is Sketch, motorPattern is Pattern, createAllHoles is boolean)
-{
-    // always create two holes
-    motorPoints(sketch, "horizontal", 0 * degree, motorPattern.boltCircleDiameter);
-
-    if (motorPattern.numberOfHoles == 4 && createAllHoles)
-    {
-        motorPoints(sketch, "vertical", motorPattern.verticalAngle, motorPattern.boltCircleDiameter);
-    }
-    else if (motorPattern.numberOfHoles == 6 && createAllHoles)
-    {
-        motorPoints(sketch, "upperRight", 60 * degree, motorPattern.boltCircleDiameter);
-        motorPoints(sketch, "upperLeft", 120 * degree, motorPattern.boltCircleDiameter);
-    }
-}
-
-/**
- * Adds a pair of points to `sketch`. The points are defined by `angle` and `diameter`.
- */
-function motorPoints(sketch is Sketch, sketchId is string, angle is ValueWithUnits, diameter is ValueWithUnits)
-{
-    const vector = vector(cos(angle), sin(angle)) * (diameter / 2);
-    skPoint(sketch, sketchId ~ "first", { "position" : vector });
-    skPoint(sketch, sketchId ~ "second", { "position" : -vector });
-}
-
 export function robotMotorManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
-    if (newManipulators[ANGULAR_MANIPULATOR] is Manipulator)
+    const points = newManipulators[SKIPPED_HOLES_MANIPULATOR];
+    if (points != undefined)
     {
-        const newAngle = newManipulators[ANGULAR_MANIPULATOR].angle;
-        definition.angle = abs(newAngle);
-        definition.oppositeDirection = newAngle < 0 * degree;
+        definition.skippedHoles = mapArray(points.selectedIndices, index => { "index" : index + 1 });
     }
-    return definition;
+    return angleOffsetManipulatorChange(definition, newManipulators);
 }
 
-
-enum HoleType
+export function robotMotorEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
+    isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    NUMBER_10,
-    M3,
-    M4
+    return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
 }
 
-enum MotorBodyType
+/**
+ * Cuts the face's holes into the merge scope: its pilot's at the center, and its screws' at `positions`, through the
+ * parts behind `plane` (against its normal).
+ */
+function cutMountingFace(context is Context, id is Id, definition is map, face is MotorFace, plane is Plane, positions is array)
 {
-    CIRCLE,
-    SQUARE
-}
-
-const CIM_DEFAULTS = {
-        "boltCircleDiameter" : 2 * inch,
-        "bodyDiameter" : 60 * millimeter,
-        "bossDiameter" : 0.75 * inch,
-        "bodyType" : MotorBodyType.CIRCLE,
-        "numberOfHoles" : 4,
-        "holeType" : HoleType.NUMBER_10
-    };
-
-const MOTOR_PATTERNS = {
-        MotorType.FALCON_500 : mergeMaps(CIM_DEFAULTS, { "numberOfHoles" : 6 }),
-        MotorType.NEO : CIM_DEFAULTS,
-        MotorType.CIM : CIM_DEFAULTS,
-        MotorType.NEO_550 : {
-            "boltCircleDiameter" : 25 * millimeter,
-            "bodyDiameter" : 35 * millimeter,
-            "bossDiameter" : 13 * millimeter,
-            "numberOfHoles" : 4,
-            "holeType" : HoleType.M3,
-            "bodyType" : MotorBodyType.CIRCLE
-        },
-        MotorType._775_PRO : {
-            "boltCircleDiameter" : 29 * millimeter,
-            "bodyDiameter" : 44.3 * millimeter,
-            "bossDiameter" : 17.5 * millimeter,
-            "numberOfHoles" : 4,
-            "holeType" : HoleType.M4,
-            "bodyType" : MotorBodyType.CIRCLE
-        },
-    };
-
-const GEARBOX_PATTERNS = {
-        GearboxType.MAX_PLANETARY : mergeMaps(CIM_DEFAULTS, { "verticalAngle" : 45 * degree }),
-        GearboxType.ULTRA_PLANETARY : {
-            "boltCircleDiameter" : 32 * millimeter,
-            "bodyDiameter" : 1.732 * inch,
-            "bossDiameter" : 22 * millimeter,
-            "numberOfHoles" : 6,
-            "holeType" : HoleType.M3,
-            "bodyType" : MotorBodyType.CIRCLE
-        },
-        GearboxType.VERSA_PLANETARY : {
-            "boltCircleDiameter" : 2 * inch,
-            "bodyDiameter" : 1.75 * inch,
-            "bossDiameter" : .75 * inch,
-            "numberOfHoles" : 4,
-            "holeType" : HoleType.NUMBER_10,
-            "bodyType" : MotorBodyType.SQUARE
-        },
-        GearboxType.SPORT : {
-            "boltCircleDiameter" : 2 * inch,
-            "bodyDiameter" : 1.75 * inch,
-            "bossDiameter" : 1.5 * inch,
-            "numberOfHoles" : 4,
-            "holeType" : HoleType.NUMBER_10,
-            "bodyType" : MotorBodyType.SQUARE
-        },
-    };
-
-
-export function robotMotorEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map, hiddenBodies is Query) returns map
-{
-    definition = autoSelectParts(context, oldDefinition, definition, specifiedParameters, hiddenBodies);
-    return definition;
-}
-
-
-// The following code is adapted from the Lighten Featurescript
-function autoSelectParts(context is Context, oldDefinition is map, definition is map,
-    specifiedParameters is map, hiddenBodies is Query) returns map
-{
-    if (definition.motorLocations == oldDefinition.motorLocations || specifiedParameters.booleanScope)
+    const bounds = evBox3d(context, { "topology" : definition.scope, "cSys" : coordSystem(plane), "tight" : false });
+    const depth = -bounds.minCorner[2];
+    if (!tolerantGreaterThan(depth, 0 * meter))
     {
-        return definition;
+        throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["oppositeDirection", "scope"], definition.scope);
     }
 
-    const targetQueries = qAllModifiableSolidBodiesNoMesh()->qSubtraction(hiddenBodies);
-    const collisions = try(evCollision(context, { "tools" : definition.motorLocations, "targets" : targetQueries }));
-    return mergeMaps(definition, { "booleanScope" : collisions == undefined ?
-                qNothing() : extractFromArrayOfMaps(collisions, "targetBody")->qUnion()
+    const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : plane });
+    const pilotDiameter = face.pilotDiameter + boreFitClearance(definition, face.pilotDiameter);
+    skCircle(sketch, "pilot", { "center" : vector(0, 0) * meter, "radius" : pilotDiameter / 2 });
+    const screwDiameter = fastenerHoleDiameter(definition, face.screw);
+    for (var i, position in positions)
+    {
+        skCircle(sketch, "hole" ~ i, { "center" : position, "radius" : screwDiameter / 2 });
+    }
+    skSolve(sketch);
+
+    opExtrude(context, id + "tools", {
+                "entities" : qSketchRegion(id + "sketch"),
+                "direction" : -plane.normal,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : depth
             });
+
+    const tools = qCreatedBy(id + "tools", EntityType.BODY);
+    try
+    {
+        opBoolean(context, id + "cut", {
+                    "tools" : tools,
+                    "targets" : definition.scope,
+                    "operationType" : BooleanOperationType.SUBTRACTION
+                });
+    }
+    catch
+    {
+        // A failed boolean changes nothing, so the holes are still there to show
+        throw regenError("Failed to cut the mounting holes.", ["scope"], tools);
+    }
+}
+
+/**
+ * Builds a block model of a motor on `plane`: its body behind the face (along the plane's normal), and its pilot and
+ * shaft in front, as one part named for the motor, with a mate connector on its face.
+ */
+function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane is Plane)
+{
+    sketchBodyProfile(context, id + "sketch", plane, face.bodyDiameter, face.bodyFlats);
+
+    opExtrude(context, id + "body", {
+                "entities" : qSketchRegion(id + "sketch"),
+                "direction" : plane.normal,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : face.bodyLength
+            });
+
+    if (face.pilotHeight != undefined)
+    {
+        fCylinder(context, id + "pilot", {
+                    "bottomCenter" : plane.origin,
+                    "topCenter" : plane.origin - plane.normal * face.pilotHeight,
+                    "radius" : face.pilotDiameter / 2
+                });
+    }
+
+    if (face.shaftDiameter != undefined)
+    {
+        fCylinder(context, id + "shaft", {
+                    "bottomCenter" : plane.origin,
+                    "topCenter" : plane.origin - plane.normal * face.shaftLength,
+                    "radius" : face.shaftDiameter / 2
+                });
+    }
+
+    const motor = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
+    if (size(evaluateQuery(context, motor)) > 1)
+    {
+        opBoolean(context, id + "union", {
+                    "tools" : motor,
+                    "operationType" : BooleanOperationType.UNION
+                });
+    }
+
+    setProperty(context, { "entities" : motor, "propertyType" : PropertyType.NAME, "value" : face.partName });
+    setProperty(context, { "entities" : motor, "propertyType" : PropertyType.APPEARANCE, "value" : BLACK });
+
+    opMateConnector(context, id + "mateConnector", {
+                "coordSystem" : coordSystem(plane),
+                "owner" : motor
+            });
+}
+
+/**
+ * Sketches a motor body's profile on `plane`, centered on its origin: a circle `diameter` across, cut flat `flats` across
+ * on its top and bottom (along the plane's y axis) when `flats` is given.
+ */
+export function sketchBodyProfile(context is Context, id is Id, plane is Plane, diameter is ValueWithUnits, flats)
+{
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    const radius = diameter / 2;
+    if (flats == undefined || tolerantGreaterThanOrEqual(flats, diameter))
+    {
+        skCircle(sketch, "body", { "center" : vector(0, 0) * meter, "radius" : radius });
+    }
+    else
+    {
+        const halfFlats = flats / 2;
+        const x = sqrt(radius ^ 2 - halfFlats ^ 2);
+        skLineSegment(sketch, "top", { "start" : vector(x, halfFlats), "end" : vector(-x, halfFlats) });
+        skArc(sketch, "left", { "start" : vector(-x, halfFlats), "mid" : vector(-radius, 0 * meter), "end" : vector(-x, -halfFlats) });
+        skLineSegment(sketch, "bottom", { "start" : vector(-x, -halfFlats), "end" : vector(x, -halfFlats) });
+        skArc(sketch, "right", { "start" : vector(x, -halfFlats), "mid" : vector(radius, 0 * meter), "end" : vector(x, halfFlats) });
+    }
+    skSolve(sketch);
 }

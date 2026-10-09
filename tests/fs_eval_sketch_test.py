@@ -222,3 +222,30 @@ def test_rack_profile():
         if (line.start[1] < 0 < line.end[1] or line.end[1] < 0 < line.start[1]) and abs(line.end[0] - line.start[0]) > 1e-12
     )
     assert crossings[1] - crossings[0] == pytest.approx(math.pi * 0.001 / 2, abs=1e-12)
+
+
+def motor_body(diameter: str, flats: str):
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    evaluator.eval(
+        f'sketchBodyProfile(context, newId() + "body", XY_PLANE, {diameter}, {flats})',
+        "motor/robotMotor.fs",
+        context=context,
+    )
+    return recorded_sketch(context, "body")
+
+
+def test_motor_body_with_flats():
+    # A NEO Vortex's: 60 mm across, 2 in. across its flats
+    loops = motor_body("60 * millimeter", "2 * inch").loops()
+    assert len(loops) == 1 and loops[0].closed
+    curves = loops[0].curves
+    assert [curve.kind for curve in curves].count("line") == 2
+    assert max(curve.farthest() for curve in curves) == pytest.approx(0.03)
+    # Its flats are 1 in. from its center
+    assert min(curve.nearest() for curve in curves) == pytest.approx(0.0254)
+
+
+def test_motor_body_without_flats():
+    loops = motor_body("60 * millimeter", "undefined").loops()
+    assert len(loops) == 1 and loops[0].closed and loops[0].curves[0].kind == "circle"
