@@ -45,7 +45,6 @@
     "948c83c1b1ac83de4ccf921b": "core/unitSystem.fs",
     "962bbb367fd7d91fae71cd4c": "core/text.fs",
     "9fc889bb93a3c29feb4f9ae5": "core/linearStock.fs",
-    "a4248fe48b63da8d1971e19a": "core/steps.fs",
     "a5f2644501a90a06b7602898": "released/bearingHat/robotBearingHat.fs",
     "a6eeed056b8f09ac4e8ae12e": "core/wallType.fs",
     "a7d353838ad2f579c5694c83": "gear/robotGear.fs",
