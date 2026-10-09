@@ -199,8 +199,8 @@ def wcp_shaft(shaft_type: str, size: str, part_name: str, profile: dict[str, str
 WCP = vendor(
     "WCP",
     [
-        wcp_shaft("Rounded Hex", "1/2 in.", "Rounded Hex Shaft (WCP 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "WCP-0914"),
-        wcp_shaft("Rounded Hex", "3/8 in.", "Rounded Hex Shaft (WCP 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS), "WCP-0911"),
+        wcp_shaft("Rounded hex", "1/2 in.", "Rounded Hex Shaft (WCP 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "WCP-0914"),
+        wcp_shaft("Rounded hex", "3/8 in.", "Rounded Hex Shaft (WCP 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS), "WCP-0911"),
         wcp_shaft("Hex", "1/2 in.", "Hex Shaft (WCP 1/2 in.)", hex("STOCK", HALF_INCH), "WCP-0915"),
         wcp_shaft("Hex", "3/8 in.", "Hex Shaft (WCP 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "WCP-0912"),
         wcp_shaft("Hex Lite", "1/2 in.", "Hex Lite Shaft (WCP 1/2 in.)", hex("HEX_LITE", HALF_INCH), "WCP-0917"),
@@ -208,9 +208,9 @@ WCP = vendor(
         shaft("SplineXL", None, None, "SplineXL Shaft (WCP)", spline("SPLINE_XL"), "ALUMINUM", "BLACK", one(inch(47), "WCP-0918", wcp("WCP-0918"))),
         # Its page has no drawing yet; assumed to have a through hole to tap #10-32, like ThriftyBot's 7075 stock. The
         # stub's ends look tapped, which the shaft's ends can draw
-        shaft("SplineXS", None, "aluminum", "SplineXS Shaft (WCP, aluminum)", spline("SPLINE_XS"), "ALUMINUM", "BLACK",
+        shaft("SplineXS", None, "Aluminum", "SplineXS Shaft (WCP, aluminum)", spline("SPLINE_XS"), "ALUMINUM", "BLACK",
               one(inch(36), "WCP-1379", wcp("WCP-1379")), predrilled_hole=TAP_10_32),
-        shaft("SplineXS Stub", None, "steel", "SplineXS Stub Shaft (WCP, steel)", spline("SPLINE_XS"), "STEEL", "BLACK",
+        shaft("SplineXS stub", None, "Steel", "SplineXS Stub Shaft (WCP, steel)", spline("SPLINE_XS"), "STEEL", "BLACK",
               one(inch(3), "WCP-0946", wcp("WCP-0946")), fixed_lengths=True),
     ],
 )
@@ -228,7 +228,7 @@ def rev(part_number: str) -> str:
 REV = vendor(
     "REV",
     [
-        shaft("Rounded Hex", "1/2 in.", None, "Rounded Hex Shaft (REV 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "ALUMINUM", "BLACK",
+        shaft("Rounded hex", "1/2 in.", None, "Rounded Hex Shaft (REV 1/2 in.)", hex("ROUNDED_HEX", HALF_INCH), "ALUMINUM", "BLACK",
               one(inch(36), "REV-21-1135", rev("REV-21-1135"))),
         shaft("UltraHex", "1/2 in.", None, "UltraHex Shaft (REV 1/2 in.)", hex("ULTRA_HEX", HALF_INCH), "ALUMINUM", "MEDIUM_GRAY",
               one(inch(72), "REV-41-3205", rev("REV-41-3205"))),
@@ -264,7 +264,7 @@ ANDYMARK = vendor(
               lengths(AM_HEX_URL, (12, "am-2291-1"), (47, "am-2291-4700"))),
         shaft("Churro Lite", "3/8 in.", None, "Churro Lite Shaft (AndyMark 3/8 in.)", hex("CHURRO", THREE_EIGHTHS), "ALUMINUM",
               "MEDIUM_GRAY", lengths(AM_CHURRO_LITE_URL, (10.5, "am-5867"), (36, "am-3666-3"), (47, "am-3666-4700"))),
-        shaft("Hex", "3/8 in.", "steel", "Hex Shaft (AndyMark 3/8 in., steel)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
+        shaft("Hex", "3/8 in.", "Steel", "Hex Shaft (AndyMark 3/8 in., steel)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
               lengths(AM_STEEL_HEX_URL, (1.85, "am-2356"), (12, "am-2356-1"), (36, "am-2356-3"), (47, "am-2356-4700"))),
     ],
 )
@@ -275,9 +275,9 @@ SWYFT_URL = "https://swyftrobotics.com/structure/swyft-axles"
 SWYFT = vendor(
     "Swyft",
     [
-        shaft("Rounded Hex", "1/2 in.", "7075", "Rounded Hex Shaft (Swyft 1/2 in., 7075)", hex("ROUNDED_HEX", HALF_INCH),
+        shaft("Rounded hex", "1/2 in.", "7075", "Rounded Hex Shaft (Swyft 1/2 in., 7075)", hex("ROUNDED_HEX", HALF_INCH),
               "ALUMINUM_7075", "BLACK", one(inch(36), "SR-AXLE-HEX-0.5in-36in-AL7075", SWYFT_URL)),
-        shaft("Rounded Hex", "1/2 in.", "6061", "Rounded Hex Shaft (Swyft 1/2 in., 6061)", hex("ROUNDED_HEX", HALF_INCH),
+        shaft("Rounded hex", "1/2 in.", "6061", "Rounded Hex Shaft (Swyft 1/2 in., 6061)", hex("ROUNDED_HEX", HALF_INCH),
               "ALUMINUM", "BLACK", one(inch(36), "SR-AXLE-HEXtoSPLINE-0.5in-36in-AL6061", SWYFT_URL)),
     ],
 )
@@ -314,18 +314,18 @@ TTB_SPLINE_XS_URL = ttb("pre-order-splinexs-shafts")
 TTB = vendor(
     "ThriftyBot",
     [
-        shaft("Rounded Hex", "1/2 in.", "7075", "Rounded Hex Shaft (ThriftyBot 1/2 in., 7075)", hex("ROUNDED_HEX", HALF_INCH),
+        shaft("Rounded hex", "1/2 in.", "7075", "Rounded Hex Shaft (ThriftyBot 1/2 in., 7075)", hex("ROUNDED_HEX", HALF_INCH),
               "ALUMINUM_7075", "BLACK",
               one(inch(36), "TTB-0069", ttb("copy-of-qty-1-36-inch-long-1-2-rounded-hex-shaft-7075-aluminum"))),
-        shaft("Rounded Hex", "1/2 in.", "6061", "Rounded Hex Shaft (ThriftyBot 1/2 in., 6061)", hex("ROUNDED_HEX", HALF_INCH),
+        shaft("Rounded hex", "1/2 in.", "6061", "Rounded Hex Shaft (ThriftyBot 1/2 in., 6061)", hex("ROUNDED_HEX", HALF_INCH),
               "ALUMINUM", "BLACK", one(inch(36), "TTB-0068", ttb("qty-1-36-inch-long-1-2-rounded-hex-shaft-6061-aluminum"))),
-        shaft("Rounded Hex", "3/8 in.", None, "Rounded Hex Shaft (ThriftyBot 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS),
+        shaft("Rounded hex", "3/8 in.", None, "Rounded Hex Shaft (ThriftyBot 3/8 in.)", hex("ROUNDED_HEX", THREE_EIGHTHS),
               "ALUMINUM", "BLACK", one(inch(36), "TTB-0265", ttb("3-8-rounded-hex-shaft-stock-36-long"))),
         shaft("SplineXS", None, "7075", "SplineXS Shaft (ThriftyBot, 7075)", spline("SPLINE_XS"), "ALUMINUM_7075", "BLACK",
               one(inch(36), "TTB-0357", TTB_SPLINE_XS_URL), predrilled_hole=TAP_10_32),
-        shaft("SplineXS", None, "steel", "SplineXS Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL", "STEEL_GRAY",
+        shaft("SplineXS", None, "Steel", "SplineXS Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL", "STEEL_GRAY",
               one(inch(36), "TTB-0366", TTB_SPLINE_XS_URL)),
-        shaft("SplineXS Stub", None, "steel", "SplineXS Stub Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL",
+        shaft("SplineXS stub", None, "Steel", "SplineXS Stub Shaft (ThriftyBot, steel)", spline("SPLINE_XS"), "STEEL",
               "STEEL_GRAY", lengths(TTB_SPLINE_XS_URL, (2, "TTB-0301"), (2.5, "TTB-0303")), fixed_lengths=True),
     ],
 )
@@ -359,13 +359,13 @@ REX_12_ALUMINUM_LENGTHS = [43, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 1
 GOBILDA = vendor(
     "goBILDA",
     [
-        shaft("REX", "8 mm", "stainless steel", "8mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._7_MM"),
+        shaft("REX", "8 mm", "Stainless steel", "8mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._7_MM"),
               "STAINLESS_STEEL", "STEEL_GRAY",
               gobilda("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel", REX_8_LENGTHS), fixed_lengths=True),
-        shaft("REX", "12 mm", "stainless steel", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
+        shaft("REX", "12 mm", "Stainless steel", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "STAINLESS_STEEL", "STEEL_GRAY",
               gobilda("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel", REX_12_LENGTHS), fixed_lengths=True),
-        shaft("REX", "12 mm", "aluminum", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
+        shaft("REX", "12 mm", "Aluminum", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "ALUMINUM", "MEDIUM_GRAY",
               gobilda("2104", "0012", "12mm-rex-shaft-aluminum", REX_12_ALUMINUM_LENGTHS)),
     ],
@@ -375,7 +375,7 @@ GOBILDA = vendor(
 ROBITS = vendor(
     "AndyMark",
     [
-        shaft("Robits Hex", "3/8 in.", None, "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
+        shaft("Robits hex", "3/8 in.", None, "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
               lengths("https://andymark.com/products/robits-hex-shafts", *[(n, f"am-5003-{n * 100:04d}") for n in (2, 3, 4, 6, 8, 10, 12)]),
               fixed_lengths=True),
     ],

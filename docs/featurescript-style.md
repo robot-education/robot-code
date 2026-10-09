@@ -94,6 +94,13 @@ export predicate printAdapterHasBoss(definition is map)
 Editing logic is still the right tool for behavior that needs the part studio, such as picking a default merge scope
 from the selections (`mountingEditLogic`) or filling in a plane from selected geometry.
 
+## Sentence case
+
+Parameter names, enum and lookup table options, group names, and messages are sentence case, as Onshape's are: "Vent
+holes", "Rounded hex", "Stainless steel". Product and company names keep their own capitalization ("Hex Lite",
+"UltraHex", "SplineXS", "The Thrifty Bot"), as do part names, which are titles ("3 in. Rounded Hex Shaft (WCP 1/2
+in.)").
+
 ## Horizontal enums go at the top
 
 As in std features, a horizontal enum (`"UIHint" : ["HORIZONTAL_ENUM"]`) belongs at the top of the feature: it may

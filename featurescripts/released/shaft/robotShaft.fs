@@ -11,7 +11,6 @@ export import(path : "21762d39019c8b2289e2fbb8", version : "8f82cf693e7833130ba8
 export import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b3763f68");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
 import(path : "b75434df23d86ba9542f761e", version : "410f29dc5fa8b0fe88f1e9c5");
-import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
 import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
@@ -198,11 +197,11 @@ predicate shaftEndPredicate(definition is map)
                 }
                 else if (definition.firstEndOperation == EndOperation.CAPTIVE_SHAFT)
                 {
-                    // REMEMBER_PREVIOUS_VALUE doesn't work due to the defaulting edit logic
-                    annotation { "Name" : "Diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    // Editing logic sets these from the shaft's size when it's created or its size changes
+                    annotation { "Name" : "Diameter" }
                     isLength(definition.firstEndDiameter, NONNEGATIVE_LENGTH_BOUNDS);
 
-                    annotation { "Name" : "Length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    annotation { "Name" : "Length" }
                     isLength(definition.firstEndLength, NONNEGATIVE_LENGTH_BOUNDS);
 
                     annotation { "Name" : "Extend shaft", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to extend the shaft to accommodate hardware." }
@@ -251,11 +250,11 @@ predicate shaftEndPredicate(definition is map)
                     }
                     else if (definition.secondEndOperation == SecondEndOperation.CAPTIVE_SHAFT)
                     {
-                        // REMEMBER_PREVIOUS_VALUE doesn't work due to the defaulting edit logic
-                        annotation { "Name" : "Diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        // Editing logic sets these from the shaft's size when it's created or its size changes
+                        annotation { "Name" : "Diameter" }
                         isLength(definition.secondEndDiameter, NONNEGATIVE_LENGTH_BOUNDS);
 
-                        annotation { "Name" : "Length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        annotation { "Name" : "Length" }
                         isLength(definition.secondEndLength, NONNEGATIVE_LENGTH_BOUNDS);
 
                         annotation { "Name" : "Extend shaft", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to extend the shaft to accommodate hardware." }
@@ -423,13 +422,11 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
             // }
         }
 
-        // Measure before mirroring, since the union consumes the cap face at the mirror plane
-        var shaftLength = measureShaftLength(context, extrudeId);
         if (definition.mirrorShaft)
         {
-            shaftLength = shaftLength * 2;
             mirrorShaftAcrossEnd(context, id + "mirrorShaft", shaft, mirrorPlane);
         }
+        const shaftLength = measureShaftLength(context, shaft, shaftPlane);
 
         const cots = getCotsShaft(definition);
         if (cots != undefined)
@@ -759,25 +756,13 @@ function setShaftProperties(context is Context, definition is map, shaft is Quer
 }
 
 /**
- * Measures the length of the shaft.
- * Must be called before the shaft is mirrored, since mirroring consumes one of the extrude's cap faces.
+ * The shaft's length: how far it goes along its axis (`shaftPlane`'s normal, which it's extruded along, with flat ends
+ * across it), whatever its ends' holes, grooves, and extensions, and mirrored or not.
  */
-function measureShaftLength(context is Context, extrudeId is Id) returns ValueWithUnits
+function measureShaftLength(context is Context, shaft is Query, shaftPlane is Plane) returns ValueWithUnits
 {
-    try
-    {
-        const shaftFaces = qCapEntity(extrudeId, CapType.EITHER, EntityType.FACE);
-        // This can fail if, e.g., one of the shaft cap faces is removed entirely by an overzealous hole
-        // In a perfect world we'd measure maximum distance but measureDistance is weird and buggy
-        return measureDistance(context, { "entities" : shaftFaces }).distance;
-    }
-    catch
-    {
-        // Fallback to measuring the edge length directly
-        // Not ideal since, e.g., the faces don't have to be parallel (and retaining grooves split edges), but fine most of the time
-        const shaftEdge = qNonCapEntity(extrudeId, EntityType.EDGE)->qLargest();
-        return evLength(context, { "entities" : shaftEdge });
-    }
+    const bounds = evBox3d(context, { "topology" : shaft, "cSys" : coordSystem(shaftPlane), "tight" : true });
+    return bounds.maxCorner[2] - bounds.minCorner[2];
 }
 
 function setShaftName(context is Context, shaft is Query, definition is map, length is ValueWithUnits)
@@ -799,12 +784,11 @@ function setShaftName(context is Context, shaft is Query, definition is map, len
         shaftName = splineName(definition.splineType);
     }
 
-    const valueString = makeValueString(definition.unitSystem, length);
     setProperty(context, {
                 "entities" : shaft,
                 "propertyType" : PropertyType.NAME,
-                /* 3 in. Hex Shaft */
-                "value" : valueString ~ ". " ~ shaftName ~ " Shaft"
+                // 3 in. Hex Shaft, or 136 mm Hex Shaft: its length as a COTS shaft's is
+                "value" : shaftLengthString(definition, length) ~ " " ~ shaftName ~ " Shaft"
             });
 }
 
@@ -1024,7 +1008,11 @@ precondition
         {
             extrudeShaftGrooveTool(context, toolId, definition, shaft, endDefinition);
         }
-        cutShaft(context, id + "cutShaft", shaft, qCreatedBy(toolId, EntityType.BODY)->qBodyType(BodyType.SOLID), reconstructOp);
+        const endString = getShaftEndString(endDefinition.shaftEnd);
+        const failure = endDefinition.endOperation == EndOperation.CAPTIVE_SHAFT ?
+            { "message" : "Failed to cut the captive end: check its Diameter and Length.", "parameters" : [endString ~ "Diameter", endString ~ "Length"] } :
+            { "message" : "Failed to cut the retaining ring's groove.", "parameters" : [endString ~ "SideMount"] };
+        cutShaft(context, id + "cutShaft", shaft, qCreatedBy(toolId, EntityType.BODY)->qBodyType(BodyType.SOLID), failure, reconstructOp);
 
     }
 }
@@ -1056,7 +1044,10 @@ function extendShaftEnd(context is Context, id is Id, definition is map, endDefi
     catch
     {
         reconstructOp();
-        throw regenError("Failed to extend shaft end.", ["shaftEnds"], endDefinition.endFace);
+        const endString = getShaftEndString(endDefinition.shaftEnd);
+        throw regenError("Failed to extend the shaft's end.",
+            endDefinition.endOperation == EndOperation.RETAINING_RING ? [endString ~ "Operation"] : [endString ~ "Length", endDefinition.shaftEnd == ShaftEnd.FIRST ? "extendFirstEnd" : "extendSecondEnd"],
+            endDefinition.endFace);
     }
 }
 
@@ -1137,7 +1128,10 @@ function extrudeShaftGrooveTool(context is Context, id is Id, definition is map,
     }
 }
 
-function cutShaft(context is Context, id is Id, shaft is Query, tool is Query, reconstructOp is function)
+/**
+ * Cuts `tool` from the shaft; if it can't be, throws `failure.message`, highlighting `failure.parameters` and the tool.
+ */
+function cutShaft(context is Context, id is Id, shaft is Query, tool is Query, failure is map, reconstructOp is function)
 {
     try
     {
@@ -1150,7 +1144,7 @@ function cutShaft(context is Context, id is Id, shaft is Query, tool is Query, r
     catch
     {
         reconstructOp();
-        throw regenError("Failed to modify shaft end. Check input.", tool);
+        throw regenError(failure.message, failure.parameters, tool);
     }
 }
 
@@ -1246,7 +1240,7 @@ function shaftChanged(oldDefinition is map, definition is map) returns boolean
 {
     if (oldDefinition == {})
     {
-        // This breaks REMEMBER_PREVIOUS_VALUE but is neccessary to keep consistent when feature is created for the first time
+        // A new shaft's captive end fits its size (so its Diameter and Length don't remember their previous values)
         return true;
     }
     return oldDefinition.shaftType != definition.shaftType || oldDefinition.hexSize != definition.hexSize;

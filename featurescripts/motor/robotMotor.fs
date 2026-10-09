@@ -97,7 +97,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         if (definition.motorType == MotorType._775_PRO)
         {
-            annotation { "Name" : "Vent Holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            annotation { "Name" : "Vent holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.ventHoles is boolean;
         }
 

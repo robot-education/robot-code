@@ -22,7 +22,7 @@ Since v2.2.0 (`fs changes robotShaft`).
 - **Unit system is gone; Program replaces it.** The Unit system tabs (Inch / Metric) are replaced by Program (FRC /
   FTC), which defaults to FRC, so existing shafts use inches. FTC shafts are named in millimeters.
 - **Existing shafts become COTS shafts.** The new Source tabs default to COTS, so a shaft from v2.2.0 (all custom)
-  becomes WCP's 1/2 in. Rounded Hex, the first FRC shaft, until it's set back to Custom.
+  becomes WCP's 1/2 in. rounded hex, the first FRC shaft, until it's set back to Custom.
 - **End type no longer has Up to part**, and Up to face only takes planar faces (or mate connectors). Shafts extruded
   up to a part lose their end.
 - **Field tolerancing is gone** from the extrude's lengths.
@@ -35,13 +35,15 @@ Since v2.2.0 (`fs changes robotShaft`).
   for tapped holes. Existing clearance holes get Free, so ones set to Close (or to a diameter of their own) change.
 - **Custom shaft colors**: SplineXL and hex shafts other than UltraHex are black; UltraHex, MAXSpline, and SplineXS are
   medium gray (were: hex black but UltraHex white; splines white).
-- **Custom shaft names** are measured the same way; FTC ones are in centimeters, with a stray period (see Issues
-  found).
+- **Custom shaft names** give their length as COTS shafts' do: inches to 3 places for FRC (`3 in. Hex Shaft`, as
+  before), and millimeters to 1 for FTC (`136 mm Hex Shaft`).
+- **Captive ends' Diameter and Length don't remember their previous values** (they never did: they're set from the
+  shaft's size when it's created), and no longer say they do.
 
 ### New
 
 - COTS shafts: FRC shafts from WCP, REV, AndyMark, Swyft, VEX, and ThriftyBot, and FTC shafts from goBILDA and AndyMark
-  (Robits), chosen by vendor, type (as the vendor names it: Hex, Rounded Hex, Hex Lite, SplineXS, ...), size (for hex),
+  (Robits), chosen by vendor, type (as the vendor names it: Hex, Rounded hex, Hex Lite, SplineXS, ...), size (for hex),
   and material (only where a vendor sells the type and size in several). They're named `<length> <part name>`, and get their material, appearance, vendor, and the part number and
   link of the stock they're cut from; a warning says when one is longer than it's sold, or isn't one of the set
   lengths it's only sold in.
@@ -89,9 +91,10 @@ decides whether Shaft ends is.
 | The shaft's ends must be flat. | error | an extruded end isn't planar (up to next onto a curved face) | `endBound`, the end |
 | The shaft end to mirror across must be planar. | error | Mirror on, and the mirrored end isn't planar | `flipMirrorEnd`, the end |
 | Modified shaft ends must be perpendicular to the direction of the shaft. | error | a modified end is slanted (up to a slanted face) | the end |
-| Failed to extend shaft end. | error | extending an end for a retaining ring or captive shaft fails | `shaftEnds` (no such parameter), the end |
+| Failed to extend the shaft's end. | error | extending an end for a retaining ring or captive shaft fails | a captive end's Length and Extend shaft, or a retaining ring's end operation; the end |
 | The captive shaft diameter is greater than the diameter of the shaft. | error | captive shaft Diameter is wider than the hex | the end's Diameter, a body showing the captive end |
-| Failed to modify shaft end. Check input. | error | cutting a groove or captive end fails | the tool |
+| Failed to cut the captive end: check its Diameter and Length. | error | cutting a captive end fails | the end's Diameter and Length, the tool |
+| Failed to cut the retaining ring's groove. | error | cutting a groove fails | the end's Side mount ring, the tool |
 | Retaining ring grooves are only defined for 1/2 in. and 3/8 in. hex. | error | Retaining ring on 7 mm or 11 mm hex | `firstEndOperation`, `secondEndOperation` |
 | This shaft is only sold up to `<longest>` long. | warning | COTS, longer than its longest stock | |
 | This shaft is only sold in set lengths; the shortest is `<length>`. / ...; the nearest are `<shorter>` and `<longer>`. | warning | COTS sold in set lengths (`fixedLengths`), not one of them | |
@@ -104,7 +107,7 @@ When an end modification fails, the shaft is shown in blue (`addDebugEntities`) 
 
 | Property | COTS | Custom |
 | --- | --- | --- |
-| Name | `<length> <partName>`, e.g. `3 in. Rounded Hex Shaft (WCP 1/2 in.)`; length from `shaftLengthString` (inches to 3 places, or mm to 1) | `<length>. <type> Shaft`, e.g. `3 in. Hex Shaft`; length from `makeValueString` (inches, or centimeters for FTC) |
+| Name | `<length> <partName>`, e.g. `3 in. Rounded Hex Shaft (WCP 1/2 in.)`; length from `shaftLengthString` (inches to 3 places, or mm to 1) | `<length> <type> Shaft`, e.g. `3 in. Hex Shaft`; length from `shaftLengthString`, as a COTS shaft's |
 | Material | the entry's | Aluminum - 6061 |
 | Appearance | the entry's | black, or medium gray for UltraHex, MAXSpline, and SplineXS |
 | Vendor | the entry's | (none) |
@@ -137,8 +140,8 @@ Holes get std's hole attributes (they're made by std's `hole`).
    5. For hex and SplineXS shafts: the ends to modify are found (`getShaftEndDefinitions`), hex profile features are
       cut (`cutHexShaftFeatures`), each end is checked square (`verifyPerpendicularShaftEnd`) and modified
       (`modifyShaftEnd`), and the shaft attribute is set.
-   6. The length is measured between the caps (`measureShaftLength`), then doubled and the shaft mirrored, if
-      mirroring (`mirrorShaftAcrossEnd`).
+   6. The shaft is mirrored, if mirroring (`mirrorShaftAcrossEnd`), and its length measured along its axis
+      (`measureShaftLength`).
    7. Properties: `setCotsShaftProperties` (with its warnings), or `setShaftProperties` and `setShaftName`.
    8. The profile sketch is deleted.
 4. **Manipulator change**: std's `extrudeManipulatorChange` (depth and direction).
@@ -156,7 +159,7 @@ Holes get std's hole attributes (they're made by std's `hole`).
 | `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. A clearance hole's diameter is its fit's (`fastenerHoleDiameter`, `core/fit.fs`). |
 | `modifyShaftEnd` | A hole: std's `hole` as a subfeature, tapped (blind) or clearance (through), at the end's center, with the definition's diameter and depth. A groove or captive end: `extendShaftEnd` (offsets the end face out by the hardware's length, if extending), then cuts a tool (`extrudeShaftGrooveTool`, `extrudeCaptiveShaftTool`) from the shaft (`cutShaft`). |
 | `getGrooveDefinition` | A retaining ring groove's diameter and width, and how far from the end it is, for 1/2 in. and 3/8 in. hex, side mount or not. |
-| `measureShaftLength` | The distance between the extrude's caps, or the longest edge if a cap is gone. |
+| `measureShaftLength` | How far the shaft goes along its axis: its tight bounding box in the shaft plane's coordinates. |
 | `setCotsShaftProperties`, `setShaftProperties`, `setShaftName`, `shaftLengthString` | Properties and names, above. |
 | `robotShaftEditLogic`, `applyTableDefinition`, `updateCaptiveShaftParameters`, `activePathChanged`, `shaftChanged` | Editing logic, above. |
 | `getEndOperation`, `getTableAndPath`, `getShaftEndParameter`, `getShaftEndString` | Read an end's parameters (`firstEnd...` or `secondEnd...`); SplineXS ends are always tapped. |
@@ -178,23 +181,16 @@ in blue, then rethrow (std's errors) or throw their own. COTS length problems ar
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| `measureShaftLength` | Measuring between the extrude's two caps | **Fallback**: measures the longest edge instead (a cap can be cut away entirely by an end modification). The fallback gives the wrong length when the ends aren't parallel or a groove splits the edges. |
 | `getMirrorPlane` (`try silent`) | The mirrored end's plane | Throws "The shaft end to mirror across must be planar." A type check written as a `try`; checking the face's geometry would say the same without one. |
 | `modifyShaftEnd` | Std's `hole` subfeature | Shows the shaft in blue, and rethrows. |
-| `extendShaftEnd` | Offsetting the end face out | Shows the shaft in blue, and throws "Failed to extend shaft end." |
+| `extendShaftEnd` | Offsetting the end face out | Shows the shaft in blue, and throws "Failed to extend the shaft's end." |
 | `extrudeCaptiveShaftTool` | Drawing a body showing the too-big captive end, for the error | Already throwing; the body is left out if it can't be drawn. |
-| `cutShaft` | Cutting a groove or captive tool | Shows the shaft in blue, and throws "Failed to modify shaft end. Check input." |
+| `cutShaft` | Cutting a groove or captive tool | Shows the shaft in blue, and throws its end's error (above). |
 | `robotShaftEditLogic` | Sketching the profile for std's extrude editing logic | A guard: with no location yet, std's editing logic runs without a profile. |
 
 ## Issues found
 
-- A custom FTC shaft's name is in centimeters with a stray period, e.g. `13.6 cm. Hex Shaft` (`makeValueString` gives
-  `13.6 cm`, and `setShaftName` adds `. `), while COTS FTC shafts are named in millimeters (`136 mm Hex Shaft ...`).
-  Imperial names happen to read right (`3 in. Hex Shaft`).
-- `measureShaftLength` falls back to the longest edge's length (see `try`s).
-- "Failed to extend shaft end." highlights `shaftEnds`, which isn't a parameter.
-- Retaining ring is offered for 7 mm and 11 mm hex, and always errors there.
-- "Failed to modify shaft end. Check input." doesn't say what to check.
-- Creating the feature resets the captive shaft Diameter and Length (`shaftChanged` is true for a new feature), so
-  they never remember their previous values, though they're marked to.
-- COTS and custom shaft names round their lengths differently (`shaftLengthString` vs `makeValueString`).
+- Retaining ring is offered for 7 mm and 11 mm hex, and errors there (clearly: "Retaining ring grooves are only defined
+  for 1/2 in. and 3/8 in. hex."). FeatureScript can't hide one value of an enum, so not offering it would take a
+  separate end operation enum for metric hex; defining grooves for them (8mm REX's e-clip grooves) would need their
+  dimensions.
