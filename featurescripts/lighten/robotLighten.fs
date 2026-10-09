@@ -116,7 +116,9 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         else
         {
-            const parts = qOwnerBody(faces);
+            // Evaluated, to measure the same parts after the cut
+            const parts = qUnion(evaluateQuery(context, qOwnerBody(faces)));
+            const volume = evVolume(context, { "entities" : parts });
             try
             {
                 opBoolean(context, id + "cut", {
@@ -145,6 +147,12 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             {
                 reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ["ribEdges"]);
                 setErrorEntities(context, id, { "entities" : loose });
+            }
+            else
+            {
+                // Only without the warning, which this would replace
+                const lightened = 1 - evVolume(context, { "entities" : parts }) / volume;
+                reportFeatureInfo(context, id, "Lightened the parts by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
             }
         }
 

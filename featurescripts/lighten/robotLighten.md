@@ -49,6 +49,7 @@ it's tried alone (see Error handling).
 | There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `ribThickness`, `filletRadius` |
 | Failed to cut pockets. | error | cutting them from the parts fails | `faces`, the pockets which fail alone |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, the loose parts |
+| Lightened the parts by `<percent>`%. | info | the pockets are cut, and nothing's cut free (the warning above would be replaced) | |
 
 ## How it works
 
@@ -90,7 +91,8 @@ it's tried alone (see Error handling).
       is gone before then, and one which narrows between ribs ends in one round, as a router bit of that radius would
       cut it. Filleting the corners by the radius after growing them would fail where pockets narrow.
    6. If no pockets are left, a warning says so; otherwise they're cut from the faces' parts, and pieces they cut
-      free (ribs touching no wall or other rib) are warned about and shown.
+      free (ribs touching no wall or other rib) are warned about and shown. Otherwise, info says how much lighter the
+      parts are: how much less their volume is (to 0.1%), as they're one material.
    7. What's left of the ribs (their sheets) is deleted.
 4. **Manipulator change** (`robotLightenManipulatorChange`): std's extrude manipulators.
 
