@@ -36,6 +36,12 @@ Since v1.0.0 (`fs changes robotPrintAdapter`).
 - Use boss, for adapters with a boss on one side (AndyMark's): leaves room for the boss above the print.
 - The bore suits each adapter (its hex size, or a clearance circle); SplineXS adapters can cut a SplineXS bore instead
   (Bore type).
+- Entrance chamfer (on by default, 1/64 in.): chamfers the bore's ends in the parts, to guide a shaft in.
+
+### Fixes
+
+- The bore's fit no longer grows the adapter's pocket too: its offset took every side made under the feature's id,
+  the pocket's included.
 
 
 The three v1.0.0 outlines are generated now (`printAdapterProfiles.py`), with the same geometry.
@@ -66,6 +72,7 @@ No parameters are hidden. Editing logic sets the shown Merge scope and Opposite 
 | Failed to fit the bore. Is its clearance too large? | error | offsetting the bore's sides fails | `boreFit`, `boreFitClearance`, the feature's bodies |
 | std's `HOLE_EMPTY_SCOPE` | error | Merge scope is empty | `scope`, and the pocket (and bore) as error bodies |
 | std's extrude and boolean errors | error | the bore's extrude or the cut fails | (std's) |
+| Couldn't chamfer the bore's entrances. | error | the entrance chamfer fails | `chamferDistance`, the edges |
 
 ## How it works
 
@@ -73,7 +80,8 @@ No parameters are hidden. Editing logic sets the shown Merge scope and Opposite 
 
 1. **Precondition**: Vendor and that vendor's Adapter (`printAdapterSelectionPredicate`, generated); Use boss
    (`printAdapterHasBoss`); location; Opposite direction; Fit; Merge scope; Add bore, with Bore type
-   (`printAdapterHasSplineXsBore`), Bore fit, and the bore's extrude.
+   (`printAdapterHasSplineXsBore`), Bore fit, the bore's extrude, and Entrance chamfer (`entranceChamferPredicate`,
+   `core/bore.fs`).
 2. **Editing logic** (`robotPrintAdapterEditLogic` calls `mountingEditLogic`): std's hole heuristics
    (`holeScopeFlipHeuristicsCall`), with a sketch point at the location: sets the merge scope to the parts at the
    location, and flips Opposite direction to point into them, unless they've been set.
@@ -84,11 +92,14 @@ No parameters are hidden. Editing logic sets the shown Merge scope and Opposite 
       out by half its fit's clearance (`fitClearance`, for the outline's size across: `profileAcross`).
    3. With Add bore, `createPrintBore`: sketches the bore (`sketchBoreProfile`: SplineXS, a hex with a corner on X, or a
       circle), extrudes it with std's `extrude` as a subfeature at the top level id (so its manipulators work), and
-      offsets its sides out by half its fit's clearance (`boreFitClearance`, for `boreAcross`).
+      offsets its sides (but the pocket's, also made under the feature's id) out by half its fit's clearance
+      (`boreFitClearance`, for `boreAcross`), and returns them, tracked.
    4. If Merge scope is empty, the pocket and bore are rebuilt under another id to show as error bodies, and the
       error is thrown.
    5. `processNewBodyIfNeeded` subtracts them from the merge scope (`reconstructOp` rebuilds them if it needs to show
       them for an error).
+   6. With Entrance chamfer, `chamferBoreEntrances` (`core/bore.fs`) chamfers the edges where the bore's sides (tracked
+      into the parts) meet the parts' other faces: the bore's ends, at the pocket's floor and the parts' far side.
 4. **Manipulator change** (`robotPrintAdapterManipulatorChange`): with Add bore, std's extrude manipulators (with the second direction and symmetric, which the bore doesn't
    have, cleared).
 

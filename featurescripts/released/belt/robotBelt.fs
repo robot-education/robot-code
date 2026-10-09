@@ -33,6 +33,11 @@ export const frcBeltCalculator = defineFeature(function(context is Context, id i
 
 function doRobotBelt(context is Context, id is Id, definition is map)
 {
+    if (isOpenBelt(definition))
+    {
+        doOpenBelt(context, id, definition);
+        return;
+    }
     var beltDefinition;
     if (isStandaloneBelt(definition))
     {
@@ -121,6 +126,86 @@ predicate canBePulleyDefinition(value)
     {
         value.idlerRadius is ValueWithUnits;
     }
+}
+
+/**
+ * An open belt: from its start, around its pulleys and idlers, to its end. Each is on the inside of the belt's turn
+ * around it, so a pulley's on its teeth's side, and an idler's on its back's: an open belt's single sided, so its
+ * pulleys must all be on one side, and its idlers on the other.
+ */
+function doOpenBelt(context is Context, id is Id, definition is map)
+{
+    const beltDefinition = getComplexBeltDefinition(context, id, definition);
+    const plane = beltDefinition.beltPlane;
+    addStartOffsetManipulator(context, id, definition, plane);
+    verifyNonemptyQuery(context, definition, "endPoint", "Select where the belt ends.");
+    const start = worldToPlane(plane, evVertexCoordSystem(context, { "vertex" : definition.startPoint }).origin);
+    const end = worldToPlane(plane, evVertexCoordSystem(context, { "vertex" : definition.endPoint }).origin);
+
+    var circles = getBoundaryCircles(beltDefinition);
+    var teethLeft = undefined;
+    for (var i, circle in circles)
+    {
+        const before = i == 0 ? start : circles[i - 1].location;
+        const after = i == size(circles) - 1 ? end : circles[i + 1].location;
+        const into = circle.location - before;
+        const out = after - circle.location;
+        // The belt turns left around it: it's on the belt's left
+        const left = into[0] * out[1] - into[1] * out[0] >= 0 * meter ^ 2;
+        circles[i].flipped = !left;
+        const teethOnLeft = isPulley(beltDefinition.pulleyDefinitions[i].pulleyType) ? left : !left;
+        if (teethLeft == undefined)
+        {
+            teethLeft = teethOnLeft;
+        }
+        else if (teethLeft != teethOnLeft)
+        {
+            throw regenError("An open belt's teeth face its pulleys, and its back its idlers, so its pulleys must all be on one side of it, and its idlers on the other.",
+                ["pulleys"]);
+        }
+    }
+
+    const path = openPath(start, circles, end);
+    const beltInfo = getBeltModelInfo(beltDefinition.beltType);
+    const teethSide = getBeltModelInsideThickness(beltInfo, false);
+    const profile = sketchOpenPathProfile(context, id + "sketch", plane, path, teethLeft ? teethSide : beltInfo.outsideThickness,
+        teethLeft ? beltInfo.outsideThickness : teethSide);
+    const arcTracking = mapArray(profile.arcs, function(arc)
+        {
+            return startTracking(context, arc);
+        });
+    opExtrude(context, id + "belt", {
+                "entities" : profile.faces,
+                "direction" : plane.normal,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : beltDefinition.beltWidth / 2,
+                "startBound" : BoundingType.BLIND,
+                "startDepth" : beltDefinition.beltWidth / 2
+            });
+    const belt = qCreatedBy(id + "belt", EntityType.BODY);
+    for (var i, tracking in arcTracking)
+    {
+        const faces = tracking->qEntityFilter(EntityType.FACE)->qGeometry(GeometryType.CYLINDER);
+        if (!isQueryEmpty(context, faces))
+        {
+            setAttribute(context, {
+                        "entities" : faces,
+                        "name" : BELT_PULLEY_FACE_ATTRIBUTE,
+                        "attribute" : beltFaceAttribute(beltDefinition, beltDefinition.pulleyDefinitions[i])
+                    });
+        }
+    }
+
+    const lengthString = makeValueString(definition.unitSystem, path.length);
+    setBeltProperties(context, belt, getBeltTypeName(beltDefinition.beltType) ~ " Belt (" ~ lengthString ~ ")");
+    // The belt is 34.567 in long: 175 teeth.
+    reportFeatureInfo(context, id, "The belt is " ~ lengthString ~ " long: " ~ floor(path.length / getBeltPitch(beltDefinition.beltType)) ~ " teeth.");
+
+    if (definition.addMateConnectors)
+    {
+        createMateConnectors(context, id + "mateConnectors", beltDefinition, belt);
+    }
+    cleanup(context, id + "delete", qCreatedBy(id + "sketch", EntityType.BODY));
 }
 
 function getStandaloneBeltDefinition(context is Context, id is Id, definition is map) returns BeltDefinition
@@ -238,7 +323,7 @@ function getPulleyType(definition is map, pulley is map) returns PulleyType
 function getComplexBeltPulleys(context is Context, definition is map, beltType is BeltType) returns map
 {
     verifyNonemptyArray(context, definition, "pulleys", "Add pulley locations.");
-    if (size(definition.pulleys) < 2)
+    if (size(definition.pulleys) < 2 && !isOpenBelt(definition))
     {
         throw regenError("Add at least two pulleys.", ["pulleys"]);
     }
@@ -249,8 +334,15 @@ function getComplexBeltPulleys(context is Context, definition is map, beltType i
         verifyNonemptyArrayQuery(context, definition, parameterName, "Select a pulley location.");
         selections = append(selections, getPulleySelection(context, definition, beltType, pulley.selectionType, parameterName, pulley.pulleyTeeth));
     }
+    // An open belt's plane is its start's
+    var basePlane = selections[0].plane;
+    if (isOpenBelt(definition))
+    {
+        verifyNonemptyQuery(context, definition, "startPoint", "Select where the belt starts.");
+        basePlane = evVertexCoordSystem(context, { "vertex" : definition.startPoint })->plane();
+    }
     return {
-            "beltPlane" : applyStartOffset(context, definition, selections[0].plane),
+            "beltPlane" : applyStartOffset(context, definition, basePlane),
             "selections" : selections
         };
 }
@@ -562,7 +654,7 @@ function createBelt(context is Context, id is Id, definition is map, beltDefinit
         }
     }
 
-    setBeltProperties(context, belt, beltModel);
+    setBeltProperties(context, belt, getBeltName(beltModel.beltTeeth, beltModel.isDoubleSidedBelt, beltModel.beltType));
     return belt;
 }
 
@@ -621,7 +713,7 @@ function getBoundaryCircles(beltDefinition is BeltDefinition) returns array
         });
 }
 
-function setBeltProperties(context is Context, belt is Query, beltModel is BeltModel)
+function setBeltProperties(context is Context, belt is Query, name is string)
 {
     setProperty(context, {
                 "entities" : belt,
@@ -636,7 +728,7 @@ function setBeltProperties(context is Context, belt is Query, beltModel is BeltM
     setProperty(context, {
                 "entities" : belt,
                 "propertyType" : PropertyType.NAME,
-                "value" : getBeltName(beltModel.beltTeeth, beltModel.isDoubleSidedBelt, beltModel.beltType)
+                "value" : name
             });
 }
 
@@ -719,29 +811,105 @@ export function robotBeltManipulatorChange(context is Context, definition is map
 }
 
 /**
- * Sets Belt teeth to the belt chosen, unless its supplier's Custom; Select closest belt sets the belt to the one
- * which fits the selections best.
+ * Sets each pulley's location type from what's selected, when its selection changes (see `locationKind`); Belt teeth
+ * to the belt chosen, unless its supplier's Custom; and the belt to the one which fits the selections best when
+ * Select closest belt's clicked, or (while the feature's being created) the selections change and no belt's been
+ * chosen.
  */
-export function robotBeltEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean, clickedButton is string) returns map
+export function robotBeltEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
+    specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    if (clickedButton == "selectClosestBelt")
+    const selections = setSelectionTypes(context, oldDefinition, definition);
+    definition = selections.definition;
+
+    if (oldDefinition != {} && beltChanged(oldDefinition, definition))
+    {
+        const tableAndPath = getBeltTableAndPath(definition);
+        if (!isOpenBelt(definition) && !hasCustomTeeth(tableAndPath.path))
+        {
+            definition.beltTeeth = getBeltValue(tableAndPath).beltTeeth;
+        }
+    }
+
+    const beltChosen = (specifiedParameters.beltPath ?? false) || (specifiedParameters.doubleBeltPath ?? false) || (specifiedParameters.beltTeeth ?? false);
+    const autoChoose = isCreating && selections.changed && !beltChosen;
+    if (!isOpenBelt(definition) && !isStandaloneBelt(definition) && (clickedButton == "selectClosestBelt" || autoChoose))
     {
         // A guard: if the selections aren't all there (or are wrong), there's no closest belt
         try silent
         {
             definition = setBeltTeeth(definition, closestBeltTeeth(context, definition));
         }
-        return definition;
-    }
-    if (oldDefinition != {} && beltChanged(oldDefinition, definition))
-    {
-        const tableAndPath = getBeltTableAndPath(definition);
-        if (!hasCustomTeeth(tableAndPath.path))
-        {
-            definition.beltTeeth = getBeltValue(tableAndPath).beltTeeth;
-        }
     }
     return definition;
+}
+
+/**
+ * Sets the location type of each pulley whose selection changed, from what it is (see `locationKind`).
+ *
+ * @returns {{
+ *      @field definition {map} :
+ *      @field changed {boolean} : Whether any selection changed.
+ * }}
+ */
+function setSelectionTypes(context is Context, oldDefinition is map, definition is map) returns map
+{
+    const pitch = getBeltPitch(getBeltValue(getBeltTableAndPath(definition)).beltType);
+    const kindOf = function(selection is Query)
+        {
+            const kind = locationKind(context, selection, PULLEY_ATTRIBUTE, function(radius)
+                {
+                    return computeTargetPulleyTeeth(pitch, radius);
+                });
+            if (kind == undefined)
+            {
+                return undefined;
+            }
+            return switch (kind) {
+                        "part" : SelectionType.ROBOT_PULLEY,
+                        "pitchCircle" : SelectionType.PITCH_CIRCLE,
+                        "center" : SelectionType.GEOMETRY
+                    };
+        };
+    var changed = false;
+    if (isSimpleBelt(definition))
+    {
+        if (!isStandaloneBelt(definition))
+        {
+            for (var name in ["pulleyOne", "pulleyTwo"])
+            {
+                const selection = definition[name ~ "Selection"];
+                const old = oldDefinition[name ~ "Selection"];
+                if (old != undefined && areQueriesEquivalent(context, old, selection))
+                {
+                    continue;
+                }
+                const selectionType = kindOf(selection);
+                if (selectionType != undefined)
+                {
+                    definition[name ~ "SelectionType"] = selectionType;
+                    changed = true;
+                }
+            }
+        }
+    }
+    else
+    {
+        for (var i, pulley in definition.pulleys)
+        {
+            if (!selectionChanged(context, oldDefinition.pulleys, i, "pulleySelection", pulley.pulleySelection))
+            {
+                continue;
+            }
+            const selectionType = kindOf(pulley.pulleySelection);
+            if (selectionType != undefined)
+            {
+                definition.pulleys[i].selectionType = selectionType;
+                changed = true;
+            }
+        }
+    }
+    return { "definition" : definition, "changed" : changed };
 }
 
 function beltChanged(oldDefinition is map, definition is map) returns boolean

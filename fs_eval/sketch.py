@@ -39,8 +39,8 @@ def _length(value) -> float:
 
 @dataclasses.dataclass
 class Curve:
-    """A line, or an arc (with `center`, `radius`, and whether it goes counter clockwise), from `start` to `end`;
-    or a whole circle (`start` and `end` are the same point)."""
+    """A line, an arc (with `center`, `radius`, and whether it goes counter clockwise), or a fit spline (through
+    `points`), from `start` to `end`; or a whole circle (`start` and `end` are the same point)."""
 
     kind: str
     id: str
@@ -50,11 +50,15 @@ class Curve:
     radius: float | None = None
     counter_clockwise: bool = True
     construction: bool = False
+    points: list | None = None
 
     def tangent(self, at_end: bool) -> Point:
-        """The unit direction it's traveling in at its start, or end."""
+        """The unit direction it's traveling in at its start, or end (a spline's, roughly: along its end segment)."""
         if self.kind == "line":
             dx, dy = self.end[0] - self.start[0], self.end[1] - self.start[1]
+        elif self.kind == "spline":
+            a, b = (self.points[-2], self.points[-1]) if at_end else (self.points[0], self.points[1])
+            dx, dy = b[0] - a[0], b[1] - a[1]
         else:
             point = self.end if at_end else self.start
             rx, ry = point[0] - self.center[0], point[1] - self.center[1]
@@ -63,11 +67,14 @@ class Curve:
         return (dx / norm, dy / norm)
 
     def reversed(self) -> Curve:
-        return dataclasses.replace(self, start=self.end, end=self.start, counter_clockwise=not self.counter_clockwise)
+        points = list(reversed(self.points)) if self.points else self.points
+        return dataclasses.replace(self, start=self.end, end=self.start, counter_clockwise=not self.counter_clockwise, points=points)
 
     def farthest(self, origin: Point = (0.0, 0.0)) -> float:
         """How far from `origin` it gets."""
         ends = max(math.dist(self.start, origin), math.dist(self.end, origin))
+        if self.kind == "spline":
+            return max(math.dist(point, origin) for point in self.points)
         if self.kind == "line":
             return ends
         # An arc's farthest point is an end, or where it crosses the line from origin through its center
@@ -81,6 +88,8 @@ class Curve:
     def nearest(self, origin: Point = (0.0, 0.0)) -> float:
         """How near `origin` it gets."""
         ends = min(math.dist(self.start, origin), math.dist(self.end, origin))
+        if self.kind == "spline":
+            return min(math.dist(point, origin) for point in self.points)
         if self.kind == "line":
             sx, sy = self.start
             dx, dy = self.end[0] - sx, self.end[1] - sy
@@ -152,6 +161,9 @@ class RecordedSketch:
                 radius = _length(value.get_str("radius"))
                 point = (center[0] + radius, center[1])
                 self.curves.append(Curve("circle", entity["id"], point, point, center, radius, True, construction))
+            elif kind == "fitSpline":
+                points = [_point(point) for point in untag(value.get_str("points")).items]
+                self.curves.append(Curve("spline", entity["id"], points[0], points[-1], construction=construction, points=points))
             elif kind == "point":
                 self.points.append(_point(value.get_str("position")))
 

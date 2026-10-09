@@ -19,16 +19,16 @@ export predicate isComplexBelt(definition is map)
     definition.beltMode == BeltMode.COMPLEX;
 }
 
+export predicate isOpenBelt(definition is map)
+{
+    definition.beltMode == BeltMode.OPEN;
+}
+
 export predicate isDoubleSidedBelt(definition is map)
 {
     // Nested predicates not allowed
     definition.beltMode == BeltMode.COMPLEX && definition.isDoubleSidedBelt;
 }
-
-// export predicate canBeStandaloneBelt(definition is map)
-// {
-//     definition.beltMode == BeltMode.SIMPLE;
-// }
 
 export predicate isStandaloneBelt(definition is map)
 {
@@ -43,9 +43,13 @@ export enum BeltSide
     OUTSIDE
 }
 
+/**
+ * What a pulley's location is: its center (with its teeth given), its pitch circle (which gives its teeth), or a
+ * Robot pulley (which has its own). Editing logic sets it from what's selected.
+ */
 export enum SelectionType
 {
-    annotation { "Name" : "Geometry" }
+    annotation { "Name" : "Center" }
     GEOMETRY,
     annotation { "Name" : "Robot pulley" }
     ROBOT_PULLEY,
@@ -75,20 +79,22 @@ export predicate selectionPredicate(definition is map)
 
 export predicate simpleBeltSelectionPredicate(definition is map)
 {
-    annotation { "Name" : "Standalone belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    annotation { "Name" : "Standalone belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                "Description" : "A belt on its own, with its pulleys as far apart as it puts them, rather than between selections." }
     definition.isStandaloneBelt is boolean;
 
     if (!isStandaloneBelt(definition))
     {
-        annotation { "Name" : "Selection type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.pulleyOneSelectionType is SelectionType;
-
         annotation {
-                    "Name" : "Pulley one position",
-                    "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES) || (GeometryType.CIRCLE && SketchObject.YES),
-                    "MaxNumberOfPicks" : 1
+                    "Name" : "Pulley one location",
+                    "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES) || (GeometryType.CIRCLE && EntityType.EDGE),
+                    "MaxNumberOfPicks" : 1,
+                    "Description" : "Its center (a sketch point, mate connector, or a circle around it), its pitch circle, or a Robot pulley."
                 }
         definition.pulleyOneSelection is Query;
+
+        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"], "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+        definition.pulleyOneSelectionType is SelectionType;
     }
 
     if (isStandaloneBelt(definition) || definition.pulleyOneSelectionType == SelectionType.GEOMETRY)
@@ -99,15 +105,16 @@ export predicate simpleBeltSelectionPredicate(definition is map)
 
     if (!isStandaloneBelt(definition))
     {
-        annotation { "Name" : "Selection type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.pulleyTwoSelectionType is SelectionType;
-
         annotation {
-                    "Name" : "Pulley two position",
-                    "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES) || (GeometryType.CIRCLE && SketchObject.YES),
-                    "MaxNumberOfPicks" : 1
+                    "Name" : "Pulley two location",
+                    "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES) || (GeometryType.CIRCLE && EntityType.EDGE),
+                    "MaxNumberOfPicks" : 1,
+                    "Description" : "Its center (a sketch point, mate connector, or a circle around it), its pitch circle, or a Robot pulley."
                 }
         definition.pulleyTwoSelection is Query;
+
+        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"], "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+        definition.pulleyTwoSelectionType is SelectionType;
     }
 
     if (isStandaloneBelt(definition) || definition.pulleyTwoSelectionType == SelectionType.GEOMETRY)
@@ -117,9 +124,15 @@ export predicate simpleBeltSelectionPredicate(definition is map)
     }
 }
 
-
 export predicate complexBeltSelectionPredicate(definition is map)
 {
+    if (isOpenBelt(definition))
+    {
+        annotation { "Name" : "Start", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1,
+                    "Description" : "Where the belt starts: where its end is clamped." }
+        definition.startPoint is Query;
+    }
+
     annotation {
                 "Name" : "Pulleys",
                 "Item name" : "Pulley",
@@ -130,18 +143,20 @@ export predicate complexBeltSelectionPredicate(definition is map)
     definition.pulleys is array;
     for (var pulley in definition.pulleys)
     {
-        annotation { "Name" : "Selection type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        pulley.selectionType is SelectionType;
-
         annotation {
                     "Name" : "Pulley location",
                     "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES) || (EntityType.EDGE && GeometryType.CIRCLE),
-                    "MaxNumberOfPicks" : 1
+                    "MaxNumberOfPicks" : 1,
+                    "Description" : "Its center (a sketch point, mate connector, or a circle around it), its pitch circle, or a Robot pulley."
                 }
         pulley.pulleySelection is Query;
 
+        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"], "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+        pulley.selectionType is SelectionType;
+
         // A Robot pulley used as an idler (or a Robot pulley idler used as a pulley) is flagged by the feature
-        annotation { "Name" : "Belt side", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+        annotation { "Name" : "Belt side", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"],
+                    "Description" : "Which side of the belt it's on: its teeth's (inside), or its back (outside, an idler)." }
         pulley.beltSide is BeltSide;
 
         if (!isDoubleSidedBelt(definition) && pulley.beltSide == BeltSide.OUTSIDE)
@@ -160,6 +175,13 @@ export predicate complexBeltSelectionPredicate(definition is map)
             isInteger(pulley.pulleyTeeth, PULLEY_TEETH_BOUNDS);
         }
     }
+
+    if (isOpenBelt(definition))
+    {
+        annotation { "Name" : "End", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1,
+                    "Description" : "Where the belt ends: where its other end is clamped." }
+        definition.endPoint is Query;
+    }
 }
 
 
@@ -167,27 +189,34 @@ export predicate beltPredicate(definition is map)
 {
     annotation { "Group Name" : "Belt", "Collapsed By Default" : false }
     {
-        if (!isDoubleSidedBelt(definition))
+        if (isOpenBelt(definition))
         {
-            beltTablePredicate(definition);
+            // An open belt's cut to length
+            beltTypePredicate(definition);
         }
         else
         {
-            doubleBeltTablePredicate(definition);
+            if (!isDoubleSidedBelt(definition))
+            {
+                beltTablePredicate(definition);
+            }
+            else
+            {
+                doubleBeltTablePredicate(definition);
+            }
+
+            annotation { "Name" : "Belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            isInteger(definition.beltTeeth, BELT_TEETH_BOUNDS);
+
+            if (!isStandaloneBelt(definition))
+            {
+                annotation { "Name" : "Select closest belt", "Description" : "Sets the belt to the one which fits the selections best: of those its supplier sells, or any." }
+                isButton(definition.selectClosestBelt);
+            }
+
+            annotation { "Name" : "Model belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.modelBeltTeeth is boolean;
         }
-
-        annotation { "Name" : "Belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        isInteger(definition.beltTeeth, BELT_TEETH_BOUNDS);
-
-        if (!isStandaloneBelt(definition))
-        {
-            annotation { "Name" : "Select closest belt" }
-            isButton(definition.selectClosestBelt);
-        }
-
-
-        annotation { "Name" : "Model belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.modelBeltTeeth is boolean;
     }
 }
 
@@ -219,7 +248,7 @@ export predicate optionsPredicate(definition is map)
                     }
             isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
         }
-        else
+        else if (isComplexBelt(definition))
         {
             annotation { "Name" : "Belt fit adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                         "Description" : "An adjustment to apply to the fit of the belt. Useful for making slight adjustments to the tension of belts."
@@ -227,9 +256,12 @@ export predicate optionsPredicate(definition is map)
             isLength(definition.beltFitAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
         }
 
-        annotation { "Name" : "Disable belt validation",
-                    "Description" : "Disable errors related to incorrect center to center distance and/or belt size." }
-        definition.disableBeltValidation is boolean;
+        if (!isOpenBelt(definition))
+        {
+            annotation { "Name" : "Disable belt validation",
+                        "Description" : "Disable errors related to incorrect center to center distance and/or belt size." }
+            definition.disableBeltValidation is boolean;
+        }
     }
 }
 
@@ -253,23 +285,18 @@ export predicate robotBeltPredicate(definition is map)
     optionsPredicate(definition);
 }
 
+/**
+ * The lookup table the belt's chosen from, and its path in it: an open belt's is only its type and width.
+ */
 export function getBeltTableAndPath(definition is map) returns map
 {
-    var table;
-    var path;
-    if (!isDoubleSidedBelt(definition))
+    if (isOpenBelt(definition))
     {
-        table = beltTable;
-        path = definition.beltPath;
+        return { "table" : beltTypeTable, "path" : definition.beltTypePath };
     }
-    else
+    if (isDoubleSidedBelt(definition))
     {
-        table = doubleBeltTable;
-        path = definition.doubleBeltPath;
+        return { "table" : doubleBeltTable, "path" : definition.doubleBeltPath };
     }
-
-    return {
-            "table" : table,
-            "path" : path
-        };
+    return { "table" : beltTable, "path" : definition.beltPath };
 }

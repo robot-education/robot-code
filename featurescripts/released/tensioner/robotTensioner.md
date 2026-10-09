@@ -16,7 +16,7 @@ Since its last release, as Robot belt tuner:
 - Renamed Robot tensioner, and it works with chains made by Robot chain. Its constant is still `robotBeltTuner`
   (released features' constants are never renamed), and its tab is still `robotBeltTuner.fs`.
 - Its parameters are renamed: Robot belt is Belt or chain (`loop`), Curved belt face to adjust is Pulley, sprocket, or
-  idler (`adjust`), which can be a mate connector of the belt's too, and Adjustment axis is Direction (`direction`),
+  idler (`adjust`), which can be a mate connector of the belt's, or a Robot pulley or sprocket, too, and Adjustment axis is Direction (`direction`),
   which takes anything with a direction.
 - Belts made by an older Robot belt don't have what it reads: update them (edit them) first.
 - Simple belts can be tensioned too.
@@ -34,7 +34,7 @@ Since its last release, as Robot belt tuner:
 
 | Parameter | Description |
 | --- | --- |
-| Pulley, sprocket, or idler (`adjust`) | The one to adjust: the belt's or chain's curved face around it, or its mate connector. |
+| Pulley, sprocket, or idler (`adjust`) | The one to adjust: the belt's or chain's curved face around it, its mate connector, or a Robot pulley or sprocket. |
 | Direction (`direction`) | The direction to move it in, like along a slot. |
 
 No parameters are hidden.
@@ -47,6 +47,7 @@ No parameters are hidden.
 | Select a belt or chain made by Robot belt or Robot chain (one made by an older Robot belt needs updating first). | error | it has no `LOOP_ATTRIBUTE` | `loop`, it |
 | A mirrored belt or chain can't be tensioned: tension the one it mirrors. | error | its attribute's coordinate system was mirrored away | `loop`, it |
 | Select the pulley, sprocket, or idler to adjust: the belt's or chain's curved face around it, or its mate connector. | error | nothing to adjust | `adjust` |
+| Select a Robot pulley or sprocket, or the belt's or chain's face around one, or its mate connector. | error | a part that isn't a Robot pulley or sprocket | `adjust`, it |
 | Select a face of the selected belt or chain. | error | the face is another part's | `adjust`, it |
 | The selection isn't around one of the belt's or chain's pulleys, sprockets, or idlers. | error | its center isn't one of theirs (like a belt tooth's face) | `adjust`, it |
 | Only an idler can be resized: select one, or move this instead. | error | Resize, on a pulley or sprocket | `adjust`, `adjustmentType`, it |
@@ -70,8 +71,8 @@ No parameters are hidden.
    1. `getLoop` reads the belt's or chain's `LoopAttribute`: its plane (a persistent coordinate system, so it follows
       the part when it's moved), its circles (each pulley's, sprocket's, or idler's, in its plane), and the length its
       path should be.
-   2. `getAdjustIndex` finds the circle the selection's center (the face's axis, or the mate connector's origin) is
-      at, and `getDirection` projects the direction into the plane.
+   2. `getAdjustIndex` finds the circle the selection's center (a Robot pulley's or sprocket's, from its attribute;
+      the face's axis; or the mate connector's origin) is at, and `getDirection` projects the direction into the plane.
    3. A move changes the circle's location by an offset along the direction, and a resize its radius. If the path is
       its length already (to the display's strict precision), it's shown in green and an info says so.
    4. `nearestRoot` finds the offset nearest zero at which the path (`tryLoopLength`) is its length: walking out each

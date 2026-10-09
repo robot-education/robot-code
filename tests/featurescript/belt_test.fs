@@ -8,6 +8,8 @@ function beltDefinition(teeth is string) returns map
 {
     return {
             "beltMode" : BeltMode.SIMPLE,
+            // Selections can't be evaluated here: a standalone belt has none
+            "isStandaloneBelt" : true,
             "isDoubleSidedBelt" : false,
             "beltPath" : { "beltType" : "2mm GT2", "supplier" : "goBILDA", "teeth" : teeth } as LookupTablePath,
             "beltTeeth" : 0
@@ -25,7 +27,7 @@ export function testGoBildaGt2Belts()
 
 export function testChoosingABeltSetsItsTeeth()
 {
-    const definition = robotBeltEditLogic(newContext(), newId(), beltDefinition("44T"), beltDefinition("92T"), false, "");
+    const definition = robotBeltEditLogic(newContext(), newId(), beltDefinition("44T"), beltDefinition("92T"), false, {}, qNothing(), "");
     expectEqual(definition.beltTeeth, 92);
 }
 

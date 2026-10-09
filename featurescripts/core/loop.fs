@@ -209,3 +209,188 @@ export function tryLoopLength(circles is array, counterClockwise is boolean)
     }
     return undefined;
 }
+
+/**
+ * What a pulley's or sprocket's selected location is, for editing logic to choose how to read it: "part" (a part or
+ * mate connector with the attribute `attributeName`, like a Robot pulley's or sprocket's), "pitchCircle" (a circle
+ * whose size is a pitch circle's with a whole number of teeth, as `teethFor(radius)` says), or "center" (anything
+ * else: a point, or a circle like a bore's). `undefined` if nothing's selected.
+ */
+export function locationKind(context is Context, selection is Query, attributeName is string, teethFor is function)
+{
+    if (isQueryEmpty(context, selection))
+    {
+        return undefined;
+    }
+    if (getAttribute(context, { "entity" : selection, "name" : attributeName }) != undefined)
+    {
+        return "part";
+    }
+    const circle = selection->qEntityFilter(EntityType.EDGE)->qGeometry(GeometryType.CIRCLE);
+    if (!isQueryEmpty(context, circle))
+    {
+        const teeth = teethFor(evCurveDefinition(context, { "edge" : circle }).radius);
+        if (teeth != undefined && teeth >= 3 && abs(teeth - round(teeth)) < 0.01)
+        {
+            return "pitchCircle";
+        }
+    }
+    return "center";
+}
+
+/**
+ * Whether editing logic should look at an array item's selection again: it's new, or selects something else than it
+ * did (`oldItems` are the array's items before).
+ */
+export function selectionChanged(context is Context, oldItems, index is number, parameter is string, selection is Query) returns boolean
+{
+    if (oldItems == undefined || index >= size(oldItems))
+    {
+        return true;
+    }
+    const old = oldItems[index][parameter];
+    return old == undefined || !areQueriesEquivalent(context, old, selection);
+}
+
+/**
+ * An open path (a belt with ends): from `start` (a 2D point), around `circles` in order, to `end`, with lines tangent
+ * between them. It goes counter clockwise around each circle, or clockwise around a flipped one.
+ *
+ * @returns {{
+ *      @field lines {array} : Each line's `[start, end]`: from `start` to the first circle, between circles, and from the
+ *              last circle to `end`.
+ *      @field arcs {array} : Around each circle: a map of its `center`, `radius`, `counterClockwise`, `startAngle`, and
+ *              `sweep` (from the line into it to the line out).
+ *      @field length {ValueWithUnits} :
+ * }}
+ */
+export function openPath(start is Vector, circles is array, end is Vector) returns map
+{
+    // A point's a circle with no radius; a radius's sign says which way the path goes around it, as `circleToCircle`'s
+    var centers = [start];
+    var signedRadii = [0 * meter];
+    for (var circle in circles)
+    {
+        centers = append(centers, circle.location);
+        signedRadii = append(signedRadii, circle.flipped ? circle.radius : -circle.radius);
+    }
+    centers = append(centers, end);
+    signedRadii = append(signedRadii, 0 * meter);
+
+    var lines = [];
+    var length = 0 * meter;
+    for (var i = 0; i < size(centers) - 1; i += 1)
+    {
+        const line = tangentLine(centers[i], signedRadii[i], centers[i + 1], signedRadii[i + 1]);
+        lines = append(lines, line);
+        length += norm(line[1] - line[0]);
+    }
+    var arcs = [];
+    for (var i, circle in circles)
+    {
+        const arrive = lines[i][1] - circle.location;
+        const leave = lines[i + 1][0] - circle.location;
+        const startAngle = atan2(arrive[1], arrive[0]);
+        const endAngle = atan2(leave[1], leave[0]);
+        var sweep = (circle.flipped ? startAngle - endAngle : endAngle - startAngle) % (2 * PI * radian);
+        if (sweep < 0 * radian)
+        {
+            sweep += 2 * PI * radian;
+        }
+        arcs = append(arcs, {
+                        "center" : circle.location,
+                        "radius" : circle.radius,
+                        "counterClockwise" : !circle.flipped,
+                        "startAngle" : startAngle,
+                        "sweep" : sweep
+                    });
+        length += circle.radius * sweep / radian;
+    }
+    return { "lines" : lines, "arcs" : arcs, "length" : length };
+}
+
+/**
+ * The line tangent from one circle to another (or a point, with no radius), leaving and reaching them going around
+ * them as their radii's signs say (see `openPath`).
+ */
+function tangentLine(center1 is Vector, radius1 is ValueWithUnits, center2 is Vector, radius2 is ValueWithUnits) returns array
+{
+    const distance = norm(center2 - center1);
+    if (tolerantEqualsZero(distance))
+    {
+        throw regenError("Two of the belt's points or pulleys are in the same place.");
+    }
+    const direction = (center2 - center1) / distance;
+    const across = vector(-direction[1], direction[0]);
+    const alpha = (radius1 - radius2) / distance;
+    if (abs(alpha) > 1)
+    {
+        throw regenError("The belt can't go around its pulleys: one's inside another, or its start or end is inside one.");
+    }
+    const toTangent = alpha * direction + sqrt(1 - alpha ^ 2) * across;
+    return [center1 + toTangent * radius1, center2 + toTangent * radius2];
+}
+
+/**
+ * Sketches the region of an open path (see `openPath`) thickened `left` and `right` of it (going from its start to its
+ * end), with square ends, on `plane`, and returns it: `faces`, and `arcs`, the edges around each circle (a query
+ * each).
+ */
+export function sketchOpenPathProfile(context is Context, id is Id, plane is Plane, path is map, left is ValueWithUnits, right is ValueWithUnits) returns map
+{
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    const lineOffset = function(line is array, distance is ValueWithUnits) returns array
+        {
+            const direction = normalize(line[1] - line[0]);
+            const normal = vector(-direction[1], direction[0]) * distance;
+            return [line[0] + normal, line[1] + normal];
+        };
+    for (var side in [["left", left], ["right", right]])
+    {
+        // Left of the path is toward a counter clockwise circle's center
+        const distance = side[0] == "left" ? side[1] : -side[1];
+        for (var i, line in path.lines)
+        {
+            const offset = lineOffset(line, distance);
+            if (!tolerantEquals(offset[0], offset[1]))
+            {
+                skLineSegment(sketch, side[0] ~ "Line" ~ i, { "start" : offset[0], "end" : offset[1] });
+            }
+        }
+        for (var i, arc in path.arcs)
+        {
+            const radius = arc.radius - (arc.counterClockwise ? distance : -distance);
+            if (radius <= 0 * meter)
+            {
+                throw regenError("A pulley is too small for the belt to wrap around.");
+            }
+            if (tolerantEqualsZero(arc.sweep / radian))
+            {
+                continue;
+            }
+            const direction = arc.counterClockwise ? 1 : -1;
+            const at = function(angle is ValueWithUnits) returns Vector
+                {
+                    return arc.center + vector(cos(angle), sin(angle)) * radius;
+                };
+            skArc(sketch, side[0] ~ "Arc" ~ i, {
+                        "start" : at(arc.startAngle),
+                        "mid" : at(arc.startAngle + direction * arc.sweep / 2),
+                        "end" : at(arc.startAngle + direction * arc.sweep)
+                    });
+        }
+    }
+    // Square ends
+    const first = path.lines[0];
+    const last = path.lines[size(path.lines) - 1];
+    skLineSegment(sketch, "startCap", { "start" : lineOffset(first, left)[0], "end" : lineOffset(first, -right)[0] });
+    skLineSegment(sketch, "endCap", { "start" : lineOffset(last, left)[1], "end" : lineOffset(last, -right)[1] });
+    skSolve(sketch);
+    return {
+            "faces" : qCreatedBy(id, EntityType.FACE),
+            "arcs" : mapArrayIndices(path.arcs, function(i)
+                {
+                    return qUnion([sketchEntityQuery(id, EntityType.EDGE, "leftArc" ~ i), sketchEntityQuery(id, EntityType.EDGE, "rightArc" ~ i)]);
+                })
+        };
+}

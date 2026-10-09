@@ -189,6 +189,10 @@ Write these defensively where values can be missing: check with `!= undefined` b
 surfaces when the user clicks a manipulator or edits a parameter, far from its cause. Parameters themselves are never
 missing (see "Definitions are maps").
 
+Editing logic's parameters are positional: `(context, id, oldDefinition, definition, isCreating, specifiedParameters,
+hiddenBodies, clickedButton)`. Declare each, in that order, up to the last one used: a `clickedButton` declared sixth
+gets `specifiedParameters` (a map), fails its `is string`, and the editing logic never runs (as Robot belt's didn't).
+
 The first time editing logic runs (when the feature is created), `oldDefinition` is the empty map `{}`. Usually there's
 nothing to do then, so return early:
 

@@ -1,11 +1,12 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "onshape/std/chamfer.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "6b7d5995c565ae73c7740b0b");
 
 export import(path : "484d2d590d4a2ab919981b0e", version : "7137aa56702a1f5e39558ef4");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
+import(path : "core/bore.fs", version : "");
+import(path : "core/steps.fs", version : "");
 
 annotation {
         "Feature Type Name" : "Robot pulley",
@@ -69,7 +70,7 @@ function doRobotPulley(context is Context, id is Id, definition is map)
 
     if (definition.addBore)
     {
-        addBores(context, id + "bore", definition, pulleyDefinitions, pulleys);
+        addBores(context, id, id + "bore", definition, pulleyDefinitions, pulleys);
     }
 
     // Add last to allow handling bore overlap error
@@ -78,7 +79,7 @@ function doRobotPulley(context is Context, id is Id, definition is map)
                     return hasText(definition, pulleyDefinition);
                 }))
     {
-        addText(context, id + "text", definition, pulleyDefinitions, pulleys);
+        addText(context, id, id + "text", definition, pulleyDefinitions, pulleys);
     }
 }
 
@@ -509,176 +510,49 @@ function setPulleyProperties(context is Context, definition is map, pulleyDefini
             });
 }
 
-function addBores(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
+/**
+ * The pulley's bore, as `cutBores` takes it: its Bore type, as `core/bore.fs`'s shapes.
+ */
+function pulleyBore(definition is map) returns Bore
 {
-    // We first generate the bores, then compute the manipulators before cutting the bores
-    // This guarantees that we'll be able to find a suitable bore face to attach the manipulator to
-    const boreResult = createBores(context, id + "bore", definition, pulleyDefinitions, pulleys);
-    const bores = boreResult.bores;
-
-    const insideEdges = startTracking(context, qNonCapEntity(id + "bore", EntityType.EDGE));
-
-    try
-    {
-        opBoolean(context, id + "cutBore", {
-                    "tools" : qUnion(bores),
-                    "targets" : qUnion(pulleys),
-                    "operationType" : BooleanOperationType.SUBTRACTION
-                });
-    }
-    catch
-    {
-        addBoreDebugEntities(context, id, definition, pulleyDefinitions);
-        throw regenError("Failed to add bore. Check input.", ["hexWidth", "boreDiameter", "fit", "fitClearance"]);
-    }
-
-    if (size(evaluateQuery(context, qUnion(pulleys))) != size(pulleys))
-    {
-        addBoreDebugEntities(context, id, definition, pulleyDefinitions);
-        throw regenError("Failed to add bore. Check input.", ["hexWidth", "boreDiameter", "fit", "fitClearance"]);
-    }
-
-    if (definition.entranceChamfer)
-    {
-        const boreEdges = qCreatedBy(id + "cutBore", EntityType.EDGE)->qSubtraction(insideEdges);
-
-        try
-        {
-            opChamfer(context, id + "entranceChamfer", {
-                        "entities" : boreEdges,
-                        "chamferType" : ChamferType.EQUAL_OFFSETS,
-                        "width" : definition.chamferDistance
-                    });
-        }
-        catch
-        {
-            addBoreDebugEntities(context, id, definition, pulleyDefinitions);
-            throw regenError("Failed to chamfer bore. Check input.", ["hexWidth", "boreDiameter", "fit", "fitClearance", "chamferDistance"]);
-        }
-    }
+    var boreDefinition = definition;
+    boreDefinition.boreShape = switch (definition.boreType) {
+                BoreType.HEX : BoreShape.HEX,
+                BoreType.HOLE : BoreShape.ROUND,
+                BoreType.SPLINE : BoreShape.SPLINE
+            };
+    return definitionBore(boreDefinition);
 }
 
-function createBores(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array) returns map
+function addBores(context is Context, featureId is Id, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
 {
-    const extrudeDistance = evBox3d(context, {
-                    "topology" : qEverything(EntityType.BODY),
-                    "tight" : false
-                })->box3dDiagonalLength();
-
-    var bores = [];
-    for (var i, pulleyDefinition in pulleyDefinitions)
-    {
-        const boreId = id + unstableIdComponent(i);
-        if (pulleyDefinition.identity != undefined)
-        {
-            setExternalDisambiguation(context, boreId, pulleyDefinition.identity);
-        }
-        const bore = createBore(context, boreId, definition, pulleyDefinition.plane, extrudeDistance);
-        bores = append(bores, bore);
-    }
-    cleanup(context, id + "delete", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
-
-    return { "bores" : bores };
+    cutBores(context, featureId, id, pulleyBore(definition),
+        mapArray(pulleyDefinitions, function(pulleyDefinition) { return pulleyDefinition.plane; }),
+        mapArray(pulleyDefinitions, function(pulleyDefinition) { return pulleyDefinition.identity; }),
+        pulleys);
 }
 
-function createBore(context is Context, id is Id, definition is map, plane is Plane, extrudeDistance is ValueWithUnits) returns Query
-{
-    sketchBoreProfile(context, id + "profile", definition, plane);
-    opExtrude(context, id + "extrude", {
-                "entities" : qCreatedBy(id + "profile", EntityType.FACE),
-                "direction" : plane.normal,
-                "endBound" : BoundingType.BLIND,
-                "endDepth" : extrudeDistance / 2,
-                "startBound" : BoundingType.BLIND,
-                "startDepth" : extrudeDistance / 2
-            });
-    if (definition.boreType == BoreType.SPLINE)
-    {
-        // A spline's sketched at its nominal size, so its fit is added here (half on each side)
-        const clearance = fitClearance(definition, splineDiameter(definition.splineType));
-        if (!tolerantEqualsZero(clearance))
-        {
-            opOffsetFace(context, id + "offsetFace", {
-                        "moveFaces" : qNonCapEntity(id + "extrude", EntityType.FACE),
-                        "offsetDistance" : clearance / 2
-                    });
-        }
-    }
-    return qCreatedBy(id + "extrude", EntityType.BODY);
-}
-
-function sketchBoreProfile(context is Context, id is Id, definition is map, plane is Plane)
-{
-    const sketch = newSketchOnPlane(context, id + "profile", { "sketchPlane" : plane });
-
-    if (definition.boreType == BoreType.HEX)
-    {
-        const width = definition.hexWidth + fitClearance(definition, definition.hexWidth);
-        const hexRadius = (width / 2) / cos(30 * degree);
-        skRegularPolygon(sketch, "hex", {
-                    "center" : zeroVector(2) * meter,
-                    "firstVertex" : vector(hexRadius, 0 * meter),
-                    "sides" : 6
-                });
-    }
-    else if (definition.boreType == BoreType.HOLE)
-    {
-        skCircle(sketch, "circle", {
-                    "center" : zeroVector(2) * meter,
-                    "radius" : (definition.boreDiameter + fitClearance(definition, definition.boreDiameter)) / 2
-                });
-    }
-    else if (definition.boreType == BoreType.SPLINE)
-    {
-        skSplineProfile(sketch, "spline", {
-                    "splineType" : definition.splineType,
-                    "location" : zeroVector(2) * meter
-                });
-    }
-
-    skSolve(sketch);
-}
-
-function addBoreDebugEntities(context is Context, id is Id, definition is map, pulleyDefinitions is array)
-{
-    try
-    {
-        const errorId = id + "temp";
-        const pulleys = createPulleys(context, errorId + "pulley", definition, pulleyDefinitions);
-        if (definition.addFlanges)
-        {
-            addFlanges(context, errorId + "flange", definition, pulleyDefinitions, pulleys);
-        }
-        addDebugEntities(context, qUnion(pulleys), DebugColor.BLUE);
-
-        const boreResult = createBores(context, errorId + "bore", definition, pulleyDefinitions, pulleys);
-        addDebugEntities(context, qUnion(boreResult.bores));
-    }
-}
-
-function addText(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
+function addText(context is Context, featureId is Id, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
 {
     const textId = id + "text";
     createAllText(context, textId, definition, pulleyDefinitions);
+    const text = qCreatedBy(textId, EntityType.BODY)->qBodyType(BodyType.SOLID);
 
     const textFaces = startTracking(context, qCreatedBy(textId, EntityType.FACE));
-    try
-    {
-        opBoolean(context, id + "cutText", {
-                    "tools" : qCreatedBy(textId, EntityType.BODY)->qBodyType(BodyType.SOLID),
-                    "targets" : qUnion(pulleys),
-                    "operationType" : BooleanOperationType.SUBTRACTION,
-                    "targetsAndToolsNeedGrouping" : true
-                });
-    }
-    catch
-    {
-        throwTextError(context, id + "error", definition, pulleyDefinitions);
-    }
-
+    // A failed boolean changes nothing, so the text and pulleys are still there to show
+    runStep(context, featureId, id + "cutText", opBoolean, {
+                "tools" : text,
+                "targets" : qUnion(pulleys),
+                "operationType" : BooleanOperationType.SUBTRACTION,
+                "targetsAndToolsNeedGrouping" : true
+            }, {
+                "message" : "Couldn't engrave the tooth count.",
+                "faultyParameters" : ["textPosition", "textSize"],
+                "entities" : qUnion([text, qUnion(pulleys)])
+            });
     if (isQueryEmpty(context, textFaces))
     {
-        throwTextError(context, id + "error", definition, pulleyDefinitions);
+        throw regenError("The tooth count's text doesn't reach the pulley: check its position.", ["textPosition"]);
     }
 }
 
@@ -755,26 +629,6 @@ function createText(context is Context, id is Id, definition is map, pulleyDefin
                 "instanceNames" : ["copy"]
             });
 }
-
-function throwTextError(context is Context, id is Id, definition is map, pulleyDefinitions is array)
-{
-    try
-    {
-        const pulleys = createPulleys(context, id + "pulley", definition, pulleyDefinitions);
-        addFlanges(context, id + "flange", definition, pulleyDefinitions, pulleys);
-
-        if (definition.addBore)
-        {
-            addBores(context, id, definition, pulleyDefinitions, pulleys);
-        }
-        addDebugEntities(context, qUnion(pulleys), DebugColor.BLUE);
-
-        createAllText(context, id + "text", definition, pulleyDefinitions);
-        addDebugEntities(context, qCreatedBy(id + "text", EntityType.BODY));
-    }
-    throw regenError("Failed to engrave text. Check input.");
-}
-
 
 const TEXT_POSITION_MANIPULATOR = "textPositionManipulator";
 

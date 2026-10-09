@@ -17,6 +17,7 @@ export function testChainInfo()
     expectEqual(getChainInfo(ChainType.ANSI_25).pitch, 0.25 * inch);
     expectEqual(getChainInfo(ChainType.ANSI_35).pitch, 0.375 * inch);
     expectEqual(getChainTypeName(ChainType.ANSI_35), "#35");
+    expectEqual(getChainInfo(ChainType.ISO_05B).pitch, 8 * millimeter);
 }
 
 export function testFlipManipulatorSwapsSide()
@@ -28,4 +29,10 @@ export function testFlipManipulatorSwapsSide()
     const flipped = robotChainManipulatorChange(newContext(), definition, { "chainSideFlipManipulator.1" : { "flipped" : true } });
     expectEqual(flipped.sprockets[0].chainSide, ChainSide.INSIDE);
     expectEqual(flipped.sprockets[1].chainSide, ChainSide.OUTSIDE);
+}
+
+export function testPitchCircleTeeth()
+{
+    expectNear(pitchCircleTeeth(0.25 * inch, getSprocketRadius(0.25 * inch, 22)), 22, 1e-9);
+    expectEqual(pitchCircleTeeth(0.25 * inch, 0.1 * inch), undefined);
 }

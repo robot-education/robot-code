@@ -14,6 +14,7 @@ export import(path : "6451a02d1f9f40630984864b", version : "ef6cb5b6d8c95ab1a3e7
 import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
 // Exports Fit, a parameter type
 export import(path : "core/fit.fs", version : "");
+import(path : "core/bore.fs", version : "");
 
 /**
  * The bores SplineXS adapters can cut.
@@ -71,6 +72,8 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
                 boreFitPredicate(definition);
 
                 simpleExtrudePredicate(definition);
+
+                entranceChamferPredicate(definition);
             }
         }
     }
@@ -85,9 +88,10 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
         }
 
         createPrintAdapter(context, id, definition, locationPlane);
+        var boreFaces;
         if (definition.addBore)
         {
-            createPrintBore(context, id, definition, locationPlane);
+            boreFaces = createPrintBore(context, id, definition, locationPlane);
         }
 
         // Boolean after extruding so we can add manipulators in the right spots
@@ -117,6 +121,12 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
                     "defaultScope" : false,
                     "booleanScope" : definition.scope
                 }, reconstructOp);
+
+        if (definition.addBore && definition.entranceChamfer)
+        {
+            // The bore's sides, followed through the boolean into the parts
+            chamferBoreEntrances(context, id, id + "entranceChamfer", boreFaces, definition.chamferDistance);
+        }
     });
 
 function createPrintAdapter(context is Context, id is Id, definition is map, plane is Plane)
@@ -158,7 +168,10 @@ function createPrintAdapter(context is Context, id is Id, definition is map, pla
     }
 }
 
-function createPrintBore(context is Context, id is Id, definition is map, plane is Plane)
+/**
+ * Makes the bore's tool, and returns its sides, tracked (so they're the bore's sides in the parts, once it's cut).
+ */
+function createPrintBore(context is Context, id is Id, definition is map, plane is Plane) returns Query
 {
     // We need to use top level id for the extrude here, so don't make a specific boreId
     const sketchId = id + "sketch";
@@ -170,7 +183,8 @@ function createPrintBore(context is Context, id is Id, definition is map, plane 
 
     const extrudeId = id;
     callSubfeatureAndProcessStatus(id, extrude, context, extrudeId, extrudeDefinition, { "featureParameterMap" : { "entities" : "location" } });
-    const outsideFaces = qNonCapEntity(extrudeId, EntityType.FACE);
+    // The bore's sides: what's made under the feature's id is the adapter's pocket too
+    const outsideFaces = qSubtraction(qNonCapEntity(extrudeId, EntityType.FACE), qCreatedBy(id + "adapter", EntityType.FACE));
 
     cleanup(context, id + "deleteBore", qCreatedBy(sketchId, EntityType.BODY));
 
@@ -190,6 +204,7 @@ function createPrintBore(context is Context, id is Id, definition is map, plane 
             throw regenError("Failed to fit the bore. Is its clearance too large?", ["boreFit", "boreFitClearance"], qCreatedBy(id, EntityType.BODY));
         }
     }
+    return startTracking(context, outsideFaces);
 }
 
 /**

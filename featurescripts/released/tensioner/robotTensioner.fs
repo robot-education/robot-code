@@ -4,6 +4,8 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
 import(path : "ea127c07807644fb48d3a1ae", version : "72fbd92d548c811d10a5d2f3");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "4aff58a1ab26d9f7aa7abfbb");
 import(path : "core/loop.fs", version : "");
+import(path : "e269bd2b7266145c47eaf374", version : "6c8b8d8077dcf88085165ded");
+import(path : "chain/chainCommon.fs", version : "");
 
 import(path : "6c65805103086c85362ee4b7", version : "06268198ef2566cb246b9f56");
 
@@ -37,8 +39,9 @@ export const robotBeltTuner = defineFeature(function(context is Context, id is I
         annotation { "Name" : "Belt or chain", "Filter" : EntityType.BODY && BodyType.SOLID, "MaxNumberOfPicks" : 1 }
         definition.loop is Query;
 
-        annotation { "Name" : "Pulley, sprocket, or idler", "Filter" : (EntityType.FACE && GeometryType.CYLINDER) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1,
-                    "Description" : "The one to adjust: the belt's or chain's curved face around it, or its mate connector." }
+        annotation { "Name" : "Pulley, sprocket, or idler", "Filter" : (EntityType.FACE && GeometryType.CYLINDER) || BodyType.MATE_CONNECTOR || (EntityType.BODY && BodyType.SOLID),
+                    "MaxNumberOfPicks" : 1,
+                    "Description" : "The one to adjust: the belt's or chain's curved face around it, its mate connector, or a Robot pulley or sprocket." }
         definition.adjust is Query;
 
         if (definition.adjustmentType == AdjustmentType.MOVE)
@@ -149,9 +152,23 @@ function getAdjustIndex(context is Context, definition is map, loopPlane is Plan
 {
     verifyNonemptyQuery(context, definition, "adjust", "Select the pulley, sprocket, or idler to adjust: the belt's or chain's curved face around it, or its mate connector.");
     var center;
-    if (isMateConnector(context, definition.adjust))
+    // A Robot pulley's or sprocket's center is its attribute's
+    var part;
+    for (var name in [PULLEY_ATTRIBUTE, SPROCKET_ATTRIBUTE])
+    {
+        part = part ?? getAttribute(context, { "entity" : definition.adjust, "name" : name });
+    }
+    if (part != undefined && part.coordSystem is PersistentCoordSystem && part.coordSystem.coordSystem != undefined)
+    {
+        center = part.coordSystem.coordSystem.origin;
+    }
+    else if (isMateConnector(context, definition.adjust))
     {
         center = evMateConnector(context, { "mateConnector" : definition.adjust }).origin;
+    }
+    else if (!isQueryEmpty(context, definition.adjust->qEntityFilter(EntityType.BODY)))
+    {
+        throw regenError("Select a Robot pulley or sprocket, or the belt's or chain's face around one, or its mate connector.", ["adjust"], definition.adjust);
     }
     else
     {
