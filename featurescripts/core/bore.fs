@@ -5,7 +5,6 @@ import(path : "onshape/std/chamfer.fs", version : "2960.0");
 // Exports Fit and SplineType, parameter types
 export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
 export import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
-import(path : "a4248fe48b63da8d1971e19a", version : "dc5877be14fda78f4c2fc22c");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
 /**
@@ -130,12 +129,61 @@ export function definitionBore(definition is map)
             } as Bore;
 }
 
+const BORE_PARAMETERS = ["boreShape", "hexWidth", "boreDiameter", "splineType", "fit", "fitClearance"];
+
 /**
  * Cuts `bore` through each of `targets` (the parts), centered on its plane in `planes` (along its normal), with
- * `identities` (queries, or undefined) to disambiguate them. `featureId` is the feature's id, for its errors (see
- * `runStep`).
+ * `identities` (queries, or undefined) to disambiguate them.
  */
-export function cutBores(context is Context, featureId is Id, id is Id, bore is Bore, planes is array, identities is array, targets is array)
+export function cutBores(context is Context, id is Id, bore is Bore, planes is array, identities is array, targets is array)
+{
+    const tools = boreTools(context, id, bore, planes, identities);
+    // The bore's edges inside the parts, to tell its entrance edges from
+    const insideEdges = startTracking(context, qNonCapEntity(id, EntityType.EDGE));
+    try
+    {
+        opBoolean(context, id + "cut", {
+                    "tools" : tools,
+                    "targets" : qUnion(targets),
+                    "operationType" : BooleanOperationType.SUBTRACTION
+                });
+    }
+    catch
+    {
+        // A failed boolean changes nothing, so the bores are still there to show
+        throw regenError("Failed to cut bore.", BORE_PARAMETERS, tools);
+    }
+    for (var target in targets)
+    {
+        if (isQueryEmpty(context, target))
+        {
+            // The bore's bigger than the part: the cut used it up, with the bores, so they're made again to show
+            throw regenError("The bore is bigger than the part.", BORE_PARAMETERS, boreTools(context, id + "error", bore, planes, identities));
+        }
+    }
+
+    if (bore.chamfer != undefined)
+    {
+        const entranceEdges = qSubtraction(qCreatedBy(id + "cut", EntityType.EDGE), insideEdges);
+        try
+        {
+            opChamfer(context, id + "chamfer", {
+                        "entities" : entranceEdges,
+                        "chamferType" : ChamferType.EQUAL_OFFSETS,
+                        "width" : bore.chamfer
+                    });
+        }
+        catch
+        {
+            throw regenError("Failed to chamfer bore.", ["chamferDistance"], entranceEdges);
+        }
+    }
+}
+
+/**
+ * The bores' tool bodies (see `cutBores`), through everything both ways from each of `planes`.
+ */
+function boreTools(context is Context, id is Id, bore is Bore, planes is array, identities is array) returns Query
 {
     var tools = [];
     for (var i, plane in planes)
@@ -147,34 +195,8 @@ export function cutBores(context is Context, featureId is Id, id is Id, bore is 
         }
         tools = append(tools, boreTool(context, boreId, bore, plane));
     }
-    const bodies = qUnion(tools);
     cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
-
-    // The bore's edges inside the parts, to tell its entrance edges from
-    const insideEdges = startTracking(context, qNonCapEntity(id, EntityType.EDGE));
-    runStep(context, featureId, id + "cut", opBoolean, {
-                "tools" : bodies,
-                "targets" : qUnion(targets),
-                "operationType" : BooleanOperationType.SUBTRACTION
-            }, {
-                "message" : "Couldn't cut the bore.",
-                "faultyParameters" : ["boreShape", "hexWidth", "boreDiameter", "splineType", "fit", "fitClearance"],
-                "entities" : qUnion([bodies, qUnion(targets)])
-            });
-
-    if (bore.chamfer != undefined)
-    {
-        const entranceEdges = qSubtraction(qCreatedBy(id + "cut", EntityType.EDGE), insideEdges);
-        runStep(context, featureId, id + "chamfer", opChamfer, {
-                    "entities" : entranceEdges,
-                    "chamferType" : ChamferType.EQUAL_OFFSETS,
-                    "width" : bore.chamfer
-                }, {
-                    "message" : "Couldn't chamfer the bore's entrances.",
-                    "faultyParameters" : ["chamferDistance"],
-                    "entities" : entranceEdges
-                });
-    }
+    return qUnion(tools);
 }
 
 /**
@@ -226,9 +248,9 @@ function boreTool(context is Context, id is Id, bore is Bore, plane is Plane) re
 
 /**
  * Chamfers a bore's entrances: the edges of `boreFaces` (the bore's sides, in the part) which meet the part's other
- * faces, rather than each other. `featureId` is the feature's id, for its errors (see `runStep`).
+ * faces, rather than each other.
  */
-export function chamferBoreEntrances(context is Context, featureId is Id, id is Id, boreFaces is Query, distance is ValueWithUnits)
+export function chamferBoreEntrances(context is Context, id is Id, boreFaces is Query, distance is ValueWithUnits)
 {
     var entrances = [];
     for (var edge in evaluateQuery(context, qAdjacent(boreFaces, AdjacencyType.EDGE, EntityType.EDGE)))
@@ -242,13 +264,16 @@ export function chamferBoreEntrances(context is Context, featureId is Id, id is 
     {
         return;
     }
-    runStep(context, featureId, id, opChamfer, {
-                "entities" : qUnion(entrances),
-                "chamferType" : ChamferType.EQUAL_OFFSETS,
-                "width" : distance
-            }, {
-                "message" : "Couldn't chamfer the bore's entrances.",
-                "faultyParameters" : ["chamferDistance"],
-                "entities" : qUnion(entrances)
-            });
+    try
+    {
+        opChamfer(context, id, {
+                    "entities" : qUnion(entrances),
+                    "chamferType" : ChamferType.EQUAL_OFFSETS,
+                    "width" : distance
+                });
+    }
+    catch
+    {
+        throw regenError("Failed to chamfer bore.", ["chamferDistance"], qUnion(entrances));
+    }
 }

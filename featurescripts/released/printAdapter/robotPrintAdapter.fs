@@ -125,7 +125,7 @@ export const robotPrintAdapter = defineFeature(function(context is Context, id i
         if (definition.addBore && definition.entranceChamfer)
         {
             // The bore's sides, followed through the boolean into the parts
-            chamferBoreEntrances(context, id, id + "entranceChamfer", boreFaces, definition.chamferDistance);
+            chamferBoreEntrances(context, id + "entranceChamfer", boreFaces, definition.chamferDistance);
         }
     });
 

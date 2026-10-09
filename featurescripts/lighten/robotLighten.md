@@ -1,14 +1,13 @@
 # Robot lighten
 
 Lightens parts with pockets: everything within the extrude of the faces to lighten (into their parts, as the end type
-says) is cut away, but for walls along the faces' edges (their parts' sides and holes) and ribs along the rib sketch's
-edges (lines, arcs, circles, or splines), with the pockets' corners rounded as a router bit leaves them.
+says) is cut away, but for walls along the faces' edges (their parts' sides and holes) and ribs along the selected
+sketch edges (lines, arcs, circles, or splines), with the pockets' corners rounded as a router bit leaves them.
 
 | File | What it is |
 | --- | --- |
 | `robotLighten.fs` | The feature: its dialog, the pockets, ribs, walls, and fillets, and its editing logic |
 | `../core/stdExtrude.fs` | The end type and its options (`extrudePredicate`), as std's extrude has them |
-| `../core/steps.fs` | Runs each step as a subfeature, showing its status, and its failures as the feature's errors |
 
 ## Changelog
 
@@ -23,72 +22,56 @@ Unreleased.
 
 ### Descriptions and hidden parameters
 
-| Parameter | Description |
-| --- | --- |
-| Faces to lighten (`faces`) | The flat faces pockets are cut into, parallel to the rib sketch. |
-| Rib sketch (`ribEdges`) | The sketch whose edges (lines, arcs, circles, or splines) ribs are left along. |
-| Wall thickness (`wallThickness`) | How thick the walls left along the parts' sides and around their holes are. |
-| Fillet corners (`filletCorners`) | Round the pockets' corners, as a router bit leaves them. |
-| Faces to ignore (`ignoredFaces`) | Faces no wall is left along, so pockets run out through them. |
-
-No parameters are hidden. Editing logic sets the shown Faces to lighten and Opposite direction (see Execution order).
+No parameters have descriptions, and none are hidden. Editing logic sets the shown Faces to lighten and Opposite
+direction (see Execution order).
 
 ### Errors, warnings, and info
 
-Each step's own error display (what it highlights) is shown with these, and its own message after them when it's a
-custom one (see `core/steps.fs`). Steps' warnings and info are shown as the feature's. When a step's diagnosis (see
-Error handling) finds what fails on its own, its message follows the step's, and what fails is shown in red instead
-of everything the step was given.
+Errors from a failed operation show what failed in red: what it was given, narrowed down (for some) to what fails when
+it's tried alone (see Error handling).
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
 | Select the faces to lighten. | error | no faces to lighten | `faces` |
-| Select the edges of a sketch to leave ribs along. | error | no rib sketch edges (or only construction ones, excluded) | `ribEdges` |
-| The rib sketch's edges must all be in one plane. | error | edges from sketches on different planes | `ribEdges`, the edges |
-| The faces to lighten must be parallel to the rib sketch. | error | a face to lighten isn't | `faces`, `ribEdges`, those faces |
-| Couldn't extrude the faces to lighten. | error | std's extrude of the faces fails (like an up to face which isn't reached) | the extrude's parameters, the faces |
-| Couldn't make the walls along the faces' edges. | error | extruding the faces' edges as sheets, or thickening them, fails | `faces`, `wallThickness`, `ignoredFaces`, the edges |
-| Couldn't make the ribs along the rib sketch's edges. | error | extruding the rib edges as sheets, or thickening them, fails | `ribEdges`, `ribThickness`, the edges |
-| Couldn't cut the walls and ribs from the pockets. | error | the boolean fails | `wallThickness`, `ribThickness`, the extrude, walls, and ribs |
-| Couldn't grow the pockets back to round their corners. | error | offsetting the pockets' sides fails | `cornerRadius`, the pockets |
-| Couldn't fillet the pockets' corners. | error | `opFillet` fails | `cornerRadius`, the corners |
-| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `ribThickness`, `cornerRadius` |
-| Couldn't cut the pockets from the parts. | error | the boolean fails | `faces`, the pockets and faces |
+| Select ribs to use. | error | no ribs (or only construction ones, excluded) | `ribEdges` |
+| The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, those ribs |
+| The faces to lighten must be parallel to the ribs. | error | a face to lighten isn't | `faces`, `ribEdges`, those faces |
+| std's extrude's own errors | error | std's extrude of the faces fails (like an up to face which isn't reached) | its own: the end type's parameters |
+| Failed to extrude walls. | error | extruding the faces' edges as sheets fails | `faces`, `wallThickness`, `ignoredFaces`, the edges |
+| Failed to thicken walls. | error | thickening those sheets fails | `faces`, `wallThickness`, `ignoredFaces`, the sheets which fail alone |
+| Failed to extrude ribs. | error | extruding the ribs as sheets fails | `ribEdges`, `ribThickness`, the ribs |
+| Failed to thicken ribs. | error | thickening those sheets fails | `ribEdges`, `ribThickness`, the sheets which fail alone |
+| Failed to cut walls and ribs. | error | cutting them from the extrude fails | `wallThickness`, `ribThickness`, the walls and ribs which fail alone |
+| Failed to grow pockets back to round their corners. | error | offsetting the pockets' sides fails | `filletRadius`, the pockets which fail alone |
+| Failed to fillet pocket corners. | error | `opFillet` fails | `filletRadius`, the pockets whose corners fail alone |
+| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `ribThickness`, `filletRadius` |
+| Failed to cut pockets. | error | cutting them from the parts fails | `faces`, the pockets which fail alone |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, the loose parts |
-
-Diagnoses, after their step's message:
-
-| Message | After | Shows |
-| --- | --- | --- |
-| The ones along the sheets shown can't be made on their own. | Couldn't make the walls (or ribs)... | the sheets which fail to thicken alone |
-| The walls or ribs shown can't be cut on their own: look for one which nearly lines up with a part's side or another rib, or meets one at a tangent. | Couldn't cut the walls and ribs... | the walls and ribs which fail to cut from the extrude alone |
-| The pockets shown can't be grown back on their own. | Couldn't grow the pockets back... | the pockets whose sides fail to offset alone |
-| The corners of the pockets shown can't be filleted on their own. | Couldn't fillet the pockets' corners. | the pockets whose corners fail to fillet alone |
-| The pockets shown can't be cut on their own: look for one which nearly lines up with a part's face or edge. | Couldn't cut the pockets from the parts. | the pockets which fail to cut from the parts alone |
 
 ## How it works
 
 ### Execution order
 
-1. **Precondition**: Faces to lighten, Rib sketch, Exclude construction lines, Wall thickness, Rib thickness, the end
+1. **Precondition**: Faces to lighten, Ribs to use, Exclude construction lines, Wall thickness, Rib thickness, the end
    type and its options (`extrudePredicate`: end type and bounds, starting offset, symmetric, second end position),
-   Fillet corners and its Radius, Faces to ignore (in Ignored faces).
+   Fillet corners, Fillet radius, Faces to ignore (in Ignored faces).
 2. **Editing logic** (`robotLightenEditLogic`):
    1. Unless Opposite direction has been set, sets it, so the pockets go into the faces' parts (an extrude of a part's
       face goes out of it).
-   2. Unless Faces to lighten has been set, and once there's a rib sketch, `facesUnder` fills it: the faces in the
-      sketch's plane (of parts which aren't hidden) whose bounding boxes, in the plane, overlap the sketch's. It only
+   2. Unless Faces to lighten has been set, and once there are ribs, `facesUnder` fills it: the faces in the first
+      rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in the plane, overlap the ribs'. It only
       evaluates: building anything in editing logic (a trial feature, between `startFeature` and `abortFeature`) can
       crash the Part Studio.
 3. **Body**:
-   1. The faces to lighten (`getFaces`), the rib edges (`getRibEdges`, less construction ones) and their plane
-      (`ribPlane`) are found, and the faces are checked to be parallel to it (`verifyParallel`).
+   1. The faces to lighten (`getFaces`), the ribs (`getRibEdges`, less construction ones) and their plane
+      (`ribPlane`: the first's sketch plane, which the rest's must be parallel to) are found, and the faces are checked
+      to be parallel to it (`verifyParallel`). The ribs can be from any number of sketches.
    2. `buildPockets`: the faces are extruded with std's `extrude`, at the top level id (so its manipulators are the
-      feature's), as a new body: the most the pockets can be.
-   3. `buildBands` makes the walls, along the faces' edges (but those also of an ignored face), and the ribs, along the
-      rib edges: each edge is extruded through everything both ways as a sheet (a circle's is a tube), and thickened
-      to each side, by the wall thickness, or half the rib thickness. With Fillet corners, each is the radius thicker
-      to each side.
+      feature's), as a new body: the most the pockets can be. If it reports an error, the feature returns, with it.
+   3. The walls, along the faces' edges (but those also of an ignored face), and the ribs: their edges are extruded
+      through everything both ways as sheets (`extrudeSheets`; a circle's is a tube), and thickened to each side
+      (`thickenSheets`), by the wall thickness, or half the rib thickness. With Fillet corners, each is the fillet radius
+      thicker to each side.
    4. The walls and ribs are cut from the extrude, leaving the pockets between them, in pieces.
    5. With Fillet corners, `roundPockets` rounds them: their sides are offset out by the radius (growing them back
       from the thicker walls and ribs), and their convex edges along the sketch's normal (their corners) are filleted
@@ -101,25 +84,21 @@ Diagnoses, after their step's message:
 
 ### Error handling
 
-Every operation runs through `runStep` (`core/steps.fs`): its warnings and info are shown as the feature's, and when it
-fails, its error display is kept, what it was given is shown in red (the selections, or the pockets and ribs, which a
-failed step leaves as they were), and an error of the feature's own is thrown, highlighting the parameters which set
-what failed. Selections are checked before anything's built. Warnings are reported when they're found.
-
-Once a step has failed, and only then, its diagnosis narrows down what failed (`failingItems`): it tries the step
-again on each sheet, wall or rib, or pocket alone, on copies of what it's cut from or changes (`copyBodies`), so each
-try sees what the step was given. What fails alone is shown in red, with the diagnosis's message after the step's. If
-nothing fails alone (the step fails only on everything together), everything the step was given is shown, as before.
-The diagnosis runs an operation per item, but only on the way to an error, which rolls it all back.
+Each operation which can fail has its own `try`, and its `catch` throws the feature's error for it, highlighting the
+parameters which set what failed, and showing it in red. A failed operation changes nothing, so what it was given is
+still there to show. For the thickens, cuts, offset, and fillet, the `catch` narrows that down (`failingBodies`):
+it tries the operation again on each sheet, wall or rib, or pocket alone (cuts on copies of what they cut,
+`copyBodies`, so each try sees what the operation was given), and shows those which fail alone, or everything, if
+none does (it fails only on everything together). That runs an operation per body, but only on the way to an error,
+which rolls it all back. Selections are checked before anything's built. Warnings are reported when they're found.
 
 ### `try`s
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| `runStep` (`core/steps.fs`) | Each step | Throws the step's error (above). |
-| `robotLightenEditLogic` (`try silent`) | Finding the rib sketch's edges and plane | A guard: with no rib sketch yet, editing logic leaves the definition as it is. |
-| `stepError` (`core/steps.fs`, `try silent`) | A failed step's diagnosis | A guard: the step's error is thrown without it. |
-| `failingItems` (`core/steps.fs`, `try silent`) | Each try of a step on one item | What it's looking for: the item is one which fails alone. |
+| `extrudeSheets`, `thickenSheets`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
+| `failingBodies` (`try silent`) | Each try of a failed operation on one body | What it's looking for: the body is one which fails alone. |
+| `robotLightenEditLogic` (`try silent`) | Finding the ribs and their plane | A guard: with no ribs yet, editing logic leaves the definition as it is. |
 
 ## Issues found
 

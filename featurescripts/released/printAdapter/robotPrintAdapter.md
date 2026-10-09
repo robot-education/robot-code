@@ -72,7 +72,7 @@ No parameters are hidden. Editing logic sets the shown Merge scope and Opposite 
 | Failed to fit the bore. Is its clearance too large? | error | offsetting the bore's sides fails | `boreFit`, `boreFitClearance`, the feature's bodies |
 | std's `HOLE_EMPTY_SCOPE` | error | Merge scope is empty | `scope`, and the pocket (and bore) as error bodies |
 | std's extrude and boolean errors | error | the bore's extrude or the cut fails | (std's) |
-| Couldn't chamfer the bore's entrances. | error | the entrance chamfer fails | `chamferDistance`, the edges |
+| Failed to chamfer bore. | error | the entrance chamfer fails | `chamferDistance`, the edges |
 
 ## How it works
 

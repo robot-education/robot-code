@@ -50,7 +50,7 @@ No parameters are hidden.
 | The rack's back must be below its teeth's roots. | error | Height is less than the dedendum | `rackHeight` |
 | The rack's teeth come to points: use less clearance. / The rack's teeth meet at their roots: use more clearance. | error | the profile offset's too far | `profileOffsetDistance` |
 | Its pitch diameter is `<diameter>`. | info | a gear | |
-| Couldn't cut the bore. / Couldn't chamfer the bore's entrances. | error | (`core/bore.fs`) | the bore's parameters, and what failed |
+| Failed to cut bore. / The bore is bigger than the part. / Failed to chamfer bore. | error | (`core/bore.fs`) | the bore's parameters, and what failed |
 
 ## How it works
 

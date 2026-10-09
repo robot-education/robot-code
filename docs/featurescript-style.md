@@ -271,16 +271,28 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   of what it was given, alone (on copies, so each try sees the same inputs), and show the parts which fail. The
   feature's about to throw, so everything the diagnosis builds is rolled back with it, and its error display stays.
 
-`core/steps.fs` puts this together. Run each step that can fail (each operation, or std feature) with `runStep`,
-giving it what to say if it fails: its message, the feature's parameters to highlight, what to show (`entities`), and a
-`reconstruct` function for anything to show which earlier steps used up, and optionally a `diagnose` function, run only
-when the step fails, which narrows what to show down to the parts which fail on their own (`failingItems`, trying
-each on copies made with `copyBodies`). It copies the step's warnings and info,
-and when it fails, its error display, then throws the feature's error, with the step's own message after it when it's
-a custom one. A failing fillet, for example, shows the edges it was given and its own highlights, with "Couldn't
-fillet the pockets' corners." and the Radius highlighted. Run steps one operation at a time: a function of the
-feature's own which runs several operations has no status of its own for `runStep` to read, since each operation
-reports on its own id.
+Write this with std's functions directly: wrap each operation which can fail in `try`, and in its `catch`, throw a
+`regenError` of the feature's own, saying what failed ("Failed to thicken ribs."), highlighting the parameters which set
+it, and showing what failed as its entities. Give each operation its own `try` and message, so the error says which
+failed. A failed operation changed nothing, so what it was given can be shown as it is; build what's gone (what an
+earlier operation used up) again in the `catch`, under an id of its own, and show that. To narrow down what failed,
+try the operation on each thing it was given alone, in a loop in the `catch` (on copies, where a try changes what the
+next one sees), and show those which fail. For example (`core/bore.fs`):
+
+```
+try
+{
+    opBoolean(context, id + "cut", { "tools" : tools, "targets" : targets, "operationType" : BooleanOperationType.SUBTRACTION });
+}
+catch
+{
+    // A failed boolean changes nothing, so the bores are still there to show
+    throw regenError("Failed to cut bore.", BORE_PARAMETERS, tools);
+}
+```
+
+A std feature run at the feature's own id (to use its manipulators, like `extrude`) doesn't throw: it reports its
+error as the feature's, and returns. Check for it (`getFeatureError`), and return, so the feature stops with it.
 
 ## Keywords as map keys
 

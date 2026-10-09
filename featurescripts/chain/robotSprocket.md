@@ -45,7 +45,7 @@ No parameters are hidden.
 | The selection is around one of the chain's idlers, not a sprocket. | error | an idler's face | `chainSelections`, it |
 | The profile offset is too large for this chain. | error | the offset leaves no seating curve | `profileOffsetDistance` |
 | A `<teeth>` tooth sprocket's teeth don't fit this chain. | error | the flanks can't reach a tip | `teeth` |
-| Couldn't cut the bore. / Couldn't chamfer the bore's entrances. | error | (`core/bore.fs`) | the bore's parameters, and what failed |
+| Failed to cut bore. / The bore is bigger than the part. / Failed to chamfer bore. | error | (`core/bore.fs`) | the bore's parameters, and what failed |
 
 ## How it works
 

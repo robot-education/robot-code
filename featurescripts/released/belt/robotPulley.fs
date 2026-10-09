@@ -6,7 +6,6 @@ export import(path : "484d2d590d4a2ab919981b0e", version : "7137aa56702a1f5e3955
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "7ff3897ddcba9a81bae27310");
 import(path : "01f0c5634015659514b83da1", version : "5054ae3d069649e06068d82b");
-import(path : "a4248fe48b63da8d1971e19a", version : "84a8da5dce4e619110893727");
 
 annotation {
         "Feature Type Name" : "Robot pulley",
@@ -70,7 +69,7 @@ function doRobotPulley(context is Context, id is Id, definition is map)
 
     if (definition.addBore)
     {
-        addBores(context, id, id + "bore", definition, pulleyDefinitions, pulleys);
+        addBores(context, id + "bore", definition, pulleyDefinitions, pulleys);
     }
 
     // Add last to allow handling bore overlap error
@@ -79,7 +78,7 @@ function doRobotPulley(context is Context, id is Id, definition is map)
                     return hasText(definition, pulleyDefinition);
                 }))
     {
-        addText(context, id, id + "text", definition, pulleyDefinitions, pulleys);
+        addText(context, id + "text", definition, pulleyDefinitions, pulleys);
     }
 }
 
@@ -524,35 +523,40 @@ function pulleyBore(definition is map) returns Bore
     return definitionBore(boreDefinition);
 }
 
-function addBores(context is Context, featureId is Id, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
+function addBores(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
 {
-    cutBores(context, featureId, id, pulleyBore(definition),
+    cutBores(context, id, pulleyBore(definition),
         mapArray(pulleyDefinitions, function(pulleyDefinition) { return pulleyDefinition.plane; }),
         mapArray(pulleyDefinitions, function(pulleyDefinition) { return pulleyDefinition.identity; }),
         pulleys);
 }
 
-function addText(context is Context, featureId is Id, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
+function addText(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
 {
     const textId = id + "text";
     createAllText(context, textId, definition, pulleyDefinitions);
     const text = qCreatedBy(textId, EntityType.BODY)->qBodyType(BodyType.SOLID);
 
     const textFaces = startTracking(context, qCreatedBy(textId, EntityType.FACE));
-    // A failed boolean changes nothing, so the text and pulleys are still there to show
-    runStep(context, featureId, id + "cutText", opBoolean, {
-                "tools" : text,
-                "targets" : qUnion(pulleys),
-                "operationType" : BooleanOperationType.SUBTRACTION,
-                "targetsAndToolsNeedGrouping" : true
-            }, {
-                "message" : "Couldn't engrave the tooth count.",
-                "faultyParameters" : ["textPosition", "textSize"],
-                "entities" : qUnion([text, qUnion(pulleys)])
-            });
+    try
+    {
+        opBoolean(context, id + "cutText", {
+                    "tools" : text,
+                    "targets" : qUnion(pulleys),
+                    "operationType" : BooleanOperationType.SUBTRACTION,
+                    "targetsAndToolsNeedGrouping" : true
+                });
+    }
+    catch
+    {
+        // A failed boolean changes nothing, so the text is still there to show
+        throw regenError("Failed to engrave text.", ["textPosition", "textSize"], text);
+    }
     if (isQueryEmpty(context, textFaces))
     {
-        throw regenError("The tooth count's text doesn't reach the pulley: check its position.", ["textPosition"]);
+        // The cut used the text up, so it's made again to show
+        createAllText(context, id + "error", definition, pulleyDefinitions);
+        throw regenError("The text doesn't reach the pulley.", ["textPosition"], qCreatedBy(id + "error", EntityType.BODY)->qBodyType(BodyType.SOLID));
     }
 }
 

@@ -190,7 +190,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             const bore = definitionBore(definition);
             if (bore != undefined)
             {
-                cutBores(context, id, id + "bore", bore, [gearPlane], [undefined], [gear]);
+                cutBores(context, id + "bore", bore, [gearPlane], [undefined], [gear]);
             }
             // Its pitch diameter, for spacing gears: two mesh their pitch radii apart
             reportFeatureInfo(context, id, "Its pitch diameter is " ~ makeValueString(definition.unitSystem, 2 * form.pitchRadius, true) ~ ".");
