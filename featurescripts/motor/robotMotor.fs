@@ -10,6 +10,8 @@ import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 export import(path : "58d66340f7b70cfc86606676", version : "c9963ef4d574eccc05ff889f");
 // Exports Fit, a parameter type
 export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
+// Exports Program, a parameter type
+export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 export import(path : "motor/motorTables.gen.fs", version : "");
 
 export enum ComponentType
@@ -23,6 +25,12 @@ export enum ComponentType
 predicate isMotor(definition is map)
 {
     definition.componentType == ComponentType.MOTOR;
+}
+
+predicate showBlockMotor(definition is map)
+{
+    definition.componentType == ComponentType.MOTOR;
+    definition.hasBlockModel;
 }
 
 const HOLE_INDEX_BOUNDS = { (unitless) : [1, 1, 1e5] } as IntegerBoundSpec;
@@ -40,22 +48,48 @@ annotation { "Feature Type Name" : "Robot motor",
 export const robotMotor = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
+        programPredicate(definition);
+
         annotation { "Name" : "Component type", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.componentType is ComponentType;
 
+        // Whether the chosen motor has a block model, which editing logic sets from its table (conditions can't read
+        // lookup tables)
+        annotation { "Name" : "Has block model", "UIHint" : ["ALWAYS_HIDDEN"] }
+        definition.hasBlockModel is boolean;
+
         if (isMotor(definition))
         {
-            annotation { "Name" : "Motor", "Lookup Table" : motorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.motor is LookupTablePath;
+            if (isFrc(definition))
+            {
+                annotation { "Name" : "Motor", "Lookup Table" : frcMotorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.frcMotor is LookupTablePath;
+            }
+            else
+            {
+                annotation { "Name" : "Motor", "Lookup Table" : ftcMotorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.ftcMotor is LookupTablePath;
+            }
 
-            annotation { "Name" : "Block motor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "Model the motor as a block: its body's envelope, its pilot, and its shaft." }
-            definition.blockMotor is boolean;
+            if (showBlockMotor(definition))
+            {
+                annotation { "Name" : "Block motor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                            "Description" : "Model the motor as a block: its body's envelope, its pilot, and its shaft." }
+                definition.blockMotor is boolean;
+            }
         }
         else
         {
-            annotation { "Name" : "Gearbox", "Lookup Table" : gearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.gearbox is LookupTablePath;
+            if (isFrc(definition))
+            {
+                annotation { "Name" : "Gearbox", "Lookup Table" : frcGearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.frcGearbox is LookupTablePath;
+            }
+            else
+            {
+                annotation { "Name" : "Gearbox", "Lookup Table" : ftcGearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.ftcGearbox is LookupTablePath;
+            }
         }
 
         locationPredicate(definition, "motor");
@@ -99,10 +133,11 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         var plane = getLocationPlane(context, definition);
         plane = applyAngleReference(context, definition, plane);
         plane = applyAxisOrientation(definition, plane);
-        addAngleOffsetManipulator(context, id, definition, plane, face.boltCircleDiameter * 0.75);
+        const positions = holePositions(face);
+        // Outside the holes, so its handle isn't on one
+        addAngleOffsetManipulator(context, id, definition, plane, 1.5 * max(mapArray(positions, norm)));
         plane = applyAngleOffset(definition, plane);
 
-        const positions = holePositions(face);
         if (definition.skipHoles)
         {
             addSkippedHolesManipulator(context, id, definition, plane, positions);
@@ -112,10 +147,11 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
             }
         }
 
-        const buildBlock = isMotor(definition) && definition.blockMotor;
+        const buildBlock = showBlockMotor(definition) && definition.blockMotor;
         if (buildBlock && face.bodyDiameter == undefined)
         {
-            throw regenError("There's no block model of the " ~ face.partName ~ " yet.", ["blockMotor"]);
+            // Has block model is stale: the motor was changed some way other than in the dialog
+            throw regenError("There's no block model of the " ~ face.partName ~ ".", ["blockMotor"]);
         }
 
         if (isQueryEmpty(context, definition.scope))
@@ -140,7 +176,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
     });
 
 /**
- * A motor's or gearbox's mounting face, from `motorTable` or `gearboxTable`, and for motors with block models, the
+ * A motor's or gearbox's mounting face, from `motorTables.gen.fs`'s tables, and for motors with block models, the
  * envelope behind it.
  */
 export type MotorFace typecheck canBeMotorFace;
@@ -149,13 +185,18 @@ export type MotorFace typecheck canBeMotorFace;
  * @param value {{
  *      @field partName {string} : The motor's or gearbox's name, as FRCDesign names it.
  *      @field screw {string} : The mounting screws' size, as std's hole tables name it (`"#10"`, `"M3"`).
- *      @field boltCircleDiameter {ValueWithUnits} :
- *      @field holeAngles {array} : Each hole's angle on the bolt circle, counterclockwise from the face's x axis.
+ *      @field boltCircleDiameter {ValueWithUnits} : @requiredif {`holePositions` isn't given.}
+ *      @field holeAngles {array} : @requiredif {`holePositions` isn't given.} Each hole's angle on the bolt circle,
+ *              counterclockwise from the face's x axis.
+ *      @field holePositions {array} : @optional Each hole's position on the face, for holes on several circles.
  *      @field pilotDiameter {ValueWithUnits} : The boss the face's hole must clear.
  *      @field pilotHeight {ValueWithUnits} : @optional How far the pilot stands off the face, for block models.
  *      @field bodyDiameter {ValueWithUnits} : @optional The diameter of a motor's body. Motors without one have no
  *              block model.
  *      @field bodyFlats {ValueWithUnits} : @optional The width across flats of a body cut flat on its top and bottom.
+ *      @field bumpDistance {ValueWithUnits} : @optional How far the end of a bump in the body (at 270°) is from its
+ *              axis. Its sides are tangent to the body.
+ *      @field bumpWidth {ValueWithUnits} : @requiredif {`bumpDistance` is given.} How wide the bump's end is.
  *      @field bodyLength {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} How far the body goes behind the face.
  *      @field shaftDiameter {ValueWithUnits} : @optional
  *      @field shaftLength {ValueWithUnits} : @requiredif {`shaftDiameter` is given.} How far the shaft goes in front
@@ -167,11 +208,22 @@ export predicate canBeMotorFace(value)
     value is map;
     value.partName is string;
     value.screw is string;
-    isLength(value.boltCircleDiameter);
-    value.holeAngles is array;
-    for (var angle in value.holeAngles)
+    if (value.holePositions == undefined)
     {
-        isAngle(angle);
+        isLength(value.boltCircleDiameter);
+        value.holeAngles is array;
+        for (var angle in value.holeAngles)
+        {
+            isAngle(angle);
+        }
+    }
+    else
+    {
+        value.holePositions is array;
+        for (var position in value.holePositions)
+        {
+            is2dPoint(position);
+        }
     }
     isLength(value.pilotDiameter);
 }
@@ -180,9 +232,17 @@ function getMotorFace(definition is map) returns MotorFace
 {
     if (isMotor(definition))
     {
-        return getLookupTable(motorTable, definition.motor) as MotorFace;
+        if (isFrc(definition))
+        {
+            return getLookupTable(frcMotorTable, definition.frcMotor) as MotorFace;
+        }
+        return getLookupTable(ftcMotorTable, definition.ftcMotor) as MotorFace;
     }
-    return getLookupTable(gearboxTable, definition.gearbox) as MotorFace;
+    if (isFrc(definition))
+    {
+        return getLookupTable(frcGearboxTable, definition.frcGearbox) as MotorFace;
+    }
+    return getLookupTable(ftcGearboxTable, definition.ftcGearbox) as MotorFace;
 }
 
 /**
@@ -190,6 +250,10 @@ function getMotorFace(definition is map) returns MotorFace
  */
 export function holePositions(face is MotorFace) returns array
 {
+    if (face.holePositions != undefined)
+    {
+        return face.holePositions;
+    }
     return mapArray(face.holeAngles, function(angle is ValueWithUnits) returns Vector
         {
             return vector(cos(angle), sin(angle)) * face.boltCircleDiameter / 2;
@@ -263,6 +327,7 @@ export function robotMotorManipulatorChange(context is Context, definition is ma
 export function robotMotorEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    definition.hasBlockModel = isMotor(definition) && getMotorFace(definition).bodyDiameter != undefined;
     return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
 }
 
@@ -318,7 +383,7 @@ function cutMountingFace(context is Context, id is Id, definition is map, face i
  */
 function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane is Plane)
 {
-    sketchBodyProfile(context, id + "sketch", plane, face.bodyDiameter, face.bodyFlats);
+    sketchBodyProfile(context, id + "sketch", plane, face);
 
     opExtrude(context, id + "body", {
                 "entities" : qSketchRegion(id + "sketch"),
@@ -364,25 +429,37 @@ function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane 
 }
 
 /**
- * Sketches a motor body's profile on `plane`, centered on its origin: a circle `diameter` across, cut flat `flats` across
- * on its top and bottom (along the plane's y axis) when `flats` is given.
+ * Sketches a motor body's profile on `plane`, centered on its origin: a circle `bodyDiameter` across, cut flat
+ * `bodyFlats` across on its top and bottom (along the plane's y axis), or with a bump at 270° whose sides are tangent
+ * to it, ending `bumpDistance` from its center, `bumpWidth` wide.
  */
-export function sketchBodyProfile(context is Context, id is Id, plane is Plane, diameter is ValueWithUnits, flats)
+export function sketchBodyProfile(context is Context, id is Id, plane is Plane, face is MotorFace)
 {
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    const radius = diameter / 2;
-    if (flats == undefined || tolerantGreaterThanOrEqual(flats, diameter))
+    const radius = face.bodyDiameter / 2;
+    if (face.bodyFlats != undefined && tolerantLessThan(face.bodyFlats, face.bodyDiameter))
     {
-        skCircle(sketch, "body", { "center" : vector(0, 0) * meter, "radius" : radius });
-    }
-    else
-    {
-        const halfFlats = flats / 2;
+        const halfFlats = face.bodyFlats / 2;
         const x = sqrt(radius ^ 2 - halfFlats ^ 2);
         skLineSegment(sketch, "top", { "start" : vector(x, halfFlats), "end" : vector(-x, halfFlats) });
         skArc(sketch, "left", { "start" : vector(-x, halfFlats), "mid" : vector(-radius, 0 * meter), "end" : vector(-x, -halfFlats) });
         skLineSegment(sketch, "bottom", { "start" : vector(-x, -halfFlats), "end" : vector(x, -halfFlats) });
         skArc(sketch, "right", { "start" : vector(x, -halfFlats), "mid" : vector(radius, 0 * meter), "end" : vector(x, halfFlats) });
+    }
+    else if (face.bumpDistance != undefined && tolerantGreaterThan(face.bumpDistance, radius))
+    {
+        // The bump's end's right corner, and where the line from it is tangent to the body
+        const corner = vector(face.bumpWidth / 2, -face.bumpDistance);
+        const tangentAngle = atan2(corner[1], corner[0]) + acos(radius / norm(corner));
+        const tangent = vector(cos(tangentAngle), sin(tangentAngle)) * radius;
+        skArc(sketch, "body", { "start" : tangent, "mid" : vector(0 * meter, radius), "end" : vector(-tangent[0], tangent[1]) });
+        skLineSegment(sketch, "bumpLeft", { "start" : vector(-tangent[0], tangent[1]), "end" : vector(-corner[0], corner[1]) });
+        skLineSegment(sketch, "bumpEnd", { "start" : vector(-corner[0], corner[1]), "end" : corner });
+        skLineSegment(sketch, "bumpRight", { "start" : corner, "end" : tangent });
+    }
+    else
+    {
+        skCircle(sketch, "body", { "center" : vector(0, 0) * meter, "radius" : radius });
     }
     skSolve(sketch);
 }

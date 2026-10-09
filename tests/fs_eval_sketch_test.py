@@ -224,11 +224,11 @@ def test_rack_profile():
     assert crossings[1] - crossings[0] == pytest.approx(math.pi * 0.001 / 2, abs=1e-12)
 
 
-def motor_body(diameter: str, flats: str):
+def motor_body(motor: str):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     evaluator.eval(
-        f'sketchBodyProfile(context, newId() + "body", XY_PLANE, {diameter}, {flats})',
+        f'sketchBodyProfile(context, newId() + "body", XY_PLANE, getLookupTable(frcMotorTable, lookupTablePath({{ "motor" : "{motor}" }})) as MotorFace)',
         "motor/robotMotor.fs",
         context=context,
     )
@@ -237,7 +237,7 @@ def motor_body(diameter: str, flats: str):
 
 def test_motor_body_with_flats():
     # A NEO Vortex's: 60 mm across, 2 in. across its flats
-    loops = motor_body("60 * millimeter", "2 * inch").loops()
+    loops = motor_body("NEO Vortex").loops()
     assert len(loops) == 1 and loops[0].closed
     curves = loops[0].curves
     assert [curve.kind for curve in curves].count("line") == 2
@@ -246,6 +246,18 @@ def test_motor_body_with_flats():
     assert min(curve.nearest() for curve in curves) == pytest.approx(0.0254)
 
 
-def test_motor_body_without_flats():
-    loops = motor_body("60 * millimeter", "undefined").loops()
+def test_motor_body_with_bump():
+    # A Kraken X60's: 60 mm across, its bump's end 33.5 mm from its center, and its sides tangent to the body
+    loop = motor_body("Kraken X60").loops()
+    assert len(loop) == 1 and loop[0].closed
+    curves = loop[0].curves
+    assert max(curve.farthest() for curve in curves) == pytest.approx(math.hypot(0.0335, 0.00775))
+    for before, after in loop[0].joints():
+        if {before.kind, after.kind} == {"arc", "line"}:
+            out, into = before.tangent(True), after.tangent(False)
+            assert abs(out[0] * into[1] - out[1] * into[0]) < 1e-9, f"{before.id} and {after.id} aren't tangent"
+
+
+def test_motor_body_round():
+    loops = motor_body("NEO").loops()
     assert len(loops) == 1 and loops[0].closed and loops[0].curves[0].kind == "circle"

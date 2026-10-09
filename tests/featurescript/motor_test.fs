@@ -6,14 +6,27 @@ import(path : "testing.fs", version : "");
 function faces() returns array
 {
     var faces = [];
-    for (var table in [motorTable, gearboxTable])
+    for (var table in [frcMotorTable, frcGearboxTable, ftcMotorTable, ftcGearboxTable])
     {
-        for (var _, entry in table.entries)
-        {
-            faces = append(faces, entry);
-        }
+        faces = concatenateArrays([faces, leaves(table)]);
     }
     return faces;
+}
+
+// Every option's values, through every level
+function leaves(level is map) returns array
+{
+    var found = [];
+    for (var _, entry in level.entries)
+    {
+        found = append(found, entry.entries == undefined ? [entry] : leaves(entry));
+    }
+    return concatenateArrays(found);
+}
+
+function motor(table is map, path is map) returns MotorFace
+{
+    return getLookupTable(table, lookupTablePath(path)) as MotorFace;
 }
 
 export function testEveryEntryIsAFace()
@@ -25,6 +38,7 @@ export function testEveryEntryIsAFace()
         // A block model needs its body's length, and a shaft its length
         expectEqual(face.bodyDiameter == undefined, face.bodyLength == undefined);
         expectEqual(face.shaftDiameter == undefined, face.shaftLength == undefined);
+        expectEqual(face.bumpDistance == undefined, face.bumpWidth == undefined);
         // Screws std's hole tables know
         fastenerHoleDiameter({ "fit" : Fit.FREE }, face.screw);
     }
@@ -38,8 +52,11 @@ export function testHolesClearThePilot()
         const definition = { "fit" : Fit.FREE, "boreFit" : Fit.FREE, "skipHoles" : false };
         const pilotRadius = (face.pilotDiameter + boreFitClearance(definition, face.pilotDiameter)) / 2;
         const holeRadius = fastenerHoleDiameter(definition, face.screw) / 2;
-        expectTrue(pilotRadius + holeRadius < face.boltCircleDiameter / 2, face.partName ~ "'s holes cut into its pilot's");
         const positions = holePositions(face as MotorFace);
+        for (var position in positions)
+        {
+            expectTrue(pilotRadius + holeRadius < norm(position), face.partName ~ "'s holes cut into its pilot's");
+        }
         for (var i = 0; i < size(positions); i += 1)
         {
             for (var j = i + 1; j < size(positions); j += 1)
@@ -52,14 +69,30 @@ export function testHolesClearThePilot()
 
 export function testHolePositions()
 {
-    const neo = getLookupTable(motorTable, lookupTablePath({ "motor" : "NEO" })) as MotorFace;
+    const neo = motor(frcMotorTable, { "motor" : "NEO" });
     const positions = holePositions(neo);
     expectEqual(size(positions), 4);
     expectNear(norm(positions[0] - vector(1, 0) * inch), 0 * meter, 1e-9 * meter);
     expectNear(norm(positions[1] - vector(0, 1) * inch), 0 * meter, 1e-9 * meter);
     // The Kraken X60 has every 30°, but for 270°
-    const kraken = getLookupTable(motorTable, lookupTablePath({ "motor" : "Kraken X60" })) as MotorFace;
-    expectEqual(size(holePositions(kraken)), 11);
+    expectEqual(size(holePositions(motor(frcMotorTable, { "motor" : "Kraken X60" }))), 11);
+    // The Minion's, by the pattern chosen
+    expectEqual(motor(frcMotorTable, { "motor" : "Minion", "pattern" : "550 (M3)" }).screw, "M3");
+    expectEqual(size(holePositions(motor(frcMotorTable, { "motor" : "Minion", "pattern" : "#10-32" }))), 5);
+    // goBILDA's 16 mm square, and two more 24 mm apart
+    const yellowJacket = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "435 RPM" });
+    expectEqual(size(holePositions(yellowJacket)), 6);
+    expectNear(norm(holePositions(yellowJacket)[1]), 8 * sqrt(2) * millimeter, 1e-9 * meter);
+}
+
+export function testBlockModels()
+{
+    // Longer gearboxes for more stages
+    const fast = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "1620 RPM" });
+    const slow = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "30 RPM" });
+    expectTrue(slow.bodyLength > fast.bodyLength, "A 4 stage gearbox isn't longer than a 1 stage one");
+    expectEqual(motor(frcMotorTable, { "motor" : "CIM" }).bodyDiameter, undefined);
+    expectNear(motor(frcMotorTable, { "motor" : "Kraken X60" }).bumpDistance, 33.5 * millimeter, 1e-9 * meter);
 }
 
 export function testSkippedHoles()
