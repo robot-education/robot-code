@@ -2,7 +2,9 @@
 `default`, and `entries`) as flat rows, one per path to a leaf, with the leaf's values: for auditing them (`fs table`).
 
 They're found and evaluated with the evaluator (`fs_eval`), so a table is shown as FeatureScript builds it, whether it's
-generated (`fs gen`) or written by hand, and values computed from expressions are shown worked out.
+generated (`fs gen`) or written by hand, and values computed from expressions are shown worked out. Their options are
+shown as the dialog shows them (`fs_cli.ui`, which reads them as they're written): in the order they're written, which
+the evaluator's maps don't keep, with each level's default its `default`, or else its first option.
 """
 
 from __future__ import annotations
@@ -28,6 +30,11 @@ class Row:
     defaults: list[bool]
     # The leaf's values, formatted, by field
     values: dict[str, str]
+
+    @property
+    def is_default(self) -> bool:
+        """Whether it's the table's default: what the dialog starts with."""
+        return all(self.defaults)
 
 
 @dataclasses.dataclass
@@ -86,8 +93,45 @@ def flatten(name: str, module: str, table) -> Table:
     return Table(name, module, [" / ".join(names) for names in levels], fields, rows)
 
 
-def find_tables(evaluator, path: pathlib.Path, code_dir: pathlib.Path) -> list[Table]:
-    """The lookup tables a file defines (its constants which are lookup tables), evaluated."""
+def options(name: str, module: str, table: dict) -> Table:
+    """A lookup table's options, as the dialog shows them: from `fs_cli.ui`'s reading of it (a dict, in the order it's
+    written), a row per path from its top level to a leaf, with each level's default its `default`, or else its first
+    option, as Onshape picks. Without values (see `with_values`)."""
+    levels: list[list[str]] = []
+    rows: list[Row] = []
+
+    def visit(node, path: list[str], defaults: list[bool]) -> None:
+        entries = node.get("entries") if isinstance(node, dict) else None
+        if not isinstance(entries, dict) or not entries:
+            rows.append(Row(path, defaults, {}))
+            return
+        depth = len(path)
+        label = str(node.get("displayName") or node.get("name") or "")
+        while len(levels) <= depth:
+            levels.append([])
+        if label not in levels[depth]:
+            levels[depth].append(label)
+        default = node.get("default")
+        if default not in entries:
+            default = next(iter(entries))
+        for key, child in entries.items():
+            visit(child, path + [str(key)], defaults + [key == default])
+
+    visit(table, [], [])
+    return Table(name, module, [" / ".join(names) for names in levels], [], rows)
+
+
+def with_values(shown: Table, evaluated: Table) -> Table:
+    """`shown`'s options (see `options`), with `evaluated`'s values (see `flatten`), by path."""
+    values = {tuple(row.path): row.values for row in evaluated.rows}
+    rows = [Row(row.path, row.defaults, values.get(tuple(row.path), {})) for row in shown.rows]
+    return dataclasses.replace(shown, fields=evaluated.fields, rows=rows)
+
+
+def find_tables(evaluator, path: pathlib.Path, code_dir: pathlib.Path, source=None) -> list[Table]:
+    """The lookup tables a file defines (its constants which are lookup tables), evaluated. With `source` (a
+    `fs_cli.ui.Evaluator` of the file's declarations), their options are shown as the dialog shows them (see
+    `options`)."""
     from fs_eval import FSError
 
     module = evaluator.module(path)
@@ -100,9 +144,19 @@ def find_tables(evaluator, path: pathlib.Path, code_dir: pathlib.Path) -> list[T
             value = evaluator.eval(name, module)
         except FSError:
             continue
-        if is_lookup_table(value):
-            tables.append(flatten(name, relative, value))
+        if not is_lookup_table(value):
+            continue
+        evaluated = flatten(name, relative, value)
+        written = source.name(name, {}) if source is not None else None
+        tables.append(with_values(options(name, relative, written), evaluated) if isinstance(written, dict) else evaluated)
     return tables
+
+
+def source_evaluator(project, std_dir: pathlib.Path, path: pathlib.Path):
+    """A `fs_cli.ui.Evaluator` of a file's declarations (and those it imports), to read its tables as written."""
+    from fs_cli.ui import Evaluator, load_declarations
+
+    return Evaluator(load_declarations(project, std_dir, path))
 
 
 _LOOKUP_ANNOTATION = re.compile(r'annotation\s*\{[^}]*"Lookup Table"\s*:\s*(\w+)[^}]*\}')
@@ -281,9 +335,10 @@ def table_section(table: Table, anchor: str, heading: str = "h2", values: bool =
                 continue
             key = row.path[depth]
             classes = ["level"]
-            if previous[: depth + 1] == row.path[: depth + 1]:
+            repeated = previous[: depth + 1] == row.path[: depth + 1]
+            if repeated:
                 classes.append("repeat")
-            if row.defaults[depth]:
+            elif row.defaults[depth]:
                 classes.append("default")
             cells.append(f'<td class="{" ".join(classes)}">{html.escape(key)}</td>')
         if not values:
@@ -294,10 +349,12 @@ def table_section(table: Table, anchor: str, heading: str = "h2", values: bool =
             cells += [f'<td class="value">{_value_html(row.values.get(field, ""))}</td>' for field in fields]
         previous = row.path
         text = " ".join([*row.path, *(row.values.values() if values else [])]).lower()
-        body.append(f'<tr data-text="{html.escape(text)}">{"".join(cells)}</tr>')
+        row_class = ' class="default-row"' if row.is_default else ""
+        body.append(f'<tr{row_class} data-text="{html.escape(text)}">{"".join(cells)}</tr>')
     return (
         f'<section id="{anchor}"><{heading}>{html.escape(table.name)}</{heading}>'
-        f'<p class="meta">{html.escape(table.module)} · {_count(table) if values else _options(table)} · defaults in bold<br>'
+        f'<p class="meta">{html.escape(table.module)} · {_count(table) if values else _options(table)} · '
+        "★ marks each level&#39;s default, and the bold row is the table&#39;s<br>"
         f'Used by: {html.escape(_uses(table))}</p>'
         f'<div class="scroll"><table><thead><tr>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
         "</section>"
@@ -321,8 +378,8 @@ TABLE_STYLE = """
 .lookup .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; border: 1px solid var(--line); }
 .lookup th { background: var(--head); position: sticky; top: 0; }
 .lookup td.level { font-weight: 500; }
-.lookup td.repeat { color: var(--muted); font-weight: 400; opacity: 0.45; }
-.lookup td.default { font-weight: 700; }
+.lookup td.repeat { color: var(--muted); opacity: 0.45; }
+.lookup tr.default-row td { font-weight: 700; }
 .lookup td.default::after { content: " ★"; color: var(--accent); font-size: 11px; }
 .lookup td.empty { color: var(--empty); font-style: italic; }
 .lookup tr.hidden { display: none; }

@@ -133,7 +133,8 @@ def audit_page(title: str, source: str, shell: str, states: list[dict], truncate
     )
     if tables:
         tables_html = (
-            "<p class='limit'>Every option, a row per path through its levels; each level's default is bold.</p>"
+            "<p class='limit'>Every option, a row per path through its levels, in the dialog's order. ★ marks each level's "
+            "default (where the dialog goes when you choose the level above), and the bold row is what it starts with.</p>"
             "<input id='table-filter' type='search' placeholder='Filter rows (all words must match)'>"
             "<div class='lookup'>" + "".join(table_section(table, f"table-{index}", "h3", values=False) for index, table in enumerate(tables)) + "</div>"
         )

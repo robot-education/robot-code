@@ -1312,7 +1312,7 @@ def audit(config: Config, args: argparse.Namespace) -> int:
 
 def _feature_tables(config: Config, project: Project, module: Module) -> list:
     """The lookup tables a file's parameters use (theirs, or those of files it imports), in the order they're named."""
-    from fs_cli.lookup_tables import find_tables, find_uses, lookup_parameters
+    from fs_cli.lookup_tables import find_tables, find_uses, lookup_parameters, source_evaluator
     from fs_eval import Evaluator
 
     modules = [module]
@@ -1336,7 +1336,8 @@ def _feature_tables(config: Config, project: Project, module: Module) -> list:
     found = {}
     for current in modules:
         if '"entries"' in current.path.read_text():
-            for found_table in find_tables(evaluator, current.path, config.code_dir):
+            source = source_evaluator(project, config.std_dir, current.path)
+            for found_table in find_tables(evaluator, current.path, config.code_dir, source):
                 found.setdefault(found_table.name, found_table)
     tables = [found[name] for name in names if name in found]
     find_uses(tables, config.code_dir)
@@ -1344,7 +1345,7 @@ def _feature_tables(config: Config, project: Project, module: Module) -> list:
 
 
 def table(config: Config, args: argparse.Namespace) -> int:
-    from fs_cli.lookup_tables import find_tables, find_uses, to_html, to_markdown, to_text
+    from fs_cli.lookup_tables import find_tables, find_uses, source_evaluator, to_html, to_markdown, to_text
     from fs_eval import Evaluator
 
     project = _project(config)
@@ -1354,9 +1355,10 @@ def table(config: Config, args: argparse.Namespace) -> int:
         # Only files which could hold one, as evaluating every constant everywhere is slow
         if '"entries"' not in module.path.read_text():
             continue
+        source = source_evaluator(project, config.std_dir, module.path)
         tables += [
             found
-            for found in find_tables(evaluator, module.path, config.code_dir)
+            for found in find_tables(evaluator, module.path, config.code_dir, source)
             if not args.name or any(name.lower() in found.name.lower() for name in args.name)
         ]
     if not tables:

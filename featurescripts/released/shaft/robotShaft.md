@@ -41,7 +41,8 @@ Since v2.2.0 (`fs changes robotShaft`).
 ### New
 
 - COTS shafts: FRC shafts from WCP, REV, AndyMark, Swyft, VEX, and ThriftyBot, and FTC shafts from goBILDA and AndyMark
-  (Robits). They're named `<length> <part name>`, and get their material, appearance, vendor, and the part number and
+  (Robits), chosen by vendor, type (as the vendor names it: Hex, Rounded Hex, Hex Lite, SplineXS, ...), size (for hex),
+  and material (only where a vendor sells the type and size in several). They're named `<length> <part name>`, and get their material, appearance, vendor, and the part number and
   link of the stock they're cut from; a warning says when one is longer than it's sold, or isn't one of the set
   lengths it's only sold in.
 - SplineXS shafts (custom and COTS), whose ends can only be tapped; COTS SplineXS shafts can have a hole through them.
