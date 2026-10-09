@@ -3,7 +3,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 
 export import(path : "21762d39019c8b2289e2fbb8", version : "80768fbb394ad68f2a15753b");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "a4248fe48b63da8d1971e19a", version : "84a8da5dce4e619110893727");
+import(path : "a4248fe48b63da8d1971e19a", version : "dc5877be14fda78f4c2fc22c");
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 const RIB_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;

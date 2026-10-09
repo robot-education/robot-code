@@ -1,19 +1,19 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-export import(path : "e269bd2b7266145c47eaf374", version : "b4f6ac77f1482a8f418914d7");
-export import(path : "00b10ef1fb1a7418097fc0af", version : "e74e529a6b7dd93216441e1c");
+export import(path : "e269bd2b7266145c47eaf374", version : "ae998ef171199ea1dc18395a");
+export import(path : "00b10ef1fb1a7418097fc0af", version : "2994750994597bce75afd4a7");
 
-export import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
+export import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
-export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
-export import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b3763f68");
-export import(path : "554542fc345271814c4463b0", version : "9c477217d62dbff99c9b2ad2");
-export import(path : "b82468283e5ec09720bad185", version : "c1982c22aa4741f71a6e97cf");
-export import(path : "962bbb367fd7d91fae71cd4c", version : "0230c5f617a7df45c9349b96");
-export import(path : "0103ad63394d7713fbf44448", version : "93809a6b0922842a07809b6f");
+export import(path : "0195d390c3944cd4fab21ce0", version : "9cc37d84cbe31e0b3f0436b3");
+export import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
+export import(path : "554542fc345271814c4463b0", version : "5b47f8330c585dfb754b8a98");
+export import(path : "b82468283e5ec09720bad185", version : "f035c6827196f0268491d7a0");
+export import(path : "962bbb367fd7d91fae71cd4c", version : "cabfd6e8df6aea3ad91f7729");
+export import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports Fit, a parameter type
-export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
+export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
 
 export enum CreationMethod
 {

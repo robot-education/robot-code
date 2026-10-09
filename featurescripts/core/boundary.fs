@@ -7,8 +7,8 @@ FeatureScript 2960;
  * This disambiguates the case of, e.g., a large circle whoose center is the midpoint between two other points.
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
-export import(path : "e14d0b81a4d6b12b9dda1cb5", version : "29cf048977f101dc3c7ec59f");
+import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
+export import(path : "e14d0b81a4d6b12b9dda1cb5", version : "8ddca5dd85363e58f6b7b9a5");
 
 export type BoundaryCircle typecheck canBeBoundaryCircle;
 

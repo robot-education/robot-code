@@ -3,9 +3,9 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "onshape/std/hole.fs", version : "2960.0");
 export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960.0");
 
-import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
+import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 // Exports Fit, a parameter type
-export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
+export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
 
 export enum ComponentType
 {

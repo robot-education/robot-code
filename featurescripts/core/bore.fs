@@ -3,10 +3,10 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "onshape/std/chamfer.fs", version : "2960.0");
 
 // Exports Fit and SplineType, parameter types
-export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
-export import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
-import(path : "a4248fe48b63da8d1971e19a", version : "84a8da5dce4e619110893727");
-import(path : "8b8c46128a5dbc2594925f4a", version : "6b7d5995c565ae73c7740b0b");
+export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
+export import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
+import(path : "a4248fe48b63da8d1971e19a", version : "dc5877be14fda78f4c2fc22c");
+import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
 /**
  * Bores through parts on a shaft (sprockets, gears, and the like): a hex, round, or spline bore, with a fit, and

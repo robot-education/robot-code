@@ -1,8 +1,8 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-export import(path : "20659432897c109a97ad647f", version : "23d745831493ea6e2cb7c7ce");
-export import(path : "d82c5bf9082d0054f8f0b419", version : "5ddffe8574f5098d20aa559d");
+export import(path : "20659432897c109a97ad647f", version : "f6a71215a0d0b909e1c19f06");
+export import(path : "d82c5bf9082d0054f8f0b419", version : "85f89bc09b57a2add3d22385");
 
 /**
  * What a belt's body is modeled as (see `extrudeBelt`).
