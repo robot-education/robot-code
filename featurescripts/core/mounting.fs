@@ -41,6 +41,27 @@ export predicate secondaryAxisPredicate(definition is map)
 }
 
 /**
+ * Creates `flipPrimaryAxis` and `secondaryMateAxis`, on one row, as std's mate connector has them: flipping and
+ * rotating in 90 degree increments about the selected location. Apply them with `applyMateAxes`.
+ */
+export predicate mateAxesPredicate(definition is map)
+{
+    annotation { "Name" : "Flip primary axis", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
+    definition.flipPrimaryAxis is boolean;
+
+    annotation { "Name" : "Reorient secondary axis", "UIHint" : UIHint.MATE_CONNECTOR_AXIS_TYPE, "Default" : MateConnectorAxisType.PLUS_X }
+    definition.secondaryMateAxis is MateConnectorAxisType;
+}
+
+/**
+ * Applies `mateAxesPredicate`'s `flipPrimaryAxis` and `secondaryMateAxis` to `plane`.
+ */
+export function applyMateAxes(definition is map, plane is Plane) returns Plane
+{
+    return applyAxisOrientation({ "oppositeDirection" : definition.flipPrimaryAxis, "secondaryAxisType" : definition.secondaryMateAxis }, plane);
+}
+
+/**
  * Allows selecting an angle reference.
  */
 export predicate angleReferencePredicate(definition is map)

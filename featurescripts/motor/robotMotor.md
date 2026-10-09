@@ -51,7 +51,7 @@ axis (see How it works).
 | The `<part name>` has `<n>` holes, so holes to skip past `<n>` are ignored. | info | Skip holes has an index past the face's last hole | |
 | There's no block model of the `<part name>`. | error | Block motor is checked, but the motor has no block model: Has block model is stale, as the motor was changed some way other than in the dialog (like a configuration) | `blockMotor` |
 | std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope, without Block motor (a block motor alone cuts nothing) | `scope` |
-| The parts to cut aren't behind the sketch point. Flip the primary axis. | error | no part of the merge scope is behind the sketch point (against the motor's axis) | `oppositeDirection`, `scope`, the merge scope |
+| The parts to cut aren't behind the sketch point. Flip the primary axis. | error | no part of the merge scope is behind the sketch point (against the motor's axis) | `flipPrimaryAxis`, `scope`, the merge scope |
 | Failed to cut the mounting holes. | error | subtracting the holes from the merge scope fails | `scope`, the holes |
 | Failed to bring in FRCDesign's Block Motor. | error | instantiating it fails (like a document that can't be read) | `blockMotor` |
 
@@ -77,21 +77,24 @@ None of these have been tried in Onshape yet.
 
 ### Execution order
 
-1. **Precondition**: Program (FRC or FTC) and Component type (Motor or Gearbox); the hidden Has block model; for a
-   motor, Motor (`frcMotorTable` or `ftcMotorTable`, with a Hole pattern level for motors with several) and, with Has
-   block model, Block motor, or for a gearbox, Gearbox
-   (`frcGearboxTable` or `ftcGearboxTable`); the sketch point (`locationPredicate`), Flip primary axis and Reorient secondary
-   axis (`axisOrientationPredicate`), Angle reference, Angle and Opposite direction (`core/mounting.fs`); Merge scope
-   (`holeMergeScopePredicate`); Fit (the screws' holes) and Bore fit (the pilot's hole); and Skip holes, with Holes to
-   skip (indices, from 1) as std's patterns' Skip instances have it.
+1. **Precondition**, top to bottom:
+   - Program (FRC or FTC) and Component type (Motor or Gearbox), and the hidden Has block model.
+   - The sketch point (`locationPredicate`).
+   - The Motor group: Motor (`frcMotorTable` or `ftcMotorTable`, with a Hole pattern level for motors with several);
+     or for a gearbox, the Gearbox group: Gearbox (`frcGearboxTable` or `ftcGearboxTable`).
+   - The Position group: Flip primary axis and Reorient secondary axis (`flipPrimaryAxis` and `secondaryMateAxis`, on
+     one row, from `mateAxesPredicate` in `core/mounting.fs`), Angle reference, and Angle with its Opposite direction.
+   - The Holes group: Merge scope (`holeMergeScopePredicate`), Fit (the screws' holes), Bore fit (the pilot's hole),
+     and Skip holes, with Holes to skip (indices, from 1) as std's patterns' Skip instances have it.
+   - Block motor, for a motor with Has block model.
 2. **Editing logic** (`robotMotorEditLogic`): sets Has block model from the chosen motor's table entry, then calls
-   `mountingEditLogic`: std's hole heuristics
-   (`holeScopeFlipHeuristicsCall`), with a sketch point at the location: sets the merge scope to the parts at the
-   location, and sets Flip primary axis so the holes go into them, unless they've been set.
+   `mountingEditLogic`: std's hole heuristics (`holeScopeFlipHeuristicsCall`), with a sketch point at the location,
+   sets the merge scope to the parts at the location, and Flip primary axis so the holes go into them, unless they've
+   been set. The heuristics name the flip `oppositeDirection`, so it's passed to them (and taken back) as that.
 3. **Body**:
    1. The face (`getMotorFace`): the chosen table's entry, as a `MotorFace`.
    2. The plane: the sketch point's, turned to the angle reference, flipped and turned by Flip primary axis and
-      Reorient secondary axis, then turned by Angle. Its normal points out of the motor's face, away from the parts.
+      Reorient secondary axis (`applyMateAxes`), then turned by Angle. Its normal points out of the motor's face, away from the parts.
    3. The holes' positions (`holePositions`): on the bolt circle at the face's angles, or at its positions (for
       goBILDA's, on two circles), as its drawing shows them looking at the face; the plane's normal points behind the
       face, so its x axis is the drawing's left. The angle manipulator, half again

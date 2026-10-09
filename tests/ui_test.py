@@ -186,6 +186,34 @@ def test_dialog_follows_the_precondition(repo):
     assert "<div class='os-param-group-driving-parameter os-parameter-list-item' data-parameter-id='hasSecond' data-tip-name='Second'" in page
 
 
+def test_buttons_which_start_rows(repo):
+    # As std's mate connector's: Flip primary axis starts a row after a query, and Reorient secondary axis joins it
+    (repo / "featurescripts" / "widget.fs").write_text("""FeatureScript 1;
+import(path : "onshape/std/common.fs", version : "1.0");
+
+annotation { "Feature Type Name" : "Widget" }
+export const widget = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "Location", "Filter" : EntityType.VERTEX, "MaxNumberOfPicks" : 1 }
+        definition.location is Query;
+
+        annotation { "Name" : "Flip primary axis", "UIHint" : ["OPPOSITE_DIRECTION", "FIRST_IN_ROW"] }
+        definition.flipPrimaryAxis is boolean;
+
+        annotation { "Name" : "Reorient secondary axis", "UIHint" : ["MATE_CONNECTOR_AXIS_TYPE"] }
+        definition.secondaryMateAxis is boolean;
+    }
+    {
+    });
+""")
+    page, _ = render(repo)
+    location = parameter(page, "location")
+    assert "os-param-fill-both-columns" in location and "os-param-fill-first-column" not in location
+    assert "os-param-fill-first-column" in parameter(page, "flipPrimaryAxis")
+    assert "os-param-fits-in-right-column" in parameter(page, "secondaryMateAxis")
+
+
 def test_short_parameters_share_a_row(repo):
     page, _ = render(repo, "hasOffset=true")
     # Onshape lays out short parameters beside each other, and doesn't label short values

@@ -1270,8 +1270,9 @@ class Renderer:
             joins_checkbox = (
                 _is_checkbox(previous) and "DISPLAY_SHORT" in item.hints and "FIRST_IN_ROW" not in item.hints
             )
-            # A button (like an opposite direction button) goes beside what's before it
-            if joins_checkbox or _is_button(item) or (not _is_checkbox(item) and not _is_checkbox(previous)):
+            # A button (like an opposite direction button) goes beside what's before it, unless it starts a row
+            beside = _is_button(item) and "FIRST_IN_ROW" not in item.hints
+            if joins_checkbox or beside or (not _is_checkbox(item) and not _is_checkbox(previous)):
                 rows[-1].append(item)
             else:
                 rows.append([item])
@@ -1292,11 +1293,14 @@ class Renderer:
             item.kind == "enum" and "HORIZONTAL_ENUM" in hints
         )
         if _is_button(item):
-            classes.append("os-param-fits-in-right-column")
+            # A button which starts a row (like std's mate connector's Flip primary axis, before Reorient secondary
+            # axis) takes the first column
+            classes.append("os-param-fill-first-column" if "FIRST_IN_ROW" in hints else "os-param-fits-in-right-column")
         elif "DISPLAY_SHORT" in hints:
             classes.append("os-param-display-short")
         else:
-            if not fills_both or (following is not None and _is_button(following)):
+            beside = following is not None and _is_button(following) and "FIRST_IN_ROW" not in following.hints
+            if not fills_both or beside:
                 classes.append("os-param-fill-first-column")
             if fills_both:
                 classes.append("os-param-fill-both-columns")

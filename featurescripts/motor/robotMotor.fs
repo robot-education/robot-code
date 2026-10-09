@@ -60,73 +60,85 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Has block model", "UIHint" : ["ALWAYS_HIDDEN"] }
         definition.hasBlockModel is boolean;
 
+        locationPredicate(definition, "motor");
+
         if (isMotor(definition))
         {
-            if (isFrc(definition))
+            annotation { "Group Name" : "Motor", "Collapsed By Default" : false }
             {
-                annotation { "Name" : "Motor", "Lookup Table" : frcMotorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.frcMotor is LookupTablePath;
-            }
-            else
-            {
-                annotation { "Name" : "Motor", "Lookup Table" : ftcMotorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.ftcMotor is LookupTablePath;
-            }
-
-            if (showBlockMotor(definition))
-            {
-                annotation { "Name" : "Block motor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                            "Description" : "Model the motor as a block: its body's envelope, its pilot, and its shaft." }
-                definition.blockMotor is boolean;
+                if (isFrc(definition))
+                {
+                    annotation { "Name" : "Motor", "Lookup Table" : frcMotorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.frcMotor is LookupTablePath;
+                }
+                else
+                {
+                    annotation { "Name" : "Motor", "Lookup Table" : ftcMotorTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.ftcMotor is LookupTablePath;
+                }
             }
         }
         else
         {
-            if (isFrc(definition))
+            annotation { "Group Name" : "Gearbox", "Collapsed By Default" : false }
             {
-                annotation { "Name" : "Gearbox", "Lookup Table" : frcGearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.frcGearbox is LookupTablePath;
-            }
-            else
-            {
-                annotation { "Name" : "Gearbox", "Lookup Table" : ftcGearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.ftcGearbox is LookupTablePath;
+                if (isFrc(definition))
+                {
+                    annotation { "Name" : "Gearbox", "Lookup Table" : frcGearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.frcGearbox is LookupTablePath;
+                }
+                else
+                {
+                    annotation { "Name" : "Gearbox", "Lookup Table" : ftcGearboxTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.ftcGearbox is LookupTablePath;
+                }
             }
         }
 
-        locationPredicate(definition, "motor");
-
-        axisOrientationPredicate(definition);
-
-        angleReferencePredicate(definition);
-
-        angleOffsetPredicate(definition);
-
-        holeMergeScopePredicate(definition);
-
-        // Of the mounting holes' screws
-        fitPredicate(definition);
-
-        // Of the hole for the pilot
-        boreFitPredicate(definition);
-
-        annotation { "Name" : "Skip holes" }
-        definition.skipHoles is boolean;
-
-        annotation { "Group Name" : "Skip holes", "Driving Parameter" : "skipHoles", "Collapsed By Default" : false }
+        annotation { "Group Name" : "Position", "Collapsed By Default" : false }
         {
-            if (definition.skipHoles)
-            {
-                annotation { "Name" : "Holes to skip", "Item name" : "hole", "Item label template" : "#index", "Show labels only" : true,
-                            "UIHint" : [UIHint.INITIAL_FOCUS, UIHint.PREVENT_ARRAY_REORDER, UIHint.ALLOW_ARRAY_FOCUS] }
-                definition.skippedHoles is array;
+            mateAxesPredicate(definition);
 
-                for (var hole in definition.skippedHoles)
+            angleReferencePredicate(definition);
+
+            angleOffsetPredicate(definition);
+        }
+
+        annotation { "Group Name" : "Holes", "Collapsed By Default" : false }
+        {
+            holeMergeScopePredicate(definition);
+
+            // Of the mounting holes' screws
+            fitPredicate(definition);
+
+            // Of the hole for the pilot
+            boreFitPredicate(definition);
+
+            annotation { "Name" : "Skip holes" }
+            definition.skipHoles is boolean;
+
+            annotation { "Group Name" : "Skip holes", "Driving Parameter" : "skipHoles", "Collapsed By Default" : false }
+            {
+                if (definition.skipHoles)
                 {
-                    annotation { "Name" : "Index" }
-                    isInteger(hole.index, HOLE_INDEX_BOUNDS);
+                    annotation { "Name" : "Holes to skip", "Item name" : "hole", "Item label template" : "#index", "Show labels only" : true,
+                                "UIHint" : [UIHint.INITIAL_FOCUS, UIHint.PREVENT_ARRAY_REORDER, UIHint.ALLOW_ARRAY_FOCUS] }
+                    definition.skippedHoles is array;
+
+                    for (var hole in definition.skippedHoles)
+                    {
+                        annotation { "Name" : "Index" }
+                        isInteger(hole.index, HOLE_INDEX_BOUNDS);
+                    }
                 }
             }
+        }
+
+        if (showBlockMotor(definition))
+        {
+            annotation { "Name" : "Block motor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "Bring in a block model of the motor: its body's envelope, its pilot, and its shaft." }
+            definition.blockMotor is boolean;
         }
     }
     {
@@ -134,7 +146,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         var plane = getLocationPlane(context, definition);
         plane = applyAngleReference(context, definition, plane);
-        plane = applyAxisOrientation(definition, plane);
+        plane = applyMateAxes(definition, plane);
         const positions = holePositions(face);
         // Outside the holes, so its handle isn't on one
         addAngleOffsetManipulator(context, id, definition, plane, 1.5 * max(mapArray(positions, norm)));
@@ -341,7 +353,25 @@ export function robotMotorEditLogic(context is Context, id is Id, oldDefinition 
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition.hasBlockModel = isMotor(definition) && hasBlockModel(getMotorFace(definition));
-    return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
+    // Std's hole heuristics flip `oppositeDirection`, which is Flip primary axis here
+    const flipped = mountingEditLogic(context, id, withHoleFlip(oldDefinition), withHoleFlip(definition),
+        mergeMaps(specifiedParameters, { "oppositeDirection" : specifiedParameters.flipPrimaryAxis ?? false }), hiddenBodies);
+    definition.scope = flipped.scope;
+    definition.flipPrimaryAxis = flipped.oppositeDirection;
+    return definition;
+}
+
+/**
+ * The definition with `oppositeDirection` (std's hole heuristics' flip) set from Flip primary axis.
+ */
+function withHoleFlip(definition is map) returns map
+{
+    if (definition == {})
+    {
+        return definition;
+    }
+    definition.oppositeDirection = definition.flipPrimaryAxis;
+    return definition;
 }
 
 /**
@@ -354,7 +384,7 @@ function cutMountingFace(context is Context, id is Id, definition is map, face i
     const depth = -bounds.minCorner[2];
     if (!tolerantGreaterThan(depth, 0 * meter))
     {
-        throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["oppositeDirection", "scope"], definition.scope);
+        throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["flipPrimaryAxis", "scope"], definition.scope);
     }
 
     const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : plane });
