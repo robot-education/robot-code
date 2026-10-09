@@ -38,6 +38,8 @@ it's tried alone (see Error handling).
 | The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, those ribs |
 | The faces to lighten must be parallel to the ribs. | error | a face to lighten isn't | `faces`, `ribEdges`, those faces |
 | std's extrude's own errors | error | std's extrude of the faces fails (like an up to face which isn't reached) | its own: the end type's parameters |
+| Failed to extrude regions to ignore. | error | extruding the sketch regions to ignore fails | `ignoredFaces`, the regions |
+| Failed to cut regions to ignore from pockets. | error | cutting them from the extrude fails | `ignoredFaces`, the regions |
 | Failed to extend pockets past their ends. | error | offsetting the pockets' ends (and sides along ignored faces) out fails | `wallThickness`, those faces |
 | Failed to round walls' inside corners. | error | the hair fillet of the pockets' concave edges fails | `wallThickness`, the edges |
 | Failed to make walls. | error | hollowing (or enclosing) the pockets fails | `wallThickness`, the pockets which fail alone |
@@ -71,30 +73,34 @@ it's tried alone (see Error handling).
       to be parallel to it (`verifyParallel`). The ribs can be from any number of sketches.
    2. `buildPockets`: the faces are extruded with std's `extrude`, at the top level id (so its manipulators are the
       feature's), as a new body: the most the pockets can be.
-   3. The walls (`insetPockets`), as Ilya Baran and Morgan Bartlett's Lighten (and Part Lighten, `partLighten.local.fs`,
+   3. Sketch regions among Faces to ignore are left solid, as Part Lighten's exclude regions are (`excludeRegions`):
+      they're extruded along the sketch's normal through the extrude, and 5% past it (`bandExtent`), and cut from it,
+      so walls go around them as they do the faces' holes. Parts' faces among them mean something else: no wall is
+      left along them (below).
+   4. The walls (`insetPockets`), as Ilya Baran and Morgan Bartlett's Lighten (and Part Lighten, `partLighten.local.fs`,
       which builds on it) make them: the extrude is inset by the wall thickness (and, with Fillet corners, the fillet
-      radius), all at once. Its ends (`qCapEntity`), and its sides along ignored faces (`sidesAlong`: those whose
-      middles are in one), are offset out by that much; its concave edges are filleted by a hair (std's boolean
+      radius), all at once. Its ends (`qCapEntity`), and its sides along parts' faces to ignore (`sidesAlong`: those
+      whose middles are in one), are offset out by that much; its concave edges are filleted by a hair (std's boolean
       tolerance, 0.01 mm); and it's hollowed (`opShell`) by that much, which moves every face in by it. Inside each,
       what's enclosed (`opEnclose`) is the inset, and the hollowed extrudes are deleted. So the ends, and the sides
       along ignored faces, are back where they were, and walls are left along every other side: around holes of any
       size, and with inside corners rounded to the wall thickness (and the hair), as a wall of that thickness has.
-   4. The ribs (`buildRibs`), half the rib thickness to each side (and, with Fillet corners, the fillet radius), along
+   5. The ribs (`buildRibs`), half the rib thickness to each side (and, with Fillet corners, the fillet radius), along
       the sketch's normal through the inset pockets and the ribs' edges, and 5% past them (`bandExtent`). Each is made on
       its own (edges extruded together make one sheet, creased where they meet, which can't be thickened): its edge
       is extruded as a sheet (a circle's is a tube), and thickened to each side; but an arc or circle whose radius is
       hardly more than that (up to 5% more) can't be thickened toward its center, so its rib is a cylinder around its
       center (`fCylinder`), that much bigger than it, instead (a little more than its rib, near its center). Arcs of
       one circle share a cylinder. They're cut from the inset pockets, which they split into the pockets.
-   5. With Fillet corners, `roundPockets` rounds them, as Lighten does: their convex edges along the sketch's normal
+   6. With Fillet corners, `roundPockets` rounds them, as Lighten does: their convex edges along the sketch's normal
       (their corners) are filleted by a hair, and their sides offset out by the radius, growing them back from the
       thicker walls and ribs, which grows those fillets to the radius (and the hair). A pocket narrower than the bit
       is gone before then, and one which narrows between ribs ends in one round, as a router bit of that radius would
       cut it. Filleting the corners by the radius after growing them would fail where pockets narrow.
-   6. If no pockets are left, a warning says so; otherwise they're cut from the faces' parts, and pieces they cut
+   7. If no pockets are left, a warning says so; otherwise they're cut from the faces' parts, and pieces they cut
       free (ribs touching no wall or other rib) are warned about and shown. Otherwise, info says how much lighter the
       parts are: how much less their volume is (to 0.1%), as they're one material.
-   7. What's left of the ribs (their sheets) is deleted.
+   8. What's left of the ribs (their sheets) is deleted.
 4. **Manipulator change** (`robotLightenManipulatorChange`): std's extrude manipulators.
 
 ### Error handling
@@ -111,7 +117,7 @@ together). That runs an operation per body, but only on the way to an error, whi
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| `insetPockets`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
+| `excludeRegions`, `insetPockets`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
 | `failingBodies` (`try silent`) | Each try of a failed operation on one body | What it's looking for: the body is one which fails alone. |
 | `robotLightenEditLogic` (`try silent`) | Finding the ribs and their plane | A guard: with no ribs yet, editing logic leaves the definition as it is. |
 

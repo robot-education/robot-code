@@ -52,7 +52,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         annotation { "Group Name" : "Ignored faces", "Collapsed By Default" : true }
         {
-            annotation { "Name" : "Faces to ignore", "Filter" : EntityType.FACE && BodyType.SOLID && ModifiableEntityOnly.YES }
+            annotation { "Name" : "Faces to ignore",
+                        "Filter" : EntityType.FACE && ((BodyType.SOLID && ModifiableEntityOnly.YES) || (SketchObject.YES && ConstructionObject.NO)) }
             definition.ignoredFaces is Query;
         }
     }
@@ -68,12 +69,15 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // The pockets: the extrude of the faces, as the end type says. Std's extrude, at the top level id, so its
         // manipulators are the feature's
         buildPockets(context, id, definition, faces);
+        // Sketch regions to ignore are left solid: cut from the pockets, so walls go around them too
+        excludeRegions(context, id + "excludeRegions", plane, qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID))),
+            qSketchFilter(definition.ignoredFaces, SketchObject.YES));
         const extruded = qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
         const ends = qUnion(evaluateQuery(context, qCapEntity(id, CapType.EITHER, EntityType.FACE)));
 
-        // The walls: the pockets, inset by them
-        insetPockets(context, id + "walls", extruded, ends, sidesAlong(context, extruded, ends, definition.ignoredFaces),
-            definition.wallThickness + radius);
+        // The walls: the pockets, inset by them, but along the parts' faces to ignore
+        insetPockets(context, id + "walls", extruded, ends,
+            sidesAlong(context, extruded, ends, qSketchFilter(definition.ignoredFaces, SketchObject.NO)), definition.wallThickness + radius);
 
         // The ribs, cut from what's left
         const inset = qUnion(evaluateQuery(context, qCreatedBy(id + "walls", EntityType.BODY)->qBodyType(BodyType.SOLID)));
@@ -234,6 +238,45 @@ function buildPockets(context is Context, extrudeId is Id, definition is map, fa
 }
 
 /**
+ * Cuts `regions` (sketch regions), extruded along `plane`'s normal through `pockets`, from them, under `id`.
+ */
+function excludeRegions(context is Context, id is Id, plane is Plane, pockets is Query, regions is Query)
+{
+    if (isQueryEmpty(context, regions))
+    {
+        return;
+    }
+    const extent = bandExtent(context, plane, qUnion([pockets, regions]));
+    try
+    {
+        opExtrude(context, id + "extrude", {
+                    "entities" : regions,
+                    "direction" : plane.normal,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : extent.depth,
+                    "startBound" : BoundingType.BLIND,
+                    "startDepth" : extent.depth
+                });
+    }
+    catch
+    {
+        throw regenError("Failed to extrude regions to ignore.", ["ignoredFaces"], regions);
+    }
+    try
+    {
+        opBoolean(context, id + "cut", {
+                    "targets" : pockets,
+                    "tools" : qCreatedBy(id + "extrude", EntityType.BODY),
+                    "operationType" : BooleanOperationType.SUBTRACTION
+                });
+    }
+    catch
+    {
+        throw regenError("Failed to cut regions to ignore from pockets.", ["ignoredFaces"], regions);
+    }
+}
+
+/**
  * The pockets' sides along `ignoredFaces`: those whose middles are in one.
  */
 function sidesAlong(context is Context, pockets is Query, ends is Query, ignoredFaces is Query) returns Query
@@ -326,12 +369,14 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
 }
 
 /**
- * Where ribs go, along `plane`'s normal: through `bounds` (the pockets and the ribs' edges), and a little past it.
+ * Where ribs (or regions to ignore) go, along `plane`'s normal: through `bounds` (the pockets, and the ribs' edges or
+ * the regions), and a little past it.
  *
  * @returns {{
  *      @field plane {Plane} : `plane`, moved halfway through them.
- *      @field depth {ValueWithUnits} : How far each rib goes each way from its edge: through all of them, from any edge.
- *      @field halfDepth {ValueWithUnits} : How far a rib goes each way from `plane`.
+ *      @field depth {ValueWithUnits} : How far each goes each way from its edge or region: through all of them, from
+ *              any one.
+ *      @field halfDepth {ValueWithUnits} : How far each goes each way from `plane`.
  * }}
  */
 function bandExtent(context is Context, plane is Plane, bounds is Query) returns map
