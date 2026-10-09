@@ -1300,13 +1300,47 @@ def audit(config: Config, args: argparse.Namespace) -> int:
             line, character = module.position(problem.start)
             problems.append(f"{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]")
     source = os.path.relpath(path.resolve(), config.root)
-    page = audit_page(name, source, shell, states, truncated, writeup, problems, args.theme)
+    tables = _feature_tables(config, project, module) if module is not None else []
+    page = audit_page(name, source, shell, states, truncated, writeup, problems, args.theme, tables)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page)
     more = " (the limit; raise it with --max-states)" if truncated else ""
     print(f"Wrote {_display_path(output)}: {len(states)} dialog states{more}, {len(problems)} problems.")
     return 0
+
+
+def _feature_tables(config: Config, project: Project, module: Module) -> list:
+    """The lookup tables a file's parameters use (theirs, or those of files it imports), in the order they're named."""
+    from fs_cli.lookup_tables import find_tables, find_uses, lookup_parameters
+    from fs_eval import Evaluator
+
+    modules = [module]
+    seen = {module.path}
+    for current in modules:
+        for imported in current.imports:
+            if imported.is_std or imported.namespace:
+                continue
+            target = project.resolve(imported)
+            if target is not None and target.path not in seen:
+                seen.add(target.path)
+                modules.append(target)
+    names: list[str] = []
+    for current in modules:
+        for table_name, _ in lookup_parameters(current.path.read_text()):
+            if table_name not in names:
+                names.append(table_name)
+    if not names:
+        return []
+    evaluator = Evaluator(config.root)
+    found = {}
+    for current in modules:
+        if '"entries"' in current.path.read_text():
+            for found_table in find_tables(evaluator, current.path, config.code_dir):
+                found.setdefault(found_table.name, found_table)
+    tables = [found[name] for name in names if name in found]
+    find_uses(tables, config.code_dir)
+    return tables
 
 
 def table(config: Config, args: argparse.Namespace) -> int:

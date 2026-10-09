@@ -61,3 +61,13 @@ def test_command(tmp_path, capsys):
     assert "<h1>Robot lighten</h1>" in page
     # The writeup, rendered
     assert "<h2>Strings</h2>" in page
+
+
+def test_command_shows_lookup_tables(tmp_path, capsys):
+    output = tmp_path / "shaft.html"
+    assert cli.main(["audit", "featurescripts/released/shaft/robotShaft.fs", "-o", str(output), "--max-states", "3"]) == 0
+    page = output.read_text()
+    # Every table its parameters use, in the order they're named, with their rows
+    tables = re.findall(r"<h3>(\w+Table)</h3>", page)
+    assert tables == ["tappedHoleTable", "clearanceHoleTable", "frcShaftTable", "ftcShaftTable"]
+    assert "32 tpi (UNF)" in page and "id='table-filter'" in page

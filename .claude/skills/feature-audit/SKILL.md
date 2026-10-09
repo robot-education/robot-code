@@ -16,11 +16,13 @@ the user's say-so).
    each error (see `docs/feature-writeups.md`).
 4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html`, then send it with SendUserFile (`display: "render"`).
    It has the dialog, which works: its dropdowns, checkboxes, tabs, and lookup table levels show what each choice
-   shows, from states rendered ahead of time (`--max-states`, 200 by default; past that, choices say they aren't
-   rendered). Typed values aren't rendered; `uv run fs ui <file> --set name=value` renders any state as a PNG.
+   shows (a long press shows a parameter's tooltip by touch), from states rendered ahead of time (`--max-states`, 200
+   by default; past that, choices say they aren't rendered). Typed values aren't rendered;
+   `uv run fs ui <file> --set name=value` renders any state as a PNG.
 
-Lookup tables' values (not just their options, which the dialog shows) go in writeups as Markdown tables:
-`uv run fs table <file or folder> -n <table> --md`.
+The page also lists every lookup table the feature's parameters use, a row per option with its values, to glance
+through rather than clicking through the dialog. For a writeup, `uv run fs table <file or folder> -n <table> --md`
+prints one as Markdown.
 
 Say in the reply what wasn't checked: nothing here runs the feature in Onshape, so its geometry, and whether its
 operations fail, are untested until the user tries it.

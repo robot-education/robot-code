@@ -1,7 +1,7 @@
 """Tests for `fs table`: lookup tables as flat rows."""
 
 from fs_cli import cli
-from fs_cli.lookup_tables import find_tables, flatten, to_html, to_markdown, to_text
+from fs_cli.lookup_tables import find_tables, flatten, lookup_parameters, to_html, to_markdown, to_text
 from fs_eval.pytest_plugin import shared_evaluator
 
 SOURCE = """FeatureScript 2960;
@@ -72,3 +72,11 @@ def test_command(capsys):
     assert out.startswith("tappedHoleTable  (released/shaft/robotShaftTables.gen.fs, 10 rows)")
     assert "Used by: released/shaft/robotShaft.fs:" in out
     assert "#10 *  32 tpi (UNF) *  0.19 in" in out
+
+
+def test_lookup_parameters():
+    source = """annotation { "Name" : "Hole table", "Lookup Table" : holeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.hole is LookupTablePath;
+    annotation { "Name" : "Size" }
+    isLength(definition.size, LENGTH_BOUNDS);"""
+    assert lookup_parameters(source) == [("holeTable", "Hole table")]

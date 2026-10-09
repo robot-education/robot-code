@@ -255,10 +255,12 @@ them, else millimeters), and the parameters which use the table (their `"Lookup 
 one page of every table, with a filter, to audit them in a browser.
 
 `fs audit` writes one page (`.fs-audit/<feature>.html`, or `-o`) to audit a feature by: its dialog, which works,
-its writeup, and its file's `fs check` problems. The page is static, so the dialog's states are rendered ahead of time:
+the lookup tables its parameters use (every option at once, as `fs table` shows them), its writeup, and its file's
+`fs check` problems. The page is static, so the dialog's states are rendered ahead of time:
 from its defaults, each choice a click could make (a dropdown option, checkbox, tab, or lookup table level) is
 rendered in turn, choices which show or hide parameters first, up to `--max-states` (200). Clicking swaps between them,
-and hovering a parameter shows its description, default, and UI hints, as the VS Code preview does. Values typed into
+and hovering a parameter (or by touch, a long press) shows its description, default, and UI hints, as the VS Code
+preview does. Values typed into
 fields aren't rendered (`fs ui --set` renders any state).
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the

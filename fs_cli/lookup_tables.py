@@ -109,6 +109,15 @@ _LOOKUP_ANNOTATION = re.compile(r'annotation\s*\{[^}]*"Lookup Table"\s*:\s*(\w+)
 _NAME = re.compile(r'"Name"\s*:\s*"([^"]*)"')
 
 
+def lookup_parameters(source: str) -> list[tuple[str, str]]:
+    """The parameters in FeatureScript source which are lookup tables: each the table's name and the parameter's."""
+    uses = []
+    for match in _LOOKUP_ANNOTATION.finditer(source):
+        name = _NAME.search(match.group(0))
+        uses.append((match.group(1), name.group(1) if name else "?"))
+    return uses
+
+
 def find_uses(tables: list[Table], code_dir: pathlib.Path) -> None:
     """Fills in each table's `used_by`: the parameters whose annotations name it as their `"Lookup Table"`, by name
     (so a table another file defines with the same name would be matched too)."""
@@ -246,43 +255,45 @@ def _count(table: Table) -> str:
 def to_html(tables: list[Table], title: str = "Lookup tables") -> str:
     """One page with every table: a filter, and each table's rows with repeated path prefixes dimmed, defaults bold,
     and empty leaves called out."""
-    sections = []
-    nav = []
-    for index, table in enumerate(tables):
-        anchor = f"t{index}"
-        nav.append(f'<a href="#{anchor}">{html.escape(table.name)}</a>')
-        head = "".join(f'<th class="level">{html.escape(level)}</th>' for level in table.levels)
-        head += "".join(f"<th>{html.escape(field)}</th>" for field in table.fields)
-        body = []
-        previous: list[str] = []
-        for row in table.rows:
-            cells = []
-            for depth in range(len(table.levels)):
-                if depth >= len(row.path):
-                    cells.append('<td class="level"></td>')
-                    continue
-                key = row.path[depth]
-                repeated = previous[: depth + 1] == row.path[: depth + 1]
-                classes = ["level"]
-                if repeated:
-                    classes.append("repeat")
-                if row.defaults[depth]:
-                    classes.append("default")
-                cells.append(f'<td class="{" ".join(classes)}">{html.escape(key)}</td>')
-            if not row.values:
-                cells.append(f'<td class="empty" colspan="{max(1, len(table.fields))}">no values</td>')
-            else:
-                cells += [f'<td class="value">{_value_html(row.values.get(field, ""))}</td>' for field in table.fields]
-            previous = row.path
-            text = " ".join([*row.path, *row.values.values()]).lower()
-            body.append(f'<tr data-text="{html.escape(text)}">{"".join(cells)}</tr>')
-        sections.append(
-            f'<section id="{anchor}"><h2>{html.escape(table.name)}</h2>'
-            f'<p class="meta">{html.escape(table.module)} · {_count(table)} · defaults in bold<br>Used by: {html.escape(_uses(table))}</p>'
-            f'<div class="scroll"><table><thead><tr>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
-            "</section>"
-        )
-    return _PAGE.format(title=html.escape(title), nav="".join(nav), sections="".join(sections))
+    nav = "".join(f'<a href="#t{index}">{html.escape(table.name)}</a>' for index, table in enumerate(tables))
+    sections = "".join(table_section(table, f"t{index}") for index, table in enumerate(tables))
+    return _PAGE.format(title=html.escape(title), nav=nav, sections=sections, table_style=TABLE_STYLE)
+
+
+def table_section(table: Table, anchor: str, heading: str = "h2") -> str:
+    """A table's section of a page (in an element with the `lookup` class, styled by `TABLE_STYLE`): its rows, with
+    repeated path prefixes dimmed, defaults bold, and empty leaves called out. Each row's `data-text` is its text, to
+    filter by."""
+    head = "".join(f'<th class="level">{html.escape(level)}</th>' for level in table.levels)
+    head += "".join(f"<th>{html.escape(field)}</th>" for field in table.fields)
+    body = []
+    previous: list[str] = []
+    for row in table.rows:
+        cells = []
+        for depth in range(len(table.levels)):
+            if depth >= len(row.path):
+                cells.append('<td class="level"></td>')
+                continue
+            key = row.path[depth]
+            classes = ["level"]
+            if previous[: depth + 1] == row.path[: depth + 1]:
+                classes.append("repeat")
+            if row.defaults[depth]:
+                classes.append("default")
+            cells.append(f'<td class="{" ".join(classes)}">{html.escape(key)}</td>')
+        if not row.values:
+            cells.append(f'<td class="empty" colspan="{max(1, len(table.fields))}">no values</td>')
+        else:
+            cells += [f'<td class="value">{_value_html(row.values.get(field, ""))}</td>' for field in table.fields]
+        previous = row.path
+        text = " ".join([*row.path, *row.values.values()]).lower()
+        body.append(f'<tr data-text="{html.escape(text)}">{"".join(cells)}</tr>')
+    return (
+        f'<section id="{anchor}"><{heading}>{html.escape(table.name)}</{heading}>'
+        f'<p class="meta">{html.escape(table.module)} · {_count(table)} · defaults in bold<br>Used by: {html.escape(_uses(table))}</p>'
+        f'<div class="scroll"><table><thead><tr>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
+        "</section>"
+    )
 
 
 def _value_html(value: str) -> str:
@@ -291,6 +302,23 @@ def _value_html(value: str) -> str:
         return f'<span class="swatch" style="background:{value}"></span>{value}'
     return html.escape(value)
 
+
+# Tables' styles, under `.lookup`, using the page's colors: --muted, --line, --head, --accent, and --empty
+TABLE_STYLE = """
+.lookup .meta { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+.lookup .scroll { overflow-x: auto; }
+.lookup table { border-collapse: collapse; font-size: 13px; }
+.lookup th, .lookup td { border-bottom: 1px solid var(--line); padding: 4px 10px; text-align: left; white-space: nowrap; vertical-align: top; }
+.lookup td.value { white-space: normal; min-width: 80px; max-width: 360px; overflow-wrap: anywhere; }
+.lookup .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; border: 1px solid var(--line); }
+.lookup th { background: var(--head); position: sticky; top: 0; }
+.lookup td.level { font-weight: 500; }
+.lookup td.repeat { color: var(--muted); font-weight: 400; opacity: 0.45; }
+.lookup td.default { font-weight: 700; }
+.lookup td.default::after { content: " ★"; color: var(--accent); font-size: 11px; }
+.lookup td.empty { color: var(--empty); font-style: italic; }
+.lookup tr.hidden { display: none; }
+"""
 
 _PAGE = """<!doctype html>
 <html lang="en">
@@ -311,20 +339,7 @@ nav {{ display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; }}
 nav a {{ color: var(--accent); text-decoration: none; font-family: ui-monospace, monospace; font-size: 13px; }}
 input {{ width: 100%; max-width: 420px; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }}
 h2 {{ font-size: 15px; margin: 24px 0 2px; font-family: ui-monospace, monospace; }}
-.meta {{ margin: 0 0 8px; color: var(--muted); font-size: 12px; }}
-.scroll {{ overflow-x: auto; }}
-table {{ border-collapse: collapse; font-size: 13px; }}
-th, td {{ border-bottom: 1px solid var(--line); padding: 4px 10px; text-align: left; white-space: nowrap; vertical-align: top; }}
-td.value {{ white-space: normal; min-width: 80px; max-width: 360px; overflow-wrap: anywhere; }}
-.swatch {{ display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; border: 1px solid var(--line); }}
-th {{ background: var(--head); position: sticky; top: 0; }}
-td.level {{ font-weight: 500; }}
-td.repeat {{ color: var(--muted); font-weight: 400; opacity: 0.45; }}
-td.default {{ font-weight: 700; }}
-td.default::after {{ content: " ★"; color: var(--accent); font-size: 11px; }}
-td.empty {{ color: var(--empty); font-style: italic; }}
-tr.hidden {{ display: none; }}
-</style>
+{table_style}</style>
 </head>
 <body>
 <header>
@@ -332,7 +347,7 @@ tr.hidden {{ display: none; }}
 <nav>{nav}</nav>
 <input id="filter" type="search" placeholder="Filter rows (all words must match)">
 </header>
-{sections}
+<div class="lookup">{sections}</div>
 <script>
 const filter = document.getElementById("filter");
 filter.addEventListener("input", () => {{

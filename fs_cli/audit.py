@@ -16,6 +16,8 @@ from typing import Callable
 
 from markdown_it import MarkdownIt
 
+from fs_cli.lookup_tables import TABLE_STYLE, Table, table_section
+
 # Where a dialog's parameters are, in a page `fs ui` renders
 LIST_START = "<os-parameter-list-view>"
 LIST_END = "</os-parameter-list-view>"
@@ -101,8 +103,9 @@ def render_markdown(text: str) -> str:
 
 
 def audit_page(title: str, source: str, shell: str, states: list[dict], truncated: bool, writeup: str | None,
-               problems: list[str], theme: str) -> str:
-    """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), the writeup, and problems."""
+               problems: list[str], theme: str, tables: list[Table] | None = None) -> str:
+    """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), the lookup tables its
+    parameters use (every option at once, with its values), the writeup, and problems."""
     pieces, layouts = _pieces(states)
     data = {
         "pieces": pieces,
@@ -128,6 +131,14 @@ def audit_page(title: str, source: str, shell: str, states: list[dict], truncate
         if problems
         else "<p>No problems found.</p>"
     )
+    if tables:
+        tables_html = (
+            "<p class='limit'>Every option, a row per path through them, with its values; each level's default is bold.</p>"
+            "<input id='table-filter' type='search' placeholder='Filter rows (all words must match)'>"
+            "<div class='lookup'>" + "".join(table_section(table, f"table-{index}", "h3") for index, table in enumerate(tables)) + "</div>"
+        )
+    else:
+        tables_html = "<p>Its parameters use no lookup tables.</p>"
     writeup_html = render_markdown(writeup) if writeup is not None else "<p>It has no writeup (a <code>.md</code> beside it).</p>"
     return _PAGE.format(
         title=html.escape(title),
@@ -137,6 +148,8 @@ def audit_page(title: str, source: str, shell: str, states: list[dict], truncate
         limit=html.escape(limit),
         problems=problems_html,
         writeup=writeup_html,
+        tables=tables_html,
+        table_style=TABLE_STYLE,
     )
 
 
@@ -146,6 +159,8 @@ html[data-os-theme='light'] .fs-toolbar { color: #4b5563; }
 .fs-toolbar #fs-settings { flex: 1; overflow-wrap: anywhere; }
 .fs-toolbar button { font: inherit; padding: 2px 8px; cursor: pointer; }
 #fs-note { margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #f59e0b; }
+/* A long press shows a tooltip, rather than selecting text or opening the browser's menu */
+#feature-dialog { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 """
 
 _DIALOG_TOOLBAR = (
@@ -377,7 +392,11 @@ function showTooltip(parameter) {
   tooltip.style.top = Math.max(0, top) + "px";
 }
 
-document.addEventListener("mouseover", (event) => {
+// With a mouse, hovering shows a tooltip
+document.addEventListener("pointerover", (event) => {
+  if (event.pointerType !== "mouse") {
+    return;
+  }
   const parameter = event.target.closest(".os-select-dropdown.open") ? null : event.target.closest("[data-tip-name]");
   if (parameter === tooltipFor) {
     return;
@@ -386,6 +405,53 @@ document.addEventListener("mouseover", (event) => {
   tooltipFor = parameter;
   if (parameter) {
     tooltipTimer = setTimeout(() => showTooltip(parameter), 500);
+  }
+});
+
+// By touch, a tap chooses, as it does in Onshape, and a long press shows the tooltip instead (the tap it ends with is
+// ignored); the next touch hides it
+const LONG_PRESS_MS = 500;
+let pressTimer;
+let pressStart = null;
+let longPressed = false;
+document.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "mouse") {
+    return;
+  }
+  hideTooltip();
+  const parameter = event.target.closest(".os-select-dropdown.open") ? null : event.target.closest("[data-tip-name]");
+  if (!parameter) {
+    return;
+  }
+  pressStart = [event.clientX, event.clientY];
+  pressTimer = setTimeout(() => {
+    longPressed = true;
+    tooltipFor = parameter;
+    showTooltip(parameter);
+  }, LONG_PRESS_MS);
+});
+document.addEventListener("pointermove", (event) => {
+  if (pressStart && Math.hypot(event.clientX - pressStart[0], event.clientY - pressStart[1]) > 10) {
+    clearTimeout(pressTimer);
+    pressStart = null;
+  }
+});
+for (const type of ["pointerup", "pointercancel"]) {
+  document.addEventListener(type, () => {
+    clearTimeout(pressTimer);
+    pressStart = null;
+  });
+}
+document.addEventListener("click", (event) => {
+  if (longPressed) {
+    longPressed = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+}, true);
+document.addEventListener("contextmenu", (event) => {
+  if (longPressed || pressStart) {
+    event.preventDefault();
   }
 });
 
@@ -400,11 +466,11 @@ _PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} audit</title>
 <style>
-:root {{ --bg: #ffffff; --fg: #1d2129; --muted: #6b7280; --line: #e5e7eb; --head: #f3f4f6; --code: #f3f4f6; --accent: #2563eb; }}
+:root {{ --bg: #ffffff; --fg: #1d2129; --muted: #6b7280; --line: #e5e7eb; --head: #f3f4f6; --code: #f3f4f6; --accent: #2563eb; --empty: #b45309; }}
 @media (prefers-color-scheme: dark) {{
-  :root:not([data-theme="light"]) {{ --bg: #16181d; --fg: #e5e7eb; --muted: #9ca3af; --line: #2d3139; --head: #1f2229; --code: #23262d; --accent: #60a5fa; }}
+  :root:not([data-theme="light"]) {{ --bg: #16181d; --fg: #e5e7eb; --muted: #9ca3af; --line: #2d3139; --head: #1f2229; --code: #23262d; --accent: #60a5fa; --empty: #f59e0b; }}
 }}
-:root[data-theme="dark"] {{ --bg: #16181d; --fg: #e5e7eb; --muted: #9ca3af; --line: #2d3139; --head: #1f2229; --code: #23262d; --accent: #60a5fa; }}
+:root[data-theme="dark"] {{ --bg: #16181d; --fg: #e5e7eb; --muted: #9ca3af; --line: #2d3139; --head: #1f2229; --code: #23262d; --accent: #60a5fa; --empty: #f59e0b; }}
 body {{ margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }}
 main {{ max-width: 1100px; margin: 0 auto; }}
 h1 {{ font-size: 20px; margin: 0; }}
@@ -425,17 +491,24 @@ iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--
 .writeup h2 {{ font-size: 16px; margin-top: 24px; }}
 .writeup h3 {{ font-size: 14px; }}
 .problems code {{ background: var(--code); padding: 1px 4px; border-radius: 3px; }}
+#table-filter {{ width: 100%; max-width: 420px; box-sizing: border-box; padding: 6px 8px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }}
+.lookup h3 {{ font-size: 14px; margin: 16px 0 2px; font-family: ui-monospace, monospace; }}
+{table_style}
 </style>
 </head>
 <body>
 <main>
 <h1>{title}</h1>
 <p class="source">{source}</p>
-<nav><a href="#dialog">Dialog</a><a href="#writeup">Writeup</a><a href="#problems">Problems</a></nav>
+<nav><a href="#dialog">Dialog</a><a href="#tables">Lookup tables</a><a href="#writeup">Writeup</a><a href="#problems">Problems</a></nav>
 <section id="dialog">
 <h2>Dialog</h2>
 <p class="limit">Click dropdowns, checkboxes, tabs, and lookup table levels to see what each choice shows. Hover a parameter for its description, default, and UI hints. {limit}</p>
 <iframe id="dialog-frame" title="Dialog" srcdoc="{dialog}"></iframe>
+</section>
+<section id="tables">
+<h2>Lookup tables</h2>
+{tables}
 </section>
 <section id="writeup" class="writeup">
 <h2>Writeup</h2>
@@ -447,6 +520,15 @@ iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--
 </section>
 </main>
 <script>
+const tableFilter = document.getElementById("table-filter");
+if (tableFilter) {{
+  tableFilter.addEventListener("input", () => {{
+    const words = tableFilter.value.toLowerCase().split(/\\s+/).filter(Boolean);
+    for (const row of document.querySelectorAll(".lookup tbody tr")) {{
+      row.classList.toggle("hidden", !words.every((word) => row.dataset.text.includes(word)));
+    }}
+  }});
+}}
 const frame = document.getElementById("dialog-frame");
 window.addEventListener("message", (event) => {{
   if (event.source === frame.contentWindow && event.data && event.data.fsAuditHeight) {{
