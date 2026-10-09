@@ -41,8 +41,8 @@ it's tried alone (see Error handling).
 | Failed to extend pockets past their ends. | error | offsetting the pockets' ends (and sides along ignored faces) out fails | `wallThickness`, those faces |
 | Failed to round walls' inside corners. | error | the hair fillet of the pockets' concave edges fails | `wallThickness`, the edges |
 | Failed to make walls. | error | hollowing (or enclosing) the pockets fails | `wallThickness`, the pockets which fail alone |
-| Failed to extrude ribs. | error | extruding the ribs as sheets (or the cylinders around small arcs) fails | `ribEdges`, `ribThickness`, the ribs |
-| Failed to thicken ribs. | error | thickening those sheets fails | `ribEdges`, `ribThickness`, the ribs which fail alone |
+| Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | `ribEdges`, `ribThickness`, its edge |
+| Failed to thicken rib. | error | thickening its sheet fails | `ribEdges`, `ribThickness`, its edge |
 | Failed to cut ribs. | error | cutting them from the inset pockets fails | `ribEdges`, `ribThickness`, the ribs which fail alone |
 | Failed to round pocket corners. | error | the hair fillet of the pockets' corners fails | `filletRadius`, the corners |
 | Failed to grow pockets back to round their corners. | error | offsetting the pockets' sides fails | `filletRadius`, the pockets which fail alone |
@@ -80,11 +80,12 @@ it's tried alone (see Error handling).
       along ignored faces, are back where they were, and walls are left along every other side: around holes of any
       size, and with inside corners rounded to the wall thickness (and the hair), as a wall of that thickness has.
    4. The ribs (`buildRibs`), half the rib thickness to each side (and, with Fillet corners, the fillet radius), along
-      the sketch's normal through the inset pockets and the ribs' edges, and 5% past them (`bandExtent`). Each edge is
-      extruded as a sheet (a circle's is a tube), and thickened to each side (`thickenEdges`); but an arc or circle
-      whose radius is hardly more than that (up to 5% more) can't be thickened toward its center, so its rib is a
-      cylinder around its center, that much bigger than it, instead (a little more than its rib, near its center).
-      Arcs of one circle share a cylinder. They're cut from the inset pockets, which they split into the pockets.
+      the sketch's normal through the inset pockets and the ribs' edges, and 5% past them (`bandExtent`). Each is made on
+      its own (edges extruded together make one sheet, creased where they meet, which can't be thickened): its edge
+      is extruded as a sheet (a circle's is a tube), and thickened to each side; but an arc or circle whose radius is
+      hardly more than that (up to 5% more) can't be thickened toward its center, so its rib is a cylinder around its
+      center (`fCylinder`), that much bigger than it, instead (a little more than its rib, near its center). Arcs of
+      one circle share a cylinder. They're cut from the inset pockets, which they split into the pockets.
    5. With Fillet corners, `roundPockets` rounds them, as Lighten does: their convex edges along the sketch's normal
       (their corners) are filleted by a hair, and their sides offset out by the radius, growing them back from the
       thicker walls and ribs, which grows those fillets to the radius (and the hair). A pocket narrower than the bit
@@ -100,9 +101,9 @@ it's tried alone (see Error handling).
 
 Each operation which can fail has its own `try`, and its `catch` throws the feature's error for it, highlighting the
 parameters which set what failed, and showing it in red. A failed operation changes nothing, so what it was given is
-still there to show. For the hollow, the ribs' thicken, the cuts, and the
-growing offset, the `catch` narrows that down: it tries the operation again on each pocket, rib (its edge, for the
-thicken), or pocket alone (`failingBodies`; cuts on copies of what they cut, `copyBodies`, so each try sees what the
+still there to show. A rib which fails highlights its edge. For the hollow, the
+cuts, and the growing offset, the `catch` narrows that down: it tries the operation again on each pocket, rib, or
+pocket alone (`failingBodies`; cuts on copies of what they cut, `copyBodies`, so each try sees what the
 operation was given), and shows those which fail alone, or everything, if none does (it fails only on everything
 together). That runs an operation per body, but only on the way to an error, which rolls it all back. Selections are checked before anything's built. Warnings are reported when they're found.
 
@@ -110,8 +111,8 @@ together). That runs an operation per body, but only on the way to an error, whi
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| `insetPockets`, `buildRibs`, `thickenEdges`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
-| `thickenEdges`' catch, `failingBodies` (`try silent`) | Each try of a failed operation on one edge or body | What it's looking for: the edge or body is one which fails alone. |
+| `insetPockets`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
+| `failingBodies` (`try silent`) | Each try of a failed operation on one body | What it's looking for: the body is one which fails alone. |
 | `robotLightenEditLogic` (`try silent`) | Finding the ribs and their plane | A guard: with no ribs yet, editing logic leaves the definition as it is. |
 
 ## Issues found

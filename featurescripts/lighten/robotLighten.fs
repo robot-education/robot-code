@@ -345,130 +345,76 @@ function bandExtent(context is Context, plane is Plane, bounds is Query) returns
 }
 
 /**
- * The ribs along `edges`, `halfWidth` to each side, through `extent` (see `bandExtent`). Each is an edge's sheet,
+ * The ribs along `edges`, `halfWidth` to each side, through `extent` (see `bandExtent`), each made on its own: edges
+ * extruded together make one sheet, creased where they meet, which can't be thickened. Each is its edge's sheet,
  * thickened; but an arc or circle hardly bigger than `halfWidth` can't be thickened toward its center, so its rib is a
- * cylinder around its center, `halfWidth` bigger than it, instead (a little more than its rib, near its center).
- * Failures highlight the edges which failed.
+ * cylinder around its center, `halfWidth` bigger than it, instead (a little more than its rib, near its center). A rib
+ * which fails highlights its edge.
  */
 function buildRibs(context is Context, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits) returns Query
 {
-    var swept = [];
-    var arcs = [];
-    var arcEdges = [];
-    for (var edge in evaluateQuery(context, edges))
+    // The circles given cylinders: a circle split into arcs needs just one
+    var circles = [];
+    for (var i, edge in evaluateQuery(context, edges))
     {
+        const ribId = id + unstableIdComponent(i);
+        setExternalDisambiguation(context, ribId, edge);
         const curve = evCurveDefinition(context, { "edge" : edge });
-        if (!(curve is Circle) || curve.radius > halfWidth * 1.05)
+        if (curve is Circle && curve.radius <= halfWidth * 1.05)
         {
-            swept = append(swept, edge);
-            continue;
-        }
-        arcEdges = append(arcEdges, edge);
-        // A circle split into arcs needs just one cylinder
-        if (!any(arcs, function(arc)
-                {
-                    return tolerantEquals(arc.coordSystem.origin, curve.coordSystem.origin) && tolerantEquals(arc.radius, curve.radius);
-                }))
-        {
-            arcs = append(arcs, curve);
-        }
-    }
-
-    if (swept != [])
-    {
-        thickenEdges(context, id + "thicken", extent, qUnion(swept), halfWidth);
-    }
-    if (arcs != [])
-    {
-        const sketch = newSketchOnPlane(context, id + "cylinderSketch", { "sketchPlane" : extent.plane });
-        for (var i, arc in arcs)
-        {
-            skCircle(sketch, "circle" ~ i, {
-                        "center" : worldToPlane(extent.plane, arc.coordSystem.origin),
-                        "radius" : arc.radius + halfWidth
-                    });
-        }
-        skSolve(sketch);
-        try
-        {
-            opExtrude(context, id + "cylinders", {
-                        "entities" : qCreatedBy(id + "cylinderSketch", EntityType.FACE),
-                        "direction" : extent.plane.normal,
-                        "endBound" : BoundingType.BLIND,
-                        "endDepth" : extent.halfDepth,
-                        "startBound" : BoundingType.BLIND,
-                        "startDepth" : extent.halfDepth
-                    });
-        }
-        catch
-        {
-            throw regenError("Failed to extrude ribs.", ["ribEdges", "ribThickness"], qUnion(arcEdges));
-        }
-        opDeleteBodies(context, id + "deleteCylinderSketch", { "entities" : qCreatedBy(id + "cylinderSketch", EntityType.BODY) });
-    }
-    return qUnion([qCreatedBy(id + "thicken" + "bands", EntityType.BODY), qCreatedBy(id + "cylinders", EntityType.BODY)]);
-}
-
-/**
- * Ribs along `edges` (see `buildRibs`): each extruded as a sheet, under `id + "sheets"`, and thickened to each side,
- * under `id + "bands"`.
- */
-function thickenEdges(context is Context, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits)
-{
-    try
-    {
-        extrudeEdges(context, id + "sheets", extent, edges);
-    }
-    catch
-    {
-        throw regenError("Failed to extrude ribs.", ["ribEdges", "ribThickness"], edges);
-    }
-    try
-    {
-        opThicken(context, id + "bands", {
-                    "entities" : qCreatedBy(id + "sheets", EntityType.BODY),
-                    "thickness1" : halfWidth,
-                    "thickness2" : halfWidth
-                });
-    }
-    catch
-    {
-        // Each edge's rib made alone, to show which fail
-        var failing = [];
-        for (var i, edge in evaluateQuery(context, edges))
-        {
-            const edgeId = id + "error" + unstableIdComponent(i);
-            try silent
+            if (any(circles, function(circle)
+                    {
+                        return tolerantEquals(circle.coordSystem.origin, curve.coordSystem.origin) && tolerantEquals(circle.radius, curve.radius);
+                    }))
             {
-                extrudeEdges(context, edgeId + "sheet", extent, edge);
-                opThicken(context, edgeId + "band", {
-                            "entities" : qCreatedBy(edgeId + "sheet", EntityType.BODY),
-                            "thickness1" : halfWidth,
-                            "thickness2" : halfWidth
+                continue;
+            }
+            circles = append(circles, curve);
+            const center = project(extent.plane, curve.coordSystem.origin);
+            try
+            {
+                fCylinder(context, ribId + "cylinder", {
+                            "bottomCenter" : center - extent.plane.normal * extent.halfDepth,
+                            "topCenter" : center + extent.plane.normal * extent.halfDepth,
+                            "radius" : curve.radius + halfWidth
                         });
             }
             catch
             {
-                failing = append(failing, edge);
+                throw regenError("Failed to extrude rib.", ["ribEdges", "ribThickness"], edge);
             }
+            continue;
         }
-        throw regenError("Failed to thicken ribs.", ["ribEdges", "ribThickness"], failing == [] ? edges : qUnion(failing));
-    }
-}
 
-/**
- * Extrudes `edges` as sheets, each way from them through `extent` (see `bandExtent`).
- */
-function extrudeEdges(context is Context, id is Id, extent is map, edges is Query)
-{
-    opExtrude(context, id, {
-                "entities" : edges,
-                "direction" : extent.plane.normal,
-                "endBound" : BoundingType.BLIND,
-                "endDepth" : extent.depth,
-                "startBound" : BoundingType.BLIND,
-                "startDepth" : extent.depth
-            });
+        try
+        {
+            opExtrude(context, ribId + "sheet", {
+                        "entities" : edge,
+                        "direction" : extent.plane.normal,
+                        "endBound" : BoundingType.BLIND,
+                        "endDepth" : extent.depth,
+                        "startBound" : BoundingType.BLIND,
+                        "startDepth" : extent.depth
+                    });
+        }
+        catch
+        {
+            throw regenError("Failed to extrude rib.", ["ribEdges", "ribThickness"], edge);
+        }
+        try
+        {
+            opThicken(context, ribId + "rib", {
+                        "entities" : qCreatedBy(ribId + "sheet", EntityType.BODY),
+                        "thickness1" : halfWidth,
+                        "thickness2" : halfWidth
+                    });
+        }
+        catch
+        {
+            throw regenError("Failed to thicken rib.", ["ribEdges", "ribThickness"], edge);
+        }
+    }
+    return qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
 }
 
 /**
