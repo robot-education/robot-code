@@ -78,17 +78,17 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         else
         {
-            annotation { "Name" : "Ribs", "Item name" : "ribs", "Item label template" : "#ribThickness",
+            annotation { "Name" : "Ribs", "Item name" : "ribs", "Item label template" : "#groupThickness",
                         "UIHint" : ["COLLAPSE_ARRAY_ITEMS"] }
             definition.ribGroups is array;
 
             for (var group in definition.ribGroups)
             {
                 annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
-                group.ribEdges is Query;
+                group.groupEdges is Query;
 
                 annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(group.ribThickness, RIB_BOUNDS);
+                isLength(group.groupThickness, RIB_BOUNDS);
             }
         }
 
@@ -442,7 +442,7 @@ function getRibGroups(context is Context, definition is map) returns array
     {
         if (definition.ribMode == RibMode.COMPLEX && isQueryEmpty(context, group.selected))
         {
-            throw regenError("Select ribs to use.", [faultyArrayParameterId("ribGroups", i, "ribEdges")]);
+            throw regenError("Select ribs to use.", [faultyArrayParameterId("ribGroups", i, "groupEdges")]);
         }
         if (!isQueryEmpty(context, group.edges))
         {
@@ -471,8 +471,8 @@ function ribGroups(definition is map) returns array
     {
         for (var i, group in definition.ribGroups)
         {
-            groups = append(groups, { "edges" : group.ribEdges, "thickness" : group.ribThickness,
-                        "parameters" : [faultyArrayParameterId("ribGroups", i, "ribEdges"), faultyArrayParameterId("ribGroups", i, "ribThickness")] });
+            groups = append(groups, { "edges" : group.groupEdges, "thickness" : group.groupThickness,
+                        "parameters" : [faultyArrayParameterId("ribGroups", i, "groupEdges"), faultyArrayParameterId("ribGroups", i, "groupThickness")] });
         }
     }
     var later = qNothing();

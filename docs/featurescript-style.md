@@ -395,7 +395,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - Enums used as a feature's parameter types (directly or through predicates) must be exported by the feature's file,
   including std's (`export import` the std module declaring one, not `common.fs`, which mustn't be exported).
 - Predicates a feature's precondition uses from other files must be exported to the feature's file.
-- A feature's precondition can't declare a parameter more than once, even in different branches of an `if`.
+- A feature's precondition can't declare a parameter more than once, even in different branches of an `if`, and array
+  parameters' items' parameters count too: an item's parameter can't share a name with any other parameter.
 - Predicates in a precondition's `if` conditions can't call other predicates.
 - Horizontal enums go at the top of the dialog: before any other shown parameter, and not in groups or array
   parameters' items (see "Horizontal enums go at the top").

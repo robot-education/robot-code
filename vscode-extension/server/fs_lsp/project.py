@@ -1093,7 +1093,9 @@ class Project:
     def _duplicate_parameter_problems(self, module: Module) -> list[Problem]:
         """Parameters a feature's precondition declares more than once, directly or through predicates.
 
-        Onshape rejects these ("Duplicate feature parameter"), even when they're in different branches of an if.
+        Onshape rejects these ("Duplicate feature parameter"), even when they're in different branches of an if, and
+        array parameters' items' parameters share the same names: an item's parameter can't be named like any other
+        parameter in the precondition either.
         """
         problems = []
         for node in module.parsed.nodes:
@@ -1102,8 +1104,12 @@ class Project:
             feature = module.index.enclosing(node.token, frozenset(["FeatureDeclaration"]))
             if feature is None:
                 continue
+            declared = self._declared_parameters(module, node.start, node.end, "definition", frozenset())
+            for item, start, end in _array_item_loops(module.index.tokens, node.start, node.end):
+                declared.extend(self._declared_parameters(module, start, end, item, frozenset()))
+            declared.sort(key=lambda parameter: parameter[1].offset)
             first: dict[str, Token] = {}
-            for name, report_at, _ in self._declared_parameters(module, node.start, node.end, "definition", frozenset()):
+            for name, report_at, _ in declared:
                 if name not in first:
                     first[name] = report_at
                     continue
@@ -1937,6 +1943,24 @@ def _if_conditions(tokens: list[Token], start: int, end: int) -> Iterable[tuple[
             if depth == 0:
                 yield position + 1, cursor
                 break
+
+
+def _array_item_loops(tokens: list[Token], start: int, end: int) -> list[tuple[str, int, int]]:
+    """The loops over array parameters' items in a region (`for (var item in ...) { ... }`): each item's name, and its
+    body's start and end offsets."""
+    loops = []
+    for index, token in enumerate(tokens):
+        if not start <= token.offset < end or token.value != "for" or token.kind == "string":
+            continue
+        if index + 4 >= len(tokens) or tokens[index + 2].value != "var" or tokens[index + 4].value != "in":
+            continue
+        header_end = _matching_index(tokens, index + 1)
+        if header_end is None or header_end + 1 >= len(tokens) or tokens[header_end + 1].value != "{":
+            continue
+        body_end = _matching_index(tokens, header_end + 1)
+        if body_end is not None:
+            loops.append((tokens[index + 3].value, tokens[header_end + 1].offset, tokens[body_end].end))
+    return loops
 
 
 def _matching_index(tokens: list[Token], index: int) -> int | None:

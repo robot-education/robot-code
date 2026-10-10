@@ -712,3 +712,24 @@ def test_horizontal_enums_go_in_no_groups_or_arrays(project):
         "Horizontal enums go at the top of the dialog, not in array parameters' items.",
         "Horizontal enums go at the top of the dialog, not in groups.",
     ]
+
+
+def test_array_items_parameters_are_feature_parameters(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Edges" }\n        definition.edges is Query;\n'
+        '        annotation { "Name" : "Items", "Item name" : "item" }\n        definition.items is array;\n'
+        "        for (var item in definition.items)\n        {\n"
+        '            annotation { "Name" : "Edges" }\n            item.edges is Query;\n'
+        '            annotation { "Name" : "Width" }\n            isLength(item.width, LENGTH_BOUNDS);\n'
+        "        }\n"
+        "    }\n    {\n    });\n"
+    )
+    source = project.module(path).parsed.source
+    problems = [p for p in project.check(project.module(path)) if p.code == "duplicate-parameter"]
+    # An item's parameter can't share a name with any other parameter
+    assert [source[p.start:p.end] for p in problems] == ["edges"]
+    assert "line 6" in problems[0].message
