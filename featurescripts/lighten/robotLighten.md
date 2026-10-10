@@ -31,6 +31,11 @@ Override rib thickness (near the bottom) drives a group holding Rib overrides, a
 (`overrideThickness`, 0.25 in. by default), named apart from Ribs to use and Rib thickness because Onshape names array
 items' parameters with the rest. Exclude construction lines applies to them too.
 
+Override wall thickness (below it) drives a group holding Wall overrides, an array (Add override; labeled like
+"0.0625 in walls") of the part's faces whose walls are other thicknesses (the pocket's sides along them: a side, or a
+hole), each its own Faces (`overrideFaces`) and Wall thickness (`overrideWall`, 0.0625 in. by default). Later
+overrides take precedence over earlier ones, and all of them over Faces to ignore.
+
 ### Errors, warnings, and info
 
 Errors from a failed operation show what failed in red: what it was given, narrowed down (for some) to what fails when
@@ -47,6 +52,9 @@ it's tried alone (see Error handling).
 | Failed to extrude the pocket. | error | extruding the face into its part fails | `face`, `depth`, the face |
 | Failed to extrude regions to ignore. | error | extruding the sketch regions to ignore fails | `ignoredFaces`, the regions |
 | Failed to cut regions to ignore from pockets. | error | cutting them from the pocket fails | `ignoredFaces`, the regions |
+| Select faces to override. | error | with Override wall thickness, an override without faces | its Faces |
+| These faces don't border the face to lighten, so they have no walls. | error | an override's faces share no edge with the face to lighten | its Faces, the faces |
+| Failed to override walls. | error | offsetting an override's sides (out for a thinner wall, in for a thicker one) fails | its Faces and Wall thickness, those sides |
 | Failed to extend pockets past their ends. | error | offsetting the pocket's ends (and sides along ignored faces) out fails | `wallThickness`, those faces |
 | Failed to round walls' inside corners. | error | the hair fillet of the pocket's concave edges fails | `wallThickness`, the edges |
 | Failed to make walls. | error | hollowing (or enclosing) the pocket fails | `wallThickness`, the pocket |
@@ -83,12 +91,14 @@ it's tried alone (see Error handling).
    4. The walls (`insetPockets`), as Ilya Baran and Morgan Bartlett's Lighten (and Part Lighten, `partLighten.local.fs`,
       which builds on it) make them: the pocket is inset by the wall thickness (and, with Fillet corners, the fillet
       radius), all at once. Its ends (`qCapEntity`), and its sides along the part's faces to ignore (found by tracking
-      the edges the face shares with them, which the extrude sweeps into those sides), are offset out by that much; its
-      concave edges are filleted by a hair (std's boolean tolerance, 0.01 mm); and it's hollowed (`opShell`) by that
-      much, which moves every face in by it. Inside it, what's enclosed (`opEnclose`) is the inset, and the hollowed
-      pocket is deleted. So the ends, and the sides along ignored faces, are back where they were, and walls are left
-      along every other side: around holes of any size, and with inside corners rounded to the wall thickness (and the
-      hair), as a wall of that thickness has.
+      the edges the face shares with them, which the extrude sweeps into those sides), are offset out by that much; with
+      Override wall thickness, each override's sides (`getWallOverrides`: tracked the same way, from the edges the face
+      shares with its faces, less those of later overrides) are offset out by Wall thickness less its own (in, for a
+      thicker wall); its concave edges are filleted by a hair (std's boolean tolerance, 0.01 mm); and it's hollowed
+      (`opShell`) by that much, which moves every face in by it. Inside it, what's enclosed (`opEnclose`) is the inset,
+      and the hollowed pocket is deleted. So the ends, and the sides along ignored faces, are back where they were,
+      overridden sides end up their own wall in, and walls are left along every other side: around holes of any size,
+      and with inside corners rounded to the wall thickness (and the hair), as a wall of that thickness has.
 
    5. The ribs (`buildRibs`), in groups of one thickness (`getRibGroups`): Ribs to use, then with Override rib
       thickness, each of Rib overrides, each less the edges any later one has, so later ones take precedence (a whole
@@ -137,4 +147,6 @@ rolls it all back. Selections are checked before anything's built. Warnings are 
 - Untested in Onshape: nothing here has run yet.
 - Walls are an inset of the face's extrude, so a part whose sides slope or step gets walls of the face's outline, not
   of its sides.
+- An overridden wall steps to its thickness at the corners its side meets others at; a much thicker override moves
+  its side in before the hollow, which can close a small pocket (Failed to make walls.).
 - Rounded corners are 0.01 mm (std's boolean tolerance) bigger than asked: the hair they're rounded by first.

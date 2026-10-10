@@ -67,3 +67,20 @@ def test_ribs_without_overrides_are_one_group_less_construction():
     assert evaluate(
         f"{groups}[0].selected == qConstructionFilter(qEntityFilter({SKETCH}, EntityType.EDGE), ConstructionObject.NO)", LIGHTEN
     ) is True
+
+
+def test_later_wall_overrides_take_precedence():
+    faces, few = "qEverything(EntityType.FACE)", "qNthElement(qEverything(EntityType.FACE), 0)"
+    definition = (
+        '{ "wallOverrides" : ['
+        f'{{ "overrideFaces" : {faces}, "overrideWall" : 1 * inch }}, {{ "overrideFaces" : {few}, "overrideWall" : 2 * inch }}] }}'
+    )
+    groups = f"wallOverrideGroups({definition})"
+    every, first = f"qEntityFilter({faces}, EntityType.FACE)", f"qEntityFilter({few}, EntityType.FACE)"
+    assert evaluate(f"{groups}[0].faces == qSubtraction({every}, qUnion([qNothing(), {first}]))", LIGHTEN) is True
+    assert evaluate(f"{groups}[1].faces == qSubtraction({first}, qNothing())", LIGHTEN) is True
+    assert to_python(evaluate(f"{groups}[1].thickness / inch", LIGHTEN)) == pytest.approx(2)
+    assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == [
+        "wallOverrides[0].overrideFaces",
+        "wallOverrides[0].overrideWall",
+    ]

@@ -6,6 +6,7 @@ RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "f76010d67
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 const RIB_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
+const WALL_OVERRIDE_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 1.5 } as LengthBoundSpec;
 const RIB_OVERRIDE_BOUNDS = { (meter) : [1e-5, 0.00635, 500], (inch) : 0.25, (millimeter) : 6 } as LengthBoundSpec;
 const DEPTH_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 // A 1/8 in. router bit's
@@ -101,6 +102,28 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             }
         }
 
+        annotation { "Name" : "Override wall thickness" }
+        definition.overrideWallThickness is boolean;
+
+        annotation { "Group Name" : "Override wall thickness", "Driving Parameter" : "overrideWallThickness", "Collapsed By Default" : false }
+        {
+            if (definition.overrideWallThickness)
+            {
+                // Later overrides take precedence over earlier ones (and all of them over Wall thickness and Faces to ignore)
+                annotation { "Name" : "Wall overrides", "Item name" : "override", "Item label template" : "#overrideWall walls" }
+                definition.wallOverrides is array;
+
+                for (var wallOverride in definition.wallOverrides)
+                {
+                    annotation { "Name" : "Faces", "Filter" : EntityType.FACE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
+                    wallOverride.overrideFaces is Query;
+
+                    annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(wallOverride.overrideWall, WALL_OVERRIDE_BOUNDS);
+                }
+            }
+        }
+
         annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
         definition.endType is LightenEndType;
 
@@ -116,6 +139,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const facePlane = evPlane(context, { "face" : face });
         const part = qOwnerBody(face);
         const ignoredFaces = getIgnoredFaces(context, definition);
+        const wallOverrides = getWallOverrides(context, definition, face);
         const ribGroups = getRibGroups(context, definition);
         const ribEdges = qUnion(mapArray(ribGroups, group => group.edges));
         verifyParallel(context, face, facePlane, ribPlane(context, ribEdges, definition), definition);
@@ -123,10 +147,16 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // `roundPockets`)
         const radius = definition.filletCorners ? definition.filletRadius : 0 * meter;
 
-        // The edges the face shares with the part's faces to ignore, which the pocket's extrude sweeps into its sides along
-        // them
-        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSketchFilter(ignoredFaces, SketchObject.NO))]);
+        // The edges the face shares with the part's faces to ignore (but those with walls overridden), and with each
+        // override's faces, which the pocket's extrude sweeps into its sides along them
+        const overriddenFaces = qUnion(mapArray(wallOverrides, wallOverride => wallOverride.faces));
+        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSubtraction(qSketchFilter(ignoredFaces, SketchObject.NO), overriddenFaces))]);
         const ignoredSides = startTracking(context, ignoredEdges);
+        var overriddenSides = [];
+        for (var wallOverride in wallOverrides)
+        {
+            overriddenSides = append(overriddenSides, mergeMaps(wallOverride, { "sides" : startTracking(context, wallOverride.edges) }));
+        }
 
         // The pocket: the face's extrude into its part
         const depth = pocketDepth(context, definition, part, facePlane);
@@ -157,8 +187,10 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // The walls: the pocket (and the pieces regions to ignore split it into), inset by them, but along the part's
         // faces to ignore
         const extruded = qUnion([qCreatedBy(id + "pocket", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
-        insetPockets(context, id + "walls", extruded, ends, qIntersection([qOwnedByBody(extruded, EntityType.FACE), ignoredSides]),
-            definition.wallThickness + radius);
+        const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
+        insetPockets(context, id + "walls", extruded, ends, qIntersection([pocketFaces, ignoredSides]),
+            mapArray(overriddenSides, wallOverride => mergeMaps(wallOverride, { "sides" : qIntersection([pocketFaces, wallOverride.sides]) })),
+            definition.wallThickness, radius);
 
         // The ribs, cut from what's left: what the walls enclose
         const inset = qCreatedBy(id + "walls", EntityType.BODY);
@@ -275,6 +307,64 @@ function getIgnoredFaces(context is Context, definition is map) returns Query
 }
 
 /**
+ * The wall overrides, with Override wall thickness: each of Wall overrides, its faces less those later ones have (so
+ * later ones take precedence), and the edges `face` (the face to lighten) shares with them, which the pocket's sides
+ * along them are swept from. Each must have faces, and border the face to lighten; those left with no faces are left
+ * out.
+ *
+ * @returns {array} : Each override, as a map of `faces`, `edges`, `thickness`, and `parameters` (its parameters, for
+ *          errors about it).
+ */
+function getWallOverrides(context is Context, definition is map, face is Query) returns array
+{
+    if (!definition.overrideWallThickness)
+    {
+        return [];
+    }
+    const overrides = wallOverrideGroups(definition);
+    var found = [];
+    for (var wallOverride in overrides)
+    {
+        if (isQueryEmpty(context, wallOverride.selected))
+        {
+            throw regenError("Select faces to override.", [wallOverride.parameters[0]]);
+        }
+        if (isQueryEmpty(context, qIntersection([qLoopEdges(face), qLoopEdges(wallOverride.selected)])))
+        {
+            throw regenError("These faces don't border the face to lighten, so they have no walls.", [wallOverride.parameters[0]],
+                wallOverride.selected);
+        }
+        if (!isQueryEmpty(context, wallOverride.faces))
+        {
+            found = append(found, mergeMaps(wallOverride, { "edges" : qIntersection([qLoopEdges(face), qLoopEdges(wallOverride.faces)]) }));
+        }
+    }
+    return found;
+}
+
+/**
+ * `getWallOverrides`' overrides, before checking them: each with its `selected` faces, and its `faces`, less those later
+ * ones select.
+ */
+function wallOverrideGroups(definition is map) returns array
+{
+    var overrides = [];
+    for (var i, wallOverride in definition.wallOverrides)
+    {
+        overrides = append(overrides, { "selected" : qEntityFilter(wallOverride.overrideFaces, EntityType.FACE),
+                    "thickness" : wallOverride.overrideWall,
+                    "parameters" : [faultyArrayParameterId("wallOverrides", i, "overrideFaces"), faultyArrayParameterId("wallOverrides", i, "overrideWall")] });
+    }
+    var later = qNothing();
+    for (var i = size(overrides) - 1; i >= 0; i -= 1)
+    {
+        overrides[i].faces = qSubtraction(overrides[i].selected, later);
+        later = qUnion([later, overrides[i].selected]);
+    }
+    return overrides;
+}
+
+/**
  * Throws unless the face to lighten is parallel to the ribs' sketches, so the ribs go straight into it.
  */
 function verifyParallel(context is Context, face is Query, facePlane is Plane, ribs is Plane, definition is map)
@@ -354,15 +444,19 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
 }
 
 /**
- * Insets `pockets` by `distance` (the walls), under `id`, but at `ends` (their caps) and `ignoredSides`, which stay
- * where they are. As Ilya Baran and Morgan Bartlett's Lighten does: those are moved out by `distance`, and the pockets
- * hollowed by it, which moves every face in by it at once, holes of any size and their corners too, so it doesn't
- * fail where a wall along one edge would. What's inside (enclosed) is kept, and the rest deleted. Their concave edges
- * are rounded a hair (std's boolean tolerance, 0.01 mm) first, so they're rounded to `distance` (and the hair) as
- * they're moved, as the walls' inside corners should be.
+ * Insets `pockets` by `wall` and `radius` (the walls, thicker by the radius their corners are rounded to later), under
+ * `id`, but at `ends` (their caps) and `ignoredSides`, which stay where they are, and at each of `overrides`' `sides`,
+ * inset by its `thickness` instead. As Ilya Baran and Morgan Bartlett's Lighten does: those are moved out by the
+ * distance (overridden sides, by `wall` less their thickness: in, for a thicker wall), and the pockets hollowed by it,
+ * which moves every face in by it at once, holes of any size and their corners too, so it doesn't fail where a wall
+ * along one edge would. What's inside (enclosed) is kept, and the rest deleted. Their concave edges are rounded a hair
+ * (std's boolean tolerance, 0.01 mm) first, so they're rounded to the distance (and the hair) as they're moved, as the
+ * walls' inside corners should be.
  */
-function insetPockets(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, distance is ValueWithUnits)
+function insetPockets(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
+    wall is ValueWithUnits, radius is ValueWithUnits)
 {
+    const distance = wall + radius;
     try
     {
         opOffsetFace(context, id + "extend", {
@@ -373,6 +467,25 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
     catch
     {
         throw regenError("Failed to extend pockets past their ends.", ["wallThickness"], qUnion([ends, ignoredSides]));
+    }
+    for (var i, wallOverride in overrides)
+    {
+        const offset = wall - wallOverride.thickness;
+        if (tolerantEqualsZero(offset) || isQueryEmpty(context, wallOverride.sides))
+        {
+            continue;
+        }
+        try
+        {
+            opOffsetFace(context, id + "override" + unstableIdComponent(i), {
+                        "moveFaces" : wallOverride.sides,
+                        "offsetDistance" : offset
+                    });
+        }
+        catch
+        {
+            throw regenError("Failed to override walls.", wallOverride.parameters, wallOverride.sides);
+        }
     }
 
     const concave = qUnion(filter(evaluateQuery(context, qOwnedByBody(pockets, EntityType.EDGE)), function(edge)
