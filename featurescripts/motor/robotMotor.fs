@@ -14,7 +14,7 @@ export import(path : "58d66340f7b70cfc86606676", version : "c9963ef4d574eccc05ff
 export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
 // Exports Program, a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
-export import(path : "motor/motorTables.gen.fs", version : "");
+export import(path : "aea74aaed887198c6e06badf", version : "886391893349d3d2d8007fb9");
 // FRCDesign's Block Motor (in its FRC library), a configurable Part Studio
 BlockMotor::import(path : "5e3874e07384706ec3840340/5657eb187a0b8ed8fb95125a/c0895459c41bc1da9850fd7e", version : "4173ef57af8115dabb532b5d");
 
