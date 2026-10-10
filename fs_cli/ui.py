@@ -1347,7 +1347,7 @@ class Renderer:
         of buttons."""
         classes = ["os-parameter-list-item"]
         hints = item.hints
-        fills_both = item.kind in ("query", "reference", "lookup", "array") or (
+        fills_both = item.kind in ("query", "reference", "lookup", "array", "button") or (
             item.kind == "enum" and "HORIZONTAL_ENUM" in hints
         )
         if inline:
@@ -1395,7 +1395,7 @@ class Renderer:
             return (
                 "<os-button-parameter data-parameter-type='os-button-parameter'>"
                 f"<div class='os-param-wrapper os-param-container' data-parameter-id='{_attribute(item.name)}'>"
-                f"<button class='btn btn-secondary os-param-button os-no-shrink' style='width: 100%'>{html.escape(item.label)}</button>"
+                f"<button class='btn btn-secondary os-param-button os-no-shrink'>{html.escape(item.label)}</button>"
                 "</div></os-button-parameter>"
             )
         return f"<span class='os-param-wrapper os-param-container'><label class='os-param-label'>{html.escape(item.label)}</label></span>"

@@ -36,11 +36,11 @@ Unreleased.
 None are hidden. Editing logic sets the shown Face to lighten (see Execution order).
 
 The Selections group (at the top) holds Face to lighten, Ignore faces (driving its own group, Faces to ignore), Ribs
-to use, and Exclude construction lines. Below it, Chains, Hub and spokes (`useHubs`), and Edge ribs each drive a group
-holding an array of their own: Chains (each Points and Closed) and Hubs (each Hub, Spokes, and Add circle) are driven
+to use, and Exclude construction lines. Below it, the Quick ribs group holds Chains, Hub and spokes (`useHubs`), and
+Edge ribs, each driving a group holding an array of their own: Chains (each Points and Closed) and Hubs (each Hub, Spokes, and Add circle) are driven
 by their items' Points and Hub (selecting one adds an item), and focus moves into a new item's first selection; Edge
 ribs are End (Perpendicular to edge or Manipulator), Edge, Points (any number), and with Manipulator, Location. With
-any of them on, Clear invalid selections (a button) follows them.
+any of them on, Clear invalid selections (a button) follows them, in the Quick ribs group.
 
 Override rib thickness (near the bottom) drives a group holding Rib overrides, an array (Add override; labeled like
 "0.25 in ribs") of ribs at other thicknesses, each its own Ribs (`overrideEdges`) and Rib thickness

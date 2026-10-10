@@ -71,91 +71,95 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             definition.excludeConstruction is boolean;
         }
 
-        annotation { "Name" : "Chains" }
-        definition.useChains is boolean;
-
-        annotation { "Group Name" : "Chains", "Driving Parameter" : "useChains", "Collapsed By Default" : false }
+        // Ribs it sketches itself (see `quickRibs.fs`)
+        annotation { "Group Name" : "Quick ribs", "Collapsed By Default" : false }
         {
-            if (definition.useChains)
+            annotation { "Name" : "Chains" }
+            definition.useChains is boolean;
+
+            annotation { "Group Name" : "Chains", "Driving Parameter" : "useChains", "Collapsed By Default" : false }
             {
-                annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
-                            "UIHint" : ["FOCUS_INNER_QUERY"] }
-                definition.chains is array;
-
-                for (var chain in definition.chains)
+                if (definition.useChains)
                 {
-                    annotation { "Name" : "Points",
-                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                    chain.chainPoints is Query;
+                    annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
+                                "UIHint" : ["FOCUS_INNER_QUERY"] }
+                    definition.chains is array;
 
-                    annotation { "Name" : "Closed" }
-                    chain.closed is boolean;
-                }
-            }
-        }
-
-        annotation { "Name" : "Hub and spokes" }
-        definition.useHubs is boolean;
-
-        annotation { "Group Name" : "Hub and spokes", "Driving Parameter" : "useHubs", "Collapsed By Default" : false }
-        {
-            if (definition.useHubs)
-            {
-                annotation { "Name" : "Hubs", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
-                            "UIHint" : ["FOCUS_INNER_QUERY"] }
-                definition.hubs is array;
-
-                for (var hub in definition.hubs)
-                {
-                    annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
-                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                    hub.hub is Query;
-
-                    annotation { "Name" : "Spokes",
-                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                    hub.spokes is Query;
-
-                    annotation { "Name" : "Add circle", "Description" : "A circle around the hub, through the first spoke chosen." }
-                    hub.addCircle is boolean;
-                }
-            }
-        }
-
-        annotation { "Name" : "Edge ribs" }
-        definition.useEdgeRibs is boolean;
-
-        annotation { "Group Name" : "Edge ribs", "Driving Parameter" : "useEdgeRibs", "Collapsed By Default" : false }
-        {
-            if (definition.useEdgeRibs)
-            {
-                annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
-                definition.edgeRibs is array;
-
-                for (var edgeRib in definition.edgeRibs)
-                {
-                    annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                    edgeRib.ribEnd is EdgeRibEnd;
-
-                    annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
-                    edgeRib.ribEdge is Query;
-
-                    annotation { "Name" : "Points",
-                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                    edgeRib.ribPoints is Query;
-
-                    if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
+                    for (var chain in definition.chains)
                     {
-                        annotation { "Name" : "Location", "Description" : "How far along the edge the ribs meet it, from its start (0) to its end (1)." }
-                        isReal(edgeRib.edgeLocation, EDGE_RIB_LOCATION_BOUNDS);
+                        annotation { "Name" : "Points",
+                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                        chain.chainPoints is Query;
+
+                        annotation { "Name" : "Closed" }
+                        chain.closed is boolean;
                     }
                 }
             }
-        }
 
-        if (definition.useChains || definition.useHubs || definition.useEdgeRibs)
-        {
-            annotation { "Name" : "Clear invalid selections" }
-            isButton(definition.clearInvalid);
+            annotation { "Name" : "Hub and spokes" }
+            definition.useHubs is boolean;
+
+            annotation { "Group Name" : "Hub and spokes", "Driving Parameter" : "useHubs", "Collapsed By Default" : false }
+            {
+                if (definition.useHubs)
+                {
+                    annotation { "Name" : "Hubs", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
+                                "UIHint" : ["FOCUS_INNER_QUERY"] }
+                    definition.hubs is array;
+
+                    for (var hub in definition.hubs)
+                    {
+                        annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
+                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                        hub.hub is Query;
+
+                        annotation { "Name" : "Spokes",
+                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                        hub.spokes is Query;
+
+                        annotation { "Name" : "Add circle", "Description" : "A circle around the hub, through the first spoke chosen." }
+                        hub.addCircle is boolean;
+                    }
+                }
+            }
+
+            annotation { "Name" : "Edge ribs" }
+            definition.useEdgeRibs is boolean;
+
+            annotation { "Group Name" : "Edge ribs", "Driving Parameter" : "useEdgeRibs", "Collapsed By Default" : false }
+            {
+                if (definition.useEdgeRibs)
+                {
+                    annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
+                    definition.edgeRibs is array;
+
+                    for (var edgeRib in definition.edgeRibs)
+                    {
+                        annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                        edgeRib.ribEnd is EdgeRibEnd;
+
+                        annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
+                        edgeRib.ribEdge is Query;
+
+                        annotation { "Name" : "Points",
+                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                        edgeRib.ribPoints is Query;
+
+                        if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
+                        {
+                            annotation { "Name" : "Location", "Description" : "How far along the edge the ribs meet it, from its start (0) to its end (1)." }
+                            isReal(edgeRib.edgeLocation, EDGE_RIB_LOCATION_BOUNDS);
+                        }
+                    }
+                }
+            }
+
+            if (definition.useChains || definition.useHubs || definition.useEdgeRibs)
+            {
+                annotation { "Name" : "Clear invalid selections" }
+                isButton(definition.clearInvalid);
+            }
         }
 
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
