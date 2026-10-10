@@ -288,6 +288,14 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   has (a failed operation changed nothing, so what it was given is still there): try the operation again on each part
   of what it was given, alone (on copies, so each try sees the same inputs), and show the parts which fail. The
   feature's about to throw, so everything the diagnosis builds is rolled back with it, and its error display stays.
+- **Find the real cause before blaming a parameter.** A generic error ("Failed to make walls.") on whatever parameter
+  is nearest misleads: work out which input makes the difference. Lay blame as if optional inputs (overrides, extras)
+  weren't there: if it works without them, blame them (and narrow down to those which fail alone); then try the
+  feature's other inputs one at a time (does it work without the fillet radius?) before blaming the main one. Say why
+  when it can be found (a rounded corner tighter than the wall), and show it. To try again from a clean slate, run the
+  operations in a feature of their own (`startFeature`; `endFeature` keeps them, `abortFeature` rolls them back, as
+  std's `sketch.fs` and `bridgingCurve.fs` do in feature bodies), and each try in its own, rolled back, with an id of
+  its own (rolled back ids aren't reused). See Robot lighten's `wallFailure`.
 
 Write this with std's functions directly: wrap each operation which can fail in `try`, and in its `catch`, throw a
 `regenError` of the feature's own, saying what failed ("Failed to thicken ribs."), highlighting the parameters which set

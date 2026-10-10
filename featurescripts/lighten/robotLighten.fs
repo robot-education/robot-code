@@ -25,18 +25,6 @@ export enum LightenEndType
     BLIND
 }
 
-/**
- * Simple lightens with one wall thickness and one rib thickness; Complex adds overrides of them for particular faces
- * and ribs.
- */
-export enum LightenMode
-{
-    annotation { "Name" : "Simple" }
-    SIMPLE,
-    annotation { "Name" : "Complex" }
-    COMPLEX
-}
-
 predicate isBlind(definition is map)
 {
     definition.endType == LightenEndType.BLIND;
@@ -56,9 +44,6 @@ annotation { "Feature Type Name" : "Robot lighten",
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
-        definition.mode is LightenMode;
-
         annotation { "Name" : "Face to lighten", "MaxNumberOfPicks" : 1,
                     "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
         definition.face is Query;
@@ -97,49 +82,46 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             isLength(definition.filletRadius, FILLET_RADIUS_BOUNDS);
         }
 
-        if (definition.mode == LightenMode.COMPLEX)
+        annotation { "Name" : "Override rib thickness" }
+        definition.overrideRibThickness is boolean;
+
+        annotation { "Group Name" : "Override rib thickness", "Driving Parameter" : "overrideRibThickness", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Override rib thickness" }
-            definition.overrideRibThickness is boolean;
-
-            annotation { "Group Name" : "Override rib thickness", "Driving Parameter" : "overrideRibThickness", "Collapsed By Default" : false }
+            if (definition.overrideRibThickness)
             {
-                if (definition.overrideRibThickness)
+                // Later overrides take precedence over earlier ones (and all of them over Rib thickness)
+                annotation { "Name" : "Rib overrides", "Item name" : "override", "Item label template" : "#overrideThickness ribs" }
+                definition.ribOverrides is array;
+
+                for (var ribOverride in definition.ribOverrides)
                 {
-                    // Later overrides take precedence over earlier ones (and all of them over Rib thickness)
-                    annotation { "Name" : "Rib overrides", "Item name" : "override", "Item label template" : "#overrideThickness ribs" }
-                    definition.ribOverrides is array;
+                    annotation { "Name" : "Ribs", "Filter" : EntityType.EDGE && SketchObject.YES }
+                    ribOverride.overrideEdges is Query;
 
-                    for (var ribOverride in definition.ribOverrides)
-                    {
-                        annotation { "Name" : "Ribs", "Filter" : EntityType.EDGE && SketchObject.YES }
-                        ribOverride.overrideEdges is Query;
-
-                        annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        isLength(ribOverride.overrideThickness, RIB_OVERRIDE_BOUNDS);
-                    }
+                    annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(ribOverride.overrideThickness, RIB_OVERRIDE_BOUNDS);
                 }
             }
+        }
 
-            annotation { "Name" : "Override wall thickness" }
-            definition.overrideWallThickness is boolean;
+        annotation { "Name" : "Override wall thickness" }
+        definition.overrideWallThickness is boolean;
 
-            annotation { "Group Name" : "Override wall thickness", "Driving Parameter" : "overrideWallThickness", "Collapsed By Default" : false }
+        annotation { "Group Name" : "Override wall thickness", "Driving Parameter" : "overrideWallThickness", "Collapsed By Default" : false }
+        {
+            if (definition.overrideWallThickness)
             {
-                if (definition.overrideWallThickness)
+                // Later overrides take precedence over earlier ones (and all of them over Wall thickness and Faces to ignore)
+                annotation { "Name" : "Wall overrides", "Item name" : "override", "Item label template" : "#overrideWall walls" }
+                definition.wallOverrides is array;
+
+                for (var wallOverride in definition.wallOverrides)
                 {
-                    // Later overrides take precedence over earlier ones (and all of them over Wall thickness and Faces to ignore)
-                    annotation { "Name" : "Wall overrides", "Item name" : "override", "Item label template" : "#overrideWall walls" }
-                    definition.wallOverrides is array;
+                    annotation { "Name" : "Faces", "Filter" : EntityType.FACE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
+                    wallOverride.overrideFaces is Query;
 
-                    for (var wallOverride in definition.wallOverrides)
-                    {
-                        annotation { "Name" : "Faces", "Filter" : EntityType.FACE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
-                        wallOverride.overrideFaces is Query;
-
-                        annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        isLength(wallOverride.overrideWall, WALL_OVERRIDE_BOUNDS);
-                    }
+                    annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(wallOverride.overrideWall, WALL_OVERRIDE_BOUNDS);
                 }
             }
         }
@@ -211,7 +193,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // faces to ignore
         const extruded = qUnion([qCreatedBy(id + "pocket", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
         const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
-        insetPockets(context, id + "walls", extruded, ends, qIntersection([pocketFaces, ignoredSides]),
+        insetPockets(context, id + "walls", id + "wallTrials", extruded, ends, qIntersection([pocketFaces, ignoredSides]),
             mapArray(overriddenSides, wallOverride => mergeMaps(wallOverride, { "sides" : qIntersection([pocketFaces, wallOverride.sides]) })),
             definition.wallThickness, radius);
 
@@ -238,7 +220,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                                 "keepTools" : true
                             });
                 });
-            throw regenError("Failed to cut ribs.", ribParameters(definition), failing);
+            throw regenError("Failed to cut ribs.", failingRibParameters(context, id + "ribs", ribGroups, failing), failing);
         }
         // The pockets left between them, which the walls and ribs split into pieces
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
@@ -251,7 +233,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         if (isQueryEmpty(context, pockets))
         {
             reportFeatureWarning(context, id, "There's no room for pockets between the walls and ribs.",
-                concatenateArrays([["wallThickness", "filletRadius"], ribParameters(definition)]));
+                concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : [], ribParameters(definition)]));
         }
         else
         {
@@ -489,45 +471,79 @@ function quickRibEdges(context is Context, definition is map, hiddenBodies is Qu
 /**
  * Insets `pockets` by `wall` and `radius` (the walls, thicker by the radius their corners are rounded to later), under
  * `id`, but at `ends` (their caps) and `ignoredSides`, which stay where they are, and at each of `overrides`' `sides`,
- * inset by its `thickness` instead. As Ilya Baran and Morgan Bartlett's Lighten does: those are moved out by the
- * distance (overridden sides, by `wall` less their thickness: in, for a thicker wall), and the pockets hollowed by it,
- * which moves every face in by it at once, holes of any size and their corners too, so it doesn't fail where a wall
- * along one edge would. What's inside (enclosed) is kept, and the rest deleted. Their concave edges are rounded a hair
- * (std's boolean tolerance, 0.01 mm) first, so they're rounded to the distance (and the hair) as they're moved, as the
- * walls' inside corners should be.
+ * inset by its `thickness` instead (see `buildWalls`).
+ *
+ * They're made in a feature of their own, so when they fail, what was done is rolled back, and `wallFailure` works out
+ * why (trying them again, a different way each time, under `trialId`).
  */
-function insetPockets(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
+function insetPockets(context is Context, id is Id, trialId is Id, pockets is Query, ends is Query, ignoredSides is Query,
+    overrides is array, wall is ValueWithUnits, radius is ValueWithUnits)
+{
+    startFeature(context, id, {});
+    var failure;
+    try silent
+    {
+        buildWalls(context, id, pockets, ends, ignoredSides, overrides, wall, radius);
+    }
+    catch (error)
+    {
+        failure = error;
+    }
+    if (failure == undefined)
+    {
+        endFeature(context, id);
+        return;
+    }
+    abortFeature(context, id);
+    throw wallFailure(context, trialId, pockets, ends, ignoredSides, overrides, wall, radius, failure);
+}
+
+/**
+ * The walls, as Ilya Baran and Morgan Bartlett's Lighten makes them: `ends` and `ignoredSides` are moved out by the
+ * distance (`wall` and `radius`), and each of `overrides`' sides by `wall` less its thickness (in, for a thicker wall);
+ * then the pockets are hollowed by the distance, which moves every face in by it at once, holes of any size and their
+ * corners too, so it doesn't fail where a wall along one edge would. What's inside (enclosed) is kept, and the rest
+ * deleted. Their concave edges are rounded a hair (std's boolean tolerance, 0.01 mm) first, so they're rounded to the
+ * distance (and the hair) as they're moved, as the walls' inside corners should be. Only the faces of `pockets` are
+ * moved, so it can be tried on some of them.
+ *
+ * Throws which step failed: a map of its `stage` ("extend", "override", "round", or "shell") and, for an override, its
+ * `override`.
+ */
+function buildWalls(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
     wall is ValueWithUnits, radius is ValueWithUnits)
 {
     const distance = wall + radius;
-    try
+    const faces = qOwnedByBody(pockets, EntityType.FACE);
+    try silent
     {
         opOffsetFace(context, id + "extend", {
-                    "moveFaces" : qUnion([ends, ignoredSides]),
+                    "moveFaces" : qIntersection([faces, qUnion([ends, ignoredSides])]),
                     "offsetDistance" : distance
                 });
     }
     catch
     {
-        throw regenError("Failed to extend pockets past their ends.", ["wallThickness"], qUnion([ends, ignoredSides]));
+        throw { "stage" : "extend" };
     }
     for (var i, wallOverride in overrides)
     {
         const offset = wall - wallOverride.thickness;
-        if (tolerantEqualsZero(offset) || isQueryEmpty(context, wallOverride.sides))
+        const sides = qIntersection([faces, wallOverride.sides]);
+        if (tolerantEqualsZero(offset) || isQueryEmpty(context, sides))
         {
             continue;
         }
-        try
+        try silent
         {
             opOffsetFace(context, id + "override" + unstableIdComponent(i), {
-                        "moveFaces" : wallOverride.sides,
+                        "moveFaces" : sides,
                         "offsetDistance" : offset
                     });
         }
         catch
         {
-            throw regenError("Failed to override walls.", wallOverride.parameters, wallOverride.sides);
+            throw { "stage" : "override", "override" : wallOverride };
         }
     }
 
@@ -537,7 +553,7 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
             }));
     if (!isQueryEmpty(context, concave))
     {
-        try
+        try silent
         {
             opFillet(context, id + "roundConcave", {
                         "entities" : concave,
@@ -546,11 +562,11 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
         }
         catch
         {
-            throw regenError("Failed to round walls' inside corners.", ["wallThickness"], concave);
+            throw { "stage" : "round" };
         }
     }
 
-    try
+    try silent
     {
         opShell(context, id + "shell", {
                     "entities" : pockets,
@@ -564,9 +580,115 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
     }
     catch
     {
-        throw regenError("Failed to make walls.", ["wallThickness"], pockets);
+        throw { "stage" : "shell" };
     }
     opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
+}
+
+/**
+ * Why the walls failed, as an error to throw: only on the way to it (it tries them again, a few ways, each rolled
+ * back), so it costs nothing when they don't. In order:
+ *
+ * - With wall overrides, if the walls work without them, the overrides which fail alone (or all of them).
+ * - Otherwise blame is laid as if there were no overrides. With Fillet corners, if the walls work at Wall thickness
+ *   alone, Fillet radius is to blame: the walls are built thicker by it, then the pockets grown back. Rounded corners
+ *   of the part tighter than the walls are built (convex sides, which hollowing can't move in by more than their
+ *   radius) are shown if there are any.
+ * - Otherwise Wall thickness: the rounded corners tighter than it, or the pockets which fail alone.
+ *
+ * @param failure : What `buildWalls` threw.
+ */
+function wallFailure(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
+    wall is ValueWithUnits, radius is ValueWithUnits, failure) returns map
+{
+    const trials = new box(0);
+    const works = function(trialOverrides is array, trialRadius is ValueWithUnits, trialPockets is Query) returns boolean
+        {
+            const trialId = id + unstableIdComponent(trials[]);
+            trials[] += 1;
+            startFeature(context, trialId, {});
+            var worked = false;
+            try silent
+            {
+                buildWalls(context, trialId, trialPockets, ends, ignoredSides, trialOverrides, wall, trialRadius);
+                worked = true;
+            }
+            abortFeature(context, trialId);
+            return worked;
+        };
+
+    if (overrides != [] && works([], radius, pockets))
+    {
+        var culprits = filter(overrides, wallOverride => !works([wallOverride], radius, pockets));
+        if (culprits == [])
+        {
+            culprits = overrides;
+        }
+        return regenError("The walls fail with these faces' wall overrides, though they work without them. Try other thicknesses.",
+            concatenateArrays(mapArray(culprits, wallOverride => wallOverride.parameters)),
+            qUnion(mapArray(culprits, wallOverride => wallOverride.faces)));
+    }
+
+    if (radius > 0 * meter && works([], 0 * meter, pockets))
+    {
+        const tight = tightCorners(context, pockets, ends, ignoredSides, wall + radius);
+        if (!isQueryEmpty(context, tight))
+        {
+            return regenError("These rounded corners are tighter than the walls are built (Wall thickness plus Fillet radius, before the " ~
+                    "pockets are grown back), so they can't be walled. Use a smaller fillet radius.", ["filletRadius"], tight);
+        }
+        return regenError("The walls fail when built Wall thickness plus Fillet radius thick (before the pockets are grown back), " ~
+                "though Wall thickness alone works. Use a smaller fillet radius.", ["filletRadius"],
+            failingPockets(context, pockets, pocket => works([], radius, pocket)));
+    }
+
+    const tight = tightCorners(context, pockets, ends, ignoredSides, wall);
+    if (!isQueryEmpty(context, tight))
+    {
+        return regenError("These rounded corners are tighter than the walls, so they can't be walled. Use thinner walls, or ignore those faces.",
+            ["wallThickness"], tight);
+    }
+    const failing = failingPockets(context, pockets, pocket => works([], radius, pocket));
+    const stage = failure is map ? failure.stage : undefined;
+    if (stage == "extend")
+    {
+        return regenError("Failed to extend pockets past their ends.", ["wallThickness"], qIntersection([qOwnedByBody(failing, EntityType.FACE), qUnion([ends, ignoredSides])]));
+    }
+    if (stage == "round")
+    {
+        return regenError("Failed to round walls' inside corners.", ["wallThickness"], failing);
+    }
+    return regenError("Failed to make walls in the pockets shown.", ["wallThickness"], failing);
+}
+
+/**
+ * The pockets `works` fails for, tried alone: all of them, if none fails alone.
+ */
+function failingPockets(context is Context, pockets is Query, works is function) returns Query
+{
+    const failing = filter(evaluateQuery(context, pockets), pocket => !works(pocket));
+    return failing == [] ? pockets : qUnion(failing);
+}
+
+/**
+ * The pockets' convex rounded sides (the part's rounded outside corners, which hollowing moves in) whose radius is less
+ * than `distance`: hollowing can't move a convex side in further than its radius.
+ */
+function tightCorners(context is Context, pockets is Query, ends is Query, ignoredSides is Query, distance is ValueWithUnits) returns Query
+{
+    const sides = qSubtraction(qOwnedByBody(pockets, EntityType.FACE)->qGeometry(GeometryType.CYLINDER), qUnion([ends, ignoredSides]));
+    return qUnion(filter(evaluateQuery(context, sides), function(face)
+            {
+                const cylinder = evSurfaceDefinition(context, { "face" : face });
+                if (!(cylinder is Cylinder) || cylinder.radius >= distance)
+                {
+                    return false;
+                }
+                // Convex: its normal (out of the pocket) points away from its axis
+                const tangent = evFaceTangentPlane(context, { "face" : face, "parameter" : vector(0.5, 0.5) });
+                const axis = line(cylinder.coordSystem.origin, cylinder.coordSystem.zAxis);
+                return dot(tangent.normal, tangent.origin - project(axis, tangent.origin)) > 0;
+            }));
 }
 
 /**
@@ -632,6 +754,23 @@ function ribGroups(definition is map) returns array
 }
 
 /**
+ * The parameters of the rib groups (Ribs to use and Rib thickness, or an override's) whose ribs (built under `id`, see
+ * `buildRibs`) are among `failing`.
+ */
+function failingRibParameters(context is Context, id is Id, groups is array, failing is Query) returns array
+{
+    var parameters = [];
+    for (var j, group in groups)
+    {
+        if (!isQueryEmpty(context, qIntersection([failing, qCreatedBy(id + unstableIdComponent(j), EntityType.BODY)])))
+        {
+            parameters = concatenateArrays([parameters, group.parameters]);
+        }
+    }
+    return parameters;
+}
+
+/**
  * The parameters which set the ribs, for errors about them.
  */
 function ribParameters(definition is map) returns array
@@ -640,19 +779,19 @@ function ribParameters(definition is map) returns array
 }
 
 /**
- * Whether Rib overrides apply: in Complex mode, with Override rib thickness.
+ * Whether Rib overrides apply: with Override rib thickness.
  */
 function overridesRibs(definition is map) returns boolean
 {
-    return definition.mode == LightenMode.COMPLEX && definition.overrideRibThickness;
+    return definition.overrideRibThickness;
 }
 
 /**
- * Whether Wall overrides apply: in Complex mode, with Override wall thickness.
+ * Whether Wall overrides apply: with Override wall thickness.
  */
 function overridesWalls(definition is map) returns boolean
 {
-    return definition.mode == LightenMode.COMPLEX && definition.overrideWallThickness;
+    return definition.overrideWallThickness;
 }
 
 /**

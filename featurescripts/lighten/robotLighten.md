@@ -26,15 +26,12 @@ Unreleased.
 No parameters have descriptions, and none are hidden. Editing logic sets the shown Face to lighten (see Execution
 order).
 
-Mode (the tabs at the top) is Simple, one wall and rib thickness, or Complex, which shows the overrides below (and
-applies them only then: `overridesRibs`, `overridesWalls`).
-
-In Complex mode, Override rib thickness (near the bottom) drives a group holding Rib overrides, an array (Add override; labeled like
+Override rib thickness (near the bottom) drives a group holding Rib overrides, an array (Add override; labeled like
 "0.25 in ribs") of ribs at other thicknesses, each its own Ribs (`overrideEdges`) and Rib thickness
 (`overrideThickness`, 0.25 in. by default), named apart from Ribs to use and Rib thickness because Onshape names array
 items' parameters with the rest. Exclude construction lines applies to them too.
 
-In Complex mode, Override wall thickness (below it) drives a group holding Wall overrides, an array (Add override; labeled like
+Override wall thickness (below it) drives a group holding Wall overrides, an array (Add override; labeled like
 "0.0625 in walls") of the part's faces whose walls are other thicknesses (the pocket's sides along them: a side, or a
 hole), each its own Faces (`overrideFaces`) and Wall thickness (`overrideWall`, 0.0625 in. by default). Later
 overrides take precedence over earlier ones, and all of them over Faces to ignore.
@@ -54,26 +51,29 @@ it's tried alone (see Error handling).
 | Select the face to lighten. | error | no face to lighten | `face` |
 | Select faces to ignore. | error | Ignore faces is checked, with none selected | `ignoredFaces` |
 | Select ribs to use. | error | no ribs (or only construction ones, excluded) | `ribEdges` |
-| Select ribs to override. | error | in Complex mode with Override rib thickness, an override without ribs | its Ribs |
-| The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), those ribs |
-| The face to lighten must be parallel to the ribs. | error | it isn't | `face`, `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), the face |
+| Select ribs to override. | error | with Override rib thickness, an override without ribs | its Ribs |
+| The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), those ribs |
+| The face to lighten must be parallel to the ribs. | error | it isn't | `face`, `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the face |
 | Failed to extrude the pocket. | error | extruding the face into its part fails | `face`, `depth`, the face |
 | Failed to extrude regions to ignore. | error | extruding the sketch regions to ignore fails | `ignoredFaces`, the regions |
 | Failed to cut regions to ignore from pockets. | error | cutting them from the pocket fails | `ignoredFaces`, the regions |
-| Select faces to override. | error | in Complex mode with Override wall thickness, an override without faces | its Faces |
+| Select faces to override. | error | with Override wall thickness, an override without faces | its Faces |
 | These faces don't border the face to lighten, so they have no walls. | error | an override's faces share no edge with the face to lighten | its Faces, the faces |
-| Failed to override walls. | error | offsetting an override's sides (out for a thinner wall, in for a thicker one) fails | its Faces and Wall thickness, those sides |
-| Failed to extend pockets past their ends. | error | offsetting the pocket's ends (and sides along ignored faces) out fails | `wallThickness`, those faces |
-| Failed to round walls' inside corners. | error | the hair fillet of the pocket's concave edges fails | `wallThickness`, the edges |
-| Failed to make walls. | error | hollowing (or enclosing) the pocket fails | `wallThickness`, the pocket |
+| The walls fail with these faces' wall overrides, though they work without them. Try other thicknesses. | error | the walls fail (`wallFailure`), but work without wall overrides | the overrides which fail alone (or all of them): their Faces and Wall thickness, and faces |
+| These rounded corners are tighter than the walls are built (Wall thickness plus Fillet radius, before the pockets are grown back), so they can't be walled. Use a smaller fillet radius. | error | they fail even without overrides, but work at Wall thickness alone, and the pocket has convex rounded sides with radii under Wall thickness plus Fillet radius | `filletRadius`, those faces |
+| The walls fail when built Wall thickness plus Fillet radius thick (before the pockets are grown back), though Wall thickness alone works. Use a smaller fillet radius. | error | as above, without such corners | `filletRadius`, the pockets which fail alone |
+| These rounded corners are tighter than the walls, so they can't be walled. Use thinner walls, or ignore those faces. | error | they fail at Wall thickness alone too, and the pocket has convex rounded sides with radii under it | `wallThickness`, those faces |
+| Failed to extend pockets past their ends. | error | otherwise, offsetting the pocket's ends (and sides along ignored faces) out failed | `wallThickness`, those faces of the pockets which fail alone |
+| Failed to round walls' inside corners. | error | otherwise, the hair fillet of the pocket's concave edges failed | `wallThickness`, the pockets which fail alone |
+| Failed to make walls in the pockets shown. | error | otherwise (hollowing, enclosing, or an override's offset failed) | `wallThickness`, the pockets which fail alone |
 | Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | Ribs to use and Rib thickness, or its override's, its edge |
 | Failed to thicken rib. | error | thickening its sheet fails | Ribs to use and Rib thickness, or its override's, its edge |
-| Failed to cut ribs. | error | cutting them from the pockets fails | `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), the ribs which fail alone |
+| Failed to cut ribs. | error | cutting them from the pockets fails | the Ribs to use and Rib thickness, or overrides, of the ribs which fail alone (`failingRibParameters`), and those ribs |
 | Failed to round pocket corners. | error | the hair fillet of the pockets' corners fails | `filletRadius`, the corners |
 | Failed to grow pockets back to round their corners. | error | offsetting the pockets' sides fails | `filletRadius`, the pockets which fail alone |
-| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `filletRadius`, `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness) |
+| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `filletRadius` (and `wallOverrides`, with Override wall thickness), `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness) |
 | Failed to cut pockets. | error | cutting them from the part fails | `face`, the pockets which fail alone |
-| Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), the loose parts |
+| Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the loose parts |
 | Lightened the part by `<percent>`%. | info | the pockets are cut, and nothing's cut free (the warning above would be replaced) | |
 
 ## How it works
@@ -145,11 +145,23 @@ that down: it tries the operation again on each rib or pocket alone (`failingBod
 does (it fails only on everything together). That runs an operation per body, but only on the way to an error, which
 rolls it all back. Selections are checked before anything's built. Warnings are reported when they're found.
 
+The walls go further, as their failures are the hardest to place (`insetPockets`, `wallFailure`). They're built
+(`buildWalls`) in a feature of their own (`startFeature`), committed if they work (`endFeature`), and rolled back if
+not (`abortFeature`), so they can be tried again from where they started: each try in its own feature, rolled back
+too. Blame is laid in order, as if what's optional weren't there: wall overrides, if the walls work without them (and
+then those which fail alone); then Fillet radius, if the walls work at Wall thickness alone (the walls are built
+thicker by it, then the pockets grown back); then Wall thickness. Where it can say why, it does: convex rounded sides
+of the pocket (the part's rounded outside corners) with radii under the walls' thickness can't be hollowed past
+(`tightCorners`), and are shown. Otherwise the pockets which fail alone are.
+
 ### `try`s
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| The pocket's extrude, `excludeRegions`, `insetPockets`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
+| The pocket's extrude, `excludeRegions`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
+| `insetPockets` (`try silent`) | Building the walls (`buildWalls`), in a feature of their own | Rolled back, and `wallFailure` works out the error to throw (above). |
+| `buildWalls` (`try silent`) | Each of its steps | Throws which step failed, for `wallFailure`. |
+| `wallFailure` (`try silent`) | Each try of the walls, another way | What it's looking for: whether that way works. Each try is rolled back. |
 | `failingBodies` (`try silent`) | Each try of a failed operation on one body | What it's looking for: the body is one which fails alone. |
 | `robotLightenEditLogic` (`try silent`) | Finding the ribs and their plane | A guard: with no ribs yet, editing logic leaves the definition as it is. |
 
@@ -159,5 +171,7 @@ rolls it all back. Selections are checked before anything's built. Warnings are 
 - Walls are an inset of the face's extrude, so a part whose sides slope or step gets walls of the face's outline, not
   of its sides.
 - An overridden wall steps to its thickness at the corners its side meets others at; a much thicker override moves
-  its side in before the hollow, which can close a small pocket (Failed to make walls.).
+  its side in before the hollow, which can close a small pocket.
+- Convex rounded corners tighter than the walls are built can't be walled (the hollow can't move them in by more than
+  their radius): reported, not handled. Making them sharp first (deleting their faces) would let them be walled.
 - Rounded corners are 0.01 mm (std's boolean tolerance) bigger than asked: the hair they're rounded by first.
