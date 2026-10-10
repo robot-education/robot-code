@@ -282,8 +282,8 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   operations in it before the one which threw stay done, so the `catch` (and any retry) sees the context as it was when
   it threw, not as it was when the `try` began. Std rolls back part of a feature itself when it needs to:
   `startFeature` before, and `abortFeature` after (in a `catch`, too, as `sheetMetalUtils.fs`'s temporary fillet does,
-  "making sure the operation is rolled back"), or `endFeature` to keep it (`sketch.fs`). `tryRollbackProbe.fs` (in
-  `featurescripts/probes/`) checks this in Onshape.
+  "making sure the operation is rolled back"), or `endFeature` to keep it (`sketch.fs`). So to retry a sequence of operations from where it
+  started, run it between `startFeature` and `abortFeature` (see "Find the real cause before blaming a parameter").
 - **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes (like the
   faces a shell opens) finds nothing after it. Show something that lasts instead, or (only if nothing else finds them)
   evaluate it before that step (see Queries).
