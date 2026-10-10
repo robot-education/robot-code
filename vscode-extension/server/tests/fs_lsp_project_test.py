@@ -815,6 +815,9 @@ def test_project_completions(project):
     assert labels("definition.width;", len("definition.")) == ["width"]
     names = labels("dou(1)", 3)
     assert "double" in names and "opExtrude" in names and "shape" in names and "hidden" not in names
+    # Std's internal names too, marked as such
+    internal = next(item for item in project_completions(project, module, source, source.index("dou(1)") + 3) if item.label == "opExtractSurface")
+    assert internal.detail.endswith(", internal)")
     keys = annotation_completions('annotation { "Name" : "x", "Dri', len('annotation { "Name" : "x", "Dri'))
     assert "Driven query" in [item.label for item in keys]
 

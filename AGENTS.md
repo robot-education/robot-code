@@ -10,6 +10,8 @@ README's "Testing FeatureScript". `uv run pytest` runs them all.
 After changing a feature, check, test, and show it as `.claude/skills/feature-audit/SKILL.md` says: it ends with its
 `fs audit` page, sent to the user.
 
+`docs/std-functions.md` lists useful std functions, many of which std marks `@internal` (they work; use them).
+
 For FeatureScript names, `fs doc NAME` shows a std or project symbol's signature and documentation, `fs refs NAME`
 where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix` fixes problems with one right answer.
 

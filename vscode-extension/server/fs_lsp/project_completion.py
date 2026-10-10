@@ -4,7 +4,7 @@
 - Members of enums declared in the project (`LightenEndType.|`): `completion.py` knows the file's own and std's.
 - The parameters a feature's precondition declares, after `definition.`.
 - Names: what's in scope where the cursor is, what the file's imports declare, and what std declares (its visible
-  modules'), with keywords. Std's documentation is filled in when an item is chosen (`resolve_item`).
+  modules', including what it marks `@internal`), with keywords. Std's documentation is filled in when an item is chosen (`resolve_item`).
 """
 
 from __future__ import annotations
@@ -244,9 +244,9 @@ def _name_completions(project: Project, module: Module, start: int, offset: int)
         for symbol in library.symbols:
             if symbol.parent is not None or symbol.kind == "enumMember" or (symbol.module and symbol.module not in visible):
                 continue
-            if symbol.doc and symbol.doc.startswith("@internal"):
-                continue
-            add(symbol.name, symbol.kind, f"{symbol.kind} ({symbol.module})", 2, {"std": symbol.name, "module": symbol.module})
+            # Internal ones too: std marks much of what's useful (opExtractSurface, ...) as @internal, and it works
+            internal = ", internal" if symbol.doc and "@internal" in symbol.doc else ""
+            add(symbol.name, symbol.kind, f"{symbol.kind} ({symbol.module}{internal})", 2, {"std": symbol.name, "module": symbol.module})
     for keyword in sorted(KEYWORDS):
         add(keyword, "keyword", "keyword", 3)
         items[keyword].kind = lsp.CompletionItemKind.Keyword

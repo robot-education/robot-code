@@ -227,6 +227,15 @@ true then), but don't use it as a value, e.g. `oldDefinition.flag ?? false` inst
 When a shared function does everything a feature's manipulator change function would, name it in the feature's
 annotation (`"Manipulator Change Function" : "stockManipulatorChange"`) rather than wrapping it.
 
+## Tolerances, not margins
+
+Don't pick margins by eye ("5% past", "at least 0.1 mm", "1.05 times the radius"). Whether two things are the same, or
+touch, is std's call: `TOLERANCE.zeroLength` for geometry, `TOLERANCE.booleanDefaultTolerance` for what booleans treat
+as touching (both unitless, in meters; see `docs/std-functions.md`). Make tools exactly as big as they need to be
+(`evBox3d` with `"tight" : true`): a cut ending flush with a part's face cuts through, as booleans treat faces within
+their tolerance as the same. Where something can't be smaller than a tolerance (a hole left by thickening an arc
+toward its center), compare against that tolerance.
+
 ## Comparing lengths and angles
 
 Compare measured values with std's tolerant functions (`tolerantEquals`, `tolerantEqualsZero`, `tolerantLessThan`,
