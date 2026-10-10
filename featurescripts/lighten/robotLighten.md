@@ -26,9 +26,9 @@ Unreleased.
 No parameters have descriptions, and none are hidden. Editing logic sets the shown Face to lighten (see Execution
 order).
 
-Rib mode chooses how ribs are given: Simple, one Ribs to use and Rib thickness; or Complex, Ribs, an array of groups
-(labeled by their thickness), each its own Ribs to use and Rib thickness. Exclude construction lines applies to every
-group.
+Rib mode (the tabs at the top) chooses how ribs are given: Simple, one Ribs to use and Rib thickness; or Complex, Ribs,
+an array of groups (labeled by their thickness), each its own Ribs to use and Rib thickness. Exclude construction lines
+applies to every group.
 
 ### Errors, warnings, and info
 

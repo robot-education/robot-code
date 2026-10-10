@@ -124,6 +124,10 @@ precondition
 A horizontal enum lower down would read as a set of tabs in the middle of the dialog. Use a normal enum (a dropdown)
 there instead, with `"SHOW_LABEL"` if its options don't say what they choose.
 
+A "top level option" means exactly this: a horizontal enum at the top of the feature, choosing between its modes (like
+Robot lighten's Simple and Complex ribs). `fs check` warns about a horizontal enum after anything shown (hidden
+parameters don't count), or in a group or an array parameter's items.
+
 ## Released feature constants
 
 A feature's constant (`export const frcBeltCalculator = defineFeature(...)`) is its type: documents store it, and a
@@ -393,6 +397,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - Predicates a feature's precondition uses from other files must be exported to the feature's file.
 - A feature's precondition can't declare a parameter more than once, even in different branches of an `if`.
 - Predicates in a precondition's `if` conditions can't call other predicates.
+- Horizontal enums go at the top of the dialog: before any other shown parameter, and not in groups or array
+  parameters' items (see "Horizontal enums go at the top").
 - Top-level constants, enums, and types can't share a name with anything the file or its imports declare.
 - Functions and predicates declared with `function` or `predicate` can only be called, not used as values (see
   "Functions as values").

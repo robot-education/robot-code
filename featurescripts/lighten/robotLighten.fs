@@ -51,6 +51,9 @@ annotation { "Feature Type Name" : "Robot lighten",
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
+        annotation { "Name" : "Rib mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+        definition.ribMode is RibMode;
+
         annotation { "Name" : "Face to lighten", "MaxNumberOfPicks" : 1,
                     "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
         definition.face is Query;
@@ -67,9 +70,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                 definition.ignoredFaces is Query;
             }
         }
-
-        annotation { "Name" : "Rib mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
-        definition.ribMode is RibMode;
 
         if (definition.ribMode == RibMode.SIMPLE)
         {

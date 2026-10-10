@@ -662,3 +662,53 @@ def test_unused_variables(project):
     problems = [p for p in project.check(module) if p.code == "unused-variable"]
     # Not top-level constants, parameters, or _
     assert [module.parsed.source[p.start : p.end] for p in problems] == ["unused", "onlySet", "key"]
+
+
+def test_horizontal_enums_go_at_the_top(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export enum Mode { A, B }\n"
+        'export predicate modePredicate(definition is map)\n{\n    annotation { "Name" : "Mode", "UIHint" : ["HORIZONTAL_ENUM"] }\n'
+        "    definition.mode is Mode;\n}\n"
+    )
+    feature = (
+        f'FeatureScript 2909;\nexport import(path : "{SHAPES_ID}", version : "v");\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {{\n{body}    }}\n    {{\n    }});\n"
+    )
+    hidden = '        annotation { "Name" : "Hidden", "UIHint" : "ALWAYS_HIDDEN" }\n        definition.hidden is boolean;\n'
+    shown = '        annotation { "Name" : "Shown" }\n        definition.shown is boolean;\n'
+    horizontal = '        annotation { "Name" : "Other", "UIHint" : ["HORIZONTAL_ENUM"] }\n        definition.other is Mode;\n'
+    path = project.code_dir / "feature2.fs"
+
+    def problems(body: str) -> list[str]:
+        path.write_text(feature.format(body=body))
+        source = project.module(path).parsed.source
+        return [source[p.start:p.end] for p in project.check(project.module(path)) if p.code == "horizontal-enum-order"]
+
+    # At the top (after hidden parameters, and through predicates), they're fine
+    assert problems(hidden + "        modePredicate(definition);\n" + horizontal + shown) == []
+    # After anything shown, they're reported, at the predicate call for one a predicate declares
+    assert problems(shown + horizontal + "        modePredicate(definition);\n") == ["other", "modePredicate"]
+
+
+def test_horizontal_enums_go_in_no_groups_or_arrays(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        'FeatureScript 2909;\nexport enum Mode { A, B }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Group Name" : "Options" }\n        {\n'
+        '            annotation { "Name" : "In a group", "UIHint" : ["HORIZONTAL_ENUM"] }\n'
+        "            definition.grouped is Mode;\n        }\n"
+        '        annotation { "Name" : "Items", "Item name" : "item" }\n        definition.items is array;\n'
+        "        for (var item in definition.items)\n        {\n"
+        '            annotation { "Name" : "In an item", "UIHint" : ["HORIZONTAL_ENUM"] }\n'
+        "            item.mode is Mode;\n        }\n"
+        "    }\n    {\n    });\n"
+    )
+    messages = [p.message for p in project.check(project.module(path)) if p.code == "horizontal-enum-order"]
+    assert sorted(messages) == [
+        "Horizontal enums go at the top of the dialog, not in array parameters' items.",
+        "Horizontal enums go at the top of the dialog, not in groups.",
+    ]

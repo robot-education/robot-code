@@ -794,6 +794,7 @@ class Project:
         problems.extend(self._parameter_enum_problems(module, providers))
         problems.extend(self._precondition_predicate_problems(module, providers))
         problems.extend(self._duplicate_parameter_problems(module))
+        problems.extend(self._horizontal_enum_problems(module))
         problems.extend(self._array_group_problems(module))
         problems.extend(self._tolerant_parameter_problems(module))
         problems.extend(self._nested_predicate_problems(module, providers))
@@ -1102,7 +1103,7 @@ class Project:
             if feature is None:
                 continue
             first: dict[str, Token] = {}
-            for name, report_at in self._declared_parameters(module, node.start, node.end, "definition", frozenset()):
+            for name, report_at, _ in self._declared_parameters(module, node.start, node.end, "definition", frozenset()):
                 if name not in first:
                     first[name] = report_at
                     continue
@@ -1118,6 +1119,80 @@ class Project:
                     )
                 )
         return _dedupe_problems(problems)
+
+    def _horizontal_enum_problems(self, module: Module) -> list[Problem]:
+        """Horizontal enums (the tabs across a dialog) after other parameters: they go at the top of a feature's
+        dialog, before anything else shown (hidden parameters don't count), directly or through predicates (see
+        docs/featurescript-style.md)."""
+        problems = []
+        for node in module.parsed.nodes:
+            if node.type != "PreconditionBlock":
+                continue
+            feature = module.index.enclosing(node.token, frozenset(["FeatureDeclaration"]))
+            if feature is None:
+                continue
+            first_other = None
+            for name, report_at, parameter_kind in self._declared_parameters(
+                module, node.start, node.end, "definition", frozenset()
+            ):
+                if parameter_kind == "shown":
+                    first_other = first_other or name
+                elif parameter_kind == "horizontal" and first_other is not None:
+                    problems.append(
+                        Problem(
+                            report_at.offset,
+                            report_at.end,
+                            "warning",
+                            f"Horizontal enums go at the top of the dialog, before other parameters: move {name} "
+                            f"above {first_other}.",
+                            "horizontal-enum-order",
+                        )
+                    )
+        problems.extend(self._nested_horizontal_enum_problems(module))
+        return _dedupe_problems(problems)
+
+    def _nested_horizontal_enum_problems(self, module: Module) -> list[Problem]:
+        """Horizontal enums in groups, or in array parameters' items (in preconditions and predicates)."""
+        tokens = module.index.tokens
+        source = module.parsed.source
+        regions = [node for node in module.parsed.nodes if node.type in ("PreconditionBlock", "PredicateDeclaration")]
+        # Groups' and loops' blocks: (start, end) offsets
+        nested: list[tuple[int, int, str]] = []
+        by_end = {token.end: index for index, token in enumerate(tokens)}
+        for node in module.parsed.nodes:
+            if node.type == "AnnotationMap" and '"Group Name"' in source[node.start : node.end]:
+                after = by_end.get(node.end)
+                if after is not None and after + 1 < len(tokens) and tokens[after + 1].value == "{":
+                    end = _matching_index(tokens, after + 1)
+                    if end is not None:
+                        nested.append((tokens[after + 1].offset, tokens[end].end, "groups"))
+        for index, token in enumerate(tokens):
+            if token.value != "for" or token.kind == "string":
+                continue
+            if not any(region.start <= token.offset < region.end for region in regions):
+                continue
+            header_end = _matching_index(tokens, index + 1)
+            if header_end is None or header_end + 1 >= len(tokens) or tokens[header_end + 1].value != "{":
+                continue
+            end = _matching_index(tokens, header_end + 1)
+            if end is not None:
+                nested.append((tokens[header_end + 1].offset, tokens[end].end, "array parameters' items"))
+        problems = []
+        for node in module.parsed.nodes:
+            if node.type != "AnnotationMap" or "HORIZONTAL_ENUM" not in source[node.start : node.end]:
+                continue
+            where = next((kind for start, end, kind in nested if start <= node.start < end), None)
+            if where is not None:
+                problems.append(
+                    Problem(
+                        node.start,
+                        node.end,
+                        "warning",
+                        f"Horizontal enums go at the top of the dialog, not in {where}.",
+                        "horizontal-enum-order",
+                    )
+                )
+        return problems
 
     def _array_group_problems(self, module: Module) -> list[Problem]:
         """Groups ("Group Name" annotations) in array parameters' items, which Onshape rejects ("Parameter groups not
@@ -1219,15 +1294,23 @@ class Project:
 
     def _declared_parameters(
         self, module: Module, start: int, end: int, map_name: str, path: frozenset[tuple[pathlib.Path, int]]
-    ) -> list[tuple[str, Token]]:
+    ) -> list[tuple[str, Token, str]]:
         """The parameters a region of a precondition declares on map_name, in order, and through the predicates it
-        passes map_name to (reported at the call).
+        passes map_name to (reported at the call), each with its kind from its annotation: "horizontal" (a horizontal
+        enum), "hidden" (ALWAYS_HIDDEN), or "shown".
 
         A declaration is a statement `map_name.x is Type;` or `isLength(map_name.x, ...);` (see PARAMETER_PREDICATES).
         """
         tokens = module.index.tokens
         providers, _ = self.providers(module)
-        found: list[tuple[str, Token]] = []
+        found: list[tuple[str, Token, str]] = []
+        # Annotation maps by where they end, to find the one just before a declaration
+        annotations = {node.end: node for node in module.parsed.nodes if node.type == "AnnotationMap"}
+
+        def kind(position: int) -> str:
+            annotation = annotations.get(tokens[position - 1].end) if position else None
+            text = module.parsed.source[annotation.start : annotation.end] if annotation is not None else ""
+            return "horizontal" if "HORIZONTAL_ENUM" in text else "hidden" if "ALWAYS_HIDDEN" in text else "shown"
 
         def value(position: int) -> str | None:
             return tokens[position].value if position < len(tokens) else None
@@ -1238,12 +1321,12 @@ class Project:
             if position and tokens[position - 1].value not in (";", "{", "}"):
                 continue  # Not the start of a statement
             if token.value == map_name and value(position + 1) == "." and value(position + 3) == "is":
-                found.append((tokens[position + 2].value, tokens[position + 2]))
+                found.append((tokens[position + 2].value, tokens[position + 2], kind(position)))
             elif value(position + 1) != "(":
                 continue
             elif token.value in PARAMETER_PREDICATES:
                 if value(position + 2) == map_name and value(position + 3) == "." and value(position + 5) in (",", ")"):
-                    found.append((tokens[position + 4].value, tokens[position + 4]))
+                    found.append((tokens[position + 4].value, tokens[position + 4], kind(position)))
             else:
                 for owner, declaration in self._predicate_targets(module, token, providers)[:1]:
                     key = (owner.path, declaration.token.offset)
@@ -1261,8 +1344,10 @@ class Project:
                     )
                     if inner is not None:
                         found.extend(
-                            (name, token)
-                            for name, _ in self._declared_parameters(owner, body.start, body.end, inner, path | {key})
+                            (name, token, parameter_kind)
+                            for name, _, parameter_kind in self._declared_parameters(
+                                owner, body.start, body.end, inner, path | {key}
+                            )
                         )
         return found
 
