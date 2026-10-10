@@ -3,6 +3,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 export import(path : "onshape/std/manipulator.fs", version : "2960.0");
+QuickRibIcon::import(path : "rib/quickRibIcon.svg", version : "");
 
 const CIRCLE_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
 const LOCATION_BOUNDS = { (unitless) : [0, 0.5, 1] } as RealBoundSpec;
@@ -23,13 +24,13 @@ export enum EdgeRibEnd
  * Sketches ribs (lines, and circles) between points (circles' and arcs' centers, vertices, and mate connectors), and
  * from points to edges, quickly: for Robot lighten's Ribs to use. Chains run through their points in order
  * (closed or not; two points make one rib); hubs have spokes to their hub, and a circle around it if asked; edge ribs
- * run from a point to an edge, meeting it square, or where a manipulator puts it.
+ * run from points to an edge, meeting it square, or where a manipulator puts them.
  */
 annotation { "Feature Type Name" : "Quick rib",
         "Feature Type Description" : "Sketch ribs between circles and points, as chains or hubs and spokes, or to edges, for Robot lighten." ~ CREDIT,
         "Editing Logic Function" : "quickRibEditLogic",
         "Manipulator Change Function" : "quickRibManipulatorChange",
-        "Icon" : RobotIcon::BLOB_DATA
+        "Icon" : QuickRibIcon::BLOB_DATA
     }
 export const quickRib = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
@@ -89,26 +90,26 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
 
             for (var edgeRib in definition.edgeRibs)
             {
-                annotation { "Name" : "Point", "MaxNumberOfPicks" : 1,
-                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                edgeRib.ribPoint is Query;
+                annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                edgeRib.ribEnd is EdgeRibEnd;
 
                 annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
                 edgeRib.ribEdge is Query;
 
-                annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                edgeRib.ribEnd is EdgeRibEnd;
+                annotation { "Name" : "Points",
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                edgeRib.ribPoints is Query;
 
                 if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
                 {
-                    annotation { "Name" : "Location", "Description" : "How far along the edge the rib meets it, from its start (0) to its end (1)." }
+                    annotation { "Name" : "Location", "Description" : "How far along the edge the ribs meet it, from its start (0) to its end (1)." }
                     isReal(edgeRib.edgeLocation, LOCATION_BOUNDS);
                 }
             }
         }
 
         annotation { "Name" : "Clear invalid selections",
-                    "Description" : "Drops selections which no longer exist, chains of fewer than two points, hubs without a hub, and edge ribs without a point or edge." }
+                    "Description" : "Drops selections which no longer exist, chains of fewer than two points, hubs without a hub, and edge ribs without an edge or points." }
         isButton(definition.clearInvalid);
     }
     {
@@ -142,13 +143,13 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         }
         for (var edgeRib in definition.edgeRibs)
         {
-            const segment = edgeRibSegment(context, edgeRib);
-            if (segment == undefined)
+            const ribs = edgeRibSegments(context, edgeRib);
+            if (ribs == [])
             {
                 skipped += 1;
                 continue;
             }
-            segments = append(segments, segment);
+            segments = concatenateArrays([segments, ribs]);
         }
         segments = uniqueSegments(segments);
         if (segments == [] && circles == [])
@@ -207,26 +208,27 @@ function pointOf(context is Context, entity is Query) returns Vector
 }
 
 /**
- * An edge rib's line (`[from, to]`): from its point to its edge, where the edge's nearest to it (Perpendicular to edge)
- * or at its location along it (Manipulator). Undefined if its point or edge isn't chosen (or there).
+ * An edge rib's lines (each `[from, to]`): from each of its points to its edge, where the edge's nearest to it
+ * (Perpendicular to edge), or all to its location along it (Manipulator). None if its edge or points aren't chosen (or
+ * there).
  */
-function edgeRibSegment(context is Context, edgeRib is map)
+function edgeRibSegments(context is Context, edgeRib is map) returns array
 {
-    const start = pointsOf(context, edgeRib.ribPoint);
-    if (start == [] || isQueryEmpty(context, edgeRib.ribEdge))
+    const starts = pointsOf(context, edgeRib.ribPoints);
+    if (starts == [] || isQueryEmpty(context, edgeRib.ribEdge))
     {
-        return undefined;
+        return [];
     }
     try silent
     {
         if (edgeRib.ribEnd == EdgeRibEnd.PERPENDICULAR)
         {
-            return [start[0], evDistance(context, { "side0" : start[0], "side1" : edgeRib.ribEdge }).sides[1].point];
+            return mapArray(starts, start => [start, evDistance(context, { "side0" : start, "side1" : edgeRib.ribEdge }).sides[1].point]);
         }
-        return [start[0], evEdgeTangentLine(context, { "edge" : edgeRib.ribEdge, "parameter" : edgeRib.edgeLocation,
-                            "arcLengthParameterization" : true }).origin];
+        const end = evEdgeTangentLine(context, { "edge" : edgeRib.ribEdge, "parameter" : edgeRib.edgeLocation, "arcLengthParameterization" : true }).origin;
+        return mapArray(starts, start => [start, end]);
     }
-    return undefined;
+    return [];
 }
 
 /**
@@ -370,7 +372,7 @@ export function quickRibEditLogic(context is Context, id is Id, oldDefinition is
 function firstFaceUnder(context is Context, definition is map, hiddenBodies is Query)
 {
     const selections = concatenateArrays([mapArray(definition.chains, chain => chain.chainPoints), mapArray(definition.hubs, hub => hub.hub),
-                mapArray(definition.hubs, hub => hub.spokes), mapArray(definition.edgeRibs, edgeRib => edgeRib.ribPoint),
+                mapArray(definition.hubs, hub => hub.spokes), mapArray(definition.edgeRibs, edgeRib => edgeRib.ribPoints),
                 mapArray(definition.edgeRibs, edgeRib => edgeRib.ribEdge)]);
     for (var selection in selections)
     {
@@ -426,7 +428,7 @@ function faceUnder(context is Context, entity is Query, hiddenBodies is Query)
 
 /**
  * Clear invalid selections: what's chosen, but what isn't there any more; chains of fewer than two points; hubs
- * without a hub; and edge ribs without a point or an edge.
+ * without a hub; and edge ribs without an edge or points.
  */
 function clearInvalidSelections(context is Context, definition is map) returns map
 {
@@ -452,6 +454,15 @@ function clearInvalidSelections(context is Context, definition is map) returns m
     }
     definition.chains = chains;
     definition.hubs = hubs;
-    definition.edgeRibs = filter(definition.edgeRibs, edgeRib => !isQueryEmpty(context, edgeRib.ribPoint) && !isQueryEmpty(context, edgeRib.ribEdge));
+    var edgeRibs = [];
+    for (var edgeRib in definition.edgeRibs)
+    {
+        edgeRib.ribPoints = qUnion(evaluateQuery(context, edgeRib.ribPoints));
+        if (!isQueryEmpty(context, edgeRib.ribPoints) && !isQueryEmpty(context, edgeRib.ribEdge))
+        {
+            edgeRibs = append(edgeRibs, edgeRib);
+        }
+    }
+    definition.edgeRibs = edgeRibs;
     return definition;
 }

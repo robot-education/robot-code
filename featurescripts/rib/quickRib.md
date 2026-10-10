@@ -2,12 +2,13 @@
 
 A prototype: sketches ribs between points (circles' and arcs' centers, vertices, and mate connectors' origins), and
 from points to edges, on Face to use, for Robot lighten's Ribs to use. Chains run through their points in order (closed or not; two points make one rib); hubs have spokes to
-their hub, and a circle around it if asked; edge ribs run from a point to an edge, meeting it square, or where a
-manipulator puts it.
+their hub, and a circle around it if asked; edge ribs run from points to an edge, meeting it square, or where a
+manipulator puts them.
 
 | File | What it is |
 | --- | --- |
 | `quickRib.fs` | The feature, its editing logic, and its manipulators |
+| `quickRibIcon.py`, `quickRibIcon.svg` | Its icon (`fs gen` writes the `.svg`): the plate of Robot lighten's icon, with ribs from a middle hole to the corners' (see `docs/icons.md`) |
 | `../../tests/featurescript/quickRib_test.fs` | Tests of the lines it draws (`chainSegments`, `hubSegments`, `uniqueSegments`) |
 
 ## Changelog
@@ -26,18 +27,19 @@ Unreleased.
 | Parameter | Description |
 | --- | --- |
 | Face to use | Where the ribs are sketched (points are projected onto it). Filled in from what's chosen first. |
-| Location | How far along the edge the rib meets it, from its start (0) to its end (1). |
-| Clear invalid selections | Drops selections which no longer exist, chains of fewer than two points, hubs without a hub, and edge ribs without a point or edge. |
+| Location | How far along the edge the ribs meet it, from its start (0) to its end (1). |
+| Clear invalid selections | Drops selections which no longer exist, chains of fewer than two points, hubs without a hub, and edge ribs without an edge or points. |
 
 None are hidden. Chains, Hubs, and Edge ribs are each in a group of their own. Chains and Hubs are driven by their
-items' Points and Hub (selecting one adds an item), and focus moves into a new item's first selection.
+items' Points and Hub (selecting one adds an item), and focus moves into a new item's first selection. Each edge rib
+is End (Perpendicular to edge or Manipulator), Edge, Points (any number), and with Manipulator, Location.
 
 ### Errors, warnings, and info
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
 | Add chains, hubs, or edge ribs to sketch ribs. | error | nothing makes a rib | `chains`, `hubs`, `edgeRibs` |
-| A chain, hub, or edge rib isn't complete, so it's skipped. / `<n>` chains, hubs, and edge ribs aren't complete, so they're skipped. | warning | chains of fewer than two points, hubs without a hub (or without spokes or a circle), edge ribs without a point or edge | |
+| A chain, hub, or edge rib isn't complete, so it's skipped. / `<n>` chains, hubs, and edge ribs aren't complete, so they're skipped. | warning | chains of fewer than two points, hubs without a hub (or without spokes or a circle), edge ribs without an edge or points | |
 | Select a face to use. | error | no Face to use | `face` |
 
 ## How it works
@@ -45,9 +47,9 @@ items' Points and Hub (selecting one adds an item), and focus moves into a new i
 ### Execution order
 
 1. **Editing logic** (`quickRibEditLogic`): when Clear invalid selections (a button: std's `isButton`, which editing
-   logic gets as `clickedButton`) is clicked, `clearInvalidSelections` evaluates each chain's and hub's selections
-   (dropping what isn't there), and drops chains of fewer than two points, hubs without a hub, and edge ribs without a
-   point or edge. Then unless Face to use has been set, and while it's empty, it's the face under what's chosen first
+   logic gets as `clickedButton`) is clicked, `clearInvalidSelections` evaluates each chain's, hub's, and edge rib's
+   points (dropping what isn't there), and drops chains of fewer than two points, hubs without a hub, and edge ribs
+   without an edge or points. Then unless Face to use has been set, and while it's empty, it's the face under what's chosen first
    (`firstFaceUnder`: the chains', the hubs' and spokes', then the edge ribs' points and edges). Under one
    (`faceUnder`): the planar face, of the parts which aren't hidden, in its plane (a sketch entity's sketch plane, a
    circle's or arc's plane, or a mate connector's XY plane) nearest its point; parts' vertices and lines give none.
@@ -58,8 +60,8 @@ items' Points and Hub (selecting one adds an item), and focus moves into a new i
       the rest give lines through them (`chainSegments`).
    2. Each hub's point and its spokes' (`hubSegments`), and its circle with Add circle. Hubs without a hub, or with
       neither spokes nor a circle, are skipped.
-   3. Each edge rib's line (`edgeRibSegment`): from its point to its edge's nearest point (Perpendicular to edge), or
-      to the point at Location along it (Manipulator). Those without a point or edge are skipped.
+   3. Each edge rib's lines (`edgeRibSegments`): from each of its points to its edge's nearest point (Perpendicular to
+      edge), or all to the point at Location along it (Manipulator). Those without an edge or points are skipped.
    4. Repeats and lines with no length are dropped (`uniqueSegments`); with nothing left, an error, and with any
       skipped, a warning.
    5. Face to use's plane (`getSketchPlane`: an error without one), and a sketch on it under `id + "ribSketch"`, with
@@ -77,7 +79,7 @@ counts them). The only errors are nothing to sketch, and no Face to use.
 | `try` | What it guards | When it fails |
 | --- | --- | --- |
 | `pointsOf` (`try silent`) | Each selection's point | It's left out: what's chosen isn't there any more. |
-| `edgeRibSegment` (`try silent`) | Finding where the rib meets its edge | The edge rib is skipped. |
+| `edgeRibSegments` (`try silent`) | Finding where the ribs meet their edge | The edge rib is skipped. |
 | `addEdgeRibManipulators` (`try silent`) | Each edge rib's manipulator | No manipulator for it: its edge isn't there. |
 | `firstFaceUnder` (`try silent`) | Finding the face under each selection, in editing logic | It's passed over. |
 
@@ -90,4 +92,4 @@ counts them). The only errors are nothing to sketch, and no Face to use.
 - A hub's spokes come in the order chosen; the first selection isn't treated specially yet.
 - Perpendicular to edge takes the edge's nearest point in 3D, then projects it onto the sketch: for edges in the
   sketch's plane (or parallel to it) that's square to the edge.
-- The icon is the generic robot icon.
+- With Manipulator, an edge rib's points all meet its edge at one Location.
