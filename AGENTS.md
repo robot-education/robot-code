@@ -10,6 +10,9 @@ README's "Testing FeatureScript". `uv run pytest` runs them all.
 After changing a feature, check, test, and show it as `.claude/skills/feature-audit/SKILL.md` says: it ends with its
 `fs audit` page, sent to the user.
 
+For FeatureScript names, `fs doc NAME` shows a std or project symbol's signature and documentation, `fs refs NAME`
+where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix` fixes problems with one right answer.
+
 A "top level option" means a horizontal enum at the top of the feature (see `docs/featurescript-style.md`'s
 "Horizontal enums go at the top").
 

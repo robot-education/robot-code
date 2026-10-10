@@ -237,6 +237,14 @@ def make_parser() -> argparse.ArgumentParser:
     )
     refs.add_argument("name", help="the name to look up, e.g. cleanup")
 
+    doc_command = command(
+        "doc",
+        "show a function's, constant's, enum's, etc. signature and documentation, as the editor's hover does: the "
+        "project's or std's (no API calls)",
+        targets=False,
+    )
+    doc_command.add_argument("name", help="e.g. opExtrude, or a function in the project")
+
     rename_command = command(
         "rename",
         "rename a function, constant, enum, etc. and every use of it, across the FeatureScripts (no API calls)",
@@ -1488,6 +1496,28 @@ def refs(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def doc(config: Config, args: argparse.Namespace) -> int:
+    from fs_lsp.hover import _stdlib_markdown, declaration_markdown
+    from fs_lsp.stdlib import stdlib
+
+    project = _project(config)
+    sections = []
+    with project.snapshot():
+        for module in project.modules():
+            for declaration in module.top_level.get(args.name, []):
+                sections.append(f"{declaration_markdown(module.parsed, declaration)}\n\nFrom {_display_path(module.path)}")
+    sections.extend(
+        _stdlib_markdown(symbol) + f"\n\nFrom std's {symbol.module}"
+        for symbol in stdlib().lookup(args.name)
+        if symbol.parent is None
+    )
+    if not sections:
+        print(f"Nothing called {args.name} is declared at the top level of a FeatureScript or std.")
+        return 1
+    print("\n\n---\n\n".join(sections))
+    return 0
+
+
 def rename(config: Config, args: argparse.Namespace) -> int:
     from fs_lsp.project import RenameError
 
@@ -1580,6 +1610,7 @@ OFFLINE_COMMANDS = {
     "unused": unused,
     "refs": refs,
     "rename": rename,
+    "doc": doc,
     "gen": gen,
     "icons": icons,
     "cots": cots,

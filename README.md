@@ -241,6 +241,7 @@ uv run fs deps robotShaft    # what a studio imports, and what imports it
 uv run fs strings robotShaft # strings it shows users (names, descriptions, errors), with those of what it imports
 uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used (std's too)
 uv run fs rename cleanup tidy  # rename it, and every use (-n to see where first; never a released feature's constant)
+uv run fs doc opExtrude       # a name's signature and documentation, as the editor's hover shows it (std's too)
 uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, keeping its studio and imports
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
