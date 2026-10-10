@@ -510,7 +510,7 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
     {
         cuts = append(cuts, { "plane" : ends.startPlane, "away" : -location.zAxis });
     }
-    var endFace = qCapEntity(stockId, CapType.END, EntityType.FACE);
+    var endFaces = [qCapEntity(stockId, CapType.END, EntityType.FACE)];
     const reach = built + stock.width + stock.height;
     for (var i, cut in cuts)
     {
@@ -522,9 +522,11 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
         }
         if (isEnd)
         {
-            endFace = qUnion([endFace->qOwnedByBody(body), face]);
+            endFaces = append(endFaces, face);
         }
     }
+    // The stock's end, or the faces the cuts at its end leave (those still on it)
+    const endFace = qUnion(endFaces)->qOwnedByBody(body);
 
     // After trimming, so holes the trims removed aren't threaded
     if (stock.thread != undefined)

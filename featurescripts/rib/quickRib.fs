@@ -5,13 +5,14 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 export import(path : "onshape/std/manipulator.fs", version : "2960.0");
 
 /**
- * The attribute on Quick rib's sketches, which Robot lighten finds them by.
+ * The variable listing the ids of the Quick rib features so far, which Robot lighten finds their sketches by (see
+ * `quickRibEdges`). Its name starts with an underscore, so it isn't shown in the Variable table.
  */
-export const QUICK_RIB_ATTRIBUTE = "robotQuickRib";
+export const QUICK_RIBS_VARIABLE = "_quickRibs";
 /**
- * The attribute Robot lighten puts on the Quick rib sketches it uses, so a new one leaves them out.
+ * The variable listing the ids of the Quick rib features some Robot lighten uses, so a new one leaves them out.
  */
-export const QUICK_RIB_USED_ATTRIBUTE = "robotQuickRibUsed";
+export const QUICK_RIBS_USED_VARIABLE = "_quickRibsUsed";
 
 const CIRCLE_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
 const LOCATION_BOUNDS = { (unitless) : [0, 0.5, 1] } as RealBoundSpec;
@@ -128,7 +129,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         }
 
         const plane = getSketchPlane(context, definition);
-        const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : plane });
+        const sketch = newSketchOnPlane(context, id + "ribSketch", { "sketchPlane" : plane });
         for (var i, segment in segments)
         {
             skLineSegment(sketch, "rib" ~ i, { "start" : worldToPlane(plane, segment[0]), "end" : worldToPlane(plane, segment[1]) });
@@ -138,10 +139,18 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             skCircle(sketch, "circle" ~ i, { "center" : worldToPlane(plane, circle.center), "radius" : circle.radius });
         }
         skSolve(sketch);
-        setAttribute(context, { "entities" : qCreatedBy(id + "sketch", EntityType.BODY), "name" : QUICK_RIB_ATTRIBUTE, "attribute" : true });
+        setVariable(context, QUICK_RIBS_VARIABLE, append(getVariable(context, QUICK_RIBS_VARIABLE, []), id));
 
         addEdgePointManipulators(context, id, definition);
     });
+
+/**
+ * The ribs (edges) of the Quick rib feature `featureId`.
+ */
+export function quickRibEdges(featureId is Id) returns Query
+{
+    return qCreatedBy(featureId + "ribSketch", EntityType.EDGE);
+}
 
 /**
  * The points of a selection, in order: a full circle's center, a vertex's point, a mate connector's origin, or a point

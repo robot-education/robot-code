@@ -36,15 +36,16 @@ Override wall thickness (below it) drives a group holding Wall overrides, an arr
 hole), each its own Faces (`overrideFaces`) and Wall thickness (`overrideWall`, 0.0625 in. by default). Later
 overrides take precedence over earlier ones, and all of them over Faces to ignore.
 
-### Attributes
+### Variables
 
-The body puts `robotQuickRibUsed` (`true`) on the Quick rib sketches its ribs come from, so a new Robot lighten's
-editing logic leaves them out (see `../rib/quickRib.md`).
+The body adds the ids of the Quick rib features its ribs come from to `_quickRibsUsed` (`markQuickRibsUsed`), so a new
+Robot lighten's editing logic leaves them out (see `../rib/quickRib.md`).
 
 ### Errors, warnings, and info
 
-Errors from a failed operation show what failed in red: what it was given, narrowed down (for some) to what fails when
-it's tried alone (see Error handling).
+Errors show what's been built so far in blue, while the dialog's open (`showBuiltOnFailure`, with std's
+`addDebugEntities`), and what's at fault in red. Errors from a failed operation show what failed in red: what it was
+given, narrowed down (for some) to what fails when it's tried alone (see Error handling).
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
@@ -59,13 +60,13 @@ it's tried alone (see Error handling).
 | Failed to cut regions to ignore from pockets. | error | cutting them from the pocket fails | `ignoredFaces`, the regions |
 | Select faces to override. | error | with Override wall thickness, an override without faces | its Faces |
 | These faces don't border the face to lighten, so they have no walls. | error | an override's faces share no edge with the face to lighten | its Faces, the faces |
-| The walls fail with these faces' wall overrides, though they work without them. Try other thicknesses. | error | the walls fail (`wallFailure`), but work without wall overrides | the overrides which fail alone (or all of them): their Faces and Wall thickness, and faces |
-| These rounded corners are tighter than the walls are built (Wall thickness plus Fillet radius, before the pockets are grown back), so they can't be walled. Use a smaller fillet radius. | error | they fail even without overrides, but work at Wall thickness alone, and the pocket has convex rounded sides with radii under Wall thickness plus Fillet radius | `filletRadius`, those faces |
-| The walls fail when built Wall thickness plus Fillet radius thick (before the pockets are grown back), though Wall thickness alone works. Use a smaller fillet radius. | error | as above, without such corners | `filletRadius`, the pockets which fail alone |
-| These rounded corners are tighter than the walls, so they can't be walled. Use thinner walls, or ignore those faces. | error | they fail at Wall thickness alone too, and the pocket has convex rounded sides with radii under it | `wallThickness`, those faces |
+| These wall overrides make the walls fail. | error | the walls fail (`wallFailure`), but work without wall overrides | the overrides which fail alone (or all of them): their Faces and Wall thickness, and faces |
+| Fillet radius is too large for the corners shown. | error | they fail even without overrides, but work at Wall thickness alone (they're built thicker by the radius, then the pockets grown back), and the pocket has convex rounded sides with radii under Wall thickness plus Fillet radius | `filletRadius`, those sides' edges |
+| Fillet radius is too large for the pockets shown. | error | as above, without such corners | `filletRadius`, the pockets which fail alone |
+| Wall thickness is too large for the corners shown. | error | they fail at Wall thickness alone too, and the pocket has convex rounded sides with radii under it | `wallThickness`, those sides' edges |
 | Failed to extend pockets past their ends. | error | otherwise, offsetting the pocket's ends (and sides along ignored faces) out failed | `wallThickness`, those faces of the pockets which fail alone |
 | Failed to round walls' inside corners. | error | otherwise, the hair fillet of the pocket's concave edges failed | `wallThickness`, the pockets which fail alone |
-| Failed to make walls in the pockets shown. | error | otherwise (hollowing, enclosing, or an override's offset failed) | `wallThickness`, the pockets which fail alone |
+| Failed to make walls. | error | otherwise (hollowing, enclosing, or an override's offset failed) | `wallThickness`, the pockets which fail alone |
 | Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | Ribs to use and Rib thickness, or its override's, its edge |
 | Failed to thicken rib. | error | thickening its sheet fails | Ribs to use and Rib thickness, or its override's, its edge |
 | Failed to cut ribs. | error | cutting them from the pockets fails | the Ribs to use and Rib thickness, or overrides, of the ribs which fail alone (`failingRibParameters`), and those ribs |
@@ -80,13 +81,13 @@ it's tried alone (see Error handling).
 
 ### Execution order
 
-1. **Editing logic** (`robotLightenEditLogic`): when it's created, unless Ribs to use has been set, Ribs to use is
-   the edges of the Quick rib sketches (`quickRibEdges`: by their `robotQuickRib` attribute, but those which aren't
-   shown, and those another Robot lighten uses, which have `robotQuickRibUsed`). Then unless Face to lighten has been
-   set, and once there are ribs,
-   `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in
-   the plane, overlap the ribs'; if there's just one, it's the face to lighten. It only evaluates: building anything in
-   editing logic (a trial feature, between `startFeature` and `abortFeature`) can crash the Part Studio.
+1. **Editing logic** (`robotLightenEditLogic`): when it's created, unless Ribs to use has been set, Ribs to use is the
+   ribs of the Quick rib features (`selectQuickRibs`: those in `_quickRibs` but not `_quickRibsUsed`, and not hidden),
+   by their ids (`quickRibEdges`), as selecting their sketches would. Then unless Face to lighten has been set, and once
+   there are ribs, `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose
+   bounding boxes, in the plane, overlap the ribs'; if there's just one, it's the face to lighten. It only evaluates:
+   building anything in editing logic (a trial feature, between `startFeature` and `abortFeature`) can crash the Part
+   Studio.
 2. **Body**:
    1. The face to lighten (`getFace`), its plane (whose normal points out of its part), and its part; the ribs
       (`getRibGroups`, less construction ones) and their plane (`ribPlane`: the first's sketch plane, which the rest's

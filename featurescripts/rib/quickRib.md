@@ -1,7 +1,7 @@
 # Quick rib
 
 A prototype: sketches ribs between circles' centers, vertices, mate connectors' origins, and points on edges, for
-Robot lighten, which finds the sketch itself (by its attribute). Chains run through their points in order (closed or
+Robot lighten, which finds the sketch itself (by its feature id, from the `_quickRibs` variable). Chains run through their points in order (closed or
 not; two points make one rib); hubs have spokes to their hub, and a circle around it if asked.
 
 | File | What it is |
@@ -39,12 +39,14 @@ one for each edge the chains and hubs use.
 | A chain or hub isn't complete, so it's skipped. / `<n>` chains and hubs aren't complete, so they're skipped. | warning | chains of fewer than two points, hubs without a hub (or without spokes or a circle) | |
 | Select a face to use: none of the ribs' circles give a plane. | error | no Face to use, and no full circle chosen | `face` |
 
-### Attributes
+### Variables
 
-| Name | On | Set by | Read by |
-| --- | --- | --- | --- |
-| `robotQuickRib` (`true`) | its sketch's bodies | Quick rib | Robot lighten's editing logic, to select their edges |
-| `robotQuickRibUsed` (`true`) | the sketch's bodies | Robot lighten, on the Quick rib sketches its ribs come from | Robot lighten's editing logic, to leave those out |
+| Name | Set by | Read by |
+| --- | --- | --- |
+| `_quickRibs` | Quick rib: its id, added to those before it | Robot lighten's editing logic, which selects their sketches by id (`quickRibEdges`: `qCreatedBy(<id> + "ribSketch", EntityType.EDGE)`) |
+| `_quickRibsUsed` | Robot lighten: the ids of the Quick ribs its ribs come from, added to those before it | Robot lighten's editing logic, to leave those out |
+
+Their names start with an underscore, so they aren't shown in the Variable table.
 
 ## How it works
 
@@ -64,7 +66,8 @@ one for each edge the chains and hubs use.
    3. Repeats and lines with no length are dropped (`uniqueSegments`); with nothing left, an error, and with groups
       skipped, a warning.
    4. The plane (`getSketchPlane`): Face to use's, or the first full circle's. A sketch on it with each line and
-      circle (points projected onto it), and the attribute Robot lighten finds it by.
+      circle (points projected onto it), under `id + "ribSketch"`; its id is added to `_quickRibs`, which Robot lighten finds
+      it by.
    5. A manipulator on each point on an edge (`addEdgePointManipulators`), along it, as std's fillet does its points on
       edges.
 3. **Manipulator change** (`quickRibManipulatorChange`): dragging a point on an edge sets its Location: the edge's

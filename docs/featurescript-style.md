@@ -287,6 +287,11 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
 - **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes (like the
   faces a shell opens) finds nothing after it. Show something that lasts instead, or (only if nothing else finds them)
   evaluate it before that step (see Queries).
+- **Keep messages short, and show where.** A message says what's wrong and what to change ("Fillet radius is too
+  large for the corners shown."); why belongs in the writeup. Show the specific culprit in red (the error's entities:
+  the edges or faces at fault, or the rib or override the user chose), and what's been built so far in blue
+  (`addDebugEntities(context, built, DebugColor.BLUE)`, which shows while the dialog's open, and outlasts the
+  feature's rollback), so the red is seen in place: Robot lighten's `showBuiltOnFailure` does this around each step.
 - **Report a warning when it's found** (`reportFeatureWarning`, with `setErrorEntities` to show what it's about). An
   error later takes precedence over it, which is fine: don't hold a warning back in the hope that nothing fails.
 - **Don't run trial features in editing logic.** `startFeature` and `abortFeature` roll back operations run between
@@ -338,6 +343,14 @@ When a map with a known shape is passed between functions, like the stock robot 
 give it a type (`export type Stock typecheck canBeStock;`), document its fields there, and use it in signatures
 (`function getFrame(definition is map) returns Stock`). Lookup table entries become one with `as`.
 
+## Features finding each other
+
+To find what an earlier feature made (as Robot lighten finds Quick rib's sketches), have it add its id to a variable
+(`setVariable(context, "_quickRibs", append(getVariable(context, "_quickRibs", []), id))`), and query what it made by
+its id: `qCreatedBy(featureId + "ribSketch", EntityType.EDGE)`, as selecting the feature would. Variables whose names
+start with an underscore aren't shown in the Variable table. Prefer this to attributes for finding a feature's output:
+it selects the feature, not entities which change when it does.
+
 ## Ids
 
 Every operation is given an `Id`, made from the feature's `id` (see `Id` in std's `context.fs`): `id + "extrude"`, or
@@ -383,6 +396,19 @@ Std's `query.fs` has the queries most code needs. The ones which come up most:
 - Filters: `qGeometry(GeometryType.CYLINDER)`, `qBodyType(BodyType.SOLID)`, `qSketchFilter(SketchObject.YES)`,
   `qEntityFilter(EntityType.FACE)`, `qCoincidesWithPlane(plane)`, `qContainsPoint(point)`, `qParallelPlanes(plane)`.
 - Combining: `qUnion`, `qSubtraction`, `qIntersection`, and `qNthElement`.
+
+Build a union of many queries by collecting them in an array and calling `qUnion` once, at the end, rather than
+`qUnion([soFar, next])` in a loop, which nests a query per step (and is slower to evaluate, and harder to read when
+debugging):
+
+```
+var edges = [];
+for (var featureId in featureIds)
+{
+    edges = append(edges, qCreatedBy(featureId + "ribSketch", EntityType.EDGE));
+}
+definition.ribEdges = qUnion(edges);
+```
 
 Queries are evaluated when they're used, not when they're made: a query of a group used after a later operation also
 returns what that operation made. Make queries say what they mean instead (the operation's own id, a filter, or a

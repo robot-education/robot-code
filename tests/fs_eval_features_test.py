@@ -51,8 +51,8 @@ def test_rib_overrides_take_precedence():
     groups = f"ribGroups({lighten_definition(True)})"
     sketch, few = f"qEntityFilter({SKETCH}, EntityType.EDGE)", f"qEntityFilter({FEW}, EntityType.EDGE)"
     assert evaluate(f"size({groups})", LIGHTEN) == 2
-    assert evaluate(f"{groups}[0].edges == qSubtraction({sketch}, qUnion([qNothing(), {few}]))", LIGHTEN) is True
-    assert evaluate(f"{groups}[1].edges == qSubtraction({few}, qNothing())", LIGHTEN) is True
+    assert evaluate(f"{groups}[0].edges == qSubtraction({sketch}, qUnion([{few}]))", LIGHTEN) is True
+    assert evaluate(f"{groups}[1].edges == qSubtraction({few}, qUnion([]))", LIGHTEN) is True
     assert to_python(evaluate(f"{groups}[1].thickness / inch", LIGHTEN)) == pytest.approx(2)
     assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == ["ribEdges", "ribThickness"]
     assert to_python(evaluate(f"{groups}[1].parameters", LIGHTEN)) == [
@@ -77,8 +77,8 @@ def test_later_wall_overrides_take_precedence():
     )
     groups = f"wallOverrideGroups({definition})"
     every, first = f"qEntityFilter({faces}, EntityType.FACE)", f"qEntityFilter({few}, EntityType.FACE)"
-    assert evaluate(f"{groups}[0].faces == qSubtraction({every}, qUnion([qNothing(), {first}]))", LIGHTEN) is True
-    assert evaluate(f"{groups}[1].faces == qSubtraction({first}, qNothing())", LIGHTEN) is True
+    assert evaluate(f"{groups}[0].faces == qSubtraction({every}, qUnion([{first}]))", LIGHTEN) is True
+    assert evaluate(f"{groups}[1].faces == qSubtraction({first}, qUnion([]))", LIGHTEN) is True
     assert to_python(evaluate(f"{groups}[1].thickness / inch", LIGHTEN)) == pytest.approx(2)
     assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == [
         "wallOverrides[0].overrideFaces",
