@@ -2,6 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+RobotLightenIcon::import(path : "lighten/robotLightenIcon.svg", version : "");
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 const RIB_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
@@ -34,7 +35,7 @@ annotation { "Feature Type Name" : "Robot lighten",
         "Feature Type Description" : "Lighten a part with pockets, leaving walls around its edges and holes, and ribs along a sketch." ~ CREDIT,
         "Manipulator Change Function" : "robotLightenManipulatorChange",
         "Editing Logic Function" : "robotLightenEditLogic",
-        "Icon" : RobotIcon::BLOB_DATA
+        "Icon" : RobotLightenIcon::BLOB_DATA
     }
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
@@ -68,15 +69,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.ribThickness, RIB_BOUNDS);
 
-        annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
-        definition.endType is LightenEndType;
-
-        if (isBlind(definition))
-        {
-            annotation { "Name" : "Depth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isLength(definition.depth, DEPTH_BOUNDS);
-        }
-
         annotation { "Name" : "Fillet corners", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.filletCorners is boolean;
 
@@ -84,6 +76,15 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             annotation { "Name" : "Fillet radius", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             isLength(definition.filletRadius, FILLET_RADIUS_BOUNDS);
+        }
+
+        annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
+        definition.endType is LightenEndType;
+
+        if (isBlind(definition))
+        {
+            annotation { "Name" : "Depth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            isLength(definition.depth, DEPTH_BOUNDS);
         }
     }
     {

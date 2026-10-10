@@ -7,6 +7,7 @@ sketch edges (lines, arcs, circles, or splines), with the pockets' corners round
 | File | What it is |
 | --- | --- |
 | `robotLighten.fs` | The feature: its dialog, the pocket, walls, ribs, and fillets, and its editing logic |
+| `robotLightenIcon.svg` | Its icon: a plate with two pockets either side of a rib, in Onshape's Rib's and Shell's colors |
 | `partLighten.local.fs` | Part Lighten (by Evan Fish, FRC 2471, from Ilya Baran and Morgan Bartlett's Lighten), for reference: not synced |
 
 ## Changelog
@@ -128,4 +129,3 @@ rolls it all back. Selections are checked before anything's built. Warnings are 
 - Walls are an inset of the face's extrude, so a part whose sides slope or step gets walls of the face's outline, not
   of its sides.
 - Rounded corners are 0.01 mm (std's boolean tolerance) bigger than asked: the hair they're rounded by first.
-- The icon is the generic robot icon.
