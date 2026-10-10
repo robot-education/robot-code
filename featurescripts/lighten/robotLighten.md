@@ -38,9 +38,13 @@ overrides take precedence over earlier ones, and all of them over Faces to ignor
 
 ### Errors, warnings, and info
 
-Errors show what's been built so far in blue, while the dialog's open (`showBuiltOnFailure`, with std's
-`addDebugEntities`), and what's at fault in red. Errors from a failed operation show what failed in red: what it was
-given, narrowed down (for some) to what fails when it's tried alone (see Error handling).
+Errors show what's been built so far in blue, while the dialog's open (`showBuiltOnFailure`), and what's at fault in
+red: the pockets' own geometry (bodies, faces, and edges) is shown out of the part (`showOut`: copies, with std's
+`addDebugEntities`, moved along the face's normal by the pocket's depth, so they stand on the face rather than being
+hidden in the part), and the user's selections (ribs, regions, faces) in place. A failed operation's own error display
+(what Onshape found wrong with it, as its features show it) is shown too (`showOperationError`, with std's
+`processSubfeatureStatus`). What's at fault is narrowed down (for some) to what fails when it's tried alone (see Error
+handling).
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
@@ -56,19 +60,19 @@ given, narrowed down (for some) to what fails when it's tried alone (see Error h
 | Select faces to override. | error | with Override wall thickness, an override without faces | its Faces |
 | These faces don't border the face to lighten, so they have no walls. | error | an override's faces share no edge with the face to lighten | its Faces, the faces |
 | These wall overrides make the walls fail. | error | the walls fail (`wallFailure`), but work without wall overrides | the overrides which fail alone (or all of them): their Faces and Wall thickness, and faces |
-| Fillet radius is too large for the corners shown. | error | they fail even without overrides, but work at Wall thickness alone (they're built thicker by the radius, then the pockets grown back), and the pocket has convex rounded sides with radii under Wall thickness plus Fillet radius | `filletRadius`, those sides' edges |
-| Fillet radius is too large for the pockets shown. | error | as above, without such corners | `filletRadius`, the pockets which fail alone |
-| Wall thickness is too large for the corners shown. | error | they fail at Wall thickness alone too, and the pocket has convex rounded sides with radii under it | `wallThickness`, those sides' edges |
-| Failed to extend pockets past their ends. | error | otherwise, offsetting the pocket's ends (and sides along ignored faces) out failed | `wallThickness`, those faces of the pockets which fail alone |
-| Failed to round walls' inside corners. | error | otherwise, the hair fillet of the pocket's concave edges failed | `wallThickness`, the pockets which fail alone |
-| Failed to make walls. | error | otherwise (hollowing, enclosing, or an override's offset failed) | `wallThickness`, the pockets which fail alone |
+| The part's corners shown are too tight for the walls. | error | they fail even without overrides, making the part's rounded corners tighter than the walls sharp | `wallThickness` (and `filletRadius`, with Fillet corners), the edges of those corners which fail alone |
+| Fillet radius is too large for the pockets shown. | error | otherwise, they fail even without overrides, but work at Wall thickness alone (they're built thicker by the radius, then the pockets grown back) | `filletRadius`, the pockets which fail alone |
+| Failed to extend the pockets shown past their ends. | error | otherwise, offsetting the pocket's ends (and sides along ignored faces) out failed | `wallThickness`, those faces of the pockets which fail alone |
+| Failed to round the inside corners of the walls shown. | error | otherwise, the hair fillet of the pocket's concave edges failed | `wallThickness`, the pockets which fail alone |
+| Failed to make the walls shown. | error | otherwise (hollowing, enclosing, or an override's offset failed) | `wallThickness`, the pockets which fail alone |
 | Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | Ribs to use and Rib thickness, or its override's, its edge |
 | Failed to thicken rib. | error | thickening its sheet fails | Ribs to use and Rib thickness, or its override's, its edge |
 | Failed to cut ribs. | error | cutting them from the pockets fails | the Ribs to use and Rib thickness, or overrides, of the ribs which fail alone (`failingRibParameters`), and those ribs |
-| Failed to round pocket corners. | error | the hair fillet of the pockets' corners fails | `filletRadius`, the corners |
-| Failed to grow pockets back to round their corners. | error | offsetting the pockets' sides fails | `filletRadius`, the pockets which fail alone |
+| Failed to round the narrow pocket end shown. | error | a narrow end's full round fails | `filletRadius`, the end |
+| Failed to round the pocket corners shown. | error | the hair fillet of the pockets' corners fails | `filletRadius`, the corners |
+| Failed to round the corners of the pockets shown. | error | offsetting the pockets' sides fails | `filletRadius`, the pockets which fail alone |
 | There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `filletRadius` (and `wallOverrides`, with Override wall thickness), `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness) |
-| Failed to cut pockets. | error | cutting them from the part fails | `face`, the pockets which fail alone |
+| Failed to cut the pockets shown. | error | cutting them from the part fails | `face`, the pockets which fail alone |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the loose parts |
 | Lightened the part by `<percent>`%. | info | the pockets are cut, and nothing's cut free (the warning above would be replaced) | |
 
@@ -94,7 +98,10 @@ given, narrowed down (for some) to what fails when it's tried alone (see Error h
       no wall is left along them (below).
    4. The walls (`insetPockets`), as Ilya Baran and Morgan Bartlett's Lighten (and Part Lighten, `partLighten.local.fs`,
       which builds on it) make them: the pocket is inset by the wall thickness (and, with Fillet corners, the fillet
-      radius), all at once. Its ends (`qCapEntity`), and its sides along the part's faces to ignore (found by tracking
+      radius), all at once. First, the part's rounded outside corners (convex cylinder sides of the pocket) tighter than
+      that (`tightCorners`) are made sharp (`opDeleteFace`: deleted, and their sides extended to meet), as hollowing
+      can't move a convex face in by more than its radius, and the walls inside a sharp corner are the same as inside a
+      rounded one that tight. Its ends (`qCapEntity`), and its sides along the part's faces to ignore (found by tracking
       the edges the face shares with them, which the extrude sweeps into those sides), are offset out by that much; with
       Override wall thickness, each override's sides (`getWallOverrides`: tracked the same way, from the edges the face
       shares with its faces, less those of later overrides) are offset out by Wall thickness less its own (in, for a
@@ -114,8 +121,10 @@ given, narrowed down (for some) to what fails when it's tried alone (see Error h
       arc or circle whose radius is hardly more than that (up to 5% more) can't be thickened toward its center, so its
       rib is a cylinder around its center (`fCylinder`), that much bigger than it, instead (a little more than its rib,
       near its center). Arcs of one circle share a cylinder. They're cut from the pockets, which they split further.
-   6. With Fillet corners, `roundPockets` rounds them, as Lighten does: their convex edges between sides (their
-      corners) are filleted by a hair (std's boolean tolerance, 0.01 mm), and their sides offset out by the radius,
+   6. With Fillet corners, `roundPockets` rounds them, as Lighten does. Their narrow ends first (`narrowEnds`: sides
+      narrower than the radius between two convex corners, as at the tip of a pocket between ribs, where the corners'
+      rounds would nearly meet) are given one full round across them (`opFullRoundFillet`), which growing makes a round
+      end as wide as the pocket. Then their convex edges between sides (their corners) are filleted by a hair (std's boolean tolerance, 0.01 mm), and their sides offset out by the radius,
       growing them back from the thicker walls and ribs, which grows those fillets to the radius (and the hair). A
       pocket narrower than the bit is gone before then, and one which narrows between ribs ends in one round, as a
       router bit of that radius would cut it. Filleting the corners by the radius after growing them would fail where
@@ -142,10 +151,10 @@ The walls go further, as their failures are the hardest to place (`insetPockets`
 (`buildWalls`) in a feature of their own (`startFeature`), committed if they work (`endFeature`), and rolled back if
 not (`abortFeature`), so they can be tried again from where they started: each try in its own feature, rolled back
 too. Blame is laid in order, as if what's optional weren't there: wall overrides, if the walls work without them (and
-then those which fail alone); then Fillet radius, if the walls work at Wall thickness alone (the walls are built
-thicker by it, then the pockets grown back); then Wall thickness. Where it can say why, it does: convex rounded sides
-of the pocket (the part's rounded outside corners) with radii under the walls' thickness can't be hollowed past
-(`tightCorners`), and are shown. Otherwise the pockets which fail alone are.
+then those which fail alone); then the part's tight corners, if they couldn't be made sharp (those which fail alone);
+then Fillet radius, if the walls work at Wall thickness alone (the walls are built thicker by it, then the pockets
+grown back); then Wall thickness. The pockets which fail alone are shown. Onshape's error display for the operation
+which failed is shown before the walls' feature is rolled back.
 
 ### `try`s
 
@@ -154,7 +163,8 @@ of the pocket (the part's rounded outside corners) with radii under the walls' t
 | The pocket's extrude, `excludeRegions`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
 | `insetPockets` (`try silent`) | Building the walls (`buildWalls`), in a feature of their own | Rolled back, and `wallFailure` works out the error to throw (above). |
 | `buildWalls` (`try silent`) | Each of its steps | Throws which step failed, for `wallFailure`. |
-| `wallFailure` (`try silent`) | Each try of the walls, another way | What it's looking for: whether that way works. Each try is rolled back. |
+| `wallFailure` (`try silent`) | Each try of the walls, another way, or of making a tight corner sharp | What it's looking for: whether that way works. Each try is rolled back. |
+| `showOut` (`try silent`) | Copying and moving what an error shows | Less is shown, but the error's still thrown. |
 | `failingBodies` (`try silent`) | Each try of a failed operation on one body | What it's looking for: the body is one which fails alone. |
 | `robotLightenEditLogic` (`try silent`) | Finding the ribs and their plane | A guard: with no ribs yet, editing logic leaves the definition as it is. |
 
@@ -165,6 +175,10 @@ of the pocket (the part's rounded outside corners) with radii under the walls' t
   of its sides.
 - An overridden wall steps to its thickness at the corners its side meets others at; a much thicker override moves
   its side in before the hollow, which can close a small pocket.
-- Convex rounded corners tighter than the walls are built can't be walled (the hollow can't move them in by more than
-  their radius): reported, not handled. Making them sharp first (deleting their faces) would let them be walled.
+- Convex rounded corners tighter than the walls are made sharp first; one which spans half a circle or more (a lobe
+  narrower than the walls) has no sides to extend, and fails.
+- Narrow pocket ends get a full round when they're narrower than Fillet radius between their corners (in the pocket
+  before it's grown back): a threshold picked by eye, untried.
+- What errors show out of the part is copies; Onshape's own error display for a failed operation is in place, inside
+  the part.
 - Rounded corners are 0.01 mm (std's boolean tolerance) bigger than asked: the hair they're rounded by first.

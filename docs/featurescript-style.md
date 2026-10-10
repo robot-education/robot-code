@@ -288,10 +288,20 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   faces a shell opens) finds nothing after it. Show something that lasts instead, or (only if nothing else finds them)
   evaluate it before that step (see Queries).
 - **Keep messages short, and show where.** A message says what's wrong and what to change ("Fillet radius is too
-  large for the corners shown."); why belongs in the writeup. Show the specific culprit in red (the error's entities:
+  large for the pockets shown."); why belongs in the writeup. Show the specific culprit in red (the error's entities:
   the edges or faces at fault, or the rib or override the user chose), and what's been built so far in blue
   (`addDebugEntities(context, built, DebugColor.BLUE)`, which shows while the dialog's open, and outlasts the
   feature's rollback), so the red is seen in place: Robot lighten's `showBuiltOnFailure` does this around each step.
+  Don't show the same thing in both colors (the red is lost): leave the red out of the blue. Bodies a feature builds
+  inside a part (tools, pockets) are hidden by it: show copies moved out of it (`opPattern` for bodies,
+  `opExtractSurface` for faces, `opExtractWires` for edges, then `opTransform`), as Robot lighten's `showOut` does,
+  and leave what the user selected in place.
+- **Show a failed operation's own error display.** Operations know what went wrong (a fillet's failing edges, a
+  shell's faces), and show it on their own ids: in the `catch`, before throwing the feature's own error, copy it onto
+  the feature with `processSubfeatureStatus(context, id, { "subfeatureId" : operationId, "propagateErrorDisplay" : true })`
+  (the `id` is the feature's, not a sub-feature's), as std's `boolean.fs` does. The thrown error's message replaces
+  the operation's, and the display stays. Inside a feature of its own (`startFeature`), do it before `abortFeature`
+  rolls the operation back.
 - **Report a warning when it's found** (`reportFeatureWarning`, with `setErrorEntities` to show what it's about). An
   error later takes precedence over it, which is fine: don't hold a warning back in the hope that nothing fails.
 - **Don't run trial features in editing logic.** `startFeature` and `abortFeature` roll back operations run between
