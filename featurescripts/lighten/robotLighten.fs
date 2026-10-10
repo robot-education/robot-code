@@ -43,6 +43,19 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
         definition.face is Query;
 
+        annotation { "Name" : "Ignore faces" }
+        definition.ignoreFaces is boolean;
+
+        annotation { "Group Name" : "Ignore faces", "Driving Parameter" : "ignoreFaces", "Collapsed By Default" : false }
+        {
+            if (definition.ignoreFaces)
+            {
+                annotation { "Name" : "Faces to ignore", "UIHint" : UIHint.INITIAL_FOCUS,
+                            "Filter" : EntityType.FACE && ((BodyType.SOLID && ModifiableEntityOnly.YES) || (SketchObject.YES && ConstructionObject.NO)) }
+                definition.ignoredFaces is Query;
+            }
+        }
+
         annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
         definition.ribEdges is Query;
 
@@ -72,19 +85,13 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             annotation { "Name" : "Fillet radius", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             isLength(definition.filletRadius, FILLET_RADIUS_BOUNDS);
         }
-
-        annotation { "Group Name" : "Ignored faces", "Collapsed By Default" : true }
-        {
-            annotation { "Name" : "Faces to ignore",
-                        "Filter" : EntityType.FACE && ((BodyType.SOLID && ModifiableEntityOnly.YES) || (SketchObject.YES && ConstructionObject.NO)) }
-            definition.ignoredFaces is Query;
-        }
     }
     {
         const face = getFace(context, definition);
         // Its normal points out of its part, so pockets go against it
         const facePlane = evPlane(context, { "face" : face });
         const part = qOwnerBody(face);
+        const ignoredFaces = getIgnoredFaces(context, definition);
         const ribEdges = getRibEdges(context, definition);
         verifyParallel(context, face, facePlane, ribPlane(context, ribEdges));
         // To round the pockets' corners, they're made with walls and ribs this much thicker, then grown back by it (see
@@ -93,7 +100,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         // The edges the face shares with the part's faces to ignore, which the pocket's extrude sweeps into its sides along
         // them
-        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSketchFilter(definition.ignoredFaces, SketchObject.NO))]);
+        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSketchFilter(ignoredFaces, SketchObject.NO))]);
         const ignoredSides = startTracking(context, ignoredEdges);
 
         // The pocket: the face's extrude into its part
@@ -120,7 +127,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const trackedEnds = startTracking(context, ends);
 
         // Sketch regions to ignore are left solid: cut from the pocket, so walls go around them too
-        excludeRegions(context, id + "excludeRegions", facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(definition.ignoredFaces, SketchObject.YES));
+        excludeRegions(context, id + "excludeRegions", facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(ignoredFaces, SketchObject.YES));
 
         // The walls: the pocket (and the pieces regions to ignore split it into), inset by them, but along the part's
         // faces to ignore
@@ -227,6 +234,23 @@ function getFace(context is Context, definition is map) returns Query
 }
 
 /**
+ * The faces to ignore: none, unless Ignore faces is checked, when there must be some.
+ */
+function getIgnoredFaces(context is Context, definition is map) returns Query
+{
+    if (!definition.ignoreFaces)
+    {
+        return qNothing();
+    }
+    const faces = qEntityFilter(definition.ignoredFaces, EntityType.FACE);
+    if (isQueryEmpty(context, faces))
+    {
+        throw regenError("Select faces to ignore.", ["ignoredFaces"]);
+    }
+    return faces;
+}
+
+/**
  * Throws unless the face to lighten is parallel to the ribs' sketches, so the ribs go straight into it.
  */
 function verifyParallel(context is Context, face is Query, facePlane is Plane, ribs is Plane)
@@ -312,10 +336,6 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
  * fail where a wall along one edge would. What's inside (enclosed) is kept, and the rest deleted. Their concave edges
  * are rounded a hair (std's boolean tolerance, 0.01 mm) first, so they're rounded to `distance` (and the hair) as
  * they're moved, as the walls' inside corners should be.
- *
- * Hollowing fails where the inset would split a pocket in two, or merge a hole into its outline: where two of its
- * sides are closer than twice `distance` (a hole near the edge, two holes near each other, or a narrow waist). Only
- * when it has failed (on the way to the error), those necks are found (`findNecks`) and shown.
  */
 function insetPockets(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, distance is ValueWithUnits)
 {
@@ -356,28 +376,6 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
                     "entities" : pockets,
                     "thickness" : -distance
                 });
-    }
-    catch
-    {
-        // The sides which move in: all but the ends and the sides along faces to ignore
-        const necks = findNecks(context, pockets, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), qUnion([ends, ignoredSides])), distance);
-        if (necks != [])
-        {
-            throw regenError("The pocket is narrower than two walls where shown. Use thinner walls, or ignore one of the faces.", ["wallThickness"],
-                qUnion(mapArray(necks, neck => neck.sides)));
-        }
-        // Each pocket, hollowed alone (they're separate bodies, so one's try doesn't change another's)
-        const failing = failingBodies(context, id + "error", pockets, function(errorId is Id, pocket is Query)
-            {
-                opShell(context, errorId, {
-                            "entities" : pocket,
-                            "thickness" : -distance
-                        });
-            });
-        throw regenError("Failed to make walls.", ["wallThickness"], failing);
-    }
-    try
-    {
         // One at a time, so the pockets don't need a boolean
         for (var i, pocket in evaluateQuery(context, pockets))
         {
@@ -389,55 +387,6 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
         throw regenError("Failed to make walls.", ["wallThickness"], pockets);
     }
     opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
-}
-
-/**
- * The pockets' necks: where two of their `sides` (which the inset moves in by `distance`) are closer than twice
- * `distance` across the pocket. For each side, the nearest side which isn't beside it (sharing an edge) is found
- * (`evDistance`); it's a neck if the line between their nearest points crosses the pocket (its middle is in it, so it
- * isn't across a gap outside it, like a notch), and runs along one side's normal at least, as it does across a pinch,
- * but not between two sides of a filleted or chamfered corner.
- *
- * @returns {array} : Each neck, as a map of `sides` (the two sides, a query) and `points` (their nearest points).
- */
-function findNecks(context is Context, pockets is Query, sides is Query, distance is ValueWithUnits) returns array
-{
-    var necks = [];
-    for (var side in evaluateQuery(context, sides))
-    {
-        const others = qSubtraction(sides, qUnion([side, qAdjacent(side, AdjacencyType.EDGE, EntityType.FACE)]));
-        if (isQueryEmpty(context, others))
-        {
-            continue;
-        }
-        const nearest = evDistance(context, { "side0" : side, "side1" : others });
-        if (nearest.distance >= 2 * distance || tolerantEqualsZero(nearest.distance))
-        {
-            continue;
-        }
-        const a = nearest.sides[0].point;
-        const b = nearest.sides[1].point;
-        const across = normalize(b - a);
-        const other = qNthElement(others, nearest.sides[1].index);
-        const normalA = evFaceTangentPlane(context, { "face" : side, "parameter" : nearest.sides[0].parameter }).normal;
-        const normalB = evFaceTangentPlane(context, { "face" : other, "parameter" : nearest.sides[1].parameter }).normal;
-        if (abs(dot(across, normalA)) < 0.95 && abs(dot(across, normalB)) < 0.95)
-        {
-            continue;
-        }
-        if (isQueryEmpty(context, qContainsPoint(pockets, (a + b) / 2)))
-        {
-            continue;
-        }
-        // Found from both sides
-        if (any(necks, neck => (tolerantEquals(neck.points[0], b) && tolerantEquals(neck.points[1], a)) ||
-                        (tolerantEquals(neck.points[0], a) && tolerantEquals(neck.points[1], b))))
-        {
-            continue;
-        }
-        necks = append(necks, { "sides" : qUnion([side, other]), "points" : [a, b] });
-    }
-    return necks;
 }
 
 /**
