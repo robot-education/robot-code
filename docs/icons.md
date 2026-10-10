@@ -71,3 +71,11 @@ From Robot lighten's icon, which went through a dozen versions:
   eye. A hole centered on a rounded corner gets a wall which follows the corner.
 - Round where walls meet (`round_corners`); too much rounding turns a pocket into a blob.
 - Thin sides (a plate's thickness under 2 units) disappear at 20 px, and so do pockets under about 2 units across.
+
+From Quick rib's:
+
+- Check the 20 px dark preview: Onshape's outlines are #333 whatever the theme, so on dark they vanish into the
+  background, and an icon reads only by its light areas. Small white shapes inside 1.3 unit outlines turn into dots;
+  make them bigger, and thin the outline (0.8) where it would fill them in.
+- One outline around shapes which touch (circles and the ribs between them) reads as one piece; outlining each
+  separately draws dark seams across it.

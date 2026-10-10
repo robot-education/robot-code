@@ -8,7 +8,7 @@ manipulator puts them.
 | File | What it is |
 | --- | --- |
 | `quickRib.fs` | The feature, its editing logic, and its manipulators |
-| `quickRibIcon.py`, `quickRibIcon.svg` | Its icon (`fs gen` writes the `.svg`): the plate of Robot lighten's icon, with ribs from a middle hole to the corners' (see `docs/icons.md`) |
+| `quickRibIcon.py`, `quickRibIcon.svg` | Its icon (`fs gen` writes the `.svg`): a hub and spokes, white circles joined by gray ribs (see `docs/icons.md`) |
 | `../../tests/featurescript/quickRib_test.fs` | Tests of the lines it draws (`chainSegments`, `hubSegments`, `uniqueSegments`) |
 
 ## Changelog
