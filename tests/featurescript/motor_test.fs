@@ -142,4 +142,8 @@ export function testManipulatorChange()
     expectNear(dragged.angleOffset, 30 * degree, 1e-9 * radian);
     expectTrue(dragged.angleOffsetOppositeDirection, "Dragging back doesn't flip the angle");
     expectEqual(dragged.skippedHoles, []);
+    // Dragging the start offset sets its depth and direction
+    const offset = robotMotorManipulatorChange(newContext(), definition, { "startOffsetManipulator" : { "offset" : -0.25 * inch } });
+    expectNear(offset.startOffsetDistance, 0.25 * inch, 1e-9 * meter);
+    expectTrue(offset.startOffsetOppositeDirection, "Dragging back doesn't flip the offset");
 }

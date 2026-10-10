@@ -41,11 +41,14 @@ export predicate secondaryAxisPredicate(definition is map)
 }
 
 /**
- * Allows selecting an angle reference.
+ * Allows selecting an angle reference: a point to turn toward (a vertex, a mate connector, or a circle's or arc's
+ * center), or a line to turn along.
  */
 export predicate angleReferencePredicate(definition is map)
 {
-    annotation { "Name" : "Angle reference", "Filter" : EntityType.VERTEX || GeometryType.LINE, "MaxNumberOfPicks" : 1 }
+    annotation { "Name" : "Angle reference",
+                "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.LINE || GeometryType.CIRCLE || GeometryType.ARC,
+                "MaxNumberOfPicks" : 1 }
     definition.angleReference is Query;
 }
 
@@ -64,7 +67,8 @@ export predicate angleOffsetPredicate(definition is map)
 
 
 /**
- * Applies the user's selected angle reference.
+ * Applies the user's selected angle reference: turns `plane` about its normal so its x axis points toward a point (a
+ * vertex, a mate connector, or a circle's or arc's center), or runs along a line.
  */
 export function applyAngleReference(context is Context, definition is map, plane is Plane, locationParameterName is string) returns Plane
 {
@@ -74,14 +78,13 @@ export function applyAngleReference(context is Context, definition is map, plane
         return plane;
     }
 
-    const isVertex = !isQueryEmpty(context, angleRef->qEntityFilter(EntityType.VERTEX));
-    if (isVertex)
+    const point = angleReferencePoint(context, angleRef);
+    if (point != undefined)
     {
-        const point = evVertexPoint(context, { "vertex" : angleRef });
         const projectedPoint = project(plane, point);
         if (tolerantEquals(projectedPoint, plane.origin))
         {
-            throw regenError("The selected angle reference cannot be coincident with your selection.", [locationParameterName, "angleReference"], qUnion(getParameter(definition, locationParameterName), angleRef));
+            throw regenError("The angle reference is on the axis, so it doesn't give an angle.", [locationParameterName, "angleReference"], qUnion(getParameter(definition, locationParameterName), angleRef));
         }
         plane.x = normalize(projectedPoint - plane.origin);
         return plane;
@@ -93,13 +96,30 @@ export function applyAngleReference(context is Context, definition is map, plane
         const direction = extractDirection(context, angleRef);
         if (!perpendicularVectors(direction, plane.normal))
         {
-            throw regenError("The selected angle reference must be parallel your selection.", [locationParameterName, "angleReference"], qUnion(getParameter(definition, locationParameterName), angleRef));
+            throw regenError("The angle reference must be parallel to the location's plane.", [locationParameterName, "angleReference"], qUnion(getParameter(definition, locationParameterName), angleRef));
         }
         plane.x = direction;
         return plane;
     }
 
-    throw regenError("The selected angle reference is not a point or line.", ["angleReference"], definition.angleReference);
+    throw regenError("The angle reference must be a point, circle, or line.", ["angleReference"], definition.angleReference);
+}
+
+/**
+ * The point an angle reference names: a vertex's or mate connector's, or a circle's or arc's center. `undefined` for a
+ * line.
+ */
+function angleReferencePoint(context is Context, angleRef is Query)
+{
+    if (!isQueryEmpty(context, angleRef->qEntityFilter(EntityType.VERTEX)) || !isQueryEmpty(context, angleRef->qBodyType(BodyType.MATE_CONNECTOR)))
+    {
+        return evVertexPoint(context, { "vertex" : angleRef });
+    }
+    if (!isQueryEmpty(context, angleRef->qGeometry(GeometryType.CIRCLE)) || !isQueryEmpty(context, angleRef->qGeometry(GeometryType.ARC)))
+    {
+        return evCurveDefinition(context, { "edge" : angleRef }).coordSystem.origin;
+    }
+    return undefined;
 }
 
 /**

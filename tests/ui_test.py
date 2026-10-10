@@ -210,8 +210,11 @@ export const widget = defineFeature(function(context is Context, id is Id, defin
     page, _ = render(repo)
     location = parameter(page, "location")
     assert "os-param-fill-both-columns" in location and "os-param-fill-first-column" not in location
-    assert "os-param-fill-first-column" in parameter(page, "flipPrimaryAxis")
-    assert "os-param-fits-in-right-column" in parameter(page, "secondaryMateAxis")
+    # Both buttons, side by side in a row of their own
+    row = page[page.index("os-param-button-row") :]
+    row = row[: row.index("</os-parameter-group>")]
+    assert "data-parameter-id='flipPrimaryAxis'" in row and "data-parameter-id='secondaryMateAxis'" in row
+    assert "os-param-fits-in-right-column" not in row
 
 
 def test_short_parameters_share_a_row(repo):

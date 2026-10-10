@@ -20,16 +20,14 @@ it.
    - the feature's name and description;
    - parameters' descriptions (their tooltips), and hidden parameters (which editing logic sets);
    - errors, warnings, and info messages: the message, when it's shown, and what it highlights;
-   - how to make each of those show up in Onshape, to test them: a setup which should, or may, trigger it, or that
-     it's a guard no valid input reaches (for which, change the operation's input in the code to see its display);
    - part names and other properties it sets.
 
    Labels and options are left out: they're easy to audit in the dialog itself (`fs ui`, or the VS Code preview).
 
    Strings built from pieces are written with their pieces in angle brackets, e.g. `The <name> has no length.`
 4. **How it works**: enough to audit its data flow and execution order without reading every line:
-   - the order things run in when the feature regenerates (precondition, editing logic, body, manipulator change
-     function), and what each step reads and writes;
+   - the order things run in when the feature regenerates (editing logic, body, manipulator change function), and
+     what each step reads and writes. Leave out the precondition: the dialog (`fs ui`, or `fs audit`'s page) shows it;
    - its functions, briefly, grouped by step;
    - how errors are found and reported, and what's checked where;
    - every `try`: what it guards, and what happens when what it tries fails. Call out fallbacks (doing something else

@@ -6,6 +6,8 @@ import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
 import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
+// Exports startOffsetPredicate's types
+export import(path : "b82468283e5ec09720bad185", version : "f035c6827196f0268491d7a0");
 // Exports MateConnectorAxisType, a parameter type
 export import(path : "58d66340f7b70cfc86606676", version : "c9963ef4d574eccc05ff889f");
 // Exports Fit, a parameter type
@@ -102,17 +104,19 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
             angleReferencePredicate(definition);
 
             angleOffsetPredicate(definition);
+
+            startOffsetPredicate(definition);
         }
 
         annotation { "Group Name" : "Holes", "Collapsed By Default" : false }
         {
-            holeMergeScopePredicate(definition);
-
             // Of the mounting holes' screws
             fitPredicate(definition);
 
             // Of the hole for the pilot
             boreFitPredicate(definition);
+
+            holeMergeScopePredicate(definition);
 
             annotation { "Name" : "Skip holes" }
             definition.skipHoles is boolean;
@@ -144,7 +148,9 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
     {
         const face = getMotorFace(definition);
 
-        var plane = getLocationPlane(context, definition);
+        // The start offset is along the location's own normal, whichever way the motor faces
+        var plane = applyStartOffset(context, definition, getLocationPlane(context, definition));
+        addStartOffsetManipulator(context, id, definition, plane);
         plane = applyAngleReference(context, definition, plane);
         plane = applyAxisOrientation(definition, plane);
         const positions = holePositions(face);
@@ -346,6 +352,7 @@ export function robotMotorManipulatorChange(context is Context, definition is ma
     {
         definition.skippedHoles = mapArray(points.selectedIndices, index => { "index" : index + 1 });
     }
+    definition = startOffsetManipulatorChange(definition, newManipulators);
     return angleOffsetManipulatorChange(definition, newManipulators);
 }
 

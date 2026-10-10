@@ -13,6 +13,7 @@ own; either way one part with a mate connector on its face.
 | `vendor/` | REV's and The Thrifty Bot's drawings the data's from (CTRE's and goBILDA's models are linked from `motorTables.py`) |
 | FRCDesign's Block Motor | A configurable Part Studio in FRCDesign's FRC library (document `5e3874e07384706ec3840340`, version `5657eb187a0b8ed8fb95125a`), imported as `BlockMotor` |
 | `../core/location.fs`, `../core/mounting.fs` | The sketch point, and its orientation (flip, secondary axis, angle reference, angle) |
+| `../core/startOffset.fs` | Starting offset |
 | `../core/fit.fs` | Fit (the screws' holes) and Bore fit (the pilot's) |
 | `../core/program.fs` | Program (FRC or FTC) |
 
@@ -47,7 +48,10 @@ axis (see How it works).
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
 | Select a sketch point, circle, or mate connector to use. | error | no sketch point | `location` |
-| `core/mounting.fs`'s angle reference errors | error | an angle reference at the sketch point, or not parallel to it | `location`, `angleReference` |
+| The angle reference is on the axis, so it doesn't give an angle. | error | an angle reference point (or circle's center) on the sketch point's axis | `location`, `angleReference` |
+| The angle reference must be parallel to the location's plane. | error | an angle reference line which isn't | `location`, `angleReference` |
+| The angle reference must be a point, circle, or line. | error | a guard: the filter only allows those | `angleReference` |
+| `core/startOffset.fs`'s errors | error | Starting offset's reference entity is missing, or isn't parallel to the sketch point's plane | `startOffsetEntity` |
 | The `<part name>` has `<n>` holes, so holes to skip past `<n>` are ignored. | info | Skip holes has an index past the face's last hole | |
 | There's no block model of the `<part name>`. | error | Block motor is checked, but the motor has no block model: Has block model is stale, as the motor was changed some way other than in the dialog (like a configuration) | `blockMotor` |
 | std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope, without Block motor (a block motor alone cuts nothing) | `scope` |
@@ -55,47 +59,21 @@ axis (see How it works).
 | Failed to cut the mounting holes. | error | subtracting the holes from the merge scope fails | `scope`, the holes |
 | Failed to bring in FRCDesign's Block Motor. | error | instantiating it fails (like a document that can't be read) | `blockMotor` |
 
-### Triggering them
-
-None of these have been tried in Onshape yet.
-
-- **Select a sketch point...**: clear the sketch point.
-- **Angle reference errors**: pick the sketch point itself as the angle reference, or a line which isn't in the sketch
-  point's plane.
-- **...holes to skip past...**: check Skip holes, and set a hole's index to 12 on a Kraken X60 (11 holes).
-- **No block model**: check Block motor on a Kraken X60, then set Motor to the CIM through a configuration variable
-  (editing logic doesn't run, so Block motor stays shown and checked).
-- **Empty merge scope**: clear Merge scope, with Block motor unchecked.
-- **Not behind the sketch point**: sketch a point on a plate's top face, with the plate as Merge scope, then check Flip
-  primary axis.
-- **Failed to bring in FRCDesign's Block Motor.**: may show for someone who can't read FRCDesign's document; to see
-  it, change the import's version to one that doesn't exist (in the code).
-- **Failed to cut the mounting holes.**: a guard. Holes through a solid don't fail; to see its display, pass the
-  holes a target which isn't a solid (in the code).
-
 ## How it works
 
 ### Execution order
 
-1. **Precondition**, top to bottom:
-   - Program (FRC or FTC) and Component type (Motor or Gearbox), and the hidden Has block model.
-   - The Motor group: Motor (`frcMotorTable` or `ftcMotorTable`, with a Version level for the Falcon 500 and NEO, and a
-     Hole pattern level for motors with several); or for a gearbox, the Gearbox group: Gearbox (`frcGearboxTable` or
-     `ftcGearboxTable`).
-   - The Position group: the sketch point (`locationPredicate`), Flip primary axis and Reorient secondary axis (on one
-     row, from `axisOrientationPredicate` in `core/mounting.fs`), Angle reference, and Angle with its Opposite
-     direction.
-   - The Holes group: Merge scope (`holeMergeScopePredicate`), Fit (the screws' holes), Bore fit (the pilot's hole),
-     and Skip holes, with Holes to skip (indices, from 1) as std's patterns' Skip instances have it.
-   - Block motor, for a motor with Has block model.
-2. **Editing logic** (`robotMotorEditLogic`): sets Has block model from the chosen motor's table entry, then calls
+1. **Editing logic** (`robotMotorEditLogic`): sets Has block model from the chosen motor's table entry, then calls
    `mountingEditLogic`: std's hole heuristics (`holeScopeFlipHeuristicsCall`), with a sketch point at the location,
    sets the merge scope to the parts at the location, and Flip primary axis so the holes go into them, unless they've
    been set.
-3. **Body**:
+2. **Body**:
    1. The face (`getMotorFace`): the chosen table's entry, as a `MotorFace`.
-   2. The plane: the sketch point's, turned to the angle reference, flipped and turned by Flip primary axis and
-      Reorient secondary axis, then turned by Angle. Its normal points out of the motor's face, away from the parts.
+   2. The plane: the sketch point's, moved along its normal by Starting offset (`applyStartOffset`, before the flip,
+      so the flip doesn't reverse it; with its manipulator), turned to the angle reference (a point to turn toward:
+      a vertex, mate connector, or circle's or arc's center; or a line to run along), flipped and turned by Flip
+      primary axis and Reorient secondary axis, then turned by Angle. Its normal points out of the motor's face, away
+      from the parts.
    3. The holes' positions (`holePositions`): on the bolt circle at the face's angles, or at its positions (for
       goBILDA's, on two circles), as its drawing shows them looking at the face; the plane's normal points behind the
       face, so its x axis is the drawing's left. The angle manipulator, half again
@@ -115,8 +93,10 @@ None of these have been tried in Onshape yet.
       (in front of the plane), pilot, and shaft (behind it), unioned and colored. Either is named for the motor and
       given a mate connector on the plane.
    7. Sketches are deleted.
-4. **Manipulator change function** (`robotMotorManipulatorChange`): toggling a hole sets Holes to skip to the
-   selected holes (from 1); dragging the angle sets Angle and its Opposite direction (`angleOffsetManipulatorChange`).
+3. **Manipulator change function** (`robotMotorManipulatorChange`): toggling a hole sets Holes to skip to the
+   selected holes (from 1); dragging the offset sets Starting offset's depth and its Opposite direction
+   (`startOffsetManipulatorChange`); dragging the angle sets Angle and its Opposite direction
+   (`angleOffsetManipulatorChange`).
 
 ### The data
 

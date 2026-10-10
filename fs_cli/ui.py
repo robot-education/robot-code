@@ -1220,7 +1220,26 @@ class Renderer:
         return "".join(parts)
 
     def parameters(self, items: list[Parameter]) -> str:
-        return "".join(self.list_item(item, items[index + 1] if index + 1 < len(items) else None) for index, item in enumerate(items))
+        pieces = []
+        index = 0
+        while index < len(items):
+            item = items[index]
+            if _is_button(item) and "FIRST_IN_ROW" in item.hints:
+                # A button which starts a row, with the buttons after it beside it (like std's mate connector's Flip
+                # primary axis and Reorient secondary axis)
+                end = index + 1
+                while end < len(items) and _is_button(items[end]) and "FIRST_IN_ROW" not in items[end].hints:
+                    end += 1
+                buttons = "".join(self.list_item(button, None, inline=True) for button in items[index:end])
+                pieces.append(
+                    "<div class='os-parameter-list-item os-param-fill-both-columns os-param-button-row' "
+                    f"style='display: flex; align-items: center; gap: 6px'>{buttons}</div>"
+                )
+                index = end
+                continue
+            pieces.append(self.list_item(item, items[index + 1] if index + 1 < len(items) else None))
+            index += 1
+        return "".join(pieces)
 
     def group(self, group: Group, driving_parameters: dict[str, Parameter]) -> str:
         """A collapsible group, with its driving parameter (a checkbox) in its header, if it has one."""
@@ -1285,17 +1304,18 @@ class Renderer:
             for index, row in enumerate(rows)
         )
 
-    def list_item(self, item: Parameter, following: Parameter | None) -> str:
-        """A parameter in a list, with the classes which lay it out (as Onshape's do)."""
+    def list_item(self, item: Parameter, following: Parameter | None, inline: bool = False) -> str:
+        """A parameter in a list, with the classes which lay it out (as Onshape's do); `inline` for a button in a row
+        of buttons."""
         classes = ["os-parameter-list-item"]
         hints = item.hints
         fills_both = item.kind in ("query", "reference", "lookup", "array") or (
             item.kind == "enum" and "HORIZONTAL_ENUM" in hints
         )
-        if _is_button(item):
-            # A button which starts a row (like std's mate connector's Flip primary axis, before Reorient secondary
-            # axis) takes the first column
-            classes.append("os-param-fill-first-column" if "FIRST_IN_ROW" in hints else "os-param-fits-in-right-column")
+        if inline:
+            pass
+        elif _is_button(item):
+            classes.append("os-param-fits-in-right-column")
         elif "DISPLAY_SHORT" in hints:
             classes.append("os-param-display-short")
         else:
