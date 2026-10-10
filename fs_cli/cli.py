@@ -1,7 +1,7 @@
 """The `fs` command: keeps the FeatureScripts in this repo in sync with the backend document, and
 releases them to the frontend document.
 
-The repo is the source of truth, so `fs` (or `fs push`) is the everyday command. `fs pull` and
+The repo is the source of truth, so `fs push` is the everyday command. `fs pull` and
 `fs sync` exist for the occasional edit made directly in Onshape. Images (for icons) are synced with
 image tabs the same way (see fs_cli/images.py).
 """
@@ -79,12 +79,13 @@ DELETE_CONFLICT = "was deleted locally but changed in Onshape; `fs push --force`
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="fs",
-        description="Push the FeatureScripts in this repo to the backend document in Onshape (the default command), pull changes made in Onshape, and release FeatureScripts to the frontend document.",
+        description="Push the FeatureScripts in this repo to the backend document in Onshape, pull changes made in Onshape, and release FeatureScripts to the frontend document.",
     )
     parser.add_argument(
         "-l", "--log", action="store_true", help="log Onshape API requests"
     )
-    commands = parser.add_subparsers(dest="command", metavar="command")
+    # No default: pushing changes Onshape, so it's only ever asked for by name (a mistyped command is an error)
+    commands = parser.add_subparsers(dest="command", metavar="command", required=True)
 
     def command(name: str, help: str, targets: bool = True) -> argparse.ArgumentParser:
         subparser = commands.add_parser(name, help=help, description=help + ".")
@@ -115,7 +116,7 @@ def make_parser() -> argparse.ArgumentParser:
 
     push = command(
         "push",
-        "push local changes to Onshape, deleting the tabs of deleted files (the default command)",
+        "push local changes to Onshape, deleting the tabs of deleted files",
     )
     push.add_argument(
         "-f", "--force", action="store_true", help="overwrite changes made in Onshape"
@@ -452,17 +453,6 @@ def make_parser() -> argparse.ArgumentParser:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     argv = list(sys.argv[1:] if argv is None else argv)
-    # Pushing is the default, so `fs`, `fs --force`, and `fs robotFrame.fs` all mean `fs push ...`
-    index = 0
-    while index < len(argv) and argv[index] in ("-l", "--log"):
-        index += 1
-    if index == len(argv) or argv[index] not in (
-        *COMMANDS,
-        *OFFLINE_COMMANDS,
-        "-h",
-        "--help",
-    ):
-        argv.insert(index, "push")
     return make_parser().parse_args(argv)
 
 

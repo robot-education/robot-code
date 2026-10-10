@@ -232,7 +232,7 @@ def test_pull_then_push_round_trip(repo, onshape, capsys):
     assert local(repo, "frame.fs").read_text() == "FeatureScript 1;\n"
 
     local(repo, "frame.fs").write_text("FeatureScript 2;\n")
-    assert run(onshape) == 0  # push is the default
+    assert run(onshape, "push") == 0
     assert onshape.code("frame.fs") == "FeatureScript 2;\n"
 
     capsys.readouterr()
@@ -822,16 +822,22 @@ def test_status(repo, onshape, capsys):
 @pytest.mark.parametrize(
     "argv, command",
     [
-        ([], "push"),
-        (["-l"], "push"),
-        (["frame.fs"], "push"),
-        (["--force"], "push"),
+        (["push"], "push"),
+        (["-l", "push", "frame.fs"], "push"),
         (["pull"], "pull"),
         (["release", "frame", "--minor"], "release"),
     ],
 )
-def test_push_is_the_default_command(argv, command):
+def test_commands(argv, command):
     assert cli.parse_args(argv).command == command
+
+
+@pytest.mark.parametrize("argv", [[], ["-l"], ["frame.fs"], ["--force"], ["test"], ["fmt", "frame.fs"]])
+def test_push_is_never_implied(argv, onshape, capsys):
+    # A missing or mistyped command is an error, never a push
+    with pytest.raises(SystemExit) as exit:
+        run(onshape, *argv)
+    assert exit.value.code == 2
 
 
 def test_missing_config(tmp_path, monkeypatch, onshape, capsys):

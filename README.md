@@ -96,10 +96,11 @@ uv run fs tabs --rename      # rename tabs to match their files' names (asks fir
 `fs link` doesn't change either side: run `fs status` afterwards to see how they differ. Released tabs (see
 [Releasing](#releasing)) are never renamed.
 
-The repo is the source of truth, so pushing is the default:
+The repo is the source of truth, so pushing is the everyday command. It's never implied: `fs` with no command, or a
+mistyped one, is an error, so nothing reaches Onshape unless it's asked for by name.
 
 ```
-uv run fs                    # same as `fs push`: push every local change
+uv run fs push               # push every local change
 uv run fs push robotFrame    # push one FeatureScript, by name...
 uv run fs push featurescripts/Robot   # ...or by file or folder
 uv run fs push --dry-run     # show what would be pushed
