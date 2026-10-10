@@ -29,8 +29,8 @@ export function testUniqueSegments()
     expectEqual(uniqueSegments([[A, B], [B, A], [C, C], [A, C], [A, B]]), [[A, B], [A, C]]);
 }
 
-export function testEdgePointManipulatorIndex()
+export function testEdgeRibManipulatorIndex()
 {
-    expectEqual(edgePointManipulatorIndex("edgePoint.3"), 3);
-    expectEqual(edgePointManipulatorIndex("other"), undefined);
+    expectEqual(edgeRibManipulatorIndex("edgeRib.3"), 3);
+    expectEqual(edgeRibManipulatorIndex("other"), undefined);
 }

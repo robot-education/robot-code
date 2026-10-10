@@ -16,15 +16,27 @@ export const QUICK_RIBS_USED_VARIABLE = "_quickRibsUsed";
 
 const CIRCLE_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
 const LOCATION_BOUNDS = { (unitless) : [0, 0.5, 1] } as RealBoundSpec;
-const EDGE_POINT_MANIPULATOR = "edgePoint";
+const EDGE_RIB_MANIPULATOR = "edgeRib";
 
 /**
- * Sketches ribs (lines, and circles) between circles' centers, points, mate connectors, and points on edges, quickly:
- * for Robot lighten, which finds them itself. Chains run through their points in order (closed or not; two points make
- * one rib); hubs have spokes to their hub, and a circle around it if asked.
+ * Where an edge rib meets its edge.
+ */
+export enum EdgeRibEnd
+{
+    annotation { "Name" : "Perpendicular to edge" }
+    PERPENDICULAR,
+    annotation { "Name" : "Manipulator" }
+    MANIPULATOR
+}
+
+/**
+ * Sketches ribs (lines, and circles) between points (circles' and arcs' centers, vertices, and mate connectors), and
+ * from points to edges, quickly: for Robot lighten, which finds them itself. Chains run through their points in order
+ * (closed or not; two points make one rib); hubs have spokes to their hub, and a circle around it if asked; edge ribs
+ * run from a point to an edge, meeting it square, or where a manipulator puts it.
  */
 annotation { "Feature Type Name" : "Quick rib",
-        "Feature Type Description" : "Sketch ribs between circles and points, as chains or hubs and spokes, for Robot lighten." ~ CREDIT,
+        "Feature Type Description" : "Sketch ribs between circles and points, as chains or hubs and spokes, or to edges, for Robot lighten." ~ CREDIT,
         "Editing Logic Function" : "quickRibEditLogic",
         "Manipulator Change Function" : "quickRibManipulatorChange",
         "Icon" : RobotIcon::BLOB_DATA
@@ -33,59 +45,80 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
     precondition
     {
         annotation { "Name" : "Face to use", "MaxNumberOfPicks" : 1, "Filter" : EntityType.FACE && GeometryType.PLANE && SketchObject.NO,
-                    "Description" : "Where the ribs are sketched (points are projected onto it). Without one, the first circle's plane." }
+                    "Description" : "Where the ribs are sketched (points are projected onto it). Without one, the first circle's or arc's plane." }
         definition.face is Query;
 
-        annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
-                    "UIHint" : ["FOCUS_INNER_QUERY"] }
-        definition.chains is array;
-
-        for (var chain in definition.chains)
+        annotation { "Group Name" : "Chains", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Points", "Filter" : EntityType.VERTEX || EntityType.EDGE || BodyType.MATE_CONNECTOR }
-            chain.chainPoints is Query;
+            annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
+                        "UIHint" : ["FOCUS_INNER_QUERY"] }
+            definition.chains is array;
 
-            annotation { "Name" : "Closed" }
-            chain.closed is boolean;
-        }
-
-        annotation { "Name" : "Hubs", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
-                    "UIHint" : ["FOCUS_INNER_QUERY"] }
-        definition.hubs is array;
-
-        for (var hub in definition.hubs)
-        {
-            annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1, "Filter" : EntityType.VERTEX || EntityType.EDGE || BodyType.MATE_CONNECTOR }
-            hub.hub is Query;
-
-            annotation { "Name" : "Spokes", "Filter" : EntityType.VERTEX || EntityType.EDGE || BodyType.MATE_CONNECTOR }
-            hub.spokes is Query;
-
-            annotation { "Name" : "Add circle" }
-            hub.addCircle is boolean;
-
-            if (hub.addCircle)
+            for (var chain in definition.chains)
             {
-                annotation { "Name" : "Circle diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(hub.circleDiameter, CIRCLE_BOUNDS);
+                annotation { "Name" : "Points",
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                chain.chainPoints is Query;
+
+                annotation { "Name" : "Closed" }
+                chain.closed is boolean;
             }
         }
 
-        annotation { "Name" : "Points on edges", "Item name" : "point", "Item label template" : "#edge", "Driven query" : "edge",
-                    "UIHint" : ["PREVENT_ARRAY_REORDER"] }
-        definition.edgePoints is array;
-
-        for (var edgePoint in definition.edgePoints)
+        annotation { "Group Name" : "Hubs", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE, "UIHint" : ["ALWAYS_HIDDEN"] }
-            edgePoint.edge is Query;
+            annotation { "Name" : "Hubs", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
+                        "UIHint" : ["FOCUS_INNER_QUERY"] }
+            definition.hubs is array;
 
-            annotation { "Name" : "Location", "Description" : "How far along the edge the rib meets it, from its start (0) to its end (1)." }
-            isReal(edgePoint.edgeLocation, LOCATION_BOUNDS);
+            for (var hub in definition.hubs)
+            {
+                annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                hub.hub is Query;
+
+                annotation { "Name" : "Spokes",
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                hub.spokes is Query;
+
+                annotation { "Name" : "Add circle" }
+                hub.addCircle is boolean;
+
+                if (hub.addCircle)
+                {
+                    annotation { "Name" : "Circle diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(hub.circleDiameter, CIRCLE_BOUNDS);
+                }
+            }
+        }
+
+        annotation { "Group Name" : "Edge ribs", "Collapsed By Default" : false }
+        {
+            annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
+            definition.edgeRibs is array;
+
+            for (var edgeRib in definition.edgeRibs)
+            {
+                annotation { "Name" : "Point", "MaxNumberOfPicks" : 1,
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                edgeRib.ribPoint is Query;
+
+                annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
+                edgeRib.ribEdge is Query;
+
+                annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                edgeRib.ribEnd is EdgeRibEnd;
+
+                if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
+                {
+                    annotation { "Name" : "Location", "Description" : "How far along the edge the rib meets it, from its start (0) to its end (1)." }
+                    isReal(edgeRib.edgeLocation, LOCATION_BOUNDS);
+                }
+            }
         }
 
         annotation { "Name" : "Clear invalid selections",
-                    "Description" : "Drops selections which no longer exist, chains of fewer than two points, hubs without a hub, and points on edges nothing uses." }
+                    "Description" : "Drops selections which no longer exist, chains of fewer than two points, hubs without a hub, and edge ribs without a point or edge." }
         isButton(definition.clearInvalid);
     }
     {
@@ -94,7 +127,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         var skipped = 0;
         for (var chain in definition.chains)
         {
-            const points = pointsOf(context, definition, chain.chainPoints);
+            const points = pointsOf(context, chain.chainPoints);
             if (size(points) < 2)
             {
                 skipped += 1;
@@ -104,8 +137,8 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         }
         for (var hub in definition.hubs)
         {
-            const center = pointsOf(context, definition, hub.hub);
-            const spokes = pointsOf(context, definition, hub.spokes);
+            const center = pointsOf(context, hub.hub);
+            const spokes = pointsOf(context, hub.spokes);
             if (center == [] || (spokes == [] && !hub.addCircle))
             {
                 skipped += 1;
@@ -117,15 +150,25 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                 circles = append(circles, { "center" : center[0], "radius" : hub.circleDiameter / 2 });
             }
         }
+        for (var edgeRib in definition.edgeRibs)
+        {
+            const segment = edgeRibSegment(context, edgeRib);
+            if (segment == undefined)
+            {
+                skipped += 1;
+                continue;
+            }
+            segments = append(segments, segment);
+        }
         segments = uniqueSegments(segments);
         if (segments == [] && circles == [])
         {
-            throw regenError("Add chains or hubs to sketch ribs.", ["chains", "hubs"]);
+            throw regenError("Add chains, hubs, or edge ribs to sketch ribs.", ["chains", "hubs", "edgeRibs"]);
         }
         if (skipped > 0)
         {
-            reportFeatureWarning(context, id, skipped == 1 ? "A chain or hub isn't complete, so it's skipped." :
-                    skipped ~ " chains and hubs aren't complete, so they're skipped.");
+            reportFeatureWarning(context, id, skipped == 1 ? "A chain, hub, or edge rib isn't complete, so it's skipped." :
+                    skipped ~ " chains, hubs, and edge ribs aren't complete, so they're skipped.");
         }
 
         const plane = getSketchPlane(context, definition);
@@ -141,7 +184,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         skSolve(sketch);
         setVariable(context, QUICK_RIBS_VARIABLE, append(getVariable(context, QUICK_RIBS_VARIABLE, []), id));
 
-        addEdgePointManipulators(context, id, definition);
+        addEdgeRibManipulators(context, id, definition);
     });
 
 /**
@@ -153,24 +196,23 @@ export function quickRibEdges(featureId is Id) returns Query
 }
 
 /**
- * The points of a selection, in order: a full circle's center, a vertex's point, a mate connector's origin, or a point
- * along another edge (an arc, line, ...), at its Points on edges location (halfway, if it has none). What isn't there
- * any more is left out.
+ * The points of a selection, in order: a mate connector's origin, a vertex's point, or a circle's or arc's center. What
+ * isn't there any more is left out.
  */
-function pointsOf(context is Context, definition is map, selection is Query) returns array
+function pointsOf(context is Context, selection is Query) returns array
 {
     var points = [];
     for (var entity in evaluateQuery(context, selection))
     {
         try silent
         {
-            points = append(points, pointOf(context, definition, entity));
+            points = append(points, pointOf(context, entity));
         }
     }
     return points;
 }
 
-function pointOf(context is Context, definition is map, entity is Query) returns Vector
+function pointOf(context is Context, entity is Query) returns Vector
 {
     if (!isQueryEmpty(context, entity->qBodyType(BodyType.MATE_CONNECTOR)))
     {
@@ -180,34 +222,28 @@ function pointOf(context is Context, definition is map, entity is Query) returns
     {
         return evVertexPoint(context, { "vertex" : entity });
     }
-    if (!isQueryEmpty(context, entity->qGeometry(GeometryType.CIRCLE)))
+    return evCurveDefinition(context, { "edge" : entity }).coordSystem.origin;
+}
+
+/**
+ * An edge rib's line (`[from, to]`): from its point to its edge, where the edge's nearest to it (Perpendicular to edge)
+ * or at its location along it (Manipulator). Undefined if its point or edge isn't chosen (or there).
+ */
+function edgeRibSegment(context is Context, edgeRib is map)
+{
+    const start = pointsOf(context, edgeRib.ribPoint);
+    if (start == [] || isQueryEmpty(context, edgeRib.ribEdge))
     {
-        return evCurveDefinition(context, { "edge" : entity }).coordSystem.origin;
+        return undefined;
     }
-    return evEdgeTangentLine(context, { "edge" : entity, "parameter" : edgeLocation(context, definition, entity), "arcLengthParameterization" : true }).origin;
-}
-
-/**
- * Where along an edge its point is: its Points on edges item's location, or halfway.
- */
-function edgeLocation(context is Context, definition is map, edge is Query) returns number
-{
-    const index = edgePointIndex(context, definition, edge);
-    return index == undefined ? 0.5 : definition.edgePoints[index].edgeLocation;
-}
-
-/**
- * The index of an edge's Points on edges item, matched by the edge itself (not its place in a chain), or undefined.
- */
-function edgePointIndex(context is Context, definition is map, edge is Query)
-{
-    const evaluated = evaluateQuery(context, edge);
-    for (var i, edgePoint in definition.edgePoints)
+    try silent
     {
-        if (evaluated != [] && evaluateQuery(context, edgePoint.edge) == evaluated)
+        if (edgeRib.ribEnd == EdgeRibEnd.PERPENDICULAR)
         {
-            return i;
+            return [start[0], evDistance(context, { "side0" : start[0], "side1" : edgeRib.ribEdge }).sides[1].point];
         }
+        return [start[0], evEdgeTangentLine(context, { "edge" : edgeRib.ribEdge, "parameter" : edgeRib.edgeLocation,
+                            "arcLengthParameterization" : true }).origin];
     }
     return undefined;
 }
@@ -260,7 +296,7 @@ export function uniqueSegments(segments is array) returns array
 }
 
 /**
- * Face to use's plane, or without one, the plane of the first full circle chosen.
+ * Face to use's plane, or without one, the plane of the first circle or arc chosen.
  */
 function getSketchPlane(context is Context, definition is map) returns Plane
 {
@@ -268,29 +304,41 @@ function getSketchPlane(context is Context, definition is map) returns Plane
     {
         return evPlane(context, { "face" : definition.face });
     }
-    const selections = concatenateArrays([mapArray(definition.chains, chain => chain.chainPoints),
-                mapArray(definition.hubs, hub => hub.hub), mapArray(definition.hubs, hub => hub.spokes)]);
-    const circles = qUnion(selections)->qGeometry(GeometryType.CIRCLE);
-    if (isQueryEmpty(context, circles))
+    const curves = qUnion(selections(definition))->qEntityFilter(EntityType.EDGE);
+    if (isQueryEmpty(context, curves))
     {
-        throw regenError("Select a face to use: none of the ribs' circles give a plane.", ["face"]);
+        throw regenError("Select a face to use: none of the ribs' circles or arcs give a plane.", ["face"]);
     }
-    const coordSystem = evCurveDefinition(context, { "edge" : qNthElement(circles, 0) }).coordSystem;
+    const coordSystem = evCurveDefinition(context, { "edge" : qNthElement(curves, 0) }).coordSystem;
     return plane(coordSystem.origin, coordSystem.zAxis);
 }
 
 /**
- * A manipulator on each point on an edge, to drag it along the edge (as std's fillet does its points on edges).
+ * Every point selection: the chains', the hubs' and their spokes', and the edge ribs'.
  */
-function addEdgePointManipulators(context is Context, id is Id, definition is map)
+function selections(definition is map) returns array
 {
-    for (var i, edgePoint in definition.edgePoints)
+    return concatenateArrays([mapArray(definition.chains, chain => chain.chainPoints), mapArray(definition.hubs, hub => hub.hub),
+                mapArray(definition.hubs, hub => hub.spokes), mapArray(definition.edgeRibs, edgeRib => edgeRib.ribPoint)]);
+}
+
+/**
+ * A manipulator on the end of each edge rib with Manipulator, to drag it along its edge (as std's fillet does its
+ * points on edges).
+ */
+function addEdgeRibManipulators(context is Context, id is Id, definition is map)
+{
+    for (var i, edgeRib in definition.edgeRibs)
     {
+        if (edgeRib.ribEnd != EdgeRibEnd.MANIPULATOR)
+        {
+            continue;
+        }
         try silent
         {
-            const lines = evEdgeTangentLines(context, { "edge" : edgePoint.edge, "parameters" : [0, edgePoint.edgeLocation, 1],
+            const lines = evEdgeTangentLines(context, { "edge" : edgeRib.ribEdge, "parameters" : [0, edgeRib.edgeLocation, 1],
                         "arcLengthParameterization" : true });
-            addManipulators(context, id, { (EDGE_POINT_MANIPULATOR ~ "." ~ i) : linearManipulator({
+            addManipulators(context, id, { (EDGE_RIB_MANIPULATOR ~ "." ~ i) : linearManipulator({
                                 "base" : lines[1].origin,
                                 "direction" : lines[1].direction,
                                 "offset" : 0 * meter,
@@ -303,68 +351,45 @@ function addEdgePointManipulators(context is Context, id is Id, definition is ma
 }
 
 /**
- * Dragging a point along its edge sets its location: the edge's nearest point to where it's dragged.
+ * Dragging an edge rib's end along its edge sets its location: the edge's nearest point to where it's dragged.
  */
 export function quickRibManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
     for (var key, manipulator in newManipulators)
     {
-        const index = edgePointManipulatorIndex(key);
-        if (index == undefined || index >= size(definition.edgePoints))
+        const index = edgeRibManipulatorIndex(key);
+        if (index == undefined || index >= size(definition.edgeRibs))
         {
             continue;
         }
         const position = manipulator.base + manipulator.direction * manipulator.offset;
-        const nearest = evDistance(context, { "side0" : position, "side1" : definition.edgePoints[index].edge, "arcLengthParameterization" : true });
-        definition.edgePoints[index].edgeLocation = clamp(nearest.sides[1].parameter, 0, 1);
+        const nearest = evDistance(context, { "side0" : position, "side1" : definition.edgeRibs[index].ribEdge, "arcLengthParameterization" : true });
+        definition.edgeRibs[index].edgeLocation = clamp(nearest.sides[1].parameter, 0, 1);
     }
     return definition;
 }
 
 /**
- * The Points on edges item a manipulator's key is for (`edgePoint.<index>`), or undefined.
+ * The edge rib a manipulator's key is for (`edgeRib.<index>`), or undefined.
  */
-export function edgePointManipulatorIndex(key is string)
+export function edgeRibManipulatorIndex(key is string)
 {
-    const found = match(key, EDGE_POINT_MANIPULATOR ~ "\\.(\\d+)");
+    const found = match(key, EDGE_RIB_MANIPULATOR ~ "\\.(\\d+)");
     return found.hasMatch ? stringToNumber(found.captures[1]) : undefined;
 }
 
 /**
- * Adds a Points on edges item for each edge (but full circles, whose centers are used) the chains and hubs use which
- * hasn't one, halfway along it; and when Clear invalid selections is clicked, drops what's invalid (see its
- * description).
+ * When Clear invalid selections is clicked, drops what's invalid (see its description).
  */
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    if (clickedButton == "clearInvalid")
-    {
-        definition = clearInvalidSelections(context, definition);
-    }
-    for (var edge in evaluateQuery(context, usedEdges(definition)))
-    {
-        if (edgePointIndex(context, definition, edge) == undefined)
-        {
-            definition.edgePoints = append(definition.edgePoints, { "edge" : edge, "edgeLocation" : 0.5 });
-        }
-    }
-    return definition;
-}
-
-/**
- * The edges (but full circles) the chains and hubs choose.
- */
-function usedEdges(definition is map) returns Query
-{
-    const selections = concatenateArrays([mapArray(definition.chains, chain => chain.chainPoints),
-                mapArray(definition.hubs, hub => hub.hub), mapArray(definition.hubs, hub => hub.spokes)]);
-    return qSubtraction(qUnion(selections)->qEntityFilter(EntityType.EDGE), qUnion(selections)->qGeometry(GeometryType.CIRCLE));
+    return clickedButton == "clearInvalid" ? clearInvalidSelections(context, definition) : definition;
 }
 
 /**
  * Clear invalid selections: what's chosen, but what isn't there any more; chains of fewer than two points; hubs
- * without a hub; and points on edges nothing uses.
+ * without a hub; and edge ribs without a point or an edge.
  */
 function clearInvalidSelections(context is Context, definition is map) returns map
 {
@@ -390,7 +415,6 @@ function clearInvalidSelections(context is Context, definition is map) returns m
     }
     definition.chains = chains;
     definition.hubs = hubs;
-    const used = usedEdges(definition);
-    definition.edgePoints = filter(definition.edgePoints, edgePoint => !isQueryEmpty(context, qIntersection([edgePoint.edge, used])));
+    definition.edgeRibs = filter(definition.edgeRibs, edgeRib => !isQueryEmpty(context, edgeRib.ribPoint) && !isQueryEmpty(context, edgeRib.ribEdge));
     return definition;
 }
