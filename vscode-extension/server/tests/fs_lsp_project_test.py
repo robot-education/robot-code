@@ -733,3 +733,24 @@ def test_array_items_parameters_are_feature_parameters(project):
     # An item's parameter can't share a name with any other parameter
     assert [source[p.start:p.end] for p in problems] == ["edges"]
     assert "line 6" in problems[0].message
+
+
+def test_unknown_annotation_keys(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Items", "Item name" : "item", "Driving query" : "edges" }\n'
+        "        definition.items is array;\n"
+        "        for (var item in definition.items)\n        {\n"
+        '            annotation { "Name" : "Edges", "UIHInt" : ["ALWAYS_HIDDEN"], "Filter" : { "x" : 1 } }\n'
+        "            item.edges is Query;\n        }\n"
+        "    }\n    {\n    });\n"
+    )
+    problems = [p for p in project.check(project.module(path)) if p.code == "annotation-key"]
+    # Keys of maps inside an annotation (like "x") aren't its keys
+    assert [p.message for p in problems] == [
+        'Onshape doesn\'t know the annotation key "Driving query", so it does nothing. Did you mean "Driven query"?',
+        'Onshape doesn\'t know the annotation key "UIHInt", so it does nothing. Did you mean "UIHint"?',
+    ]

@@ -27,7 +27,7 @@ export predicate startOffsetPredicate(definition is map)
             annotation { "Name" : "Opposite direction", "UIHint" : ["OPPOSITE_DIRECTION"] }
             definition.startOffsetOppositeDirection is boolean;
 
-            annotation { "Name" : "Start offset reference", "UIHInt" : ["REMEMBER_PREVIOUS_VALUE"] }
+            annotation { "Name" : "Start offset reference", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.startOffsetReference is boolean;
 
             if (definition.startOffsetReference)

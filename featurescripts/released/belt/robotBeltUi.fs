@@ -138,7 +138,7 @@ export predicate complexBeltSelectionPredicate(definition is map)
                 "Item name" : "Pulley",
                 "Item label template" : "#beltSide pulley",
                 "UIHint" : [UIHint.FOCUS_INNER_QUERY],
-                "Driving query" : "pulleySelection"
+                "Driven query" : "pulleySelection"
             }
     definition.pulleys is array;
     for (var pulley in definition.pulleys)

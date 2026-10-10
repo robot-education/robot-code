@@ -10,8 +10,10 @@ Files are re-read when they change on disk, and open editors can overlay their u
 
 from __future__ import annotations
 
+import bisect
 import contextlib
 import dataclasses
+import difflib
 import json
 import pathlib
 import re
@@ -48,6 +50,20 @@ CALLABLE_KINDS = frozenset(["function", "predicate"])
 FUNCTION_ANNOTATION_KEYS = frozenset(["Manipulator Change Function", "Editing Logic Function"])
 # Annotation keys whose values (or values in an array) name a member of a std enum, e.g. `"UIHint" : ["SHOW_LABEL"]`
 ENUM_ANNOTATION_KEYS = {"UIHint": "UIHint"}
+
+# The annotation keys Onshape knows: std's, and a few std doesn't use. Others are ignored, so a misspelled one (like
+# "Driving query" for "Driven query") silently does nothing.
+ANNOTATION_KEYS = frozenset(
+    [
+        "Abbreviation", "AdditionalBoxSelectFilter", "Collapsed By Default", "Column Name", "ComputedConfigurationInputs",
+        "Default", "Deprecated", "Description", "Description Image", "Driven query", "Driving Parameter",
+        "Editing Logic Function", "Feature Name Template", "Feature Type Description", "Feature Type Name", "Filter",
+        "Filter Selector", "Group Name", "Hidden", "Icon", "Item label template", "Item name", "Library Definition",
+        "Lookup Table", "Lookup Table Path", "Manipulator Change Function", "MaxLength", "MaxNumberOfPicks", "Message",
+        "MinLength", "Name", "Parameter Library Purpose Id", "Property Function Name", "Show labels only",
+        "Table Type Name", "Tolerance Type Name", "Tooltip Template", "UIHint", "message", "showDefaultAlignmentPoints",
+    ]
+)
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
 PARAMETER_PREDICATES = frozenset(["isLength", "isAngle", "isInteger", "isReal", "isAnything"])
 
@@ -795,6 +811,7 @@ class Project:
         problems.extend(self._precondition_predicate_problems(module, providers))
         problems.extend(self._duplicate_parameter_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
+        problems.extend(_annotation_key_problems(module))
         problems.extend(self._array_group_problems(module))
         problems.extend(self._tolerant_parameter_problems(module))
         problems.extend(self._nested_predicate_problems(module, providers))
@@ -1943,6 +1960,44 @@ def _if_conditions(tokens: list[Token], start: int, end: int) -> Iterable[tuple[
             if depth == 0:
                 yield position + 1, cursor
                 break
+
+
+def _annotation_key_problems(module: Module) -> list[Problem]:
+    """Annotation keys Onshape doesn't know (ANNOTATION_KEYS), which it ignores."""
+    tokens = module.index.tokens
+    offsets = [token.offset for token in tokens]
+    problems = []
+    for node in module.parsed.nodes:
+        if node.type != "AnnotationMap":
+            continue
+        depth = 0
+        for position in range(bisect.bisect_left(offsets, node.start), bisect.bisect_left(offsets, node.end)):
+            token = tokens[position]
+            if token.kind != "string" and token.value in ("{", "[", "("):
+                depth += 1
+            elif token.kind != "string" and token.value in ("}", "]", ")"):
+                depth -= 1
+            elif (
+                depth == 1
+                and token.kind == "string"
+                and position + 1 < len(tokens)
+                and tokens[position + 1].value == ":"
+                and token.value.strip('"') not in ANNOTATION_KEYS
+            ):
+                key = token.value.strip('"')
+                close = difflib.get_close_matches(key.lower(), [known.lower() for known in ANNOTATION_KEYS], n=1, cutoff=0.6)
+                known = next((known for known in ANNOTATION_KEYS if close and known.lower() == close[0]), None)
+                hint = f' Did you mean "{known}"?' if known else ""
+                problems.append(
+                    Problem(
+                        token.offset,
+                        token.end,
+                        "error",
+                        f'Onshape doesn\'t know the annotation key "{key}", so it does nothing.{hint}',
+                        "annotation-key",
+                    )
+                )
+    return problems
 
 
 def _array_item_loops(tokens: list[Token], start: int, end: int) -> list[tuple[str, int, int]]:

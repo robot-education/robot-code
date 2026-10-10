@@ -55,7 +55,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
                     "Item name" : "Sprocket",
                     "Item label template" : "#chainSide #sprocketType",
                     "UIHint" : [UIHint.FOCUS_INNER_QUERY],
-                    "Driving query" : "location"
+                    "Driven query" : "location"
                 }
         definition.sprockets is array;
         for (var sprocket in definition.sprockets)
