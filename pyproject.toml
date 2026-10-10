@@ -18,7 +18,8 @@ fs = "fs_cli.cli:run"
 fs-lsp = "fs_lsp.server:main"
 
 [dependency-groups]
-dev = ["pytest>=8.0.0"]
+# shapely: for icons (fs_cli/icons.py)
+dev = ["pytest>=8.0.0", "shapely>=2.0"]
 # For regenerating fs_cli/onshape_ui (see its extract.py)
 onshape-ui = ["beautifulsoup4>=4.12", "tinycss2>=1.3"]
 

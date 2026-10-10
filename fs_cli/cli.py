@@ -344,9 +344,17 @@ def make_parser() -> argparse.ArgumentParser:
         "--z", type=float, help="the height (in inches) of the face perpendicular to Z to keep (default: the highest)"
     )
 
+    icons_command = command(
+        "icons",
+        "save a picture of icons side by side, big and as Onshape shows them, on light and dark (no API calls)",
+        targets=False,
+    )
+    icons_command.add_argument("icons", nargs="+", help="the icons' .svg files (e.g. onshape_icons/feature/rib.svg)")
+    icons_command.add_argument("-o", "--output", default="icons.png", help="where to save the picture (default: icons.png)")
+
     gen_command = command(
         "gen",
-        "regenerate the .gen.fs files (lookup tables, sketch profiles) from their Python definitions (no API calls)",
+        "regenerate the .gen.fs files (lookup tables, sketch profiles) and icons from their Python definitions (no API calls)",
         targets=False,
     )
     dry_run(gen_command)
@@ -1092,6 +1100,19 @@ def pull_std(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
+def icons(config: Config, args: argparse.Namespace) -> int:
+    from fs_cli.icons import screenshot_preview
+
+    paths = [pathlib.Path(icon) for icon in args.icons]
+    missing = [str(path) for path in paths if not path.is_file()]
+    if missing:
+        print(f"No such icons: {', '.join(missing)}")
+        return 1
+    screenshot_preview(paths, pathlib.Path(args.output))
+    print(f"Saved {args.output}")
+    return 0
+
+
 def gen(config: Config, args: argparse.Namespace) -> int:
     # Imports need a version, which is only known for studios synced on this machine
     synced = {
@@ -1478,6 +1499,7 @@ OFFLINE_COMMANDS = {
     "unused": unused,
     "refs": refs,
     "gen": gen,
+    "icons": icons,
     "cots": cots,
     "step": step,
     "unlink": unlink,

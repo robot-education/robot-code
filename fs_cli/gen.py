@@ -4,6 +4,9 @@ A definition is a Python file in the code folder, such as released/belt/robotBel
 CONTENTS to a list of items: lookup tables and enums (fs_cli.tables), sketch profiles
 (fs_cli.sketches), and Imports of other studios they use. `fs gen` writes them to the .gen.fs file
 beside it (belt/robotBeltTables.gen.fs), which `fs push` then pushes like any other file.
+
+An icon definition (see fs_cli.icons) sets ICON instead, which `fs gen` writes to the .svg file of the same name
+(lighten/robotLightenIcon.py writes lighten/robotLightenIcon.svg).
 """
 
 from __future__ import annotations
@@ -118,9 +121,16 @@ def generate(
     """
     results = []
     for source in sorted(code_dir.rglob("*.py")):
-        contents = runpy.run_path(str(source)).get("CONTENTS")
+        definition = runpy.run_path(str(source))
+        if "ICON" in definition:
+            output = source.with_suffix(".svg")
+            code = definition["ICON"].render()
+            old = output.read_text() if output.is_file() else None
+            results.append(Generated(source, output, code, code != old))
+            continue
+        contents = definition.get("CONTENTS")
         if contents is None:
-            raise GenerateError(f"{source} doesn't define CONTENTS.")
+            raise GenerateError(f"{source} doesn't define CONTENTS or ICON.")
         output = source.with_name(source.stem + GENERATED_SUFFIX)
         old = output.read_text() if output.is_file() else None
         version = (_version(old) if old else None) or default_version

@@ -232,7 +232,7 @@ def test_checked_in_profiles_are_closed():
     import runpy
 
     for source in sorted((REPO / "featurescripts").rglob("*.py")):
-        for item in runpy.run_path(str(source))["CONTENTS"]:
+        for item in runpy.run_path(str(source)).get("CONTENTS", []):
             profiles = (
                 item.profiles.values() if isinstance(item, SketchMap)
                 else [item.profile] if isinstance(item, Sketch) else []

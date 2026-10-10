@@ -19,7 +19,7 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 | `onshape_api/`             | A small Onshape REST API client; see [its README](onshape_api/README.md)     |
 | `std/`                     | A read-only copy of the Onshape std library, for reference                   |
 | `onshape_icons/`           | Onshape's UI icons, for `fs ui`; browse them with its `index.html`           |
-| `docs/`                    | Conventions for writing FeatureScripts and their writeups, and COTS research |
+| `docs/`                    | Conventions for writing FeatureScripts, their writeups, and icons, and COTS research |
 | `vscode-extension/`        | The VS Code extension (TypeScript client, grammar, snippets)                 |
 | `vscode-extension/server/` | The Python FeatureScript language server the extension runs (`fs_lsp`)       |
 | `pyproject.toml`           | Python dependencies, plus the `[tool.fs]` table configuring the documents    |
@@ -361,6 +361,10 @@ sets `CONTENTS` to a list of items:
 - `Constant`s and `Code`, e.g. predicates generated from a definition's data so preconditions can show
   parameters based on it (see `released/printAdapter/printAdapterProfiles.py`)
 - `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
+
+Feature icons are generated the same way: a definition which sets `ICON` (an `fs_cli.icons.Icon`, drawn from shapely
+shapes) is written to the `.svg` of the same name, e.g. `lighten/robotLightenIcon.py` to `lighten/robotLightenIcon.svg`;
+`fs icons` saves a picture of icons side by side to compare them. See [docs/icons.md](docs/icons.md).
 
 After editing one:
 
