@@ -113,6 +113,7 @@ robotLighten
         --> opOffsetFace "extend", "override"      // ends, ignored and overridden sides
         --> opFillet "roundConcave"                // a hair, std's boolean tolerance
         --> opShell, opEnclose                     // hollow by wall + radius; keep what's inside
+        --> opModifyFillet "exactCorners"          // inside corners: exactly wall + radius
     --> wallFailure                                // only when they fail: which input is to blame
 --> buildRibs --> buildRibGroup                    // each rib: a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
@@ -120,6 +121,7 @@ robotLighten
     --> narrowEnds --> opFullRoundFillet
     --> pocketCorners --> opFillet "roundCorners"  // a hair
     --> opOffsetFace "grow"                        // back out by the radius
+    --> opModifyFillet "exactCorners"              // corners: exactly the radius
 --> opBoolean "cut"                                // pockets cut from the part
 --> opDeleteBodies "cleanup"
 ```
@@ -135,7 +137,9 @@ Before hollowing:
 - The pocket's ends, and its sides along faces to ignore, are moved out by the same amount, so hollowing brings them
   back to where they were.
 - Each wall override's sides move out by Wall thickness less its own.
-- Concave edges get a hair fillet, which hollowing grows into the walls' rounded inside corners.
+- Concave edges get a hair fillet, which hollowing grows into the walls' rounded inside corners. After hollowing,
+  they're set to exactly the hollow's depth (`opModifyFillet`, as Vent does), so growing the pockets back leaves them
+  exactly the wall thickness.
 - The part's rounded corners tighter than the hollow are made sharp. Hollowing can't move a convex face in by more
   than its radius, and the walls inside a sharp corner are the same as inside a rounded one that tight.
 
@@ -150,7 +154,7 @@ std's boolean tolerance of it) is a solid cylinder instead.
 
 The walls and ribs were built thicker by the fillet radius. Growing the pockets back out by the radius rounds their
 corners as a router bit of that radius would, and a pocket narrower than the bit is already gone. Corners get a hair
-fillet first, which the growth rounds to the radius.
+fillet first, which the growth rounds; then they're set to exactly the radius (`opModifyFillet`).
 
 A pocket end so narrow that the hair fillets on its two corners would meet gets one full round across it instead.
 
@@ -199,8 +203,8 @@ Onshape Lighten feature did: extrude the face, hollow it (`opShell`), and keep w
 | What's lightened | One face of one part | Selected faces on parts' faces (any number of parts) | One face of one or more parts |
 | Ribs | Sketch edges of any shape, each thickened on its own; quick ribs; overrides by group | None: separate faces leave a wall between them, half from each | Sketched rectangles (and arcs) around selected lines |
 | Walls along the part's edges | Hollow of the face's extrude, ends moved out first | Second extrude of the part's coplanar faces, hollowed by the full wall, intersected (`SUBTRACT_COMPLEMENT`) | Hollow of the face's extrude |
-| Inside wall corners | Hair fillet grown to wall + radius + hair | Hair fillet, then `opModifyFillet` to exactly the offset | As Vent |
-| Rounded pocket corners | Hair fillet, grown by the radius (radius + hair) | Hair fillet, grown, then `opModifyFillet` to exactly the radius | As Vent, with the tool radius rounded up by 0.01 in |
+| Inside wall corners | Hair fillet, grown, then `opModifyFillet` to exactly the offset | As Robot lighten | As Robot lighten |
+| Rounded pocket corners | Hair fillet, grown, then `opModifyFillet` to exactly the radius | As Robot lighten | As Robot lighten, with the tool radius rounded up by 0.01 in |
 | End types | Through all, Blind | Blind, Up to face, Up to part, Through all | Blind, Through, Up to face, Up to vertex |
 | Extents | Exact (tight bounding box) | Exact (tight bounding box) | Measured distances; tool radius rounded |
 | Narrow pocket ends | Full round | Not handled | Not handled; sharp edges where walls barely meet are found after the cut, and their faces deleted (`opDeleteFace`) |
@@ -208,8 +212,8 @@ Onshape Lighten feature did: extrude the face, hollow it (`opShell`), and keep w
 | Errors | Diagnosed: which input, shown in blue and red, with the operation's own display | Std errors; a warning if trimming fails | Generic messages |
 | Feature patterns, sheet metal | No | Yes (`getRemainderPatternTransform`, `booleanBodies`) | No |
 
-Worth taking from Vent: `opModifyFillet` to set the hair fillets to their exact radii (which would remove the 0.01 mm
-error below), Up to face and Up to part end types, and feature pattern support.
+Taken from Vent: `opModifyFillet`, setting the hair fillets to their exact radii. Still worth taking: Up to face and
+Up to part end types, and feature pattern support.
 
 ## Issues found
 
@@ -220,8 +224,6 @@ error below), Up to face and Up to part end types, and feature pattern support.
   its side in before the hollow, which can close a small pocket.
 - A rounded part corner spanning half a circle or more (a lobe narrower than the walls) has no sides to extend, so it
   can't be made sharp, and fails.
-- Rounded corners are 0.01 mm (std's boolean tolerance) bigger than asked: the hair they're rounded by first. Vent
-  fixes this with `opModifyFillet`.
 - Errors' copies are shown out of the part, but Onshape's own error display for an operation is in place, inside it.
 - Quick ribs are always at Rib thickness: overrides select sketch edges, and quick ribs' sketch is the feature's own.
 - A hub's circle goes through its first spoke in the order selected.

@@ -667,16 +667,16 @@ function insetPockets(context is Context, errors is map, id is Id, trialId is Id
  * distance (`wall` and `radius`), and each of `overrides`' sides by `wall` less its thickness (in, for a thicker wall);
  * then the pockets are hollowed by the distance, which moves every face in by it at once, holes of any size and their
  * corners too, so it doesn't fail where a wall along one edge would. What's inside (enclosed) is kept, and the rest
- * deleted. Their concave edges are rounded a hair (std's boolean tolerance, 0.01 mm) first, so they're rounded to the
- * distance (and the hair) as they're moved, as the walls' inside corners should be. Only the faces of `pockets` are
- * moved, so it can be tried on some of them.
+ * deleted. Their concave edges are rounded a hair (std's boolean tolerance, 0.01 mm) first, so they're rounded as
+ * they're moved, as the walls' inside corners should be; those rounds are then set to exactly the distance
+ * (`opModifyFillet`, as Vent does). Only the faces of `pockets` are moved, so it can be tried on some of them.
  *
  * Before any of that, the part's rounded corners tighter than the distance (`tightCorners`) are made sharp (deleted,
  * and their sides extended to meet): hollowing can't move a convex face in further than its radius, and the walls
  * inside a sharp corner are the same as inside a rounded one that tight.
  *
- * Throws which step failed: a map of its `stage` ("sharpen", "extend", "override", "round", or "shell"), the
- * `operation` which failed, and for "sharpen", the `corners`, or for an override, its `override`.
+ * Throws which step failed: a map of its `stage` ("sharpen", "extend", "override", "round" (either rounding), or
+ * "shell"), the `operation` which failed, and for "sharpen", the `corners`, or for an override, its `override`.
  */
 function buildWalls(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
     wall is ValueWithUnits, radius is ValueWithUnits)
@@ -750,6 +750,8 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
             throw { "stage" : "round", "operation" : id + "roundConcave" };
         }
     }
+    // Hollowing grows them by the distance; they're set to exactly it after
+    const rounds = startTracking(context, qCreatedBy(id + "roundConcave", EntityType.FACE));
 
     try silent
     {
@@ -773,6 +775,23 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
         catch
         {
             throw { "stage" : "shell", "operation" : encloseId };
+        }
+    }
+    const insideCorners = qIntersection([rounds, qCreatedBy(id + "enclose", EntityType.FACE)]);
+    if (!isQueryEmpty(context, insideCorners))
+    {
+        try silent
+        {
+            opModifyFillet(context, id + "exactCorners", {
+                        "faces" : insideCorners,
+                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
+                        "reFillet" : false,
+                        "radius" : distance
+                    });
+        }
+        catch
+        {
+            throw { "stage" : "round", "operation" : id + "exactCorners" };
         }
     }
     opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
@@ -1177,9 +1196,9 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
 /**
  * Rounds the pockets' corners, as a router bit of `radius` leaves them: they were made with walls and ribs `radius`
  * thicker, so a pocket narrower than the bit is gone, and the rest are grown back by `radius`. Their corners are
- * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature does, so growing them rounds them to
- * `radius` (and the hair), rather than filleting them after, which can fail where a pocket narrows. Their inside
- * corners (the walls' and ribs' outside ones) stay sharp.
+ * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature does, so growing them rounds them, rather
+ * than filleting them after, which can fail where a pocket narrows; those rounds are then set to exactly `radius`
+ * (`opModifyFillet`, as Vent does). Their inside corners (the walls' and ribs' outside ones) stay sharp.
  *
  * Their narrow ends (`narrowEnds`), where the rounds on either side would meet, as at the tip of a pocket
  * between ribs, are given one full round across them instead (std's `opFullRoundFillet`), which growing makes a round
@@ -1247,6 +1266,26 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
             });
         showOut(context, errors, failing, DebugColor.RED);
         throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+    }
+    // Growing made them the radius and the hair; they're set to exactly the radius
+    const rounds = qCreatedBy(id + "roundCorners", EntityType.FACE);
+    if (!isQueryEmpty(context, rounds))
+    {
+        try silent
+        {
+            opModifyFillet(context, id + "exactCorners", {
+                        "faces" : rounds,
+                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
+                        "reFillet" : false,
+                        "radius" : radius
+                    });
+        }
+        catch
+        {
+            showOperationError(context, errors, id + "exactCorners");
+            showOut(context, errors, rounds, DebugColor.RED);
+            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+        }
     }
 }
 
