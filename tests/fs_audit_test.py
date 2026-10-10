@@ -55,8 +55,8 @@ def test_render_markdown():
 
 def test_command(tmp_path, capsys):
     output = tmp_path / "lighten.html"
-    assert cli.main(["audit", "featurescripts/lighten/robotLighten.fs", "-o", str(output), "--max-states", "15"]) == 0
-    assert "15 dialog states (the limit" in capsys.readouterr().out
+    assert cli.main(["audit", "featurescripts/lighten/robotLighten.fs", "-o", str(output), "--max-states", "4"]) == 0
+    assert "4 dialog states (the limit" in capsys.readouterr().out
     page = output.read_text()
     assert "<h1>Robot lighten</h1>" in page
     # The writeup, rendered
