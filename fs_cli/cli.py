@@ -1298,7 +1298,7 @@ def evaluate(config: Config, args: argparse.Namespace) -> int:
 
 
 def audit(config: Config, args: argparse.Namespace) -> int:
-    from fs_cli.audit import audit_page, explore_dialog
+    from fs_cli.audit import audit_page, explore_dialog, local_variants, lookup_tree
 
     path = pathlib.Path(args.file)
     if not path.is_file():
@@ -1309,7 +1309,24 @@ def audit(config: Config, args: argparse.Namespace) -> int:
     def render(settings: dict[str, str]) -> str:
         return render_feature(project, config.std_dir, path, feature, settings, args.theme)[0]
 
-    shell, states, truncated = explore_dialog(render, args.max_states)
+    # Choices which change only their own parameter: lookup tables (which conditions can't read), and enums and
+    # booleans no condition reads (outside arrays' items, whose labels can show them)
+    info: dict = {}
+    render_feature(project, config.std_dir, path, feature, {}, args.theme, info=info)
+    lookups, values = {}, {}
+    for key, parameter in info["parameters"].items():
+        if "." in key:
+            continue
+        if parameter.kind == "lookup" and isinstance(parameter.annotation.get("Lookup Table"), dict):
+            tree = lookup_tree(parameter.annotation["Lookup Table"])
+            if tree is not None:
+                lookups[key] = {"name": parameter.name, "tree": tree}
+        elif key not in info["conditions"] and parameter.kind == "boolean":
+            values[key] = ["true", "false"]
+        elif key not in info["conditions"] and parameter.kind == "enum" and parameter.enum is not None:
+            values[key] = list(parameter.enum.values)
+    shell, states, truncated = explore_dialog(render, args.max_states, frozenset(lookups) | frozenset(values))
+    variants = local_variants(render, states, values)
     title = re.search(r"<span class='ns-dialog-title'>(.*?) 1</span>", shell)
     name = html.unescape(title.group(1)) if title else path.stem
     writeup_path = path.with_suffix(".md")
@@ -1322,7 +1339,7 @@ def audit(config: Config, args: argparse.Namespace) -> int:
             problems.append(f"{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]")
     source = os.path.relpath(path.resolve(), config.root)
     tables = _feature_tables(config, project, module) if module is not None else []
-    page = audit_page(name, source, shell, states, truncated, writeup, problems, args.theme, tables)
+    page = audit_page(name, source, shell, states, truncated, writeup, problems, args.theme, tables, variants, lookups)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page)

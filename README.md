@@ -258,8 +258,10 @@ one page of every table, with a filter, to audit them in a browser.
 the lookup tables its parameters use (every option at once, without their values), its writeup, and its file's
 `fs check` problems. The page is static, so the dialog's states are rendered ahead of time:
 from its defaults, each choice a click could make (a dropdown option, checkbox, tab, or lookup table level) is
-rendered in turn, choices which show or hide parameters first, up to `--max-states` (200). Clicking swaps between them,
-and hovering a parameter (or by touch, a long press) shows its description, default, and UI hints, as the VS Code
+rendered in turn, choices which show or hide parameters first, up to `--max-states` (200). Clicking swaps between them.
+Choices no condition reads only change their own parameter, so they aren't states: lookup tables (which conditions
+can't read) are drawn from their levels as they're chosen, and enums and checkboxes nothing depends on swap in their
+own pre-rendered variants, so any combination of them works, whatever the limit. Hovering a parameter (or by touch, a long press) shows its description, default, and UI hints, as the VS Code
 preview does. Values typed into
 fields aren't rendered (`fs ui --set` renders any state).
 

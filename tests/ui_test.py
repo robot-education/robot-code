@@ -517,3 +517,16 @@ def test_tooltips(repo):
         "flip": {"name": "Flip", "default": "false", "hints": "OPPOSITE_DIRECTION"},
         "hasSecond": {"name": "Second", "default": "true"},
     }
+
+
+def test_render_reports_what_conditions_read():
+    from fs_cli.config import load_config
+    from fs_cli.cli import _project
+    from fs_cli.ui import render_feature
+
+    config = load_config(pathlib.Path(__file__).parent.parent)
+    info = {}
+    render_feature(_project(config), config.std_dir, config.code_dir / "lighten" / "robotLighten.fs", None, {}, info=info)
+    # Every condition's parameters, even those of branches not shown
+    assert info["conditions"] == {"endType", "filletCorners", "ignoreFaces", "overrideRibThickness"}
+    assert info["parameters"]["excludeConstruction"].kind == "boolean"

@@ -511,10 +511,12 @@ def load_declarations(
 
 
 class Definition:
-    """The `definition` map: each parameter's current value."""
+    """The `definition` map (or an array item's): each parameter's current value. `prefix` is what its parameters'
+    keys start with (see Parameter.key)."""
 
-    def __init__(self, values: dict[str, Any]) -> None:
+    def __init__(self, values: dict[str, Any], prefix: str = "") -> None:
         self.values = values
+        self.prefix = prefix
 
 
 UNKNOWN = object()
@@ -658,6 +660,32 @@ class Evaluator:
         inner = dict(zip(predicate.parameters, (self.value(a, scope) for a in arguments)))
         return self.statements_hold(predicate.body, inner)
 
+    def reads(self, node: Node, scope: dict[str, Any], seen: frozenset[str] = frozenset()) -> set[str]:
+        """The keys of the parameters an expression reads, wherever they're read (not only where it's evaluated, as
+        `&&` and `||` stop early), through the predicates it calls."""
+        found: set[str] = set()
+
+        def visit(value: Any) -> None:
+            if isinstance(value, Node):
+                if value.kind in ("member", "index"):
+                    target = self.value(value.args[0], scope)
+                    name = value.args[1] if value.kind == "member" else self.value(value.args[1], scope)
+                    if isinstance(target, Definition) and isinstance(name, str):
+                        found.add(target.prefix + name)
+                if value.kind == "call" and value.args[0].kind == "name" and value.args[0].args[0] not in seen:
+                    predicate = self.declarations.predicates.get(value.args[0].args[0])
+                    if predicate is not None:
+                        inner = dict(zip(predicate.parameters, (self.value(a, scope) for a in value.args[1])))
+                        found.update(self.reads(predicate.body, inner, seen | {predicate.name}))
+                for arg in value.args:
+                    visit(arg)
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    visit(item)
+
+        visit(node)
+        return found
+
     def statements_hold(self, node: Node, scope: dict[str, Any]) -> Any:
         if node.kind == "block":
             result: Any = True
@@ -763,6 +791,9 @@ class DialogBuilder:
         self.all_keys: set[str] = set()
         # Whether to walk both branches of every if, to declare every parameter (see build)
         self.every_branch = False
+        # The keys of the parameters any condition reads, and every parameter declared, by key
+        self.condition_keys: set[str] = set()
+        self.parameters: dict[str, Parameter] = {}
 
     def build(self, feature: Feature) -> list:
         if feature.defaults is not None:
@@ -806,10 +837,12 @@ class DialogBuilder:
             else:
                 self.walk(inner, scope, items, annotation)
         elif kind == "if" and self.every_branch:
+            self.condition_keys |= self.evaluator.reads(node.args[0], scope)
             for branch in node.args[1:]:
                 if branch is not None:
                     self.walk(branch, scope, [], {})
         elif kind == "if":
+            self.condition_keys |= self.evaluator.reads(node.args[0], scope)
             condition = self.evaluator.value(node.args[0], scope)
             if condition is UNKNOWN:
                 self.warnings.append(f"Couldn't decide if ({describe(node.args[0])}); showing its first branch.")
@@ -849,8 +882,8 @@ class DialogBuilder:
         """Walks an array parameter's loop once for each item, as each item's parameters are declared in it."""
         outer = self.definition, self.declared, self.prefix
         for index in range(array.count):
-            self.definition, self.declared = Definition({}), set()
             self.prefix = f"{array.key}.{index}."
+            self.definition, self.declared = Definition({}, self.prefix), set()
             children: list = []
             self.walk(body, {**scope, variable: self.definition}, children, {})
             array.items.append(children)
@@ -899,6 +932,7 @@ class DialogBuilder:
         key = self.prefix + name
         self.keys.add(key)
         parameter = Parameter(name, "other", annotation, key=key)
+        self.parameters[key] = parameter
         # An array item's parameters take only their annotations' defaults
         feature_default = self.feature_defaults.get(name) if not self.prefix else None
         enum = self.declarations.enums.get(type_name)
@@ -1594,11 +1628,14 @@ def render_feature(
     overrides: dict[str, str],
     theme: str = "dark",
     sources: dict[pathlib.Path, str] | None = None,
+    info: dict | None = None,
 ) -> tuple[str, list[str]]:
     """Returns the HTML of a feature's dialog (in Onshape's `dark` or `light` theme), and any warnings.
 
     Args:
         sources: Unsaved contents of files, by resolved path.
+        info: Filled in with `conditions`, the keys of the parameters any condition reads (wherever it is), and
+            `parameters`, every parameter declared (shown or not), by key.
     """
     declarations = load_declarations(project, std_dir, path, sources)
     own = parse_file(path.resolve(), (sources or {}).get(path.resolve()))
@@ -1616,6 +1653,9 @@ def render_feature(
     feature = declarations.features.get(feature_name, own.features[feature_name])
     builder = DialogBuilder(declarations, overrides)
     items = builder.build(feature)
+    if info is not None:
+        info["conditions"] = builder.condition_keys
+        info["parameters"] = builder.parameters
     annotation = builder.evaluator.value(feature.annotation, {}) if feature.annotation else {}
     title = annotation.get("Feature Type Name", feature_name) if isinstance(annotation, dict) else feature_name
     # As Onshape names a new feature

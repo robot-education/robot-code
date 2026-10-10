@@ -17,7 +17,8 @@ the user's say-so).
 4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html`, then send it with SendUserFile (`display: "render"`).
    It has the dialog, which works: its dropdowns, checkboxes, tabs, and lookup table levels show what each choice
    shows (a long press shows a parameter's tooltip by touch), from states rendered ahead of time (`--max-states`, 200
-   by default; past that, choices say they aren't rendered). Typed values aren't rendered;
+   by default; past that, choices say they aren't rendered). Lookup tables, and enums and checkboxes no condition
+   reads, aren't states: the page draws them as they're chosen, so every combination works. Typed values aren't rendered;
    `uv run fs ui <file> --set name=value` renders any state as a PNG.
 
 The page also lists every option of each lookup table the feature's parameters use (a row per path through its

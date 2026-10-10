@@ -5,7 +5,7 @@ import json
 import re
 
 from fs_cli import cli
-from fs_cli.audit import audit_page, explore_dialog, render_markdown
+from fs_cli.audit import audit_page, explore_dialog, local_variants, lookup_tree, parameter_element, render_markdown
 
 
 def fake_render(settings: dict[str, str]) -> str:
@@ -38,6 +38,38 @@ def test_explore_dialog_stops_at_its_limit():
     assert truncated and len(states) == 2
 
 
+def test_local_choices_arent_states():
+    # Extra changes nothing else, so its choices aren't explored, but its variants are drawn
+    _, states, _ = explore_dialog(fake_render, 10, frozenset(["extra"]))
+    assert [state["settings"] for state in states] == [{}, {"mode": "B"}]
+
+
+def test_local_variants():
+    def render(settings):
+        on = settings.get("flag", "false")
+        other = "false" if on == "true" else "true"
+        return (
+            "<os-parameter-list-view><osx-boolean-parameter><label data-set='flag' data-value='" + other + "'>" + on +
+            "</label></osx-boolean-parameter></os-parameter-list-view>"
+        )
+
+    _, states, _ = explore_dialog(render, 10, frozenset(["flag"]))
+    variants = local_variants(render, states, {"flag": ["true", "false"]})
+    assert variants["flag"]["true"] == "<osx-boolean-parameter><label data-set='flag' data-value='false'>true</label></osx-boolean-parameter>"
+    assert parameter_element(states[0]["html"], "other") is None
+
+
+def test_lookup_tree_drops_values():
+    table = {"name": "motor", "displayName": "Motor", "default": "B", "entries": {
+        "A": {"name": "v", "displayName": "Version", "default": "1", "entries": {"1": {"x": 1}, "2": {"x": 2}}},
+        "B": {"x": 3},
+    }}
+    assert lookup_tree(table) == {"label": "Motor", "default": "B", "entries": {
+        "A": {"label": "Version", "default": "1", "entries": {"1": None, "2": None}},
+        "B": None,
+    }}
+
+
 def test_audit_page_shares_parameter_groups():
     shell, states, truncated = explore_dialog(fake_render, 10)
     page = audit_page("Fake", "fake.fs", shell, states, truncated, "# Fake\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n", ["1:1: warning: x [y]"], "dark")
@@ -61,6 +93,11 @@ def test_command(tmp_path, capsys):
     assert "<h1>Robot lighten</h1>" in page
     # The writeup, rendered
     assert "<h2>Strings</h2>" in page
+    # Exclude construction lines changes nothing else, so it's drawn as it's chosen
+    frame = html.unescape(re.search(r'srcdoc="(.*?)"', page, re.S).group(1))
+    data = json.loads(re.search(r"id='fs-states'>(.*?)</script>", frame, re.S).group(1).replace("<\\/", "</"))
+    assert set(data["variants"]["excludeConstruction"]) == {"true", "false"}
+    assert not any("excludeConstruction" in setting for state in data["states"] for setting in state["settings"])
 
 
 def test_command_shows_lookup_tables(tmp_path, capsys):
@@ -73,3 +110,7 @@ def test_command_shows_lookup_tables(tmp_path, capsys):
     assert "32 tpi (UNF)" in page and "id='table-filter'" in page
     # Options only: no values
     assert "0.1590 in" not in page and "10 options" in page
+    # Its lookup tables are drawn as they're chosen, not pre-rendered
+    frame = html.unescape(re.search(r'srcdoc="(.*?)"', page, re.S).group(1))
+    data = json.loads(re.search(r"id='fs-states'>(.*?)</script>", frame, re.S).group(1).replace("<\\/", "</"))
+    assert data["lookups"] and all(lookup["tree"]["entries"] for lookup in data["lookups"].values())
