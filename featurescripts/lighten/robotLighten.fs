@@ -6,6 +6,7 @@ RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "f76010d67
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 const RIB_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
+const RIB_OVERRIDE_BOUNDS = { (meter) : [1e-5, 0.00635, 500], (inch) : 0.25, (millimeter) : 6 } as LengthBoundSpec;
 const DEPTH_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 // A 1/8 in. router bit's
 const FILLET_RADIUS_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 1.5 } as LengthBoundSpec;
@@ -19,17 +20,6 @@ export enum LightenEndType
     THROUGH_ALL,
     annotation { "Name" : "Blind" }
     BLIND
-}
-
-/**
- * Whether ribs are all one thickness (Simple), or in groups of their own thicknesses (Complex).
- */
-export enum RibMode
-{
-    annotation { "Name" : "Simple" }
-    SIMPLE,
-    annotation { "Name" : "Complex" }
-    COMPLEX
 }
 
 predicate isBlind(definition is map)
@@ -51,9 +41,6 @@ annotation { "Feature Type Name" : "Robot lighten",
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Rib mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
-        definition.ribMode is RibMode;
-
         annotation { "Name" : "Face to lighten", "MaxNumberOfPicks" : 1,
                     "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
         definition.face is Query;
@@ -71,26 +58,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             }
         }
 
-        if (definition.ribMode == RibMode.SIMPLE)
-        {
-            annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
-            definition.ribEdges is Query;
-        }
-        else
-        {
-            // Selecting ribs adds a group of them (or adds them to the group being edited)
-            annotation { "Name" : "Ribs", "Item name" : "ribs", "Item label template" : "#groupThickness ribs", "Driven query" : "groupEdges" }
-            definition.ribGroups is array;
-
-            for (var group in definition.ribGroups)
-            {
-                annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
-                group.groupEdges is Query;
-
-                annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(group.groupThickness, RIB_BOUNDS);
-            }
-        }
+        annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
+        definition.ribEdges is Query;
 
         annotation { "Name" : "Exclude construction lines", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.excludeConstruction is boolean;
@@ -98,11 +67,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.wallThickness, WALL_BOUNDS);
 
-        if (definition.ribMode == RibMode.SIMPLE)
-        {
-            annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isLength(definition.ribThickness, RIB_BOUNDS);
-        }
+        annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        isLength(definition.ribThickness, RIB_BOUNDS);
 
         annotation { "Name" : "Fillet corners", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.filletCorners is boolean;
@@ -111,6 +77,28 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             annotation { "Name" : "Fillet radius", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             isLength(definition.filletRadius, FILLET_RADIUS_BOUNDS);
+        }
+
+        annotation { "Name" : "Override rib thickness" }
+        definition.overrideRibThickness is boolean;
+
+        annotation { "Group Name" : "Override rib thickness", "Driving Parameter" : "overrideRibThickness", "Collapsed By Default" : false }
+        {
+            if (definition.overrideRibThickness)
+            {
+                // Later overrides take precedence over earlier ones (and all of them over Rib thickness)
+                annotation { "Name" : "Rib overrides", "Item name" : "override", "Item label template" : "#overrideThickness ribs" }
+                definition.ribOverrides is array;
+
+                for (var ribOverride in definition.ribOverrides)
+                {
+                    annotation { "Name" : "Ribs", "Filter" : EntityType.EDGE && SketchObject.YES }
+                    ribOverride.overrideEdges is Query;
+
+                    annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(ribOverride.overrideThickness, RIB_OVERRIDE_BOUNDS);
+                }
+            }
         }
 
         annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
@@ -342,7 +330,6 @@ export function robotLightenManipulatorChange(context is Context, definition is 
 export function robotLightenEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    definition = syncRibModes(oldDefinition, definition);
     if (specifiedParameters.face ?? false)
     {
         return definition;
@@ -362,31 +349,6 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
         {
             definition.face = faces;
         }
-    }
-    return definition;
-}
-
-/**
- * Carries the ribs over when Rib mode changes. Simple's ribs are Complex's first group: to Complex, they become its
- * first group (or replace its ribs and thickness, keeping later groups); to Simple, its ribs become all of Complex's
- * (so none are lost; switching back, later groups still take precedence), at the first group's thickness.
- */
-function syncRibModes(oldDefinition is map, definition is map) returns map
-{
-    if (oldDefinition.ribMode == undefined || oldDefinition.ribMode == definition.ribMode)
-    {
-        return definition;
-    }
-    var groups = definition.ribGroups ?? [];
-    if (definition.ribMode == RibMode.COMPLEX)
-    {
-        const first = { "groupEdges" : definition.ribEdges, "groupThickness" : definition.ribThickness };
-        definition.ribGroups = groups == [] ? [first] : concatenateArrays([[mergeMaps(groups[0], first)], subArray(groups, 1)]);
-    }
-    else if (groups != [])
-    {
-        definition.ribEdges = qUnion(mapArray(groups, group => group.groupEdges));
-        definition.ribThickness = groups[0].groupThickness;
     }
     return definition;
 }
@@ -452,10 +414,10 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
 }
 
 /**
- * The ribs, in groups of one thickness: in Simple mode, one; in Complex, each of Ribs, less what a later one has,
- * so a later group (like a few ribs given another thickness) takes precedence over an earlier one (like a whole
- * sketch). Each group's edges are its sketch edges (and their construction edges, unless they're excluded); groups
- * left with none are left out.
+ * The ribs, in groups of one thickness: Ribs to use, at Rib thickness, then with Override rib thickness, each of Rib
+ * overrides; each less what a later one has, so later ones take precedence (a whole sketch, then a few of its ribs at
+ * another thickness). An override's ribs needn't be among Ribs to use. Each group's edges are its sketch edges (and
+ * their construction edges, unless they're excluded); groups left with none are left out.
  *
  * @returns {array} : Each group, as a map of `edges` (a query), `thickness`, and `parameters` (its parameters, for
  *          errors about its ribs).
@@ -463,21 +425,21 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
 function getRibGroups(context is Context, definition is map) returns array
 {
     const groups = ribGroups(definition);
+    if (isQueryEmpty(context, groups[0].selected))
+    {
+        throw regenError("Select ribs to use.", ["ribEdges"]);
+    }
     var found = [];
     for (var i, group in groups)
     {
-        if (definition.ribMode == RibMode.COMPLEX && isQueryEmpty(context, group.selected))
+        if (i > 0 && isQueryEmpty(context, group.selected))
         {
-            throw regenError("Select ribs to use.", [faultyArrayParameterId("ribGroups", i, "groupEdges")]);
+            throw regenError("Select ribs to override.", [faultyArrayParameterId("ribOverrides", i - 1, "overrideEdges")]);
         }
         if (!isQueryEmpty(context, group.edges))
         {
             found = append(found, group);
         }
-    }
-    if (found == [])
-    {
-        throw regenError("Select ribs to use.", definition.ribMode == RibMode.SIMPLE ? ["ribEdges"] : ["ribGroups"]);
     }
     return found;
 }
@@ -488,17 +450,14 @@ function getRibGroups(context is Context, definition is map) returns array
  */
 function ribGroups(definition is map) returns array
 {
-    var groups = [];
-    if (definition.ribMode == RibMode.SIMPLE)
+    var groups = [{ "edges" : definition.ribEdges, "thickness" : definition.ribThickness, "parameters" : ["ribEdges", "ribThickness"] }];
+    if (definition.overrideRibThickness)
     {
-        groups = [{ "edges" : definition.ribEdges, "thickness" : definition.ribThickness, "parameters" : ["ribEdges", "ribThickness"] }];
-    }
-    else
-    {
-        for (var i, group in definition.ribGroups)
+        for (var i, ribOverride in definition.ribOverrides)
         {
-            groups = append(groups, { "edges" : group.groupEdges, "thickness" : group.groupThickness,
-                        "parameters" : [faultyArrayParameterId("ribGroups", i, "groupEdges"), faultyArrayParameterId("ribGroups", i, "groupThickness")] });
+            groups = append(groups, { "edges" : ribOverride.overrideEdges, "thickness" : ribOverride.overrideThickness,
+                        "parameters" : [faultyArrayParameterId("ribOverrides", i, "overrideEdges"),
+                                faultyArrayParameterId("ribOverrides", i, "overrideThickness")] });
         }
     }
     var later = qNothing();
@@ -521,7 +480,7 @@ function ribGroups(definition is map) returns array
  */
 function ribParameters(definition is map) returns array
 {
-    return definition.ribMode == RibMode.SIMPLE ? ["ribEdges", "ribThickness"] : ["ribGroups"];
+    return definition.overrideRibThickness ? ["ribEdges", "ribThickness", "ribOverrides"] : ["ribEdges", "ribThickness"];
 }
 
 /**

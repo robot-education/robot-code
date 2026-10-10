@@ -26,11 +26,10 @@ Unreleased.
 No parameters have descriptions, and none are hidden. Editing logic sets the shown Face to lighten (see Execution
 order).
 
-Rib mode (the tabs at the top) chooses how ribs are given: Simple, one Ribs to use and Rib thickness; or Complex, Ribs,
-an array of groups (labeled like "0.5 in ribs", expanded), each its own Ribs to use (`groupEdges`) and Rib thickness
-(`groupThickness`), named apart from Simple's because Onshape names array items' parameters with the rest. Ribs is
-driven by its groups' Ribs to use (`"Driven query"`): selecting ribs adds a group of them. Exclude construction lines
-applies to every group. Editing logic carries the ribs over when Rib mode changes (see Execution order).
+Override rib thickness (near the bottom) drives a group holding Rib overrides, an array (Add override; labeled like
+"0.25 in ribs") of ribs at other thicknesses, each its own Ribs (`overrideEdges`) and Rib thickness
+(`overrideThickness`, 0.25 in. by default), named apart from Ribs to use and Rib thickness because Onshape names array
+items' parameters with the rest. Exclude construction lines applies to them too.
 
 ### Errors, warnings, and info
 
@@ -41,33 +40,32 @@ it's tried alone (see Error handling).
 | --- | --- | --- | --- |
 | Select the face to lighten. | error | no face to lighten | `face` |
 | Select faces to ignore. | error | Ignore faces is checked, with none selected | `ignoredFaces` |
-| Select ribs to use. | error | no ribs (or only construction ones, excluded); or in Complex mode, a group without | `ribEdges` (Complex: `ribGroups`, or the group's Ribs to use) |
-| The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, `ribThickness` (Complex: `ribGroups`), those ribs |
-| The face to lighten must be parallel to the ribs. | error | it isn't | `face`, `ribEdges`, `ribThickness` (Complex: `ribGroups`), the face |
+| Select ribs to use. | error | no ribs (or only construction ones, excluded) | `ribEdges` |
+| Select ribs to override. | error | with Override rib thickness, an override without ribs | its Ribs |
+| The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), those ribs |
+| The face to lighten must be parallel to the ribs. | error | it isn't | `face`, `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the face |
 | Failed to extrude the pocket. | error | extruding the face into its part fails | `face`, `depth`, the face |
 | Failed to extrude regions to ignore. | error | extruding the sketch regions to ignore fails | `ignoredFaces`, the regions |
 | Failed to cut regions to ignore from pockets. | error | cutting them from the pocket fails | `ignoredFaces`, the regions |
 | Failed to extend pockets past their ends. | error | offsetting the pocket's ends (and sides along ignored faces) out fails | `wallThickness`, those faces |
 | Failed to round walls' inside corners. | error | the hair fillet of the pocket's concave edges fails | `wallThickness`, the edges |
 | Failed to make walls. | error | hollowing (or enclosing) the pocket fails | `wallThickness`, the pocket |
-| Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | its group's Ribs to use and Rib thickness, its edge |
-| Failed to thicken rib. | error | thickening its sheet fails | its group's Ribs to use and Rib thickness, its edge |
-| Failed to cut ribs. | error | cutting them from the pockets fails | `ribEdges`, `ribThickness` (Complex: `ribGroups`), the ribs which fail alone |
+| Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | Ribs to use and Rib thickness, or its override's, its edge |
+| Failed to thicken rib. | error | thickening its sheet fails | Ribs to use and Rib thickness, or its override's, its edge |
+| Failed to cut ribs. | error | cutting them from the pockets fails | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the ribs which fail alone |
 | Failed to round pocket corners. | error | the hair fillet of the pockets' corners fails | `filletRadius`, the corners |
 | Failed to grow pockets back to round their corners. | error | offsetting the pockets' sides fails | `filletRadius`, the pockets which fail alone |
-| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `filletRadius`, `ribEdges`, `ribThickness` (Complex: `ribGroups`) |
+| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `filletRadius`, `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness) |
 | Failed to cut pockets. | error | cutting them from the part fails | `face`, the pockets which fail alone |
-| Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, `ribThickness` (Complex: `ribGroups`), the loose parts |
+| Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the loose parts |
 | Lightened the part by `<percent>`%. | info | the pockets are cut, and nothing's cut free (the warning above would be replaced) | |
 
 ## How it works
 
 ### Execution order
 
-1. **Editing logic** (`robotLightenEditLogic`): when Rib mode changes, `syncRibModes` carries the ribs over: Simple's
-   are Complex's first group (to Complex, they become it, or replace its ribs and thickness, keeping later groups); to
-   Simple, its ribs become every group's, at the first group's thickness, so none are lost. Then, unless Face to
-   lighten has been set, and once there are ribs, `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in
+1. **Editing logic** (`robotLightenEditLogic`): unless Face to lighten has been set, and once there are ribs,
+   `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in
    the plane, overlap the ribs'; if there's just one, it's the face to lighten. It only evaluates: building anything in
    editing logic (a trial feature, between `startFeature` and `abortFeature`) can crash the Part Studio.
 2. **Body**:
@@ -92,16 +90,16 @@ it's tried alone (see Error handling).
       along every other side: around holes of any size, and with inside corners rounded to the wall thickness (and the
       hair), as a wall of that thickness has.
 
-   5. The ribs (`buildRibs`), in groups of one thickness (`getRibGroups`): in Simple mode, one; in Complex, each of
-      Ribs, less the edges any later one has, so later groups take precedence (a whole sketch, then a few of its ribs at
-      another thickness), and groups left with none are left out. Each rib is half its group's thickness to each side
-      (and, with Fillet corners, the fillet radius), along the sketch's normal through the pockets and the ribs' edges,
-      and 5% past them (`bandExtent`). Each is made on its own (edges extruded together make one sheet, creased where
-      they meet, which can't be thickened): its edge is extruded as a sheet (a circle's is a tube), and thickened to
-      each side; but an arc or circle whose radius is hardly more than that (up to 5% more) can't be thickened toward
-      its center, so its rib is a cylinder around its center (`fCylinder`), that much bigger than it, instead (a little
-      more than its rib, near its center). Arcs of one circle share a cylinder. They're cut from the pockets, which they
-      split further.
+   5. The ribs (`buildRibs`), in groups of one thickness (`getRibGroups`): Ribs to use, then with Override rib
+      thickness, each of Rib overrides, each less the edges any later one has, so later ones take precedence (a whole
+      sketch, then a few of its ribs at another thickness; an override's ribs needn't be among Ribs to use), and groups
+      left with none are left out. Each rib is half its group's thickness to each side (and, with Fillet corners, the
+      fillet radius), along the sketch's normal through the pockets and the ribs' edges, and 5% past them
+      (`bandExtent`). Each is made on its own (edges extruded together make one sheet, creased where they meet, which
+      can't be thickened): its edge is extruded as a sheet (a circle's is a tube), and thickened to each side; but an
+      arc or circle whose radius is hardly more than that (up to 5% more) can't be thickened toward its center, so its
+      rib is a cylinder around its center (`fCylinder`), that much bigger than it, instead (a little more than its rib,
+      near its center). Arcs of one circle share a cylinder. They're cut from the pockets, which they split further.
    6. With Fillet corners, `roundPockets` rounds them, as Lighten does: their convex edges between sides (their
       corners) are filleted by a hair (std's boolean tolerance, 0.01 mm), and their sides offset out by the radius,
       growing them back from the thicker walls and ribs, which grows those fillets to the radius (and the hair). A

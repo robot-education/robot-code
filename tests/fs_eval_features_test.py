@@ -38,47 +38,32 @@ LIGHTEN = "lighten/robotLighten.fs"
 SKETCH, FEW = "qEverything(EntityType.EDGE)", "qNthElement(qEverything(EntityType.EDGE), 0)"
 
 
-def test_later_rib_groups_take_precedence():
-    # A whole sketch at 1 in., then a few of its ribs at 2 in.: the sketch's group loses the few
-    definition = (
-        '{ "ribMode" : RibMode.COMPLEX, "excludeConstruction" : false, "ribGroups" : ['
-        f'{{ "groupEdges" : {SKETCH}, "groupThickness" : 1 * inch }}, {{ "groupEdges" : {FEW}, "groupThickness" : 2 * inch }}] }}'
+def lighten_definition(override: bool, excluded: bool = False) -> str:
+    return (
+        f'{{ "excludeConstruction" : {str(excluded).lower()}, "ribEdges" : {SKETCH}, "ribThickness" : 1 * inch, '
+        f'"overrideRibThickness" : {str(override).lower()}, '
+        f'"ribOverrides" : [{{ "overrideEdges" : {FEW}, "overrideThickness" : 2 * inch }}] }}'
     )
-    groups = f"ribGroups({definition})"
+
+
+def test_rib_overrides_take_precedence():
+    # A whole sketch at 1 in., then a few of its ribs at 2 in.: the sketch's group loses the few
+    groups = f"ribGroups({lighten_definition(True)})"
     sketch, few = f"qEntityFilter({SKETCH}, EntityType.EDGE)", f"qEntityFilter({FEW}, EntityType.EDGE)"
+    assert evaluate(f"size({groups})", LIGHTEN) == 2
     assert evaluate(f"{groups}[0].edges == qSubtraction({sketch}, qUnion([qNothing(), {few}]))", LIGHTEN) is True
     assert evaluate(f"{groups}[1].edges == qSubtraction({few}, qNothing())", LIGHTEN) is True
     assert to_python(evaluate(f"{groups}[1].thickness / inch", LIGHTEN)) == pytest.approx(2)
-    assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == ["ribGroups[0].groupEdges", "ribGroups[0].groupThickness"]
+    assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == ["ribEdges", "ribThickness"]
+    assert to_python(evaluate(f"{groups}[1].parameters", LIGHTEN)) == [
+        "ribOverrides[0].overrideEdges",
+        "ribOverrides[0].overrideThickness",
+    ]
 
 
-def test_simple_ribs_are_one_group_less_construction():
-    definition = f'{{ "ribMode" : RibMode.SIMPLE, "excludeConstruction" : true, "ribEdges" : {SKETCH}, "ribThickness" : 1 * inch }}'
-    groups = f"ribGroups({definition})"
+def test_ribs_without_overrides_are_one_group_less_construction():
+    groups = f"ribGroups({lighten_definition(False, excluded=True)})"
     assert evaluate(f"size({groups})", LIGHTEN) == 1
     assert evaluate(
         f"{groups}[0].selected == qConstructionFilter(qEntityFilter({SKETCH}, EntityType.EDGE), ConstructionObject.NO)", LIGHTEN
     ) is True
-    assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == ["ribEdges", "ribThickness"]
-
-
-def test_switching_rib_modes_keeps_the_ribs():
-    simple = f'{{ "ribMode" : RibMode.SIMPLE, "ribEdges" : {SKETCH}, "ribThickness" : 1 * inch, "ribGroups" : [] }}'
-    complex = f'mergeMaps({simple}, {{ "ribMode" : RibMode.COMPLEX }})'
-    # To Complex: Simple's ribs are the first group
-    synced = f"syncRibModes({simple}, {complex})"
-    assert evaluate(f"size({synced}.ribGroups)", LIGHTEN) == 1
-    assert evaluate(f"{synced}.ribGroups[0].groupEdges == {SKETCH}", LIGHTEN) is True
-    assert to_python(evaluate(f"{synced}.ribGroups[0].groupThickness / inch", LIGHTEN)) == pytest.approx(1)
-    # Later groups are kept
-    groups = f'[{{ "groupEdges" : qNothing(), "groupThickness" : 2 * inch }}, {{ "groupEdges" : {FEW}, "groupThickness" : 3 * inch }}]'
-    with_groups = f'mergeMaps({complex}, {{ "ribGroups" : {groups} }})'
-    synced = f'syncRibModes({simple}, {with_groups})'
-    assert evaluate(f"size({synced}.ribGroups)", LIGHTEN) == 2
-    assert evaluate(f"{synced}.ribGroups[0].groupEdges == {SKETCH} && {synced}.ribGroups[1].groupEdges == {FEW}", LIGHTEN) is True
-    # To Simple: every group's ribs, at the first's thickness
-    back = f'syncRibModes({with_groups}, mergeMaps({with_groups}, {{ "ribMode" : RibMode.SIMPLE }}))'
-    assert evaluate(f"{back}.ribEdges == qUnion([qNothing(), {FEW}])", LIGHTEN) is True
-    assert to_python(evaluate(f"{back}.ribThickness / inch", LIGHTEN)) == pytest.approx(2)
-    # Without a change of mode, nothing changes
-    assert evaluate(f"syncRibModes({with_groups}, {with_groups}) == {with_groups}", LIGHTEN) is True
