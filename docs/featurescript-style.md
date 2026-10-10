@@ -275,6 +275,15 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   made (until the feature's rolled back, which leaves the display). Reconstruct only what's gone: when earlier steps
   consumed or changed what's to be shown, std rebuilds it under another id, shows it as error entities, and deletes
   it: `processNewBodyIfNeeded` takes a `reconstructOp(errorId)` for this, which extrude, revolve, and the rest pass.
+- **What rolls back when something throws**: a feature, all of it, when it fails: `defineFeature` runs the body in a
+  `try`, and its `catch` calls `@abortFeature` (std's `feature.fs`), so nothing a failed feature did is left. A failed
+  operation changes nothing (above). But a `try` itself rolls nothing back: FsDoc's "Exceptions"
+  (https://cad.onshape.com/FsDoc/exceptions.html) says only that a `try` block is aborted when something's thrown, and
+  operations in it before the one which threw stay done, so the `catch` (and any retry) sees the context as it was when
+  it threw, not as it was when the `try` began. Std rolls back part of a feature itself when it needs to:
+  `startFeature` before, and `abortFeature` after (in a `catch`, too, as `sheetMetalUtils.fs`'s temporary fillet does,
+  "making sure the operation is rolled back"), or `endFeature` to keep it (`sketch.fs`). `tryRollbackProbe.fs` (in
+  `featurescripts/probes/`) checks this in Onshape.
 - **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes (like the
   faces a shell opens) finds nothing after it. Show something that lasts instead, or (only if nothing else finds them)
   evaluate it before that step (see Queries).
