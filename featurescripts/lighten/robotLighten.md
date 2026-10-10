@@ -36,11 +36,6 @@ Override wall thickness (below it) drives a group holding Wall overrides, an arr
 hole), each its own Faces (`overrideFaces`) and Wall thickness (`overrideWall`, 0.0625 in. by default). Later
 overrides take precedence over earlier ones, and all of them over Faces to ignore.
 
-### Variables
-
-The body adds the ids of the Quick rib features its ribs come from to `_quickRibsUsed` (`markQuickRibsUsed`), so a new
-Robot lighten's editing logic leaves them out (see `../rib/quickRib.md`).
-
 ### Errors, warnings, and info
 
 Errors show what's been built so far in blue, while the dialog's open (`showBuiltOnFailure`, with std's
@@ -81,13 +76,10 @@ given, narrowed down (for some) to what fails when it's tried alone (see Error h
 
 ### Execution order
 
-1. **Editing logic** (`robotLightenEditLogic`): when it's created, unless Ribs to use has been set, Ribs to use is the
-   ribs of the Quick rib features (`selectQuickRibs`: those in `_quickRibs` but not `_quickRibsUsed`, and not hidden),
-   by their ids (`quickRibEdges`), as selecting their sketches would. Then unless Face to lighten has been set, and once
-   there are ribs, `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose
-   bounding boxes, in the plane, overlap the ribs'; if there's just one, it's the face to lighten. It only evaluates:
-   building anything in editing logic (a trial feature, between `startFeature` and `abortFeature`) can crash the Part
-   Studio.
+1. **Editing logic** (`robotLightenEditLogic`): unless Face to lighten has been set, and once there are ribs,
+   `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in
+   the plane, overlap the ribs'; if there's just one, it's the face to lighten. It only evaluates: building anything in
+   editing logic (a trial feature, between `startFeature` and `abortFeature`) can crash the Part Studio.
 2. **Body**:
    1. The face to lighten (`getFace`), its plane (whose normal points out of its part), and its part; the ribs
       (`getRibGroups`, less construction ones) and their plane (`ribPlane`: the first's sketch plane, which the rest's

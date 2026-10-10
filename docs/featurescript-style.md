@@ -345,11 +345,10 @@ give it a type (`export type Stock typecheck canBeStock;`), document its fields 
 
 ## Features finding each other
 
-To find what an earlier feature made (as Robot lighten finds Quick rib's sketches), have it add its id to a variable
-(`setVariable(context, "_quickRibs", append(getVariable(context, "_quickRibs", []), id))`), and query what it made by
-its id: `qCreatedBy(featureId + "ribSketch", EntityType.EDGE)`, as selecting the feature would. Variables whose names
-start with an underscore aren't shown in the Variable table. Prefer this to attributes for finding a feature's output:
-it selects the feature, not entities which change when it does.
+Don't have a feature select what an earlier one made, as Robot lighten once selected Quick rib's sketches (by feature
+ids kept in a variable, with `qCreatedBy(featureId + "ribSketch", EntityType.EDGE)`): it couldn't be done robustly, so
+leave selecting to the user, and fill in what follows from their selections in editing logic instead (as Quick rib's
+Face to use is filled in from its first point).
 
 ## Ids
 

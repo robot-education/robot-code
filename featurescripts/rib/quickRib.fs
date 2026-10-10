@@ -4,16 +4,6 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 export import(path : "onshape/std/manipulator.fs", version : "2960.0");
 
-/**
- * The variable listing the ids of the Quick rib features so far, which Robot lighten finds their sketches by (see
- * `quickRibEdges`). Its name starts with an underscore, so it isn't shown in the Variable table.
- */
-export const QUICK_RIBS_VARIABLE = "_quickRibs";
-/**
- * The variable listing the ids of the Quick rib features some Robot lighten uses, so a new one leaves them out.
- */
-export const QUICK_RIBS_USED_VARIABLE = "_quickRibsUsed";
-
 const CIRCLE_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
 const LOCATION_BOUNDS = { (unitless) : [0, 0.5, 1] } as RealBoundSpec;
 const EDGE_RIB_MANIPULATOR = "edgeRib";
@@ -31,7 +21,7 @@ export enum EdgeRibEnd
 
 /**
  * Sketches ribs (lines, and circles) between points (circles' and arcs' centers, vertices, and mate connectors), and
- * from points to edges, quickly: for Robot lighten, which finds them itself. Chains run through their points in order
+ * from points to edges, quickly: for Robot lighten's Ribs to use. Chains run through their points in order
  * (closed or not; two points make one rib); hubs have spokes to their hub, and a circle around it if asked; edge ribs
  * run from a point to an edge, meeting it square, or where a manipulator puts it.
  */
@@ -45,7 +35,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
     precondition
     {
         annotation { "Name" : "Face to use", "MaxNumberOfPicks" : 1, "Filter" : EntityType.FACE && GeometryType.PLANE && SketchObject.NO,
-                    "Description" : "Where the ribs are sketched (points are projected onto it). Without one, the first circle's or arc's plane." }
+                    "Description" : "Where the ribs are sketched (points are projected onto it). Filled in from what's chosen first." }
         definition.face is Query;
 
         annotation { "Group Name" : "Chains", "Collapsed By Default" : false }
@@ -182,18 +172,9 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             skCircle(sketch, "circle" ~ i, { "center" : worldToPlane(plane, circle.center), "radius" : circle.radius });
         }
         skSolve(sketch);
-        setVariable(context, QUICK_RIBS_VARIABLE, append(getVariable(context, QUICK_RIBS_VARIABLE, []), id));
 
         addEdgeRibManipulators(context, id, definition);
     });
-
-/**
- * The ribs (edges) of the Quick rib feature `featureId`.
- */
-export function quickRibEdges(featureId is Id) returns Query
-{
-    return qCreatedBy(featureId + "ribSketch", EntityType.EDGE);
-}
 
 /**
  * The points of a selection, in order: a mate connector's origin, a vertex's point, or a circle's or arc's center. What
@@ -295,31 +276,13 @@ export function uniqueSegments(segments is array) returns array
     return unique;
 }
 
-/**
- * Face to use's plane, or without one, the plane of the first circle or arc chosen.
- */
 function getSketchPlane(context is Context, definition is map) returns Plane
 {
-    if (!isQueryEmpty(context, definition.face))
+    if (isQueryEmpty(context, definition.face))
     {
-        return evPlane(context, { "face" : definition.face });
+        throw regenError("Select a face to use.", ["face"]);
     }
-    const curves = qUnion(selections(definition))->qEntityFilter(EntityType.EDGE);
-    if (isQueryEmpty(context, curves))
-    {
-        throw regenError("Select a face to use: none of the ribs' circles or arcs give a plane.", ["face"]);
-    }
-    const coordSystem = evCurveDefinition(context, { "edge" : qNthElement(curves, 0) }).coordSystem;
-    return plane(coordSystem.origin, coordSystem.zAxis);
-}
-
-/**
- * Every point selection: the chains', the hubs' and their spokes', and the edge ribs'.
- */
-function selections(definition is map) returns array
-{
-    return concatenateArrays([mapArray(definition.chains, chain => chain.chainPoints), mapArray(definition.hubs, hub => hub.hub),
-                mapArray(definition.hubs, hub => hub.spokes), mapArray(definition.edgeRibs, edgeRib => edgeRib.ribPoint)]);
+    return evPlane(context, { "face" : definition.face });
 }
 
 /**
@@ -379,12 +342,86 @@ export function edgeRibManipulatorIndex(key is string)
 }
 
 /**
- * When Clear invalid selections is clicked, drops what's invalid (see its description).
+ * When Clear invalid selections is clicked, drops what's invalid (see its description). Fills in Face to use, unless
+ * it's been set: the face under what's chosen first (`faceUnder`).
  */
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    return clickedButton == "clearInvalid" ? clearInvalidSelections(context, definition) : definition;
+    if (clickedButton == "clearInvalid")
+    {
+        definition = clearInvalidSelections(context, definition);
+    }
+    if (!(specifiedParameters.face ?? false) && isQueryEmpty(context, definition.face))
+    {
+        const face = firstFaceUnder(context, definition, hiddenBodies);
+        if (face != undefined)
+        {
+            definition.face = face;
+        }
+    }
+    return definition;
+}
+
+/**
+ * The face under the first selection which has one (see `faceUnder`), in order: the chains', the hubs' and their
+ * spokes', and the edge ribs' points and edges. Undefined if none do.
+ */
+function firstFaceUnder(context is Context, definition is map, hiddenBodies is Query)
+{
+    const selections = concatenateArrays([mapArray(definition.chains, chain => chain.chainPoints), mapArray(definition.hubs, hub => hub.hub),
+                mapArray(definition.hubs, hub => hub.spokes), mapArray(definition.edgeRibs, edgeRib => edgeRib.ribPoint),
+                mapArray(definition.edgeRibs, edgeRib => edgeRib.ribEdge)]);
+    for (var selection in selections)
+    {
+        for (var entity in evaluateQuery(context, selection))
+        {
+            // Editing logic mustn't throw: what isn't there any more is passed over
+            try silent
+            {
+                const face = faceUnder(context, entity, hiddenBodies);
+                if (face != undefined)
+                {
+                    return face;
+                }
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
+ * The planar face (of a part which isn't hidden) in an entity's plane which is nearest its point, or undefined. Its
+ * plane: a sketch entity's sketch plane, a circle's or arc's plane, or a mate connector's XY plane.
+ */
+function faceUnder(context is Context, entity is Query, hiddenBodies is Query)
+{
+    var sketchPlane;
+    if (!isQueryEmpty(context, entity->qBodyType(BodyType.MATE_CONNECTOR)))
+    {
+        const coordSystem = evMateConnector(context, { "mateConnector" : entity });
+        sketchPlane = plane(coordSystem.origin, coordSystem.zAxis);
+    }
+    else if (!isQueryEmpty(context, entity->qSketchFilter(SketchObject.YES)))
+    {
+        sketchPlane = evOwnerSketchPlane(context, { "entity" : entity });
+    }
+    else if (!isQueryEmpty(context, entity->qEntityFilter(EntityType.EDGE)))
+    {
+        const curve = evCurveDefinition(context, { "edge" : entity });
+        if (!(curve is Circle))
+        {
+            return undefined;
+        }
+        sketchPlane = plane(curve.coordSystem.origin, curve.coordSystem.zAxis);
+    }
+    else
+    {
+        return undefined;
+    }
+    const faces = qOwnedByBody(qSubtraction(qAllModifiableSolidBodiesNoMesh(), hiddenBodies), EntityType.FACE)->qGeometry(GeometryType.PLANE);
+    const nearest = evaluateQuery(context, qClosestTo(qCoincidesWithPlane(faces, sketchPlane), pointOf(context, entity)));
+    return nearest == [] ? undefined : nearest[0];
 }
 
 /**

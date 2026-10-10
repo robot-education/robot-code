@@ -2,8 +2,6 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-// Quick rib's sketches, which it finds by their attributes
-import(path : "rib/quickRib.fs", version : "");
 RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "f76010d67ed6821a73cbf7e0");
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
@@ -144,8 +142,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const wallOverrides = getWallOverrides(context, definition, face);
         const ribGroups = getRibGroups(context, definition);
         const ribEdges = qUnion(mapArray(ribGroups, group => group.edges));
-        // The Quick rib features it uses, which a new Robot lighten then leaves out (see `robotLightenEditLogic`)
-        markQuickRibsUsed(context, ribEdges);
         verifyParallel(context, face, facePlane, ribPlane(context, ribEdges, definition), definition);
         // To round the pockets' corners, they're made with walls and ribs this much thicker, then grown back by it (see
         // `roundPockets`)
@@ -454,10 +450,6 @@ export function robotLightenManipulatorChange(context is Context, definition is 
 export function robotLightenEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    if (isCreating && !(specifiedParameters.ribEdges ?? false))
-    {
-        definition = selectQuickRibs(context, definition, hiddenBodies);
-    }
     if (specifiedParameters.face ?? false)
     {
         return definition;
@@ -479,46 +471,6 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
         }
     }
     return definition;
-}
-
-/**
- * Ribs to use, for a new Robot lighten: the ribs of the Quick rib features (`QUICK_RIBS_VARIABLE`) which are shown and
- * no other Robot lighten uses yet (`QUICK_RIBS_USED_VARIABLE`), by their features' ids, as selecting their sketches
- * would.
- */
-function selectQuickRibs(context is Context, definition is map, hiddenBodies is Query) returns map
-{
-    const used = getVariable(context, QUICK_RIBS_USED_VARIABLE, []);
-    const hidden = qOwnedByBody(hiddenBodies, EntityType.EDGE);
-    var edges = [];
-    for (var featureId in getVariable(context, QUICK_RIBS_VARIABLE, []))
-    {
-        if (!isIn(featureId, used) && !isQueryEmpty(context, qSubtraction(quickRibEdges(featureId), hidden)))
-        {
-            edges = append(edges, quickRibEdges(featureId));
-        }
-    }
-    if (edges != [])
-    {
-        definition.ribEdges = qUnion(edges);
-    }
-    return definition;
-}
-
-/**
- * Adds the Quick rib features `ribEdges` come from to `QUICK_RIBS_USED_VARIABLE`.
- */
-function markQuickRibsUsed(context is Context, ribEdges is Query)
-{
-    var used = getVariable(context, QUICK_RIBS_USED_VARIABLE, []);
-    for (var featureId in getVariable(context, QUICK_RIBS_VARIABLE, []))
-    {
-        if (!isIn(featureId, used) && !isQueryEmpty(context, qIntersection([ribEdges, quickRibEdges(featureId)])))
-        {
-            used = append(used, featureId);
-        }
-    }
-    setVariable(context, QUICK_RIBS_USED_VARIABLE, used);
 }
 
 /**
