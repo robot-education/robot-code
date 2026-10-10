@@ -1540,7 +1540,12 @@ class Renderer:
         template = array.annotation.get("Item label template")
         entries = []
         for index, children in enumerate(array.items):
-            values = {child.name: _text(child.value) for child in children if isinstance(child, Parameter)}
+            # As the dialog shows them: an enum by its name
+            values = {
+                child.name: _text(child.enum.values.get(child.value, child.value) if child.enum is not None else child.value)
+                for child in children
+                if isinstance(child, Parameter)
+            }
             label = f"{item_name.capitalize()} {index + 1}"
             if isinstance(template, str):
                 label = re.sub(r"#(\w+)", lambda match: values.get(match[1], match[0]), template)
