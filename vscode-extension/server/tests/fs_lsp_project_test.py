@@ -754,3 +754,81 @@ def test_unknown_annotation_keys(project):
         'Onshape doesn\'t know the annotation key "Driving query", so it does nothing. Did you mean "Driven query"?',
         'Onshape doesn\'t know the annotation key "UIHInt", so it does nothing. Did you mean "UIHint"?',
     ]
+
+
+def test_quick_fixes(project):
+    from fs_lsp.quick_fixes import apply_fixes, quick_fixes
+
+    (project.code_dir / "core" / "unused.fs").write_text(f"FeatureScript 2909;\n{STD}\nexport function nothing() {{}}\n")
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f"FeatureScript 2909;\n{STD}\n"
+        'import(path : "core/unused.fs", version : "");\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Width", "UIHInt" : ["REMEMBER_PREVIOUS_VALUE"] }\n'
+        "        definition.width is boolean;\n"
+        "    }\n    {\n        println(double(1) ~ double(2));\n    });\n"
+    )
+    module = project.module(path)
+    fixes = quick_fixes(project, module, project.check(module))
+    assert sorted(fix.title for fix in fixes) == [
+        'Change to "UIHint"',
+        "Import core/utils.fs",
+        "Import core/utils.fs",
+        "Remove the unused import",
+    ]
+    fixed, count = apply_fixes(module.parsed.source, fixes)
+    # The second use's import is the same fix, so it's applied once
+    assert count == 3
+    assert '"UIHint" : ["REMEMBER_PREVIOUS_VALUE"]' in fixed
+    assert "core/unused.fs" not in fixed
+    assert fixed.count('import(path : "core/utils.fs", version : "");') == 1
+    path.write_text(fixed)
+    module = project.module(path)
+    assert [p.code for p in project.check(module)] == []
+
+
+def test_project_completions(project):
+    from fs_lsp.project_completion import annotation_completions, project_completions
+
+    path = project.code_dir / "feature2.fs"
+    source = (
+        f"FeatureScript 2909;\n{STD}\n"
+        f'import(path : "{SHAPES_ID}", version : "v");\n'
+        f'import(path : "{UTILS_ID}", version : "v");\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Width" }\n'
+        "        definition.width is boolean;\n"
+        "    }\n    {\n        const shape = Shape.SQUARE;\n        const w = definition.width;\n        dou(1);\n    });\n"
+    )
+    path.write_text(source)
+    module = project.module(path)
+
+    def labels(marker: str, after: int) -> list[str]:
+        items = project_completions(project, module, source, source.index(marker) + after)
+        return [item.label for item in items or []]
+
+    # An imported enum's members, a feature's parameters, and names (from imports and std)
+    assert labels("Shape.SQUARE", len("Shape.")) == ["CIRCLE", "SQUARE"]
+    assert labels("definition.width;", len("definition.")) == ["width"]
+    names = labels("dou(1)", 3)
+    assert "double" in names and "opExtrude" in names and "shape" in names and "hidden" not in names
+    keys = annotation_completions('annotation { "Name" : "x", "Dri', len('annotation { "Name" : "x", "Dri'))
+    assert "Driven query" in [item.label for item in keys]
+
+
+def test_rename_edits(project):
+    from fs_lsp.project import RenameError
+
+    feature = project.module(project.code_dir / "feature.fs")
+    source = feature.parsed.source
+    edits = project.rename_edits(feature, source.index("double(1)"), "twice")
+    # Its declaration, and its use through the re-exporting file
+    assert sorted(path.name for path in edits) == ["feature.fs", "utils.fs"]
+    for bad, message in [("1x", "isn't a valid name"), ("hidden", "already declares")]:
+        with pytest.raises(RenameError, match=message):
+            project.rename_edits(feature, source.index("double(1)"), bad)
+    with pytest.raises(RenameError, match="std's"):
+        project.rename_edits(feature, source.index("println"), "say")

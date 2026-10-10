@@ -185,6 +185,10 @@ def make_parser() -> argparse.ArgumentParser:
     command(
         "check",
         "check FeatureScripts for syntax errors, undefined names, and unused or unknown imports (no API calls)",
+    ).add_argument(
+        "--fix",
+        action="store_true",
+        help="fix what has one right answer: misspelled annotation keys, unused imports, and imports of what one file exports",
     )
     format_command = command(
         "format",
@@ -232,6 +236,16 @@ def make_parser() -> argparse.ArgumentParser:
         targets=False,
     )
     refs.add_argument("name", help="the name to look up, e.g. cleanup")
+
+    rename_command = command(
+        "rename",
+        "rename a function, constant, enum, etc. and every use of it, across the FeatureScripts (no API calls)",
+        targets=False,
+    )
+    rename_command.add_argument("name", help="what it's called, e.g. cleanup")
+    rename_command.add_argument("new_name", help="what to call it")
+    rename_command.add_argument("--file", help="the file declaring it, when more than one file declares the name")
+    dry_run(rename_command)
 
     mv_command = command(
         "mv",
@@ -1142,8 +1156,19 @@ def check(config: Config, args: argparse.Namespace) -> int:
     project = _project(config)
     counts = collections.Counter()
     files = 0
+    fixed = 0
     for module in _select_modules(project, args.targets):
         problems = project.check(module)
+        if getattr(args, "fix", False) and problems and not is_generated(module.path.name):
+            from fs_lsp.quick_fixes import apply_fixes, quick_fixes
+
+            source, count = apply_fixes(module.parsed.source, quick_fixes(project, module, problems))
+            if count:
+                module.path.write_text(source, encoding="utf-8", newline="")
+                fixed += count
+                print(f"Fixed {_plural(count, 'problem')} in {_display_path(module.path)}")
+                module = project.module(module.path)
+                problems = project.check(module)
         files += 1 if problems else 0
         for problem in problems:
             line, character = module.position(problem.start)
@@ -1152,7 +1177,7 @@ def check(config: Config, args: argparse.Namespace) -> int:
             )
             counts[problem.severity] += 1
     if not counts:
-        print("No problems found.")
+        print("No problems found." if not fixed else "No problems left.")
         return 0
     summary = " and ".join(
         _plural(counts[severity], severity) for severity in ("error", "warning") if counts[severity]
@@ -1463,6 +1488,45 @@ def refs(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def rename(config: Config, args: argparse.Namespace) -> int:
+    from fs_lsp.project import RenameError
+
+    project = _project(config)
+    with project.snapshot():
+        found = [
+            (module, declaration)
+            for module, declaration, _ in project.references_to_name(args.name)
+            if args.file is None or module.path.resolve() == pathlib.Path(args.file).resolve()
+        ]
+        if not found:
+            print(f"Nothing called {args.name} is declared at the top level of a FeatureScript" + (f" in {args.file}." if args.file else "."))
+            return 1
+        if len(found) > 1:
+            places = ", ".join(_display_path(module.path) for module, _ in found)
+            raise UsageError(f"{args.name} is declared in {places}; choose one with --file.")
+        module, declaration = found[0]
+        try:
+            edits = project.rename_edits(module, declaration.token.offset, args.new_name)
+        except RenameError as error:
+            raise UsageError(str(error)) from error
+    generated = [path for path in edits if is_generated(path.name)]
+    if generated:
+        raise UsageError(
+            f"{args.name} is used in generated files ({', '.join(_display_path(path) for path in generated)}): rename it "
+            "in their definitions, and run fs gen."
+        )
+    count = sum(len(spans) for spans in edits.values())
+    for path, spans in sorted(edits.items()):
+        if not args.dry_run:
+            source = path.read_text()
+            for start, end in reversed(spans):
+                source = source[:start] + args.new_name + source[end:]
+            path.write_text(source, newline="")
+        print(f"{'Would update' if args.dry_run else 'Updated'} {_display_path(path)} ({len(spans)})")
+    print(f"{'Would rename' if args.dry_run else 'Renamed'} {args.name} to {args.new_name}: {count} uses in {len(edits)} files.")
+    return 0
+
+
 def _project(config: Config) -> Project:
     return Project(config.root, config.code_dir, config.studios_path, config.std_dir)
 
@@ -1515,6 +1579,7 @@ OFFLINE_COMMANDS = {
     "strings": strings,
     "unused": unused,
     "refs": refs,
+    "rename": rename,
     "gen": gen,
     "icons": icons,
     "cots": cots,

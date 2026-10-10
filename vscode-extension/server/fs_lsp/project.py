@@ -645,6 +645,50 @@ class Project:
             results.extend(self._std_uses(std))
         return _dedupe(results)
 
+    def released_paths(self) -> set[pathlib.Path]:
+        """The files of released Feature Studios (fs-studios.json's `released`), whose features' constants documents
+        store, so they're never renamed."""
+        try:
+            data = json.loads(self.studios_path.read_text())
+        except (OSError, ValueError):
+            return set()
+        studios = data.get("studios", {})
+        return {(self.code_dir / studios[element_id]).resolve() for element_id in data.get("released", []) if element_id in studios}
+
+    def rename_edits(self, module: Module, offset: int, new_name: str) -> dict[pathlib.Path, list[tuple[int, int]]]:
+        """The (start, end) offsets to replace with new_name, by file, to rename what the token at offset declares
+        or refers to, everywhere it's used. Raises RenameError if it can't be renamed: std's names, released features'
+        constants, and names which would clash."""
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", new_name) or new_name in KEYWORDS:
+            raise RenameError(f"{new_name} isn't a valid name.")
+        definitions = self.definitions(module, offset)
+        if not definitions:
+            token = module.index.token_at(offset)
+            if self.std_definitions(module, offset) or (token is not None and stdlib().lookup(token.value)):
+                raise RenameError("That's std's, so it can't be renamed.")
+            raise RenameError("There's nothing here to rename.")
+        released = self.released_paths()
+        for owner, declaration in definitions:
+            if owner.relative.startswith(STD_PREFIX):
+                raise RenameError("That's std's, so it can't be renamed.")
+            if owner.path.resolve() in released and _is_feature_constant(owner, declaration):
+                raise RenameError(
+                    f"{declaration.name} is a released feature's constant, which documents store as its type, so it "
+                    "can't be renamed (rename its Feature Type Name and its file instead)."
+                )
+            if declaration.name == new_name:
+                raise RenameError(f"It's already called {new_name}.")
+            if owner._is_top_level(declaration) and owner.top_level.get(new_name):
+                raise RenameError(f"{owner.relative} already declares {new_name}.")
+        edits: dict[pathlib.Path, list[tuple[int, int]]] = {}
+        for owner, token in self.references(module, offset, True):
+            edits.setdefault(owner.path, [])
+            if (token.offset, token.end) not in edits[owner.path]:
+                edits[owner.path].append((token.offset, token.end))
+        for spans in edits.values():
+            spans.sort()
+        return edits
+
     def references_to_name(self, name: str) -> list[tuple[Module, Declaration, list[tuple[Module, Token]]]]:
         """Every top-level declaration called name, with its references."""
         return [
@@ -1960,6 +2004,17 @@ def _if_conditions(tokens: list[Token], start: int, end: int) -> Iterable[tuple[
             if depth == 0:
                 yield position + 1, cursor
                 break
+
+
+class RenameError(Exception):
+    pass
+
+
+def _is_feature_constant(module: Module, declaration: Declaration) -> bool:
+    """Whether a declaration is a feature's constant: `const name = defineFeature(...)`."""
+    following = module.index.next_token(declaration.token)
+    after = module.index.next_token(following) if following is not None else None
+    return following is not None and following.value == "=" and after is not None and after.value == "defineFeature"
 
 
 def _annotation_key_problems(module: Module) -> list[Problem]:

@@ -446,3 +446,47 @@ def test_render_ui(tmp_path):
         assert "os-param-query-list-label os-grow'>Spot<" in result["html"]
     finally:
         client.close()
+
+
+def test_rename_quick_fixes_links_and_names(tmp_path):
+    """Renames across files, quick fixes, import links, and names from imports."""
+    utils_id = "a" * 24
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    code_dir = tmp_path / "featurescripts"
+    code_dir.mkdir()
+    (code_dir / "utils.fs").write_text("FeatureScript 2909;\nexport function double(x is number) { return x * 2; }\n")
+    (code_dir / "other.fs").write_text("FeatureScript 2909;\nexport const missing = 1;\n")
+    feature_source = (
+        f'FeatureScript 2909;\nimport(path : "{utils_id}", version : "v");\n'
+        "export const a = double(1) + missing;\nexport const b = dou;\n"
+    )
+    (code_dir / "feature.fs").write_text(feature_source)
+    (tmp_path / "fs-studios.json").write_text(json.dumps({"version": 1, "studios": {utils_id: "utils.fs"}}))
+    uri = (code_dir / "feature.fs").as_uri()
+    client = Client()
+    try:
+        client.request("initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}})
+        client.notify("initialized", {})
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": feature_source}},
+        )
+        at = {"textDocument": {"uri": uri}, "position": {"line": 2, "character": 18}}
+        assert client.request("textDocument/prepareRename", at)["start"] == {"line": 2, "character": 17}
+        edit = client.request("textDocument/rename", {**at, "newName": "twice"})
+        assert sorted(pathname.rsplit("/", 1)[1] for pathname in edit["changes"]) == ["feature.fs", "utils.fs"]
+        assert all(change["newText"] == "twice" for changes in edit["changes"].values() for change in changes)
+
+        whole = {"start": {"line": 0, "character": 0}, "end": {"line": 4, "character": 0}}
+        actions = client.request(
+            "textDocument/codeAction", {"textDocument": {"uri": uri}, "range": whole, "context": {"diagnostics": []}}
+        )
+        assert [action["title"] for action in actions] == ["Import other.fs"]
+
+        [link] = client.request("textDocument/documentLink", {"textDocument": {"uri": uri}})
+        assert link["target"].endswith("/utils.fs")
+
+        items = client.request("textDocument/completion", {"textDocument": {"uri": uri}, "position": {"line": 3, "character": 20}})
+        assert "double" in [item["label"] for item in items]
+    finally:
+        client.close()

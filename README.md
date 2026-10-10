@@ -234,11 +234,13 @@ These read the repo only (no API calls). Imports between studios are resolved th
 
 ```
 uv run fs check              # syntax errors, undefined names, unused or unknown imports, and more
+uv run fs check --fix        # ...fixing those with one right answer (misspelled annotation keys, unused imports, ...)
 uv run fs check featurescripts/released/belt   # ...or just some files or folders
 uv run fs format             # indentation and spacing like std's (--check: list what it would change)
 uv run fs deps robotShaft    # what a studio imports, and what imports it
 uv run fs strings robotShaft # strings it shows users (names, descriptions, errors), with those of what it imports
 uv run fs refs cleanup       # where a function, constant, enum, etc. is defined and used (std's too)
+uv run fs rename cleanup tidy  # rename it, and every use (-n to see where first; never a released feature's constant)
 uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, keeping its studio and imports
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
@@ -469,9 +471,15 @@ The extension provides:
 - Hovers with doc comments laid out like Onshape's [FsDoc](https://cad.onshape.com/FsDoc/library.html) (for std
   symbols too), signatures, enum variants, feature definition fields, and the file an import refers to
 - Signature help in calls, with each parameter's documentation
-- Completions for enum members (`BoundingType.`) and feature definition-map keys
-  (`extrude(context, id, { ... })`)
-- Diagnostics: syntax errors, undefined names, and unused or unknown imports (the same as `fs check`)
+- Completions for enum members (std's, and the project's: `BoundingType.`, `LightenEndType.`), feature
+  definition-map keys (`extrude(context, id, { ... })`), the parameters a feature declares (`definition.`),
+  annotation keys and UIHint names in annotations, and names: what's in scope, what imports declare, and std's
+  (whose documentation shows as one's chosen)
+- Rename Symbol (F2) across files, as `fs rename` does: not std's names, nor released features' constants
+- Diagnostics: syntax errors, undefined names, and unused or unknown imports (the same as `fs check`), with quick
+  fixes where there's one right answer (as `fs check --fix`): a misspelled annotation key's match, removing an unused
+  import, or importing the one file which exports an undefined name
+- Import paths link to the files they import (Ctrl+click)
 - Formatting (Format Document, Format Selection, or `editor.formatOnSave`), the same as `fs format`. Files with syntax
   errors, generated files, and std's files are left as they are
 - Snippets (`fs-header`, `defineFeature`, `annotation`, ...)

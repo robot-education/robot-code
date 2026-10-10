@@ -14,6 +14,7 @@ import logging
 import pathlib
 
 from lsprotocol import types as lsp
+from pygls.exceptions import JsonRpcInternalError
 from pygls.lsp.server import LanguageServer
 from pygls.uris import from_fs_path, to_fs_path
 from pygls.workspace import TextDocument
@@ -22,13 +23,14 @@ from fs_cli.renames import path_import_edits, relative_paths, rename_studio_file
 from fs_cli.state import state_lock
 from fs_lsp import __version__
 from fs_lsp.completion import completion_data, completion_items
+from fs_lsp.project_completion import annotation_completions, project_completions, resolve_item
 from fs_lsp.diagnostics import diagnostics
 from fs_lsp.formatter import edits, is_generated
 from fs_lsp.fsdoc import parse_doc, render_markdown
 from fs_lsp.hover import declaration_markdown, hover_markdown
 from fs_lsp.navigation import document_symbols, folding_ranges, token_range
 from fs_lsp.parser import ParsedProgram, parse
-from fs_lsp.project import Module, Problem, Project
+from fs_lsp.project import Module, Problem, Project, RenameError
 from fs_lsp.scanner import LineMap, Token
 from fs_lsp.semantic import TOKEN_MODIFIERS, TOKEN_TYPES, build_semantic_tokens, encode
 from fs_lsp.signatures import Signature, call_at, parse_signature, source_signature
@@ -445,6 +447,109 @@ def references(
     ]
 
 
+@server.feature(lsp.TEXT_DOCUMENT_PREPARE_RENAME)
+@snapshotted
+def prepare_rename(ls: FeatureScriptServer, params: lsp.PrepareRenameParams) -> lsp.Range | None:
+    document = ls.document(params.text_document.uri)
+    offset = document.offset_at_position(params.position)
+    found = ls.project_module(document.uri)
+    if not found:
+        return None
+    project, module = found
+    token = module.index.token_at(offset)
+    if token is None or token.kind != "identifier":
+        return None
+    try:
+        # A name it couldn't clash with, to see whether it can be renamed at all
+        project.rename_edits(module, offset, token.value + "_renamed")
+    except RenameError as error:
+        raise JsonRpcInternalError(str(error)) from error
+    return token_range(token)
+
+
+@server.feature(lsp.TEXT_DOCUMENT_RENAME)
+@snapshotted
+def rename(ls: FeatureScriptServer, params: lsp.RenameParams) -> lsp.WorkspaceEdit | None:
+    document = ls.document(params.text_document.uri)
+    offset = document.offset_at_position(params.position)
+    found = ls.project_module(document.uri)
+    if not found:
+        return None
+    project, module = found
+    try:
+        edits = project.rename_edits(module, offset, params.new_name)
+    except RenameError as error:
+        raise JsonRpcInternalError(str(error)) from error
+    changes = {}
+    for path, spans in edits.items():
+        owner = project.module(path)
+        if owner is None:
+            continue
+        changes[from_fs_path(str(path)) or ""] = [
+            lsp.TextEdit(lsp.Range(lsp.Position(*owner.position(start)), lsp.Position(*owner.position(end))), params.new_name)
+            for start, end in spans
+        ]
+    return lsp.WorkspaceEdit(changes=changes)
+
+
+@server.feature(
+    lsp.TEXT_DOCUMENT_CODE_ACTION,
+    lsp.CodeActionOptions(code_action_kinds=[lsp.CodeActionKind.QuickFix]),
+)
+@snapshotted
+def code_action(ls: FeatureScriptServer, params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
+    """Quick fixes for the problems in the range (see fs_lsp.quick_fixes)."""
+    from fs_lsp.quick_fixes import quick_fixes
+
+    document = ls.document(params.text_document.uri)
+    found = ls.project_module(document.uri)
+    if not found:
+        return None
+    project, module = found
+    start = document.offset_at_position(params.range.start)
+    end = document.offset_at_position(params.range.end)
+    problems = [problem for problem in project.check(module) if problem.start <= end and start <= problem.end]
+    actions = []
+    for fix in quick_fixes(project, module, problems):
+        edits = [
+            lsp.TextEdit(lsp.Range(lsp.Position(*module.position(edit_start)), lsp.Position(*module.position(edit_end))), text)
+            for edit_start, edit_end, text in fix.edits
+        ]
+        actions.append(
+            lsp.CodeAction(
+                title=fix.title,
+                kind=lsp.CodeActionKind.QuickFix,
+                diagnostics=[_diagnostic(module, fix.problem)],
+                edit=lsp.WorkspaceEdit(changes={document.uri: edits}),
+                is_preferred=True,
+            )
+        )
+    return actions
+
+
+@server.feature(lsp.TEXT_DOCUMENT_DOCUMENT_LINK)
+@snapshotted
+def document_link(ls: FeatureScriptServer, params: lsp.DocumentLinkParams) -> list[lsp.DocumentLink] | None:
+    """Each import's path, linked to the file it imports (the project's, or std's copy)."""
+    found = ls.project_module(params.text_document.uri)
+    if not found:
+        return None
+    project, module = found
+    links = []
+    for imported in module.imports:
+        target = project.std_module(imported.path) if imported.is_std else project.resolve(imported)
+        if target is None:
+            continue
+        links.append(
+            lsp.DocumentLink(
+                range=token_range(imported.token),
+                target=from_fs_path(str(target.path)),
+                tooltip=target.relative,
+            )
+        )
+    return links
+
+
 @server.feature(lsp.TEXT_DOCUMENT_DOCUMENT_HIGHLIGHT)
 @snapshotted
 def document_highlight(
@@ -482,7 +587,7 @@ def hover(ls: FeatureScriptServer, params: lsp.HoverParams) -> lsp.Hover | None:
 
 @server.feature(
     lsp.TEXT_DOCUMENT_COMPLETION,
-    lsp.CompletionOptions(trigger_characters=[".", '"', "'", "{", ","]),
+    lsp.CompletionOptions(trigger_characters=[".", '"', "'", "{", ","], resolve_provider=True),
 )
 @snapshotted
 def completion(
@@ -490,17 +595,28 @@ def completion(
 ) -> list[lsp.CompletionItem] | None:
     document = ls.document(params.text_document.uri)
     analysis = ls.analysis(document)
-    data = completion_data(
-        analysis.parsed, document.offset_at_position(params.position)
-    )
+    offset = document.offset_at_position(params.position)
+    annotation = annotation_completions(document.source, offset)
+    if annotation is not None:
+        return annotation
+    data = completion_data(analysis.parsed, offset)
     if data is None:
-        return None
+        found = ls.project_module(document.uri)
+        if found is None:
+            return None
+        project, module = found
+        return project_completions(project, module, module.parsed.source, offset)
     line_map = analysis.parsed.line_map
     replace_range = lsp.Range(
         lsp.Position(*line_map.position(data.replacement_start)),
         lsp.Position(*line_map.position(data.replacement_end)),
     )
     return completion_items(data, replace_range)
+
+
+@server.feature(lsp.COMPLETION_ITEM_RESOLVE)
+def completion_resolve(ls: FeatureScriptServer, item: lsp.CompletionItem) -> lsp.CompletionItem:
+    return resolve_item(item)
 
 
 @server.feature(
