@@ -141,6 +141,13 @@ unreleased feature's constant can change freely.
 Enum values used as parameter types are stored in documents, so never rename or remove them once released. Generated
 enums (e.g. in `*.gen.fs` files) follow the same rule; their definitions say so where it matters.
 
+## Buttons
+
+A button is a parameter declared with std's `isButton` (`annotation { "Name" : "Clear invalid selections" }
+isButton(definition.clearInvalid);`). Clicking it runs the feature's editing logic, which takes an eighth argument,
+`clickedButton is string`: the button's parameter id (see std's `routingCurve.fs`). Don't fake one with a checkbox
+which unchecks itself.
+
 ## Remember previous values
 
 Give parameters `"UIHint" : ["REMEMBER_PREVIOUS_VALUE"]` (alongside any other hints), so a new feature starts with

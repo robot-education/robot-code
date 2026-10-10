@@ -39,6 +39,11 @@ In Complex mode, Override wall thickness (below it) drives a group holding Wall 
 hole), each its own Faces (`overrideFaces`) and Wall thickness (`overrideWall`, 0.0625 in. by default). Later
 overrides take precedence over earlier ones, and all of them over Faces to ignore.
 
+### Attributes
+
+The body puts `robotQuickRibUsed` (`true`) on the Quick rib sketches its ribs come from, so a new Robot lighten's
+editing logic leaves them out (see `../rib/quickRib.md`).
+
 ### Errors, warnings, and info
 
 Errors from a failed operation show what failed in red: what it was given, narrowed down (for some) to what fails when
@@ -75,7 +80,10 @@ it's tried alone (see Error handling).
 
 ### Execution order
 
-1. **Editing logic** (`robotLightenEditLogic`): unless Face to lighten has been set, and once there are ribs,
+1. **Editing logic** (`robotLightenEditLogic`): when it's created, unless Ribs to use has been set, Ribs to use is
+   the edges of the Quick rib sketches (`quickRibEdges`: by their `robotQuickRib` attribute, but those which aren't
+   shown, and those another Robot lighten uses, which have `robotQuickRibUsed`). Then unless Face to lighten has been
+   set, and once there are ribs,
    `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in
    the plane, overlap the ribs'; if there's just one, it's the face to lighten. It only evaluates: building anything in
    editing logic (a trial feature, between `startFeature` and `abortFeature`) can crash the Part Studio.

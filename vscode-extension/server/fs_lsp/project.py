@@ -65,7 +65,7 @@ ANNOTATION_KEYS = frozenset(
     ]
 )
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
-PARAMETER_PREDICATES = frozenset(["isLength", "isAngle", "isInteger", "isReal", "isAnything"])
+PARAMETER_PREDICATES = frozenset(["isLength", "isAngle", "isInteger", "isReal", "isAnything", "isButton"])
 
 Severity = Literal["error", "warning"]
 

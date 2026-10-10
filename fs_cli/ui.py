@@ -721,7 +721,7 @@ def _text(value: Any) -> str:
 @dataclasses.dataclass
 class Parameter:
     name: str
-    kind: str  # enum, boolean, query, length, angle, integer, real, lookup, string, reference, other
+    kind: str  # enum, boolean, query, length, angle, integer, real, lookup, string, reference, button, other
     annotation: dict
     value: Any = None
     enum: EnumType | None = None
@@ -768,6 +768,8 @@ VALUE_CHECKS = {
     "isInteger": "integer",
     "isReal": "real",
     "isAnything": "other",
+    # std's button parameters, which editing logic gets clicks of (its `clickedButton`)
+    "isButton": "button",
 }
 
 
@@ -975,6 +977,8 @@ class DialogBuilder:
                 raise UiError(f"{name} is an array, so --set it to how many items to show, not {count}.")
             parameter.count = int(count)
             self.arrays[name] = parameter
+        elif type_name == "button":
+            parameter.kind = "button"
         elif type_name in ("PartStudioData",):
             parameter.kind = "reference"
         elif type_name == "string":
@@ -1386,6 +1390,14 @@ class Renderer:
             )
         if item.kind in ("length", "angle", "integer", "real"):
             return self.quantity(item)
+        if item.kind == "button":
+            # Like an array's Add button; clicking it runs editing logic, which a preview doesn't
+            return (
+                "<os-button-parameter data-parameter-type='os-button-parameter'>"
+                f"<div class='os-param-wrapper os-param-container' data-parameter-id='{_attribute(item.name)}'>"
+                f"<button class='btn btn-secondary os-param-button os-no-shrink' style='width: 100%'>{html.escape(item.label)}</button>"
+                "</div></os-button-parameter>"
+            )
         return f"<span class='os-param-wrapper os-param-container'><label class='os-param-label'>{html.escape(item.label)}</label></span>"
 
     def label(self, item: Parameter) -> str:
