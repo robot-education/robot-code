@@ -91,6 +91,11 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // `roundPockets`)
         const radius = definition.filletCorners ? definition.filletRadius : 0 * meter;
 
+        // The edges the face shares with the part's faces to ignore, which the pocket's extrude sweeps into its sides along
+        // them
+        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSketchFilter(definition.ignoredFaces, SketchObject.NO))]);
+        const ignoredSides = startTracking(context, ignoredEdges);
+
         // The pocket: the face's extrude into its part
         const depth = pocketDepth(context, definition, part, facePlane);
         if (isBlind(definition))
@@ -114,15 +119,13 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // The pockets' ends, through the walls, ribs, and rounding (see `pocketEnds`)
         const trackedEnds = startTracking(context, ends);
 
-        // Sketch regions to ignore are left solid: cut from the pocket, and walled like its edges
-        const ignoredRegions = qSketchFilter(definition.ignoredFaces, SketchObject.YES);
-        excludeRegions(context, id + "excludeRegions", facePlane, pocketBodies(context, id), ignoredRegions);
+        // Sketch regions to ignore are left solid: cut from the pocket, so walls go around them too
+        excludeRegions(context, id + "excludeRegions", facePlane, pocketBodies(context, id), qSketchFilter(definition.ignoredFaces, SketchObject.YES));
 
-        // The walls: along the face's edges, but those it shares with the part's faces to ignore, and around the regions
-        // to ignore
-        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSketchFilter(definition.ignoredFaces, SketchObject.NO))]);
-        cutWalls(context, id + "walls", facePlane, pocketBodies(context, id), qUnion([qSubtraction(qLoopEdges(face), ignoredEdges), qLoopEdges(ignoredRegions)]),
-            ignoredEdges, definition.wallThickness + radius);
+        // The walls: the pocket, inset by them, but along the part's faces to ignore
+        const extruded = pocketBodies(context, id);
+        insetPockets(context, id + "walls", extruded, ends, qIntersection([qOwnedByBody(extruded, EntityType.FACE), ignoredSides]),
+            definition.wallThickness + radius);
 
         // The ribs, cut from what's left
         const inset = pocketBodies(context, id);
@@ -310,230 +313,138 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
 }
 
 /**
- * Cuts walls `width` thick along `edges` from `pockets`, under `id`: a capsule around each edge (`width` to each side,
- * with round ends), all in one sketch on `facePlane`, extruded through the pockets and cut from them. Unlike hollowing
- * the pockets (which can't split one into several), this leaves however many pockets there's room for: a hole near
- * the edge, or two near each other, just leave no pocket between them. Ends at `ignoredEdges` (the sides along faces
- * to ignore) are left square, so the walls stop there.
+ * Insets `pockets` by `distance` (the walls), under `id`, but at `ends` (their caps) and `ignoredSides`, which stay
+ * where they are. As Ilya Baran and Morgan Bartlett's Lighten does: those are moved out by `distance`, and the pockets
+ * hollowed by it, which moves every face in by it at once, holes of any size and their corners too, so it doesn't
+ * fail where a wall along one edge would. What's inside (enclosed) is kept, and the rest deleted. Their concave edges
+ * are rounded a hair (std's boolean tolerance, 0.01 mm) first, so they're rounded to `distance` (and the hair) as
+ * they're moved, as the walls' inside corners should be.
  *
- * The capsules' outlines split the sketch into regions, some of them outside every capsule (like the face's middle);
- * the walls are the regions closer to the edges than `width` (see `isWallRegion`).
+ * Hollowing fails where the inset would split a pocket in two, or merge a hole into its outline: where two of its
+ * sides are closer than twice `distance` (a hole near the edge, two holes near each other, or a narrow waist). Only
+ * when it has failed (on the way to the error), those necks are found (`findNecks`) and shown.
  */
-function cutWalls(context is Context, id is Id, facePlane is Plane, pockets is Query, edges is Query, ignoredEdges is Query, width is ValueWithUnits)
+function insetPockets(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, distance is ValueWithUnits)
 {
-    if (isQueryEmpty(context, edges) || isQueryEmpty(context, pockets))
-    {
-        return;
-    }
-    const extent = bandExtent(context, facePlane, qUnion([pockets, edges]));
-    const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : extent.plane });
-    const squareEnds = mapArray(evaluateQuery(context, qAdjacent(ignoredEdges, AdjacencyType.VERTEX, EntityType.VERTEX)), function(vertex)
-        {
-            return worldToPlane(extent.plane, evVertexPoint(context, { "vertex" : vertex }));
-        });
-    sketchWalls(sketch, wallCurves(context, edges, extent.plane, width), width, squareEnds);
-    skSolve(sketch);
-
-    const centerlines = qCreatedBy(id + "sketch", EntityType.EDGE)->qConstructionFilter(ConstructionObject.YES);
-    const regions = filter(evaluateQuery(context, qSketchRegion(id + "sketch")), function(region)
-        {
-            return isWallRegion(context, region, centerlines, width);
-        });
-    if (regions == [])
-    {
-        return;
-    }
     try
     {
-        opExtrude(context, id + "extrude", {
-                    "entities" : qUnion(regions),
-                    "direction" : extent.plane.normal,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : extent.depth,
-                    "startBound" : BoundingType.BLIND,
-                    "startDepth" : extent.depth
+        opOffsetFace(context, id + "extend", {
+                    "moveFaces" : qUnion([ends, ignoredSides]),
+                    "offsetDistance" : distance
                 });
     }
     catch
     {
-        throw regenError("Failed to extrude walls.", ["wallThickness"], qUnion(regions));
+        throw regenError("Failed to extend pockets past their ends.", ["wallThickness"], qUnion([ends, ignoredSides]));
     }
-    const walls = qCreatedBy(id + "extrude", EntityType.BODY);
+
+    const concave = qUnion(filter(evaluateQuery(context, qOwnedByBody(pockets, EntityType.EDGE)), function(edge)
+            {
+                return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONCAVE;
+            }));
+    if (!isQueryEmpty(context, concave))
+    {
+        try
+        {
+            opFillet(context, id + "roundConcave", {
+                        "entities" : concave,
+                        "radius" : TOLERANCE.booleanDefaultTolerance * meter
+                    });
+        }
+        catch
+        {
+            throw regenError("Failed to round walls' inside corners.", ["wallThickness"], concave);
+        }
+    }
+
     try
     {
-        opBoolean(context, id + "cut", {
-                    "targets" : pockets,
-                    "tools" : walls,
-                    "operationType" : BooleanOperationType.SUBTRACTION
+        opShell(context, id + "shell", {
+                    "entities" : pockets,
+                    "thickness" : -distance
                 });
     }
     catch
     {
-        // A failed boolean changes nothing, so the walls are still there to show
-        throw regenError("Failed to cut walls.", ["wallThickness"], walls);
+        // The sides which move in: all but the ends and the sides along faces to ignore
+        const necks = findNecks(context, pockets, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), qUnion([ends, ignoredSides])), distance);
+        if (necks != [])
+        {
+            throw regenError("The pocket is narrower than two walls where shown. Use thinner walls, or ignore one of the faces.", ["wallThickness"],
+                qUnion(mapArray(necks, neck => neck.sides)));
+        }
+        // Each pocket, hollowed alone (they're separate bodies, so one's try doesn't change another's)
+        const failing = failingBodies(context, id + "error", pockets, function(errorId is Id, pocket is Query)
+            {
+                opShell(context, errorId, {
+                            "entities" : pocket,
+                            "thickness" : -distance
+                        });
+            });
+        throw regenError("Failed to make walls.", ["wallThickness"], failing);
     }
-}
-
-/**
- * Whether a region of the walls' sketch is wall: closer to the edges (their `centerlines`, drawn in the sketch) than
- * `width`. A region inside a capsule has points closer than that; one outside every capsule (like the face's middle,
- * or a hole's) is at least `width` from all of them, touching the capsules' outlines.
- */
-function isWallRegion(context is Context, region is Query, centerlines is Query, width is ValueWithUnits) returns boolean
-{
-    const distance = evDistance(context, { "side0" : region, "side1" : centerlines }).distance;
-    return distance < width - 1e-6 * meter;
-}
-
-/**
- * The walls' edges, as curves in `plane`'s coordinates, for `sketchWalls`: lines (`"points"`, their ends), arcs
- * (`"center"`, `"radius"`, and `"points"`, their start, middle, and end), full circles (`"center"` and `"radius"`), and
- * anything else as polylines (`"points"`), through enough points to be within a few percent of `width` of the curve.
- */
-function wallCurves(context is Context, edges is Query, plane is Plane, width is ValueWithUnits) returns array
-{
-    return mapArray(evaluateQuery(context, edges), function(edge)
-        {
-            const curve = evCurveDefinition(context, { "edge" : edge });
-            const ends = mapArray(evEdgeTangentLines(context, { "edge" : edge, "parameters" : [0, 0.5, 1] }), function(line)
-                {
-                    return worldToPlane(plane, line.origin);
-                });
-            if (curve is Line)
-            {
-                return { "kind" : "line", "points" : [ends[0], ends[2]] };
-            }
-            if (curve is Circle)
-            {
-                const center = worldToPlane(plane, curve.coordSystem.origin);
-                if (tolerantEquals(ends[0], ends[2]))
-                {
-                    return { "kind" : "circle", "center" : center, "radius" : curve.radius };
-                }
-                return { "kind" : "arc", "center" : center, "radius" : curve.radius, "points" : ends };
-            }
-            const count = min(max(ceil(evLength(context, { "entities" : edge }) / (width / 2)), 8), 128);
-            const parameters = mapArray(range(0, count), i => i / count);
-            return { "kind" : "polyline", "points" : mapArray(evEdgeTangentLines(context, { "edge" : edge, "parameters" : parameters }), function(line)
-                        {
-                            return worldToPlane(plane, line.origin);
-                        }) };
-        });
-}
-
-/**
- * Sketches the walls' capsules around `curves` (see `wallCurves`), `width` to each side: each curve's sides (lines'
- * offsets, arcs' and circles' concentric arcs, or for those no bigger than `width`, wedges to their centers), round
- * ends (a circle at each end, but those at `squareEnds`, which get straight ends), and the curve itself, as
- * construction, to tell the walls' regions by (see `isWallRegion`).
- */
-export function sketchWalls(sketch is Sketch, curves is array, width is ValueWithUnits, squareEnds is array)
-{
-    var ends = [];
-    for (var i, curve in curves)
+    try
     {
-        const tag = "wall" ~ i;
-        if (curve.kind == "circle")
+        // One at a time, so the pockets don't need a boolean
+        for (var i, pocket in evaluateQuery(context, pockets))
         {
-            skCircle(sketch, tag ~ "center", { "center" : curve.center, "radius" : curve.radius, "construction" : true });
-            skCircle(sketch, tag ~ "outer", { "center" : curve.center, "radius" : curve.radius + width });
-            if (curve.radius > width)
-            {
-                skCircle(sketch, tag ~ "inner", { "center" : curve.center, "radius" : curve.radius - width });
-            }
+            opEnclose(context, id + "enclose" + unstableIdComponent(i), { "entities" : pocket });
+        }
+    }
+    catch
+    {
+        throw regenError("Failed to make walls.", ["wallThickness"], pockets);
+    }
+    opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
+}
+
+/**
+ * The pockets' necks: where two of their `sides` (which the inset moves in by `distance`) are closer than twice
+ * `distance` across the pocket. For each side, the nearest side which isn't beside it (sharing an edge) is found
+ * (`evDistance`); it's a neck if the line between their nearest points crosses the pocket (its middle is in it, so it
+ * isn't across a gap outside it, like a notch), and runs along one side's normal at least, as it does across a pinch,
+ * but not between two sides of a filleted or chamfered corner.
+ *
+ * @returns {array} : Each neck, as a map of `sides` (the two sides, a query) and `points` (their nearest points).
+ */
+function findNecks(context is Context, pockets is Query, sides is Query, distance is ValueWithUnits) returns array
+{
+    var necks = [];
+    for (var side in evaluateQuery(context, sides))
+    {
+        const others = qSubtraction(sides, qUnion([side, qAdjacent(side, AdjacencyType.EDGE, EntityType.FACE)]));
+        if (isQueryEmpty(context, others))
+        {
             continue;
         }
-        if (curve.kind == "arc")
+        const nearest = evDistance(context, { "side0" : side, "side1" : others });
+        if (nearest.distance >= 2 * distance || tolerantEqualsZero(nearest.distance))
         {
-            sketchArcWall(sketch, tag, curve, width, squareEnds);
+            continue;
         }
-        else
+        const a = nearest.sides[0].point;
+        const b = nearest.sides[1].point;
+        const across = normalize(b - a);
+        const other = qNthElement(others, nearest.sides[1].index);
+        const normalA = evFaceTangentPlane(context, { "face" : side, "parameter" : nearest.sides[0].parameter }).normal;
+        const normalB = evFaceTangentPlane(context, { "face" : other, "parameter" : nearest.sides[1].parameter }).normal;
+        if (abs(dot(across, normalA)) < 0.95 && abs(dot(across, normalB)) < 0.95)
         {
-            const points = curve.points;
-            for (var j = 0; j < size(points) - 1; j += 1)
-            {
-                skLineSegment(sketch, tag ~ "center" ~ j, { "start" : points[j], "end" : points[j + 1], "construction" : true });
-                const side = perpendicular(points[j + 1] - points[j]) * width;
-                skLineSegment(sketch, tag ~ "left" ~ j, { "start" : points[j] + side, "end" : points[j + 1] + side });
-                skLineSegment(sketch, tag ~ "right" ~ j, { "start" : points[j] - side, "end" : points[j + 1] - side });
-                // A polyline's bends are rounded too
-                if (j > 0)
-                {
-                    ends = append(ends, points[j]);
-                }
-            }
-            for (var end in [[points[0], points[1]], [points[size(points) - 1], points[size(points) - 2]]])
-            {
-                if (isAt(end[0], squareEnds))
-                {
-                    const side = perpendicular(end[1] - end[0]) * width;
-                    skLineSegment(sketch, tag ~ "square" ~ size(ends), { "start" : end[0] + side, "end" : end[0] - side });
-                }
-                ends = append(ends, end[0]);
-            }
+            continue;
         }
-        if (curve.kind == "arc")
+        if (isQueryEmpty(context, qContainsPoint(pockets, (a + b) / 2)))
         {
-            ends = concatenateArrays([ends, [curve.points[0], curve.points[2]]]);
+            continue;
         }
+        // Found from both sides
+        if (any(necks, neck => (tolerantEquals(neck.points[0], b) && tolerantEquals(neck.points[1], a)) ||
+                        (tolerantEquals(neck.points[0], a) && tolerantEquals(neck.points[1], b))))
+        {
+            continue;
+        }
+        necks = append(necks, { "sides" : qUnion([side, other]), "points" : [a, b] });
     }
-
-    // A circle at each end (once, where curves meet), but the square ones
-    var circled = [];
-    for (var end in ends)
-    {
-        if (!isAt(end, squareEnds) && !isAt(end, circled))
-        {
-            skCircle(sketch, "end" ~ size(circled), { "center" : end, "radius" : width });
-            circled = append(circled, end);
-        }
-    }
-}
-
-/**
- * An arc's capsule: arcs `width` outside and inside it (or for an arc no bigger than `width`, lines from its center to
- * the outer arc's ends), and straight ends at `squareEnds`.
- */
-function sketchArcWall(sketch is Sketch, tag is string, curve is map, width is ValueWithUnits, squareEnds is array)
-{
-    const scaled = function(radius is ValueWithUnits) returns array
-        {
-            return mapArray(curve.points, point => curve.center + (point - curve.center) * (radius / curve.radius));
-        };
-    skArc(sketch, tag ~ "center", { "start" : curve.points[0], "mid" : curve.points[1], "end" : curve.points[2], "construction" : true });
-    const outer = scaled(curve.radius + width);
-    skArc(sketch, tag ~ "outer", { "start" : outer[0], "mid" : outer[1], "end" : outer[2] });
-    const small = curve.radius <= width;
-    const inner = small ? [curve.center, curve.center, curve.center] : scaled(curve.radius - width);
-    if (!small)
-    {
-        skArc(sketch, tag ~ "inner", { "start" : inner[0], "mid" : inner[1], "end" : inner[2] });
-    }
-    for (var k in [0, 2])
-    {
-        // A small arc's wedge has its sides; others have them only at square ends (round ones are inside the circle)
-        if (small || isAt(curve.points[k], squareEnds))
-        {
-            skLineSegment(sketch, tag ~ "side" ~ k, { "start" : inner[k], "end" : outer[k] });
-        }
-    }
-}
-
-/**
- * The unit vector a quarter turn counterclockwise from `direction`.
- */
-function perpendicular(direction is Vector) returns Vector
-{
-    const unit = normalize(direction);
-    return vector(-unit[1], unit[0]);
-}
-
-/**
- * Whether `point` is at any of `points`.
- */
-function isAt(point is Vector, points is array) returns boolean
-{
-    return any(points, other => tolerantEquals(point, other));
+    return necks;
 }
 
 /**

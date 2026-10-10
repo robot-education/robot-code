@@ -39,8 +39,10 @@ it's tried alone (see Error handling).
 | Failed to extrude the pocket. | error | extruding the face into its part fails | `face`, `depth`, the face |
 | Failed to extrude regions to ignore. | error | extruding the sketch regions to ignore fails | `ignoredFaces`, the regions |
 | Failed to cut regions to ignore from pockets. | error | cutting them from the pocket fails | `ignoredFaces`, the regions |
-| Failed to extrude walls. | error | extruding the walls' sketch regions fails | `wallThickness`, the regions |
-| Failed to cut walls. | error | cutting the walls from the pocket fails | `wallThickness`, the walls |
+| Failed to extend pockets past their ends. | error | offsetting the pocket's ends (and sides along ignored faces) out fails | `wallThickness`, those faces |
+| Failed to round walls' inside corners. | error | the hair fillet of the pocket's concave edges fails | `wallThickness`, the edges |
+| The pocket is narrower than two walls where shown. Use thinner walls, or ignore one of the faces. | error | hollowing the pocket fails, and it has necks: sides closer than twice the wall (see `findNecks`) | `wallThickness`, the necks' sides |
+| Failed to make walls. | error | hollowing (or enclosing) the pocket fails, without necks | `wallThickness`, the pockets which fail alone |
 | Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | `ribEdges`, `ribThickness`, its edge |
 | Failed to thicken rib. | error | thickening its sheet fails | `ribEdges`, `ribThickness`, its edge |
 | Failed to cut ribs. | error | cutting them from the pockets fails | `ribEdges`, `ribThickness`, the ribs which fail alone |
@@ -70,18 +72,23 @@ it's tried alone (see Error handling).
    3. Sketch regions among Faces to ignore are left solid, as Part Lighten's exclude regions are (`excludeRegions`):
       they're extruded along the sketch's normal through the pocket, and 5% past it (`bandExtent`), and cut from it.
       Parts' faces among them mean something else: no wall is left along them (below).
-   4. The walls (`cutWalls`), the wall thickness (and, with Fillet corners, the fillet radius) thick: along the face's
-      edges, but those it shares with the part's faces to ignore, and around the regions to ignore. One sketch, on the
-      face's plane (moved halfway through the pocket), has a capsule around each edge (`wallCurves` reads each as a
-      line, arc, circle, or for anything else a polyline through points at most half the wall apart; `sketchWalls`
-      draws them): its sides the wall thickness to each side (an arc's or circle's concentric arcs, or for one no
-      bigger than the wall, a wedge to its center), and a circle that size at each end (once, where edges meet), but
-      at the ends of the sides along faces to ignore, which get straight ends so the walls stop there. Each edge is
-      drawn in it too, as construction. The capsules' outlines split the sketch into regions; those closer to the
-      edges (their construction copies) than the wall are walls (`isWallRegion`, by `evDistance`), and the rest (like
-      the face's middle, and its holes) are outside every capsule, at least the wall's thickness from every edge. The
-      walls are extruded through the pocket and cut from it, which leaves as many pockets as there's room for: a hole
-      near the edge, or two near each other, just leave no pocket between them.
+   4. The walls (`insetPockets`), as Ilya Baran and Morgan Bartlett's Lighten (and Part Lighten, `partLighten.local.fs`,
+      which builds on it) make them: the pocket is inset by the wall thickness (and, with Fillet corners, the fillet
+      radius), all at once. Its ends (`qCapEntity`), and its sides along the part's faces to ignore (found by tracking
+      the edges the face shares with them, which the extrude sweeps into those sides), are offset out by that much; its
+      concave edges are filleted by a hair (std's boolean tolerance, 0.01 mm); and it's hollowed (`opShell`) by that
+      much, which moves every face in by it. Inside it, what's enclosed (`opEnclose`) is the inset, and the hollowed
+      pocket is deleted. So the ends, and the sides along ignored faces, are back where they were, and walls are left
+      along every other side: around holes of any size, and with inside corners rounded to the wall thickness (and the
+      hair), as a wall of that thickness has.
+
+      Hollowing fails where the inset would split the pocket in two, or merge a hole into its outline: where two of its
+      sides are closer than twice the wall (a hole near the edge, two holes near each other, or a narrow waist). Only
+      when it has failed, `findNecks` looks for those, to show them: for each side which moves in, the nearest side
+      which isn't beside it (sharing an edge), by `evDistance`. A pair closer than twice the wall is a neck if the line
+      between their nearest points crosses the pocket (its middle is in it, so it isn't across a gap outside it, like a
+      notch), and runs along one side's normal at least, as it does across a pinch, but not between two sides of a
+      filleted or chamfered corner. With necks, the error shows their sides; without, the pockets which fail alone.
    5. The ribs (`buildRibs`), half the rib thickness to each side (and, with Fillet corners, the fillet radius), along
       the sketch's normal through the pockets and the ribs' edges, and 5% past them (`bandExtent`). Each is made on its
       own (edges extruded together make one sheet, creased where they meet, which can't be thickened): its edge is
@@ -99,7 +106,7 @@ it's tried alone (see Error handling).
    7. If no pockets are left, a warning says so; otherwise they're cut from the part, and pieces they cut free (ribs
       touching no wall or other rib) are warned about and shown. Otherwise, info says how much lighter the part is: how
       much less its volume is (to 0.1%).
-   8. What's left of the ribs (their sheets) and the sketches are deleted.
+   8. What's left of the ribs (their sheets) is deleted.
 3. **Manipulator change** (`robotLightenManipulatorChange`): dragging the depth manipulator sets Depth (its absolute
    value).
 
@@ -108,7 +115,7 @@ it's tried alone (see Error handling).
 Each operation which can fail has its own `try`, and its `catch` throws the feature's error for it, highlighting the
 parameters which set what failed, and showing it in red. A failed operation changes nothing, so what it was given is
 still there to show. A rib which fails highlights its edge. For the cuts and the growing offset, the `catch` narrows
-that down: it tries the operation again on each rib or pocket alone (`failingBodies`; cuts on copies of what they cut,
+that down: `findNecks` finds where a hollow would split the pocket, and otherwise it tries the operation again on each rib or pocket alone (`failingBodies`; cuts on copies of what they cut,
 `copyBodies`, so each try sees what the operation was given), and shows those which fail alone, or everything, if none
 does (it fails only on everything together). That runs an operation per body, but only on the way to an error, which
 rolls it all back. Selections are checked before anything's built. Warnings are reported when they're found.
@@ -117,19 +124,18 @@ rolls it all back. Selections are checked before anything's built. Warnings are 
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| The pocket's extrude, `excludeRegions`, `cutWalls`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
+| The pocket's extrude, `excludeRegions`, `insetPockets`, `buildRibs`, the cuts, `roundPockets` | Each operation | Throws its error (above). |
 | `failingBodies` (`try silent`) | Each try of a failed operation on one body | What it's looking for: the body is one which fails alone. |
 | `robotLightenEditLogic` (`try silent`) | Finding the ribs and their plane | A guard: with no ribs yet, editing logic leaves the definition as it is. |
 
 ## Issues found
 
-- Untested in Onshape: nothing here has run yet. The walls' sketch has a few entities per edge, all overlapping where
-  edges meet; how quickly Onshape finds its regions, for a face with hundreds of edges, isn't known.
-- Walls follow the face's outline, so a part whose sides slope or step gets walls of the face's outline, not of its
-  sides.
-- A spline edge's wall follows a polyline through points at most half the wall apart, so it's off by a little where the
-  spline bends.
-- A sliver of a capsule right at its outline (where capsules overlap at a shallow angle) can be taken for outside the
-  walls, leaving a notch in the wall that thin.
+- Untested in Onshape: nothing here has run yet.
+- A pocket with necks can't be lightened as is: the error shows where, but the walls don't go around them on their
+  own.
+- `findNecks` finds each side's nearest neck only, so a side with two shows one; and its corner test (the line runs
+  along a normal) is a judgement which a sharp, narrow corner may still pass.
+- Walls are an inset of the face's extrude, so a part whose sides slope or step gets walls of the face's outline, not
+  of its sides.
 - Rounded corners are 0.01 mm (std's boolean tolerance) bigger than asked: the hair they're rounded by first.
 - The icon is the generic robot icon.
