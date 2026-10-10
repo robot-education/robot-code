@@ -14,6 +14,13 @@ export function testHubSegments()
     expectEqual(hubSegments(A, []), []);
 }
 
+export function testHubCircleRadius()
+{
+    // Through the first spoke, measured in the sketch's plane: a spoke above it is projected onto it
+    expectNear(hubCircleRadius(XY_PLANE, A, C), sqrt(2) * inch, 1e-9 * inch);
+    expectNear(hubCircleRadius(XY_PLANE, A, B + vector(0, 0, 3) * inch), 1 * inch, 1e-9 * inch);
+}
+
 export function testChainSegments()
 {
     // In the order chosen, and closed back to the start; two points are one rib

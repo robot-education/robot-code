@@ -5,7 +5,6 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 export import(path : "onshape/std/manipulator.fs", version : "2960.0");
 QuickRibIcon::import(path : "rib/quickRibIcon.svg", version : "");
 
-const CIRCLE_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
 const LOCATION_BOUNDS = { (unitless) : [0, 0.5, 1] } as RealBoundSpec;
 const EDGE_RIB_MANIPULATOR = "edgeRib";
 
@@ -56,7 +55,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             }
         }
 
-        annotation { "Group Name" : "Hubs", "Collapsed By Default" : false }
+        annotation { "Group Name" : "Hub and spokes", "Collapsed By Default" : false }
         {
             annotation { "Name" : "Hubs", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
                         "UIHint" : ["FOCUS_INNER_QUERY"] }
@@ -72,14 +71,8 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                             "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
                 hub.spokes is Query;
 
-                annotation { "Name" : "Add circle" }
+                annotation { "Name" : "Add circle", "Description" : "A circle around the hub, through the first spoke chosen." }
                 hub.addCircle is boolean;
-
-                if (hub.addCircle)
-                {
-                    annotation { "Name" : "Circle diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(hub.circleDiameter, CIRCLE_BOUNDS);
-                }
             }
         }
 
@@ -130,7 +123,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         {
             const center = pointsOf(context, hub.hub);
             const spokes = pointsOf(context, hub.spokes);
-            if (center == [] || (spokes == [] && !hub.addCircle))
+            if (center == [] || spokes == [])
             {
                 skipped += 1;
                 continue;
@@ -138,7 +131,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             segments = concatenateArrays([segments, hubSegments(center[0], spokes)]);
             if (hub.addCircle)
             {
-                circles = append(circles, { "center" : center[0], "radius" : hub.circleDiameter / 2 });
+                circles = append(circles, { "center" : center[0], "through" : spokes[0] });
             }
         }
         for (var edgeRib in definition.edgeRibs)
@@ -170,7 +163,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         }
         for (var i, circle in circles)
         {
-            skCircle(sketch, "circle" ~ i, { "center" : worldToPlane(plane, circle.center), "radius" : circle.radius });
+            skCircle(sketch, "circle" ~ i, { "center" : worldToPlane(plane, circle.center), "radius" : hubCircleRadius(plane, circle.center, circle.through) });
         }
         skSolve(sketch);
 
@@ -255,6 +248,15 @@ export function chainSegments(points is array, closed is boolean) returns array
 export function hubSegments(hub is Vector, spokes is array) returns array
 {
     return mapArray(spokes, spoke => [hub, spoke]);
+}
+
+/**
+ * The radius of a hub's circle (Add circle), around the hub through its first spoke: how far apart they are in the
+ * sketch's plane (projected onto it, as the sketch is).
+ */
+export function hubCircleRadius(plane is Plane, hub is Vector, firstSpoke is Vector) returns ValueWithUnits
+{
+    return norm(worldToPlane(plane, firstSpoke) - worldToPlane(plane, hub));
 }
 
 /**
