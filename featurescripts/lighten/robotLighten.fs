@@ -21,6 +21,17 @@ export enum LightenEndType
     BLIND
 }
 
+/**
+ * Whether ribs are all one thickness (Simple), or in groups of their own thicknesses (Complex).
+ */
+export enum RibMode
+{
+    annotation { "Name" : "Simple" }
+    SIMPLE,
+    annotation { "Name" : "Complex" }
+    COMPLEX
+}
+
 predicate isBlind(definition is map)
 {
     definition.endType == LightenEndType.BLIND;
@@ -57,8 +68,29 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             }
         }
 
-        annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
-        definition.ribEdges is Query;
+        annotation { "Name" : "Rib mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+        definition.ribMode is RibMode;
+
+        if (definition.ribMode == RibMode.SIMPLE)
+        {
+            annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
+            definition.ribEdges is Query;
+        }
+        else
+        {
+            annotation { "Name" : "Ribs", "Item name" : "ribs", "Item label template" : "#ribThickness",
+                        "UIHint" : ["COLLAPSE_ARRAY_ITEMS"] }
+            definition.ribGroups is array;
+
+            for (var group in definition.ribGroups)
+            {
+                annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
+                group.ribEdges is Query;
+
+                annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(group.ribThickness, RIB_BOUNDS);
+            }
+        }
 
         annotation { "Name" : "Exclude construction lines", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.excludeConstruction is boolean;
@@ -66,8 +98,11 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.wallThickness, WALL_BOUNDS);
 
-        annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        isLength(definition.ribThickness, RIB_BOUNDS);
+        if (definition.ribMode == RibMode.SIMPLE)
+        {
+            annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            isLength(definition.ribThickness, RIB_BOUNDS);
+        }
 
         annotation { "Name" : "Fillet corners", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.filletCorners is boolean;
@@ -93,8 +128,9 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const facePlane = evPlane(context, { "face" : face });
         const part = qOwnerBody(face);
         const ignoredFaces = getIgnoredFaces(context, definition);
-        const ribEdges = getRibEdges(context, definition);
-        verifyParallel(context, face, facePlane, ribPlane(context, ribEdges));
+        const ribGroups = getRibGroups(context, definition);
+        const ribEdges = qUnion(mapArray(ribGroups, group => group.edges));
+        verifyParallel(context, face, facePlane, ribPlane(context, ribEdges, definition), definition);
         // To round the pockets' corners, they're made with walls and ribs this much thicker, then grown back by it (see
         // `roundPockets`)
         const radius = definition.filletCorners ? definition.filletRadius : 0 * meter;
@@ -138,8 +174,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         // The ribs, cut from what's left: what the walls enclose
         const inset = qCreatedBy(id + "walls", EntityType.BODY);
-        const ribs = buildRibs(context, id + "ribs", bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribEdges,
-            definition.ribThickness / 2 + radius);
+        const ribs = buildRibs(context, id + "ribs", bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribGroups, radius);
         try
         {
             opBoolean(context, id + "cutRibs", {
@@ -160,7 +195,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                                 "keepTools" : true
                             });
                 });
-            throw regenError("Failed to cut ribs.", ["ribEdges", "ribThickness"], failing);
+            throw regenError("Failed to cut ribs.", ribParameters(definition), failing);
         }
         // The pockets left between them, which the walls and ribs split into pieces
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
@@ -173,7 +208,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         if (isQueryEmpty(context, pockets))
         {
             reportFeatureWarning(context, id, "There's no room for pockets between the walls and ribs.",
-                ["wallThickness", "ribThickness", "filletRadius"]);
+                concatenateArrays([["wallThickness", "filletRadius"], ribParameters(definition)]));
         }
         else
         {
@@ -204,7 +239,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             const loose = qCreatedBy(id + "cut", EntityType.BODY);
             if (!isQueryEmpty(context, loose))
             {
-                reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ["ribEdges"]);
+                reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ribParameters(definition));
                 setErrorEntities(context, id, { "entities" : loose });
             }
             else
@@ -254,11 +289,11 @@ function getIgnoredFaces(context is Context, definition is map) returns Query
 /**
  * Throws unless the face to lighten is parallel to the ribs' sketches, so the ribs go straight into it.
  */
-function verifyParallel(context is Context, face is Query, facePlane is Plane, ribs is Plane)
+function verifyParallel(context is Context, face is Query, facePlane is Plane, ribs is Plane, definition is map)
 {
     if (!parallelVectors(facePlane.normal, ribs.normal))
     {
-        throw regenError("The face to lighten must be parallel to the ribs.", ["face", "ribEdges"], face);
+        throw regenError("The face to lighten must be parallel to the ribs.", concatenateArrays([["face"], ribParameters(definition)]), face);
     }
 }
 
@@ -316,8 +351,8 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
     var edges;
     try silent
     {
-        edges = getRibEdges(context, definition);
-        plane = ribPlane(context, edges);
+        edges = qUnion(mapArray(getRibGroups(context, definition), group => group.edges));
+        plane = ribPlane(context, edges, definition);
     }
     if (plane != undefined)
     {
@@ -391,27 +426,83 @@ function insetPockets(context is Context, id is Id, pockets is Query, ends is Qu
 }
 
 /**
- * The ribs' sketch edges (their construction edges too, unless they're excluded).
+ * The ribs, in groups of one thickness: in Simple mode, one; in Complex, each of Ribs, less what a later one has,
+ * so a later group (like a few ribs given another thickness) takes precedence over an earlier one (like a whole
+ * sketch). Each group's edges are its sketch edges (and their construction edges, unless they're excluded); groups
+ * left with none are left out.
+ *
+ * @returns {array} : Each group, as a map of `edges` (a query), `thickness`, and `parameters` (its parameters, for
+ *          errors about its ribs).
  */
-function getRibEdges(context is Context, definition is map) returns Query
+function getRibGroups(context is Context, definition is map) returns array
 {
-    var edges = qEntityFilter(definition.ribEdges, EntityType.EDGE);
-    if (definition.excludeConstruction)
+    const groups = ribGroups(definition);
+    var found = [];
+    for (var i, group in groups)
     {
-        edges = qConstructionFilter(edges, ConstructionObject.NO);
+        if (definition.ribMode == RibMode.COMPLEX && isQueryEmpty(context, group.selected))
+        {
+            throw regenError("Select ribs to use.", [faultyArrayParameterId("ribGroups", i, "ribEdges")]);
+        }
+        if (!isQueryEmpty(context, group.edges))
+        {
+            found = append(found, group);
+        }
     }
-    if (isQueryEmpty(context, edges))
+    if (found == [])
     {
-        throw regenError("Select ribs to use.", ["ribEdges"]);
+        throw regenError("Select ribs to use.", definition.ribMode == RibMode.SIMPLE ? ["ribEdges"] : ["ribGroups"]);
     }
-    return edges;
+    return found;
+}
+
+/**
+ * `getRibGroups`'s groups, before checking them: each with its `selected` edges too (less construction edges, if
+ * they're excluded), and its `edges`, less those later groups select.
+ */
+function ribGroups(definition is map) returns array
+{
+    var groups = [];
+    if (definition.ribMode == RibMode.SIMPLE)
+    {
+        groups = [{ "edges" : definition.ribEdges, "thickness" : definition.ribThickness, "parameters" : ["ribEdges", "ribThickness"] }];
+    }
+    else
+    {
+        for (var i, group in definition.ribGroups)
+        {
+            groups = append(groups, { "edges" : group.ribEdges, "thickness" : group.ribThickness,
+                        "parameters" : [faultyArrayParameterId("ribGroups", i, "ribEdges"), faultyArrayParameterId("ribGroups", i, "ribThickness")] });
+        }
+    }
+    var later = qNothing();
+    for (var i = size(groups) - 1; i >= 0; i -= 1)
+    {
+        var selected = qEntityFilter(groups[i].edges, EntityType.EDGE);
+        if (definition.excludeConstruction)
+        {
+            selected = qConstructionFilter(selected, ConstructionObject.NO);
+        }
+        groups[i].selected = selected;
+        groups[i].edges = qSubtraction(selected, later);
+        later = qUnion([later, selected]);
+    }
+    return groups;
+}
+
+/**
+ * The parameters which set the ribs, for errors about them.
+ */
+function ribParameters(definition is map) returns array
+{
+    return definition.ribMode == RibMode.SIMPLE ? ["ribEdges", "ribThickness"] : ["ribGroups"];
 }
 
 /**
  * The plane of the first rib's sketch. The ribs can be from any sketches, as long as they're parallel: each is
  * extruded through everything along their normal.
  */
-function ribPlane(context is Context, edges is Query) returns Plane
+function ribPlane(context is Context, edges is Query, definition is map) returns Plane
 {
     const evaluated = evaluateQuery(context, edges);
     const plane = evOwnerSketchPlane(context, { "entity" : evaluated[0] });
@@ -421,7 +512,7 @@ function ribPlane(context is Context, edges is Query) returns Plane
         });
     if (skewed != [])
     {
-        throw regenError("The ribs must be in parallel sketches.", ["ribEdges"], qUnion(skewed));
+        throw regenError("The ribs must be in parallel sketches.", ribParameters(definition), qUnion(skewed));
     }
     return plane;
 }
@@ -487,13 +578,25 @@ function bandExtent(context is Context, plane is Plane, bounds is Query) returns
 }
 
 /**
- * The ribs along `edges`, `halfWidth` to each side, through `extent` (see `bandExtent`), each made on its own: edges
+ * The ribs of `groups` (see `getRibGroups`), each half its group's thickness to each side (and `radius` more), through `extent` (see `bandExtent`), each made on its own: edges
  * extruded together make one sheet, creased where they meet, which can't be thickened. Each is its edge's sheet,
- * thickened; but an arc or circle hardly bigger than `halfWidth` can't be thickened toward its center, so its rib is a
- * cylinder around its center, `halfWidth` bigger than it, instead (a little more than its rib, near its center). A rib
- * which fails highlights its edge.
+ * thickened; but an arc or circle hardly bigger than that can't be thickened toward its center, so its rib is a
+ * cylinder around its center, that much bigger than it, instead (a little more than its rib, near its center). A rib
+ * which fails highlights its edge, and its group's parameters.
  */
-function buildRibs(context is Context, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits) returns Query
+function buildRibs(context is Context, id is Id, extent is map, groups is array, radius is ValueWithUnits) returns Query
+{
+    for (var j, group in groups)
+    {
+        buildRibGroup(context, id + unstableIdComponent(j), extent, group.edges, group.thickness / 2 + radius, group.parameters);
+    }
+    return qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
+}
+
+/**
+ * One group's ribs, `halfWidth` to each side (see `buildRibs`).
+ */
+function buildRibGroup(context is Context, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits, parameters is array)
 {
     // The circles given cylinders: a circle split into arcs needs just one
     var circles = [];
@@ -523,7 +626,7 @@ function buildRibs(context is Context, id is Id, extent is map, edges is Query, 
             }
             catch
             {
-                throw regenError("Failed to extrude rib.", ["ribEdges", "ribThickness"], edge);
+                throw regenError("Failed to extrude rib.", parameters, edge);
             }
             continue;
         }
@@ -541,7 +644,7 @@ function buildRibs(context is Context, id is Id, extent is map, edges is Query, 
         }
         catch
         {
-            throw regenError("Failed to extrude rib.", ["ribEdges", "ribThickness"], edge);
+            throw regenError("Failed to extrude rib.", parameters, edge);
         }
         try
         {
@@ -553,10 +656,9 @@ function buildRibs(context is Context, id is Id, extent is map, edges is Query, 
         }
         catch
         {
-            throw regenError("Failed to thicken rib.", ["ribEdges", "ribThickness"], edge);
+            throw regenError("Failed to thicken rib.", parameters, edge);
         }
     }
-    return qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
 }
 
 /**

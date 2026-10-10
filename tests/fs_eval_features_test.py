@@ -32,3 +32,31 @@ def test_pitch_circle_teeth():
 @pytest.mark.parametrize("length,links", [(25.0, 100), (25.1, 100), (25.3, 102), (0.1, 2)])
 def test_closest_links_are_even(length, links):
     assert evaluate(f"closestLinks(getChainInfo(ChainType.ANSI_25), {length} * inch)", CHAIN) == links
+
+
+LIGHTEN = "lighten/robotLighten.fs"
+SKETCH, FEW = "qEverything(EntityType.EDGE)", "qNthElement(qEverything(EntityType.EDGE), 0)"
+
+
+def test_later_rib_groups_take_precedence():
+    # A whole sketch at 1 in., then a few of its ribs at 2 in.: the sketch's group loses the few
+    definition = (
+        '{ "ribMode" : RibMode.COMPLEX, "excludeConstruction" : false, "ribGroups" : ['
+        f'{{ "ribEdges" : {SKETCH}, "ribThickness" : 1 * inch }}, {{ "ribEdges" : {FEW}, "ribThickness" : 2 * inch }}] }}'
+    )
+    groups = f"ribGroups({definition})"
+    sketch, few = f"qEntityFilter({SKETCH}, EntityType.EDGE)", f"qEntityFilter({FEW}, EntityType.EDGE)"
+    assert evaluate(f"{groups}[0].edges == qSubtraction({sketch}, qUnion([qNothing(), {few}]))", LIGHTEN) is True
+    assert evaluate(f"{groups}[1].edges == qSubtraction({few}, qNothing())", LIGHTEN) is True
+    assert to_python(evaluate(f"{groups}[1].thickness / inch", LIGHTEN)) == pytest.approx(2)
+    assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == ["ribGroups[0].ribEdges", "ribGroups[0].ribThickness"]
+
+
+def test_simple_ribs_are_one_group_less_construction():
+    definition = f'{{ "ribMode" : RibMode.SIMPLE, "excludeConstruction" : true, "ribEdges" : {SKETCH}, "ribThickness" : 1 * inch }}'
+    groups = f"ribGroups({definition})"
+    assert evaluate(f"size({groups})", LIGHTEN) == 1
+    assert evaluate(
+        f"{groups}[0].selected == qConstructionFilter(qEntityFilter({SKETCH}, EntityType.EDGE), ConstructionObject.NO)", LIGHTEN
+    ) is True
+    assert to_python(evaluate(f"{groups}[0].parameters", LIGHTEN)) == ["ribEdges", "ribThickness"]
