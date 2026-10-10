@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "rib/quickRib.fs", version : "");
+import(path : "lighten/quickRibs.fs", version : "");
 import(path : "testing.fs", version : "");
 
 const A = vector(0, 0, 0) * inch;

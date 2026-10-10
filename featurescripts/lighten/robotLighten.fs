@@ -2,6 +2,8 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+// Ribs it sketches itself, from Chains, Hub and spokes, and Edge ribs
+export import(path : "lighten/quickRibs.fs", version : "");
 RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "f76010d67ed6821a73cbf7e0");
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
@@ -30,11 +32,12 @@ predicate isBlind(definition is map)
 
 /**
  * Lightens a part with pockets: everything within the extrude of the face to lighten (into its part, through it or to
- * a depth) is cut away, but for walls along the face's edges (the part's sides and holes) and ribs along the selected
- * sketch edges, with the pockets' corners rounded as a router bit leaves them.
+ * a depth) is cut away, but for walls along the face's edges (the part's sides and holes) and ribs, with the pockets'
+ * corners rounded as a router bit leaves them. Ribs run along the selected sketch edges, and between points it's given
+ * (see `quickRibs.fs`): chains, hubs and spokes, and from points to edges.
  */
 annotation { "Feature Type Name" : "Robot lighten",
-        "Feature Type Description" : "Lighten a part with pockets, leaving walls around its edges and holes, and ribs along a sketch." ~ CREDIT,
+        "Feature Type Description" : "Lighten a part with pockets, leaving walls around its edges and holes, and ribs along a sketch or between holes." ~ CREDIT,
         "Manipulator Change Function" : "robotLightenManipulatorChange",
         "Editing Logic Function" : "robotLightenEditLogic",
         "Icon" : RobotLightenIcon::BLOB_DATA
@@ -42,28 +45,118 @@ annotation { "Feature Type Name" : "Robot lighten",
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Face to lighten", "MaxNumberOfPicks" : 1,
-                    "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
-        definition.face is Query;
-
-        annotation { "Name" : "Ignore faces" }
-        definition.ignoreFaces is boolean;
-
-        annotation { "Group Name" : "Ignore faces", "Driving Parameter" : "ignoreFaces", "Collapsed By Default" : false }
+        annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
         {
-            if (definition.ignoreFaces)
+            annotation { "Name" : "Face to lighten", "MaxNumberOfPicks" : 1,
+                        "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
+            definition.face is Query;
+
+            annotation { "Name" : "Ignore faces" }
+            definition.ignoreFaces is boolean;
+
+            annotation { "Group Name" : "Ignore faces", "Driving Parameter" : "ignoreFaces", "Collapsed By Default" : false }
             {
-                annotation { "Name" : "Faces to ignore", "UIHint" : UIHint.INITIAL_FOCUS,
-                            "Filter" : EntityType.FACE && ((BodyType.SOLID && ModifiableEntityOnly.YES) || (SketchObject.YES && ConstructionObject.NO)) }
-                definition.ignoredFaces is Query;
+                if (definition.ignoreFaces)
+                {
+                    annotation { "Name" : "Faces to ignore", "UIHint" : UIHint.INITIAL_FOCUS,
+                                "Filter" : EntityType.FACE && ((BodyType.SOLID && ModifiableEntityOnly.YES) || (SketchObject.YES && ConstructionObject.NO)) }
+                    definition.ignoredFaces is Query;
+                }
+            }
+
+            annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
+            definition.ribEdges is Query;
+
+            annotation { "Name" : "Exclude construction lines", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.excludeConstruction is boolean;
+        }
+
+        annotation { "Name" : "Chains" }
+        definition.useChains is boolean;
+
+        annotation { "Group Name" : "Chains", "Driving Parameter" : "useChains", "Collapsed By Default" : false }
+        {
+            if (definition.useChains)
+            {
+                annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
+                            "UIHint" : ["FOCUS_INNER_QUERY"] }
+                definition.chains is array;
+
+                for (var chain in definition.chains)
+                {
+                    annotation { "Name" : "Points",
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    chain.chainPoints is Query;
+
+                    annotation { "Name" : "Closed" }
+                    chain.closed is boolean;
+                }
             }
         }
 
-        annotation { "Name" : "Ribs to use", "Filter" : EntityType.EDGE && SketchObject.YES }
-        definition.ribEdges is Query;
+        annotation { "Name" : "Hub and spokes" }
+        definition.useHubs is boolean;
 
-        annotation { "Name" : "Exclude construction lines", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.excludeConstruction is boolean;
+        annotation { "Group Name" : "Hub and spokes", "Driving Parameter" : "useHubs", "Collapsed By Default" : false }
+        {
+            if (definition.useHubs)
+            {
+                annotation { "Name" : "Hubs", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
+                            "UIHint" : ["FOCUS_INNER_QUERY"] }
+                definition.hubs is array;
+
+                for (var hub in definition.hubs)
+                {
+                    annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    hub.hub is Query;
+
+                    annotation { "Name" : "Spokes",
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    hub.spokes is Query;
+
+                    annotation { "Name" : "Add circle", "Description" : "A circle around the hub, through the first spoke chosen." }
+                    hub.addCircle is boolean;
+                }
+            }
+        }
+
+        annotation { "Name" : "Edge ribs" }
+        definition.useEdgeRibs is boolean;
+
+        annotation { "Group Name" : "Edge ribs", "Driving Parameter" : "useEdgeRibs", "Collapsed By Default" : false }
+        {
+            if (definition.useEdgeRibs)
+            {
+                annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
+                definition.edgeRibs is array;
+
+                for (var edgeRib in definition.edgeRibs)
+                {
+                    annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    edgeRib.ribEnd is EdgeRibEnd;
+
+                    annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
+                    edgeRib.ribEdge is Query;
+
+                    annotation { "Name" : "Points",
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    edgeRib.ribPoints is Query;
+
+                    if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
+                    {
+                        annotation { "Name" : "Location", "Description" : "How far along the edge the ribs meet it, from its start (0) to its end (1)." }
+                        isReal(edgeRib.edgeLocation, EDGE_RIB_LOCATION_BOUNDS);
+                    }
+                }
+            }
+        }
+
+        if (definition.useChains || definition.useHubs || definition.useEdgeRibs)
+        {
+            annotation { "Name" : "Clear invalid selections" }
+            isButton(definition.clearInvalid);
+        }
 
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.wallThickness, WALL_BOUNDS);
@@ -140,7 +233,15 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const part = qOwnerBody(face);
         const ignoredFaces = getIgnoredFaces(context, definition);
         const wallOverrides = getWallOverrides(context, definition, face);
-        const ribGroups = getRibGroups(context, definition);
+        // Quick ribs, sketched on the face (its sketch is deleted with the rest)
+        const quickRibs = sketchQuickRibs(context, id + "quickRibs", definition, facePlane);
+        if (quickRibs.skipped > 0)
+        {
+            reportFeatureWarning(context, id, quickRibs.skipped == 1 ? "A chain, hub, or edge rib isn't complete, so it's skipped." :
+                    quickRibs.skipped ~ " chains, hubs, and edge ribs aren't complete, so they're skipped.", quickRibParameters(definition));
+        }
+        addEdgeRibManipulators(context, id, definition);
+        const ribGroups = getRibGroups(context, definition, quickRibs.edges);
         const ribEdges = qUnion(mapArray(ribGroups, group => group.edges));
         verifyParallel(context, face, facePlane, ribPlane(context, ribEdges, definition), definition);
         // To round the pockets' corners, they're made with walls and ribs this much thicker, then grown back by it (see
@@ -289,9 +390,9 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                 reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ribParameters(definition));
                 setErrorEntities(context, id, { "entities" : loose });
             }
-            else
+            else if (quickRibs.skipped == 0)
             {
-                // Only without the warning, which this would replace
+                // Only without a warning, which this would replace
                 const lightened = 1 - evVolume(context, { "entities" : part }) / volume;
                 reportFeatureInfo(context, id, "Lightened the part by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
             }
@@ -496,6 +597,9 @@ function addDepthManipulator(context is Context, id is Id, face is Query, facePl
             });
 }
 
+/**
+ * Dragging the depth manipulator sets Depth; dragging an edge rib's end sets its Location (`edgeRibManipulatorChange`).
+ */
 export function robotLightenManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
     const manipulator = newManipulators[DEPTH_MANIPULATOR];
@@ -503,16 +607,22 @@ export function robotLightenManipulatorChange(context is Context, definition is 
     {
         definition.depth = abs(manipulator.offset);
     }
-    return definition;
+    return edgeRibManipulatorChange(context, definition, newManipulators);
 }
 
 /**
- * Fills in the face to lighten, unless it's been set: the one face in the first rib's sketch plane which the ribs are
- * over, if there's just one.
+ * When Clear invalid selections is clicked, drops the quick ribs' invalid selections (`clearInvalidSelections`). Fills
+ * in the face to lighten, unless it's been set: the one face in the first rib's sketch plane which the ribs are over,
+ * if there's just one; or without ribs to use, while it's empty, the face under the first quick rib selection
+ * (`firstFaceUnder`).
  */
 export function robotLightenEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
-    specifiedParameters is map, hiddenBodies is Query) returns map
+    specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
+    if (clickedButton == "clearInvalid")
+    {
+        definition = clearInvalidSelections(context, definition);
+    }
     if (specifiedParameters.face ?? false)
     {
         return definition;
@@ -522,7 +632,7 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
     var edges;
     try silent
     {
-        edges = qUnion(mapArray(getRibGroups(context, definition), group => group.edges));
+        edges = qUnion(mapArray(getRibGroups(context, definition, qNothing()), group => group.edges));
         plane = ribPlane(context, edges, definition);
     }
     if (plane != undefined)
@@ -531,6 +641,14 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
         if (evaluateQueryCount(context, faces) == 1)
         {
             definition.face = faces;
+        }
+    }
+    else if (isQueryEmpty(context, definition.face))
+    {
+        const face = firstFaceUnder(context, definition, hiddenBodies);
+        if (face != undefined)
+        {
+            definition.face = face;
         }
     }
     return definition;
@@ -807,20 +925,25 @@ function tightCorners(context is Context, pockets is Query, excluded is Query, d
 }
 
 /**
- * The ribs, in groups of one thickness: Ribs to use, at Rib thickness, then with Override rib thickness, each of Rib
- * overrides; each less what a later one has, so later ones take precedence (a whole sketch, then a few of its ribs at
- * another thickness). An override's ribs needn't be among Ribs to use. Each group's edges are its sketch edges (and
- * their construction edges, unless they're excluded); groups left with none are left out.
+ * The ribs, in groups of one thickness: Ribs to use and the quick ribs (`quickRibEdges`), at Rib thickness, then with
+ * Override rib thickness, each of Rib overrides; each less what a later one has, so later ones take precedence (a
+ * whole sketch, then a few of its ribs at another thickness). An override's ribs needn't be among Ribs to use. Each
+ * group's edges are its sketch edges (and their construction edges, unless they're excluded); groups left with none
+ * are left out.
  *
  * @returns {array} : Each group, as a map of `edges` (a query), `thickness`, and `parameters` (its parameters, for
  *          errors about its ribs).
  */
-function getRibGroups(context is Context, definition is map) returns array
+function getRibGroups(context is Context, definition is map, quickRibEdges is Query) returns array
 {
-    const groups = ribGroups(definition);
+    var groups = ribGroups(definition);
+    // Overrides can't select them, so they're only ever at Rib thickness
+    groups[0].selected = qUnion([groups[0].selected, quickRibEdges]);
+    groups[0].edges = qUnion([groups[0].edges, quickRibEdges]);
+    groups[0].parameters = concatenateArrays([groups[0].parameters, quickRibParameters(definition)]);
     if (isQueryEmpty(context, groups[0].selected))
     {
-        throw regenError("Select ribs to use.", ["ribEdges"]);
+        throw regenError("Select ribs to use, or add chains, hubs, or edge ribs.", concatenateArrays([["ribEdges"], quickRibParameters(definition)]));
     }
     var found = [];
     for (var i, group in groups)
@@ -888,11 +1011,19 @@ function failingRibParameters(context is Context, id is Id, groups is array, fai
 }
 
 /**
+ * The quick ribs' parameters which are turned on (Chains, Hubs, and Edge ribs), for errors about them.
+ */
+function quickRibParameters(definition is map) returns array
+{
+    return concatenateArrays([definition.useChains ? ["chains"] : [], definition.useHubs ? ["hubs"] : [], definition.useEdgeRibs ? ["edgeRibs"] : []]);
+}
+
+/**
  * The parameters which set the ribs, for errors about them.
  */
 function ribParameters(definition is map) returns array
 {
-    return overridesRibs(definition) ? ["ribEdges", "ribThickness", "ribOverrides"] : ["ribEdges", "ribThickness"];
+    return concatenateArrays([["ribEdges", "ribThickness"], quickRibParameters(definition), overridesRibs(definition) ? ["ribOverrides"] : []]);
 }
 
 /**

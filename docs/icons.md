@@ -72,7 +72,7 @@ From Robot lighten's icon, which went through a dozen versions:
 - Round where walls meet (`round_corners`); too much rounding turns a pocket into a blob.
 - Thin sides (a plate's thickness under 2 units) disappear at 20 px, and so do pockets under about 2 units across.
 
-From Quick rib's:
+From Quick rib's (a feature since folded into Robot lighten; its icon is in the history):
 
 - Check the 20 px dark preview: Onshape's outlines are #333 whatever the theme, so on dark they vanish into the
   background, and an icon reads only by its light areas. Small white shapes inside 1.3 unit outlines turn into dots;

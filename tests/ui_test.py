@@ -528,5 +528,14 @@ def test_render_reports_what_conditions_read():
     info = {}
     render_feature(_project(config), config.std_dir, config.code_dir / "lighten" / "robotLighten.fs", None, {}, info=info)
     # Every condition's parameters, even those of branches not shown
-    assert info["conditions"] == {"endType", "filletCorners", "ignoreFaces", "overrideRibThickness", "overrideWallThickness"}
+    assert info["conditions"] == {
+        "endType",
+        "filletCorners",
+        "ignoreFaces",
+        "overrideRibThickness",
+        "overrideWallThickness",
+        "useChains",
+        "useEdgeRibs",
+        "useHubs",
+    }
     assert info["parameters"]["excludeConstruction"].kind == "boolean"
