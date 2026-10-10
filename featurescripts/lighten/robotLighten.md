@@ -27,8 +27,10 @@ No parameters have descriptions, and none are hidden. Editing logic sets the sho
 order).
 
 Rib mode (the tabs at the top) chooses how ribs are given: Simple, one Ribs to use and Rib thickness; or Complex, Ribs,
-an array of groups (labeled by their thickness), each its own Ribs to use and Rib thickness. Exclude construction lines
-applies to every group.
+an array of groups (labeled like "0.5 in ribs", expanded), each its own Ribs to use (`groupEdges`) and Rib thickness
+(`groupThickness`), named apart from Simple's because Onshape names array items' parameters with the rest. Ribs is
+driven by its groups' Ribs to use (`"Driven query"`): selecting ribs adds a group of them. Exclude construction lines
+applies to every group. Editing logic carries the ribs over when Rib mode changes (see Execution order).
 
 ### Errors, warnings, and info
 
@@ -62,8 +64,10 @@ it's tried alone (see Error handling).
 
 ### Execution order
 
-1. **Editing logic** (`robotLightenEditLogic`): unless Face to lighten has been set, and once there are ribs,
-   `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in
+1. **Editing logic** (`robotLightenEditLogic`): when Rib mode changes, `syncRibModes` carries the ribs over: Simple's
+   are Complex's first group (to Complex, they become it, or replace its ribs and thickness, keeping later groups); to
+   Simple, its ribs become every group's, at the first group's thickness, so none are lost. Then, unless Face to
+   lighten has been set, and once there are ribs, `facesUnder` finds the faces in the first rib's sketch plane (of parts which aren't hidden) whose bounding boxes, in
    the plane, overlap the ribs'; if there's just one, it's the face to lighten. It only evaluates: building anything in
    editing logic (a trial feature, between `startFeature` and `abortFeature`) can crash the Part Studio.
 2. **Body**:

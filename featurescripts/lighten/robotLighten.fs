@@ -78,8 +78,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         else
         {
-            annotation { "Name" : "Ribs", "Item name" : "ribs", "Item label template" : "#groupThickness",
-                        "UIHint" : ["COLLAPSE_ARRAY_ITEMS"] }
+            // Selecting ribs adds a group of them (or adds them to the group being edited)
+            annotation { "Name" : "Ribs", "Item name" : "ribs", "Item label template" : "#groupThickness ribs", "Driven query" : "groupEdges" }
             definition.ribGroups is array;
 
             for (var group in definition.ribGroups)
@@ -342,6 +342,7 @@ export function robotLightenManipulatorChange(context is Context, definition is 
 export function robotLightenEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    definition = syncRibModes(oldDefinition, definition);
     if (specifiedParameters.face ?? false)
     {
         return definition;
@@ -361,6 +362,31 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
         {
             definition.face = faces;
         }
+    }
+    return definition;
+}
+
+/**
+ * Carries the ribs over when Rib mode changes. Simple's ribs are Complex's first group: to Complex, they become its
+ * first group (or replace its ribs and thickness, keeping later groups); to Simple, its ribs become all of Complex's
+ * (so none are lost; switching back, later groups still take precedence), at the first group's thickness.
+ */
+function syncRibModes(oldDefinition is map, definition is map) returns map
+{
+    if (oldDefinition.ribMode == undefined || oldDefinition.ribMode == definition.ribMode)
+    {
+        return definition;
+    }
+    var groups = definition.ribGroups ?? [];
+    if (definition.ribMode == RibMode.COMPLEX)
+    {
+        const first = { "groupEdges" : definition.ribEdges, "groupThickness" : definition.ribThickness };
+        definition.ribGroups = groups == [] ? [first] : concatenateArrays([[mergeMaps(groups[0], first)], subArray(groups, 1)]);
+    }
+    else if (groups != [])
+    {
+        definition.ribEdges = qUnion(mapArray(groups, group => group.groupEdges));
+        definition.ribThickness = groups[0].groupThickness;
     }
     return definition;
 }
