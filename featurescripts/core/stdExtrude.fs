@@ -346,7 +346,7 @@ export function verifyFlatEnds(context is Context, id is Id, body is Query, name
     for (var capType in [CapType.START, CapType.END])
     {
         const cap = qCapEntity(id, capType, EntityType.FACE)->qOwnedByBody(body);
-        if (!isQueryEmpty(context, cap) && size(evaluateQuery(context, cap)) != size(evaluateQuery(context, cap->qGeometry(GeometryType.PLANE))))
+        if (!isQueryEmpty(context, qSubtraction(cap, cap->qGeometry(GeometryType.PLANE))))
         {
             throw regenError(flatEndsMessage(name), ["endBound"], cap);
         }
@@ -490,9 +490,9 @@ export function transformDefintionForNewExtrude(definition is map, entities is Q
 export function stdNewExtrudeEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    const resolvedEntities = evaluateQuery(context, getEntitiesToUse(context, definition));
-    const extrudeAxis = resolvedEntities == [] ? undefined :
-        computeProfilePlaneNormal(context, definition, resolvedEntities[0], definition.transform);
+    const entities = getEntitiesToUse(context, definition);
+    const extrudeAxis = isQueryEmpty(context, entities) ? undefined :
+        computeProfilePlaneNormal(context, definition, qNthElement(entities, 0), definition.transform);
     definition.entities = undefined;
     return newExtrudeEditLogicAlong(context, definition, specifiedParameters, extrudeAxis);
 }
@@ -535,12 +535,12 @@ precondition
     transform is undefined || transform is Transform;
 }
 {
-    const planes = evaluateQuery(context, qGeometry(entity, GeometryType.PLANE));
+    const planes = qGeometry(entity, GeometryType.PLANE);
 
     var extrudeAxis;
-    if (size(planes) >= 1)
+    if (!isQueryEmpty(context, planes))
     {
-        const entityPlane = evPlane(context, { "face" : planes[0] });
+        const entityPlane = evPlane(context, { "face" : qNthElement(planes, 0) });
         extrudeAxis = line(entityPlane.origin, entityPlane.normal);
         if (transform == undefined || transform == identityTransform())
             return extrudeAxis;

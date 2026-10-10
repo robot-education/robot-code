@@ -84,7 +84,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const face = getFace(context, definition);
         // Its normal points out of its part, so pockets go against it
         const facePlane = evPlane(context, { "face" : face });
-        const part = qUnion(evaluateQuery(context, qOwnerBody(face)));
+        const part = qOwnerBody(face);
         const ribEdges = getRibEdges(context, definition);
         verifyParallel(context, face, facePlane, ribPlane(context, ribEdges));
         // To round the pockets' corners, they're made with walls and ribs this much thicker, then grown back by it (see
@@ -115,20 +115,21 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             throw regenError("Failed to extrude the pocket.", ["face", "depth"], face);
         }
-        const ends = qUnion(evaluateQuery(context, qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE)));
+        const ends = qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE);
         // The pockets' ends, through the walls, ribs, and rounding (see `pocketEnds`)
         const trackedEnds = startTracking(context, ends);
 
         // Sketch regions to ignore are left solid: cut from the pocket, so walls go around them too
-        excludeRegions(context, id + "excludeRegions", facePlane, pocketBodies(context, id), qSketchFilter(definition.ignoredFaces, SketchObject.YES));
+        excludeRegions(context, id + "excludeRegions", facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(definition.ignoredFaces, SketchObject.YES));
 
-        // The walls: the pocket, inset by them, but along the part's faces to ignore
-        const extruded = pocketBodies(context, id);
+        // The walls: the pocket (and the pieces regions to ignore split it into), inset by them, but along the part's
+        // faces to ignore
+        const extruded = qUnion([qCreatedBy(id + "pocket", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
         insetPockets(context, id + "walls", extruded, ends, qIntersection([qOwnedByBody(extruded, EntityType.FACE), ignoredSides]),
             definition.wallThickness + radius);
 
-        // The ribs, cut from what's left
-        const inset = pocketBodies(context, id);
+        // The ribs, cut from what's left: what the walls enclose
+        const inset = qCreatedBy(id + "walls", EntityType.BODY);
         const ribs = buildRibs(context, id + "ribs", bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribEdges,
             definition.ribThickness / 2 + radius);
         try
@@ -154,7 +155,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             throw regenError("Failed to cut ribs.", ["ribEdges", "ribThickness"], failing);
         }
         // The pockets left between them, which the walls and ribs split into pieces
-        const pockets = pocketBodies(context, id);
+        const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
 
         if (definition.filletCorners)
         {
@@ -206,8 +207,9 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             }
         }
 
+        // The pockets are used up by the cut (or there are none)
         opDeleteBodies(context, id + "cleanup", {
-                    "entities" : qUnion([pockets, qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES), qCreatedBy(id + "ribs", EntityType.BODY)])
+                    "entities" : qUnion([qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES), qCreatedBy(id + "ribs", EntityType.BODY)])
                 });
     });
 
@@ -233,15 +235,6 @@ function verifyParallel(context is Context, face is Query, facePlane is Plane, r
     {
         throw regenError("The face to lighten must be parallel to the ribs.", ["face", "ribEdges"], face);
     }
-}
-
-/**
- * The pockets so far: the solids made under `id`, the pocket and the pieces walls and ribs split it into (their tools,
- * the walls' and ribs' bodies, are used up by the booleans which cut them).
- */
-function pocketBodies(context is Context, id is Id) returns Query
-{
-    return qUnion(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)));
 }
 
 /**
@@ -303,10 +296,10 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
     }
     if (plane != undefined)
     {
-        const faces = evaluateQuery(context, facesUnder(context, plane, edges, hiddenBodies));
-        if (size(faces) == 1)
+        const faces = facesUnder(context, plane, edges, hiddenBodies);
+        if (evaluateQueryCount(context, faces) == 1)
         {
-            definition.face = faces[0];
+            definition.face = faces;
         }
     }
     return definition;

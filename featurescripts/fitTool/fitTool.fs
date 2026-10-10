@@ -466,7 +466,7 @@ export function fitToolEditLogic(context is Context, id is Id, oldDefinition is 
     if (oldDefinition == {})
     {
         const profiles = qEverything(EntityType.FACE)->qSketchFilter(SketchObject.YES);
-        if (size(evaluateQuery(context, profiles)) == 1)
+        if (evaluateQueryCount(context, profiles) == 1)
         {
             definition.profile = profiles;
         }

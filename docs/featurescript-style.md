@@ -265,8 +265,8 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   consumed or changed what's to be shown, std rebuilds it under another id, shows it as error entities, and deletes
   it: `processNewBodyIfNeeded` takes a `reconstructOp(errorId)` for this, which extrude, revolve, and the rest pass.
 - **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes (like the
-  faces a shell opens) finds nothing after it. Evaluate one first (`qUnion(evaluateQuery(...))`) to keep what it found,
-  as long as those entities last, or show something that lasts instead.
+  faces a shell opens) finds nothing after it. Show something that lasts instead, or (only if nothing else finds them)
+  evaluate it before that step (see Queries).
 - **Report a warning when it's found** (`reportFeatureWarning`, with `setErrorEntities` to show what it's about). An
   error later takes precedence over it, which is fine: don't hold a warning back in the hope that nothing fails.
 - **Don't run trial features in editing logic.** `startFeature` and `abortFeature` roll back operations run between
@@ -357,7 +357,15 @@ Std's `query.fs` has the queries most code needs. The ones which come up most:
 - Combining: `qUnion`, `qSubtraction`, `qIntersection`, and `qNthElement`.
 
 Queries are evaluated when they're used, not when they're made: a query of a group used after a later operation also
-returns what that operation made. Use `evaluateQuery` to fix what one returns now, and `isQueryEmpty` to check it.
+returns what that operation made. Make queries say what they mean instead (the operation's own id, a filter, or a
+subtraction of what a later step adds), and pass them on as they are.
+
+Use `evaluateQuery` only to go through a query's entities one by one (a `for` loop, `filter`, `mapArray`). Everywhere
+else, use the query itself: operations, `ev` functions, and other queries take queries, and queries compose freely
+(`qOwnedByBody(qCreatedBy(id + "pocket", EntityType.BODY), EntityType.FACE)`, `qSubtraction(faces, ends)`). To check
+one, use `isQueryEmpty`, or `evaluateQueryCount` for how many it finds; not `evaluateQuery(...) == []` or `size(...)`.
+Don't wrap one in `qUnion(evaluateQuery(...))` to pin it down: only where a step deletes what a query finds by (like
+the faces a shell opens), and nothing else finds those entities, evaluate it before that step.
 
 ## Functions as values
 

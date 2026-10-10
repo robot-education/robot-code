@@ -353,7 +353,7 @@ export function assemblyMirrorEditLogic(context is Context, id is Id, oldDefinit
 
 function autofillFromPreselection(context is Context, id is Id, definition is map) returns map
 {
-    const numFaces = size(evaluateQuery(context, definition.preselection->qGeometry(GeometryType.PLANE)));
+    const numFaces = evaluateQueryCount(context, definition.preselection->qGeometry(GeometryType.PLANE));
 
     var entities = definition.preselection;
     if (numFaces == 1)
