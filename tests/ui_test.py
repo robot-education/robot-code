@@ -534,8 +534,5 @@ def test_render_reports_what_conditions_read():
         "ignoreFaces",
         "overrideRibThickness",
         "overrideWallThickness",
-        "useChains",
-        "useEdgeRibs",
-        "useHubs",
     }
     assert info["parameters"]["excludeConstruction"].kind == "boolean"

@@ -74,92 +74,62 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // Ribs it sketches itself (see `quickRibs.fs`)
         annotation { "Group Name" : "Quick ribs", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Chains" }
-            definition.useChains is boolean;
+            annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
+                        "UIHint" : ["FOCUS_INNER_QUERY"] }
+            definition.chains is array;
 
-            annotation { "Group Name" : "Chains", "Driving Parameter" : "useChains", "Collapsed By Default" : false }
+            for (var chain in definition.chains)
             {
-                if (definition.useChains)
+                annotation { "Name" : "Points",
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                chain.chainPoints is Query;
+
+                annotation { "Name" : "Closed" }
+                chain.closed is boolean;
+            }
+
+            annotation { "Name" : "Hub and spokes", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
+                        "UIHint" : ["FOCUS_INNER_QUERY"] }
+            definition.hubs is array;
+
+            for (var hub in definition.hubs)
+            {
+                annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                hub.hub is Query;
+
+                annotation { "Name" : "Spokes",
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                hub.spokes is Query;
+
+                annotation { "Name" : "Add circle", "Description" : "Add a circle through the first selected spoke." }
+                hub.addCircle is boolean;
+            }
+
+            annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
+            definition.edgeRibs is array;
+
+            for (var edgeRib in definition.edgeRibs)
+            {
+                annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                edgeRib.ribEnd is EdgeRibEnd;
+
+                annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
+                edgeRib.ribEdge is Query;
+
+                annotation { "Name" : "Points",
+                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                edgeRib.ribPoints is Query;
+
+                if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
                 {
-                    annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
-                                "UIHint" : ["FOCUS_INNER_QUERY"] }
-                    definition.chains is array;
-
-                    for (var chain in definition.chains)
-                    {
-                        annotation { "Name" : "Points",
-                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                        chain.chainPoints is Query;
-
-                        annotation { "Name" : "Closed" }
-                        chain.closed is boolean;
-                    }
+                    annotation { "Name" : "Location" }
+                    isReal(edgeRib.edgeLocation, EDGE_RIB_LOCATION_BOUNDS);
                 }
             }
 
-            annotation { "Name" : "Hub and spokes" }
-            definition.useHubs is boolean;
-
-            annotation { "Group Name" : "Hub and spokes", "Driving Parameter" : "useHubs", "Collapsed By Default" : false }
-            {
-                if (definition.useHubs)
-                {
-                    annotation { "Name" : "Hubs", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
-                                "UIHint" : ["FOCUS_INNER_QUERY"] }
-                    definition.hubs is array;
-
-                    for (var hub in definition.hubs)
-                    {
-                        annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
-                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                        hub.hub is Query;
-
-                        annotation { "Name" : "Spokes",
-                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                        hub.spokes is Query;
-
-                        annotation { "Name" : "Add circle", "Description" : "A circle around the hub, through the first spoke chosen." }
-                        hub.addCircle is boolean;
-                    }
-                }
-            }
-
-            annotation { "Name" : "Edge ribs" }
-            definition.useEdgeRibs is boolean;
-
-            annotation { "Group Name" : "Edge ribs", "Driving Parameter" : "useEdgeRibs", "Collapsed By Default" : false }
-            {
-                if (definition.useEdgeRibs)
-                {
-                    annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
-                    definition.edgeRibs is array;
-
-                    for (var edgeRib in definition.edgeRibs)
-                    {
-                        annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                        edgeRib.ribEnd is EdgeRibEnd;
-
-                        annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
-                        edgeRib.ribEdge is Query;
-
-                        annotation { "Name" : "Points",
-                                    "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                        edgeRib.ribPoints is Query;
-
-                        if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
-                        {
-                            annotation { "Name" : "Location", "Description" : "How far along the edge the ribs meet it, from its start (0) to its end (1)." }
-                            isReal(edgeRib.edgeLocation, EDGE_RIB_LOCATION_BOUNDS);
-                        }
-                    }
-                }
-            }
-
-            if (definition.useChains || definition.useHubs || definition.useEdgeRibs)
-            {
-                annotation { "Name" : "Clear invalid selections" }
-                isButton(definition.clearInvalid);
-            }
+            annotation { "Name" : "Clear invalid selections" }
+            isButton(definition.clearInvalid);
         }
 
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -241,8 +211,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const quickRibs = sketchQuickRibs(context, id + "quickRibs", definition, facePlane);
         if (quickRibs.skipped > 0)
         {
-            reportFeatureWarning(context, id, quickRibs.skipped == 1 ? "A chain, hub, or edge rib isn't complete, so it's skipped." :
-                    quickRibs.skipped ~ " chains, hubs, and edge ribs aren't complete, so they're skipped.", quickRibParameters(definition));
+            reportFeatureWarning(context, id, "Some quick ribs are skipped because they're incomplete.", ["chains", "hubs", "edgeRibs"]);
         }
         addEdgeRibManipulators(context, id, definition);
         const ribGroups = getRibGroups(context, definition, quickRibs.edges);
@@ -289,7 +258,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         catch
         {
             showOperationError(context, errors, id + "pocket");
-            throw regenError("Failed to extrude the pocket.", ["face", "depth"], face);
+            throw regenError("Failed to create pockets.", ["face", "depth"], face);
         }
         const ends = qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE);
         // The pockets' ends, through the walls, ribs, and rounding (see `pocketEnds`)
@@ -341,7 +310,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                 });
             showOut(context, errors, failing, DebugColor.RED);
             showOut(context, errors, inset, DebugColor.BLUE);
-            throw regenError("Failed to cut ribs.", failingRibParameters(context, id + "ribs", ribGroups, failing));
+            throw regenError("Failed to create rib.", failingRibParameters(context, id + "ribs", ribGroups, failing));
         }
         // The pockets left between them, which the walls and ribs split into pieces
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
@@ -398,7 +367,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             {
                 // Only without a warning, which this would replace
                 const lightened = 1 - evVolume(context, { "entities" : part }) / volume;
-                reportFeatureInfo(context, id, "Lightened the part by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
+                reportFeatureInfo(context, id, "Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
             }
         }
 
@@ -530,7 +499,7 @@ function getWallOverrides(context is Context, definition is map, face is Query) 
         }
         if (isQueryEmpty(context, qIntersection([qLoopEdges(face), qLoopEdges(wallOverride.selected)])))
         {
-            throw regenError("These faces don't border the face to lighten, so they have no walls.", [wallOverride.parameters[0]],
+            throw regenError("Face overrides must be adjacent to the lightened face.", [wallOverride.parameters[0]],
                 wallOverride.selected);
         }
         if (!isQueryEmpty(context, wallOverride.faces))
@@ -574,7 +543,7 @@ function verifyParallel(context is Context, face is Query, facePlane is Plane, r
 }
 
 /**
- * How deep the pocket goes: Depth, or for Through all, a little past the far side of the part.
+ * How deep the pocket goes: Depth, or for Through all, to the far side of the part.
  */
 function pocketDepth(context is Context, definition is map, part is Query, facePlane is Plane) returns ValueWithUnits
 {
@@ -582,9 +551,9 @@ function pocketDepth(context is Context, definition is map, part is Query, faceP
     {
         return definition.depth;
     }
-    const bounds = evBox3d(context, { "topology" : part, "cSys" : coordSystem(facePlane), "tight" : false });
-    const through = -bounds.minCorner[2];
-    return through + max(through * 0.05, 0.1 * millimeter);
+    // To the part's far side, exactly: pockets ending flush with it cut through, as std's booleans treat faces within
+    // their tolerance as the same
+    return -evBox3d(context, { "topology" : part, "cSys" : coordSystem(facePlane), "tight" : true }).minCorner[2];
 }
 
 const DEPTH_MANIPULATOR = "depthManipulator";
@@ -694,7 +663,7 @@ function insetPockets(context is Context, errors is map, id is Id, trialId is Id
 }
 
 /**
- * The walls, as Ilya Baran and Morgan Bartlett's Lighten makes them: `ends` and `ignoredSides` are moved out by the
+ * The walls, as the previous Onshape Lighten feature makes them: `ends` and `ignoredSides` are moved out by the
  * distance (`wall` and `radius`), and each of `overrides`' sides by `wall` less its thickness (in, for a thicker wall);
  * then the pockets are hollowed by the distance, which moves every face in by it at once, holes of any size and their
  * corners too, so it doesn't fail where a wall along one edge would. What's inside (enclosed) is kept, and the rest
@@ -814,11 +783,11 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
  * again, a few ways, each rolled back), so it costs nothing when they don't. In order:
  *
  * - With wall overrides, if the walls work without them, the overrides which fail alone (or all of them).
- * - Otherwise blame is laid as if there were no overrides. If the part's tight corners couldn't be made sharp, the
- *   corners which fail alone.
- * - With Fillet corners, if the walls work at Wall thickness alone, Fillet radius is to blame: the walls are built
- *   thicker by it, then the pockets grown back.
- * - Otherwise Wall thickness, and the pockets which fail alone.
+ * - Otherwise blame is laid as if there were no overrides. With Fillet corners, if the walls work at Wall thickness
+ *   alone, Fillet radius is to blame (the walls are built thicker by it, then the pockets grown back), and the pockets
+ *   which fail alone are shown.
+ * - Otherwise a generic error. It shows the part's tight corners which fail alone, if they couldn't be made sharp, or
+ *   the pockets which fail alone.
  *
  * @param failure : What `buildWalls` threw.
  */
@@ -854,20 +823,9 @@ function wallFailure(context is Context, errors is map, id is Id, pockets is Que
         {
             culprits = overrides;
         }
-        return regenError("These wall overrides make the walls fail.",
+        return regenError("Selected wall overrides are invalid.",
             concatenateArrays(mapArray(culprits, wallOverride => wallOverride.parameters)),
             qUnion(mapArray(culprits, wallOverride => wallOverride.faces)));
-    }
-
-    const stage = failure is map ? failure.stage : undefined;
-    if (stage == "sharpen")
-    {
-        var culprits = filter(evaluateQuery(context, failure.corners), function(corner)
-            {
-                return !tryAlone(trialId => opDeleteFace(context, trialId, { "deleteFaces" : corner, "includeFillet" : false, "capVoid" : false }));
-            });
-        showOut(context, errors, cornerEdges(culprits == [] ? failure.corners : qUnion(culprits), ends), DebugColor.RED);
-        return regenError("The part's corners shown are too tight for the walls.", radiusParameters);
     }
 
     if (radius > 0 * meter && works([], 0 * meter, pockets))
@@ -876,18 +834,20 @@ function wallFailure(context is Context, errors is map, id is Id, pockets is Que
         return regenError("Fillet radius is too large for the pockets shown.", ["filletRadius"]);
     }
 
-    const failing = failingPockets(context, pockets, pocket => works([], radius, pocket));
-    if (stage == "extend")
+    // What failed is shown; which step failed (an operation of Onshape's own, in its error display) isn't worth saying
+    if (failure is map && failure.stage == "sharpen")
     {
-        showOut(context, errors, qIntersection([qOwnedByBody(failing, EntityType.FACE), qUnion([ends, ignoredSides])]), DebugColor.RED);
-        return regenError("Failed to extend the pockets shown past their ends.", ["wallThickness"]);
+        const culprits = filter(evaluateQuery(context, failure.corners), function(corner)
+            {
+                return !tryAlone(trialId => opDeleteFace(context, trialId, { "deleteFaces" : corner, "includeFillet" : false, "capVoid" : false }));
+            });
+        showOut(context, errors, cornerEdges(culprits == [] ? failure.corners : qUnion(culprits), ends), DebugColor.RED);
     }
-    showOut(context, errors, failing, DebugColor.RED);
-    if (stage == "round")
+    else
     {
-        return regenError("Failed to round the inside corners of the walls shown.", ["wallThickness"]);
+        showOut(context, errors, failingPockets(context, pockets, pocket => works([], radius, pocket)), DebugColor.RED);
     }
-    return regenError("Failed to make the walls shown.", ["wallThickness"]);
+    return regenError("Failed to create walls.", radiusParameters);
 }
 
 /**
@@ -947,7 +907,7 @@ function getRibGroups(context is Context, definition is map, quickRibEdges is Qu
     groups[0].parameters = concatenateArrays([groups[0].parameters, quickRibParameters(definition)]);
     if (isQueryEmpty(context, groups[0].selected))
     {
-        throw regenError("Select ribs to use, or add chains, hubs, or edge ribs.", concatenateArrays([["ribEdges"], quickRibParameters(definition)]));
+        throw regenError("Select ribs to use.", ["ribEdges"]);
     }
     var found = [];
     for (var i, group in groups)
@@ -1015,11 +975,11 @@ function failingRibParameters(context is Context, id is Id, groups is array, fai
 }
 
 /**
- * The quick ribs' parameters which are turned on (Chains, Hubs, and Edge ribs), for errors about them.
+ * The quick ribs' parameters which have any (Chains, Hub and spokes, and Edge ribs), for errors about them.
  */
 function quickRibParameters(definition is map) returns array
 {
-    return concatenateArrays([definition.useChains ? ["chains"] : [], definition.useHubs ? ["hubs"] : [], definition.useEdgeRibs ? ["edgeRibs"] : []]);
+    return filter(["chains", "hubs", "edgeRibs"], name => definition[name] != []);
 }
 
 /**
@@ -1089,7 +1049,7 @@ function excludeRegions(context is Context, errors is map, id is Id, plane is Pl
     catch
     {
         showOperationError(context, errors, id + "extrude");
-        throw regenError("Failed to extrude regions to ignore.", ["ignoredFaces"], regions);
+        throw regenError("Failed to ignore the selected regions.", ["ignoredFaces"], regions);
     }
     try silent
     {
@@ -1102,13 +1062,13 @@ function excludeRegions(context is Context, errors is map, id is Id, plane is Pl
     catch
     {
         showOperationError(context, errors, id + "cut");
-        throw regenError("Failed to cut regions to ignore from pockets.", ["ignoredFaces"], regions);
+        throw regenError("Failed to ignore the selected regions.", ["ignoredFaces"], regions);
     }
 }
 
 /**
  * Where ribs (or regions to ignore) go, along `plane`'s normal: through `bounds` (the pockets, and the ribs' edges or
- * the regions), and a little past it.
+ * the regions), exactly (their bounding box, tight).
  *
  * @returns {{
  *      @field plane {Plane} : `plane`, moved halfway through them.
@@ -1119,20 +1079,19 @@ function excludeRegions(context is Context, errors is map, id is Id, plane is Pl
  */
 function bandExtent(context is Context, plane is Plane, bounds is Query) returns map
 {
-    const boundingBox = evBox3d(context, { "topology" : bounds, "cSys" : coordSystem(plane), "tight" : false });
+    const boundingBox = evBox3d(context, { "topology" : bounds, "cSys" : coordSystem(plane), "tight" : true });
     const height = boundingBox.maxCorner[2] - boundingBox.minCorner[2];
-    const margin = max(height * 0.05, 0.1 * millimeter);
     var middle = plane;
     middle.origin += plane.normal * (boundingBox.minCorner[2] + boundingBox.maxCorner[2]) / 2;
-    return { "plane" : middle, "depth" : height + margin, "halfDepth" : height / 2 + margin };
+    return { "plane" : middle, "depth" : height, "halfDepth" : height / 2 };
 }
 
 /**
- * The ribs of `groups` (see `getRibGroups`), each half its group's thickness to each side (and `radius` more), through `extent` (see `bandExtent`), each made on its own: edges
- * extruded together make one sheet, creased where they meet, which can't be thickened. Each is its edge's sheet,
- * thickened; but an arc or circle hardly bigger than that can't be thickened toward its center, so its rib is a
- * cylinder around its center, that much bigger than it, instead (a little more than its rib, near its center). A rib
- * which fails highlights its edge, and its group's parameters.
+ * The ribs of `groups` (see `getRibGroups`), each half its group's thickness to each side (and `radius` more), through
+ * `extent` (see `bandExtent`). Each is made on its own, as edges extruded together make one sheet, creased where they
+ * meet, which can't be thickened. Each is its edge's sheet, thickened. An arc or circle whose radius is within std's
+ * boolean tolerance of that half (or under it) can't be thickened toward its center. Its rib is a solid cylinder
+ * around its center instead. A rib which fails highlights its edge, and its group's parameters.
  */
 function buildRibs(context is Context, errors is map, id is Id, extent is map, groups is array, radius is ValueWithUnits) returns Query
 {
@@ -1155,7 +1114,8 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
         const ribId = id + unstableIdComponent(i);
         setExternalDisambiguation(context, ribId, edge);
         const curve = evCurveDefinition(context, { "edge" : edge });
-        if (curve is Circle && curve.radius <= halfWidth * 1.05)
+        // Thickening it toward its center would leave a hole under std's boolean tolerance, or none
+        if (curve is Circle && curve.radius - halfWidth < TOLERANCE.booleanDefaultTolerance * meter)
         {
             if (any(circles, function(circle)
                     {
@@ -1177,7 +1137,7 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
             catch
             {
                 showOperationError(context, errors, ribId + "cylinder");
-                throw regenError("Failed to extrude rib.", parameters, edge);
+                throw regenError("Failed to create rib.", parameters, edge);
             }
             continue;
         }
@@ -1196,7 +1156,7 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
         catch
         {
             showOperationError(context, errors, ribId + "sheet");
-            throw regenError("Failed to extrude rib.", parameters, edge);
+            throw regenError("Failed to create rib.", parameters, edge);
         }
         try silent
         {
@@ -1209,7 +1169,7 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
         catch
         {
             showOperationError(context, errors, ribId + "rib");
-            throw regenError("Failed to thicken rib.", parameters, edge);
+            throw regenError("Failed to create rib.", parameters, edge);
         }
     }
 }
@@ -1217,11 +1177,11 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
 /**
  * Rounds the pockets' corners, as a router bit of `radius` leaves them: they were made with walls and ribs `radius`
  * thicker, so a pocket narrower than the bit is gone, and the rest are grown back by `radius`. Their corners are
- * rounded a hair (0.01 mm) first, as Lighten does, so growing them rounds them to `radius` (and the hair), rather
- * than filleting them after, which can fail where a pocket narrows. Their inside corners (the walls' and ribs'
- * outside ones) stay sharp.
+ * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature does, so growing them rounds them to
+ * `radius` (and the hair), rather than filleting them after, which can fail where a pocket narrows. Their inside
+ * corners (the walls' and ribs' outside ones) stay sharp.
  *
- * Their narrow ends (`narrowEnds`), where the rounds on either side would nearly meet, as at the tip of a pocket
+ * Their narrow ends (`narrowEnds`), where the rounds on either side would meet, as at the tip of a pocket
  * between ribs, are given one full round across them instead (std's `opFullRoundFillet`), which growing makes a round
  * end as wide as the pocket.
  */
@@ -1231,7 +1191,7 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
     {
         return;
     }
-    for (var i, narrowEnd in narrowEnds(context, pockets, ends, radius))
+    for (var i, narrowEnd in narrowEnds(context, pockets, ends))
     {
         const fullRoundId = id + "fullRound" + unstableIdComponent(i);
         try silent
@@ -1247,7 +1207,7 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
         {
             showOperationError(context, errors, fullRoundId);
             showOut(context, errors, narrowEnd.face, DebugColor.RED);
-            throw regenError("Failed to round the narrow pocket end shown.", ["filletRadius"]);
+            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
         }
     }
     const corners = pocketCorners(context, pockets, ends);
@@ -1264,7 +1224,7 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
         {
             showOperationError(context, errors, id + "roundCorners");
             showOut(context, errors, corners, DebugColor.RED);
-            throw regenError("Failed to round the pocket corners shown.", ["filletRadius"]);
+            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
         }
     }
     try silent
@@ -1286,35 +1246,42 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
                         });
             });
         showOut(context, errors, failing, DebugColor.RED);
-        throw regenError("Failed to round the corners of the pockets shown.", ["filletRadius"]);
+        throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
     }
 }
 
 /**
- * The pockets' narrow ends: their sides (not `ends`) between two convex corners which are narrower than `width` (where
- * rounds of `width` on the corners would leave less than that between them).
+ * The pockets' narrow ends: their sides (not `ends`) between two convex corners which the hair rounds on those corners
+ * would use up, leaving less of it than std's boolean tolerance (so the rounds meet). A round of radius `h` on a
+ * corner whose faces' normals turn by `angle` takes `h * tan(angle / 2)` of each face.
  *
  * @returns {array} : Each as a map of its `face`, and the two `sides` it's between.
  */
-function narrowEnds(context is Context, pockets is Query, ends is Query, width is ValueWithUnits) returns array
+function narrowEnds(context is Context, pockets is Query, ends is Query) returns array
 {
+    const hair = TOLERANCE.booleanDefaultTolerance * meter;
     const endEdges = qAdjacent(ends, AdjacencyType.EDGE, EntityType.EDGE);
     var found = [];
     for (var face in evaluateQuery(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends)))
     {
         const edges = qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE);
         const corners = evaluateQuery(context, qSubtraction(edges, endEdges));
-        // Its edges along the ends (on the face to lighten and its far side), each as long as it's wide
-        if (size(corners) != 2 || evLength(context, { "entities" : qIntersection([edges, endEdges]) }) >= 2 * width)
+        if (size(corners) != 2 || !all(corners, corner => evEdgeConvexity(context, { "edge" : corner }) == EdgeConvexityType.CONVEX))
         {
             continue;
         }
-        if (all(corners, corner => evEdgeConvexity(context, { "edge" : corner }) == EdgeConvexityType.CONVEX))
+        const sides = mapArray(corners, corner => qSubtraction(qAdjacent(corner, AdjacencyType.EDGE, EntityType.FACE), face));
+        var used = 0 * meter;
+        for (var i, corner in corners)
         {
-            found = append(found, {
-                        "face" : face,
-                        "sides" : mapArray(corners, corner => qSubtraction(qAdjacent(corner, AdjacencyType.EDGE, EntityType.FACE), face))
-                    });
+            const normals = mapArray([face, sides[i]], f => evFaceNormalAtEdge(context, { "edge" : corner, "face" : f, "parameter" : 0.5 }));
+            used += hair * tan(angleBetween(normals[0], normals[1]) / 2);
+        }
+        // Its width: its edges along the ends (on the face to lighten and its far side) are each as long as it's wide
+        const width = evLength(context, { "entities" : qIntersection([edges, endEdges]) }) / 2;
+        if (width - used < hair)
+        {
+            found = append(found, { "face" : face, "sides" : sides });
         }
     }
     return found;

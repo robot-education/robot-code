@@ -10,9 +10,11 @@ import(path : "onshape/std/manipulator.fs", version : "2960.0");
  */
 
 /**
- * The bounds of an edge rib's Location: how far along its edge, from its start (0) to its end (1).
+ * The bounds of an edge rib's Location: how far along its edge, from its start to its end, as std's fillet bounds its
+ * points on edges (`EDGE_INTERIOR_PARAMETER_BOUNDS`).
  */
-export const EDGE_RIB_LOCATION_BOUNDS = { (unitless) : [0, 0.5, 1] } as RealBoundSpec;
+const EDGE_RIB_LOCATION_RANGE = [0.001, 0.5, 0.999];
+export const EDGE_RIB_LOCATION_BOUNDS = { (unitless) : EDGE_RIB_LOCATION_RANGE } as RealBoundSpec;
 const EDGE_RIB_MANIPULATOR = "edgeRib";
 
 /**
@@ -27,7 +29,7 @@ export enum EdgeRibEnd
 }
 
 /**
- * Sketches the quick ribs (with Chains, Hub and spokes, and Edge ribs) on `plane` under `id`: each line and circle,
+ * Sketches the quick ribs (Chains, Hub and spokes, and Edge ribs) on `plane` under `id`: each line and circle,
  * points projected onto it. Incomplete chains, hubs, and edge ribs, and selections which aren't there, are skipped.
  *
  * @returns {{
@@ -40,7 +42,7 @@ export function sketchQuickRibs(context is Context, id is Id, definition is map,
     var segments = [];
     var circles = [];
     var skipped = 0;
-    for (var chain in definition.useChains ? definition.chains : [])
+    for (var chain in definition.chains)
     {
         const points = pointsOf(context, chain.chainPoints);
         if (size(points) < 2)
@@ -50,7 +52,7 @@ export function sketchQuickRibs(context is Context, id is Id, definition is map,
         }
         segments = concatenateArrays([segments, chainSegments(points, chain.closed)]);
     }
-    for (var hub in definition.useHubs ? definition.hubs : [])
+    for (var hub in definition.hubs)
     {
         const center = pointsOf(context, hub.hub);
         const spokes = pointsOf(context, hub.spokes);
@@ -65,7 +67,7 @@ export function sketchQuickRibs(context is Context, id is Id, definition is map,
             circles = append(circles, { "center" : center[0], "through" : spokes[0] });
         }
     }
-    for (var edgeRib in definition.useEdgeRibs ? definition.edgeRibs : [])
+    for (var edgeRib in definition.edgeRibs)
     {
         const ribs = edgeRibSegments(context, edgeRib);
         if (ribs == [])
@@ -203,13 +205,14 @@ export function uniqueSegments(segments is array) returns array
     }
     return unique;
 }
+
 /**
- * A manipulator on the end of each edge rib with Manipulator (with Edge ribs), to drag it along its edge (as std's
- * fillet does its points on edges).
+ * A manipulator on the end of each edge rib with Manipulator, to drag it along its edge (as std's fillet does its
+ * points on edges).
  */
 export function addEdgeRibManipulators(context is Context, id is Id, definition is map)
 {
-    for (var i, edgeRib in definition.useEdgeRibs ? definition.edgeRibs : [])
+    for (var i, edgeRib in definition.edgeRibs)
     {
         if (edgeRib.ribEnd != EdgeRibEnd.MANIPULATOR)
         {
@@ -245,7 +248,7 @@ export function edgeRibManipulatorChange(context is Context, definition is map, 
         }
         const position = manipulator.base + manipulator.direction * manipulator.offset;
         const nearest = evDistance(context, { "side0" : position, "side1" : definition.edgeRibs[index].ribEdge, "arcLengthParameterization" : true });
-        definition.edgeRibs[index].edgeLocation = clamp(nearest.sides[1].parameter, 0, 1);
+        definition.edgeRibs[index].edgeLocation = clamp(nearest.sides[1].parameter, EDGE_RIB_LOCATION_RANGE[0], EDGE_RIB_LOCATION_RANGE[2]);
     }
     return definition;
 }
@@ -261,13 +264,13 @@ export function edgeRibManipulatorIndex(key is string)
 
 /**
  * The face under the first quick rib selection which has one (see `faceUnder`), in order: the chains', the hubs' and
- * their spokes', and the edge ribs' points and edges (of those turned on). Undefined if none do.
+ * their spokes', and the edge ribs' points and edges. Undefined if none do.
  */
 export function firstFaceUnder(context is Context, definition is map, hiddenBodies is Query)
 {
-    const chains = definition.useChains ? definition.chains : [];
-    const hubs = definition.useHubs ? definition.hubs : [];
-    const edgeRibs = definition.useEdgeRibs ? definition.edgeRibs : [];
+    const chains = definition.chains;
+    const hubs = definition.hubs;
+    const edgeRibs = definition.edgeRibs;
     const selections = concatenateArrays([mapArray(chains, chain => chain.chainPoints), mapArray(hubs, hub => hub.hub),
                 mapArray(hubs, hub => hub.spokes), mapArray(edgeRibs, edgeRib => edgeRib.ribPoints), mapArray(edgeRibs, edgeRib => edgeRib.ribEdge)]);
     for (var selection in selections)
