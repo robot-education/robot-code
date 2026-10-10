@@ -26,12 +26,15 @@ Unreleased.
 No parameters have descriptions, and none are hidden. Editing logic sets the shown Face to lighten (see Execution
 order).
 
-Override rib thickness (near the bottom) drives a group holding Rib overrides, an array (Add override; labeled like
+Mode (the tabs at the top) is Simple, one wall and rib thickness, or Complex, which shows the overrides below (and
+applies them only then: `overridesRibs`, `overridesWalls`).
+
+In Complex mode, Override rib thickness (near the bottom) drives a group holding Rib overrides, an array (Add override; labeled like
 "0.25 in ribs") of ribs at other thicknesses, each its own Ribs (`overrideEdges`) and Rib thickness
 (`overrideThickness`, 0.25 in. by default), named apart from Ribs to use and Rib thickness because Onshape names array
 items' parameters with the rest. Exclude construction lines applies to them too.
 
-Override wall thickness (below it) drives a group holding Wall overrides, an array (Add override; labeled like
+In Complex mode, Override wall thickness (below it) drives a group holding Wall overrides, an array (Add override; labeled like
 "0.0625 in walls") of the part's faces whose walls are other thicknesses (the pocket's sides along them: a side, or a
 hole), each its own Faces (`overrideFaces`) and Wall thickness (`overrideWall`, 0.0625 in. by default). Later
 overrides take precedence over earlier ones, and all of them over Faces to ignore.
@@ -46,13 +49,13 @@ it's tried alone (see Error handling).
 | Select the face to lighten. | error | no face to lighten | `face` |
 | Select faces to ignore. | error | Ignore faces is checked, with none selected | `ignoredFaces` |
 | Select ribs to use. | error | no ribs (or only construction ones, excluded) | `ribEdges` |
-| Select ribs to override. | error | with Override rib thickness, an override without ribs | its Ribs |
-| The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), those ribs |
-| The face to lighten must be parallel to the ribs. | error | it isn't | `face`, `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the face |
+| Select ribs to override. | error | in Complex mode with Override rib thickness, an override without ribs | its Ribs |
+| The ribs must be in parallel sketches. | error | ribs from sketches on planes which aren't parallel to the first's | `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), those ribs |
+| The face to lighten must be parallel to the ribs. | error | it isn't | `face`, `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), the face |
 | Failed to extrude the pocket. | error | extruding the face into its part fails | `face`, `depth`, the face |
 | Failed to extrude regions to ignore. | error | extruding the sketch regions to ignore fails | `ignoredFaces`, the regions |
 | Failed to cut regions to ignore from pockets. | error | cutting them from the pocket fails | `ignoredFaces`, the regions |
-| Select faces to override. | error | with Override wall thickness, an override without faces | its Faces |
+| Select faces to override. | error | in Complex mode with Override wall thickness, an override without faces | its Faces |
 | These faces don't border the face to lighten, so they have no walls. | error | an override's faces share no edge with the face to lighten | its Faces, the faces |
 | Failed to override walls. | error | offsetting an override's sides (out for a thinner wall, in for a thicker one) fails | its Faces and Wall thickness, those sides |
 | Failed to extend pockets past their ends. | error | offsetting the pocket's ends (and sides along ignored faces) out fails | `wallThickness`, those faces |
@@ -60,12 +63,12 @@ it's tried alone (see Error handling).
 | Failed to make walls. | error | hollowing (or enclosing) the pocket fails | `wallThickness`, the pocket |
 | Failed to extrude rib. | error | extruding a rib's edge as a sheet (or its cylinder, for a small arc) fails | Ribs to use and Rib thickness, or its override's, its edge |
 | Failed to thicken rib. | error | thickening its sheet fails | Ribs to use and Rib thickness, or its override's, its edge |
-| Failed to cut ribs. | error | cutting them from the pockets fails | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the ribs which fail alone |
+| Failed to cut ribs. | error | cutting them from the pockets fails | `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), the ribs which fail alone |
 | Failed to round pocket corners. | error | the hair fillet of the pockets' corners fails | `filletRadius`, the corners |
 | Failed to grow pockets back to round their corners. | error | offsetting the pockets' sides fails | `filletRadius`, the pockets which fail alone |
-| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `filletRadius`, `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness) |
+| There's no room for pockets between the walls and ribs. | warning | no pockets are left (they're all narrower than the router bit, or than nothing) | `wallThickness`, `filletRadius`, `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness) |
 | Failed to cut pockets. | error | cutting them from the part fails | `face`, the pockets which fail alone |
-| Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, `ribThickness` (and `ribOverrides`, with Override rib thickness), the loose parts |
+| Some ribs touch no wall or other rib, so they're left as loose parts. | warning | cutting the pockets cuts pieces free | `ribEdges`, `ribThickness` (and `ribOverrides`, in Complex mode with Override rib thickness), the loose parts |
 | Lightened the part by `<percent>`%. | info | the pockets are cut, and nothing's cut free (the warning above would be replaced) | |
 
 ## How it works

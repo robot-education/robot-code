@@ -40,7 +40,7 @@ SKETCH, FEW = "qEverything(EntityType.EDGE)", "qNthElement(qEverything(EntityTyp
 
 def lighten_definition(override: bool, excluded: bool = False) -> str:
     return (
-        f'{{ "excludeConstruction" : {str(excluded).lower()}, "ribEdges" : {SKETCH}, "ribThickness" : 1 * inch, '
+        f'{{ "mode" : LightenMode.COMPLEX, "excludeConstruction" : {str(excluded).lower()}, "ribEdges" : {SKETCH}, "ribThickness" : 1 * inch, '
         f'"overrideRibThickness" : {str(override).lower()}, '
         f'"ribOverrides" : [{{ "overrideEdges" : {FEW}, "overrideThickness" : 2 * inch }}] }}'
     )
@@ -64,6 +64,9 @@ def test_rib_overrides_take_precedence():
 def test_ribs_without_overrides_are_one_group_less_construction():
     groups = f"ribGroups({lighten_definition(False, excluded=True)})"
     assert evaluate(f"size({groups})", LIGHTEN) == 1
+    # Simple mode ignores overrides
+    simple = f'mergeMaps({lighten_definition(True)}, {{ "mode" : LightenMode.SIMPLE }})'
+    assert evaluate(f"size(ribGroups({simple}))", LIGHTEN) == 1
     assert evaluate(
         f"{groups}[0].selected == qConstructionFilter(qEntityFilter({SKETCH}, EntityType.EDGE), ConstructionObject.NO)", LIGHTEN
     ) is True

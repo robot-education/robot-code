@@ -23,6 +23,18 @@ export enum LightenEndType
     BLIND
 }
 
+/**
+ * Simple lightens with one wall thickness and one rib thickness; Complex adds overrides of them for particular faces
+ * and ribs.
+ */
+export enum LightenMode
+{
+    annotation { "Name" : "Simple" }
+    SIMPLE,
+    annotation { "Name" : "Complex" }
+    COMPLEX
+}
+
 predicate isBlind(definition is map)
 {
     definition.endType == LightenEndType.BLIND;
@@ -42,6 +54,9 @@ annotation { "Feature Type Name" : "Robot lighten",
 export const robotLighten = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
+        annotation { "Name" : "Mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+        definition.mode is LightenMode;
+
         annotation { "Name" : "Face to lighten", "MaxNumberOfPicks" : 1,
                     "Filter" : EntityType.FACE && GeometryType.PLANE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
         definition.face is Query;
@@ -80,46 +95,49 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             isLength(definition.filletRadius, FILLET_RADIUS_BOUNDS);
         }
 
-        annotation { "Name" : "Override rib thickness" }
-        definition.overrideRibThickness is boolean;
-
-        annotation { "Group Name" : "Override rib thickness", "Driving Parameter" : "overrideRibThickness", "Collapsed By Default" : false }
+        if (definition.mode == LightenMode.COMPLEX)
         {
-            if (definition.overrideRibThickness)
+            annotation { "Name" : "Override rib thickness" }
+            definition.overrideRibThickness is boolean;
+
+            annotation { "Group Name" : "Override rib thickness", "Driving Parameter" : "overrideRibThickness", "Collapsed By Default" : false }
             {
-                // Later overrides take precedence over earlier ones (and all of them over Rib thickness)
-                annotation { "Name" : "Rib overrides", "Item name" : "override", "Item label template" : "#overrideThickness ribs" }
-                definition.ribOverrides is array;
-
-                for (var ribOverride in definition.ribOverrides)
+                if (definition.overrideRibThickness)
                 {
-                    annotation { "Name" : "Ribs", "Filter" : EntityType.EDGE && SketchObject.YES }
-                    ribOverride.overrideEdges is Query;
+                    // Later overrides take precedence over earlier ones (and all of them over Rib thickness)
+                    annotation { "Name" : "Rib overrides", "Item name" : "override", "Item label template" : "#overrideThickness ribs" }
+                    definition.ribOverrides is array;
 
-                    annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(ribOverride.overrideThickness, RIB_OVERRIDE_BOUNDS);
+                    for (var ribOverride in definition.ribOverrides)
+                    {
+                        annotation { "Name" : "Ribs", "Filter" : EntityType.EDGE && SketchObject.YES }
+                        ribOverride.overrideEdges is Query;
+
+                        annotation { "Name" : "Rib thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(ribOverride.overrideThickness, RIB_OVERRIDE_BOUNDS);
+                    }
                 }
             }
-        }
 
-        annotation { "Name" : "Override wall thickness" }
-        definition.overrideWallThickness is boolean;
+            annotation { "Name" : "Override wall thickness" }
+            definition.overrideWallThickness is boolean;
 
-        annotation { "Group Name" : "Override wall thickness", "Driving Parameter" : "overrideWallThickness", "Collapsed By Default" : false }
-        {
-            if (definition.overrideWallThickness)
+            annotation { "Group Name" : "Override wall thickness", "Driving Parameter" : "overrideWallThickness", "Collapsed By Default" : false }
             {
-                // Later overrides take precedence over earlier ones (and all of them over Wall thickness and Faces to ignore)
-                annotation { "Name" : "Wall overrides", "Item name" : "override", "Item label template" : "#overrideWall walls" }
-                definition.wallOverrides is array;
-
-                for (var wallOverride in definition.wallOverrides)
+                if (definition.overrideWallThickness)
                 {
-                    annotation { "Name" : "Faces", "Filter" : EntityType.FACE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
-                    wallOverride.overrideFaces is Query;
+                    // Later overrides take precedence over earlier ones (and all of them over Wall thickness and Faces to ignore)
+                    annotation { "Name" : "Wall overrides", "Item name" : "override", "Item label template" : "#overrideWall walls" }
+                    definition.wallOverrides is array;
 
-                    annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(wallOverride.overrideWall, WALL_OVERRIDE_BOUNDS);
+                    for (var wallOverride in definition.wallOverrides)
+                    {
+                        annotation { "Name" : "Faces", "Filter" : EntityType.FACE && BodyType.SOLID && SketchObject.NO && ModifiableEntityOnly.YES }
+                        wallOverride.overrideFaces is Query;
+
+                        annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(wallOverride.overrideWall, WALL_OVERRIDE_BOUNDS);
+                    }
                 }
             }
         }
@@ -317,7 +335,7 @@ function getIgnoredFaces(context is Context, definition is map) returns Query
  */
 function getWallOverrides(context is Context, definition is map, face is Query) returns array
 {
-    if (!definition.overrideWallThickness)
+    if (!overridesWalls(definition))
     {
         return [];
     }
@@ -564,7 +582,7 @@ function getRibGroups(context is Context, definition is map) returns array
 function ribGroups(definition is map) returns array
 {
     var groups = [{ "edges" : definition.ribEdges, "thickness" : definition.ribThickness, "parameters" : ["ribEdges", "ribThickness"] }];
-    if (definition.overrideRibThickness)
+    if (overridesRibs(definition))
     {
         for (var i, ribOverride in definition.ribOverrides)
         {
@@ -593,7 +611,23 @@ function ribGroups(definition is map) returns array
  */
 function ribParameters(definition is map) returns array
 {
-    return definition.overrideRibThickness ? ["ribEdges", "ribThickness", "ribOverrides"] : ["ribEdges", "ribThickness"];
+    return overridesRibs(definition) ? ["ribEdges", "ribThickness", "ribOverrides"] : ["ribEdges", "ribThickness"];
+}
+
+/**
+ * Whether Rib overrides apply: in Complex mode, with Override rib thickness.
+ */
+function overridesRibs(definition is map) returns boolean
+{
+    return definition.mode == LightenMode.COMPLEX && definition.overrideRibThickness;
+}
+
+/**
+ * Whether Wall overrides apply: in Complex mode, with Override wall thickness.
+ */
+function overridesWalls(definition is map) returns boolean
+{
+    return definition.mode == LightenMode.COMPLEX && definition.overrideWallThickness;
 }
 
 /**
