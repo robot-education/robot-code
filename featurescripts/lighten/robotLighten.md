@@ -7,7 +7,7 @@ sketch edges (lines, arcs, circles, or splines), with the pockets' corners round
 | File | What it is |
 | --- | --- |
 | `robotLighten.fs` | The feature: its dialog, the pocket, walls, ribs, and fillets, and its editing logic |
-| `robotLightenIcon.svg` | Its icon: a plate with two pockets either side of a rib, in Onshape's Rib's and Shell's colors |
+| `robotLightenIcon.svg` | Its icon: the plate icon (`../plate/Plate_v2.svg`) pocketed, a wall of one thickness around its holes and edges, in Onshape's Rib's and Shell's colors |
 | `partLighten.local.fs` | Part Lighten (by Evan Fish, FRC 2471, from Ilya Baran and Morgan Bartlett's Lighten), for reference: not synced |
 
 ## Changelog
