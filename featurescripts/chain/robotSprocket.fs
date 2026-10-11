@@ -119,7 +119,6 @@ function getChainSprockets(context is Context, definition is map) returns array
 {
     const selections = verifyNonemptyQuery(context, definition, "chainSelections", "Select a Robot chain's curved faces or mate connectors.");
     var sprockets = [];
-    var seen = {};
     for (var selection in selections)
     {
         const attribute = getAttribute(context, { "entity" : selection, "name" : CHAIN_SPROCKET_FACE_ATTRIBUTE });
@@ -139,17 +138,14 @@ function getChainSprockets(context is Context, definition is map) returns array
         }
         else
         {
-            sprocketPlane = evSurfaceDefinition(context, { "face" : selection }).coordSystem->plane();
-            // The cylinder's origin is anywhere on its axis: the chain's middle is the face's
-            const centroid = evApproximateCentroid(context, { "entities" : selection });
-            sprocketPlane.origin += sprocketPlane.normal * dot(centroid - sprocketPlane.origin, sprocketPlane.normal);
+            sprocketPlane = cylinderMiddlePlane(context, selection);
         }
-        // A chain's two faces around a sprocket (and its mate connector) make one sprocket
-        if (seen[sprocketPlane.origin] != undefined)
+        // A chain's two faces around a sprocket (and its mate connector) make one sprocket: their centers are the same,
+        // within std's length tolerance (found from each, they differ by rounding)
+        if (any(sprockets, sprocket => tolerantEquals(sprocket.plane.origin, sprocketPlane.origin)))
         {
             continue;
         }
-        seen[sprocketPlane.origin] = true;
         sprockets = append(sprockets, {
                         "identity" : selection,
                         "plane" : sprocketPlane,

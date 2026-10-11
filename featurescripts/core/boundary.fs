@@ -32,7 +32,8 @@ function flippedRadius(circle is BoundaryCircle) returns ValueWithUnits
 }
 
 /**
- * Returns the endpoints of a line tangent between two circles.
+ * Returns the endpoints of a line tangent between two circles. Throws if they're in the same place, or one's inside
+ * the other (so no line is tangent to both as the path goes around them).
  * @param circle1 {map} : A map representing a circle.
  * @param circle2 {map} : A map representing a circle.
  */
@@ -40,9 +41,19 @@ export function circleToCircle(circle1 is BoundaryCircle, circle2 is BoundaryCir
 {
     const radius1 = flippedRadius(circle1) * (counterClockwise ? -1 : 1);
     const radius2 = flippedRadius(circle2) * (counterClockwise ? -1 : 1);
-    const delta = normalize(circle2.location - circle1.location);
+    const distance = norm(circle2.location - circle1.location);
+    if (tolerantEquals(distance, 0 * meter))
+    {
+        throw regenError("Two of the pulleys, sprockets, or circles the path goes around are in the same place.");
+    }
+    // No line is tangent to both (as the path goes around them): one's inside the other
+    const alpha = (radius1 - radius2) / distance;
+    if (abs(alpha) > 1)
+    {
+        throw regenError("The path can't go around a pulley, sprocket, or circle inside another.");
+    }
+    const delta = (circle2.location - circle1.location) / distance;
     const cross = vector(-delta[1], delta[0]);
-    const alpha = (radius1 - radius2) / norm(circle2.location - circle1.location);
     const beta = sqrt(1 - alpha * alpha);
 
     const point1 = circle1.location + (alpha * delta + beta * cross) * radius1;

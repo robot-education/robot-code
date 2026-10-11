@@ -198,9 +198,14 @@ function gearRoot(form is map) returns map
 {
     const rootRadius = form.rootRadius;
     const fillet = form.filletRadius;
-    if (fillet <= 0 * meter || rootRadius <= 0 * meter)
+    if (rootRadius <= 0 * meter)
     {
         throw regenError("The gear's too small for its teeth: give it more teeth.", ["teeth"]);
+    }
+    // The profile's offset out by at least the root's round
+    if (fillet <= 0 * meter)
+    {
+        throw regenError("The profile offset is bigger than the roots' round: use less clearance, or a bigger router bit.", ["profileOffsetDistance"]);
     }
     // Room for the fillet below the involute, up to half the tooth's height: above the base circle the line's a little
     // inside the involute, relieving it rather than interfering

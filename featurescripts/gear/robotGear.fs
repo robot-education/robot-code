@@ -109,16 +109,20 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
-        annotation { "Name" : "Router relief", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                    "Description" : "Round the roots to a router bit's radius, so it can cut them (a full round, deeper than the root, where the gap's too narrow)." }
-        definition.routerRelief is boolean;
-
-        if (definition.routerRelief)
+        // Racks' roots are square: there's no round to relieve
+        if (isGear(definition))
         {
-            annotation { "Group Name" : "Router relief", "Collapsed By Default" : false, "Driving Parameter" : "routerRelief" }
+            annotation { "Name" : "Router relief", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "Round the roots to a router bit's radius, so it can cut them (a full round, deeper than the root, where the gap's too narrow)." }
+            definition.routerRelief is boolean;
+
+            if (definition.routerRelief)
             {
-                annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
+                annotation { "Group Name" : "Router relief", "Collapsed By Default" : false, "Driving Parameter" : "routerRelief" }
+                {
+                    annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
+                }
             }
         }
 
@@ -142,7 +146,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         addStartOffsetManipulator(context, id, definition, gearPlane);
 
         const module = gearModule(definition);
-        const fillet = definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
+        const fillet = isGear(definition) && definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
         const form = getGearForm(module, isGear(definition) ? definition.teeth : undefined, definition.pressureAngle, fillet, getProfileOffset(definition));
         var profile;
         if (isGear(definition))

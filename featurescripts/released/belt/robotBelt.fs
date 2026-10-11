@@ -468,7 +468,8 @@ function getPulleySelection(context is Context, definition is map, beltType is B
         const pitchTeeth = computeTargetPulleyTeeth(getBeltPitch(beltType), circle.radius);
         result.plane = circle.coordSystem->plane();
         result.pulleyTeeth = max(round(pitchTeeth), 1);
-        result.fractionalTeeth = !tolerantEquals(pitchTeeth, round(pitchTeeth));
+        // Exactly a whole number of teeth's pitch circle, to within std's length tolerance
+        result.fractionalTeeth = !tolerantEquals(getPulleyRadius(getBeltPitch(beltType), round(pitchTeeth)), circle.radius);
     }
     else
     {
@@ -959,7 +960,7 @@ function closestBeltTeeth(context is Context, definition is map) returns number
     }
     if (length == undefined)
     {
-        throw "There's no path around the selections.";
+        throw regenError("There's no path around the selections.");
     }
 
     const teeth = length / pitch;
