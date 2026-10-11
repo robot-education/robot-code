@@ -109,7 +109,7 @@ export function applyAngleReference(context is Context, definition is map, plane
  * The point an angle reference names: a vertex's or mate connector's, or a circle's or arc's center. `undefined` for a
  * line.
  */
-function angleReferencePoint(context is Context, angleRef is Query)
+export function angleReferencePoint(context is Context, angleRef is Query)
 {
     if (!isQueryEmpty(context, angleRef->qEntityFilter(EntityType.VERTEX)) || !isQueryEmpty(context, angleRef->qBodyType(BodyType.MATE_CONNECTOR)))
     {

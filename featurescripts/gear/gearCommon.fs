@@ -259,49 +259,130 @@ function gearRoot(form is map) returns map
 }
 
 /**
- * Sketches a rack's profile on `plane`, and returns its face: `teeth` teeth along the plane's x axis from its origin,
- * with its pitch line on the x axis, its teeth toward +y, and its back `height` below its pitch line.
+ * Half a rack tooth's width `y` above its pitch line: its flanks are straight, at the pressure angle, and offset by the
+ * profile offset.
  */
-export function sketchRackProfile(context is Context, id is Id, plane is Plane, form is map, teeth is number, height is ValueWithUnits) returns Query
+export function rackHalfWidth(form is map, y is ValueWithUnits) returns ValueWithUnits
 {
-    const m = form.module;
-    const pitch = PI * m;
-    const tip = m + form.offset;
-    const root = -1.25 * m + form.offset;
-    if (height <= -root)
+    return PI * form.module / 4 + form.offset / cos(form.pressureAngle) - y * tan(form.pressureAngle);
+}
+
+/**
+ * Where a rack's teeth are along a face `length` long: one every circular pitch (`π m`), centered half a pitch from
+ * `gap` (where a gap's centered), as many as fit whole, root and all, from 0 to `length` (within std's length
+ * tolerance).
+ */
+export function rackToothCenters(form is map, length is ValueWithUnits, gap is ValueWithUnits) returns array
+{
+    const pitch = PI * form.module;
+    const halfRoot = rackHalfWidth(form, rackRoot(form));
+    const tolerance = TOLERANCE.zeroLength * meter;
+    const first = gap + pitch / 2;
+    var centers = [];
+    for (var k = ceil((halfRoot - first - tolerance) / pitch); k <= floor((length - halfRoot - first + tolerance) / pitch); k += 1)
     {
-        throw regenError("The rack's back must be below its teeth's roots.", ["rackHeight"]);
+        centers = append(centers, first + k * pitch);
     }
-    // Half a tooth's width at a height above the pitch line: its flank's an offset line
-    const halfWidth = function(y is ValueWithUnits) returns ValueWithUnits
-        {
-            return pitch / 4 + form.offset / cos(form.pressureAngle) - y * tan(form.pressureAngle);
-        };
-    if (halfWidth(tip) <= 0 * meter)
+    return centers;
+}
+
+/**
+ * A rack's root: `1.25 m` below its pitch line, less the profile offset.
+ */
+export function rackRoot(form is map) returns ValueWithUnits
+{
+    return -1.25 * form.module + form.offset;
+}
+
+/**
+ * What's cut from a part to leave rack teeth along its face: the region between the face and the teeth, as polygons
+ * (arrays of 2D points), from 0 to `length` along the face. The face is on the x axis, and its part toward -y; the
+ * pitch line is `faceHeight` below it (0 for a face at the pitch line, `m` for one at the teeth's tips). Teeth are at
+ * `centers` (see `rackToothCenters`), cut off at the face if they'd reach past it; beyond the first and last, it's cut
+ * to the root.
+ */
+export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array) returns array
+{
+    const root = rackRoot(form);
+    const tip = min(form.module + form.offset, faceHeight);
+    if (rackHalfWidth(form, tip) <= 0 * meter)
     {
         throw regenError("The rack's teeth come to points: use less clearance.", ["profileOffsetDistance"]);
     }
-    if (halfWidth(root) >= pitch / 2)
+    if (rackHalfWidth(form, root) >= PI * form.module / 2)
     {
         throw regenError("The rack's teeth meet at their roots: use more clearance.", ["profileOffsetDistance"]);
     }
-    var points = [vector(0 * meter, -height), vector(0 * meter, root)];
-    for (var tooth = 0; tooth < teeth; tooth += 1)
+    // In the face's coordinates: the face at y = 0
+    const at = function(x is ValueWithUnits, y is ValueWithUnits) returns Vector
+        {
+            return vector(x, y - faceHeight);
+        };
+    var regions = [];
+    if (tip < faceHeight)
     {
-        const center = (tooth + 0.5) * pitch;
-        points = concatenateArrays([points, [
-                        vector(center - halfWidth(root), root),
-                        vector(center - halfWidth(tip), tip),
-                        vector(center + halfWidth(tip), tip),
-                        vector(center + halfWidth(root), root)
-                    ]]);
+        // The teeth stop short of the face: one region, over them
+        var points = [at(0 * meter, faceHeight), at(0 * meter, root)];
+        for (var center in centers)
+        {
+            points = concatenateArrays([points, [
+                            at(center - rackHalfWidth(form, root), root),
+                            at(center - rackHalfWidth(form, tip), tip),
+                            at(center + rackHalfWidth(form, tip), tip),
+                            at(center + rackHalfWidth(form, root), root)
+                        ]]);
+        }
+        regions = [concatenateArrays([points, [at(length, root), at(length, faceHeight)]])];
     }
-    points = concatenateArrays([points, [vector(teeth * pitch, root), vector(teeth * pitch, -height)]]);
-
-    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    for (var i, point in points)
+    else
     {
-        skLineSegment(sketch, "line" ~ i, { "start" : point, "end" : points[(i + 1) % size(points)] });
+        // The teeth reach the face: a region for each gap, between the ends and the teeth's flanks
+        var top = at(0 * meter, faceHeight);
+        var bottom = at(0 * meter, root);
+        for (var center in centers)
+        {
+            regions = append(regions, [top, bottom, at(center - rackHalfWidth(form, root), root), at(center - rackHalfWidth(form, tip), tip)]);
+            top = at(center + rackHalfWidth(form, tip), tip);
+            bottom = at(center + rackHalfWidth(form, root), root);
+        }
+        regions = append(regions, [top, bottom, at(length, root), at(length, faceHeight)]);
+    }
+    // A tooth whole to an end (within tolerance) leaves points on top of each other there
+    return filter(mapArray(regions, region => distinctPoints(region)), region => size(region) >= 3);
+}
+
+/**
+ * `points`, without any within std's length tolerance of the one before it (or, for the last, the first).
+ */
+function distinctPoints(points is array) returns array
+{
+    var result = [];
+    for (var point in points)
+    {
+        if (result == [] || !tolerantEquals(point, result[size(result) - 1]))
+        {
+            result = append(result, point);
+        }
+    }
+    if (size(result) > 1 && tolerantEquals(result[0], result[size(result) - 1]))
+    {
+        result = resize(result, size(result) - 1);
+    }
+    return result;
+}
+
+/**
+ * Sketches `regions` (see `rackCutRegions`) on `plane`, and returns their faces.
+ */
+export function sketchRackCut(context is Context, id is Id, plane is Plane, regions is array) returns Query
+{
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    for (var r, region in regions)
+    {
+        for (var i, point in region)
+        {
+            skLineSegment(sketch, "line" ~ r ~ "_" ~ i, { "start" : point, "end" : region[(i + 1) % size(region)] });
+        }
     }
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);

@@ -202,24 +202,72 @@ def test_router_relief_rounds_roots():
         gear_profile(14, fillet="1 / 16 * inch")
 
 
-def test_rack_profile():
+RACK_FORM = "getGearForm(1 * millimeter, undefined, 20 * degree, 0 * meter, {offset} * millimeter)"
+
+
+def rack_centers(length_mm: float, gap_mm: float, offset_mm: float = 0.0) -> list[float]:
+    form = RACK_FORM.format(offset=offset_mm)
+    return to_python(shared_evaluator().eval(
+        f"rackToothCenters({form}, {length_mm} * millimeter, {gap_mm} * millimeter)", "gear/gearCommon.fs"))
+
+
+def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
-    evaluator.eval(
-        'sketchRackProfile(context, newId() + "profile", XY_PLANE, getGearForm(1 * millimeter, undefined, 20 * degree, 0 * meter, 0 * meter), 10, 5 * millimeter)',
-        "gear/gearCommon.fs",
-        context=context,
-    )
-    loops = recorded_sketch(context, "profile").loops()
-    assert len(loops) == 1 and loops[0].closed
-    lines = loops[0].curves
-    # 10 teeth along 10 circular pitches
-    assert max(max(line.start[0], line.end[0]) for line in lines) == pytest.approx(10 * math.pi * 0.001)
-    # A tooth's flanks cross the pitch line half a circular pitch apart
-    crossings = sorted(
-        line.start[0] + (line.end[0] - line.start[0]) * (0 - line.start[1]) / (line.end[1] - line.start[1])
-        for line in lines
-        if (line.start[1] < 0 < line.end[1] or line.end[1] < 0 < line.start[1]) and abs(line.end[0] - line.start[0]) > 1e-12
-    )
-    assert crossings[1] - crossings[0] == pytest.approx(math.pi * 0.001 / 2, abs=1e-12)
+    form = RACK_FORM.format(offset=offset_mm)
+    centers = f"rackToothCenters({form}, {length_mm} * millimeter, 0 * meter)"
+    regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers})"
+    evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, {regions})', "gear/gearCommon.fs", context=context)
+    return recorded_sketch(context, "profile")
 
+
+def test_rack_teeth_fill_the_face_from_a_gap():
+    pitch = math.pi * 0.001
+    # Ten pitches long, from a gap at the start: ten whole teeth, half a pitch from it
+    centers = rack_centers(10 * math.pi, 0)
+    assert centers == pytest.approx([(k + 0.5) * pitch for k in range(10)])
+    # From the far end, the same teeth
+    assert rack_centers(10 * math.pi, 10 * math.pi) == pytest.approx(centers)
+    # A gap anywhere along it (or past it) lines them up the same way, a pitch apart
+    shifted = rack_centers(10 * math.pi, 0.3 * math.pi + 20 * math.pi)
+    assert all(c % pitch == pytest.approx(0.8 * pitch % pitch, abs=1e-12) for c in shifted)
+    # Too short for a whole tooth, root and all
+    assert rack_centers(2, 0) == []
+
+
+@pytest.mark.parametrize("face_height", ["1 * millimeter", "0 * meter"])
+def test_rack_cut_is_a_region_per_gap_when_teeth_reach_the_face(face_height):
+    # At the tips (the outside diameter), or at the pitch line (tips cut off at the face)
+    sketch = rack_cut(face_height, 10 * math.pi)
+    loops = sketch.loops()
+    assert len(loops) == 11 and all(loop.closed for loop in loops)
+    points = [point for loop in loops for curve in loop.curves for point in (curve.start, curve.end)]
+    height = 0.001 if face_height.startswith("1") else 0
+    assert max(y for _, y in points) == pytest.approx(0, abs=1e-12)
+    # The root's 1.25 m below the pitch line
+    assert min(y for _, y in points) == pytest.approx(-0.00125 - height, abs=1e-12)
+    assert min(x for x, _ in points) == pytest.approx(0, abs=1e-12)
+    assert max(x for x, _ in points) == pytest.approx(10 * math.pi * 0.001, abs=1e-12)
+
+
+def test_rack_cut_is_one_region_when_teeth_stop_short_of_the_face():
+    # With clearance, the tips are below a face at the outside diameter: it's cut over them too
+    sketch = rack_cut("1 * millimeter", 10 * math.pi, offset_mm=-0.1)
+    loops = sketch.loops()
+    assert len(loops) == 1 and loops[0].closed
+    # A tooth's flanks cross the pitch line half a circular pitch apart, less the clearance's share (the ends'
+    # walls, straight up, aren't flanks)
+    lines = [line for line in loops[0].curves if abs(line.end[0] - line.start[0]) > 1e-12]
+    pitch_y = -0.001
+    crossings = sorted(
+        line.start[0] + (line.end[0] - line.start[0]) * (pitch_y - line.start[1]) / (line.end[1] - line.start[1])
+        for line in lines
+        if min(line.start[1], line.end[1]) < pitch_y < max(line.start[1], line.end[1])
+    )
+    width = math.pi * 0.001 / 2 - 2 * 0.0001 / math.cos(math.radians(20))
+    assert crossings[1] - crossings[0] == pytest.approx(width, abs=1e-12)
+
+
+def test_rack_teeth_too_thin():
+    with pytest.raises(FSError, match="come to points"):
+        rack_cut("1 * millimeter", 10 * math.pi, offset_mm=-1)
