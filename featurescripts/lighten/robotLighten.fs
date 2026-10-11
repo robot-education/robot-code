@@ -1242,7 +1242,7 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
         catch
         {
             showOperationError(context, errors, id + "roundCorners");
-            showOut(context, errors, corners, DebugColor.RED);
+            showOut(context, errors, failingCorners(context, id + "error", pockets, corners), DebugColor.RED);
             throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
         }
     }
@@ -1283,10 +1283,68 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
         catch
         {
             showOperationError(context, errors, id + "exactCorners");
-            showOut(context, errors, rounds, DebugColor.RED);
+            const failing = failingAlone(context, id + "error", rounds, function(trialId is Id, round is Query)
+                {
+                    opModifyFillet(context, trialId, {
+                                "faces" : round,
+                                "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
+                                "reFillet" : false,
+                                "radius" : radius
+                            });
+                });
+            showOut(context, errors, failing == [] ? rounds : qUnion(failing), DebugColor.RED);
             throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
         }
     }
+}
+
+/**
+ * Which of `corners` (of `pockets`) make their hair fillet fail: those which fail alone, or without any, the corners of
+ * the pockets whose corners fail together, or without any of those, all of them. Only for the catch of the failed
+ * fillet, as the feature's about to throw.
+ */
+function failingCorners(context is Context, id is Id, pockets is Query, corners is Query) returns Query
+{
+    const hair = TOLERANCE.booleanDefaultTolerance * meter;
+    const fillet = function(trialId is Id, edges is Query)
+        {
+            opFillet(context, trialId, { "entities" : edges, "radius" : hair });
+        };
+    const alone = failingAlone(context, id + "corners", corners, fillet);
+    if (alone != [])
+    {
+        return qUnion(alone);
+    }
+    const pocketsFailing = failingAlone(context, id + "pockets", pockets, function(trialId is Id, pocket is Query)
+        {
+            fillet(trialId, qIntersection([corners, qOwnedByBody(pocket, EntityType.EDGE)]));
+        });
+    return pocketsFailing == [] ? corners : qIntersection([corners, qOwnedByBody(qUnion(pocketsFailing), EntityType.EDGE)]);
+}
+
+/**
+ * Which of `entities` `operation(id, entity)` fails for, each tried alone in a feature of its own (under `id`), rolled
+ * back after, so each try sees what the failed operation was given. Only for the catch of a failed operation, as the
+ * feature's about to throw.
+ */
+function failingAlone(context is Context, id is Id, entities is Query, operation is function) returns array
+{
+    var failing = [];
+    for (var i, entity in evaluateQuery(context, entities))
+    {
+        const trialId = id + unstableIdComponent(i);
+        startFeature(context, trialId, {});
+        try silent
+        {
+            operation(trialId + "operation", entity);
+        }
+        catch
+        {
+            failing = append(failing, entity);
+        }
+        abortFeature(context, trialId);
+    }
+    return failing;
 }
 
 /**

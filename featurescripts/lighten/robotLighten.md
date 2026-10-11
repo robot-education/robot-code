@@ -54,7 +54,7 @@ Errors show what's been built so far in blue and what's at fault in red, while t
 | Fillet radius is too large for the pockets shown. | error | the walls fail, but work without Fillet radius | `filletRadius`, the pockets which fail alone |
 | Failed to create walls. | error | the walls fail otherwise | `wallThickness` (and `filletRadius`), the corners or pockets which fail alone |
 | Failed to create rib. | error | a rib's extrude, thicken, or cylinder fails, or cutting the ribs from the pockets fails | that rib's group's parameters, and its edge (or the ribs which fail alone) |
-| Failed to fillet the specified corners. | error | rounding the pockets' corners fails | `filletRadius`, the corners, narrow end, or pockets which fail |
+| Failed to fillet the specified corners. | error | rounding the pockets' corners fails | `filletRadius`, the corners (or fillets) which fail alone, the narrow end, or the pockets which fail |
 | There's no room for pockets between the walls and ribs. | warning | no pockets are left | the wall, fillet, and rib parameters |
 | Failed to cut the pockets shown. | error | cutting the pockets from the part fails | `face`, the pockets which fail alone |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | the cut leaves pieces of ribs free | the rib parameters, the loose parts |
@@ -171,8 +171,9 @@ the style guide's "Tolerances, not margins").
 - What's built so far shows in blue, and what's at fault in red (`showBuiltOnFailure`, `showOut`). The pockets'
   geometry is shown as copies moved out of the part onto its face, where the part doesn't hide them. Selections show
   in place.
-- Where several things were given to one operation, the `catch` tries each alone (`failingBodies`) and shows those
-  which fail.
+- Where several things were given to one operation, the `catch` tries each alone and shows those which fail:
+  pockets (`failingBodies`), and corners and fillets, each in a feature of its own which is rolled back
+  (`failingAlone`, `failingCorners`).
 - The walls are built in a feature of their own (`startFeature`), so a failure rolls back cleanly. `wallFailure` then
   tries them again a few ways, each rolled back, and lays blame as if optional inputs weren't there:
   1. wall overrides, if the walls work without them;
