@@ -321,6 +321,13 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             notes = append(notes, "The walls' inside corners are rounded 0.01 mm larger than the wall thickness.");
         }
 
+        // Pockets too small to be worth cutting are left solid
+        const small = smallPockets(context, facePlane, pockets, radius, definition.wallThickness);
+        if (small != [])
+        {
+            opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
+        }
+
         if (definition.filletCorners)
         {
             const rounding = showBuiltOnFailure(context, pockets, function()
@@ -1122,50 +1129,68 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
  * thicker, so a pocket narrower than the bit is gone, and the rest are grown back by `radius`. Their corners are
  * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature and Vent do, so growing them rounds them;
  * those rounds (tracked through the growth) are then set to exactly `radius` (`opModifyFillet`, as Vent does), if they
- * can be. Their inside corners (the walls' and ribs' outside ones) stay sharp. Pockets smaller than `radius` both ways
- * (`smallPockets`) are left solid first: slivers between walls and ribs, not worth cutting.
+ * can be. Their inside corners (the walls' and ribs' outside ones) stay sharp.
  *
- * Each pocket's corners get their hair fillet on their own: a pocket whose fillet fails isn't grown back (left
- * smaller, as its walls and ribs are thicker), and the fillet's status and error display (the fillets which failed,
- * and the edges they're on) are copied onto the feature, `featureId`, which then reports a warning.
+ * Their narrow ends (`narrowEnds`), where the hair rounds on either side would meet (as at the tip of a pocket between
+ * ribs which meet at a shallow angle), get one full round across them instead (std's `opFullRoundFillet`), which
+ * growing makes a round end as wide as the pocket. They're left as grown: a bit's two rounds with less than a hair
+ * between them are a round that wide, to within it.
+ *
+ * Each pocket is rounded on its own: a pocket whose full round or fillet fails isn't grown back (left smaller, as its
+ * walls and ribs are thicker), and that operation's status and error display (the fillets which failed, and the edges
+ * they're on) are copied onto the feature, `featureId`, which then reports a warning.
  *
  * @returns {{
- *      @field unrounded {array} : The corners of the pockets whose fillets failed.
+ *      @field unrounded {array} : The corners (or narrow ends) of the pockets which failed.
  *      @field exactCorners {boolean} : Whether the rounds were set to exactly `radius`: if not, they're a hair bigger.
  * }}
  */
 function roundPockets(context is Context, featureId is Id, id is Id, plane is Plane, pockets is Query, radius is ValueWithUnits) returns map
 {
-    const small = smallPockets(context, plane, pockets, radius);
-    if (small != [])
-    {
-        opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
-    }
     const ends = pocketEnds(pockets, plane);
     var rounded = [];
+    var roundIds = [];
     var unrounded = [];
     for (var i, pocket in evaluateQuery(context, pockets))
     {
-        const corners = pocketCorners(context, sideEdges(context, pocket, plane.normal));
-        if (isQueryEmpty(context, corners))
-        {
-            rounded = append(rounded, pocket);
-            continue;
-        }
-        const filletId = id + "corners" + unstableIdComponent(i);
-        setExternalDisambiguation(context, filletId, pocket);
+        const pocketId = id + unstableIdComponent(i);
+        setExternalDisambiguation(context, pocketId, pocket);
+        var operationId;
+        var entities = pocket;
         try silent
         {
-            opFillet(context, filletId, {
-                        "entities" : corners,
-                        "radius" : TOLERANCE.booleanDefaultTolerance * meter
-                    });
+            for (var j, narrowEnd in narrowEnds(context, sideEdges(context, pocket, plane.normal)))
+            {
+                operationId = pocketId + "fullRound" + unstableIdComponent(j);
+                entities = narrowEnd.faces;
+                opFullRoundFillet(context, operationId, {
+                            "side1Face" : narrowEnd.sides[0],
+                            "side2Face" : narrowEnd.sides[1],
+                            "centerFaces" : narrowEnd.faces,
+                            "tangentPropagation" : false
+                        });
+            }
+            // A full round's edges are smooth, so they aren't corners
+            const corners = pocketCorners(context, sideEdges(context, pocket, plane.normal));
+            if (!isQueryEmpty(context, corners))
+            {
+                operationId = pocketId + "corners";
+                entities = corners;
+                opFillet(context, operationId, {
+                            "entities" : corners,
+                            "radius" : TOLERANCE.booleanDefaultTolerance * meter
+                        });
+                roundIds = append(roundIds, operationId);
+            }
             rounded = append(rounded, pocket);
         }
         catch
         {
-            processSubfeatureStatus(context, featureId, { "subfeatureId" : filletId, "propagateErrorDisplay" : true });
-            unrounded = append(unrounded, corners);
+            if (operationId != undefined)
+            {
+                processSubfeatureStatus(context, featureId, { "subfeatureId" : operationId, "propagateErrorDisplay" : true });
+            }
+            unrounded = append(unrounded, entities);
         }
     }
     if (rounded == [])
@@ -1173,7 +1198,7 @@ function roundPockets(context is Context, featureId is Id, id is Id, plane is Pl
         return { "unrounded" : unrounded, "exactCorners" : true };
     }
     // Growing changes them, so they're tracked through it, to be set to exactly the radius after
-    const rounds = startTracking(context, qCreatedBy(id + "corners", EntityType.FACE));
+    const rounds = startTracking(context, qUnion(mapArray(roundIds, roundId => qCreatedBy(roundId, EntityType.FACE))));
     try silent
     {
         opOffsetFace(context, id + "grow", {
@@ -1207,17 +1232,111 @@ function roundPockets(context is Context, featureId is Id, id is Id, plane is Pl
 }
 
 /**
- * The pockets (before they're grown back) whose bounding box in `plane` (the face's) is less than `radius` across
- * both ways. Its sides are along the plane's x and y axes, so a pocket's measured as it's turned on the face.
+ * A pocket's narrow ends: runs of its sides, each between two convex corners (`sides` edges, see `sideEdges`), which
+ * the hair rounds on those corners would use up, leaving less of it than std's boolean tolerance, which booleans can't
+ * tell from nothing. A round of radius `h` on a corner whose faces' normals turn by `angle` takes `h * tan(angle / 2)`
+ * of each face; this is exact for flat sides, and for curved ones to within their curvature over a hair. Sides next to
+ * each other which are both narrow are one end, between the sides either side of them. A pocket narrow all the way
+ * around has no sides to round between: it's left to fail (if it's not too small to cut, see `smallPockets`).
+ *
+ * @returns {array} : Each as a map of its `faces`, and the two `sides` it's between.
  */
-function smallPockets(context is Context, plane is Plane, pockets is Query, radius is ValueWithUnits) returns array
+function narrowEnds(context is Context, sides is Query) returns array
+{
+    const corners = pocketCorners(context, sides);
+    var narrow = [];
+    for (var face in evaluateQuery(context, qAdjacent(sides, AdjacencyType.EDGE, EntityType.FACE)))
+    {
+        const edges = qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE);
+        const faceCorners = evaluateQuery(context, qIntersection([edges, sides]));
+        if (size(faceCorners) != 2 || !isQueryEmpty(context, qSubtraction(qUnion(faceCorners), corners)))
+        {
+            continue;
+        }
+        const turns = mapArray(faceCorners, function(corner)
+            {
+                const neighbor = qSubtraction(qAdjacent(corner, AdjacencyType.EDGE, EntityType.FACE), face);
+                const normals = mapArray([face, neighbor], side => evFaceNormalAtEdge(context, { "edge" : corner, "face" : side, "parameter" : 0.5 }));
+                return angleBetween(normals[0], normals[1]);
+            });
+        // Its width: its edges around the ends (on the face and its far side) are each as long as it's wide
+        const width = evLength(context, { "entities" : qSubtraction(edges, sides) }) / 2;
+        if (isNarrowSide(width, turns))
+        {
+            narrow = append(narrow, face);
+        }
+    }
+
+    // The faces next to `faces` across their corners
+    const beside = function(faces is Query) returns Query
+        {
+            return qSubtraction(qAdjacent(qIntersection([qAdjacent(faces, AdjacencyType.EDGE, EntityType.EDGE), corners]), AdjacencyType.EDGE, EntityType.FACE), faces);
+        };
+    var found = [];
+    while (narrow != [])
+    {
+        var run = [narrow[0]];
+        narrow = subArray(narrow, 1);
+        while (true)
+        {
+            const next = evaluateQuery(context, qIntersection([beside(qUnion(run)), qUnion(narrow)]));
+            if (next == [])
+            {
+                break;
+            }
+            run = concatenateArrays([run, next]);
+            narrow = filter(narrow, face => !isIn(face, next));
+        }
+        const neighbors = evaluateQuery(context, beside(qUnion(run)));
+        if (size(neighbors) == 2)
+        {
+            found = append(found, { "faces" : qUnion(run), "sides" : neighbors });
+        }
+    }
+    return found;
+}
+
+/**
+ * The pockets (before they're grown back by `radius`) too small to be worth cutting: a heuristic. Those with less area,
+ * as cut, than a circle twice as wide as the bit (`2 * radius`) or `wall`, whichever's wider; they're mostly slivers
+ * between walls and ribs, whose corners can be too sharp to round. Their area as cut is their area, plus their
+ * outline's length times `radius`, plus the bit's (Steiner's formula: exact for convex pockets, and a little more than
+ * it for others).
+ */
+function smallPockets(context is Context, plane is Plane, pockets is Query, radius is ValueWithUnits, wall is ValueWithUnits) returns array
 {
     return filter(evaluateQuery(context, pockets), function(pocket)
         {
-            const bounds = evBox3d(context, { "topology" : pocket, "cSys" : coordSystem(plane), "tight" : false });
-            const size = bounds.maxCorner - bounds.minCorner;
-            return size[0] < radius && size[1] < radius;
+            // Both ends (on the face and its far side) are its outline
+            const ends = pocketEnds(pocket, plane);
+            const area = evArea(context, { "entities" : ends }) / 2;
+            const outline = evLength(context, { "entities" : qAdjacent(ends, AdjacencyType.EDGE, EntityType.EDGE) }) / 2;
+            return isSmallPocket(area, outline, radius, wall);
         });
+}
+
+/**
+ * Whether a pocket of `area`, whose outline is `outline` long, is too small to cut once it's grown back by `radius`
+ * (see `smallPockets`).
+ */
+export function isSmallPocket(area is ValueWithUnits, outline is ValueWithUnits, radius is ValueWithUnits, wall is ValueWithUnits) returns boolean
+{
+    return area + outline * radius + PI * radius ^ 2 < PI * max(2 * radius, wall) ^ 2;
+}
+
+/**
+ * Whether a side `width` wide, between two corners whose faces' normals turn by `turns`, is narrow (see `narrowEnds`):
+ * hair rounds on both corners would leave less of it than a hair.
+ */
+export function isNarrowSide(width is ValueWithUnits, turns is array) returns boolean
+{
+    const hair = TOLERANCE.booleanDefaultTolerance * meter;
+    var used = 0 * meter;
+    for (var turn in turns)
+    {
+        used += hair * tan(turn / 2);
+    }
+    return width - used < hair;
 }
 
 /**

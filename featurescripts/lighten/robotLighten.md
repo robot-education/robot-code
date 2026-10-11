@@ -10,6 +10,7 @@ rounded as a router bit leaves them.
 | `robotLighten.fs` | The feature |
 | `quickRibs.fs` | Quick ribs: sketching them, the edge ribs' manipulators, and their editing logic |
 | `../../tests/featurescript/quickRibs_test.fs` | Tests of the lines and circles quick ribs draw |
+| `../../tests/featurescript/lighten_test.fs` | Tests of which pockets are small, and which ends narrow |
 | `robotLightenIcon.py` | Its icon (`fs gen` writes `robotLightenIcon.svg`): the plate icon, pocketed |
 | `vent.local.fs` | Vent, for reference (see Method comparison): not synced |
 | `partLighten.local.fs` | Part Lighten (by Evan Fish, FRC 2471), for reference: not synced |
@@ -57,7 +58,7 @@ without any, the info does.
 | (the failed operation's own message) | error | the walls fail otherwise: hollowing, enclosing, or one of their offsets or hair fillets fails | `wallThickness` (and `filletRadius`), and the operation's own error display |
 | The walls' inside corners are rounded 0.01 mm larger than the wall thickness. | info | setting the walls' inside corners to their exact radius fails | |
 | Failed to create rib. | error | a rib's extrude, thicken, or cylinder fails, or cutting the ribs from the pockets fails | that rib's group's parameters, and its edge (or the ribs which fail alone) |
-| Some pockets' corners can't be filleted, so those pockets are left smaller. | warning | a pocket's corner fillet fails: that pocket isn't grown back | `filletRadius`, those corners, and the fillet's own error display (failed fillets in pink, bad edges in red) |
+| Some pockets' corners can't be filleted, so those pockets are left smaller. | warning | a pocket's full round or corner fillet fails: that pocket isn't grown back | `filletRadius`, those corners (or narrow ends), and the operation's own error display (failed fillets in pink, bad edges in red) |
 | (the failed operation's own message) | error | growing the filleted pockets back fails | `filletRadius`, and the operation's own error display |
 | The pockets' corners are rounded 0.01 mm larger than the fillet radius. | info | setting the pockets' corners to their exact radius fails | |
 | There's no room for pockets between the walls and ribs. | warning | no pockets are left | the wall, fillet, and rib parameters |
@@ -121,10 +122,11 @@ robotLighten
     --> wallFailure                                // only when they fail: which input is to blame
 --> buildRibs --> buildRibGroup                    // each rib: a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
---> roundPockets                                   // with Fillet corners
-    --> smallPockets --> opDeleteBodies "dropSmall"  // slivers under the radius both ways, left solid
+--> smallPockets --> opDeleteBodies "dropSmall"    // too small to be worth cutting: left solid
+--> roundPockets                                   // with Fillet corners; each pocket on its own
+    --> narrowEnds --> opFullRoundFillet "fullRound" // ends too narrow for two hair fillets (a warning if it fails)
     --> sideEdges, pocketCorners                   // corners: convex straight edges along the face's normal
-    --> opFillet "corners"                         // each pocket's, a hair (a warning if it fails)
+    --> opFillet "corners"                         // a hair (a warning if it fails)
     --> opOffsetFace "grow"                        // the filleted pockets, back out by the radius
     --> opModifyFillet "exactCorners"              // corners (tracked through the grow): exactly the radius (info if not)
 --> opBoolean "cut"                                // pockets cut from the part
@@ -161,12 +163,34 @@ corners as a router bit of that radius would, and a pocket narrower than the bit
 fillet first, which the growth rounds; then they're set to exactly the radius (`opModifyFillet`). The fillets are
 tracked through the growth (`startTracking`). If setting them fails, they're left a hair bigger, and the info says so.
 
-Each pocket's corners are filleted on their own. If a pocket's fillet fails, the fillet's own error display is copied
+Each pocket is rounded on its own. If its full round or fillet fails, that operation's own error display is copied
 onto the feature (failed fillets in pink, bad edges in red), that pocket isn't grown back, and it's cut smaller (by
 the fillet radius) with a warning. The rest are rounded as usual.
 
-Before that, pockets whose bounding box on the face is less than the fillet radius both ways are deleted, and
-left solid: slivers between walls and ribs, not worth cutting, whose corners can be too sharp to round.
+#### Narrow ends
+
+Where ribs meet at a shallow angle, or a rib meets a wall, the pocket between them narrows to an end. Its inset can
+end in a side so narrow that the hair fillets on its two corners would overlap, which fails the fillet. Those ends
+get one full round across them instead (`opFullRoundFillet`), which growing makes a round end as wide as the pocket.
+
+This isn't a heuristic. A fillet of radius `h` on a corner whose faces' normals turn by `θ` uses `h tan(θ / 2)` of
+each face. A side between two convex corners is narrow if what's left after both is less than a hair: std's boolean
+tolerance, which booleans can't tell from nothing (`isNarrowSide`). That's exact for flat sides, and for curved ones
+to within their curvature over a hair. Narrow sides next to each other make one end, rounded between the sides
+either side of them.
+
+Full rounds aren't set to the radius after: grown, each is half the end's width (under a hair) bigger than the
+radius, which is what the bit's two rounds with that width between them amount to.
+
+A pocket narrow all the way around has no sides to round between. Those are small enough to be left solid (below).
+
+#### Small pockets
+
+Pockets too small to be worth cutting are left solid, with or without Fillet corners. This is a heuristic: a pocket
+is small if its area, as cut, is less than a circle twice as wide as the bit or the wall thickness, whichever is wider
+(`isSmallPocket`). With a 1/8 in. bit and 1/8 in. walls, that's a circle 1/4 in. across. Its area as cut is
+estimated before it's grown back: its area, plus its outline's length times the radius, plus the bit's (Steiner's
+formula: exact for convex pockets, and a little more for others).
 
 The corners are the pockets' straight edges along the face's normal (`sideEdges`): the pockets are the face's outline
 extruded, so every edge between two sides runs along it, and none around the ends do. Nothing on the face or its far
@@ -208,7 +232,7 @@ the style guide's "Tolerances, not margins").
 | `insetPockets` (`try silent`) | Building the walls | Rolled back; `wallFailure` works out the error. |
 | `buildWalls` (`try silent`) | Each step | Throws which step failed, for `wallFailure`. |
 | `wallFailure`, `failingBodies` (`try silent`) | Each trial | What they're looking for: whether that trial works. |
-| `roundPockets` (`try silent`) | Each pocket's corner fillet | A warning: that pocket's left smaller. |
+| `roundPockets` (`try silent`) | Each pocket's full rounds and corner fillet | A warning: that pocket's left smaller. |
 | `buildWalls`, `roundPockets` (`try silent`) | Setting fillets to their exact radii | Info: they're a hair bigger. |
 | `pointsOf` (`try silent`) | Each quick rib point | Left out: it isn't there any more. |
 | `edgeRibSegments` (`try silent`) | Where an edge rib meets its edge | The edge rib is skipped. |
@@ -229,7 +253,8 @@ Onshape Lighten feature did: extrude the face, hollow it (`opShell`), and keep w
 | Rounded pocket corners | Hair fillet, grown, then `opModifyFillet` to exactly the radius | As Robot lighten | As Robot lighten, with the tool radius rounded up by 0.01 in |
 | End types | Through all, Blind | Blind, Up to face, Up to part, Through all | Blind, Through, Up to face, Up to vertex |
 | Extents | Exact (tight bounding box) | Exact (tight bounding box) | Measured distances; tool radius rounded |
-| Narrow pocket ends | A warning: that pocket's left smaller, with the fillet's own display | Not handled | Not handled; sharp edges where walls barely meet are found after the cut, and their faces deleted (`opDeleteFace`) |
+| Narrow pocket ends | Full round, found from the hair fillets' setbacks | Not handled | Not handled; sharp edges where walls barely meet are found after the cut, and their faces deleted (`opDeleteFace`) |
+| Small pockets | Left solid: less area than a circle twice the bit or wall | Not handled | Not handled |
 | Tight rounded part corners | Not handled | Not handled | Not handled |
 | Inside corners not set exactly | Info: a hair bigger | Not handled | Not handled |
 | Errors | Which input, for walls and ribs; the operation's own display; what's built in blue | Std errors; a warning if trimming fails | Generic messages |
@@ -240,16 +265,15 @@ Taken from Vent: `opModifyFillet`, setting the hair fillets to their exact radii
 ## Issues found
 
 - Untested in Onshape.
-- Small pockets are measured by their bounding box (loose) along the face's x and y axes, so a sliver turned on the
-  face can measure up to √2 bigger, and the box itself can be a little bigger than the pocket. Without Fillet corners, slivers are cut as they are.
+- Small pockets are found by a heuristic (twice the bit or wall), which is untested on real parts.
 - Walls follow the face's outline, so a part whose sides slope or step gets walls of the face's outline, not of its
   sides.
 - An overridden wall steps to its thickness at the corners its side meets others at. A much thicker override moves
   its side in before the hollow, which can close a small pocket.
 - Hollowing can't move a convex face in by more than its radius, so a rounded part corner tighter than the walls
   (or a lobe narrower than them) fails the walls.
-- A pocket whose corner fillet fails is left smaller by the fillet radius, rather than rounded some other way (a full
-  round across a narrow end, say).
+- A narrow side next to a concave corner (one side of it a rib's or wall's corner) has nothing to full round
+  between, so its fillet fails, and the pocket's left smaller with a warning.
 - A pocket fillet's error display is copied onto the feature before the warning's reported. Whether it survives the
   warning replacing its status is untested.
 - Quick ribs are always at Rib thickness: overrides select sketch edges, and quick ribs' sketch is the feature's own.
