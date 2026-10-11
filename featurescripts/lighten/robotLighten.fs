@@ -74,57 +74,66 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // Ribs it sketches itself (see `quickRibs.fs`)
         annotation { "Group Name" : "Quick ribs", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
-                        "UIHint" : ["FOCUS_INNER_QUERY"] }
-            definition.chains is array;
-
-            for (var chain in definition.chains)
+            annotation { "Group Name" : "Chains", "Collapsed By Default" : false }
             {
-                annotation { "Name" : "Points",
-                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                chain.chainPoints is Query;
+                annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
+                            "UIHint" : ["FOCUS_INNER_QUERY"] }
+                definition.chains is array;
 
-                annotation { "Name" : "Closed" }
-                chain.closed is boolean;
-            }
-
-            annotation { "Name" : "Hub and spokes", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
-                        "UIHint" : ["FOCUS_INNER_QUERY"] }
-            definition.hubs is array;
-
-            for (var hub in definition.hubs)
-            {
-                annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
-                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                hub.hub is Query;
-
-                annotation { "Name" : "Spokes",
-                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                hub.spokes is Query;
-
-                annotation { "Name" : "Add circle", "Description" : "Add a circle through the first selected spoke." }
-                hub.addCircle is boolean;
-            }
-
-            annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
-            definition.edgeRibs is array;
-
-            for (var edgeRib in definition.edgeRibs)
-            {
-                annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                edgeRib.ribEnd is EdgeRibEnd;
-
-                annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
-                edgeRib.ribEdge is Query;
-
-                annotation { "Name" : "Points",
-                            "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-                edgeRib.ribPoints is Query;
-
-                if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
+                for (var chain in definition.chains)
                 {
-                    annotation { "Name" : "Location" }
-                    isReal(edgeRib.edgeLocation, EDGE_RIB_LOCATION_BOUNDS);
+                    annotation { "Name" : "Points",
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    chain.chainPoints is Query;
+
+                    annotation { "Name" : "Closed" }
+                    chain.closed is boolean;
+                }
+            }
+
+            annotation { "Group Name" : "Hub and spokes", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Hub and spokes", "Item name" : "hub", "Item label template" : "#hub", "Driven query" : "hub",
+                            "UIHint" : ["FOCUS_INNER_QUERY"] }
+                definition.hubs is array;
+
+                for (var hub in definition.hubs)
+                {
+                    annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1,
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    hub.hub is Query;
+
+                    annotation { "Name" : "Spokes",
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    hub.spokes is Query;
+
+                    annotation { "Name" : "Add circle", "Description" : "Add a circle through the first selected spoke." }
+                    hub.addCircle is boolean;
+                }
+            }
+
+            annotation { "Group Name" : "Edge ribs", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Edge ribs", "Item name" : "edge rib", "Item label template" : "#ribEnd", "UIHint" : ["FOCUS_INNER_QUERY"] }
+                definition.edgeRibs is array;
+
+                for (var edgeRib in definition.edgeRibs)
+                {
+                    annotation { "Name" : "End", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    edgeRib.ribEnd is EdgeRibEnd;
+
+                    annotation { "Name" : "Edge", "MaxNumberOfPicks" : 1, "Filter" : EntityType.EDGE }
+                    edgeRib.ribEdge is Query;
+
+                    annotation { "Name" : "Points",
+                                "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                    edgeRib.ribPoints is Query;
+
+                    if (edgeRib.ribEnd == EdgeRibEnd.MANIPULATOR)
+                    {
+                        annotation { "Name" : "Location" }
+                        isReal(edgeRib.edgeLocation, EDGE_RIB_LOCATION_BOUNDS);
+                    }
                 }
             }
 
@@ -1197,8 +1206,8 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
  * Rounds the pockets' corners, as a router bit of `radius` leaves them: they were made with walls and ribs `radius`
  * thicker, so a pocket narrower than the bit is gone, and the rest are grown back by `radius`. Their corners are
  * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature does, so growing them rounds them, rather
- * than filleting them after, which can fail where a pocket narrows; those rounds are then set to exactly `radius`
- * (`opModifyFillet`, as Vent does). Their inside corners (the walls' and ribs' outside ones) stay sharp.
+ * than filleting them after, which can fail where a pocket narrows. Their inside corners (the walls' and ribs' outside
+ * ones) stay sharp.
  *
  * Pockets smaller than `radius` both ways (`smallPockets`) are left solid first: slivers between walls and ribs, not
  * worth cutting, whose corners can be too sharp to round.
@@ -1275,46 +1284,17 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
         showOut(context, errors, failing, DebugColor.RED);
         throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
     }
-    // Growing made them the radius and the hair; they're set to exactly the radius
-    const rounds = qCreatedBy(id + "roundCorners", EntityType.FACE);
-    if (!isQueryEmpty(context, rounds))
-    {
-        try silent
-        {
-            opModifyFillet(context, id + "exactCorners", {
-                        "faces" : rounds,
-                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
-                        "reFillet" : false,
-                        "radius" : radius
-                    });
-        }
-        catch
-        {
-            showOperationError(context, errors, id + "exactCorners");
-            const failing = failingAlone(context, id + "error", rounds, function(trialId is Id, round is Query)
-                {
-                    opModifyFillet(context, trialId, {
-                                "faces" : round,
-                                "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
-                                "reFillet" : false,
-                                "radius" : radius
-                            });
-                });
-            showOut(context, errors, failing == [] ? rounds : qUnion(failing), DebugColor.RED);
-            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
-        }
-    }
 }
 
 /**
- * The pockets (before they're grown back) whose bounding box, tight, in `plane` (the face's), is less than `radius`
- * across both ways. Its sides are along the plane's x and y axes, so a pocket's measured as it's turned on the face.
+ * The pockets (before they're grown back) whose bounding box in `plane` (the face's) is less than `radius` across
+ * both ways. Its sides are along the plane's x and y axes, so a pocket's measured as it's turned on the face.
  */
 function smallPockets(context is Context, plane is Plane, pockets is Query, radius is ValueWithUnits) returns array
 {
     return filter(evaluateQuery(context, pockets), function(pocket)
         {
-            const bounds = evBox3d(context, { "topology" : pocket, "cSys" : coordSystem(plane), "tight" : true });
+            const bounds = evBox3d(context, { "topology" : pocket, "cSys" : coordSystem(plane), "tight" : false });
             const size = bounds.maxCorner - bounds.minCorner;
             return size[0] < radius && size[1] < radius;
         });
