@@ -51,12 +51,18 @@ No parameters are hidden. Editing logic sets the shown Location type (see Execut
 | Select a circle the size of the sprocket's pitch circle. | error | Pitch circle, but the location isn't a circle | its `location`, the selection |
 | The selected pitch circle is too small for the chain. | error | the pitch circle's diameter is a pitch or less | its `location`, the selection |
 | Select a sketch point, mate connector, circle, or cylinder (or set the location type to Robot sprocket). | error | a center that isn't one | its `location`, the selection |
-| A selected pitch circle isn't the size of a sprocket with a whole number of teeth: it's used as the nearest one. | warning | a pitch circle's teeth aren't a whole number | those `location`s |
+| Two of the pulleys, sprockets, or circles the path goes around are in the same place. | error | two sprockets' centers coincide (`core/boundary.fs`) | |
+| The path can't go around a pulley, sprocket, or circle inside another. | error | one sprocket's circle is inside another's (`core/boundary.fs`) | |
+| A selected pitch circle isn't the size of a sprocket with a whole number of teeth: it's used as the nearest one. | warning | a pitch circle's radius isn't the nearest whole number of teeth's, within std's length tolerance | those `location`s |
 | A selected Robot sprocket is for another type of chain. | warning | its chain type isn't the chain's | those `location`s |
+| A selected sprocket or idler isn't lined up with the first: the chain goes around where it is in the first one's plane. | warning | a sprocket's plane isn't the first's (or coplanar with it) | those `location`s |
 | The `<links>` link chain fits the sprockets.`<odd>` | info | the path is the chain's length (to the display's precision) | |
 | The `<links>` link chain is `<distance>` too `<long or short>` for the sprockets: `<closest>` links are closest. Get the distance close, then use Robot tensioner to make it exact.`<odd>` | warning | it isn't | `links` |
 
 `<odd>` is " An odd number of links needs an offset link." for an odd number of links, or nothing.
+
+Only one status shows at a time, so the warnings are reported together at the end (`reportStatus`), as one warning.
+Without any, the length's info shows.
 
 ## How it works
 
@@ -77,15 +83,18 @@ No parameters are hidden. Editing logic sets the shown Location type (see Execut
       or a pitch circle's, from its size. The chain's plane is the first's, with the starting offset. Each becomes a
       `BoundaryCircle` at its center projected onto the chain's plane: a sprocket's pitch circle (radius
       `pitch / (2 sin(180° / teeth))`), or an idler's radius plus the chain's roller's, flipped when the chain's
-      outside it; and a `ChainFaceAttribute` (its chain type, and teeth or idler radius).
+      outside it; and a `ChainFaceAttribute` (its chain type, and teeth or idler radius). Pitch circles of a fraction
+      of teeth, Robot sprockets for another chain, and sprockets not in the first's plane are gathered as warnings
+      (`sprocketWarnings`).
    2. `sketchLoop` (`core/loop.fs`) sketches the path, around the sprockets in the order they're listed.
    3. A flip manipulator on each arc swaps its sprocket's chain side; `validateLength` compares the chain's length
-      (links times pitch, plus the fit adjustment) with the path's (`loopLength`).
+      (links times pitch, plus the fit adjustment) with the path's (`loopLength`, `lengthStatus`).
    4. `createChain` thickens the path by the plates' height (half to each side) and extrudes it as wide as the chain,
       both ways from its plane: the chain's envelope, not its links. Its curved faces around each sprocket (tracked
       from the path's arcs) get that sprocket's `ChainFaceAttribute`, for Robot sprocket.
    5. `LOOP_ATTRIBUTE` is set on it (its plane, circles, and length, for Robot tensioner), its properties, and a mate
       connector at each sprocket's center (with its `ChainFaceAttribute` too).
+   6. `reportStatus` reports the warnings and the length's status.
 4. **Manipulator change** (`robotChainManipulatorChange`): the flip manipulators, and the starting offset's.
 
 The path goes around pitch circles, as chain length formulas do: a chain on a sprocket is really a polygon of its

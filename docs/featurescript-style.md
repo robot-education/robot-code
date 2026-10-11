@@ -233,7 +233,7 @@ Don't pick margins by eye ("5% past", "at least 0.1 mm", "1.05 times the radius"
 touch, is std's call: `TOLERANCE.zeroLength` for geometry, `TOLERANCE.booleanDefaultTolerance` for what booleans treat
 as touching (both unitless, in meters; see `docs/std-functions.md`). Make tools exactly as big as they need to be
 (`evBox3d` with `"tight" : true`): a cut ending flush with a part's face cuts through, as booleans treat faces within
-their tolerance as the same. Where something can't be smaller than a tolerance (a hole left by thickening an arc
+their tolerance as the same (Robot lighten's Through all relies on this; it's yet to be tried in Onshape). Where something can't be smaller than a tolerance (a hole left by thickening an arc
 toward its center), compare against that tolerance.
 
 ## Comparing lengths and angles
@@ -261,83 +261,79 @@ is being filled in; but say so in a comment, and call out every `try` in the fea
 
 ## Errors
 
-A feature which fails should say what failed, in its own terms, and show it. How std's machinery works, from its
-source (`error.fs`, `feature.fs`, `boolean.fs`):
+A feature which fails should say what failed, in its own terms, and show it.
 
-- **A thrown `regenError` is the feature's status.** `defineFeature` catches it, reports it (message, faulty
-  parameters, and its `entities`, highlighted while the dialog is open), and rolls back everything the feature made.
-  Only one status is shown: the last one reported.
-- **Error entities outlive the rollback.** `setErrorEntities` shows entities in red, and that display stays after the
-  feature's rolled back, though the entities don't. So a feature can show bodies it made before failing, as long as it
-  shows them before it throws.
-- **Subfeatures and operations report their own statuses**, on their own ids: std's features (`extrude`, `fillet`) and
-  operations (`opShell`, `opBoolean`) set an error when they fail (and some warnings and info when they don't), with
-  their own error display (what they highlight). `processSubfeatureStatus` copies a subfeature's status onto the
-  feature, mapping its faulty parameters to the feature's (`featureParameterMap`, or `featureParameterMappingFunction`),
-  and with `propagateErrorDisplay`, its error display too. `callSubfeatureAndProcessStatus` runs one and does that.
+### Errors, warnings, and info
+
+A feature (or subfeature) ends with one status: an error, a warning, or info (or none).
+
+- **An error** rolls back the entire feature, except its debug entities (`addDebugEntities`) and error entities
+  (`setErrorEntities`, or a `regenError`'s entities), and shows its message. A thrown `regenError` is an error:
+  `defineFeature` catches it, reports it (its message, faulty parameters, and entities), and rolls the feature back
+  (`@abortFeature`).
+- **A warning or info** shows only if the feature completes (`reportFeatureWarning`, `reportFeatureInfo`), and can
+  have debug and error entities too. One status shows at a time, and a later one replaces an earlier one: when a
+  feature may have several things to say, gather them, and report one status at the end (Robot lighten's and Robot
+  chain's `reportStatus`), a warning (all the warnings, as one) over info.
+
+### Subfeatures and operations
+
+Subfeatures are std's features (`extrude`, `fillet`) or operations (`opExtrude`, `opFillet`), each with an id of its
+own under the feature's. They report errors, warnings, and info, on their own ids, and show error entities too: all
+of std's features have errors, and most show what failed; some operations do too (`opFillet` finds bad fillets, like
+overlapping ones, and shows the fillets which failed in pink and the edges it was given in red).
+
+- **Errors propagate up on their own**: an operation which fails throws, and uncaught, fails the feature with its
+  error. So an operation needn't be wrapped in a `try` just to fail the feature: wrap it to say something more, or to
+  carry on.
+- **Everything else needs `processSubfeatureStatus`** to reach the feature: warnings, info, and error display (with
+  `propagateErrorDisplay`). Its options also remap the subfeature's faulty parameters to the feature's
+  (`featureParameterMap`, or `featureParameterMappingFunction`), so the right parameter is highlighted, and override
+  its message with a more generic or context specific one (`overrideStatus`, an `ErrorStringEnum`). Its `id` must be
+  the feature's top level id for the error display to come through. `callSubfeatureAndProcessStatus` runs a
+  subfeature and does this.
 - **Copying an OK status hides an earlier warning**: `processSubfeatureStatus` reports the subfeature's status even
-  when it's OK, so a feature which runs several steps through `callSubfeatureAndProcessStatus` only shows the last
-  one's. Copy a step's status only when it isn't OK (`featureHasNonTrivialStatus`).
+  when it's OK. Copy a step's status only when it isn't OK (`featureHasNonTrivialStatus`, or in a `catch`).
 - **Std's messages can't be quoted.** Std's errors are `ErrorStringEnum`s, translated only in Onshape's UI, so a
-  feature can't put one in its own message. Custom messages (a feature's `regenError("...")`) are strings, and can.
-- **A failed operation changes nothing**, so what it was given is still there to show, as is everything earlier steps
-  made (until the feature's rolled back, which leaves the display). Reconstruct only what's gone: when earlier steps
-  consumed or changed what's to be shown, std rebuilds it under another id, shows it as error entities, and deletes
-  it: `processNewBodyIfNeeded` takes a `reconstructOp(errorId)` for this, which extrude, revolve, and the rest pass.
-- **What rolls back when something throws**: a feature, all of it, when it fails: `defineFeature` runs the body in a
-  `try`, and its `catch` calls `@abortFeature` (std's `feature.fs`), so nothing a failed feature did is left. A failed
-  operation changes nothing (above). But a `try` itself rolls nothing back: FsDoc's "Exceptions"
-  (https://cad.onshape.com/FsDoc/exceptions.html) says only that a `try` block is aborted when something's thrown, and
-  operations in it before the one which threw stay done, so the `catch` (and any retry) sees the context as it was when
-  it threw, not as it was when the `try` began. Std rolls back part of a feature itself when it needs to:
-  `startFeature` before, and `abortFeature` after (in a `catch`, too, as `sheetMetalUtils.fs`'s temporary fillet does,
-  "making sure the operation is rolled back"), or `endFeature` to keep it (`sketch.fs`). So to retry a sequence of operations from where it
-  started, run it between `startFeature` and `abortFeature` (see "Find the real cause before blaming a parameter").
-- **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes (like the
-  faces a shell opens) finds nothing after it. Show something that lasts instead, or (only if nothing else finds them)
-  evaluate it before that step (see Queries).
-- **Keep messages short, and show where.** A message says what's wrong and what to change ("Fillet radius is too
-  large for the pockets shown."); why belongs in the writeup. Show the specific culprit in red (the error's entities:
-  the edges or faces at fault, or the rib or override the user chose), and what's been built so far in blue
-  (`addDebugEntities(context, built, DebugColor.BLUE)`, which shows while the dialog's open, and outlasts the
-  feature's rollback), so the red is seen in place: Robot lighten's `showBuiltOnFailure` does this around each step.
-  Don't show the same thing in both colors (the red is lost): leave the red out of the blue. Bodies a feature builds
-  inside a part (tools, pockets) are hidden by it: show copies moved out of it (`opPattern` for bodies,
-  `opExtractSurface` for faces, `opExtractWires` for edges, then `opTransform`), as Robot lighten's `showOut` does,
-  and leave what the user selected in place.
-- **Show a failed operation's own error display, and throw its own error.** Operations know what went wrong (a
-  fillet's failing edges, and why), and show it on their own ids: in the `catch`, copy it onto the feature with
-  `processSubfeatureStatus(context, id, { "subfeatureId" : operationId, "propagateErrorDisplay" : true })`, where `id`
-  is the feature's top level id (a sub-feature's shows nothing). Then throw the operation's error
-  (`regenError(getFeatureError(context, id), parameters)`), as std's `callSubfeatureAndProcessStatus` does: a message
-  of your own reports a new status, replacing the one the display belongs to (Robot lighten's `operationError`).
-  Inside a feature of its own (`startFeature`), copy it before `abortFeature` rolls the operation back.
-- **Report a warning when it's found** (`reportFeatureWarning`, with `setErrorEntities` to show what it's about). An
-  error later takes precedence over it, which is fine: don't hold a warning back in the hope that nothing fails.
-- **Don't run trial features in editing logic.** `startFeature` and `abortFeature` roll back operations run between
-  them (std's boolean heuristics use them), but `abortFeature` with no feature started crashes the Part Studio, so
-  editing logic should only evaluate (queries, `evBox3d`, `evDistance`), never build.
-- **Diagnose on the cold path.** A feature regenerates whenever anything before it changes, so checks run before its
-  operations cost every regeneration, though they're only needed when something fails. Pin down what failed after it
-  has (a failed operation changed nothing, so what it was given is still there): try the operation again on each part
-  of what it was given, alone (on copies, so each try sees the same inputs), and show the parts which fail. The
-  feature's about to throw, so everything the diagnosis builds is rolled back with it, and its error display stays.
-- **Find the real cause before blaming a parameter.** A generic error ("Failed to make walls.") on whatever parameter
-  is nearest misleads: work out which input makes the difference. Lay blame as if optional inputs (overrides, extras)
-  weren't there: if it works without them, blame them (and narrow down to those which fail alone); then try the
-  feature's other inputs one at a time (does it work without the fillet radius?) before blaming the main one. Say why
-  when it can be found (a rounded corner tighter than the wall), and show it. To try again from a clean slate, run the
-  operations in a feature of their own (`startFeature`; `endFeature` keeps them, `abortFeature` rolls them back, as
-  std's `sketch.fs` and `bridgingCurve.fs` do in feature bodies), and each try in its own, rolled back, with an id of
-  its own (rolled back ids aren't reused). See Robot lighten's `wallFailure`.
+  feature can't put one in its own message. Custom messages (`regenError("...")`) are strings.
 
-Write this with std's functions directly: wrap each operation which can fail in `try`, and in its `catch`, throw a
-`regenError` of the feature's own, saying what failed ("Failed to thicken ribs."), highlighting the parameters which set
-it, and showing what failed as its entities. Give each operation its own `try` and message, so the error says which
-failed. A failed operation changed nothing, so what it was given can be shown as it is; build what's gone (what an
-earlier operation used up) again in the `catch`, under an id of its own, and show that. To narrow down what failed,
-try the operation on each thing it was given alone, in a loop in the `catch` (on copies, where a try changes what the
-next one sees), and show those which fail. For example (`core/bore.fs`):
+### Failing, and carrying on
+
+- **To add context to a failed operation**, wrap it, and in the `catch`, copy its status and display onto the
+  feature (`processSubfeatureStatus`), then throw the feature's error: a short message of its own, or the operation's
+  (`getFeatureError`), highlighting the parameters which set what failed (Robot lighten's `operationError`).
+- **When a step can fail without spoiling the rest, carry on with a warning** rather than failing the feature: in its
+  `catch`, copy the operation's status and display onto the feature (which shows what went wrong, as the operation
+  shows it), leave out what it would have done, and report a warning at the end. Robot lighten's pocket fillets do
+  this: a pocket whose corners can't be filleted is left smaller, and `opFillet`'s display shows which fillets failed.
+  Something that only makes the result a little off (a fillet's radius a hair big) is info.
+- **Keep messages short, and show where.** A message says what's wrong and what to change ("Fillet radius is too
+  large for the walls."); why belongs in the writeup. Show the culprit in red (the error's entities, or the
+  operation's own display), and what's been built so far in blue (`addDebugEntities(context, built,
+  DebugColor.BLUE)`, which shows while the dialog's open, and outlasts the rollback): Robot lighten's
+  `showBuiltOnFailure`.
+- **A failed operation changes nothing**, so what it was given is still there to show, as is everything earlier steps
+  made. When earlier steps consumed what's to be shown, std rebuilds it under another id, shows it as error entities,
+  and deletes it (`processNewBodyIfNeeded`'s `reconstructOp`).
+- **What rolls back when something throws**: a feature, all of it, when it fails. A `try` rolls nothing back: FsDoc's
+  "Exceptions" (https://cad.onshape.com/FsDoc/exceptions.html) says a `try` block is aborted when something's thrown,
+  and operations in it before the one which threw stay done. To try a sequence of operations and undo it, run it in a
+  feature of its own: `startFeature`, then `endFeature` to keep it or `abortFeature` to roll it back (std's
+  `sketch.fs`, `bridgingCurve.fs`, and `sheetMetalUtils.fs`), each try with an id of its own.
+- **Queries are evaluated when they're used**, not when they're made: a query of faces a later step removes finds
+  nothing after it. Track what you'll need through the steps which change it (`startTracking`, see Queries).
+- **Don't run trial features in editing logic.** `abortFeature` with no feature started crashes the Part Studio, so
+  editing logic should only evaluate (queries, `evBox3d`, `evDistance`), never build.
+- **Blame an input only when the operation's own error doesn't say enough.** Look at what the failed operation
+  reports and shows first: a fillet's or shell's display usually says where. Try the operation again (each try in a
+  feature of its own, rolled back) only to find which of the user's inputs is to blame, when that's cheap and the
+  answer changes what they'd do: Robot lighten tries its walls without wall overrides, and without the fillet
+  radius, and otherwise lets the operation's error speak. Do it only in the `catch` (a feature regenerates whenever
+  anything before it changes, so checks before its operations cost every time), and keep it small: each try is a
+  rebuild, and a diagnosis which guesses wrong misleads more than the operation's own error.
+
+For example (`core/bore.fs`): a wrapped operation, whose error says what failed and highlights the parameters which
+set it.
 
 ```
 try

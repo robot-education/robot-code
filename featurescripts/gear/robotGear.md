@@ -45,7 +45,8 @@ No parameters are hidden.
 | Select a sketch point, circle, or mate connector to use. | error | no location | `location` |
 | A sector has fewer teeth than its gear. | error | Sector teeth is the gear's teeth or more | `sectorTeeth` |
 | The gear's teeth come to points: give it more teeth, or less clearance. | error | a tooth's flanks meet below the tip circle | `teeth` |
-| The gear's too small for its teeth: give it more teeth. | error | the root circle's at or below the center, or the fillet's gone | `teeth` |
+| The gear's too small for its teeth: give it more teeth. | error | the root circle's at or below the center | `teeth` |
+| The profile offset is bigger than the roots' round: use less clearance, or a bigger router bit. | error | the profile offset leaves no root fillet | `profileOffsetDistance` |
 | The root's round doesn't fit between the teeth: use a smaller router bit, or a bigger module. | error | not even a full round of the fillet's radius fits below the involutes | `bitDiameter` |
 | The rack's back must be below its teeth's roots. | error | Height is less than the dedendum | `rackHeight` |
 | The rack's teeth come to points: use less clearance. / The rack's teeth meet at their roots: use more clearance. | error | the profile offset's too far | `profileOffsetDistance` |
@@ -57,8 +58,8 @@ No parameters are hidden.
 ### Execution order
 
 1. **Precondition**: Gear type; location; Diametral pitch or Module (by unit system), Teeth or Rack teeth, Pressure
-   angle, Thickness, and a rack's Height; a gear's Sector and Sector teeth; Router relief and Bit diameter; starting
-   offset; a gear's bore; profile offset; Add mate connector.
+   angle, Thickness, and a rack's Height; a gear's Sector and Sector teeth; a gear's Router relief and Bit diameter
+   (a rack's roots are square); starting offset; a gear's bore; profile offset; Add mate connector.
 2. **Body**: the module (an inch over the diametral pitch), the tooth form (`getGearForm`: pitch radius `m z / 2`,
    base radius its cosine of the pressure angle, tip `m` above it and root `1.25 m` below, fillet `0.38 m` or the bit's
    radius, all offset by the profile offset), the profile (below), extruded the thickness both ways from the location's

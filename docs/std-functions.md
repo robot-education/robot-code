@@ -6,7 +6,10 @@ them, and std's own features rely on them. `fs doc NAME` shows any of them; comp
 An internal function can change between std versions more freely than a public one. That's a reason to check its
 source when bumping std (`fs refs NAME` finds where it's used), not a reason to avoid it.
 
-Each is in `std/<module>.fs`. Those marked † are internal.
+Each is in `std/<module>.fs`. Those marked † are internal. Not every module is exported by `common.fs` (which most
+files import): a name from one which isn't (like `ModifyFilletType`, in `modifyFillet.fs`) needs that module imported
+too. `fs check` says so ("isn't defined in this file or anything it imports"); Onshape says "Variable ... not found"
+only when it runs.
 
 ## Tolerances: deciding "the same" and "touching"
 
@@ -63,7 +66,7 @@ Decide whether two things are the same, or touch, by std's tolerances, never by 
 | `opEdgeChange` † | geomOperations | Changes edges' geometry (undocumented) |
 | `opNameEntity` † | geomOperations | Names an entity, for `qNamed` ("under development") |
 | `opFullRoundFillet` | geomOperations | A full round replacing center faces between two side faces |
-| `opModifyFillet` | geomOperations | Changes an existing fillet's radius, or removes it (Vent sets its hair fillets to the wall thickness this way) |
+| `opModifyFillet` | geomOperations | Changes an existing fillet's radius, or removes it (Vent sets its hair fillets to the wall thickness this way). Its `ModifyFilletType` is in `modifyFillet.fs`, which `common.fs` doesn't export: import it (`import(path : "onshape/std/modifyFillet.fs", version : ...)`) |
 | `opDeleteFace` | geomOperations | Deletes faces and heals the gap by extending their neighbors (a rounded corner made sharp) |
 | `opOffsetFace`, `opShell`, `opEnclose` | geomOperations | Moving faces; hollowing a solid; a solid from the space surfaces enclose (how Lighten and Vent make walls) |
 | `fSphere` † | primitives | A sphere, as `fCylinder` makes a cylinder |
