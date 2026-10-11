@@ -1221,7 +1221,8 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
     {
         return;
     }
-    for (var i, narrowEnd in narrowEnds(context, pockets, ends))
+    const sides = sideEdges(context, pockets, plane.normal);
+    for (var i, narrowEnd in narrowEnds(context, sides))
     {
         const fullRoundId = id + "fullRound" + unstableIdComponent(i);
         try silent
@@ -1238,7 +1239,7 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
             throw operationError(context, errors, fullRoundId, ["filletRadius"]);
         }
     }
-    const corners = pocketCorners(context, pockets, ends);
+    const corners = pocketCorners(context, sideEdges(context, pockets, plane.normal));
     if (!isQueryEmpty(context, corners))
     {
         try silent
@@ -1300,37 +1301,37 @@ function smallPockets(context is Context, plane is Plane, pockets is Query, radi
 }
 
 /**
- * The pockets' narrow ends: their sides (not `ends`) between two convex corners which the hair rounds on those corners
- * would use up, leaving less of it than std's boolean tolerance (so the rounds meet). A round of radius `h` on a
+ * The pockets' narrow ends: their sides between two convex corners (`sides` edges, see `sideEdges`) which the hair
+ * rounds on those corners would use up, leaving less of it than std's boolean tolerance (so the rounds meet). A round of radius `h` on a
  * corner whose faces' normals turn by `angle` takes `h * tan(angle / 2)` of each face.
  *
  * @returns {array} : Each as a map of its `face`, and the two `sides` it's between.
  */
-function narrowEnds(context is Context, pockets is Query, ends is Query) returns array
+function narrowEnds(context is Context, sides is Query) returns array
 {
     const hair = TOLERANCE.booleanDefaultTolerance * meter;
-    const endEdges = qAdjacent(ends, AdjacencyType.EDGE, EntityType.EDGE);
     var found = [];
-    for (var face in evaluateQuery(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends)))
+    // The pockets' sides: the faces with edges along the normal
+    for (var face in evaluateQuery(context, qAdjacent(sides, AdjacencyType.EDGE, EntityType.FACE)))
     {
         const edges = qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE);
-        const corners = evaluateQuery(context, qSubtraction(edges, endEdges));
+        const corners = evaluateQuery(context, qIntersection([edges, sides]));
         if (size(corners) != 2 || !all(corners, corner => evEdgeConvexity(context, { "edge" : corner }) == EdgeConvexityType.CONVEX))
         {
             continue;
         }
-        const sides = mapArray(corners, corner => qSubtraction(qAdjacent(corner, AdjacencyType.EDGE, EntityType.FACE), face));
+        const neighbors = mapArray(corners, corner => qSubtraction(qAdjacent(corner, AdjacencyType.EDGE, EntityType.FACE), face));
         var used = 0 * meter;
         for (var i, corner in corners)
         {
-            const normals = mapArray([face, sides[i]], f => evFaceNormalAtEdge(context, { "edge" : corner, "face" : f, "parameter" : 0.5 }));
+            const normals = mapArray([face, neighbors[i]], f => evFaceNormalAtEdge(context, { "edge" : corner, "face" : f, "parameter" : 0.5 }));
             used += hair * tan(angleBetween(normals[0], normals[1]) / 2);
         }
         // Its width: its edges along the ends (on the face to lighten and its far side) are each as long as it's wide
-        const width = evLength(context, { "entities" : qIntersection([edges, endEdges]) }) / 2;
+        const width = evLength(context, { "entities" : qSubtraction(edges, sides) }) / 2;
         if (width - used < hair)
         {
-            found = append(found, { "face" : face, "sides" : sides });
+            found = append(found, { "face" : face, "sides" : neighbors });
         }
     }
     return found;
@@ -1347,14 +1348,26 @@ function pocketEnds(pockets is Query, plane is Plane, trackedEnds is Query) retu
 }
 
 /**
- * The pockets' corners: their convex edges between sides (not along `ends`).
+ * The pockets' corners: their convex `sides` edges (see `sideEdges`).
  */
-function pocketCorners(context is Context, pockets is Query, ends is Query) returns Query
+function pocketCorners(context is Context, sides is Query) returns Query
 {
-    const edges = qSubtraction(qOwnedByBody(pockets, EntityType.EDGE), qAdjacent(ends, AdjacencyType.EDGE, EntityType.EDGE));
-    return qUnion(filter(evaluateQuery(context, edges), function(edge)
+    return qUnion(filter(evaluateQuery(context, sides), function(edge)
             {
                 return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
+            }));
+}
+
+/**
+ * The pockets' edges where their sides meet: the straight ones along `normal` (the face's). The pockets are the face's
+ * outline extruded along it, so every edge between two sides runs along it, and none of the edges around their ends
+ * (on the face and its far side) do, whether or not those ends are found.
+ */
+function sideEdges(context is Context, pockets is Query, normal is Vector) returns Query
+{
+    return qUnion(filter(evaluateQuery(context, qOwnedByBody(pockets, EntityType.EDGE)->qGeometry(GeometryType.LINE)), function(edge)
+            {
+                return parallelVectors(evLine(context, { "edge" : edge }).direction, normal);
             }));
 }
 

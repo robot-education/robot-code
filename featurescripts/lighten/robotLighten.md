@@ -119,6 +119,7 @@ robotLighten
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
 --> roundPockets                                   // with Fillet corners
     --> smallPockets --> opDeleteBodies "dropSmall"  // slivers under the radius both ways, left solid
+    --> sideEdges                                  // corners: straight edges along the face's normal
     --> narrowEnds --> opFullRoundFillet
     --> pocketCorners --> opFillet "roundCorners"  // a hair
     --> opOffsetFace "grow"                        // back out by the radius
@@ -160,6 +161,10 @@ tracked through the growth (`startTracking`).
 
 Before that, pockets whose bounding box on the face is less than the fillet radius both ways are deleted, and
 left solid: slivers between walls and ribs, not worth cutting, whose corners can be too sharp to round.
+
+The corners are the pockets' straight edges along the face's normal (`sideEdges`): the pockets are the face's outline
+extruded, so every edge between two sides runs along it, and none around the ends do. Nothing on the face or its far
+side is filleted, whether or not the ends are found.
 
 A pocket end so narrow that the hair fillets on its two corners would meet gets one full round across it instead.
 
