@@ -416,6 +416,12 @@ Std's `query.fs` has the queries most code needs. The ones which come up most:
   `qEntityFilter(EntityType.FACE)`, `qCoincidesWithPlane(plane)`, `qContainsPoint(point)`, `qParallelPlanes(plane)`.
 - Combining: `qUnion`, `qSubtraction`, `qIntersection`, and `qNthElement`.
 
+To follow entities through later operations which change them (an offset, a shell, a boolean), wrap the query in
+`startTracking` before those operations: `startTracking(context, qCreatedBy(id + "fillet", EntityType.FACE))` resolves,
+afterwards, to what the fillet's faces became. A plain `qCreatedBy` used after an operation changed what it made isn't
+reliable (Robot lighten's `opModifyFillet` on its pockets' corners failed on every corner until its fillets were
+tracked through the offset which grows them).
+
 Build a union of many queries by collecting them in an array and calling `qUnion` once, at the end, rather than
 `qUnion([soFar, next])` in a loop, which nests a query per step (and is slower to evaluate, and harder to read when
 debugging):

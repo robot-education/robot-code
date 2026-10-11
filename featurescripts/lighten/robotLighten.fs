@@ -1206,8 +1206,9 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
  * Rounds the pockets' corners, as a router bit of `radius` leaves them: they were made with walls and ribs `radius`
  * thicker, so a pocket narrower than the bit is gone, and the rest are grown back by `radius`. Their corners are
  * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature does, so growing them rounds them, rather
- * than filleting them after, which can fail where a pocket narrows. Their inside corners (the walls' and ribs' outside
- * ones) stay sharp.
+ * than filleting them after, which can fail where a pocket narrows; those rounds (tracked through the growth) are then
+ * set to exactly `radius` (`opModifyFillet`, as Vent does). Their inside corners (the walls' and ribs' outside ones)
+ * stay sharp.
  *
  * Pockets smaller than `radius` both ways (`smallPockets`) are left solid first: slivers between walls and ribs, not
  * worth cutting, whose corners can be too sharp to round.
@@ -1263,6 +1264,8 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
             throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
         }
     }
+    // Growing changes them, so they're tracked through it, to be set to exactly the radius after
+    const rounds = qIntersection([startTracking(context, qCreatedBy(id + "roundCorners", EntityType.FACE)), qOwnedByBody(pockets, EntityType.FACE)]);
     try silent
     {
         opOffsetFace(context, id + "grow", {
@@ -1283,6 +1286,25 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
             });
         showOut(context, errors, failing, DebugColor.RED);
         throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+    }
+    // Growing made them the radius and the hair
+    if (!isQueryEmpty(context, rounds))
+    {
+        try silent
+        {
+            opModifyFillet(context, id + "exactCorners", {
+                        "faces" : rounds,
+                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
+                        "reFillet" : false,
+                        "radius" : radius
+                    });
+        }
+        catch
+        {
+            showOperationError(context, errors, id + "exactCorners");
+            showOut(context, errors, failingRounds(context, id + "error", pockets, rounds, radius), DebugColor.RED);
+            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+        }
     }
 }
 
@@ -1322,6 +1344,34 @@ function failingCorners(context is Context, id is Id, pockets is Query, corners 
             fillet(trialId, qIntersection([corners, qOwnedByBody(pocket, EntityType.EDGE)]));
         });
     return pocketsFailing == [] ? corners : qIntersection([corners, qOwnedByBody(qUnion(pocketsFailing), EntityType.EDGE)]);
+}
+
+/**
+ * Which of `rounds` (of `pockets`) can't be set to `radius`: those which fail alone, or without any, the rounds of the
+ * pockets whose rounds fail together, or without any of those, all of them. Only for the catch of the failed change,
+ * as the feature's about to throw.
+ */
+function failingRounds(context is Context, id is Id, pockets is Query, rounds is Query, radius is ValueWithUnits) returns Query
+{
+    const modify = function(trialId is Id, faces is Query)
+        {
+            opModifyFillet(context, trialId, {
+                        "faces" : faces,
+                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
+                        "reFillet" : false,
+                        "radius" : radius
+                    });
+        };
+    const alone = failingAlone(context, id + "rounds", rounds, modify);
+    if (alone != [])
+    {
+        return qUnion(alone);
+    }
+    const pocketsFailing = failingAlone(context, id + "pockets", pockets, function(trialId is Id, pocket is Query)
+        {
+            modify(trialId, qIntersection([rounds, qOwnedByBody(pocket, EntityType.FACE)]));
+        });
+    return pocketsFailing == [] ? rounds : qIntersection([rounds, qOwnedByBody(qUnion(pocketsFailing), EntityType.FACE)]);
 }
 
 /**
