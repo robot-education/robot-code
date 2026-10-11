@@ -220,10 +220,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const wallOverrides = getWallOverrides(context, definition, face);
         // Quick ribs, sketched on the face (its sketch is deleted with the rest)
         const quickRibs = sketchQuickRibs(context, id + "quickRibs", definition, facePlane);
-        if (quickRibs.skipped > 0)
-        {
-            reportFeatureWarning(context, id, "Some quick ribs are skipped because they're incomplete.", ["chains", "hubs", "edgeRibs"]);
-        }
         addEdgeRibManipulators(context, id, definition);
         const ribGroups = getRibGroups(context, definition, quickRibs.edges);
         const ribEdges = qUnion(mapArray(ribGroups, group => group.edges));
@@ -249,14 +245,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             addDepthManipulator(context, id, face, facePlane, depth);
         }
-        // How errors show what's built and what's at fault: out of the part, on its face (see `showOut`)
-        const errors = {
-                "featureId" : id,
-                "id" : id + "errorDisplay",
-                "transform" : transform(facePlane.normal * depth),
-                "count" : new box(0),
-                "shown" : new box([])
-            };
         try silent
         {
             opExtrude(context, id + "pocket", {
@@ -268,35 +256,32 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         catch
         {
-            showOperationError(context, errors, id + "pocket");
-            throw regenError("Failed to create pockets.", ["face", "depth"], face);
+            throw operationError(context, id, id + "pocket", "Failed to create pockets.", ["face", "depth"]);
         }
         const ends = qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE);
-        // The pockets' ends, through the walls, ribs, and rounding (see `pocketEnds`)
-        const trackedEnds = startTracking(context, ends);
 
         // Sketch regions to ignore are left solid: cut from the pocket, so walls go around them too
-        showBuiltOnFailure(context, errors, qCreatedBy(id + "pocket", EntityType.BODY), function()
+        showBuiltOnFailure(context, qCreatedBy(id + "pocket", EntityType.BODY), function()
             {
-                excludeRegions(context, errors, id + "excludeRegions", facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(ignoredFaces, SketchObject.YES));
+                excludeRegions(context, id, id + "excludeRegions", facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(ignoredFaces, SketchObject.YES));
             });
 
         // The walls: the pocket (and the pieces regions to ignore split it into), inset by them, but along the part's
         // faces to ignore
         const extruded = qUnion([qCreatedBy(id + "pocket", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
         const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
-        showBuiltOnFailure(context, errors, extruded, function()
+        const walls = showBuiltOnFailure(context, extruded, function()
             {
-                insetPockets(context, errors, id + "walls", id + "wallTrials", extruded, ends, qIntersection([pocketFaces, ignoredSides]),
+                return insetPockets(context, id, id + "walls", id + "wallTrials", extruded, ends, qIntersection([pocketFaces, ignoredSides]),
                     mapArray(overriddenSides, wallOverride => mergeMaps(wallOverride, { "sides" : qIntersection([pocketFaces, wallOverride.sides]) })),
                     definition.wallThickness, radius);
             });
 
         // The ribs, cut from what's left: what the walls enclose
         const inset = qCreatedBy(id + "walls", EntityType.BODY);
-        const ribs = showBuiltOnFailure(context, errors, inset, function()
+        const ribs = showBuiltOnFailure(context, inset, function()
             {
-                return buildRibs(context, errors, id + "ribs", bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribGroups, radius);
+                return buildRibs(context, id, id + "ribs", bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribGroups, radius);
             });
         try silent
         {
@@ -308,8 +293,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         catch
         {
-            showOperationError(context, errors, id + "cutRibs");
-            // Each rib, cut alone from a copy of the pockets
+            // Each rib, cut alone from a copy of the pockets, for which ribs (and parameters) to blame
             const failing = failingBodies(context, id + "error", ribs, function(errorId is Id, rib is Query)
                 {
                     opBoolean(context, errorId + "cut", {
@@ -319,25 +303,45 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                                 "keepTools" : true
                             });
                 });
-            showOut(context, errors, failing, DebugColor.RED);
-            showOut(context, errors, inset, DebugColor.BLUE);
-            throw regenError("Failed to create rib.", failingRibParameters(context, id + "ribs", ribGroups, failing));
+            addDebugEntities(context, inset, DebugColor.BLUE);
+            throw operationError(context, id, id + "cutRibs", "Failed to create rib.", failingRibParameters(context, id + "ribs", ribGroups, failing), failing);
         }
         // The pockets left between them, which the walls and ribs split into pieces
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
 
+        // What's reported when it's done: warnings (all of them, as one), or else info
+        var warnings = [];
+        var notes = [];
+        if (quickRibs.skipped > 0)
+        {
+            warnings = append(warnings, { "message" : "Some quick ribs are skipped because they're incomplete.", "parameters" : ["chains", "hubs", "edgeRibs"] });
+        }
+        if (!walls.exactCorners)
+        {
+            notes = append(notes, "The walls' inside corners are rounded 0.01 mm larger than the wall thickness.");
+        }
+
         if (definition.filletCorners)
         {
-            showBuiltOnFailure(context, errors, pockets, function()
+            const rounding = showBuiltOnFailure(context, pockets, function()
                 {
-                    roundPockets(context, errors, id, facePlane, pocketEnds(pockets, facePlane, trackedEnds), pockets, radius);
+                    return roundPockets(context, id, id + "round", facePlane, pockets, radius);
                 });
+            if (rounding.unrounded != [])
+            {
+                warnings = append(warnings, { "message" : "Some pockets' corners can't be filleted, so those pockets are left smaller.",
+                            "parameters" : ["filletRadius"], "entities" : qUnion(rounding.unrounded) });
+            }
+            if (!rounding.exactCorners)
+            {
+                notes = append(notes, "The pockets' corners are rounded 0.01 mm larger than the fillet radius.");
+            }
         }
 
         if (isQueryEmpty(context, pockets))
         {
-            reportFeatureWarning(context, id, "There's no room for pockets between the walls and ribs.",
-                concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : [], ribParameters(definition)]));
+            warnings = append(warnings, { "message" : "There's no room for pockets between the walls and ribs.",
+                        "parameters" : concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : [], ribParameters(definition)]) });
         }
         else
         {
@@ -352,7 +356,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             }
             catch
             {
-                showOperationError(context, errors, id + "cut");
                 // Each pocket, cut alone from a copy of the part
                 const failing = failingBodies(context, id + "error", pockets, function(errorId is Id, pocket is Query)
                     {
@@ -363,24 +366,19 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                                     "keepTools" : true
                                 });
                     });
-                showOut(context, errors, failing, DebugColor.RED);
-                showOut(context, errors, qSubtraction(pockets, failing), DebugColor.BLUE);
-                throw regenError("Failed to cut the pockets shown.", ["face"]);
+                throw operationError(context, id, id + "cut", "Failed to cut the pockets shown.", ["face"], failing);
             }
             // Pieces of ribs which touch no wall or other rib are cut free, as parts of their own
             const loose = qCreatedBy(id + "cut", EntityType.BODY);
             if (!isQueryEmpty(context, loose))
             {
-                reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ribParameters(definition));
-                setErrorEntities(context, id, { "entities" : loose });
+                warnings = append(warnings, { "message" : "Some ribs touch no wall or other rib, so they're left as loose parts.",
+                            "parameters" : ribParameters(definition), "entities" : loose });
             }
-            else if (quickRibs.skipped == 0)
-            {
-                // Only without a warning, which this would replace
-                const lightened = 1 - evVolume(context, { "entities" : part }) / volume;
-                reportFeatureInfo(context, id, "Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
-            }
+            const lightened = 1 - evVolume(context, { "entities" : part }) / volume;
+            notes = concatenateArrays([["Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%."], notes]);
         }
+        reportStatus(context, id, warnings, notes);
 
         // The pockets are used up by the cut (or there are none)
         opDeleteBodies(context, id + "cleanup", {
@@ -389,10 +387,34 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
     });
 
 /**
- * Runs `step`, and if it fails, shows `built` (what's been built so far) in blue (see `showOut`), around what its error
- * shows in red, before letting the error through.
+ * Reports what's to be said when it's done: its `warnings` (each a map of its `message`, `parameters`, and maybe
+ * `entities`, shown in red), as one warning, or without any, its `notes`, as info. One status shows at a time, and a
+ * later one replaces an earlier one, so they're gathered and reported together, at the end.
  */
-function showBuiltOnFailure(context is Context, errors is map, built is Query, step is function)
+function reportStatus(context is Context, id is Id, warnings is array, notes is array)
+{
+    if (warnings != [])
+    {
+        reportFeatureWarning(context, id, join(mapArray(warnings, warning => warning.message), " "),
+            concatenateArrays(mapArray(warnings, warning => warning.parameters)));
+        const entities = filter(mapArray(warnings, warning => warning.entities), entities => entities != undefined);
+        if (entities != [])
+        {
+            setErrorEntities(context, id, { "entities" : qUnion(entities) });
+        }
+    }
+    else if (notes != [])
+    {
+        reportFeatureInfo(context, id, join(notes, " "));
+    }
+}
+
+/**
+ * Runs `step`, and if it fails, shows `built` (what's been built so far) in blue, while the dialog's open (std's
+ * `addDebugEntities`, which outlasts the error's rollback), around what its error shows, before letting the error
+ * through.
+ */
+function showBuiltOnFailure(context is Context, built is Query, step is function)
 {
     try silent
     {
@@ -400,72 +422,26 @@ function showBuiltOnFailure(context is Context, errors is map, built is Query, s
     }
     catch (error)
     {
-        showOut(context, errors, qSubtraction(built, qUnion(errors.shown[])), DebugColor.BLUE);
+        addDebugEntities(context, built, DebugColor.BLUE);
         throw error;
     }
 }
 
 /**
- * Shows pocket geometry (`entities`: bodies, faces, or edges) in `color` while the dialog's open, out of the part: moved
- * along the face's normal by the pocket's depth (`errors.transform`), so it stands on the face, where the part doesn't
- * hide it. It shows copies (under `errors.id`), with std's `addDebugEntities`, which outlasts the error's rollback.
- * What's shown red is remembered (`errors.shown`), so blue around it leaves it out. Only for an error about to be
- * thrown: if the copies fail, it's shown less, but the error's still thrown.
+ * The error to throw for the failed operation `operationId`: its status and error display (what it found wrong, in
+ * red) copied onto the feature, `featureId`, its top level id (std's `processSubfeatureStatus`), with `message` (or
+ * without one, the operation's own), highlighting `parameters`, and showing `entities` (if any) in red.
  */
-function showOut(context is Context, errors is map, entities is Query, color is DebugColor)
+function operationError(context is Context, featureId is Id, operationId is Id, message, parameters is array, entities) returns map
 {
-    const showId = errors.id + unstableIdComponent(errors.count[]);
-    errors.count[] += 1;
-    if (color == DebugColor.RED)
-    {
-        errors.shown[] = append(errors.shown[], entities);
-    }
-    try silent
-    {
-        const bodies = qEntityFilter(entities, EntityType.BODY);
-        if (!isQueryEmpty(context, bodies))
-        {
-            copyBodies(context, showId + "bodies", bodies);
-        }
-        const faces = qEntityFilter(entities, EntityType.FACE);
-        if (!isQueryEmpty(context, faces))
-        {
-            opExtractSurface(context, showId + "faces", { "faces" : faces });
-        }
-        for (var i, edge in evaluateQuery(context, qEntityFilter(entities, EntityType.EDGE)))
-        {
-            opExtractWires(context, showId + "edges" + unstableIdComponent(i), { "edges" : edge });
-        }
-        const shown = qCreatedBy(showId, EntityType.BODY);
-        opTransform(context, showId + "move", {
-                    "bodies" : shown,
-                    "transform" : errors.transform
-                });
-        addDebugEntities(context, shown, color);
-    }
+    processSubfeatureStatus(context, featureId, { "subfeatureId" : operationId, "propagateErrorDisplay" : true });
+    const error = message ?? getFeatureError(context, featureId) ?? ErrorStringEnum.REGEN_ERROR;
+    return entities == undefined ? regenError(error, parameters) : regenError(error, parameters, entities);
 }
 
-/**
- * Shows Onshape's own error display for the failed operation `operationId` (what it found wrong, in red, as its own
- * features show it) on the feature (std's `processSubfeatureStatus`). Before the operation's feature, if it's in one,
- * is rolled back.
- */
-function showOperationError(context is Context, errors is map, operationId is Id)
+function operationError(context is Context, featureId is Id, operationId is Id, message, parameters is array) returns map
 {
-    processSubfeatureStatus(context, errors.featureId, { "subfeatureId" : operationId, "propagateErrorDisplay" : true });
-}
-
-/**
- * The error to throw for the failed operation `operationId`: its own (its message, for one, which says what's wrong
- * better than ours could), highlighting `parameters`, with its error display (what it found wrong, in red) copied
- * onto the feature (`showOperationError`), as std's `callSubfeatureAndProcessStatus` rethrows a subfeature's error.
- * Throwing a message of our own instead would replace the status the display belongs to.
- */
-function operationError(context is Context, errors is map, operationId is Id, parameters is array) returns map
-{
-    showOperationError(context, errors, operationId);
-    const error = getFeatureError(context, errors.featureId);
-    return regenError(error == undefined ? ErrorStringEnum.REGEN_ERROR : error, parameters);
+    return operationError(context, featureId, operationId, message, parameters, undefined);
 }
 
 /**
@@ -656,18 +632,24 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
  * `id`, but at `ends` (their caps) and `ignoredSides`, which stay where they are, and at each of `overrides`' `sides`,
  * inset by its `thickness` instead (see `buildWalls`).
  *
- * They're made in a feature of their own, so when they fail, what was done is rolled back (after Onshape's error
- * display for the operation which failed is shown), and `wallFailure` works out why (trying them again, a different way
- * each time, under `trialId`).
+ * They're made in a feature of their own, so when they fail, what was done is rolled back (after the failed
+ * operation's status and error display are copied onto the feature, `featureId`), and `wallFailure` works out which
+ * input is to blame, if one is.
+ *
+ * @returns {{
+ *      @field exactCorners {boolean} : Whether the walls' inside corners were set to exactly their radius (see
+ *              `buildWalls`).
+ * }}
  */
-function insetPockets(context is Context, errors is map, id is Id, trialId is Id, pockets is Query, ends is Query, ignoredSides is Query,
-    overrides is array, wall is ValueWithUnits, radius is ValueWithUnits)
+function insetPockets(context is Context, featureId is Id, id is Id, trialId is Id, pockets is Query, ends is Query, ignoredSides is Query,
+    overrides is array, wall is ValueWithUnits, radius is ValueWithUnits) returns map
 {
     startFeature(context, id, {});
     var failure;
+    var walls;
     try silent
     {
-        buildWalls(context, id, pockets, ends, ignoredSides, overrides, wall, radius);
+        walls = buildWalls(context, id, pockets, ends, ignoredSides, overrides, wall, radius);
     }
     catch (error)
     {
@@ -676,53 +658,36 @@ function insetPockets(context is Context, errors is map, id is Id, trialId is Id
     if (failure == undefined)
     {
         endFeature(context, id);
-        return;
+        return walls;
     }
     if (failure is map && failure.operation != undefined)
     {
-        showOperationError(context, errors, failure.operation);
+        processSubfeatureStatus(context, featureId, { "subfeatureId" : failure.operation, "propagateErrorDisplay" : true });
     }
     abortFeature(context, id);
-    throw wallFailure(context, errors, trialId, pockets, ends, ignoredSides, overrides, wall, radius, failure);
+    throw wallFailure(context, featureId, trialId, pockets, ends, ignoredSides, overrides, wall, radius);
 }
 
 /**
- * The walls, as the previous Onshape Lighten feature makes them: `ends` and `ignoredSides` are moved out by the
- * distance (`wall` and `radius`), and each of `overrides`' sides by `wall` less its thickness (in, for a thicker wall);
- * then the pockets are hollowed by the distance, which moves every face in by it at once, holes of any size and their
- * corners too, so it doesn't fail where a wall along one edge would. What's inside (enclosed) is kept, and the rest
- * deleted. Their concave edges are rounded a hair (std's boolean tolerance, 0.01 mm) first, so they're rounded as
- * they're moved, as the walls' inside corners should be; those rounds are then set to exactly the distance
- * (`opModifyFillet`, as Vent does). Only the faces of `pockets` are moved, so it can be tried on some of them.
+ * The walls, as the previous Onshape Lighten feature (and Vent) makes them: `ends` and `ignoredSides` are moved out by
+ * the distance (`wall` and `radius`), and each of `overrides`' sides by `wall` less its thickness (in, for a thicker
+ * wall); then the pockets are hollowed by the distance, which moves every face in by it at once, holes of any size and
+ * their corners too. What's inside (enclosed) is kept, and the rest deleted. Their concave edges are rounded a hair
+ * (std's boolean tolerance, 0.01 mm) first, so they're rounded as they're moved, as the walls' inside corners should
+ * be; those rounds are then set to exactly the distance (`opModifyFillet`, as Vent does), if they can be.
  *
- * Before any of that, the part's rounded corners tighter than the distance (`tightCorners`) are made sharp (deleted,
- * and their sides extended to meet): hollowing can't move a convex face in further than its radius, and the walls
- * inside a sharp corner are the same as inside a rounded one that tight.
+ * Throws which step failed: a map of its `operation`.
  *
- * Throws which step failed: a map of its `stage` ("sharpen", "extend", "override", "round" (either rounding), or
- * "shell"), the `operation` which failed, and for "sharpen", the `corners`, or for an override, its `override`.
+ * @returns {{
+ *      @field exactCorners {boolean} : Whether the inside corners were set to exactly the distance: if not, they're a
+ *              hair bigger.
+ * }}
  */
 function buildWalls(context is Context, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
-    wall is ValueWithUnits, radius is ValueWithUnits)
+    wall is ValueWithUnits, radius is ValueWithUnits) returns map
 {
     const distance = wall + radius;
     const faces = qOwnedByBody(pockets, EntityType.FACE);
-    const corners = tightCorners(context, pockets, qUnion([ends, ignoredSides, qUnion(mapArray(overrides, wallOverride => wallOverride.sides))]), distance);
-    if (!isQueryEmpty(context, corners))
-    {
-        try silent
-        {
-            opDeleteFace(context, id + "sharpen", {
-                        "deleteFaces" : corners,
-                        "includeFillet" : false,
-                        "capVoid" : false
-                    });
-        }
-        catch
-        {
-            throw { "stage" : "sharpen", "operation" : id + "sharpen", "corners" : corners };
-        }
-    }
     try silent
     {
         opOffsetFace(context, id + "extend", {
@@ -732,7 +697,7 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
     }
     catch
     {
-        throw { "stage" : "extend", "operation" : id + "extend" };
+        throw { "operation" : id + "extend" };
     }
     for (var i, wallOverride in overrides)
     {
@@ -752,7 +717,7 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
         }
         catch
         {
-            throw { "stage" : "override", "operation" : overrideId, "override" : wallOverride };
+            throw { "operation" : overrideId };
         }
     }
 
@@ -771,7 +736,7 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
         }
         catch
         {
-            throw { "stage" : "round", "operation" : id + "roundConcave" };
+            throw { "operation" : id + "roundConcave" };
         }
     }
     // Hollowing grows them by the distance; they're set to exactly it after
@@ -786,7 +751,7 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
     }
     catch
     {
-        throw { "stage" : "shell", "operation" : id + "shell" };
+        throw { "operation" : id + "shell" };
     }
     // One at a time, so the pockets don't need a boolean
     for (var i, pocket in evaluateQuery(context, pockets))
@@ -798,12 +763,14 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
         }
         catch
         {
-            throw { "stage" : "shell", "operation" : encloseId };
+            throw { "operation" : encloseId };
         }
     }
+    var exactCorners = true;
     const insideCorners = qIntersection([rounds, qCreatedBy(id + "enclose", EntityType.FACE)]);
     if (!isQueryEmpty(context, insideCorners))
     {
+        // If it can't, they're a hair bigger, which is said (as info), not an error
         try silent
         {
             opModifyFillet(context, id + "exactCorners", {
@@ -815,30 +782,27 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
         }
         catch
         {
-            throw { "stage" : "round", "operation" : id + "exactCorners" };
+            exactCorners = false;
         }
     }
     opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
+    return { "exactCorners" : exactCorners };
 }
 
 /**
- * Why the walls failed, as an error to throw, with what's at fault shown in red: only on the way to it (it tries them
- * again, a few ways, each rolled back), so it costs nothing when they don't. In order:
+ * Which input is to blame for the walls failing, if one is, as an error to throw: only on the way to it (it tries
+ * them again, each try in a feature of its own, rolled back), so it costs nothing when they don't. In order:
  *
  * - With wall overrides, if the walls work without them, the overrides which fail alone (or all of them).
- * - Otherwise blame is laid as if there were no overrides. With Fillet corners, if the walls work at Wall thickness
- *   alone, Fillet radius is to blame (the walls are built thicker by it, then the pockets grown back), and the pockets
- *   which fail alone are shown.
- * - Otherwise the failed operation's own error and error display (a fillet's says which edges failed, and why).
- *
- * @param failure : What `buildWalls` threw.
+ * - With Fillet corners, if the walls work without Fillet radius (they're built thicker by it, then the pockets
+ *   grown back), Fillet radius.
+ * - Otherwise the failed operation's own error, which `insetPockets` copied onto the feature, with its error display.
  */
-function wallFailure(context is Context, errors is map, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
-    wall is ValueWithUnits, radius is ValueWithUnits, failure) returns map
+function wallFailure(context is Context, featureId is Id, id is Id, pockets is Query, ends is Query, ignoredSides is Query, overrides is array,
+    wall is ValueWithUnits, radius is ValueWithUnits) returns map
 {
     const trials = new box(0);
-    // Whether `operation(trialId)` works, tried in a feature of its own, which is then rolled back
-    const tryAlone = function(operation is function) returns boolean
+    const works = function(trialOverrides is array, trialRadius is ValueWithUnits) returns boolean
         {
             const trialId = id + unstableIdComponent(trials[]);
             trials[] += 1;
@@ -846,21 +810,16 @@ function wallFailure(context is Context, errors is map, id is Id, pockets is Que
             var worked = false;
             try silent
             {
-                operation(trialId);
+                buildWalls(context, trialId, pockets, ends, ignoredSides, trialOverrides, wall, trialRadius);
                 worked = true;
             }
             abortFeature(context, trialId);
             return worked;
         };
-    const works = function(trialOverrides is array, trialRadius is ValueWithUnits, trialPockets is Query) returns boolean
-        {
-            return tryAlone(trialId => buildWalls(context, trialId, trialPockets, ends, ignoredSides, trialOverrides, wall, trialRadius));
-        };
-    const radiusParameters = radius > 0 * meter ? ["wallThickness", "filletRadius"] : ["wallThickness"];
 
-    if (overrides != [] && works([], radius, pockets))
+    if (overrides != [] && works([], radius))
     {
-        var culprits = filter(overrides, wallOverride => !works([wallOverride], radius, pockets));
+        var culprits = filter(overrides, wallOverride => !works([wallOverride], radius));
         if (culprits == [])
         {
             culprits = overrides;
@@ -869,46 +828,12 @@ function wallFailure(context is Context, errors is map, id is Id, pockets is Que
             concatenateArrays(mapArray(culprits, wallOverride => wallOverride.parameters)),
             qUnion(mapArray(culprits, wallOverride => wallOverride.faces)));
     }
-
-    if (radius > 0 * meter && works([], 0 * meter, pockets))
+    if (radius > 0 * meter && works([], 0 * meter))
     {
-        showOut(context, errors, failingPockets(context, pockets, pocket => works([], radius, pocket)), DebugColor.RED);
-        return regenError("Fillet radius is too large for the pockets shown.", ["filletRadius"]);
+        return regenError("Fillet radius is too large for the walls.", ["filletRadius"]);
     }
-
-    // Otherwise the failed operation's own error, whose status and display `insetPockets` copied onto the feature
-    const error = getFeatureError(context, errors.featureId);
-    return regenError(error == undefined ? ErrorStringEnum.REGEN_ERROR : error, radiusParameters);
-}
-
-/**
- * The pockets `works` fails for, tried alone: all of them, if none fails alone.
- */
-function failingPockets(context is Context, pockets is Query, works is function) returns Query
-{
-    const failing = filter(evaluateQuery(context, pockets), pocket => !works(pocket));
-    return failing == [] ? pockets : qUnion(failing);
-}
-
-/**
- * The pockets' convex rounded sides (the part's rounded outside corners, which hollowing moves in), other than
- * `excluded`, whose radius is less than `distance`: hollowing can't move a convex side in further than its radius.
- */
-function tightCorners(context is Context, pockets is Query, excluded is Query, distance is ValueWithUnits) returns Query
-{
-    const sides = qSubtraction(qOwnedByBody(pockets, EntityType.FACE)->qGeometry(GeometryType.CYLINDER), excluded);
-    return qUnion(filter(evaluateQuery(context, sides), function(face)
-            {
-                const cylinder = evSurfaceDefinition(context, { "face" : face });
-                if (!(cylinder is Cylinder) || cylinder.radius >= distance)
-                {
-                    return false;
-                }
-                // Convex: its normal (out of the pocket) points away from its axis
-                const tangent = evFaceTangentPlane(context, { "face" : face, "parameter" : vector(0.5, 0.5) });
-                const axis = line(cylinder.coordSystem.origin, cylinder.coordSystem.zAxis);
-                return dot(tangent.normal, tangent.origin - project(axis, tangent.origin)) > 0;
-            }));
+    const error = getFeatureError(context, featureId);
+    return regenError(error == undefined ? ErrorStringEnum.REGEN_ERROR : error, radius > 0 * meter ? ["wallThickness", "filletRadius"] : ["wallThickness"]);
 }
 
 /**
@@ -1051,7 +976,7 @@ function ribPlane(context is Context, edges is Query, definition is map) returns
 /**
  * Cuts `regions` (sketch regions), extruded along `plane`'s normal through `pockets`, from them, under `id`.
  */
-function excludeRegions(context is Context, errors is map, id is Id, plane is Plane, pockets is Query, regions is Query)
+function excludeRegions(context is Context, featureId is Id, id is Id, plane is Plane, pockets is Query, regions is Query)
 {
     if (isQueryEmpty(context, regions))
     {
@@ -1071,8 +996,7 @@ function excludeRegions(context is Context, errors is map, id is Id, plane is Pl
     }
     catch
     {
-        showOperationError(context, errors, id + "extrude");
-        throw regenError("Failed to ignore the selected regions.", ["ignoredFaces"], regions);
+        throw operationError(context, featureId, id + "extrude", "Failed to ignore the selected regions.", ["ignoredFaces"], regions);
     }
     try silent
     {
@@ -1084,8 +1008,7 @@ function excludeRegions(context is Context, errors is map, id is Id, plane is Pl
     }
     catch
     {
-        showOperationError(context, errors, id + "cut");
-        throw regenError("Failed to ignore the selected regions.", ["ignoredFaces"], regions);
+        throw operationError(context, featureId, id + "cut", "Failed to ignore the selected regions.", ["ignoredFaces"], regions);
     }
 }
 
@@ -1116,11 +1039,11 @@ function bandExtent(context is Context, plane is Plane, bounds is Query) returns
  * boolean tolerance of that half (or under it) can't be thickened toward its center. Its rib is a solid cylinder
  * around its center instead. A rib which fails highlights its edge, and its group's parameters.
  */
-function buildRibs(context is Context, errors is map, id is Id, extent is map, groups is array, radius is ValueWithUnits) returns Query
+function buildRibs(context is Context, featureId is Id, id is Id, extent is map, groups is array, radius is ValueWithUnits) returns Query
 {
     for (var j, group in groups)
     {
-        buildRibGroup(context, errors, id + unstableIdComponent(j), extent, group.edges, group.thickness / 2 + radius, group.parameters);
+        buildRibGroup(context, featureId, id + unstableIdComponent(j), extent, group.edges, group.thickness / 2 + radius, group.parameters);
     }
     return qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
 }
@@ -1128,7 +1051,7 @@ function buildRibs(context is Context, errors is map, id is Id, extent is map, g
 /**
  * One group's ribs, `halfWidth` to each side (see `buildRibs`).
  */
-function buildRibGroup(context is Context, errors is map, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits, parameters is array)
+function buildRibGroup(context is Context, featureId is Id, id is Id, extent is map, edges is Query, halfWidth is ValueWithUnits, parameters is array)
 {
     // The circles given cylinders: a circle split into arcs needs just one
     var circles = [];
@@ -1159,8 +1082,7 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
             }
             catch
             {
-                showOperationError(context, errors, ribId + "cylinder");
-                throw regenError("Failed to create rib.", parameters, edge);
+                throw operationError(context, featureId, ribId + "cylinder", "Failed to create rib.", parameters, edge);
             }
             continue;
         }
@@ -1178,8 +1100,7 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
         }
         catch
         {
-            showOperationError(context, errors, ribId + "sheet");
-            throw regenError("Failed to create rib.", parameters, edge);
+            throw operationError(context, featureId, ribId + "sheet", "Failed to create rib.", parameters, edge);
         }
         try silent
         {
@@ -1191,8 +1112,7 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
         }
         catch
         {
-            showOperationError(context, errors, ribId + "rib");
-            throw regenError("Failed to create rib.", parameters, edge);
+            throw operationError(context, featureId, ribId + "rib", "Failed to create rib.", parameters, edge);
         }
     }
 }
@@ -1200,78 +1120,75 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
 /**
  * Rounds the pockets' corners, as a router bit of `radius` leaves them: they were made with walls and ribs `radius`
  * thicker, so a pocket narrower than the bit is gone, and the rest are grown back by `radius`. Their corners are
- * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature does, so growing them rounds them, rather
- * than filleting them after, which can fail where a pocket narrows; those rounds (tracked through the growth) are then
- * set to exactly `radius` (`opModifyFillet`, as Vent does). Their inside corners (the walls' and ribs' outside ones)
- * stay sharp.
+ * rounded a hair (0.01 mm) first, as the previous Onshape Lighten feature and Vent do, so growing them rounds them;
+ * those rounds (tracked through the growth) are then set to exactly `radius` (`opModifyFillet`, as Vent does), if they
+ * can be. Their inside corners (the walls' and ribs' outside ones) stay sharp. Pockets smaller than `radius` both ways
+ * (`smallPockets`) are left solid first: slivers between walls and ribs, not worth cutting.
  *
- * Pockets smaller than `radius` both ways (`smallPockets`) are left solid first: slivers between walls and ribs, not
- * worth cutting, whose corners can be too sharp to round.
+ * Each pocket's corners get their hair fillet on their own: a pocket whose fillet fails isn't grown back (left
+ * smaller, as its walls and ribs are thicker), and the fillet's status and error display (the fillets which failed,
+ * and the edges they're on) are copied onto the feature, `featureId`, which then reports a warning.
  *
- * Their narrow ends (`narrowEnds`), where the rounds on either side would meet, as at the tip of a pocket
- * between ribs, are given one full round across them instead (std's `opFullRoundFillet`), which growing makes a round
- * end as wide as the pocket.
+ * @returns {{
+ *      @field unrounded {array} : The corners of the pockets whose fillets failed.
+ *      @field exactCorners {boolean} : Whether the rounds were set to exactly `radius`: if not, they're a hair bigger.
+ * }}
  */
-function roundPockets(context is Context, errors is map, id is Id, plane is Plane, ends is Query, pockets is Query, radius is ValueWithUnits)
+function roundPockets(context is Context, featureId is Id, id is Id, plane is Plane, pockets is Query, radius is ValueWithUnits) returns map
 {
     const small = smallPockets(context, plane, pockets, radius);
     if (small != [])
     {
         opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
     }
-    if (isQueryEmpty(context, pockets))
+    const ends = pocketEnds(pockets, plane);
+    var rounded = [];
+    var unrounded = [];
+    for (var i, pocket in evaluateQuery(context, pockets))
     {
-        return;
-    }
-    const sides = sideEdges(context, pockets, plane.normal);
-    for (var i, narrowEnd in narrowEnds(context, sides))
-    {
-        const fullRoundId = id + "fullRound" + unstableIdComponent(i);
+        const corners = pocketCorners(context, sideEdges(context, pocket, plane.normal));
+        if (isQueryEmpty(context, corners))
+        {
+            rounded = append(rounded, pocket);
+            continue;
+        }
+        const filletId = id + "corners" + unstableIdComponent(i);
+        setExternalDisambiguation(context, filletId, pocket);
         try silent
         {
-            opFullRoundFillet(context, fullRoundId, {
-                        "side1Face" : narrowEnd.sides[0],
-                        "side2Face" : narrowEnd.sides[1],
-                        "centerFaces" : narrowEnd.face,
-                        "tangentPropagation" : false
-                    });
-        }
-        catch
-        {
-            throw operationError(context, errors, fullRoundId, ["filletRadius"]);
-        }
-    }
-    const corners = pocketCorners(context, sideEdges(context, pockets, plane.normal));
-    if (!isQueryEmpty(context, corners))
-    {
-        try silent
-        {
-            opFillet(context, id + "roundCorners", {
+            opFillet(context, filletId, {
                         "entities" : corners,
                         "radius" : TOLERANCE.booleanDefaultTolerance * meter
                     });
+            rounded = append(rounded, pocket);
         }
         catch
         {
-            throw operationError(context, errors, id + "roundCorners", ["filletRadius"]);
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : filletId, "propagateErrorDisplay" : true });
+            unrounded = append(unrounded, corners);
         }
     }
+    if (rounded == [])
+    {
+        return { "unrounded" : unrounded, "exactCorners" : true };
+    }
     // Growing changes them, so they're tracked through it, to be set to exactly the radius after
-    const rounds = qIntersection([startTracking(context, qCreatedBy(id + "roundCorners", EntityType.FACE)), qOwnedByBody(pockets, EntityType.FACE)]);
+    const rounds = startTracking(context, qCreatedBy(id + "corners", EntityType.FACE));
     try silent
     {
         opOffsetFace(context, id + "grow", {
-                    "moveFaces" : qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends),
+                    "moveFaces" : qSubtraction(qOwnedByBody(qUnion(rounded), EntityType.FACE), ends),
                     "offsetDistance" : radius
                 });
     }
     catch
     {
-        throw operationError(context, errors, id + "grow", ["filletRadius"]);
+        throw operationError(context, featureId, id + "grow", undefined, ["filletRadius"]);
     }
-    // Growing made them the radius and the hair
+    var exactCorners = true;
     if (!isQueryEmpty(context, rounds))
     {
+        // If it can't, they're a hair bigger, which is said (as info), not an error
         try silent
         {
             opModifyFillet(context, id + "exactCorners", {
@@ -1283,9 +1200,10 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
         }
         catch
         {
-            throw operationError(context, errors, id + "exactCorners", ["filletRadius"]);
+            exactCorners = false;
         }
     }
+    return { "unrounded" : unrounded, "exactCorners" : exactCorners };
 }
 
 /**
@@ -1303,50 +1221,12 @@ function smallPockets(context is Context, plane is Plane, pockets is Query, radi
 }
 
 /**
- * The pockets' narrow ends: their sides between two convex corners (`sides` edges, see `sideEdges`) which the hair
- * rounds on those corners would use up, leaving less of it than std's boolean tolerance (so the rounds meet). A round of radius `h` on a
- * corner whose faces' normals turn by `angle` takes `h * tan(angle / 2)` of each face.
- *
- * @returns {array} : Each as a map of its `face`, and the two `sides` it's between.
+ * The pockets' ends: their faces parallel to `plane` (the face's), on it and its far side. The pockets are the face's
+ * outline extruded along its normal, so those are the only such faces, and every other face is a side.
  */
-function narrowEnds(context is Context, sides is Query) returns array
+function pocketEnds(pockets is Query, plane is Plane) returns Query
 {
-    const hair = TOLERANCE.booleanDefaultTolerance * meter;
-    var found = [];
-    // The pockets' sides: the faces with edges along the normal
-    for (var face in evaluateQuery(context, qAdjacent(sides, AdjacencyType.EDGE, EntityType.FACE)))
-    {
-        const edges = qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE);
-        const corners = evaluateQuery(context, qIntersection([edges, sides]));
-        if (size(corners) != 2 || !all(corners, corner => evEdgeConvexity(context, { "edge" : corner }) == EdgeConvexityType.CONVEX))
-        {
-            continue;
-        }
-        const neighbors = mapArray(corners, corner => qSubtraction(qAdjacent(corner, AdjacencyType.EDGE, EntityType.FACE), face));
-        var used = 0 * meter;
-        for (var i, corner in corners)
-        {
-            const normals = mapArray([face, neighbors[i]], f => evFaceNormalAtEdge(context, { "edge" : corner, "face" : f, "parameter" : 0.5 }));
-            used += hair * tan(angleBetween(normals[0], normals[1]) / 2);
-        }
-        // Its width: its edges along the ends (on the face to lighten and its far side) are each as long as it's wide
-        const width = evLength(context, { "entities" : qSubtraction(edges, sides) }) / 2;
-        if (width - used < hair)
-        {
-            found = append(found, { "face" : face, "sides" : neighbors });
-        }
-    }
-    return found;
-}
-
-/**
- * The pockets' ends (`trackedEnds`, the extrude's, tracked through the operations since), and their faces parallel to
- * `plane`, which are ends too: so their flat ends are found even if tracking misses them.
- */
-function pocketEnds(pockets is Query, plane is Plane, trackedEnds is Query) returns Query
-{
-    const faces = qOwnedByBody(pockets, EntityType.FACE);
-    return qUnion([qIntersection([faces, trackedEnds]), qParallelPlanes(faces, plane.normal, true)]);
+    return qParallelPlanes(qOwnedByBody(pockets, EntityType.FACE), plane.normal, true);
 }
 
 /**
