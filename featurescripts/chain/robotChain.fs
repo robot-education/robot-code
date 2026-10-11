@@ -2,6 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
+import(path : "core/location.fs", version : "");
 import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
 export import(path : "b82468283e5ec09720bad185", version : "f035c6827196f0268491d7a0");
@@ -320,18 +321,10 @@ function reportStatus(context is Context, id is Id, warnings is array, lengthSta
  */
 function getLocationPlane(context is Context, selection is Query, parameterName is string) returns Plane
 {
-    if (isCircle(context, selection))
+    const result = selectionPlane(context, selection);
+    if (result != undefined)
     {
-        return evCurveDefinition(context, { "edge" : selection }).coordSystem->plane();
-    }
-    if (isVertex(context, selection) || isMateConnector(context, selection))
-    {
-        return evVertexCoordSystem(context, { "vertex" : selection })->plane();
-    }
-    const faces = selection->qEntityFilter(EntityType.FACE)->qGeometry(GeometryType.CYLINDER);
-    if (!isQueryEmpty(context, faces))
-    {
-        return cylinderMiddlePlane(context, faces);
+        return result;
     }
     throw regenError("Select a sketch point, mate connector, circle, or cylinder (or set the location type to Robot sprocket).", [parameterName], selection);
 }

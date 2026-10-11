@@ -1,6 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
+import(path : "core/location.fs", version : "");
 
 import(path : "5bee4cc7b6b0575cdb535750", version : "b051c08fb763398ded2841db");
 import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
@@ -512,13 +513,10 @@ function reportSelectionWarnings(context is Context, id is Id, definition is map
  */
 function getGeometryPlane(context is Context, selection is Query, parameterName is string) returns Plane
 {
-    if (isCircle(context, selection))
+    const result = selectionPlane(context, selection);
+    if (result != undefined)
     {
-        return evCurveDefinition(context, { "edge" : selection }).coordSystem->plane();
-    }
-    else if (isVertex(context, selection) || isMateConnector(context, selection))
-    {
-        return evVertexCoordSystem(context, { "vertex" : selection })->plane();
+        return result;
     }
     throw regenError("Select a sketch point, circle, or mate connector.", [parameterName], selection);
 }

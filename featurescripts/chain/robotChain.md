@@ -12,6 +12,7 @@ Robot tensioner finds where to put a sprocket or idler for it to fit exactly.
 | `../core/loop.fs` | The path around circles, its length, the attribute Robot tensioner reads, and what a selected location is (shared with Robot belt) |
 | `../core/boundary.fs` | Lines tangent between circles, and arcs around them |
 | `../core/startOffset.fs` | The starting offset |
+| `../core/location.fs` | A selection's plane: a sketch point's, mate connector's, circle's, or cylinder's (shared with Robot sprocket, belt, and pulley) |
 
 ## Changelog
 
@@ -79,7 +80,7 @@ Without any, the length's info shows.
       number nearest it, as chain is joined with a master link.
 3. **Body**:
    1. `getSprockets` finds each sprocket's plane and teeth: a Robot sprocket's from its attribute, a center's
-      (`getLocationPlane`: a circle's, a point's or mate connector's, or a cylinder's, at its middle) with its Teeth,
+      (`selectionPlane`: a circle's, a point's or mate connector's, or a cylinder's, at its middle) with its Teeth,
       or a pitch circle's, from its size. The chain's plane is the first's, with the starting offset. Each becomes a
       `BoundaryCircle` at its center projected onto the chain's plane: a sprocket's pitch circle (radius
       `pitch / (2 sin(180° / teeth))`), or an idler's radius plus the chain's roller's, flipped when the chain's

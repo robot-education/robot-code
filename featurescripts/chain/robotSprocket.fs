@@ -131,15 +131,7 @@ function getChainSprockets(context is Context, definition is map) returns array
             throw regenError("The selection is around one of the chain's idlers, not a sprocket.", ["chainSelections"], selection);
         }
 
-        var sprocketPlane;
-        if (isMateConnector(context, selection))
-        {
-            sprocketPlane = evVertexCoordSystem(context, { "vertex" : selection })->plane();
-        }
-        else
-        {
-            sprocketPlane = cylinderMiddlePlane(context, selection);
-        }
+        const sprocketPlane = selectionPlane(context, selection);
         // A chain's two faces around a sprocket (and its mate connector) make one sprocket: their centers are the same,
         // within std's length tolerance (found from each, they differ by rounding)
         if (any(sprockets, sprocket => tolerantEquals(sprocket.plane.origin, sprocketPlane.origin)))

@@ -249,18 +249,6 @@ function flankTip(center is Vector, radius is ValueWithUnits, tipRadius is Value
 }
 
 /**
- * The plane of a cylindrical face's axis, through its middle: its cylinder's origin is anywhere on its axis, so it's
- * moved to the face's centroid, along the axis (for a chain's face, the chain's middle).
- */
-export function cylinderMiddlePlane(context is Context, face is Query) returns Plane
-{
-    var result = evSurfaceDefinition(context, { "face" : face }).coordSystem->plane();
-    const centroid = evApproximateCentroid(context, { "entities" : face });
-    result.origin += result.normal * dot(centroid - result.origin, result.normal);
-    return result;
-}
-
-/**
  * Set on Robot sprockets (and their mate connectors), as a `SprocketAttribute`: Robot chain goes around them.
  */
 export const SPROCKET_ATTRIBUTE = "robotSprocket";

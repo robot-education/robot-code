@@ -240,18 +240,10 @@ function getBeltPulleyDefinitions(context is Context, definition is map) returns
             throw regenError("Select a curved face or mate connector of a belt made by Robot belt (one made by an older Robot belt needs updating first).", ["beltSelections"], selection);
         }
 
-        var pulleyPlane; // Avoid shadowing the plane function
-        if (isMateConnector(context, selection))
+        var pulleyPlane = selectionPlane(context, selection); // Avoid shadowing the plane function
+        if (!isMateConnector(context, selection))
         {
-            pulleyPlane = evVertexCoordSystem(context, { "vertex" : selection })->plane();
-        }
-        else
-        {
-            pulleyPlane = evSurfaceDefinition(context, { "face" : selection }).coordSystem->plane();
             pulleyPlane.x = pulleyPlane->yAxis(); // Rotate plane to be consistent with belts
-            // The cylinder's origin is anywhere on its axis: the belt's middle is the face's
-            const centroid = evApproximateCentroid(context, { "entities" : selection });
-            pulleyPlane.origin += pulleyPlane.normal * dot(centroid - pulleyPlane.origin, pulleyPlane.normal);
         }
         if (definition.twoBelts)
         {

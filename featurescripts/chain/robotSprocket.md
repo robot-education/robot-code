@@ -56,8 +56,8 @@ No parameters are hidden.
 2. **Body**:
    1. The sprockets: Manual's one, at the location's plane with the starting offset; or Chain's, one per place the
       selected faces or mate connectors are around (`getChainSprockets`: a face's plane is its cylinder's, at its
-      middle, `cylinderMiddlePlane`; selections whose centers are the same, within std's length tolerance, make one),
-      with the chain's type and the sprocket's teeth from its `ChainFaceAttribute`.
+      middle, `selectionPlane` in `core/location.fs`; selections whose centers are the same, within std's length
+      tolerance, make one), with the chain's type and the sprocket's teeth from its `ChainFaceAttribute`.
    2. `createSprockets` sketches each one's profile (`sketchSprocketProfile`) and extrudes it the tooth width both ways
       from its plane, sets its `SprocketAttribute` (its chain type, teeth, and plane, which Robot chain reads) and
       properties.
