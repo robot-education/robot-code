@@ -223,9 +223,13 @@ def _symbol(name: str, kind: str, module: str, signature: str, line: int | None 
 
 
 def dedupe_symbols(symbols: list[dict]) -> list[dict]:
+    """Symbols less repeats: one per name, kind, and module, and for functions and predicates, per signature, so every
+    overload (`max(value1, value2)` and `max(arr is array)` in math.fs, and frameUtils.fs's) is kept, and so is the
+    module each is declared in, which decides where it can be used."""
     merged: dict[tuple, dict] = {}
     for symbol in symbols:
-        key = (symbol.get("parent", ""), symbol["name"], symbol["kind"])
+        overload = symbol.get("signature", "") if symbol["kind"] in ("function", "predicate") else ""
+        key = (symbol.get("parent", ""), symbol["name"], symbol["kind"], symbol.get("module", ""), overload)
         existing = merged.get(key)
         if (
             existing is None

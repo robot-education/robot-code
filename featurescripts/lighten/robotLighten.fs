@@ -1,5 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
+// ModifyFilletType, for opModifyFillet (common.fs doesn't export it)
+import(path : "onshape/std/modifyFillet.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 // Ribs it sketches itself, from Chains, Hub and spokes, and Edge ribs

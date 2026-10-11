@@ -419,6 +419,23 @@ class Project:
                 names.setdefault(name, []).extend(declarations)
         return names, exports_std
 
+    def visible_std_modules(self, module: Module) -> set[str]:
+        """The std modules (e.g. "geomOperations.fs") whose names a module can use: what its std imports make visible,
+        and what its imports of project files re-export. Std declares names in modules `common.fs` doesn't export
+        (`ModifyFilletType`, in `modifyFillet.fs`), which a file only importing `common.fs` can't use."""
+        library = stdlib()
+        modules: set[str] = set()
+        for imported in module.imports:
+            if imported.namespace:
+                continue
+            if imported.is_std:
+                modules |= library.visible_modules(imported.path.removeprefix(STD_PREFIX))
+                continue
+            target = self.resolve(imported)
+            if target is not None:
+                modules |= self.exported_std_modules(target)
+        return modules
+
     def exported_std_modules(self, module: Module, seen: set[pathlib.Path] | None = None) -> set[str]:
         """The std modules (e.g. "tool.fs") a module re-exports with `export import`, directly or through the files
         it re-exports, and what they re-export in turn."""
@@ -814,6 +831,7 @@ class Project:
         ]
         providers, sees_std = self.providers(module)
         library = stdlib()
+        visible_std = self.visible_std_modules(module)
         used: set[int] = set()  # ids of Imports
         index = module.index
         for token in index.tokens:
@@ -828,7 +846,7 @@ class Project:
             if (
                 name in providers
                 or index.declaration_for_token(token)
-                or (sees_std and library.lookup(name))
+                or (sees_std and any(symbol.module is None or symbol.module in visible_std for symbol in library.lookup(name)))
                 or built_in_type(name)
                 or name in IMPLICIT_NAMES
             ):

@@ -394,6 +394,11 @@
   {
     "name": "BodyType",
     "kind": "enum",
+    "module": "bodytype.gen.fs"
+  },
+  {
+    "name": "BodyType",
+    "kind": "enum",
     "module": "query.fs",
     "signature": "export enum BodyType",
     "doc": "Specifies the topological type of a body.\n\nAll bodies have `EntityType.BODY`, but will generally own many entities of\nother `EntityType`s.\n\nFor example, the result of an extrude with `NewBodyOperationType.NEW` is a\nbody. This body will have `BodyType.SOLID` for a solid extrude, and\n`BodyType.SHEET` for a surface extrude. This extrude operation will create\nmany geometric entities in the context (faces, edges, or vertices), which\nare owned by the body, and have the `BodyType` of their owning body.\n\n@seealso [qBodyType]\n\n@value SOLID : A three-dimensional part (e.g. the result of a solid extrude)\n@value SHEET : A two-dimensional sheet body (e.g. a sketch region, or the\n     result of a surface extrude)\n@value WIRE  : A one-dimensional curve (e.g. a sketch line or curve, or the\n     result of opHelix)\n@value POINT : A zero-dimensional point (e.g. a sketch point, or the result\n     of opPoint)\n@value MATE_CONNECTOR : A part studio mate connector.\n@value COMPOSITE : A composite part body, which can contain bodies of any other type"
@@ -705,6 +710,10 @@
     "module": "standardContentUtils.fs",
     "signature": "export type ContentFilter typecheck canBeContentFilter;",
     "doc": "@internal\nTotal filter results for all parameters\n@type {{\n     @field parameters {array} : Array of ParameterFilter\n     @field parameterIndexes {{\n       @field key {string} : the name of the configuration parameter\n       @field value {number} : the index into the parameters array containing this parameters' specification\n     }}\n     @field options {map} : A mapping of OptionMap option types\n}}"
+  },
+  {
+    "name": "Context",
+    "kind": "type"
   },
   {
     "name": "Context",
@@ -1069,6 +1078,11 @@
     "module": "entityinferencetype.gen.fs",
     "signature": "export enum EntityInferenceType",
     "doc": "Specifies how a mate connector's coordinate system is defined with respect to an entity.\n@seealso [mateConnector]\n\n          @value POINT             : Place a mate connector at a vertex with the world coordinate system, or at\n                                     the tip of a conical face with its Z-axis along the cone axis.\n          @value CENTROID          : Place a mate connector at the centroid of a face, with its Z-axis along the\n                                     face normal at that point.\n          @value CENTER            : Place a mate connector at the center of a circular or elliptical edge with\n                                     its Z-axis along the normal of the plane which the edge lies on, or at the\n                                     center of a sphere with the world coordinate system.\n          @value MID_POINT         : Place a mate connector at the midpoint of an edge, with its Z-axis along\n                                     the edge.\n          @value TOP_AXIS_POINT    : Place a mate connector at the projection of the top extreme of a cylindrical\n                                     or other revolved face onto the central axis of that face, with its Z-axis\n                                     along the central axis.\n          @value MID_AXIS_POINT    : Place a mate connector at the projection of the point midway betwen the top\n                                     and bottom extremes of a cylindrical or other revolved face onto the central\n                                     axis of that face, with its Z-axis along the central axis.\n          @value BOTTOM_AXIS_POINT : Place a mate connector at the projection of the bottom extreme of a\n                                     cylindrical or other revolved face onto the central axis of that face, with\n          @value LOOP_CENTER       : Place a mate connector at the center of a loop of planar edges, with its\n                                     Z-axis along the normal of the plane. Only one edge of the loop needs to\n                                     be selected for this inference.\n          @value VIRTUAL_SHARP     : Place a mate connector at locations along a loop of planar edges where a single\n                                     nonlinear edge sits between two nonparallel lines and is tangent to both.\n                                     The mate origin will be the projected intersection of the two lines, with its\n                                     Z-axis along the normal of the plane.\n@internal @value PART_ORIGIN       : Not implemented for FeatureScript.\n@internal @value ORIGIN_X          : Not implemented for FeatureScript.\n@internal @value ORIGIN_Y          : Not implemented for FeatureScript.\n@internal @value ORIGIN_Z          : Not implemented for FeatureScript."
+  },
+  {
+    "name": "EntityType",
+    "kind": "enum",
+    "module": "entitytype.gen.fs"
   },
   {
     "name": "EntityType",
@@ -1660,6 +1674,10 @@
   },
   {
     "name": "Id",
+    "kind": "type"
+  },
+  {
+    "name": "Id",
     "kind": "type",
     "module": "context.fs",
     "signature": "export type Id typecheck canBeId;",
@@ -1751,6 +1769,10 @@
   },
   {
     "name": "LengthBoundSpec",
+    "kind": "type"
+  },
+  {
+    "name": "LengthBoundSpec",
     "kind": "type",
     "module": "valueBounds.fs",
     "signature": "export type LengthBoundSpec typecheck canBeLengthBoundSpec;",
@@ -1776,6 +1798,10 @@
     "module": "libraryValidation.fs",
     "signature": "export type LibraryValidationProblems typecheck canBeLibraryValidationProblems;",
     "doc": "A container for a list of distinct problems found when validating a part studio for use in a library"
+  },
+  {
+    "name": "Line",
+    "kind": "type"
   },
   {
     "name": "Line",
@@ -2710,6 +2736,10 @@
   },
   {
     "name": "Plane",
+    "kind": "type"
+  },
+  {
+    "name": "Plane",
     "kind": "type",
     "module": "surfaceGeometry.fs",
     "signature": "export type Plane typecheck canBePlane;",
@@ -2777,6 +2807,10 @@
     "module": "propertytype.gen.fs",
     "signature": "export enum PropertyType",
     "doc": "Defines the type of property that is being applied to a part.\n@value CUSTOM : Requires a custom property id to specify fully."
+  },
+  {
+    "name": "Query",
+    "kind": "type"
   },
   {
     "name": "Query",
@@ -3648,6 +3682,10 @@
   },
   {
     "name": "Transform",
+    "kind": "type"
+  },
+  {
+    "name": "Transform",
     "kind": "type",
     "module": "transform.fs",
     "signature": "export type Transform typecheck canBeTransform;",
@@ -3718,6 +3756,10 @@
   },
   {
     "name": "ValueWithUnits",
+    "kind": "type"
+  },
+  {
+    "name": "ValueWithUnits",
     "kind": "type",
     "module": "units.fs",
     "signature": "export type ValueWithUnits typecheck canBeValueWithUnits;",
@@ -3757,6 +3799,10 @@
     "module": "variabletype.gen.fs",
     "signature": "export enum VariableType",
     "doc": "See [assignVariable]."
+  },
+  {
+    "name": "Vector",
+    "kind": "type"
   },
   {
     "name": "Vector",
@@ -4035,8 +4081,20 @@
     "name": "addDebugArrow",
     "kind": "function",
     "module": "debug.fs",
+    "signature": "export function addDebugArrow(context is Context, from is Vector, to is Vector, radius is ValueWithUnits)"
+  },
+  {
+    "name": "addDebugArrow",
+    "kind": "function",
+    "module": "debug.fs",
     "signature": "export function addDebugArrow(context is Context, from is Vector, to is Vector, radius is ValueWithUnits, color is DebugColor)",
     "doc": "Draws an arrow in 3D space from `from` to `to` with a chosen [DebugColor].\n\nAs with [debug], highlighted entities are only visible while the debugged feature's edit dialog is open.\n\n@param radius : Width of the four arrowhead lines @eg `.25 * centimeter`\n@param color : @autocomplete `DebugColor.RED`"
+  },
+  {
+    "name": "addDebugEntities",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function addDebugEntities(context is Context, entities is Query)"
   },
   {
     "name": "addDebugEntities",
@@ -4049,8 +4107,20 @@
     "name": "addDebugLine",
     "kind": "function",
     "module": "debug.fs",
+    "signature": "export function addDebugLine(context is Context, point1 is Vector, point2 is Vector)"
+  },
+  {
+    "name": "addDebugLine",
+    "kind": "function",
+    "module": "debug.fs",
     "signature": "export function addDebugLine(context is Context, point1 is Vector, point2 is Vector, color is DebugColor)",
     "doc": "Draws a line in 3D space from `point1` to `point2` with a chosen [DebugColor].\n\nAs with [debug], highlighted entities are only visible while the debugged feature's edit dialog is open.\n\n@param point1: one endpoint of the line.\n@param point2: the other endpoint of the line.\n@param color : @autocomplete `DebugColor.RED`"
+  },
+  {
+    "name": "addDebugPoint",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function addDebugPoint(context is Context, point is Vector)"
   },
   {
     "name": "addDebugPoint",
@@ -4093,6 +4163,20 @@
     "module": "instantiator.fs",
     "signature": "export function addInstance(instantiator is Instantiator, build is function, definition is map) returns Query",
     "doc": "Adds an instance to the instantiator (does not actually create it in a context) with the given\nbuild function.  The definition can specify the configuration, the transform, and how the result is identified.\n@param definition {{\n    @field configuration {map} : The configuration of the part studio. @optional\n    @field partQuery {query} : A query which evaluates to bodies in new context, to be instantiated for this instance.\n                           If absent `partQuery` of instantiator is used. When present, overrides `partQuery` of the instantiator. @optional\n    @field transform {Transform} : The transform to be applied to the geometry. @optional\n    @field mateConnector {Query} : A query for all mate connectors from the part studio being instantiated, specifying its coordinate system. @optional\n    @field mateConnectorId {Id} : Creating feature Id of the mate connector used for transformation. @optional\n    @field mateConnectorIndex {number} : Index into the creating feature of the mate connector used for transformation. @optional\n    @field name {string} : The id component for this instance.  Must be unique per instantiator.\n                           If it is not specified, one is automatically generated based on order.\n                           If it is specified, the query returned is `qCreatedBy(id + name, EntityType.BODY)`,\n                           where `id` is the id that was passed into `newInstantiator`\n                           @optional\n    @field identity {Query} : If provided, specifies an entity whose identity controls the identity of the instance,\n                           so that queries for the instance can be robust.\n                           For example, if creating instances based on a layout sketch, one instance per line segment,\n                           the identity should be a query for the corresponding line segment.  @optional\n    @field loadedContext {Context} : If a preloaded context is provided, use this context\n}}\n@return : a query that will resolve to the bodies instantiated once `instantiate` is run."
+  },
+  {
+    "name": "addInstance",
+    "kind": "function",
+    "module": "instantiator.fs",
+    "signature": "export function addInstance(instantiator is Instantiator, partStudio is PartStudioData) returns Query",
+    "doc": "Add an instance with the buildFunction, partQuery, and configuration of a PartStudioData value.\n@return : a query that will resolve to the bodies instantiated once `instantiate` is run."
+  },
+  {
+    "name": "addInstance",
+    "kind": "function",
+    "module": "instantiator.fs",
+    "signature": "export function addInstance(instantiator is Instantiator, partStudio is PartStudioData, definition is map) returns Query",
+    "doc": "Add an instance with the buildFunction, partQuery, and configuration of a PartStudioData value.\n@param definition {{\n    @field transform {Transform} : The transform to be applied to the geometry. @optional\n    @field mateConnector {Query} : A query for a mate connector in the part studio being instantiated, specifying its coordinate system. @optional\n    @field mateConnectorId {Id} : Creating feature Id of the mate connector used for transformation. @optional\n    @field mateConnectorIndex {number} : Index into the creating feature of the mate connector used for transformation. @optional\n    @field configurationOverride {map} : If set, the values will be merged with the configuration set in `partStudio`,\n                           overriding any configuration inputs with matching keys. @optional\n    @field name {string} : The id component for this instance.  Must be unique per instantiator.\n                           If it is not specified, one is automatically generated based on order.\n                           If it is specified, the query returned is `qCreatedBy(id + name, EntityType.BODY)`,\n                           where `id` is the id that was passed into `newInstantiator`\n                           @optional\n    @field identity {Query} : If provided, specifies an entity whose identity controls the identity of the instance,\n                           so that queries for the instance can be robust.\n                           For example, if creating instances based on a layout sketch, one instance per line segment,\n                           the identity should be a query for the corresponding line segment.  @optional\n    @field loadedContext {Context} : If a preloaded context is provided use this context\n}}\n@return : a query that will resolve to the bodies instantiated once `instantiate` is run."
   },
   {
     "name": "addLinearManipulatorForConnection",
@@ -4161,6 +4245,13 @@
     "name": "all",
     "kind": "function",
     "module": "containers.fs",
+    "signature": "export function all(arr is array) returns boolean",
+    "doc": "Returns true if all elements in the passed array are `true`.\n@seeAlso [all(array, function)]\n@ex `all([])` returns `true`\n@ex `all([false, false, true])` returns `false`\n@ex `all([true, true, true])` returns `true`\n\n@param arr {array} : An array of booleans.\n@returns {boolean} : `true` if and only if all `element`s are `true`."
+  },
+  {
+    "name": "all",
+    "kind": "function",
+    "module": "containers.fs",
     "signature": "export function all(arr is array, checkFunction is function) returns boolean",
     "doc": "Returns `true` if and only if all elements of an array, when passed into the `checkFunction`, return `true`.\n@seeAlso [all(array)]\n@ex `all([0, 2, 4], function(e){ return e % 2 == 0; })` returns `true`\n@ex `all([], function(e){ return false; })` returns `true`\n\n@param arr {array} : An array of elements to be checked.\n@param checkFunction {function} : A unary function that returns a boolean.\n@returns {boolean} : `true` if and only if all `checkFunction(element)` calls return `true`."
   },
@@ -4186,6 +4277,13 @@
     "doc": "Returns the angle between two 3-dimensional vectors. Values are within the range `[0, PI] * radian`.\n@ex `angleBetween(X_DIRECTION, Y_DIRECTION)` equals `PI/2 * radian`\n@ex `angleBetween(Y_DIRECTION, X_DIRECTION)` equals `PI/2 * radian`\n\nA plane is fitted to the two vectors and the shortest angle between them is measured on that plane."
   },
   {
+    "name": "angleBetween",
+    "kind": "function",
+    "module": "vector.fs",
+    "signature": "export function angleBetween(vector1 is Vector, vector2 is Vector, ref is Vector) returns ValueWithUnits",
+    "doc": "Returns the counterclockwise angle between two 3-dimensional vectors as witnessed from the tip of a third 3-dimensional vector. Values are within the range `(-PI, PI] * radian` with negative values indicating clockwise angles.\n@ex `angleBetween(X_DIRECTION, Y_DIRECTION, Z_DIRECTION)` equals `PI/2 * radian`\n@ex `angleBetween(Y_DIRECTION, X_DIRECTION, Z_DIRECTION)` equals `-PI/2 * radian`\n\nThe first two vectors are projected onto a plane perpendicular to the reference vector and the angle is measured according to that projection."
+  },
+  {
     "name": "angleTolerance",
     "kind": "constant",
     "module": "tolerance.fs",
@@ -4205,6 +4303,13 @@
     "module": "sheetMetalUtils.fs",
     "signature": "export function annotateSmSurfaceBodies(context is Context, id is Id, args is map, objectCount is number) returns number",
     "doc": "Assign SMAttributes to topology of sheet metal definition sheet body\n@param args {{\n      @field surfaceBodies{Query}\n      @field bendEdgesAndFaces{Query}\n      @field specialRadiiBends{array} : array of pairs \"(edge, bendRadius)\"\n      @field defaultRadius{ValueWithUnits} : bend radius to be applied to edges in bendEdgesAndFaces\n      @field controlsThickness{boolean}\n      @field thickness{ValueWithUnits}\n      @field defaultCornerReliefScale{number}\n      @field defaultRoundReliefDiameter{ValueWithUnits}\n      @field defaultSquareReliefWidth{ValueWithUnits}\n      @field defaultBendReliefScale{number}\n}}"
+  },
+  {
+    "name": "any",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function any(arr is array) returns boolean",
+    "doc": "Returns true if any element in the passed array is `true`.\n@seeAlso [any(array, function)]\n@ex `any([])` returns `false`\n@ex `any([false, false, true])` returns `true`\n\n@param arr {array} : An array of booleans.\n@returns {boolean} : `true` if and only if at least one `element` is `true`."
   },
   {
     "name": "any",
@@ -4424,6 +4529,13 @@
     "name": "atan2",
     "kind": "function",
     "module": "units.fs",
+    "signature": "export function atan2(y is ValueWithUnits, x is ValueWithUnits) returns ValueWithUnits",
+    "doc": "Returns the counterclockwise angle from the vector `[0, 1]`\nto the vector `[x, y]`, assuming the units of `y` and `x`\nmatch.\n\n@seealso [atan2(number, number)]\n@param y : @autocomplete `1 * inch`\n@param x : @autocomplete `-1 * inch`"
+  },
+  {
+    "name": "atan2",
+    "kind": "function",
+    "module": "units.fs",
     "signature": "export function atan2(y is number, x is number) returns ValueWithUnits",
     "doc": "Returns the counterclockwise angle from the vector `[0, 1]` to the vector `[x, y]`.\nThe angle is negative if y is negative. This is equivalent to `atan(y/x)`\nexcept the result respects the quadrant of the input and is well-behaved\nnear x == 0.\n\n@example `atan2(0, 1)` equals approximately `0 * degree`\n@example `atan2(1, 0)` equals approximately `90 * degree`\n@example `atan2(0, -1)` equals approximately `180 * degree`\n@example `atan2(-1, 0)` equals approximately `-90 * degree`"
   },
@@ -4447,6 +4559,18 @@
     "module": "curveGeometry.fs",
     "signature": "export function bSplineCurve(definition is map) returns BSplineCurve",
     "doc": "Returns a new [BSplineCurve], adding knot padding and control point overlap as necessary.\n@example\n```\nopCreateBSplineCurve(context, id + \"bSplineCurve1\", {\n            \"bSplineCurve\" : bSplineCurve({\n                        \"degree\" : 2,\n                        \"isPeriodic\" : false,\n                        \"controlPoints\" : [\n                                vector(0, 0, 0) * inch,\n                                vector(1, 0, 0) * inch,\n                                vector(1, 1, 0) * inch,\n                                vector(0, 1, 0) * inch],\n                        \"knots\" : knotArray([0, .2, 1]) // Will be padded to [0, 0, 0, .2, 1, 1, 1]\n                    })\n        });\n```\nCreates a spline starting at the origin, moving first quickly along the x-axis (toward the second point), and finishing on the y-axis.\n@example\n```\nopCreateBSplineCurve(context, id + \"bSplineCurve1\", {\n            \"bSplineCurve\" : bSplineCurve({\n                        \"degree\" : 3,\n                        \"isPeriodic\" : true,\n                        \"controlPoints\" : [\n                                vector(0, 0, 0) * inch,\n                                vector(1, 0, 0) * inch,\n                                vector(1, 1, 0) * inch,\n                                vector(0, 1, 0) * inch], // Will be overlapped by repeating the first 3 points\n                        \"knots\" : knotArray([0, .25, .5, .75, 1]) // Same as default when no knots provided. Will be padded to [-.75, -.5, -.25, 0, .25, .5, .75, 1, 1.25, 1.5, 1.75]\n                    })\n        });\n```\nCreates a closed, curvature-continuous, symmetric curve between the four given points.\n@param definition {{\n     @field degree {number} : The degree of the spline.\n             @autocomplete `3`\n     @field isPeriodic {boolean} : Whether the spline is periodic.\n             @autocomplete `true`\n     @field controlPoints {array} : An array of control points. See [BSplineCurve] for specific detail.  For periodic\n             splines, you may provide the necessary overlap, or provide control points without any overlap.  If no\n             overlap is provided, `degree` overlapping control points (corresponding to the first `degree` control\n             points) will be added to the end of the control points list (unless you provide a set of knots that\n             show no overlap is necessary).\n             @eg `[vector(-1, 1, 0) * inch, vector(1, 1, 0) * inch, vector(1, -1, 0) * inch, vector(-1, -1, 0) * inch]`\n     @field weights {array} : @optional An array of weights. See [BSplineCurve] for specific detail.\n     @field knots {KnotArray} : @optional An array of knots. See [BSplineCurve] for specific detail.  If knots are not provided\n             a uniform parameterization wil be created such that the curve exists on the parameter range `[0, 1]`. For\n             non-periodic curves with `n` control points, you may provide the full set of `n + degree + 1` knots,\n             or you may provide `n - degree + 1` knots, and multiplicity will by padded onto the ends (which has the\n             effect of clamping the spline to its two endpoints).  For periodic curves with `n` unique control points\n             (and optionally an additional `degree` overlapping control points), you may provide the full set\n             of `n + 2 * degree + 1` knots, or you may provide `n + 1` knots, and the periodic knots will be padded\n             onto the ends.\n}}"
+  },
+  {
+    "name": "bSplineCurve",
+    "kind": "function",
+    "module": "curveGeometry.fs",
+    "signature": "export function bSplineCurve(degree is number, isPeriodic is boolean, controlPoints is array, knots is KnotArray) returns BSplineCurve"
+  },
+  {
+    "name": "bSplineCurve",
+    "kind": "function",
+    "module": "curveGeometry.fs",
+    "signature": "export function bSplineCurve(degree is number, isPeriodic is boolean, controlPoints is array, weights is array, knots is KnotArray) returns BSplineCurve"
   },
   {
     "name": "bSplineSurface",
@@ -4562,6 +4686,13 @@
     "doc": "Construct a bounding box from two opposite corners."
   },
   {
+    "name": "box3d",
+    "kind": "function",
+    "module": "box.fs",
+    "signature": "export function box3d(pointArray is array) returns Box3d",
+    "doc": "Construct a bounding box containing all points in pointArray\n@param pointArray {array}"
+  },
+  {
     "name": "box3dAllCorners",
     "kind": "function",
     "module": "box.fs",
@@ -4648,6 +4779,13 @@
     "module": "feature.fs",
     "signature": "export function callSubfeatureAndProcessStatus(topLevelId is Id, fn is function, context is Context, subfeatureId is Id, definition is map)",
     "doc": "This function can be used to call a subfeature or sub-operation (such as `extrude` or `opExtrude`, respectively). It\nwill properly handle any statuses as if they came from the top level feature. That is, reported `INFO` will display\nas a blue message bubble, `WARNING` will turn the feature orange with a warning tooltip on hover, and `ERROR` will\nthrow an error after status handling (aborting feature execution if it is not caught). Any error entities that the\nsubfeature emits will also be displayed.\n\n@ex `callSubfeatureAndProcessStatus(id, booleanBodies, context, id + \"boolean\", booleanDefinition);` (where `id` is\n    the top-level feature id passed into the feature) will call\n    `booleanBodies(context, id + \"boolean\", booleanDefinition)`, propagate its status onto the current feature, and\n    show any error entities coming from the boolean.\n\nInternally, calls the supplied function, and attaches any status it produces to the `topLevelId` using\n[processSubfeatureStatus]. If calling the function produces an error, the error is re-thrown. If the function\nproduces a return value, that value is returned.\n\n@param topLevelId   : @autocomplete `id`\n@param fn           : @autocomplete `booleanBodies`\n@param subfeatureId : @autocomplete `id + \"boolean\"`\n@param definition   : @autocomplete `booleanDefinition`"
+  },
+  {
+    "name": "callSubfeatureAndProcessStatus",
+    "kind": "function",
+    "module": "feature.fs",
+    "signature": "export function callSubfeatureAndProcessStatus(topLevelId is Id, fn is function, context is Context, subfeatureId is Id, definition is map, processSubfeatureStatusOptions is map)",
+    "doc": "See [callSubfeatureAndProcessStatus](callSubfeatureAndProcessStatus(Id, function, Context, Id, map)).\n\n@param topLevelId   : @autocomplete `id`\n@param fn           : @autocomplete `booleanBodies`\n@param subfeatureId : @autocomplete `id + \"boolean\"`\n@param definition   : @autocomplete `booleanDefinition`\n@param processSubfeatureStatusOptions : Passed as the `definition` argument to [processSubfeatureStatus]. Setting\n                                        `subfeatureId` in this map is not required, and will be ignored in favor of\n                                        the `subfeatureId` passed into this function.\n                                        @autocomplete `{ \"propagateErrorDisplay\" : true }`"
   },
   {
     "name": "canBeAccelerationBoundSpec",
@@ -5427,6 +5565,13 @@
     "doc": "Round a `number` up to the nearest integer.\n\nFor values with units, first divide by a value with the same units.\n\n@example `ceil(1.1)` returns `2`\n@example `ceil(1.0)` returns `1`\n@example `ceil(-3.3)` returns `-3`\n@example `var numberOfBricks is number = ceil(wallLength / brickLength)`"
   },
   {
+    "name": "ceil",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function ceil(value, multiple)",
+    "doc": "Round a value up to nearest given multiple.\n\n@example `ceil(125, 10)` returns `130`\n@example `ceil(-15, 10)` returns `-10`\n@example `ceil(3.14 * inch, 0.1 * inch)` equals `3.2 * inch`"
+  },
+  {
     "name": "centimeter",
     "kind": "unit",
     "module": "units.fs",
@@ -5467,6 +5612,13 @@
     "module": "curveGeometry.fs",
     "signature": "export function circle(cSys is CoordSystem, radius is ValueWithUnits) returns Circle",
     "doc": "Returns a new `Circle` in the given coordinate system `cSys`."
+  },
+  {
+    "name": "circle",
+    "kind": "function",
+    "module": "curveGeometry.fs",
+    "signature": "export function circle(center is Vector, xDirection is Vector, normal is Vector, radius is ValueWithUnits) returns Circle",
+    "doc": "Returns a new `Circle` with the given parameters. `xDirection` and `normal` must be perpendicular."
   },
   {
     "name": "circularPattern",
@@ -5570,6 +5722,13 @@
     "name": "color",
     "kind": "function",
     "module": "properties.fs",
+    "signature": "export function color(red is number, green is number, blue is number) returns Color",
+    "doc": "Create an opaque [Color] from RGB values, each between 0 and 1 (inclusive)"
+  },
+  {
+    "name": "color",
+    "kind": "function",
+    "module": "properties.fs",
     "signature": "export function color(red is number, green is number, blue is number, alpha is number) returns Color",
     "doc": "Create a [Color] from RGBA values, each between 0 and 1 (inclusive)"
   },
@@ -5640,6 +5799,13 @@
     "name": "concatenateArrays",
     "kind": "function",
     "module": "containers.fs",
+    "signature": "export function concatenateArrays(a is array, b is array) returns array",
+    "doc": "Given two arrays, concatenate the contents of the arrays.\n\n@example `concatenateArrays([1, 2], [3, 4])` returns `[1, 2, 3, 4]`"
+  },
+  {
+    "name": "concatenateArrays",
+    "kind": "function",
+    "module": "containers.fs",
     "signature": "export function concatenateArrays(arr is array) returns array",
     "doc": "Given an array of arrays, concatenate the contents of the inner arrays.\n\n@example `concatenateArrays([[1, 2], [3, 4]])` returns `[1, 2, 3, 4]`\n@example `concatenateArrays([[1], [], [2, undefined], [[3]]])` returns\n     `[1, 2, undefined, [3]]`"
   },
@@ -5693,6 +5859,27 @@
     "doc": "Construct a [Path] from a [Query] of edges, picking the starting point of the path based on query evaluation order for `edgesQuery`\n\n@param context {Context}\n@param edgesQuery {Query}: A [Query] of edges to form into a [Path]. The edges are ordered with query evaluation\n     order, so a [qUnion] should be used to ensure a stable ordering."
   },
   {
+    "name": "constructPath",
+    "kind": "function",
+    "module": "path.fs",
+    "signature": "export function constructPath(context is Context, edgesQuery is Query, options is map) returns map",
+    "doc": "Construct a [Path] from a [Query] of edges, optionally picking the starting point as the closest viable starting point to the\nsupplied `referenceGeometry`\n\n@param context {Context}\n@param edgesQuery {Query}: A [Query] of edges to form into a [Path].\n@param options {{\n     @field referenceGeometry: @optional A geometry [Query] to determine the start of the [Path]. If unspecified,\n         (or the query is empty) the starting point of the path will be based on query evaluation order for `edgesQuery`.\n     @field tolerance {ValueWithUnits}: @optional Tolerance with length units indicating how close endpoints need\n         to be to be considered part of the same path. Default is `1e-8 * meter`\n         @eg `1e-5 * meter`\n}}\n@return {{\n     @field path {Path} : The resulting constructed [Path]\n     @field pathDistanceInformation {PathDistanceInformation} : A map containing the distance from the [Path] start\n         point to the center of the bounding box of `referenceGeometry` and whether the [Path] start point falls\n         inside that bounding box.\n}}"
+  },
+  {
+    "name": "constructPath",
+    "kind": "function",
+    "module": "path.fs",
+    "signature": "export function constructPath(context is Context, edgesQuery is Query, referenceGeometry is Query) returns map",
+    "doc": "@internal Explicitly ensure old calls with (Context, Query, Query) don't get redirected straight to (Context, Query, map)"
+  },
+  {
+    "name": "constructPath",
+    "kind": "function",
+    "module": "path.fs",
+    "signature": "export function constructPath(context is Context, edgesQuery is Query, referenceGeometry is undefined) returns map",
+    "doc": "@internal"
+  },
+  {
     "name": "constructPaths",
     "kind": "function",
     "module": "path.fs",
@@ -5740,6 +5927,13 @@
     "module": "coordSystem.fs",
     "signature": "export function coordSystem(origin is Vector, xAxis is Vector, zAxis is Vector) returns CoordSystem",
     "doc": "Creates a Cartesian coordinate system.\n\n@seealso [CoordSystem]\n\n@param origin : A 3D point in world space.\n@param xAxis : A 3D vector in world space. Need not be normalized.\n@param zAxis : A 3D vector in world space. Need not be normalized but must be orthogonal to xAxis."
+  },
+  {
+    "name": "coordSystem",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function coordSystem(plane is Plane) returns CoordSystem",
+    "doc": "Create a coordinate system whose XY-plane is a specified plane, with its origin at the\nplane's origin.\n\nAlias for `planeToCSys`."
   },
   {
     "name": "coplanarPlanes",
@@ -5979,6 +6173,12 @@
     "doc": "Returns a new [CurveOnFaceDefinition]."
   },
   {
+    "name": "curveOnFaceDefinition",
+    "kind": "function",
+    "module": "geomOperations.fs",
+    "signature": "export function curveOnFaceDefinition(face is Query, creationType is FaceCurveCreationType, names is array, parameters is array) returns CurveOnFaceDefinition"
+  },
+  {
     "name": "curvePattern",
     "kind": "function",
     "module": "curvePattern.fs",
@@ -6059,6 +6259,94 @@
     "name": "debug",
     "kind": "function",
     "module": "debug.fs",
+    "signature": "export function debug(context is Context, boundingBox is Box3d, cSys)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, boundingBox is Box3d, cSys, color is DebugColor)",
+    "doc": "Displays the edges of a [Box3d] in the given coordinate system with a chosen [DebugColor].\n\n@example ```\nconst myBox = evBox3d(context, { \"topology\" : entities, \"cSys\" : myCSys });\ndebug(context, myBox, myCSys, DebugColor.RED);\n```"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, boundingBox is Box3d, color is DebugColor)",
+    "doc": "Displays the edges of a [Box3d] in the world coordinate system with a chosen [DebugColor]."
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, point1 is Vector, point2 is Vector)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, point1 is Vector, point2 is Vector, color is DebugColor)",
+    "doc": "Draws a line between `point1` and `point2` and prints the points with the distance between them."
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is CoordSystem)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is CoordSystem, color is DebugColor)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is CoordSystem, xColor is DebugColor, yColor is DebugColor, zColor is DebugColor)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is Line, color is DebugColor)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is Plane, color is DebugColor)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is Query, color is DebugColor)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is ValueWithUnits, color is DebugColor)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value is Vector, color is DebugColor)"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function debug(context is Context, value)",
+    "doc": "This functions handles dispatching to all the specific implementations of debug() when a color parameter is not supplied"
+  },
+  {
+    "name": "debug",
+    "kind": "function",
+    "module": "debug.fs",
     "signature": "export function debug(context is Context, value, color is DebugColor) // TODO: `Circle`, `Ellipse`, `Cylinder`, `Cone`, `Torus`, `Transform`, `Box`.",
     "doc": "Print and, if applicable, display `value` in a Part Studio, highlighting\nor creating entities in a chosen color, red by default.\n\nThe displayed data will ONLY be visible when the feature calling the\n`debug` function is being edited. Entities displayed during debug are for\ndisplay only, and will not appear in any queries.\n\nValues which can be debugged are:\n\n[Query]: Highlights entities matching the `Query` (bodies, faces, edges,\nand vertices) in red.\n\n3D length [Vector]: Displays a single point in world space.\n\nUnitless, normalized 3D [Vector]: Displays an arrow starting at the world\norigin, pointing in the given direction.\n\n[Line]: Displays an arrow starting at the line's origin, pointing in the\nline's direction.\n\n[CoordSystem]: Displays three perpendicular arrows from the coordinate\nsystem's origin, along its three axes. The arrowhead for the x-axis is\nlargest, and the z-axis is smallest.\n\n[Plane]: Displays a large square in the positive quadrant of the plane,\nalong with three arrows along the plane's x-axis, y-axis, and normal.\n\n[Box3d]: Displays the edges of the bounding box (in the given coordinate\nsystem, if provided)\n\nThe overloads in this module define these behaviors.\n@param color : @optional The color of the debug highlight"
   },
@@ -6096,6 +6384,18 @@
     "module": "computedPartProperty.fs",
     "signature": "export function defineComputedPartProperty(propertyFunction is function) returns function",
     "doc": "This function takes a computed part property function and wraps it to define a computed part property.\nIt is analogous to [defineFeature], except that it is used to define computed part properties. A typical usage is something like:\n```\nannotation { \"Property Function Name\" : \"MyProperty\" }  // annotation required for Onshape to recognize computed property function\nexport const myProperty = defineComputedPartProperty(function(context is Context, part is Query, definition is map)\n    returns ValueWithUnits // may also return string or boolean or number\n    // definition is an empty map and reserved for future use\n    {\n        ... // Compute and return the property value, using the context and the parameters\n    });\n```\n\nFor more information on writing computed part properties, see [`Computed part properties`](./computed-part-properties.html) in the FeatureScript guide.\n\n@param propertyFunction : A function that takes a `context`, a `part` Query that returns a single Part, and a `definition`, and that returns a value such as a number or a string or a ValueWithUnits.\n\n@autocomplete\n```\nfunction(context is Context, part is Query, definition is map) returns ValueWithUnits // (or string or number or boolean)\n    // definition is an empty map and reserved for future use\n    {\n        // Compute and return the property value, using the context and parameters\n    }\n```"
+  },
+  {
+    "name": "defineFeature",
+    "kind": "function",
+    "module": "feature.fs"
+  },
+  {
+    "name": "defineFeature",
+    "kind": "function",
+    "module": "feature.fs",
+    "signature": "export function defineFeature(feature is function) returns function",
+    "doc": "This function takes a regeneration function and wraps it to create a feature. The wrapper handles certain argument\nrecording for the UI and error handling.  A typical usage is something like:\n```\nannotation { \"Feature Type Name\" : \"Widget\" } // This annotation is required for Onshape to recognize widget as a feature.\nexport const widget = defineFeature(function(context is Context, id is Id, definition is map)\n    precondition\n    {\n        ... // Specify the parameters that this feature takes\n    }\n    {\n        ... // Specify what the feature does when regenerating\n    });\n```\n\nFor more information on writing features, see `Specifying feature UI` in the\nlanguage guide.\n\n@param feature : A function that takes a `context`, an `id`, and a\n         `definition` and regenerates the feature.\n         @autocomplete\n```\nfunction(context is Context, id is Id, definition is map)\n    precondition\n    {\n        // Specify the parameters that this feature takes\n    }\n    {\n        // Specify what the feature does when regenerating\n    }\n```"
   },
   {
     "name": "defineFeature",
@@ -6283,6 +6583,13 @@
     "name": "dummyQuery",
     "kind": "function",
     "module": "query.fs",
+    "signature": "export function dummyQuery(operationId is Id, entityType is EntityType) returns Query",
+    "doc": "@internal"
+  },
+  {
+    "name": "dummyQuery",
+    "kind": "function",
+    "module": "query.fs",
     "signature": "export function dummyQuery(operationId is Id, entityType is EntityType, disambiguationOrder is number) returns Query",
     "doc": "@internal"
   },
@@ -6341,6 +6648,13 @@
     "module": "curveGeometry.fs",
     "signature": "export function ellipse(cSys is CoordSystem, majorRadius is ValueWithUnits, minorRadius is ValueWithUnits) returns Ellipse",
     "doc": "Returns a new `Ellipse` with the given parameters."
+  },
+  {
+    "name": "ellipse",
+    "kind": "function",
+    "module": "curveGeometry.fs",
+    "signature": "export function ellipse(center is Vector, xDirection is Vector, normal is Vector, majorRadius is ValueWithUnits, minorRadius is ValueWithUnits) returns Ellipse",
+    "doc": "Returns a new `Ellipse` with the given parameters. `xDirection` and `normal` must be perpendicular."
   },
   {
     "name": "enclose",
@@ -6625,6 +6939,11 @@
   {
     "name": "evOwnerSketchPlane",
     "kind": "function",
+    "module": "evaluate.fs"
+  },
+  {
+    "name": "evOwnerSketchPlane",
+    "kind": "function",
     "module": "evaluate.fs",
     "signature": "export function evOwnerSketchPlane(context is Context, arg is map) returns Plane",
     "doc": "Return the plane of the sketch that created the given entity.\n@param context\n@param arg {{\n     @field entity{Query} : The sketch entity. May be a vertex, edge, face, or body.\n     @field checkAllEntities{boolean} : If true, the function will only return a plane if all entities queried under 'entity' share coplanar sketch planes.\n         Otherwise, the plane will only be evaluated for the first entity in the query. Default is false. @optional\n}}\n@throws {GBTErrorStringEnum.CANNOT_RESOLVE_PLANE} : Entities were not created by a sketch or do not share the same sketch plane."
@@ -6642,6 +6961,13 @@
     "module": "path.fs",
     "signature": "export function evPathTangentLines(context is Context, path is Path, parameters is array) returns map",
     "doc": "Return tangent lines to a [Path] using arc length parameterization.\n\n@param context {Context}\n@param path {Path}: The [Path] to use.\n@param parameters {array}: An array of numbers in the range 0..1 indicating where along the [Path] to evaluate tangents.\n\n@returns {{\n     @field tangentLines {array}: The tangent [Line]s corresponding to each parameter\n     @field edgeIndices {array}: The indices of the edges in the [Path] corresponding to each parameter\n}}"
+  },
+  {
+    "name": "evPathTangentLines",
+    "kind": "function",
+    "module": "path.fs",
+    "signature": "export function evPathTangentLines(context is Context, path is Path, parameters is array, referenceGeometry) returns map",
+    "doc": "Return tangent lines to a [Path] using arc length parameterization. By default, the 0 parameter of the [Path] will be the\nstart of the [Path]. If evaluating a closed path, providing reference geometry will alter the 0 parameter to be the\nclosest point on the [Path] to the reference geometry. Providing reference geometry for a non-closed [Path] will not\nchange the parameterization of the [Path]\n\n@param context {Context}\n@param path {Path}: The [Path] to use.\n@param parameters {array}: An array of numbers in the range 0..1 indicating where along the [Path] to evaluate tangents.\n@param referenceGeometry: A geometry [Query] to determine the 0 parameter of the [Path], or `undefined`. If an empty\n     [Query] or `undefined` is specified, the tangents will be evaluated starting at the beginning of the path.\n\n@returns {{\n     @field tangentLines {array}: The tangent [Line]s corresponding to each parameter\n     @field edgeIndices {array}: The indices of the edges in the [Path] corresponding to each parameter\n     @field pathDistanceInformation {PathDistanceInformation} : A map containing the distance from the remapped 0\n         parameter to the center of the bounding box of `referenceGeometry` and whether the remapped 0 parameter falls\n         inside that bounding box. Only valid if the path is closed.\n}}"
   },
   {
     "name": "evPlanarEdge",
@@ -6726,6 +7052,20 @@
     "module": "evaluate.fs",
     "signature": "export function evVolume(context is Context, arg is map) returns ValueWithUnits",
     "doc": "Return the total volume of all the entities.\nIf no matching 3D bodies are found, the total volume will be zero.\n@param arg {{\n     @field entities{Query}\n     @field accuracy{VolumeAccuracy}\n}}"
+  },
+  {
+    "name": "evaluateExpression",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function evaluateExpression(expression is ValueWithUnits, expectedUnit is ValueWithUnits) returns map",
+    "doc": "@internal"
+  },
+  {
+    "name": "evaluateExpression",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function evaluateExpression(expression is number, expectedUnit is ValueWithUnits) returns map",
+    "doc": "@internal"
   },
   {
     "name": "evaluateExpression",
@@ -7053,6 +7393,27 @@
     "name": "flipManipulator",
     "kind": "function",
     "module": "manipulator.fs",
+    "signature": "export function flipManipulator(base is Vector, direction is Vector, flipped is boolean) returns Manipulator",
+    "doc": "----- Deprecated flipManipulator overloads -----"
+  },
+  {
+    "name": "flipManipulator",
+    "kind": "function",
+    "module": "manipulator.fs",
+    "signature": "export function flipManipulator(base is Vector, direction is Vector, flipped is boolean, sources) returns Manipulator",
+    "doc": "----- Deprecated flipManipulator overloads -----"
+  },
+  {
+    "name": "flipManipulator",
+    "kind": "function",
+    "module": "manipulator.fs",
+    "signature": "export function flipManipulator(base is Vector, direction is Vector, flipped is boolean, sources, style is ManipulatorStyleEnum) returns Manipulator",
+    "doc": "----- Deprecated flipManipulator overloads -----"
+  },
+  {
+    "name": "flipManipulator",
+    "kind": "function",
+    "module": "manipulator.fs",
     "signature": "export function flipManipulator(definition is map) returns Manipulator",
     "doc": "Create a manipulator represented by a single arrow which flips direction when clicked.\n@param definition {{\n     @field base {Vector}: A 3d point at the manipulator's origin\n             @eg `vector(0, 0, 0) * meter`\n     @field direction {Vector}: A 3d vector pointing in the unflipped direction\n             @eg `vector(0, 0, 1)` points manipulator along the z axis\n     @field flipped {boolean}:\n             @eg `false` points the manipulator along +direction\n             @eg `true`  points the manipulator along -direction, or otherDirection if defined\n     @field sources : @optional For Onshape internal use.\n     @field style {ManipulatorStyleEnum} : @optional\n     @field otherDirection {Vector} : @optional A 3d vector for the flipped direction\n}}"
   },
@@ -7069,6 +7430,20 @@
     "module": "math.fs",
     "signature": "export function floor(value is number)",
     "doc": "Round a `number` down to the nearest integer.\n\nFor values with units, first divide by a value with the same units.\n\n@example `floor(1.9)` returns `1`\n@example `floor(2.0)` returns `2`\n@example `floor(-3.3)` returns `-4`\n@example `var numberOfBricks is number = floor(wallLength / brickLength);`"
+  },
+  {
+    "name": "floor",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function floor(value, multiple)",
+    "doc": "Round a value down to nearest given multiple.\n\n@example `floor(125, 10)` returns `120`\n@example `floor(-15, 10)` returns `-20`\n@example `floor(3.14 * inch, 0.1 * inch)` equals `3.1 * inch`"
+  },
+  {
+    "name": "foldArray",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function foldArray(arr is array, foldFunction is function)",
+    "doc": "Calls `foldArray` with the `seed` set to the first element of `arr`.\n@seeAlso [foldArray]"
   },
   {
     "name": "foldArray",
@@ -7181,6 +7556,13 @@
     "module": "frameTrim.fs",
     "signature": "export function frameTrimManipulatorChange(context is Context, definition is map, newManipulators is map) returns map",
     "doc": "@internal"
+  },
+  {
+    "name": "fromWorld",
+    "kind": "function",
+    "module": "coordSystem.fs",
+    "signature": "export function fromWorld(cSys is CoordSystem) returns Transform",
+    "doc": "Returns a [Transform] which will transform coordinates measured in world space into\n`cSys` coordinates.\n@ex `fromWorld(cSys) * cSys.origin` equals `vector(0, 0, 0)`\n\nWhen used in operations which place or move parts (like [opTransform], [opPattern],\nor [addInstance]), this transform will (somewhat counterintuitively) move parts from\nthe `cSys` origin and orientation to the world origin and orientation."
   },
   {
     "name": "fromWorld",
@@ -7628,6 +8010,12 @@
     "doc": "Find sheet metal master body entities corresponding to feature input."
   },
   {
+    "name": "getSMDefinitionEntities",
+    "kind": "function",
+    "module": "sheetMetalAttribute.fs",
+    "signature": "export function getSMDefinitionEntities(context is Context, selection is Query, entityType is EntityType) returns array"
+  },
+  {
     "name": "getSelectionsForSMDefinitionEntities",
     "kind": "function",
     "module": "sheetMetalUtils.fs",
@@ -7701,6 +8089,13 @@
     "name": "getToleranceBounds",
     "kind": "function",
     "module": "tolerance.fs",
+    "signature": "export function getToleranceBounds(nominal is ValueWithUnits, tolerance, minimum is ValueWithUnits, maximum is ValueWithUnits) returns array",
+    "doc": "Produces an array containing the upper and lower bounds of a [ValueWithUnits] given a\nspecified [ToleranceInfo]."
+  },
+  {
+    "name": "getToleranceBounds",
+    "kind": "function",
+    "module": "tolerance.fs",
     "signature": "export function getToleranceBounds(nominal is ValueWithUnits, tolerance, options is map) returns array",
     "doc": "Produces an array containing the upper and lower bounds of a [ValueWithUnits] given a\nspecified [ToleranceInfo] as well as a map of options.\n@param nominal {ValueWithUnits} : the nominal value\n@param tolerance {ToleranceInfo} : the tolerance info for the given value\n@param options {{\n  @field minimum {ValueWithUnits} : the upper bound if the tolerance type is maximum\n  @field maximun {ValueWithUnits} : the lower bound if the tolerance type is minimum\n  @field useDrawingLimitsFix {boolean} : if false, uses the old bounds calculation of \\[lowerLim, upperLim\\]\n}}"
   },
@@ -7716,6 +8111,13 @@
     "kind": "function",
     "module": "tolerance.fs",
     "signature": "export function getToleranceInfo(context is Context, id is Id, definition is map, field is string, isAngle is boolean) returns ToleranceInfo"
+  },
+  {
+    "name": "getToleranceInfo",
+    "kind": "function",
+    "module": "tolerance.fs",
+    "signature": "export function getToleranceInfo(definition is map, field is string) returns ToleranceInfo",
+    "doc": "Extracts the [ToleranceInfo] associated with a given field in the given feature definition. The\n[ToleranceInfo] is gathered from parameters which are created using either the\n[defineLengthTolerance] or [defineAngleTolerance] predicates."
   },
   {
     "name": "getTolerantParameterIds",
@@ -7744,6 +8146,13 @@
     "module": "context.fs",
     "signature": "export function getVariable(context is Context, name is string)",
     "doc": "Retrieve a variable attached to the context by name.\nThrows an exception if variable by the given name is not found.\n\n@example `getVariable(context, \"foo\")` returns the value assigned to a\n     previously-set variable named `\"foo\"`.\n\nVariables on a context can also be accessed within a Part Studio using\n`#` syntax (e.g. `#foo`) inside any parameter which allows an expression."
+  },
+  {
+    "name": "getVariable",
+    "kind": "function",
+    "module": "context.fs",
+    "signature": "export function getVariable(context is Context, name is string, defaultValue)",
+    "doc": "Retrieve a variable attached to the context by name.\nIf variable by the given name is not found, returns `defaultValue`\n\n@example `getVariable(context, \"foo\", {})` returns the value assigned to a\n     previously-set variable named `\"foo\"`. If not found returns empty map."
   },
   {
     "name": "getWallAttribute",
@@ -7875,6 +8284,13 @@
     "name": "holeDefinition",
     "kind": "function",
     "module": "holeUtils.fs",
+    "signature": "export function holeDefinition(profiles is array) returns HoleDefinition",
+    "doc": "@param profiles : @autocomplete `[holeProfile(HolePositionReference.AXIS_POINT, 0 * inch, 0.1 * inch), holeProfile(HolePositionReference.AXIS_POINT, 1 * inch, 0 * inch)]`"
+  },
+  {
+    "name": "holeDefinition",
+    "kind": "function",
+    "module": "holeUtils.fs",
     "signature": "export function holeDefinition(profiles is array, optionalParameters is map) returns HoleDefinition",
     "doc": "Returns a new [HoleDefinition].\n\n@param profiles : @autocomplete `[holeProfile(HolePositionReference.AXIS_POINT, 0 * inch, 0.1 * inch), holeProfile(HolePositionReference.AXIS_POINT, 1 * inch, 0 * inch)]`\n@param optionalParameters {{\n    @field faceNames {string} : @optional See [HoleDefinition].\n}}"
   },
@@ -7896,8 +8312,20 @@
     "name": "holeProfile",
     "kind": "function",
     "module": "holeUtils.fs",
+    "signature": "export function holeProfile(positionReference is HolePositionReference, position is ValueWithUnits, radius is ValueWithUnits) returns HoleProfile"
+  },
+  {
+    "name": "holeProfile",
+    "kind": "function",
+    "module": "holeUtils.fs",
     "signature": "export function holeProfile(positionReference is HolePositionReference, position is ValueWithUnits, radius is ValueWithUnits, optionalParameters is map) returns HoleProfile",
     "doc": "Returns a new circular [HoleProfile] at a given `position` in relation to the end of the range of the\n`positionReference`. See [HolePositionReference] for further detail about the range of the `positionReference`.\n\n@param optionalParameters {{\n    @field targetMustDifferFromPrevious {boolean} : @optional See [HoleProfile].\n    @field notApplicableForFirstTarget {boolean} : @optional See [HoleProfile].\n    @field name {string} : @optional See [HoleProfile].\n\n}}"
+  },
+  {
+    "name": "holeProfileBeforeReference",
+    "kind": "function",
+    "module": "holeUtils.fs",
+    "signature": "export function holeProfileBeforeReference(positionReference is HolePositionReference, position is ValueWithUnits, radius is ValueWithUnits) returns HoleProfile"
   },
   {
     "name": "holeProfileBeforeReference",
@@ -7926,6 +8354,13 @@
     "module": "math.fs",
     "signature": "export function hypot(a is number, b is number)",
     "doc": "Hypotenuse function, as `sqrt(a^2 + b^2)`, but without any\nsurprising results due to finite numeric precision.\n\n@example `hypot(3, 4)` returns `5`"
+  },
+  {
+    "name": "hypot",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function hypot(a is ValueWithUnits, b is ValueWithUnits)",
+    "doc": "Hypotenuse function, as `sqrt(a^2 + b^2)`, but without any\nsurprising results due to finite numeric precision.\n\n@example `hypot(3 * foot, 4 * foot)` equals `5 * foot`"
   },
   {
     "name": "identityMatrix",
@@ -7998,11 +8433,39 @@
     "doc": "Return the index of the `value` in `container`, or -1 if the value is not found."
   },
   {
+    "name": "indexOf",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function indexOf(container is array, value, startIndex is number) returns number",
+    "doc": "Return the index of the `value` in `container` starting the search at a specified start index, or -1 if the value is not found."
+  },
+  {
+    "name": "indexOf",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function indexOf(s is string, substr is string) returns number",
+    "doc": "Return the index of a substring in a string, or -1 if the substring is not found."
+  },
+  {
+    "name": "indexOf",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function indexOf(s is string, substr is string, startIndex is number) returns number",
+    "doc": "Return the index of a substring in a string starting the search at a specified start index, or -1 if the substring is not found."
+  },
+  {
     "name": "indexOfRegexp",
     "kind": "function",
     "module": "string.fs",
     "signature": "export function indexOfRegexp(s is string, regexp is string) returns number",
     "doc": "Return the first index of a regular expression match in a string, or -1 if not found."
+  },
+  {
+    "name": "indexOfRegexp",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function indexOfRegexp(s is string, regexp is string, startIndex is number) returns number",
+    "doc": "Return the first index of a regular expression match in a string starting at the specified start index, or -1 if not found."
   },
   {
     "name": "initialQueryPredicate",
@@ -8054,6 +8517,20 @@
     "doc": "Returns a [LineLineIntersection] representing the intersection between two lines.  If the lines are collinear, `line1`\nwill be stored in the `intersection` field of that `LineLineIntersection`."
   },
   {
+    "name": "intersection",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function intersection(plane is Plane, line is Line) returns LinePlaneIntersection",
+    "doc": "Returns a [LinePlaneIntersection] representing the intersection between\n`line` and `plane`."
+  },
+  {
+    "name": "intersection",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function intersection(plane1 is Plane, plane2 is Plane) // Returns Line or undefined if there's no good intersection",
+    "doc": "Returns a [Line] at the intersection between the two [Plane]s. If the planes\nare parallel or coincident, returns `undefined`."
+  },
+  {
     "name": "intersectionCurve",
     "kind": "function",
     "module": "faceIntersection.fs",
@@ -8066,6 +8543,20 @@
     "module": "matrix.fs",
     "signature": "export function inverse(m is Matrix) returns Matrix",
     "doc": "Compute the inverse of a matrix.  Throws an exception\nif the matrix is not square.  If the matrix is singular\nthe resulting matrix will contain infinities."
+  },
+  {
+    "name": "inverse",
+    "kind": "function",
+    "module": "transform.fs",
+    "signature": "export function inverse(t is Transform) returns Transform",
+    "doc": "Compute the inverse of a [Transform], such that\n`inverse(t) * t == identityTransform()`."
+  },
+  {
+    "name": "inverse",
+    "kind": "function",
+    "module": "transformUV.fs",
+    "signature": "export function inverse(t is TransformUV) returns TransformUV",
+    "doc": "Compute the inverse of a [TransformUV], such that\n`inverse(t) * t == identityTransform()`."
   },
   {
     "name": "is2dDirection",
@@ -8110,6 +8601,13 @@
     "doc": "True for any value with acceleration units."
   },
   {
+    "name": "isAcceleration",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isAcceleration(value, boundSpec is AccelerationBoundSpec)",
+    "doc": "@internal\nTrue for a value with acceleration units which conforms to the given bounds.\n\n@param boundSpec {AccelerationBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `AccelerationBoundSpec`."
+  },
+  {
     "name": "isActiveSheetMetalPart",
     "kind": "function",
     "module": "sheetMetalUtils.fs",
@@ -8122,6 +8620,13 @@
     "module": "units.fs",
     "signature": "export predicate isAngle(val)",
     "doc": "True for any value with angle units."
+  },
+  {
+    "name": "isAngle",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isAngle(value, boundSpec is AngleBoundSpec)",
+    "doc": "True for a value with angle units which conforms to the given bounds.\n\nUsed in feature preconditions to specify an angle parameter.\n\n@param boundSpec {AngleBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a different or custom `AngleBoundSpec`."
   },
   {
     "name": "isAngleBetween",
@@ -8138,6 +8643,13 @@
     "doc": "True for any value with angular velocity units."
   },
   {
+    "name": "isAngularVelocity",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isAngularVelocity(value, boundSpec is AngularVelocityBoundSpec)",
+    "doc": "@internal\nTrue for a value with angular velocity units which conforms to the given bounds.\n\n@param boundSpec {AngularVelocityBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `AngularVelocityBoundSpec`."
+  },
+  {
     "name": "isAnything",
     "kind": "predicate",
     "module": "feature.fs",
@@ -8152,6 +8664,13 @@
     "doc": "True for any value with area units."
   },
   {
+    "name": "isArea",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isArea(value, boundSpec is AreaBoundSpec)",
+    "doc": "@internal\nTrue for a value with area units which conforms to the given bounds.\n\n@param boundSpec {AreaBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `AreaBoundSpec`."
+  },
+  {
     "name": "isAtInitialMixedModelingReleaseVersionOrLater",
     "kind": "function",
     "module": "context.fs",
@@ -8164,6 +8683,12 @@
     "module": "context.fs",
     "signature": "export function isAtVersionOrLater(context is Context, introduced is FeatureScriptVersionNumber) returns boolean",
     "doc": "@internal\nReturns `true` if the active feature of `context` is running at a version\nnumber at least as new as `introduced`."
+  },
+  {
+    "name": "isAtVersionOrLater",
+    "kind": "function",
+    "module": "context.fs",
+    "signature": "export function isAtVersionOrLater(versionToCheck is FeatureScriptVersionNumber, versionToCompareAgainst is FeatureScriptVersionNumber) returns boolean"
   },
   {
     "name": "isButton",
@@ -8208,6 +8733,13 @@
     "doc": "True for any value with energy units."
   },
   {
+    "name": "isEnergy",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isEnergy(value, boundSpec is EnergyBoundSpec)",
+    "doc": "@internal\nTrue for a value with energy units which conforms to the given bounds.\n\n@param boundSpec {EnergyBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `EnergyBoundSpec`."
+  },
+  {
     "name": "isEntityAppropriateForAttribute",
     "kind": "function",
     "module": "sheetMetalUtils.fs",
@@ -8234,6 +8766,13 @@
     "module": "units.fs",
     "signature": "export predicate isForce(val)",
     "doc": "True for any value with force units."
+  },
+  {
+    "name": "isForce",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isForce(value, boundSpec is ForceBoundSpec)",
+    "doc": "@internal\nTrue for a value with force units which conforms to the given bounds.\n\n@param boundSpec {ForceBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `ForceBoundSpec`."
   },
   {
     "name": "isFrameCapFace",
@@ -8292,6 +8831,13 @@
     "doc": "True if `value` is a finite integer.\n\nNote that all numbers in FeatureScript represented as floating point numbers, so an\nexpression like `isInteger(hugeInteger + 0.1)` may still return `true`.\n\nUsed in feature preconditions to define an integer input."
   },
   {
+    "name": "isInteger",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isInteger(value, boundSpec is IntegerBoundSpec)",
+    "doc": "True for a `number` that is an integer and conforms to the given bounds.\n\nUsed in feature preconditions to specify an integer or count parameter.\n\n@param boundSpec {IntegerBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a different or custom `IntegerBoundSpec`."
+  },
+  {
     "name": "isInternalCapFace",
     "kind": "function",
     "module": "frameUtils.fs",
@@ -8304,6 +8850,18 @@
     "module": "units.fs",
     "signature": "export predicate isLength(val)",
     "doc": "True for any value with length units."
+  },
+  {
+    "name": "isLength",
+    "kind": "predicate",
+    "module": "valueBounds.fs"
+  },
+  {
+    "name": "isLength",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isLength(value, boundSpec is LengthBoundSpec)",
+    "doc": "True for a value with length units which conforms to the given bounds.\n\nUsed in feature preconditions to specify a length parameter.\n\n@param boundSpec {LengthBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a different or custom `LengthBoundSpec`."
   },
   {
     "name": "isLengthVector",
@@ -8320,6 +8878,13 @@
     "doc": "Test if the current definition violates the table."
   },
   {
+    "name": "isLookupTableViolated",
+    "kind": "function",
+    "module": "lookupTablePath.fs",
+    "signature": "export function isLookupTableViolated(definition is map, table is map, ignoreProperties is map) returns boolean",
+    "doc": "@internal\nDetermines if the specified table entry map has any value violations based upon the specified master definition map\n\n@param definition : the master definition map to check against\n@param table : the table map to check for any violations against the definition map\n@param ignoreProperties : map of property names to ignore, if value is true, will not check for any violation against that property's value\n@returns : true if there is a violation, false if no violations"
+  },
+  {
     "name": "isMirror",
     "kind": "function",
     "module": "patternCommon.fs",
@@ -8332,6 +8897,13 @@
     "module": "units.fs",
     "signature": "export predicate isMoment(val)",
     "doc": "True for any value with moment units."
+  },
+  {
+    "name": "isMoment",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isMoment(value, boundSpec is MomentBoundSpec)",
+    "doc": "@internal\nTrue for a value with moment units which conforms to the given bounds.\n\n@param boundSpec {MomentBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `MomentBoundSpec`."
   },
   {
     "name": "isNonNegativeInteger",
@@ -8388,6 +8960,13 @@
     "module": "units.fs",
     "signature": "export predicate isPressure(val)",
     "doc": "True for any value with pressure units."
+  },
+  {
+    "name": "isPressure",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isPressure(value, boundSpec is PressureBoundSpec)",
+    "doc": "@internal\nTrue for a value with pressure units which conforms to the given bounds.\n\n@param boundSpec {PressureBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `PressureBoundSpec`."
   },
   {
     "name": "isQueryEmpty",
@@ -8516,6 +9095,13 @@
     "doc": "True for any value with volume units."
   },
   {
+    "name": "isVolume",
+    "kind": "predicate",
+    "module": "valueBounds.fs",
+    "signature": "export predicate isVolume(value, boundSpec is VolumeBoundSpec)",
+    "doc": "@internal\nTrue for a value with volume units which conforms to the given bounds.\n\n@param boundSpec {VolumeBoundSpec} : Specifies a min, a max, and a default\n     value. These values are possibly different in different units for the\n     sake of round numbers.\n\n     To specify a parameter with different default value or different\n     limits, use a custom `VolumeBoundSpec`."
+  },
+  {
     "name": "isWrapCone",
     "kind": "predicate",
     "module": "wrapSurface.fs",
@@ -8575,6 +9161,13 @@
     "name": "join",
     "kind": "function",
     "module": "string.fs",
+    "signature": "export function join(arr is array) returns string",
+    "doc": "Concatenates all elements in an array into a string."
+  },
+  {
+    "name": "join",
+    "kind": "function",
+    "module": "string.fs",
     "signature": "export function join(arr is array, separator is string) returns string",
     "doc": "Concatenates all elements in an array into a string, delimited by a separator string."
   },
@@ -8591,6 +9184,13 @@
     "module": "boolean.fs",
     "signature": "export function joinSurfaceBodiesWithAutoMatching(context is Context, id is Id, definition is map, makeSolid is boolean, reconstructOp is function)",
     "doc": "This function is designed to be used by surface-body-creating features (like [extrude]) as a boolean post-processing\nstep with options from [surfaceOperationTypePredicate ] and [surfaceJoinStepScopePredicate]. It detects matching edges of adjacent\nbodies and joins surface bodies at these  edges.\n@param context {Context}\n@param id {Id}: identifier of the feature\n@param definition {{\n     @field defaultSurfaceScope {boolean}: @optional\n             @eg `true`  indicates merge scope of all the original and related surfaces used as input to create this surface (default)\n             @eg `false` indicates merge scope is specified in `booleanSurfaceScope`\n     @field booleanSurfaceScope {Query}: @optional targets to use if `defaultSurfaceScope` is false\n             Default is `qNothing()`\n     @field seed {Query}: @optional\n             Default is `qNothing()` If set, will be included in the tools section of the boolean.\n}}\n@param makeSolid {boolean}: Tries to join the surfaces into a solid\n@param reconstructOp {function}: A function which takes in an Id, and reconstructs the input to show to the user as error geometry\n     in case the input is problematic or the join itself fails.\n     @eg `function() {}`. For a more elaborate example see the source code of revolve feature in the Standard Library."
+  },
+  {
+    "name": "joinSurfaceBodiesWithAutoMatching",
+    "kind": "function",
+    "module": "boolean.fs",
+    "signature": "export function joinSurfaceBodiesWithAutoMatching(context is Context, id is Id, definition is map, reconstructOp is function)",
+    "doc": "This function is designed to be used by surface-body-creating features (like [extrude]) as a boolean post-processing\nstep with options from [surfaceOperationTypePredicate ] and [surfaceJoinStepScopePredicate]. It detects matching edges of adjacent\nbodies and joins surface bodies at these  edges.\n@param context {Context}\n@param id {Id}: identifier of the feature\n@param definition {{\n     @field defaultSurfaceScope {boolean}: @optional\n             @eg `true`  indicates merge scope of all the original and related surfaces used as input to create this surface (default)\n             @eg `false` indicates merge scope is specified in `booleanSurfaceScope`\n     @field booleanSurfaceScope {Query}: @optional targets to use if `defaultSurfaceScope` is false\n             Default is `qNothing()`\n     @field seed {Query}: @optional\n             Default is `qNothing()` If set, will be included in the tools section of the boolean.\n     @field makeSolid {boolean}: @optional Tries to join the surfaces into a solid\n             Default is false\n     @field eraseImprintedEdges {boolean}: @optional Merge all mergeable imprinted edges created by the boolean operation\n             Default is true\n}}\n@param reconstructOp {function}: A function which takes in an Id, and reconstructs the input to show to the user as error geometry\n     in case the input is problematic or the join itself fails.\n     @eg `function() {}`. For a more elaborate example see the source code of revolve feature in the Standard Library."
   },
   {
     "name": "joule",
@@ -8701,6 +9301,27 @@
     "name": "linearManipulator",
     "kind": "function",
     "module": "manipulator.fs",
+    "signature": "export function linearManipulator(base is Vector, direction is Vector, offset is ValueWithUnits) returns Manipulator",
+    "doc": "----- Deprecated linearManipulator overloads -----"
+  },
+  {
+    "name": "linearManipulator",
+    "kind": "function",
+    "module": "manipulator.fs",
+    "signature": "export function linearManipulator(base is Vector, direction is Vector, offset is ValueWithUnits, sources) returns Manipulator",
+    "doc": "----- Deprecated linearManipulator overloads -----"
+  },
+  {
+    "name": "linearManipulator",
+    "kind": "function",
+    "module": "manipulator.fs",
+    "signature": "export function linearManipulator(base is Vector, direction is Vector, offset is ValueWithUnits, sources, style is ManipulatorStyleEnum) returns Manipulator",
+    "doc": "----- Deprecated linearManipulator overloads -----"
+  },
+  {
+    "name": "linearManipulator",
+    "kind": "function",
+    "module": "manipulator.fs",
     "signature": "export function linearManipulator(definition is map) returns Manipulator",
     "doc": "Create a manipulator represented by a single arrow which can move along a single axis. See `extrude` for an example.\n\n@param definition {{\n     @field base : The position of the manipulator when the offset is `0`.\n     @field direction : A 3D unit vector pointing on the axis on which the manipulator can be dragged.\n     @field offset : The positive or negative distance along `direction` from the base to the manipulator.\n     @field sources : @optional For Onshape internal use.\n     @field minValue {ValueWithUnits} : @optional The minimum offset allowed.\n     @field maxValue {ValueWithUnits} : @optional The maximum offset allowed.\n     @field style {ManipulatorStyleEnum} : @optional\n     @field primaryParameterId {string} : @optional The id of the `definition` field which is being manipulated.\n         When set, the feature dialog focus will be shifted to the parameter in question when the manipulator is manipulated.\n}}"
   },
@@ -8799,6 +9420,13 @@
     "name": "makeArray",
     "kind": "function",
     "module": "containers.fs",
+    "signature": "export function makeArray(size is number) returns array",
+    "doc": "Create a new array with given `size`, filled with `undefined`.\n@example `makeArray(3)` returns `[undefined, undefined, undefined]`"
+  },
+  {
+    "name": "makeArray",
+    "kind": "function",
+    "module": "containers.fs",
     "signature": "export function makeArray(size is number, fillValue) returns array",
     "doc": "Create a new array with given `size`, filled with `fillValue`.\nNote: this is equivalent to assigning each individual array\nelement to `fillValue`; boxes and builtins will not be deep-copied.\n@example `makeArray(3, 0)` returns `[0, 0, 0]`"
   },
@@ -8850,6 +9478,13 @@
     "module": "variable.fs",
     "signature": "export function makeLookupFunction(context is Context, id is Id) returns function",
     "doc": "Make a function to look up variables from the given context.  Used in generated part studio code."
+  },
+  {
+    "name": "makeQuery",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function makeQuery(operationId is Id, queryType is string, entityType, value is map) returns Query",
+    "doc": "@internal"
   },
   {
     "name": "makeQuery",
@@ -8918,8 +9553,29 @@
     "name": "makeWrapCone",
     "kind": "function",
     "module": "wrapSurface.fs",
+    "signature": "export function makeWrapCone(cone is Cone, anchorPoint is Vector, anchorDirection is Vector) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a [Cone].\n@param cone {Cone} : The definition cone for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param anchorDirection {Vector} : The anchor direction of the `WrapSurface`. See [WrapSurface] documentation."
+  },
+  {
+    "name": "makeWrapCone",
+    "kind": "function",
+    "module": "wrapSurface.fs",
     "signature": "export function makeWrapCone(cone is Cone, anchorPoint is Vector, spin is ValueWithUnits) returns WrapSurface",
     "doc": "Make a [WrapSurface] for [opWrap] from a [Cone].\n@param cone {Cone} : The definition cone for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param spin {ValueWithUnits} : Angle of a counter-clockwise spin to apply to the `cone`'s canonical `anchorDirection` at\n                               the given `anchorPoint` about the normal at the `anchorPoint`.\n                               This spun direction is then used as the `anchorDirection`.  See [WrapSurface] documentation\n                               for a description of `anchorDirection`."
+  },
+  {
+    "name": "makeWrapCone",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapCone(context is Context, conicalFace is Query, anchorPoint is Vector, anchorDirection is Vector) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a conical face.\n@param conicalFace {Query} : A conical face to use as the definition cone for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param anchorDirection {Vector} : The anchor direction of the `WrapSurface`. See [WrapSurface] documentation."
+  },
+  {
+    "name": "makeWrapCylinder",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapCylinder(context is Context, cylindricalFace is Query, anchorPoint is Vector, anchorDirection is Vector) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a cylindrical face.\n@param cylindricalFace {Query} : A cylindrical face to use as the definition cylinder for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param anchorDirection {Vector} : The anchor direction of the `WrapSurface`. See [WrapSurface] documentation."
   },
   {
     "name": "makeWrapCylinder",
@@ -8929,6 +9585,27 @@
     "doc": "Make a [WrapSurface] for [opWrap] from a [Cylinder].\n@param cylinder {Cylinder} : The definition cylinder for the `WrapSurface`. The point at which the cylinder's\n                             `coordSystem`'s positive `xAxis` intersects the cylinder will be used as the `anchorPoint`.\n                             The cylinder's `yAxis` will be used as the `anchorDirection`. See [WrapSurface] documentation\n                             for descriptions of `anchorPoint` and `anchorDirection`."
   },
   {
+    "name": "makeWrapCylinder",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapCylinder(cylinder is Cylinder, anchorPoint is Vector, anchorDirection is Vector) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a [Cylinder].\n@param cylinder {Cylinder} : The definition cylinder for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param anchorDirection {Vector} : The anchor direction of the `WrapSurface`. See [WrapSurface] documentation."
+  },
+  {
+    "name": "makeWrapCylinder",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapCylinder(cylinder is Cylinder, anchorPoint is Vector, spin is ValueWithUnits) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a [Cylinder].\n@param cylinder {Cylinder} : The definition cylinder for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param spin {ValueWithUnits} : Angle of a counter-clockwise spin to apply to the `cylinder`'s canonical `anchorDirection` at\n                               the given `anchorPoint` about the direction vector from the cylinder axis to the `anchorPoint`.\n                               The canonical `anchorDirection` at the given `anchorPoint` is defined as the \"rightward\"\n                               direction when looking at the cylinder in the direction from the `anchorPoint` to the\n                               cylinder axis with the cylinder's `zAxis` up.  In other words:\n                               `cross(cylinder z axis, direction vector from cylinder axis to anchorPoint)`.\n                               This spun direction is then used as the `anchorDirection`.  See [WrapSurface] documentation\n                               for a description of `anchorDirection`."
+  },
+  {
+    "name": "makeWrapPlane",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapPlane(context is Context, planarFace is Query, anchorPoint is Vector, anchorDirection is Vector) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a planar face.\n@param planarFace {Query} : A planar face to use as the definition plane for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param anchorDirection {Vector} : The anchor direction of the `WrapSurface`. See [WrapSurface] documentation."
+  },
+  {
     "name": "makeWrapPlane",
     "kind": "function",
     "module": "wrapSurface.fs",
@@ -8936,11 +9613,39 @@
     "doc": "Make a [WrapSurface] for [opWrap] from a [Plane].\n@param plane {Plane} : The definition plane for the `WrapSurface`.  The plane `origin` will be used as the `anchorPoint`\n                       and the plane `x` direction will be used as the `anchorDirection`. See [WrapSurface] documentation\n                       for descriptions of `anchorPoint` and `anchorDirection`."
   },
   {
+    "name": "makeWrapPlane",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapPlane(plane is Plane, anchorPoint is Vector, anchorDirection is Vector) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a [Plane].\n@param plane {Plane} : The definition plane for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param anchorDirection {Vector} : The anchor direction of the `WrapSurface`. See [WrapSurface] documentation."
+  },
+  {
+    "name": "makeWrapPlane",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapPlane(plane is Plane, anchorPoint is Vector, spin is ValueWithUnits) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] from a [Plane].\n@param plane {Plane} : The definition plane for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param spin {ValueWithUnits} : Angle of a counter-clockwise spin to apply to the `plane`'s `x` axis about its positive `z` axis,\n                               which is then used as the `anchorDirection`. See [WrapSurface] documentation\n                               for a description of `anchorDirection`."
+  },
+  {
     "name": "makeWrapSurface",
     "kind": "function",
     "module": "wrapSurface.fs",
     "signature": "export function makeWrapSurface(context is Context, face is Query) returns WrapSurface",
     "doc": "Make a [WrapSurface] for [opWrap] defined by a planar or cylindrical face.\n@param face {Query} : A face to use as the definition face for the `WrapSurface`.\n                      For a planar face: The plane `origin` will be used as the `anchorPoint` and the plane `x` direction\n                      will be used as the `anchorDirection`.\n                      For a cylindrical face: The point at which the cylinder's `coordSystem`'s positive `xAxis`\n                      intersects the cylinder will be used as the `anchorPoint`. The cylinder's `yAxis` will be used\n                      as the `anchorDirection`.\n                      See [WrapSurface] documentation for descriptions of `anchorPoint` and `anchorDirection`."
+  },
+  {
+    "name": "makeWrapSurface",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapSurface(context is Context, face is Query, anchorPoint is Vector, anchorDirection is Vector) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] defined by a planar, cylindrical or conical face.\n@param face {Query} : A face to use as the definition face for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See [WrapSurface] documentation.\n@param anchorDirection {Vector} : The anchor direction of the `WrapSurface`. See [WrapSurface] documentation."
+  },
+  {
+    "name": "makeWrapSurface",
+    "kind": "function",
+    "module": "wrapSurface.fs",
+    "signature": "export function makeWrapSurface(context is Context, face is Query, anchorPoint is Vector, spin is ValueWithUnits) returns WrapSurface",
+    "doc": "Make a [WrapSurface] for [opWrap] defined by a planar, cylindrical or conical face.\n@param face {Query} : A face to use as the definition face for the `WrapSurface`.\n@param anchorPoint {Vector} : The anchor point of the `WrapSurface`. See `WrapSurface` documentation.\n@param spin {ValueWithUnits} : For a planar face: Angle of a counter-clockwise spin to apply to the `plane`'s `x` axis\n                               about its positive `z` axis, which is then used as the `anchorDirection`.\n                               For a cylindrical face: Angle of a counter-clockwise spin to apply to the `cylinder`'s\n                               canonical `anchorDirection` at the given `anchorPoint` about the direction vector from\n                               the cylinder axis to the `anchorPoint`. The canonical `anchorDirection` at the given\n                               `anchorPoint` is defined as the \"rightward\" direction when looking at the cylinder\n                               in the direction from the `anchorPoint` to the cylinder axis with the cylinder's `zAxis` up.\n                               In other words:\n                               `cross(cylinder z axis, direction vector from cylinder axis to anchorPoint)`.\n                               This spun direction is then used as the `anchorDirection`.\n                               For a conical face: Angle of a counter-clockwise spin to apply to the `cone`'s\n                               canonical `anchorDirection` at the given `anchorPoint` about the normal at `anchorPoint`.\n                               The canonical `anchorDirection` at the given `anchorPoint` is defined as the \"rightward\"\n                               direction when looking at the cone from the normal.\n\n                               See [WrapSurface] documentation for a description of `anchorDirection`."
   },
   {
     "name": "manipulatorChange",
@@ -8999,6 +9704,12 @@
     "name": "matchedHoleProfile",
     "kind": "function",
     "module": "holeUtils.fs",
+    "signature": "export function matchedHoleProfile(positionReference is HolePositionReference, radius is ValueWithUnits) returns HoleProfile"
+  },
+  {
+    "name": "matchedHoleProfile",
+    "kind": "function",
+    "module": "holeUtils.fs",
     "signature": "export function matchedHoleProfile(positionReference is HolePositionReference, radius is ValueWithUnits, optionalParameters is map) returns HoleProfile",
     "doc": "Returns a new [HoleProfile] that is geometrically matched to the `positionReference`. This is useful for\nconfigurations like blind-in-last, where a transition from one radius to another must be made that matches the shape\nof the position reference, to avoid the hole tool intersecting incorrectly with the part(s) in question.  To form a\nvalid [HoleDefinition], `MATCHED` profiles must come in pairs of different radii.\n\n@param optionalParameters {{\n    @field targetMustDifferFromPrevious {boolean} : @optional See [HoleProfile].\n    @field notApplicableForFirstTarget {boolean} : @optional See [HoleProfile].\n    @field name {string} : @optional See [HoleProfile].\n\n}}"
   },
@@ -9038,11 +9749,32 @@
     "doc": "Return a 2 element array containing the numbers of rows and columns\nof a matrix."
   },
   {
+    "name": "matrixSize",
+    "kind": "function",
+    "module": "matrixWithUnits.fs",
+    "signature": "export function matrixSize(matrix is MatrixWithUnits) returns array",
+    "doc": "Return a 2-element array containing the numbers of rows and columns\nof a matrix."
+  },
+  {
     "name": "max",
     "kind": "function",
     "module": "frameUtils.fs",
     "signature": "export function max(elements is array, lessThan is function)",
     "doc": "@internal"
+  },
+  {
+    "name": "max",
+    "kind": "function",
+    "module": "math.fs",
+    "signature": "export function max(arr is array)",
+    "doc": "Return the greatest of an array of values, as determined by operator `<`,\nor undefined if the array is empty.\n\n@example `max([1, 2, 3])` returns `3`\n@example `max([1 * inch, 2 * inch, 3 * inch])` equals `3 * inch`"
+  },
+  {
+    "name": "max",
+    "kind": "function",
+    "module": "math.fs",
+    "signature": "export function max(value1, value2)",
+    "doc": "Return the greater of two values, which must be comparable with `<`.\n@example `max(0, 1)` returns `1`\n@example `max(1 * meter, 1 * inch)` equals `1 * meter`"
   },
   {
     "name": "measureDiameter",
@@ -9078,6 +9810,13 @@
     "module": "containers.fs",
     "signature": "export function mergeMaps(defaults is map, m is map) returns map",
     "doc": "Add each key-value pair in the second map to a copy of first and return the\nresult. Since later-added entries take precedence, nothing from the second\nmap will be lost.\n\nIn other words, any keys from `defaults` which are missing from `m` will be\nfilled in with their values from `defaults`.\n\n@example `mergeMaps({a:0}, {a:1})` returns `{a:1}`\n@example `mergeMaps({a:0}, {b:1})` returns `{a:0, b:1}`"
+  },
+  {
+    "name": "mergeMaps",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function mergeMaps(defaults, keyList is array, newNode)",
+    "doc": "Merge maps at a particular location as specified by the `keyList`. If either the destination node specified by the `keyList`\n     or the `newNode` is not a map, the `newNode` will replace the destination node.\n@seeAlso [mergeMaps(map, map)]\n@ex `mergeMaps({ a: [ { b: 2 } ] }, ['a', 0, 'b'], 4)` returns `{ a : [ { b : 4 } ] }`\n@ex `mergeMaps(5, [], 4)` returns `4`\n@ex `mergeMaps({ a : 5 }, ['a'], 4)` returns `{a: 4 }`\n\n@param defaults : A container (array or map) that will be merged at the location specified by the `keyList`.\n     If `defaults` is not an array or map and `keyList` is empty, the result is `newNode` since a merge isn't possible.\n@param keyList {array} : An array of map keys or array indices that collectively specify a location within `defaults` to perform the merge.\n@param newNode : A value that will be merged into defaults at the location specified by `keyList`. If the `newNode` specified is a map and\n     the node identified by `keyList` is a map, then this will perform a `mergeMaps` operation.\n@returns : The merged or replaced value."
   },
   {
     "name": "mergeSheetMetal",
@@ -9120,6 +9859,13 @@
     "module": "units.fs",
     "signature": "export const millimeterPerSecondSquared = 0.001 * meterPerSecondSquared;",
     "doc": "A constant equal to 1 millimeter per second squared."
+  },
+  {
+    "name": "min",
+    "kind": "function",
+    "module": "math.fs",
+    "signature": "export function min(arr is array)",
+    "doc": "Return the least of an array of values, as determined by operator `<`,\nor undefined if the array is empty.\n\n@example `min([1, 2, 3])` returns `1`\n@example `min([1 * inch, 2 * inch, 3 * inch])` equals `1 * inch`"
   },
   {
     "name": "min",
@@ -9234,6 +9980,13 @@
     "doc": "Creates a [Context] with default planes and an origin."
   },
   {
+    "name": "newContextWithDefaults",
+    "kind": "function",
+    "module": "defaultFeatures.fs",
+    "signature": "export function newContextWithDefaults(defaultLengthUnit is ValueWithUnits)",
+    "doc": "@internal"
+  },
+  {
     "name": "newId",
     "kind": "function",
     "module": "context.fs",
@@ -9246,6 +9999,13 @@
     "module": "instantiator.fs",
     "signature": "export function newInstantiator(id is Id) returns Instantiator",
     "doc": "Creates a new instantiator with the specified id and default options."
+  },
+  {
+    "name": "newInstantiator",
+    "kind": "function",
+    "module": "instantiator.fs",
+    "signature": "export function newInstantiator(id is Id, options is map) returns Instantiator",
+    "doc": "Creates a new instantiator.\n@param id : The root id for all instances that will be created by this instantiator.\n  Multiple instantiators can be used simultaneously, as long as they have different ids.\n@param options {{\n    @field partQuery {Query} : The query for all bodies to be brought in from the part studios.  Default is all bodies except sketches. @optional\n    @field tolerances {map} : The tolerances for variable configuration inputs.  Default is 1e-8 meters for lengths,\n                 1e-11 radians for angles, and 0 for numbers.  The default tolerances for lengths, angles, and numbers can be specified using the\n                 `(LENGTH_UNITS)`, `(ANGLE_UNITS)`, and `(unitless)` keys, respectively.  The tolerance for a specific configuration input can be specified\n                 using that input name as the key.\n                 @ex `{ (LENGTH_UNITS) : 1e-4 * meter, (unitless) : 1e-8, \"count\" : 0 }` causes length configuration variables that differ by less than 1e-4 meters\n                     to be considered identical, as well as numberical configuration variables that differ by less than 1e-8, except that configuration\n                     variables named \"count\" are compared exactly.\n                 @optional\n}} : @optional"
   },
   {
     "name": "newSketch",
@@ -9288,6 +10048,13 @@
     "module": "matrix.fs",
     "signature": "export function norm(m is Matrix) returns number",
     "doc": "Return the square root of the sum of the squares of matrix elements."
+  },
+  {
+    "name": "norm",
+    "kind": "function",
+    "module": "vector.fs",
+    "signature": "export function norm(vector is Vector)",
+    "doc": "Returns the length (norm) of a vector."
   },
   {
     "name": "normalize",
@@ -9530,6 +10297,11 @@
     "module": "geomOperations.fs",
     "signature": "export const opExtractWires = function(context is Context, id is Id, definition is map)",
     "doc": "Generates wire bodies from the supplied edges.\nIf the edges are disjoint multiple wires will be returned.\nIf the edges overlap or cross, or more than two meet at a point, the function will fail.\n@param id : @autocomplete `id + \"opExtractWires1\"`\n@param definition {{\n     @field edges {Query} : The edges to be extracted.\n}}"
+  },
+  {
+    "name": "opExtrude",
+    "kind": "function",
+    "module": "extrude.fs"
   },
   {
     "name": "opExtrude",
@@ -9945,6 +10717,20 @@
     "doc": "Create a [Plane] on the XY plane of a specified coordinate system."
   },
   {
+    "name": "plane",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function plane(origin is Vector, normal is Vector) returns Plane",
+    "doc": "Create a [Plane] from a point and a normal.\n\nThe x-axis of this [Plane]'s coordinate system will be an arbitrary vector\nperpendicular to the `normal`.\n\n@param origin : A 3D point in world space.\n@param normal : A 3D vector in world space. Need not be normalized."
+  },
+  {
+    "name": "plane",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function plane(origin is Vector, normal is Vector, x is Vector) returns Plane",
+    "doc": "Create a [Plane] which fully specifies its orientation.\n\n@param origin : A 3D point in world space.\n@param normal : A 3D vector in world space. Need not be normalized.\n@param x      : A 3D vector in world space. Need not be normalized."
+  },
+  {
     "name": "planeSectionPart",
     "kind": "function",
     "module": "sectionpart.fs",
@@ -10032,8 +10818,22 @@
     "name": "printTimer",
     "kind": "function",
     "module": "debug.fs",
+    "signature": "export function printTimer()",
+    "doc": "Prints the elapsed milliseconds for the global timer associated with the empty string.  Use with [startTimer()].\n\nNote that if the timer was set in a prior feature, the elapsed time may be very large because features can\nbe regenerated at different times.\n\nThrows an error if no such timer has been started."
+  },
+  {
+    "name": "printTimer",
+    "kind": "function",
+    "module": "debug.fs",
     "signature": "export function printTimer(timer is string)",
     "doc": "Prints the elapsed milliseconds for the timer associated with the string `timer`.  Use with [startTimer(string)].\n\nNote that if the timer was set in a prior feature, the elapsed time may be very large because features can\nbe regenerated at different times.\n\nThrows an error if no such timer has been started."
+  },
+  {
+    "name": "println",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function println()",
+    "doc": "Print a newline to the FeatureScript notices pane."
   },
   {
     "name": "println",
@@ -10053,8 +10853,22 @@
     "name": "processError",
     "kind": "function",
     "module": "error.fs",
+    "signature": "export function processError(context is Context, id is Id, error is ErrorStringEnum) returns boolean",
+    "doc": "@internal"
+  },
+  {
+    "name": "processError",
+    "kind": "function",
+    "module": "error.fs",
     "signature": "export function processError(context is Context, id is Id, error is map) returns boolean",
     "doc": "@internal\n\nUsed by defineFeature to try to process the thrown error by attaching it to the feature status and showing the\nentities.\n@param error {{\n     @field message {ErrorStringEnum}\n     @field entities {Query}\n}}"
+  },
+  {
+    "name": "processError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function processError(context is Context, id is Id, error) returns boolean // Default overload",
+    "doc": "@internal"
   },
   {
     "name": "processNewBodyIfNeeded",
@@ -10085,6 +10899,27 @@
     "doc": "Returns the projection of the point onto the line. See also other overloads of `project`."
   },
   {
+    "name": "project",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function project(plane is Plane, line is Line) returns Line",
+    "doc": "Projects a [Line] onto a [Plane], returning a [Line] whose origin is\non the [Plane] and whose direction is a normalized [Vector] on the [Plane]\n\nThrows an error if the [Line] is in the same direction as the normal of the [Plane]"
+  },
+  {
+    "name": "project",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function project(plane is Plane, point is Vector) returns Vector",
+    "doc": "Projects a 3D `point` onto a [Plane], returning a 3D point on the plane."
+  },
+  {
+    "name": "project",
+    "kind": "function",
+    "module": "vector.fs",
+    "signature": "export function project(target is Vector, source is Vector) returns Vector",
+    "doc": "Project the `source` vector onto the `target` vector.  Equivalent to `target * dot(source, target) / squaredNorm(target)`."
+  },
+  {
     "name": "projectCurves",
     "kind": "function",
     "module": "projectCurves.fs",
@@ -10111,6 +10946,12 @@
     "module": "query.fs",
     "signature": "export function qActiveSheetMetalFilter(queryToFilter is Query, activeSheetMetal is ActiveSheetMetal) returns Query",
     "doc": "A query for all entities in `queryToFilter` belonging to an active sheet metal part.\n\n@seealso [ActiveSheetMetal]"
+  },
+  {
+    "name": "qAdjacent",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qAdjacent(seed is Query, adjacencyType is AdjacencyType) returns Query"
   },
   {
     "name": "qAdjacent",
@@ -10176,6 +11017,13 @@
     "doc": "Query for all bodies marked with a FormAttribute and value exactly equal to `attribute`\n@seealso [setFormAttribute]"
   },
   {
+    "name": "qBodiesWithFormAttribute",
+    "kind": "function",
+    "module": "formedUtils.fs",
+    "signature": "export function qBodiesWithFormAttribute(queryToFilter is Query, attribute is string) returns Query",
+    "doc": "Query for all bodies in `queryToFilter` marked with a FormAttribute and value exactly equal to `attribute`\n@seealso [setFormAttribute]"
+  },
+  {
     "name": "qBodiesWithFormAttributes",
     "kind": "function",
     "module": "formedUtils.fs",
@@ -10190,11 +11038,32 @@
     "doc": "A query for all entities in `queryToFilter` which are bodies of the a specified [BodyType],\nor are owned by bodies with the specified [BodyType]"
   },
   {
+    "name": "qBodyType",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qBodyType(queryToFilter is Query, bodyTypes is array) returns Query",
+    "doc": "A query for all entities in `queryToFilter` with any of a list of [BodyType]s.\n\n@param bodyTypes : An array of [BodyType]s."
+  },
+  {
+    "name": "qCapEntity",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qCapEntity(featureId is Id, capType is CapType) returns Query",
+    "doc": "@param featureId : @autocomplete `id + \"extrude1\"`\n@param capType : @autocomplete `CapType.END`"
+  },
+  {
     "name": "qCapEntity",
     "kind": "function",
     "module": "query.fs",
     "signature": "export function qCapEntity(featureId is Id, capType is CapType, entityType is EntityType) returns Query",
     "doc": "A query for start/end cap vertex, edge, and face entities created by `featureId`.\nCap entities are produced by extrude, revolve, sweep, loft and thicken features\n@param featureId : @autocomplete `id + \"extrude1\"`\n@param capType : @autocomplete `CapType.END`\n@param entityType : @optional @autocomplete `EntityType.FACE`"
+  },
+  {
+    "name": "qCapEntity",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qCapEntity(featureId is Id, isStartCap is boolean) returns Query",
+    "doc": "@internal"
   },
   {
     "name": "qClosestTo",
@@ -10237,6 +11106,13 @@
     "module": "query.fs",
     "signature": "export function qCompositePartsContaining(bodies is Query) returns Query",
     "doc": "A query for each composite part containing `bodies`."
+  },
+  {
+    "name": "qCompositePartsContaining",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qCompositePartsContaining(bodies is Query, compositePartType is CompositePartType) returns Query",
+    "doc": "A query for each composite part of the given type containing `bodies`."
   },
   {
     "name": "qCompressed",
@@ -10297,9 +11173,32 @@
   {
     "name": "qCreatedBy",
     "kind": "function",
+    "module": "query.fs"
+  },
+  {
+    "name": "qCreatedBy",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qCreatedBy(featureId is Id) returns Query"
+  },
+  {
+    "name": "qCreatedBy",
+    "kind": "function",
     "module": "query.fs",
     "signature": "export function qCreatedBy(featureId is Id, entityType is EntityType) returns Query",
     "doc": "A query for all the entities created by a feature or operation. The feature\nis given by its feature id, which was passed into the the operation function\nin order to create the feature.\n\nAn entity is \"created by\" an operation if the entity was added to the\ncontext as part of that operation. Entities modified, but not created, by an\noperation are not returned by this query.\n\nIf an entity is split (as in a split part operation), the resulting entities\nare \"created by\" both the original entity's creator and the split part\noperation.\n\nIf two entities are merged (as in a union of coincident faces), that entity\nis \"created by\" the creators of each merged entity, as well as the merging\noperation itself.\n\nIf a sketch's feature id is specified, returns a query for all sketch\nregions, points, and wire bodies created by the specified sketch.\n\n@param featureId : The `Id` of the specified feature. @eg `id + \"extrude1\"`\n@param entityType : @optional @autocomplete `EntityType.BODY`"
+  },
+  {
+    "name": "qCreatedBy",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qCreatedBy(features is FeatureList) returns Query"
+  },
+  {
+    "name": "qCreatedBy",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qCreatedBy(features is FeatureList, entityType is EntityType) returns Query"
   },
   {
     "name": "qDefaultBodies",
@@ -10348,6 +11247,13 @@
     "module": "query.fs",
     "signature": "export function qEntityFilter(queryToFilter is Query, entityType is EntityType) returns Query",
     "doc": "A query for entities in a `queryToFilter` which match a given [EntityType]."
+  },
+  {
+    "name": "qEverything",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qEverything() returns Query",
+    "doc": "A query for all entities in the context."
   },
   {
     "name": "qEverything",
@@ -10497,6 +11403,13 @@
     "doc": "Query for all entities marked with an attribute with name `name`\n@seealso [setAttribute]"
   },
   {
+    "name": "qHasAttribute",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qHasAttribute(queryToFilter is Query, name is string) returns Query",
+    "doc": "Query for all entities in `queryToFilter` marked with an attribute with name `name`\n@seealso [setAttribute]"
+  },
+  {
     "name": "qHasAttributeWithValue",
     "kind": "function",
     "module": "query.fs",
@@ -10504,11 +11417,25 @@
     "doc": "Query for all entities marked with an attribute with name `name` and value exactly equal to `value`\n@seealso [setAttribute]"
   },
   {
+    "name": "qHasAttributeWithValue",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qHasAttributeWithValue(queryToFilter is Query, name is string, value) returns Query",
+    "doc": "Query for all entities in `queryToFilter` marked with an attribute with name `name` and value exactly equal to `value`\n@seealso [setAttribute]"
+  },
+  {
     "name": "qHasAttributeWithValueMatching",
     "kind": "function",
     "module": "query.fs",
     "signature": "export function qHasAttributeWithValueMatching(name is string, attributePattern is map) returns Query",
     "doc": "Query for all entities marked with an attribute with name `name` and a map value matching\nevery key-value pair in the provided `attributePattern` map.\n@seealso [setAttribute]\n\n@param attributePattern : @eg ```{\n    \"key1\" : valueToMatch,\n}```"
+  },
+  {
+    "name": "qHasAttributeWithValueMatching",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qHasAttributeWithValueMatching(queryToFilter is Query, name is string, attributePattern is map) returns Query",
+    "doc": "Query for all entities in `queryToFilter` marked with an attribute with name `name` and a map value matching\nevery key-value pair in the provided `attributePattern` map.\n@seealso [setAttribute]\n\n@param attributePattern : @eg ```{\n    \"key1\" : valueToMatch,\n}```"
   },
   {
     "name": "qHoleFaces",
@@ -10523,6 +11450,12 @@
     "module": "query.fs",
     "signature": "export function qInFrontOfPlane(queryToFilter is Query, plane is Plane) returns Query",
     "doc": "A query for all entities (bodies, faces, edges, or points) in `queryToFilter` in front of a specified infinite plane.\nEntities intersecting the plane will not be resolved. Only entities completely on one side or coincident with the plane\nwill be selected. Use `flip(plane)` to query entities on the other side of the plane. For example, for the XY plane\nthrough the origin with the normal (0, 0, 1), `qInFrontOfPlane` will resolve the vertices (1, 1, 0) and (1, 1, 1) but not\nthe vertex (1, 1, -1).\n@param plane :\n         @eg `plane(vector(0, 0, 0) * meter, vector(0, 0, 1))`"
+  },
+  {
+    "name": "qIntersection",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qIntersection(query1 is Query, query2 is Query) returns Query"
   },
   {
     "name": "qIntersection",
@@ -10626,6 +11559,13 @@
     "name": "qNonCapEntity",
     "kind": "function",
     "module": "query.fs",
+    "signature": "export function qNonCapEntity(featureId is Id) returns Query",
+    "doc": "@param featureId : @autocomplete `id + \"extrude1\"`"
+  },
+  {
+    "name": "qNonCapEntity",
+    "kind": "function",
+    "module": "query.fs",
     "signature": "export function qNonCapEntity(featureId is Id, entityType is EntityType) returns Query",
     "doc": "A query for vertex, edge, and face entities created by `featureId` that are not cap entities.\nCap entities are produced by extrude, revolve, sweep, loft and thicken features\n@param featureId : @autocomplete `id + \"extrude1\"`\n@param entityType: @optional @autocomplete `EntityType.FACE`"
   },
@@ -10647,8 +11587,20 @@
     "name": "qOpHoleFace",
     "kind": "function",
     "module": "query.fs",
+    "signature": "export function qOpHoleFace(featureId is Id) returns Query"
+  },
+  {
+    "name": "qOpHoleFace",
+    "kind": "function",
+    "module": "query.fs",
     "signature": "export function qOpHoleFace(featureId is Id, filters is map) returns Query",
     "doc": "A query for the hole faces created by an [opHole] operation.\n\n@param featureId : The [Id] of the specified operation. @eg `id + \"hole1\"`\n@param filters {{\n    @field name {string} : @optional Filter the query for faces with a given name.\n        See `faceNames` field of [HoleDefinition].\n    @field identity {Query} : @optional Filter the query for the hole associated with the given identity entity.\n        See `identities` parameter of [opHole].\n}}"
+  },
+  {
+    "name": "qOpHoleProfile",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qOpHoleProfile(featureId is Id) returns Query"
   },
   {
     "name": "qOpHoleProfile",
@@ -10668,8 +11620,21 @@
     "name": "qOwnedByBody",
     "kind": "function",
     "module": "query.fs",
+    "signature": "export function qOwnedByBody(body is Query) returns Query"
+  },
+  {
+    "name": "qOwnedByBody",
+    "kind": "function",
+    "module": "query.fs",
     "signature": "export function qOwnedByBody(body is Query, entityType is EntityType) returns Query",
     "doc": "A query for all of the entities (faces, vertices, edges, and bodies) in a\ncontext which belong to a specified body or bodies.\n@param entityType : @optional"
+  },
+  {
+    "name": "qOwnedByBody",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qOwnedByBody(queryToFilter is Query, body is Query) returns Query",
+    "doc": "A query for all of the entities which match a `queryToFilter`, and belong to the\nspecified body or bodies."
   },
   {
     "name": "qOwnerBody",
@@ -10682,8 +11647,43 @@
     "name": "qParallelEdges",
     "kind": "function",
     "module": "query.fs",
+    "signature": "export function qParallelEdges(queryToFilter is Query, direction is Vector) returns Query",
+    "doc": "A query for all linear edges in `queryToFilter` which are parallel (or anti-parallel) to the given `direction`."
+  },
+  {
+    "name": "qParallelEdges",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qParallelEdges(queryToFilter is Query, edges is Query) returns Query",
+    "doc": "A query to find all linear edges in `queryToFilter` which are parallel (or anti-parallel) to any linear edge in `edges`."
+  },
+  {
+    "name": "qParallelEdges",
+    "kind": "function",
+    "module": "query.fs",
     "signature": "export function qParallelEdges(referenceEdges is Query) returns Query",
     "doc": "@internal\nUnconventional semantics, not for general use.\n\nA query for linear edges parallel to any edge in `referenceEdges`.\nOnly edges from the owner bodies of `referenceEdges` are included."
+  },
+  {
+    "name": "qParallelPlanes",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qParallelPlanes(queryToFilter is Query, normal is Vector) returns Query",
+    "doc": "A query for all planar face entities in `queryToFilter` that are parallel to a plane specified by the `normal` vector.\n@param normal : The normal vector to reference when checking for parallelism."
+  },
+  {
+    "name": "qParallelPlanes",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qParallelPlanes(queryToFilter is Query, normal is Vector, allowAntiparallel is boolean) returns Query",
+    "doc": "A query for all planar face entities in `queryToFilter` that are parallel to a plane specified by the `normal` vector.\n@param normal : The normal vector to reference when checking for parallelism.\n@param allowAntiparallel : Whether to also return entities that are antiparallel."
+  },
+  {
+    "name": "qParallelPlanes",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qParallelPlanes(queryToFilter is Query, referencePlane is Plane) returns Query",
+    "doc": "A query for all planar face entities in `queryToFilter` that are parallel to the `referencePlane`.\n@param referencePlane : The plane to reference when checking for parallelism."
   },
   {
     "name": "qParallelPlanes",
@@ -10698,6 +11698,13 @@
     "module": "query.fs",
     "signature": "export function qPartsAttachedTo(sheetMetalEntities is Query) returns Query",
     "doc": "A query for parts to which `sheetMetalEntities` are attached (e.g. sheet metal bend line entities are attached to a\nflattened sheet metal part)"
+  },
+  {
+    "name": "qPatternInstances",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qPatternInstances(featureId is Id, instanceName is string, entityType is EntityType) returns Query",
+    "doc": "@internal"
   },
   {
     "name": "qPatternInstances",
@@ -10758,6 +11765,13 @@
     "name": "qSketchRegion",
     "kind": "function",
     "module": "query.fs",
+    "signature": "export function qSketchRegion(featureId is Id) returns Query",
+    "doc": "@param featureId : @autocomplete `id + \"sketch1\"`"
+  },
+  {
+    "name": "qSketchRegion",
+    "kind": "function",
+    "module": "query.fs",
     "signature": "export function qSketchRegion(featureId is Id, filterInnerLoops is boolean) returns Query",
     "doc": "A query for all fully enclosed, 2D regions created by a sketch.\n\n@param featureId : The feature id of the [Sketch] being queried. @autocomplete `id + \"sketch1\"`\n@param filterInnerLoops : Specifies whether to exclude sketch regions fully\n     contained in other sketch regions.  A region whose border has a vertex\n     or edge on the outside boundary is not considered \"contained.\"\n     Default is false.\n     @optional"
   },
@@ -10767,6 +11781,12 @@
     "module": "query.fs",
     "signature": "export function qSmallest(queryToFilter is Query) returns Query",
     "doc": "A query to find the smallest entity (by length, area, or volume) in `queryToFilter`.\n\nIf `queryToFilter` contains entities of different dimensionality (e.g. solid bodies and faces), only entities of\nthe highest dimension are considered. Entities are compared by length, area or volume. Multiple entities may be\nreturned if they tie within tolerance."
+  },
+  {
+    "name": "qSourceMesh",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qSourceMesh(selectedMeshVertices is Query) returns Query"
   },
   {
     "name": "qSourceMesh",
@@ -10811,6 +11831,19 @@
     "doc": "A query for a set of faces connected to `seed` via tangent edges, flood-filling\nacross any number of tangent edges.\n\nA tangent edge is an edge joining two faces such that the surface direction\nis continuous across the edge, at every point along the full length of the\nedge."
   },
   {
+    "name": "qTangentConnectedFaces",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qTangentConnectedFaces(seed is Query, angleTolerance is ValueWithUnits) returns Query",
+    "doc": "A query for a set of faces connected to `seed` via tangent edges, flood-filling\nacross any number of tangent edges.\n\nA tangent edge is an edge joining two faces such that the surface direction\nis continuous across the edge, up to the given `angleTolerance`, at every\npoint along the full length of the edge."
+  },
+  {
+    "name": "qToleranceFilter",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qToleranceFilter(queryToFilter is Query) returns Query"
+  },
+  {
     "name": "qToleranceFilter",
     "kind": "function",
     "module": "query.fs",
@@ -10830,6 +11863,24 @@
     "module": "query.fs",
     "signature": "export function qTransient(id is string) returns Query",
     "doc": "@internal\nA transient query, which refers to a single entity in the context. All\ntransient queries are only valid until the context is modified again.\n\nThis constructor should not be used directly. To obtain a list of transient\nqueries for specific entities, simply pass any other query into\n[evaluateQuery]."
+  },
+  {
+    "name": "qUnion",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qUnion(query1 is Query, query2 is Query) returns Query"
+  },
+  {
+    "name": "qUnion",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qUnion(query1 is Query, query2 is Query, query3 is Query) returns Query"
+  },
+  {
+    "name": "qUnion",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function qUnion(query1 is Query, query2 is Query, query3 is Query, query4 is Query) returns Query"
   },
   {
     "name": "qUnion",
@@ -10863,6 +11914,13 @@
     "kind": "function",
     "module": "query.fs",
     "signature": "export function query(operationId is Id, queryType is string, entityType, value is map) returns Query",
+    "doc": "@internal"
+  },
+  {
+    "name": "query",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function query(value is map) returns Query",
     "doc": "@internal"
   },
   {
@@ -10922,6 +11980,13 @@
     "doc": "Return an array of numbers in a range.\nOnly integers are allowed.\n@example `range(0, 3)` returns `[0, 1, 2, 3]`"
   },
   {
+    "name": "range",
+    "kind": "function",
+    "module": "math.fs",
+    "signature": "export function range(from, to, count)",
+    "doc": "Return an array of numbers, (of type `number` or\n`ValueWithUnits`), in a range.\nNote: before FeatureScript 372 this function received as input the\nstep size instead of the number of steps\n\n@example `range(0, 10, 6)` returns `[0, 2, 4, 6, 8, 10]`\n@example `range(0, 4.5, 4)` returns `[0, 1.5, 3, 4.5]`\n@example `range(1 * inch, 1.4 * inch, 3)` returns\n     `[1 * inch, 1.2 * inch, 1.4 * inch]`"
+  },
+  {
     "name": "reciprocal",
     "kind": "function",
     "module": "units.fs",
@@ -10941,6 +12006,69 @@
     "module": "error.fs",
     "signature": "export function regenError(customMessage is string) returns map",
     "doc": "`regenError` functions are used to construct maps for throwing to signal feature regeneration errors.\nCan either take a string for a custom message or an `ErrorStringEnum` for a built-in message.\nCustom messages are limited to ASCII characters. Messages longer than 200 characters will not\nbe displayed fully.\n@example `throw regenError(\"Failed to attach widget: Boolean union failed\")`\n@example `throw regenError(\"Wall is too thin for this feature\", [\"wallWidth\"]);`\n@example `throw regenError(ErrorStringEnum.POINTS_COINCIDENT, [\"points\"]);`\n\n@param customMessage : @autocomplete `\"message\"`"
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(customMessage is string, entities is Query) returns map",
+    "doc": "@param entities : A query for entities to highlight in the Part Studio. Multiple queries can be\n     combined and highlighted using the `qUnion` function. The entities are only highlighted\n     when the feature dialog is open.\n@param customMessage : @autocomplete `\"message\"`"
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(customMessage is string, faultyParameters is array) returns map",
+    "doc": "@param customMessage : @autocomplete `\"message\"`\n@param faultyParameters : @autocomplete `[\"faultyParameter\"]`\n@param faultyParameters : An array of strings that correspond to keys in the feature definition\n     map. Throwing a regenError with faultyParameters will highlight them in red inside the\n     feature dialog."
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(customMessage is string, faultyParameters is array, entities is Query) returns map",
+    "doc": "@param customMessage : @autocomplete `\"message\"`\n@param faultyParameters : @autocomplete `[\"faultyParameter\"]`\n@param faultyParameters : An array of strings that correspond to keys in the feature definition\n     map. Throwing a `regenError` with `faultyParameters` will highlight them in red inside the\n     feature dialog.\n@param entities : A query for entities to highlight in the Part Studio. Multiple queries can be\n     combined and highlighted using the `qUnion` function. The entities are only highlighted\n     when the feature dialog is open."
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(message is ErrorStringEnum) returns map",
+    "doc": "The following overloads take an `ErrorStringEnum` rather than a custom\nmessage, and are using for all errors within the Onshape Standard Library.\nThe enum values correspond to messages which can be translated into multiple\nlanguages."
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(message is ErrorStringEnum, entities is Query) returns map",
+    "doc": "@param entities : A query for entities to highlight in the Part Studio. Multiple queries can be\n     combined and highlighted using the `qUnion` function. The entities are only highlighted\n     when the feature dialog is open."
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(message is ErrorStringEnum, faultyParameters is array) returns map",
+    "doc": "@param faultyParameters : @autocomplete `[\"faultyParameter\"]`\n@param faultyParameters : An array of strings that correspond to keys in the feature definition\n     map. Throwing a `regenError` with `faultyParameters` will highlight them in red inside the\n     feature dialog."
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(message is ErrorStringEnum, faultyParameters is array, entities is Query) returns map",
+    "doc": "@param faultyParameters : @autocomplete `[\"faultyParameter\"]`\n@param faultyParameters : An array of strings that correspond to keys in the feature definition\n     map. Throwing a `regenError` with `faultyParameters` will highlight them in red inside the\n     feature dialog.\n@param entities : A query for entities to highlight in the Part Studio. Multiple queries can be\n     combined and highlighted using the `qUnion` function. The entities are only highlighted\n     when the feature dialog is open."
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(message is ErrorStringEnum, regenErrorOptions is map) returns map",
+    "doc": "@param regenErrorOptions {{\n    @field faultyParameters : An array of strings that correspond to keys in the feature definition\n        map. Throwing a `regenError` with `faultyParameters` will highlight them in red inside the\n        feature dialog.\n    @field entities : A query for entities to highlight in the Part Studio. Multiple queries can be\n        combined and highlighted using the `qUnion` function. The entities are only highlighted\n        when the feature dialog is open.\n}}"
+  },
+  {
+    "name": "regenError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function regenError(message is string, regenErrorOptions is map) returns map",
+    "doc": "@param regenErrorOptions {{\n    @field faultyParameters : An array of strings that correspond to keys in the feature definition\n        map. Throwing a `regenError` with `faultyParameters` will highlight them in red inside the\n        feature dialog.\n    @field entities : A query for entities to highlight in the Part Studio. Multiple queries can be\n        combined and highlighted using the `qUnion` function. The entities are only highlighted\n        when the feature dialog is open.\n}}"
   },
   {
     "name": "registerEntitiesForThinFeature",
@@ -11065,14 +12193,42 @@
     "name": "reportFeatureError",
     "kind": "function",
     "module": "error.fs",
+    "signature": "export function reportFeatureError(context is Context, id is Id, customMessage is string) returns boolean",
+    "doc": "@internal"
+  },
+  {
+    "name": "reportFeatureError",
+    "kind": "function",
+    "module": "error.fs",
     "signature": "export function reportFeatureError(context is Context, id is Id, message is ErrorStringEnum) returns boolean",
     "doc": "@internal\n\nTo report errors from features, use `throw regenError(...);`.\n\nAttaches an error to the given feature id. If it is a top-level id, when the feature finishes executing, it will\nbe rolled back.\n@param id {Id}\n@param message {ErrorStringEnum}"
+  },
+  {
+    "name": "reportFeatureError",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function reportFeatureError(context is Context, id is Id, message is ErrorStringEnum, faultyParameters is array) returns boolean",
+    "doc": "@internal"
+  },
+  {
+    "name": "reportFeatureInfo",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function reportFeatureInfo(context is Context, id is Id, customMessage is string) returns boolean",
+    "doc": "Attaches a custom info-level status to the given feature id."
   },
   {
     "name": "reportFeatureInfo",
     "kind": "function",
     "module": "error.fs",
     "signature": "export function reportFeatureInfo(context is Context, id is Id, message is ErrorStringEnum) returns boolean",
+    "doc": "Attaches an info-level status to the given feature id. Will display a notification to the user containing the specified message."
+  },
+  {
+    "name": "reportFeatureInfo",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function reportFeatureInfo(context is Context, id is Id, message is ErrorStringEnum, associatedParameters is array) returns boolean",
     "doc": "Attaches an info-level status to the given feature id. Will display a notification to the user containing the specified message."
   },
   {
@@ -11086,8 +12242,36 @@
     "name": "reportFeatureWarning",
     "kind": "function",
     "module": "error.fs",
+    "signature": "export function reportFeatureWarning(context is Context, id is Id, customMessage is string) returns boolean",
+    "doc": "Attaches a custom warning-level status to the given feature id. Will display a notification to the user containing the specified message."
+  },
+  {
+    "name": "reportFeatureWarning",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function reportFeatureWarning(context is Context, id is Id, customMessage is string, associatedParameters is array) returns boolean",
+    "doc": "Attaches custom warning-level status to the given feature id. Will display a notification to the user containing the specified message."
+  },
+  {
+    "name": "reportFeatureWarning",
+    "kind": "function",
+    "module": "error.fs",
     "signature": "export function reportFeatureWarning(context is Context, id is Id, message is ErrorStringEnum) returns boolean",
     "doc": "Attaches a warning-level status to the given feature id."
+  },
+  {
+    "name": "reportFeatureWarning",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function reportFeatureWarning(context is Context, id is Id, message is ErrorStringEnum, associatedParameters is array) returns boolean",
+    "doc": "Attaches custom warning-level status to the given feature id. Will display a notification to the user containing the specified message."
+  },
+  {
+    "name": "resize",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function resize(arr is array, newSize is number) returns array",
+    "doc": "Returns a copy of an array with size changed to `newSize`. If the new size\nis larger than the original size, the extra values are set to `undefined`."
   },
   {
     "name": "resize",
@@ -11102,6 +12286,13 @@
     "module": "containers.fs",
     "signature": "export function reverse(arr is array) returns array",
     "doc": "Return a copy of an array with elements in reverse order.\n\n@example `reverse([1, 2, 3])` returns `[3, 2, 1]`"
+  },
+  {
+    "name": "reverse",
+    "kind": "function",
+    "module": "path.fs",
+    "signature": "export function reverse(path is Path) returns Path",
+    "doc": "Reverse the direction of a [Path]\n\n@param path {Path}: the [Path] to reverse."
   },
   {
     "name": "revolutionsPerMinute",
@@ -11170,6 +12361,13 @@
     "name": "rotationMatrix3d",
     "kind": "function",
     "module": "vector.fs",
+    "signature": "export function rotationMatrix3d(axis is Vector, angle is ValueWithUnits) returns Matrix",
+    "doc": "Construct a 3D matrix representing a counterclockwise (looking against the axis) rotation\naround the given axis by the given rotation angle."
+  },
+  {
+    "name": "rotationMatrix3d",
+    "kind": "function",
+    "module": "vector.fs",
     "signature": "export function rotationMatrix3d(from is Vector, to is Vector) returns Matrix",
     "doc": "Construct a 3D rotation matrix that represents the minimum rotation that takes the normalized `from` vector to the\nnormalized `to` vector. The inputs may have any units."
   },
@@ -11179,6 +12377,13 @@
     "module": "math.fs",
     "signature": "export function round(value is number)",
     "doc": "Round a `number` to the nearest integer.\n\n@example `round(1.4)` returns `1`\n@example `round(1.5)` returns `2`\n@example `round(-1.5)` returns `-1`"
+  },
+  {
+    "name": "round",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function round(value, multiple)",
+    "doc": "Round a value to nearest given multiple.\n\n@example `round(125, 10)` returns `130`\n@example `round(-15, 10)` returns `-10`\n@example `round((10 / 3) * meter, centimeter)` equals `3.33 * meter`\n@example `round(1 * meter, .001 * inch)` equals `39.37 * inch`\n\nFor small values of `multiple`, [roundToPrecision] is preferred to reduce\nfloating point errors."
   },
   {
     "name": "roundToPrecision",
@@ -11335,11 +12540,39 @@
     "doc": "Returns a [Transform] that represents 3 independent scalings along the X, Y, and Z axes\nof a particular `cSys`, centered around `cSys.origin`."
   },
   {
+    "name": "scaleNonuniformly",
+    "kind": "function",
+    "module": "transform.fs",
+    "signature": "export function scaleNonuniformly(xScale is number, yScale is number, zScale is number) returns Transform",
+    "doc": "Returns a [Transform] that represents 3 independent scalings along the X, Y, and Z axes,\ncentered around the origin."
+  },
+  {
+    "name": "scaleNonuniformly",
+    "kind": "function",
+    "module": "transform.fs",
+    "signature": "export function scaleNonuniformly(xScale is number, yScale is number, zScale is number, pointToScaleAbout is Vector) returns Transform",
+    "doc": "Returns a [Transform] that represents 3 independent scalings along the X, Y, and Z axes,\ncentered around `pointToScaleAbout`."
+  },
+  {
+    "name": "scaleNonuniformly",
+    "kind": "function",
+    "module": "transformUV.fs",
+    "signature": "export function scaleNonuniformly(xScale is number, yScale is number) returns TransformUV",
+    "doc": "Returns a [TransformUV] that represents two independent scalings along the X and Y axes,\ncentered around the origin."
+  },
+  {
     "name": "scaleUniformly",
     "kind": "function",
     "module": "transform.fs",
     "signature": "export function scaleUniformly(scale is number) returns Transform",
     "doc": "Returns a [Transform] that represents a uniform scaling around\nthe origin."
+  },
+  {
+    "name": "scaleUniformly",
+    "kind": "function",
+    "module": "transform.fs",
+    "signature": "export function scaleUniformly(scale is number, pointToScaleAbout is Vector) returns Transform",
+    "doc": "Returns a [Transform] that represents a uniform scaling around\n`pointToScaleAbout`."
   },
   {
     "name": "scaleUniformlyUV",
@@ -11541,6 +12774,13 @@
     "name": "setQueryVariable",
     "kind": "function",
     "module": "queryVariable.fs",
+    "signature": "export function setQueryVariable(context is Context, name is string, description is string, value is Query)",
+    "doc": "Saves a query in a variable with the given name and description."
+  },
+  {
+    "name": "setQueryVariable",
+    "kind": "function",
+    "module": "queryVariable.fs",
     "signature": "export function setQueryVariable(context is Context, name is string, value is Query)",
     "doc": "Saves a query in a variable with the given name."
   },
@@ -11550,6 +12790,13 @@
     "module": "context.fs",
     "signature": "export function setVariable(context is Context, name is string, value)",
     "doc": "Attach a variable to the context, which can be retrieved by another feature\ndefined later. If a variable of the same name already exists, this function\nwill overwrite it.\n\n@example `setVariable(context, \"foo\", 1)` attaches a variable named `\"foo\"`,\n     with value set to `1`, on the context.\n\n@param value : Can be any value, including an array or map with many elements."
+  },
+  {
+    "name": "setVariable",
+    "kind": "function",
+    "module": "context.fs",
+    "signature": "export function setVariable(context is Context, name is string, value, description is string)",
+    "doc": "Attach a variable with a description to the context, which can be retrieved by another feature\ndefined later. If a variable of the same name already exists, this function\nwill overwrite it.\n\n@example `setVariable(context, \"foo\", 1, \"the foo\")` attaches a variable named `\"foo\"`,\n     with value set to `1` and the description set to \"the foo\", on the context.\n\n@param value : Can be any value, including an array or map with many elements.\n@param description : A string describing the use or purpose of the variable."
   },
   {
     "name": "sheetMetalApplyInFlat",
@@ -11769,6 +13016,13 @@
     "doc": "Returns the size of an array.  This counts only direct children; it does not\nrecursively examine containers inside.\n@example `size([1, 2, 3])` returns `3`\n@example `size([1, [2, 3]])` returns `2`"
   },
   {
+    "name": "size",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function size(container is map) returns number",
+    "doc": "Returns the size of an map. This counts only direct children; it does not\nrecursively examine containers inside.\n@example `size({ \"x\" : 1, \"y\" : 2 })` returns `2`"
+  },
+  {
     "name": "skArc",
     "kind": "function",
     "module": "sketch.fs",
@@ -11965,6 +13219,12 @@
     "doc": "Feature creating a sphere. Internally, calls [opSphere].\n\n@param id : @autocomplete `id + \"sphere1\"`\n@param definition {{\n     @field center {Query} : A vertex query marking the sphere's center.\n     @field radius {ValueWithUnits} :\n             @eg `1 * inch`\n}}"
   },
   {
+    "name": "sphere",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function sphere(cSys is CoordSystem, radius is ValueWithUnits) returns Sphere"
+  },
+  {
     "name": "splitByRegexp",
     "kind": "function",
     "module": "string.fs",
@@ -12005,6 +13265,13 @@
     "module": "math.fs",
     "signature": "export function sqrt(value is number)",
     "doc": "Square root of a `number`.\n\n@example `sqrt(4)` returns `2`\n@example `sqrt(-4)` throws an error"
+  },
+  {
+    "name": "sqrt",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function sqrt(value is ValueWithUnits) returns ValueWithUnits",
+    "doc": "Square root of a `ValueWithUnits`.\n\n@example `sqrt(4 * meter^2)` equals `2 * meter`.\n@example `2 * PI * sqrt(armLength / (9.8 * meter/second^2))` equals the\n         period of a pendulum, in seconds.\n@example `sqrt(4 * meter)` throws an error, since FeatureScript has no\n         concept of the square root of a meter.\n@param value : @autocomplete `4 * inch^2`"
   },
   {
     "name": "squareCentimeter",
@@ -12056,11 +13323,31 @@
     "doc": "Return the sum of the squares of matrix elements."
   },
   {
+    "name": "squaredNorm",
+    "kind": "function",
+    "module": "vector.fs",
+    "signature": "export function squaredNorm(vector is Vector)",
+    "doc": "Returns the squared length of a vector.\nThis is slightly faster to calculate than the length."
+  },
+  {
+    "name": "startFeature",
+    "kind": "function",
+    "module": "feature.fs",
+    "signature": "export function startFeature(context is Context, id is Id)"
+  },
+  {
     "name": "startFeature",
     "kind": "function",
     "module": "feature.fs",
     "signature": "export function startFeature(context is Context, id is Id, definition is map)",
     "doc": "@internal\n\nStarts the feature and associates the queries with the feature id in the context."
+  },
+  {
+    "name": "startTimer",
+    "kind": "function",
+    "module": "debug.fs",
+    "signature": "export function startTimer()",
+    "doc": "Starts the global timer associated with the empty string or resets it.  Use with [printTimer()]."
   },
   {
     "name": "startTimer",
@@ -12075,6 +13362,18 @@
     "module": "feature.fs",
     "signature": "export function startTracking(context is Context, arg is map) returns Query",
     "doc": "Generates a tracking query, which will evaluate to entities derived from subquery in features between\nstartTracking and when query is evaluated. If secondarySubquery is specified, the query would evaluate to\nentities derived from both objects. If trackPartialDependency is set to true, query would also include entities\nthat are not exclusively derived from subquery1. Optional field lastOperationId can be used to specify the\nstarting operation of tracking. Use example:\n```\n// \"sketch1\" constructs a polygon of \"line0\", \"line1\", etc.\nvar extrudedFromLine0 = startTracking(context, id + \"sketch1\", \"line0\");\nextrudeOp(context, id + \"extrude1\", {\"entities\" : qSketchRegion(id + \"sketch1\",....});\nvar fromLine0 = evaluateQuery(context, extrudedFromLine0);\n// fromLine0 contains a face and two edges (top and bottom) corresponding to line0 in the extrude.\n```"
+  },
+  {
+    "name": "startTracking",
+    "kind": "function",
+    "module": "feature.fs",
+    "signature": "export function startTracking(context is Context, sketchId is Id, sketchEntityId is string) returns Query"
+  },
+  {
+    "name": "startTracking",
+    "kind": "function",
+    "module": "feature.fs",
+    "signature": "export function startTracking(context is Context, subquery is Query) returns Query"
   },
   {
     "name": "startTrackingIdentity",
@@ -12137,6 +13436,34 @@
     "doc": "@internal"
   },
   {
+    "name": "stripUnits",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function stripUnits(value is ValueWithUnits)",
+    "doc": "@internal"
+  },
+  {
+    "name": "stripUnits",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function stripUnits(value is array) returns array",
+    "doc": "@internal"
+  },
+  {
+    "name": "stripUnits",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function stripUnits(value is map) returns map",
+    "doc": "@internal"
+  },
+  {
+    "name": "stripUnits",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function stripUnits(value)",
+    "doc": "@internal\n\n`stripUnits` removes all units from a `ValueWithUnits` leaving only\nthe underlying numeric value in Onshape internal units.  If the argument\nis a container, units are stripped recursively from contents.\nResulting values are meant for use in builtin functions."
+  },
+  {
     "name": "subArray",
     "kind": "function",
     "module": "containers.fs",
@@ -12144,11 +13471,25 @@
     "doc": "Returns the subarray beginning at `startIndex`"
   },
   {
+    "name": "subArray",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function subArray(input is array, startIndex is number, endIndex is number) returns array",
+    "doc": "Returns the subarray `[startIndex, endIndex)`"
+  },
+  {
     "name": "substring",
     "kind": "function",
     "module": "string.fs",
     "signature": "export function substring(s is string, startIndex is number) returns string",
     "doc": "Return a substring of a string starting at the specified start index.\n@example `substring(\"refactoring\", 7)` returns `\"ring\"`"
+  },
+  {
+    "name": "substring",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function substring(s is string, startIndex is number, endIndex is number) returns string",
+    "doc": "Return a substring of a string starting at the specified start index and ending at the specified end index.\n@example `substring(\"refactoring\", 2, 6)` returns `\"fact\"`"
   },
   {
     "name": "sum",
@@ -12214,6 +13555,13 @@
     "doc": "Check whether a face is swept along a specified direction."
   },
   {
+    "name": "sweptAlong",
+    "kind": "function",
+    "module": "topologyUtils.fs",
+    "signature": "export function sweptAlong(context is Context, face is Query, direction is Vector, faceSweptDataCache) returns boolean",
+    "doc": "@internal\nsweptAlong but use the passed in cache for getting face swept data if possible. `faceSweptDataCache` should be made from\n[makeFaceSweptDataCache] or be undefined if no caching is desired."
+  },
+  {
     "name": "syntaxError",
     "kind": "function",
     "module": "error.fs",
@@ -12226,6 +13574,13 @@
     "module": "table.fs",
     "signature": "export function table(title, columnDefinitions is array, rows is array) returns Table",
     "doc": "Constructs a [Table] given a title, column definitions, and rows"
+  },
+  {
+    "name": "table",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function table(title, columnDefinitions is array, rows is array, entities is Query) returns Table",
+    "doc": "@internal\nConstructs a [Table] given a title, column definitions, rows, and entities"
   },
   {
     "name": "tableArray",
@@ -12256,11 +13611,32 @@
     "doc": "Constructs a [TableColumnDefinition] given an id and a name."
   },
   {
+    "name": "tableColumnDefinition",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function tableColumnDefinition(id is string, name, alignment is TableTextAlignment) returns TableColumnDefinition",
+    "doc": "Constructs a [TableColumnDefinition] given an id, a name, and a [TableTextAlignment] controlling\nhow its cell content is aligned."
+  },
+  {
+    "name": "tableColumnDefinition",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function tableColumnDefinition(id is string, name, entities is Query) returns TableColumnDefinition",
+    "doc": "Constructs a [TableColumnDefinition] given an id, a name, and entities to cross-highlight when mousing\nover the column."
+  },
+  {
     "name": "tableRow",
     "kind": "function",
     "module": "table.fs",
     "signature": "export function tableRow(columnIdToCell is map) returns TableRow",
     "doc": "Constructs a [TableRow] given the cell values."
+  },
+  {
+    "name": "tableRow",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function tableRow(columnIdToCell is map, entities is Query) returns TableRow",
+    "doc": "Constructs a [TableRow] given the cell values and entities."
   },
   {
     "name": "tag",
@@ -12340,6 +13716,136 @@
     "doc": "Returns a representation of the coordinate system as a string."
   },
   {
+    "name": "toString",
+    "kind": "function",
+    "module": "curveGeometry.fs",
+    "signature": "export function toString(value is Circle) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "curveGeometry.fs",
+    "signature": "export function toString(value is Ellipse) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "curveGeometry.fs",
+    "signature": "export function toString(value is Line) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "matrix.fs",
+    "signature": "export function toString(value is Matrix) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "matrixWithUnits.fs",
+    "signature": "export function toString(value is MatrixWithUnits) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function toString(value is array) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function toString(value is map) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function toString(value is string) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "string.fs",
+    "signature": "export function toString(value) returns string",
+    "doc": "Return a string representation of any value.\n\nOverloads of this method are found for many standard and custom types in\nthis and other modules. When overloaded, the `toString` method will be\ncalled inside `print` and `println`, allowing users to change how custom\ntypes are printed."
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function toString(value is Cone) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function toString(value is Cylinder) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function toString(value is Plane) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function toString(value is Sphere) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function toString(value is Torus) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function toString(table is Table) returns string",
+    "doc": "Tries to convert a table to string form.  Because the actual table output depends on\nuser-chosen units and precision, the result of this function may not match it."
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function toString(value is StringToleranceComponent) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function toString(value is StringWithTolerances) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "table.fs",
+    "signature": "export function toString(value is TemplateString) returns string"
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "units.fs",
+    "signature": "export function toString(value is ValueWithUnits) returns string",
+    "doc": "General value to string conversion."
+  },
+  {
+    "name": "toString",
+    "kind": "function",
+    "module": "vector.fs",
+    "signature": "export function toString(value is Vector) returns string"
+  },
+  {
+    "name": "toWorld",
+    "kind": "function",
+    "module": "coordSystem.fs",
+    "signature": "export function toWorld(cSys is CoordSystem) returns Transform",
+    "doc": "Returns a [Transform] which will transform coordinates measured in `cSys` into\nworld coordinates.\n@ex `toWorld(cSys) * vector(0, 0, 0)` equals `cSys.origin`\n\nWhen used in operations which place or move parts (like [opTransform], [opPattern],\nor [addInstance]), this transform will (somewhat counterintuitively) move parts from\nthe world origin and orientation to the `cSys` origin and orientation."
+  },
+  {
     "name": "toWorld",
     "kind": "function",
     "module": "coordSystem.fs",
@@ -12382,6 +13888,104 @@
     "doc": "Check that two [CoordSystem]s are the same up to tolerance."
   },
   {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "curveGeometry.fs",
+    "signature": "export predicate tolerantEquals(circle1 is Circle, circle2 is Circle)",
+    "doc": "Check that two `Circle`s are the same up to tolerance, including the coordinate system."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "curveGeometry.fs",
+    "signature": "export predicate tolerantEquals(ellipse1 is Ellipse, ellipse2 is Ellipse)",
+    "doc": "Check that two `Ellipse`s are the same up to tolerance, including the coordinate system."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "curveGeometry.fs",
+    "signature": "export predicate tolerantEquals(line1 is Line, line2 is Line)",
+    "doc": "Check that two [Line]s are the same up to tolerance, including checking that they have the same origin.\n\nTo check if two [Line]s are equivalent (rather than equal), use [collinearLines]."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "math.fs",
+    "signature": "export predicate tolerantEquals(value1 is number, value2 is number)",
+    "doc": "Returns `true` if numbers are equal up to a computational tolerance. The tolerance used is a specific number defined by\n`TOLERANCE.computational` (set to `1e-13`) that is meant to adequately handle tolerances introduced by numerical operations.\nHowever, this tolerance may be too restrictive or generous for different situations, in which case [tolerantEquals(number, number, number)]\nshould be used with the appropriate tolerance specified.\n\n@seeAlso [tolerantEquals(number, number, number)]\n\n@ex `tolerantEquals(1, 1)` returns `true`\n@ex `tolerantEquals(1, 1 + 1e-14)` returns `true`\n@ex `tolerantEquals(1, 1 / 900 * 9e100 / 1e98)` returns `true`\n@ex `tolerantEquals(1, 1 / 9 / 9 / 9 / 9 * 9 * 9 * 9 * 9)` returns `true`"
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "math.fs",
+    "signature": "export predicate tolerantEquals(value1 is number, value2 is number, tolerance is number)",
+    "doc": "Returns `true` if numbers are equal up to a specified tolerance.\n\n@seeAlso [tolerantEquals(number, number)]\n\n@ex `tolerantEquals(1, 1, 0)` returns `true`\n@ex `tolerantEquals(1, 1.01, 0.03)` returns `true`\n@ex `tolerantEquals(1, 0.99, 0.03)` returns `true`\n@ex `tolerantEquals(1, 1.01, 0.01)` returns `true`\n@ex `tolerantEquals(1, 1.03, 0.01)` returns `false`"
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "surfaceGeometry.fs",
+    "signature": "export predicate tolerantEquals(cone1 is Cone, cone2 is Cone)",
+    "doc": "Check that two `Cone`s are the same up to tolerance, including the local coordinate system."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "surfaceGeometry.fs",
+    "signature": "export predicate tolerantEquals(cylinder1 is Cylinder, cylinder2 is Cylinder)",
+    "doc": "Check that two `Cylinder`s are the same up to tolerance, including the local coordinate system."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "surfaceGeometry.fs",
+    "signature": "export predicate tolerantEquals(plane1 is Plane, plane2 is Plane)",
+    "doc": "Check that two [Plane]s are the same up to tolerance, including checking that they have the same the origin and local coordinate system.\n\nTo check if two [Plane]s are equivalent (rather than equal), use [coplanarPlanes]."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "surfaceGeometry.fs",
+    "signature": "export predicate tolerantEquals(sphere1 is Sphere, sphere2 is Sphere)",
+    "doc": "Check that two `Sphere`s are the same up to tolerance, including the local coordinate system."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "surfaceGeometry.fs",
+    "signature": "export predicate tolerantEquals(torus1 is Torus, torus2 is Torus)",
+    "doc": "Check that two tori are the same up to tolerance, including the local coordinate system."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "transform.fs",
+    "signature": "export predicate tolerantEquals(transform1 is Transform, transform2 is Transform)",
+    "doc": "Check that two [Transform]s are the same up to tolerance."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "transformUV.fs",
+    "signature": "export predicate tolerantEquals(transform1 is TransformUV, transform2 is TransformUV)",
+    "doc": "Check that two [TransformUV]s are the same up to tolerance."
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "units.fs",
+    "signature": "export predicate tolerantEquals(value1 is ValueWithUnits, value2 is ValueWithUnits)",
+    "doc": "Returns true if angles are equal up to zeroAngle or anything else is equal up to zeroLength"
+  },
+  {
+    "name": "tolerantEquals",
+    "kind": "predicate",
+    "module": "vector.fs",
+    "signature": "export predicate tolerantEquals(point1 is Vector, point2 is Vector)",
+    "doc": "Returns true if two vectors designate the same point (within tolerance) or the same direction (within tolerance)."
+  },
+  {
     "name": "tolerantEqualsZero",
     "kind": "predicate",
     "module": "units.fs",
@@ -12394,6 +13998,12 @@
     "module": "units.fs",
     "signature": "export predicate tolerantGreaterThan(greater, lesser)",
     "doc": "Returns `true` if `greater` is greater than and not tolerantly equal to `lesser`.\n\n@ex `(1 * meter)->tolerantGreaterThan(0 * meter)` returns `true`\n@ex `1->tolerantGreaterThan(0)` returns `true`\n@ex `0->tolerantGreaterThan(-1e-14)` returns `false`\n@ex `0->tolerantGreaterThan(0)` returns `false`"
+  },
+  {
+    "name": "tolerantGreaterThanOrEqual",
+    "kind": "predicate",
+    "module": "units.fs",
+    "signature": "export predicate tolerantGreaterThanOrEqual(greater is number, lesser is number, tolerance is number)"
   },
   {
     "name": "tolerantGreaterThanOrEqual",
@@ -12415,6 +14025,13 @@
     "module": "units.fs",
     "signature": "export predicate tolerantLessThanOrEqual(lesser, greater)",
     "doc": "Returns `true` if `lesser` is less than or tolerantly equal to `greater`.\n\n@ex `(0 * meter)->tolerantLessThanOrEqual(1 * meter)` returns `true`\n@ex `0->tolerantLessThanOrEqual(1)` returns `true`\n@ex `0->tolerantLessThanOrEqual(0)` returns `true`\n@ex `1e-14->tolerantLessThanOrEqual(0)` returns `true`"
+  },
+  {
+    "name": "tolerantSort",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function tolerantSort(entities is array, tolerance, mapFunction) returns array",
+    "doc": "Performs a [tolerantSort](tolerantSort(array, ?)) of `entities`, ordering by the value\nreturned by `mapFunction`. Like `tolerantSort`, the original order will be preserved\nfor values within `tolerance` for stability.\n\n@param tolerance : @eg `1e-7 * meter`\n@param mapFunction : A function taking in a single entity and returning a sortable\n        `number` or `ValueWithUnits`.\n     @eg `function(entity is Query) { return evLength(context, {\"entities\" : entity}); }` to sort entities by increasing length."
   },
   {
     "name": "tolerantSort",
@@ -12473,6 +14090,40 @@
     "doc": "Returns the transformation that transforms the line `from` to the line `to` (including the origin) using the minimum\nrotation angle."
   },
   {
+    "name": "transform",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function transform(from is Plane, to is Plane) returns Transform",
+    "doc": "Returns a [Transform] which maps the plane `from` to the plane `to`."
+  },
+  {
+    "name": "transform",
+    "kind": "function",
+    "module": "transform.fs",
+    "signature": "export function transform(linear is Matrix, translation is Vector) returns Transform",
+    "doc": "Construct a [Transform] using the matrix argument for rotation\nand scaling and the vector argument for translation."
+  },
+  {
+    "name": "transform",
+    "kind": "function",
+    "module": "transform.fs",
+    "signature": "export function transform(translation is Vector) returns Transform",
+    "doc": "Construct a [Transform] that translates without rotation or scaling."
+  },
+  {
+    "name": "transform",
+    "kind": "function",
+    "module": "transform.fs",
+    "signature": "export function transform(value is map) returns Transform"
+  },
+  {
+    "name": "transform",
+    "kind": "function",
+    "module": "transformCopy.fs",
+    "signature": "export function transform(context is Context, id is Id, definition is map)",
+    "doc": "Move and/or rotate bodies or mate connectors with a single [Transform], constructed with\ninput according to the selected [TransformType].\n\nInternally, performs an [opTransform] when not copying, and an [opPattern] when copying. For simple\ntransforms, prefer calling [opTransform] or [opPattern] directly.\n\n@param definition {{\n     @field entities {Query} : The bodies or mate connectors to transform. An error is thrown if\n         anything else is included.\n         @eg `qCreatedBy(id + \"extrude1\", EntityType.BODY)`\n\n     @field transformType {TransformType} : Defines how the transform type should be specified.\n         @eg `TransformType.TRANSLATION_3D`\n\n     @field dx {ValueWithUnits} : @requiredIf {`transformType` is `TransformType.TRANSLATION_3D`}\n         A value with length units specifying the distance to move in the world `x` direction.\n         @eg `1 * inch`\n     @field dy {ValueWithUnits} : @requiredIf {`transformType` is `TransformType.TRANSLATION_3D`}\n         A value with length units specifying the distance to move in the world `y` direction.\n         @eg `1 * inch`\n     @field dz {ValueWithUnits} : @requiredIf {`transformType` is `TransformType.TRANSLATION_3D`}\n         A value with length units specifying the distance to move in the world `z` direction.\n         @eg `1 * inch`\n\n     @field transformLine {Query} : @requiredIf {`transformType` is `TransformType.TRANSLATION_ENTITY`}\n         A `Query` for either a single line or a pair of points, specifying the direction and\n         distance to transform.\n     @field oppositeDirectionEntity {boolean} : @requiredIf {`transformType` is `TransformType.TRANSLATION_ENTITY`}\n         @ex `true` to flip the transform direction.\n\n     @field transformAxis {Query} : @requiredIf {`transformType` is `TransformType.ROTATION`}\n         A `Query` for a line, cylinder, etc. to specify the transform direction.\n     @field angle {ValueWithUnits} : @requiredIf {`transformType` is `TransformType.ROTATION`}\n         A value with angle units specifying the angle to rotate.\n\n     @field transformDirection {Query} : @requiredIf {`transformType` is `TransformType.TRANSLATION_DISTANCE`}\n         A `Query` for either a single line or a pair of points, specifying the direction to transform.\n     @field distance {ValueWithUnits} : @requiredIf {`transformType` is `TransformType.TRANSLATION_DISTANCE`}\n         A value with length units specifying the distance to move.\n     @field oppositeDirection {boolean} : @requiredIf {`transformType` is `TransformType.TRANSLATION_DISTANCE`\n             or `TransformType.ROTATION`}\n         @ex `true` to transform in the opposite direction.\n\n     @field uniform {boolean} : True if the scale is uniform in all directions (default) @optional\n     @field scale {number} : @requiredIf {`transformType` is `TransformType.SCALE_UNIFORMLY` and `uniform` is true}\n         A positive real number specifying the scale factor.\n     @field scalePoint {Query} : @requiredIf {`transformType` is `TransformType.SCALE_UNIFORMLY`}\n         A point specifying the center of the scale or a mate connector specifying the coordinate system for a non-uniform scale.\n     @field scaleX {number} : @requiredIf {`transformType` is `TransformType.SCALE_UNIFORMLY` and `uniform` is false}\n     @field scaleY {number} : @requiredIf {`transformType` is `TransformType.SCALE_UNIFORMLY` and `uniform` is false}\n     @field scaleZ {number} : @requiredIf {`transformType` is `TransformType.SCALE_UNIFORMLY` and `uniform` is false}\n\n     @field baseConnector {Query} : @requiredIf {`transformType` is `TransformType.TRANSFORM_MATE_CONNECTORS`}\n         The mate connector to transform from.\n     @field destinationConnector {Query} : @requiredIf {`transformType` is `TransformType.TRANSFORM_MATE_CONNECTORS`}\n         The mate connector to transform to.\n     @field oppositeDirectionMateAxis {boolean} : @requiredIf {`transformType` is `TransformType.TRANSFORM_MATE_CONNECTORS`}\n     @field secondaryAxisType {MateConnectorAxisType} : @requiredIf {`transformType` is `TransformType.TRANSFORM_MATE_CONNECTORS`}\n\n     @field makeCopy {boolean} : @requiredIf {`transformType` is not `TransformType.COPY`}\n         @autocomplete `false`\n         @ex `true` to keep the original bodies.\n}}"
+  },
+  {
     "name": "transformBox3d",
     "kind": "function",
     "module": "box.fs",
@@ -12485,6 +14136,13 @@
     "module": "extrudeCommon.fs",
     "signature": "export function transformExtrudeDefinitionForOpExtrude(context is Context, id is Id, entities is Query, direction is Vector, definition is map) returns map",
     "doc": "@internal"
+  },
+  {
+    "name": "transformExtrudeDefinitionForOpExtrude",
+    "kind": "function",
+    "module": "extrudeCommon.fs",
+    "signature": "export function transformExtrudeDefinitionForOpExtrude(context is Context, id is Id, entities is Query, direction is Vector, definition is map, planeNormal is Vector) returns map",
+    "doc": "@internal\nRemap the inputs of an extrude-type feature into appropriate input for `opExtrude`."
   },
   {
     "name": "transformFromBuiltin",
@@ -12515,10 +14173,44 @@
     "doc": "Construct a [TransformUV] using the matrix argument for rotation\nand scaling and the vector argument for translation."
   },
   {
+    "name": "transformUV",
+    "kind": "function",
+    "module": "transformUV.fs",
+    "signature": "export function transformUV(translation is Vector) returns TransformUV",
+    "doc": "Construct a [TransformUV] that translates without rotation or scaling."
+  },
+  {
+    "name": "transformUV",
+    "kind": "function",
+    "module": "transformUV.fs",
+    "signature": "export function transformUV(value is map) returns TransformUV"
+  },
+  {
     "name": "transientQueriesToStrings",
     "kind": "function",
     "module": "query.fs",
     "signature": "export function transientQueriesToStrings(query is Query)",
+    "doc": "@internal"
+  },
+  {
+    "name": "transientQueriesToStrings",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function transientQueriesToStrings(value is array) returns array",
+    "doc": "@internal"
+  },
+  {
+    "name": "transientQueriesToStrings",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function transientQueriesToStrings(value is map) returns map",
+    "doc": "@internal"
+  },
+  {
+    "name": "transientQueriesToStrings",
+    "kind": "function",
+    "module": "query.fs",
+    "signature": "export function transientQueriesToStrings(value)",
     "doc": "@internal"
   },
   {
@@ -12527,6 +14219,13 @@
     "module": "matrix.fs",
     "signature": "export function transpose(m is Matrix) returns Matrix",
     "doc": "Return the transpose of a matrix."
+  },
+  {
+    "name": "triadManipulator",
+    "kind": "function",
+    "module": "manipulator.fs",
+    "signature": "export function triadManipulator(base is Vector, offset is Vector, sources) returns Manipulator",
+    "doc": "----- Deprecated triadManipulator overloads -----"
   },
   {
     "name": "triadManipulator",
@@ -12630,6 +14329,20 @@
     "signature": "export function validate(context is Context) returns LibraryValidationProblems"
   },
   {
+    "name": "validate",
+    "kind": "function",
+    "module": "sheetMetalFormedLibraryValidation.fs",
+    "signature": "export function validate(context is Context) returns LibraryValidationProblems",
+    "doc": "Validates that a part studio can be part of a sheet metal form library"
+  },
+  {
+    "name": "validate",
+    "kind": "function",
+    "module": "toleranceSchemaValidation.fs",
+    "signature": "export function validate(context is Context) returns LibraryValidationProblems",
+    "doc": "Validates that a variable studio can be used to define a default tolerance library"
+  },
+  {
     "name": "valueWithUnitsAndPrecision",
     "kind": "function",
     "module": "templatestring.fs",
@@ -12672,6 +14385,20 @@
     "doc": "Make a Vector from an array."
   },
   {
+    "name": "vector",
+    "kind": "function",
+    "module": "vector.fs",
+    "signature": "export function vector(x, y) returns Vector",
+    "doc": "Construct a 2-dimensional vector."
+  },
+  {
+    "name": "vector",
+    "kind": "function",
+    "module": "vector.fs",
+    "signature": "export function vector(x, y, z) returns Vector",
+    "doc": "Construct a 3-dimensional vector."
+  },
+  {
     "name": "vectorInPlanePerpendicularToZ",
     "kind": "function",
     "module": "decal.fs",
@@ -12684,6 +14411,13 @@
     "module": "error.fs",
     "signature": "export function verify(condition is boolean, error)",
     "doc": "If the condition check fails, this function throws the error.\n@param condition {boolean} : The condition to test.\n@param error: The error to throw if `condition` is `false`, where `error` is of type `ErrorStringEnum` or `string`."
+  },
+  {
+    "name": "verify",
+    "kind": "function",
+    "module": "error.fs",
+    "signature": "export function verify(condition is boolean, error, regenErrorOptions is map)",
+    "doc": "If the condition check fails, this function throws the error.\n@param condition {boolean} : The condition to test.\n@param error: The error to throw if `condition` is `false`, where `error` is of type `ErrorStringEnum` or `string`.\n@param regenErrorOptions {map} : The key-value pairs to pass to the thrown `regenError`, e.g.\n    `entities` or `faultyParameters`."
   },
   {
     "name": "verifyNoMesh",
@@ -12714,11 +14448,25 @@
     "doc": "@internal\n@seealso [verifyNonemptyArray(Context, map, string, string)]"
   },
   {
+    "name": "verifyNonemptyArray",
+    "kind": "function",
+    "module": "feature.fs",
+    "signature": "export function verifyNonemptyArray(context is Context, definition is map, parameterName is string, errorToReport is string)",
+    "doc": "Throws a [regenError] and marks the specified array parameter as faulty if the specified array parameter does not\nhave any entries. A parameter declared as follows:\n```\nannotation { \"Name\" : \"Array items\", \"Item name\" : \"Array item\" }\ndefinition.arrayItems is array;\nfor (var arrayItem in definition.arrayItems)\n{\n    ...\n}\n```\ncould verify that the input is nonempty in the following way:\n@ex `verifyNonemptyArray(context, definition, \"arrayItems\", \"Add an array item.\")`"
+  },
+  {
     "name": "verifyNonemptyQuery",
     "kind": "function",
     "module": "feature.fs",
     "signature": "export function verifyNonemptyQuery(context is Context, definition is map, parameterName is string, errorToReport is ErrorStringEnum) returns array",
     "doc": "@internal\n@seealso [verifyNonemptyQuery(Context, map, string, string)]"
+  },
+  {
+    "name": "verifyNonemptyQuery",
+    "kind": "function",
+    "module": "feature.fs",
+    "signature": "export function verifyNonemptyQuery(context is Context, definition is map, parameterName is string, errorToReport is string) returns array",
+    "doc": "Throws a [regenError] and marks the specified [Query] parameter as faulty if the specified `Query` parameter is not\na `Query` which resolves to at least one entity. This happens when the user has not made any selection into the `Query`\nparameter, or when upstream geometry has changed such that the `Query`s of the `Query` parameter no longer resolve to\nanything. Should be used to check all non-optional `Query` parameters in a feature. By convention, `errorToReport`\nshould take the form \"Select parameter display name.\" For example, a parameter declared as follows:\n```\nannotation { \"Name\" : \"Entities to use\", \"Filter\" : EntityType.FACE }\ndefinition.entitiesToUse is Query;\n```\nshould verify that the input is nonempty in the following way:\n@ex `verifyNonemptyQuery(context, definition, \"entitiesToUse\", \"Select entities to use.\")`\n\n@returns : An array representing the result of evaluating the `Query` parameter with [evaluateQuery]"
   },
   {
     "name": "verifyPatternSize",
@@ -12754,6 +14502,13 @@
     "module": "surfaceGeometry.fs",
     "signature": "export function worldToPlane(plane is Plane, worldPoint is Vector) returns Vector",
     "doc": "Transforms a 3D `worldPoint` in world coordinates into a 2D point measured in a\n[Plane]'s (x,y) coordinates.\n\nThis is modified as of FeatureScript version 363.0. Older versions of FeatureScript\nuse `worldToPlane` to return 3D vectors composed of the plane coordinate system baseis.\nThis functionality is still available in the `worldToPlane` function above."
+  },
+  {
+    "name": "worldToPlane3D",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function worldToPlane3D(plane is Plane) returns Transform",
+    "doc": "Returns a [Transform] which takes 3D points measured in world coordinates\nand transforms them into 3D points measured in plane coordinates (such that\npoints which lie on the plane will have a z-coordinate of approximately `0`)."
   },
   {
     "name": "worldToPlane3D",
@@ -12798,6 +14553,13 @@
     "doc": "Returns the y-axis of a coordinate system\n@returns {Vector} : A 3D vector in world space."
   },
   {
+    "name": "yAxis",
+    "kind": "function",
+    "module": "surfaceGeometry.fs",
+    "signature": "export function yAxis(plane is Plane) returns Vector",
+    "doc": "Returns the y-axis of the specified plane as a 3D Vector in world space."
+  },
+  {
     "name": "yard",
     "kind": "unit",
     "module": "units.fs",
@@ -12817,6 +14579,13 @@
     "module": "vector.fs",
     "signature": "export function zeroVector(size is number) returns Vector",
     "doc": "Make an array filled with 0.\n@example `zeroVector(3)` is equivalent to `vector(0, 0, 0)`"
+  },
+  {
+    "name": "zip",
+    "kind": "function",
+    "module": "containers.fs",
+    "signature": "export function zip(a is array, b is array)",
+    "doc": "An alternative way to call [zip(array)] that facilitates chaining arguments.\n@seeAlso [zip(array)]\n@ex `zip(range(0,3), range(1, 4))` returns `[[0, 1], [1, 2], [2, 3], [3, 4]]`\n@ex `zip(range(0,3), [])` returns `[]`\n\n@param a {array} : The first array to zip.\n@param b {array} : The second array to zip.\n@returns {array} : An array of length-2 arrays. For the i'th array, the first element is the i'th element of `a` and the second is the i'th element of `b`."
   },
   {
     "name": "zip",
@@ -14473,6 +16242,12 @@
     "name": "EDGE",
     "kind": "enumMember",
     "module": "entitytype.gen.fs",
+    "parent": "EntityType"
+  },
+  {
+    "name": "EDGE",
+    "kind": "enumMember",
+    "module": "query.fs",
     "parent": "EntityType"
   },
   {

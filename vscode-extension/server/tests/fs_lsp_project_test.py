@@ -107,6 +107,18 @@ def test_problems(project):
     }
 
 
+def test_std_names_need_their_module_visible(project):
+    # ModifyFilletType is in modifyFillet.fs, which common.fs doesn't export; max's overloads are in math.fs, which it
+    # does
+    path = project.code_dir / "fillet.fs"
+    body = "export function f() { return [ModifyFilletType.CHANGE_RADIUS, max(1, 2), max([1, 2])]; }\n"
+    path.write_text(f"FeatureScript 2909;\n{STD}\n{body}")
+    undefined = [p.message for p in project.check(project.module(path)) if p.code == "undefined"]
+    assert undefined == ["ModifyFilletType isn't defined in this file or anything it imports."]
+    path.write_text(f'FeatureScript 2909;\n{STD}\nimport(path : "onshape/std/modifyFillet.fs", version : "2909.0");\n{body}')
+    assert not [p for p in project.check(project.module(path)) if p.code == "undefined"]
+
+
 def test_unused_imports(project, tmp_path):
     feature = module(project, "feature.fs")
     (project.code_dir / "feature.fs").write_text(
