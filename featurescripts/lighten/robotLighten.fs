@@ -319,7 +319,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             showBuiltOnFailure(context, errors, pockets, function()
                 {
-                    roundPockets(context, errors, id, pocketEnds(pockets, facePlane, trackedEnds), pockets, radius);
+                    roundPockets(context, errors, id, facePlane, pocketEnds(pockets, facePlane, trackedEnds), pockets, radius);
                 });
         }
 
@@ -1200,12 +1200,20 @@ function buildRibGroup(context is Context, errors is map, id is Id, extent is ma
  * than filleting them after, which can fail where a pocket narrows; those rounds are then set to exactly `radius`
  * (`opModifyFillet`, as Vent does). Their inside corners (the walls' and ribs' outside ones) stay sharp.
  *
+ * Pockets smaller than `radius` both ways (`smallPockets`) are left solid first: slivers between walls and ribs, not
+ * worth cutting, whose corners can be too sharp to round.
+ *
  * Their narrow ends (`narrowEnds`), where the rounds on either side would meet, as at the tip of a pocket
  * between ribs, are given one full round across them instead (std's `opFullRoundFillet`), which growing makes a round
  * end as wide as the pocket.
  */
-function roundPockets(context is Context, errors is map, id is Id, ends is Query, pockets is Query, radius is ValueWithUnits)
+function roundPockets(context is Context, errors is map, id is Id, plane is Plane, ends is Query, pockets is Query, radius is ValueWithUnits)
 {
+    const small = smallPockets(context, plane, pockets, radius);
+    if (small != [])
+    {
+        opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
+    }
     if (isQueryEmpty(context, pockets))
     {
         return;
@@ -1296,6 +1304,20 @@ function roundPockets(context is Context, errors is map, id is Id, ends is Query
             throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
         }
     }
+}
+
+/**
+ * The pockets (before they're grown back) whose bounding box, tight, in `plane` (the face's), is less than `radius`
+ * across both ways. Its sides are along the plane's x and y axes, so a pocket's measured as it's turned on the face.
+ */
+function smallPockets(context is Context, plane is Plane, pockets is Query, radius is ValueWithUnits) returns array
+{
+    return filter(evaluateQuery(context, pockets), function(pocket)
+        {
+            const bounds = evBox3d(context, { "topology" : pocket, "cSys" : coordSystem(plane), "tight" : true });
+            const size = bounds.maxCorner - bounds.minCorner;
+            return size[0] < radius && size[1] < radius;
+        });
 }
 
 /**

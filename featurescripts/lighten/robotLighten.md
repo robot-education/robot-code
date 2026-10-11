@@ -118,6 +118,7 @@ robotLighten
 --> buildRibs --> buildRibGroup                    // each rib: a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
 --> roundPockets                                   // with Fillet corners
+    --> smallPockets --> opDeleteBodies "dropSmall"  // slivers under the radius both ways, left solid
     --> narrowEnds --> opFullRoundFillet
     --> pocketCorners --> opFillet "roundCorners"  // a hair
     --> opOffsetFace "grow"                        // back out by the radius
@@ -155,6 +156,9 @@ std's boolean tolerance of it) is a solid cylinder instead.
 The walls and ribs were built thicker by the fillet radius. Growing the pockets back out by the radius rounds their
 corners as a router bit of that radius would, and a pocket narrower than the bit is already gone. Corners get a hair
 fillet first, which the growth rounds; then they're set to exactly the radius (`opModifyFillet`).
+
+Before that, pockets whose tight bounding box on the face is less than the fillet radius both ways are deleted, and
+left solid: slivers between walls and ribs, not worth cutting, whose corners can be too sharp to round.
 
 A pocket end so narrow that the hair fillets on its two corners would meet gets one full round across it instead.
 
@@ -219,6 +223,8 @@ Up to part end types, and feature pattern support.
 ## Issues found
 
 - Untested in Onshape.
+- Small pockets are measured by their bounding box along the face's x and y axes, so a sliver turned on the face can
+  measure up to √2 bigger. Without Fillet corners, slivers are cut as they are.
 - Walls follow the face's outline, so a part whose sides slope or step gets walls of the face's outline, not of its
   sides.
 - An overridden wall steps to its thickness at the corners its side meets others at. A much thicker override moves
