@@ -454,6 +454,19 @@ function showOperationError(context is Context, errors is map, operationId is Id
 }
 
 /**
+ * The error to throw for the failed operation `operationId`: its own (its message, for one, which says what's wrong
+ * better than ours could), highlighting `parameters`, with its error display (what it found wrong, in red) copied
+ * onto the feature (`showOperationError`), as std's `callSubfeatureAndProcessStatus` rethrows a subfeature's error.
+ * Throwing a message of our own instead would replace the status the display belongs to.
+ */
+function operationError(context is Context, errors is map, operationId is Id, parameters is array) returns map
+{
+    showOperationError(context, errors, operationId);
+    const error = getFeatureError(context, errors.featureId);
+    return regenError(error == undefined ? ErrorStringEnum.REGEN_ERROR : error, parameters);
+}
+
+/**
  * The face to lighten.
  */
 function getFace(context is Context, definition is map) returns Query
@@ -814,8 +827,7 @@ function buildWalls(context is Context, id is Id, pockets is Query, ends is Quer
  * - Otherwise blame is laid as if there were no overrides. With Fillet corners, if the walls work at Wall thickness
  *   alone, Fillet radius is to blame (the walls are built thicker by it, then the pockets grown back), and the pockets
  *   which fail alone are shown.
- * - Otherwise a generic error. It shows the part's tight corners which fail alone, if they couldn't be made sharp, or
- *   the pockets which fail alone.
+ * - Otherwise the failed operation's own error and error display (a fillet's says which edges failed, and why).
  *
  * @param failure : What `buildWalls` threw.
  */
@@ -862,20 +874,9 @@ function wallFailure(context is Context, errors is map, id is Id, pockets is Que
         return regenError("Fillet radius is too large for the pockets shown.", ["filletRadius"]);
     }
 
-    // What failed is shown; which step failed (an operation of Onshape's own, in its error display) isn't worth saying
-    if (failure is map && failure.stage == "sharpen")
-    {
-        const culprits = filter(evaluateQuery(context, failure.corners), function(corner)
-            {
-                return !tryAlone(trialId => opDeleteFace(context, trialId, { "deleteFaces" : corner, "includeFillet" : false, "capVoid" : false }));
-            });
-        showOut(context, errors, cornerEdges(culprits == [] ? failure.corners : qUnion(culprits), ends), DebugColor.RED);
-    }
-    else
-    {
-        showOut(context, errors, failingPockets(context, pockets, pocket => works([], radius, pocket)), DebugColor.RED);
-    }
-    return regenError("Failed to create walls.", radiusParameters);
+    // Otherwise the failed operation's own error, whose status and display `insetPockets` copied onto the feature
+    const error = getFeatureError(context, errors.featureId);
+    return regenError(error == undefined ? ErrorStringEnum.REGEN_ERROR : error, radiusParameters);
 }
 
 /**
@@ -885,14 +886,6 @@ function failingPockets(context is Context, pockets is Query, works is function)
 {
     const failing = filter(evaluateQuery(context, pockets), pocket => !works(pocket));
     return failing == [] ? pockets : qUnion(failing);
-}
-
-/**
- * The edges where `corners` (sides of the pockets) meet their `ends`: on the face to lighten and its far side.
- */
-function cornerEdges(corners is Query, ends is Query) returns Query
-{
-    return qIntersection([qAdjacent(corners, AdjacencyType.EDGE, EntityType.EDGE), qAdjacent(ends, AdjacencyType.EDGE, EntityType.EDGE)]);
 }
 
 /**
@@ -1242,9 +1235,7 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
         }
         catch
         {
-            showOperationError(context, errors, fullRoundId);
-            showOut(context, errors, narrowEnd.face, DebugColor.RED);
-            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+            throw operationError(context, errors, fullRoundId, ["filletRadius"]);
         }
     }
     const corners = pocketCorners(context, pockets, ends);
@@ -1259,9 +1250,7 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
         }
         catch
         {
-            showOperationError(context, errors, id + "roundCorners");
-            showOut(context, errors, failingCorners(context, id + "error", pockets, corners), DebugColor.RED);
-            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+            throw operationError(context, errors, id + "roundCorners", ["filletRadius"]);
         }
     }
     // Growing changes them, so they're tracked through it, to be set to exactly the radius after
@@ -1275,17 +1264,7 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
     }
     catch
     {
-        showOperationError(context, errors, id + "grow");
-        // Each pocket, grown alone (they're separate bodies, so one's try doesn't change another's)
-        const failing = failingBodies(context, id + "error", pockets, function(errorId is Id, pocket is Query)
-            {
-                opOffsetFace(context, errorId, {
-                            "moveFaces" : qSubtraction(qOwnedByBody(pocket, EntityType.FACE), ends),
-                            "offsetDistance" : radius
-                        });
-            });
-        showOut(context, errors, failing, DebugColor.RED);
-        throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+        throw operationError(context, errors, id + "grow", ["filletRadius"]);
     }
     // Growing made them the radius and the hair
     if (!isQueryEmpty(context, rounds))
@@ -1301,9 +1280,7 @@ function roundPockets(context is Context, errors is map, id is Id, plane is Plan
         }
         catch
         {
-            showOperationError(context, errors, id + "exactCorners");
-            showOut(context, errors, failingRounds(context, id + "error", pockets, rounds, radius), DebugColor.RED);
-            throw regenError("Failed to fillet the specified corners.", ["filletRadius"]);
+            throw operationError(context, errors, id + "exactCorners", ["filletRadius"]);
         }
     }
 }
@@ -1320,83 +1297,6 @@ function smallPockets(context is Context, plane is Plane, pockets is Query, radi
             const size = bounds.maxCorner - bounds.minCorner;
             return size[0] < radius && size[1] < radius;
         });
-}
-
-/**
- * Which of `corners` (of `pockets`) make their hair fillet fail: those which fail alone, or without any, the corners of
- * the pockets whose corners fail together, or without any of those, all of them. Only for the catch of the failed
- * fillet, as the feature's about to throw.
- */
-function failingCorners(context is Context, id is Id, pockets is Query, corners is Query) returns Query
-{
-    const hair = TOLERANCE.booleanDefaultTolerance * meter;
-    const fillet = function(trialId is Id, edges is Query)
-        {
-            opFillet(context, trialId, { "entities" : edges, "radius" : hair });
-        };
-    const alone = failingAlone(context, id + "corners", corners, fillet);
-    if (alone != [])
-    {
-        return qUnion(alone);
-    }
-    const pocketsFailing = failingAlone(context, id + "pockets", pockets, function(trialId is Id, pocket is Query)
-        {
-            fillet(trialId, qIntersection([corners, qOwnedByBody(pocket, EntityType.EDGE)]));
-        });
-    return pocketsFailing == [] ? corners : qIntersection([corners, qOwnedByBody(qUnion(pocketsFailing), EntityType.EDGE)]);
-}
-
-/**
- * Which of `rounds` (of `pockets`) can't be set to `radius`: those which fail alone, or without any, the rounds of the
- * pockets whose rounds fail together, or without any of those, all of them. Only for the catch of the failed change,
- * as the feature's about to throw.
- */
-function failingRounds(context is Context, id is Id, pockets is Query, rounds is Query, radius is ValueWithUnits) returns Query
-{
-    const modify = function(trialId is Id, faces is Query)
-        {
-            opModifyFillet(context, trialId, {
-                        "faces" : faces,
-                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
-                        "reFillet" : false,
-                        "radius" : radius
-                    });
-        };
-    const alone = failingAlone(context, id + "rounds", rounds, modify);
-    if (alone != [])
-    {
-        return qUnion(alone);
-    }
-    const pocketsFailing = failingAlone(context, id + "pockets", pockets, function(trialId is Id, pocket is Query)
-        {
-            modify(trialId, qIntersection([rounds, qOwnedByBody(pocket, EntityType.FACE)]));
-        });
-    return pocketsFailing == [] ? rounds : qIntersection([rounds, qOwnedByBody(qUnion(pocketsFailing), EntityType.FACE)]);
-}
-
-/**
- * Which of `entities` `operation(id, entity)` fails for, each tried alone in a feature of its own (under `id`), rolled
- * back after, so each try sees what the failed operation was given. Only for the catch of a failed operation, as the
- * feature's about to throw.
- */
-function failingAlone(context is Context, id is Id, entities is Query, operation is function) returns array
-{
-    var failing = [];
-    for (var i, entity in evaluateQuery(context, entities))
-    {
-        const trialId = id + unstableIdComponent(i);
-        startFeature(context, trialId, {});
-        try silent
-        {
-            operation(trialId + "operation", entity);
-        }
-        catch
-        {
-            failing = append(failing, entity);
-        }
-        abortFeature(context, trialId);
-    }
-    return failing;
 }
 
 /**

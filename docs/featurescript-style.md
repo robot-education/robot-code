@@ -305,12 +305,13 @@ source (`error.fs`, `feature.fs`, `boolean.fs`):
   inside a part (tools, pockets) are hidden by it: show copies moved out of it (`opPattern` for bodies,
   `opExtractSurface` for faces, `opExtractWires` for edges, then `opTransform`), as Robot lighten's `showOut` does,
   and leave what the user selected in place.
-- **Show a failed operation's own error display.** Operations know what went wrong (a fillet's failing edges, a
-  shell's faces), and show it on their own ids: in the `catch`, before throwing the feature's own error, copy it onto
-  the feature with `processSubfeatureStatus(context, id, { "subfeatureId" : operationId, "propagateErrorDisplay" : true })`
-  (the `id` is the feature's, not a sub-feature's), as std's `boolean.fs` does. The thrown error's message replaces
-  the operation's, and the display stays. Inside a feature of its own (`startFeature`), do it before `abortFeature`
-  rolls the operation back.
+- **Show a failed operation's own error display, and throw its own error.** Operations know what went wrong (a
+  fillet's failing edges, and why), and show it on their own ids: in the `catch`, copy it onto the feature with
+  `processSubfeatureStatus(context, id, { "subfeatureId" : operationId, "propagateErrorDisplay" : true })`, where `id`
+  is the feature's top level id (a sub-feature's shows nothing). Then throw the operation's error
+  (`regenError(getFeatureError(context, id), parameters)`), as std's `callSubfeatureAndProcessStatus` does: a message
+  of your own reports a new status, replacing the one the display belongs to (Robot lighten's `operationError`).
+  Inside a feature of its own (`startFeature`), copy it before `abortFeature` rolls the operation back.
 - **Report a warning when it's found** (`reportFeatureWarning`, with `setErrorEntities` to show what it's about). An
   error later takes precedence over it, which is fine: don't hold a warning back in the hope that nothing fails.
 - **Don't run trial features in editing logic.** `startFeature` and `abortFeature` roll back operations run between

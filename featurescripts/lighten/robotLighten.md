@@ -52,9 +52,9 @@ Errors show what's been built so far in blue and what's at fault in red, while t
 | Failed to ignore the selected regions. | error | extruding or cutting the regions to ignore fails | `ignoredFaces`, the regions |
 | Selected wall overrides are invalid. | error | the walls fail, but work without wall overrides | the overrides which fail alone (or all of them), and their faces |
 | Fillet radius is too large for the pockets shown. | error | the walls fail, but work without Fillet radius | `filletRadius`, the pockets which fail alone |
-| Failed to create walls. | error | the walls fail otherwise | `wallThickness` (and `filletRadius`), the corners or pockets which fail alone |
+| (the failed operation's own message) | error | the walls fail otherwise: hollowing, enclosing, or one of their fillets or offsets fails | `wallThickness` (and `filletRadius`), and the operation's own error display |
 | Failed to create rib. | error | a rib's extrude, thicken, or cylinder fails, or cutting the ribs from the pockets fails | that rib's group's parameters, and its edge (or the ribs which fail alone) |
-| Failed to fillet the specified corners. | error | rounding the pockets' corners fails | `filletRadius`, the corners (or fillets) which fail alone, the narrow end, or the pockets which fail |
+| (the failed operation's own message) | error | rounding the pockets' corners fails: a full round, fillet, offset, or fillet change | `filletRadius`, and the operation's own error display |
 | There's no room for pockets between the walls and ribs. | warning | no pockets are left | the wall, fillet, and rib parameters |
 | Failed to cut the pockets shown. | error | cutting the pockets from the part fails | `face`, the pockets which fail alone |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | the cut leaves pieces of ribs free | the rib parameters, the loose parts |
@@ -171,19 +171,21 @@ the style guide's "Tolerances, not margins").
 
 ### Errors
 
-- Each operation has its own `try`. Its `catch` throws a short message, and shows Onshape's own error display for
-  that operation (`showOperationError`, std's `processSubfeatureStatus`).
-- What's built so far shows in blue, and what's at fault in red (`showBuiltOnFailure`, `showOut`). The pockets'
-  geometry is shown as copies moved out of the part onto its face, where the part doesn't hide them. Selections show
+- Each operation has its own `try`. Onshape's own error display for it is copied onto the feature
+  (`showOperationError`, std's `processSubfeatureStatus` with `propagateErrorDisplay`, on the feature's top level id).
+- Where the operation's own error says what's wrong best (rounding the pockets, and the walls when no input is to
+  blame), that error is thrown, as std's `callSubfeatureAndProcessStatus` rethrows a subfeature's
+  (`operationError`). Throwing a message of our own replaces the status the error display belongs to.
+- Elsewhere the `catch` throws a short message of ours. What's built so far shows in blue, and what's at fault in red
+  (`showBuiltOnFailure`, `showOut`): the pockets' geometry as copies moved out of the part onto its face, selections
   in place.
-- Where several things were given to one operation, the `catch` tries each alone and shows those which fail:
-  pockets (`failingBodies`), and corners and fillets, each in a feature of its own which is rolled back
-  (`failingAlone`, `failingCorners`, `failingRounds`).
+- Where several bodies were given to a cut, the `catch` tries each alone and shows those which fail
+  (`failingBodies`).
 - The walls are built in a feature of their own (`startFeature`), so a failure rolls back cleanly. `wallFailure` then
   tries them again a few ways, each rolled back, and lays blame as if optional inputs weren't there:
   1. wall overrides, if the walls work without them;
   2. Fillet radius, if the walls work without it;
-  3. otherwise a generic error, showing the tight corners or pockets which fail alone.
+  3. otherwise the failed operation's own error.
 
 ### `try`s
 
