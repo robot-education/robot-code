@@ -23,6 +23,43 @@ export enum GearType
 }
 
 /**
+ * What sizes a gear: its teeth, or a pitch circle (whose center places it, too).
+ */
+export enum GearSize
+{
+    annotation { "Name" : "Teeth" }
+    TEETH,
+    annotation { "Name" : "Pitch circle" }
+    PITCH_CIRCLE
+}
+
+/**
+ * Robot gears' standard pitches (with their pressure angles, see `GEAR_PITCHES`), or a custom one.
+ */
+export enum GearPitch
+{
+    annotation { "Name" : "20 DP" }
+    DP_20,
+    annotation { "Name" : "32 DP" }
+    DP_32,
+    annotation { "Name" : "Module 0.8" }
+    MODULE_0_8,
+    annotation { "Name" : "Custom" }
+    CUSTOM
+}
+
+/**
+ * A helical gear's hand: which way its teeth twist. Meshing helical gears have opposite hands.
+ */
+export enum GearHand
+{
+    annotation { "Name" : "Right hand" }
+    RIGHT,
+    annotation { "Name" : "Left hand" }
+    LEFT
+}
+
+/**
  * Where a cut rack's face is on its teeth.
  */
 export enum RackFaceAt
@@ -53,7 +90,19 @@ const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millime
 // A 1/8 in. router bit's
 const BIT_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 
+const HELIX_ANGLE_BOUNDS = { (degree) : [5, 15, 45] } as AngleBoundSpec;
+
 const RACK_END_MANIPULATOR = "rackEnd";
+
+/**
+ * The standard pitches' modules, pressure angles, and names (in part names). FRC's 20 DP gears (VEXpro, WCP, and
+ * AndyMark) are 14.5°; its 32 DP gears (WCP), and FTC's module 0.8 gears (goBILDA), are 20°.
+ */
+const GEAR_PITCHES = {
+        (GearPitch.DP_20) : { "module" : inch / 20, "pressureAngle" : 14.5 * degree, "name" : "20DP" },
+        (GearPitch.DP_32) : { "module" : inch / 32, "pressureAngle" : 20 * degree, "name" : "32DP" },
+        (GearPitch.MODULE_0_8) : { "module" : 0.8 * millimeter, "pressureAngle" : 20 * degree, "name" : "Module 0.8" }
+    };
 
 predicate isGear(definition is map)
 {
@@ -61,12 +110,13 @@ predicate isGear(definition is map)
 }
 
 /**
- * Makes involute spur gears (or sectors of them), with optional root rounds a router bit can cut, or cuts rack teeth
- * into a part's face; sized by diametral pitch (in inches) or module (metric).
+ * Makes involute spur, helical, and herringbone gears (or sectors of them), with optional root rounds a router bit can
+ * cut, or cuts rack teeth into a part's face; at robot gears' standard pitches, or by diametral pitch (in inches) or
+ * module (metric).
  */
 annotation {
         "Feature Type Name" : "Robot gear",
-        "Feature Type Description" : "Create involute spur gears and sector gears, or cut racks into parts, by diametral pitch or module." ~ CREDIT,
+        "Feature Type Description" : "Create spur, helical, and herringbone gears, or cut racks into parts, at FRC and FTC gears' standard pitches." ~ CREDIT,
         "Manipulator Change Function" : "robotGearManipulatorChange",
         "Icon" : RobotIcon::BLOB_DATA
     }
@@ -80,7 +130,19 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
         if (isGear(definition))
         {
-            locationPredicate(definition, "gear");
+            annotation { "Name" : "Size by", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.sizeBy is GearSize;
+
+            if (definition.sizeBy == GearSize.TEETH)
+            {
+                locationPredicate(definition, "gear");
+            }
+            else
+            {
+                annotation { "Name" : "Pitch circle", "Filter" : EntityType.EDGE && GeometryType.CIRCLE, "MaxNumberOfPicks" : 1,
+                            "Description" : "Its center places the gear, and its size sets its teeth." }
+                definition.pitchCircle is Query;
+            }
         }
         else
         {
@@ -114,30 +176,60 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
         annotation { "Group Name" : "Teeth", "Collapsed By Default" : false }
         {
-            if (isImperial(definition))
+            annotation { "Name" : "Pitch", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "20 DP at 14.5° (FRC: VEXpro, WCP, AndyMark), 32 DP at 20° (FRC: WCP), or module 0.8 at 20° (FTC: goBILDA)." }
+            definition.pitch is GearPitch;
+
+            if (definition.pitch == GearPitch.CUSTOM)
             {
-                annotation { "Name" : "Diametral pitch", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Teeth per inch of pitch diameter: 20 for most robot gears." }
-                isReal(definition.diametralPitch, DIAMETRAL_PITCH_BOUNDS);
-            }
-            else
-            {
-                annotation { "Name" : "Module", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Pitch diameter per tooth." }
-                isLength(definition.module, MODULE_BOUNDS);
+                if (isImperial(definition))
+                {
+                    annotation { "Name" : "Diametral pitch", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Teeth per inch of pitch diameter." }
+                    isReal(definition.diametralPitch, DIAMETRAL_PITCH_BOUNDS);
+                }
+                else
+                {
+                    annotation { "Name" : "Module", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Pitch diameter per tooth." }
+                    isLength(definition.module, MODULE_BOUNDS);
+                }
+
+                annotation { "Name" : "Pressure angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isAngle(definition.pressureAngle, PRESSURE_ANGLE_BOUNDS);
             }
 
-            if (isGear(definition))
+            if (isGear(definition) && definition.sizeBy == GearSize.TEETH)
             {
                 annotation { "Name" : "Teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isInteger(definition.teeth, GEAR_TEETH_BOUNDS);
             }
 
-            annotation { "Name" : "Pressure angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "20 degrees for most gears; some older ones are 14.5." }
-            isAngle(definition.pressureAngle, PRESSURE_ANGLE_BOUNDS);
-
             if (isGear(definition))
             {
                 annotation { "Name" : "Thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.thickness, THICKNESS_BOUNDS);
+            }
+        }
+
+        if (isGear(definition))
+        {
+            annotation { "Name" : "Helical", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "Teeth on a helix: quieter and smoother, but they push the gear along its shaft." }
+            definition.helical is boolean;
+
+            if (definition.helical)
+            {
+                annotation { "Group Name" : "Helical", "Collapsed By Default" : false, "Driving Parameter" : "helical" }
+                {
+                    annotation { "Name" : "Helix angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isAngle(definition.helixAngle, HELIX_ANGLE_BOUNDS);
+
+                    annotation { "Name" : "Hand", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"], "Description" : "Meshing helical gears have opposite hands." }
+                    definition.hand is GearHand;
+
+                    annotation { "Name" : "Double helical", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                                "Description" : "Herringbone: two halves of opposite hands, so they don't push along the shaft." }
+                    definition.doubleHelical is boolean;
+                }
             }
         }
 
@@ -195,31 +287,24 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         const module = gearModule(definition);
         if (!isGear(definition))
         {
-            cutRack(context, id, definition, getGearForm(module, undefined, definition.pressureAngle, standardFilletRadius(module), getProfileOffset(definition)));
+            cutRack(context, id, definition, getGearForm(module, undefined, pressureAngle(definition), standardFilletRadius(module), getProfileOffset(definition)));
             return;
         }
 
-        const gearPlane = applyStartOffset(context, definition, getLocationPlane(context, definition));
+        const size = gearSize(context, definition, module);
+        const gearPlane = applyStartOffset(context, definition, size.plane);
         addStartOffsetManipulator(context, id, definition, gearPlane);
 
         const fillet = definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
-        const form = getGearForm(module, definition.teeth, definition.pressureAngle, fillet, getProfileOffset(definition));
-        if (definition.sector && definition.sectorTeeth >= definition.teeth)
+        const form = getGearForm(module, size.teeth, pressureAngle(definition), fillet, getProfileOffset(definition));
+        if (definition.sector && definition.sectorTeeth >= size.teeth)
         {
             throw regenError("A sector has fewer teeth than its gear.", ["sectorTeeth"]);
         }
         const profile = sketchGearProfile(context, id + "profile", gearPlane, form, definition.sector ? definition.sectorTeeth : undefined);
-        opExtrude(context, id + "extrude", {
-                    "entities" : profile,
-                    "direction" : gearPlane.normal,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : definition.thickness / 2,
-                    "startBound" : BoundingType.BLIND,
-                    "startDepth" : definition.thickness / 2
-                });
+        const gear = buildGearBody(context, id, definition, gearPlane, profile, form);
         cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
-        const gear = qCreatedBy(id + "extrude", EntityType.BODY);
-        setGearProperties(context, gear, definition);
+        setGearProperties(context, gear, definition, size.teeth);
 
         if (offsetProfile(definition))
         {
@@ -241,9 +326,108 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         {
             cutBores(context, id + "bore", bore, [gearPlane], [undefined], [gear]);
         }
-        // Its pitch diameter, for spacing gears: two mesh their pitch radii apart
-        reportFeatureInfo(context, id, "Its pitch diameter is " ~ makeValueString(definition.unitSystem, 2 * form.pitchRadius, true) ~ ".");
+        if (size.warning != undefined)
+        {
+            reportFeatureWarning(context, id, size.warning, ["pitchCircle"]);
+        }
+        else
+        {
+            // Its pitch diameter, for spacing gears: two mesh their pitch radii apart
+            reportFeatureInfo(context, id, "Its pitch diameter is " ~ makeValueString(definition.unitSystem, 2 * form.pitchRadius, true) ~ ".");
+        }
     });
+
+/**
+ * The gear's teeth and plane: Teeth's, at the location; or with Size by Pitch circle, the nearest whole number of
+ * teeth's, at the circle's center, with a `warning` if the circle isn't exactly their size (within std's length
+ * tolerance).
+ *
+ * @returns {{
+ *      @field teeth {number} :
+ *      @field plane {Plane} : Before the starting offset.
+ *      @field warning {string} : If the pitch circle isn't a whole number of teeth's.
+ * }}
+ */
+function gearSize(context is Context, definition is map, module is ValueWithUnits) returns map
+{
+    if (definition.sizeBy == GearSize.TEETH)
+    {
+        return { "teeth" : definition.teeth, "plane" : getLocationPlane(context, definition) };
+    }
+    const circle = verifyNonemptyQuery(context, definition, "pitchCircle", "Select a pitch circle.")[0];
+    const radius = evCurveDefinition(context, { "edge" : circle }).radius;
+    const teeth = nearestGearTeeth(radius, module);
+    // Teeth's least
+    if (teeth < 4)
+    {
+        throw regenError("The pitch circle is too small for a gear of this pitch.", ["pitchCircle"], circle);
+    }
+    var result = { "teeth" : teeth, "plane" : selectionPlane(context, circle) };
+    if (!tolerantEquals(teeth * module / 2, radius))
+    {
+        result.warning = "The pitch circle isn't the size of a gear with a whole number of teeth: it's the nearest, with " ~ teeth ~ " teeth.";
+    }
+    return result;
+}
+
+/**
+ * The teeth of the gear whose pitch circle's nearest `radius` in size: its pitch diameter is `module` per tooth.
+ */
+function nearestGearTeeth(radius is ValueWithUnits, module is ValueWithUnits) returns number
+{
+    return round(2 * radius / module);
+}
+
+/**
+ * The gear's body: its profile extruded the thickness both ways from its plane; or with Helical, swept both ways along
+ * helices on its pitch circle, at the helix angle, which turn it about its axis as it goes. The halves are the same
+ * hand (a helical gear's teeth twist one way through it), or with Double helical, opposite hands (a herringbone). Its
+ * teeth are where a spur gear's would be at its plane, its middle.
+ */
+function buildGearBody(context is Context, id is Id, definition is map, gearPlane is Plane, profile is Query, form is map) returns Query
+{
+    if (!definition.helical)
+    {
+        opExtrude(context, id + "extrude", {
+                    "entities" : profile,
+                    "direction" : gearPlane.normal,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : definition.thickness / 2,
+                    "startBound" : BoundingType.BLIND,
+                    "startDepth" : definition.thickness / 2
+                });
+        return qCreatedBy(id + "extrude", EntityType.BODY);
+    }
+    // How far along the axis the teeth go to turn once: the pitch circle's circumference over the helix angle's tangent
+    const lead = 2 * PI * form.pitchRadius / tan(definition.helixAngle);
+    // A right hand helix turns clockwise looking along it, either way
+    const right = definition.hand == GearHand.RIGHT;
+    var halves = [];
+    for (var half in ["up", "down"])
+    {
+        const halfId = id + half;
+        opHelix(context, halfId + "helix", {
+                    "direction" : gearPlane.normal * (half == "up" ? 1 : -1),
+                    "axisStart" : gearPlane.origin,
+                    "startPoint" : gearPlane.origin + gearPlane.x * form.pitchRadius,
+                    "interval" : [0, definition.thickness / 2 / lead],
+                    "clockwise" : half == "down" && definition.doubleHelical ? !right : right,
+                    "helicalPitch" : lead,
+                    "spiralPitch" : 0 * meter
+                });
+        opSweep(context, halfId + "sweep", {
+                    "profiles" : profile,
+                    "path" : qCreatedBy(halfId + "helix", EntityType.EDGE)
+                });
+        halves = append(halves, qCreatedBy(halfId + "sweep", EntityType.BODY));
+    }
+    cleanup(context, id + "deleteHelices", qUnion([qCreatedBy(id + "up" + "helix", EntityType.BODY), qCreatedBy(id + "down" + "helix", EntityType.BODY)]));
+    opBoolean(context, id + "join", {
+                "tools" : qUnion(halves),
+                "operationType" : BooleanOperationType.UNION
+            });
+    return qUnion(halves);
+}
 
 /**
  * Cuts rack teeth into the part along Face to cut (and with Tangent propagation, the flat faces in line with it, across
@@ -351,17 +535,38 @@ function longestEdgeDirection(context is Context, faces is Query)
  */
 function gearModule(definition is map) returns ValueWithUnits
 {
+    if (definition.pitch != GearPitch.CUSTOM)
+    {
+        return GEAR_PITCHES[definition.pitch].module;
+    }
     return isImperial(definition) ? 1 * inch / definition.diametralPitch : definition.module;
 }
 
-function setGearProperties(context is Context, gear is Query, definition is map)
+/**
+ * The pressure angle: a standard pitch's, or Pressure angle.
+ */
+function pressureAngle(definition is map) returns ValueWithUnits
 {
-    // 24T 20DP Gear, or 30T Module 1 Gear
-    const size = isImperial(definition) ? definition.diametralPitch ~ "DP" : "Module " ~ roundToPrecision(definition.module / millimeter, 3);
+    return definition.pitch == GearPitch.CUSTOM ? definition.pressureAngle : GEAR_PITCHES[definition.pitch].pressureAngle;
+}
+
+function setGearProperties(context is Context, gear is Query, definition is map, teeth is number)
+{
+    // 24T 20DP Gear, 30T Module 1 Helical Gear, or 40T Module 0.8 Herringbone Gear
+    var size;
+    if (definition.pitch != GearPitch.CUSTOM)
+    {
+        size = GEAR_PITCHES[definition.pitch].name;
+    }
+    else
+    {
+        size = isImperial(definition) ? definition.diametralPitch ~ "DP" : "Module " ~ roundToPrecision(definition.module / millimeter, 3);
+    }
+    const kind = !definition.helical ? "Gear" : definition.doubleHelical ? "Herringbone Gear" : "Helical Gear";
     setProperty(context, {
                 "entities" : gear,
                 "propertyType" : PropertyType.NAME,
-                "value" : definition.teeth ~ "T " ~ size ~ " Gear"
+                "value" : teeth ~ "T " ~ size ~ " " ~ kind
             });
     setProperty(context, {
                 "entities" : gear,

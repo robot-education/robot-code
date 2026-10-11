@@ -271,3 +271,33 @@ def test_rack_cut_is_one_region_when_teeth_stop_short_of_the_face():
 def test_rack_teeth_too_thin():
     with pytest.raises(FSError, match="come to points"):
         rack_cut("1 * millimeter", 10 * math.pi, offset_mm=-1)
+
+
+def gear_eval(expression: str):
+    return to_python(shared_evaluator().eval(expression, "gear/robotGear.fs"))
+
+
+@pytest.mark.parametrize("pitch,module_mm,pressure_degrees", [
+    ("DP_20", 25.4 / 20, 14.5),
+    ("DP_32", 25.4 / 32, 20),
+    ("MODULE_0_8", 0.8, 20),
+])
+def test_standard_pitches(pitch, module_mm, pressure_degrees):
+    definition = f'{{ "pitch" : GearPitch.{pitch} }}'
+    assert gear_eval(f"gearModule({definition}) / millimeter") == pytest.approx(module_mm)
+    assert gear_eval(f"pressureAngle({definition}) / degree") == pytest.approx(pressure_degrees)
+
+
+def test_custom_pitch_by_unit_system():
+    imperial = '{ "pitch" : GearPitch.CUSTOM, "unitSystem" : UnitSystem.IMPERIAL, "diametralPitch" : 24, "pressureAngle" : 25 * degree }'
+    metric = '{ "pitch" : GearPitch.CUSTOM, "unitSystem" : UnitSystem.METRIC, "module" : 1.5 * millimeter }'
+    assert gear_eval(f"gearModule({imperial}) / inch") == pytest.approx(1 / 24)
+    assert gear_eval(f"pressureAngle({imperial}) / degree") == pytest.approx(25)
+    assert gear_eval(f"gearModule({metric}) / millimeter") == pytest.approx(1.5)
+
+
+def test_nearest_gear_teeth():
+    # A 3 in. pitch circle is a 60T 20 DP gear; a little bigger rounds to it, and half a tooth more to the next
+    assert gear_eval("nearestGearTeeth(1.5 * inch, inch / 20)") == 60
+    assert gear_eval("nearestGearTeeth(1.51 * inch, inch / 20)") == 60
+    assert gear_eval("nearestGearTeeth(1.5 * inch + inch / 40 * 0.6, inch / 20)") == 61

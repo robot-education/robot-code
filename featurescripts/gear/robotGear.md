@@ -1,8 +1,9 @@
 # Robot gear
 
-Makes involute spur gears (or sectors of them), or cuts rack teeth into a part's face. Both are sized by diametral
-pitch (Inch) or module (Metric), with standard proportions. A gear has root fillets, optionally roots a router bit can
-cut, and can have a bore.
+Makes involute spur, helical, and herringbone gears (or sectors of them), or cuts rack teeth into a part's face. Both
+are at a standard robot gear pitch (20 DP or 32 DP for FRC, module 0.8 for FTC), or a custom diametral pitch (Inch)
+or module (Metric), with standard proportions. A gear is sized by its teeth or a pitch circle. It has root fillets,
+optionally roots a router bit can cut, and can have a bore.
 
 | File | What it is |
 | --- | --- |
@@ -11,7 +12,8 @@ cut, and can have a bore.
 | `../core/bore.fs` | The bore: its parameters, and cutting it |
 | `../core/location.fs`, `../core/startOffset.fs`, `../core/profileOffset.fs` | The location, starting offset, and profile offset |
 | `../core/mounting.fs` | The angle reference's point (`angleReferencePoint`) |
-| `../../tests/fs_eval_sketch_test.py` | Tests of gears' profiles, and of where a rack's teeth go and what's cut |
+| `../../tests/fs_eval_sketch_test.py` | Tests of gears' profiles, the standard pitches, pitch circles' teeth, and where a rack's teeth go and what's cut |
+| `spurGear.local.fs` | Onshape's Spur gear, for reference (see Compared with Spur gear): not synced |
 
 ## Changelog
 
@@ -22,8 +24,8 @@ Unreleased.
 | String | Where |
 | --- | --- |
 | Robot gear | feature name |
-| Create involute spur gears and sector gears, or cut racks into parts, by diametral pitch or module. `<CREDIT>` | feature description |
-| `<teeth>`T `<pitch>`DP Gear, or `<teeth>`T Module `<module>` Gear | part name |
+| Create spur, helical, and herringbone gears, or cut racks into parts, at FRC and FTC gears' standard pitches. `<CREDIT>` | feature description |
+| `<teeth>`T `<pitch>` `<kind>`: the pitch is like 20DP or Module 0.8, and the kind Gear, Helical Gear, or Herringbone Gear | part name |
 
 A gear's material is Onyx, and its appearance printed green. A cut rack leaves its part's properties as they are.
 
@@ -31,9 +33,13 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 
 | Parameter | Description |
 | --- | --- |
-| Diametral pitch (`diametralPitch`) | Teeth per inch of pitch diameter: 20 for most robot gears. |
+| Pitch circle (`pitchCircle`) | Its center places the gear, and its size sets its teeth. |
+| Pitch (`pitch`) | 20 DP at 14.5° (FRC: VEXpro, WCP, AndyMark), 32 DP at 20° (FRC: WCP), or module 0.8 at 20° (FTC: goBILDA). |
+| Diametral pitch (`diametralPitch`) | Teeth per inch of pitch diameter. |
 | Module (`module`) | Pitch diameter per tooth. |
-| Pressure angle (`pressureAngle`) | 20 degrees for most gears; some older ones are 14.5. |
+| Helical (`helical`) | Teeth on a helix: quieter and smoother, but they push the gear along its shaft. |
+| Hand (`hand`) | Meshing helical gears have opposite hands. |
+| Double helical (`doubleHelical`) | Herringbone: two halves of opposite hands, so they don't push along the shaft. |
 | Face to cut (`rackFace`) | The teeth run along its longest edge, cut through its width. |
 | Tangent propagation (`tangentPropagation`) | Also cut along the flat faces in line with it, across tangent edges. |
 | Face at (`rackFaceAt`) | The teeth's pitch line (their tips are cut off at the face), or their tips. |
@@ -49,6 +55,9 @@ No parameters are hidden.
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
 | Select a sketch point, circle, or mate connector to use. | error | no location | `location` |
+| Select a pitch circle. | error | Size by Pitch circle, with none | `pitchCircle` |
+| The pitch circle is too small for a gear of this pitch. | error | it's under 4 teeth's | `pitchCircle`, the circle |
+| The pitch circle isn't the size of a gear with a whole number of teeth: it's the nearest, with `<teeth>` teeth. | warning | its diameter isn't a whole number of modules (within std's length tolerance) | `pitchCircle` |
 | A sector has fewer teeth than its gear. | error | Sector teeth is the gear's teeth or more | `sectorTeeth` |
 | The gear's teeth come to points: give it more teeth, or less clearance. | error | a tooth's flanks meet below the tip circle | `teeth` |
 | The gear's too small for its teeth: give it more teeth. | error | the root circle's at or below the center | `teeth` |
@@ -59,23 +68,29 @@ No parameters are hidden.
 | Select an angle reference. / The angle reference must be a point. | error | Angle reference, with none, or a selection that isn't a point | `angleReference` |
 | The face is too short for a whole tooth. | error | no whole tooth fits along it | `rackFace`, the faces |
 | The rack's teeth come to points: use less clearance. / The rack's teeth meet at their roots: use more clearance. | error | the profile offset's too far | `profileOffsetDistance` |
-| Its pitch diameter is `<diameter>`. | info | a gear | |
+| Its pitch diameter is `<diameter>`. | info | a gear, without the pitch circle's warning | |
 | Failed to cut bore. / The bore is bigger than the part. / Failed to chamfer bore. | error | (`core/bore.fs`) | the bore's parameters, and what failed |
 
 ## How it works
 
 ### Execution order
 
-1. **Precondition**: Gear type (Create gear or Cut rack). Create gear: location; Diametral pitch or Module (by unit
-   system), Teeth, Pressure angle, and Thickness; Sector and Sector teeth; Router relief and Bit diameter; starting
-   offset; bore; profile offset; Add mate connector. Cut rack: Face to cut, Tangent propagation, Face at, Align teeth
-   to (End, with Opposite end, or Angle reference); Diametral pitch or Module, and Pressure angle; profile offset.
-   (A rack's roots are square: there's no round for Router relief.)
-2. **Body**: the module (an inch over the diametral pitch), and the tooth form (`getGearForm`: pitch radius `m z / 2`,
+1. **Precondition**: Gear type (Create gear or Cut rack).
+   - Create gear: Size by (Teeth or Pitch circle), then the location or Pitch circle; Pitch (with Custom, Diametral
+     pitch or Module by unit system, and Pressure angle), Teeth (by Teeth), and Thickness; Helical, with Helix angle,
+     Hand, and Double helical; Sector and Sector teeth; Router relief and Bit diameter; starting offset; bore; profile
+     offset; Add mate connector.
+   - Cut rack: Face to cut, Tangent propagation, Face at, Align teeth to (End, with Opposite end, or Angle
+     reference); Pitch (and with Custom, its pitch and Pressure angle); profile offset. (A rack's roots are square:
+     there's no round for Router relief.)
+2. **Body**: the module and pressure angle (a standard pitch's, see `GEAR_PITCHES`, or Custom's: an inch over the
+   diametral pitch), and the tooth form (`getGearForm`: pitch radius `m z / 2`,
    base radius its cosine of the pressure angle, tip `m` above it and root `1.25 m` below, fillet `0.38 m` or the bit's
    radius, all offset by the profile offset). Then:
-   - Create gear: the profile (below), extruded the thickness both ways from the location's plane, its properties, a
-     profile offset manipulator, mate connector, its bore (`cutBores`), and its pitch diameter as info.
+   - Create gear: its teeth and plane (`gearSize`: Teeth at the location, or the nearest whole number of teeth to the
+     pitch circle, `nearestGearTeeth`, at its center), the profile (below), its body (`buildGearBody`, below), its
+     properties, a profile offset manipulator, mate connector, its bore (`cutBores`), and the pitch circle's warning
+     or its pitch diameter as info.
    - Cut rack: `cutRack` (below).
 3. **Manipulator change** (`robotGearManipulatorChange`): the rack's end flip, or the profile offset's and starting
    offset's.
@@ -93,6 +108,20 @@ side mirrored):
 - **Tip**: an arc on the tip circle.
 
 A sector's teeth are centered on the x axis, and its ends run from the middle of the gaps at its ends to the center.
+
+### Helical and herringbone gears
+
+`buildGearBody` extrudes a spur gear's profile the thickness both ways from its plane. A helical gear's profile is
+swept instead, both ways from its plane along helices on its pitch circle (`opHelix`, `opSweep`), which turn it about
+its axis as it goes, as Onshape's Spur gear does for each tooth. The two halves are joined.
+
+- **Lead**: the teeth turn once over `π d / tan ψ` along the axis, for pitch diameter `d` and helix angle `ψ`.
+- **Hand**: a right hand helix turns clockwise looking along it, from either end, so both halves of a helical gear
+  are the same hand. A herringbone's lower half is the opposite hand, the mirror image of its upper half.
+- **Pitch**: the profile is in the gear's plane, so its pitch and pressure angle are transverse. A helical gear has
+  the same pitch diameter, and spacing, as a spur gear of its pitch and teeth. Its normal pitch is finer, by the helix
+  angle's cosine.
+- At its plane (its middle), its teeth are where a spur gear's would be.
 
 ### Cutting a rack
 
@@ -113,6 +142,26 @@ A sector's teeth are centered on the x axis, and its ends run from the middle of
 5. The regions are sketched on a plane across the face's start (`sketchRackCut`), extruded through its width, and cut
    from the part.
 
+## Compared with Spur gear
+
+Onshape's Spur gear (`spurGear.local.fs`) makes spur and helical gears, one tooth cut from a blank and patterned
+around it.
+
+| Spur gear option | Here | Why |
+| --- | --- | --- |
+| Module, diametral pitch, or circular pitch | Standard pitches, or Custom: diametral pitch (Inch) or module (Metric) | Robot gears come in a few standard pitches; circular pitch is rarely used |
+| Pitch circle diameter (tied to Teeth by editing logic) | Size by Teeth or Pitch circle (a selected circle, with a warning if it's between sizes) | A circle places the gear too |
+| Pressure angle | With the standard pitch; Custom only | 20 DP robot gears are 14.5°, which is easy to miss |
+| Root fillet (none, 1/4, 1/3, full) | Standard (`0.38 m`), or a router bit's radius (Router relief) | What matters is whether it can be machined |
+| Backlash | Profile offset | |
+| Dedendum (1.157, 1.2, or 1.25 times the module), root and tip offsets | Left out: always `1.25 m`, and `m` | Standard full depth teeth; the profile offset covers clearance |
+| Clocking angle | Left out: a tooth's on the location's x axis | Mate connectors and the location place it |
+| Helical: angle, direction, double helix | Helical: Helix angle, Hand, Double helical | Hands are how helical gears are specified |
+| Chamfer | Left out | Machined robot gears aren't chamfered |
+| Center bore, keyway | The shared bore (`core/bore.fs`): hex, round, spline, and so on | Robot shafts' bores, not keyways |
+| Depth, symmetric, opposite direction | Thickness, symmetric about the location, and the starting offset | |
+| Gears table, `spurGear` attribute | Left out | |
+
 ## Issues found
 
 - Untested in Onshape: nothing here has run yet.
@@ -120,6 +169,10 @@ A sector's teeth are centered on the x axis, and its ends run from the middle of
   where a generated gear would be undercut; its radial root relieves some of that, but not all.
 - The icon is the generic robot icon.
 - Cut rack only cuts along flat faces: sector gears along curved ones are still to come.
+- Helical gears sweep the whole profile along each helix; Onshape's Spur gear sweeps one tooth. Untried in Onshape.
+- Helical racks aren't cut.
+- REV's MAXSpline 20 DP gears' pressure angle isn't published; FTC gears besides goBILDA's (REV's, say) aren't among
+  the standard pitches.
 - Its regions are flush with the face, its ends, and its sides: booleans treat faces within their tolerance as the
   same, but it's untried in Onshape.
 - Past the last whole tooth, the rest of the face is cut to the root, rather than left as a partial tooth.
