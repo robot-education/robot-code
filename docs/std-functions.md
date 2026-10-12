@@ -69,6 +69,7 @@ Decide whether two things are the same, or touch, by std's tolerances, never by 
 | `opModifyFillet` | geomOperations | Changes an existing fillet's radius, or removes it (Vent sets its hair fillets to the wall thickness this way). Its `ModifyFilletType` is in `modifyFillet.fs`, which `common.fs` doesn't export: import it (`import(path : "onshape/std/modifyFillet.fs", version : ...)`) |
 | `opDeleteFace` | geomOperations | Deletes faces and heals the gap by extending their neighbors (a rounded corner made sharp) |
 | `opOffsetFace`, `opShell`, `opEnclose` | geomOperations | Moving faces; hollowing a solid; a solid from the space surfaces enclose (how Lighten and Vent make walls) |
+| `opOffsetWire` † | geomOperations | Offsets a chain of planar edges in its plane (`normal`), by `offset1` and `offset2`, as wires, or with `makeRegions`, the flat sheet between them (a band): what thin extrudes use, since about 2023. For a closed chain, `offset1` is outward of the region it encloses, and `offset2` inward (so a hole's loop offset `offset1` grows into the face around it); an open chain's sides follow its first edge. A band offset both ways around a hole fails where it's wider than the hole's radius. Its input edges mustn't cross each other. Robot lighten's walls and ribs are its bands |
 | `fSphere` † | primitives | A sphere, as `fCylinder` makes a cylinder |
 | `cylinderCast` † | cylinderCast | Casts a cylinder (undocumented) |
 
