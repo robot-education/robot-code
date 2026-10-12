@@ -262,7 +262,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         catch
         {
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "pocket", "propagateErrorDisplay" : true });
-            throw regenError("Failed to create pockets.", ["face", "depth"]);
+            throw regenError("Failed to create pockets.", ["face", "depth"], face);
         }
         // Its ends, on the face and its far side: every other face is a side
         const ends = qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE);
@@ -273,6 +273,10 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // The walls: the pocket (and the pieces regions to ignore split it into), inset by them, but along the part's
         // faces to ignore
         const extruded = qUnion([qCreatedBy(id + "pocket", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
+        if (isQueryEmpty(context, extruded))
+        {
+            throw regenError("The regions to ignore cover the whole face.", ["ignoredFaces"], qUnion([face, qSketchFilter(ignoredFaces, SketchObject.YES)]));
+        }
         const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
         // The pockets' ends from here on, tracked from the extrude's caps (see `buildWalls`)
         const pocketEnds = buildWalls(context, id, definition, extruded, ends, qIntersection([pocketFaces, ignoredSides]),
@@ -292,13 +296,25 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         catch
         {
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "cutRibs", "propagateErrorDisplay" : true });
-            throw regenError("Failed to create rib.", ribParameters(definition));
+            // A failed boolean changes nothing: the ribs are still there to show
+            throw regenError("Failed to cut the ribs from the pockets.", ribParameters(definition), ribs);
         }
         // The pockets left between them, which the walls and ribs split into pieces
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
+        if (isQueryEmpty(context, pockets))
+        {
+            // The cut used up the walls' insides and the ribs, so the selections are what's shown
+            throw regenError("There's no room for pockets between the walls and ribs.",
+                concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : [], ribParameters(definition)]),
+                qUnion([face, ribEdges]));
+        }
 
         // Pockets too small to be worth cutting are left solid
         const small = smallPockets(context, pockets, pocketEnds, radius, definition.wallThickness);
+        if (size(small) == size(evaluateQuery(context, pockets)))
+        {
+            throw regenError("The pockets are all too small to cut.", ["wallThickness", "filletRadius"], qUnion(small));
+        }
         if (small != [])
         {
             opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
@@ -309,39 +325,31 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             roundPockets(context, id, pockets, pocketEnds, radius);
         }
 
-        if (isQueryEmpty(context, pockets))
+        const volume = evVolume(context, { "entities" : part });
+        try silent
         {
-            reportFeatureWarning(context, id, "There's no room for pockets between the walls and ribs.",
-                concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : [], ribParameters(definition)]));
+            opBoolean(context, id + "cut", {
+                        "targets" : part,
+                        "tools" : pockets,
+                        "operationType" : BooleanOperationType.SUBTRACTION
+                    });
         }
-        else
+        catch
         {
-            const volume = evVolume(context, { "entities" : part });
-            try silent
-            {
-                opBoolean(context, id + "cut", {
-                            "targets" : part,
-                            "tools" : pockets,
-                            "operationType" : BooleanOperationType.SUBTRACTION
-                        });
-            }
-            catch
-            {
-                processSubfeatureStatus(context, id, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
-                throw regenError("Failed to cut the pockets.", ["face"]);
-            }
-            // Pieces of ribs which touch no wall or other rib are cut free, as parts of their own
-            const loose = qCreatedBy(id + "cut", EntityType.BODY);
-            if (!isQueryEmpty(context, loose))
-            {
-                reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ribParameters(definition));
-                setErrorEntities(context, id, { "entities" : loose });
-            }
-            const lightened = 1 - evVolume(context, { "entities" : part }) / volume;
-            reportFeatureInfo(context, id, "Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
+            processSubfeatureStatus(context, id, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
+            throw regenError("Failed to cut the pockets from the part.", ["face"], pockets);
         }
+        // Pieces of ribs which touch no wall or other rib are cut free, as parts of their own
+        const loose = qCreatedBy(id + "cut", EntityType.BODY);
+        if (!isQueryEmpty(context, loose))
+        {
+            reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ribParameters(definition));
+            setErrorEntities(context, id, { "entities" : loose });
+        }
+        const lightened = 1 - evVolume(context, { "entities" : part }) / volume;
+        reportFeatureInfo(context, id, "Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
 
-        // The pockets are used up by the cut (or there are none)
+        // The pockets are used up by the cut
         opDeleteBodies(context, id + "cleanup", {
                     "entities" : qUnion([qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES), qCreatedBy(id + "ribs", EntityType.BODY)])
                 });
@@ -570,7 +578,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
     catch
     {
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "extend", "propagateErrorDisplay" : true });
-        throw regenError("Failed to create walls.", parameters);
+        throw regenError("Failed to create the walls along the faces shown.", parameters, qIntersection([faces, qUnion([ends, ignoredSides])]));
     }
     const trackedEnds = startTracking(context, qIntersection([faces, ends]));
 
@@ -615,7 +623,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "roundConcave", "propagateErrorDisplay" : true });
-            throw regenError("Failed to create walls.", parameters);
+            throw regenError("Failed to round the walls' inside corners.", parameters, concave);
         }
     }
     // Hollowing changes them, so they're tracked through it, to be set to exactly the inset after
@@ -632,7 +640,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
     catch
     {
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "shell", "propagateErrorDisplay" : true });
-        throw regenError("Failed to create walls.", parameters);
+        throw regenError("Failed to inset the pockets by the wall thickness.", parameters, pockets);
     }
     for (var i, pocket in evaluateQuery(context, pockets))
     {
@@ -644,8 +652,13 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : encloseId, "propagateErrorDisplay" : true });
-            throw regenError("Failed to create walls.", parameters);
+            throw regenError("Failed to inset the pocket shown.", parameters, pocket);
         }
+    }
+    // A pocket narrower than twice the inset encloses nothing; none left is an error, not an empty result
+    if (isQueryEmpty(context, qCreatedBy(id + "enclose", EntityType.BODY)))
+    {
+        throw regenError("There's no room for pockets inside the walls.", parameters, pockets);
     }
 
     // 5. Inside corners, exactly the inset
@@ -983,6 +996,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
         {
             reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
             processSubfeatureStatus(context, featureId, { "subfeatureId" : pocketId + "fillet", "propagateErrorDisplay" : true });
+            setErrorEntities(context, featureId, { "entities" : pocketCorners(context, pocket, ends) });
             continue;
         }
         var fullRounds = true;
@@ -1002,6 +1016,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
             {
                 reportFeatureWarning(context, featureId, "Failed to round a narrow pocket end.", ["filletRadius"]);
                 processSubfeatureStatus(context, featureId, { "subfeatureId" : fullRoundId, "propagateErrorDisplay" : true });
+                setErrorEntities(context, featureId, { "entities" : narrowEnd.faces });
                 fullRounds = false;
             }
         }
@@ -1014,6 +1029,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
         {
             reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
             processSubfeatureStatus(context, featureId, { "subfeatureId" : pocketId + "refillet", "propagateErrorDisplay" : true });
+            setErrorEntities(context, featureId, { "entities" : pocketCorners(context, pocket, ends) });
             continue;
         }
         filletIds = append(filletIds, pocketId + "refillet");
@@ -1036,7 +1052,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
     catch
     {
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
-        throw regenError("Failed to fillet the pockets.", ["filletRadius"]);
+        throw regenError("Failed to grow the pockets back by the fillet radius.", ["filletRadius"], qUnion(rounded));
     }
 
     // 4. The corners' rounds, exactly the radius

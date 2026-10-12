@@ -279,9 +279,10 @@ A feature (or subfeature) ends with one status: an error, a warning, or info (or
 ### Subfeatures and operations
 
 Subfeatures are std's features (`extrude`, `fillet`) or operations (`opExtrude`, `opFillet`), each with an id of its
-own under the feature's. They report errors, warnings, and info, on their own ids, and show error entities too: all
-of std's features have errors, and most show what failed; some operations do too (`opFillet` finds bad fillets, like
-overlapping ones, and shows the fillets which failed in pink and the edges it was given in red).
+own under the feature's. They report errors, warnings, and info, on their own ids. Std's features have errors, and
+most show what failed. Operations mostly don't: `opFillet` is the exception (it finds bad fillets, like overlapping
+ones, and shows the fillets which failed in pink and the edges it was given in red), and most others show nothing. A
+feature shows what failed itself (see "Failing, and carrying on").
 
 - **Errors propagate up on their own**: an operation which fails throws, and uncaught, fails the feature with its
   error. So an operation needn't be wrapped in a `try` just to fail the feature: wrap it to say something more, or to
@@ -305,15 +306,27 @@ overlapping ones, and shows the fillets which failed in pink and the edges it wa
   function doing several steps lists them, numbered, in its doc comment, and marks each in its body.
 - **To add context to a failed operation**, in its `catch`, copy its status and error display onto the feature
   (`processSubfeatureStatus`, with `propagateErrorDisplay`, on the feature's top level id), then throw the feature's
-  error: a short message of its own, highlighting the parameters which set what failed.
+  error: a short message saying which step failed, highlighting the parameters which set it, and showing what it was
+  given (the `regenError`'s entities, or `setErrorEntities`). Most operations show nothing of their own, so without
+  entities the error points nowhere. A message per step ("Failed to inset the pockets by the wall thickness.") says
+  more than one for the whole feature ("Failed to create walls.").
 
   ```
   catch
   {
       processSubfeatureStatus(context, id, { "subfeatureId" : id + "shell", "propagateErrorDisplay" : true });
-      throw regenError("Failed to create walls.", ["wallThickness", "filletRadius"]);
+      throw regenError("Failed to inset the pockets by the wall thickness.", ["wallThickness", "filletRadius"], pockets);
   }
   ```
+
+- **Show something that's still there.** A failed operation changes nothing, so what it was given can be shown. But
+  an operation which worked may have used up what a later error wants to show: a boolean consumes its tools, and its
+  targets become its result. Show the user's selections instead (they're always there), or rebuild what was used up
+  under another id, show it, and delete it, as std's `processNewBodyIfNeeded` does with its `reconstructOp`.
+- **Check for nothing left after each step which can leave nothing**: an enclose, a boolean, a filter. An empty
+  result isn't an error to the operations after it, so without a check the feature carries on, does nothing, and
+  ends with no result and no useful message. Throw at the step which emptied it, saying why, and showing what's left
+  to show (Robot lighten checks after the regions to ignore, the walls, the ribs, and dropping small pockets).
 
 - **When a step can fail without spoiling the rest, carry on with a warning**: in its `catch`, report the warning
   first, then copy the operation's status for its error display (its error, reported second, isn't shown), leave
@@ -330,11 +343,8 @@ overlapping ones, and shows the fillets which failed in pink and the edges it wa
   ```
 
 - **Keep messages short, and show where.** A message says what's wrong and what to change ("Selected wall overrides
-  are invalid."); why belongs in the writeup. Show the culprit in red: the error's entities, or the operation's own
-  display.
-- **A failed operation changes nothing**, so what it was given is still there to show, as is everything earlier steps
-  made. When earlier steps consumed what's to be shown, std rebuilds it under another id, shows it as error entities,
-  and deletes it (`processNewBodyIfNeeded`'s `reconstructOp`).
+  are invalid."); why belongs in the writeup. Show the culprit in red: the error's entities, and the operation's own
+  display where it has one.
 - **What rolls back when something throws**: a feature, all of it, when it fails. A `try` rolls nothing back: FsDoc's
   "Exceptions" (https://cad.onshape.com/FsDoc/exceptions.html) says a `try` block is aborted when something's thrown,
   and operations in it before the one which threw stay done. To try a sequence of operations and undo it, run it in a

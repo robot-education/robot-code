@@ -52,16 +52,23 @@ where they come up, and show only once it's done; only the first reported shows.
 | The face to lighten must be parallel to the ribs. | error | it isn't | `face`, the rib parameters, the face |
 | Failed to create pockets. | error | extruding the face fails | `face`, `depth`, the face |
 | Failed to ignore the selected regions. | error | extruding or cutting the regions to ignore fails | `ignoredFaces`, the regions |
+| The regions to ignore cover the whole face. | error | nothing's left of the pocket after cutting them | `ignoredFaces`, the face and the regions |
 | Selected wall overrides are invalid. | error | moving an override's sides fails | that override's parameters and faces, and the offset's error display |
-| Failed to create walls. | error | moving the ends and ignored sides out, the hair fillet, hollowing, or enclosing fails | `wallThickness`, `filletRadius` (and `wallOverrides`), and the operation's error display |
+| Failed to create the walls along the faces shown. | error | moving the pockets' ends and sides along faces to ignore out fails | `wallThickness`, `filletRadius` (and `wallOverrides`), and those faces |
+| Failed to round the walls' inside corners. | error | the hair fillet on the pockets' concave edges fails | the same, the edges, and the fillet's error display |
+| Failed to inset the pockets by the wall thickness. | error | hollowing fails | the same, and the pockets |
+| Failed to inset the pocket shown. | error | enclosing a hollowed pocket fails | the same, and that pocket |
+| There's no room for pockets inside the walls. | error | hollowing encloses nothing: every pocket's narrower than twice the walls | the same, and the hollowed pockets |
 | The walls' inside corners are rounded 0.01 mm larger than the wall thickness. | info | setting the walls' inside corners to their exact radius fails | |
-| Failed to create rib. | error | a rib's extrude, thicken, or cylinder fails, or cutting the ribs from the pockets fails | that rib's group's parameters and edge (or all the rib parameters), and the operation's error display |
-| Failed to round a narrow pocket end. | warning | a narrow end's full round fails: that pocket's left smaller | `filletRadius`, and the full round's error display |
-| Failed to fillet pocket. | warning | a pocket's corner fillet fails (with no narrow ends, or after their full rounds): that pocket's left smaller | `filletRadius`, and the fillet's error display (failed fillets in pink, bad edges in red) |
-| Failed to fillet the pockets. | error | growing the filleted pockets back fails | `filletRadius`, and the offset's error display |
+| Failed to create rib. | error | a rib's extrude, thicken, or cylinder fails | that rib's group's parameters, and its edge |
+| Failed to cut the ribs from the pockets. | error | cutting them fails | the rib parameters, and the ribs |
+| There's no room for pockets between the walls and ribs. | error | the ribs leave nothing of the pockets | the wall, fillet, and rib parameters, and the face and ribs (what was cut is used up) |
+| The pockets are all too small to cut. | error | every pocket's small (see Small pockets) | `wallThickness`, `filletRadius`, and the pockets |
+| Failed to round a narrow pocket end. | warning | a narrow end's full round fails: that pocket's left smaller | `filletRadius`, and the end's faces |
+| Failed to fillet pocket. | warning | a pocket's corner fillet fails (with no narrow ends, or after their full rounds): that pocket's left smaller | `filletRadius`, its corners, and the fillet's error display (failed fillets in pink, bad edges in red) |
+| Failed to grow the pockets back by the fillet radius. | error | growing the filleted pockets back fails | `filletRadius`, and the pockets |
 | The pockets' corners are rounded 0.01 mm larger than the fillet radius. | info | setting the pockets' corners to their exact radius fails | |
-| There's no room for pockets between the walls and ribs. | warning | no pockets are left | the wall, fillet, and rib parameters |
-| Failed to cut the pockets. | error | cutting the pockets from the part fails | `face`, and the cut's error display |
+| Failed to cut the pockets from the part. | error | cutting them fails | `face`, and the pockets |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | the cut leaves pieces of ribs free | the rib parameters, the loose parts |
 | Weight reduced by `<percent>`%. | info | the pockets are cut (shown if nothing was reported before it) | |
 
@@ -146,8 +153,10 @@ Before hollowing:
   they're set to exactly the hollow's depth (`opModifyFillet`, as Vent does), so growing the pockets back leaves them
   exactly the wall thickness. If that fails, they're left a hair bigger, and the info says so.
 
-Every other step's failure fails the feature, with the operation's error display: an override's offset as "Selected
-wall overrides are invalid.", and the rest as "Failed to create walls.".
+Every other step's failure fails the feature, with a message saying which step, and what it was given shown in red
+(see the errors table). An override's offset failing is "Selected wall overrides are invalid.", with its faces. A
+pocket narrower than twice the walls encloses nothing; if none of them encloses anything, that's an error, rather
+than a feature with no result.
 
 ### Ribs
 
@@ -208,8 +217,12 @@ the style guide's "Tolerances, not margins").
 
 - Each step is an operation of its own, with a `try` only where its failure needs something said, or where it can
   carry on. Its `catch` copies the operation's status and error display onto the feature (`processSubfeatureStatus`
-  with `propagateErrorDisplay`, on the feature's top level id), then throws a short message, highlighting the
-  parameters which set it.
+  with `propagateErrorDisplay`, on the feature's top level id), then throws a short message saying which step failed,
+  highlighting the parameters which set it, and showing what it was given: most operations show nothing of their own
+  (`opFillet` is the exception).
+- Where a step can leave nothing (the regions to ignore, the walls, the ribs' cut, dropping small pockets), it's
+  checked, and nothing left is an error there, showing what's still there to show: when the cut used up the pockets
+  and ribs, the face and the rib edges.
 - Failures it can carry on from aren't errors: a pocket's full round or fillet is a warning, and setting a fillet's
   exact radius is info. Each is reported where it comes up; only the first reported shows. A warning is reported
   before the failed operation's status is copied, so the warning shows, with the operation's error display.
