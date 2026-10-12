@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import re
+
 from fs_lsp.completion import enum_members_for, escape_markdown, feature_fields_for
 from fs_lsp.doc_comments import leading_doc_comment
-from fs_lsp.fsdoc import parse_doc, render_markdown
+from fs_lsp.fsdoc import param_markdown, parse_doc, render_markdown
 from fs_lsp.parser import ParsedProgram
 from fs_lsp.scanner import Token
 from fs_lsp.signatures import parse_signature, source_signature
@@ -25,6 +27,9 @@ MAX_FEATURE_FIELDS = 24
 KIND_LABELS = {"definitionProperty": "feature parameter", "enumMember": "enum member"}
 
 CALLABLE_KINDS = ("function", "predicate", "feature")
+
+# A parameter's name, and its type, if it has one: `context is Context`
+_PARAMETER = re.compile(r"[A-Za-z_]\w*(?:\s+is\s+([A-Za-z_][\w.]*))?")
 
 
 def hover_markdown(
@@ -51,6 +56,8 @@ def _code_block(code: str) -> str:
 
 def declaration_markdown(parsed: ParsedProgram, declaration: Declaration) -> str:
     lines = parsed.source.split("\n")
+    if declaration.kind == "parameter":
+        return _parameter_markdown(parsed, lines, declaration)
     signature = (
         source_signature(parsed.source, declaration.name, declaration.token.line)
         if declaration.kind in CALLABLE_KINDS
@@ -69,6 +76,24 @@ def declaration_markdown(parsed: ParsedProgram, declaration: Declaration) -> str
         )
     if declaration.kind == "feature":
         sections.append(_feature_fields(feature_fields_for(parsed, declaration.name)))
+    return "\n\n".join(section for section in sections if section)
+
+
+def _parameter_markdown(parsed: ParsedProgram, lines: list[str], declaration: Declaration) -> str:
+    """A parameter's own declaration (`name is Type`), and its `@param` from its function's doc comment: not the
+    function's whole doc, which is on the same line as its first parameters."""
+    match = _PARAMETER.match(parsed.source, declaration.token.offset)
+    type = match[1] if match and match[1] else None
+    sections = [
+        "**FeatureScript parameter**",
+        _code_block(f"{declaration.name} is {type}" if type else declaration.name),
+    ]
+    # Its function's doc comment precedes the line the function starts on
+    function_line = parsed.source.count("\n", 0, declaration.scope_start)
+    doc = leading_doc_comment(lines, function_line)
+    param = parse_doc(doc).param(declaration.name) if doc else None
+    if param is not None:
+        sections.append(param_markdown(param, type))
     return "\n\n".join(section for section in sections if section)
 
 

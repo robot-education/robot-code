@@ -301,6 +301,38 @@ def test_hover_local_and_stdlib():
     assert "stdlib function" in markdown
 
 
+def test_hover_parameter_shows_its_own_doc():
+    source = """FeatureScript 2909;
+import(path : "onshape/std/common.fs", version : "2909.0");
+
+/**
+ * Does something with the context.
+ * @param context : The context it's done in.
+ * @param query : What it's done to.
+ */
+function helper(context is Context,
+    query is Query) returns Query
+{
+    return qUnion([query, qNothing(context)]);
+}
+"""
+    parsed = parse(source)
+    index = SymbolIndex(parsed)
+    markdown, token = hover_markdown(parsed, index, source.index("qNothing(context") + len("qNothing("))
+    assert token.value == "context"
+    assert "FeatureScript parameter" in markdown
+    assert "context is Context" in markdown
+    assert "The context it's done in." in markdown
+    # Not the function's own doc, or its other parameters'
+    assert "Does something" not in markdown
+    assert "What it's done to." not in markdown
+
+    # One on a later line of the signature finds the same doc comment
+    markdown, _ = hover_markdown(parsed, index, source.index("[query") + 1)
+    assert "query is Query" in markdown
+    assert "What it's done to." in markdown
+
+
 # Doc comments
 
 
