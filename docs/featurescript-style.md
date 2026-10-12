@@ -436,6 +436,11 @@ afterwards, to what the fillet's faces became. A plain `qCreatedBy` used after a
 reliable (Robot lighten's `opModifyFillet` on its pockets' corners failed on every corner until its fillets were
 tracked through the offset which grows them).
 
+Tracking takes in the last operation before it (`lastOperationId`) too, so start it after the operation which made
+what's tracked, not straight after: tracking an extrude's caps from just after the extrude also finds its sides,
+which are derived from its profile, the start cap (Robot lighten offset every face of its pocket, until it tracked
+the caps from after the next step).
+
 Build a union of many queries by collecting them in an array and calling `qUnion` once, at the end, rather than
 `qUnion([soFar, next])` in a loop, which nests a query per step (and is slower to evaluate, and harder to read when
 debugging):

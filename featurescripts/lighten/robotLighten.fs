@@ -264,9 +264,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "pocket", "propagateErrorDisplay" : true });
             throw regenError("Failed to create pockets.", ["face", "depth"]);
         }
-        // Its ends, on the face and its far side, tracked through the steps which change them: hollowing, the cuts,
-        // and rounding. Every other face of a pocket is a side.
-        const ends = startTracking(context, qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE));
+        // Its ends, on the face and its far side: every other face is a side
+        const ends = qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE);
 
         // Sketch regions to ignore are left solid: cut from the pocket, so walls go around them too
         excludeRegions(context, id, facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(ignoredFaces, SketchObject.YES));
@@ -275,7 +274,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // faces to ignore
         const extruded = qUnion([qCreatedBy(id + "pocket", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
         const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
-        buildWalls(context, id, definition, extruded, ends, qIntersection([pocketFaces, ignoredSides]),
+        // The pockets' ends from here on, tracked from the extrude's caps (see `buildWalls`)
+        const pocketEnds = buildWalls(context, id, definition, extruded, ends, qIntersection([pocketFaces, ignoredSides]),
             mapArray(overriddenSides, wallOverride => mergeMaps(wallOverride, { "sides" : qIntersection([pocketFaces, wallOverride.sides]) })), radius);
 
         // The ribs, cut from what's left: what the walls enclose
@@ -298,7 +298,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
 
         // Pockets too small to be worth cutting are left solid
-        const small = smallPockets(context, pockets, ends, radius, definition.wallThickness);
+        const small = smallPockets(context, pockets, pocketEnds, radius, definition.wallThickness);
         if (small != [])
         {
             opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
@@ -306,7 +306,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         if (definition.filletCorners)
         {
-            roundPockets(context, id, pockets, ends, radius);
+            roundPockets(context, id, pockets, pocketEnds, radius);
         }
 
         if (isQueryEmpty(context, pockets))
@@ -546,9 +546,13 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
  *    a hair bigger, and it's said as info.
  *
  * A failed step fails the feature, with its own error display, highlighting what sets it.
+ *
+ * @returns {Query} : The inset pockets' ends: `ends`, tracked from after step 1 through hollowing, and the cuts and
+ *          rounding after it. Tracking from before step 1 would take in the pocket's extrude (the last operation
+ *          before it), whose sides are derived from its caps too.
  */
 function buildWalls(context is Context, featureId is Id, definition is map, pockets is Query, ends is Query, ignoredSides is Query,
-    overrides is array, radius is ValueWithUnits)
+    overrides is array, radius is ValueWithUnits) returns Query
 {
     const id = featureId + "walls";
     const distance = definition.wallThickness + radius;
@@ -568,6 +572,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "extend", "propagateErrorDisplay" : true });
         throw regenError("Failed to create walls.", parameters);
     }
+    const trackedEnds = startTracking(context, qIntersection([faces, ends]));
 
     // 2. Overridden sides
     for (var i, wallOverride in overrides)
@@ -662,6 +667,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
         }
     }
     opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
+    return trackedEnds;
 }
 
 /**
