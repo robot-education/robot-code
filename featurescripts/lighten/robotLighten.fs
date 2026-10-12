@@ -264,7 +264,9 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "pocket", "propagateErrorDisplay" : true });
             throw regenError("Failed to create pockets.", ["face", "depth"]);
         }
-        const ends = qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE);
+        // Its ends, on the face and its far side, tracked through the steps which change them: hollowing, the cuts,
+        // and rounding. Every other face of a pocket is a side.
+        const ends = startTracking(context, qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE));
 
         // Sketch regions to ignore are left solid: cut from the pocket, so walls go around them too
         excludeRegions(context, id, facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(ignoredFaces, SketchObject.YES));
@@ -296,7 +298,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
 
         // Pockets too small to be worth cutting are left solid
-        const small = smallPockets(context, facePlane, pockets, radius, definition.wallThickness);
+        const small = smallPockets(context, pockets, ends, radius, definition.wallThickness);
         if (small != [])
         {
             opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
@@ -304,7 +306,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         if (definition.filletCorners)
         {
-            roundPockets(context, id, facePlane, pockets, radius);
+            roundPockets(context, id, pockets, ends, radius);
         }
 
         if (isQueryEmpty(context, pockets))
@@ -951,10 +953,9 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
  * Only the first status reported shows, so a warning is reported before the failed operation's status is copied (for
  * its error display).
  */
-function roundPockets(context is Context, featureId is Id, plane is Plane, pockets is Query, radius is ValueWithUnits)
+function roundPockets(context is Context, featureId is Id, pockets is Query, ends is Query, radius is ValueWithUnits)
 {
     const id = featureId + "round";
-    const ends = pocketEnds(pockets, plane);
     var rounded = [];
     var filletIds = [];
     for (var i, pocket in evaluateQuery(context, pockets))
@@ -963,7 +964,7 @@ function roundPockets(context is Context, featureId is Id, plane is Plane, pocke
         setExternalDisambiguation(context, pocketId, pocket);
 
         // 1. Its corners, a hair
-        if (hairFillet(context, pocketId + "fillet", pocketCorners(context, sideEdges(context, pocket, plane.normal))))
+        if (hairFillet(context, pocketId + "fillet", pocketCorners(context, pocket, ends)))
         {
             filletIds = append(filletIds, pocketId + "fillet");
             rounded = append(rounded, pocket);
@@ -971,7 +972,7 @@ function roundPockets(context is Context, featureId is Id, plane is Plane, pocke
         }
 
         // 2. Its narrow sides, a full round across each, then its corners again
-        const narrowEnds = narrowSides(context, pocketId + "trial", pocket, plane.normal);
+        const narrowEnds = narrowSides(context, pocketId + "trial", pocket, ends);
         if (narrowEnds == [])
         {
             reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
@@ -1003,7 +1004,7 @@ function roundPockets(context is Context, featureId is Id, plane is Plane, pocke
             continue;
         }
         // A full round's edges are smooth, so they aren't corners
-        if (!hairFillet(context, pocketId + "refillet", pocketCorners(context, sideEdges(context, pocket, plane.normal))))
+        if (!hairFillet(context, pocketId + "refillet", pocketCorners(context, pocket, ends)))
         {
             reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
             processSubfeatureStatus(context, featureId, { "subfeatureId" : pocketId + "refillet", "propagateErrorDisplay" : true });
@@ -1079,13 +1080,13 @@ function hairFillet(context is Context, id is Id, corners is Query) returns bool
  *
  * @returns {array} : Each end, as a map of its `faces`, and the two `sides` it's between.
  */
-function narrowSides(context is Context, id is Id, pocket is Query, normal is Vector) returns array
+function narrowSides(context is Context, id is Id, pocket is Query, ends is Query) returns array
 {
-    const corners = pocketCorners(context, sideEdges(context, pocket, normal));
+    const corners = pocketCorners(context, pocket, ends);
     var narrow = [];
     for (var i, face in evaluateQuery(context, qAdjacent(corners, AdjacencyType.EDGE, EntityType.FACE)))
     {
-        const faceCorners = qIntersection([qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE), corners]);
+        const faceCorners = qIntersection([qLoopEdges(face), corners]);
         if (size(evaluateQuery(context, faceCorners)) != 2)
         {
             continue;
@@ -1103,7 +1104,7 @@ function narrowSides(context is Context, id is Id, pocket is Query, normal is Ve
     // The faces next to `faces` across their corners
     const beside = function(faces is Query) returns Query
         {
-            return qSubtraction(qAdjacent(qIntersection([qAdjacent(faces, AdjacencyType.EDGE, EntityType.EDGE), corners]), AdjacencyType.EDGE, EntityType.FACE), faces);
+            return qSubtraction(qAdjacent(qIntersection([qLoopEdges(faces), corners]), AdjacencyType.EDGE, EntityType.FACE), faces);
         };
     var ends = [];
     while (narrow != [])
@@ -1136,14 +1137,14 @@ function narrowSides(context is Context, id is Id, pocket is Query, normal is Ve
  * outline's length times `radius`, plus the bit's (Steiner's formula: exact for convex pockets, and a little more than
  * it for others).
  */
-function smallPockets(context is Context, plane is Plane, pockets is Query, radius is ValueWithUnits, wall is ValueWithUnits) returns array
+function smallPockets(context is Context, pockets is Query, ends is Query, radius is ValueWithUnits, wall is ValueWithUnits) returns array
 {
     return filter(evaluateQuery(context, pockets), function(pocket)
         {
-            // Both ends (on the face and its far side) are its outline
-            const ends = pocketEnds(pocket, plane);
-            const area = evArea(context, { "entities" : ends }) / 2;
-            const outline = evLength(context, { "entities" : qAdjacent(ends, AdjacencyType.EDGE, EntityType.EDGE) }) / 2;
+            // Both its ends (on the face and its far side) are its outline
+            const pocketEnds = qIntersection([ends, qOwnedByBody(pocket, EntityType.FACE)]);
+            const area = evArea(context, { "entities" : pocketEnds }) / 2;
+            const outline = evLength(context, { "entities" : qAdjacent(pocketEnds, AdjacencyType.EDGE, EntityType.EDGE) }) / 2;
             return isSmallPocket(area, outline, radius, wall);
         });
 }
@@ -1158,35 +1159,17 @@ export function isSmallPocket(area is ValueWithUnits, outline is ValueWithUnits,
 }
 
 /**
- * The pockets' ends: their faces parallel to `plane` (the face's), on it and its far side. The pockets are the face's
- * outline extruded along its normal, so those are the only such faces, and every other face is a side.
+ * A pocket's corners: its convex edges which aren't on its `ends` (see the body). The pockets are the face's outline
+ * extruded, so each is between two of its sides, along the face's normal.
  */
-function pocketEnds(pockets is Query, plane is Plane) returns Query
+function pocketCorners(context is Context, pocket is Query, ends is Query) returns Query
 {
-    return qParallelPlanes(qOwnedByBody(pockets, EntityType.FACE), plane.normal, true);
-}
-
-/**
- * The pockets' corners: their convex `sides` edges (see `sideEdges`).
- */
-function pocketCorners(context is Context, sides is Query) returns Query
-{
+    // Every edge of its ends, holes' loops too (`qLoopEdges` is only the outer boundary)
+    const endEdges = qAdjacent(qIntersection([ends, qOwnedByBody(pocket, EntityType.FACE)]), AdjacencyType.EDGE, EntityType.EDGE);
+    const sides = qSubtraction(qOwnedByBody(pocket, EntityType.EDGE), endEdges);
     return qUnion(filter(evaluateQuery(context, sides), function(edge)
             {
                 return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
-            }));
-}
-
-/**
- * The pockets' edges where their sides meet: the straight ones along `normal` (the face's). The pockets are the face's
- * outline extruded along it, so every edge between two sides runs along it, and none of the edges around their ends
- * (on the face and its far side) do, whether or not those ends are found.
- */
-function sideEdges(context is Context, pockets is Query, normal is Vector) returns Query
-{
-    return qUnion(filter(evaluateQuery(context, qOwnedByBody(pockets, EntityType.EDGE)->qGeometry(GeometryType.LINE)), function(edge)
-            {
-                return parallelVectors(evLine(context, { "edge" : edge }).direction, normal);
             }));
 }
 

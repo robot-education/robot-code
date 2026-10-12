@@ -191,10 +191,10 @@ is small if its area, as cut, is less than a circle twice as wide as the bit or 
 estimated before it's grown back: its area, plus its outline's length times the radius, plus the bit's (Steiner's
 formula: exact for convex pockets, and a little more for others).
 
-The corners are the pockets' straight edges along the face's normal (`sideEdges`): the pockets are the face's outline
-extruded, so every edge between two sides runs along it, and none around the ends do. Nothing on the face or its far
-side is filleted, whether or not the ends are found. The pockets' ends are their faces parallel to the face, which
-aren't grown.
+The pockets' ends are the pocket extrude's caps (`qCapEntity`), tracked from the extrude through hollowing, the cuts,
+and rounding (`startTracking`, as Vent tracks its fillets through hollowing). Every other face is a side, and the
+corners are a pocket's convex edges not on its ends (`pocketCorners`): the pockets are the face's outline extruded,
+so each runs along the face's normal, between two sides. The ends aren't grown.
 
 ### Extents
 

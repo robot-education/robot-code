@@ -526,7 +526,7 @@ function longestEdgeDirection(context is Context, faces is Query)
 {
     var longest;
     var longestLength = 0 * meter;
-    for (var edge in evaluateQuery(context, qAdjacent(faces, AdjacencyType.EDGE, EntityType.EDGE)->qGeometry(GeometryType.LINE)))
+    for (var edge in evaluateQuery(context, qLoopEdges(faces)->qGeometry(GeometryType.LINE)))
     {
         const length = evLength(context, { "entities" : edge });
         if (length > longestLength)
