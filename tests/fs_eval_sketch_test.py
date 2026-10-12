@@ -302,3 +302,41 @@ def test_nearest_gear_teeth():
     assert gear_eval("nearestGearTeeth(1.5 * inch, inch / 20)") == 60
     assert gear_eval("nearestGearTeeth(1.51 * inch, inch / 20)") == 60
     assert gear_eval("nearestGearTeeth(1.5 * inch + inch / 40 * 0.6, inch / 20)") == 61
+
+
+def bevel_cones(teeth: int, mate_teeth: int, shaft_degrees: float = 90, module_mm: float = 1) -> dict:
+    return to_python(shared_evaluator().eval(
+        f"bevelCones({module_mm} * millimeter, {teeth}, {mate_teeth}, {shaft_degrees} * degree)", "gear/gearCommon.fs"))
+
+
+def test_bevel_cones():
+    # A miter pair: 45 degree pitch cones, and a back cone sqrt(2) times the pitch radius
+    cones = bevel_cones(20, 20)
+    assert cones["pitchAngle"] == pytest.approx(math.pi / 4)
+    assert cones["pitchRadius"] == pytest.approx(0.010)
+    assert cones["coneDistance"] == pytest.approx(0.010 * math.sqrt(2))
+    assert cones["virtualTeeth"] == pytest.approx(20 * math.sqrt(2))
+    # At right angles, the pinion's and gear's pitch angles add up to the shaft angle, and their cone distances match
+    pinion, gear = bevel_cones(15, 45), bevel_cones(45, 15)
+    assert pinion["pitchAngle"] + gear["pitchAngle"] == pytest.approx(math.pi / 2)
+    assert pinion["pitchAngle"] == pytest.approx(math.atan(15 / 45))
+    assert pinion["coneDistance"] == pytest.approx(gear["coneDistance"])
+    # And at other shaft angles too
+    pinion, gear = bevel_cones(18, 30, 60), bevel_cones(30, 18, 60)
+    assert pinion["pitchAngle"] + gear["pitchAngle"] == pytest.approx(math.pi / 3)
+    assert pinion["coneDistance"] == pytest.approx(gear["coneDistance"])
+
+
+@pytest.mark.parametrize("virtual_teeth", [12.5, 28.28, 60])
+def test_tooth_gap_is_one_closed_loop(virtual_teeth):
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    form = f"getGearForm(1 * millimeter, {virtual_teeth}, 20 * degree, 0.38 * millimeter, 0 * meter)"
+    evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form})', "gear/gearCommon.fs", context=context)
+    loops = recorded_sketch(context, "gap").loops()
+    assert len(loops) == 1 and loops[0].closed
+    info = to_python(evaluator.eval(form, "gear/gearCommon.fs"))
+    curves = loops[0].curves
+    # From the root circle to a module past the tip
+    assert min(curve.nearest() for curve in curves) == pytest.approx(info["rootRadius"], abs=1e-9)
+    assert max(curve.farthest() for curve in curves) == pytest.approx(info["tipRadius"] + 0.001, abs=1e-9)

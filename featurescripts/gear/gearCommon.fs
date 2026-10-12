@@ -387,3 +387,89 @@ export function sketchRackCut(context is Context, id is Id, plane is Plane, regi
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);
 }
+
+/**
+ * A straight bevel gear's cones, by Tredgold's approximation, for `teeth` meshing with `mateTeeth` with their shafts
+ * `shaftAngle` apart: its pitch cone's angle from its axis, its pitch circle's radius (at its back), the cone
+ * distance (along its pitch cone, from its apex to that circle), and its virtual teeth. Its teeth are a spur gear's on
+ * its back cone (the cone square to its pitch cone at its back), whose radius is the pitch radius over the pitch
+ * angle's cosine: a spur gear with `teeth / cos(pitchAngle)` teeth, not a whole number.
+ *
+ * @returns {{
+ *      @field pitchAngle {ValueWithUnits} :
+ *      @field pitchRadius {ValueWithUnits} :
+ *      @field coneDistance {ValueWithUnits} :
+ *      @field virtualTeeth {number} :
+ * }}
+ */
+export function bevelCones(module is ValueWithUnits, teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits) returns map
+{
+    const pitchAngle = atan2(sin(shaftAngle), mateTeeth / teeth + cos(shaftAngle));
+    const pitchRadius = module * teeth / 2;
+    return {
+            "pitchAngle" : pitchAngle,
+            "pitchRadius" : pitchRadius,
+            "coneDistance" : pitchRadius / sin(pitchAngle),
+            "virtualTeeth" : teeth / cos(pitchAngle)
+        };
+}
+
+/**
+ * Sketches the gap between two of a gear's teeth on `plane` (centered on the gear's center), and returns its face: from
+ * the root to a module past the tip, between the tooth centered on the plane's x axis and the next one around. Its
+ * flanks are involutes (fit splines) down to the base circle, and radial lines below it; its root is an arc, without
+ * a fillet. For cutting a bevel gear's teeth (see `bevelCones`), whose `form` can have a fractional number of teeth.
+ */
+export function sketchToothGap(context is Context, id is Id, plane is Plane, form is map) returns Query
+{
+    const pitch = 360 * degree / form.teeth;
+    if (form.rootRadius <= 0 * meter)
+    {
+        throw regenError("The gear's too small for its teeth: give it more teeth.", ["teeth"]);
+    }
+    if (toothHalfAngle(form, form.tipRadius) <= 0 * degree)
+    {
+        throw regenError("The gear's teeth come to points: give it more teeth, or less clearance.", ["teeth"]);
+    }
+    const bottom = max(form.baseRadius, form.rootRadius);
+    if (toothHalfAngle(form, bottom) >= pitch / 2)
+    {
+        throw regenError("The gear's teeth meet at their roots: use more clearance.", ["profileOffsetDistance"]);
+    }
+    const at = function(radius is ValueWithUnits, angle is ValueWithUnits) returns Vector
+        {
+            return vector(cos(angle), sin(angle)) * radius;
+        };
+    // The lower flank is the first tooth's, and the upper the next's, mirrored across the gap's middle
+    var lower = [];
+    var upper = [];
+    for (var i = 0; i <= FLANK_POINTS; i += 1)
+    {
+        const radius = bottom + (form.tipRadius - bottom) * i / FLANK_POINTS;
+        lower = append(lower, at(radius, toothHalfAngle(form, radius)));
+        upper = append(upper, at(radius, pitch - toothHalfAngle(form, radius)));
+    }
+    const outside = form.tipRadius + form.module;
+    const tipAngle = toothHalfAngle(form, form.tipRadius);
+    const bottomAngle = toothHalfAngle(form, bottom);
+
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    skFitSpline(sketch, "lowerFlank", { "points" : lower });
+    skLineSegment(sketch, "lowerTop", { "start" : lower[FLANK_POINTS], "end" : at(outside, tipAngle) });
+    skArc(sketch, "top", { "start" : at(outside, tipAngle), "mid" : at(outside, pitch / 2), "end" : at(outside, pitch - tipAngle) });
+    skLineSegment(sketch, "upperTop", { "start" : at(outside, pitch - tipAngle), "end" : upper[FLANK_POINTS] });
+    skFitSpline(sketch, "upperFlank", { "points" : reverse(upper) });
+    if (form.rootRadius < bottom)
+    {
+        // Radial lines from the base circle down to the root
+        skLineSegment(sketch, "upperRadial", { "start" : upper[0], "end" : at(form.rootRadius, pitch - bottomAngle) });
+        skArc(sketch, "root", { "start" : at(form.rootRadius, pitch - bottomAngle), "mid" : at(form.rootRadius, pitch / 2), "end" : at(form.rootRadius, bottomAngle) });
+        skLineSegment(sketch, "lowerRadial", { "start" : at(form.rootRadius, bottomAngle), "end" : lower[0] });
+    }
+    else
+    {
+        skArc(sketch, "root", { "start" : upper[0], "mid" : at(form.rootRadius, pitch / 2), "end" : lower[0] });
+    }
+    skSolve(sketch);
+    return qCreatedBy(id, EntityType.FACE);
+}

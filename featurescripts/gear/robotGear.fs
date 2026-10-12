@@ -20,6 +20,8 @@ export enum GearType
     GEAR,
     annotation { "Name" : "Sector" }
     SECTOR,
+    annotation { "Name" : "Bevel" }
+    BEVEL,
     annotation { "Name" : "Rack" }
     RACK
 }
@@ -95,6 +97,8 @@ const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millime
 const BIT_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 
 const HELIX_ANGLE_BOUNDS = { (degree) : [5, 15, 45] } as AngleBoundSpec;
+const SHAFT_ANGLE_BOUNDS = { (degree) : [10, 90, 170] } as AngleBoundSpec;
+const FACE_WIDTH_BOUNDS = { (meter) : [1e-5, 0.00635, 500], (inch) : 0.25, (millimeter) : 6 } as LengthBoundSpec;
 
 const RACK_END_MANIPULATOR = "rackEnd";
 
@@ -111,11 +115,19 @@ const GEAR_PITCHES = {
     };
 
 /**
- * A gear or a sector of one: not a rack.
+ * A gear, a sector of one, or a bevel gear: not a rack.
  */
 predicate isGear(definition is map)
 {
     definition.gearType != GearType.RACK;
+}
+
+/**
+ * A spur gear or a sector of one, which can be helical, and have router relief.
+ */
+predicate isSpur(definition is map)
+{
+    definition.gearType == GearType.GEAR || definition.gearType == GearType.SECTOR;
 }
 
 /**
@@ -217,14 +229,26 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isInteger(definition.sectorTeeth, SECTOR_TEETH_BOUNDS);
             }
 
-            if (isGear(definition))
+            if (isSpur(definition))
             {
                 annotation { "Name" : "Thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
+
+            if (definition.gearType == GearType.BEVEL)
+            {
+                annotation { "Name" : "Mating gear teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The bevel gear it meshes with." }
+                isInteger(definition.mateTeeth, GEAR_TEETH_BOUNDS);
+
+                annotation { "Name" : "Shaft angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Between its shaft and its mate's." }
+                isAngle(definition.shaftAngle, SHAFT_ANGLE_BOUNDS);
+
+                annotation { "Name" : "Face width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Its teeth's length, from its back toward its apex." }
+                isLength(definition.faceWidth, FACE_WIDTH_BOUNDS);
+            }
         }
 
-        if (isGear(definition))
+        if (isSpur(definition))
         {
             annotation { "Name" : "Helical", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                         "Description" : "Teeth on a helix: quieter and smoother, but they push the gear along its shaft." }
@@ -247,8 +271,8 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
-        // Racks' roots are square: there's no round to relieve
-        if (isGear(definition))
+        // Racks' roots are square: there's no round to relieve (and bevel gears' roots are cut sharp)
+        if (isSpur(definition))
         {
             annotation { "Name" : "Router relief", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                         "Description" : "Round the roots to a router bit's radius, so it can cut them (a full round, deeper than the root, where the gap's too narrow)." }
@@ -294,19 +318,35 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         const gearPlane = applyStartOffset(context, definition, size.plane);
         addStartOffsetManipulator(context, id, definition, gearPlane);
 
-        const fillet = definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
-        const form = getGearForm(module, size.teeth, pressureAngle(definition), fillet, getProfileOffset(definition));
-        const sector = definition.gearType == GearType.SECTOR;
-        if (sector && definition.sectorTeeth >= size.teeth)
+        // Its pitch diameter, for spacing gears: two mesh their pitch radii apart
+        var info = "Its pitch diameter is " ~ makeValueString(definition.unitSystem, module * size.teeth, true) ~ ".";
+        var connector = coordSystem(gearPlane);
+        var gear;
+        if (definition.gearType == GearType.BEVEL)
         {
-            throw regenError("A sector has fewer teeth than its gear.", ["sectorTeeth"]);
+            const bevel = buildBevelGear(context, id, definition, gearPlane, module, size.teeth);
+            gear = bevel.body;
+            // Mated at their apexes, with their axes the shaft angle apart, a pair meshes
+            connector = coordSystem(bevel.apex, gearPlane.x, gearPlane.normal);
+            info = "Its pitch diameter is " ~ makeValueString(definition.unitSystem, module * size.teeth, true) ~ ", and its apex (where its mate's goes) is " ~
+                makeValueString(definition.unitSystem, norm(bevel.apex - gearPlane.origin), true) ~ " in front of its back.";
         }
-        const profile = sketchGearProfile(context, id + "profile", gearPlane, form, sector ? definition.sectorTeeth : undefined);
-        const gear = buildGearBody(context, id, definition, gearPlane, profile, form);
-        cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
+        else
+        {
+            const fillet = definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
+            const form = getGearForm(module, size.teeth, pressureAngle(definition), fillet, getProfileOffset(definition));
+            const sector = definition.gearType == GearType.SECTOR;
+            if (sector && definition.sectorTeeth >= size.teeth)
+            {
+                throw regenError("A sector has fewer teeth than its gear.", ["sectorTeeth"]);
+            }
+            const profile = sketchGearProfile(context, id + "profile", gearPlane, form, sector ? definition.sectorTeeth : undefined);
+            gear = buildGearBody(context, id, definition, gearPlane, profile, form);
+            cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
+        }
         setGearProperties(context, gear, definition, size.teeth);
 
-        if (offsetProfile(definition))
+        if (offsetProfile(definition) && isSpur(definition))
         {
             const faces = qOwnedByBody(gear, EntityType.FACE);
             addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, line(gearPlane.origin, gearPlane.x), qSubtraction(faces, qParallelPlanes(faces, gearPlane)),
@@ -316,7 +356,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         if (definition.addMateConnectors)
         {
             opMateConnector(context, id + "mateConnector", {
-                        "coordSystem" : coordSystem(gearPlane),
+                        "coordSystem" : connector,
                         "owner" : gear
                     });
         }
@@ -332,10 +372,128 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         }
         else
         {
-            // Its pitch diameter, for spacing gears: two mesh their pitch radii apart
-            reportFeatureInfo(context, id, "Its pitch diameter is " ~ makeValueString(definition.unitSystem, 2 * form.pitchRadius, true) ~ ".");
+            reportFeatureInfo(context, id, info);
         }
     });
+
+/**
+ * A straight bevel gear (Tredgold's approximation, see `bevelCones`), with its pitch circle on `gearPlane` (its back)
+ * and its apex in front of it, along its normal. In steps:
+ *
+ * 1. Its blank: revolved from its section through its axis, between its root and tip cones, from its back cone to the
+ *    same cone scaled Face width toward the apex (its front).
+ * 2. A tooth gap: its back cone's virtual spur gear's gap (`sketchToothGap`), on the plane square to its pitch cone at
+ *    its first tooth, lofted to the same gap scaled toward the apex. Scaled about the apex, its flanks run straight
+ *    to it. It runs a tooth's height past the blank at both ends (or at the front, half way to the apex, if that's
+ *    nearer), so it cuts through it.
+ * 3. The gap, patterned around the axis once per tooth, and cut from the blank.
+ *
+ * @returns {{
+ *      @field body {Query} :
+ *      @field apex {Vector} :
+ * }}
+ */
+function buildBevelGear(context is Context, featureId is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
+{
+    const id = featureId + "bevel";
+    const cones = bevelCones(module, teeth, definition.mateTeeth, definition.shaftAngle);
+    if (cones.pitchAngle >= 90 * degree)
+    {
+        throw regenError("At this shaft angle, it would be a crown or internal gear: use a smaller shaft angle, or more mating teeth.", ["shaftAngle", "mateTeeth"]);
+    }
+    if (definition.faceWidth >= cones.coneDistance)
+    {
+        throw regenError("The face width reaches the gear's apex: make it narrower.", ["faceWidth"]);
+    }
+    const offset = getProfileOffset(definition);
+    const form = getGearForm(module, cones.virtualTeeth, pressureAngle(definition), standardFilletRadius(module), offset);
+
+    const axis = gearPlane.normal;
+    const x = gearPlane.x;
+    const apex = gearPlane.origin + axis * cones.coneDistance * cos(cones.pitchAngle);
+    // Along the back cone, out from the virtual spur gear's center to the first tooth's pitch point
+    const radial = x * cos(cones.pitchAngle) + axis * sin(cones.pitchAngle);
+    const pitchPoint = gearPlane.origin + x * cones.pitchRadius;
+    const virtualCenter = pitchPoint - radial * form.pitchRadius;
+    const scaled = function(point is Vector, scale is number) returns Vector
+        {
+            return apex + (point - apex) * scale;
+        };
+    // Its front, scaled about the apex: the back's scale is 1
+    const front = (cones.coneDistance - definition.faceWidth) / cones.coneDistance;
+
+    // 1. The blank, revolved from its section: across its tip and root cones, from its back to its front, and to its axis
+    const tipBack = pitchPoint + radial * (form.tipRadius - form.pitchRadius);
+    const rootBack = pitchPoint + radial * (form.rootRadius - form.pitchRadius);
+    const sectionPlane = plane(gearPlane.origin, cross(x, axis), x);
+    const section = mapArray([tipBack, scaled(tipBack, front), scaled(rootBack, front), rootBack], point => worldToPlane(sectionPlane, point));
+    const outline = [section[0], section[1], section[2], vector(0 * meter, section[2][1]), vector(0 * meter, section[3][1]), section[3]];
+    const blankSketch = newSketchOnPlane(context, id + "section", { "sketchPlane" : sectionPlane });
+    for (var i, point in outline)
+    {
+        skLineSegment(blankSketch, "line" ~ i, { "start" : point, "end" : outline[(i + 1) % size(outline)] });
+    }
+    skSolve(blankSketch);
+    opRevolve(context, id + "blank", {
+                "entities" : qCreatedBy(id + "section", EntityType.FACE),
+                "axis" : line(gearPlane.origin, axis),
+                "angleForward" : 360 * degree
+            });
+    const blank = qCreatedBy(id + "blank", EntityType.BODY);
+
+    // 2. A gap, lofted between its virtual spur gear's gaps at both ends, scaled about the apex
+    const height = form.tipRadius - form.rootRadius;
+    const scales = [1 + height / cones.coneDistance, max(front - height / cones.coneDistance, front / 2)];
+    var gapFaces = [];
+    for (var i, scale in scales)
+    {
+        const gapPlane = plane(scaled(virtualCenter, scale), cross(radial, gearPlane->yAxis()), radial);
+        const scaledForm = getGearForm(module * scale, cones.virtualTeeth, pressureAngle(definition), standardFilletRadius(module) * scale, offset * scale);
+        gapFaces = append(gapFaces, sketchToothGap(context, id + ("gap" ~ i), gapPlane, scaledForm));
+    }
+    try silent
+    {
+        opLoft(context, id + "loft", {
+                    "profileSubqueries" : gapFaces,
+                    "bodyType" : ToolBodyType.SOLID
+                });
+    }
+    catch
+    {
+        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "loft", "propagateErrorDisplay" : true });
+        throw regenError("Failed to create the bevel gear's teeth.", ["teeth", "mateTeeth", "faceWidth"], qUnion(gapFaces));
+    }
+
+    // 3. Patterned once per tooth, and cut from the blank
+    var transforms = [];
+    var names = [];
+    for (var i = 1; i < teeth; i += 1)
+    {
+        transforms = append(transforms, rotationAround(line(gearPlane.origin, axis), i * 360 * degree / teeth));
+        names = append(names, "" ~ i);
+    }
+    opPattern(context, id + "gaps", {
+                "entities" : qCreatedBy(id + "loft", EntityType.BODY),
+                "transforms" : transforms,
+                "instanceNames" : names
+            });
+    const gaps = qUnion([qCreatedBy(id + "loft", EntityType.BODY), qCreatedBy(id + "gaps", EntityType.BODY)]);
+    try silent
+    {
+        opBoolean(context, id + "cut", {
+                    "targets" : blank,
+                    "tools" : gaps,
+                    "operationType" : BooleanOperationType.SUBTRACTION
+                });
+    }
+    catch
+    {
+        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
+        throw regenError("Failed to cut the bevel gear's teeth.", ["teeth", "mateTeeth", "faceWidth"], gaps);
+    }
+    cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
+    return { "body" : blank, "apex" : apex };
+}
 
 /**
  * The gear's teeth and plane: Teeth's, at the location; or with Size by Pitch circle, the nearest whole number of
@@ -569,8 +727,8 @@ function setGearProperties(context is Context, gear is Query, definition is map,
     {
         size = isImperial(definition) ? definition.diametralPitch ~ "DP" : "Module " ~ roundToPrecision(definition.module / millimeter, 3);
     }
-    const shape = definition.gearType == GearType.SECTOR ? "Sector Gear" : "Gear";
-    const kind = !definition.helical ? shape : (definition.doubleHelical ? "Herringbone " : "Helical ") ~ shape;
+    const shape = definition.gearType == GearType.SECTOR ? "Sector Gear" : definition.gearType == GearType.BEVEL ? "Bevel Gear" : "Gear";
+    const kind = !(isSpur(definition) && definition.helical) ? shape : (definition.doubleHelical ? "Herringbone " : "Helical ") ~ shape;
     setProperty(context, {
                 "entities" : gear,
                 "propertyType" : PropertyType.NAME,
