@@ -278,6 +278,7 @@ def gear_eval(expression: str):
 
 
 @pytest.mark.parametrize("pitch,module_mm,pressure_degrees", [
+    ("DP_10", 25.4 / 10, 20),
     ("DP_20", 25.4 / 20, 14.5),
     ("DP_32", 25.4 / 32, 20),
     ("MODULE_0_8", 0.8, 20),
