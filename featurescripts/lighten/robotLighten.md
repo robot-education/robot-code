@@ -53,12 +53,13 @@ where they come up, and show only once it's done; only the first reported shows.
 | Failed to create pockets. | error | extruding the face fails | `face`, `depth`, the face |
 | Failed to ignore the selected regions. | error | extruding or cutting the regions to ignore fails | `ignoredFaces`, the regions |
 | The regions to ignore cover the whole face. | error | nothing's left of the pocket after cutting them | `ignoredFaces`, the face and the regions |
-| Failed to create the wall along the edges shown. | error | offsetting a chain of the face's edges fails | `wallThickness` and `filletRadius`, or the override's parameters, and the edges |
-| Failed to create the wall around the region shown. | error | offsetting a region to ignore's edges fails | `ignoredFaces`, `wallThickness`, and the edges |
-| Failed to create walls. | error | extruding the walls' bands fails | `wallThickness`, `filletRadius`, and the bands |
+| Failed to create the wall along the edge shown. | error | an edge's band or pie fails (the face's, or a region to ignore's) | `wallThickness` and `filletRadius`, the override's parameters, or `ignoredFaces` and `wallThickness`; and the edge |
+| Failed to create walls. | error | extruding the walls' sheets fails | `wallThickness`, `filletRadius`, and the sheets |
+| Failed to create the wall at the vertex shown. | error | a vertex's cylinder fails | the widest wall's parameters there, and the vertex |
 | Failed to cut the walls from the pockets. | error | cutting them fails | the same, and the walls |
 | There's no room for pockets inside the walls. | error | the walls leave nothing of the pockets | the same, and the face |
-| Failed to create rib. | error | a rib's band, extrude, or cylinder fails | that rib's group's parameters, and its edge |
+| Failed to create rib. | error | a rib's band, pie, or vertex cylinder fails | that rib's group's parameters, and its edge or vertex |
+| Failed to create ribs. | error | extruding a group's sheets fails | that group's parameters, and its edges |
 | Failed to cut the ribs from the pockets. | error | cutting them fails | the rib parameters, and the ribs |
 | There's no room for pockets between the walls and ribs. | error | the ribs leave nothing of the pockets | the wall, fillet, and rib parameters, and the face and ribs (what was cut is used up) |
 | The pockets are all too small to cut. | error | every pocket's small (see Small pockets) | `wallThickness`, `filletRadius`, and the pockets |
@@ -117,11 +118,11 @@ robotLighten
 --> opExtrude "pocket"                             // the face, into its part
 --> excludeRegions                                 // sketch regions to ignore, cut from the pocket
 --> buildWalls                                     // the walls, in steps:
-    --> faceLoops, wallChains                      // 1. the face's loops, in chains with the same wall
-    --> opOffsetWire (offsetBand)                  // 2. each chain, a band into the face; regions to ignore too
-    --> fCylinder "corner"                         //    where chains with walls meet
-    --> opExtrude, opBoolean "cut"                 // 4. the bands, through the pockets, cut from them
---> buildRibs --> buildRibGroup                    // each rib: a band both sides, extruded, or a cylinder
+    --> wallAlong                                  //    each edge's wall: none, an override's, or Wall thickness
+    --> edgeRegion                                 // 1. each edge's: a band both sides (opOffsetWire), or a pie
+    --> opExtrude, vertexCylinder                  // 2. the sheets, through the pockets; a cylinder at each vertex
+    --> opBoolean "cut"                            // 3. cut from the pockets
+--> buildRibs --> buildRibGroup                    // each group as the walls: edgeRegion, extruded, vertexCylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
 --> smallPockets --> opDeleteBodies "dropSmall"    // too small to be worth cutting: left solid
 --> roundPockets                                   // with Fillet corners, in steps:
@@ -135,32 +136,36 @@ robotLighten
 
 ### Walls
 
-The walls are bands along the face's edges, `opOffsetWire`'s flat regions between an edge chain and its offset, each
-Wall thickness (and the pockets' growth, see Rounding) wide. Extruded through the pocket, they're cut from it, and
-what's left is the inset pocket: the face's region less its walls, in 2D. The bands are true offsets, so the walls'
-inside corners (where the face's outline turns in, and around holes) come out as arcs of their width, and a neck
-which the walls close splits the pocket into pieces.
+The walls are everything within a wall's width of the face's edges: Wall thickness, and the pockets' growth (see
+Rounding). Extruded through the pocket, they're cut from it, and what's left is the inset pocket: the face's region
+less its walls, in 2D. Inside corners (where the face's outline turns in, and around holes) come out as arcs of the
+wall's width, and a neck which the walls close splits the pocket into pieces.
 
-- **Which way**: for a closed chain, `opOffsetWire`'s `offset1` is outward of the region it encloses, and `offset2`
-  inward. The face's outer loop is offset in (`offset2`), and its holes' loops out of them (`offset1`), into the face.
-  The outer loop is the one whose bounding box is the face's. A band offset both ways around a hole fails where it's
-  wider than the hole's radius, so each loop goes one way.
-- **Faces to ignore and overrides**: a loop's edges are split into chains with the same wall (`wallChains`): none
-  along faces to ignore, an override's thickness along its faces, and Wall thickness elsewhere. A loop split into
-  chains is offset both ways, since an open chain's sides depend on its first edge: the half outside the face is
-  where there's nothing to cut. Where two chains with walls meet, a cylinder of the thicker one's width fills the
-  corner between their bands' square ends.
-- **Regions to ignore** are cut from the pocket first, and get walls of Wall thickness around them, the other way:
-  out of their outer loops, and into their holes.
+They're built one edge at a time, and unioned by the cut (in effect, the Minkowski sum of the edges and a disc):
 
-A failed offset fails the feature, showing the edges it was given. If the walls leave nothing of the pockets, that's
-an error too, rather than a feature with no result.
+- **Each edge** (`edgeRegion`) gets a flat sheet of everything within its width of it, but past its ends. For a line,
+  or an arc bigger than the wall, that's a band either side, `opOffsetWire`'s region between its two offsets. An arc
+  no bigger than the wall (within std's boolean tolerance) gets a pie slice instead, from its center out to its
+  radius and the wall, over its angle: everything within the wall of it, as offsetting it toward its center by more
+  than its radius fails. A circle gets a disc.
+- **Each vertex** (`vertexCylinder`) gets a cylinder as wide as the widest wall there, covering the edges' ends. There's
+  none where a wall meets an edge without one, so the wall ends square there.
+- **Faces to ignore and overrides**: each edge's wall is none along faces to ignore, an override's thickness along its
+  faces (later ones win), and Wall thickness elsewhere (`wallAlong`).
+- **Regions to ignore** are cut from the pocket first, and their edges get walls of Wall thickness too.
+
+Offsetting each loop as a whole (the outer loop in, holes out) failed on some faces once the wall and growth reached a
+size of something in the outer loop (a quarter inch, on one plate): an inward offset of a whole loop has to handle
+everything it pinches off. Each edge on its own has nothing to pinch off, and never offsets past an arc's center.
+
+A failed band, pie, or cylinder fails the feature, showing its edge or vertex. If the walls leave nothing of the
+pockets, that's an error too, rather than a feature with no result.
 
 ### Ribs
 
-Each rib is a band half its group's thickness (and the pockets' growth) either side of its edge (`opOffsetWire`),
-extruded through the pockets. A circle or arc too small to offset toward its center (within std's boolean tolerance
-of it) is a solid cylinder instead.
+Ribs are built as the walls are, half their group's thickness (and the pockets' growth) either side of their edges:
+each edge's band or pie (`edgeRegion`), a group's extruded together through the pockets, and a cylinder at each of
+their vertices, so ribs which meet at an angle join in an arc, and a rib's free end is round.
 
 ### Rounding the pockets
 
@@ -198,7 +203,7 @@ is small if its area, as cut, is less than a circle twice as wide as the bit or 
 estimated before it's grown back: its area, plus its outline's length times the radius, plus the bit's (Steiner's
 formula: exact for convex pockets, and a little more for others).
 
-The pockets' ends are the pocket extrude's caps (`qCapEntity`), tracked from after the walls' bands are made through
+The pockets' ends are the pocket extrude's caps (`qCapEntity`), tracked from after the walls are made through
 the cuts and rounding (`startTracking`). Tracking them from straight after the extrude takes in the extrude too,
 whose sides are derived from its caps, and finds every face. Every other face is a side, and the
 corners are a pocket's convex edges not on its ends (`pocketCorners`): the pockets are the face's outline extruded,
@@ -227,7 +232,7 @@ the style guide's "Tolerances, not margins").
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
-| The pocket's extrude, `excludeRegions`, `buildWalls` and `offsetBand`, `buildRibGroup`, the cuts, the pockets' growth | Each operation | Fails the feature, with a message of ours and the operation's error display. |
+| The pocket's extrude, `excludeRegions`, `buildWalls` (`edgeRegion`, `vertexCylinder`), `buildRibGroup`, the cuts, the pockets' growth | Each operation | Fails the feature, with a message of ours and the operation's error display. |
 | `roundPockets` (`try silent`) | Each pocket's corner fillet, and each full round | A warning: that pocket's left smaller. |
 | `hairFillet` (`try silent`) | A fillet, and each of `narrowSides`' trials | Whether it works. |
 | `pointsOf` (`try silent`) | Each quick rib point | Left out: it isn't there any more. |
@@ -245,9 +250,9 @@ moving the ends out first, and no fillets for the walls' inside corners.
 | | Robot lighten | Vent | Part Lighten |
 | --- | --- | --- | --- |
 | What's lightened | One face of one part | Selected faces on parts' faces (any number of parts) | One face of one or more parts |
-| Ribs | Sketch edges of any shape, each offset both sides (`opOffsetWire`); quick ribs; overrides by group | None: separate faces leave a wall between them, half from each | Sketched rectangles (and arcs) around selected lines |
-| Walls along the part's edges | Bands along the face's edges (`opOffsetWire`), cut from its extrude | Second extrude of the part's coplanar faces, hollowed by the full wall, intersected (`SUBTRACT_COMPLEMENT`) | Hollow of the face's extrude |
-| Inside wall corners | Arcs, from the offset | Hair fillet, grown, then `opModifyFillet` to exactly the offset | As Vent |
+| Ribs | Sketch edges of any shape, each a band both sides (`opOffsetWire`) or a pie, with vertex cylinders; quick ribs; overrides by group | None: separate faces leave a wall between them, half from each | Sketched rectangles (and arcs) around selected lines |
+| Walls along the part's edges | Each edge's band (`opOffsetWire`) or pie, and vertex cylinders, cut from the face's extrude | Second extrude of the part's coplanar faces, hollowed by the full wall, intersected (`SUBTRACT_COMPLEMENT`) | Hollow of the face's extrude |
+| Inside wall corners | Arcs, from the vertex cylinders and bands | Hair fillet, grown, then `opModifyFillet` to exactly the offset | As Vent |
 | Rounded pocket corners | Hair fillet, grown by the radius less the hair: exactly the radius | Hair fillet, grown by the radius, then `opModifyFillet` to exactly it | As Vent, with the tool radius rounded up by 0.01 in |
 | End types | Through all, Blind | Blind, Up to face, Up to part, Through all | Blind, Through, Up to face, Up to vertex |
 | Extents | Exact (tight bounding box) | Exact (tight bounding box) | Measured distances; tool radius rounded |
@@ -268,9 +273,9 @@ end types, and feature pattern support.
   sides.
 - Where an overridden wall meets another, a cylinder of the thicker one's width fills the corner, so the thinner wall
   thickens in an arc around it.
-- A rib band along a short edge of a hole, or a split loop's chain along a small hole, is offset both ways: where it's
-  wider than the hole's radius, the offset may fail.
-- Untested in Onshape with `opOffsetWire`: the walls' and ribs' bands, and the corner cylinders.
+- A spline or ellipse edge is offset both ways as a band; where it curves tighter than the wall, the offset may fail.
+- Untested in Onshape built an edge at a time: the bands, pies, and vertex cylinders. It's an operation or two per
+  edge and vertex, so a face with many edges takes longer than offsetting whole loops did.
 - A narrow side next to a concave corner (one side of it a rib's or wall's corner) has nothing to full round
   between, so its fillet fails, and the pocket's left smaller with a warning.
 - A pocket's fillet warning is reported before the fillet's status is copied (for its error display), on the
