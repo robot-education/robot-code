@@ -2,6 +2,8 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
+// With a variable #logging of true, it logs each step
+import(path : "core/logging.fs", version : "");
 // Ribs it sketches itself, from Chains, Hub and spokes, and Edge ribs
 export import(path : "ec576ccf1c20e5355392c3a6", version : "d3a4f10647d95d5cecb59295");
 RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "f76010d67ed6821a73cbf7e0");
@@ -232,6 +234,10 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         const overriddenFaces = qUnion(mapArray(wallOverrides, wallOverride => wallOverride.faces));
         const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSubtraction(qSketchFilter(ignoredFaces, SketchObject.NO), overriddenFaces))]);
 
+        logLine(context, "Robot lighten: wall " ~ lengthText(definition.wallThickness) ~ ", fillet radius " ~ lengthText(radius) ~ ", grown by " ~
+                lengthText(grow));
+        logEntities(context, "Edges along faces to ignore", ignoredEdges, DebugColor.ORANGE);
+
         if (quickRibs.skipped > 0)
         {
             reportFeatureWarning(context, id, "Some quick ribs are skipped because they're incomplete.", ["chains", "hubs", "edgeRibs"]);
@@ -293,6 +299,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         // The pockets left between them, which the walls and ribs split into pieces
         const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
+        logEntities(context, "Pockets between the walls and ribs", pockets, DebugColor.GREEN);
         if (isQueryEmpty(context, pockets))
         {
             // The cut used up the walls' insides and the ribs, so the selections are what's shown
@@ -303,6 +310,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         // Pockets too small to be worth cutting are left solid
         const small = smallPockets(context, pockets, pocketEnds, radius, definition.wallThickness);
+        logEntities(context, "Small pockets, left solid", qUnion(small), DebugColor.YELLOW);
         if (size(small) == size(evaluateQuery(context, pockets)))
         {
             throw regenError("The pockets are all too small to cut.", ["wallThickness", "filletRadius"], qUnion(small));
@@ -565,9 +573,12 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     var corners = [];
     for (var loop in faceLoops(context, face, plane))
     {
+        logEdges(context, loop.outer ? "Outer loop" : "Hole's loop", loop.edges, face, loop.outer ? DebugColor.BLUE : DebugColor.CYAN);
         const chains = wallChains(context, loop.edges, ignoredEdges, overrides, defaultWall);
         for (var chain in chains)
         {
+            logLine(context, "  Chain of " ~ size(evaluateQuery(context, chain.edges)) ~ " edges: " ~
+                    (chain.wall == undefined ? "no wall" : "wall " ~ lengthText(chain.wall.thickness)));
             if (chain.wall == undefined)
             {
                 continue;
@@ -600,6 +611,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     {
         for (var loop in faceLoops(context, region, plane))
         {
+            logEdges(context, loop.outer ? "Region to ignore's outer loop" : "Region to ignore's hole's loop", loop.edges, region, DebugColor.CYAN);
             const distance = definition.wallThickness + grow;
             offsetBand(context, featureId, id + "band" + unstableIdComponent(bands), loop.edges, plane.normal,
                 loop.outer ? distance : 0 * meter, loop.outer ? 0 * meter : distance, "Failed to create the wall around the region shown.",
@@ -610,6 +622,8 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
 
     // 4. Extruded through the pockets, and cut from them
     const bandFaces = qCreatedBy(id + "band", EntityType.FACE);
+    logEntities(context, "Wall bands", bandFaces, DebugColor.MAGENTA);
+    logLine(context, "Wall corners: " ~ size(corners));
     try silent
     {
         opExtrude(context, id + "extrude", {
@@ -654,6 +668,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         throw regenError("Failed to cut the walls from the pockets.", defaultWall.parameters, walls);
     }
     opDeleteBodies(context, id + "deleteBands", { "entities" : qCreatedBy(id + "band", EntityType.BODY) });
+    logEntities(context, "Pockets inside the walls", qUnion([pockets, qCreatedBy(id + "cut", EntityType.BODY)]), DebugColor.GREEN);
     if (isQueryEmpty(context, qUnion([pockets, qCreatedBy(id + "cut", EntityType.BODY)])))
     {
         // The cut used up the pockets and the walls, so the face is what's shown
@@ -683,8 +698,55 @@ function offsetBand(context is Context, featureId is Id, id is Id, edges is Quer
     catch
     {
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id, "propagateErrorDisplay" : true });
+        if (isLogging(context))
+        {
+            logEntities(context, "Failed to offset these edges " ~ lengthText(offset1) ~ " out and " ~ lengthText(offset2) ~ " in", edges, DebugColor.RED);
+            const fraction = largestOffset(context, id + "trial", edges, normal, offset1, offset2);
+            logLine(context, "  They offset as far as " ~ lengthText(offset1 * fraction) ~ " out and " ~ lengthText(offset2 * fraction) ~ " in");
+        }
         throw regenError(message, parameters, edges);
     }
+}
+
+/**
+ * For logging, when offsetting `edges` by `offset1` and `offset2` (see `offsetBand`) fails: the largest fraction of
+ * them it doesn't fail at, to within 1/4096, found by trying (between `startFeature` and `abortFeature`, under `id`).
+ */
+function largestOffset(context is Context, id is Id, edges is Query, normal is Vector, offset1 is ValueWithUnits, offset2 is ValueWithUnits) returns number
+{
+    var works = 0;
+    var fails = 1;
+    for (var i = 0; i < 12; i += 1)
+    {
+        const fraction = (works + fails) / 2;
+        const trialId = id + unstableIdComponent(i);
+        startFeature(context, trialId, {});
+        var offsets = true;
+        try silent
+        {
+            opOffsetWire(context, trialId + "offset", {
+                        "edges" : edges,
+                        "normal" : normal,
+                        "offset1" : offset1 * fraction,
+                        "offset2" : offset2 * fraction,
+                        "makeRegions" : true
+                    });
+        }
+        catch
+        {
+            offsets = false;
+        }
+        abortFeature(context, trialId);
+        if (offsets)
+        {
+            works = fraction;
+        }
+        else
+        {
+            fails = fraction;
+        }
+    }
+    return works;
 }
 
 /**

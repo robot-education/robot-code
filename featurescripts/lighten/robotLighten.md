@@ -156,6 +156,11 @@ which the walls close splits the pocket into pieces.
 A failed offset fails the feature, showing the edges it was given. If the walls leave nothing of the pockets, that's
 an error too, rather than a feature with no result.
 
+With logging on (a variable `#logging` of `true`, see the style guide's Logging), it prints each loop's edges (each
+line's length, and each arc's radius, angle, center, and whether it's convex or concave), each chain's wall, and
+how many bands, corners, and pockets each step makes, and shows them as debug entities. A failed offset shows its
+edges in red, and how far they do offset, found by trying smaller offsets.
+
 ### Ribs
 
 Each rib is a band half its group's thickness (and the pockets' growth) either side of its edge (`opOffsetWire`),
@@ -271,6 +276,9 @@ end types, and feature pattern support.
 - A rib band along a short edge of a hole, or a split loop's chain along a small hole, is offset both ways: where it's
   wider than the hole's radius, the offset may fail.
 - Untested in Onshape with `opOffsetWire`: the walls' and ribs' bands, and the corner cylinders.
+- On one plate, offsetting the outer loop in fails once Wall thickness and Fillet radius together reach 1/4 in.,
+  where a similar plate offsets past 1/2 in. Why isn't known yet: logging shows the loop's edges and how far it
+  offsets.
 - A narrow side next to a concave corner (one side of it a rib's or wall's corner) has nothing to full round
   between, so its fillet fails, and the pocket's left smaller with a warning.
 - A pocket's fillet warning is reported before the fillet's status is copied (for its error display), on the
