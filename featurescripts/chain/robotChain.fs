@@ -122,6 +122,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
     {
         const info = getChainInfo(definition.chainType);
         const sprockets = getSprockets(context, definition, info);
+        reportSprocketWarnings(context, id, sprockets);
         const chainPlane = sprockets.plane;
         const circles = sprockets.circles;
         addStartOffsetManipulator(context, id, definition, chainPlane);
@@ -129,8 +130,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
         const counterClockwise = loopCounterClockwise(circles);
         const sketch = sketchLoop(context, id + "sketch", chainPlane, circles, counterClockwise);
         addSideFlipManipulators(context, id, chainPlane, sketch.arcs, counterClockwise);
-        // Reported together, at the end: one status shows at a time, and a later one replaces an earlier one
-        const length = lengthStatus(definition, info, loopLength(circles, counterClockwise));
+        reportLength(context, id, definition, info, loopLength(circles, counterClockwise));
 
         const chain = createChain(context, id + "chain", definition, info, chainPlane, sketch, sprockets.faceAttributes);
         const name = definition.links ~ " link " ~ getChainTypeName(definition.chainType) ~ " chain";
@@ -152,7 +152,6 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
             addMateConnectors(context, id + "mateConnector", chainPlane, circles, sprockets.faceAttributes, chain);
         }
         cleanup(context, id + "delete", qCreatedBy(id + "sketch", EntityType.BODY));
-        reportStatus(context, id, sprocketWarnings(sprockets), length);
     });
 
 /**
@@ -275,45 +274,25 @@ function getSprockets(context is Context, definition is map, info is map) return
 }
 
 /**
- * The warnings about the sprockets, each a map of its `message` and `parameters`.
+ * Reports a warning for each problem with the sprockets: pitch circles of a fraction of teeth, Robot sprockets for
+ * another chain, and sprockets not in the first one's plane. Only the first status reported shows.
  */
-function sprocketWarnings(sprockets is map) returns array
+function reportSprocketWarnings(context is Context, id is Id, sprockets is map)
 {
-    var warnings = [];
     if (sprockets.fractional != [])
     {
-        warnings = append(warnings, { "message" : "A selected pitch circle isn't the size of a sprocket with a whole number of teeth: it's used as the nearest one.",
-                    "parameters" : sprockets.fractional });
+        reportFeatureWarning(context, id, "A selected pitch circle isn't the size of a sprocket with a whole number of teeth: it's used as the nearest one.",
+            sprockets.fractional);
     }
     if (sprockets.otherChain != [])
     {
-        warnings = append(warnings, { "message" : "A selected Robot sprocket is for another type of chain.", "parameters" : sprockets.otherChain });
+        reportFeatureWarning(context, id, "A selected Robot sprocket is for another type of chain.", sprockets.otherChain);
     }
     if (sprockets.misaligned != [])
     {
-        warnings = append(warnings, { "message" : "A selected sprocket or idler isn't lined up with the first: the chain goes around where it is in the first one's plane.",
-                    "parameters" : sprockets.misaligned });
+        reportFeatureWarning(context, id, "A selected sprocket or idler isn't lined up with the first: the chain goes around where it is in the first one's plane.",
+            sprockets.misaligned);
     }
-    return warnings;
-}
-
-/**
- * Reports `warnings` (each a map of its `message` and `parameters`) and the chain's length's status (see
- * `lengthStatus`), as one warning, or without any, the length's info.
- */
-function reportStatus(context is Context, id is Id, warnings is array, lengthStatus is map)
-{
-    if (lengthStatus.warning != undefined)
-    {
-        warnings = append(warnings, lengthStatus.warning);
-    }
-    if (warnings == [])
-    {
-        reportFeatureInfo(context, id, lengthStatus.info);
-        return;
-    }
-    reportFeatureWarning(context, id, join(mapArray(warnings, warning => warning.message), " "),
-        concatenateArrays(mapArray(warnings, warning => warning.parameters)));
 }
 
 /**
@@ -330,26 +309,24 @@ function getLocationPlane(context is Context, selection is Query, parameterName 
 }
 
 /**
- * Whether the chain's length (with the fit adjustment) is the length of the path around the sprockets, and how many
- * links are, if it isn't: a map of its `info`, or its `warning` (a map of its `message` and `parameters`).
+ * Reports whether the chain's length (with the fit adjustment) is the length of the path around the sprockets: info
+ * if it is, and if it isn't, a warning of how many links are closest.
  */
-function lengthStatus(definition is map, info is map, pathLength is ValueWithUnits) returns map
+function reportLength(context is Context, id is Id, definition is map, info is map, pathLength is ValueWithUnits)
 {
     const chainLength = info.pitch * definition.links + definition.fitAdjustment;
     const oddNote = definition.links % 2 == 1 ? " An odd number of links needs an offset link." : "";
     if (withinDisplayPrecision(definition, pathLength, chainLength))
     {
-        return { "info" : "The " ~ definition.links ~ " link chain fits the sprockets." ~ oddNote };
+        reportFeatureInfo(context, id, "The " ~ definition.links ~ " link chain fits the sprockets." ~ oddNote);
+        return;
     }
     const tooLong = chainLength > pathLength;
     // The 100 link chain is 0.25 in too long for the sprockets: 98 links are closest. Get the distance close, then
     // use Robot tensioner to make it exact.
-    return { "warning" : {
-                    "message" : "The " ~ definition.links ~ " link chain is " ~ makeValueString(definition.unitSystem, abs(chainLength - pathLength)) ~
-                        " too " ~ (tooLong ? "long" : "short") ~ " for the sprockets: " ~ closestLinks(info, pathLength - definition.fitAdjustment) ~
-                        " links are closest. Get the distance close, then use Robot tensioner to make it exact." ~ oddNote,
-                    "parameters" : ["links"]
-                } };
+    reportFeatureWarning(context, id, "The " ~ definition.links ~ " link chain is " ~ makeValueString(definition.unitSystem, abs(chainLength - pathLength)) ~
+            " too " ~ (tooLong ? "long" : "short") ~ " for the sprockets: " ~ closestLinks(info, pathLength - definition.fitAdjustment) ~
+            " links are closest. Get the distance close, then use Robot tensioner to make it exact." ~ oddNote, ["links"]);
 }
 
 /**

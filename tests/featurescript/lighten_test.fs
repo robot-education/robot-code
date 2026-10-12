@@ -3,19 +3,6 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "lighten/robotLighten.fs", version : "");
 import(path : "testing.fs", version : "");
 
-const HAIR = TOLERANCE.booleanDefaultTolerance * meter;
-
-export function testIsNarrowSide()
-{
-    // Square corners: a hair round takes a hair of the side at each, and a hair more must be left
-    expectEqual(isNarrowSide(2.5 * HAIR, [90 * degree, 90 * degree]), true);
-    expectEqual(isNarrowSide(3.5 * HAIR, [90 * degree, 90 * degree]), false);
-    // Sharper corners take more of it
-    expectEqual(isNarrowSide(3.5 * HAIR, [150 * degree, 150 * degree]), true);
-    // A wide side isn't narrow, however sharp its corners
-    expectEqual(isNarrowSide(1 * millimeter, [170 * degree, 170 * degree]), false);
-}
-
 export function testIsSmallPocket()
 {
     const radius = 0.0625 * inch;

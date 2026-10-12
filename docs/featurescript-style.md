@@ -272,9 +272,9 @@ A feature (or subfeature) ends with one status: an error, a warning, or info (or
   `defineFeature` catches it, reports it (its message, faulty parameters, and entities), and rolls the feature back
   (`@abortFeature`).
 - **A warning or info** shows only if the feature completes (`reportFeatureWarning`, `reportFeatureInfo`), and can
-  have debug and error entities too. One status shows at a time, and a later one replaces an earlier one: when a
-  feature may have several things to say, gather them, and report one status at the end (Robot lighten's and Robot
-  chain's `reportStatus`), a warning (all the warnings, as one) over info.
+  have debug and error entities too. Only the first status reported shows; later ones are ignored. Report each
+  warning or info where it comes up, with its own parameters and entities, and let whichever comes first show. Never
+  gather them to report at the end, or join their messages into one.
 
 ### Subfeatures and operations
 
@@ -292,26 +292,46 @@ overlapping ones, and shows the fillets which failed in pink and the edges it wa
   its message with a more generic or context specific one (`overrideStatus`, an `ErrorStringEnum`). Its `id` must be
   the feature's top level id for the error display to come through. `callSubfeatureAndProcessStatus` runs a
   subfeature and does this.
-- **Copying an OK status hides an earlier warning**: `processSubfeatureStatus` reports the subfeature's status even
-  when it's OK. Copy a step's status only when it isn't OK (`featureHasNonTrivialStatus`, or in a `catch`).
+- **Copy a status only when it isn't OK**: `processSubfeatureStatus` reports the subfeature's status even when it's
+  OK, which counts as the feature's first. Copy one only in a `catch`, or after `featureHasNonTrivialStatus`.
 - **Std's messages can't be quoted.** Std's errors are `ErrorStringEnum`s, translated only in Onshape's UI, so a
   feature can't put one in its own message. Custom messages (`regenError("...")`) are strings.
 
 ### Failing, and carrying on
 
-- **To add context to a failed operation**, wrap it, and in the `catch`, copy its status and display onto the
-  feature (`processSubfeatureStatus`), then throw the feature's error: a short message of its own, or the operation's
-  (`getFeatureError`), highlighting the parameters which set what failed (Robot lighten's `operationError`).
-- **When a step can fail without spoiling the rest, carry on with a warning** rather than failing the feature: in its
-  `catch`, copy the operation's status and display onto the feature (which shows what went wrong, as the operation
-  shows it), leave out what it would have done, and report a warning at the end. Robot lighten's pocket fillets do
-  this: a pocket whose corners can't be filleted is left smaller, and `opFillet`'s display shows which fillets failed.
+- **Write a feature's steps plainly**: one operation after another, each with its own id, and a `try` around one
+  only where its failure needs something said, or where the feature carries on without it. No helpers to wrap
+  operations or their errors: the step, its `catch`, and what it reports should all be in view where it happens. A
+  function doing several steps lists them, numbered, in its doc comment, and marks each in its body.
+- **To add context to a failed operation**, in its `catch`, copy its status and error display onto the feature
+  (`processSubfeatureStatus`, with `propagateErrorDisplay`, on the feature's top level id), then throw the feature's
+  error: a short message of its own, highlighting the parameters which set what failed.
+
+  ```
+  catch
+  {
+      processSubfeatureStatus(context, id, { "subfeatureId" : id + "shell", "propagateErrorDisplay" : true });
+      throw regenError("Failed to create walls.", ["wallThickness", "filletRadius"]);
+  }
+  ```
+
+- **When a step can fail without spoiling the rest, carry on with a warning**: in its `catch`, report the warning
+  first, then copy the operation's status for its error display (its error, reported second, isn't shown), leave
+  out what it would have done, and keep going. Robot lighten's pocket fillets do this: a pocket whose corners can't
+  be filleted is left smaller, with "Failed to fillet pocket.", and `opFillet`'s display shows which fillets failed.
   Something that only makes the result a little off (a fillet's radius a hair big) is info.
-- **Keep messages short, and show where.** A message says what's wrong and what to change ("Fillet radius is too
-  large for the walls."); why belongs in the writeup. Show the culprit in red (the error's entities, or the
-  operation's own display), and what's been built so far in blue (`addDebugEntities(context, built,
-  DebugColor.BLUE)`, which shows while the dialog's open, and outlasts the rollback): Robot lighten's
-  `showBuiltOnFailure`.
+
+  ```
+  catch
+  {
+      reportFeatureWarning(context, id, "Failed to fillet pocket.", ["filletRadius"]);
+      processSubfeatureStatus(context, id, { "subfeatureId" : filletId, "propagateErrorDisplay" : true });
+  }
+  ```
+
+- **Keep messages short, and show where.** A message says what's wrong and what to change ("Selected wall overrides
+  are invalid."); why belongs in the writeup. Show the culprit in red: the error's entities, or the operation's own
+  display.
 - **A failed operation changes nothing**, so what it was given is still there to show, as is everything earlier steps
   made. When earlier steps consumed what's to be shown, std rebuilds it under another id, shows it as error entities,
   and deletes it (`processNewBodyIfNeeded`'s `reconstructOp`).
@@ -324,13 +344,10 @@ overlapping ones, and shows the fillets which failed in pink and the edges it wa
   nothing after it. Track what you'll need through the steps which change it (`startTracking`, see Queries).
 - **Don't run trial features in editing logic.** `abortFeature` with no feature started crashes the Part Studio, so
   editing logic should only evaluate (queries, `evBox3d`, `evDistance`), never build.
-- **Blame an input only when the operation's own error doesn't say enough.** Look at what the failed operation
-  reports and shows first: a fillet's or shell's display usually says where. Try the operation again (each try in a
-  feature of its own, rolled back) only to find which of the user's inputs is to blame, when that's cheap and the
-  answer changes what they'd do: Robot lighten tries its walls without wall overrides, and without the fillet
-  radius, and otherwise lets the operation's error speak. Do it only in the `catch` (a feature regenerates whenever
-  anything before it changes, so checks before its operations cost every time), and keep it small: each try is a
-  rebuild, and a diagnosis which guesses wrong misleads more than the operation's own error.
+- **Let operations decide, rather than measuring to predict them.** When whether an operation works decides what to
+  do, try it (rolled back, in a feature of its own) rather than estimating it from the geometry: Robot lighten finds
+  a pocket's narrow sides, which need a full round, by filleting each side's two corners alone. Do it only once the
+  operation itself has failed, so it costs nothing when it doesn't.
 
 For example (`core/bore.fs`): a wrapped operation, whose error says what failed and highlights the parameters which
 set it.
