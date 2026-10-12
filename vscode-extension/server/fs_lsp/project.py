@@ -24,7 +24,8 @@ from fs_lsp.parser import AstNode, ParsedProgram, parse
 from fs_lsp.scanner import KEYWORDS, Token
 from fs_lsp.semantic import ImportedNames
 from fs_lsp.stdlib import built_in_type, stdlib
-from fs_lsp.symbol_index import Declaration, SymbolIndex
+from fs_lsp.signatures import parse_signature
+from fs_lsp.symbol_index import FUNCTION_NODE_TYPES, Declaration, SymbolIndex
 
 ELEMENT_ID = re.compile(r"[0-9a-f]{24}")
 # Another document's Part Studio or Feature Studio, by document, version, and element id
@@ -868,6 +869,9 @@ class Project:
         problems.extend(_keyword_key_problems(module))
         problems.extend(_unused_variable_problems(module))
         problems.extend(_function_value_problems(module, providers))
+        problems.extend(_std_arity_problems(module, providers))
+        problems.extend(_redeclared_problems(module))
+        problems.extend(_annotation_ascii_problems(module))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
         problems.extend(self._precondition_predicate_problems(module, providers))
@@ -1703,8 +1707,8 @@ def _function_value_problems(module: Module, providers: dict[str, list[Provider]
     """Functions and predicates declared with `function` or `predicate` and used as values, e.g. `mapArray(a, f)`.
 
     FeatureScript only allows calling them ("Cannot reference function f as a variable"); declare one which is passed
-    around as a const set to a function, `const f = function(...) { ... };`, instead. Std's names aren't checked, since many of std's
-    "functions" are consts which can be passed around.
+    around as a const set to a function, `const f = function(...) { ... };`, instead. Std's are checked too, by their
+    declarations: some of std's "functions" are consts set to functions, which can be passed around.
     """
     index = module.index
     problems = []
@@ -1723,6 +1727,11 @@ def _function_value_problems(module: Module, providers: dict[str, list[Provider]
             if local is not None
             else [provider.declaration.kind for provider in providers.get(token.value, [])]
         )
+        if not kinds and module.parsed.imports_stdlib:
+            kinds = [
+                symbol.kind if _STD_CALLABLE.match(symbol.signature or "") else "const"
+                for symbol in stdlib().lookup(token.value)
+            ]
         if not kinds or any(kind not in ("function", "predicate") for kind in kinds):
             continue
         kind = kinds[0]
@@ -1736,6 +1745,104 @@ def _function_value_problems(module: Module, providers: dict[str, list[Provider]
                 "function-value",
             )
         )
+    return problems
+
+
+# A std declaration of a function or predicate itself, rather than of a const set to one
+_STD_CALLABLE = re.compile(r"(?:export\s+)?(?:function|predicate)\b")
+
+
+def _std_arity_problems(module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
+    """Calls to std functions with a number of arguments none of their overloads takes, which Onshape reports as
+    "Function f with 2 argument(s) not found". `a->f(b)` passes `a` first."""
+    if not module.parsed.imports_stdlib:
+        return []
+    index = module.index
+    tokens = index.tokens
+    library = stdlib()
+    problems = []
+    for position, token in enumerate(tokens):
+        if not _is_reference(module, token) or position + 1 >= len(tokens) or tokens[position + 1].value != "(":
+            continue
+        previous = index.previous_token(token)
+        if previous is not None and previous.value in (".", "?."):
+            continue
+        if token.value in providers or index.declaration_for_token(token):
+            continue
+        symbols = library.lookup(token.value)
+        signatures = [parse_signature(token.value, symbol.signature or "") for symbol in symbols]
+        if not symbols or any(signature is None for signature in signatures):
+            continue
+        arguments = len(_call_arguments(tokens, position + 1)) + (1 if previous is not None and previous.value == "->" else 0)
+        if any(len(signature.parameters) == arguments for signature in signatures):
+            continue
+        counts = sorted({len(signature.parameters) for signature in signatures})
+        problems.append(
+            Problem(
+                token.offset,
+                token.end,
+                "error",
+                f"Function {token.value} with {arguments} argument(s) not found: it takes "
+                f"{' or '.join(str(count) for count in counts)}.",
+                "std-arity",
+            )
+        )
+    return problems
+
+
+def _redeclared_problems(module: Module) -> list[Problem]:
+    """Variables declared with the name of a parameter of the function they're in, which FeatureScript doesn't allow
+    ("Variable x already declared in this scope"). (Variables of the same name in sibling blocks, like two loops' `i`,
+    are fine; the index scopes a loop's variable to its whole function, so those aren't checked.)"""
+    index = module.index
+    parameters = [declaration for declaration in index.declarations if declaration.kind == "parameter"]
+    problems = []
+    for declaration in index.declarations:
+        if declaration.kind != "variable":
+            continue
+        function = index.enclosing(declaration.token, FUNCTION_NODE_TYPES)
+        if function is None:
+            continue
+        # Its own parameters are before its body's (or precondition's) brace: an arrow function's in its body
+        # are indexed as its too
+        header_end = next((token.offset for token in index.tokens if token.offset >= function.start and token.value == "{"), function.end)
+        for other in parameters:
+            if other.name != declaration.name or other.scope_start != function.start or other.token.offset > header_end:
+                continue
+            problems.append(
+                Problem(
+                    declaration.token.offset,
+                    declaration.token.end,
+                    "error",
+                    f"Variable {declaration.name} already declared in this scope: rename it.",
+                    "redeclared",
+                )
+            )
+            break
+    return problems
+
+
+def _annotation_ascii_problems(module: Module) -> list[Problem]:
+    """Annotation strings with characters other than printable ASCII (like a degree sign), which Onshape rejects
+    ("Invalid character in 'Description' annotation: only printable ASCII allowed")."""
+    tokens = module.index.tokens
+    offsets = [token.offset for token in tokens]
+    problems = []
+    for node in module.parsed.nodes:
+        if node.type != "AnnotationMap":
+            continue
+        for position in range(bisect.bisect_left(offsets, node.start), bisect.bisect_left(offsets, node.end)):
+            token = tokens[position]
+            if token.kind == "string" and any(not 32 <= ord(character) < 127 for character in token.value):
+                problems.append(
+                    Problem(
+                        token.offset,
+                        token.end,
+                        "error",
+                        "Onshape only allows printable ASCII in annotations: spell out characters like ° (degrees).",
+                        "annotation-ascii",
+                    )
+                )
     return problems
 
 

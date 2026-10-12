@@ -1112,7 +1112,7 @@ function narrowSides(context is Context, id is Id, pocket is Query, ends is Quer
         {
             return qSubtraction(qAdjacent(qIntersection([qLoopEdges(faces), corners]), AdjacencyType.EDGE, EntityType.FACE), faces);
         };
-    var ends = [];
+    var found = [];
     while (narrow != [])
     {
         var run = [narrow[0]];
@@ -1130,10 +1130,10 @@ function narrowSides(context is Context, id is Id, pocket is Query, ends is Quer
         const sides = evaluateQuery(context, beside(qUnion(run)));
         if (size(sides) == 2)
         {
-            ends = append(ends, { "faces" : qUnion(run), "sides" : sides });
+            found = append(found, { "faces" : qUnion(run), "sides" : sides });
         }
     }
-    return ends;
+    return found;
 }
 
 /**

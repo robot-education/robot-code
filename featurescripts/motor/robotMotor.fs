@@ -155,7 +155,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         plane = applyAxisOrientation(definition, plane);
         const positions = holePositions(face);
         // Outside the holes, so its handle isn't on one
-        addAngleOffsetManipulator(context, id, definition, plane, 1.5 * max(mapArray(positions, norm)));
+        addAngleOffsetManipulator(context, id, definition, plane, 1.5 * max(mapArray(positions, position => norm(position))));
         plane = applyAngleOffset(definition, plane);
 
         if (definition.skipHoles)

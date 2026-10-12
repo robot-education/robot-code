@@ -185,8 +185,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
         annotation { "Group Name" : "Teeth", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Pitch", "Default" : GearPitch.DP_20, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "10 DP at 20° (3D printing), 20 DP at 14.5° (FRC: VEXpro, WCP, AndyMark), 32 DP at 20° (FRC: WCP), or module 0.8 at 20° (FTC: goBILDA)." }
+            annotation { "Name" : "Pitch", "Default" : GearPitch.DP_20, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
             definition.pitch is GearPitch;
 
             if (definition.pitch == GearPitch.CUSTOM)
@@ -513,7 +512,7 @@ function cutRack(context is Context, id is Id, definition is map, form is map)
     {
         // Out of the part, through the root of the gap after the first tooth
         const gapCenter = centers[0] + PI * form.module / 2;
-        const below = planeToWorld3D(sketchPlane, vector(gapCenter, rackRoot(form) - faceHeight - form.module, 0 * meter));
+        const below = planeToWorld(sketchPlane, vector(gapCenter, rackRoot(form) - faceHeight - form.module));
         addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, line(below + frame.zAxis * width / 2, facePlane.normal),
             qIntersection([qOwnedByBody(part, EntityType.FACE), qCreatedBy(id, EntityType.FACE)]), definition.profileOffsetOppositeDirection);
     }

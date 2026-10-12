@@ -558,6 +558,49 @@ def test_functions_used_as_values(project):
     assert [(module.parsed.source[p.start:p.end], module.position(p.start)[0]) for p in problems] == [("name", 7)]
 
 
+def test_std_calls_values_and_redeclarations(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'import(path : "onshape/std/common.fs", version : "2909.0");\n'
+        "export function run(context is Context, points is array, ends is Query, plane is Plane) returns array\n"
+        "{\n"
+        "    const lengths = mapArray(points, norm);\n"
+        "    const kept = mapArray(points, point => norm(point));\n"
+        "    const world = planeToWorld3D(plane, vector(0, 0, 0) * meter);\n"
+        "    const piped = ends->qUnion(ends);\n"
+        "    var ends = [];\n"
+        "    return filter(kept, ends => ends > 0);\n"
+        "}\n"
+        'annotation { "Feature Type Name" : "F" }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n"
+        "    {\n"
+        '        annotation { "Name" : "Angle", "Description" : "In degrees: 20\u00b0." }\n'
+        "        definition.flag is boolean;\n"
+        "    }\n"
+        "    {\n"
+        "    });\n",
+        encoding="utf-8",
+    )
+    module = project.module(path)
+
+    def found(code: str) -> list[tuple[str, int]]:
+        return [
+            (module.parsed.source[p.start:p.end], module.position(p.start)[0])
+            for p in project.check(module)
+            if p.code == code
+        ]
+
+    # A std function passed as a value; not one called in a lambda
+    assert found("function-value") == [("norm", 4)]
+    # planeToWorld3D takes just a plane; `a->f(b)` passes a too, so qUnion has two
+    assert found("std-arity") == [("planeToWorld3D", 6)]
+    # A variable named as a parameter; not a lambda's parameter
+    assert found("redeclared") == [("ends", 8)]
+    assert [line for _, line in found("annotation-ascii")] == [15]
+
+
 def test_snapshots_see_files_once(project):
     new = project.code_dir / "new.fs"
     with project.snapshot():

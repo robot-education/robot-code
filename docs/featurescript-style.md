@@ -497,8 +497,12 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - Horizontal enums go at the top of the dialog: before any other shown parameter, and not in groups or array
   parameters' items (see "Horizontal enums go at the top").
 - Top-level constants, enums, and types can't share a name with anything the file or its imports declare.
-- Functions and predicates declared with `function` or `predicate` can only be called, not used as values (see
-  "Functions as values").
+- Functions and predicates declared with `function` or `predicate`, std's too (`mapArray(points, norm)`), can only
+  be called, not used as values (see "Functions as values").
+- Std functions must be called with as many arguments as one of their overloads takes (`a->f(b)` passes `a` too):
+  Onshape reports "Function f with 2 argument(s) not found".
+- A function's variables can't be named as its parameters ("Variable x already declared in this scope").
+- Annotation strings (names, descriptions) must be printable ASCII: no degree signs or curly quotes.
 - No comparisons with `true` or `false`; use the value, or `!` it.
 - No parameters which can be toleranced, directly or through std's predicates (see "No field tolerancing").
 - Precondition conditions may only use parameters, enum values, literals, and predicates.

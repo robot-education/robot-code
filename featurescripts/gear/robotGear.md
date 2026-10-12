@@ -35,7 +35,6 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Parameter | Description |
 | --- | --- |
 | Pitch circle (`pitchCircle`) | A circle or arc: its center places the gear, and its size sets its teeth. A sector is centered on an arc. |
-| Pitch (`pitch`) | 10 DP at 20° (3D printing), 20 DP at 14.5° (FRC: VEXpro, WCP, AndyMark), 32 DP at 20° (FRC: WCP), or module 0.8 at 20° (FTC: goBILDA). |
 | Teeth (`teeth`) | The whole gear's. |
 | Sector teeth (`sectorTeeth`) | The sector's: a wedge of the gear's, from its center. |
 | Diametral pitch (`diametralPitch`) | Teeth per inch of pitch diameter. |
