@@ -1,17 +1,17 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-export import(path : "21762d39019c8b2289e2fbb8", version : "8f82cf693e7833130ba80201");
-export import(path : "01402b7c9eebd8bf0b5d3e52", version : "afd3970cf2628429b3763f68");
+export import(path : "21762d39019c8b2289e2fbb8", version : "4cdb575f478ffc25d97c7422");
+export import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
 
-export import(path : "a6eeed056b8f09ac4e8ae12e", version : "cdc5301e6447c69b96168ead");
-export import(path : "6e24956e9977116c79280620", version : "0ec5da0acf56336b68065e37");
-export import(path : "0195d390c3944cd4fab21ce0", version : "2087a92c024fe3ea73f587fa");
+export import(path : "a6eeed056b8f09ac4e8ae12e", version : "06d365078b9d1d830beb700d");
+export import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
+export import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
 
 
-import(path : "8fc3df84a88e74d27ad43d26", version : "a29c4701c1348914e6f1f6c4");
+import(path : "8fc3df84a88e74d27ad43d26", version : "ea3e16596c4700ea14d4def4");
 // Exports Fit, a parameter type
-export import(path : "926d933eb33b11a3452660fd", version : "9f460f5afe4b1aa32d2f1898");
+export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
 
 
 export enum SpacerType
