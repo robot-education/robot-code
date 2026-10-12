@@ -1,6 +1,5 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "onshape/std/cosmeticThreadUtils.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
 export import(path : "603be214b7d30fd438966545", version : "81c3f377a07c755804b5c678");

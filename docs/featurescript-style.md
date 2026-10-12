@@ -516,8 +516,11 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - No comparisons with `true` or `false`; use the value, or `!` it.
 - No parameters which can be toleranced, directly or through std's predicates (see "No field tolerancing").
 - Precondition conditions may only use parameters, enum values, literals, and predicates.
-- No unused or unknown imports, and no top-level declarations which aren't exported or used.
-- No local variables which are set but never used; name one you don't need `_` (see "Unused variables").
+- No unused or unknown imports, std's too: a std module (other than `common.fs`) whose names the file doesn't use, or
+  only uses ones its other std imports also give it (`chamfer.fs` for `ChamferType`, which `common.fs` exports). No
+  top-level declarations which aren't exported or used.
+- No local variables which are set but never used, counting only setting it from itself (`ids = append(ids, id)`,
+  `count += 1`) as unused; name one you don't need `_` (see "Unused variables").
 - No keywords as map keys (see "Keywords as map keys"); `x.type` is an error.
 - Functions and predicates with the same name and parameter types as another in the file or its imports, and groups
   in array parameters' items, which Onshape rejects.

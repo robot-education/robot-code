@@ -1,6 +1,5 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "onshape/std/chamfer.fs", version : "2960.0");
 
 import(path : "8b8c46128a5dbc2594925f4a", version : "2073caea5ae472033c5090d9");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "4aff58a1ab26d9f7aa7abfbb");

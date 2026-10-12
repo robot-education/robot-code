@@ -932,7 +932,11 @@ class Project:
                 ):
                     problems.append(_unused(imported, imported.namespace))
                 continue
-            if imported.is_std or not (imported.element_id or imported.code_path):
+            if imported.is_std:
+                if imported.path != COMMON_STD and not imported.exported and not self._uses_std_import(module, providers, imported):
+                    problems.append(_unused(imported, imported.path))
+                continue
+            if not (imported.element_id or imported.code_path):
                 continue
             target = self.resolve(imported)
             if target is None and imported.code_path:
@@ -973,6 +977,34 @@ class Project:
         problems = [problem for problem in problems if not _is_ignored(module, problem)]
         return sorted(problems, key=lambda problem: problem.start)
 
+
+    def _std_import_modules(self, imported: Import) -> set[str]:
+        """The std modules an import of std makes visible: its own, and those it exports."""
+        name = imported.path.rsplit("/", 1)[-1]
+        target = self.std_module(name)
+        return {name} | (self.exported_std_modules(target) if target is not None else set())
+
+    def _uses_std_import(self, module: Module, providers: dict[str, list[Provider]], imported: Import) -> bool:
+        """Whether the module uses something only `imported` (an import of std, like `onshape/std/modifyFillet.fs`)
+        makes visible: declared in it, or in a module it exports, and not visible through the module's other std
+        imports (`common.fs`, say)."""
+        mine = self._std_import_modules(imported)
+        others: set[str] = set()
+        for other in module.imports:
+            if other is not imported and other.is_std and not other.namespace:
+                others |= self._std_import_modules(other)
+        library = stdlib()
+        index = module.index
+        for token in index.tokens:
+            if not _is_reference(module, token) or token.value in providers or index.declaration_for_token(token):
+                continue
+            previous = index.previous_token(token)
+            if previous is not None and previous.value in (".", "?."):
+                continue
+            modules = {symbol.module for symbol in library.lookup(token.value) if symbol.module}
+            if modules & mine and not modules & others:
+                return True
+        return False
 
     def _parameter_enum_problems(
         self, module: Module, providers: dict[str, list[Provider]]
@@ -1860,10 +1892,16 @@ def _is_ignored(module: Module, problem: Problem) -> bool:
     return False
 
 
+_ASSIGNMENTS = frozenset(["=", "+=", "-=", "*=", "/=", "%=", "^=", "~=", "||=", "&&="])
+
+
 def _unused_variable_problems(module: Module) -> list[Problem]:
     """Local variables (and loop variables) which are set but never read, which Onshape warns about. One that isn't
-    needed, like the key of a map being looped over, should be named `_` (see docs/featurescript-style.md)."""
+    needed, like the key of a map being looped over, should be named `_` (see docs/featurescript-style.md).
+
+    Reading it only to set it again (`x = append(x, y)`, `x += 1`, `x[i].f = g(x)`) isn't using it."""
     index = module.index
+    positions = {token.offset: position for position, token in enumerate(index.tokens)}
     problems = []
     for declaration in index.declarations:
         if declaration.kind != "variable" or declaration.name == "_" or module._is_top_level(declaration):
@@ -1872,9 +1910,7 @@ def _unused_variable_problems(module: Module) -> list[Problem]:
         for reference in index.references_by_key.get(declaration.key, []):
             if reference.token.offset == declaration.token.offset:
                 continue
-            following = index.next_token(reference.token)
-            # Assigning it isn't using it
-            if following is None or following.value != "=":
+            if not _sets_itself(index.tokens, positions[reference.token.offset], declaration.name):
                 read = True
                 break
         if not read:
@@ -1889,6 +1925,43 @@ def _unused_variable_problems(module: Module) -> list[Problem]:
                 )
             )
     return problems
+
+
+def _sets_itself(tokens: list[Token], position: int, name: str) -> bool:
+    """Whether the reference at `position` is in a statement setting `name` (or an element or field of it): the
+    statement starts with it, and has an assignment at its top level."""
+    # Back to the statement's start: past brackets the reference is inside, to a ; { or } outside them
+    depth = 0
+    start = position
+    while start > 0:
+        value = tokens[start - 1].value
+        if value in (")", "]"):
+            depth += 1
+        elif value in ("(", "["):
+            if depth == 0:
+                # A call or index the reference is inside is part of the statement; an if's or a loop's condition isn't
+                if value == "(" and start >= 2 and tokens[start - 2].value in ("if", "for", "while"):
+                    return False
+            else:
+                depth -= 1
+        elif value in (";", "{", "}") and depth == 0:
+            break
+        start -= 1
+    if tokens[start].value != name:
+        return False
+    depth = 0
+    for token in tokens[start:]:
+        if token.value in ("(", "[", "{"):
+            depth += 1
+        elif token.value in (")", "]", "}"):
+            depth -= 1
+            if depth < 0:
+                return False
+        elif token.value == ";" and depth == 0:
+            return False
+        elif token.value in _ASSIGNMENTS and depth == 0:
+            return True
+    return False
 
 
 def _keyword_key_problems(module: Module) -> list[Problem]:

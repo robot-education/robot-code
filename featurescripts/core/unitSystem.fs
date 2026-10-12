@@ -1,5 +1,4 @@
 FeatureScript 2960;
-import(path : "onshape/std/units.fs", version : "2960.0");
 
 export enum UnitSystem
 {

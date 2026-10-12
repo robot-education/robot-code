@@ -1,6 +1,5 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "onshape/std/manipulator.fs", version : "2960.0");
 
 /*
  * Quick ribs, for Robot lighten (see robotLighten.md): ribs it sketches itself, between points (circles' and arcs'

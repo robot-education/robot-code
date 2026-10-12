@@ -1,6 +1,5 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "onshape/std/chamfer.fs", version : "2960.0");
 
 // Exports Fit and SplineType, parameter types
 export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");

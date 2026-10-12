@@ -601,6 +601,41 @@ def test_std_calls_values_and_redeclarations(project):
     assert [line for _, line in found("annotation-ascii")] == [15]
 
 
+def test_write_only_variables_and_unused_std_imports(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'import(path : "onshape/std/common.fs", version : "2909.0");\n'
+        'import(path : "onshape/std/modifyFillet.fs", version : "2909.0");\n'
+        'import(path : "onshape/std/chamfer.fs", version : "2909.0");\n'
+        "export function run(items is array) returns array\n"
+        "{\n"
+        "    var ids = [];\n"
+        "    var count = 0;\n"
+        "    var kept = [];\n"
+        "    for (var item in items)\n"
+        "    {\n"
+        "        ids = append(ids, item);\n"
+        "        count += 1;\n"
+        "        kept = append(kept, item);\n"
+        "    }\n"
+        "    const kind = ModifyFilletType.CHANGE_RADIUS;\n"
+        "    const type = ChamferType.EQUAL_OFFSETS;\n"
+        "    return [kept, kind, type];\n"
+        "}\n"
+    )
+    module = project.module(path)
+    problems = project.check(module)
+
+    def found(code: str) -> list[tuple[str, int]]:
+        return [(module.parsed.source[p.start:p.end].split("\n")[0], module.position(p.start)[0]) for p in problems if p.code == code]
+
+    # Only ever set from themselves; not one returned
+    assert found("unused-variable") == [("ids", 6), ("count", 7)]
+    # modifyFillet.fs gives ModifyFilletType, which common.fs doesn't; chamfer.fs gives ChamferType, which it does
+    assert [line for _, line in found("unused-import")] == [3]
+
+
 def test_snapshots_see_files_once(project):
     new = project.code_dir / "new.fs"
     with project.snapshot():
