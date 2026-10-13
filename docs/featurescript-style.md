@@ -379,7 +379,8 @@ catch
 To find out why a feature fails on someone's part, log its steps with `core/logging.fs`: `logLine`, `logEntities`
 (a count, and the entities shown as debug entities), and `logEdges` (each edge's type, size, and ends). They do
 nothing unless the Part Studio has a variable `#logging` of `true` (a Variable feature of type Any, before the
-feature), so features log as they go, with no parameter for it. Debug entities stay when the feature fails, so log
+feature), so features log as they go, with no parameter for it. `addDebugEntities` of an empty query is an error, so they show
+entities only when there are some. Debug entities stay when the feature fails, so log
 what an operation was given before it runs, and when it fails, what's useful for finding out why (like how far
 Robot lighten's failed offset does go).
 

@@ -277,8 +277,8 @@ end types, and feature pattern support.
   wider than the hole's radius, the offset may fail.
 - Untested in Onshape with `opOffsetWire`: the walls' and ribs' bands, and the corner cylinders.
 - On one plate, offsetting the outer loop in fails once Wall thickness and Fillet radius together reach 1/4 in.,
-  where a similar plate offsets past 1/2 in. Why isn't known yet: logging shows the loop's edges and how far it
-  offsets.
+  where a similar plate offsets past 1/2 in. It's an Onshape bug in `opOffsetWire`'s `makeRegions` on that face,
+  reported to Onshape.
 - A narrow side next to a concave corner (one side of it a rib's or wall's corner) has nothing to full round
   between, so its fillet fails, and the pocket's left smaller with a warning.
 - A pocket's fillet warning is reported before the fillet's status is copied (for its error display), on the

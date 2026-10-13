@@ -25,13 +25,19 @@ export function logLine(context is Context, message is string)
 }
 
 /**
- * Prints `label` and how many of `entities` there are, and shows them in `color`, if logging.
+ * Prints `label` and how many of `entities` there are, and shows them in `color`, if logging. Debug entities of
+ * nothing are an error, so they're shown only if there are any.
  */
 export function logEntities(context is Context, label is string, entities is Query, color is DebugColor)
 {
-    if (isLogging(context))
+    if (!isLogging(context))
     {
-        println(label ~ ": " ~ size(evaluateQuery(context, entities)));
+        return;
+    }
+    const count = size(evaluateQuery(context, entities));
+    println(label ~ ": " ~ count);
+    if (count > 0)
+    {
         addDebugEntities(context, entities, color);
     }
 }
@@ -54,7 +60,11 @@ export function logEdges(context is Context, label is string, edges is Query, fa
     {
         println("  " ~ i ~ ": " ~ edgeDescription(context, edge, face, plane));
     }
-    addDebugEntities(context, edges, color);
+    // Debug entities of nothing are an error
+    if (evaluated != [])
+    {
+        addDebugEntities(context, edges, color);
+    }
 }
 
 /**
