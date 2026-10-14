@@ -11,6 +11,7 @@ shaft ends), and shafts can be mirrored across an end.
 | `robotShaftTables.py` | The COTS shaft tables and the tapped and clearance hole tables; `fs gen` writes `robotShaftTables.gen.fs` |
 | `../splineProfile/splineProfileCommon.fs` | Spline types and profiles (shared with Robot spline profile) |
 | `../../core/stdExtrude.fs` | The extrude's dialog and editing logic, based on std's |
+| `robotShaftIcon.py` | Its icon (`fs gen` writes `robotShaftIcon.svg`): a short rounded hex shaft with a tapped end |
 | `vendor/` | Vendors' drawings the tables were checked against |
 
 ## Changelog

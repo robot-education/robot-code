@@ -38,6 +38,7 @@ units (y down, as in SVG), so they combine (`union`, `difference`), offset, and 
 | `Icon().outlined(shape, color)` | A shape with Onshape's outline |
 | `Icon().extrusion(front, depth)` | A solid: its front face, white, and its sides going back, #D7D7D7, outlined |
 | `Icon().through(outline, depth)` | A cut through a face, its outside edge `outline` (as above) |
+| `Icon().through(outline, thickness, see_through=True)` | A hole all the way through a thin part: what's behind the icon shows through its opening, inside a dark back edge |
 
 Then:
 

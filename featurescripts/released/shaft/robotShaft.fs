@@ -17,6 +17,7 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 // Also exports the enum used as a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
+RobotShaftIcon::import(path : "released/shaft/robotShaftIcon.svg", version : "");
 
 /**
  * Whether a shaft is one someone sells (see robotShaftTables.py), or custom.
@@ -324,7 +325,7 @@ annotation { "Feature Type Name" : "Robot shaft",
         "Feature Type Description" : "Create the shafts FRC and FTC teams buy, or custom ones." ~ CREDIT,
         "Manipulator Change Function" : "extrudeManipulatorChange",
         "Editing Logic Function" : "robotShaftEditLogic",
-        "Icon" : RobotIcon::BLOB_DATA
+        "Icon" : RobotShaftIcon::BLOB_DATA
     }
 // 1/2 in. hex's retaining ring groove
 const GROOVE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.009906, 500], (inch) : 0.39, (millimeter) : 10 } as LengthBoundSpec;

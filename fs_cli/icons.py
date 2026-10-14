@@ -91,6 +91,8 @@ class Icon:
 
     elements: list[str] = dataclasses.field(default_factory=list)
     _clips: int = 0
+    # What you see through, past the icon's back (see `through`)
+    _open: list[BaseGeometry] = dataclasses.field(default_factory=list)
 
     def fill(self, shape: BaseGeometry, color: str) -> Icon:
         self.elements.append(f'<path d="{path(shape)}" fill="{color}"/>')
@@ -105,9 +107,11 @@ class Icon:
         sides = sweep(front, depth)
         return self.outlined(sides, side).outlined(front, color)
 
-    def through(self, outline: BaseGeometry, depth: float = 1.0, rim: float = RIM) -> Icon:
+    def through(self, outline: BaseGeometry, depth: float = 1.0, rim: float = RIM, see_through: bool = False) -> Icon:
         """A cut through a face (a hole or pocket), its outside edge `outline`: a dark rim, the wall you see inside
-        it (on its lower right, as the cut goes back up and to the left), and the dark opening at its back."""
+        it (on its lower right, as the cut goes back up and to the left), and the dark opening at its back. With
+        see_through (depth then being the part's thickness), the opening is open instead: what's behind the icon shows
+        through it."""
         inside = offset(outline, -rim)
         self._clips += 1
         clip = f"c{self._clips}"
@@ -116,10 +120,21 @@ class Icon:
             f'<clipPath id="{clip}"><path d="{path(inside)}"/></clipPath><g clip-path="url(#{clip})">'
             f'<path d="{path(inside)}" fill="{FACE}"/><path d="{path(back(inside, depth))}" fill="{OUTLINE}"/></g>'
         )
+        if see_through:
+            # The opening, a rim's width in from its back edge, which stays dark
+            opening = inside.intersection(offset(back(inside, depth), -rim))
+            self._open.append(opening)
         return self
 
     def render(self) -> str:
-        return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SIZE} {SIZE}">{"".join(self.elements)}</svg>\n'
+        body = "".join(self.elements)
+        if self._open:
+            visible = box(-1, -1, SIZE + 1, SIZE + 1).difference(unary_union(self._open))
+            body = (
+                f'<clipPath id="open"><path d="{path(visible)}" clip-rule="evenodd"/></clipPath>'
+                f'<g clip-path="url(#open)">{body}</g>'
+            )
+        return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SIZE} {SIZE}">{body}</svg>\n'
 
 
 # Previews
