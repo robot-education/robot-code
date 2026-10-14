@@ -299,9 +299,10 @@ export function rackRoot(form is map) returns ValueWithUnits
  * (arrays of 2D points), from 0 to `length` along the face. The face is on the x axis, and its part toward -y; the
  * pitch line is `faceHeight` below it (0 for a face at the pitch line, `m` for one at the teeth's tips). Teeth are at
  * `centers` (see `rackToothCenters`), cut off at the face if they'd reach past it; beyond the first and last, it's cut
- * to the root.
+ * to the root. With a `relief` radius (a router bit's), the roots are rounded (see `relieveRackRoots`), which puts
+ * arcs in the regions: a map `{ "mid" : Vector }` between two points is an arc through it, rather than a line.
  */
-export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array) returns array
+export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array, relief is ValueWithUnits) returns array
 {
     const root = rackRoot(form);
     const tip = min(form.module + form.offset, faceHeight);
@@ -348,7 +349,161 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
         regions = append(regions, [top, bottom, at(length, root), at(length, faceHeight)]);
     }
     // A tooth whole to an end (within tolerance) leaves points on top of each other there
-    return filter(mapArray(regions, region => distinctPoints(region)), region => size(region) >= 3);
+    regions = filter(mapArray(regions, region => distinctPoints(region)), region => size(region) >= 3);
+    if (relief <= 0 * meter)
+    {
+        return regions;
+    }
+    return mapArray(regions, region => relieveRackRoots(form, region, relief, root - faceHeight, -faceHeight - form.module));
+}
+
+const RACK_ROUND_DOESNT_FIT = "The root's round doesn't fit between the teeth: use a smaller router bit, or a bigger module.";
+
+/**
+ * `region` (see `rackCutRegions`) with its roots rounded to `radius`, as a router bit cuts them: each corner at the root
+ * (`rootY`) between the floor and a tooth's flank becomes an arc tangent to both. Where a gap's floor is too narrow for
+ * both, it's a full round instead: an arc tangent to both flanks, centered in the gap, which a bit can't cut below. Its
+ * bottom must be below where a mating gear's tips reach (`tipReach`); a corner at an end's wall (not a flank) is left.
+ */
+export function relieveRackRoots(form is map, region is array, radius is ValueWithUnits, rootY is ValueWithUnits, tipReach is ValueWithUnits) returns array
+{
+    const count = size(region);
+    const point = function(i is number) returns Vector
+        {
+            return region[(i + count) % count];
+        };
+    const atRoot = function(p is Vector) returns boolean
+        {
+            return tolerantEquals(p[1], rootY);
+        };
+    // A corner at the root between the floor and a flank (neither vertical nor flat)
+    const flankCorner = function(i is number) returns boolean
+        {
+            const p = point(i);
+            if (!atRoot(p))
+            {
+                return false;
+            }
+            for (var other in [point(i - 1), point(i + 1)])
+            {
+                if (!atRoot(other) && !tolerantEquals(other[0], p[0]))
+                {
+                    return true;
+                }
+            }
+            return false;
+        };
+    // A corner's fillet: where it leaves the edges before and after, its middle and center, and whether it runs past
+    // the end of the edge before (or after) it. It mustn't run past the flank's.
+    const fillet = function(i is number) returns map
+        {
+            const p = point(i);
+            const u = normalize(point(i - 1) - p);
+            const v = normalize(point(i + 1) - p);
+            const half = acos(dot(u, v)) / 2;
+            const along = radius / tan(half);
+            const pastBefore = along > norm(point(i - 1) - p) + TOLERANCE.zeroLength * meter;
+            const pastAfter = along > norm(point(i + 1) - p) + TOLERANCE.zeroLength * meter;
+            if ((pastBefore && !atRoot(point(i - 1))) || (pastAfter && !atRoot(point(i + 1))))
+            {
+                throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
+            }
+            const bisector = normalize(u + v);
+            const center = p + bisector * radius / sin(half);
+            return {
+                    "before" : p + u * along,
+                    "mid" : center - bisector * radius,
+                    "after" : p + v * along,
+                    "center" : center,
+                    "pastBefore" : pastBefore,
+                    "pastAfter" : pastAfter
+                };
+        };
+    // Where a fillet running past an end's wall (at `wall`) crosses it, below its center, and the arc's middle from
+    // there to where it leaves the flank (`flank`)
+    const clipped = function(corner is map, wall is Vector, flank is Vector) returns map
+        {
+            const dx = wall[0] - corner.center[0];
+            const crossing = vector(wall[0], corner.center[1] - sqrt(radius * radius - dx * dx));
+            const middle = normalize(normalize(crossing - corner.center) + normalize(flank - corner.center));
+            return { "crossing" : crossing, "mid" : corner.center + middle * radius };
+        };
+    var result = [];
+    var i = 0;
+    while (i < count)
+    {
+        if (flankCorner(i) && flankCorner(i + 1) && atRoot(point(i + 1)))
+        {
+            // A gap's floor: fillets at both ends, or a full round if they'd overlap
+            const left = fillet(i);
+            const right = fillet(i + 1);
+            if (left.after[0] <= right.before[0] + TOLERANCE.zeroLength * meter)
+            {
+                result = concatenateArrays([result, [left.before, { "mid" : left.mid }, left.after, right.before, { "mid" : right.mid }, right.after]]);
+            }
+            else
+            {
+                result = concatenateArrays([result, fullRound(point(i - 1), point(i), point(i + 1), point(i + 2), radius, tipReach)]);
+            }
+            i += 2;
+        }
+        else if (flankCorner(i))
+        {
+            const corner = fillet(i);
+            if (corner.pastBefore)
+            {
+                // The floor before it is an end's, too short: the round's cut off at the end's wall, in place of its
+                // corner there
+                const clip = clipped(corner, point(i - 1), corner.after);
+                result = concatenateArrays([resize(result, size(result) - 1), [clip.crossing, { "mid" : clip.mid }, corner.after]]);
+                i += 1;
+            }
+            else if (corner.pastAfter)
+            {
+                const clip = clipped(corner, point(i + 1), corner.before);
+                result = concatenateArrays([result, [corner.before, { "mid" : clip.mid }, clip.crossing]]);
+                i += 2;
+            }
+            else
+            {
+                result = concatenateArrays([result, [corner.before, { "mid" : corner.mid }, corner.after]]);
+                i += 1;
+            }
+        }
+        else
+        {
+            result = append(result, point(i));
+            i += 1;
+        }
+    }
+    return result;
+}
+
+/**
+ * A full round across a gap's floor, from `p` to `q`: an arc of `radius` tangent to the flanks from `above` down to `p`,
+ * and from `q` up to `after`, centered between them. Its bottom must be below `tipReach`.
+ */
+function fullRound(above is Vector, p is Vector, q is Vector, after is Vector, radius is ValueWithUnits, tipReach is ValueWithUnits) returns array
+{
+    const up = normalize(above - p);
+    // Into the gap, square to the flank
+    const inward = vector(up[1], -up[0]);
+    const middle = (p[0] + q[0]) / 2;
+    // Its center, on the gap's middle, is the radius from the flank
+    const height = p[1] + (radius - (middle - p[0]) * inward[0]) / inward[1];
+    const center = vector(middle, height);
+    const bottom = height - radius;
+    if (bottom > tipReach)
+    {
+        throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
+    }
+    const left = center - inward * radius;
+    if (dot(left - p, up) > norm(above - p))
+    {
+        throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
+    }
+    const right = vector(2 * middle - left[0], left[1]);
+    return [left, { "mid" : vector(middle, bottom) }, right];
 }
 
 /**
@@ -379,9 +534,23 @@ export function sketchRackCut(context is Context, id is Id, plane is Plane, regi
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
     for (var r, region in regions)
     {
+        const count = size(region);
         for (var i, point in region)
         {
-            skLineSegment(sketch, "line" ~ r ~ "_" ~ i, { "start" : point, "end" : region[(i + 1) % size(region)] });
+            // An arc's middle is drawn with the points either side of it
+            if (point is map)
+            {
+                continue;
+            }
+            const next = region[(i + 1) % count];
+            if (next is map)
+            {
+                skArc(sketch, "arc" ~ r ~ "_" ~ i, { "start" : point, "mid" : next.mid, "end" : region[(i + 2) % count] });
+            }
+            else
+            {
+                skLineSegment(sketch, "line" ~ r ~ "_" ~ i, { "start" : point, "end" : next });
+            }
         }
     }
     skSolve(sketch);

@@ -10,7 +10,7 @@ const MODULE = inch / 20;
  */
 function spur(teeth is number, mateTeeth is number) returns map
 {
-    return gearMesh({ "gearType" : GearType.GEAR, "mateTeeth" : mateTeeth }, MODULE, teeth);
+    return gearMesh({ "gearType" : GearType.GEAR }, MODULE, teeth, mateTeeth);
 }
 
 export function testSpurMateIsThePitchRadiiAway()
@@ -40,7 +40,7 @@ export function testSpurMateHasAToothAtTheGearsGap()
 
 export function testEvenSectorsHaveAGapOnTheirAxis()
 {
-    const sector = gearMesh({ "gearType" : GearType.SECTOR, "sectorTeeth" : 4, "mateTeeth" : 20 }, MODULE, 20);
+    const sector = gearMesh({ "gearType" : GearType.SECTOR, "sectorTeeth" : 4 }, MODULE, 20, 20);
     expectNear(sector.toothPhase, 9 * degree, 1e-9 * degree);
     // So their mate has a tooth pointing back at them
     const mate = gearMatePlane(XY_PLANE, X_DIRECTION, sector);
@@ -49,7 +49,7 @@ export function testEvenSectorsHaveAGapOnTheirAxis()
 
 export function testBevelMateSharesTheApex()
 {
-    const pair = gearMesh({ "gearType" : GearType.BEVEL, "mateTeeth" : 20, "shaftAngle" : 90 * degree }, MODULE, 20);
+    const pair = gearMesh({ "gearType" : GearType.BEVEL, "shaftAngle" : 90 * degree }, MODULE, 20, 20);
     const mate = gearMatePlane(XY_PLANE, X_DIRECTION, pair);
     // 45 degree cones: the apex is a pitch radius above the gear's back, and the mate's back a pitch radius out
     const radius = 10 * MODULE;
@@ -77,4 +77,30 @@ export function testBevelPairConesAddToTheShaftAngle()
 {
     const cones = bevelPairCones(MODULE, 15, 45, 80 * degree);
     expectNear(cones.gear.pitchAngle + cones.mate.pitchAngle, 80 * degree, 1e-9 * degree);
+}
+
+export function testStraightRackIsOnePiece()
+{
+    expectEqual(rackPieces({ "helical" : false }, inch), [{ "start" : 0 * meter, "width" : inch, "slant" : 0, "shift" : 0 * meter }]);
+}
+
+export function testHelicalRackSlantsThroughItsMiddle()
+{
+    // Its teeth are where a straight rack's are at the middle of its width, and move along it going across
+    const piece = rackPieces({ "helical" : true, "doubleHelical" : false, "helixAngle" : 45 * degree, "hand" : GearHand.LEFT }, inch)[0];
+    expectNear(piece.slant, 1, 1e-9);
+    expectNear(piece.shift + piece.slant * inch / 2, 0 * meter, 1e-12 * meter);
+    // A right hand rack's go back
+    const right = rackPieces({ "helical" : true, "doubleHelical" : false, "helixAngle" : 45 * degree, "hand" : GearHand.RIGHT }, inch)[0];
+    expectNear(right.slant, -1, 1e-9);
+}
+
+export function testDoubleHelicalRackMeetsInTheMiddle()
+{
+    const pieces = rackPieces({ "helical" : true, "doubleHelical" : true, "helixAngle" : 30 * degree, "hand" : GearHand.RIGHT }, inch);
+    expectEqual(size(pieces), 2);
+    // The first half ends where the second starts: at the middle, where the teeth are a straight rack's
+    expectNear(pieces[0].shift + pieces[0].slant * pieces[0].width, pieces[1].shift, 1e-12 * meter);
+    expectNear(pieces[1].shift, 0 * meter, 1e-12 * meter);
+    expectNear(pieces[0].slant, -pieces[1].slant, 1e-9);
 }

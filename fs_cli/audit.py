@@ -73,6 +73,8 @@ _DIALOG_STYLE = """
 #fs-note { margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #f59e0b; }
 /* A long press shows a tooltip, rather than selecting text or opening the browser's menu */
 #feature-dialog { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* By touch, typed values' fields are taller, to tap */
+@media (pointer: coarse) { #feature-dialog .os-param-number { min-height: 34px; } }
 """
 
 _DIALOG_TOOLBAR = "<div id='fs-note' hidden></div>"
@@ -219,6 +221,13 @@ dialog.addEventListener("click", (event) => {
     note.textContent = "Array items aren't drawn here: use fs ui --set.";
     note.hidden = false;
     reportHeight();
+    return;
+  }
+  // A typed value's whole row is its target, its label too (Onshape's labels aren't tied to their fields)
+  const field = target.closest(".os-param-container")?.querySelector("input[data-set]:not([type=checkbox])");
+  if (field && target !== field) {
+    field.focus();
+    field.select();
     return;
   }
   if (target.closest("input[data-set]:not([type=checkbox])")) {

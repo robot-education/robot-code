@@ -211,12 +211,12 @@ def rack_centers(length_mm: float, gap_mm: float, offset_mm: float = 0.0) -> lis
         f"rackToothCenters({form}, {length_mm} * millimeter, {gap_mm} * millimeter)", "gear/gearCommon.fs"))
 
 
-def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0):
+def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0, relief: str = "0 * meter"):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     form = RACK_FORM.format(offset=offset_mm)
     centers = f"rackToothCenters({form}, {length_mm} * millimeter, 0 * meter)"
-    regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers})"
+    regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers}, {relief})"
     evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, {regions})', "gear/gearCommon.fs", context=context)
     return recorded_sketch(context, "profile")
 
@@ -266,6 +266,39 @@ def test_rack_cut_is_one_region_when_teeth_stop_short_of_the_face():
     )
     width = math.pi * 0.001 / 2 - 2 * 0.0001 / math.cos(math.radians(20))
     assert crossings[1] - crossings[0] == pytest.approx(width, abs=1e-12)
+
+
+def test_rack_roots_are_rounded_for_a_router_bit():
+    # 1 mm module: a gap's floor is about 0.66 mm, room for a 0.2 mm radius bit's round at each corner
+    sketch = rack_cut("0 * meter", 10 * math.pi, relief="0.2 * millimeter")
+    loops = sketch.loops()
+    assert len(loops) == 11 and all(loop.closed for loop in loops)
+    arcs = [curve for loop in loops for curve in loop.curves if curve.kind == "arc"]
+    # Two corners in each gap between teeth, and one at each end's
+    assert len(arcs) == 9 * 2 + 2
+    assert all(arc.radius == pytest.approx(0.0002, abs=1e-12) for arc in arcs)
+    # The floor's still at the root
+    points = [point for loop in loops for curve in loop.curves for point in (curve.start, curve.end)]
+    assert min(y for _, y in points) == pytest.approx(-0.00125, abs=1e-12)
+
+
+def test_rack_roots_are_a_full_round_when_the_floor_is_too_narrow():
+    # A 0.5 mm radius bit doesn't fit both corners: one round across each gap, above the root
+    sketch = rack_cut("0 * meter", 10 * math.pi, relief="0.5 * millimeter")
+    loops = sketch.loops()
+    assert all(loop.closed for loop in loops)
+    gap = loops[1]
+    arcs = [curve for curve in gap.curves if curve.kind == "arc"]
+    assert len(arcs) == 1 and arcs[0].radius == pytest.approx(0.0005, abs=1e-12)
+    # Its bottom: above the root, but below where a mating gear's tips reach
+    bottom = arcs[0].center[1] - arcs[0].radius
+    assert -0.00125 < bottom < -0.001
+
+
+def test_rack_round_too_big_for_its_gaps():
+    # Its round would stop above where a mating gear's tips reach
+    with pytest.raises(FSError, match="doesn't fit between the teeth"):
+        rack_cut("0 * meter", 10 * math.pi, relief="0.8 * millimeter")
 
 
 def test_rack_teeth_too_thin():

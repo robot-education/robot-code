@@ -92,3 +92,19 @@ def test_clicks_set_and_unset(tmp_path):
     dom = dump(page, script, tmp_path)
     results = json.loads(html.unescape(re.search(r'data-results="(.*?)"', dom).group(1)))
     assert results == [[True, None], [False, "false"], [True, None]]
+
+
+def test_tapping_a_typed_values_label_focuses_its_field(tmp_path):
+    try:
+        find_chromium()
+    except Exception:
+        pytest.skip("needs Chromium")
+    output = tmp_path / "gear.html"
+    assert cli.main(["audit", "featurescripts/gear/robotGear.fs", "-o", str(output)]) == 0
+    script = """
+    const item = document.querySelector('.os-param-container[data-parameter-id="teeth"]');
+    item.querySelector("label").click();
+    document.body.dataset.results = JSON.stringify(document.activeElement.dataset.set || null);
+    """
+    dom = dump(output.read_text(), script, tmp_path)
+    assert json.loads(html.unescape(re.search(r'data-results="(.*?)"', dom).group(1))) == "teeth"
