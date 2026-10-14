@@ -26,6 +26,8 @@ Unreleased.
   A bevel gear is always made with its mate.
 - Helical: Double helical is above Hand, which it hides.
 - Racks can be helical or double helical, and have router relief.
+- Choosing a circle that's a pitch circle at the gear's pitch (a whole number of teeth's) for the location switches
+  Selection to Pitch circle; for Gear pair's Angle reference, Mate selection.
 - Bevel gears check their mate's pitch cone too: a shaft angle where the mate would be a crown or internal gear is an
   error.
 
@@ -127,7 +129,10 @@ No parameters are hidden.
    - Gear pair: its mate, built the same way (`buildGear`) where `matePlacement` puts it (below), with its own mate
      connector and bore.
    - Rack: `cutRack` (below).
-3. **Manipulator change** (`robotGearManipulatorChange`): the rack's end flip, or the angle's, profile offset's, and
+3. **Editing logic** (`robotGearEditLogic`): a circle newly chosen for the location, or Gear pair's Angle reference,
+   whose radius is a pitch radius at the gear's pitch (`isWholeTeeth`: a whole number of teeth's, at least 4) moves to
+   Pitch circle (or Mate pitch circle), switching Selection (or Mate selection) to Pitch circle.
+4. **Manipulator change** (`robotGearManipulatorChange`): the rack's end flip, or the angle's, profile offset's, and
    starting offset's.
 
 A gear's profile (`sketchGearProfile`), per tooth (rotated copies of one centered on the plane's x axis, its other
