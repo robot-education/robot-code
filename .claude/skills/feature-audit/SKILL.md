@@ -17,8 +17,7 @@ the user's say-so).
 4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html`, then send it with SendUserFile (`display: "render"`).
    It has the dialog, which works: its dropdowns, checkboxes, tabs, lookup table levels, and typed values show what
    each choice shows (a long press shows a parameter's tooltip by touch), in any combination: the page compiles the
-   precondition's conditions to JavaScript and draws the dialog itself. What's set is listed above it, and setting a
-   parameter back (or × on it) returns it to its default. Array items can't be added there;
+   precondition's conditions to JavaScript and draws the dialog itself. Setting a parameter back to its default unsets it. Array items can't be added there;
    `uv run fs ui <file> --set name=value` renders any state as a PNG.
 
 The page also lists every option of each lookup table the feature's parameters use (a row per path through its

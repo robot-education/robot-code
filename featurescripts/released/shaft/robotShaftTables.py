@@ -261,8 +261,7 @@ def one(length: str, part_number: str, url: str) -> str:
 # A #10-32 tap drill (#21), the hole through shafts which can be tapped #10-32 at their ends
 TAP_10_32 = inch(0.159)
 
-# SplineXS stub shafts are tapped #10-32 at each end, "for a 3/8 in. long bolt" (ThriftyBot's page); neither vendor gives
-# its depth, so it's assumed 1/2 in.
+# SplineXS stub shafts are tapped #10-32 1/2 in. deep at each end, "for a 3/8 in. long bolt" (ThriftyBot's page)
 SPLINE_XS_STUB_FACTORY = factory(tapped_10_32(inch(0.5)), [])
 
 
@@ -389,8 +388,8 @@ def ttb(handle: str) -> str:
 TTB_SPLINE_XS_URL = ttb("pre-order-splinexs-shafts")
 
 # FRCDesign "Hex Shaft (TTB)" and "Spline - 15t SplineXS (TTB)". Its SplineXS stub shafts are 1045 steel, tapped #10-32 at
-# each end (draw them with the shaft's ends); its 7075 SplineXS stock has a through hole to tap #10-32, and its steel
-# stock doesn't
+# each end; its 7075 SplineXS stock "includes a thru hole for tapping to 10-32" (its ends aren't tapped), and its steel
+# stock "does not include a thru hole"
 TTB = vendor(
     "ThriftyBot",
     [

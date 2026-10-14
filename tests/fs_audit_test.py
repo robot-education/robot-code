@@ -79,19 +79,16 @@ def test_clicks_set_and_unset(tmp_path):
     page = output.read_text()
     script = """
     const results = [];
-    const record = () => results.push([...document.querySelectorAll(".fs-chip")].map((chip) => chip.firstChild.textContent));
-    const click = (key) => document.querySelector(`[data-set="${key}"]`).click();
-    click("excludeConstruction");
+    const checkbox = () => document.querySelector('[data-set="excludeConstruction"] input');
+    const record = () => results.push([checkbox().checked, settings.excludeConstruction ?? null]);
+    record();
+    checkbox().closest("[data-set]").click();
     record();
     // Clicking it again sets it back to its default, which unsets it
-    click("excludeConstruction");
-    record();
-    click("excludeConstruction");
-    document.querySelector("[data-unset]").click();
+    checkbox().closest("[data-set]").click();
     record();
     document.body.dataset.results = JSON.stringify(results);
     """
     dom = dump(page, script, tmp_path)
     results = json.loads(html.unescape(re.search(r'data-results="(.*?)"', dom).group(1)))
-    assert results[0] == ["excludeConstruction = false"] or results[0] == ["excludeConstruction = true"]
-    assert results[1] == [] and results[2] == []
+    assert results == [[True, None], [False, "false"], [True, None]]

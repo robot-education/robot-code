@@ -39,11 +39,11 @@ export predicate isCotsShaft(definition is map)
  */
 export enum FtcCustomShaft
 {
-    annotation { "Name" : "8 mm REX (goBILDA)" }
+    annotation { "Name" : "8 mm REX" }
     REX_8_MM,
-    annotation { "Name" : "12 mm REX (goBILDA)" }
+    annotation { "Name" : "12 mm REX" }
     REX_12_MM,
-    annotation { "Name" : "3/8 in. Robits hex (AndyMark)" }
+    annotation { "Name" : "3/8 in. Robits hex" }
     ROBITS_HEX
 }
 
@@ -337,8 +337,6 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Source", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.shaftSource is ShaftSource;
 
-        locationPredicate(definition, "shaft");
-
         if (isCotsShaft(definition))
         {
             // Sets the shaft's profile parameters, through editing logic (see withShaft)
@@ -383,6 +381,8 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
 
         annotation { "Group Name" : "Extrude", "Collapsed By Default" : false }
         {
+            locationPredicate(definition, "shaft");
+
             // A preset's length is its own: only where it starts, and which way it goes (newExtrudePredicate, but
             // those). Onshape doesn't allow a parameter in two branches of an if
             if (!isPresetLength(definition))

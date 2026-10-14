@@ -70,59 +70,21 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
 
 
 _DIALOG_STYLE = """
-.fs-toolbar { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #b8bcc4; }
-html[data-os-theme='light'] .fs-toolbar { color: #4b5563; }
-.fs-toolbar #fs-settings { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; min-height: 20px; align-items: center; }
-.fs-toolbar button { font: inherit; padding: 2px 8px; cursor: pointer; }
-.fs-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 4px 1px 8px; border: 1px solid #4b5563; border-radius: 10px; overflow-wrap: anywhere; }
-.fs-chip.fs-hidden { opacity: 0.55; font-style: italic; }
-.fs-chip button { border: 0; background: none; color: inherit; padding: 0 4px; font-size: 14px; line-height: 1; }
 #fs-note { margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #f59e0b; }
 /* A long press shows a tooltip, rather than selecting text or opening the browser's menu */
 #feature-dialog { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 """
 
-_DIALOG_TOOLBAR = (
-    "<div class='fs-toolbar'><span id='fs-settings'>Defaults</span><button id='fs-reset' hidden>Reset all</button></div>"
-    "<div id='fs-note' hidden></div>"
-)
+_DIALOG_TOOLBAR = "<div id='fs-note' hidden></div>"
 
 # The page's glue: clicks set settings, and the dialog is drawn again (`renderList`, from fs_cli.live_dialog.RUNTIME)
 _DIALOG_SCRIPT = r"""
 const dialog = document.getElementById("feature-dialog");
 const list = dialog.querySelector("os-parameter-list-view");
-const settingsList = document.getElementById("fs-settings");
 const note = document.getElementById("fs-note");
-const reset = document.getElementById("fs-reset");
 // What's been set (as fs ui --set takes it), and which groups and items have been opened or closed
 const settings = {};
 const toggled = {};
-
-// A setting as the dialog shows it: an enum by its name, a lookup table's path, or what was typed
-function describe(key) {
-  const parameter = DIALOG.parameters[key];
-  return parameter.name + " = " + settings[key];
-}
-
-function showSettings(shown) {
-  settingsList.replaceChildren();
-  const keys = Object.keys(settings).sort();
-  for (const key of keys) {
-    const chip = document.createElement("span");
-    chip.className = "fs-chip" + (shown.has(key) ? "" : " fs-hidden");
-    chip.title = shown.has(key) ? "Set; × sets it back to its default" : "Set, but not shown now; × sets it back to its default";
-    chip.append(describe(key));
-    const remove = document.createElement("button");
-    remove.textContent = "×";
-    remove.dataset.unset = key;
-    chip.append(remove);
-    settingsList.append(chip);
-  }
-  if (!keys.length) {
-    settingsList.textContent = "Defaults";
-  }
-  reset.hidden = keys.length === 0;
-}
 
 // The frame fits the dialog, and any open menu (which is fixed in place, so not in the page's height)
 function reportHeight() {
@@ -143,7 +105,6 @@ function draw() {
       setOpen(expander, open);
     }
   }
-  showSettings(new Set(result.shown));
   reportHeight();
 }
 
@@ -161,22 +122,6 @@ function set(key, value) {
   note.hidden = true;
   draw();
 }
-
-reset.addEventListener("click", () => {
-  for (const key of Object.keys(settings)) {
-    delete settings[key];
-  }
-  note.hidden = true;
-  draw();
-});
-
-settingsList.addEventListener("click", (event) => {
-  const remove = event.target.closest("[data-unset]");
-  if (remove) {
-    delete settings[remove.dataset.unset];
-    draw();
-  }
-});
 
 function keyOf(expander) {
   const group = expander.closest("[data-group]");
@@ -459,7 +404,7 @@ iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--
 <nav><a href="#dialog">Dialog</a><a href="#tables">Lookup tables</a><a href="#writeup">Writeup</a><a href="#problems">Problems</a></nav>
 <section id="dialog">
 <h2>Dialog</h2>
-<p class="limit">Click dropdowns, checkboxes, tabs, and lookup table levels, or type values, to see what each choice shows: any combination works. What's set is listed above the dialog; × (or setting it back) returns it to its default. Hover a parameter for its description, default, and UI hints.</p>
+<p class="limit">Click dropdowns, checkboxes, tabs, and lookup table levels, or type values, to see what each choice shows: any combination works. Setting a parameter back to its default (unchecking it, say) unsets it. Hover a parameter for its description, default, and UI hints.</p>
 <iframe id="dialog-frame" title="Dialog" srcdoc="{dialog}"></iframe>
 </section>
 <section id="tables">

@@ -264,9 +264,8 @@ the lookup tables its parameters use (every option at once, without their values
 tree of its groups, parameters, and `if`s, whose conditions become JavaScript (what doesn't depend on the definition
 is evaluated first, as `fs ui` evaluates it), and each parameter is rendered once for each of its values. The page
 walks the tree with the current settings and lays the dialog out as `fs ui` does, so any combination of choices, and
-typed values, works (a test checks it draws what `fs ui --set` renders, state by state, for several features). What's
-set is listed above the dialog: setting a parameter back to its default (like unchecking a checkbox) leaves the list,
-and × on one sets it back. Hovering a parameter (or by touch, a long press) shows its description, default, and UI
+typed values, works (a test checks it draws what `fs ui --set` renders, state by state, for several features). Setting
+a parameter back to its default (like unchecking a checkbox) unsets it. Hovering a parameter (or by touch, a long press) shows its description, default, and UI
 hints, as the VS Code preview does. Array items can't be added there (`fs ui --set` renders any state).
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
