@@ -54,7 +54,7 @@ Since v2.2.0 (`fs changes robotShaft`).
   that long from their location (with Opposite direction and Starting offset, but no end type, Symmetric, second end,
   or Mirror shaft), with their ends as made, and no Shaft ends:
   - goBILDA's REX: tapped M4 (11 mm deep on 8mm REX, 12 mm on stainless 12mm, 14 mm on aluminum 12mm), and on the ones
-    with an e-clip (a type of their own, REX with e-clip), its grooves (8mm: one 6 mm across, 3.2 to 4 mm from its
+    with an e-clip (types of their own: 8 mm REX (e-clip) and 12 mm REX (e-clip), beside 12 mm REX), its grooves (8mm: one 6 mm across, 3.2 to 4 mm from its
     first end; 12mm: two 9 mm across, 3 to 4 and 10 to 11 mm). Flip ends puts the grooves at its second end.
   - Robits hex: tapped #10-32, 0.7 in. deep.
   - SplineXS stubs: tapped #10-32, assumed 1/2 in. deep.
@@ -214,7 +214,7 @@ in blue, then rethrow (std's errors) or throw their own. COTS length problems ar
 - Retaining ring is offered for 7 mm and 11 mm hex, and errors there (clearly: "Retaining ring grooves are only defined
   for 1/2 in. and 3/8 in. hex."). FeatureScript can't hide one value of an enum, so not offering it would take a
   separate end operation enum for metric hex. goBILDA's REX shafts at their preset lengths have their e-clip grooves.
-- Flip ends is shown for goBILDA's REX with e-clip by its type's name in the table path (`hasFactoryGrooves`), as a
+- Flip ends is shown for goBILDA's REX with an e-clip by its type's name in the table path (`hasFactoryGrooves`), as a
   precondition can't read the table's values.
 - The SplineXS stubs' tapped depth is assumed (1/2 in.): neither WCP nor ThriftyBot gives it.
 - goBILDA's 8mm REX standoffs (1516 series, aluminum, tapped M4) aren't in the table: they're sold as standoffs.

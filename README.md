@@ -406,6 +406,10 @@ frontend studio of the same name at it (creating the studio if needed). Beta rel
 sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
 skips the prompt).
 
+The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, its
+file on GitHub (on `github_branch`, `main` by default). It's written when the studio's released, so each
+FeatureScript gets the GitHub link at its next release.
+
 ### Released FeatureScripts
 
 A released FeatureScript's backend tab has to keep its element id and name: Part Studios using its feature only

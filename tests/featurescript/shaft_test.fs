@@ -52,7 +52,7 @@ function ftcShaft(source is ShaftSource) returns map
     return {
             "program" : Program.FTC,
             "shaftSource" : source,
-            "ftcShaft" : { "vendor" : "goBILDA", "type" : "REX with e-clip", "size" : "8 mm", "length" : "48 mm" } as LookupTablePath,
+            "ftcShaft" : { "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "48 mm" } as LookupTablePath,
             "shaftType" : ShaftType.HEX,
             "hexSize" : HexSize._7_MM,
             "endBound" : StockBoundingType.UP_TO_SURFACE,
@@ -90,7 +90,7 @@ export function testPresetsHaveTheirFactoryFeatures()
     expectEqual(eClip.factoryHole.depth, 11 * millimeter);
     expectEqual(size(eClip.factoryGrooves), 1);
     expectEqual(eClip.stock, [{ "length" : 48 * millimeter, "partNumber" : "2106-4008-0480", "url" : "https://www.gobilda.com/8mm-rex-shaft-with-e-clip-stainless-steel-48mm-length/" }]);
-    const plain = getLookupTable(ftcShaftTable, { "vendor" : "goBILDA", "type" : "REX", "size" : "12 mm", "material" : "Stainless steel", "length" : "140 mm" } as LookupTablePath);
+    const plain = getLookupTable(ftcShaftTable, { "vendor" : "goBILDA", "type" : "12 mm REX", "material" : "Stainless steel", "length" : "140 mm" } as LookupTablePath);
     expectEqual(plain.factoryHole, undefined);
     expectEqual(plain.factoryGrooves, []);
     expectEqual(plain.stock[0].partNumber, "2102-0012-0140");

@@ -28,6 +28,8 @@ class Config:
         backend: The workspace holding the source of every FeatureScript.
         frontend: The public workspace released FeatureScripts are published to.
         frontend_beta: The workspace beta releases are published to.
+        github: The repo's GitHub url, which released FeatureScripts link to their source in (on `github_branch`).
+        github_branch: The branch released source is linked on.
     """
 
     root: pathlib.Path
@@ -36,6 +38,8 @@ class Config:
     backend: InstancePath
     frontend: InstancePath | None = None
     frontend_beta: InstancePath | None = None
+    github: str | None = None
+    github_branch: str = "main"
 
     @property
     def state_path(self) -> pathlib.Path:
@@ -77,6 +81,8 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
         frontend_beta=(
             _workspace(data, "frontend_beta") if "frontend_beta" in data else None
         ),
+        github=data["github"].rstrip("/") if "github" in data else None,
+        github_branch=data.get("github_branch", "main"),
     )
 
 

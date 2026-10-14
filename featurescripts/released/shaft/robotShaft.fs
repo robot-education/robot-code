@@ -46,14 +46,14 @@ predicate isPresetLength(definition is map)
 }
 
 /**
- * Whether a shaft has e-clip grooves at one end, as it's sold (goBILDA's REX with e-clip), so Flip ends can put them
+ * Whether a shaft has e-clip grooves at one end, as it's sold (goBILDA's REX with an e-clip), so Flip ends can put them
  * at the other. Repeats `isPresetLength`'s condition (see `isSplineXsShaft`).
  */
 predicate hasFactoryGrooves(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
     definition.program == Program.FTC;
-    definition.ftcShaft["type"] == "REX with e-clip";
+    definition.ftcShaft["type"] == "8 mm REX (e-clip)" || definition.ftcShaft["type"] == "12 mm REX (e-clip)";
 }
 
 export enum EndOperation

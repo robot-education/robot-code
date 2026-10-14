@@ -30,6 +30,8 @@ path = "featurescripts"
 backend = "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f"
 # The public document `fs release` publishes released FeatureScripts to. Not mirrored locally.
 frontend = "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88"
+# The repo on GitHub: released FeatureScripts link to their file in it (on github_branch, main by default).
+github = "https://github.com/robot-education/robot-code"
 # The document `fs release --beta` publishes beta releases to.
 frontend_beta = "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/7517d9bc30a444e88795c529"
 

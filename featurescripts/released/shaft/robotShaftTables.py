@@ -457,25 +457,26 @@ REX_12_PLAIN_FACTORY = factory(None, [])
 # FRCDesign FTC "Custom Shaft": 8mm REX is nearly all of its use. REX is goBILDA's rounded hex: an 8 mm (or 12 mm) round
 # and a 7 mm (or 11 mm) hex (the STEP files). goBILDA sells each length: its whole stainless steel catalog (with an
 # e-clip and its grooves, and the 12 mm without, untapped) and its aluminum 12 mm
-# (https://www.gobilda.com/stainless-steel-rex-shafting/, https://www.gobilda.com/aluminum-rex-shafting/). The e-clip
-# shafts are a type of their own, which the precondition shows Flip ends for
+# (https://www.gobilda.com/stainless-steel-rex-shafting/, https://www.gobilda.com/aluminum-rex-shafting/). It only
+# sells REX, so its types are its sizes, with an e-clip or without, which the precondition shows Flip ends for. It
+# sells no 8mm REX shaft without one (only standoffs)
 # TODO: goBILDA's D-shafts and round shafts; REV's 5mm hex. 8mm REX standoffs (aluminum) are left out: they're standoffs
 GOBILDA = vendor(
     "goBILDA",
     [
-        shaft("REX with e-clip", "8 mm", None, "8mm REX Shaft with E-Clip (goBILDA)", hex("ROUNDED_HEX", "HexSize._7_MM"),
+        shaft("8 mm REX (e-clip)", None, None, "8mm REX Shaft with E-Clip (goBILDA)", hex("ROUNDED_HEX", "HexSize._7_MM"),
               "STAINLESS_STEEL", "STEEL_GRAY", None,
               preset_lengths=presets(gobilda_presets("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel", REX_8_LENGTHS),
                                      REX_8_ECLIP_FACTORY)),
-        shaft("REX with e-clip", "12 mm", None, "12mm REX Shaft with E-Clip (goBILDA)", hex("ROUNDED_HEX", "HexSize._11_MM"),
+        shaft("12 mm REX (e-clip)", None, None, "12mm REX Shaft with E-Clip (goBILDA)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "STAINLESS_STEEL", "STEEL_GRAY", None,
               preset_lengths=presets(gobilda_presets("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel", REX_12_LENGTHS),
                                      REX_12_ECLIP_FACTORY)),
-        shaft("REX", "12 mm", "Stainless steel", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
+        shaft("12 mm REX", None, "Stainless steel", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "STAINLESS_STEEL", "STEEL_GRAY", None,
               preset_lengths=presets(gobilda_presets("2102", "0012", "12mm-rex-shaft-stainless-steel", REX_12_PLAIN_LENGTHS),
                                      REX_12_PLAIN_FACTORY)),
-        shaft("REX", "12 mm", "Aluminum", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
+        shaft("12 mm REX", None, "Aluminum", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "ALUMINUM", "MEDIUM_GRAY", None,
               preset_lengths=presets(gobilda_presets("2104", "0012", "12mm-rex-shaft-aluminum", REX_12_ALUMINUM_LENGTHS),
                                      REX_12_ALUMINUM_FACTORY)),

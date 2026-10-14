@@ -21,6 +21,7 @@ import dataclasses
 import re
 from typing import Callable
 
+from fs_cli.config import Config
 from fs_cli.remote import RemoteStudio, Version
 from fs_cli.versions import (
     ReleasedVersion,
@@ -41,7 +42,7 @@ RELEASE_TEMPLATE = """FeatureScript {std_version};
 
 /**
  * {version_name}
- * Source code (public): {source_url}
+ * Source code (public): {source_url}{github_line}
  * FeatureScript by Alex Kempen.
  */
 export import(path : "{import_path}", version : "{microversion_id}");
@@ -49,13 +50,19 @@ export import(path : "{import_path}", version : "{microversion_id}");
 
 
 def release_studio_code(
-    version_name: str, std_version: str, studio_path: ElementPath, microversion_id: str
+    version_name: str,
+    std_version: str,
+    studio_path: ElementPath,
+    microversion_id: str,
+    github_url: str | None = None,
 ) -> str:
-    """Generates a frontend studio which re-exports a released (versioned) backend studio."""
+    """Generates a frontend studio which re-exports a released (versioned) backend studio, linking its source in the
+    backend document, and on GitHub (`github_url`, its file's page), if given."""
     return RELEASE_TEMPLATE.format(
         std_version=std_version,
         version_name=version_name,
         source_url=path_to_url(studio_path),
+        github_line=f"\n * Source code (GitHub): {github_url}" if github_url else "",
         import_path="/".join(
             [studio_path.document_id, studio_path.instance_id, studio_path.element_id]
         ),
@@ -302,7 +309,16 @@ def _version_backend(
         remote.latest_std_version(),
         ElementPath.from_path(version_instance, released.element_id),
         released.microversion_id,
+        github_file_url(workspace.config, studio),
     )
+
+
+def github_file_url(config: Config, studio: Studio) -> str | None:
+    """The page of a studio's file on GitHub, on the configured branch, or None if no repo is configured."""
+    if config.github is None:
+        return None
+    path = (config.code_dir / studio.path).relative_to(config.root).as_posix()
+    return f"{config.github}/blob/{config.github_branch}/{path}"
 
 
 def unsynced_versions(workspace: Workspace) -> list[Version]:

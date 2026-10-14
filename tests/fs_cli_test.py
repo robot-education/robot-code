@@ -983,6 +983,25 @@ def test_release(repo, onshape):
     assert onshape.names("front", "fw") == ["robotFrame.fs"]
 
 
+def test_release_links_github(repo, onshape):
+    """With [tool.fs] github, the frontend studio links its file on GitHub, on main."""
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + 'github = "https://github.com/robot-education/robot-code/"\n')
+    released_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "-d", "First") == 0
+    code = onshape.code("robotFrame.fs", "front", "fw")
+    assert (
+        " * Source code (GitHub): https://github.com/robot-education/robot-code/blob/main/featurescripts/Robot/robotFrame.fs\n"
+        in code
+    )
+
+
+def test_release_without_github_has_no_link(repo, onshape):
+    released_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "-d", "First") == 0
+    assert "GitHub" not in onshape.code("robotFrame.fs", "front", "fw")
+
+
 def test_release_dry_run(repo, onshape, capsys):
     released_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--major", "--dry-run") == 0
