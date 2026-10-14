@@ -55,6 +55,7 @@ function ftcShaft(source is ShaftSource) returns map
             "ftcShaft" : { "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "48 mm" } as LookupTablePath,
             "shaftType" : ShaftType.HEX,
             "hexSize" : HexSize._7_MM,
+            "ftcCustomShaft" : FtcCustomShaft.REX_8_MM,
             "endBound" : StockBoundingType.UP_TO_SURFACE,
             "depth" : 1 * inch,
             "symmetric" : true,
@@ -94,8 +95,18 @@ export function testPresetsHaveTheirFactoryFeatures()
     expectEqual(plain.factoryHole, undefined);
     expectEqual(plain.factoryGrooves, []);
     expectEqual(plain.stock[0].partNumber, "2102-0012-0140");
-    const robits = getLookupTable(ftcShaftTable, { "vendor" : "AndyMark", "type" : "Robits hex", "size" : "3/8 in.", "length" : "4 in." } as LookupTablePath);
+    const robits = getLookupTable(ftcShaftTable, { "vendor" : "AndyMark", "type" : "3/8 in. Robits hex", "length" : "4 in." } as LookupTablePath);
     expectEqual(robits.factoryHole.size, "#10");
     expectEqual(robits.factoryHole.depth, 0.7 * inch);
     expectEqual(robits.presetLength, 4 * inch);
+}
+
+export function testCustomFtcShaftIsItsProfile()
+{
+    var custom = ftcShaft(ShaftSource.CUSTOM);
+    custom.ftcCustomShaft = FtcCustomShaft.ROBITS_HEX;
+    const definition = robotShaftEditLogic(newContext(), newId(), custom, custom, false, {}, qNothing());
+    expectEqual(definition.shaftType, ShaftType.HEX);
+    expectEqual(definition.hexType, HexType.STOCK);
+    expectEqual(definition.hexSize, HexSize._3_8_IN);
 }

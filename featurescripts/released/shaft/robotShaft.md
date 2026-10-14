@@ -59,7 +59,9 @@ Since v2.2.0 (`fs changes robotShaft`).
   - Robits hex: tapped #10-32, 0.7 in. deep.
   - SplineXS stubs: tapped #10-32, assumed 1/2 in. deep.
 
-  A shaft cut to another length, or with its ends modified, is a custom one (Source: Custom).
+  A shaft cut to another length, or with its ends modified, is a custom one (Source: Custom). A custom FTC shaft is
+  chosen by its Shaft, goBILDA's 8 mm or 12 mm REX or AndyMark's 3/8 in. Robits hex, rather than by its profile (an
+  FRC one's Shaft type, Hex type, and size), and is named for it (`56 mm REX Shaft`).
 - goBILDA's whole stainless steel REX catalog: 12mm REX without an e-clip (100, 140, and 180 mm, untapped) joins the
   8mm and 12mm with one.
 - Override groove diameter, for each end's retaining ring: a Groove diameter of its own, for rings other than the
@@ -141,7 +143,8 @@ Holes get std's hole attributes (they're made by std's `hole`).
    COTS shafts show Shaft ends by their profile, which editing logic copies into the definition (below).
 2. **Editing logic** (`robotShaftEditLogic`):
    1. `withShaft`: sets the unit system from the program, and copies a COTS shaft's profile (`shaftType`, `hexType`,
-      `hexSize`, `splineType`, `predrilledHoleDiameter`) into the definition, so the precondition shows what suits it.
+      `hexSize`, `splineType`, `predrilledHoleDiameter`) into the definition, or a custom FTC shaft's (from its Shaft), so
+      the precondition shows what suits it.
       A preset length sets the extrude: Blind, its length, one way, not mirrored.
    2. When the feature is created: sketches the profile and runs std's extrude editing logic on it
       (`stdNewExtrudeEditLogic`), which points the extrude at what it's up to and sets the merge scope.

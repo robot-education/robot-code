@@ -35,6 +35,19 @@ export predicate isCotsShaft(definition is map)
 }
 
 /**
+ * The shafts an FTC team cuts to length or modifies (a custom shaft): goBILDA's and AndyMark's, by their profiles.
+ */
+export enum FtcCustomShaft
+{
+    annotation { "Name" : "8 mm REX (goBILDA)" }
+    REX_8_MM,
+    annotation { "Name" : "12 mm REX (goBILDA)" }
+    REX_12_MM,
+    annotation { "Name" : "3/8 in. Robits hex (AndyMark)" }
+    ROBITS_HEX
+}
+
+/**
  * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
  * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
  */
@@ -344,17 +357,26 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         {
             annotation { "Group Name" : "Shaft", "Collapsed By Default" : false }
             {
-                annotation { "Name" : "Shaft type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                definition.shaftType is ShaftType;
-
-                if (definition.shaftType == ShaftType.HEX)
+                if (isFrc(definition))
                 {
-                    hexShaftPredicate(definition);
+                    annotation { "Name" : "Shaft type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    definition.shaftType is ShaftType;
+
+                    if (definition.shaftType == ShaftType.HEX)
+                    {
+                        hexShaftPredicate(definition);
+                    }
+                    else
+                    {
+                        annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                        definition.splineType is SplineType;
+                    }
                 }
                 else
                 {
-                    annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                    definition.splineType is SplineType;
+                    // Sets the shaft's profile parameters, through editing logic (see withShaft)
+                    annotation { "Name" : "Shaft", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    definition.ftcCustomShaft is FtcCustomShaft;
                 }
             }
         }
@@ -534,13 +556,24 @@ function getCotsShaft(definition is map)
 
 /**
  * The definition with the unit system its program uses (inches for FRC, millimeters for FTC), and a COTS shaft's
- * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), so the rest of the feature can treat it as custom. A
+ * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), or a custom FTC shaft's (from its Shaft), so the rest
+ * of the feature can treat it as a custom FRC one. A
  * preset length's shaft is extruded that long (Blind, one way, not mirrored).
  * A COTS spline shaft may also have a `predrilledHoleDiameter`: a hole through a solid spline (see `isTubeSpline`).
  */
 function withShaft(definition is map) returns map
 {
     definition.unitSystem = isFrc(definition) ? UnitSystem.IMPERIAL : UnitSystem.METRIC;
+    if (!isFrc(definition) && !isCotsShaft(definition))
+    {
+        definition.shaftType = ShaftType.HEX;
+        definition.hexType = definition.ftcCustomShaft == FtcCustomShaft.ROBITS_HEX ? HexType.STOCK : HexType.ROUNDED_HEX;
+        definition.hexSize = switch (definition.ftcCustomShaft) {
+                FtcCustomShaft.REX_8_MM : HexSize._7_MM,
+                FtcCustomShaft.REX_12_MM : HexSize._11_MM,
+                FtcCustomShaft.ROBITS_HEX : HexSize._3_8_IN
+            };
+    }
     const shaft = getCotsShaft(definition);
     if (shaft != undefined)
     {
@@ -924,7 +957,7 @@ function setShaftName(context is Context, shaft is Query, definition is map, len
         shaftName = switch (definition.hexType)
             {
                     HexType.STOCK : "Hex",
-                    HexType.ROUNDED_HEX : "Rounded Hex",
+                    HexType.ROUNDED_HEX : isMetricHex(definition.hexSize) ? "REX" : "Rounded Hex",
                     HexType.CHURRO : "Churro",
                     HexType.ULTRA_HEX : "UltraHex",
                     HexType.HEX_LITE : "Hex Lite"

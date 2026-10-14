@@ -488,7 +488,7 @@ GOBILDA = vendor(
 ROBITS = vendor(
     "AndyMark",
     [
-        shaft("Robits hex", "3/8 in.", None, "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
+        shaft("3/8 in. Robits hex", None, None, "Robits Hex Shaft (AndyMark 3/8 in.)", hex("STOCK", THREE_EIGHTHS), "STEEL", "STEEL_GRAY",
               None,
               preset_lengths=presets(inch_presets("https://andymark.com/products/robits-hex-shafts",
                                                   *[(n, f"am-5003-{n * 100:04d}") for n in (2, 3, 4, 6, 8, 10, 12)]),
