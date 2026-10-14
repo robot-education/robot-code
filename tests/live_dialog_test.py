@@ -1,0 +1,98 @@
+"""Tests for the live dialog (`fs_cli.live_dialog`): the page's script draws each state of a feature's dialog as
+`fs ui --set` renders it, byte for byte."""
+
+import html
+import json
+import pathlib
+import re
+import shutil
+import subprocess
+
+import pytest
+
+from fs_cli.audit import split_page
+from fs_cli.cli import _project
+from fs_cli.config import load_config
+from fs_cli.live_dialog import page_script
+from fs_cli.live_dialog import dialog_data
+from fs_cli.ui import render_feature
+
+pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="needs node")
+
+# What clicking a control sets
+SETTING = re.compile(r"data-set='([^']*)' data-value='([^']*)'")
+
+FEATURES = [
+    "featurescripts/lighten/robotLighten.fs",
+    "featurescripts/released/shaft/robotShaft.fs",
+    "featurescripts/released/frame/robotFrame.fs",
+    "featurescripts/motor/robotMotor.fs",
+    "featurescripts/gear/robotGear.fs",
+    "featurescripts/released/spacer/robotSpacer.fs",
+    # Every kind of parameter and layout
+    "featurescripts/uiTestBench/uiTestBench.fs",
+]
+
+# Inline icons' ids are made unique by a counter, so they differ with the order they're drawn in
+ICON_IDS = re.compile(r"\bi\d+-")
+
+
+def same(html_text: str) -> str:
+    return ICON_IDS.sub("i-", html_text)
+
+
+def states(render, limit: int) -> list[dict[str, str]]:
+    """Settings reached by clicking, breadth first, from the defaults: the dialog's choices, and their combinations."""
+    found = [{}]
+    seen = {""}
+    index = 0
+    while index < len(found) and len(found) < limit:
+        page = render(found[index])
+        for match in SETTING.finditer(page):
+            name, value = html.unescape(match.group(1)), html.unescape(match.group(2))
+            # Array items are added by count, which the page doesn't do
+            if value.isdigit():
+                continue
+            settings = {**found[index], name: value}
+            key = json.dumps(settings, sort_keys=True)
+            if key not in seen:
+                seen.add(key)
+                found.append(settings)
+        index += 1
+    return found[:limit]
+
+
+def run_script(script: str, cases: list[dict[str, str]], tmp_path: pathlib.Path) -> list[dict]:
+    path = tmp_path / "dialog.js"
+    path.write_text(script + f"\nconsole.log(JSON.stringify({json.dumps(cases)}.map((settings) => renderList(settings))));\n")
+    result = subprocess.run(["node", str(path)], capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
+@pytest.mark.parametrize("feature", FEATURES)
+def test_script_draws_what_fs_ui_renders(feature, tmp_path):
+    config = load_config()
+    project = _project(config)
+    path = config.root / feature
+
+    def render(settings: dict[str, str]) -> str:
+        return render_feature(project, config.std_dir, path, None, settings)[0]
+
+    cases = states(render, 40)
+    data, conditions = dialog_data(project, config.std_dir, path, None)
+    drawn = run_script(page_script(data, conditions), cases, tmp_path)
+    for settings, result in zip(cases, drawn):
+        expected = split_page(render(settings))[1]
+        assert same(result["html"]) == same(expected), f"{feature} with {settings}"
+
+
+def test_typed_values_are_drawn(tmp_path):
+    config = load_config()
+    project = _project(config)
+    path = config.root / "featurescripts/lighten/robotLighten.fs"
+    data, conditions = dialog_data(project, config.std_dir, path, None)
+    typed = next(key for key, parameter in data["parameters"].items() if parameter["kind"] == "length")
+    [result] = run_script(page_script(data, conditions), [{typed: "1 <in>"}], tmp_path)
+    expected = split_page(render_feature(project, config.std_dir, path, None, {typed: "1 <in>"})[0])[1]
+    assert result["html"] == expected
+    assert "1 &lt;in&gt;" in result["html"]

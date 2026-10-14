@@ -11,10 +11,8 @@ from __future__ import annotations
 import argparse
 import collections
 import difflib
-import html
 import os
 import pathlib
-import re
 import sys
 
 from fs_lsp.formatter import format_source, is_generated
@@ -287,16 +285,13 @@ def make_parser() -> argparse.ArgumentParser:
 
     audit_command = command(
         "audit",
-        "write one page to audit a feature: its dialog, which works (choices are pre-rendered), its writeup, and its problems (no API calls)",
+        "write one page to audit a feature: its dialog, which works (any combination of choices), its writeup, and its problems (no API calls)",
         targets=False,
     )
     audit_command.add_argument("file", help="the .fs file defining the feature")
     audit_command.add_argument("--feature", help="the feature, if the file defines several")
     audit_command.add_argument("-o", "--output", help="the HTML to write (default: .fs-audit/<feature>.html)")
     audit_command.add_argument("--theme", choices=["dark", "light"], default="dark", help="the dialog's Onshape theme (default: dark)")
-    audit_command.add_argument(
-        "--max-states", type=int, default=200, help="how many of the dialog's states to pre-render at most (default: 200)"
-    )
 
     tabs_command = command(
         "tabs",
@@ -1321,37 +1316,18 @@ def evaluate(config: Config, args: argparse.Namespace) -> int:
 
 
 def audit(config: Config, args: argparse.Namespace) -> int:
-    from fs_cli.audit import audit_page, explore_dialog, local_variants, lookup_tree
+    from fs_cli.audit import audit_page, split_page
+    from fs_cli.live_dialog import dialog_data, page_script
 
     path = pathlib.Path(args.file)
     if not path.is_file():
         raise UsageError(f"{args.file} isn't a file.")
     project = _project(config)
     feature = args.feature
-
-    def render(settings: dict[str, str]) -> str:
-        return render_feature(project, config.std_dir, path, feature, settings, args.theme)[0]
-
-    # Choices which change only their own parameter: lookup tables (which conditions can't read), and enums and
-    # booleans no condition reads (outside arrays' items, whose labels can show them)
-    info: dict = {}
-    render_feature(project, config.std_dir, path, feature, {}, args.theme, info=info)
-    lookups, values = {}, {}
-    for key, parameter in info["parameters"].items():
-        if "." in key:
-            continue
-        if parameter.kind == "lookup" and isinstance(parameter.annotation.get("Lookup Table"), dict):
-            tree = lookup_tree(parameter.annotation["Lookup Table"])
-            if tree is not None:
-                lookups[key] = {"name": parameter.name, "tree": tree}
-        elif key not in info["conditions"] and parameter.kind == "boolean":
-            values[key] = ["true", "false"]
-        elif key not in info["conditions"] and parameter.kind == "enum" and parameter.enum is not None:
-            values[key] = list(parameter.enum.values)
-    shell, states, truncated = explore_dialog(render, args.max_states, frozenset(lookups) | frozenset(values))
-    variants = local_variants(render, states, values)
-    title = re.search(r"<span class='ns-dialog-title'>(.*?) 1</span>", shell)
-    name = html.unescape(title.group(1)) if title else path.stem
+    # The dialog's page, without its parameters, which the page's script draws
+    shell = split_page(render_feature(project, config.std_dir, path, feature, {}, args.theme)[0])[0]
+    data, conditions = dialog_data(project, config.std_dir, path, feature, args.theme)
+    name = data["title"].removesuffix(" 1")
     writeup_path = path.with_suffix(".md")
     writeup = writeup_path.read_text() if writeup_path.is_file() else None
     module = project.module(path.resolve())
@@ -1362,12 +1338,14 @@ def audit(config: Config, args: argparse.Namespace) -> int:
             problems.append(f"{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]")
     source = os.path.relpath(path.resolve(), config.root)
     tables = _feature_tables(config, project, module) if module is not None else []
-    page = audit_page(name, source, shell, states, truncated, writeup, problems, args.theme, tables, variants, lookups)
+    page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page)
-    more = " (the limit; raise it with --max-states)" if truncated else ""
-    print(f"Wrote {_display_path(output)}: {len(states)} dialog states{more}, {len(problems)} problems.")
+    print(
+        f"Wrote {_display_path(output)}: {len(data['parameters'])} parameters, {conditions.count("(v) =>")} conditions, "
+        f"{len(problems)} problems."
+    )
     return 0
 
 

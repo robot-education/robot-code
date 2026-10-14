@@ -260,14 +260,14 @@ one page of every table, with a filter, to audit them in a browser.
 
 `fs audit` writes one page (`.fs-audit/<feature>.html`, or `-o`) to audit a feature by: its dialog, which works,
 the lookup tables its parameters use (every option at once, without their values), its writeup, and its file's
-`fs check` problems. The page is static, so the dialog's states are rendered ahead of time:
-from its defaults, each choice a click could make (a dropdown option, checkbox, tab, or lookup table level) is
-rendered in turn, choices which show or hide parameters first, up to `--max-states` (200). Clicking swaps between them.
-Choices no condition reads only change their own parameter, so they aren't states: lookup tables (which conditions
-can't read) are drawn from their levels as they're chosen, and enums and checkboxes nothing depends on swap in their
-own pre-rendered variants, so any combination of them works, whatever the limit. Hovering a parameter (or by touch, a long press) shows its description, default, and UI hints, as the VS Code
-preview does. Values typed into
-fields aren't rendered (`fs ui --set` renders any state).
+`fs check` problems. The page draws the dialog itself (`fs_cli/live_dialog.py`): the precondition is compiled to a
+tree of its groups, parameters, and `if`s, whose conditions become JavaScript (what doesn't depend on the definition
+is evaluated first, as `fs ui` evaluates it), and each parameter is rendered once for each of its values. The page
+walks the tree with the current settings and lays the dialog out as `fs ui` does, so any combination of choices, and
+typed values, works (a test checks it draws what `fs ui --set` renders, state by state, for several features). What's
+set is listed above the dialog: setting a parameter back to its default (like unchecking a checkbox) leaves the list,
+and × on one sets it back. Hovering a parameter (or by touch, a long press) shows its description, default, and UI
+hints, as the VS Code preview does. Array items can't be added there (`fs ui --set` renders any state).
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
 values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic

@@ -1,21 +1,15 @@
 """`fs audit`: one page to audit a feature by: its dialog, which works (clicking dropdowns, checkboxes, tabs, and lookup
-table levels shows the dialog as it would be), its writeup, and its file's `fs check` problems.
+table levels, and typing values, shows the dialog as it would be), its writeup, and its file's `fs check` problems.
 
-The page is static, so the dialog's states are rendered ahead of time (`explore_dialog`): from its defaults, each
-choice a click could make is rendered in turn, breadth first, up to a limit, and the page's script swaps between them.
-Choices no condition reads (lookup tables, which conditions can't read, and enums and booleans nothing depends on)
-change only their own parameter, so they aren't states: the script swaps in that parameter's pre-rendered variant
-(`local_variants`), or for a lookup table, draws its levels from the table (`lookup_tree`), so any combination works.
-Values typed into fields aren't rendered (there are too many); `fs ui --set` renders any state.
+The dialog is drawn by the page's script (see `fs_cli.live_dialog`): its precondition's conditions are compiled to
+JavaScript, and each parameter is rendered ahead of time for each of its values, so the script draws any combination of
+choices as `fs ui --set` would, as they're made. Settings are listed above the dialog: a parameter set back to its
+default leaves the list, and removing one from the list sets it back.
 """
 
 from __future__ import annotations
 
-import heapq
 import html
-import json
-import re
-from typing import Callable
 
 from markdown_it import MarkdownIt
 
@@ -24,162 +18,29 @@ from fs_cli.lookup_tables import TABLE_STYLE, Table, table_section
 # Where a dialog's parameters are, in a page `fs ui` renders
 LIST_START = "<os-parameter-list-view>"
 LIST_END = "</os-parameter-list-view>"
-# What clicking a control sets (see `fs_cli.ui._setting`)
-_SETTING = re.compile(r"data-set='([^']*)' data-value='([^']*)'")
-_PARAMETER = re.compile(r"data-parameter-id='([^']*)'")
 
 
 def split_page(page: str) -> tuple[str, str]:
-    """A rendered dialog page's shell (with `{list}` where its parameters go) and its parameters."""
+    """A rendered dialog page's shell (with `\\0` where its parameters go) and its parameters."""
     start = page.index(LIST_START) + len(LIST_START)
     end = page.index(LIST_END, start)
     return page[:start] + "\0" + page[end:], page[start:end]
-
-
-def explore_dialog(
-    render: Callable[[dict[str, str]], str], max_states: int, local: frozenset[str] = frozenset()
-) -> tuple[str, list[dict], bool]:
-    """The dialog's states: each its settings (as `fs ui --set` takes them), its parameters' HTML, and the state each
-    of its choices leads to (by `name=value`). Returns the page's shell (see `split_page`), the states (the first is
-    the defaults), and whether there were more than `max_states`.
-
-    States are explored fewest choices first, and among those, ones which show a set of parameters not seen yet first
-    (choices which reveal or hide parameters), so every part of the dialog is reached before combinations of choices
-    which only change what's shown in them. Choices of `local` settings (see the module's docstring) aren't explored."""
-    shell, first = split_page(render({}))
-    states: list[dict] = []
-    by_html: dict[str, int] = {}
-    shown: set[frozenset[str]] = set()
-    queue: list[tuple[int, int, int]] = []
-    truncated = False
-
-    def add(settings: dict[str, str], parameters: str) -> int | None:
-        nonlocal truncated
-        if parameters in by_html:
-            return by_html[parameters]
-        if len(states) >= max_states:
-            truncated = True
-            return None
-        index = len(states)
-        states.append({"settings": settings, "html": parameters, "next": {}})
-        by_html[parameters] = index
-        structure = frozenset(_PARAMETER.findall(parameters))
-        novel = structure not in shown
-        shown.add(structure)
-        heapq.heappush(queue, (len(settings), 0 if novel else 1, index))
-        return index
-
-    add({}, first)
-    while queue and not truncated:
-        state = states[heapq.heappop(queue)[2]]
-        for match in _SETTING.finditer(state["html"]):
-            name, value = html.unescape(match.group(1)), html.unescape(match.group(2))
-            if name in local:
-                continue
-            key = f"{name}={value}"
-            if key in state["next"]:
-                continue
-            settings = {**state["settings"], name: value}
-            index = add(settings, split_page(render(settings))[1])
-            if index is None:
-                break
-            state["next"][key] = index
-    return shell, states, truncated
-
-
-# The elements of the parameters local choices change
-_LOCAL_ELEMENTS = ("osx-boolean-parameter", "os-enum-parameter", "os-lookup-table-parameter")
-
-
-def parameter_element(page: str, key: str) -> str | None:
-    """The element of the parameter a setting (`key`) sets, in a dialog's HTML."""
-    marker = f"data-set='{html.escape(key, quote=True)}'"
-    for tag in _LOCAL_ELEMENTS:
-        for match in re.finditer(rf"<{tag}\b.*?</{tag}>", page, re.S):
-            if marker in match.group(0):
-                return match.group(0)
-    return None
-
-
-def local_variants(render: Callable[[dict[str, str]], str], states: list[dict], values: dict[str, list[str]]) -> dict:
-    """Each local setting's parameter, rendered with each of its values (by key, then value): rendered from the first
-    state which shows it, as a parameter's own element doesn't depend on the others."""
-    variants: dict[str, dict[str, str]] = {}
-    for key, options in values.items():
-        state = next((state for state in states if parameter_element(state["html"], key) is not None), None)
-        if state is None:
-            continue
-        for value in options:
-            element = parameter_element(split_page(render({**state["settings"], key: value}))[1], key)
-            if element is not None:
-                variants.setdefault(key, {})[value] = element
-    return variants
-
-
-def lookup_tree(table) -> dict | None:
-    """A lookup table's levels, without its values, for the page's script: each level's label, default, and entries
-    (each the next level, or None at the last)."""
-    entries = table.get("entries") if isinstance(table, dict) else None
-    if not isinstance(entries, dict) or not entries:
-        return None
-    return {
-        "label": str(table.get("displayName", table.get("name", ""))),
-        "default": None if table.get("default") is None else str(table.get("default")),
-        "entries": {str(name): lookup_tree(entry) for name, entry in entries.items()},
-    }
-
-
-def _pieces(states: list[dict]) -> tuple[list[str], list[list[int]]]:
-    """The states' parameters, split into their parameter groups, each stored once: the groups, and each state's."""
-    pieces: list[str] = []
-    by_piece: dict[str, int] = {}
-    layouts = []
-    for state in states:
-        layout = []
-        for piece in re.split(r"(?=<os-parameter-group>)", state["html"]):
-            if not piece:
-                continue
-            if piece not in by_piece:
-                by_piece[piece] = len(pieces)
-                pieces.append(piece)
-            layout.append(by_piece[piece])
-        layouts.append(layout)
-    return pieces, layouts
 
 
 def render_markdown(text: str) -> str:
     return MarkdownIt("commonmark", {"html": False}).enable("table").enable("strikethrough").render(text)
 
 
-def audit_page(title: str, source: str, shell: str, states: list[dict], truncated: bool, writeup: str | None,
-               problems: list[str], theme: str, tables: list[Table] | None = None, variants: dict | None = None,
-               lookups: dict | None = None) -> str:
-    """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), the lookup tables its
-    parameters use (every option at once), the writeup, and problems. `variants` (see `local_variants`) and `lookups`
-    (each local lookup table's parameter `name` and `tree`, see `lookup_tree`, by key) are the local choices."""
-    pieces, layouts = _pieces(states)
-    data = {
-        "variants": variants or {},
-        "lookups": lookups or {},
-        "pieces": pieces,
-        "states": [
-            {"settings": sorted(f"{name}={value}" for name, value in state["settings"].items()), "layout": layout, "next": state["next"]}
-            for state, layout in zip(states, layouts)
-        ],
-    }
-    states_json = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
+def audit_page(title: str, source: str, shell: str, script: str, writeup: str | None, problems: list[str], theme: str,
+               tables: list[Table] | None = None) -> str:
+    """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), drawn by `script` (see
+    `fs_cli.live_dialog.page_script`) in `shell` (a page `fs ui` renders, see `split_page`), the lookup tables its
+    parameters use (every option at once), the writeup, and problems."""
     dialog = (
-        shell.replace("\0", states[0]["html"])
+        shell.replace("\0", "")
         .replace("<body>", "<body>" + _DIALOG_TOOLBAR, 1)
-        .replace("</body>", f"<script type='application/json' id='fs-states'>{states_json}</script><script>{_DIALOG_SCRIPT}</script></body>", 1)
+        .replace("</body>", f"<script>{script}\n{_DIALOG_SCRIPT}</script></body>", 1)
         .replace("<style>", "<style>" + _DIALOG_STYLE, 1)
-    )
-    local = len(variants or {}) + len(lookups or {})
-    also = f", and {local} parameters whose choices change only themselves are drawn as they're chosen" if local else ""
-    limit = (
-        f"{len(states)} states pre-rendered: the limit, so some choices aren't (raise it with --max-states){also}."
-        if truncated
-        else f"All {len(states)} states its choices reach are pre-rendered{also}."
     )
     problems_html = (
         "<ul class='problems'>" + "".join(f"<li><code>{html.escape(problem)}</code></li>" for problem in problems) + "</ul>"
@@ -201,7 +62,6 @@ def audit_page(title: str, source: str, shell: str, states: list[dict], truncate
         source=html.escape(source),
         theme=theme,
         dialog=html.escape(dialog, quote=True),
-        limit=html.escape(limit),
         problems=problems_html,
         writeup=writeup_html,
         tables=tables_html,
@@ -210,100 +70,58 @@ def audit_page(title: str, source: str, shell: str, states: list[dict], truncate
 
 
 _DIALOG_STYLE = """
-.fs-toolbar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #b8bcc4; }
+.fs-toolbar { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #b8bcc4; }
 html[data-os-theme='light'] .fs-toolbar { color: #4b5563; }
-.fs-toolbar #fs-settings { flex: 1; overflow-wrap: anywhere; }
+.fs-toolbar #fs-settings { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; min-height: 20px; align-items: center; }
 .fs-toolbar button { font: inherit; padding: 2px 8px; cursor: pointer; }
+.fs-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 4px 1px 8px; border: 1px solid #4b5563; border-radius: 10px; overflow-wrap: anywhere; }
+.fs-chip.fs-hidden { opacity: 0.55; font-style: italic; }
+.fs-chip button { border: 0; background: none; color: inherit; padding: 0 4px; font-size: 14px; line-height: 1; }
 #fs-note { margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #f59e0b; }
 /* A long press shows a tooltip, rather than selecting text or opening the browser's menu */
 #feature-dialog { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 """
 
 _DIALOG_TOOLBAR = (
-    "<div class='fs-toolbar'><span id='fs-settings'>Defaults</span><button id='fs-reset' hidden>Reset</button></div>"
+    "<div class='fs-toolbar'><span id='fs-settings'>Defaults</span><button id='fs-reset' hidden>Reset all</button></div>"
     "<div id='fs-note' hidden></div>"
 )
 
-# Adapted from the VS Code extension's preview (vscode-extension/src/uiPreview.ts), which renders each change instead
+# The page's glue: clicks set settings, and the dialog is drawn again (`renderList`, from fs_cli.live_dialog.RUNTIME)
 _DIALOG_SCRIPT = r"""
-const data = JSON.parse(document.getElementById("fs-states").textContent);
-const states = data.states;
-const bySettings = new Map(states.map((state, index) => [state.settings.join("\n"), index]));
 const dialog = document.getElementById("feature-dialog");
 const list = dialog.querySelector("os-parameter-list-view");
-const settingsText = document.getElementById("fs-settings");
+const settingsList = document.getElementById("fs-settings");
 const note = document.getElementById("fs-note");
 const reset = document.getElementById("fs-reset");
+// What's been set (as fs ui --set takes it), and which groups and items have been opened or closed
+const settings = {};
 const toggled = {};
-// Choices which change only their own parameter (see fs_cli/audit.py), by setting
-const local = {};
-let current = 0;
 
-function escapeHtml(text) {
-  return String(text).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#x27;", '"': "&quot;" })[c]);
+// A setting as the dialog shows it: an enum by its name, a lookup table's path, or what was typed
+function describe(key) {
+  const parameter = DIALOG.parameters[key];
+  return parameter.name + " = " + settings[key];
 }
 
-// As fs_cli/ui.py's Renderer.select draws a dropdown
-function selectHtml(name, selected, options) {
-  const rows = options.map(([text, key, value]) =>
-    `<div class='os-select-choices-row' data-set='${escapeHtml(key)}' data-value='${escapeHtml(value)}'>${escapeHtml(text)}</div>`).join("");
-  return `<div class='os-select-container os-select-bootstrap dropdown' data-parameter-id='${escapeHtml(name)}'>` +
-    "<div class='os-select-match'><span class='btn btn-secondary form-control os-select-toggle' style='outline: 0;'>" +
-    `<span class='os-select-match-text float-start'><span>${escapeHtml(selected)}</span></span><i class='caret float-end'></i>` +
-    "</span></div><span class='os-spinner-small os-spinner-spinning ng-hide'></span>" +
-    "<input type='search' class='form-control os-select-search ng-hide'>" +
-    `<ul class='os-select-choices os-select-choices-content os-select-dropdown dropdown-menu ng-hide'><li class='os-select-choices-group'>${rows}</li></ul>` +
-    "<div class='os-select-no-choice'></div><os-select-single></os-select-single>" +
-    "<input class='os-select-focusser os-select-offscreen' type='text' tabindex='-1'></div>";
-}
-
-// As fs_cli/ui.py's lookup_levels and Renderer.lookup draw a lookup table: each level, following the choices made,
-// then defaults
-function lookupHtml(key, path) {
-  const lookup = data.lookups[key];
-  const choices = path ? path.split(" > ") : [];
-  const rows = [];
-  let node = lookup.tree;
-  const chosen = [];
-  while (node) {
-    const names = Object.keys(node.entries);
-    let choice = choices[chosen.length] ?? node.default;
-    if (!(choice in node.entries)) {
-      choice = names[0];
-    }
-    const options = names.map((name) => [name, key, [...chosen, name].join(" > ")]);
-    rows.push("<tr class='os-param-lookup-table-selector-container'>" +
-      `<td class='os-param-table-label'><span>${escapeHtml(node.label)}</span></td>` +
-      `<td class='os-param-table-value'><div class='os-param-lookup-table-selector'>${selectHtml(node.label, choice, options)}</div></td></tr>`);
-    chosen.push(choice);
-    node = node.entries[choice];
+function showSettings(shown) {
+  settingsList.replaceChildren();
+  const keys = Object.keys(settings).sort();
+  for (const key of keys) {
+    const chip = document.createElement("span");
+    chip.className = "fs-chip" + (shown.has(key) ? "" : " fs-hidden");
+    chip.title = shown.has(key) ? "Set; × sets it back to its default" : "Set, but not shown now; × sets it back to its default";
+    chip.append(describe(key));
+    const remove = document.createElement("button");
+    remove.textContent = "×";
+    remove.dataset.unset = key;
+    chip.append(remove);
+    settingsList.append(chip);
   }
-  return "<os-lookup-table-parameter data-parameter-type='os-lookup-table-parameter'>" +
-    `<table class='os-param-lookup-table' data-parameter-id='${escapeHtml(lookup.name)}'><tbody>${rows.join("")}</tbody></table></os-lookup-table-parameter>`;
-}
-
-// The element of the parameter a setting sets
-function parameterElement(key) {
-  const control = list.querySelector(`[data-set="${CSS.escape(key)}"]`);
-  return control && control.closest("osx-boolean-parameter, os-enum-parameter, os-lookup-table-parameter");
-}
-
-function applyLocal(key) {
-  const element = parameterElement(key);
-  if (!element) {
-    return;
+  if (!keys.length) {
+    settingsList.textContent = "Defaults";
   }
-  const value = local[key];
-  const replacement = data.lookups[key] ? lookupHtml(key, value) : data.variants[key][value];
-  if (replacement !== undefined) {
-    element.outerHTML = replacement;
-  }
-}
-
-function showSettings() {
-  const settings = states[current].settings.concat(Object.entries(local).map(([key, value]) => key + "=" + value)).sort();
-  settingsText.textContent = settings.length ? settings.join(", ") : "Defaults";
-  reset.hidden = settings.length === 0;
+  reset.hidden = keys.length === 0;
 }
 
 // The frame fits the dialog, and any open menu (which is fixed in place, so not in the page's height)
@@ -315,54 +133,49 @@ function reportHeight() {
   parent.postMessage({ fsAuditHeight: Math.ceil(bottom) + 12 }, "*");
 }
 
-function show(index) {
-  current = index;
+function draw() {
   hideTooltip();
-  list.innerHTML = states[index].layout.map((piece) => data.pieces[piece]).join("");
+  const result = renderList({ ...settings });
+  list.innerHTML = result.html;
   for (const [key, open] of Object.entries(toggled)) {
     const expander = expanderFor(key);
     if (expander) {
       setOpen(expander, open);
     }
   }
-  for (const key of Object.keys(local)) {
-    applyLocal(key);
-  }
-  showSettings();
+  showSettings(new Set(result.shown));
   reportHeight();
 }
 
-function set(name, value) {
-  if (data.lookups[name] || (data.variants[name] && data.variants[name][value] !== undefined)) {
-    local[name] = value;
-    note.hidden = true;
-    applyLocal(name);
-    showSettings();
-    reportHeight();
+// Setting a parameter to its default unsets it
+function set(key, value) {
+  const parameter = DIALOG.parameters[key];
+  if (!parameter) {
     return;
   }
-  let next = states[current].next[name + "=" + value];
-  if (next === undefined) {
-    // Reached another way
-    const settings = states[current].settings.filter((setting) => !setting.startsWith(name + "=")).concat([name + "=" + value]).sort();
-    next = bySettings.get(settings.join("\n"));
-  }
-  if (next === undefined) {
-    note.textContent = "Not pre-rendered: " + name + "=" + value + ". Render it with fs ui --set, or raise fs audit's --max-states.";
-    note.hidden = false;
+  if (value === parameter.default) {
+    delete settings[key];
   } else {
-    note.hidden = true;
-    show(next);
+    settings[key] = value;
   }
-  reportHeight();
+  note.hidden = true;
+  draw();
 }
 
 reset.addEventListener("click", () => {
-  note.hidden = true;
-  for (const key of Object.keys(local)) {
-    delete local[key];
+  for (const key of Object.keys(settings)) {
+    delete settings[key];
   }
-  show(0);
+  note.hidden = true;
+  draw();
+});
+
+settingsList.addEventListener("click", (event) => {
+  const remove = event.target.closest("[data-unset]");
+  if (remove) {
+    delete settings[remove.dataset.unset];
+    draw();
+  }
 });
 
 function keyOf(expander) {
@@ -424,7 +237,7 @@ function expanderAt(target) {
   return header.querySelector("[data-toggle]");
 }
 
-document.addEventListener("click", (event) => {
+dialog.addEventListener("click", (event) => {
   const target = event.target;
   const option = target.closest(".os-select-choices-row[data-set]");
   if (option) {
@@ -457,9 +270,13 @@ document.addEventListener("click", (event) => {
     reportHeight();
     return;
   }
-  if (target.closest("[data-remove]")) {
-    note.textContent = "Adding and removing array items isn't pre-rendered: use fs ui --set.";
+  if (target.closest("[data-remove], .os-param-array-add-button, .os-param-array-clear-button")) {
+    note.textContent = "Array items aren't drawn here: use fs ui --set.";
     note.hidden = false;
+    reportHeight();
+    return;
+  }
+  if (target.closest("input[data-set]:not([type=checkbox])")) {
     return;
   }
   const control = target.closest("[data-set]");
@@ -469,11 +286,10 @@ document.addEventListener("click", (event) => {
   }
 });
 
-document.addEventListener("change", (event) => {
+// Typed values
+dialog.addEventListener("change", (event) => {
   if (event.target.matches("input[data-set]:not([type=checkbox])")) {
-    note.textContent = "Typed values aren't rendered here: use fs ui --set " + event.target.dataset.set + "=...";
-    note.hidden = false;
-    reportHeight();
+    set(event.target.dataset.set, event.target.value);
   }
 });
 
@@ -595,8 +411,8 @@ document.addEventListener("contextmenu", (event) => {
   }
 });
 
+draw();
 window.addEventListener("load", reportHeight);
-reportHeight();
 """
 
 _PAGE = """<!doctype html>
@@ -643,7 +459,7 @@ iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--
 <nav><a href="#dialog">Dialog</a><a href="#tables">Lookup tables</a><a href="#writeup">Writeup</a><a href="#problems">Problems</a></nav>
 <section id="dialog">
 <h2>Dialog</h2>
-<p class="limit">Click dropdowns, checkboxes, tabs, and lookup table levels to see what each choice shows. Hover a parameter for its description, default, and UI hints. {limit}</p>
+<p class="limit">Click dropdowns, checkboxes, tabs, and lookup table levels, or type values, to see what each choice shows: any combination works. What's set is listed above the dialog; × (or setting it back) returns it to its default. Hover a parameter for its description, default, and UI hints.</p>
 <iframe id="dialog-frame" title="Dialog" srcdoc="{dialog}"></iframe>
 </section>
 <section id="tables">

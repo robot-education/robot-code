@@ -970,6 +970,9 @@ class DialogBuilder:
             choices = [part.strip() for part in override.split(">")] if override else []
             parameter.levels = lookup_levels(table, choices) if isinstance(table, dict) else []
             parameter.default = " > ".join(choice for _, choice, _ in lookup_levels(table, [])) if isinstance(table, dict) else ""
+            if isinstance(table, dict):
+                # What conditions read: each level's choice, by its name
+                self.definition.values[name] = lookup_value(table, choices)
         elif type_name == "array":
             parameter.kind = "array"
             count = self.overrides.get(key, "0")
@@ -1031,6 +1034,17 @@ def lookup_levels(table: dict, choices: list[str]) -> list[tuple[str, str, list[
         levels.append((str(node.get("displayName", node.get("name", ""))), str(choice), [str(entry) for entry in entries]))
         node = entries[choice]
     return levels
+
+
+def lookup_value(table: dict, choices: list[str]) -> dict[str, str]:
+    """A lookup table path's value, as conditions read it (`definition.motor.version`): each level's name, and its
+    choice, following `choices` (then defaults), as `lookup_levels` chooses them."""
+    value: dict[str, str] = {}
+    node: Any = table
+    for _, choice, _ in lookup_levels(table, choices):
+        value[str(node.get("name", ""))] = choice
+        node = node["entries"][choice]
+    return value
 
 
 DISPLAY_UNITS = {"length": ("inch", "in"), "angle": ("degree", "deg")}
@@ -1654,6 +1668,31 @@ def render_feature(
         info: Filled in with `conditions`, the keys of the parameters any condition reads (wherever it is), and
             `parameters`, every parameter declared (shown or not), by key.
     """
+    declarations, feature, feature_name = load_feature(project, std_dir, path, feature_name, sources)
+    builder = DialogBuilder(declarations, overrides)
+    items = builder.build(feature)
+    if info is not None:
+        info["conditions"] = builder.condition_keys
+        info["parameters"] = builder.parameters
+    title = feature_title(builder.evaluator, feature, feature_name)
+    unused = set(overrides) - builder.keys
+    warnings = builder.warnings + [
+        f"{name} isn't shown, so --set {name} did nothing."
+        if name in builder.all_keys
+        else f"{name} isn't a parameter, so --set {name} did nothing."
+        for name in sorted(unused)
+    ]
+    return Renderer(theme).page(title, items), warnings
+
+
+def load_feature(
+    project: Project,
+    std_dir: pathlib.Path,
+    path: pathlib.Path,
+    feature_name: str | None,
+    sources: dict[pathlib.Path, str] | None = None,
+) -> tuple[Declarations, Feature, str]:
+    """The declarations a feature's file sees, the feature (the file's only one, or `feature_name`), and its name."""
     declarations = load_declarations(project, std_dir, path, sources)
     own = parse_file(path.resolve(), (sources or {}).get(path.resolve()))
     if own is None:
@@ -1667,21 +1706,11 @@ def render_feature(
         feature_name = next(iter(own.features))
     if feature_name not in own.features:
         raise UiError(f"{path.name} doesn't define {feature_name}.")
-    feature = declarations.features.get(feature_name, own.features[feature_name])
-    builder = DialogBuilder(declarations, overrides)
-    items = builder.build(feature)
-    if info is not None:
-        info["conditions"] = builder.condition_keys
-        info["parameters"] = builder.parameters
-    annotation = builder.evaluator.value(feature.annotation, {}) if feature.annotation else {}
+    return declarations, declarations.features.get(feature_name, own.features[feature_name]), feature_name
+
+
+def feature_title(evaluator: Evaluator, feature: Feature, feature_name: str) -> str:
+    """The title of a new feature's dialog: its Feature Type Name, numbered as Onshape numbers a new feature."""
+    annotation = evaluator.value(feature.annotation, {}) if feature.annotation else {}
     title = annotation.get("Feature Type Name", feature_name) if isinstance(annotation, dict) else feature_name
-    # As Onshape names a new feature
-    title = f"{title} 1"
-    unused = set(overrides) - builder.keys
-    warnings = builder.warnings + [
-        f"{name} isn't shown, so --set {name} did nothing."
-        if name in builder.all_keys
-        else f"{name} isn't a parameter, so --set {name} did nothing."
-        for name in sorted(unused)
-    ]
-    return Renderer(theme).page(str(title), items), warnings
+    return f"{title} 1"
