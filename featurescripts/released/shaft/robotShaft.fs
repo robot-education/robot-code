@@ -193,6 +193,16 @@ predicate shaftEndPredicate(definition is map)
                 {
                     annotation { "Name" : "Side mount ring", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to use a side-mountable retaining ring." }
                     definition.firstEndSideMount is boolean;
+
+                    annotation { "Name" : "Override groove diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.firstEndOverrideGroove is boolean;
+
+                    if (definition.firstEndOverrideGroove)
+                    {
+                        // Editing logic sets it to the ring's usual groove when it's turned on
+                        annotation { "Name" : "Groove diameter", "Description" : "The diameter of the groove the retaining ring sits in." }
+                        isLength(definition.firstEndGrooveDiameter, GROOVE_DIAMETER_BOUNDS);
+                    }
                 }
                 else if (definition.firstEndOperation == EndOperation.CAPTIVE_SHAFT)
                 {
@@ -246,6 +256,16 @@ predicate shaftEndPredicate(definition is map)
                     {
                         annotation { "Name" : "Side mount ring", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to use a side-mountable retaining ring." }
                         definition.secondEndSideMount is boolean;
+
+                        annotation { "Name" : "Override groove diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        definition.secondEndOverrideGroove is boolean;
+
+                        if (definition.secondEndOverrideGroove)
+                        {
+                            // Editing logic sets it to the ring's usual groove when it's turned on
+                            annotation { "Name" : "Groove diameter", "Description" : "The diameter of the groove the retaining ring sits in." }
+                            isLength(definition.secondEndGrooveDiameter, GROOVE_DIAMETER_BOUNDS);
+                        }
                     }
                     else if (definition.secondEndOperation == SecondEndOperation.CAPTIVE_SHAFT)
                     {
@@ -272,6 +292,9 @@ annotation { "Feature Type Name" : "Robot shaft",
         "Editing Logic Function" : "robotShaftEditLogic",
         "Icon" : RobotIcon::BLOB_DATA
     }
+// 1/2 in. hex's retaining ring groove
+const GROOVE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.009906, 500], (inch) : 0.39, (millimeter) : 10 } as LengthBoundSpec;
+
 export const robotShaft = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
@@ -820,6 +843,8 @@ export predicate canBeEndDefinition(value)
         if (value.endOperation == EndOperation.RETAINING_RING)
         {
             value.sideMount is boolean;
+            // Undefined for the ring's usual groove
+            value.grooveDiameter == undefined || isLength(value.grooveDiameter);
         }
         else
         {
@@ -897,9 +922,9 @@ function getEndDefinition(definition is map, shaftEnd is ShaftEnd, endFace is Qu
     {
         return mergeMaps(base, {
                         "sideMount" : definition[endString ~ "SideMount"],
-                        "extendEnd" : true
+                        "grooveDiameter" : definition[endString ~ "OverrideGroove"] ? definition[endString ~ "GrooveDiameter"] : undefined,
                         // Always extend retaining ring shaft end
-
+                        "extendEnd" : true
                     }) as EndDefinition;
     }
     return mergeMaps(base, {
@@ -1010,7 +1035,8 @@ precondition
         const endString = getShaftEndString(endDefinition.shaftEnd);
         const failure = endDefinition.endOperation == EndOperation.CAPTIVE_SHAFT ?
             { "message" : "Failed to cut the captive end: check its Diameter and Length.", "parameters" : [endString ~ "Diameter", endString ~ "Length"] } :
-            { "message" : "Failed to cut the retaining ring's groove.", "parameters" : [endString ~ "SideMount"] };
+            { "message" : "Failed to cut the retaining ring's groove.", "parameters" : endDefinition.grooveDiameter == undefined ? [endString ~ "SideMount"] :
+                    [endString ~ "SideMount", endString ~ "GrooveDiameter"] };
         cutShaft(context, id + "cutShaft", shaft, qCreatedBy(toolId, EntityType.BODY)->qBodyType(BodyType.SOLID), failure, reconstructOp);
 
     }
@@ -1095,10 +1121,19 @@ function extrudeShaftGrooveTool(context is Context, id is Id, definition is map,
 {
     const facePlane = evPlane(context, { "face" : endDefinition.endFace });
 
-    const grooveDefinition = getGrooveDefinition(endDefinition.sideMount, getHexSize(definition), definition.unitSystem);
+    var grooveDefinition = getGrooveDefinition(endDefinition.sideMount, getHexSize(definition), definition.unitSystem);
     const edgeMargin = grooveDefinition.endWidth - grooveDefinition.grooveWidth;
 
     const shaftRadius = getHexWidth(definition)->getHexCircleRadius();
+    if (endDefinition.grooveDiameter != undefined)
+    {
+        if (endDefinition.grooveDiameter >= shaftRadius * 2)
+        {
+            throw regenError("The groove diameter must be less than the shaft's width across its corners.",
+                [getShaftEndString(endDefinition.shaftEnd) ~ "GrooveDiameter"]);
+        }
+        grooveDefinition.grooveDiameter = endDefinition.grooveDiameter;
+    }
     const groove = sketchAnnulus(context, id + "groove", facePlane, grooveDefinition.grooveDiameter / 2, shaftRadius);
 
     // Annulus is on the end of the shaft, so extrude the groove by extruding from the edgeMargin up to the endWidth
@@ -1230,6 +1265,11 @@ export function robotShaftEditLogic(context is Context, id is Id, oldDefinition 
         {
             definition = updateCaptiveShaftParameters(definition, shaftEnd);
         }
+
+        if (grooveOverrideStarted(oldDefinition, definition, shaftEnd))
+        {
+            definition = updateGrooveDiameter(definition, shaftEnd);
+        }
     }
 
     return definition;
@@ -1243,6 +1283,37 @@ function shaftChanged(oldDefinition is map, definition is map) returns boolean
         return true;
     }
     return oldDefinition.shaftType != definition.shaftType || oldDefinition.hexSize != definition.hexSize;
+}
+
+/**
+ * Whether an end's groove diameter is newly overridden: Override groove diameter turned on, or on (remembered) for a
+ * new shaft, or the shaft's size or the end's Side mount ring changed, whose usual grooves differ.
+ */
+function grooveOverrideStarted(oldDefinition is map, definition is map, shaftEnd is ShaftEnd) returns boolean
+{
+    const endString = getShaftEndString(shaftEnd);
+    if (!definition[endString ~ "OverrideGroove"])
+    {
+        return false;
+    }
+    return oldDefinition == {} || !oldDefinition[endString ~ "OverrideGroove"] || shaftChanged(oldDefinition, definition) ||
+        oldDefinition[endString ~ "SideMount"] != definition[endString ~ "SideMount"];
+}
+
+/**
+ * Sets an end's Groove diameter to its ring's usual groove, for 1/2 in. and 3/8 in. hex (others have none, and say so
+ * when the shaft's built).
+ */
+function updateGrooveDiameter(definition is map, shaftEnd is ShaftEnd) returns map
+{
+    if (definition.shaftType != ShaftType.HEX || isMetricHex(definition.hexSize))
+    {
+        return definition;
+    }
+    const endString = getShaftEndString(shaftEnd);
+    const grooveDiameter = getGrooveDefinition(definition[endString ~ "SideMount"], definition.hexSize, definition.unitSystem).grooveDiameter;
+    definition[endString ~ "GrooveDiameter"] = toString(roundToPrecision(grooveDiameter / inch, 4)) ~ " in";
+    return definition;
 }
 
 function updateCaptiveShaftParameters(definition is map, shaftEnd is ShaftEnd) returns map

@@ -51,6 +51,9 @@ Since v2.2.0 (`fs changes robotShaft`).
 - Metric hex sizes for custom shafts: 7 mm (8mm REX) and 11 mm (12mm REX), with rounded hex diameters to match.
 - Mirror shaft, with Flip mirror end: mirrors the shaft across one of its ends.
 - Modify first end, Modify second end, End type, Symmetric, and the second end type remember their previous values.
+- Override groove diameter, for each end's retaining ring: a Groove diameter of its own, for rings other than the
+  usual ones. Turned on, it starts at the usual groove (0.39 in. for 1/2 in. hex, 0.396 in. side mount; 0.352 in. for
+  3/8 in. hex, 0.303 in. side mount), and is set back to it when the hex size or Side mount ring changes.
 - The description is now "Create the shafts FRC and FTC teams buy, or custom ones." (was "Create common robot shafts.").
 
 ### Fixes
@@ -74,12 +77,14 @@ from the center to a tooth of the outside profiles, which didn't affect the shaf
 | --- | --- |
 | Mirror shaft (`mirrorShaft`) | Mirror the shaft across one of its ends. Useful when the shaft is modeled up to a plane of symmetry. |
 | Side mount ring (`firstEndSideMount`, `secondEndSideMount`) | Whether to use a side-mountable retaining ring. |
+| Groove diameter (`firstEndGrooveDiameter`, `secondEndGrooveDiameter`) | The diameter of the groove the retaining ring sits in. |
 | Extend shaft (`extendFirstEnd`, `extendSecondEnd`) | Whether to extend the shaft to accommodate hardware. |
 | Fit (`fit`) | How loosely it fits. Close and free fits are the standard clearance holes for a fastener its size, as in the Hole feature's tables. |
 | Clearance (`fitClearance`) | How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit. |
 
 No parameters are hidden, but editing logic sets some shown ones: each end's tapped Hole diameter (from its hole table), and
-its captive shaft Diameter and Length (from the shaft's size). A COTS shaft's profile (`shaftType`, `hexType`,
+its captive shaft Diameter and Length (from the shaft's size), and its Groove diameter (the ring's usual groove, when
+Override groove diameter is turned on, or the hex size or Side mount ring changes with it on). A COTS shaft's profile (`shaftType`, `hexType`,
 `hexSize`, `splineType`) is copied into the definition by editing logic though the parameters aren't shown, which
 decides whether Shaft ends is.
 
@@ -94,7 +99,8 @@ decides whether Shaft ends is.
 | Failed to extend the shaft's end. | error | extending an end for a retaining ring or captive shaft fails | a captive end's Length and Extend shaft, or a retaining ring's end operation; the end |
 | The captive shaft diameter is greater than the diameter of the shaft. | error | captive shaft Diameter is wider than the hex | the end's Diameter, a body showing the captive end |
 | Failed to cut the captive end: check its Diameter and Length. | error | cutting a captive end fails | the end's Diameter and Length, the tool |
-| Failed to cut the retaining ring's groove. | error | cutting a groove fails | the end's Side mount ring, the tool |
+| Failed to cut the retaining ring's groove. | error | cutting a groove fails | the end's Side mount ring (and Groove diameter, if overridden), the tool |
+| The groove diameter must be less than the shaft's width across its corners. | error | an overridden Groove diameter is too big to cut a groove | the end's Groove diameter |
 | Retaining ring grooves are only defined for 1/2 in. and 3/8 in. hex. | error | Retaining ring on 7 mm or 11 mm hex | `firstEndOperation`, `secondEndOperation` |
 | This shaft is only sold up to `<longest>` long. | warning | COTS, longer than its longest stock | |
 | This shaft is only sold in set lengths; the shortest is `<length>`. / ...; the nearest are `<shorter>` and `<longer>`. | warning | COTS sold in set lengths (`fixedLengths`), not one of them | |
@@ -158,7 +164,8 @@ Holes get std's hole attributes (they're made by std's `hole`).
 | `splineTapDrills` | The tap drills of a SplineXS shaft's tapped ends, from the definition, for its predrilled hole. |
 | `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. A clearance hole's diameter is its fit's (`fastenerHoleDiameter`, `core/fit.fs`). |
 | `modifyShaftEnd` | A hole: std's `hole` as a subfeature, tapped (blind) or clearance (through), at the end's center, with the definition's diameter and depth. A groove or captive end: `extendShaftEnd` (offsets the end face out by the hardware's length, if extending), then cuts a tool (`extrudeShaftGrooveTool`, `extrudeCaptiveShaftTool`) from the shaft (`cutShaft`). |
-| `getGrooveDefinition` | A retaining ring groove's diameter and width, and how far from the end it is, for 1/2 in. and 3/8 in. hex, side mount or not. |
+| `getGrooveDefinition` | A retaining ring groove's diameter and width, and how far from the end it is, for 1/2 in. and 3/8 in. hex, side mount or not. `extrudeShaftGrooveTool` uses an end's Groove diameter instead, if it's overridden. |
+| `grooveOverrideStarted`, `updateGrooveDiameter` | Editing logic: an end's Groove diameter is set to `getGrooveDefinition`'s when Override groove diameter is turned on, or the hex size or Side mount ring changes with it on. |
 | `measureShaftLength` | How far the shaft goes along its axis: its tight bounding box in the shaft plane's coordinates. |
 | `setCotsShaftProperties`, `setShaftProperties`, `setShaftName`, `shaftLengthString` | Properties and names, above. |
 | `robotShaftEditLogic`, `applyTableDefinition`, `updateCaptiveShaftParameters`, `activePathChanged`, `shaftChanged` | Editing logic, above. |

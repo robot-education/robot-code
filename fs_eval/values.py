@@ -41,11 +41,19 @@ class FSType:
 
 
 class EnumType(FSType):
-    __slots__ = ("members",)
+    __slots__ = ("members", "_map")
 
     def __init__(self, name: str, module, member_names: list[str]):
         super().__init__(name, module, None)
         self.members = {member: EnumValue(self, member, i) for i, member in enumerate(member_names)}
+        self._map = None
+
+    def as_map(self) -> FSMap:
+        """The enum as a value, as FeatureScript has it: a map of its members' names to them (so
+        `values(MyEnum)` and `for (var member in MyEnum)` work)."""
+        if self._map is None:
+            self._map = FSMap.of(self.members.items())
+        return self._map
 
     def __repr__(self) -> str:
         return f"<enum {self.name}>"

@@ -579,6 +579,9 @@ class Interpreter:
         if isinstance(resolved, EnumType):
             if type(value) is EnumValue and value.enum is resolved:
                 return value
+            # Enum values are strings tagged with their enum, so one casts to another enum with a member of its name
+            if type(value) is EnumValue and value.name in resolved.members:
+                return resolved.members[value.name]
             if type(untag(value)) is str and untag(value) in resolved.members:
                 return resolved.members[untag(value)]
             raise error(f"{_describe(value)} isn't a {resolved.name}", at)
@@ -1113,6 +1116,8 @@ class Compiler:
                 raise error(f"{name} isn't defined", at)
             if type(symbol) is ConstSymbol:
                 return symbol.get()
+            if type(symbol) is EnumType:
+                return symbol.as_map()
             return symbol
 
         return get
@@ -1127,7 +1132,10 @@ class Compiler:
             namespace = module.namespaces.get(namespace_name)
             if namespace is None:
                 raise error(f"{namespace_name} isn't a namespace", at)
-            return namespace.resolve(name, at)
+            symbol = namespace.resolve(name, at)
+            if type(symbol) is EnumType:
+                return symbol.as_map()
+            return symbol
 
         return get
 

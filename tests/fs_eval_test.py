@@ -164,6 +164,33 @@ def test_enums_sort_by_ordinal():
     assert to_display(run(source, "first()")) == "SMALL"
 
 
+def test_enums_are_maps_of_their_members():
+    source = """
+    export enum Size { SMALL, LARGE }
+    export function names()
+    {
+        var found = [];
+        for (var member in Size)
+            found = append(found, member.key);
+        return found;
+    }
+    """
+    assert to_python(run(source, "names()")) == ["LARGE", "SMALL"]
+    assert to_display(run(source, "values(Size)[1]")) == "SMALL"
+    assert to_display(run(source, "Size.LARGE")) == "LARGE"
+    assert run(source, "Size.LARGE is Size") is True
+
+
+def test_enum_values_cast_to_enums_with_their_name():
+    source = """
+    export enum Size { SMALL, LARGE }
+    export enum Fit { SMALL, LOOSE }
+    """
+    assert run(source, "(Size.SMALL as Fit) == Fit.SMALL") is True
+    with pytest.raises(FSError, match="isn't a Fit"):
+        run(source, "Size.LARGE as Fit")
+
+
 def test_unavailable_builtins_say_so():
     with pytest.raises(FSError, match="@evDistance isn't available"):
         run("", "evDistance(newContext(), { side0 : vector(0, 0, 0) * meter, side1 : vector(1, 0, 0) * meter })")
