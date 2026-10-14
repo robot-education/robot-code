@@ -18,8 +18,9 @@ import(path : "onshape/std/common.fs", version : "2960.0");
  * Edges mode offsets just the selected edges, with Offset 1 and Offset 2, for poking at `opOffsetWire` itself.
  *
  * Found with it: for a closed chain, `offset1` is outward of the region it encloses, and `offset2` inward. Bands both
- * ways around a hole fail where they're wider than its radius, so Robot lighten offsets each loop one way: the outer
- * loop in, and holes out of them.
+ * ways around a hole fail where they're wider than its radius. Robot lighten tried offsetting each loop one way (the
+ * outer loop in, and holes out of them), and went back to hollowing: `makeRegions` failed on one plate's face (an
+ * Onshape bug) where the wires alone didn't.
  */
 export enum OffsetWireTestMode
 {

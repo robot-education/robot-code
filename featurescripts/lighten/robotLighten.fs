@@ -1,11 +1,13 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
+// ModifyFilletType, for opModifyFillet (common.fs doesn't export it)
+import(path : "onshape/std/modifyFillet.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-// With a variable #logging of true, it logs each step
-import(path : "core/logging.fs", version : "");
 // Ribs it sketches itself, from Chains, Hub and spokes, and Edge ribs
 export import(path : "ec576ccf1c20e5355392c3a6", version : "d3a4f10647d95d5cecb59295");
+// With a variable #logging of true, it logs each step
+import(path : "core/logging.fs", version : "");
 RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "f76010d67ed6821a73cbf7e0");
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
@@ -229,14 +231,19 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // and the growth make the radius exactly
         const radius = definition.filletCorners ? definition.filletRadius : 0 * meter;
         const grow = max(radius - TOLERANCE.booleanDefaultTolerance * meter, 0 * meter);
-
-        // The edges the face shares with the part's faces to ignore (but those with walls overridden), which get no wall
-        const overriddenFaces = qUnion(mapArray(wallOverrides, wallOverride => wallOverride.faces));
-        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSubtraction(qSketchFilter(ignoredFaces, SketchObject.NO), overriddenFaces))]);
-
         logLine(context, "Robot lighten: wall " ~ lengthText(definition.wallThickness) ~ ", fillet radius " ~ lengthText(radius) ~ ", grown by " ~
                 lengthText(grow));
-        logEntities(context, "Edges along faces to ignore", ignoredEdges, DebugColor.ORANGE);
+
+        // The edges the face shares with the part's faces to ignore (but those with walls overridden), and with each
+        // override's faces, which the pocket's extrude sweeps into its sides along them
+        const overriddenFaces = qUnion(mapArray(wallOverrides, wallOverride => wallOverride.faces));
+        const ignoredEdges = qIntersection([qLoopEdges(face), qLoopEdges(qSubtraction(qSketchFilter(ignoredFaces, SketchObject.NO), overriddenFaces))]);
+        const ignoredSides = startTracking(context, ignoredEdges);
+        var overriddenSides = [];
+        for (var wallOverride in wallOverrides)
+        {
+            overriddenSides = append(overriddenSides, mergeMaps(wallOverride, { "sides" : startTracking(context, wallOverride.edges) }));
+        }
 
         if (quickRibs.skipped > 0)
         {
@@ -276,12 +283,13 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             throw regenError("The regions to ignore cover the whole face.", ["ignoredFaces"], qUnion([face, qSketchFilter(ignoredFaces, SketchObject.YES)]));
         }
+        const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
         // The pockets' ends from here on, tracked from the extrude's caps (see `buildWalls`)
-        const pocketEnds = buildWalls(context, id, definition, face, facePlane, extruded, ends, ignoredEdges, wallOverrides,
-            qSketchFilter(ignoredFaces, SketchObject.YES), grow);
+        const pocketEnds = buildWalls(context, id, definition, extruded, ends, qIntersection([pocketFaces, ignoredSides]),
+            mapArray(overriddenSides, wallOverride => mergeMaps(wallOverride, { "sides" : qIntersection([pocketFaces, wallOverride.sides]) })), grow);
 
-        // The ribs, cut from what's left: what the walls leave
-        const inset = qUnion([extruded, qCreatedBy(id + "walls" + "cut", EntityType.BODY)]);
+        // The ribs, cut from what's left: what the walls enclose
+        const inset = qCreatedBy(id + "walls", EntityType.BODY);
         const ribs = buildRibs(context, id, bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribGroups, grow);
         try silent
         {
@@ -539,320 +547,149 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
 }
 
 /**
- * The walls, as bands along the face's edges, cut from `pockets` (under `featureId + "walls"`): each `distance` (Wall
- * thickness, and the pockets' growth, see the body) wide, or an override's thickness and the growth, and none along
- * faces to ignore. In steps:
+ * The walls, as the previous Onshape Lighten feature and Vent make them: `pockets`, inset by Wall thickness and
+ * `grow` (the walls are thicker by what the pockets are grown back by later, see the body), under `featureId + "walls"`; but
+ * at `ends` (their caps) and `ignoredSides`, which stay where they are, and at each of `overrides`' `sides`, inset by
+ * its `thickness` instead. In steps:
  *
- * 1. The face's loops (`faceLoops`), each split into chains of edges with the same wall (`wallChains`).
- * 2. Each chain offset into the face (`opOffsetWire` with `makeRegions`: the band between them, a flat sheet). A whole
- *    loop is offset one way: the face's outer loop in (`offset2`), and its holes' loops out of them (`offset1`). For a
- *    closed chain, `offset1` is outward of the region it encloses, and `offset2` inward. Offsetting a hole's loop both
- *    ways would fail where the wall's wider than the hole's radius. A loop split into chains (where faces to ignore or
- *    overrides meet the rest) is offset both ways: the half outside the face is where there's nothing to cut. Where
- *    two chains with walls meet, a cylinder of the thicker one's width fills the corner between their bands' square
- *    ends.
- * 3. Regions to ignore get walls of Wall thickness around them, the other way: out of their outer loops, and into
- *    their holes.
- * 4. The bands, extruded through the pockets, are cut from them.
+ * 1. `ends` and `ignoredSides` are moved out by the inset, so hollowing brings them back.
+ * 2. Each override's sides are moved out by Wall thickness less its thickness (in, for a thicker wall).
+ * 3. Concave edges get a hair fillet (std's boolean tolerance), which hollowing grows into the walls' rounded inside
+ *    corners.
+ * 4. The pockets are hollowed by the inset (`opShell`), which moves every face in at once, holes of any size and their
+ *    corners too, and what's inside is kept (`opEnclose`, a pocket at a time).
+ * 5. The inside corners' rounds are set to exactly the inset (`opModifyFillet`, as Vent does); if they can't be, they're
+ *    a hair bigger, and it's said as info.
  *
- * A failed step fails the feature, with a message saying which, showing what it was given. Nothing left of the
- * pockets is an error too.
+ * A failed step fails the feature, with its own error display, highlighting what sets it.
  *
- * @returns {Query} : The pockets' ends: `ends`, tracked from after the bands are made (see the style guide's Queries)
- *          through the cuts and rounding.
+ * @returns {Query} : The inset pockets' ends: `ends`, tracked from after step 1 through hollowing, and the cuts and
+ *          rounding after it. Tracking from before step 1 would take in the pocket's extrude (the last operation
+ *          before it), whose sides are derived from its caps too.
  */
-function buildWalls(context is Context, featureId is Id, definition is map, face is Query, plane is Plane, pockets is Query, ends is Query,
-    ignoredEdges is Query, overrides is array, regions is Query, grow is ValueWithUnits) returns Query
+function buildWalls(context is Context, featureId is Id, definition is map, pockets is Query, ends is Query, ignoredSides is Query,
+    overrides is array, grow is ValueWithUnits) returns Query
 {
     const id = featureId + "walls";
-    const extent = bandExtent(context, plane, qUnion([pockets, regions]));
-    const defaultWall = { "thickness" : definition.wallThickness, "parameters" : ["wallThickness", "filletRadius"] };
+    const distance = definition.wallThickness + grow;
+    const parameters = concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : []]);
+    const faces = qOwnedByBody(pockets, EntityType.FACE);
 
-    // 1, 2. The face's loops, as chains, offset into it
-    var bands = 0;
-    var corners = [];
-    for (var loop in faceLoops(context, face, plane))
-    {
-        logEdges(context, loop.outer ? "Outer loop" : "Hole's loop", loop.edges, face, loop.outer ? DebugColor.BLUE : DebugColor.CYAN);
-        const chains = wallChains(context, loop.edges, ignoredEdges, overrides, defaultWall);
-        for (var chain in chains)
-        {
-            logLine(context, "  Chain of " ~ size(evaluateQuery(context, chain.edges)) ~ " edges: " ~
-                    (chain.wall == undefined ? "no wall" : "wall " ~ lengthText(chain.wall.thickness)));
-            if (chain.wall == undefined)
-            {
-                continue;
-            }
-            const distance = chain.wall.thickness + grow;
-            const whole = size(chains) == 1;
-            offsetBand(context, featureId, id + "band" + unstableIdComponent(bands), chain.edges, plane.normal,
-                whole && loop.outer ? 0 * meter : distance, whole && !loop.outer ? 0 * meter : distance, "Failed to create the wall along the edges shown.",
-                chain.wall.parameters);
-            bands += 1;
-        }
-        // Where two chains with walls meet: a cylinder of the thicker's width
-        for (var i, chain in chains)
-        {
-            const next = chains[(i + 1) % size(chains)];
-            if (size(chains) == 1 || chain.wall == undefined || next.wall == undefined)
-            {
-                continue;
-            }
-            for (var vertex in evaluateQuery(context, qIntersection([qAdjacent(chain.edges, AdjacencyType.VERTEX, EntityType.VERTEX),
-                                qAdjacent(next.edges, AdjacencyType.VERTEX, EntityType.VERTEX)])))
-            {
-                corners = append(corners, { "point" : evVertexPoint(context, { "vertex" : vertex }), "radius" : max(chain.wall.thickness, next.wall.thickness) + grow });
-            }
-        }
-    }
-
-    // 3. Around the regions to ignore, out of them
-    for (var region in evaluateQuery(context, regions))
-    {
-        for (var loop in faceLoops(context, region, plane))
-        {
-            logEdges(context, loop.outer ? "Region to ignore's outer loop" : "Region to ignore's hole's loop", loop.edges, region, DebugColor.CYAN);
-            const distance = definition.wallThickness + grow;
-            offsetBand(context, featureId, id + "band" + unstableIdComponent(bands), loop.edges, plane.normal,
-                loop.outer ? distance : 0 * meter, loop.outer ? 0 * meter : distance, "Failed to create the wall around the region shown.",
-                ["ignoredFaces", "wallThickness"]);
-            bands += 1;
-        }
-    }
-
-    // 4. Extruded through the pockets, and cut from them
-    const bandFaces = qCreatedBy(id + "band", EntityType.FACE);
-    logEntities(context, "Wall bands", bandFaces, DebugColor.MAGENTA);
-    logLine(context, "Wall corners: " ~ size(corners));
+    // 1. Ends and ignored sides out
     try silent
     {
-        opExtrude(context, id + "extrude", {
-                    "entities" : bandFaces,
-                    "direction" : plane.normal,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : extent.depth,
-                    "startBound" : BoundingType.BLIND,
-                    "startDepth" : extent.depth
+        opOffsetFace(context, id + "extend", {
+                    "moveFaces" : qIntersection([faces, qUnion([ends, ignoredSides])]),
+                    "offsetDistance" : distance
                 });
     }
     catch
     {
-        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "extrude", "propagateErrorDisplay" : true });
-        throw regenError("Failed to create walls.", defaultWall.parameters, bandFaces);
+        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "extend", "propagateErrorDisplay" : true });
+        throw regenError("Failed to create the walls along the faces shown.", parameters, qIntersection([faces, qUnion([ends, ignoredSides])]));
     }
-    for (var i, corner in corners)
-    {
-        const center = project(extent.plane, corner.point);
-        fCylinder(context, id + "corner" + unstableIdComponent(i), {
-                    "bottomCenter" : center - extent.plane.normal * extent.halfDepth,
-                    "topCenter" : center + extent.plane.normal * extent.halfDepth,
-                    "radius" : corner.radius
-                });
-    }
-    const walls = qUnion([qCreatedBy(id + "extrude", EntityType.BODY), qCreatedBy(id + "corner", EntityType.BODY)]);
-    // Tracked from here, after the pockets' extrude, which tracking would take in too (its sides are derived from its
-    // caps)
-    const trackedEnds = startTracking(context, qIntersection([qOwnedByBody(pockets, EntityType.FACE), ends]));
-    try silent
-    {
-        opBoolean(context, id + "cut", {
-                    "targets" : pockets,
-                    "tools" : walls,
-                    "operationType" : BooleanOperationType.SUBTRACTION
-                });
-    }
-    catch
-    {
-        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
-        // A failed boolean changes nothing: the walls are still there to show
-        throw regenError("Failed to cut the walls from the pockets.", defaultWall.parameters, walls);
-    }
-    opDeleteBodies(context, id + "deleteBands", { "entities" : qCreatedBy(id + "band", EntityType.BODY) });
-    logEntities(context, "Pockets inside the walls", qUnion([pockets, qCreatedBy(id + "cut", EntityType.BODY)]), DebugColor.GREEN);
-    if (isQueryEmpty(context, qUnion([pockets, qCreatedBy(id + "cut", EntityType.BODY)])))
-    {
-        // The cut used up the pockets and the walls, so the face is what's shown
-        throw regenError("There's no room for pockets inside the walls.", defaultWall.parameters, face);
-    }
-    return trackedEnds;
-}
+    const trackedEnds = startTracking(context, qIntersection([faces, ends]));
 
-/**
- * Offsets `edges` (a chain in a plane of `normal`) by `offset1` and `offset2` (see `buildWalls`), as the band between
- * them (`opOffsetWire` with `makeRegions`), under `id`; a failure fails the feature, `featureId`, with `message`,
- * highlighting `parameters`, and showing the edges.
- */
-function offsetBand(context is Context, featureId is Id, id is Id, edges is Query, normal is Vector, offset1 is ValueWithUnits, offset2 is ValueWithUnits,
-    message is string, parameters is array)
-{
-    try silent
+    // 2. Overridden sides
+    for (var i, wallOverride in overrides)
     {
-        opOffsetWire(context, id, {
-                    "edges" : edges,
-                    "normal" : normal,
-                    "offset1" : offset1,
-                    "offset2" : offset2,
-                    "makeRegions" : true
-                });
-    }
-    catch
-    {
-        processSubfeatureStatus(context, featureId, { "subfeatureId" : id, "propagateErrorDisplay" : true });
-        if (isLogging(context))
+        const offset = definition.wallThickness - wallOverride.thickness;
+        const sides = qIntersection([faces, wallOverride.sides]);
+        if (tolerantEqualsZero(offset) || isQueryEmpty(context, sides))
         {
-            logEntities(context, "Failed to offset these edges " ~ lengthText(offset1) ~ " out and " ~ lengthText(offset2) ~ " in", edges, DebugColor.RED);
-            const fraction = largestOffset(context, id + "trial", edges, normal, offset1, offset2);
-            logLine(context, "  They offset as far as " ~ lengthText(offset1 * fraction) ~ " out and " ~ lengthText(offset2 * fraction) ~ " in");
+            continue;
         }
-        throw regenError(message, parameters, edges);
-    }
-}
-
-/**
- * For logging, when offsetting `edges` by `offset1` and `offset2` (see `offsetBand`) fails: the largest fraction of
- * them it doesn't fail at, to within 1/4096, found by trying (between `startFeature` and `abortFeature`, under `id`).
- */
-function largestOffset(context is Context, id is Id, edges is Query, normal is Vector, offset1 is ValueWithUnits, offset2 is ValueWithUnits) returns number
-{
-    var works = 0;
-    var fails = 1;
-    for (var i = 0; i < 12; i += 1)
-    {
-        const fraction = (works + fails) / 2;
-        const trialId = id + unstableIdComponent(i);
-        startFeature(context, trialId, {});
-        var offsets = true;
+        const overrideId = id + "override" + unstableIdComponent(i);
         try silent
         {
-            opOffsetWire(context, trialId + "offset", {
-                        "edges" : edges,
-                        "normal" : normal,
-                        "offset1" : offset1 * fraction,
-                        "offset2" : offset2 * fraction,
-                        "makeRegions" : true
+            opOffsetFace(context, overrideId, {
+                        "moveFaces" : sides,
+                        "offsetDistance" : offset
                     });
         }
         catch
         {
-            offsets = false;
-        }
-        abortFeature(context, trialId);
-        if (offsets)
-        {
-            works = fraction;
-        }
-        else
-        {
-            fails = fraction;
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : overrideId, "propagateErrorDisplay" : true });
+            throw regenError("Selected wall overrides are invalid.", wallOverride.parameters, wallOverride.faces);
         }
     }
-    return works;
-}
 
-/**
- * A face's loops of edges (each its edges which share vertices), and which is its outer one: the one whose bounding box
- * in `plane` is the face's own. The rest are its holes.
- *
- * @returns {array} : Each loop, as a map of its `edges` (a query), and whether it's the `outer` one.
- */
-function faceLoops(context is Context, face is Query, plane is Plane) returns array
-{
-    const cSys = coordSystem(plane);
-    const faceBox = evBox3d(context, { "topology" : face, "cSys" : cSys, "tight" : true });
-    return mapArray(connectedChains(context, qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE)), function(edges)
+    // 3. Concave edges, a hair
+    const concave = qUnion(filter(evaluateQuery(context, qOwnedByBody(pockets, EntityType.EDGE)), function(edge)
+            {
+                return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONCAVE;
+            }));
+    if (!isQueryEmpty(context, concave))
+    {
+        try silent
         {
-            const loopBox = evBox3d(context, { "topology" : edges, "cSys" : cSys, "tight" : true });
-            return { "edges" : edges, "outer" : tolerantEquals(loopBox.minCorner, faceBox.minCorner) && tolerantEquals(loopBox.maxCorner, faceBox.maxCorner) };
-        });
-}
+            opFillet(context, id + "roundConcave", {
+                        "entities" : concave,
+                        "radius" : TOLERANCE.booleanDefaultTolerance * meter
+                    });
+        }
+        catch
+        {
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "roundConcave", "propagateErrorDisplay" : true });
+            throw regenError("Failed to round the walls' inside corners.", parameters, concave);
+        }
+    }
+    // Hollowing changes them, so they're tracked through it, to be set to exactly the inset after
+    const rounds = startTracking(context, qCreatedBy(id + "roundConcave", EntityType.FACE));
 
-/**
- * A loop's `edges`, in chains of edges with the same wall: none along `ignoredEdges`, an override's (later ones win)
- * along its edges, and `defaultWall` elsewhere. In order around the loop, so each chain meets the next.
- *
- * @returns {array} : Each chain, as a map of its `edges` (a query), and its `wall` (a map of its `thickness` and
- *          `parameters`, or `undefined` for none).
- */
-function wallChains(context is Context, edges is Query, ignoredEdges is Query, overrides is array, defaultWall is map) returns array
-{
-    const wallOf = function(edge is Query)
-        {
-            if (!isQueryEmpty(context, qIntersection([edge, ignoredEdges])))
-            {
-                return undefined;
-            }
-            for (var i = size(overrides) - 1; i >= 0; i -= 1)
-            {
-                if (!isQueryEmpty(context, qIntersection([edge, overrides[i].edges])))
-                {
-                    return overrides[i];
-                }
-            }
-            return defaultWall;
-        };
-    // Walk the loop from an edge, starting a chain wherever the wall changes
-    const loopEdges = evaluateQuery(context, edges);
-    var ordered = [loopEdges[0]];
-    var left = subArray(loopEdges, 1);
-    while (left != [])
+    // 4. Hollowed, and what's inside kept
+    try silent
     {
-        const next = evaluateQuery(context, qIntersection([qAdjacent(ordered[size(ordered) - 1], AdjacencyType.VERTEX, EntityType.EDGE), qUnion(left)]));
-        if (next == [])
-        {
-            break;
-        }
-        ordered = append(ordered, next[0]);
-        left = filter(left, edge => edge != next[0]);
+        opShell(context, id + "shell", {
+                    "entities" : pockets,
+                    "thickness" : -distance
+                });
     }
-    var chains = [];
-    for (var edge in ordered)
+    catch
     {
-        const wall = wallOf(edge);
-        if (chains != [] && chains[size(chains) - 1].wall == wall)
+        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "shell", "propagateErrorDisplay" : true });
+        throw regenError("Failed to inset the pockets by the wall thickness.", parameters, pockets);
+    }
+    for (var i, pocket in evaluateQuery(context, pockets))
+    {
+        const encloseId = id + "enclose" + unstableIdComponent(i);
+        try silent
         {
-            chains[size(chains) - 1].edges = append(chains[size(chains) - 1].edges, edge);
+            opEnclose(context, encloseId, { "entities" : pocket });
         }
-        else
+        catch
         {
-            chains = append(chains, { "wall" : wall, "edges" : [edge] });
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : encloseId, "propagateErrorDisplay" : true });
+            throw regenError("Failed to inset the pocket shown.", parameters, pocket);
         }
     }
-    // The last chain continues the first, around the loop
-    if (size(chains) > 1 && chains[size(chains) - 1].wall == chains[0].wall)
+    // A pocket narrower than twice the inset encloses nothing; none left is an error, not an empty result
+    logEntities(context, "Pockets inside the walls", qCreatedBy(id + "enclose", EntityType.BODY), DebugColor.GREEN);
+    if (isQueryEmpty(context, qCreatedBy(id + "enclose", EntityType.BODY)))
     {
-        chains[0].edges = concatenateArrays([chains[size(chains) - 1].edges, chains[0].edges]);
-        chains = resize(chains, size(chains) - 1);
+        throw regenError("There's no room for pockets inside the walls.", parameters, pockets);
     }
-    return mapArray(chains, function(chain)
-        {
-            return { "wall" : chain.wall, "edges" : qUnion(chain.edges) };
-        });
-}
 
-/**
- * `edges`, split into chains of edges which share vertices.
- */
-function connectedChains(context is Context, edges is Query) returns array
-{
-    var left = evaluateQuery(context, edges);
-    var chains = [];
-    while (left != [])
+    // 5. Inside corners, exactly the inset
+    const insideCorners = qIntersection([rounds, qCreatedBy(id + "enclose", EntityType.FACE)]);
+    if (!isQueryEmpty(context, insideCorners))
     {
-        var chain = [left[0]];
-        left = subArray(left, 1);
-        while (true)
+        try silent
         {
-            const next = evaluateQuery(context, qIntersection([qAdjacent(qUnion(chain), AdjacencyType.VERTEX, EntityType.EDGE), qUnion(left)]));
-            if (next == [])
-            {
-                break;
-            }
-            chain = concatenateArrays([chain, next]);
-            left = filter(left, edge => !isIn(edge, next));
+            opModifyFillet(context, id + "exactCorners", {
+                        "faces" : insideCorners,
+                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
+                        "reFillet" : false,
+                        "radius" : distance
+                    });
         }
-        chains = append(chains, qUnion(chain));
+        catch
+        {
+            reportFeatureInfo(context, featureId, "The walls' inside corners are rounded 0.01 mm larger than the wall thickness.");
+        }
     }
-    return chains;
+    opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
+    return trackedEnds;
 }
 
 /**
@@ -1038,18 +875,18 @@ function bandExtent(context is Context, plane is Plane, bounds is Query) returns
 }
 
 /**
- * The ribs of `groups` (see `getRibGroups`), each half its group's thickness to each side (and `radius` more), through
+ * The ribs of `groups` (see `getRibGroups`), each half its group's thickness to each side (and `grow` more), through
  * `extent` (see `bandExtent`). Each is made on its own, as edges extruded together make one sheet, creased where they
  * meet, which can't be thickened. Each is its edge's sheet, thickened. An arc or circle whose radius is within std's
  * boolean tolerance of that half (or under it) can't be thickened toward its center. Its rib is a solid cylinder
  * around its center instead. A rib which fails highlights its edge, and its group's parameters.
  */
-function buildRibs(context is Context, featureId is Id, extent is map, groups is array, radius is ValueWithUnits) returns Query
+function buildRibs(context is Context, featureId is Id, extent is map, groups is array, grow is ValueWithUnits) returns Query
 {
     const id = featureId + "ribs";
     for (var j, group in groups)
     {
-        buildRibGroup(context, featureId, id + unstableIdComponent(j), extent, group.edges, group.thickness / 2 + radius, group.parameters);
+        buildRibGroup(context, featureId, id + unstableIdComponent(j), extent, group.edges, group.thickness / 2 + grow, group.parameters);
     }
     return qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
 }
@@ -1094,17 +931,28 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
             continue;
         }
 
-        // A band half its width either side, extruded through the pockets
-        offsetBand(context, featureId, ribId + "band", edge, extent.plane.normal, halfWidth, halfWidth, "Failed to create rib.", parameters);
         try silent
         {
-            opExtrude(context, ribId + "rib", {
-                        "entities" : qCreatedBy(ribId + "band", EntityType.FACE),
+            opExtrude(context, ribId + "sheet", {
+                        "entities" : edge,
                         "direction" : extent.plane.normal,
                         "endBound" : BoundingType.BLIND,
                         "endDepth" : extent.depth,
                         "startBound" : BoundingType.BLIND,
                         "startDepth" : extent.depth
+                    });
+        }
+        catch
+        {
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : ribId + "sheet", "propagateErrorDisplay" : true });
+            throw regenError("Failed to create rib.", parameters, edge);
+        }
+        try silent
+        {
+            opThicken(context, ribId + "rib", {
+                        "entities" : qCreatedBy(ribId + "sheet", EntityType.BODY),
+                        "thickness1" : halfWidth,
+                        "thickness2" : halfWidth
                     });
         }
         catch
