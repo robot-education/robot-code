@@ -45,14 +45,16 @@ export function testGrooveOverrideOffLeavesIt()
 }
 
 /**
- * goBILDA's 8mm REX shaft, stainless steel (with an e-clip), at `length` ("48 mm", or "Custom").
+ * An FTC shaft: goBILDA's 8mm REX with an e-clip, 48 mm long, or a custom one.
  */
-function rexShaft(length is string) returns map
+function ftcShaft(source is ShaftSource) returns map
 {
     return {
             "program" : Program.FTC,
-            "shaftSource" : ShaftSource.COTS,
-            "ftcShaft" : { "vendor" : "goBILDA", "type" : "REX", "size" : "8 mm", "material" : "Stainless steel", "length" : length } as LookupTablePath,
+            "shaftSource" : source,
+            "ftcShaft" : { "vendor" : "goBILDA", "type" : "REX with e-clip", "size" : "8 mm", "length" : "48 mm" } as LookupTablePath,
+            "shaftType" : ShaftType.HEX,
+            "hexSize" : HexSize._7_MM,
             "endBound" : StockBoundingType.UP_TO_SURFACE,
             "depth" : 1 * inch,
             "symmetric" : true,
@@ -66,17 +68,16 @@ function rexShaft(length is string) returns map
 
 export function testPresetLengthIsExtrudedThatLong()
 {
-    const definition = robotShaftEditLogic(newContext(), newId(), rexShaft("48 mm"), rexShaft("48 mm"), false, {}, qNothing());
+    const definition = robotShaftEditLogic(newContext(), newId(), ftcShaft(ShaftSource.COTS), ftcShaft(ShaftSource.COTS), false, {}, qNothing());
     expectEqual(definition.endBound, StockBoundingType.BLIND);
     expectEqual(definition.depth, 48 * millimeter);
     expectEqual(definition.symmetric, false);
     expectEqual(definition.mirrorShaft, false);
-    expectEqual(definition.hexSize, HexSize._7_MM);
 }
 
-export function testCustomLengthKeepsItsExtrude()
+export function testCustomShaftKeepsItsExtrude()
 {
-    const definition = robotShaftEditLogic(newContext(), newId(), rexShaft("Custom"), rexShaft("Custom"), false, {}, qNothing());
+    const definition = robotShaftEditLogic(newContext(), newId(), ftcShaft(ShaftSource.CUSTOM), ftcShaft(ShaftSource.CUSTOM), false, {}, qNothing());
     expectEqual(definition.endBound, StockBoundingType.UP_TO_SURFACE);
     expectEqual(definition.depth, 1 * inch);
     expectEqual(definition.mirrorShaft, true);
@@ -84,11 +85,17 @@ export function testCustomLengthKeepsItsExtrude()
 
 export function testPresetsHaveTheirFactoryFeatures()
 {
-    const rex8 = getLookupTable(ftcShaftTable, rexShaft("48 mm").ftcShaft);
-    expectEqual(rex8.factoryHoleDepth, 11 * millimeter);
-    expectEqual(size(rex8.factoryGrooves), 1);
-    expectEqual(rex8.stock[0].partNumber, "2106-4008-0480");
-    const plain = getLookupTable(ftcShaftTable, { "vendor" : "goBILDA", "type" : "REX", "size" : "12 mm", "material" : "Stainless steel, no e-clip", "length" : "140 mm" } as LookupTablePath);
-    expectEqual(plain.factoryHoleDepth, undefined);
+    const eClip = getLookupTable(ftcShaftTable, ftcShaft(ShaftSource.COTS).ftcShaft);
+    expectEqual(eClip.factoryHole.size, "M4");
+    expectEqual(eClip.factoryHole.depth, 11 * millimeter);
+    expectEqual(size(eClip.factoryGrooves), 1);
+    expectEqual(eClip.stock, [{ "length" : 48 * millimeter, "partNumber" : "2106-4008-0480", "url" : "https://www.gobilda.com/8mm-rex-shaft-with-e-clip-stainless-steel-48mm-length/" }]);
+    const plain = getLookupTable(ftcShaftTable, { "vendor" : "goBILDA", "type" : "REX", "size" : "12 mm", "material" : "Stainless steel", "length" : "140 mm" } as LookupTablePath);
+    expectEqual(plain.factoryHole, undefined);
+    expectEqual(plain.factoryGrooves, []);
     expectEqual(plain.stock[0].partNumber, "2102-0012-0140");
+    const robits = getLookupTable(ftcShaftTable, { "vendor" : "AndyMark", "type" : "Robits hex", "size" : "3/8 in.", "length" : "4 in." } as LookupTablePath);
+    expectEqual(robits.factoryHole.size, "#10");
+    expectEqual(robits.factoryHole.depth, 0.7 * inch);
+    expectEqual(robits.presetLength, 4 * inch);
 }

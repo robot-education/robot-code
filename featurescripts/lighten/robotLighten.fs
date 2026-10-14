@@ -1060,7 +1060,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
             }
             // Puts back the fillet it deleted
             abortFeature(context, roundId);
-            reportFeatureWarning(context, featureId, "Failed to round a narrow pocket end.", ["filletRadius"]);
+            reportFeatureWarning(context, featureId, "Failed to round pocket.", ["filletRadius"]);
             setErrorEntities(context, featureId, { "entities" : qUnion([corner, narrow.side]) });
         }
     }
@@ -1075,7 +1075,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
     }
     catch
     {
-        reportFeatureWarning(context, featureId, "Failed to grow the pockets back by the fillet radius.", ["filletRadius"]);
+        reportFeatureWarning(context, featureId, "Failed to grow back pockets.", ["filletRadius"]);
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
         setErrorEntities(context, featureId, { "entities" : pockets });
     }

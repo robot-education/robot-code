@@ -49,12 +49,17 @@ Since v2.2.0 (`fs changes robotShaft`).
 - Metric hex sizes for custom shafts: 7 mm (8mm REX) and 11 mm (12mm REX), with rounded hex diameters to match.
 - Mirror shaft, with Flip mirror end: mirrors the shaft across one of its ends.
 - Modify first end, Modify second end, End type, Symmetric, and the second end type remember their previous values.
-- goBILDA REX shafts come in their preset lengths: Length, after the shaft, is each length goBILDA sells, or Custom. A
-  preset is built as it's sold: that long from its location (with Opposite direction and Starting offset, but no end
-  type, Symmetric, second end, or Mirror shaft), with goBILDA's M4 tapped ends (11 mm deep on 8mm REX, 12 mm on
-  stainless 12mm, 14 mm on aluminum 12mm) and e-clip grooves (8mm: one 6 mm across, 3.2 to 4 mm from its first end;
-  12mm: two 9 mm across, 3 to 4 and 10 to 11 mm), and no Shaft ends. Custom is cut like other shafts, with its ends to
-  modify, and a warning if a stainless one isn't a length it's sold in.
+- COTS shafts sold in set lengths are chosen by Length, after the shaft: goBILDA's REX shafts, AndyMark's Robits hex,
+  and WCP's and ThriftyBot's SplineXS stubs. The default is the length nearest 56 mm. They're built as they're sold:
+  that long from their location (with Opposite direction and Starting offset, but no end type, Symmetric, second end,
+  or Mirror shaft), with their ends as made, and no Shaft ends:
+  - goBILDA's REX: tapped M4 (11 mm deep on 8mm REX, 12 mm on stainless 12mm, 14 mm on aluminum 12mm), and on the ones
+    with an e-clip (a type of their own, REX with e-clip), its grooves (8mm: one 6 mm across, 3.2 to 4 mm from its
+    first end; 12mm: two 9 mm across, 3 to 4 and 10 to 11 mm). Flip ends puts the grooves at its second end.
+  - Robits hex: tapped #10-32, 0.7 in. deep.
+  - SplineXS stubs: tapped #10-32, assumed 1/2 in. deep.
+
+  A shaft cut to another length, or with its ends modified, is a custom one (Source: Custom).
 - goBILDA's whole stainless steel REX catalog: 12mm REX without an e-clip (100, 140, and 180 mm, untapped) joins the
   8mm and 12mm with one.
 - Override groove diameter, for each end's retaining ring: a Groove diameter of its own, for rings other than the
@@ -108,7 +113,6 @@ decides whether Shaft ends is.
 | The groove diameter is larger than the shaft. | error | an overridden Groove diameter is as wide as the shaft across its corners, or wider | the end's Groove diameter; the shaft in blue, and the groove as entered in red |
 | Retaining ring grooves are only defined for 1/2 in. and 3/8 in. hex. | error | Retaining ring on 7 mm or 11 mm hex | `firstEndOperation`, `secondEndOperation` |
 | This shaft is only sold up to `<longest>` long. | warning | COTS, longer than its longest stock | |
-| This shaft is only sold in set lengths; the shortest is `<length>`. / ...; the nearest are `<shorter>` and `<longer>`. | warning | COTS sold in set lengths (`fixedLengths`), not one of them | |
 | std's hole errors | error | a tapped or clearance hole fails (std's `hole`, as a subfeature) | (std's) |
 | std's extrude errors | error | the extrude fails (std's `extrude`, as a subfeature) | (std's) |
 
@@ -151,7 +155,7 @@ Holes get std's hole attributes (they're made by std's `hole`).
    3. `verifyFlatEnds` checks both caps are planar.
    4. With Mirror shaft, the mirror plane is taken from the chosen end (`getMirrorPlane`), before the ends change.
    5. At a preset length: its factory features are cut (`cutFactoryFeatures`: its e-clip grooves from its first end,
-      then std's M4 tapped hole in each end, if it has them). Otherwise, for hex and SplineXS shafts: the ends to modify are found (`getShaftEndDefinitions`), hex profile features are
+      or its second with Flip ends, then std's tapped hole in each end, if it has them). Otherwise, for hex and SplineXS shafts: the ends to modify are found (`getShaftEndDefinitions`), hex profile features are
       cut (`cutHexShaftFeatures`), each end is checked square (`verifyPerpendicularShaftEnd`) and modified
       (`modifyShaftEnd`), and the shaft attribute is set.
    6. The shaft is mirrored, if mirroring (`mirrorShaftAcrossEnd`), and its length measured along its axis
@@ -172,7 +176,7 @@ Holes get std's hole attributes (they're made by std's `hole`).
 | `splineTapDrills` | The tap drills of a SplineXS shaft's tapped ends, from the definition, for its predrilled hole. |
 | `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. A hole's diameter is the end's Hole diameter (from its hole table, or overridden). |
 | `modifyShaftEnd` | A hole: std's `hole` as a subfeature, tapped (blind) or clearance (through), at the end's center, with the definition's diameter and depth. A groove or captive end: `extendShaftEnd` (offsets the end face out by the hardware's length, if extending), then cuts a tool (`extrudeShaftGrooveTool`, `extrudeCaptiveShaftTool`) from the shaft (`cutShaft`). |
-| `cutFactoryFeatures` | A preset length's features as it's sold, from its table entry (`factoryGrooves`, `factoryHoleDepth`): grooves cut from its first end, and an M4 tapped hole (`FACTORY_TAPPED_HOLE`, std's ISO table) in each end. |
+| `cutFactoryFeatures` | A preset length's features as it's sold, from its table entry (`factoryGrooves`, `factoryHole`): grooves cut from its first end (or second, with Flip ends, `hasFactoryGrooves`), and a tapped hole in each end, from std's ISO or ANSI hole table. |
 | `getGrooveDefinition` | A retaining ring groove's diameter and width, and how far from the end it is, for 1/2 in. and 3/8 in. hex, side mount or not. `extrudeShaftGrooveTool` uses an end's Groove diameter instead, if it's overridden. |
 | `grooveOverrideStarted`, `updateGrooveDiameter` | Editing logic: an end's Groove diameter is set to `getGrooveDefinition`'s when Override groove diameter is turned on, or the hex size or Side mount ring changes with it on. |
 | `measureShaftLength` | How far the shaft goes along its axis: its tight bounding box in the shaft plane's coordinates. |
@@ -210,6 +214,7 @@ in blue, then rethrow (std's errors) or throw their own. COTS length problems ar
 - Retaining ring is offered for 7 mm and 11 mm hex, and errors there (clearly: "Retaining ring grooves are only defined
   for 1/2 in. and 3/8 in. hex."). FeatureScript can't hide one value of an enum, so not offering it would take a
   separate end operation enum for metric hex. goBILDA's REX shafts at their preset lengths have their e-clip grooves.
-- A preset REX shaft's grooves are at its first end (where it starts); to put them at the other, flip it and offset its
-  start by its length.
+- Flip ends is shown for goBILDA's REX with e-clip by its type's name in the table path (`hasFactoryGrooves`), as a
+  precondition can't read the table's values.
+- The SplineXS stubs' tapped depth is assumed (1/2 in.): neither WCP nor ThriftyBot gives it.
 - goBILDA's 8mm REX standoffs (1516 series, aluminum, tapped M4) aren't in the table: they're sold as standoffs.

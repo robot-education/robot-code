@@ -65,8 +65,8 @@ where they come up, and show only once it's done; only the first reported shows.
 | There's no room for pockets between the walls and ribs. | error | the ribs leave nothing of the pockets | the wall, fillet, and rib parameters, and the face and ribs (what was cut is used up) |
 | The pockets are all too small to cut. | error | every pocket's small (see Small pockets) | `wallThickness`, `filletRadius`, and the pockets |
 | Failed to fillet pocket. | warning | a corner's fillet fails, and neither side next to it has another corner to round across to: it's left sharp | `filletRadius`, and the corner |
-| Failed to round a narrow pocket end. | warning | a full round across a failed corner's narrow side fails: the corner's left sharp, and the fillet it deleted is put back | `filletRadius`, the corner and the side |
-| Failed to grow the pockets back by the fillet radius. | warning | growing the rounded pockets back fails: they're cut smaller, by the fillet radius | `filletRadius`, the pockets, and the growth's error display |
+| Failed to round pocket. | warning | a full round across a failed corner's narrow side fails: the corner's left sharp, and the fillet it deleted is put back | `filletRadius`, the corner and the side |
+| Failed to grow back pockets. | warning | growing the rounded pockets back fails: they're cut smaller, by the fillet radius | `filletRadius`, the pockets, and the growth's error display |
 | Failed to cut the pockets from the part. | error | cutting them fails | `face`, and the pockets |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | the cut leaves pieces of ribs free | the rib parameters, the loose parts |
 | Weight reduced by `<percent>`%. | info | the pockets are cut (shown if nothing was reported before it) | |

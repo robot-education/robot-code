@@ -35,15 +35,25 @@ export predicate isCotsShaft(definition is map)
 }
 
 /**
- * Whether a shaft is a COTS shaft at one of its preset lengths (its table's Length, other than Custom): it's built as
- * it's sold, its length and ends set, so only where it starts is chosen.
+ * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
+ * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
  */
 predicate isPresetLength(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
+    (definition.program == Program.FRC && definition.frcShaft.length != undefined) ||
+        (definition.program == Program.FTC && definition.ftcShaft.length != undefined);
+}
+
+/**
+ * Whether a shaft has e-clip grooves at one end, as it's sold (goBILDA's REX with e-clip), so Flip ends can put them
+ * at the other. Repeats `isPresetLength`'s condition (see `isSplineXsShaft`).
+ */
+predicate hasFactoryGrooves(definition is map)
+{
+    definition.shaftSource == ShaftSource.COTS;
     definition.program == Program.FTC;
-    definition.ftcShaft.length != undefined;
-    definition.ftcShaft.length != "Custom";
+    definition.ftcShaft["type"] == "REX with e-clip";
 }
 
 export enum EndOperation
@@ -369,6 +379,12 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
 
             extrudeOffsetPredicate(definition);
 
+            if (hasFactoryGrooves(definition))
+            {
+                annotation { "Name" : "Flip ends", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.flipEnds is boolean;
+            }
+
             if (!isPresetLength(definition))
             {
                 newExtrudeSecondEndPredicate(definition);
@@ -622,14 +638,10 @@ function mirrorShaftAcrossEnd(context is Context, id is Id, shaft is Query, mirr
 /**
  * Cuts non-standard hex shaft features like rounded edges and churro profiles.
  */
-// goBILDA's REX shafts' ends are tapped M4 (coarse), in std's hole table, which names a level "type"
-// fs check: ignore keyword-key
-const FACTORY_TAPPED_HOLE = { "holeType" : "Tapped", "type" : "Straight tap", "size" : "M4", "pitch" : "0.70 mm (Coarse)", "fit" : "None" } as LookupTablePath;
-
 /**
- * Cuts a preset shaft's features as it's sold (see robotShaftTables.py's `rex_factory`), under `id`: its e-clip grooves,
- * measured from its first end (where it starts), then an M4 tapped hole in each end (std's hole, as a subfeature of
- * `topLevelId`). If one fails, the shaft is shown in blue.
+ * Cuts a preset shaft's features as it's sold (see robotShaftTables.py's `factory`), under `id`: its e-clip grooves,
+ * measured from its first end (where it starts), or its second, with Flip ends, then a tapped hole in each end (std's
+ * hole, as a subfeature of `topLevelId`). If one fails, the shaft is shown in blue.
  */
 function cutFactoryFeatures(context is Context, topLevelId is Id, id is Id, definition is map, extrudeId is Id, shaft is Query)
 {
@@ -641,14 +653,14 @@ function cutFactoryFeatures(context is Context, topLevelId is Id, id is Id, defi
             addDebugEntities(context, shaft, DebugColor.BLUE);
         };
 
-    const firstPlane = evPlane(context, { "face" : firstEnd });
+    const groovedPlane = evPlane(context, { "face" : hasFactoryGrooves(definition) && definition.flipEnds ? secondEnd : firstEnd });
     for (var i, groove in cots.factoryGrooves)
     {
         const grooveId = id + "groove" + unstableIdComponent(i);
-        const annulus = sketchAnnulus(context, grooveId + "sketch", firstPlane, groove.diameter / 2, getHexWidth(definition)->getHexCircleRadius());
+        const annulus = sketchAnnulus(context, grooveId + "sketch", groovedPlane, groove.diameter / 2, getHexWidth(definition)->getHexCircleRadius());
         opExtrude(context, grooveId + "extrude", {
                     "entities" : annulus,
-                    "direction" : -firstPlane.normal,
+                    "direction" : -groovedPlane.normal,
                     "startBound" : BoundingType.BLIND,
                     "isStartBoundOpposite" : false,
                     "startDepth" : groove.start,
@@ -659,31 +671,36 @@ function cutFactoryFeatures(context is Context, topLevelId is Id, id is Id, defi
             { "message" : "Failed to cut the shaft's e-clip groove.", "parameters" : ["ftcShaft"] }, showShaft);
     }
 
-    if (cots.factoryHoleDepth == undefined)
+    const factoryHole = cots.factoryHole;
+    if (factoryHole == undefined)
     {
         return;
     }
-    const tapped = getLookupTable(ISO_HoleTableEx, FACTORY_TAPPED_HOLE);
+    // In std's hole table, which names a level "type"
+    // fs check: ignore keyword-key
+    const path = { "holeType" : "Tapped", "type" : "Straight tap", "size" : factoryHole.size, "pitch" : factoryHole.pitch, "fit" : "None" } as LookupTablePath;
+    const tapped = getLookupTable(factoryHole.metric ? ISO_HoleTableEx : ANSI_HoleTableEx, path);
     for (var i, end in [firstEnd, secondEnd])
     {
         const holeId = id + "hole" + unstableIdComponent(i);
         const locations = sketchHoleLocation(context, holeId + "location", evPlane(context, { "face" : end }));
+        var holeDefinition = {
+                "isV2" : true,
+                "unitsSystem" : factoryHole.metric ? UnitsSystem.METRIC : UnitsSystem.INCH,
+                "endStyleV2" : HoleEndStyleV2.BLIND,
+                "locations" : locations,
+                "holeDiameterV2" : lookupTableEvaluate(tapped.tapDrillDiameter),
+                "majorDiameter" : lookupTableEvaluate(tapped.majorDiameter),
+                "holeDepth" : factoryHole.depth,
+                "tappedDepth" : factoryHole.depth,
+                "holeDiameterV2Precision" : PrecisionType.DEFAULT,
+                "holeDiameterV2ToleranceType" : ToleranceTypeExtended.NONE,
+                "scope" : shaft
+            };
+        holeDefinition[factoryHole.metric ? "isoHoleTableEx" : "ansiHoleTableEx"] = path;
         try
         {
-            callSubfeatureAndProcessStatus(topLevelId, hole, context, holeId + "hole", {
-                        "isV2" : true,
-                        "unitsSystem" : UnitsSystem.METRIC,
-                        "endStyleV2" : HoleEndStyleV2.BLIND,
-                        "locations" : locations,
-                        "isoHoleTableEx" : FACTORY_TAPPED_HOLE,
-                        "holeDiameterV2" : lookupTableEvaluate(tapped.tapDrillDiameter),
-                        "majorDiameter" : lookupTableEvaluate(tapped.majorDiameter),
-                        "holeDepth" : cots.factoryHoleDepth,
-                        "tappedDepth" : cots.factoryHoleDepth,
-                        "holeDiameterV2Precision" : PrecisionType.DEFAULT,
-                        "holeDiameterV2ToleranceType" : ToleranceTypeExtended.NONE,
-                        "scope" : shaft
-                    }, { "propagateErrorDisplay" : true });
+            callSubfeatureAndProcessStatus(topLevelId, hole, context, holeId + "hole", holeDefinition, { "propagateErrorDisplay" : true });
         }
         catch (error)
         {
@@ -848,7 +865,7 @@ const SOLD_LENGTH_TOLERANCE = 0.001 * inch;
 /**
  * Names a COTS shaft (its length, then its `partName`), gives it the part number of the stock it's cut from (or, for a
  * shaft sold in its length, its own) and a link to buy it, and sets its vendor, material, and appearance. Warns if it's
- * longer than it's sold, or, for a shaft only sold in set lengths (`fixedLengths`), isn't one of them.
+ * longer than it's sold.
  */
 function setCotsShaftProperties(context is Context, id is Id, shaft is Query, definition is map, cots is map, length is ValueWithUnits)
 {
@@ -872,13 +889,6 @@ function setCotsShaftProperties(context is Context, id is Id, shaft is Query, de
     {
         reportFeatureWarning(context, id, "This shaft is only sold up to " ~ shaftLengthString(definition, shorter.length) ~ " long.");
         return;
-    }
-    if ((cots.fixedLengths ?? false) && stock.length - length > SOLD_LENGTH_TOLERANCE)
-    {
-        const nearest = shorter == undefined ?
-            "the shortest is " ~ shaftLengthString(definition, stock.length) :
-            "the nearest are " ~ shaftLengthString(definition, shorter.length) ~ " and " ~ shaftLengthString(definition, stock.length);
-        reportFeatureWarning(context, id, "This shaft is only sold in set lengths; " ~ nearest ~ ".");
     }
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.PART_NUMBER, "value" : stock.partNumber });
     setProperty(context, { "entities" : shaft, "propertyType" : PropertyType.DESCRIPTION, "value" : stock.url });
