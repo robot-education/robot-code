@@ -102,8 +102,11 @@ export predicate generalPredicate(definition is map)
         //     isLength(definition.width, LENGTH_BOUNDS);
         // }
 
-        // Of its bore on the shaft or fastener
-        fitPredicate(definition);
+        // Of its bore on the shaft (a round spacer's hole table has its fits)
+        if (!roundSpacer(definition))
+        {
+            fitPredicate(definition);
+        }
 
         // Option is required for custom spacers
         if (!isCustomSizeSpacer(definition))
@@ -159,6 +162,9 @@ export predicate holeSizePredicate(definition is map)
 {
     annotation { "Name" : "Hole table", "Lookup Table" : clearanceHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.clearanceHolePath is LookupTablePath;
+
+    // Editing logic sets it from the hole table; it can be overridden
+    holeDiameterPredicate(definition);
 }
 
 
@@ -184,8 +190,8 @@ export predicate isSnapOnSpacer(definition is map)
 }
 
 /**
- * The size across a spacer's bore, with its fit: a hex's width across its flats, a round spacer's clearance hole, or a
- * spline's major diameter.
+ * The size across a spacer's bore, with its fit: a hex's width across its flats, a round spacer's Hole diameter (from
+ * its hole table, or overridden), or a spline's major diameter.
  */
 export function getInnerDiameter(definition is map) returns ValueWithUnits
 {
@@ -195,7 +201,7 @@ export function getInnerDiameter(definition is map) returns ValueWithUnits
     }
     else if (roundSpacer(definition))
     {
-        return fastenerHoleDiameter(definition, getTableAndPath(definition).path.size);
+        return definition.holeDiameter;
     }
     const diameter = splineDiameter(definition.splineType);
     return diameter + fitClearance(definition, diameter);

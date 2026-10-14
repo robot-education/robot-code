@@ -58,8 +58,6 @@ The three v1.0.0 outlines are generated now (`printAdapterProfiles.py`), with th
 | Parameter | Description |
 | --- | --- |
 | Use boss (`useBoss`) | Leave room for the adapter's boss above the print, instead of sinking the whole adapter in. |
-| Fit (`fit`), Bore fit (`boreFit`) | How loosely it fits. Close and free fits are the standard clearance holes for a fastener its size, as in the Hole feature's tables. |
-| Clearance (`fitClearance`), Bore clearance (`boreFitClearance`) | How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit. |
 
 No parameters are hidden. Editing logic sets the shown Merge scope and Opposite direction (see Execution order).
 

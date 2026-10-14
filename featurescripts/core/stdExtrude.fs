@@ -266,6 +266,15 @@ export predicate newExtrudeOptionsPredicate(definition is map)
 {
     extrudeOffsetPredicate(definition);
 
+    newExtrudeSecondEndPredicate(definition);
+}
+
+/**
+ * The options of a new extrude after its starting offset: symmetric, and second end position. Split out so features
+ * can show the starting offset alone.
+ */
+export predicate newExtrudeSecondEndPredicate(definition is map)
+{
     if (definition.endBound == StockBoundingType.BLIND)
     {
         annotation { "Name" : "Symmetric", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }

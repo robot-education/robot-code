@@ -278,6 +278,13 @@ export function robotSpacerManipulatorChange(context is Context, definition is m
 
 export function robotSpacerEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    // A round spacer's Hole diameter, from its hole table when it becomes round, or its size or fit changes
+    if (roundSpacer(definition) && (oldDefinition == {} || !roundSpacer(oldDefinition) || getTableAndPath(oldDefinition) != getTableAndPath(definition)))
+    {
+        const tableAndPath = getTableAndPath(definition);
+        definition.holeDiameter = getLookupTable(tableAndPath.table, tableAndPath.path).holeDiameter;
+    }
+
     if (oldDefinition != {})
     {
         definition = wallEditLogic(oldDefinition, definition, specifiedParameters, getInnerDiameter(definition), getInnerDiameter(oldDefinition));

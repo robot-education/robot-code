@@ -69,10 +69,27 @@ tapped_hole = Node(
     default="#10",
 )
 
-# Sizes of fasteners for clearance holes; their diameters come from core/fit.fs's `fastenerHoleDiameter`, by fit
+def fit_node(close: str, free: str) -> Node:
+    """A fastener size's clearance holes, by fit: std's (`ANSI_V2ClearanceHoleTable`'s Close and Free)."""
+    return Node(
+        "fit",
+        [
+            Value("Free", {"holeDiameter": string(free)}),
+            Value("Close", {"holeDiameter": string(close)}),
+        ],
+        display_name="Fastener fit",
+        default="Free",
+    )
+
+
+# Clearance holes, by fastener size and fit
 clearance_hole = Node(
     "size",
-    [Value("#8"), Value("#10"), Value("1/4")],
+    [
+        Value("#8", next=fit_node("0.1695 in", "0.177 in")),
+        Value("#10", next=fit_node("0.196 in", "0.201 in")),
+        Value("1/4", next=fit_node("0.257 in", "0.266 in")),
+    ],
     default="#10",
 )
 
@@ -95,12 +112,26 @@ def stock(*lengths: tuple[str, str, str]) -> str:
 @dataclasses.dataclass
 class Shaft:
     """A vendor's shaft: its type (as the vendor names it), its size (a hex's; None for a spline), its material (as
-    it's told apart from the vendor's other shafts of the type and size, if they're in several), and its values."""
+    it's told apart from the vendor's other shafts of the type and size, if they're in several), its values, and the
+    lengths it's chosen from as it's sold (see `presets`), if it is."""
 
     type: str
     size: str | None
     material: str | None
     values: dict[str, str]
+    presets: Node | None = None
+
+
+def presets(stock_of, lengths: list[float], factory: dict[str, str]) -> Node:
+    """A shaft's preset lengths (in millimeters), as it's sold, and Custom. A preset is built as it's sold: its
+    `presetLength`, and its `factory` features (see `rex_factory`), with nothing to choose about its ends. Each has
+    its own `stock` (`stock_of`, given lengths, gives it), and Custom all of them."""
+    return Node(
+        "length",
+        [Value(f"{length:g} mm", {"presetLength": mm(length), "stock": stock_of([length]), **factory}) for length in lengths]
+        + [Value("Custom", {"stock": stock_of(lengths)})],
+        display_name="Length",
+    )
 
 
 def shaft(
@@ -111,9 +142,10 @@ def shaft(
     profile: dict[str, str],
     material: str,
     appearance: str,
-    lengths: str,
+    lengths: str | None,
     fixed_lengths: bool = False,
     predrilled_hole: str | None = None,
+    preset_lengths: Node | None = None,
 ) -> Shaft:
     """A shaft.
 
@@ -121,6 +153,7 @@ def shaft(
         material_name: Its material's name, which is shown only where the vendor sells the type and size in several.
         fixed_lengths: Whether it's only sold in its stock's lengths, rather than cut from them.
         predrilled_hole: The diameter of a hole through a solid spline shaft (hex shafts' come from their types).
+        preset_lengths: Its lengths as it's sold, to choose from (see `presets`).
     """
     return Shaft(
         shaft_type,
@@ -131,10 +164,12 @@ def shaft(
             "partName": string(part_name),
             "material": material,
             "appearance": appearance,
-            "stock": lengths,
+            # Preset lengths each have their own
+            **({"stock": lengths} if preset_lengths is None else {}),
             **({"fixedLengths": "true"} if fixed_lengths else {}),
             **({"predrilledHoleDiameter": predrilled_hole} if predrilled_hole else {}),
         },
+        preset_lengths,
     )
 
 
@@ -162,7 +197,7 @@ def _choices(shafts: list[Shaft], level: str) -> list[Value]:
         following = _next_level(group, level)
         if following is None:
             assert len(group) == 1, f"{option} needs a size or material to tell its shafts apart"
-            choices.append(Value(option, group[0].values))
+            choices.append(Value(option, group[0].values, group[0].presets))
         else:
             choices.append(Value(option, {}, Node(following, _choices(group, following), display_name=following.capitalize())))
     return choices
@@ -332,17 +367,23 @@ TTB = vendor(
 
 
 def gobilda(series: str, profile: str, name: str, lengths: list[float]) -> str:
-    """goBILDA sells each length: SKUs like 2106-4008-0560 for 56 mm, with a page each."""
+    """goBILDA sells each length: SKUs like 2106-4008-0560 for 56 mm, with a page each (2102 and 2104 are numbered by
+    the millimeter, not the tenth)."""
     return stock(
         *[
             (
                 mm(length),
-                f"{series}-{profile}-{round(length * 10):04d}" if series != "2104" else f"{series}-{profile}-{round(length):04d}",
+                f"{series}-{profile}-{round(length * 10):04d}" if series not in ("2102", "2104") else f"{series}-{profile}-{round(length):04d}",
                 f"https://www.gobilda.com/{name}-{length:g}mm-length/",
             )
             for length in lengths
         ]
     )
+
+
+def gobilda_stock(series: str, profile: str, name: str):
+    """`gobilda`, for given lengths, for `presets`."""
+    return lambda lengths: gobilda(series, profile, name, lengths)
 
 
 REX_8_LENGTHS = [24, 32, 40, 43, 48, 52, 54, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 168, 192, 216, 240, 264, 288,
@@ -351,23 +392,55 @@ REX_12_LENGTHS = [32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 168, 1
                   432, 528, 624]
 REX_12_ALUMINUM_LENGTHS = [43, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 192, 240, 288, 336, 384, 432, 528, 624,
                            1200]
+REX_12_PLAIN_LENGTHS = [100, 140, 180]
+
+
+def rex_factory(hole_depth: float | None, grooves: list[tuple[float, float, float]]) -> dict[str, str]:
+    """A REX shaft's features as goBILDA makes it (from their STEP files): an M4 tapped hole `hole_depth` deep in each
+    end (None for none), and e-clip grooves, each (diameter, start, end), measured from the first end, all in
+    millimeters."""
+    groove_maps = ", ".join(
+        f"{{ {string('diameter')} : {mm(diameter)}, {string('start')} : {mm(start)}, {string('end')} : {mm(end)} }}"
+        for diameter, start, end in grooves
+    )
+    return {
+        **({"factoryHoleDepth": mm(hole_depth)} if hole_depth is not None else {}),
+        "factoryGrooves": f"[{groove_maps}]",
+    }
+
+
+# 8mm REX: an e-clip groove 6 mm across, 3.2 to 4 mm from one end; 12mm REX: two, 9 mm across, 3 to 4 and 10 to 11 mm
+# from one end (the e-clip goes in either). The aluminum ones have no grooves, and the plain stainless 12mm ones no holes
+REX_8_FACTORY = rex_factory(11, [(6, 3.2, 4)])
+REX_12_FACTORY = rex_factory(12, [(9, 3, 4), (9, 10, 11)])
+REX_12_ALUMINUM_FACTORY = rex_factory(14, [])
+REX_12_PLAIN_FACTORY = rex_factory(None, [])
 
 # FRCDesign FTC "Custom Shaft": 8mm REX is nearly all of its use. REX is goBILDA's rounded hex: an 8 mm (or 12 mm) round
-# and a 7 mm (or 11 mm) hex (the STEP files); its ends are tapped M4. The stainless steel ones have e-clip grooves, so
-# they're only sold in set lengths; the aluminum one (up to 1200 mm) can be cut
-# TODO: goBILDA's D-shafts and round shafts, and 8mm REX in aluminum; REV's 5mm hex
+# and a 7 mm (or 11 mm) hex (the STEP files). goBILDA sells each length, chosen from its presets (or Custom): its whole
+# stainless steel catalog (with an e-clip and its grooves, and the 12 mm without, untapped) and its aluminum 12 mm
+# (https://www.gobilda.com/stainless-steel-rex-shafting/, https://www.gobilda.com/aluminum-rex-shafting/). The
+# aluminum one can be cut, so a custom length of it isn't warned about
+# TODO: goBILDA's D-shafts and round shafts, and 8mm REX standoffs (aluminum); REV's 5mm hex
 GOBILDA = vendor(
     "goBILDA",
     [
         shaft("REX", "8 mm", "Stainless steel", "8mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._7_MM"),
               "STAINLESS_STEEL", "STEEL_GRAY",
-              gobilda("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel", REX_8_LENGTHS), fixed_lengths=True),
+              None, fixed_lengths=True,
+              preset_lengths=presets(gobilda_stock("2106", "4008", "8mm-rex-shaft-with-e-clip-stainless-steel"), REX_8_LENGTHS, REX_8_FACTORY)),
         shaft("REX", "12 mm", "Stainless steel", "12mm REX Shaft (goBILDA, stainless steel)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "STAINLESS_STEEL", "STEEL_GRAY",
-              gobilda("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel", REX_12_LENGTHS), fixed_lengths=True),
+              None, fixed_lengths=True,
+              preset_lengths=presets(gobilda_stock("2109", "4012", "12mm-rex-shaft-with-e-clip-stainless-steel"), REX_12_LENGTHS, REX_12_FACTORY)),
+        shaft("REX", "12 mm", "Stainless steel, no e-clip", "12mm REX Shaft (goBILDA, stainless steel, no e-clip)",
+              hex("ROUNDED_HEX", "HexSize._11_MM"), "STAINLESS_STEEL", "STEEL_GRAY",
+              None, fixed_lengths=True,
+              preset_lengths=presets(gobilda_stock("2102", "0012", "12mm-rex-shaft-stainless-steel"), REX_12_PLAIN_LENGTHS, REX_12_PLAIN_FACTORY)),
         shaft("REX", "12 mm", "Aluminum", "12mm REX Shaft (goBILDA, aluminum)", hex("ROUNDED_HEX", "HexSize._11_MM"),
               "ALUMINUM", "MEDIUM_GRAY",
-              gobilda("2104", "0012", "12mm-rex-shaft-aluminum", REX_12_ALUMINUM_LENGTHS)),
+              None,
+              preset_lengths=presets(gobilda_stock("2104", "0012", "12mm-rex-shaft-aluminum"), REX_12_ALUMINUM_LENGTHS, REX_12_ALUMINUM_FACTORY)),
     ],
 )
 

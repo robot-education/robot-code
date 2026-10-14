@@ -41,10 +41,7 @@ from the center to a tooth of the outside profiles, which didn't change the sket
 
 ### Descriptions and hidden parameters
 
-| Parameter | Description |
-| --- | --- |
-| Fit (`fit`) | How loosely it fits. Close and free fits are the standard clearance holes for a fastener its size, as in the Hole feature's tables. |
-| Clearance (`fitClearance`) | How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit. |
+None of its parameters have descriptions.
 
 ### Errors, warnings, and info
 

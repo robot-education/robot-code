@@ -29,12 +29,12 @@ export const FIT_CLEARANCE_BOUNDS = { (meter) : [-0.01, 0.0001, 0.01], (millimet
  */
 export predicate fitPredicate(definition is map)
 {
-    annotation { "Name" : "Fit", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"], "Description" : "How loosely it fits. Close and free fits are the standard clearance holes for a fastener its size, as in the Hole feature's tables." }
+    annotation { "Name" : "Fit", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
     definition.fit is Fit;
 
     if (definition.fit == Fit.CUSTOM)
     {
-        annotation { "Name" : "Clearance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit." }
+        annotation { "Name" : "Clearance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.fitClearance, FIT_CLEARANCE_BOUNDS);
     }
 }
@@ -44,12 +44,12 @@ export predicate fitPredicate(definition is map)
  */
 export predicate boreFitPredicate(definition is map)
 {
-    annotation { "Name" : "Bore fit", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"], "Description" : "How loosely it fits. Close and free fits are the standard clearance holes for a fastener its size, as in the Hole feature's tables." }
+    annotation { "Name" : "Bore fit", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
     definition.boreFit is Fit;
 
     if (definition.boreFit == Fit.CUSTOM)
     {
-        annotation { "Name" : "Bore clearance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "How much bigger the hole is than what goes in it, across it (not per side). Negative for an interference fit." }
+        annotation { "Name" : "Bore clearance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         isLength(definition.boreFitClearance, FIT_CLEARANCE_BOUNDS);
     }
 }

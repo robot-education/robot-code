@@ -1,5 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
+// ISO_HoleTableEx, for a preset shaft's tapped ends
+import(path : "onshape/std/holetables.gen.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
 export import(path : "603be214b7d30fd438966545", version : "81c3f377a07c755804b5c678");
@@ -15,8 +17,6 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 // Also exports the enum used as a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
-// Exports Fit, a parameter type
-export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
 
 /**
  * Whether a shaft is one someone sells (see robotShaftTables.py), or custom.
@@ -32,6 +32,18 @@ export enum ShaftSource
 export predicate isCotsShaft(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
+}
+
+/**
+ * Whether a shaft is a COTS shaft at one of its preset lengths (its table's Length, other than Custom): it's built as
+ * it's sold, its length and ends set, so only where it starts is chosen.
+ */
+predicate isPresetLength(definition is map)
+{
+    definition.shaftSource == ShaftSource.COTS;
+    definition.program == Program.FTC;
+    definition.ftcShaft.length != undefined;
+    definition.ftcShaft.length != "Custom";
 }
 
 export enum EndOperation
@@ -176,15 +188,14 @@ predicate shaftEndPredicate(definition is map)
                     {
                         annotation { "Name" : "Hole table", "Lookup Table" : clearanceHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         definition.firstEndClearanceHolePath is LookupTablePath;
-
-                        fitPredicate(definition);
                     }
+
+                    // Editing logic sets it from the hole table; it can be overridden
+                    annotation { "Name" : "Hole diameter", "Icon" : Icon.HOLE_DIAMETER }
+                    isLength(definition.firstEndHoleDiameter, HOLE_DIAMETER_BOUNDS);
 
                     if (isTappedFirstEnd(definition))
                     {
-                        annotation { "Name" : "Hole diameter", "Icon" : Icon.HOLE_DIAMETER }
-                        isLength(definition.firstEndHoleDiameter, HOLE_DIAMETER_BOUNDS);
-
                         annotation { "Name" : "Hole depth", "Icon" : Icon.HOLE_DEPTH }
                         isLength(definition.firstEndHoleDepth, HOLE_DEPTH_BOUNDS);
                     }
@@ -340,25 +351,48 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
 
         annotation { "Group Name" : "Extrude", "Collapsed By Default" : false }
         {
-            newExtrudePredicate(definition);
-
-            annotation { "Name" : "Mirror shaft", "Description" : "Mirror the shaft across one of its ends. Useful when the shaft is modeled up to a plane of symmetry." }
-            definition.mirrorShaft is boolean;
-
-            if (definition.mirrorShaft)
+            // A preset's length is its own: only where it starts, and which way it goes (newExtrudePredicate, but
+            // those). Onshape doesn't allow a parameter in two branches of an if
+            if (!isPresetLength(definition))
             {
-                annotation { "Name" : "Flip mirror end", "UIHint" : ["OPPOSITE_DIRECTION"] }
-                definition.flipMirrorEnd is boolean;
+                annotation { "Name" : "End type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.endBound is StockBoundingType;
+            }
+
+            annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+            definition.oppositeDirection is boolean;
+
+            if (!isPresetLength(definition))
+            {
+                stockBoundsPredicate(definition);
+            }
+
+            extrudeOffsetPredicate(definition);
+
+            if (!isPresetLength(definition))
+            {
+                newExtrudeSecondEndPredicate(definition);
+
+                annotation { "Name" : "Mirror shaft", "Description" : "Mirror the shaft across one of its ends. Useful when the shaft is modeled up to a plane of symmetry." }
+                definition.mirrorShaft is boolean;
+
+                if (definition.mirrorShaft)
+                {
+                    annotation { "Name" : "Flip mirror end", "UIHint" : ["OPPOSITE_DIRECTION"] }
+                    definition.flipMirrorEnd is boolean;
+                }
             }
         }
 
-        if (canModifyShaftEnds(definition))
+        // A preset's ends are as it's sold
+        if (canModifyShaftEnds(definition) && !isPresetLength(definition))
         {
             shaftEndPredicate(definition);
         }
     }
     {
         definition = withShaft(definition);
+        const preset = isPresetLength(definition);
         const shaftPlane = getLocationPlane(context, definition);
         const shaftProfile = createShaftProfile(context, id + "profile", definition, shaftPlane);
         definition = transformDefintionForNewExtrude(definition, shaftProfile);
@@ -377,7 +411,11 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
             mirrorPlane = getMirrorPlane(context, definition, extrudeId, shaft);
         }
 
-        if (canModifyShaftEnds(definition))
+        if (preset)
+        {
+            cutFactoryFeatures(context, id, id + "factory", definition, extrudeId, shaft);
+        }
+        else if (canModifyShaftEnds(definition))
         {
             const endDefinitions = getShaftEndDefinitions(context, definition, extrudeId, shaft);
             if (definition.shaftType == ShaftType.HEX)
@@ -480,7 +518,8 @@ function getCotsShaft(definition is map)
 
 /**
  * The definition with the unit system its program uses (inches for FRC, millimeters for FTC), and a COTS shaft's
- * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), so the rest of the feature can treat it as custom.
+ * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), so the rest of the feature can treat it as custom. A
+ * preset length's shaft is extruded that long (Blind, one way, not mirrored).
  * A COTS spline shaft may also have a `predrilledHoleDiameter`: a hole through a solid spline (see `isTubeSpline`).
  */
 function withShaft(definition is map) returns map
@@ -497,6 +536,15 @@ function withShaft(definition is map) returns map
             }
         }
         definition.predrilledHoleDiameter = shaft.predrilledHoleDiameter;
+        if (shaft.presetLength != undefined)
+        {
+            // A preset's length, from where it starts
+            definition.endBound = StockBoundingType.BLIND;
+            definition.depth = shaft.presetLength;
+            definition.symmetric = false;
+            definition.hasSecondDirection = false;
+            definition.mirrorShaft = false;
+        }
     }
     return definition;
 }
@@ -574,6 +622,77 @@ function mirrorShaftAcrossEnd(context is Context, id is Id, shaft is Query, mirr
 /**
  * Cuts non-standard hex shaft features like rounded edges and churro profiles.
  */
+// goBILDA's REX shafts' ends are tapped M4 (coarse), in std's hole table, which names a level "type"
+// fs check: ignore keyword-key
+const FACTORY_TAPPED_HOLE = { "holeType" : "Tapped", "type" : "Straight tap", "size" : "M4", "pitch" : "0.70 mm (Coarse)", "fit" : "None" } as LookupTablePath;
+
+/**
+ * Cuts a preset shaft's features as it's sold (see robotShaftTables.py's `rex_factory`), under `id`: its e-clip grooves,
+ * measured from its first end (where it starts), then an M4 tapped hole in each end (std's hole, as a subfeature of
+ * `topLevelId`). If one fails, the shaft is shown in blue.
+ */
+function cutFactoryFeatures(context is Context, topLevelId is Id, id is Id, definition is map, extrudeId is Id, shaft is Query)
+{
+    const cots = getCotsShaft(definition);
+    const firstEnd = qCapEntity(extrudeId, CapType.START, EntityType.FACE)->qOwnedByBody(shaft);
+    const secondEnd = qCapEntity(extrudeId, CapType.END, EntityType.FACE)->qOwnedByBody(shaft);
+    const showShaft = function()
+        {
+            addDebugEntities(context, shaft, DebugColor.BLUE);
+        };
+
+    const firstPlane = evPlane(context, { "face" : firstEnd });
+    for (var i, groove in cots.factoryGrooves)
+    {
+        const grooveId = id + "groove" + unstableIdComponent(i);
+        const annulus = sketchAnnulus(context, grooveId + "sketch", firstPlane, groove.diameter / 2, getHexWidth(definition)->getHexCircleRadius());
+        opExtrude(context, grooveId + "extrude", {
+                    "entities" : annulus,
+                    "direction" : -firstPlane.normal,
+                    "startBound" : BoundingType.BLIND,
+                    "isStartBoundOpposite" : false,
+                    "startDepth" : groove.start,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : groove.end
+                });
+        cutShaft(context, grooveId, shaft, qCreatedBy(grooveId + "extrude", EntityType.BODY)->qBodyType(BodyType.SOLID),
+            { "message" : "Failed to cut the shaft's e-clip groove.", "parameters" : ["ftcShaft"] }, showShaft);
+    }
+
+    if (cots.factoryHoleDepth == undefined)
+    {
+        return;
+    }
+    const tapped = getLookupTable(ISO_HoleTableEx, FACTORY_TAPPED_HOLE);
+    for (var i, end in [firstEnd, secondEnd])
+    {
+        const holeId = id + "hole" + unstableIdComponent(i);
+        const locations = sketchHoleLocation(context, holeId + "location", evPlane(context, { "face" : end }));
+        try
+        {
+            callSubfeatureAndProcessStatus(topLevelId, hole, context, holeId + "hole", {
+                        "isV2" : true,
+                        "unitsSystem" : UnitsSystem.METRIC,
+                        "endStyleV2" : HoleEndStyleV2.BLIND,
+                        "locations" : locations,
+                        "isoHoleTableEx" : FACTORY_TAPPED_HOLE,
+                        "holeDiameterV2" : lookupTableEvaluate(tapped.tapDrillDiameter),
+                        "majorDiameter" : lookupTableEvaluate(tapped.majorDiameter),
+                        "holeDepth" : cots.factoryHoleDepth,
+                        "tappedDepth" : cots.factoryHoleDepth,
+                        "holeDiameterV2Precision" : PrecisionType.DEFAULT,
+                        "holeDiameterV2ToleranceType" : ToleranceTypeExtended.NONE,
+                        "scope" : shaft
+                    }, { "propagateErrorDisplay" : true });
+        }
+        catch (error)
+        {
+            showShaft();
+            throw error;
+        }
+    }
+}
+
 function cutHexShaftFeatures(context is Context, id is Id, definition is map, shaft is Query, shaftPlane is Plane, endDefinitions is array)
 {
     if (definition.hexType == HexType.STOCK)
@@ -913,10 +1032,8 @@ function getEndDefinition(definition is map, shaftEnd is ShaftEnd, endFace is Qu
         if (endOperation == EndOperation.TAPPED_HOLE)
         {
             base.holeDepth = definition[endString ~ "HoleDepth"];
-            return mergeMaps(base, { "holeDiameter" : definition[endString ~ "HoleDiameter"] }) as EndDefinition;
         }
-        const size = getTableAndPath(definition, shaftEnd).path.size;
-        return mergeMaps(base, { "holeDiameter" : fastenerHoleDiameter(definition, size) }) as EndDefinition;
+        return mergeMaps(base, { "holeDiameter" : definition[endString ~ "HoleDiameter"] }) as EndDefinition;
     }
     else if (endOperation == EndOperation.RETAINING_RING)
     {
@@ -988,8 +1105,6 @@ precondition
         {
             var holePath = tableAndPath.path;
             holePath.holeType = "Clearance";
-            // For the hole's callout; its diameter is the fit's
-            holePath.fit = definition.fit == Fit.CLOSE ? "Close" : "Free";
 
             holeDefinition = {
                     "isV2" : true,
@@ -1030,11 +1145,11 @@ precondition
         }
         else if (endDefinition.endOperation == EndOperation.RETAINING_RING)
         {
-            extrudeShaftGrooveTool(context, toolId, definition, shaft, endDefinition);
+            extrudeShaftGrooveTool(context, toolId, definition, shaft, endDefinition, reconstructOp);
         }
         const endString = getShaftEndString(endDefinition.shaftEnd);
         const failure = endDefinition.endOperation == EndOperation.CAPTIVE_SHAFT ?
-            { "message" : "Failed to cut the captive end: check its Diameter and Length.", "parameters" : [endString ~ "Diameter", endString ~ "Length"] } :
+            { "message" : "Failed to cut the captive end.", "parameters" : [endString ~ "Diameter", endString ~ "Length"] } :
             { "message" : "Failed to cut the retaining ring's groove.", "parameters" : endDefinition.grooveDiameter == undefined ? [endString ~ "SideMount"] :
                     [endString ~ "SideMount", endString ~ "GrooveDiameter"] };
         cutShaft(context, id + "cutShaft", shaft, qCreatedBy(toolId, EntityType.BODY)->qBodyType(BodyType.SOLID), failure, reconstructOp);
@@ -1117,7 +1232,7 @@ function extrudeCaptiveShaftTool(context is Context, id is Id, definition is map
 }
 
 
-function extrudeShaftGrooveTool(context is Context, id is Id, definition is map, shaft is Query, endDefinition is EndDefinition)
+function extrudeShaftGrooveTool(context is Context, id is Id, definition is map, shaft is Query, endDefinition is EndDefinition, reconstructOp is function)
 {
     const facePlane = evPlane(context, { "face" : endDefinition.endFace });
 
@@ -1129,8 +1244,29 @@ function extrudeShaftGrooveTool(context is Context, id is Id, definition is map,
     {
         if (endDefinition.grooveDiameter >= shaftRadius * 2)
         {
-            throw regenError("The groove diameter must be less than the shaft's width across its corners.",
-                [getShaftEndString(endDefinition.shaftEnd) ~ "GrooveDiameter"]);
+            // The shaft in blue, and the groove as entered in red
+            reconstructOp();
+            const errorId = id + "error";
+            try silent
+            {
+                const sketch = newSketchOnPlane(context, errorId + "sketch", { "sketchPlane" : facePlane });
+                skCircle(sketch, "circle", {
+                            "center" : zeroVector(2) * meter,
+                            "radius" : endDefinition.grooveDiameter / 2
+                        });
+                skSolve(sketch);
+                opExtrude(context, errorId + "extrude", {
+                            "entities" : qSketchRegion(errorId + "sketch"),
+                            "direction" : -facePlane.normal,
+                            "startBound" : BoundingType.BLIND,
+                            "isStartBoundOpposite" : false,
+                            "startDepth" : edgeMargin,
+                            "endBound" : BoundingType.BLIND,
+                            "endDepth" : grooveDefinition.endWidth
+                        });
+            }
+            throw regenError("The groove diameter is larger than the shaft.", [getShaftEndString(endDefinition.shaftEnd) ~ "GrooveDiameter"],
+                qCreatedBy(errorId + "extrude", EntityType.BODY));
         }
         grooveDefinition.grooveDiameter = endDefinition.grooveDiameter;
     }
@@ -1390,14 +1526,15 @@ function activePathChanged(oldDefinition is map, definition is map, shaftEnd is 
     return getTableAndPath(oldDefinition, shaftEnd) != getTableAndPath(definition, shaftEnd);
 }
 
+/**
+ * Sets an end's Hole diameter from its hole table: a tapped hole's tap drill, or a clearance hole's diameter for its
+ * fit.
+ */
 function applyTableDefinition(definition is map, shaftEnd is ShaftEnd) returns map
 {
-    // A clearance hole's diameter comes from its fit
-    if (getEndOperation(definition, shaftEnd) == EndOperation.TAPPED_HOLE)
-    {
-        const tableAndPath = getTableAndPath(definition, shaftEnd);
-        definition[getShaftEndString(shaftEnd) ~ "HoleDiameter"] = getLookupTable(tableAndPath.table, tableAndPath.path).tapDrillDiameter;
-    }
+    const tableAndPath = getTableAndPath(definition, shaftEnd);
+    const value = getLookupTable(tableAndPath.table, tableAndPath.path);
+    definition[getShaftEndString(shaftEnd) ~ "HoleDiameter"] = getEndOperation(definition, shaftEnd) == EndOperation.TAPPED_HOLE ? value.tapDrillDiameter : value.holeDiameter;
     return definition;
 }
 
