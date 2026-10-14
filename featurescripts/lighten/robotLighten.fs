@@ -966,176 +966,149 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
 /**
  * Rounds the pockets' corners as a router bit leaves them, as Vent (its `expandWithFillet`) and the previous Onshape
  * Lighten feature do: the walls and ribs were made `grow` thicker, so a pocket narrower than the bit is gone, and the
- * rest are grown back by `grow`. In steps:
+ * rest are grown back by `grow`. In steps, a pocket at a time:
  *
- * 1. Each pocket's corners get a hair fillet (std's boolean tolerance), which growing rounds to the hair and `grow`:
- *    Fillet radius exactly (`grow` is the radius less the hair), so their radius needn't be set after.
- * 2. If a pocket's fillet fails, its sides too narrow for both their corners' fillets (`narrowSides`) each get a full
- *    round across them instead (`opFullRoundFillet`), and its corners are filleted again. If a full round fails, or the
- *    fillet still does, that's a warning, with the operation's error display, and the pocket's left as it is: smaller,
- *    as its walls and ribs are thicker.
- * 3. The rounded pockets are grown back by `grow` (`opOffsetFace`). Full rounds grow to half their end's width (under
- *    a hair) and `grow`: a bit's two rounds with less than a hair between them are a round that wide, to within it.
+ * 1. Each corner gets a hair fillet (std's boolean tolerance) on its own, in turn, each kept if it works. Growing rounds
+ *    them to the hair and `grow`: Fillet radius exactly (`grow` is the radius less the hair), so their radius needn't
+ *    be set after. A corner fails where its side is too short for its fillet and its neighbor's.
+ * 2. Each corner which failed gets a full round across its narrow side (`narrowSide`: the side next to it whose other
+ *    corner, failed too or filleted, is nearest it), between the sides either side of it (`opFullRoundFillet`). If the
+ *    other corner was filleted, its fillet is deleted first (`opDeleteFace`, which heals it back to a corner). Both are
+ *    in a feature of their own, so if the round fails, the fillet's put back.
+ * 3. The pockets are grown back by `grow` (`opOffsetFace`). Full rounds grow to half their side's width (under a hair)
+ *    and `grow`: a bit's two rounds with less than a hair between them are a round that wide, to within it.
  *
- * Only the first status reported shows, so a warning is reported before the failed operation's status is copied (for
- * its error display).
+ * Nothing here fails the feature: a corner with no narrow side, a full round which fails, or the growth failing, is a
+ * warning, showing what's left sharp (or the pockets, ungrown). Only the first status reported shows, so a warning is
+ * reported before a failed operation's status is copied (for its error display).
  */
 function roundPockets(context is Context, featureId is Id, pockets is Query, ends is Query, grow is ValueWithUnits)
 {
     const id = featureId + "round";
-    var rounded = [];
     for (var i, pocket in evaluateQuery(context, pockets))
     {
         const pocketId = id + unstableIdComponent(i);
         setExternalDisambiguation(context, pocketId, pocket);
+        const filletsId = pocketId + "fillet";
 
-        // 1. Its corners, a hair
-        if (hairFillet(context, pocketId + "fillet", pocketCorners(context, pocket, ends)))
+        // 1. Each corner, a hair, on its own
+        var failed = [];
+        for (var j, corner in evaluateQuery(context, pocketCorners(context, pocket, ends)))
         {
-            rounded = append(rounded, pocket);
-            continue;
-        }
-
-        // 2. Its narrow sides, a full round across each, then its corners again
-        const narrowEnds = narrowSides(context, pocketId + "trial", pocket, ends);
-        if (narrowEnds == [])
-        {
-            reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
-            processSubfeatureStatus(context, featureId, { "subfeatureId" : pocketId + "fillet", "propagateErrorDisplay" : true });
-            setErrorEntities(context, featureId, { "entities" : pocketCorners(context, pocket, ends) });
-            continue;
-        }
-        var fullRounds = true;
-        for (var j, narrowEnd in narrowEnds)
-        {
-            const fullRoundId = pocketId + "fullRound" + unstableIdComponent(j);
             try silent
             {
-                opFullRoundFillet(context, fullRoundId, {
-                            "side1Face" : narrowEnd.sides[0],
-                            "side2Face" : narrowEnd.sides[1],
-                            "centerFaces" : narrowEnd.faces,
+                opFillet(context, filletsId + unstableIdComponent(j), {
+                            "entities" : corner,
+                            "radius" : TOLERANCE.booleanDefaultTolerance * meter
+                        });
+            }
+            catch
+            {
+                failed = append(failed, corner);
+            }
+        }
+
+        // 2. Each failed corner, a full round across its narrow side
+        for (var j, corner in failed)
+        {
+            // Rounded already, with a neighbor
+            if (isQueryEmpty(context, corner))
+            {
+                continue;
+            }
+            const narrow = narrowSide(context, corner, qUnion(failed), qCreatedBy(filletsId, EntityType.FACE), ends);
+            if (narrow == undefined)
+            {
+                reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
+                setErrorEntities(context, featureId, { "entities" : corner });
+                continue;
+            }
+            const roundId = pocketId + "fullRound" + unstableIdComponent(j);
+            startFeature(context, roundId, {});
+            var rounded = true;
+            try silent
+            {
+                if (narrow.fillet != undefined)
+                {
+                    opDeleteFace(context, roundId + "deleteFillet", {
+                                "deleteFaces" : narrow.fillet,
+                                "includeFillet" : false,
+                                "capVoid" : false
+                            });
+                }
+                // The sides either side of it (its others are the pocket's ends)
+                const sides = evaluateQuery(context, qSubtraction(qAdjacent(narrow.side, AdjacencyType.EDGE, EntityType.FACE), ends));
+                if (size(sides) != 2)
+                {
+                    throw regenError("A narrow side needs a side either side of it.");
+                }
+                opFullRoundFillet(context, roundId + "fullRound", {
+                            "side1Face" : sides[0],
+                            "side2Face" : sides[1],
+                            "centerFaces" : narrow.side,
                             "tangentPropagation" : false
                         });
             }
             catch
             {
-                reportFeatureWarning(context, featureId, "Failed to round a narrow pocket end.", ["filletRadius"]);
-                processSubfeatureStatus(context, featureId, { "subfeatureId" : fullRoundId, "propagateErrorDisplay" : true });
-                setErrorEntities(context, featureId, { "entities" : narrowEnd.faces });
-                fullRounds = false;
+                rounded = false;
             }
+            if (rounded)
+            {
+                endFeature(context, roundId);
+                continue;
+            }
+            // Puts back the fillet it deleted
+            abortFeature(context, roundId);
+            reportFeatureWarning(context, featureId, "Failed to round a narrow pocket end.", ["filletRadius"]);
+            setErrorEntities(context, featureId, { "entities" : qUnion([corner, narrow.side]) });
         }
-        if (!fullRounds)
-        {
-            continue;
-        }
-        // A full round's edges are smooth, so they aren't corners
-        if (!hairFillet(context, pocketId + "refillet", pocketCorners(context, pocket, ends)))
-        {
-            reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
-            processSubfeatureStatus(context, featureId, { "subfeatureId" : pocketId + "refillet", "propagateErrorDisplay" : true });
-            setErrorEntities(context, featureId, { "entities" : pocketCorners(context, pocket, ends) });
-            continue;
-        }
-        rounded = append(rounded, pocket);
-    }
-    if (rounded == [])
-    {
-        return;
     }
 
     // 3. Grown back
     try silent
     {
         opOffsetFace(context, id + "grow", {
-                    "moveFaces" : qSubtraction(qOwnedByBody(qUnion(rounded), EntityType.FACE), ends),
+                    "moveFaces" : qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends),
                     "offsetDistance" : grow
                 });
     }
     catch
     {
+        reportFeatureWarning(context, featureId, "Failed to grow the pockets back by the fillet radius.", ["filletRadius"]);
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
-        throw regenError("Failed to grow the pockets back by the fillet radius.", ["filletRadius"], qUnion(rounded));
+        setErrorEntities(context, featureId, { "entities" : pockets });
     }
 }
 
 /**
- * Fillets `corners` a hair (std's boolean tolerance), under `id`: whether it worked (or there are none to fillet).
- */
-function hairFillet(context is Context, id is Id, corners is Query) returns boolean
-{
-    if (isQueryEmpty(context, corners))
-    {
-        return true;
-    }
-    try silent
-    {
-        opFillet(context, id, {
-                    "entities" : corners,
-                    "radius" : TOLERANCE.booleanDefaultTolerance * meter
-                });
-        return true;
-    }
-    return false;
-}
-
-/**
- * A pocket's narrow sides: those between two convex corners which can't both be filleted a hair. Each side's two
- * corners are tried alone (`hairFillet`), in a feature of their own under `id`, rolled back, so it's only done when
- * the pocket's fillet has failed. Narrow sides next to each other are one end, rounded between the sides either side
- * of them; an end without two (a pocket narrow all the way around) is left out.
+ * A failed corner's narrow side: of the sides next to it, the one whose other corner is nearest it, either one which
+ * failed too (among `failed`), or one filleted (a face of `fillets`). The nearest is what made it fail, where its side
+ * was too short for both fillets; it's a guess where both sides are short.
  *
- * @returns {array} : Each end, as a map of its `faces`, and the two `sides` it's between.
+ * @returns {{
+ *      @field side {Query} : The narrow side.
+ *      @field fillet : The other corner's fillet, to delete before rounding across the side, or `undefined` if it
+ *              failed too.
+ * }} : Or `undefined`, if neither side has another corner.
  */
-function narrowSides(context is Context, id is Id, pocket is Query, ends is Query) returns array
+function narrowSide(context is Context, corner is Query, failed is Query, fillets is Query, ends is Query)
 {
-    const corners = pocketCorners(context, pocket, ends);
-    var narrow = [];
-    for (var i, face in evaluateQuery(context, qAdjacent(corners, AdjacencyType.EDGE, EntityType.FACE)))
+    var nearest = undefined;
+    for (var side in evaluateQuery(context, qSubtraction(qAdjacent(corner, AdjacencyType.EDGE, EntityType.FACE), ends)))
     {
-        const faceCorners = qIntersection([qLoopEdges(face), corners]);
-        if (size(evaluateQuery(context, faceCorners)) != 2)
+        const otherCorners = evaluateQuery(context, qSubtraction(qIntersection([qLoopEdges(side), failed]), corner));
+        const otherFillets = evaluateQuery(context, qIntersection([qAdjacent(side, AdjacencyType.EDGE, EntityType.FACE), fillets]));
+        for (var other in concatenateArrays([otherCorners, otherFillets]))
         {
-            continue;
-        }
-        const trialId = id + unstableIdComponent(i);
-        startFeature(context, trialId, {});
-        const filleted = hairFillet(context, trialId + "fillet", faceCorners);
-        abortFeature(context, trialId);
-        if (!filleted)
-        {
-            narrow = append(narrow, face);
-        }
-    }
-
-    // The faces next to `faces` across their corners
-    const beside = function(faces is Query) returns Query
-        {
-            return qSubtraction(qAdjacent(qIntersection([qLoopEdges(faces), corners]), AdjacencyType.EDGE, EntityType.FACE), faces);
-        };
-    var found = [];
-    while (narrow != [])
-    {
-        var run = [narrow[0]];
-        narrow = subArray(narrow, 1);
-        while (true)
-        {
-            const next = evaluateQuery(context, qIntersection([beside(qUnion(run)), qUnion(narrow)]));
-            if (next == [])
+            const distance = evDistance(context, { "side0" : corner, "side1" : other }).distance;
+            if (nearest == undefined || distance < nearest.distance)
             {
-                break;
+                nearest = { "side" : side, "fillet" : isIn(other, otherFillets) ? other : undefined, "distance" : distance };
             }
-            run = concatenateArrays([run, next]);
-            narrow = filter(narrow, face => !isIn(face, next));
-        }
-        const sides = evaluateQuery(context, beside(qUnion(run)));
-        if (size(sides) == 2)
-        {
-            found = append(found, { "faces" : qUnion(run), "sides" : sides });
         }
     }
-    return found;
+    return nearest;
 }
 
 /**

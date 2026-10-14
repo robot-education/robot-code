@@ -64,9 +64,9 @@ where they come up, and show only once it's done; only the first reported shows.
 | Failed to cut the ribs from the pockets. | error | cutting them fails | the rib parameters, and the ribs |
 | There's no room for pockets between the walls and ribs. | error | the ribs leave nothing of the pockets | the wall, fillet, and rib parameters, and the face and ribs (what was cut is used up) |
 | The pockets are all too small to cut. | error | every pocket's small (see Small pockets) | `wallThickness`, `filletRadius`, and the pockets |
-| Failed to round a narrow pocket end. | warning | a narrow end's full round fails: that pocket's left smaller | `filletRadius`, and the end's faces |
-| Failed to fillet pocket. | warning | a pocket's corner fillet fails (with no narrow ends, or after their full rounds): that pocket's left smaller | `filletRadius`, its corners, and the fillet's error display (failed fillets in pink, bad edges in red) |
-| Failed to grow the pockets back by the fillet radius. | error | growing the filleted pockets back fails | `filletRadius`, and the pockets |
+| Failed to fillet pocket. | warning | a corner's fillet fails, and neither side next to it has another corner to round across to: it's left sharp | `filletRadius`, and the corner |
+| Failed to round a narrow pocket end. | warning | a full round across a failed corner's narrow side fails: the corner's left sharp, and the fillet it deleted is put back | `filletRadius`, the corner and the side |
+| Failed to grow the pockets back by the fillet radius. | warning | growing the rounded pockets back fails: they're cut smaller, by the fillet radius | `filletRadius`, the pockets, and the growth's error display |
 | Failed to cut the pockets from the part. | error | cutting them fails | `face`, and the pockets |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | the cut leaves pieces of ribs free | the rib parameters, the loose parts |
 | Weight reduced by `<percent>`%. | info | the pockets are cut (shown if nothing was reported before it) | |
@@ -128,10 +128,10 @@ robotLighten
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
 --> smallPockets --> opDeleteBodies "dropSmall"    // too small to be worth cutting: left solid
 --> roundPockets                                   // with Fillet corners, in steps:
-    --> opFillet "fillet"                          // 1. each pocket's corners, a hair
-    --> narrowSides --> opFullRoundFillet          // 2. only if it fails: narrow sides, found by trying their
-        --> opFillet "refillet"                    //    corners alone; a full round across each, then fillet again
-    --> opOffsetFace "grow"                        // 3. the rounded pockets, out by the radius less the hair
+    --> opFillet "fillet"                          // 1. each corner on its own, a hair, kept if it works
+    --> narrowSide                                 // 2. each failed corner: the side to its nearest other corner
+        --> opDeleteFace, opFullRoundFillet        //    that corner's fillet deleted, a full round across the side
+    --> opOffsetFace "grow"                        // 3. the pockets, out by the radius less the hair
 --> opBoolean "cut"                                // pockets cut from the part
 --> opDeleteBodies "cleanup"
 ```
@@ -185,17 +185,21 @@ where two corners are within a hair of each other.
 
 Each pocket is rounded on its own:
 
-1. Its corners are filleted a hair.
-2. If that fails, its narrow sides are found (`narrowSides`): each side between two convex corners has those two
-   corners filleted alone, in a feature of its own, rolled back, and the sides where that fails are narrow. Narrow
-   sides next to each other make one end. Each end gets a full round across it (`opFullRoundFillet`), which growing
-   makes a round end as wide as the pocket, and the pocket's corners are filleted again. Nothing's measured: the
-   fillet decides.
-3. If a full round fails, or the fillet still does, it's a warning, with that operation's error display (failed
-   fillets in pink, bad edges in red), and the pocket isn't grown back: it's cut smaller, by the fillet radius. The
-   rest are rounded as usual.
+1. Each corner is filleted a hair on its own, in turn, and kept if it works. A corner fails where the side between it
+   and its neighbor is too short for both their fillets: whichever is tried second.
+2. Each corner which failed gets a full round across its narrow side (`opFullRoundFillet`), which growing makes a
+   round end as wide as the side. Its narrow side (`narrowSide`) is the side next to it whose other corner (one which
+   failed too, or one filleted) is nearest it: what made it fail. Where both its sides are short, that's a guess. If
+   the other corner was filleted, its fillet is deleted first (`opDeleteFace`, which heals it back to a corner), so
+   the round goes from side to side. The delete and the round are a feature of their own (`startFeature`), so if the
+   round fails, the feature's rolled back (`abortFeature`), putting the fillet back.
+3. The pockets are grown back.
 
-Full rounds grow to half the end's width (under a hair) and the growth, which is what the bit's two rounds with that
+Nothing in rounding fails the feature. A corner with no other corner on either side, or a full round which fails, is a
+warning, showing the corner (and side) left sharp; growing them back failing is a warning, showing the pockets, which
+are cut smaller.
+
+Full rounds grow to half the side's width (under a hair) and the growth, which is what the bit's two rounds with that
 width between them amount to.
 
 #### Small pockets
@@ -229,7 +233,8 @@ the style guide's "Tolerances, not margins").
 - Where a step can leave nothing (the regions to ignore, the walls, the ribs' cut, dropping small pockets), it's
   checked, and nothing left is an error there, showing what's still there to show: when the cut used up the pockets
   and ribs, the face and the rib edges.
-- Failures it can carry on from aren't errors: a pocket's full round or fillet is a warning, and setting the walls'
+- Failures it can carry on from aren't errors: anything in rounding (a corner left sharp, or the pockets left
+  ungrown) is a warning, and setting the walls'
   inside corners' exact radius is info. Each is reported where it comes up; only the first reported shows. A warning is reported
   before the failed operation's status is copied, so the warning shows, with the operation's error display.
 
@@ -238,8 +243,9 @@ the style guide's "Tolerances, not margins").
 | Where | What it guards | When it fails |
 | --- | --- | --- |
 | The pocket's extrude, `excludeRegions`, `buildWalls`, `buildRibGroup`, the cuts, the pockets' growth | Each operation | Fails the feature, with a message of ours and the operation's error display. |
-| `roundPockets` (`try silent`) | Each pocket's corner fillet, and each full round | A warning: that pocket's left smaller. |
-| `hairFillet` (`try silent`) | A fillet, and each of `narrowSides`' trials | Whether it works. |
+| `roundPockets` (`try silent`) | Each corner's fillet | The corner's tried again in step 2. |
+| `roundPockets` (`try silent`) | Each narrow side's fillet delete and full round | A warning, showing the corner and side; the feature they're in is rolled back. |
+| `roundPockets` (`try silent`) | Growing the pockets back | A warning, showing the pockets, cut smaller. |
 | `buildWalls` (`try silent`) | Setting the walls' inside corners to their exact radius | Info: they're a hair bigger. |
 | `pointsOf` (`try silent`) | Each quick rib point | Left out: it isn't there any more. |
 | `edgeRibSegments` (`try silent`) | Where an edge rib meets its edge | The edge rib is skipped. |
@@ -281,13 +287,11 @@ support.
   its side in before the hollow, which can close a small pocket.
 - Hollowing can't move a convex face in by more than its radius, so a rounded part corner tighter than the walls
   (or a lobe narrower than them) fails the walls.
-- A narrow side next to a concave corner (one side of it a rib's or wall's corner) has nothing to full round
-  between, so its fillet fails, and the pocket's left smaller with a warning.
-- A pocket's fillet warning is reported before the fillet's status is copied (for its error display), on the
-  understanding that the first status reported is the one shown. Untested in Onshape: if the copied error shows
-  instead, std's pattern uses an internal function (`@transferSubfeatureErrorDisplay`) to copy only the display.
-- Trying each narrow side's corners alone costs a fillet per side of a pocket, but only for pockets whose fillet
-  failed.
+- A narrow side next to a concave corner (one side of it a rib's or wall's corner) has no other corner to round
+  across to, so its corner's left sharp with a warning.
+- Filleting each corner on its own costs a fillet per corner, where one fillet of all of them did before.
+- Untested in Onshape: deleting a hair fillet to heal it back to a corner (`opDeleteFace`), and rounding in a feature
+  of its own inside the feature (`startFeature`, `endFeature`, `abortFeature`).
 - Quick ribs are always at Rib thickness: overrides select sketch edges, and quick ribs' sketch is the feature's own.
 - A hub's circle goes through its first spoke in the order selected.
 - With Manipulator, an edge rib's points all meet its edge at one Location. Perpendicular to edge projects the edge's
