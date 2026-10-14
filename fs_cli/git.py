@@ -57,3 +57,27 @@ def committed_image_hashes(root: pathlib.Path, file: pathlib.Path) -> set[str]:
             continue
         hashes.add(image_hash(result.stdout))
     return hashes
+
+
+def commit_paths(root: pathlib.Path, paths: list[pathlib.Path], message: str) -> str | None:
+    """Commits paths (added, changed, or deleted) as they are now, and nothing else, even what's already staged.
+
+    Returns the commit's short hash, or None if root isn't in a git repository or none of paths changed.
+    """
+    if _git(root, "rev-parse", "--is-inside-work-tree") is None:
+        return None
+    relative = sorted({path.resolve().relative_to(root.resolve()).as_posix() for path in paths})
+    # git can't add a path which neither exists nor is tracked (a file deleted before it was committed)
+    tracked = set((_git(root, "ls-files", "--", *relative) or "").splitlines()) if relative else set()
+    relative = [path for path in relative if (root / path).exists() or path in tracked]
+    if not relative or _git(root, "add", "--all", "--", *relative) is None:
+        return None
+    try:
+        subprocess.run(["git", "diff", "--cached", "--quiet", "--", *relative], cwd=root, check=True)
+        return None
+    except subprocess.CalledProcessError:
+        pass
+    if _git(root, "commit", "--quiet", "--only", "--message", message, "--", *relative) is None:
+        raise RuntimeError("git commit failed")
+    commit = _git(root, "rev-parse", "--short", "HEAD")
+    return commit.strip() if commit else None

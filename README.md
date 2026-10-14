@@ -104,7 +104,12 @@ uv run fs push               # push every local change
 uv run fs push robotFrame    # push one FeatureScript, by name...
 uv run fs push featurescripts/Robot   # ...or by file or folder
 uv run fs push --dry-run     # show what would be pushed
+uv run fs push --no-commit   # push without committing
 ```
+
+After pushing, `fs push` commits what it pushed (and the tabs it deleted) to git, as it now is in Onshape: imports by
+path resolved to element ids, import versions from Onshape, and `fs-studios.json` with any new tabs' ids. Nothing else
+is committed, even what's already staged, so the repo always has what each push sent.
 
 Commands which sync or change `fs-studios.json` hold a lock (`.fs.lock`) while they run, so two at once (from two
 terminals, or two agents) don't lose each other's changes, like the element ids of tabs a push creates; the second

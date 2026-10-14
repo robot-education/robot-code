@@ -482,6 +482,44 @@ def test_sync_deletes_tabs_of_deleted_files(repo, onshape):
     assert onshape.names() == []
 
 
+def git_output(repo: pathlib.Path, *args: str) -> str:
+    return subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, text=True).stdout
+
+
+def test_push_commits_what_it_pushed(repo, onshape, capsys):
+    utils_id = onshape.add("utils.fs", "u")
+    git(repo, "init", "-q")
+    (repo / ".gitignore").write_text(".fs-state.json\n")
+    run(onshape, "pull")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Start")
+    write(repo, "frame.fs", 'import(path : "utils.fs", version : "");\n')
+    # Not pushed, so not committed
+    (repo / "notes.txt").write_text("notes")
+    git(repo, "add", "notes.txt")
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    capsys.readouterr()
+    assert run(onshape, "push") == 0
+    assert "Committed what was pushed" in capsys.readouterr().out
+    assert git_output(repo, "log", "-1", "--format=%s") == "Push frame.fs to Onshape\n"
+    committed = git_output(repo, "show", "--name-only", "--format=", "HEAD").split()
+    assert committed == ["featurescripts/frame.fs", "fs-studios.json"]
+    # As pushed: its import by path resolved to an id
+    assert utils_id in git_output(repo, "show", "HEAD:featurescripts/frame.fs")
+    assert git_output(repo, "status", "--porcelain") == "A  notes.txt\n"
+    # Nothing pushed, nothing committed
+    assert run(onshape, "push") == 0
+    assert git_output(repo, "log", "-1", "--format=%s") == "Push frame.fs to Onshape\n"
+
+
+def test_push_no_commit(repo, onshape):
+    git(repo, "init", "-q")
+    write(repo, "new.fs", "new")
+    assert run(onshape, "push", "--no-commit") == 0
+    assert "?? featurescripts/" in git_output(repo, "status", "--porcelain")
+
+
 def test_push_resolves_imports_by_path(repo, onshape, capsys):
     utils_id = onshape.add("utils.fs", "u")
     run(onshape, "pull")

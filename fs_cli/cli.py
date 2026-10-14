@@ -20,6 +20,7 @@ from fs_lsp.project import Module, Project
 
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.gen import GenerateError, generate
+from fs_cli.git import commit_paths
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
@@ -118,6 +119,11 @@ def make_parser() -> argparse.ArgumentParser:
     )
     push.add_argument(
         "-f", "--force", action="store_true", help="overwrite changes made in Onshape"
+    )
+    push.add_argument(
+        "--no-commit",
+        action="store_true",
+        help="don't commit what was pushed (with its imports by id, from Onshape) to git",
     )
     dry_run(push)
     yes_to_deletes(push)
@@ -539,7 +545,7 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         [studio for studio in to_push if studio.local_code is not None]
     )
     images_to_push = [image for image in images_to_push if image.local_data is not None]
-    apply_import_updates(workspace, studios, args.dry_run)
+    updated = apply_import_updates(workspace, studios, args.dry_run)
     to_push += do_push_images(images, images_to_push, studios, to_push, args.dry_run)
     pushed = (
         do_push(workspace, to_push, args.dry_run, quiet=bool(images_to_push))
@@ -547,7 +553,35 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         else 0
     )
     do_delete(workspace, to_delete, args.dry_run, images)
+    if not args.dry_run and not args.no_commit:
+        commit_pushed(workspace, [*to_push, *images_to_push], to_delete, updated)
     return pushed or not_deleted or not_recreated or skipped
+
+
+def commit_pushed(
+    workspace: Workspace, pushed: list[Studio | Image], deleted: list[Studio | Image], updated: list[Studio]
+) -> None:
+    """Commits what `fs push` pushed and deleted, as it is in Onshape now (imports by path resolved to ids, and
+    import versions from Onshape), with fs-studios.json, so the repo matches Onshape. Nothing else is committed."""
+    if not pushed and not deleted:
+        return
+    names = [pathlib.PurePosixPath(item.path).name for item in pushed]
+    subject = (
+        f"Push {', '.join(names)} to Onshape"
+        if 0 < len(names) <= 3
+        else f"Push {_plural(len(names), 'file')} to Onshape" if names else "Delete tabs in Onshape"
+    )
+    lines = [f"Pushed {item.path}" for item in pushed] + [f"Deleted the tab of {item.path}" for item in deleted]
+    paths = [item.file for item in [*pushed, *deleted, *updated]] + [workspace.config.studios_path]
+    # fs-studios.json as the push left it (`main` saves it again after)
+    workspace.state.save()
+    try:
+        commit = commit_paths(workspace.config.root, paths, subject + "\n\n" + "\n".join(lines) + "\n")
+    except RuntimeError:
+        print("Note: couldn't commit what was pushed; commit it yourself.")
+        return
+    if commit:
+        print(f"Committed what was pushed ({commit}).")
 
 
 def pull(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -784,7 +818,7 @@ def update_std(workspace: Workspace, args: argparse.Namespace) -> int:
         # Rescan so the updated files are classified as local changes
         return push(
             workspace,
-            argparse.Namespace(targets=args.targets, force=False, dry_run=False, yes=False),
+            argparse.Namespace(targets=args.targets, force=False, dry_run=False, yes=False, no_commit=False),
         )
     return 0
 
@@ -1769,14 +1803,17 @@ def do_pull(workspace: Workspace, studios: list[Studio], dry_run: bool, quiet: b
 
 def apply_import_updates(
     workspace: Workspace, studios: list[Studio], dry_run: bool
-) -> None:
+) -> list[Studio]:
+    """Writes import versions Onshape changed into local files. Returns the studios updated."""
     if dry_run:
         for studio in studios:
             if studio.import_updates:
                 print(f"Would update import versions in {studio.path}")
-        return
-    for studio in workspace.apply_import_updates(studios):
+        return []
+    updated = workspace.apply_import_updates(studios)
+    for studio in updated:
         print(f"Updated import versions in {studio.path} to match Onshape")
+    return updated
 
 
 def report_skipped(
