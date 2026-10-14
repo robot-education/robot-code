@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 
 from shapely import affinity
-from shapely.geometry import Point, box
+from shapely.geometry import LineString, Point, box
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -107,11 +107,13 @@ class Icon:
         sides = sweep(front, depth)
         return self.outlined(sides, side).outlined(front, color)
 
-    def through(self, outline: BaseGeometry, depth: float = 1.0, rim: float = RIM, see_through: bool = False) -> Icon:
+    def through(
+        self, outline: BaseGeometry, depth: float = 1.0, rim: float = RIM, see_through: bool = False, corners: float = 0.0
+    ) -> Icon:
         """A cut through a face (a hole or pocket), its outside edge `outline`: a dark rim, the wall you see inside
         it (on its lower right, as the cut goes back up and to the left), and the dark opening at its back. With
         see_through (depth then being the part's thickness), the opening is open instead: what's behind the icon shows
-        through it."""
+        through it. corners draws a polygonal cut's corners going back along its wall, as lines that wide."""
         inside = offset(outline, -rim)
         self._clips += 1
         clip = f"c{self._clips}"
@@ -120,6 +122,10 @@ class Icon:
             f'<clipPath id="{clip}"><path d="{path(inside)}"/></clipPath><g clip-path="url(#{clip})">'
             f'<path d="{path(inside)}" fill="{FACE}"/><path d="{path(back(inside, depth))}" fill="{OUTLINE}"/></g>'
         )
+        if corners:
+            for x, y in list(inside.exterior.coords)[:-1]:
+                edge = LineString([(x, y), (x - depth, y - depth)]).buffer(corners / 2)
+                self.fill(edge.intersection(inside), OUTLINE)
         if see_through:
             # The opening, a rim's width in from its back edge, which stays dark
             opening = inside.intersection(offset(back(inside, depth), -rim))

@@ -249,6 +249,22 @@ def b_matrixIdentity(interp, args, at):
     return _from_matrix([[1.0 if i == j else 0.0 for j in range(size)] for i in range(size)])
 
 
+def b_matrixRotation3d(interp, args, at):
+    """A counterclockwise rotation (looking against the axis) about `axis` by `angle` radians: Rodrigues' formula."""
+    x, y, z = _float_list(args[0], at)
+    length = math.sqrt(x * x + y * y + z * z)
+    if length == 0:
+        raise _error("Can't rotate about a zero vector", at)
+    x, y, z = x / length, y / length, z / length
+    angle = _number(args[1], at)
+    c, s, t = math.cos(angle), math.sin(angle), 1 - math.cos(angle)
+    return _from_matrix([
+        [t * x * x + c, t * x * y - s * z, t * x * z + s * y],
+        [t * x * y + s * z, t * y * y + c, t * y * z - s * x],
+        [t * x * z - s * y, t * y * z + s * x, t * z * z + c],
+    ])
+
+
 def b_matrixMultiply(interp, args, at):
     left = untag(args[0])
     right = untag(args[1])
@@ -550,6 +566,7 @@ BUILTINS = {
     # Matrices
     "isMatrix": b_isMatrix,
     "matrixIdentity": b_matrixIdentity,
+    "matrixRotation3d": b_matrixRotation3d,
     "matrixMultiply": b_matrixMultiply,
     "matrixSum": _elementwise(lambda x, y: x + y),
     "matrixDifference": _elementwise(lambda x, y: x - y),

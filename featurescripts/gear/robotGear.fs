@@ -20,10 +20,10 @@ export enum GearType
     GEAR,
     annotation { "Name" : "Sector" }
     SECTOR,
-    annotation { "Name" : "Bevel" }
-    BEVEL,
     annotation { "Name" : "Rack" }
-    RACK
+    RACK,
+    annotation { "Name" : "Bevel" }
+    BEVEL
 }
 
 /**
@@ -151,7 +151,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
         if (isGear(definition))
         {
-            annotation { "Name" : "Size by", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+            annotation { "Name" : "Size by", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
             definition.sizeBy is GearSize;
 
             if (definition.sizeBy == GearSize.TEETH)
@@ -163,6 +163,20 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 annotation { "Name" : "Pitch circle", "Filter" : EntityType.EDGE && (GeometryType.CIRCLE || GeometryType.ARC), "MaxNumberOfPicks" : 1,
                             "Description" : "A circle or arc: its center places the gear, and its size sets its teeth. A sector is centered on an arc." }
                 definition.pitchCircle is Query;
+            }
+
+            annotation { "Name" : "Gear pair", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Also make the gear it meshes with." }
+            definition.gearPair is boolean;
+
+            if (definition.gearPair)
+            {
+                annotation { "Group Name" : "Gear pair", "Collapsed By Default" : false, "Driving Parameter" : "gearPair" }
+                {
+                    // Where its mate is, around it: toward the angle reference, turned by the angle
+                    angleReferencePredicate(definition);
+
+                    angleOffsetPredicate(definition);
+                }
             }
         }
         else
@@ -191,7 +205,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Name" : "Angle reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.CIRCLE || GeometryType.ARC,
                             "MaxNumberOfPicks" : 1, "Description" : "A point: a gap is centered on it, as on an end." }
-                definition.angleReference is Query;
+                definition.rackReference is Query;
             }
         }
 
@@ -223,6 +237,12 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isInteger(definition.teeth, GEAR_TEETH_BOUNDS);
             }
 
+            if (definition.gearType == GearType.BEVEL || (isGear(definition) && definition.gearPair))
+            {
+                annotation { "Name" : "Mating gear teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The gear it meshes with." }
+                isInteger(definition.mateTeeth, GEAR_TEETH_BOUNDS);
+            }
+
             if (definition.gearType == GearType.SECTOR)
             {
                 annotation { "Name" : "Sector teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The sector's: a wedge of the gear's, from its center." }
@@ -237,9 +257,6 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
             if (definition.gearType == GearType.BEVEL)
             {
-                annotation { "Name" : "Mating gear teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The bevel gear it meshes with." }
-                isInteger(definition.mateTeeth, GEAR_TEETH_BOUNDS);
-
                 annotation { "Name" : "Shaft angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Between its shaft and its mate's." }
                 isAngle(definition.shaftAngle, SHAFT_ANGLE_BOUNDS);
 
@@ -320,51 +337,50 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
         // Its pitch diameter, for spacing gears: two mesh their pitch radii apart
         var info = "Its pitch diameter is " ~ makeValueString(definition.unitSystem, module * size.teeth, true) ~ ".";
-        var connector = coordSystem(gearPlane);
-        var gear;
+        const gear = buildGear(context, id, id + "gear", definition, gearPlane, module, size.teeth);
         if (definition.gearType == GearType.BEVEL)
         {
-            const bevel = buildBevelGear(context, id, definition, gearPlane, module, size.teeth);
-            gear = bevel.body;
-            // Mated at their apexes, with their axes the shaft angle apart, a pair meshes
-            connector = coordSystem(bevel.apex, gearPlane.x, gearPlane.normal);
             info = "Its pitch diameter is " ~ makeValueString(definition.unitSystem, module * size.teeth, true) ~ ", and its apex (where its mate's goes) is " ~
-                makeValueString(definition.unitSystem, norm(bevel.apex - gearPlane.origin), true) ~ " in front of its back.";
+                makeValueString(definition.unitSystem, norm(gear.apex - gearPlane.origin), true) ~ " in front of its back.";
         }
-        else
-        {
-            const fillet = definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
-            const form = getGearForm(module, size.teeth, pressureAngle(definition), fillet, getProfileOffset(definition));
-            const sector = definition.gearType == GearType.SECTOR;
-            if (sector && definition.sectorTeeth >= size.teeth)
-            {
-                throw regenError("A sector has fewer teeth than its gear.", ["sectorTeeth"]);
-            }
-            const profile = sketchGearProfile(context, id + "profile", gearPlane, form, sector ? definition.sectorTeeth : undefined);
-            gear = buildGearBody(context, id, definition, gearPlane, profile, form);
-            cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
-        }
-        setGearProperties(context, gear, definition, size.teeth);
 
         if (offsetProfile(definition) && isSpur(definition))
         {
-            const faces = qOwnedByBody(gear, EntityType.FACE);
+            const faces = qOwnedByBody(gear.body, EntityType.FACE);
             addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, line(gearPlane.origin, gearPlane.x), qSubtraction(faces, qParallelPlanes(faces, gearPlane)),
                 definition.profileOffsetOppositeDirection);
         }
 
-        if (definition.addMateConnectors)
+        var gears = [gear];
+        if (definition.gearPair)
         {
-            opMateConnector(context, id + "mateConnector", {
-                        "coordSystem" : connector,
-                        "owner" : gear
-                    });
+            // Toward its mate: the angle reference's direction, turned by the angle
+            const referencePlane = applyAngleReference(context, definition, gearPlane, definition.sizeBy == GearSize.TEETH ? "location" : "pitchCircle");
+            addAngleOffsetManipulator(context, id, definition, referencePlane, module * size.teeth / 2);
+            const toward = applyAngleOffset(definition, referencePlane).x;
+            const mate = mateDefinition(definition, size.teeth);
+            const matePlane = gearMatePlane(gearPlane, toward, gearMesh(definition, module, size.teeth));
+            gears = append(gears, buildGear(context, id, id + "mate", mate, matePlane, module, definition.mateTeeth));
+            if (definition.gearType != GearType.BEVEL)
+            {
+                info = info ~ " The gears' centers are " ~ makeValueString(definition.unitSystem, norm(matePlane.origin - gearPlane.origin), true) ~ " apart.";
+            }
         }
 
         const bore = definitionBore(definition);
-        if (bore != undefined)
+        for (var i, built in gears)
         {
-            cutBores(context, id + "bore", bore, [gearPlane], [undefined], [gear]);
+            if (definition.addMateConnectors)
+            {
+                opMateConnector(context, id + ("mateConnector" ~ (i == 0 ? "" : i)), {
+                            "coordSystem" : built.connector,
+                            "owner" : built.body
+                        });
+            }
+            if (bore != undefined)
+            {
+                cutBores(context, id + ("bore" ~ (i == 0 ? "" : i)), bore, [built.plane], [undefined], [built.body]);
+            }
         }
         if (size.warning != undefined)
         {
@@ -375,6 +391,148 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             reportFeatureInfo(context, id, info);
         }
     });
+
+/**
+ * A gear (a spur, helical, or herringbone gear, a sector, or a bevel gear) with `teeth`, centered on `gearPlane` (a
+ * bevel gear's back), its first tooth on its x axis, and its properties set. `featureId` is the feature's, for statuses.
+ *
+ * @returns {{
+ *      @field body {Query} :
+ *      @field plane {Plane} : `gearPlane`, for its bore.
+ *      @field connector {CoordSystem} : Where its mate connector goes: its center, or a bevel gear's apex.
+ *      @field apex {Vector} : A bevel gear's.
+ * }}
+ */
+function buildGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
+{
+    var result = { "plane" : gearPlane, "connector" : coordSystem(gearPlane) };
+    if (definition.gearType == GearType.BEVEL)
+    {
+        const bevel = buildBevelGear(context, featureId, id, definition, gearPlane, module, teeth);
+        result.body = bevel.body;
+        result.apex = bevel.apex;
+        // Mated at their apexes, with their axes the shaft angle apart, a pair meshes
+        result.connector = coordSystem(bevel.apex, gearPlane.x, gearPlane.normal);
+    }
+    else
+    {
+        const fillet = definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
+        const form = getGearForm(module, teeth, pressureAngle(definition), fillet, getProfileOffset(definition));
+        const sector = definition.gearType == GearType.SECTOR;
+        if (sector && definition.sectorTeeth >= teeth)
+        {
+            throw regenError("A sector has fewer teeth than its gear.", ["sectorTeeth"]);
+        }
+        const profile = sketchGearProfile(context, id + "profile", gearPlane, form, sector ? definition.sectorTeeth : undefined);
+        result.body = buildGearBody(context, id, definition, gearPlane, profile, form);
+        cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
+    }
+    setGearProperties(context, result.body, definition, teeth);
+    return result;
+}
+
+/**
+ * The definition of a gear's mate (with `teeth`, its mate's): a whole gear, even for a sector, of the opposite hand,
+ * with Mating gear teeth's mate the gear.
+ */
+function mateDefinition(definition is map, teeth is number) returns map
+{
+    var mate = definition;
+    if (mate.gearType == GearType.SECTOR)
+    {
+        mate.gearType = GearType.GEAR;
+    }
+    if (mate.hand != undefined)
+    {
+        mate.hand = mate.hand == GearHand.RIGHT ? GearHand.LEFT : GearHand.RIGHT;
+    }
+    mate.mateTeeth = teeth;
+    return mate;
+}
+
+/**
+ * How a gear (with `teeth`) and its mate (with Mating gear teeth) mesh, for `gearMatePlane`: their teeth, the angle
+ * between their teeth's centers (`pitch`, for the gear), where the gear's first tooth is, from its x axis (a sector with
+ * an even number of teeth has a gap there), and for a spur pair, how far apart their centers are, or for a bevel pair,
+ * their cones (see `bevelPairCones`) and shaft angle.
+ */
+export function gearMesh(definition is map, module is ValueWithUnits, teeth is number) returns map
+{
+    var result = {
+        "teeth" : teeth,
+        "mateTeeth" : definition.mateTeeth,
+        "toothPhase" : definition.gearType == GearType.SECTOR && definition.sectorTeeth % 2 == 0 ? 180 * degree / teeth : 0 * degree
+    };
+    if (definition.gearType == GearType.BEVEL)
+    {
+        result.cones = bevelPairCones(module, teeth, definition.mateTeeth, definition.shaftAngle);
+        result.shaftAngle = definition.shaftAngle;
+    }
+    else
+    {
+        result.centerDistance = module * (teeth + definition.mateTeeth) / 2;
+    }
+    return result;
+}
+
+/**
+ * Where a gear's mate goes, meshing with it, with the gear on `gearPlane` (its center, or a bevel gear's back) and the
+ * mate toward `toward` (a direction square to its axis) from it: its plane (a bevel gear's back), with its first tooth
+ * on its x axis, as `buildGear` builds it. A spur mate is the gears' pitch radii away, on the same plane. A bevel mate
+ * shares the gear's apex, its axis the shaft angle from the gear's, and its pitch cone touching the gear's toward
+ * `toward`.
+ *
+ * Their teeth mesh where their pitch circles touch: with a tooth of the gear there, the mate has a gap. The gear's
+ * tooth nearest it is `angle` (from its first tooth to `toward`) less a whole number of teeth around; turning the gear
+ * back by that angle turns the mate forward by it times the gears' ratio (each about its axis toward its apex, for
+ * bevel gears), so the mate turns from a gap there by that much.
+ */
+export function gearMatePlane(gearPlane is Plane, toward is Vector, mesh is map) returns Plane
+{
+    const axis = gearPlane.normal;
+    const angle = atan2(dot(cross(gearPlane.x, toward), axis), dot(gearPlane.x, toward)) - mesh.toothPhase;
+    const turn = 180 * degree / mesh.mateTeeth + angle * mesh.teeth / mesh.mateTeeth;
+    var origin;
+    var mateAxis;
+    var pitchPoint;
+    if (mesh.cones == undefined)
+    {
+        origin = gearPlane.origin + toward * mesh.centerDistance;
+        mateAxis = axis;
+        pitchPoint = gearPlane.origin + toward * (mesh.centerDistance * mesh.teeth / (mesh.teeth + mesh.mateTeeth));
+    }
+    else
+    {
+        const cones = mesh.cones;
+        const apex = gearPlane.origin + axis * cones.gear.coneDistance * cos(cones.gear.pitchAngle);
+        // From the apex: out along the cones' touching line to their pitch circles, and to the mate's back
+        pitchPoint = apex + (-axis * cos(cones.gear.pitchAngle) + toward * sin(cones.gear.pitchAngle)) * cones.gear.coneDistance;
+        const back = -axis * cos(mesh.shaftAngle) + toward * sin(mesh.shaftAngle);
+        origin = apex + back * cones.gear.coneDistance * cos(cones.mate.pitchAngle);
+        mateAxis = -back;
+    }
+    const facing = plane(origin, mateAxis, normalize(pitchPoint - origin));
+    return rotationAround(line(origin, mateAxis), turn) * facing;
+}
+
+/**
+ * A bevel gear's cones (see `bevelCones`), and its mate's, as `gear` and `mate`: an error if either pitch cone is 90°
+ * or more, as then it would be a crown or internal gear, not a bevel gear.
+ */
+export function bevelPairCones(module is ValueWithUnits, teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits) returns map
+{
+    const cones = bevelCones(module, teeth, mateTeeth, shaftAngle);
+    if (cones.pitchAngle >= 90 * degree - TOLERANCE.zeroAngle * radian)
+    {
+        throw regenError("At this shaft angle, it would be a crown or internal gear: use a smaller shaft angle, or more mating teeth.", ["shaftAngle", "mateTeeth"]);
+    }
+    const mate = bevelCones(module, mateTeeth, teeth, shaftAngle);
+    if (mate.pitchAngle >= 90 * degree - TOLERANCE.zeroAngle * radian)
+    {
+        throw regenError("At this shaft angle, its mate would be a crown or internal gear: use a smaller shaft angle, or fewer mating teeth.", ["shaftAngle", "mateTeeth"]);
+    }
+    return { "gear" : cones, "mate" : mate };
+}
 
 /**
  * A straight bevel gear (Tredgold's approximation, see `bevelCones`), with its pitch circle on `gearPlane` (its back)
@@ -393,14 +551,9 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
  *      @field apex {Vector} :
  * }}
  */
-function buildBevelGear(context is Context, featureId is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
+function buildBevelGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
 {
-    const id = featureId + "bevel";
-    const cones = bevelCones(module, teeth, definition.mateTeeth, definition.shaftAngle);
-    if (cones.pitchAngle >= 90 * degree)
-    {
-        throw regenError("At this shaft angle, it would be a crown or internal gear: use a smaller shaft angle, or more mating teeth.", ["shaftAngle", "mateTeeth"]);
-    }
+    const cones = bevelPairCones(module, teeth, definition.mateTeeth, definition.shaftAngle).gear;
     if (definition.faceWidth >= cones.coneDistance)
     {
         throw regenError("The face width reaches the gear's apex: make it narrower.", ["faceWidth"]);
@@ -632,15 +785,15 @@ function cutRack(context is Context, id is Id, definition is map, form is map)
     }
     else
     {
-        const reference = qNthElement(definition.angleReference, 0);
+        const reference = qNthElement(definition.rackReference, 0);
         if (isQueryEmpty(context, reference))
         {
-            throw regenError("Select an angle reference.", ["angleReference"]);
+            throw regenError("Select an angle reference.", ["rackReference"]);
         }
         const point = angleReferencePoint(context, reference);
         if (point == undefined)
         {
-            throw regenError("The angle reference must be a point.", ["angleReference"], reference);
+            throw regenError("The angle reference must be a point.", ["rackReference"], reference);
         }
         gap = dot(point - sketchPlane.origin, direction);
     }
@@ -753,6 +906,7 @@ export function robotGearManipulatorChange(context is Context, definition is map
         definition.oppositeEnd = newManipulators[RACK_END_MANIPULATOR].flipped;
         return definition;
     }
+    definition = angleOffsetManipulatorChange(definition, newManipulators);
     definition = profileOffsetManipulatorChange(definition, newManipulators[PROFILE_OFFSET_MANIPULATOR], PROFILE_OFFSET_FLIP);
     return startOffsetManipulatorChange(definition, newManipulators);
 }

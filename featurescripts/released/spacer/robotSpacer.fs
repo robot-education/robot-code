@@ -7,13 +7,14 @@ import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
+RobotSpacerIcon::import(path : "released/spacer/robotSpacerIcon.svg", version : "");
 
 annotation {
         "Feature Type Name" : "Robot spacer",
         "Feature Type Description" : "Generate spacers." ~ CREDIT,
         "Manipulator Change Function" : "robotSpacerManipulatorChange",
         "Editing Logic Function" : "robotSpacerEditLogic",
-        "Icon" : RobotIcon::BLOB_DATA
+        "Icon" : RobotSpacerIcon::BLOB_DATA
     }
 export const robotSpacer = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
