@@ -1,7 +1,7 @@
 # Robot gear
 
 Makes involute spur, helical, and herringbone gears or sectors of them, straight bevel gears, or cuts rack teeth into a
-part's face (Gear type: Gear, Sector, Rack, or Bevel). All are at a standard pitch (10 DP for 3D printing, 20 DP or 32 DP for FRC, module 0.8
+part's face (Gear type: Gear, with Sector for a sector of one, Rack, or Bevel). All are at a standard pitch (10 DP for 3D printing, 20 DP or 32 DP for FRC, module 0.8
 for FTC), or a custom diametral pitch (Inch)
 or module (Metric), with standard proportions. A gear is sized by its teeth or a pitch circle, and with Gear pair, the
 gear it meshes with is made too. It has root fillets, optionally roots a router bit can cut, and can have a bore.
@@ -21,6 +21,7 @@ gear it meshes with is made too. It has root fillets, optionally roots a router 
 
 Unreleased.
 
+- Sector is a checkbox on Gear, with Sector teeth, rather than a Gear type.
 - Gear type's Bevel is last. Size by is Selection, an unlabeled dropdown, with the starting offset under it.
 - Gear pair: the gear it meshes with, placed by Mating gear teeth, Angle reference, and Angle, or by its pitch circle.
   A bevel gear is always made with its mate.
@@ -47,6 +48,7 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | --- | --- |
 | Pitch circle (`pitchCircle`) | A circle or arc: its center places the gear, and its size sets its teeth. A sector is centered on an arc. |
 | Teeth (`teeth`) | The whole gear's. |
+| Sector (`sector`) | Make a wedge of the gear, from its center. |
 | Sector teeth (`sectorTeeth`) | The sector's: a wedge of the gear's, from its center. |
 | Diametral pitch (`diametralPitch`) | Teeth per inch of pitch diameter. |
 | Module (`module`) | Pitch diameter per tooth. |
@@ -75,7 +77,7 @@ No parameters are hidden.
 | Select a pitch circle. | error | Size by Pitch circle, with none | `pitchCircle` |
 | The pitch circle is too small for a gear of this pitch. | error | it's under 4 teeth's | `pitchCircle`, the circle |
 | The pitch circle isn't the size of a gear with a whole number of teeth: it's the nearest, with `<teeth>` teeth. | warning | its diameter isn't a whole number of modules (within std's length tolerance) | `pitchCircle` |
-| A sector has fewer teeth than its gear. | error | Sector teeth is the gear's teeth or more | `sectorTeeth` |
+| A sector has fewer teeth than its gear. | error | Sector, with Sector teeth the gear's teeth or more | `sectorTeeth` |
 | At this shaft angle, it would be a crown or internal gear: use a smaller shaft angle, or more mating teeth. | error | a bevel gear's pitch cone is 90° or more | `shaftAngle`, `mateTeeth` |
 | At this shaft angle, its mate would be a crown or internal gear: use a smaller shaft angle, or fewer mating teeth. | error | its mate's pitch cone is 90° or more (with or without Gear pair: the pair is what it's made for) | `shaftAngle`, `mateTeeth` |
 | The angle reference is on the axis, so it doesn't give an angle. / The angle reference must be parallel to the location's plane. / The angle reference must be a point, circle, or line. | error | Gear pair's Angle reference (`core/mounting.fs`) | the location or `pitchCircle`, `angleReference` |
@@ -104,13 +106,13 @@ No parameters are hidden.
 
 ### Execution order
 
-1. **Precondition**: Gear type (Gear, Sector, Rack, or Bevel).
-   - Gear, Sector, and Bevel: Selection (`sizeBy`, unlabeled: Teeth or Pitch circle), then the location or Pitch
+1. **Precondition**: Gear type (Gear, Rack, or Bevel).
+   - Gear and Bevel: Selection (`sizeBy`, unlabeled: Teeth or Pitch circle), then the location or Pitch
      circle, and the starting offset under it; Gear pair (a bevel gear's always on, with no checkbox: its cones depend
      on its mate), with Mate selection (Teeth or Pitch circle, unlabeled; a bevel mate's by teeth) and either Mating
      gear teeth (and a bevel gear's Shaft angle), Angle reference, and Angle (and its Opposite direction), or Mate
      pitch circle; Pitch (with Custom, Diametral pitch or Module by unit system, and Pressure angle), Teeth (by
-     Teeth), a sector's Sector teeth, and Thickness (a bevel gear's Face width instead); bore.
+     Teeth), and Thickness (a bevel gear's Face width instead); a gear's Sector, with Sector teeth; bore.
    - Rack: Face to cut, Tangent propagation, Face at, Align teeth to (End, with Opposite end, or Angle
      reference); Pitch (and with Custom, its pitch and Pressure angle).
    - All but Bevel: Helical, with Helix angle, Double helical, and Hand (hidden for Double helical: a herringbone
@@ -120,7 +122,7 @@ No parameters are hidden.
    diametral pitch), and the tooth form (`getGearForm`: pitch radius `m z / 2`,
    base radius its cosine of the pressure angle, tip `m` above it and root `1.25 m` below, fillet `0.38 m` or the bit's
    radius, all offset by the profile offset). Then:
-   - Gear and Sector: its teeth and plane (`gearSize`: Teeth at the location, or the nearest whole number of teeth to
+   - Gear (or a sector): its teeth and plane (`gearSize`: Teeth at the location, or the nearest whole number of teeth to
      the pitch circle, `nearestGearTeeth`, at its center, with its x axis to an arc's middle), the profile (below), its body (`buildGearBody`, below), its
      properties, a profile offset manipulator, mate connector, its bore (`cutBores`), and the pitch circle's warning
      or its pitch diameter as info.

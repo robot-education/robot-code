@@ -107,7 +107,7 @@ decides whether Shaft ends is.
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
-| Choose the shaft again: its table has changed. | error | a COTS shaft's saved path isn't a whole table entry (one saved before a level, like Length, was added) | `frcShaft` or `ftcShaft` |
+| Choose a different shaft. | error | a COTS shaft's saved path isn't a whole table entry (one saved before a level, like Length, was added) | `frcShaft` or `ftcShaft` |
 | Select a sketch point, circle, or mate connector to use. | error | no location | `location` |
 | The shaft's ends must be flat. | error | an extruded end isn't planar (up to next onto a curved face) | `endBound`, the end |
 | The shaft end to mirror across must be planar. | error | Mirror on, and the mirrored end isn't planar | `flipMirrorEnd`, the end |

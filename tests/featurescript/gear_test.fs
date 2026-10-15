@@ -40,7 +40,7 @@ export function testSpurMateHasAToothAtTheGearsGap()
 
 export function testEvenSectorsHaveAGapOnTheirAxis()
 {
-    const sector = gearMesh({ "gearType" : GearType.SECTOR, "sectorTeeth" : 4 }, MODULE, 20, 20);
+    const sector = gearMesh({ "gearType" : GearType.GEAR, "sector" : true, "sectorTeeth" : 4 }, MODULE, 20, 20);
     expectNear(sector.toothPhase, 9 * degree, 1e-9 * degree);
     // So their mate has a tooth pointing back at them
     const mate = gearMatePlane(XY_PLANE, X_DIRECTION, sector);

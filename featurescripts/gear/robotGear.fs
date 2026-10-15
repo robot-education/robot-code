@@ -18,8 +18,6 @@ export enum GearType
 {
     annotation { "Name" : "Gear" }
     GEAR,
-    annotation { "Name" : "Sector" }
-    SECTOR,
     annotation { "Name" : "Rack" }
     RACK,
     annotation { "Name" : "Bevel" }
@@ -140,11 +138,20 @@ predicate isMateByTeeth(definition is map)
 }
 
 /**
- * A spur gear or a sector of one.
+ * A sector of a spur gear: a wedge of it, from its center.
+ */
+predicate isSector(definition is map)
+{
+    definition.gearType == GearType.GEAR;
+    definition.sector;
+}
+
+/**
+ * A spur gear (or a sector of one).
  */
 predicate isSpur(definition is map)
 {
-    definition.gearType == GearType.GEAR || definition.gearType == GearType.SECTOR;
+    definition.gearType == GearType.GEAR;
 }
 
 /**
@@ -286,12 +293,6 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isInteger(definition.teeth, GEAR_TEETH_BOUNDS);
             }
 
-            if (definition.gearType == GearType.SECTOR)
-            {
-                annotation { "Name" : "Sector teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The sector's: a wedge of the gear's, from its center." }
-                isInteger(definition.sectorTeeth, SECTOR_TEETH_BOUNDS);
-            }
-
             if (isSpur(definition))
             {
                 annotation { "Name" : "Thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -302,6 +303,21 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Name" : "Face width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Its teeth's length, from its back toward its apex." }
                 isLength(definition.faceWidth, FACE_WIDTH_BOUNDS);
+            }
+        }
+
+        if (definition.gearType == GearType.GEAR)
+        {
+            annotation { "Name" : "Sector", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Make a wedge of the gear, from its center." }
+            definition.sector is boolean;
+
+            if (definition.sector)
+            {
+                annotation { "Group Name" : "Sector", "Collapsed By Default" : false, "Driving Parameter" : "sector" }
+                {
+                    annotation { "Name" : "Sector teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The sector's: a wedge of the gear's, from its center." }
+                    isInteger(definition.sectorTeeth, SECTOR_TEETH_BOUNDS);
+                }
             }
         }
 
@@ -459,7 +475,7 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
     {
         const fillet = definition.routerRelief ? definition.bitDiameter / 2 : standardFilletRadius(module);
         const form = getGearForm(module, teeth, pressureAngle(definition), fillet, getProfileOffset(definition));
-        const sector = definition.gearType == GearType.SECTOR;
+        const sector = isSector(definition);
         if (sector && definition.sectorTeeth >= teeth)
         {
             throw regenError("A sector has fewer teeth than its gear.", ["sectorTeeth"]);
@@ -531,10 +547,7 @@ function matePlacement(context is Context, id is Id, definition is map, gearPlan
 function mateDefinition(definition is map, teeth is number) returns map
 {
     var mate = definition;
-    if (mate.gearType == GearType.SECTOR)
-    {
-        mate.gearType = GearType.GEAR;
-    }
+    mate.sector = false;
     if (mate.hand != undefined)
     {
         mate.hand = mate.hand == GearHand.RIGHT ? GearHand.LEFT : GearHand.RIGHT;
@@ -554,7 +567,7 @@ export function gearMesh(definition is map, module is ValueWithUnits, teeth is n
     var result = {
         "teeth" : teeth,
         "mateTeeth" : mateTeeth,
-        "toothPhase" : definition.gearType == GearType.SECTOR && definition.sectorTeeth % 2 == 0 ? 180 * degree / teeth : 0 * degree
+        "toothPhase" : isSector(definition) && definition.sectorTeeth % 2 == 0 ? 180 * degree / teeth : 0 * degree
     };
     if (definition.gearType == GearType.BEVEL)
     {
@@ -1066,7 +1079,7 @@ function setGearProperties(context is Context, gear is Query, definition is map,
     {
         size = isImperial(definition) ? definition.diametralPitch ~ "DP" : "Module " ~ roundToPrecision(definition.module / millimeter, 3);
     }
-    const shape = definition.gearType == GearType.SECTOR ? "Sector Gear" : definition.gearType == GearType.BEVEL ? "Bevel Gear" : "Gear";
+    const shape = isSector(definition) ? "Sector Gear" : definition.gearType == GearType.BEVEL ? "Bevel Gear" : "Gear";
     const kind = !(isSpur(definition) && definition.helical) ? shape : (definition.doubleHelical ? "Herringbone " : "Helical ") ~ shape;
     setProperty(context, {
                 "entities" : gear,

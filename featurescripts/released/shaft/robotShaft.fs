@@ -444,7 +444,7 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         const entry = getCotsShaft(definition);
         if (entry != undefined && entry.partName == undefined)
         {
-            throw regenError("Choose the shaft again: its table has changed.", [isFrc(definition) ? "frcShaft" : "ftcShaft"]);
+            throw regenError("Choose a different shaft.", [isFrc(definition) ? "frcShaft" : "ftcShaft"]);
         }
         definition = withShaft(definition);
         const preset = isPresetLength(definition);
