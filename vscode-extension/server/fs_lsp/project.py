@@ -882,6 +882,7 @@ class Project:
         problems.extend(self._array_group_problems(module))
         problems.extend(self._tolerant_parameter_problems(module))
         problems.extend(self._nested_predicate_problems(module, providers))
+        problems.extend(_parameter_field_problems(module, self._precondition_predicates()))
         for usage in self.usages([module]):
             if not usage.exported and usage.unused:
                 token = usage.declaration.token
@@ -2154,6 +2155,66 @@ def _precondition_problems(module: Module, providers: dict[str, list[Provider]])
                     )
                 )
     return problems
+
+
+def _parameter_field_problems(module: Module, in_preconditions: set[tuple[pathlib.Path, int]]) -> list[Problem]:
+    """Reads deeper than a parameter in a feature's precondition, or a predicate one uses: `definition.x.y` or
+    `definition.x["y"]`, like a lookup table's level. Onshape works out which parameters to show from the parameters
+    themselves, and rejects these ("Could not identify parameter id in either operand of comparison in if"): drive a
+    hidden parameter from them with editing logic instead."""
+    index = module.index
+    tokens = index.tokens
+    regions = []
+    for node in module.parsed.nodes:
+        if node.type == "PreconditionBlock":
+            if index.enclosing(node.token, frozenset(["FeatureDeclaration"])) is not None:
+                regions.append((node.start, node.end, {"definition"}))
+        elif node.type == "PredicateDeclaration" and (module.path, node.start) in in_preconditions:
+            parameters = {
+                declaration.name
+                for declaration in index.declarations
+                if declaration.kind == "parameter" and declaration.scope_start == node.start
+            }
+            regions.append((node.start, node.end, parameters))
+    annotations = [(node.start, node.end) for node in module.parsed.nodes if node.type == "AnnotationMap"]
+    problems = []
+    for start, end, holders in regions:
+        for position, token in enumerate(tokens[:-3]):
+            if not start <= token.offset < end or token.value not in holders or token.kind != "identifier":
+                continue
+            if any(a <= token.offset < b for a, b in annotations):
+                continue
+            previous = tokens[position - 1] if position else None
+            if previous is not None and previous.value in (".", "?."):
+                continue
+            # The parameter: definition.x, or definition[name]
+            cursor = position + 1
+            if tokens[cursor].value in (".", "?.") and tokens[cursor + 1].kind == "identifier":
+                cursor += 2
+            elif tokens[cursor].value == "[":
+                depth = 0
+                while cursor < len(tokens):
+                    depth += tokens[cursor].value == "["
+                    depth -= tokens[cursor].value == "]"
+                    cursor += 1
+                    if depth == 0:
+                        break
+            else:
+                continue
+            if cursor < len(tokens) and tokens[cursor].value in (".", "?.", "["):
+                last = tokens[cursor + 1] if cursor + 1 < len(tokens) else tokens[cursor]
+                problems.append(
+                    Problem(
+                        token.offset,
+                        last.end,
+                        "error",
+                        "Onshape can't use part of a parameter (like a lookup table's level) in a precondition: it "
+                        "rejects it (\"Could not identify parameter id\"). Drive a hidden parameter from it with editing "
+                        "logic, and use that.",
+                        "parameter-field",
+                    )
+                )
+    return _dedupe_problems(problems)
 
 
 def annotation_string(module: Module, token: Token) -> tuple[str, str] | None:

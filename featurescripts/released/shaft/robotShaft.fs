@@ -17,6 +17,9 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 // Also exports the enum used as a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
+// Exports Fit: released shafts have a fit parameter, and Onshape looks up its enum in the feature's file to load them
+// fs check: ignore unused-import
+export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
 RobotShaftIcon::import(path : "41c2fc2cc7659b215feb01c8", version : "47af683e8c175dbcacb47bdf");
 
 /**
@@ -51,23 +54,22 @@ export enum FtcCustomShaft
 /**
  * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
  * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
+ * Editing logic sets `presetShaft` from its table entry (`withShaft`).
  */
 predicate isPresetLength(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
-    (definition.program == Program.FRC && definition.frcShaft.length != undefined) ||
-        (definition.program == Program.FTC && definition.ftcShaft.length != undefined);
+    definition.presetShaft;
 }
 
 /**
  * Whether a shaft has e-clip grooves at one end, as it's sold (goBILDA's REX with an e-clip), so Flip ends can put them
- * at the other. Repeats `isPresetLength`'s condition (see `isSplineXsShaft`).
+ * at the other. Editing logic sets `factoryGrooved` from its table entry (`withShaft`).
  */
 predicate hasFactoryGrooves(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
-    definition.program == Program.FTC;
-    definition.ftcShaft["type"] == "8 mm REX (e-clip)" || definition.ftcShaft["type"] == "12 mm REX (e-clip)";
+    definition.factoryGrooved;
 }
 
 export enum EndOperation
@@ -338,6 +340,14 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Source", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.shaftSource is ShaftSource;
 
+        // From the COTS shaft's table entry, by editing logic (withShaft): a precondition can't read a lookup table's
+        // levels
+        annotation { "Name" : "Preset shaft", "UIHint" : ["ALWAYS_HIDDEN"] }
+        definition.presetShaft is boolean;
+
+        annotation { "Name" : "Factory grooved", "UIHint" : ["ALWAYS_HIDDEN"] }
+        definition.factoryGrooved is boolean;
+
         if (isCotsShaft(definition))
         {
             // Sets the shaft's profile parameters, through editing logic (see withShaft)
@@ -430,6 +440,12 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         }
     }
     {
+        // A path from before the table's levels changed (like Length) isn't a whole entry
+        const entry = getCotsShaft(definition);
+        if (entry != undefined && entry.partName == undefined)
+        {
+            throw regenError("Choose the shaft again: its table has changed.", [isFrc(definition) ? "frcShaft" : "ftcShaft"]);
+        }
         definition = withShaft(definition);
         const preset = isPresetLength(definition);
         const shaftPlane = getLocationPlane(context, definition);
@@ -586,6 +602,8 @@ function withShaft(definition is map) returns map
             }
         }
         definition.predrilledHoleDiameter = shaft.predrilledHoleDiameter;
+        definition.presetShaft = shaft.presetLength != undefined;
+        definition.factoryGrooved = shaft.factoryGrooves != undefined && shaft.factoryGrooves != [];
         if (shaft.presetLength != undefined)
         {
             // A preset's length, from where it starts

@@ -94,7 +94,10 @@ from the center to a tooth of the outside profiles, which didn't affect the shaf
 | Groove diameter (`firstEndGrooveDiameter`, `secondEndGrooveDiameter`) | The diameter of the groove the retaining ring sits in. |
 | Extend shaft (`extendFirstEnd`, `extendSecondEnd`) | Whether to extend the shaft to accommodate hardware. |
 
-No parameters are hidden, but editing logic sets some shown ones: each end's tapped Hole diameter (from its hole table), and
+Two parameters are hidden, set by editing logic from a COTS shaft's table entry (`withShaft`), as a precondition can't
+read a lookup table's levels: Preset shaft (`presetShaft`: it's sold in set lengths, so its length and ends are as
+sold) and Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown). Editing logic also sets
+some shown ones: each end's tapped Hole diameter (from its hole table), and
 its captive shaft Diameter and Length (from the shaft's size), and its Groove diameter (the ring's usual groove, when
 Override groove diameter is turned on, or the hex size or Side mount ring changes with it on). A COTS shaft's profile (`shaftType`, `hexType`,
 `hexSize`, `splineType`) is copied into the definition by editing logic though the parameters aren't shown, which
@@ -104,6 +107,7 @@ decides whether Shaft ends is.
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
+| Choose the shaft again: its table has changed. | error | a COTS shaft's saved path isn't a whole table entry (one saved before a level, like Length, was added) | `frcShaft` or `ftcShaft` |
 | Select a sketch point, circle, or mate connector to use. | error | no location | `location` |
 | The shaft's ends must be flat. | error | an extruded end isn't planar (up to next onto a curved face) | `endBound`, the end |
 | The shaft end to mirror across must be planar. | error | Mirror on, and the mirrored end isn't planar | `flipMirrorEnd`, the end |

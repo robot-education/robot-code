@@ -141,6 +141,10 @@ unreleased feature's constant can change freely.
 Enum values used as parameter types are stored in documents, so never rename or remove them once released. Generated
 enums (e.g. in `*.gen.fs` files) follow the same rule; their definitions say so where it matters.
 
+A released feature's file keeps exporting an enum it used as a parameter's type, even once the parameter is gone:
+Onshape looks the enum up in the feature's file to load its stored value, and reports "enum ... not found" otherwise.
+Keep the `export import`, with `// fs check: ignore unused-import` on the line before it (Robot shaft's `Fit`).
+
 ## Buttons
 
 A button is a parameter declared with std's `isButton` (`annotation { "Name" : "Clear invalid selections" }

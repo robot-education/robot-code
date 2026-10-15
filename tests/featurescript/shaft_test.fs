@@ -110,3 +110,16 @@ export function testCustomFtcShaftIsItsProfile()
     expectEqual(definition.hexType, HexType.STOCK);
     expectEqual(definition.hexSize, HexSize._3_8_IN);
 }
+
+export function testEditingLogicSetsPresetAndGrooves()
+{
+    // The precondition can't read the table's levels, so editing logic sets these from the entry
+    const eClip = robotShaftEditLogic(newContext(), newId(), ftcShaft(ShaftSource.COTS), ftcShaft(ShaftSource.COTS), false, {}, qNothing());
+    expectTrue(eClip.presetShaft, "an e-clip REX shaft is sold in set lengths");
+    expectTrue(eClip.factoryGrooved, "an e-clip REX shaft has its grooves");
+    var plain = ftcShaft(ShaftSource.COTS);
+    plain.ftcShaft = { "vendor" : "goBILDA", "type" : "12 mm REX", "material" : "Stainless steel", "length" : "100 mm" } as LookupTablePath;
+    const rex = robotShaftEditLogic(newContext(), newId(), plain, plain, false, {}, qNothing());
+    expectTrue(rex.presetShaft, "a REX shaft is sold in set lengths");
+    expectTrue(!rex.factoryGrooved, "without an e-clip, it has no grooves");
+}

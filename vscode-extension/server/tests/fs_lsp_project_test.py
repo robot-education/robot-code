@@ -420,6 +420,24 @@ def test_feature_annotation_must_be_right_before_define_feature(project):
     assert "BOUNDS" in problems[0].message
 
 
+def test_parameter_fields_in_preconditions(project):
+    path = project.code_dir / "feature4.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "predicate hasGrooves(definition is map) { definition.shaft[\"type\"] == \"e-clip\"; }\n"
+        "predicate isPreset(definition is map) { definition.preset; }\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        "        if (definition.shaft.length != undefined || hasGrooves(definition) || isPreset(definition)) { }\n"
+        "    }\n    {\n"
+        "        if (definition.shaft.length != undefined) { }\n"
+        "    });\n"
+    )
+    problems = [p for p in project.check(project.module(path)) if p.code == "parameter-field"]
+    # In the predicate and the precondition, but not the feature's body
+    assert [module(project, "feature4.fs").position(p.start)[0] for p in problems] == [1, 6]
+
+
 def test_duplicate_top_level_symbols(project):
     (project.code_dir / "core" / "shapes.fs").write_text(
         "FeatureScript 2909;\nexport const SIZE = 1;\nexport function area(x is number) returns number { return x; }\n"
