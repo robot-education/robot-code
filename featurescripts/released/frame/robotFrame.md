@@ -59,9 +59,10 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 1. **Precondition**: Program; Source (FRC); the Frame group: FRC's, FTC's, or the custom table, and for custom frames
    the row distances (by the hidden `rectangularFrame`), wall thickness, and hole spacing; Hole diameter (FRC); Hole start distance; linear
    stock's groups.
-2. **Editing logic** (`robotFrameEditLogic`): if the program, source, or any of the three frame paths changed (or the
-   feature is being created), sets `rectangularFrame` for a custom frame (whether its width and height differ), and
-   sets Hole diameter to the frame's (`frameHoleDiameter`: the table's, or 0.196 in. for custom frames), unless it's
+2. **Editing logic** (`robotFrameEditLogic`, then `frameChangeEditLogic`): if the program, source, or any of the three
+   frame paths changed (or the feature is being created), sets `rectangularFrame` for a custom frame (whether its width
+   and height differ), a COTS frame's Hole start distance to where its holes start as it's sold (`tieStart`) unless
+   it's been set, and Hole diameter to the frame's (`frameHoleDiameter`: the table's, or 0.196 in. for custom frames), unless it's
    been set larger. Then `stockEditLogic`, with no default offset.
 3. **Body**: `verifyHoles` checks the hole diameter or rows, then `getFrame` builds the `Stock`, and `placeStock`
    places it.
