@@ -88,10 +88,6 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
 
                 annotation { "Name" : "Distance between holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.holeSpacing, SPACING_BOUNDS);
-
-                annotation { "Name" : "Start distance", "Description" : "The distance from the start of the frame to its first hole.",
-                            "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(definition.holeStart, START_BOUNDS);
             }
             else if (isFrc(definition))
             {
@@ -111,21 +107,14 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
             }
 
-            // A custom frame's holes start at its Start distance
-            if (!isCustomFrame(definition))
-            {
-                annotation { "Name" : "Hole start offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                            "Description" : "Move the holes along the frame, from where they start as it's sold." }
-                definition.holeStartOffset is boolean;
+            annotation { "Name" : "Hole start distance", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW", "REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "The distance from the start of the frame to its first hole. Otherwise, a COTS frame's are as it's sold, and a custom frame's start a hole spacing in." }
+            definition.setHoleStart is boolean;
 
-                if (definition.holeStartOffset)
-                {
-                    annotation { "Group Name" : "Hole start offset", "Collapsed By Default" : false, "Driving Parameter" : "holeStartOffset" }
-                    {
-                        annotation { "Name" : "Offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        isLength(definition.holeStartDistance, ZERO_DEFAULT_LENGTH_BOUNDS);
-                    }
-                }
+            if (definition.setHoleStart)
+            {
+                annotation { "Name" : "Hole start distance", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.holeStart, START_BOUNDS);
             }
         }
 
@@ -147,8 +136,9 @@ function getFrame(definition is map) returns Stock
     const entry = frameTableEntry(definition);
     if (!isCustomFrame(definition))
     {
-        // With Hole start offset, every row (and the holes counted for tying them to the end) moves along it
-        const shift = definition.holeStartOffset ? definition.holeStartDistance : 0 * meter;
+        // With Hole start distance, every row (and the holes counted for tying them to the end) moves along it, so the
+        // first hole which counts is that far from the start
+        const shift = definition.setHoleStart ? definition.holeStart - entry.tieStart : 0 * meter;
         return mergeMaps(entry, {
                     "holeDiameter" : isFrc(definition) ? definition.holeDiameter : entry.holeDiameter,
                     "xRows" : holeRows(entry.xRows, shift),
@@ -157,6 +147,7 @@ function getFrame(definition is map) returns Stock
                     "tieStart" : entry.tieStart + shift
                 }) as Stock;
     }
+    const start = definition.setHoleStart ? definition.holeStart : definition.holeSpacing;
     return {
             // e.g. 2x1 Tube (Custom, 0.0625 in. wall)
             "partName" : roundToPrecision(entry.width / inch, 3) ~ "x" ~ roundToPrecision(entry.height / inch, 3) ~
@@ -171,10 +162,10 @@ function getFrame(definition is map) returns Stock
             "wallY" : definition.wallThickness,
             "angle" : entry.angle,
             "holeDiameter" : definition.holeDiameter,
-            "xRows" : gridRows(entry.sideRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
-            "yRows" : gridRows(entry.topRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
+            "xRows" : gridRows(entry.sideRows, start, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
+            "yRows" : gridRows(entry.topRows, start, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
             "isFrame" : true,
-            "tieStart" : definition.holeStart,
+            "tieStart" : start,
             "tieUnit" : definition.holeSpacing
         } as Stock;
 }

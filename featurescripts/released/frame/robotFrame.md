@@ -16,7 +16,9 @@ writeup doesn't repeat.
 
 Unreleased.
 
-- Hole start offset, for COTS frames: moves their holes along the frame from where they start as sold.
+- Hole start distance, a checkbox with its distance beside it, for COTS and custom frames: where the first hole is.
+  Otherwise a COTS frame's holes are as it's sold, and a custom frame's start a hole spacing in (custom frames' Start
+  distance, which it replaces).
 
 ## Strings
 
@@ -29,8 +31,7 @@ Unreleased.
 
 | Parameter | Description |
 | --- | --- |
-| Start distance (`holeStart`, custom) | The distance from the start of the frame to its first hole. |
-| Hole start offset (`holeStartOffset`, COTS) | Move the holes along the frame, from where they start as it's sold. |
+| Hole start distance (`setHoleStart`, with `holeStart` beside it) | The distance from the start of the frame to its first hole. Otherwise, a COTS frame's are as it's sold, and a custom frame's start a hole spacing in. |
 
 `rectangularFrame` is hidden: editing logic sets it for custom frames whose faces differ in width
 (2x1), and it shows the 2 in. and 1 in. face row distances in place of Distance between rows. Hole diameter (FRC) is
@@ -56,7 +57,7 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 ### Execution order
 
 1. **Precondition**: Program; Source (FRC); the Frame group: FRC's, FTC's, or the custom table, and for custom frames
-   the row distances (by the hidden `rectangularFrame`), wall thickness, hole spacing, and start distance; Hole diameter (FRC); a COTS frame's Hole start offset, with its Offset (`holeStartDistance`); linear
+   the row distances (by the hidden `rectangularFrame`), wall thickness, and hole spacing; Hole diameter (FRC); Hole start distance (a checkbox, with `holeStart` beside it); linear
    stock's groups.
 2. **Editing logic** (`robotFrameEditLogic`): if the program, source, or any of the three frame paths changed (or the
    feature is being created), sets `rectangularFrame` for a custom frame (whether its width and height differ), and
@@ -71,7 +72,7 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 | Function | What it does |
 | --- | --- |
 | `frameTableEntry` | The chosen entry: the custom table's for custom frames, else FRC's or FTC's. |
-| `getFrame` | The `Stock`. A COTS frame is its entry, with Hole diameter as its holes' (FTC frames keep the table's) and its rows as `HoleRow`s (`holeRows`), each row's first hole, and the holes counted for tying (`tieStart`), moved along it by Hole start offset's Offset. A custom frame is built from its entry (width, height, angle, rows on each face) and the dialog: walls `wallThickness` thick, and a grid of holes on each face (`gridRows`), the first `holeStart` from the start, with `holeSpacing` between holes along it and the rows `rowSpacing` apart across it; holes count for tying every `holeSpacing` from `holeStart`. |
+| `getFrame` | The `Stock`. A COTS frame is its entry, with Hole diameter as its holes' (FTC frames keep the table's) and its rows as `HoleRow`s (`holeRows`). With Hole start distance, each row's first hole, and the holes counted for tying (`tieStart`), move along it so the first which counts is that far from the start. A custom frame is built from its entry (width, height, angle, rows on each face) and the dialog: walls `wallThickness` thick, and a grid of holes on each face (`gridRows`), the first `holeStart` from the start (with Hole start distance; otherwise `holeSpacing`), with `holeSpacing` between holes along it and the rows `rowSpacing` apart across it; holes count for tying every `holeSpacing` from `holeStart`. |
 | `holeRows` | A table entry's rows, as `HoleRow`s. |
 | `frameHoleDiameter` | The frame's own hole diameter: the table's, or `CUSTOM_HOLE_DIAMETER` (0.196 in.). |
 | `isRectangular` | Whether a custom frame's width and height differ (2x1). |
