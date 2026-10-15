@@ -17,7 +17,7 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 // Also exports the enum used as a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
-RobotShaftIcon::import(path : "released/shaft/robotShaftIcon.svg", version : "");
+RobotShaftIcon::import(path : "41c2fc2cc7659b215feb01c8", version : "47af683e8c175dbcacb47bdf");
 
 /**
  * Whether a shaft is one someone sells (see robotShaftTables.py), or custom.
