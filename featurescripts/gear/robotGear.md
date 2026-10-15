@@ -11,6 +11,7 @@ gear it meshes with is made too. It has root fillets, optionally roots a router 
 | `robotGear.fs` | The feature: its dialog, the gear and its mate (`buildGear`, `gearMesh`, `gearMatePlane`, `bevelPairCones`), and cutting a rack (`cutRack`) |
 | `gearCommon.fs` | The tooth form (`getGearForm`), a gear's profile (`sketchGearProfile`), a bevel gear's cones and tooth gap (`bevelCones`, `sketchToothGap`), and a cut rack's teeth and regions (`rackToothCenters`, `rackCutRegions`, `relieveRackRoots`, `sketchRackCut`) |
 | `../core/bore.fs` | The bore: its parameters, and cutting it |
+| `../core/stdRevolve.fs` | A sector's angles by Angle, as std's revolve has them (`revolveAnglePredicate`, `revolveAngles`) |
 | `../core/location.fs`, `../core/startOffset.fs`, `../core/profileOffset.fs` | The location, starting offset, and profile offset |
 | `../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
 | `../../tests/fs_eval_sketch_test.py` | Tests of gears' profiles, the standard pitches, pitch circles' teeth, and where a rack's teeth go and what's cut |
@@ -21,7 +22,8 @@ gear it meshes with is made too. It has root fillets, optionally roots a router 
 
 Unreleased.
 
-- Sector is a checkbox on Gear, with Sector teeth, rather than a Gear type.
+- Sector is a checkbox on Gear, rather than a Gear type: sized by Sector teeth, or an angle as std's revolve gives one
+  (Angle, Opposite direction, Symmetric, Second end position), from an Angle reference.
 - Gear type's Bevel is last. Size by is Selection, an unlabeled dropdown, with the starting offset under it.
 - Gear pair: the gear it meshes with, placed by Mating gear teeth, Angle reference, and Angle, or by its pitch circle.
   A bevel gear is always made with its mate.
@@ -50,6 +52,7 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Teeth (`teeth`) | The whole gear's. |
 | Sector (`sector`) | Make a wedge of the gear, from its center. |
 | Sector teeth (`sectorTeeth`) | The sector's: a wedge of the gear's, from its center. |
+| Angle reference (`sectorReference`) | Where the sector's middle points (by teeth), or its angles are measured from. |
 | Diametral pitch (`diametralPitch`) | Teeth per inch of pitch diameter. |
 | Module (`module`) | Pitch diameter per tooth. |
 | Helical (`helical`) | Teeth on a helix: quieter and smoother, but they push the gear along its shaft. |
@@ -77,7 +80,8 @@ No parameters are hidden.
 | Select a pitch circle. | error | Size by Pitch circle, with none | `pitchCircle` |
 | The pitch circle is too small for a gear of this pitch. | error | it's under 4 teeth's | `pitchCircle`, the circle |
 | The pitch circle isn't the size of a gear with a whole number of teeth: it's the nearest, with `<teeth>` teeth. | warning | its diameter isn't a whole number of modules (within std's length tolerance) | `pitchCircle` |
-| A sector has fewer teeth than its gear. | error | Sector, with Sector teeth the gear's teeth or more | `sectorTeeth` |
+| A sector has fewer teeth than its gear. | error | Sector, with Sector teeth the gear's teeth or more (or by Angle, all the way around) | `sectorTeeth` |
+| The sector's angle is too small for a whole tooth. | error | Sector by Angle, spanning less than a tooth | `angle`, `angleBack` |
 | At this shaft angle, it would be a crown or internal gear: use a smaller shaft angle, or more mating teeth. | error | a bevel gear's pitch cone is 90° or more | `shaftAngle`, `mateTeeth` |
 | At this shaft angle, its mate would be a crown or internal gear: use a smaller shaft angle, or fewer mating teeth. | error | its mate's pitch cone is 90° or more (with or without Gear pair: the pair is what it's made for) | `shaftAngle`, `mateTeeth` |
 | The angle reference is on the axis, so it doesn't give an angle. / The angle reference must be parallel to the location's plane. / The angle reference must be a point, circle, or line. | error | Gear pair's Angle reference (`core/mounting.fs`) | the location or `pitchCircle`, `angleReference` |
@@ -112,7 +116,9 @@ No parameters are hidden.
      on its mate), with Mate selection (Teeth or Pitch circle, unlabeled; a bevel mate's by teeth) and either Mating
      gear teeth (and a bevel gear's Shaft angle), Angle reference, and Angle (and its Opposite direction), or Mate
      pitch circle; Pitch (with Custom, Diametral pitch or Module by unit system, and Pressure angle), Teeth (by
-     Teeth), and Thickness (a bevel gear's Face width instead); a gear's Sector, with Sector teeth; bore.
+     Teeth), and Thickness (a bevel gear's Face width instead); a gear's Sector, with Sector size (Teeth or Angle,
+     unlabeled), Angle reference, and Sector teeth or std revolve's angles (Angle, Opposite direction, Symmetric, and
+     Second end position with Start angle); bore.
    - Rack: Face to cut, Tangent propagation, Face at, Align teeth to (End, with Opposite end, or Angle
      reference); Pitch (and with Custom, its pitch and Pressure angle).
    - All but Bevel: Helical, with Helix angle, Double helical, and Hand (hidden for Double helical: a herringbone
@@ -149,8 +155,12 @@ side mirrored):
   root circle.
 - **Tip**: an arc on the tip circle.
 
-A sector's teeth are centered on the x axis (so on a pitch arc's middle), and its ends run from the middle of the gaps
-at its ends to the center.
+A sector's teeth are centered on the x axis, and its ends run from the middle of the gaps at its ends to the center;
+only its teeth are sketched, swept, and cut. `sectorPlacement` turns the plane first: by Sector teeth, so its middle
+points toward the Angle reference (or a pitch arc's middle, or the location's x axis, without one); by Angle, to the
+middle of the angles from it (`revolveAngles`, as std's revolve: Angle that way, or the other with Opposite direction;
+half each way with Symmetric; and back to Start angle with a second end position), with as many whole teeth as fit
+(`sectorSpan`). A gear pair's mate, without its own angle reference, goes toward the sector's middle.
 
 ### Bevel gears
 

@@ -72,7 +72,16 @@ export predicate angleOffsetPredicate(definition is map)
  */
 export function applyAngleReference(context is Context, definition is map, plane is Plane, locationParameterName is string) returns Plane
 {
-    const angleRef = definition.angleReference->qNthElement(0);
+    return applyAngleReference(context, definition, plane, locationParameterName, "angleReference");
+}
+
+/**
+ * Applies an angle reference selected by the parameter `referenceParameterName` (like `angleReferencePredicate`'s), for
+ * features with more than one.
+ */
+export function applyAngleReference(context is Context, definition is map, plane is Plane, locationParameterName is string, referenceParameterName is string) returns Plane
+{
+    const angleRef = definition[referenceParameterName]->qNthElement(0);
     if (isQueryEmpty(context, angleRef))
     {
         return plane;
@@ -84,7 +93,7 @@ export function applyAngleReference(context is Context, definition is map, plane
         const projectedPoint = project(plane, point);
         if (tolerantEquals(projectedPoint, plane.origin))
         {
-            throw regenError("The angle reference is on the axis, so it doesn't give an angle.", [locationParameterName, "angleReference"], qUnion(getParameter(definition, locationParameterName), angleRef));
+            throw regenError("The angle reference is on the axis, so it doesn't give an angle.", [locationParameterName, referenceParameterName], qUnion(getParameter(definition, locationParameterName), angleRef));
         }
         plane.x = normalize(projectedPoint - plane.origin);
         return plane;
@@ -96,13 +105,13 @@ export function applyAngleReference(context is Context, definition is map, plane
         const direction = extractDirection(context, angleRef);
         if (!perpendicularVectors(direction, plane.normal))
         {
-            throw regenError("The angle reference must be parallel to the location's plane.", [locationParameterName, "angleReference"], qUnion(getParameter(definition, locationParameterName), angleRef));
+            throw regenError("The angle reference must be parallel to the location's plane.", [locationParameterName, referenceParameterName], qUnion(getParameter(definition, locationParameterName), angleRef));
         }
         plane.x = direction;
         return plane;
     }
 
-    throw regenError("The angle reference must be a point, circle, or line.", ["angleReference"], definition.angleReference);
+    throw regenError("The angle reference must be a point, circle, or line.", [referenceParameterName], angleRef);
 }
 
 /**

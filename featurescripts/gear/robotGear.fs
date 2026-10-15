@@ -5,6 +5,7 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
 export import(path : "b82468283e5ec09720bad185", version : "142c41c73cc2f8336c28931e");
+import(path : "core/stdRevolve.fs", version : "");
 import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
@@ -33,6 +34,17 @@ export enum GearSize
     TEETH,
     annotation { "Name" : "Pitch circle" }
     PITCH_CIRCLE
+}
+
+/**
+ * How a sector's size is given: by its teeth, or the angle it spans (whole teeth, as many as fit).
+ */
+export enum SectorSize
+{
+    annotation { "Name" : "Teeth" }
+    TEETH,
+    annotation { "Name" : "Angle" }
+    ANGLE
 }
 
 /**
@@ -315,8 +327,24 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Group Name" : "Sector", "Collapsed By Default" : false, "Driving Parameter" : "sector" }
                 {
-                    annotation { "Name" : "Sector teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The sector's: a wedge of the gear's, from its center." }
-                    isInteger(definition.sectorTeeth, SECTOR_TEETH_BOUNDS);
+                    annotation { "Name" : "Sector size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.sectorSize is SectorSize;
+
+                    annotation { "Name" : "Angle reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.LINE || GeometryType.CIRCLE || GeometryType.ARC,
+                                "MaxNumberOfPicks" : 1, "Description" : "Where the sector's middle points (by teeth), or its angles are measured from." }
+                    definition.sectorReference is Query;
+
+                    if (definition.sectorSize == SectorSize.TEETH)
+                    {
+                        annotation { "Name" : "Sector teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The sector's: a wedge of the gear's, from its center." }
+                        isInteger(definition.sectorTeeth, SECTOR_TEETH_BOUNDS);
+                    }
+                    else
+                    {
+                        // As std's revolve: from the angle reference, as many whole teeth as fit, centered
+                        revolveAnglePredicate(definition);
+                    }
+
                 }
             }
         }
@@ -391,8 +419,14 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         }
 
         const size = gearSize(context, definition, module);
-        const gearPlane = applyStartOffset(context, definition, size.plane);
+        var gearPlane = applyStartOffset(context, definition, size.plane);
         addStartOffsetManipulator(context, id, definition, gearPlane);
+        if (isSector(definition))
+        {
+            const sector = sectorPlacement(context, definition, gearPlane, size.teeth);
+            gearPlane = sector.plane;
+            definition.sectorTeeth = sector.teeth;
+        }
 
         // Its pitch diameter, for spacing gears: two mesh their pitch radii apart
         var info = "Its pitch diameter is " ~ makeValueString(definition.unitSystem, module * size.teeth, true) ~ ".";
@@ -448,6 +482,46 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             reportFeatureInfo(context, id, info);
         }
     });
+
+/**
+ * Where a sector's teeth go: its plane, turned so its x axis is the sector's middle (its teeth are centered on it), and
+ * how many it has. By Sector teeth, its middle points toward the angle reference; by Angle, it spans the angles from the
+ * angle reference (`revolveAngles`), with as many whole teeth as fit, centered in it. Without an angle reference, it's
+ * measured from the gear's x axis.
+ *
+ * @returns {{
+ *      @field plane {Plane} :
+ *      @field teeth {number} :
+ * }}
+ */
+function sectorPlacement(context is Context, definition is map, gearPlane is Plane, teeth is number) returns map
+{
+    const reference = applyAngleReference(context, definition, gearPlane, definition.sizeBy == GearSize.TEETH ? "location" : "pitchCircle", "sectorReference");
+    if (definition.sectorSize == SectorSize.TEETH)
+    {
+        return { "plane" : reference, "teeth" : definition.sectorTeeth };
+    }
+    const angles = revolveAngles(definition);
+    const span = sectorSpan(angles, teeth);
+    if (span.teeth < 1)
+    {
+        throw regenError("The sector's angle is too small for a whole tooth.", ["angle", "angleBack"]);
+    }
+    return { "plane" : rotationAround(line(reference.origin, reference.normal), span.middle) * reference, "teeth" : span.teeth };
+}
+
+/**
+ * A sector spanning `angles` (see `revolveAngles`) of a gear with `teeth`: as many whole teeth as fit (a tooth for every
+ * `360° / teeth`, within std's angle tolerance), and its middle, where they're centered.
+ */
+export function sectorSpan(angles is map, teeth is number) returns map
+{
+    const pitch = 360 * degree / teeth;
+    return {
+            "teeth" : floor((angles.end - angles.start) / pitch + TOLERANCE.zeroAngle),
+            "middle" : (angles.start + angles.end) / 2
+        };
+}
 
 /**
  * A gear (a spur, helical, or herringbone gear, a sector, or a bevel gear) with `teeth`, centered on `gearPlane` (a

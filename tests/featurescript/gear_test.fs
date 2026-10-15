@@ -1,6 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "gear/robotGear.fs", version : "");
+import(path : "core/stdRevolve.fs", version : "");
 import(path : "testing.fs", version : "");
 
 const MODULE = inch / 20;
@@ -118,4 +119,23 @@ export function testRacksHaveNoEditingLogic()
 {
     const definition = { "gearType" : GearType.RACK };
     expectEqual(robotGearEditLogic(newContext(), newId(), {}, definition, true, {}, qNothing()), definition);
+}
+
+export function testSectorByAngleFitsWholeTeeth()
+{
+    // 20 teeth: one every 18 degrees, so 100 degrees fits 5, centered in it
+    const span = sectorSpan({ "start" : 0 * degree, "end" : 100 * degree }, 20);
+    expectEqual(span.teeth, 5);
+    expectNear(span.middle, 50 * degree, 1e-9 * degree);
+    // Exactly 90 degrees is 5 whole teeth
+    expectEqual(sectorSpan({ "start" : -45 * degree, "end" : 45 * degree }, 20).teeth, 5);
+}
+
+export function testRevolveAnglesAsStdRevolve()
+{
+    const base = { "angle" : 90 * degree, "oppositeDirection" : false, "symmetric" : false, "hasStartBound" : false, "angleBack" : 30 * degree };
+    expectEqual(revolveAngles(base), { "start" : 0 * degree, "end" : 90 * degree });
+    expectEqual(revolveAngles(mergeMaps(base, { "oppositeDirection" : true })), { "start" : -90 * degree, "end" : 0 * degree });
+    expectEqual(revolveAngles(mergeMaps(base, { "symmetric" : true })), { "start" : -45 * degree, "end" : 45 * degree });
+    expectEqual(revolveAngles(mergeMaps(base, { "hasStartBound" : true })), { "start" : -30 * degree, "end" : 90 * degree });
 }
