@@ -110,6 +110,23 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 annotation { "Name" : "Hole diameter" }
                 isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
             }
+
+            // A custom frame's holes start at its Start distance
+            if (!isCustomFrame(definition))
+            {
+                annotation { "Name" : "Hole start offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                            "Description" : "Move the holes along the frame, from where they start as it's sold." }
+                definition.holeStartOffset is boolean;
+
+                if (definition.holeStartOffset)
+                {
+                    annotation { "Group Name" : "Hole start offset", "Collapsed By Default" : false, "Driving Parameter" : "holeStartOffset" }
+                    {
+                        annotation { "Name" : "Offset", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.holeStartDistance, ZERO_DEFAULT_LENGTH_BOUNDS);
+                    }
+                }
+            }
         }
 
         stockLocationPredicate(definition, "frame");
@@ -130,11 +147,14 @@ function getFrame(definition is map) returns Stock
     const entry = frameTableEntry(definition);
     if (!isCustomFrame(definition))
     {
+        // With Hole start offset, every row (and the holes counted for tying them to the end) moves along it
+        const shift = definition.holeStartOffset ? definition.holeStartDistance : 0 * meter;
         return mergeMaps(entry, {
                     "holeDiameter" : isFrc(definition) ? definition.holeDiameter : entry.holeDiameter,
-                    "xRows" : holeRows(entry.xRows),
-                    "yRows" : holeRows(entry.yRows),
-                    "isFrame" : true
+                    "xRows" : holeRows(entry.xRows, shift),
+                    "yRows" : holeRows(entry.yRows, shift),
+                    "isFrame" : true,
+                    "tieStart" : entry.tieStart + shift
                 }) as Stock;
     }
     return {
@@ -160,12 +180,13 @@ function getFrame(definition is map) returns Stock
 }
 
 /**
- * A lookup table entry's rows of holes, as `HoleRow`s.
+ * A lookup table entry's rows of holes, as `HoleRow`s, their first holes `shift` further along.
  */
-function holeRows(rows is array) returns array
+export function holeRows(rows is array, shift is ValueWithUnits) returns array
 {
     return mapArray(rows, function(row)
         {
+            row.start += shift;
             return row as HoleRow;
         });
 }
