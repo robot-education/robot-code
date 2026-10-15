@@ -512,6 +512,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A feature's precondition can't declare a parameter more than once, even in different branches of an `if`, and array
   parameters' items' parameters count too: an item's parameter can't share a name with any other parameter.
 - Predicates in a precondition's `if` conditions can't call other predicates.
+- A feature's annotation (its `"Feature Type Name"`) must be right before its `defineFeature`: Onshape attaches an
+  annotation to the declaration after it, so a const between them takes it ("Nonconforming feature function").
 - Annotation keys must be ones Onshape knows (std's, and `Icon`): it ignores others, so a misspelled one (`"Driving
   query"` for `"Driven query"`, `"UIHInt"`) silently does nothing.
 - Horizontal enums go at the top of the dialog: before any other shown parameter, and not in groups or array

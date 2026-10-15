@@ -867,6 +867,7 @@ class Project:
         problems.extend(_duplicate_overload_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
         problems.extend(_keyword_key_problems(module))
+        problems.extend(_feature_annotation_problems(module))
         problems.extend(_unused_variable_problems(module))
         problems.extend(_function_value_problems(module, providers))
         problems.extend(_std_arity_problems(module, providers))
@@ -1962,6 +1963,55 @@ def _sets_itself(tokens: list[Token], position: int, name: str) -> bool:
         elif token.value in _ASSIGNMENTS and depth == 0:
             return True
     return False
+
+
+def _feature_annotation_problems(module: Module) -> list[Problem]:
+    """A feature's annotation (with a "Feature Type Name") must come right before its `defineFeature`: Onshape attaches
+    an annotation to the declaration after it, so anything between (like a const) takes it instead, and Onshape
+    rejects it ("Nonconforming feature function ...")."""
+    problems = []
+    tokens = module.index.tokens
+    depth = 0
+    for index, token in enumerate(tokens):
+        if token.value in ("{", "(", "["):
+            depth += 1
+        elif token.value in ("}", ")", "]"):
+            depth -= 1
+        if depth != 0 or token.value != "annotation" or index + 1 >= len(tokens) or tokens[index + 1].value != "{":
+            continue
+        # The annotation's map, and what follows it
+        level = 0
+        end = index + 1
+        is_feature = False
+        while end < len(tokens):
+            value = tokens[end].value
+            if value == "{":
+                level += 1
+            elif value == "}":
+                level -= 1
+                if level == 0:
+                    break
+            elif level == 1 and value == '"Feature Type Name"':
+                is_feature = True
+            end += 1
+        if not is_feature:
+            continue
+        following = tokens[end + 1 : end + 6]
+        values = [t.value for t in following]
+        if "defineFeature" in values:
+            continue
+        problems.append(
+            Problem(
+                token.offset,
+                token.end,
+                "error",
+                "A feature's annotation must be right before its defineFeature: Onshape attaches it to the declaration "
+                "after it" + (f" ({following[1].value if len(following) > 1 else values[0]})" if following else "") + ". Move "
+                "what's between them above the annotation.",
+                "feature-annotation",
+            )
+        )
+    return problems
 
 
 def _keyword_key_problems(module: Module) -> list[Problem]:

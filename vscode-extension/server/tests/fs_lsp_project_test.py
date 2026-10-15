@@ -404,6 +404,22 @@ def test_nested_predicates_in_conditions(project):
     assert "isCustom" in problems[0].message
 
 
+def test_feature_annotation_must_be_right_before_define_feature(project):
+    path = project.code_dir / "feature3.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'annotation { "Feature Type Name" : "Good" }\n'
+        "export const good = defineFeature(function(context is Context, id is Id, definition is map) {});\n"
+        'annotation { "Feature Type Name" : "Bad" }\n'
+        "// A comment is fine, but a declaration takes the annotation\n"
+        "const BOUNDS = 1;\n"
+        "export const bad = defineFeature(function(context is Context, id is Id, definition is map) {});\n"
+    )
+    problems = [p for p in project.check(project.module(path)) if p.code == "feature-annotation"]
+    assert [module(project, "feature3.fs").position(p.start)[0] for p in problems] == [3]
+    assert "BOUNDS" in problems[0].message
+
+
 def test_duplicate_top_level_symbols(project):
     (project.code_dir / "core" / "shapes.fs").write_text(
         "FeatureScript 2909;\nexport const SIZE = 1;\nexport function area(x is number) returns number { return x; }\n"

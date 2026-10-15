@@ -321,15 +321,15 @@ predicate shaftEndPredicate(definition is map)
 }
 
 
+// 1/2 in. hex's retaining ring groove
+const GROOVE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.009906, 500], (inch) : 0.39, (millimeter) : 10 } as LengthBoundSpec;
+
 annotation { "Feature Type Name" : "Robot shaft",
         "Feature Type Description" : "Create the shafts FRC and FTC teams buy, or custom ones." ~ CREDIT,
         "Manipulator Change Function" : "extrudeManipulatorChange",
         "Editing Logic Function" : "robotShaftEditLogic",
         "Icon" : RobotShaftIcon::BLOB_DATA
     }
-// 1/2 in. hex's retaining ring groove
-const GROOVE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.009906, 500], (inch) : 0.39, (millimeter) : 10 } as LengthBoundSpec;
-
 export const robotShaft = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
