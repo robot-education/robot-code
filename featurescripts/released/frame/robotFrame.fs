@@ -107,15 +107,9 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
             }
 
-            annotation { "Name" : "Hole start distance", "UIHint" : ["DISPLAY_SHORT", "FIRST_IN_ROW", "REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "The distance from the start of the frame to its first hole. Otherwise, a COTS frame's are as it's sold, and a custom frame's start a hole spacing in." }
-            definition.setHoleStart is boolean;
-
-            if (definition.setHoleStart)
-            {
-                annotation { "Name" : "Hole start distance", "UIHint" : ["DISPLAY_SHORT", "REMEMBER_PREVIOUS_VALUE"] }
-                isLength(definition.holeStart, START_BOUNDS);
-            }
+            // Set to a COTS frame's (where its holes start as it's sold) by editing logic
+            annotation { "Name" : "Hole start distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The distance from the start of the frame to its first hole." }
+            isLength(definition.holeStart, START_BOUNDS);
         }
 
         stockLocationPredicate(definition, "frame");
@@ -136,9 +130,9 @@ function getFrame(definition is map) returns Stock
     const entry = frameTableEntry(definition);
     if (!isCustomFrame(definition))
     {
-        // With Hole start distance, every row (and the holes counted for tying them to the end) moves along it, so the
-        // first hole which counts is that far from the start
-        const shift = definition.setHoleStart ? definition.holeStart - entry.tieStart : 0 * meter;
+        // Every row (and the holes counted for tying them to the end) moves along it, so the first hole which counts is
+        // Hole start distance from the start
+        const shift = definition.holeStart - entry.tieStart;
         return mergeMaps(entry, {
                     "holeDiameter" : isFrc(definition) ? definition.holeDiameter : entry.holeDiameter,
                     "xRows" : holeRows(entry.xRows, shift),
@@ -147,7 +141,6 @@ function getFrame(definition is map) returns Stock
                     "tieStart" : entry.tieStart + shift
                 }) as Stock;
     }
-    const start = definition.setHoleStart ? definition.holeStart : definition.holeSpacing;
     return {
             // e.g. 2x1 Tube (Custom, 0.0625 in. wall)
             "partName" : roundToPrecision(entry.width / inch, 3) ~ "x" ~ roundToPrecision(entry.height / inch, 3) ~
@@ -162,10 +155,10 @@ function getFrame(definition is map) returns Stock
             "wallY" : definition.wallThickness,
             "angle" : entry.angle,
             "holeDiameter" : definition.holeDiameter,
-            "xRows" : gridRows(entry.sideRows, start, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
-            "yRows" : gridRows(entry.topRows, start, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
+            "xRows" : gridRows(entry.sideRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
+            "yRows" : gridRows(entry.topRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
             "isFrame" : true,
-            "tieStart" : start,
+            "tieStart" : definition.holeStart,
             "tieUnit" : definition.holeSpacing
         } as Stock;
 }
@@ -292,22 +285,37 @@ function rowsFit(count is number, spacing is ValueWithUnits, holeDiameter is Val
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);
+    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
+}
+
+/**
+ * When the frame changes: whether a custom frame is rectangular, a COTS frame's Hole start distance (where its holes
+ * start as it's sold, unless it's been set), and Hole diameter (the frame's, unless it's been set bigger).
+ */
+export function frameChangeEditLogic(oldDefinition is map, definition is map, specifiedParameters is map) returns map
+{
     var changed = false;
     for (var parameter in ["program", "source", "customFrame", "frcFrame", "ftcFrame"])
     {
         changed = changed || oldDefinition[parameter] != definition[parameter];
     }
-    if (changed)
+    if (!changed)
     {
-        if (isCustomFrame(definition))
-        {
-            definition.rectangularFrame = isRectangular(frameTableEntry(definition));
-        }
-        const holeDiameter = frameHoleDiameter(definition);
-        if (!(specifiedParameters.holeDiameter ?? false) || tolerantLessThan(definition.holeDiameter, holeDiameter))
-        {
-            definition.holeDiameter = holeDiameter;
-        }
+        return definition;
     }
-    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
+    if (isCustomFrame(definition))
+    {
+        definition.rectangularFrame = isRectangular(frameTableEntry(definition));
+    }
+    else if (!(specifiedParameters.holeStart ?? false))
+    {
+        definition.holeStart = frameTableEntry(definition).tieStart;
+    }
+    const holeDiameter = frameHoleDiameter(definition);
+    if (!(specifiedParameters.holeDiameter ?? false) || tolerantLessThan(definition.holeDiameter, holeDiameter))
+    {
+        definition.holeDiameter = holeDiameter;
+    }
+    return definition;
 }
