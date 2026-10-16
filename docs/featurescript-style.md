@@ -404,9 +404,8 @@ give it a type (`export type Stock typecheck canBeStock;`), document its fields 
 
 Don't have a feature select what an earlier one made, as Robot lighten once selected Quick rib's sketches (by feature
 ids kept in a variable, with `qCreatedBy(featureId + "ribSketch", EntityType.EDGE)`): it couldn't be done robustly, so
-leave selecting to the user. Where one feature's output is only ever another's input, fold it in: Robot lighten now
-sketches those ribs itself (`lighten/quickRibs.fs`), and fills in Face to lighten from their first point in editing
-logic.
+leave selecting to the user: Quick rib sketches ribs, and Robot lighten's Ribs to use takes that sketch's edges like
+any other's.
 
 ## Ids
 

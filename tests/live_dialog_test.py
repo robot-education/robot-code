@@ -24,6 +24,7 @@ SETTING = re.compile(r"data-set='([^']*)' data-value='([^']*)'")
 
 FEATURES = [
     "featurescripts/lighten/robotLighten.fs",
+    "featurescripts/rib/quickRib.fs",
     "featurescripts/released/shaft/robotShaft.fs",
     "featurescripts/released/frame/robotFrame.fs",
     "featurescripts/motor/robotMotor.fs",

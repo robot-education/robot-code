@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 /*
- * Quick ribs, for Robot lighten (see robotLighten.md): ribs it sketches itself, between points (circles' and arcs'
+ * Quick ribs, for Quick rib (see quickRib.md): ribs sketched between points (circles' and arcs'
  * centers, vertices, and mate connectors' origins), and from points to edges. Chains run through their points in order
  * (closed or not; two points make one rib); hubs have spokes to their hub, and a circle around it through the first
  * spoke if asked; edge ribs run from points to an edge, meeting it square, or where a manipulator puts them.

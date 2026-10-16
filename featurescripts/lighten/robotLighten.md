@@ -2,14 +2,12 @@
 
 Lightens a part with pockets. Everything within the extrude of the face to lighten (into its part, through it or to a
 depth) is cut away, except walls along the face's edges (the part's sides and holes) and ribs. Ribs run along selected
-sketch edges, and along quick ribs, which it sketches itself between points and to edges. The pockets' corners are
-rounded as a router bit leaves them.
+sketch edges: a sketch's, or Quick rib's (`../rib/quickRib.fs`), which sketches them between points and to edges. The
+pockets' corners are rounded as a router bit leaves them.
 
 | File | What it is |
 | --- | --- |
 | `robotLighten.fs` | The feature |
-| `quickRibs.fs` | Quick ribs: sketching them, the edge ribs' manipulators, and their editing logic |
-| `../../tests/featurescript/quickRibs_test.fs` | Tests of the lines and circles quick ribs draw |
 | `../../tests/featurescript/lighten_test.fs` | Tests of which pockets are small |
 | `robotLightenIcon.py` | Its icon (`fs gen` writes `robotLightenIcon.svg`): the plate icon, pocketed |
 | `vent.local.fs` | Vent, for reference (see Method comparison): not synced |
@@ -19,20 +17,18 @@ rounded as a router bit leaves them.
 
 Unreleased.
 
+- Quick ribs are a feature of their own again (Quick rib): select its sketch's edges in Ribs to use.
+
 ## Strings
 
 | String | Where |
 | --- | --- |
 | Robot lighten | feature name |
-| Lighten a part with pockets, leaving walls around its edges and holes, and ribs along a sketch or between holes. `<CREDIT>` | feature description |
+| Lighten a part with pockets, leaving walls around its edges and holes, and ribs along a sketch. `<CREDIT>` | feature description |
 
 ### Descriptions and hidden parameters
 
-| Parameter | Description |
-| --- | --- |
-| Add circle | Add a circle through the first selected spoke. |
-
-None are hidden.
+No parameters have descriptions, and none are hidden.
 
 ### Errors, warnings, and info
 
@@ -45,8 +41,7 @@ where they come up, and show only once it's done; only the first reported shows.
 | Select faces to ignore. | error | Ignore faces is on, with none selected | `ignoredFaces` |
 | Select faces to override. | error | a wall override without faces | its Faces |
 | Face overrides must be adjacent to the lightened face. | error | a wall override's faces share no edge with the face to lighten | its Faces, the faces |
-| Some quick ribs are skipped because they're incomplete. | warning | a chain with fewer than two points, a hub without a hub or spokes, or an edge rib without an edge or points | `chains`, `hubs`, `edgeRibs` |
-| Select ribs to use. | error | no ribs at all: none selected (or only construction ones, excluded) and no quick ribs | `ribEdges` |
+| Select ribs to use. | error | no ribs at all: none selected (or only construction ones, excluded) | `ribEdges` |
 | Select ribs to override. | error | a rib override without ribs | its Ribs |
 | The ribs must be in parallel sketches. | error | ribs from sketches on planes not parallel to the first's | the rib parameters, those ribs |
 | The face to lighten must be parallel to the ribs. | error | it isn't | `face`, the rib parameters, the face |
@@ -77,10 +72,6 @@ where they come up, and show only once it's done; only the first reported shows.
 
 - **Selections** (at the top): Face to lighten, Ignore faces (with Faces to ignore), Ribs to use, and Exclude
   construction lines.
-- **Quick ribs**: three arrays, each in a group of its own, then Clear invalid selections (a button).
-  - Chains: each has Points (in order) and Closed. Selecting a point adds a chain.
-  - Hub and spokes: each has a Hub, Spokes, and Add circle. Selecting a hub adds one.
-  - Edge ribs: each has End (Perpendicular to edge or Manipulator), Edge, Points, and with Manipulator, Location.
 - Wall thickness, Rib thickness, Fillet corners, and Fillet radius.
 - **Override rib thickness**: an array of ribs at other thicknesses (labeled like "0.25 in ribs"). Later overrides
   win over earlier ones, and all of them over Rib thickness.
@@ -92,27 +83,18 @@ where they come up, and show only once it's done; only the first reported shows.
 
 `robotLightenEditLogic` only evaluates; it never builds.
 
-- **Clear invalid selections** drops quick rib selections which no longer exist, chains with fewer than two points,
-  hubs without a hub, and edge ribs without an edge or points (`clearInvalidSelections`).
-- **Face to lighten** is filled in until it's set by hand:
-  - with Ribs to use, the one part face in the ribs' sketch plane which they're over (`facesUnder`);
-  - otherwise, while it's empty, the part face under the first quick rib point (`firstFaceUnder`).
+- **Face to lighten** is filled in until it's set by hand: the one part face in the ribs' sketch plane which they're
+  over (`facesUnder`).
 
 ### Manipulators
 
-`robotLightenManipulatorChange` handles both:
-
-- Depth (with Blind): an arrow on the face.
-- Each Manipulator edge rib's Location: a point that slides along its edge (`edgeRibManipulatorChange`).
+`robotLightenManipulatorChange`: Depth (with Blind), an arrow on the face.
 
 ## Feature execution
 
 ```
 robotLighten
 --> getFace, getIgnoredFaces, getWallOverrides     // selections, checked before anything's built
---> sketchQuickRibs                                // quick ribs, sketched on the face's plane
-    --> chainSegments, hubSegments, edgeRibSegments, uniqueSegments
---> addEdgeRibManipulators
 --> getRibGroups --> ribGroups                     // ribs by thickness; later overrides win
 --> ribPlane, verifyParallel
 --> pocketDepth, addDepthManipulator
@@ -247,10 +229,7 @@ the style guide's "Tolerances, not margins").
 | `roundPockets` (`try silent`) | Each narrow side's fillet delete and full round | A warning, showing the corner and side; the feature they're in is rolled back. |
 | `roundPockets` (`try silent`) | Growing the pockets back | A warning, showing the pockets, cut smaller. |
 | `buildWalls` (`try silent`) | Setting the walls' inside corners to their exact radius | Info: they're a hair bigger. |
-| `pointsOf` (`try silent`) | Each quick rib point | Left out: it isn't there any more. |
-| `edgeRibSegments` (`try silent`) | Where an edge rib meets its edge | The edge rib is skipped. |
-| `addEdgeRibManipulators` (`try silent`) | Each edge rib's manipulator | No manipulator: its edge isn't there. |
-| `robotLightenEditLogic`, `firstFaceUnder` (`try silent`) | Finding the face to fill in | Left as it is. |
+| `robotLightenEditLogic` (`try silent`) | Finding the face to fill in | Left as it is. |
 
 ## Method comparison
 
@@ -260,7 +239,7 @@ Onshape Lighten feature did: extrude the face, hollow it (`opShell`), and keep w
 | | Robot lighten | Vent | Part Lighten |
 | --- | --- | --- | --- |
 | What's lightened | One face of one part | Selected faces on parts' faces (any number of parts) | One face of one or more parts |
-| Ribs | Sketch edges of any shape, each thickened on its own; quick ribs; overrides by group | None: separate faces leave a wall between them, half from each | Sketched rectangles (and arcs) around selected lines |
+| Ribs | Sketch edges of any shape (Quick rib's too), each thickened on its own; overrides by group | None: separate faces leave a wall between them, half from each | Sketched rectangles (and arcs) around selected lines |
 | Walls along the part's edges | Hollow of the face's extrude, ends moved out first | Second extrude of the part's coplanar faces, hollowed by the full wall, intersected (`SUBTRACT_COMPLEMENT`) | Hollow of the face's extrude |
 | Inside wall corners | Hair fillet, grown, then `opModifyFillet` to exactly the offset | As Robot lighten | As Robot lighten |
 | Rounded pocket corners | Hair fillet, grown by the radius less the hair: exactly the radius | Hair fillet, grown by the radius, then `opModifyFillet` to exactly it | As Vent, with the tool radius rounded up by 0.01 in |
@@ -292,7 +271,3 @@ support.
 - Filleting each corner on its own costs a fillet per corner, where one fillet of all of them did before.
 - Untested in Onshape: deleting a hair fillet to heal it back to a corner (`opDeleteFace`), and rounding in a feature
   of its own inside the feature (`startFeature`, `endFeature`, `abortFeature`).
-- Quick ribs are always at Rib thickness: overrides select sketch edges, and quick ribs' sketch is the feature's own.
-- A hub's circle goes through its first spoke in the order selected.
-- With Manipulator, an edge rib's points all meet its edge at one Location. Perpendicular to edge projects the edge's
-  nearest point onto the face, which is only square for edges in (or parallel to) its plane.
