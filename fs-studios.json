@@ -40,6 +40,7 @@
     "8b8c46128a5dbc2594925f4a": "core/coreUtils.fs",
     "8fc3df84a88e74d27ad43d26": "released/shaft/robotShaftTables.gen.fs",
     "8fce00629c71b941d2d87732": "released/belt/robotBelt.fs",
+    "919f4500b480470446e26280": "core/stdRevolve.fs",
     "926d933eb33b11a3452660fd": "core/fit.fs",
     "93af3f24abb0f9f345268c81": "chain/chainCommon.fs",
     "948c83c1b1ac83de4ccf921b": "core/unitSystem.fs",
