@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import collections
 import difflib
+import json
 import os
 import pathlib
 import sys
@@ -20,16 +21,20 @@ from fs_lsp.project import Module, Project
 
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.gen import GenerateError, generate
-from fs_cli.git import commit_paths
+from fs_cli.git import commit_paths, file_at, has_tag, is_repository
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
     deprecated_name,
     find_studio,
     plan_deprecate,
+    finalized_versions,
     plan_release,
+    release_tag,
     run_deprecate,
     run_release,
+    tag_release,
+    tag_versions,
     unsynced_versions,
 )
 from fs_cli.remote import OnshapeRemote, Remote, file_name_for, is_local
@@ -103,6 +108,13 @@ def make_parser() -> argparse.ArgumentParser:
             "--dry-run",
             action="store_true",
             help="show what would happen without changing anything",
+        )
+
+    def no_push_tags(subparser: argparse.ArgumentParser) -> None:
+        subparser.add_argument(
+            "--no-push-tags",
+            action="store_true",
+            help="tag releases in git, but don't push the tags to origin",
         )
 
     def yes_to_deletes(subparser: argparse.ArgumentParser) -> None:
@@ -413,11 +425,12 @@ def make_parser() -> argparse.ArgumentParser:
     release.add_argument(
         "--publish",
         action="store_true",
-        help="also create the version in the frontend document, publishing the release immediately",
+        help="also create the version in the frontend document, publishing (finalizing) the release immediately, and tag it in git",
     )
     release.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
     )
+    no_push_tags(release)
     dry_run(release)
 
     deprecate_command = command(
@@ -448,7 +461,16 @@ def make_parser() -> argparse.ArgumentParser:
     sync_versions.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
     )
+    no_push_tags(sync_versions)
     dry_run(sync_versions)
+
+    release_tags = command(
+        "release-tags",
+        "tag final releases (those whose version is in the frontend document) in git which aren't tagged yet, e.g. robotFrame/v1.3.0",
+        targets=False,
+    )
+    no_push_tags(release_tags)
+    dry_run(release_tags)
     return parser
 
 
@@ -746,8 +768,8 @@ def strings(config: Config, args: argparse.Namespace) -> int:
 
 def changes(workspace: Workspace, args: argparse.Namespace) -> int:
     """Diffs a FeatureScript, and each Feature Studio in the repo it imports (directly or not), against their code in
-    the backend document's version of its last release. Studios are as released, since `fs release` requires them to
-    be pushed and in sync."""
+    its last release: from its git tag (see `release_tag`), without API calls, where it has one; otherwise from the
+    backend document's version. Studios are as released, since `fs release` requires them to be pushed and in sync."""
     studio = find_studio(workspace, args.script)
     assert studio.remote is not None
     versions = workspace.remote.versions(workspace.instance)
@@ -756,6 +778,26 @@ def changes(workspace: Workspace, args: argparse.Namespace) -> int:
         raise UsageError(f"{studio.path} hasn't been released.")
     version = next(version for version in reversed(versions) if version.name == released.name)
     at_release = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
+    config = workspace.config
+    tag = release_tag(studio.path, released.version)
+    # At the tag, each studio's file then, from fs-studios.json then (files may have moved since)
+    tagged_files = None
+    if has_tag(config.root, tag):
+        studios_file = file_at(config.root, tag, config.studios_path.relative_to(config.root).as_posix())
+        if studios_file is not None:
+            tagged_files = json.loads(studios_file).get("studios", {})
+    code_dir = config.code_dir.relative_to(config.root).as_posix()
+
+    def released_code(element_id: str | None) -> str | None:
+        if element_id is None:
+            return None
+        if tagged_files is not None:
+            path = tagged_files.get(element_id)
+            return file_at(config.root, tag, f"{code_dir}/{path}") if path else None
+        try:
+            return workspace.remote.pull(at_release, element_id)
+        except ApiError:
+            return None
 
     project = _project(workspace.config)
     element_ids = {path: element_id for element_id, path in project.element_ids().items()}
@@ -764,15 +806,12 @@ def changes(workspace: Workspace, args: argparse.Namespace) -> int:
         raise UsageError(f"Couldn't read {studio.path}.")
     modules = imported_modules(project, module)
 
-    print(f"Changes since {released.name}:")
+    print(f"Changes since {released.name}" + (f" (tag {tag}):" if tagged_files is not None else ":"))
     unchanged = []
     for current in modules:
         element_id = element_ids.get(current.path)
         local = current.path.read_text(encoding="utf-8")
-        try:
-            old = workspace.remote.pull(at_release, element_id) if element_id else None
-        except ApiError:
-            old = None
+        old = released_code(element_id)
         if old is None:
             print(f"{current.relative}: new since the release")
             continue
@@ -1050,6 +1089,13 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
         confirm("Backend versions can't be deleted.")
     run_release(workspace, plan, args.description, args.publish)
     print(f"Released {plan.version_name}.")
+    released = parse_version_name(plan.version_name)
+    assert released and plan.studio.local_code is not None
+    if not args.publish:
+        print("It's final once its version is in the frontend document: `fs sync-versions` creates it, and tags it in git.")
+    elif is_repository(workspace.config.root):
+        # In sync, so its code is what was released
+        tag_release(workspace, plan.studio.path, released, plan.studio.local_code, not args.no_push_tags)
     return 0
 
 
@@ -1104,6 +1150,15 @@ def sync_versions(workspace: Workspace, args: argparse.Namespace) -> int:
             workspace.config.frontend, version.name, version.description
         )
     print(f"Created {len(missing)} version{'s' if len(missing) != 1 else ''}.")
+    # They're final now
+    tag_versions(workspace, missing, not args.no_push_tags)
+    return 0
+
+
+def release_tags(workspace: Workspace, args: argparse.Namespace) -> int:
+    tagged = tag_versions(workspace, finalized_versions(workspace), not args.no_push_tags, args.dry_run)
+    if tagged == 0:
+        print("Every final release is tagged.")
     return 0
 
 
@@ -1634,6 +1689,7 @@ COMMANDS = {
     "release": release,
     "deprecate": deprecate,
     "sync-versions": sync_versions,
+    "release-tags": release_tags,
     "tabs": tabs,
     "link": link,
     "released": detect_released,

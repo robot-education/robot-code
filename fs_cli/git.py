@@ -81,3 +81,46 @@ def commit_paths(root: pathlib.Path, paths: list[pathlib.Path], message: str) ->
         raise RuntimeError("git commit failed")
     commit = _git(root, "rev-parse", "--short", "HEAD")
     return commit.strip() if commit else None
+
+
+def is_repository(root: pathlib.Path) -> bool:
+    return _git(root, "rev-parse", "--is-inside-work-tree") is not None
+
+
+def commit_with_contents(root: pathlib.Path, file: pathlib.Path, contents: str) -> str | None:
+    """The newest commit in which file (following it through renames) has contents, as `content_hash` compares them
+    (so not counting the versions of same-document imports, which Onshape manages). None if there's none, or root isn't
+    in a git repository."""
+    relative = file.resolve().relative_to(root.resolve()).as_posix()
+    log = _git(root, "log", "--follow", "--format=%x00%H", "--name-only", "--", relative)
+    if not log:
+        return None
+    wanted = content_hash(contents)
+    for entry in log.split("\0")[1:]:
+        lines = [line for line in entry.splitlines() if line]
+        if len(lines) < 2:
+            continue
+        commit, path = lines[0], lines[-1]
+        old = _git(root, "show", f"{commit}:{path}")
+        if old is not None and content_hash(old) == wanted:
+            return commit
+    return None
+
+
+def has_tag(root: pathlib.Path, name: str) -> bool:
+    return _git(root, "rev-parse", "--verify", "--quiet", f"refs/tags/{name}") is not None
+
+
+def create_tag(root: pathlib.Path, name: str, commit: str, message: str) -> bool:
+    """Creates an annotated tag `name` on commit. Whether it worked."""
+    return _git(root, "tag", "--annotate", name, commit, "--message", message) is not None
+
+
+def push_tag(root: pathlib.Path, name: str) -> bool:
+    """Pushes tag `name` to origin. Whether it worked."""
+    return _git(root, "push", "--quiet", "origin", f"refs/tags/{name}") is not None
+
+
+def file_at(root: pathlib.Path, revision: str, path: str) -> str | None:
+    """A file's contents (its path relative to root) at a revision, or None if it isn't there."""
+    return _git(root, "show", f"{revision}:{path}")

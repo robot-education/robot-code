@@ -4,7 +4,8 @@ A release:
     1. Creates a version named e.g. "Robot frame - v1.3.0" in the backend document.
     2. Points the frontend document's Feature Studio of the same name at that version, using a
        small generated studio that re-exports the backend studio.
-    3. Optionally creates a version in the frontend document too, which publishes the release.
+    3. Optionally creates a version in the frontend document too, which publishes the release: it's final once it's
+       there (with `--publish`, or later by `fs sync-versions`), and then it's tagged in git (see `tag_release`).
 
 Beta releases go to the separate frontend_beta document instead.
 
@@ -18,13 +19,16 @@ Folders can't be renamed through the API, so any holding it are renamed by hand.
 from __future__ import annotations
 
 import dataclasses
+import pathlib
 import re
 from typing import Callable
 
 from fs_cli.config import Config
+from fs_cli.git import commit_with_contents, create_tag, has_tag, is_repository, push_tag
 from fs_cli.remote import RemoteStudio, Version
 from fs_cli.versions import (
     ReleasedVersion,
+    SemVersion,
     VersionType,
     feature_name_for,
     latest_release,
@@ -353,3 +357,84 @@ def find_studio(workspace: Workspace, script: str) -> Studio:
             f"{studio.path} doesn't exist in Onshape yet; run `fs push` first."
         )
     return studio
+
+
+# Tagging releases in git
+
+
+def release_tag(path: str, version: SemVersion) -> str:
+    """A release's git tag: its file's name and its version, e.g. robotShaft/v2.3.0."""
+    return f"{pathlib.PurePosixPath(path).stem}/v{version}"
+
+
+def tag_release(
+    workspace: Workspace, path: str, released: ReleasedVersion, contents: str, push: bool, log: Callable[[str], None] = print
+) -> str | None:
+    """Tags the newest commit in which `path` (relative to the code folder) has `contents` (the released code) as the
+    release, and pushes the tag to origin if `push`. Returns the tag, or None if no commit has it. Releases are tagged
+    once they're final: once their version is in the frontend document."""
+    root = workspace.config.root
+    name = release_tag(path, released.version)
+    if has_tag(root, name):
+        return name
+    commit = commit_with_contents(root, workspace.config.code_dir / path, contents)
+    if commit is None:
+        log(f"Couldn't tag {name}: no commit has {path} as it was released. Commit it, then run `fs release-tags`.")
+        return None
+    if not create_tag(root, name, commit, released.name):
+        log(f"Couldn't tag {name}.")
+        return None
+    log(f"Tagged {name} ({commit[:7]}).")
+    if push and not push_tag(root, name):
+        log(f"Couldn't push {name}; push it with `git push origin {name}`.")
+    return name
+
+
+def finalized_versions(workspace: Workspace) -> list[Version]:
+    """The backend document's release versions which are in the frontend (or frontend_beta) document too, so final,
+    oldest first."""
+    config, remote = workspace.config, workspace.remote
+    published = set()
+    for frontend in (config.frontend, config.frontend_beta):
+        if frontend is not None:
+            published.update(version.name for version in remote.versions(frontend))
+    return [
+        version
+        for version in remote.versions(workspace.instance)
+        if parse_version_name(version.name) and version.name in published
+    ]
+
+
+def tag_versions(
+    workspace: Workspace, versions: list[Version], push: bool, dry_run: bool = False, log: Callable[[str], None] = print
+) -> int:
+    """Tags final release versions (see `tag_release`) which aren't tagged yet, each from its studio's code in the
+    backend version (an API call each). Versions of studios which aren't synced with a file (like a deprecated one's)
+    are skipped. Returns how many were tagged (or would be, with `dry_run`)."""
+    root = workspace.config.root
+    if not is_repository(root):
+        log("Not in a git repository, so releases aren't tagged.")
+        return 0
+    remote = workspace.remote
+    studios = {feature_name_for(studio.name): studio for studio in remote.list_studios(workspace.instance)}
+    files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
+    tagged = 0
+    for version in versions:
+        released = parse_version_name(version.name)
+        assert released
+        studio = studios.get(released.feature_name)
+        if studio is None or studio.element_id not in files:
+            log(f"Skipping {version.name}: it isn't synced with a file.")
+            continue
+        path = files[studio.element_id]
+        name = release_tag(path, released.version)
+        if has_tag(root, name):
+            continue
+        if dry_run:
+            log(f"Would tag {name}.")
+            tagged += 1
+            continue
+        at_version = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
+        if tag_release(workspace, path, released, remote.pull(at_version, studio.element_id), push, log) is not None:
+            tagged += 1
+    return tagged

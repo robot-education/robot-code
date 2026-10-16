@@ -25,7 +25,9 @@ Features with a writeup (a `.md` beside the `.fs`, like `frame/robotFrame.md`) n
 
 ## Backwards compatibility
 
-Don't consider older versions of features or documents made with them: renaming or removing parameters, changing
+Before adding anything for compatibility, see what a released document can hold: `fs changes NAME` (or
+`git diff NAME/vX.Y.Z`, its release's tag) shows what's changed since its last release. Don't consider older versions of
+features or documents made with them: renaming or removing parameters, changing
 defaults, or changing what's built is fine, with no migration or fallback for old values. Don't add code to handle
 values saved by an older version.
 

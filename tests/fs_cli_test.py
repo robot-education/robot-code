@@ -1090,6 +1090,86 @@ def test_sync_versions(repo, onshape):
     assert onshape.versions_by_document["front"][1].description == "Things"
 
 
+# Tagging releases in git
+
+
+def git_repo(repo: pathlib.Path) -> None:
+    git(repo, "init", "-q")
+    for key, value in (("user.name", "t"), ("user.email", "t@t")):
+        subprocess.run(["git", "config", key, value], cwd=repo, check=True)
+    (repo / ".gitignore").write_text(".fs-state.json\n")
+
+
+def tags(repo: pathlib.Path) -> list[str]:
+    return git_output(repo, "tag").split()
+
+
+def test_publishing_a_release_tags_it(repo, onshape, capsys):
+    git_repo(repo)
+    released_frame(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Frame")
+    # Not final until its version is in the frontend
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
+    assert tags(repo) == []
+    assert "sync-versions" in capsys.readouterr().out
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish", "--no-push-tags") == 0
+    assert tags(repo) == ["robotFrame/v0.1.1"]
+    assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.1") == git_output(repo, "rev-parse", "HEAD")
+
+
+def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
+    git_repo(repo)
+    released_frame(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Frame")
+    released = git_output(repo, "rev-parse", "HEAD")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
+    # Edited since: the tag goes on the commit with the code as it was released
+    local(repo, "Robot/robotFrame.fs").write_text("frame 2")
+    git(repo, "commit", "-qam", "Later")
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert tags(repo) == ["robotFrame/v0.1.0"]
+    assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.0") == released
+
+
+def test_release_tags_backfills_final_releases(repo, onshape, capsys):
+    git_repo(repo)
+    released_frame(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Frame")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
+    assert run(onshape, "release-tags", "--no-push-tags") == 0
+    # Not final yet
+    assert tags(repo) == []
+    onshape.versions_by_document["front"] = [Version("f1", "Robot frame - v0.1.0")]
+    capsys.readouterr()
+    assert run(onshape, "release-tags", "--dry-run") == 0
+    assert "Would tag robotFrame/v0.1.0" in capsys.readouterr().out
+    assert run(onshape, "release-tags", "--no-push-tags") == 0
+    assert tags(repo) == ["robotFrame/v0.1.0"]
+    capsys.readouterr()
+    assert run(onshape, "release-tags", "--no-push-tags") == 0
+    assert "Every final release is tagged." in capsys.readouterr().out
+
+
+def test_changes_reads_the_release_tag(repo, onshape, capsys):
+    git_repo(repo)
+    released_frame(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Frame")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish", "--no-push-tags") == 0
+    local(repo, "Robot/robotFrame.fs").write_text("frame 2\n")
+    pulls = onshape.pulls
+    capsys.readouterr()
+    assert run(onshape, "changes", "robotFrame") == 0
+    out = capsys.readouterr().out
+    assert "Changes since Robot frame - v0.1.0 (tag robotFrame/v0.1.0):" in out
+    assert "+frame 2" in out
+    # From git, not Onshape
+    assert onshape.pulls == pulls
+
+
 # Renaming with fs mv
 
 

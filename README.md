@@ -398,7 +398,7 @@ small generated file re-exporting a version of the backend studio, and `fs relea
 
 ```
 uv run fs release robotFrame --minor -d "Added a thing"   # 1.2.3 -> 1.3.0
-uv run fs release robotFrame --patch --publish            # also create the version in the frontend
+uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend
 uv run fs release robotFrameBeta --major --beta           # start a beta: 1.3.0 -> 2.0.0-beta.1
 uv run fs release robotFrameBeta --beta                   # continue it: 2.0.0-beta.2
 uv run fs release robotFrame --minor --dry-run            # show the plan without changing anything
@@ -409,6 +409,21 @@ frontend studio of the same name at it (creating the studio if needed). Beta rel
 `frontend_beta` document instead, and the feature's name must contain "beta". The studio must be pushed and in
 sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
 skips the prompt).
+
+A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
+version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend
+versions the backend has that it doesn't. Then it's tagged in git, e.g. `robotFrame/v1.3.0`, on the newest commit
+whose file is as released (`fs push` commits what it pushes, so that's usually the last one), and the tag is pushed to
+origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
+changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved) without
+any API calls, falling back to the backend version for releases without one. `fs release-tags` tags final releases
+which aren't tagged yet (`--dry-run` lists them), from their code in the backend versions: an API call each.
+
+```
+uv run fs sync-versions          # finalize releases: create their frontend versions, and tag them
+uv run fs release-tags           # tag final releases which aren't yet
+uv run fs changes robotFrame     # what's changed since robotFrame's last release
+```
 
 The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, its
 file on GitHub (on `github_branch`, `main` by default). It's written when the studio's released, so each
