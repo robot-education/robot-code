@@ -204,7 +204,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
         const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
         // The pockets' ends from here on, tracked from the extrude's caps (see `buildWalls`)
-        const pocketEnds = buildWalls(context, id, definition, extruded, ends, qIntersection([pocketFaces, ignoredSides]),
+        const pocketEnds = buildWalls(context, id, definition, face, extruded, ends, qIntersection([pocketFaces, ignoredSides]),
             mapArray(overriddenSides, wallOverride => mergeMaps(wallOverride, { "sides" : qIntersection([pocketFaces, wallOverride.sides]) })), grow);
 
         // The ribs, cut from what's left: what the walls enclose
@@ -466,13 +466,15 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
  * 5. The inside corners' rounds are set to exactly the inset (`opModifyFillet`, as Vent does); if they can't be, they're
  *    a hair bigger, and it's said as info.
  *
- * A failed step fails the feature, with its own error display, highlighting what sets it.
+ * A failed step fails the feature, with its own error display, highlighting what sets it. Hollowing fails where the
+ * walls are too thick for the face's outline and holes, so its error says so, showing the holes it fails at
+ * (`holesFailingShell`), or if it's none of them alone, the face.
  *
  * @returns {Query} : The inset pockets' ends: `ends`, tracked from after step 1 through hollowing, and the cuts and
  *          rounding after it. Tracking from before step 1 would take in the pocket's extrude (the last operation
  *          before it), whose sides are derived from its caps too.
  */
-function buildWalls(context is Context, featureId is Id, definition is map, pockets is Query, ends is Query, ignoredSides is Query,
+function buildWalls(context is Context, featureId is Id, definition is map, face is Query, pockets is Query, ends is Query, ignoredSides is Query,
     overrides is array, grow is ValueWithUnits) returns Query
 {
     const id = featureId + "walls";
@@ -552,8 +554,18 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
     }
     catch
     {
-        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "shell", "propagateErrorDisplay" : true });
-        throw regenError("Failed to inset the pockets by the wall thickness.", parameters, pockets);
+        // Hollowing fails where the walls are too thick for the face's outline and holes, mostly at a hole near its
+        // edge; the holes it fails at are shown on the part, or failing that, the face. Not the shell's own display:
+        // it shows the pockets, sticking out of the part with their ends moved out.
+        const tooThick = (definition.filletCorners ? "Wall thickness plus fillet radius is" : "Wall thickness is") ~ " too large";
+        const holes = holesFailingShell(context, id + "findHoles", pockets, ends, distance);
+        if (holes != [])
+        {
+            const shown = partFaces(context, face, qUnion(holes));
+            logEntities(context, "Holes the walls fail at", shown, DebugColor.RED);
+            throw regenError(tooThick ~ " for the walls around the holes shown.", parameters, shown);
+        }
+        throw regenError(tooThick ~ " for the walls to fit the face.", parameters, face);
     }
     for (var i, pocket in evaluateQuery(context, pockets))
     {
@@ -595,6 +607,71 @@ function buildWalls(context is Context, featureId is Id, definition is map, pock
     }
     opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
     return trackedEnds;
+}
+
+/**
+ * The holes in `pockets` which hollowing them by `distance` fails at: those which, filled, let it work. Each pocket's
+ * sides are rings of faces between its `ends`: its outline, and each of its holes. Each ring in turn is filled
+ * (`opDeleteFace`, which heals a hole closed; the outline can't be) and the pockets hollowed, in a feature of its own
+ * which is always rolled back, so this changes nothing. Run only once hollowing has failed, as it costs a hollow per
+ * ring.
+ *
+ * @returns {array} : The rings of faces (queries) of the holes it fails at; empty if it's none of them alone.
+ */
+function holesFailingShell(context is Context, id is Id, pockets is Query, ends is Query, distance is ValueWithUnits) returns array
+{
+    var rings = [];
+    var left = evaluateQuery(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends));
+    while (left != [])
+    {
+        const ring = qFaceOrEdgeBoundedFaces(qUnion([left[0], ends]));
+        rings = append(rings, ring);
+        left = evaluateQuery(context, qSubtraction(qUnion(left), ring));
+    }
+    var failing = [];
+    for (var i, ring in rings)
+    {
+        const tryId = id + unstableIdComponent(i);
+        startFeature(context, tryId, {});
+        try silent
+        {
+            opDeleteFace(context, tryId + "fill", {
+                        "deleteFaces" : ring,
+                        "includeFillet" : false,
+                        "capVoid" : false,
+                        "leaveOpen" : false
+                    });
+            opShell(context, tryId + "shell", {
+                        "entities" : pockets,
+                        "thickness" : -distance
+                    });
+            failing = append(failing, ring);
+        }
+        abortFeature(context, tryId);
+    }
+    logLine(context, "Hollowing by " ~ lengthText(distance) ~ " fails; filling each of " ~ size(rings) ~ " rings of sides, it works for " ~
+            size(failing));
+    return failing;
+}
+
+/**
+ * The part's faces where `sides` (sides of the pockets, extruded from `face`'s edges) are, and their edges on `face`:
+ * the edges of `face` whose midpoints are on them, and the faces along them. The pockets' ends were moved out, so their
+ * sides stick out of the part; its own faces show where they are, and the edges show them seen along the face's
+ * normal, where the faces are edge on. Or `sides`, if they're along none of its edges (like a region to ignore's).
+ */
+function partFaces(context is Context, face is Query, sides is Query) returns Query
+{
+    const edges = filter(evaluateQuery(context, qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE)), function(edge)
+        {
+            const midpoint = evEdgeTangentLine(context, { "edge" : edge, "parameter" : 0.5 }).origin;
+            return !isQueryEmpty(context, qContainsPoint(sides, midpoint));
+        });
+    if (edges == [])
+    {
+        return sides;
+    }
+    return qUnion([qUnion(edges), qSubtraction(qAdjacent(qUnion(edges), AdjacencyType.EDGE, EntityType.FACE), face)]);
 }
 
 /**
