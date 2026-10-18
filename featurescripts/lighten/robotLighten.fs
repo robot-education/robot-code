@@ -636,11 +636,27 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         }
         else
         {
-            opBoolean(context, id + "cutHoles", {
-                        "targets" : qCreatedBy(id + "enclose", EntityType.BODY),
-                        "tools" : holeBodies,
-                        "operationType" : BooleanOperationType.SUBTRACTION
-                    });
+            try silent
+            {
+                opBoolean(context, id + "cutHoles", {
+                            "targets" : qCreatedBy(id + "enclose", EntityType.BODY),
+                            "tools" : holeBodies,
+                            "operationType" : BooleanOperationType.SUBTRACTION
+                        });
+            }
+            catch
+            {
+                // Where the walls around a hole exactly meet another hole's, or the outline's, the pockets either side
+                // would touch along an edge, which the cut can't leave
+                const meeting = holesFailingCut(context, id + "findMeeting", qCreatedBy(id + "enclose", EntityType.BODY), holeBodies);
+                if (meeting == [])
+                {
+                    throw regenError("Failed to cut the walls around the holes from the pockets.", parameters, face);
+                }
+                throw regenError("The walls around the holes shown exactly meet other walls: change " ~
+                        (definition.filletCorners ? "Wall thickness or Fillet radius" : "Wall thickness") ~ " a little.", parameters,
+                    grownHolesOnPart(context, face, qUnion(meeting), holeSides, distance));
+            }
         }
     }
     // A pocket narrower than twice the inset encloses nothing; none left is an error, not an empty result
@@ -741,6 +757,111 @@ function holesFailingGrowth(context is Context, id is Id, holes is Query, sides 
     }
     logLine(context, "Growing the holes by " ~ lengthText(distance) ~ " fails; " ~ size(failing) ~ " of them fail on their own");
     return failing;
+}
+
+/**
+ * The holes (bodies of `holes`, grown) whose walls exactly meet another hole's, or the outline's (`inside`'s): cutting
+ * them leaves pockets which touch along an edge, which a cut can't. The holes are cut from `inside` in turn, each
+ * skipped if its cut fails; each which fails is shown with the hole it meets, the one cut before it whose cut,
+ * followed by its own, fails (or none, if its own fails alone: it meets the outline's walls). Each try is in a feature
+ * of its own which is always rolled back, so this changes nothing. Run only once cutting them all has failed.
+ *
+ * @returns {array} : The holes (queries) which fail, and those they meet.
+ */
+function holesFailingCut(context is Context, id is Id, inside is Query, holes is Query) returns array
+{
+    const all = evaluateQuery(context, holes);
+    // In turn, skipping those which fail
+    var failing = [];
+    const turnId = id + "inTurn";
+    startFeature(context, turnId, {});
+    for (var i, hole in all)
+    {
+        try silent
+        {
+            opBoolean(context, turnId + unstableIdComponent(i), {
+                        "targets" : qUnion([inside, qCreatedBy(turnId, EntityType.BODY)]),
+                        "tools" : hole,
+                        "operationType" : BooleanOperationType.SUBTRACTION,
+                        "keepTools" : true
+                    });
+        }
+        catch
+        {
+            failing = append(failing, hole);
+        }
+    }
+    abortFeature(context, turnId);
+
+    // Each which fails: alone, then after each other hole
+    var meeting = failing;
+    for (var j, hole in failing)
+    {
+        for (var k, other in concatenateArrays([[undefined], all]))
+        {
+            if (other == hole || isIn(other, meeting))
+            {
+                continue;
+            }
+            const pairId = id + "pair" + unstableIdComponent(j) + unstableIdComponent(k);
+            startFeature(context, pairId, {});
+            var fails = false;
+            try silent
+            {
+                if (other != undefined)
+                {
+                    opBoolean(context, pairId + "other", {
+                                "targets" : inside,
+                                "tools" : other,
+                                "operationType" : BooleanOperationType.SUBTRACTION,
+                                "keepTools" : true
+                            });
+                }
+                opBoolean(context, pairId + "hole", {
+                            "targets" : qUnion([inside, qCreatedBy(pairId, EntityType.BODY)]),
+                            "tools" : hole,
+                            "operationType" : BooleanOperationType.SUBTRACTION,
+                            "keepTools" : true
+                        });
+            }
+            catch
+            {
+                fails = true;
+            }
+            abortFeature(context, pairId);
+            if (fails)
+            {
+                // Alone, it meets the outline's walls; after another hole, that hole's
+                if (other != undefined)
+                {
+                    meeting = append(meeting, other);
+                }
+                break;
+            }
+        }
+    }
+    logLine(context, "Cutting the grown holes fails; " ~ size(failing) ~ " fail in turn, meeting " ~ (size(meeting) - size(failing)) ~
+            " others");
+    return meeting;
+}
+
+/**
+ * The part's faces and `face`'s edges where `holes` (bodies, their `sides` grown by `distance`) were before they were
+ * grown: the edges of `face` whose midpoints are `distance` from their sides. Or `face`, if there are none.
+ */
+function grownHolesOnPart(context is Context, face is Query, holes is Query, sides is Query, distance is ValueWithUnits) returns Query
+{
+    const holeSides = qIntersection([sides, qOwnedByBody(holes, EntityType.FACE)]);
+    const edges = filter(evaluateQuery(context, qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE)), function(edge)
+        {
+            const midpoint = evEdgeTangentLine(context, { "edge" : edge, "parameter" : 0.5 }).origin;
+            return abs(evDistance(context, { "side0" : holeSides, "side1" : midpoint }).distance - distance) < TOLERANCE.booleanDefaultTolerance * meter;
+        });
+    if (edges == [])
+    {
+        return face;
+    }
+    return qUnion([qUnion(edges), qSubtraction(qAdjacent(qUnion(edges), AdjacencyType.EDGE, EntityType.FACE), face)]);
 }
 
 /**

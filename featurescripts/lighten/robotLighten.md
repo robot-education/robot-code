@@ -58,6 +58,8 @@ where they come up, and show only once it's done; only the first reported shows.
 | Failed to round the walls' inside corners. | error | the hair fillet on the pockets' concave edges and the holes' corners fails | the same, the edges, and the fillet's error display |
 | Wall thickness is too large for the walls to fit the face's outline. | error | hollowing the pockets (their outlines) fails; "Wall thickness plus fillet radius is" with Fillet corners | the same, and the face |
 | Wall thickness is too large for the walls around the holes shown. | error | growing the holes fails; "plus fillet radius" as above | the same, and the faces and edges on the face of the holes which fail to grow on their own (`holesFailingGrowth`) |
+| The walls around the holes shown exactly meet other walls: change Wall thickness a little. | error | cutting the grown holes fails (`holesFailingCut` finds which); "Wall thickness or Fillet radius" with Fillet corners | the same, and those holes' faces and edges on the face, and the holes they meet |
+| Failed to cut the walls around the holes from the pockets. | error | cutting the grown holes fails, and no hole's cut fails on its own or after another's | the same, and the face |
 | Failed to inset the pocket shown. | error | enclosing a hollowed pocket fails | the same, and that pocket |
 | There's no room for pockets inside the walls. | error | hollowing encloses nothing: every pocket's narrower than twice the walls | the same, and the hollowed pockets |
 | The walls' inside corners are rounded 0.01 mm larger than the wall thickness. | info | setting the walls' inside corners to their exact radius fails | |
@@ -114,6 +116,7 @@ robotLighten
     --> opShell, opEnclose                         // 5. the outlines hollowed by wall + growth; keep what's inside
     --> opOffsetFace "growHoles", opBoolean        // 6. the holes grown by wall + growth, and cut from it
         --> holesFailingGrowth, partFaces          //    if growing fails: the holes which fail on their own
+        --> holesFailingCut, grownHolesOnPart      //    if cutting fails: the holes whose walls exactly meet others'
     --> opModifyFillet "exactCorners"              // 7. inside corners: exactly wall + growth (info if not)
 --> buildRibs --> buildRibGroup                    // each rib: a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
@@ -165,6 +168,14 @@ grown in a feature of its own which is always rolled back, only once growing the
 the part: its faces along them, and their edges on the face (`partFaces`), since the pockets' ends were moved out, so
 their own sides stick out of the part, and seen along the face's normal the faces are edge on. The shell's own error
 display isn't copied: it shows the pockets, sticking out of the part.
+
+Where the walls around a hole exactly meet another hole's (or the outline's), the pockets either side of where they
+meet touch along an edge, and cutting the grown holes fails (`BOOLEAN_NON_MANIFOLD_RESULT`): on Exercise 3's Inner
+Plate, its two 1 1/8 in bearing holes are 0.875 in apart, so 0.4375 in walls meet exactly. Its error says so, showing
+the holes which meet: `holesFailingCut` cuts them in turn, skipping those whose cut fails, and finds the hole each
+which fails meets (the one whose cut, followed by its own, fails, or none, if it fails alone: it meets the outline's
+walls), each try in a feature of its own which is always rolled back. The grown holes no longer have the part's
+edges, so they're shown where they were (`grownHolesOnPart`): the face's edges the inset from their sides.
 
 Splitting the holes off costs about 20 ms a feature on Robot Lighten's examples, and 40 ms on Exercise 3's plates (a
 dozen holes): two copies, a fill, a cut, the growth, and the cut of the grown holes, most of them a few milliseconds
@@ -269,6 +280,7 @@ the style guide's "Tolerances, not margins").
 | `roundPockets` (`try silent`) | Growing the pockets back | A warning, showing the pockets, cut smaller. |
 | `buildWalls` (`try silent`) | Setting the walls' inside corners to their exact radius | Info: they're a hair bigger. |
 | `holesFailingGrowth` (`try silent`) | Growing each hole on its own, once growing them all has failed | That hole isn't why; the feature it's in is rolled back either way. |
+| `holesFailingCut` (`try silent`) | Cutting each grown hole, in turn and after each other, once cutting them all has failed | That cut isn't why; the feature it's in is rolled back either way. |
 | `robotLightenEditLogic` (`try silent`) | Finding the face to fill in | Left as it is. |
 
 ## Method comparison
@@ -309,6 +321,12 @@ support.
   corners, with 0.8 in walls).
 - Untested in Onshape: the errors when hollowing the outline or growing the holes fails, and holes along faces to
   ignore or overrides.
+- At exact ties (walls which exactly meet, or a pocket exactly the bit), the result is degenerate: walls meeting at a
+  point fail the cut of the holes (see Walls), and a pocket exactly the bit's size is left a sliver a hair wide (the
+  walls are built the radius less a hair thicker, see Rounding), which growing back fails on (Robot Lighten Example 2,
+  with 0.25 in walls, fillets, and ribs).
+- Growing the pockets back failing is meant to be a warning, but copying the offset's status
+  (`processSubfeatureStatus`) after it makes it the feature's error, so the feature fails.
 - A narrow side next to a concave corner (one side of it a rib's or wall's corner) has no other corner to round
   across to, so its corner's left sharp with a warning.
 - Filleting each corner on its own costs a fillet per corner, where one fillet of all of them did before.
