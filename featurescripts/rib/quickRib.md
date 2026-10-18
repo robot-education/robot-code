@@ -7,16 +7,16 @@ run from points to an edge, meeting it square, or where a manipulator puts them.
 
 | File | What it is |
 | --- | --- |
-| `quickRib.fs` | The feature: its dialog, editing logic, and manipulators |
-| `quickRibs.fs` | The ribs: sketching them (`sketchQuickRibs`), the edge ribs' manipulators, finding Face to use, and clearing invalid selections |
+| `quickRib.fs` | The feature: its dialog, editing logic, and manipulators, and the ribs: sketching them (`sketchQuickRibs`), the edge ribs' manipulators, finding Face to use, and clearing invalid selections |
 | `quickRibIcon.py`, `quickRibIcon.svg` | Its icon (`fs gen` writes the `.svg`): a hub and spokes, white circles joined by gray ribs (see `docs/icons.md`) |
-| `../../tests/featurescript/quickRibs_test.fs` | Tests of the lines and circles it draws (`chainSegments`, `hubSegments`, `uniqueSegments`, `hubCircleRadius`) |
+| `../../tests/featurescript/quickRib_test.fs` | Tests of the lines and circles it draws (`chainSegments`, `hubSegments`, `uniqueSegments`, `hubCircleRadius`) |
 
 ## Changelog
 
 Unreleased. A feature of its own again, after a while folded into Robot lighten (whose Ribs to use takes its sketch's
 edges); it keeps what changed there: Location's bounds are std's fillet's for points on edges (0.001 to 0.999), Add
-circle's description, and the skipped warning.
+circle's description, and the skipped warning. One file again: the ribs moved into `quickRib.fs` from
+`quickRibs.fs`, whose tab is gone.
 
 ## Strings
 

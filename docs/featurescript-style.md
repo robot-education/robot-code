@@ -5,7 +5,7 @@ up to review.
 
 ## Formatting
 
-Format like std, with `fs format` or the editor's Format Document (see the README): line breaks are yours, the
+Format like std, with `fs format` or the editor's Format Document (see `fs-cli.md`): line breaks are yours, the
 indentation of blocks and the spacing within lines aren't.
 
 ## Definitions are maps
@@ -34,11 +34,13 @@ A feature's `definition` is a map, and each parameter its precondition declares 
 - An array parameter's value is an array of maps, one per item, each with its items' parameters as keys
   (`item.depth`). A lookup table's value (a `LookupTablePath`) maps each level's `"name"` to the option chosen there.
 - Editing logic and manipulator change functions take this map and return it changed; setting a key sets that
-  parameter. Subfeatures take a map too: calling std's `extrude` with our definition works because our features name
+  parameter. They must return only parameters: Onshape rejects a result with any other key ("Editing logic result:
+  Unknown parameter unitSystem") and applies none of it, so remove values computed for the body (set them to
+  `undefined`) before returning. `fs check` reports keys they set which the precondition doesn't declare. Subfeatures take a map too: calling std's `extrude` with our definition works because our features name
   their parameters as std's do (`endBound`, `depth`, `oppositeDirection`), and convert any of our own types first
   (see `transformDefintionForNewExtrude`).
 
-`fs ui` (see README.md) follows the same model: settings are keys (`--set depth=2in`, `--set items.0.depth=2in`), and
+`fs ui` (see `fs-cli.md`) follows the same model: settings are keys (`--set depth=2in`, `--set items.0.depth=2in`), and
 every parameter has its default value before the dialog is laid out, so conditions see the values Onshape's would.
 
 ## UI state: predicates, not editing logic
@@ -541,3 +543,29 @@ Onshape warns about a variable which is set but never used. Name one you don't n
   in array parameters' items, which Onshape rejects.
 - No map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string `"KEY"`;
   write `{ (KEY) : 1 }` to use KEY's value).
+
+## Doc comments
+
+Write doc comments like the std library's, which the hovers and signature help lay out like FsDoc
+(see `vscode-extension/server/fs_lsp/fsdoc.py`):
+
+```
+/**
+ * Extrudes faces. Refer to other functions like [qCreatedBy].
+ * @param id : @autocomplete `id + "extrude1"`
+ * @param definition {{
+ *      @field entities {Query} : Faces to extrude.
+ *      @field endDepth {ValueWithUnits} : @requiredif {`endBound` is `BLIND`.}
+ *              How far to extrude.
+ *              @eg `1 * inch`
+ *      @field startBound {BoundingType} : @optional
+ *              The type of start bound.
+ * }}
+ * @returns {Query} : The new bodies.
+ * @throws {GBTErrorStringEnum.BAD_GEOMETRY} : If there's nothing to extrude.
+ * @seealso [opRevolve]
+ */
+```
+
+Enums document their values with `@value NAME : description`, and `@internal` marks what isn't part of a module's
+interface.

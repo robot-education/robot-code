@@ -1,6 +1,6 @@
 """A FeatureScript evaluator: runs FeatureScript locally, for unit tests of code which doesn't model geometry
 (math, lookup tables, editing logic, manipulator change functions) and of sketches (which are recorded, not
-solved). See `fs_eval.interpreter`, and README's "Testing FeatureScript".
+solved). See `fs_eval.interpreter`, and `docs/testing.md`.
 
 ```
 evaluator = Evaluator()

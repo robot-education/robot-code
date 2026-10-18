@@ -1,8 +1,8 @@
 # Robot shaft
 
 Creates a shaft by extruding its profile from a point: a COTS shaft from vendors' tables, or a custom hex or spline
-shaft. Hex and SplineXS shafts can have their ends modified (tapped or clearance holes, retaining ring grooves, captive
-shaft ends), and shafts can be mirrored across an end.
+shaft. Hex and SplineXS shafts can have their ends modified (tapped or clearance holes, retaining ring or e-clip grooves,
+captive shaft ends), and shafts can be mirrored across an end.
 
 | File | What it is |
 | --- | --- |
@@ -65,6 +65,11 @@ Since v2.2.0 (`fs changes robotShaft`).
   FRC one's Shaft type, Hex type, and size), and is named for it (`56 mm REX Shaft`).
 - goBILDA's whole stainless steel REX catalog: 12mm REX without an e-clip (100, 140, and 180 mm, untapped) joins the
   8mm and 12mm with one.
+- E-clip, an end operation for custom metric hex (7 mm and 11 mm: 8 mm and 12 mm REX, and FRC custom shafts at those
+  sizes), in place of Retaining ring (`MetricEndOperation`, `MetricSecondEndOperation`): goBILDA's groove, 6 mm across
+  0.8 mm wide on 7 mm hex and 9 mm across 1 mm wide on 11 mm, its far side 4 mm from the end, which is extended 4 mm
+  for it, as for a retaining ring. E-clips go on from the side, so there's no Side mount ring, and the end isn't faced
+  off. Override groove diameter works as for a retaining ring, starting at goBILDA's.
 - Override groove diameter, for each end's retaining ring: a Groove diameter of its own, for rings other than the
   usual ones. Turned on, it starts at the usual groove (0.39 in. for 1/2 in. hex, 0.396 in. side mount; 0.352 in. for
   3/8 in. hex, 0.303 in. side mount), and is set back to it when the hex size or Side mount ring changes.
@@ -72,7 +77,6 @@ Since v2.2.0 (`fs changes robotShaft`).
 
 ### Fixes
 
-- Retaining rings on metric hex now give an error saying they aren't defined, instead of failing.
 - Captive shaft ends get default sizes for metric hex.
 
 The MAXSpline and SplineXL profiles are generated now (`splineProfiles.py`), with the same geometry: only a stray line
@@ -91,12 +95,12 @@ from the center to a tooth of the outside profiles, which didn't affect the shaf
 | --- | --- |
 | Mirror shaft (`mirrorShaft`) | Mirror the shaft across one of its ends. Useful when the shaft is modeled up to a plane of symmetry. |
 | Side mount ring (`firstEndSideMount`, `secondEndSideMount`) | Whether to use a side-mountable retaining ring. |
-| Groove diameter (`firstEndGrooveDiameter`, `secondEndGrooveDiameter`) | The diameter of the groove the retaining ring sits in. |
+| Groove diameter (`firstEndGrooveDiameter`, `secondEndGrooveDiameter`) | The diameter of the groove the retaining ring or e-clip sits in. |
 | Extend shaft (`extendFirstEnd`, `extendSecondEnd`) | Whether to extend the shaft to accommodate hardware. |
 
 Two parameters are hidden, set by editing logic from a COTS shaft's table entry (`withShaft`), as a precondition can't
 read a lookup table's levels: Preset shaft (`presetShaft`: it's sold in set lengths, so its length and ends are as
-sold) and Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown). Editing logic also sets
+sold; `isPresetLength` only reads it for FRC, as every FTC COTS shaft is) and Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown). Editing logic also sets
 some shown ones: each end's tapped Hole diameter (from its hole table), and
 its captive shaft Diameter and Length (from the shaft's size), and its Groove diameter (the ring's usual groove, when
 Override groove diameter is turned on, or the hex size or Side mount ring changes with it on). A COTS shaft's profile (`shaftType`, `hexType`,
@@ -112,13 +116,13 @@ decides whether Shaft ends is.
 | The shaft's ends must be flat. | error | an extruded end isn't planar (up to next onto a curved face) | `endBound`, the end |
 | The shaft end to mirror across must be planar. | error | Mirror on, and the mirrored end isn't planar | `flipMirrorEnd`, the end |
 | Modified shaft ends must be perpendicular to the direction of the shaft. | error | a modified end is slanted (up to a slanted face) | the end |
-| Failed to extend the shaft's end. | error | extending an end for a retaining ring or captive shaft fails | a captive end's Length and Extend shaft, or a retaining ring's end operation; the end |
+| Failed to extend the shaft's end. | error | extending an end for a retaining ring, e-clip, or captive shaft fails | a captive end's Length and Extend shaft, or a retaining ring's or e-clip's end operation; the end |
 | The captive shaft diameter is greater than the diameter of the shaft. | error | captive shaft Diameter is wider than the hex | the end's Diameter, a body showing the captive end |
 | Failed to cut the captive end. | error | cutting a captive end fails | the end's Diameter and Length, the tool |
 | Failed to cut the shaft's e-clip groove. | error | cutting a preset REX shaft's groove fails | `ftcShaft`; the shaft in blue, and the groove |
 | Failed to cut the retaining ring's groove. | error | cutting a groove fails | the end's Side mount ring (and Groove diameter, if overridden), the tool |
+| Failed to cut the e-clip's groove. | error | cutting a metric hex shaft's groove fails | the end's End operation (and Groove diameter, if overridden), the tool |
 | The groove diameter is larger than the shaft. | error | an overridden Groove diameter is as wide as the shaft across its corners, or wider | the end's Groove diameter; the shaft in blue, and the groove as entered in red |
-| Retaining ring grooves are only defined for 1/2 in. and 3/8 in. hex. | error | Retaining ring on 7 mm or 11 mm hex | `firstEndOperation`, `secondEndOperation` |
 | This shaft is only sold up to `<longest>` long. | warning | COTS, longer than its longest stock | |
 | std's hole errors | error | a tapped or clearance hole fails (std's `hole`, as a subfeature) | (std's) |
 | std's extrude errors | error | the extrude fails (std's `extrude`, as a subfeature) | (std's) |
@@ -144,7 +148,8 @@ Holes get std's hole attributes (they're made by std's `hole`).
 
 1. **Precondition**: Program, Source, location; the COTS table or the custom Shaft group; the Extrude group (std's
    extrude options, with `StockBoundingType` end types, and Mirror shaft; only Opposite direction and Starting offset
-   for a preset length, `isPresetLength`); Shaft ends, for hex and SplineXS shafts not at a preset length.
+   for a preset length, `isPresetLength`); Shaft ends, for hex and SplineXS shafts not at a preset length, with
+   metric hex's end operations (`isMetricHexShaft`) or the others.
    COTS shafts show Shaft ends by their profile, which editing logic copies into the definition (below).
 2. **Editing logic** (`robotShaftEditLogic`):
    1. `withShaft`: sets the unit system from the program, and copies a COTS shaft's profile (`shaftType`, `hexType`,
@@ -156,6 +161,9 @@ Holes get std's hole attributes (they're made by std's `hole`).
    3. For each end: if its hole table path changed (or the feature is new), sets its Hole diameter from
       the table (`applyTableDefinition`: a tapped hole's tap drill, or a clearance hole's diameter for its fit); if the shaft type or hex size changed (or the
       feature is new), sets its captive shaft Diameter and Length (`updateCaptiveShaftParameters`).
+   4. Removes `withShaft`'s `unitSystem` and `predrilledHoleDiameter`, which the body uses but aren't parameters:
+      Onshape rejects an editing logic result with keys the precondition doesn't declare ("Editing logic result:
+      Unknown parameter unitSystem"), and keeps none of it. `fs_eval_features_test.py` checks the result's keys.
 3. **Body**:
    1. `withShaft` again, then the profile is sketched at the location (`createShaftProfile`: a hexagon, or a spline's
       outside profile, plus its inside profile for tube splines or a predrilled hole for a solid one).
@@ -185,12 +193,12 @@ Holes get std's hole attributes (they're made by std's `hole`).
 | `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. A hole's diameter is the end's Hole diameter (from its hole table, or overridden). |
 | `modifyShaftEnd` | A hole: std's `hole` as a subfeature, tapped (blind) or clearance (through), at the end's center, with the definition's diameter and depth. A groove or captive end: `extendShaftEnd` (offsets the end face out by the hardware's length, if extending), then cuts a tool (`extrudeShaftGrooveTool`, `extrudeCaptiveShaftTool`) from the shaft (`cutShaft`). |
 | `cutFactoryFeatures` | A preset length's features as it's sold, from its table entry (`factoryGrooves`, `factoryHole`): grooves cut from its first end (or second, with Flip ends, `hasFactoryGrooves`), and a tapped hole in each end, from std's ISO or ANSI hole table. |
-| `getGrooveDefinition` | A retaining ring groove's diameter and width, and how far from the end it is, for 1/2 in. and 3/8 in. hex, side mount or not. `extrudeShaftGrooveTool` uses an end's Groove diameter instead, if it's overridden. |
+| `getGrooveDefinition` | A groove's diameter and width, and how far from the end it is: a retaining ring's for 1/2 in. and 3/8 in. hex, side mount or not, or an e-clip's for 7 mm and 11 mm. `extrudeShaftGrooveTool` uses an end's Groove diameter instead, if it's overridden. |
 | `grooveOverrideStarted`, `updateGrooveDiameter` | Editing logic: an end's Groove diameter is set to `getGrooveDefinition`'s when Override groove diameter is turned on, or the hex size or Side mount ring changes with it on. |
 | `measureShaftLength` | How far the shaft goes along its axis: its tight bounding box in the shaft plane's coordinates. |
 | `setCotsShaftProperties`, `setShaftProperties`, `setShaftName`, `shaftLengthString` | Properties and names, above. |
 | `robotShaftEditLogic`, `applyTableDefinition`, `updateCaptiveShaftParameters`, `activePathChanged`, `shaftChanged` | Editing logic, above. |
-| `getEndOperation`, `getTableAndPath`, `getShaftEndParameter`, `getShaftEndString` | Read an end's parameters (`firstEnd...` or `secondEnd...`); SplineXS ends are always tapped. |
+| `getEndOperation`, `getEndOperationParameter`, `getTableAndPath`, `getShaftEndParameter`, `getShaftEndString` | Read an end's parameters (`firstEnd...` or `secondEnd...`); SplineXS ends are always tapped, and a metric hex shaft's are its `...MetricOperation`, an e-clip read as a retaining ring (a groove). |
 
 ### Data flow
 
@@ -219,7 +227,8 @@ in blue, then rethrow (std's errors) or throw their own. COTS length problems ar
 
 ## Issues found
 
-- Retaining ring is offered for 7 mm and 11 mm hex, and errors there (clearly: "Retaining ring grooves are only defined
-  for 1/2 in. and 3/8 in. hex."). FeatureScript can't hide one value of an enum, so not offering it would take a
-  separate end operation enum for metric hex. goBILDA's REX shafts at their preset lengths have their e-clip grooves.
+- The end predicates (`isTappedFirstEnd`, `isGrooveFirstEnd`, ...) each repeat `isMetricHexShaft`'s condition, as
+  predicates in a precondition's `if`s can't call others; `fs_eval_features_test.py` checks each agrees with
+  `getEndOperation`.
+- Tapped ends on metric hex use the inch hole table (#8 to 5/16), though goBILDA taps REX M4.
 - goBILDA's 8mm REX standoffs (1516 series, aluminum, tapped M4) aren't in the table: they're sold as standoffs.

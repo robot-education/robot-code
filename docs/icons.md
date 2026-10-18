@@ -52,7 +52,7 @@ uv run fs icons featurescripts/plate/Plate_v2.svg featurescripts/lighten/robotLi
 the icons they're based on) in one picture to choose between: write each to its own file while trying them. Paths are
 simplified to within 0.02 units, which keeps an icon around 10 KB; check that `fs gen` hasn't made one much bigger.
 
-A feature imports its icon by path until it's pushed (see README's "Images"):
+A feature imports its icon by path until it's pushed (see "Images" in `fs-cli.md`):
 
 ```
 RobotLightenIcon::import(path : "lighten/robotLightenIcon.svg", version : "");

@@ -5,6 +5,7 @@
       "args": ["-i"]
     }
   },
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
   "editor.formatOnSave": true,
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
@@ -31,8 +32,9 @@
   "cSpell.flagWords": ["coincentric", "expresion"],
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.autoImportCompletions": true,
+  // The Python isn't formatted with a formatter (like Black), which would rewrite whole files
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
+    "editor.formatOnSave": false
   },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[jsonc]": {

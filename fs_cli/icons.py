@@ -17,6 +17,7 @@ import pathlib
 import subprocess
 import tempfile
 
+import shapely
 from shapely import affinity
 from shapely.geometry import LineString, Point, box
 from shapely.geometry.base import BaseGeometry
@@ -69,7 +70,9 @@ def sweep(shape: BaseGeometry, depth: float) -> BaseGeometry:
 
 def path(shape: BaseGeometry, tolerance: float = 0.02) -> str:
     """Shape as an SVG path's data, simplified to within tolerance."""
-    shape = shape.simplify(tolerance)
+    # Platforms' sines and cosines differ in their last bits, which decides between points simplifying could keep
+    # equally well; rounding first makes every platform keep the same ones
+    shape = shapely.transform(shape, lambda coordinates: coordinates.round(9)).simplify(tolerance)
     polygons = getattr(shape, "geoms", [shape])
     data = ""
     for polygon in polygons:

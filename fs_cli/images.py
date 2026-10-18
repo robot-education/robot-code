@@ -27,7 +27,7 @@ from concurrent import futures
 from fs_cli import git
 from fs_cli.remote import RemoteImage, image_type, safe_file_name
 from fs_cli.state import StudioState, image_hash, retarget_imports
-from fs_cli.workspace import Status, Targets, UsageError, Workspace
+from fs_cli.workspace import Status, Targets, UsageError, Workspace, list_until_found
 
 MAX_WORKERS = 8
 
@@ -83,7 +83,7 @@ class Images:
         needs the images which exist locally or are tracked), so images only in Onshape aren't found."""
         if not discover and not self.state.images and not self._local_paths():
             return []
-        images = self._match(self.remote.list_images(self.instance))
+        images = self._match(list_until_found(lambda: self.remote.list_images(self.instance), set(self.state.images)))
         if targets is not None:
             selected = [image for image in images if _targeted(targets, image)]
             for target in sorted(targets.paths | targets.names):

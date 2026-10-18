@@ -63,10 +63,10 @@ class StdMetadata:
     def save(self, std_dir: pathlib.Path) -> None:
         std_dir.mkdir(parents=True, exist_ok=True)
         (std_dir / METADATA_FILE).write_text(
-            json.dumps(dataclasses.asdict(self), indent=2, sort_keys=True) + "\n"
+            json.dumps(dataclasses.asdict(self), indent=2, sort_keys=True) + "\n", newline=""
         )
         (std_dir / "README.md").write_text(
-            README.format(version=self.version, source=self.source)
+            README.format(version=self.version, source=self.source), newline=""
         )
 
     @property
@@ -194,7 +194,7 @@ def _diff(std_dir: pathlib.Path, version: str, files: dict[str, str]) -> StdUpda
 def _write(std_dir: pathlib.Path, files: dict[str, str], update: StdUpdate) -> None:
     std_dir.mkdir(parents=True, exist_ok=True)
     for name in update.changed:
-        (std_dir / name).write_text(files[name])
+        (std_dir / name).write_text(files[name], newline="")
     for name in update.removed:
         (std_dir / name).unlink()
 

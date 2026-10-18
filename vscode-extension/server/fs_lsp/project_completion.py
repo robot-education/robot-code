@@ -2,7 +2,8 @@
 
 - Annotation keys (`annotation { "Na|`), and UIHint names in a "UIHint" value (`"UIHint" : ["SHOW_|`).
 - Members of enums declared in the project (`LightenEndType.|`): `completion.py` knows the file's own and std's.
-- The parameters a feature's precondition declares, after `definition.`.
+- The parameters a feature's precondition declares, after `definition.`: the features' whose definition reaches the
+  code (`Project.features_using`), with their types and names.
 - Names: what's in scope where the cursor is, what the file's imports declare, and what std declares (its visible
   modules', including what it marks `@internal`), with keywords. Std's documentation is filled in when an item is chosen (`resolve_item`).
 """
@@ -19,7 +20,7 @@ from fs_lsp.scanner import KEYWORDS
 from fs_lsp.stdlib import stdlib
 
 if TYPE_CHECKING:
-    from fs_lsp.project import Module, Project
+    from fs_lsp.project import FeatureParameter, Module, Project
 
 STD_PREFIX = "onshape/std/"
 
@@ -166,6 +167,21 @@ def _member_completions(project: Project, module: Module, target: str | None, st
         return None
     source = module.parsed.source
     if target == "definition":
+        parameters = definition_parameters(project, module, offset)
+        if parameters:
+            return [
+                lsp.CompletionItem(
+                    label=parameter.name,
+                    kind=lsp.CompletionItemKind.Field,
+                    detail=" - ".join(part for part in (parameter.type, parameter.label) if part) or "feature parameter",
+                    documentation=lsp.MarkupContent(
+                        kind=lsp.MarkupKind.Markdown, value=parameter_markdown(parameter, features)
+                    ),
+                    sort_text=f"{index:04d}",
+                    text_edit=lsp.TextEdit(_range(source, start, offset), parameter.name),
+                )
+                for index, (parameter, features) in enumerate(parameters)
+            ]
         names = _definition_parameters(project, module)
         return [
             lsp.CompletionItem(
@@ -190,6 +206,44 @@ def _member_completions(project: Project, module: Module, target: str | None, st
                 )
                 for member in members
             ] or None
+    return None
+
+
+def definition_parameters(project: Project, module: Module, offset: int) -> list[tuple[FeatureParameter, list[str]]]:
+    """The parameters of the features whose definition reaches the code at offset (`Project.features_using`), in
+    order, each with the names of the features declaring it."""
+    found: dict[str, tuple[FeatureParameter, list[str]]] = {}
+    for owner, feature in project.features_using(module, offset):
+        for parameter in project.feature_parameters(owner, feature):
+            found.setdefault(parameter.name, (parameter, []))[1].append(feature.name or "")
+    return list(found.values())
+
+
+def parameter_markdown(parameter: FeatureParameter, features: list[str]) -> str:
+    """A feature parameter's hover: its declaration, its name in the dialog, how it's shown, and where it's from."""
+    lines = [f"```featurescript\n{parameter.declaration}\n```"]
+    if parameter.label:
+        lines.append(f"**{parameter.label}**")
+    if parameter.kind == "hidden":
+        lines.append("Hidden (`ALWAYS_HIDDEN`): set by editing logic, not shown in the dialog")
+    elif parameter.kind == "horizontal":
+        lines.append("A horizontal enum (tabs at the top of the dialog)")
+    lines.append(f"Parameter of {', '.join(f'`{name}`' for name in features)}, declared in `{parameter.module.relative}`")
+    return "\n\n".join(lines)
+
+
+def definition_hover(project: Project, module: Module, offset: int) -> str | None:
+    """The hover for `definition.x` at offset, when x is a parameter of a feature whose definition reaches it."""
+    token = module.index.token_at(offset)
+    if token is None or token.kind != "identifier":
+        return None
+    dot = module.index.previous_token(token)
+    target = module.index.previous_token(dot) if dot is not None else None
+    if dot is None or dot.value not in (".", "?.") or target is None or target.value != "definition":
+        return None
+    for parameter, features in definition_parameters(project, module, offset):
+        if parameter.name == token.value:
+            return parameter_markdown(parameter, features)
     return None
 
 

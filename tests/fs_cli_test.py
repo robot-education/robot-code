@@ -2,6 +2,7 @@
 
 import collections
 import copy
+import http
 import itertools
 import json
 import pathlib
@@ -10,7 +11,7 @@ import subprocess
 
 import pytest
 
-from fs_cli import cli
+from fs_cli import cli, workspace
 from fs_cli.remote import RemoteImage, RemoteStudio, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
@@ -109,9 +110,10 @@ class FakeOnshape:
     def pull(self, instance, element_id):
         self.calls["pull"] += 1
         self.pulls += 1
-        return self.studios(instance.document_id, instance.instance_id)[element_id][
-            "code"
-        ]
+        studios = self.studios(instance.document_id, instance.instance_id)
+        if element_id not in studios:
+            raise ApiError("Not found", http.HTTPStatus.NOT_FOUND)
+        return studios[element_id]["code"]
 
     def push(self, instance, element_id, code):
         self.calls["push"] += 1
@@ -188,6 +190,8 @@ class FakeOnshape:
 
 @pytest.fixture
 def repo(tmp_path, monkeypatch) -> pathlib.Path:
+    # Tabs deleted in the fake are gone at once, so don't wait to list them again
+    monkeypatch.setattr(workspace, "RELIST_DELAYS", (0, 0))
     (tmp_path / "pyproject.toml").write_text(
         f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nfrontend_beta = "{BETA}"\n'
     )
@@ -255,17 +259,79 @@ def test_push_creates_new_studios(repo, onshape):
     assert onshape.code("new.fs") == "new"
 
 
-def test_push_refuses_to_overwrite_onshape_changes(repo, onshape, capsys):
+def test_push_leaves_onshape_changes_alone(repo, onshape, capsys):
     element_id = onshape.add("frame.fs", "a")
     run(onshape, "pull")
     onshape.edit(element_id, "edited in onshape")
 
-    assert run(onshape, "push") == 1
-    assert "changed in Onshape" in capsys.readouterr().out
+    # Unchanged locally, so it isn't downloaded to see what changed
+    pulls = onshape.pulls
+    assert run(onshape, "push") == 0
+    assert onshape.pulls == pulls
     assert onshape.code("frame.fs") == "edited in onshape"
 
+    capsys.readouterr()
+    run(onshape, "status")
+    assert Status.REMOTE_CHANGES.value in capsys.readouterr().out
     assert run(onshape, "pull") == 0
     assert local(repo, "frame.fs").read_text() == "edited in onshape"
+
+
+def test_tabs_missing_from_a_lagging_listing_are_not_recreated(repo, onshape, monkeypatch, capsys):
+    write(repo, "core/stdRevolve.fs", "revolve")
+    run(onshape, "push")
+    element_id = next(iter(onshape.studios()))
+    local(repo, "core/stdRevolve.fs").write_text("revolve2")
+
+    # Like Onshape's listing seconds after a tab is created: missing from the first listing, there on the next
+    listings = []
+    list_studios = onshape.list_studios
+
+    def lagging(instance):
+        listings.append(instance)
+        studios = list_studios(instance)
+        return [s for s in studios if s.element_id != element_id] if len(listings) == 1 else studios
+
+    monkeypatch.setattr(onshape, "list_studios", lagging)
+    assert run(onshape, "push") == 0
+    assert list(onshape.studios()) == [element_id]
+    assert onshape.code("stdRevolve.fs") == "revolve2"
+
+    # Missing from every listing but still there: stops rather than recreating it
+    monkeypatch.setattr(onshape, "list_studios", lambda instance: [])
+    local(repo, "core/stdRevolve.fs").write_text("revolve3")
+    assert run(onshape, "push") == 2
+    assert "but the tab is still there" in capsys.readouterr().err
+    assert list(onshape.studios()) == [element_id]
+
+
+def test_push_force_overwrites_onshape_changes(repo, onshape):
+    element_id = onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    onshape.edit(element_id, "edited in onshape")
+    assert run(onshape, "push", "--force") == 0
+    assert onshape.code("frame.fs") == "a"
+
+
+def test_push_doesnt_download_studios_whose_imports_onshape_updated(repo, onshape, capsys):
+    utils = onshape.add("utils.fs", "utils")
+    frame = onshape.add("frame.fs", f'import(path : "{utils}", version : "{OLD}");\nframe\n')
+    run(onshape, "pull")
+    # Onshape updates the versions of imports between pushes, changing the microversions of the studios importing them
+    onshape.edit(frame, f'import(path : "{utils}", version : "{NEW}");\nframe\n')
+    local(repo, "utils.fs").write_text("utils2")
+
+    onshape.calls.clear()
+    assert run(onshape, "push") == 0
+    assert "pull" not in onshape.calls
+    assert onshape.code("utils.fs") == "utils2"
+
+    # Still checked by status and pull, which applies the new import version
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "import versions updated in Onshape  (fs pull applies them)" in capsys.readouterr().out
+    run(onshape, "pull")
+    assert onshape.code("frame.fs") == local(repo, "frame.fs").read_text()
 
 
 def test_conflicts_require_force(repo, onshape):
@@ -281,6 +347,32 @@ def test_conflicts_require_force(repo, onshape):
 
     assert run(onshape, "push", "--force") == 0
     assert onshape.code("frame.fs") == "local"
+
+
+@pytest.mark.parametrize("answer, pushed", [("", True), ("y", True), ("n", False)])
+def test_push_asks_to_overwrite_onshape_changes(repo, onshape, monkeypatch, capsys, answer, pushed):
+    element_id = onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    onshape.edit(element_id, "remote")
+    local(repo, "frame.fs").write_text("local")
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    questions = []
+    monkeypatch.setattr("builtins.input", lambda question: questions.append(question) or answer)
+    assert run(onshape, "push") == (0 if pushed else 1)
+    assert "frame.fs  changed locally and in Onshape" in capsys.readouterr().out
+    assert questions and "[Y/n]" in questions[0] and "fs pull --force" in questions[0]
+    assert onshape.code("frame.fs") == ("local" if pushed else "remote")
+
+
+def test_push_skips_onshape_changes_without_a_terminal(repo, onshape, capsys):
+    element_id = onshape.add("frame.fs", "a")
+    run(onshape, "pull")
+    onshape.edit(element_id, "remote")
+    local(repo, "frame.fs").write_text("local")
+    assert run(onshape, "push") == 1
+    assert "`fs push --force` overwrites them" in capsys.readouterr().out
+    assert onshape.code("frame.fs") == "remote"
 
 
 def test_pull_keeps_local_changes(repo, onshape):
@@ -783,7 +875,8 @@ def test_import_version_changes_are_not_conflicts(repo, onshape, capsys):
     assert "import versions updated in Onshape" in out
     assert local(repo, "b.fs").read_text() == importing(OLD)
 
-    assert run(onshape, "push") == 0
+    # Push doesn't download it (it's unchanged locally), so pull applies them
+    assert run(onshape, "pull") == 0
     assert "Updated import versions in b.fs" in capsys.readouterr().out
     assert local(repo, "b.fs").read_text() == importing(NEW)
     assert onshape.code("b.fs") == importing(NEW)
@@ -1641,6 +1734,20 @@ def test_pushing_a_changed_image_updates_its_imports(repo, onshape, capsys):
     assert "everything in sync" in capsys.readouterr().out
 
 
+def test_pushing_an_image_leaves_importers_changed_in_onshape_alone(repo, onshape):
+    icon = onshape.add_image("robotIcon.svg", ICON)
+    old = onshape.images()[icon]["mv"]
+    feature = onshape.add("robotFeature.fs", image_import(icon, old))
+    run(onshape, "pull")
+    edited = image_import(icon, old) + "edited in onshape\n"
+    onshape.edit(feature, edited)
+    local(repo, "robotIcon.svg").write_bytes(b"<svg>new</svg>")
+
+    # The importer is checked before it's pushed for its new import
+    assert run(onshape, "push") == 0
+    assert onshape.code("robotFeature.fs") == edited
+
+
 def test_images_changed_in_onshape_are_pulled(repo, onshape, capsys):
     icon = onshape.add_image("robotIcon.svg", ICON)
     run(onshape, "pull")
@@ -1689,7 +1796,7 @@ def test_moved_images_are_followed(repo, onshape, capsys):
     icon = onshape.add_image("robotIcon.svg", ICON)
     run(onshape, "pull")
     write(repo, "core/robotIcon.svg", "")
-    local(repo, "robotIcon.svg").rename(local(repo, "core/robotIcon.svg"))
+    local(repo, "robotIcon.svg").replace(local(repo, "core/robotIcon.svg"))
     capsys.readouterr()
     run(onshape, "status")
     assert "renamed from robotIcon.svg" in capsys.readouterr().out

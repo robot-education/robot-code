@@ -144,7 +144,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     trimmed = trim(load_spec(args.spec))
-    OUTPUT.write_text(json.dumps(trimmed, indent=2, sort_keys=False) + "\n")
+    OUTPUT.write_text(json.dumps(trimmed, indent=2, sort_keys=False) + "\n", newline="")
     print(
         f"Wrote {len(trimmed['paths'])} paths and {len(trimmed['components']['schemas'])} schemas to {OUTPUT}."
     )

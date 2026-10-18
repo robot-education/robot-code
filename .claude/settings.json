@@ -16,7 +16,8 @@
       "Bash(git status *)",
       "Bash(git diff *)",
       "Bash(git log *)",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "ClaudeInChromeDomain(cad.onshape.com)"
     ]
   }
 }

@@ -7,6 +7,8 @@ import threading
 import queue
 
 import pytest
+from pygls.uris import from_fs_path
+
 
 SOURCE = "\n".join(
     [
@@ -229,7 +231,7 @@ def test_std_navigation(tmp_path):
     )
     (tmp_path / "featurescripts" / "feature.fs").write_text(feature_source)
     uri = (tmp_path / "featurescripts" / "feature.fs").as_uri()
-    std_uri = (tmp_path / "std" / "geomOperations.fs").as_uri()
+    std_uri = from_fs_path(str(tmp_path / "std" / "geomOperations.fs"))
     client = Client()
     try:
         client.request("initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}})
@@ -260,7 +262,7 @@ def test_std_navigation(tmp_path):
         [link] = client.request(
             "textDocument/definition", {"textDocument": {"uri": std_uri}, "position": {"line": 2, "character": 50}}
         )
-        assert link["targetUri"] == (tmp_path / "std" / "context.fs").as_uri()
+        assert link["targetUri"] == from_fs_path(str(tmp_path / "std" / "context.fs"))
     finally:
         client.close()
 

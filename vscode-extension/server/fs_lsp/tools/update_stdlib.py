@@ -671,8 +671,8 @@ def regenerate(std_dir: pathlib.Path = STD_DIR) -> str:
     if not files:
         raise ValueError(f"No std .fs files were found in {std_dir}.")
     symbols, metadata = generate(files)
-    SYMBOLS_PATH.write_text(json.dumps(symbols, indent=2, ensure_ascii=False) + "\n")
-    METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n")
+    SYMBOLS_PATH.write_text(json.dumps(symbols, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="")
+    METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="")
     return f"{len(symbols)} symbols, {len(metadata['enums'])} enums, and {len(metadata['features'])} features"
 
 

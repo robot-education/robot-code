@@ -49,6 +49,8 @@ STD_UNIQUE_KINDS = frozenset(["constant", "enum", "type", "unit"])
 CALLABLE_KINDS = frozenset(["function", "predicate"])
 # Annotation keys whose values name a function (in the file, or one it imports) by its name
 FUNCTION_ANNOTATION_KEYS = frozenset(["Manipulator Change Function", "Editing Logic Function"])
+CALLABLE_KINDS = frozenset(["function", "predicate"])
+ASSIGNMENT_OPERATORS = frozenset(["=", "+=", "-=", "*=", "/=", "~=", "||=", "&&="])
 # Annotation keys whose values (or values in an array) name a member of a std enum, e.g. `"UIHint" : ["SHOW_LABEL"]`
 ENUM_ANNOTATION_KEYS = {"UIHint": "UIHint"}
 
@@ -66,7 +68,15 @@ ANNOTATION_KEYS = frozenset(
     ]
 )
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
-PARAMETER_PREDICATES = frozenset(["isLength", "isAngle", "isInteger", "isReal", "isAnything", "isButton"])
+# The std predicates which declare parameters, and the types of the parameters they declare
+PARAMETER_PREDICATES = {
+    "isLength": "length",
+    "isAngle": "angle",
+    "isInteger": "integer",
+    "isReal": "number",
+    "isAnything": "anything",
+    "isButton": "button",
+}
 
 Severity = Literal["error", "warning"]
 
@@ -109,6 +119,19 @@ class Problem:
     message: str
     code: str
     unnecessary: bool = False
+
+
+@dataclasses.dataclass(slots=True)
+class FeatureParameter:
+    """A parameter a feature's precondition declares."""
+
+    name: str
+    type: str | None  # Its type (`Program`, `LookupTablePath`), or for isLength and the like, "length" and so on
+    label: str | None  # Its annotation's literal "Name"
+    kind: str  # "horizontal", "hidden", or "shown" (see `_declared_parameters`)
+    module: Module  # Where it's declared: the feature's file, or a predicate's
+    token: Token  # Its name, where it's declared
+    declaration: str  # How it's declared, on `definition`: `definition.x is Program` or `isLength(definition.x, ...)`
 
 
 @dataclasses.dataclass(slots=True)
@@ -233,6 +256,10 @@ class Project:
         self._modules: dict[pathlib.Path, tuple[object, Module]] = {}
         self._element_ids: tuple[object, dict[str, pathlib.Path]] | None = None
         self._precondition_predicate_cache: tuple[tuple[int, ...], set[tuple[pathlib.Path, int]]] | None = None
+        # The functions each feature's definition reaches, by (path, feature start), for the modules as they were
+        self._reach_cache: tuple[tuple[int, ...], dict[tuple[pathlib.Path, int], list[tuple[Module, AstNode, str]]]] | None = None
+        # The keys each feature's definition can have (see `_feature_keys`), by (path, feature start), as _reach_cache
+        self._feature_key_cache: dict[tuple[pathlib.Path, int], set[str]] = {}
         # Whether each std predicate declares parameters which can be toleranced (see _std_tolerant)
         self._std_tolerant_cache: dict[str, bool] = {}
         # While a snapshot is taken (see `snapshot`): how deep, and its files, resolved paths, and modules
@@ -877,6 +904,8 @@ class Project:
         problems.extend(self._parameter_enum_problems(module, providers))
         problems.extend(self._precondition_predicate_problems(module, providers))
         problems.extend(self._duplicate_parameter_problems(module))
+        problems.extend(self._editing_logic_key_problems(module))
+        problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
         problems.extend(_annotation_key_problems(module))
         problems.extend(self._array_group_problems(module))
@@ -1243,6 +1272,358 @@ class Project:
                 )
         return _dedupe_problems(problems)
 
+    def _editing_logic_key_problems(self, module: Module) -> list[Problem]:
+        """Keys a feature's editing logic or manipulator change function sets on the definition it returns which the
+        feature's precondition doesn't declare.
+
+        Onshape rejects such a result ("Editing logic result: Unknown parameter unitSystem") and applies none of it.
+        The function is followed into the project functions it passes the definition to and takes it back from
+        (`definition = withShaft(definition);`, or `return f(definition);`). A key set to `undefined` anywhere along
+        the way counts as removed. Keys built from strings (`definition[end ~ "HoleDiameter"]`) need a declared
+        parameter ending as they do; other computed keys aren't checked.
+        """
+        problems = []
+        for feature in module.parsed.nodes:
+            if feature.type != "FeatureDeclaration" or _feature_precondition(module, feature) is None:
+                continue
+            declared = {parameter.name for parameter in self.feature_parameters(module, feature)}
+            # By the annotation string naming the function
+            writes: dict[int, tuple[Token, list[tuple[str, bool, Module, Token, str]], set[str]]] = {}
+            for _, token, owner, declaration, map_name in self._feature_functions(module, feature):
+                _, sets, removed = writes.setdefault(token.offset, (token, [], set()))
+                self._definition_writes(owner, declaration, map_name, sets, removed, set())
+            for token, sets, removed in writes.values():
+                name = token.value[1:-1]
+                for key, is_suffix, owner, at, function in sets:
+                    if is_suffix:
+                        if any(parameter.endswith(key) for parameter in declared):
+                            continue
+                        what = f'a key ending "{key}"'
+                    elif key in declared or key in removed:
+                        continue
+                    else:
+                        what = key
+                    where = "" if function == name else f" (in {function})"
+                    message = (
+                        f"{name} sets {what}{where}, which {feature.name}'s precondition doesn't declare: Onshape "
+                        'rejects the result ("Unknown parameter") and applies none of it. Set it to undefined before '
+                        "returning, or keep it out of the definition."
+                    )
+                    report = at if owner is module else token
+                    problems.append(Problem(report.offset, report.end, "error", message, "unknown-parameter"))
+        return _dedupe_problems(problems)
+
+    def _definition_writes(
+        self,
+        module: Module,
+        declaration: Declaration,
+        map_name: str,
+        sets: list[tuple[str, bool, Module, Token, str]],
+        removed: set[str],
+        seen: set[tuple[pathlib.Path, int, str]],
+    ) -> None:
+        """The keys a function sets on map_name (one of its parameters) and passes back, into `sets` as (key, whether
+        it's a suffix, module, token, function), and those it sets to undefined, into `removed`; following the project
+        functions it passes map_name to and takes it back from (see `_editing_logic_key_problems`)."""
+        key = (module.path, declaration.token.offset, map_name)
+        node = _function_node(module, declaration)
+        if key in seen or node is None:
+            return
+        seen.add(key)
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+
+        def value(index: int) -> str | None:
+            return tokens[index].value if 0 <= index < len(tokens) else None
+
+        def assigned_undefined(index: int) -> bool:
+            return value(index) == "=" and value(index + 1) == "undefined" and value(index + 2) == ";"
+
+        for index, token in enumerate(tokens):
+            if not node.start <= token.offset < node.end or token.value != map_name or token.kind != "identifier":
+                continue
+            if value(index - 1) in (".", "?."):
+                continue  # Someone else's member
+            if value(index + 1) == "." and value(index + 3) in ASSIGNMENT_OPERATORS:
+                name = tokens[index + 2]
+                if assigned_undefined(index + 3):
+                    removed.add(name.value)
+                else:
+                    sets.append((name.value, False, module, name, declaration.name))
+            elif value(index + 1) == "[":
+                close, depth = index + 1, 0
+                for close in range(index + 1, len(tokens)):
+                    depth += {"[": 1, "]": -1}.get(tokens[close].value, 0)
+                    if depth == 0:
+                        break
+                if value(close + 1) not in ASSIGNMENT_OPERATORS:
+                    continue
+                inside = tokens[index + 2 : close]
+                if len(inside) == 1 and inside[0].kind == "string":
+                    if assigned_undefined(close + 1):
+                        removed.add(inside[0].value[1:-1])
+                    else:
+                        sets.append((inside[0].value[1:-1], False, module, inside[0], declaration.name))
+                elif len(inside) >= 2 and inside[-2].value == "~" and inside[-1].kind == "string":
+                    sets.append((inside[-1].value[1:-1], True, module, inside[-1], declaration.name))
+            elif value(index + 1) == "=" and value(index + 3) == "(":
+                # `definition = f(..., definition, ...)`
+                self._follow_call(module, tokens, index + 2, map_name, providers, sets, removed, seen)
+        # `return f(..., definition, ...)`
+        for index, token in enumerate(tokens):
+            if node.start <= token.offset < node.end and token.value == "return" and value(index + 2) == "(":
+                self._follow_call(module, tokens, index + 1, map_name, providers, sets, removed, seen)
+
+    def _follow_call(
+        self,
+        module: Module,
+        tokens: list[Token],
+        call: int,
+        map_name: str,
+        providers: dict[str, list[Provider]],
+        sets: list[tuple[str, bool, Module, Token, str]],
+        removed: set[str],
+        seen: set[tuple[pathlib.Path, int, str]],
+    ) -> None:
+        """Follows a call at tokens[call] into the project functions it may be to, for the parameter map_name is
+        passed as."""
+        arguments = _call_arguments(tokens, call + 1)
+        at = next((i for i, argument in enumerate(arguments) if [t.value for t in argument] == [map_name]), None)
+        if at is None:
+            return
+        for owner, declaration in self._function_targets(module, tokens[call], providers):
+            node = _function_node(owner, declaration)
+            names = _parameter_names(owner, node) if node is not None else []
+            if at < len(names):
+                self._definition_writes(owner, declaration, names[at], sets, removed, seen)
+
+    def _function_targets(
+        self, module: Module, token: Token, providers: dict[str, list[Provider]], kinds: frozenset[str] = frozenset(["function"])
+    ) -> list[tuple[Module, Declaration]]:
+        """The project functions (or other `kinds`, like predicates) a call in module may be to, every overload, with
+        the modules declaring them."""
+        local = module.index.declaration_for_token(token)
+        if local is not None:
+            return [(module, local)] if local.kind in kinds else []
+        targets = [
+            (module, declaration) for declaration in module.top_level.get(token.value, []) if declaration.kind in kinds
+        ]
+        return targets + [
+            (provider.module, provider.declaration)
+            for provider in providers.get(token.value, [])
+            if provider.declaration.kind in kinds
+        ]
+
+    def feature_parameters(self, module: Module, feature: AstNode) -> list[FeatureParameter]:
+        """The parameters a feature's precondition declares, directly or through predicates, in order."""
+        precondition = _feature_precondition(module, feature)
+        if precondition is None:
+            return []
+        details: list[FeatureParameter] = []
+        self._declared_parameters(module, precondition.start, precondition.end, "definition", frozenset(), details)
+        unique: dict[str, FeatureParameter] = {}
+        for parameter in details:
+            unique.setdefault(parameter.name, parameter)
+        return list(unique.values())
+
+    def _feature_functions(self, module: Module, feature: AstNode) -> list[tuple[str, Token, Module, Declaration, str]]:
+        """A feature's editing logic and manipulator change functions: (annotation key, the annotation's string, the
+        module declaring the function, its declaration, and the name of its definition parameter)."""
+        annotation = _feature_annotation(module, feature)
+        if annotation is None:
+            return []
+        found = []
+        for token in module.index.tokens:
+            if not annotation.start <= token.offset < annotation.end:
+                continue
+            named = annotation_string(module, token)
+            if named is None or named[0] not in FUNCTION_ANNOTATION_KEYS:
+                continue
+            # Onshape's signatures: (context, id, oldDefinition, definition, ...) and (context, definition, ...)
+            position = 3 if named[0] == "Editing Logic Function" else 1
+            for owner, declaration in self._annotation_function(module, token):
+                node = _function_node(owner, declaration)
+                names = _parameter_names(owner, node) if node is not None else []
+                if position < len(names):
+                    found.append((named[0], token, owner, declaration, names[position]))
+        return found
+
+    def features_using(self, module: Module, offset: int) -> list[tuple[Module, AstNode]]:
+        """The features whose definition reaches the code at offset: their own declarations (precondition and body),
+        their editing logic and manipulator change functions, and the project functions and predicates any of those
+        pass their definition to (by its name, as an argument), as far as it's passed on. The features in module are tried first,
+        then every feature in the project."""
+        here = [(module, node) for node in module.parsed.nodes if node.type == "FeatureDeclaration"]
+        self._refresh_reach_cache()
+        for owner, feature in here:
+            if feature.start <= offset < feature.end:
+                return [(owner, feature)]
+
+        def reaching(candidates: list[tuple[Module, AstNode]]) -> list[tuple[Module, AstNode]]:
+            return [
+                (owner, feature)
+                for owner, feature in candidates
+                if any(
+                    reached is module and node.start <= offset < node.end
+                    for reached, node, _ in self._functions_reached(owner, feature)
+                )
+            ]
+
+        found = reaching(here)
+        if found:
+            return found
+        others = [
+            (owner, node)
+            for owner in self.modules()
+            if owner is not module
+            for node in owner.parsed.nodes
+            if node.type == "FeatureDeclaration"
+        ]
+        return reaching(others)
+
+    def _refresh_reach_cache(self) -> None:
+        """Forgets the functions features' definitions reach if any module has changed."""
+        key = tuple(id(owner) for owner in self.modules())
+        if self._reach_cache is None or self._reach_cache[0] != key:
+            self._reach_cache = (key, {})
+            self._feature_key_cache = {}
+
+    def _functions_reached(self, module: Module, feature: AstNode) -> list[tuple[Module, AstNode, str]]:
+        """The FunctionDeclaration and PredicateDeclaration nodes a feature's definition reaches (see
+        `features_using`), each with the name of its parameter the definition is."""
+        if self._reach_cache is None:
+            self._refresh_reach_cache()
+        assert self._reach_cache is not None
+        cached = self._reach_cache[1].get((module.path, feature.start))
+        if cached is not None:
+            return cached
+        seen: set[tuple[pathlib.Path, int, str]] = set()
+        found: list[tuple[Module, AstNode, str]] = []
+        self._reach(module, feature.start, feature.end, "definition", seen, found)
+        for _, _, owner, declaration, map_name in self._feature_functions(module, feature):
+            node = _function_node(owner, declaration)
+            if node is not None and (owner.path, node.start, map_name) not in seen:
+                seen.add((owner.path, node.start, map_name))
+                found.append((owner, node, map_name))
+                self._reach(owner, node.start, node.end, map_name, seen, found)
+        self._reach_cache[1][(module.path, feature.start)] = found
+        return found
+
+    def _reach(
+        self,
+        module: Module,
+        start: int,
+        end: int,
+        map_name: str,
+        seen: set[tuple[pathlib.Path, int, str]],
+        found: list[tuple[Module, AstNode, str]],
+    ) -> None:
+        """Adds to `found` the project functions and predicates a region passes map_name to, and those they pass it
+        on to."""
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+        first = bisect.bisect_left(tokens, start, key=lambda token: token.offset)
+        for position in range(first, len(tokens)):
+            token = tokens[position]
+            if token.offset >= end:
+                break
+            if token.kind != "identifier" or position + 1 >= len(tokens) or tokens[position + 1].value != "(":
+                continue
+            arguments = _call_arguments(tokens, position + 1)
+            at = next((i for i, argument in enumerate(arguments) if [t.value for t in argument] == [map_name]), None)
+            if at is None:
+                continue
+            for owner, declaration in self._function_targets(module, token, providers, CALLABLE_KINDS):
+                node = _function_node(owner, declaration) or _predicate_node(owner, declaration)
+                if node is None:
+                    continue
+                names = _parameter_names(owner, node)
+                if at >= len(names) or (owner.path, node.start, names[at]) in seen:
+                    continue
+                seen.add((owner.path, node.start, names[at]))
+                found.append((owner, node, names[at]))
+                self._reach(owner, node.start, node.end, names[at], seen, found)
+
+    def _feature_keys(self, module: Module, feature: AstNode) -> set[str]:
+        """The keys a feature's definition can have: the parameters its precondition declares, and every key set on
+        it where it reaches (`definition.x = ...`, `definition["x"] = ...`, or a literal map merged into it,
+        `definition = mergeMaps(definition, { "x" : ... })`), in any order."""
+        self._refresh_reach_cache()
+        cache_key = (module.path, feature.start)
+        if cache_key in self._feature_key_cache:
+            return self._feature_key_cache[cache_key]
+        keys = {parameter.name for parameter in self.feature_parameters(module, feature)}
+        for owner, node, map_name in [(module, feature, "definition"), *self._functions_reached(module, feature)]:
+            tokens = owner.index.tokens
+            first = bisect.bisect_left(tokens, node.start, key=lambda token: token.offset)
+            for index in range(first, len(tokens)):
+                token = tokens[index]
+                if token.offset >= node.end:
+                    break
+                if token.value != map_name or (index and tokens[index - 1].value in (".", "?.")):
+                    continue
+                following = [t.value for t in tokens[index + 1 : index + 6]]
+                if len(following) >= 3 and following[0] == "." and following[2] in ASSIGNMENT_OPERATORS:
+                    keys.add(following[1])
+                elif len(following) >= 3 and following[0] == "[" and following[2] == "]" and tokens[index + 2].kind == "string":
+                    keys.add(following[1][1:-1])
+                elif following[:3] == ["=", "mergeMaps", "("]:
+                    arguments = _call_arguments(tokens, index + 3)
+                    if len(arguments) == 2 and [t.value for t in arguments[0]] == [map_name]:
+                        keys.update(
+                            entry[0].value[1:-1]
+                            for entry in _map_entries(arguments[1])
+                            if entry and entry[0].kind == "string"
+                        )
+        self._feature_key_cache[cache_key] = keys
+        return keys
+
+    def _unknown_key_problems(self, module: Module) -> list[Problem]:
+        """Reads of a feature's definition (`definition.x`) in code its definition reaches (see `features_using`) of
+        keys no feature reaching it has: not a parameter, nor set on it anywhere it reaches (see `_feature_keys`).
+        Usually a misspelled or renamed parameter. Optional reads (`definition?.x`) and computed keys aren't checked.
+        """
+        self._refresh_reach_cache()
+        # Each region of module some feature's definition reaches: its node, the definition's name there, and the
+        # features reaching it
+        regions: dict[tuple[int, str], tuple[AstNode, str, list[tuple[Module, AstNode]]]] = {}
+        features = [
+            (owner, node) for owner in self.modules() for node in owner.parsed.nodes if node.type == "FeatureDeclaration"
+        ]
+        for owner, feature in features:
+            for reached, node, map_name in [(owner, feature, "definition"), *self._functions_reached(owner, feature)]:
+                if reached is module:
+                    regions.setdefault((node.start, map_name), (node, map_name, []))[2].append((owner, feature))
+        problems = []
+        tokens = module.index.tokens
+        for node, map_name, reaching in regions.values():
+            keys = set().union(*(self._feature_keys(owner, feature) for owner, feature in reaching))
+            names = sorted({feature.name or "" for _, feature in reaching})
+            first = bisect.bisect_left(tokens, node.start, key=lambda token: token.offset)
+            for index in range(first, len(tokens) - 2):
+                token = tokens[index]
+                if token.offset >= node.end:
+                    break
+                if token.value != map_name or tokens[index + 1].value != "." or tokens[index + 2].kind != "identifier":
+                    continue
+                if index and tokens[index - 1].value in (".", "?."):
+                    continue  # Someone else's member
+                key = tokens[index + 2]
+                if key.value in keys:
+                    continue
+                close = difflib.get_close_matches(key.value, sorted(keys), n=1)
+                problems.append(
+                    Problem(
+                        key.offset,
+                        key.end,
+                        "warning",
+                        f"{key.value} isn't a parameter of {', '.join(names)}, or set on {'its' if len(names) == 1 else 'their'} "
+                        f"definition anywhere it reaches" + (f": did you mean {close[0]}?" if close else "."),
+                        "unknown-key",
+                    )
+                )
+        return _dedupe_problems(problems)
+
     def _horizontal_enum_problems(self, module: Module) -> list[Problem]:
         """Horizontal enums (the tabs across a dialog) after other parameters: they go at the top of a feature's
         dialog, before anything else shown (hidden parameters don't count), directly or through predicates (see
@@ -1416,11 +1797,17 @@ class Project:
         return result
 
     def _declared_parameters(
-        self, module: Module, start: int, end: int, map_name: str, path: frozenset[tuple[pathlib.Path, int]]
+        self,
+        module: Module,
+        start: int,
+        end: int,
+        map_name: str,
+        path: frozenset[tuple[pathlib.Path, int]],
+        details: list[FeatureParameter] | None = None,
     ) -> list[tuple[str, Token, str]]:
         """The parameters a region of a precondition declares on map_name, in order, and through the predicates it
         passes map_name to (reported at the call), each with its kind from its annotation: "horizontal" (a horizontal
-        enum), "hidden" (ALWAYS_HIDDEN), or "shown".
+        enum), "hidden" (ALWAYS_HIDDEN), or "shown". With `details`, each is also added to it as a FeatureParameter.
 
         A declaration is a statement `map_name.x is Type;` or `isLength(map_name.x, ...);` (see PARAMETER_PREDICATES).
         """
@@ -1435,8 +1822,25 @@ class Project:
             text = module.parsed.source[annotation.start : annotation.end] if annotation is not None else ""
             return "horizontal" if "HORIZONTAL_ENUM" in text else "hidden" if "ALWAYS_HIDDEN" in text else "shown"
 
+        def label(position: int) -> str | None:
+            annotation = annotations.get(tokens[position - 1].end) if position else None
+            if annotation is None:
+                return None
+            match = re.search(r'"Name"\s*:\s*"((?:[^"\\]|\\.)*)"', module.parsed.source[annotation.start : annotation.end])
+            return match.group(1) if match else None
+
         def value(position: int) -> str | None:
             return tokens[position].value if position < len(tokens) else None
+
+        def add(name: Token, position: int, type: str | None, predicate: str | None = None) -> None:
+            found.append((name.value, name, kind(position)))
+            if details is not None:
+                declaration = (
+                    f"{predicate}(definition.{name.value}, ...)" if predicate else f"definition.{name.value} is {type}"
+                )
+                details.append(
+                    FeatureParameter(name.value, type, label(position), kind(position), module, name, declaration)
+                )
 
         for position, token in enumerate(tokens):
             if not start <= token.offset < end or token.kind != "identifier":
@@ -1444,12 +1848,12 @@ class Project:
             if position and tokens[position - 1].value not in (";", "{", "}"):
                 continue  # Not the start of a statement
             if token.value == map_name and value(position + 1) == "." and value(position + 3) == "is":
-                found.append((tokens[position + 2].value, tokens[position + 2], kind(position)))
+                add(tokens[position + 2], position, value(position + 4))
             elif value(position + 1) != "(":
                 continue
             elif token.value in PARAMETER_PREDICATES:
                 if value(position + 2) == map_name and value(position + 3) == "." and value(position + 5) in (",", ")"):
-                    found.append((tokens[position + 4].value, tokens[position + 4], kind(position)))
+                    add(tokens[position + 4], position, PARAMETER_PREDICATES[token.value], token.value)
             else:
                 for owner, declaration in self._predicate_targets(module, token, providers)[:1]:
                     key = (owner.path, declaration.token.offset)
@@ -1469,7 +1873,7 @@ class Project:
                         found.extend(
                             (name, token, parameter_kind)
                             for name, _, parameter_kind in self._declared_parameters(
-                                owner, body.start, body.end, inner, path | {key}
+                                owner, body.start, body.end, inner, path | {key}, details
                             )
                         )
         return found
@@ -2265,6 +2669,59 @@ def _predicate_node(module: Module, declaration: Declaration) -> AstNode | None:
             node
             for node in module.parsed.nodes
             if node.type == "PredicateDeclaration" and node.start <= declaration.token.offset < node.end
+        ),
+        None,
+    )
+
+
+def _map_entries(tokens: list[Token]) -> list[list[Token]]:
+    """The tokens of each entry of a map literal (`{ "a" : 1, "b" : 2 }`), without its braces."""
+    if not tokens or tokens[0].value != "{":
+        return []
+    entries: list[list[Token]] = [[]]
+    depth = 0
+    for token in tokens[1:]:
+        if token.value in ("(", "[", "{", "?["):
+            depth += 1
+        elif token.value in (")", "]", "}"):
+            if depth == 0:
+                break
+            depth -= 1
+        elif token.value == "," and depth == 0:
+            entries.append([])
+            continue
+        entries[-1].append(token)
+    return [entry for entry in entries if entry]
+
+
+def _feature_precondition(module: Module, feature: AstNode) -> AstNode | None:
+    """A FeatureDeclaration's PreconditionBlock."""
+    return next(
+        (
+            node
+            for node in module.parsed.nodes
+            if node.type == "PreconditionBlock" and feature.start <= node.start < feature.end
+        ),
+        None,
+    )
+
+
+def _feature_annotation(module: Module, feature: AstNode) -> AstNode | None:
+    """The annotation map just before a FeatureDeclaration (its "Feature Type Name" and so on)."""
+    return max(
+        (node for node in module.parsed.nodes if node.type == "AnnotationMap" and node.end <= feature.start),
+        key=lambda node: node.end,
+        default=None,
+    )
+
+
+def _function_node(module: Module, declaration: Declaration) -> AstNode | None:
+    """The FunctionDeclaration node of a function's declaration."""
+    return next(
+        (
+            node
+            for node in module.parsed.nodes
+            if node.type == "FunctionDeclaration" and node.start <= declaration.token.offset < node.end
         ),
         None,
     )

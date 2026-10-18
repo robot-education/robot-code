@@ -350,6 +350,86 @@ def test_duplicate_parameters(project):
     assert "offset" in problems[0].message and "line 8" in problems[0].message
 
 
+def test_editing_logic_keys(project):
+    # A helper in another file which sets keys (one set to undefined before returning), keys built from strings, and
+    # maps which don't go back into the result
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export function withUnits(definition is map) returns map\n{\n"
+        "    definition.units = 1;\n    definition.scratch = 2;\n    return definition;\n}\n"
+    )
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f'FeatureScript 2909;\nimport(path : "{SHAPES_ID}", version : "v");\n'
+        'annotation { "Feature Type Name" : "F", "Editing Logic Function" : "fEdit", '
+        '"Manipulator Change Function" : "fManipulators" }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        "        definition.depth is boolean;\n"
+        "        definition.firstEndDiameter is boolean;\n"
+        "    }\n    {\n    });\n"
+        "function setWidth(settings is map) returns map\n{\n    settings.width = 1;\n    return settings;\n}\n"
+        "function oldWidth(definition is map) returns map\n{\n    definition.unused = 1;\n    return definition;\n}\n"
+        "export function fEdit(context is Context, id is Id, oldDefinition is map, definition is map) returns map\n{\n"
+        "    definition.depth = true;\n"
+        "    oldDefinition.ignored = 1;\n"
+        '    definition["end" ~ "Diameter"] = 1;\n'
+        '    definition["end" ~ "Radius"] = 1;\n'
+        "    definition = withUnits(definition);\n"
+        "    const other = oldWidth(definition);\n"
+        "    definition.scratch = undefined;\n"
+        "    return setWidth(definition);\n}\n"
+        "export function fManipulators(context is Context, definition is map, newManipulators is map) returns map\n{\n"
+        '    definition["length"] = 1;\n    return definition;\n}\n'
+    )
+    module = project.module(path)
+    problems = [p for p in project.check(module) if p.code == "unknown-parameter"]
+    reported = sorted((module.parsed.source[p.start : p.end], p.message.split(",")[0]) for p in problems)
+    assert reported == [
+        ('"Radius"', 'fEdit sets a key ending "Radius"'),
+        # Set in another file: reported at the annotation naming the function
+        ('"fEdit"', "fEdit sets units (in withUnits)"),
+        ('"length"', "fManipulators sets length"),
+        ("width", "fEdit sets width (in setWidth)"),
+    ]
+    assert all("Unknown parameter" in p.message for p in problems)
+
+
+def test_unknown_definition_keys(project):
+    # Reads of keys a feature's definition can't have: not parameters, nor set anywhere it reaches. A helper two
+    # features share may read a parameter only one has
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export function shared(definition is map)\n{\n    return definition.depth;\n}\n"
+        "export function withUnits(definition is map) returns map\n{\n"
+        '    definition.units = 1;\n    return mergeMaps(definition, { "scale" : 2 });\n}\n'
+    )
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        f'FeatureScript 2909;\nimport(path : "{SHAPES_ID}", version : "v");\n'
+        'annotation { "Feature Type Name" : "F" }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n        definition.depth is boolean;\n        if (definition.dpeth) { }\n    }\n"
+        "    {\n        definition = withUnits(definition);\n        shared(definition);\n"
+        '        definition.offset = 1;\n        definition["angle"] = 2;\n'
+        "        const a = definition.units + definition.offset + definition.angle + definition?.optional;\n"
+        "        const b = other.missing + definition.missing;\n    });\n"
+        'annotation { "Feature Type Name" : "G" }\n'
+        "export const g = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n        definition.width is boolean;\n    }\n    {\n        shared(definition);\n    });\n"
+    )
+    module = project.module(path)
+    problems = [p for p in project.check(module) if p.code == "unknown-key"]
+    source = module.parsed.source
+    assert [source[p.start : p.end] for p in problems] == ["dpeth", "missing"]
+    assert problems[0].message == (
+        "dpeth isn't a parameter of f, or set on its definition anywhere it reaches: did you mean depth?"
+    )
+    assert source.index("definition.missing") + len("definition.") == problems[1].start
+    shapes = project.module(project.code_dir / "core" / "shapes.fs")
+    assert [p for p in project.check(shapes) if p.code == "unknown-key"] == []
+
+
 def test_tolerant_parameters(project):
     # A copy of std's source, where std's own predicates are read from
     std = project.root / "std"
@@ -944,6 +1024,64 @@ def test_project_completions(project):
     assert internal.detail.endswith(", internal)")
     keys = annotation_completions('annotation { "Name" : "x", "Dri', len('annotation { "Name" : "x", "Dri'))
     assert "Driven query" in [item.label for item in keys]
+
+
+def test_definition_completions_and_hover(project):
+    # Each feature's own parameters where its definition reaches: its body, its editing logic, a helper it passes the
+    # definition to (in another file), and a predicate its precondition calls; with their types and names
+    from fs_lsp.project_completion import definition_hover, project_completions
+
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export function helper(definition is map) returns map\n{\n    return definition.depth;\n}\n"
+        "export function unused(definition is map) returns map\n{\n    return definition.depth;\n}\n"
+    )
+    path = project.code_dir / "feature2.fs"
+    source = (
+        f'FeatureScript 2909;\nimport(path : "{SHAPES_ID}", version : "v");\n'
+        "predicate depthPredicate(definition is map)\n{\n"
+        '    if (definition.width)\n    {\n        annotation { "Name" : "Hidden", "UIHint" : ["ALWAYS_HIDDEN"] }\n'
+        "        definition.hidden is boolean;\n    }\n"
+        '    annotation { "Name" : "Depth" }\n    isLength(definition.depth, LENGTH_BOUNDS);\n}\n'
+        'annotation { "Feature Type Name" : "F", "Editing Logic Function" : "fEdit" }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Width" }\n        definition.width is boolean;\n'
+        "        depthPredicate(definition);\n"
+        "    }\n    {\n        helper(definition);\n    });\n"
+        'annotation { "Feature Type Name" : "G" }\n'
+        "export const g = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n        definition.count is boolean;\n    }\n    {\n        definition.count;\n    });\n"
+        "export function fEdit(context is Context, id is Id, oldDefinition is map, definition is map) returns map\n{\n"
+        "    definition.width = true;\n    return definition;\n}\n"
+    )
+    path.write_text(source)
+    module = project.module(path)
+
+    def details(marker: str) -> list[tuple[str, str]]:
+        items = project_completions(project, module, source, source.index(marker) + len("definition."))
+        return [(item.label, item.detail) for item in items or []]
+
+    f = [("width", "boolean - Width"), ("hidden", "boolean - Hidden"), ("depth", "length - Depth")]
+    assert details("definition.width = true") == f
+    assert details("definition.width)") == f
+    assert details("definition.count;\n    });") == [("count", "boolean")]
+    shapes = project.module(project.code_dir / "core" / "shapes.fs")
+    helper = shapes.parsed.source
+    assert [item.label for item in project_completions(project, shapes, helper, helper.index("definition.depth") + 11)] == [
+        "width",
+        "hidden",
+        "depth",
+    ]
+    # Nothing passes unused a feature's definition
+    assert project_completions(project, shapes, helper, helper.rindex("definition.depth") + 11) is None
+
+    hover = definition_hover(project, module, source.index("definition.depth, LENGTH") + len("definition.d"))
+    assert hover is not None
+    assert "isLength(definition.depth, ...)" in hover and "**Depth**" in hover and "Parameter of `f`" in hover
+    hidden = definition_hover(project, module, source.index("definition.hidden") + len("definition.h"))
+    assert hidden is not None and "ALWAYS_HIDDEN" in hidden
+    assert definition_hover(project, module, source.index("helper(definition)") + 2) is None
 
 
 def test_rename_edits(project):

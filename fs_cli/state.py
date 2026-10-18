@@ -15,13 +15,14 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
-import fcntl
 import hashlib
 import json
 import pathlib
 import re
 import sys
+import time
 from collections.abc import Iterator
+from typing import IO
 
 STATE_VERSION = 4
 STUDIOS_VERSION = 1
@@ -261,15 +262,45 @@ def state_lock(studios_path: pathlib.Path) -> Iterator[None]:
     """
     path = studios_path.with_name(".fs.lock")
     with path.open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
+        if not _try_lock(lock):
             print("fs: waiting for another fs command (or the editor) to finish...", file=sys.stderr)
-            fcntl.flock(lock, fcntl.LOCK_EX)
+            while not _try_lock(lock):
+                time.sleep(0.05)
         try:
             yield
         finally:
-            fcntl.flock(lock, fcntl.LOCK_UN)
+            _unlock(lock)
+
+
+if sys.platform == "win32":
+    import msvcrt
+
+    # Windows locks a range of bytes rather than a file: everyone locks the first one (the file stays empty)
+
+    def _try_lock(lock: IO) -> bool:
+        lock.seek(0)
+        try:
+            msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+        except OSError:
+            return False
+        return True
+
+    def _unlock(lock: IO) -> None:
+        lock.seek(0)
+        msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+
+else:
+    import fcntl
+
+    def _try_lock(lock: IO) -> bool:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return False
+        return True
+
+    def _unlock(lock: IO) -> None:
+        fcntl.flock(lock, fcntl.LOCK_UN)
 
 
 def _read_json(path: pathlib.Path) -> dict:
@@ -286,4 +317,4 @@ def _read_json(path: pathlib.Path) -> dict:
 def _write_json(path: pathlib.Path, data: dict) -> None:
     text = json.dumps(data, indent=2) + "\n"
     if not path.is_file() or path.read_text() != text:
-        path.write_text(text)
+        path.write_text(text, newline="")

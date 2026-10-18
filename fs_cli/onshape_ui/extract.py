@@ -156,14 +156,14 @@ def main() -> None:
     variables = used_variables(pruned, "".join(map(str, symbols)) + OWN_VARIABLES)
     kept = [text for rule in pruned if (text := rule.text(variables))]
     header = f"/* Onshape's feature dialog styles, extracted from {args.page.name} by extract.py. Don't edit. */\n"
-    (HERE / "dialog.css").write_text(header + "\n".join(kept) + "\n" + REPAIRS)
+    (HERE / "dialog.css").write_text(header + "\n".join(kept) + "\n" + REPAIRS, newline="")
 
     sprite = (
         "<svg xmlns='http://www.w3.org/2000/svg' style='display: none'>\n"
         + "\n".join(str(symbol) for symbol in symbols)
         + "\n</svg>\n"
     )
-    (HERE / "icons.svg").write_text(sprite)
+    (HERE / "icons.svg").write_text(sprite, newline="")
     print(f"Kept {len(kept)} of {len(rules)} rules ({len(header) + sum(map(len, kept))} bytes) and {len(symbols)} icons.")
 
 

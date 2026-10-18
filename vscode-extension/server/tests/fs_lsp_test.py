@@ -49,6 +49,18 @@ def test_parser_annotations_maps_blocks_preconditions():
     } <= node_types("annotations.fs")
 
 
+def test_parser_annotation_after_a_block():
+    # An if statement is parsed as an expression up to its `;` or `}`, which the next annotation mustn't be part of
+    source = (
+        "predicate p(definition is map)\n{\n"
+        '    if (definition.a)\n    {\n        annotation { "Name" : "B" }\n        definition.b is boolean;\n    }\n'
+        '    annotation { "Name" : "C", "Icon" : Icon.HOLE_DEPTH }\n    definition.c is boolean;\n}\n'
+    )
+    parsed = parse(source)
+    maps = [source[node.start : node.end] for node in parsed.nodes if node.type == "AnnotationMap"]
+    assert maps == ['{ "Name" : "B" }', '{ "Name" : "C", "Icon" : Icon.HOLE_DEPTH }']
+
+
 def test_parser_predicates_types_operators_enums():
     assert {"PredicateDeclaration", "TypeDeclaration"} <= node_types("predicates.fs")
     assert "OperatorDeclaration" in node_types("operators.fs")

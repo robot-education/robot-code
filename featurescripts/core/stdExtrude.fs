@@ -501,6 +501,7 @@ export function stdNewExtrudeEditLogic(context is Context, id is Id, oldDefiniti
 {
     const entities = getEntitiesToUse(context, definition);
     const extrudeAxis = isQueryEmpty(context, entities) ? undefined :
+        // fs check: ignore unknown-key (std's extrude sets transform for pattern instances; undefined is no transform)
         computeProfilePlaneNormal(context, definition, qNthElement(entities, 0), definition.transform);
     definition.entities = undefined;
     return newExtrudeEditLogicAlong(context, definition, specifiedParameters, extrudeAxis);

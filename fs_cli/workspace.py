@@ -22,8 +22,9 @@ import dataclasses
 import enum
 import pathlib
 import re
+import time
 from concurrent import futures
-from typing import Callable, Iterable
+from typing import Callable, Iterable, TypeVar
 
 from fs_cli import git
 from fs_cli.config import Config
@@ -41,6 +42,8 @@ from fs_cli.state import (
 )
 
 MAX_WORKERS = 8
+
+T = TypeVar("T")
 
 
 class Status(enum.Enum):
@@ -100,6 +103,9 @@ class Studio:
     renamed_from: str | None = None
     # Whether it's released (see `load_released`)
     released: bool = False
+    # False if it's unchanged locally but changed in Onshape, and wasn't downloaded to see how (see `scan`): its
+    # status says IN_SYNC, but it may have changes in Onshape
+    checked: bool = True
 
     @property
     def name(self) -> str:
@@ -173,17 +179,38 @@ class Workspace:
 
     # Scanning
 
-    def scan(self, targets: Targets | None = None) -> list[Studio]:
-        """Loads and classifies every studio (or just those in targets)."""
+    def scan(self, targets: Targets | None = None, check_unchanged: bool = True) -> list[Studio]:
+        """Loads and classifies every studio (or just those in targets).
+
+        Unless check_unchanged is set, studios unchanged locally since they were last synced aren't downloaded when
+        they've changed in Onshape, and are left unchecked (see `Studio.checked`). Pushing doesn't push them either
+        way, and Onshape changes most studios' microversions between pushes (when it updates the versions of
+        their imports), so this saves a call for nearly every studio.
+        """
         studios = self.match(targets)
+
+        def classify(studio: Studio) -> None:
+            saved = studio.saved
+            if (
+                not check_unchanged
+                and studio.remote
+                and saved
+                and saved.microversion_id != studio.remote.microversion_id
+                and studio.local_code is not None
+                and content_hash(studio.local_code) == saved.hash
+            ):
+                studio.status, studio.checked = Status.IN_SYNC, False
+            else:
+                self._classify(studio)
+
         with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
             # Fetching code is the slow part, so classify in parallel
-            list(executor.map(self._classify, studios))
+            list(executor.map(classify, studios))
 
         for studio in studios:
             # Studios with import updates are recorded once the updates are applied, so they're
             # checked again until then
-            if studio.status == Status.IN_SYNC and not studio.import_updates:
+            if studio.status == Status.IN_SYNC and studio.checked and not studio.import_updates:
                 assert studio.remote and studio.local_code is not None
                 self._record(studio, studio.local_code, studio.remote.microversion_id)
         return studios
@@ -191,7 +218,7 @@ class Workspace:
     def match(self, targets: Targets | None = None) -> list[Studio]:
         """Pairs every tab with its file (or just those in targets), without classifying them, so it usually
         takes 1 call (see `_match`)."""
-        remote_studios = self.listed_studios = self.remote.list_studios(self.instance)
+        remote_studios = self.listed_studios = self._list_studios()
         # Every studio's microversion before anything is pushed (see push_studios)
         self.listed_microversions = {
             remote.element_id: remote.microversion_id for remote in remote_studios
@@ -207,6 +234,31 @@ class Workspace:
                 selected.extend(s for s in matched if s not in selected)
             studios = selected
         return sorted(studios, key=lambda studio: studio.path)
+
+    def _list_studios(self) -> list[RemoteStudio]:
+        """Lists the tabs, making sure tracked ones missing from the listing were really deleted.
+
+        Onshape's listing can lag behind: a push once listed the tabs seconds after another created one, didn't see
+        it, took it as deleted in Onshape, and recreated it as a second tab. So missing tabs are listed again
+        (anonymously, so for free), then fetched: a 404 confirms the deletion (failed calls don't count), and a tab
+        which is still there stops the command rather than recreating it.
+        """
+        remote_studios = list_until_found(lambda: self.remote.list_studios(self.instance), set(self.state.studios))
+        listed = {remote.element_id for remote in remote_studios}
+        for element_id, entry in self.state.studios.items():
+            if element_id in listed or element_id in self.state.released:
+                continue
+            try:
+                self.remote.pull(self.instance, element_id)
+            except ApiError as error:
+                if error.status_code == 404:
+                    continue
+                raise
+            raise UsageError(
+                f"Onshape's list of tabs is missing the tab of {entry.file} ({element_id}), but the tab is still "
+                "there; try again in a minute."
+            )
+        return remote_studios
 
     def _match(self, remote_studios: list[RemoteStudio]) -> list[Studio]:
         """Pairs Feature Studios with local files.
@@ -316,6 +368,16 @@ class Workspace:
 
     def _classify(self, studio: Studio) -> None:
         studio.status = self._compute_status(studio)
+        studio.checked = True
+
+    def check(self, studio: Studio) -> None:
+        """Classifies an unchecked studio (see `scan`), recording it if it's in sync. Takes 1 call."""
+        if studio.checked:
+            return
+        self._classify(studio)
+        if studio.status == Status.IN_SYNC and not studio.import_updates:
+            assert studio.remote and studio.local_code is not None
+            self._record(studio, studio.local_code, studio.remote.microversion_id)
 
     def _compute_status(self, studio: Studio) -> Status:
         remote, saved, local = studio.remote, studio.saved, studio.local_code
@@ -554,6 +616,21 @@ class Workspace:
             if not (self.config.code_dir / path).exists():
                 studio.path, studio.file = path, self.config.code_dir / path
             studio.located = True
+
+
+RELIST_DELAYS = (2.0, 5.0)
+
+
+def list_until_found(list_tabs: Callable[[], list[T]], tracked: set[str]) -> list[T]:
+    """Lists tabs (studios or images), listing again after each of RELIST_DELAYS while tabs in tracked (element ids)
+    are missing, since Onshape's listing can lag behind tabs just created (see `Workspace._list_studios`)."""
+    tabs = list_tabs()
+    for delay in RELIST_DELAYS:
+        if tracked <= {tab.element_id for tab in tabs}:
+            break
+        time.sleep(delay)
+        tabs = list_tabs()
+    return tabs
 
 
 def select(studios: list[Studio], *statuses: Status) -> list[Studio]:

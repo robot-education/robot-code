@@ -2,7 +2,8 @@
     "recommendations": [
         "streetsidesoftware.code-spell-checker",
         "ms-python.python",
-        "ms-python.black-formatter",
         "esbenp.prettier-vscode"
-    ]
+    ],
+    // The Python here isn't formatted with Black: formatting on save would rewrite whole files
+    "unwantedRecommendations": ["ms-python.black-formatter"]
 }

@@ -525,15 +525,14 @@ def _onshape_remote(log: bool) -> OnshapeRemote:
 
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
     targets = workspace.resolve_targets(args.targets)
-    studios = workspace.scan(targets)
+    # Studios unchanged locally aren't pushed (except with --force, over changes in Onshape), so they aren't
+    # downloaded to see if they changed in Onshape
+    studios = workspace.scan(targets, check_unchanged=args.force)
     images = Images(workspace)
     image_list = images.scan(targets, discover=False)
     everything = [*studios, *image_list]
-    overwritable = (
-        (Status.REMOTE_CHANGES, Status.CONFLICT, Status.DELETE_CONFLICT)
-        if args.force
-        else ()
-    )
+    mismatched = (Status.REMOTE_CHANGES, Status.CONFLICT, Status.DELETE_CONFLICT)
+    overwritable = mismatched if args.force or ask_to_overwrite(select(everything, *mismatched), args.dry_run) else ()
     skipped = report_skipped(
         everything,
         {
@@ -578,6 +577,23 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
     if not args.dry_run and not args.no_commit:
         commit_pushed(workspace, [*to_push, *images_to_push], to_delete, updated)
     return pushed or not_deleted or not_recreated or skipped
+
+
+def ask_to_overwrite(mismatched: list[Studio | Image], dry_run: bool) -> bool:
+    """Asks whether to overwrite what changed in Onshape (since the last sync) with the local files, as
+    `fs push --force` does. Without a terminal to ask in (or with --dry-run), they're skipped."""
+    if not mismatched or dry_run:
+        return False
+    print("Changed in Onshape since the last sync:")
+    for item in mismatched:
+        print(f"  {item.path}  {item.status.value}")
+    answer = ask(
+        f"Overwrite {'it' if len(mismatched) == 1 else 'them'} in Onshape with the local "
+        f"{'file' if len(mismatched) == 1 else 'files'}? (`fs pull --force` keeps Onshape's instead)"
+    )
+    if answer is None:
+        print("Can't ask without a terminal, so skipping them; `fs push --force` overwrites them.")
+    return bool(answer)
 
 
 def commit_pushed(
@@ -692,7 +708,7 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
     studios.sort(key=lambda studio: studio.path)
     config = workspace.config
     print(
-        f"{os.path.relpath(config.code_dir)}/ <-> backend document {path_to_url(workspace.instance)}"
+        f"{_display_path(config.code_dir)}/ <-> backend document {path_to_url(workspace.instance)}"
     )
     shown = [
         s
@@ -712,7 +728,7 @@ def status(workspace: Workspace, args: argparse.Namespace) -> int:
             hint = RELEASED_HINTS.get(studio.status, hint)
         if getattr(studio, "import_updates", None):
             details.append("import versions updated in Onshape")
-            hint = hint or "fs push or fs pull applies them"
+            hint = hint or "fs pull applies them"
         suffix = f"  ({hint})" if hint else ""
         print(f"  {studio.path:<{width}}  {', '.join(details)}{suffix}")
     return 0
@@ -1219,7 +1235,7 @@ def gen(config: Config, args: argparse.Namespace) -> int:
     generated = generate(config.code_dir, StdMetadata.load(config.std_dir).number, synced)
     changed = [result for result in generated if result.changed]
     for result in changed:
-        path = os.path.relpath(result.output)
+        path = _display_path(result.output)
         if args.dry_run:
             print(f"Would update {path}")
         else:
@@ -1240,7 +1256,9 @@ def check(config: Config, args: argparse.Namespace) -> int:
     files = 0
     fixed = 0
     for module in _select_modules(project, args.targets):
-        problems = project.check(module)
+        # A snapshot keeps the project's files as they are for the checks, which look at other files many times
+        with project.snapshot():
+            problems = project.check(module)
         if getattr(args, "fix", False) and problems and not is_generated(module.path.name):
             from fs_lsp.quick_fixes import apply_fixes, quick_fixes
 
@@ -1250,7 +1268,8 @@ def check(config: Config, args: argparse.Namespace) -> int:
                 fixed += count
                 print(f"Fixed {_plural(count, 'problem')} in {_display_path(module.path)}")
                 module = project.module(module.path)
-                problems = project.check(module)
+                with project.snapshot():
+                    problems = project.check(module)
         files += 1 if problems else 0
         for problem in problems:
             line, character = module.position(problem.start)
@@ -1280,7 +1299,7 @@ def format_files(config: Config, args: argparse.Namespace) -> int:
             continue
         changed.append(module)
         if not args.check:
-            module.path.write_text(formatted, encoding="utf-8")
+            module.path.write_text(formatted, encoding="utf-8", newline="")
         print(_display_path(module.path))
     if args.check:
         print(f"{_plural(len(changed), 'file')} would be formatted." if changed else "Everything is formatted.")
@@ -1425,7 +1444,7 @@ def audit(config: Config, args: argparse.Namespace) -> int:
         for problem in project.check(module):
             line, character = module.position(problem.start)
             problems.append(f"{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]")
-    source = os.path.relpath(path.resolve(), config.root)
+    source = pathlib.Path(os.path.relpath(path.resolve(), config.root)).as_posix()
     tables = _feature_tables(config, project, module) if module is not None else []
     page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
@@ -1647,7 +1666,11 @@ def _select_modules(project: Project, targets: list[str]) -> list[Module]:
 
 
 def _display_path(path: pathlib.Path) -> str:
-    return os.path.relpath(path)
+    """The path relative to the working directory, with forward slashes on Windows too."""
+    try:
+        return pathlib.Path(os.path.relpath(path)).as_posix()
+    except ValueError:  # On another drive than the working directory (Windows)
+        return pathlib.Path(path).as_posix()
 
 
 # Commands which don't need Onshape
@@ -1738,6 +1761,9 @@ def do_push_images(
         if studio is None or studio.local_code is None:
             print(f"Note: updated the imports of images in {path}; run `fs push` on it to push them.")
             continue
+        if studio not in pushing:
+            # Compared with Onshape as it was before the retarget, so pushing it can't overwrite changes made there
+            images.workspace.check(studio)
         with studio.file.open(newline="") as file:
             studio.local_code = file.read()
         if studio not in pushing and studio.status == Status.IN_SYNC:
@@ -1897,6 +1923,13 @@ def confirm(warning: str) -> None:
     answer = input(f"{warning} Continue? [y/N] ").strip().lower()
     if answer != "y":
         raise UsageError("Aborted.")
+
+
+def ask(question: str) -> bool | None:
+    """Asks a yes or no question whose answer defaults to yes. None without a terminal to ask in."""
+    if not sys.stdin.isatty():
+        return None
+    return input(f"{question} [Y/n] ").strip().lower() in ("", "y", "yes")
 
 
 def _plural(count: int, noun: str) -> str:

@@ -23,7 +23,7 @@ from fs_cli.renames import path_import_edits, relative_paths, rename_studio_file
 from fs_cli.state import state_lock
 from fs_lsp import __version__
 from fs_lsp.completion import completion_data, completion_items
-from fs_lsp.project_completion import annotation_completions, project_completions, resolve_item
+from fs_lsp.project_completion import annotation_completions, definition_hover, project_completions, resolve_item
 from fs_lsp.diagnostics import diagnostics
 from fs_lsp.formatter import edits, is_generated
 from fs_lsp.fsdoc import parse_doc, render_markdown
@@ -699,6 +699,9 @@ def _project_hover(
             markdown += f"\n\nExports {names}{more}"
         return markdown, imported.token
     token = module.index.token_at(offset)
+    parameter = definition_hover(project, module, offset) if token is not None else None
+    if token is not None and parameter is not None:
+        return parameter, token
     definitions = project.definitions(module, offset)
     if token is None or not definitions:
         return None

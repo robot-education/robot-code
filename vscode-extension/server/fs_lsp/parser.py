@@ -523,6 +523,9 @@ class Parser:
         elif value in ("var", "const") and ";" in stops:
             # A statement following a block, e.g. after `if (...) { ... }`
             self.parse_variable_declaration(value == "const", False)
+        elif value == "annotation" and ";" in stops and self.look_value(1) == "{":
+            # An annotation following a block, e.g. a parameter's after `if (...) { ... }`
+            self.parse_annotation()
         elif value in ("var", "const") and self.look(1) and is_identifier_token(
             self.look(1)
         ):

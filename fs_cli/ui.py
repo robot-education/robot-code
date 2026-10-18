@@ -1612,7 +1612,18 @@ def find_chromium() -> tuple[str, bool]:
         return path, "headless_shell" in path
     for shell in sorted(pathlib.Path("/opt/pw-browsers").glob("chromium_headless_shell-*/chrome-linux/headless_shell")):
         return str(shell), True
-    for candidate in ("/opt/pw-browsers/chromium", *map(shutil.which, ("chromium", "chromium-browser", "google-chrome"))):
+    # Windows doesn't put browsers on the path: look where Chrome and Edge install themselves
+    windows = [
+        os.path.join(os.environ[variable], executable)
+        for variable in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+        if variable in os.environ
+        for executable in ("Google/Chrome/Application/chrome.exe", "Microsoft/Edge/Application/msedge.exe")
+    ]
+    for candidate in (
+        "/opt/pw-browsers/chromium",
+        *map(shutil.which, ("chromium", "chromium-browser", "google-chrome")),
+        *windows,
+    ):
         if candidate and pathlib.Path(candidate).exists():
             return candidate, False
     raise UiError("Couldn't find Chromium to take the screenshot with; set CHROMIUM to its path.")

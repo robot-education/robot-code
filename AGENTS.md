@@ -1,11 +1,18 @@
 # Agent instructions
 
-See `README.md` for how the repo and the `fs` CLI work, and `docs/featurescript-style.md` for how to write
+See `docs/fs-cli.md` for how the `fs` CLI works, and `docs/featurescript-style.md` for how to write
 FeatureScript here (including selections, editing logic, and manipulator change functions).
+
+`README.md` is for users: an overview of the repo, setup, and links. How the tools work, and anything else written for
+agents, goes in `docs/`, a skill, or here.
+
+The Python runs on Windows too: write files that are checked in or pushed with `newline=""` (or Windows writes
+`\r\n`), print paths with `as_posix()`, and don't use Unix-only modules (like `fcntl`). `tests/conftest.py` makes
+tests' `write_text` write `\n`.
 
 Test FeatureScript which computes values (math, lookup tables, editing logic, manipulator change functions,
 sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval`; see
-README's "Testing FeatureScript". `uv run pytest` runs them all.
+`docs/testing.md`. `uv run pytest` runs them all.
 
 After changing a feature, check, test, and show it as `.claude/skills/feature-audit/SKILL.md` says: it ends with its
 `fs audit` page, sent to the user.

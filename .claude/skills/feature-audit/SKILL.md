@@ -11,7 +11,7 @@ the user's say-so).
 
 1. `uv run fs format <files>` and `uv run fs check <files>`: no new problems.
 2. `uv run pytest -q`: FeatureScript which computes values (math, tables, editing logic, manipulator change functions,
-   sketches) is tested with the evaluator (see README's "Testing FeatureScript").
+   sketches) is tested with the evaluator (see `docs/testing.md`).
 3. The writeup (the `.md` beside the `.fs`) matches the change: strings, execution order, and `try`s (see
    `docs/feature-writeups.md`).
 4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html`, then send it with SendUserFile (`display: "render"`).

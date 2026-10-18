@@ -62,9 +62,32 @@ function ftcShaft(source is ShaftSource) returns map
             "mirrorShaft" : true,
             "firstEndOperation" : EndOperation.TAPPED_HOLE,
             "secondEndOperation" : SecondEndOperation.TAPPED_HOLE,
+            "firstEndMetricOperation" : MetricEndOperation.TAPPED_HOLE,
+            "secondEndMetricOperation" : MetricSecondEndOperation.TAPPED_HOLE,
             "firstEndOverrideGroove" : false,
             "secondEndOverrideGroove" : false
         };
+}
+
+/**
+ * A custom 12mm REX shaft (FTC) with an e-clip on its first end, `override` its groove diameter or not.
+ */
+function eClipShaft(overrideGroove is boolean) returns map
+{
+    var definition = ftcShaft(ShaftSource.CUSTOM);
+    definition.ftcCustomShaft = FtcCustomShaft.REX_12_MM;
+    definition.firstEndMetricOperation = MetricEndOperation.E_CLIP;
+    definition.firstEndSideMount = false;
+    definition.secondEndSideMount = false;
+    definition.firstEndOverrideGroove = overrideGroove;
+    definition.firstEndGrooveDiameter = 5 * millimeter;
+    return definition;
+}
+
+export function testEClipGrooveOverrideStartsAtGoBildasGroove()
+{
+    const definition = robotShaftEditLogic(newContext(), newId(), eClipShaft(false), eClipShaft(true), false, {}, qNothing());
+    expectEqual(definition.firstEndGrooveDiameter, "9 mm");
 }
 
 export function testPresetLengthIsExtrudedThatLong()
