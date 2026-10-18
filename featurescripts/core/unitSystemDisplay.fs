@@ -3,7 +3,7 @@ FeatureScript 2960;
  * Utilities for displaying values based on a selected `unitSystem`.
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "948c83c1b1ac83de4ccf921b", version : "4aff58a1ab26d9f7aa7abfbb");
+import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfbc217");
 
 function getPrecision(strict is boolean)
 {

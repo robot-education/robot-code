@@ -6,15 +6,15 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 export import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
 import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
-export import(path : "58d66340f7b70cfc86606676", version : "88137a312d950df85d20e7f9");
-export import(path : "aff3918ff64d6eafb99fddcf", version : "6e4a085fd5f56ad4f9b132c0");
+export import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
+export import(path : "aff3918ff64d6eafb99fddcf", version : "206039563f7d346be75c1662");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 // Exports the adapter enums, which Onshape requires since they're parameter types
 export import(path : "6451a02d1f9f40630984864b", version : "ef6cb5b6d8c95ab1a3e79148");
 import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
 // Exports Fit, a parameter type
-export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
-import(path : "01f0c5634015659514b83da1", version : "1a4ff017f8d67f81b129502b");
+export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
+import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
 
 /**
  * The bores SplineXS adapters can cut.

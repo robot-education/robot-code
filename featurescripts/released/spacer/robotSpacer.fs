@@ -2,12 +2,12 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
-export import(path : "afa4f72a120e4ce160eb6972", version : "e61926c9540b085852fb858e");
+export import(path : "afa4f72a120e4ce160eb6972", version : "d901d9693943032392af49d1");
 import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
-import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
-RobotSpacerIcon::import(path : "e4dd2771f6ee924d601486f7", version : "1102b1e79eaf05979e63eb6b");
+import(path : "ea127c07807644fb48d3a1ae", version : "71504a904ad4d8a579c5b4da");
+RobotSpacerIcon::import(path : "e4dd2771f6ee924d601486f7", version : "20b29a41ecdb9cd7dcd3a491");
 
 annotation {
         "Feature Type Name" : "Robot spacer",

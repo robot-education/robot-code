@@ -2,18 +2,18 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
-import(path : "ea127c07807644fb48d3a1ae", version : "3c1ddfaf5ff0b3d5897422d0");
-export import(path : "948c83c1b1ac83de4ccf921b", version : "e4ee8d8fa0d9ee2f7a34dd9f");
+import(path : "ea127c07807644fb48d3a1ae", version : "71504a904ad4d8a579c5b4da");
+export import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfbc217");
 export import(path : "b82468283e5ec09720bad185", version : "142c41c73cc2f8336c28931e");
-import(path : "core/stdRevolve.fs", version : "");
+import(path : "53b4724e5ca49bd7fbc09e3e", version : "93bea9e54d4be1451a85af1e");
 import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports BoreShape, Fit, and SplineType, parameter types
-export import(path : "01f0c5634015659514b83da1", version : "1a4ff017f8d67f81b129502b");
-import(path : "f9a7532fe0d68211bd3a8112", version : "22f75fd6cadf552cd38dd645");
-import(path : "58d66340f7b70cfc86606676", version : "88137a312d950df85d20e7f9");
+export import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
+import(path : "f9a7532fe0d68211bd3a8112", version : "a308a92cbf8bc15418871819");
+import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
 
 export enum GearType
 {

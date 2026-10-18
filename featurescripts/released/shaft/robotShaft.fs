@@ -19,7 +19,7 @@ import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 // Exports Fit: released shafts have a fit parameter, and Onshape looks up its enum in the feature's file to load them
 // fs check: ignore unused-import
-export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
+export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
 RobotShaftIcon::import(path : "41c2fc2cc7659b215feb01c8", version : "47af683e8c175dbcacb47bdf");
 
 /**
@@ -54,12 +54,14 @@ export enum FtcCustomShaft
 /**
  * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
  * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
- * Editing logic sets `presetShaft` from its table entry (`withShaft`).
+ * Every FTC COTS shaft is; of FRC's, editing logic sets `presetShaft` from its table entry (`withShaft`).
+ *
+ * One expression, not a statement per condition: Onshape didn't hide parameters by this predicate (or show them by
+ * `hasFactoryGrooves`) when each condition was a statement of its own.
  */
 predicate isPresetLength(definition is map)
 {
-    definition.shaftSource == ShaftSource.COTS;
-    definition.presetShaft;
+    definition.shaftSource == ShaftSource.COTS && (definition.program == Program.FTC || definition.presetShaft);
 }
 
 /**
@@ -68,8 +70,7 @@ predicate isPresetLength(definition is map)
  */
 predicate hasFactoryGrooves(definition is map)
 {
-    definition.shaftSource == ShaftSource.COTS;
-    definition.factoryGrooved;
+    definition.shaftSource == ShaftSource.COTS && definition.factoryGrooved;
 }
 
 export enum EndOperation
@@ -94,6 +95,32 @@ export enum SecondEndOperation
     CAPTIVE_SHAFT
 }
 
+/**
+ * A metric hex shaft's end operations (`isMetricHexShaft`): an e-clip's groove rather than a retaining ring's.
+ * `getEndOperation` reads them as `EndOperation`s, an e-clip as a retaining ring (a groove).
+ */
+export enum MetricEndOperation
+{
+    annotation { "Name" : "Tapped hole" }
+    TAPPED_HOLE,
+    annotation { "Name" : "Clearance hole" }
+    CLEARANCE_HOLE,
+    annotation { "Name" : "E-clip" }
+    E_CLIP,
+    annotation { "Name" : "Captive shaft" }
+    CAPTIVE_SHAFT
+}
+
+export enum MetricSecondEndOperation
+{
+    annotation { "Name" : "Tapped hole" }
+    TAPPED_HOLE,
+    annotation { "Name" : "E-clip" }
+    E_CLIP,
+    annotation { "Name" : "Captive shaft" }
+    CAPTIVE_SHAFT
+}
+
 predicate isHoleOperation(endOperation is EndOperation)
 {
     endOperation == EndOperation.TAPPED_HOLE || endOperation == EndOperation.CLEARANCE_HOLE;
@@ -103,12 +130,24 @@ predicate isHoleOperation(endOperation is EndOperation)
  * Whether a shaft is a SplineXS, whose ends can only be tapped (see `getEndOperation`): it's solid, and too small for
  * retaining rings or captive ends.
  *
- * The predicates below repeat its condition, as Onshape doesn't allow predicates used in a precondition's if conditions
- * to call other predicates.
+ * The predicates below repeat its condition, and `isMetricHexShaft`'s, as Onshape doesn't allow predicates used in a
+ * precondition's if conditions to call other predicates.
  */
 predicate isSplineXsShaft(definition is map)
 {
     definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS;
+}
+
+/**
+ * Whether a custom shaft is metric hex (7 mm or 11 mm, goBILDA's REX), whose ends take e-clips rather than retaining
+ * rings (`MetricEndOperation`). No COTS shaft whose ends can be modified is.
+ */
+predicate isMetricHexShaft(definition is map)
+{
+    definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+        ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+            (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)));
 }
 
 /**
@@ -123,19 +162,79 @@ predicate canModifyShaftEnds(definition is map)
 predicate isTappedFirstEnd(definition is map)
 {
     (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
-        definition.firstEndOperation == EndOperation.TAPPED_HOLE;
+        ((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndMetricOperation == MetricEndOperation.TAPPED_HOLE) ||
+        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndOperation == EndOperation.TAPPED_HOLE);
 }
 
 predicate isTappedSecondEnd(definition is map)
 {
     (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
-        definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE;
+        ((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.secondEndMetricOperation == MetricSecondEndOperation.TAPPED_HOLE) ||
+        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE);
 }
 
 predicate isClearanceFirstEnd(definition is map)
 {
     !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        definition.firstEndOperation == EndOperation.CLEARANCE_HOLE;
+        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndMetricOperation == MetricEndOperation.CLEARANCE_HOLE) ||
+        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndOperation == EndOperation.CLEARANCE_HOLE));
+}
+
+/**
+ * Whether an end is cut for a retaining ring, or on metric hex, an e-clip.
+ */
+predicate isGrooveFirstEnd(definition is map)
+{
+    !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
+        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndMetricOperation == MetricEndOperation.E_CLIP) ||
+        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndOperation == EndOperation.RETAINING_RING));
+}
+
+predicate isGrooveSecondEnd(definition is map)
+{
+    !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
+        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.secondEndMetricOperation == MetricSecondEndOperation.E_CLIP) ||
+        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.secondEndOperation == SecondEndOperation.RETAINING_RING));
 }
 
 predicate hexShaftPredicate(definition is map)
@@ -179,8 +278,18 @@ predicate cannotSpecifySecondEnd(definition is map)
 {
     definition.mirrorShaft ||
         (definition.modifyFirstEnd && (definition.symmetricEnds ||
-                (!(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-                    definition.firstEndOperation == EndOperation.CLEARANCE_HOLE)));
+            // isClearanceFirstEnd
+            (!(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
+        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndMetricOperation == MetricEndOperation.CLEARANCE_HOLE) ||
+        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
+            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+            definition.firstEndOperation == EndOperation.CLEARANCE_HOLE)))));
 }
 
 predicate shaftEndPredicate(definition is map)
@@ -194,7 +303,12 @@ predicate shaftEndPredicate(definition is map)
         {
             annotation { "Group Name" : "First end hardware", "Collapsed By Default" : false, "Driving Parameter" : "modifyFirstEnd" }
             {
-                if (!isSplineXsShaft(definition))
+                if (isMetricHexShaft(definition))
+                {
+                    annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.firstEndMetricOperation is MetricEndOperation;
+                }
+                else if (!isSplineXsShaft(definition))
                 {
                     annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     definition.firstEndOperation is EndOperation;
@@ -226,10 +340,14 @@ predicate shaftEndPredicate(definition is map)
                         isLength(definition.firstEndHoleDepth, HOLE_DEPTH_BOUNDS);
                     }
                 }
-                else if (definition.firstEndOperation == EndOperation.RETAINING_RING)
+                else if (isGrooveFirstEnd(definition))
                 {
-                    annotation { "Name" : "Side mount ring", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to use a side-mountable retaining ring." }
-                    definition.firstEndSideMount is boolean;
+                    // E-clips go on from the side
+                    if (!isMetricHexShaft(definition))
+                    {
+                        annotation { "Name" : "Side mount ring", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to use a side-mountable retaining ring." }
+                        definition.firstEndSideMount is boolean;
+                    }
 
                     annotation { "Name" : "Override groove diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     definition.firstEndOverrideGroove is boolean;
@@ -237,12 +355,13 @@ predicate shaftEndPredicate(definition is map)
                     if (definition.firstEndOverrideGroove)
                     {
                         // Editing logic sets it to the ring's usual groove when it's turned on
-                        annotation { "Name" : "Groove diameter", "Description" : "The diameter of the groove the retaining ring sits in." }
+                        annotation { "Name" : "Groove diameter", "Description" : "The diameter of the groove the retaining ring or e-clip sits in." }
                         isLength(definition.firstEndGrooveDiameter, GROOVE_DIAMETER_BOUNDS);
                     }
                 }
-                else if (definition.firstEndOperation == EndOperation.CAPTIVE_SHAFT)
+                else
                 {
+                    // Captive shaft
                     // Editing logic sets these from the shaft's size when it's created or its size changes
                     annotation { "Name" : "Diameter" }
                     isLength(definition.firstEndDiameter, NONNEGATIVE_LENGTH_BOUNDS);
@@ -272,7 +391,12 @@ predicate shaftEndPredicate(definition is map)
             {
                 annotation { "Group Name" : "Second end hardware", "Collapsed By Default" : false, "Driving Parameter" : "modifySecondEnd" }
                 {
-                    if (!isSplineXsShaft(definition))
+                    if (isMetricHexShaft(definition))
+                    {
+                        annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        definition.secondEndMetricOperation is MetricSecondEndOperation;
+                    }
+                    else if (!isSplineXsShaft(definition))
                     {
                         annotation { "Name" : "End operation", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         definition.secondEndOperation is SecondEndOperation;
@@ -289,10 +413,14 @@ predicate shaftEndPredicate(definition is map)
                         annotation { "Name" : "Hole depth", "Icon" : Icon.HOLE_DEPTH }
                         isLength(definition.secondEndHoleDepth, HOLE_DEPTH_BOUNDS);
                     }
-                    else if (definition.secondEndOperation == SecondEndOperation.RETAINING_RING)
+                    else if (isGrooveSecondEnd(definition))
                     {
-                        annotation { "Name" : "Side mount ring", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to use a side-mountable retaining ring." }
-                        definition.secondEndSideMount is boolean;
+                        // E-clips go on from the side
+                        if (!isMetricHexShaft(definition))
+                        {
+                            annotation { "Name" : "Side mount ring", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Whether to use a side-mountable retaining ring." }
+                            definition.secondEndSideMount is boolean;
+                        }
 
                         annotation { "Name" : "Override groove diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         definition.secondEndOverrideGroove is boolean;
@@ -300,12 +428,13 @@ predicate shaftEndPredicate(definition is map)
                         if (definition.secondEndOverrideGroove)
                         {
                             // Editing logic sets it to the ring's usual groove when it's turned on
-                            annotation { "Name" : "Groove diameter", "Description" : "The diameter of the groove the retaining ring sits in." }
+                            annotation { "Name" : "Groove diameter", "Description" : "The diameter of the groove the retaining ring or e-clip sits in." }
                             isLength(definition.secondEndGrooveDiameter, GROOVE_DIAMETER_BOUNDS);
                         }
                     }
-                    else if (definition.secondEndOperation == SecondEndOperation.CAPTIVE_SHAFT)
+                    else
                     {
+                        // Captive shaft
                         // Editing logic sets these from the shaft's size when it's created or its size changes
                         annotation { "Name" : "Diameter" }
                         isLength(definition.secondEndDiameter, NONNEGATIVE_LENGTH_BOUNDS);
@@ -1100,7 +1229,8 @@ function getEndDefinition(definition is map, shaftEnd is ShaftEnd, endFace is Qu
     else if (endOperation == EndOperation.RETAINING_RING)
     {
         return mergeMaps(base, {
-                        "sideMount" : definition[endString ~ "SideMount"],
+                        // E-clips go on from the side, so their ends aren't faced off
+                        "sideMount" : isMetricHexShaft(definition) || definition[endString ~ "SideMount"],
                         "grooveDiameter" : definition[endString ~ "OverrideGroove"] ? definition[endString ~ "GrooveDiameter"] : undefined,
                         // Always extend retaining ring shaft end
                         "extendEnd" : true
@@ -1210,10 +1340,12 @@ precondition
             extrudeShaftGrooveTool(context, toolId, definition, shaft, endDefinition, reconstructOp);
         }
         const endString = getShaftEndString(endDefinition.shaftEnd);
+        // A retaining ring's Side mount ring, or an e-clip's End operation
+        const grooveParameters = [isMetricHexShaft(definition) ? getEndOperationParameter(definition, endDefinition.shaftEnd) : endString ~ "SideMount"];
         const failure = endDefinition.endOperation == EndOperation.CAPTIVE_SHAFT ?
             { "message" : "Failed to cut the captive end.", "parameters" : [endString ~ "Diameter", endString ~ "Length"] } :
-            { "message" : "Failed to cut the retaining ring's groove.", "parameters" : endDefinition.grooveDiameter == undefined ? [endString ~ "SideMount"] :
-                    [endString ~ "SideMount", endString ~ "GrooveDiameter"] };
+            { "message" : isMetricHexShaft(definition) ? "Failed to cut the e-clip's groove." : "Failed to cut the retaining ring's groove.",
+                    "parameters" : endDefinition.grooveDiameter == undefined ? grooveParameters : append(grooveParameters, endString ~ "GrooveDiameter") };
         cutShaft(context, id + "cutShaft", shaft, qCreatedBy(toolId, EntityType.BODY)->qBodyType(BodyType.SOLID), failure, reconstructOp);
 
     }
@@ -1248,7 +1380,7 @@ function extendShaftEnd(context is Context, id is Id, definition is map, endDefi
         reconstructOp();
         const endString = getShaftEndString(endDefinition.shaftEnd);
         throw regenError("Failed to extend the shaft's end.",
-            endDefinition.endOperation == EndOperation.RETAINING_RING ? [endString ~ "Operation"] : [endString ~ "Length", endDefinition.shaftEnd == ShaftEnd.FIRST ? "extendFirstEnd" : "extendSecondEnd"],
+            endDefinition.endOperation == EndOperation.RETAINING_RING ? [getEndOperationParameter(definition, endDefinition.shaftEnd)] : [endString ~ "Length", endDefinition.shaftEnd == ShaftEnd.FIRST ? "extendFirstEnd" : "extendSecondEnd"],
             endDefinition.endFace);
     }
 }
@@ -1397,11 +1529,20 @@ function sketchAnnulus(context is Context, id is Id, sketchPlane is Plane, inner
     return qSketchRegion(id, true);
 }
 
+/**
+ * A groove's diameter and width, and `endWidth`, how far its far side is from the end: a retaining ring's on 1/2 in. and
+ * 3/8 in. hex, or on metric hex, an e-clip's, as goBILDA cuts them in its REX shafts with an e-clip (robotShaftTables.py:
+ * 8mm REX's 6 mm across, 3.2 to 4 mm from the end; 12mm's, 9 mm across, 3 to 4 mm).
+ */
 function getGrooveDefinition(sideMount is boolean, hexSize is HexSize, unitSystem is UnitSystem) returns map
 {
-    if (isMetricHex(hexSize))
+    if (hexSize == HexSize._7_MM)
     {
-        throw regenError("Retaining ring grooves are only defined for 1/2 in. and 3/8 in. hex.", ["firstEndOperation", "secondEndOperation"]);
+        return { "grooveDiameter" : 6 * millimeter, "grooveWidth" : 0.8 * millimeter, "endWidth" : 4 * millimeter };
+    }
+    if (hexSize == HexSize._11_MM)
+    {
+        return { "grooveDiameter" : 9 * millimeter, "grooveWidth" : 1 * millimeter, "endWidth" : 4 * millimeter };
     }
     if (sideMount)
     {
@@ -1499,18 +1640,19 @@ function grooveOverrideStarted(oldDefinition is map, definition is map, shaftEnd
 }
 
 /**
- * Sets an end's Groove diameter to its ring's usual groove, for 1/2 in. and 3/8 in. hex (others have none, and say so
- * when the shaft's built).
+ * Sets an end's Groove diameter to its ring's usual groove, or on metric hex its e-clip's (`getGrooveDefinition`).
  */
 function updateGrooveDiameter(definition is map, shaftEnd is ShaftEnd) returns map
 {
-    if (definition.shaftType != ShaftType.HEX || isMetricHex(definition.hexSize))
+    if (definition.shaftType != ShaftType.HEX)
     {
         return definition;
     }
     const endString = getShaftEndString(shaftEnd);
-    const grooveDiameter = getGrooveDefinition(definition[endString ~ "SideMount"], definition.hexSize, definition.unitSystem).grooveDiameter;
-    definition[endString ~ "GrooveDiameter"] = toString(roundToPrecision(grooveDiameter / inch, 4)) ~ " in";
+    const hexSize = getHexSize(definition);
+    const grooveDiameter = getGrooveDefinition(definition[endString ~ "SideMount"], hexSize, definition.unitSystem).grooveDiameter;
+    definition[endString ~ "GrooveDiameter"] = isMetricHex(hexSize) ? toString(roundToPrecision(grooveDiameter / millimeter, 2)) ~ " mm" :
+        toString(roundToPrecision(grooveDiameter / inch, 4)) ~ " in";
     return definition;
 }
 
@@ -1554,13 +1696,35 @@ function getShaftEndString(shaftEnd is ShaftEnd) returns string
             };
 }
 
+/**
+ * An end's operation: SplineXS ends are always tapped, and a metric hex shaft's e-clip is a groove, as a retaining
+ * ring's is (`getGrooveDefinition` has both).
+ */
 function getEndOperation(definition is map, shaftEnd is ShaftEnd) returns EndOperation
 {
     if (isSplineXsShaft(definition))
     {
         return EndOperation.TAPPED_HOLE;
     }
+    if (isMetricHexShaft(definition))
+    {
+        const operation = getShaftEndParameter(definition, shaftEnd, "MetricOperation");
+        if (operation == MetricEndOperation.E_CLIP || operation == MetricSecondEndOperation.E_CLIP)
+        {
+            return EndOperation.RETAINING_RING;
+        }
+        // The rest are named as EndOperation's are
+        return operation as EndOperation;
+    }
     return getShaftEndParameter(definition, shaftEnd, "Operation") as EndOperation;
+}
+
+/**
+ * The end operation parameter an end's errors highlight.
+ */
+function getEndOperationParameter(definition is map, shaftEnd is ShaftEnd) returns string
+{
+    return getShaftEndString(shaftEnd) ~ (isMetricHexShaft(definition) ? "MetricOperation" : "Operation");
 }
 
 function getShaftEndParameter(definition is map, shaftEnd is ShaftEnd, parameter is string)

@@ -5,8 +5,8 @@ import(path : "onshape/std/modifyFillet.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 // With a variable #logging of true, it logs each step
-import(path : "f4b16cafee30b43d5a717afd", version : "99ef28102e7edf6c8e4f5421");
-RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "f76010d67ed6821a73cbf7e0");
+import(path : "f4b16cafee30b43d5a717afd", version : "6df25fd6f38ff159a61d61db");
+RobotLightenIcon::import(path : "bfffc466263212064267fd69", version : "218975d3bf949876b8d9948a");
 
 const WALL_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 const RIB_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;

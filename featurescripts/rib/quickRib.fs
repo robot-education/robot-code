@@ -4,7 +4,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 // The ribs: chains, hubs and spokes, and edge ribs. Also exports EdgeRibEnd, a parameter type
 export import(path : "ec576ccf1c20e5355392c3a6", version : "cb8cfff00100795f4d5be726");
-QuickRibIcon::import(path : "rib/quickRibIcon.svg", version : "");
+QuickRibIcon::import(path : "f9fda209a03cf7514da2a818", version : "ec13dad85d83811c1b909de6");
 
 /**
  * Sketches ribs (lines, and circles) between points (circles' and arcs' centers, vertices, and mate connectors), and

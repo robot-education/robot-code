@@ -7,7 +7,7 @@ FeatureScript 2960;
  * Entities are always projected onto the start offset reference, rather than being simply transformed based on the first selection.
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
-export import(path : "0103ad63394d7713fbf44448", version : "d9ead1a79bded860ba8f3ddf");
+export import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 
 /**
  * A custom start offset predicate based on the std extrude start offset.

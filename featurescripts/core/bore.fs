@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 // Exports Fit and SplineType, parameter types
-export import(path : "926d933eb33b11a3452660fd", version : "734a856ee6a464616f05e7e4");
+export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
 export import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
