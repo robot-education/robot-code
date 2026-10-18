@@ -18,8 +18,12 @@ pockets' corners are rounded as a router bit leaves them.
 Unreleased.
 
 - Quick ribs are a feature of their own again (Quick rib): select its sketch's edges in Ribs to use.
+- Holes get their walls separately from the face's outline, so a hole near the outline (like one in a rounded corner)
+  no longer fails the walls, or silently leaves out pieces of pockets.
 - When the walls can't be made, the error says the wall thickness (plus the fillet radius) is too large, and shows the
-  holes they fail at, instead of the pockets sticking out of the part.
+  face or the holes they fail at, instead of the pockets sticking out of the part.
+- Small pockets are measured against the wall thickness, not the bit: slivers under a big bit, which cut good-sized
+  pockets, are no longer left solid.
 
 ## Strings
 
@@ -52,9 +56,10 @@ where they come up, and show only once it's done; only the first reported shows.
 | The regions to ignore cover the whole face. | error | nothing's left of the pocket after cutting them | `ignoredFaces`, the face and the regions |
 | Selected wall overrides are invalid. | error | moving an override's sides fails | that override's parameters and faces, and the offset's error display |
 | Failed to create the walls along the faces shown. | error | moving the pockets' ends and sides along faces to ignore out fails | `wallThickness`, `filletRadius` (and `wallOverrides`), and those faces |
-| Failed to round the walls' inside corners. | error | the hair fillet on the pockets' concave edges fails | the same, the edges, and the fillet's error display |
-| Wall thickness is too large for the walls around the holes shown. | error | hollowing fails, and filling one of the holes makes it work (`holesFailingShell`); "Wall thickness plus fillet radius is" with Fillet corners | the same, and those holes' faces and edges on the face |
-| Wall thickness is too large for the walls to fit the face. | error | hollowing fails, and no hole alone is why; "plus fillet radius" as above | the same, and the face |
+| Failed to create the walls around the holes shown. | error | splitting the holes off the pockets fails | the same, and the holes' faces and edges on the face (or the face, if they're gone) |
+| Failed to round the walls' inside corners. | error | the hair fillet on the pockets' concave edges and the holes' corners fails | the same, the edges, and the fillet's error display |
+| Wall thickness is too large for the walls to fit the face's outline. | error | hollowing the pockets (their outlines) fails; "Wall thickness plus fillet radius is" with Fillet corners | the same, and the face |
+| Wall thickness is too large for the walls around the holes shown. | error | growing the holes fails; "plus fillet radius" as above | the same, and the faces and edges on the face of the holes which fail to grow on their own (`holesFailingGrowth`) |
 | Failed to inset the pocket shown. | error | enclosing a hollowed pocket fails | the same, and that pocket |
 | There's no room for pockets inside the walls. | error | hollowing encloses nothing: every pocket's narrower than twice the walls | the same, and the hollowed pockets |
 | The walls' inside corners are rounded 0.01 mm larger than the wall thickness. | info | setting the walls' inside corners to their exact radius fails | |
@@ -106,10 +111,13 @@ robotLighten
 --> buildWalls                                     // the walls, in steps:
     --> opOffsetFace "extend"                      // 1. ends and ignored sides out
     --> opOffsetFace "override"                    // 2. each override's sides
-    --> opFillet "roundConcave"                    // 3. concave edges, a hair (std's boolean tolerance)
-    --> opShell, opEnclose                         // 4. hollow by wall + growth; keep what's inside
-        --> holesFailingShell, partFaces           //    if hollowing fails: the holes it fails at
-    --> opModifyFillet "exactCorners"              // 5. inside corners: exactly wall + growth (info if not)
+    --> holeRings                                  // 3. the holes split off:
+        --> opPattern, opDeleteFace, opBoolean     //    copied, filled in the pockets, the copies cut to the holes
+    --> opFillet "roundConcave"                    // 4. concave edges and the holes' corners, a hair
+    --> opShell, opEnclose                         // 5. the outlines hollowed by wall + growth; keep what's inside
+    --> opOffsetFace "growHoles", opBoolean        // 6. the holes grown by wall + growth, and cut from it
+        --> holesFailingGrowth, partFaces          //    if growing fails: the holes which fail on their own
+    --> opModifyFillet "exactCorners"              // 7. inside corners: exactly wall + growth (info if not)
 --> buildRibs --> buildRibGroup                    // each rib: a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
 --> smallPockets --> opDeleteBodies "dropSmall"    // too small to be worth cutting: left solid
@@ -124,31 +132,47 @@ robotLighten
 
 ### Walls
 
-The walls follow the previous Onshape Lighten feature. The pocket (the face, extruded into its part) is hollowed by
-the wall thickness plus the pockets' growth (see Rounding), and what the hollow encloses is the inset pocket. Hollowing moves every
-face in at once, so holes of any size and their corners get walls.
+The walls follow the previous Onshape Lighten feature, but for holes. The pocket (the face, extruded into its part),
+with its holes filled, is hollowed by the wall thickness plus the pockets' growth (see Rounding), and what the hollow
+encloses is the pocket inset from its outline. Each hole, grown by as much, is cut from that. What's at least the
+inset from the outline, less what's within the inset of a hole, is what's at least the inset from both, so this is the
+same as hollowing the pocket with its holes, as the previous feature did, where that works.
+
+It often doesn't. Hollowing moves every face in at once, and where the offsets of a hole and the outline meet, the
+shell can fail, or leave out pieces of pockets. On Exercise 3's Inner Plate (Robot Lighten Example 1), a 0.196 in hole
+centered in a corner rounded 3/16 in, 0.09 in from the edge, failed walls from 0.4040 in (0.4039 worked) to at least
+0.6 in; at 0.8 in hollowing worked, but left out 43% of what the pockets should have been, and on the plate beside it,
+1%. Hollowing only the outline and cutting the grown holes matched the exact inset (computed with shapely from the
+face's edges) on both plates, from 0.125 in to 1 in, and the examples in Robot Lighten.
+
+The holes are the rings of the pockets' sides between their ends (`qFaceOrEdgeBoundedFaces`), but the outline, which
+spans the most (`holeRings`). They're split off after the steps which move faces: the pockets are copied
+(`opPattern`), their holes filled (`opDeleteFace`, which heals a hole closed), copied again, and the first copy cut from
+the second, leaving the holes. So their ends are moved out with the pockets', and their sides along faces to ignore
+and overrides move as the pockets' do: a hole along a face to ignore is grown back to where it was, and an
+overridden one by its override's thickness.
 
 Before hollowing:
 
 - The pocket's ends, and its sides along faces to ignore, are moved out by the same amount, so hollowing brings them
   back to where they were.
 - Each wall override's sides move out by Wall thickness less its own.
-- Concave edges get a hair fillet, which hollowing grows into the walls' rounded inside corners. After hollowing,
-  they're set to exactly the hollow's depth (`opModifyFillet`, as Vent does), so growing the pockets back leaves them
-  exactly the wall thickness. If that fails, they're left a hair bigger, and the info says so.
+- Concave edges (of the outline, now that the holes are filled), and the holes' corners, get a hair fillet, which
+  hollowing and growing grow into the walls' rounded inside corners. After, they're set to exactly the inset
+  (`opModifyFillet`, as Vent does), so growing the pockets back leaves them exactly the wall thickness. If that fails,
+  they're left a hair bigger, and the info says so.
 
-Hollowing fails where the walls are too thick for the face's outline and holes: on Exercise 3's Inner Plate, at 0.4040
-in (0.4039 works) to at least 0.6 in, where a 0.196 in hole is centered in a corner rounded 3/16 in, 0.09 in from the
-edge. The walls' offsets of the hole and the corner's sides meet there, and the shell can't resolve it. So its error
-says the wall thickness (plus the fillet radius, with Fillet corners: the walls are thicker by it) is too large, and
-shows where: `holesFailingShell` splits each pocket's sides into rings of faces between its ends
-(`qFaceOrEdgeBoundedFaces`): its outline, and each hole. Each ring in turn is filled (`opDeleteFace`, which heals a
-hole closed; the outline can't be) and the pockets hollowed again, in a feature of its own which is always rolled back
-(`abortFeature`). The holes which, filled, let it work are shown: the part's faces along them, and their edges on the
-face (`partFaces`), since the pockets' ends were moved out, so their own sides stick out of the part, and seen along
-the face's normal the faces are edge on. If no hole alone is why, the face is shown. The shell's own error display
-isn't copied: it shows the pockets, sticking out of the part. This costs a hollow per ring, but only once hollowing
-has failed.
+Hollowing the outline fails where the walls are too thick for it, and growing the holes where they're too thick for a
+hole, so those errors say the wall thickness (plus the fillet radius, with Fillet corners: the walls are thicker by
+it) is too large, and show where: the face, or the holes which fail to grow on their own (`holesFailingGrowth`, each
+grown in a feature of its own which is always rolled back, only once growing them all has failed). Holes are shown on
+the part: its faces along them, and their edges on the face (`partFaces`), since the pockets' ends were moved out, so
+their own sides stick out of the part, and seen along the face's normal the faces are edge on. The shell's own error
+display isn't copied: it shows the pockets, sticking out of the part.
+
+Splitting the holes off costs about 20 ms a feature on Robot Lighten's examples, and 40 ms on Exercise 3's plates (a
+dozen holes): two copies, a fill, a cut, the growth, and the cut of the grown holes, most of them a few milliseconds
+each. That's 5 to 10% of the feature; rounding the pockets and cutting the ribs cost more.
 
 Every other step's failure fails the feature, with a message saying which step, and what it was given shown in red
 (see the errors table). An override's offset failing is "Selected wall overrides are invalid.", with its faces. A
@@ -205,8 +229,10 @@ width between them amount to.
 #### Small pockets
 
 Pockets too small to be worth cutting are left solid, with or without Fillet corners. This is a heuristic: a pocket
-is small if its area, as cut, is less than a circle twice as wide as the bit or the wall thickness, whichever is wider
-(`isSmallPocket`). With a 1/8 in. bit and 1/8 in. walls, that's a circle 1/4 in. across. Its area as cut is
+is small if its area, as cut, is less than a circle twice as wide as the wall thickness (`isSmallPocket`). With 1/8
+in. walls, that's a circle 1/4 in. across. It's measured against the wall, not the bit: a pocket as cut is at least the
+bit, so a sliver under a big bit is a good-sized pocket. Measuring against a circle twice as wide as the bit, as it
+did, left slivers under a 3/8 in. radius bit solid when they'd cut pockets 3/4 in. across or more. Its area as cut is
 estimated before it's grown back: its area, plus its outline's length times the radius, plus the bit's (Steiner's
 formula: exact for convex pockets, and a little more for others).
 
@@ -247,25 +273,26 @@ the style guide's "Tolerances, not margins").
 | `roundPockets` (`try silent`) | Each narrow side's fillet delete and full round | A warning, showing the corner and side; the feature they're in is rolled back. |
 | `roundPockets` (`try silent`) | Growing the pockets back | A warning, showing the pockets, cut smaller. |
 | `buildWalls` (`try silent`) | Setting the walls' inside corners to their exact radius | Info: they're a hair bigger. |
-| `holesFailingShell` (`try silent`) | Filling each ring of sides and hollowing again, once hollowing has failed | That ring isn't why; the feature it's in is rolled back either way. |
+| `holesFailingGrowth` (`try silent`) | Growing each hole on its own, once growing them all has failed | That hole isn't why; the feature it's in is rolled back either way. |
 | `robotLightenEditLogic` (`try silent`) | Finding the face to fill in | Left as it is. |
 
 ## Method comparison
 
 Robot lighten, Vent (`vent.local.fs`), and Part Lighten (`partLighten.local.fs`) all build walls the way the previous
 Onshape Lighten feature did: extrude the face, hollow it (`opShell`), and keep what the hollow encloses (`opEnclose`).
+Robot lighten hollows it with its holes filled, and cuts the holes, grown, from that (see Walls).
 
 | | Robot lighten | Vent | Part Lighten |
 | --- | --- | --- | --- |
 | What's lightened | One face of one part | Selected faces on parts' faces (any number of parts) | One face of one or more parts |
 | Ribs | Sketch edges of any shape (Quick rib's too), each thickened on its own; overrides by group | None: separate faces leave a wall between them, half from each | Sketched rectangles (and arcs) around selected lines |
-| Walls along the part's edges | Hollow of the face's extrude, ends moved out first | Second extrude of the part's coplanar faces, hollowed by the full wall, intersected (`SUBTRACT_COMPLEMENT`) | Hollow of the face's extrude |
+| Walls along the part's edges | Hollow of the face's extrude with its holes filled, ends moved out first; the holes grown by the wall and cut from it | Second extrude of the part's coplanar faces, hollowed by the full wall, intersected (`SUBTRACT_COMPLEMENT`) | Hollow of the face's extrude |
 | Inside wall corners | Hair fillet, grown, then `opModifyFillet` to exactly the offset | As Robot lighten | As Robot lighten |
 | Rounded pocket corners | Hair fillet, grown by the radius less the hair: exactly the radius | Hair fillet, grown by the radius, then `opModifyFillet` to exactly it | As Vent, with the tool radius rounded up by 0.01 in |
 | End types | Through all, Blind | Blind, Up to face, Up to part, Through all | Blind, Through, Up to face, Up to vertex |
 | Extents | Exact (tight bounding box) | Exact (tight bounding box) | Measured distances; tool radius rounded |
 | Narrow pocket ends | Full round, where a side's two corners can't be filleted | Not handled | Not handled; sharp edges where walls barely meet are found after the cut, and their faces deleted (`opDeleteFace`) |
-| Small pockets | Left solid: less area than a circle twice the bit or wall | Not handled | Not handled |
+| Small pockets | Left solid: less area than a circle twice the wall | Not handled | Not handled |
 | Tight rounded part corners | Not handled | Not handled | Not handled |
 | Inside corners not set exactly | Info: a hair bigger | Not handled | Not handled |
 | Errors | Short messages, highlighting the parameters, with the operation's own display; warnings for pockets it can't fillet | Std errors; a warning if trimming fails | Generic messages |
@@ -278,14 +305,16 @@ support.
 ## Issues found
 
 - Untested in Onshape.
-- Small pockets are found by a heuristic (twice the bit or wall), which is untested on real parts.
+- Small pockets are found by a heuristic (a circle twice the wall), which is untested on real parts.
 - Walls follow the face's outline, so a part whose sides slope or step gets walls of the face's outline, not of its
   sides.
 - An overridden wall steps to its thickness at the corners its side meets others at. A much thicker override moves
   its side in before the hollow, which can close a small pocket.
-- Hollowing fails where the walls' offsets meet in a way the shell can't resolve, like a hole in a rounded corner
-  (see Walls). Rounded corners tighter than the walls alone hollow fine (Exercise 3's 1/4 in corners, with 0.404 in
-  walls). Where no hole alone is why, the error shows the whole face.
+- Hollowing the outline can still fail where its own offsets meet in a way the shell can't resolve (no example yet),
+  and then the error shows the whole face. Rounded corners tighter than the walls hollow fine (Exercise 3's 1/4 in
+  corners, with 0.8 in walls).
+- Untested in Onshape: the errors when hollowing the outline or growing the holes fails, and holes along faces to
+  ignore or overrides.
 - A narrow side next to a concave corner (one side of it a rib's or wall's corner) has no other corner to round
   across to, so its corner's left sharp with a warning.
 - Filleting each corner on its own costs a fillet per corner, where one fillet of all of them did before.

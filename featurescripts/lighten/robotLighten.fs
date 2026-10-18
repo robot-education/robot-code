@@ -455,20 +455,26 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
  * The walls, as the previous Onshape Lighten feature and Vent make them: `pockets`, inset by Wall thickness and
  * `grow` (the walls are thicker by what the pockets are grown back by later, see the body), under `featureId + "walls"`; but
  * at `ends` (their caps) and `ignoredSides`, which stay where they are, and at each of `overrides`' `sides`, inset by
- * its `thickness` instead. In steps:
+ * its `thickness` instead. Hollowing the pockets with their holes fails, or leaves out pieces of them, where the
+ * offsets of holes and the outline meet (a hole in a rounded corner), so holes are cut separately: what's at least
+ * the inset from the outline, less each hole grown by the inset, is what's at least the inset from both. In steps:
  *
  * 1. `ends` and `ignoredSides` are moved out by the inset, so hollowing brings them back.
  * 2. Each override's sides are moved out by Wall thickness less its thickness (in, for a thicker wall).
- * 3. Concave edges get a hair fillet (std's boolean tolerance), which hollowing grows into the walls' rounded inside
- *    corners.
- * 4. The pockets are hollowed by the inset (`opShell`), which moves every face in at once, holes of any size and their
- *    corners too, and what's inside is kept (`opEnclose`, a pocket at a time).
- * 5. The inside corners' rounds are set to exactly the inset (`opModifyFillet`, as Vent does); if they can't be, they're
+ * 3. The holes are split off (`holeRings`): copies of them are kept, and they're filled in the pockets
+ *    (`opDeleteFace`). They're split off after steps 1 and 2, so their ends are moved out too, and their sides along
+ *    faces to ignore and overrides are moved as the pockets' are.
+ * 4. Concave edges of the pockets (now only their outlines'), and the holes' corners, get a hair fillet (std's boolean
+ *    tolerance), which hollowing and growing grow into the walls' rounded inside corners.
+ * 5. The pockets are hollowed by the inset (`opShell`), which moves their outlines' faces in at once, and what's inside
+ *    is kept (`opEnclose`, a pocket at a time).
+ * 6. The holes are grown by the inset (`opOffsetFace`), and cut from what's inside.
+ * 7. The inside corners' rounds are set to exactly the inset (`opModifyFillet`, as Vent does); if they can't be, they're
  *    a hair bigger, and it's said as info.
  *
- * A failed step fails the feature, with its own error display, highlighting what sets it. Hollowing fails where the
- * walls are too thick for the face's outline and holes, so its error says so, showing the holes it fails at
- * (`holesFailingShell`), or if it's none of them alone, the face.
+ * A failed step fails the feature, with its own error display, highlighting what sets it. Hollowing and growing fail
+ * where the walls are too thick for the outline or a hole, so their errors say so, showing the face, or the holes
+ * which fail to grow (`holesFailingGrowth`).
  *
  * @returns {Query} : The inset pockets' ends: `ends`, tracked from after step 1 through hollowing, and the cuts and
  *          rounding after it. Tracking from before step 1 would take in the pocket's extrude (the last operation
@@ -480,6 +486,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     const id = featureId + "walls";
     const distance = definition.wallThickness + grow;
     const parameters = concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : []]);
+    const tooThick = (definition.filletCorners ? "Wall thickness plus fillet radius is" : "Wall thickness is") ~ " too large";
     const faces = qOwnedByBody(pockets, EntityType.FACE);
 
     // 1. Ends and ignored sides out
@@ -521,30 +528,77 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         }
     }
 
-    // 3. Concave edges, a hair
+    // 3. Holes split off: the pockets copied, their holes filled, copied again, and the first copy cut from the second
+    const holes = qUnion(holeRings(context, pockets, ends));
+    const holeBodies = qUnion([qCreatedBy(id + "holes", EntityType.BODY), qCreatedBy(id + "splitHoles", EntityType.BODY)]);
+    if (!isQueryEmpty(context, holes))
+    {
+        try silent
+        {
+            opPattern(context, id + "unfilled", {
+                        "entities" : pockets,
+                        "transforms" : [identityTransform()],
+                        "instanceNames" : ["1"]
+                    });
+            opDeleteFace(context, id + "fill", {
+                        "deleteFaces" : holes,
+                        "includeFillet" : false,
+                        "capVoid" : false,
+                        "leaveOpen" : false
+                    });
+            opPattern(context, id + "holes", {
+                        "entities" : pockets,
+                        "transforms" : [identityTransform()],
+                        "instanceNames" : ["1"]
+                    });
+            opBoolean(context, id + "splitHoles", {
+                        "targets" : qCreatedBy(id + "holes", EntityType.BODY),
+                        "tools" : qCreatedBy(id + "unfilled", EntityType.BODY),
+                        "operationType" : BooleanOperationType.SUBTRACTION
+                    });
+        }
+        catch
+        {
+            // The holes are filled once their copies are made, so it's the face that's shown if they're gone
+            throw regenError("Failed to create the walls around the holes shown.", parameters,
+                isQueryEmpty(context, holes) ? face : partFaces(context, face, holes));
+        }
+    }
+    logEntities(context, "Holes, cut separately", holeBodies, DebugColor.BLUE);
+    // Their ends are parallel to the face; every other face is a side
+    const holeFaces = qOwnedByBody(holeBodies, EntityType.FACE);
+    const holeEnds = qParallelPlanes(holeFaces, evPlane(context, { "face" : face }).normal, true);
+    const holeSides = qSubtraction(holeFaces, holeEnds);
+
+    // 4. Concave edges, and the holes' corners, a hair
     const concave = qUnion(filter(evaluateQuery(context, qOwnedByBody(pockets, EntityType.EDGE)), function(edge)
             {
                 return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONCAVE;
             }));
-    if (!isQueryEmpty(context, concave))
+    const holeEdges = qSubtraction(qOwnedByBody(holeBodies, EntityType.EDGE), qAdjacent(holeEnds, AdjacencyType.EDGE, EntityType.EDGE));
+    const holeCorners = qUnion(filter(evaluateQuery(context, holeEdges), function(edge)
+            {
+                return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
+            }));
+    if (!isQueryEmpty(context, qUnion([concave, holeCorners])))
     {
         try silent
         {
             opFillet(context, id + "roundConcave", {
-                        "entities" : concave,
+                        "entities" : qUnion([concave, holeCorners]),
                         "radius" : TOLERANCE.booleanDefaultTolerance * meter
                     });
         }
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "roundConcave", "propagateErrorDisplay" : true });
-            throw regenError("Failed to round the walls' inside corners.", parameters, concave);
+            throw regenError("Failed to round the walls' inside corners.", parameters, qUnion([concave, holeCorners]));
         }
     }
-    // Hollowing changes them, so they're tracked through it, to be set to exactly the inset after
+    // Hollowing and growing change them, so they're tracked through it, to be set to exactly the inset after
     const rounds = startTracking(context, qCreatedBy(id + "roundConcave", EntityType.FACE));
 
-    // 4. Hollowed, and what's inside kept
+    // 5. Hollowed, and what's inside kept
     try silent
     {
         opShell(context, id + "shell", {
@@ -554,18 +608,8 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     }
     catch
     {
-        // Hollowing fails where the walls are too thick for the face's outline and holes, mostly at a hole near its
-        // edge; the holes it fails at are shown on the part, or failing that, the face. Not the shell's own display:
-        // it shows the pockets, sticking out of the part with their ends moved out.
-        const tooThick = (definition.filletCorners ? "Wall thickness plus fillet radius is" : "Wall thickness is") ~ " too large";
-        const holes = holesFailingShell(context, id + "findHoles", pockets, ends, distance);
-        if (holes != [])
-        {
-            const shown = partFaces(context, face, qUnion(holes));
-            logEntities(context, "Holes the walls fail at", shown, DebugColor.RED);
-            throw regenError(tooThick ~ " for the walls around the holes shown.", parameters, shown);
-        }
-        throw regenError(tooThick ~ " for the walls to fit the face.", parameters, face);
+        // Not the shell's own display: it shows the pockets, sticking out of the part with their ends moved out
+        throw regenError(tooThick ~ " for the walls to fit the face's outline.", parameters, face);
     }
     for (var i, pocket in evaluateQuery(context, pockets))
     {
@@ -580,15 +624,46 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
             throw regenError("Failed to inset the pocket shown.", parameters, pocket);
         }
     }
+
+    // 6. Holes grown, and cut from what's inside
+    const inside = qUnion([qCreatedBy(id + "enclose", EntityType.BODY), qCreatedBy(id + "cutHoles", EntityType.BODY)]);
+    if (!isQueryEmpty(context, holeBodies))
+    {
+        try silent
+        {
+            opOffsetFace(context, id + "growHoles", {
+                        "moveFaces" : holeSides,
+                        "offsetDistance" : distance
+                    });
+        }
+        catch
+        {
+            const failing = holesFailingGrowth(context, id + "findHoles", holeBodies, holeSides, distance);
+            throw regenError(tooThick ~ " for the walls around the holes shown.", parameters,
+                partFaces(context, face, qIntersection([holeSides, qOwnedByBody(qUnion(failing), EntityType.FACE)])));
+        }
+        if (isQueryEmpty(context, qCreatedBy(id + "enclose", EntityType.BODY)))
+        {
+            opDeleteBodies(context, id + "deleteHoles", { "entities" : holeBodies });
+        }
+        else
+        {
+            opBoolean(context, id + "cutHoles", {
+                        "targets" : qCreatedBy(id + "enclose", EntityType.BODY),
+                        "tools" : holeBodies,
+                        "operationType" : BooleanOperationType.SUBTRACTION
+                    });
+        }
+    }
     // A pocket narrower than twice the inset encloses nothing; none left is an error, not an empty result
-    logEntities(context, "Pockets inside the walls", qCreatedBy(id + "enclose", EntityType.BODY), DebugColor.GREEN);
-    if (isQueryEmpty(context, qCreatedBy(id + "enclose", EntityType.BODY)))
+    logEntities(context, "Pockets inside the walls", inside, DebugColor.GREEN);
+    if (isQueryEmpty(context, inside))
     {
         throw regenError("There's no room for pockets inside the walls.", parameters, pockets);
     }
 
-    // 5. Inside corners, exactly the inset
-    const insideCorners = qIntersection([rounds, qCreatedBy(id + "enclose", EntityType.FACE)]);
+    // 7. Inside corners, exactly the inset
+    const insideCorners = qIntersection([rounds, qOwnedByBody(inside, EntityType.FACE)]);
     if (!isQueryEmpty(context, insideCorners))
     {
         try silent
@@ -610,47 +685,73 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
 }
 
 /**
- * The holes in `pockets` which hollowing them by `distance` fails at: those which, filled, let it work. Each pocket's
- * sides are rings of faces between its `ends`: its outline, and each of its holes. Each ring in turn is filled
- * (`opDeleteFace`, which heals a hole closed; the outline can't be) and the pockets hollowed, in a feature of its own
- * which is always rolled back, so this changes nothing. Run only once hollowing has failed, as it costs a hollow per
- * ring.
+ * The holes in `pockets`: each pocket's sides are rings of faces between its `ends`, its outline and each of its holes
+ * (`qFaceOrEdgeBoundedFaces`). Its outline is the ring spanning the most, as each hole is inside it.
  *
- * @returns {array} : The rings of faces (queries) of the holes it fails at; empty if it's none of them alone.
+ * @returns {array} : Each hole's ring of faces (a query).
  */
-function holesFailingShell(context is Context, id is Id, pockets is Query, ends is Query, distance is ValueWithUnits) returns array
+function holeRings(context is Context, pockets is Query, ends is Query) returns array
 {
-    var rings = [];
-    var left = evaluateQuery(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), ends));
-    while (left != [])
+    var holes = [];
+    for (var pocket in evaluateQuery(context, pockets))
     {
-        const ring = qFaceOrEdgeBoundedFaces(qUnion([left[0], ends]));
-        rings = append(rings, ring);
-        left = evaluateQuery(context, qSubtraction(qUnion(left), ring));
+        var rings = [];
+        var left = evaluateQuery(context, qSubtraction(qOwnedByBody(pocket, EntityType.FACE), ends));
+        while (left != [])
+        {
+            const ring = qFaceOrEdgeBoundedFaces(qUnion([left[0], ends]));
+            rings = append(rings, ring);
+            left = evaluateQuery(context, qSubtraction(qUnion(left), ring));
+        }
+        var outline = 0;
+        var widest = 0 * meter;
+        for (var i, ring in rings)
+        {
+            const bounds = evBox3d(context, { "topology" : ring });
+            if (norm(bounds.maxCorner - bounds.minCorner) > widest)
+            {
+                widest = norm(bounds.maxCorner - bounds.minCorner);
+                outline = i;
+            }
+        }
+        for (var i, ring in rings)
+        {
+            if (i != outline)
+            {
+                holes = append(holes, ring);
+            }
+        }
     }
+    return holes;
+}
+
+/**
+ * The holes (bodies of `holes`) which fail to grow by `distance`: each one's `sides` grown on its own, in a feature of
+ * its own which is always rolled back, so this changes nothing. Run only once growing them all has failed.
+ *
+ * @returns {array} : The holes (queries) which fail.
+ */
+function holesFailingGrowth(context is Context, id is Id, holes is Query, sides is Query, distance is ValueWithUnits) returns array
+{
     var failing = [];
-    for (var i, ring in rings)
+    for (var i, hole in evaluateQuery(context, holes))
     {
         const tryId = id + unstableIdComponent(i);
         startFeature(context, tryId, {});
         try silent
         {
-            opDeleteFace(context, tryId + "fill", {
-                        "deleteFaces" : ring,
-                        "includeFillet" : false,
-                        "capVoid" : false,
-                        "leaveOpen" : false
+            opOffsetFace(context, tryId + "grow", {
+                        "moveFaces" : qIntersection([sides, qOwnedByBody(hole, EntityType.FACE)]),
+                        "offsetDistance" : distance
                     });
-            opShell(context, tryId + "shell", {
-                        "entities" : pockets,
-                        "thickness" : -distance
-                    });
-            failing = append(failing, ring);
+        }
+        catch
+        {
+            failing = append(failing, hole);
         }
         abortFeature(context, tryId);
     }
-    logLine(context, "Hollowing by " ~ lengthText(distance) ~ " fails; filling each of " ~ size(rings) ~ " rings of sides, it works for " ~
-            size(failing));
+    logLine(context, "Growing the holes by " ~ lengthText(distance) ~ " fails; " ~ size(failing) ~ " of them fail on their own");
     return failing;
 }
 
@@ -1083,8 +1184,9 @@ function narrowSide(context is Context, corner is Query, failed is Query, fillet
 
 /**
  * The pockets (before they're grown back by `radius`) too small to be worth cutting: a heuristic. Those with less area,
- * as cut, than a circle twice as wide as the bit (`2 * radius`) or `wall`, whichever's wider; they're mostly slivers
- * between walls and ribs, whose corners can be too sharp to round. Their area as cut is their area, plus their
+ * as cut, than a circle twice as wide as `wall`; they're mostly slivers between walls and ribs, whose corners can be too
+ * sharp to round. Measured against the wall, not the bit: as cut, a pocket is at least the bit, so with a bit as wide
+ * as twice the wall, none are small, however thin they are before growing. Their area as cut is their area, plus their
  * outline's length times `radius`, plus the bit's (Steiner's formula: exact for convex pockets, and a little more than
  * it for others).
  */
@@ -1106,7 +1208,7 @@ function smallPockets(context is Context, pockets is Query, ends is Query, radiu
  */
 export function isSmallPocket(area is ValueWithUnits, outline is ValueWithUnits, radius is ValueWithUnits, wall is ValueWithUnits) returns boolean
 {
-    return area + outline * radius + PI * radius ^ 2 < PI * max(2 * radius, wall) ^ 2;
+    return area + outline * radius + PI * radius ^ 2 < PI * wall ^ 2;
 }
 
 /**
