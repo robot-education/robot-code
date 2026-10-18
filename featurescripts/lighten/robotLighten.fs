@@ -235,18 +235,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                 qUnion([face, ribEdges]));
         }
 
-        // Pockets too small to be worth cutting are left solid
-        const small = smallPockets(context, pockets, pocketEnds, radius, definition.wallThickness);
-        logEntities(context, "Small pockets, left solid", qUnion(small), DebugColor.YELLOW);
-        if (size(small) == size(evaluateQuery(context, pockets)))
-        {
-            throw regenError("The pockets are all too small to cut.", ["wallThickness", "filletRadius"], qUnion(small));
-        }
-        if (small != [])
-        {
-            opDeleteBodies(context, id + "dropSmall", { "entities" : qUnion(small) });
-        }
-
         if (definition.filletCorners)
         {
             roundPockets(context, id, pockets, pocketEnds, grow);
@@ -1180,35 +1168,6 @@ function narrowSide(context is Context, corner is Query, failed is Query, fillet
         }
     }
     return nearest;
-}
-
-/**
- * The pockets (before they're grown back by `radius`) too small to be worth cutting: a heuristic. Those with less area,
- * as cut, than a circle twice as wide as `wall`; they're mostly slivers between walls and ribs, whose corners can be too
- * sharp to round. Measured against the wall, not the bit: as cut, a pocket is at least the bit, so with a bit as wide
- * as twice the wall, none are small, however thin they are before growing. Their area as cut is their area, plus their
- * outline's length times `radius`, plus the bit's (Steiner's formula: exact for convex pockets, and a little more than
- * it for others).
- */
-function smallPockets(context is Context, pockets is Query, ends is Query, radius is ValueWithUnits, wall is ValueWithUnits) returns array
-{
-    return filter(evaluateQuery(context, pockets), function(pocket)
-        {
-            // Both its ends (on the face and its far side) are its outline
-            const pocketEnds = qIntersection([ends, qOwnedByBody(pocket, EntityType.FACE)]);
-            const area = evArea(context, { "entities" : pocketEnds }) / 2;
-            const outline = evLength(context, { "entities" : qAdjacent(pocketEnds, AdjacencyType.EDGE, EntityType.EDGE) }) / 2;
-            return isSmallPocket(area, outline, radius, wall);
-        });
-}
-
-/**
- * Whether a pocket of `area`, whose outline is `outline` long, is too small to cut once it's grown back by `radius`
- * (see `smallPockets`).
- */
-export function isSmallPocket(area is ValueWithUnits, outline is ValueWithUnits, radius is ValueWithUnits, wall is ValueWithUnits) returns boolean
-{
-    return area + outline * radius + PI * radius ^ 2 < PI * wall ^ 2;
 }
 
 /**

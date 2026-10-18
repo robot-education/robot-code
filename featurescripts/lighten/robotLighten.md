@@ -8,7 +8,6 @@ pockets' corners are rounded as a router bit leaves them.
 | File | What it is |
 | --- | --- |
 | `robotLighten.fs` | The feature |
-| `../../tests/featurescript/lighten_test.fs` | Tests of which pockets are small |
 | `robotLightenIcon.py` | Its icon (`fs gen` writes `robotLightenIcon.svg`): the plate icon, pocketed |
 | `vent.local.fs` | Vent, for reference (see Method comparison): not synced |
 | `partLighten.local.fs` | Part Lighten (by Evan Fish, FRC 2471), for reference: not synced |
@@ -22,8 +21,7 @@ Unreleased.
   no longer fails the walls, or silently leaves out pieces of pockets.
 - When the walls can't be made, the error says the wall thickness (plus the fillet radius) is too large, and shows the
   face or the holes they fail at, instead of the pockets sticking out of the part.
-- Small pockets are measured against the wall thickness, not the bit: slivers under a big bit, which cut good-sized
-  pockets, are no longer left solid.
+- Every pocket is cut, however small: none are left solid.
 
 ## Strings
 
@@ -66,7 +64,6 @@ where they come up, and show only once it's done; only the first reported shows.
 | Failed to create rib. | error | a rib's extrude, thicken, or cylinder fails | that rib's group's parameters, and its edge |
 | Failed to cut the ribs from the pockets. | error | cutting them fails | the rib parameters, and the ribs |
 | There's no room for pockets between the walls and ribs. | error | the ribs leave nothing of the pockets | the wall, fillet, and rib parameters, and the face and ribs (what was cut is used up) |
-| The pockets are all too small to cut. | error | every pocket's small (see Small pockets) | `wallThickness`, `filletRadius`, and the pockets |
 | Failed to fillet pocket. | warning | a corner's fillet fails, and neither side next to it has another corner to round across to: it's left sharp | `filletRadius`, and the corner |
 | Failed to round pocket. | warning | a full round across a failed corner's narrow side fails: the corner's left sharp, and the fillet it deleted is put back | `filletRadius`, the corner and the side |
 | Failed to grow back pockets. | warning | growing the rounded pockets back fails: they're cut smaller, by the fillet radius | `filletRadius`, the pockets, and the growth's error display |
@@ -120,7 +117,6 @@ robotLighten
     --> opModifyFillet "exactCorners"              // 7. inside corners: exactly wall + growth (info if not)
 --> buildRibs --> buildRibGroup                    // each rib: a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
---> smallPockets --> opDeleteBodies "dropSmall"    // too small to be worth cutting: left solid
 --> roundPockets                                   // with Fillet corners, in steps:
     --> opFillet "fillet"                          // 1. each corner on its own, a hair, kept if it works
     --> narrowSide                                 // 2. each failed corner: the side to its nearest other corner
@@ -183,9 +179,9 @@ Offsetting the face's edges in 2D (`opOffsetWire` with `makeRegions`, as std's t
 and dropped: it hit an Onshape bug on one plate's face, and it regenerated slower than hollowing on the plates tried.
 
 With logging on (a variable `#logging` of `true`, see the style guide's Logging), it prints the wall thickness,
-radius, and growth, and how many pockets each step leaves (inside the walls, between the walls and ribs, and too
-small), and shows them as debug entities. When hollowing fails, it prints how many rings of sides there are and how
-many of them, filled, let it work, and shows the holes it fails at.
+radius, and growth, how many holes are cut separately, and how many pockets each step leaves (inside the walls, and
+between the walls and ribs), and shows them as debug entities. When growing the holes fails, it prints how many of
+them fail on their own.
 
 ### Ribs
 
@@ -226,15 +222,14 @@ are cut smaller.
 Full rounds grow to half the side's width (under a hair) and the growth, which is what the bit's two rounds with that
 width between them amount to.
 
-#### Small pockets
+#### Every pocket is cut
 
-Pockets too small to be worth cutting are left solid, with or without Fillet corners. This is a heuristic: a pocket
-is small if its area, as cut, is less than a circle twice as wide as the wall thickness (`isSmallPocket`). With 1/8
-in. walls, that's a circle 1/4 in. across. It's measured against the wall, not the bit: a pocket as cut is at least the
-bit, so a sliver under a big bit is a good-sized pocket. Measuring against a circle twice as wide as the bit, as it
-did, left slivers under a 3/8 in. radius bit solid when they'd cut pockets 3/4 in. across or more. Its area as cut is
-estimated before it's grown back: its area, plus its outline's length times the radius, plus the bit's (Steiner's
-formula: exact for convex pockets, and a little more for others).
+Every pocket left between the walls and ribs is cut, however small. Leaving small ones solid was tried, by a heuristic
+(less area, as cut, than a circle twice as wide as the bit, then the wall), and dropped: a thin sliver under a big bit
+cuts a good-sized pocket, and with thick walls it left every pocket solid ("The pockets are all too small to cut." on
+Exercise 3's Inner Plate with 0.6 in walls).
+
+#### The pockets' ends
 
 The pockets' ends are the pocket extrude's caps (`qCapEntity`). The walls' first step uses them as they are; from
 after it, they're tracked through hollowing, the cuts, and rounding (`startTracking`, as Vent tracks its fillets
@@ -256,7 +251,7 @@ the style guide's "Tolerances, not margins").
   with `propagateErrorDisplay`, on the feature's top level id), then throws a short message saying which step failed,
   highlighting the parameters which set it, and showing what it was given: most operations show nothing of their own
   (`opFillet` is the exception).
-- Where a step can leave nothing (the regions to ignore, the walls, the ribs' cut, dropping small pockets), it's
+- Where a step can leave nothing (the regions to ignore, the walls, the ribs' cut), it's
   checked, and nothing left is an error there, showing what's still there to show: when the cut used up the pockets
   and ribs, the face and the rib edges.
 - Failures it can carry on from aren't errors: anything in rounding (a corner left sharp, or the pockets left
@@ -292,7 +287,6 @@ Robot lighten hollows it with its holes filled, and cuts the holes, grown, from 
 | End types | Through all, Blind | Blind, Up to face, Up to part, Through all | Blind, Through, Up to face, Up to vertex |
 | Extents | Exact (tight bounding box) | Exact (tight bounding box) | Measured distances; tool radius rounded |
 | Narrow pocket ends | Full round, where a side's two corners can't be filleted | Not handled | Not handled; sharp edges where walls barely meet are found after the cut, and their faces deleted (`opDeleteFace`) |
-| Small pockets | Left solid: less area than a circle twice the wall | Not handled | Not handled |
 | Tight rounded part corners | Not handled | Not handled | Not handled |
 | Inside corners not set exactly | Info: a hair bigger | Not handled | Not handled |
 | Errors | Short messages, highlighting the parameters, with the operation's own display; warnings for pockets it can't fillet | Std errors; a warning if trimming fails | Generic messages |
@@ -305,7 +299,7 @@ support.
 ## Issues found
 
 - Untested in Onshape.
-- Small pockets are found by a heuristic (a circle twice the wall), which is untested on real parts.
+- Slivers between walls and ribs are cut too; their corners can be too sharp to round, which is a warning.
 - Walls follow the face's outline, so a part whose sides slope or step gets walls of the face's outline, not of its
   sides.
 - An overridden wall steps to its thickness at the corners its side meets others at. A much thicker override moves
