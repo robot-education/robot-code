@@ -55,13 +55,11 @@ export enum FtcCustomShaft
  * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
  * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
  * Every FTC COTS shaft is; of FRC's, editing logic sets `presetShaft` from its table entry (`withShaft`).
- *
- * One expression, not a statement per condition: Onshape didn't hide parameters by this predicate (or show them by
- * `hasFactoryGrooves`) when each condition was a statement of its own.
  */
 predicate isPresetLength(definition is map)
 {
-    definition.shaftSource == ShaftSource.COTS && (definition.program == Program.FTC || definition.presetShaft);
+    definition.shaftSource == ShaftSource.COTS;
+    definition.program == Program.FTC || definition.presetShaft;
 }
 
 /**
@@ -70,7 +68,8 @@ predicate isPresetLength(definition is map)
  */
 predicate hasFactoryGrooves(definition is map)
 {
-    definition.shaftSource == ShaftSource.COTS && definition.factoryGrooved;
+    definition.shaftSource == ShaftSource.COTS;
+    definition.factoryGrooved;
 }
 
 export enum EndOperation
@@ -1611,6 +1610,10 @@ export function robotShaftEditLogic(context is Context, id is Id, oldDefinition 
         }
     }
 
+    // withShaft's values for the body, which aren't parameters: Onshape rejects an editing logic result with keys its
+    // precondition doesn't declare ("Unknown parameter")
+    definition.unitSystem = undefined;
+    definition.predrilledHoleDiameter = undefined;
     return definition;
 }
 
