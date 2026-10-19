@@ -88,6 +88,31 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
 
         annotation { "Name" : "Clear invalid selections" }
         isButton(definition.clearInvalid);
+
+        // Ribs deleted (by key, see `lineKey`), whether they're being chosen, and those chosen so far: set by editing
+        // logic and the toggle points
+        annotation { "Name" : "Deleted ribs", "UIHint" : ["ALWAYS_HIDDEN"] }
+        isAnything(definition.deletedRibs);
+
+        annotation { "Name" : "Deleting ribs", "UIHint" : ["ALWAYS_HIDDEN"] }
+        definition.deletingRibs is boolean;
+
+        annotation { "Name" : "Ribs to delete", "UIHint" : ["ALWAYS_HIDDEN"] }
+        isAnything(definition.ribsToDelete);
+
+        annotation { "Group Name" : "Delete ribs", "Collapsed By Default" : false }
+        {
+            if (!definition.deletingRibs)
+            {
+                annotation { "Name" : "Start deleting ribs" }
+                isButton(definition.startDeleting);
+            }
+            else
+            {
+                annotation { "Name" : "Finish deleting ribs" }
+                isButton(definition.finishDeleting);
+            }
+        }
     }
     {
         if (isQueryEmpty(context, definition.face))
@@ -95,29 +120,46 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             throw regenError("Select a face to use.", ["face"]);
         }
         const plane = evPlane(context, { "face" : definition.face });
-        const ribs = sketchQuickRibs(context, id + "ribSketch", definition, plane);
+        const quickRibs = getQuickRibs(context, definition);
         addEdgeRibManipulators(context, id, definition);
-        if (isQueryEmpty(context, ribs.edges))
+        if (quickRibs.ribs == [])
         {
             throw regenError("Add chains, hubs, or edge ribs to sketch ribs.", ["chains", "hubs", "edgeRibs"]);
         }
-        if (ribs.skipped > 0)
+        // While deleting, every rib is sketched, with a toggle point to delete it (deleted ones toggled already)
+        const deleted = definition.deletingRibs ? [] : definition.deletedRibs ?? [];
+        const ribs = filter(quickRibs.ribs, rib => !isIn(rib.key, deleted));
+        if (ribs == [])
+        {
+            throw regenError("All ribs are deleted.", ["startDeleting"]);
+        }
+        sketchQuickRibs(context, id + "ribSketch", plane, ribs);
+        if (definition.deletingRibs)
+        {
+            addDeleteRibsManipulator(context, id, plane, quickRibs.ribs, definition.ribsToDelete ?? []);
+            reportFeatureInfo(context, id, "Click ribs to delete.");
+        }
+        if (quickRibs.skipped > 0)
         {
             reportFeatureWarning(context, id, "Some quick ribs are skipped because they're incomplete.", ["chains", "hubs", "edgeRibs"]);
         }
     });
 
 /**
- * Dragging an edge rib's end sets its Location (`edgeRibManipulatorChange`).
+ * Dragging an edge rib's end sets its Location (`edgeRibManipulatorChange`); clicking a rib's toggle point, while
+ * deleting ribs, toggles whether it's to be deleted (`deleteRibsManipulatorChange`).
  */
 export function quickRibManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
+    definition = deleteRibsManipulatorChange(context, definition, newManipulators);
     return edgeRibManipulatorChange(context, definition, newManipulators);
 }
 
 /**
- * When Clear invalid selections is clicked, drops invalid selections (`clearInvalidSelections`). Fills in Face to use,
- * while it's empty and hasn't been set: the face under the first selection (`firstFaceUnder`).
+ * When Clear invalid selections is clicked, drops invalid selections (`clearInvalidSelections`). Start deleting ribs
+ * starts choosing ribs to delete, from those deleted already (so they can be put back); Finish deleting ribs deletes
+ * those chosen. Fills in Face to use, while it's empty and hasn't been set: the face under the first selection
+ * (`firstFaceUnder`).
  */
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
@@ -125,6 +167,17 @@ export function quickRibEditLogic(context is Context, id is Id, oldDefinition is
     if (clickedButton == "clearInvalid")
     {
         definition = clearInvalidSelections(context, definition);
+    }
+    else if (clickedButton == "startDeleting")
+    {
+        definition.deletingRibs = true;
+        definition.ribsToDelete = definition.deletedRibs ?? [];
+    }
+    else if (clickedButton == "finishDeleting")
+    {
+        definition.deletedRibs = definition.ribsToDelete ?? [];
+        definition.deletingRibs = false;
+        definition.ribsToDelete = [];
     }
     if (!(specifiedParameters.face ?? false) && isQueryEmpty(context, definition.face))
     {
@@ -159,15 +212,16 @@ export enum EdgeRibEnd
 }
 
 /**
- * Sketches the quick ribs (Chains, Hub and spokes, and Edge ribs) on `plane` under `id`: each line and circle,
- * points projected onto it. Incomplete chains, hubs, and edge ribs, and selections which aren't there, are skipped.
+ * The quick ribs (from Chains, Hub and spokes, and Edge ribs), lines first, without repeats. Incomplete chains, hubs,
+ * and edge ribs, and selections which aren't there, are skipped.
  *
  * @returns {{
- *      @field edges {Query} : The sketch's edges (nothing, without any).
+ *      @field ribs {array} : Each a map of its `key` (see `lineKey` and `circleKey`), and its `line` (`[from, to]`) or
+ *              `circle` (its `center`, and the `through` point it goes through).
  *      @field skipped {number} : How many chains, hubs, and edge ribs were skipped.
  * }}
  */
-export function sketchQuickRibs(context is Context, id is Id, definition is map, plane is Plane) returns map
+export function getQuickRibs(context is Context, definition is map) returns map
 {
     var segments = [];
     var circles = [];
@@ -207,23 +261,134 @@ export function sketchQuickRibs(context is Context, id is Id, definition is map,
         }
         segments = concatenateArrays([segments, ribs]);
     }
-    segments = uniqueSegments(segments);
-    if (segments == [] && circles == [])
-    {
-        return { "edges" : qNothing(), "skipped" : skipped };
-    }
+    const lines = mapArray(uniqueSegments(segments), segment => { "key" : lineKey(segment), "line" : segment });
+    const rounds = mapArray(circles, circle => { "key" : circleKey(circle.center, circle.through), "circle" : circle });
+    return { "ribs" : concatenateArrays([lines, rounds]), "skipped" : skipped };
+}
 
-    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    for (var i, segment in segments)
+/**
+ * Sketches `ribs` (see `getQuickRibs`) on `plane` under `id`, points projected onto it.
+ * @returns {Query} : The sketch's edges (nothing, without any ribs).
+ */
+export function sketchQuickRibs(context is Context, id is Id, plane is Plane, ribs is array) returns Query
+{
+    if (ribs == [])
     {
-        skLineSegment(sketch, "rib" ~ i, { "start" : worldToPlane(plane, segment[0]), "end" : worldToPlane(plane, segment[1]) });
+        return qNothing();
     }
-    for (var i, circle in circles)
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    for (var i, rib in ribs)
     {
-        skCircle(sketch, "circle" ~ i, { "center" : worldToPlane(plane, circle.center), "radius" : hubCircleRadius(plane, circle.center, circle.through) });
+        if (rib.line != undefined)
+        {
+            skLineSegment(sketch, "rib" ~ i, { "start" : worldToPlane(plane, rib.line[0]), "end" : worldToPlane(plane, rib.line[1]) });
+        }
+        else
+        {
+            skCircle(sketch, "rib" ~ i, { "center" : worldToPlane(plane, rib.circle.center),
+                        "radius" : hubCircleRadius(plane, rib.circle.center, rib.circle.through) });
+        }
     }
     skSolve(sketch);
-    return { "edges" : qCreatedBy(id, EntityType.EDGE), "skipped" : skipped };
+    return qCreatedBy(id, EntityType.EDGE);
+}
+
+/**
+ * A line rib's key, which stays the same while its ends do (to a micrometer), either way round: for remembering which
+ * are deleted.
+ */
+export function lineKey(segment is array) returns string
+{
+    const first = pointKey(segment[0]);
+    const second = pointKey(segment[1]);
+    // Either way round: the ends in a set order
+    return precedes(segment[0], segment[1]) ? "line " ~ first ~ " " ~ second : "line " ~ second ~ " " ~ first;
+}
+
+/**
+ * A hub circle's key (see `lineKey`): its center and radius.
+ */
+export function circleKey(center is Vector, through is Vector) returns string
+{
+    return "circle " ~ pointKey(center) ~ " " ~ roundToPrecision(norm(through - center) / meter, 6);
+}
+
+function pointKey(point is Vector) returns string
+{
+    return "(" ~ roundToPrecision(point[0] / meter, 6) ~ ", " ~ roundToPrecision(point[1] / meter, 6) ~ ", " ~ roundToPrecision(point[2] / meter, 6) ~ ")";
+}
+
+/**
+ * Whether `a` comes before `b`, by x, then y, then z (to a micrometer, as `pointKey` rounds them).
+ */
+function precedes(a is Vector, b is Vector) returns boolean
+{
+    for (var i in [0, 1, 2])
+    {
+        const difference = roundToPrecision(a[i] / meter, 6) - roundToPrecision(b[i] / meter, 6);
+        if (difference != 0)
+        {
+            return difference < 0;
+        }
+    }
+    return false;
+}
+
+/**
+ * Where a rib's toggle point is, to delete it (see `addDeleteRibsManipulator`): a line's middle, or the point on a
+ * circle across from its first spoke, on `plane`.
+ */
+export function ribTogglePoint(plane is Plane, rib is map) returns Vector
+{
+    if (rib.line != undefined)
+    {
+        return project(plane, (rib.line[0] + rib.line[1]) / 2);
+    }
+    const center = project(plane, rib.circle.center);
+    const radius = hubCircleRadius(plane, rib.circle.center, rib.circle.through);
+    const away = center - project(plane, rib.circle.through);
+    const direction = tolerantEquals(norm(away), 0 * meter) ? plane.x : normalize(away);
+    return center + direction * radius;
+}
+
+const DELETE_RIBS_MANIPULATOR = "deleteRibs";
+
+/**
+ * A toggle point on each of `ribs` (see `ribTogglePoint`), selected for those whose keys are in `toDelete`, as std's
+ * patterns' Skip instances do.
+ */
+export function addDeleteRibsManipulator(context is Context, id is Id, plane is Plane, ribs is array, toDelete is array)
+{
+    var selected = [];
+    for (var i, rib in ribs)
+    {
+        if (isIn(rib.key, toDelete))
+        {
+            selected = append(selected, i);
+        }
+    }
+    addManipulators(context, id, {
+                (DELETE_RIBS_MANIPULATOR) : togglePointsManipulator({
+                        "points" : mapArray(ribs, rib => ribTogglePoint(plane, rib)),
+                        "selectedIndices" : selected,
+                        "suppressedIndices" : []
+                    })
+            });
+}
+
+/**
+ * Clicking ribs' toggle points (see `addDeleteRibsManipulator`) sets which are to be deleted (`ribsToDelete`), by key.
+ */
+export function deleteRibsManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
+{
+    const points = newManipulators[DELETE_RIBS_MANIPULATOR];
+    if (points == undefined)
+    {
+        return definition;
+    }
+    const ribs = getQuickRibs(context, definition).ribs;
+    definition.ribsToDelete = mapArray(filter(points.selectedIndices, index => index < size(ribs)), index => ribs[index].key);
+    return definition;
 }
 
 /**
