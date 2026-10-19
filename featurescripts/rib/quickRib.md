@@ -9,19 +9,19 @@ run from points to an edge, meeting it square, or where a manipulator puts them.
 | --- | --- |
 | `quickRib.fs` | The feature: its dialog, editing logic, and manipulators, and the ribs: finding them (`getQuickRibs`) and their keys (`lineKey`, `circleKey`), sketching them (`sketchQuickRibs`), the edge ribs' manipulators, the toggle points for deleting ribs, finding Face to use, and clearing invalid selections |
 | `quickRibIcon.py`, `quickRibIcon.svg` | Its icon (`fs gen` writes the `.svg`): a hub and spokes, white circles joined by gray ribs (see `docs/icons.md`) |
-| `../../tests/featurescript/quickRib_test.fs` | Tests of the lines and circles it draws (`chainSegments`, `hubSegments`, `uniqueSegments`, `hubCircleRadius`), ribs' keys and toggle points, what Quick add would add, and the Quick add and Delete ribs buttons |
+| `../../tests/featurescript/quickRib_test.fs` | Tests of the lines and circles it draws (`chainSegments`, `hubSegments`, `uniqueSegments`, `hubCircleRadius`), ribs' keys and toggle points, what Quick add would add, and the Add ribs and Delete ribs buttons |
 
 ## Changelog
 
 Unreleased. A feature of its own again, after a while folded into Robot lighten (whose Ribs to use takes its sketch's
-edges); it keeps what changed there: Location's bounds are std's fillet's for points on edges (0.001 to 0.999), Add
-circle's description, and the skipped warning. One file again: the ribs moved into `quickRib.fs` from
-`quickRibs.fs`, whose tab is gone.
+edges); it keeps what changed there: Location's bounds are std's fillet's for points on edges (0.001 to 0.999), and
+the skipped warning. One file again: the ribs moved into `quickRib.fs` from `quickRibs.fs`, whose tab is gone.
 
-- Quick add: its Selections, as a chain or a hub and spokes (Type), with Closed or Add circle, become one with its
-  Quick add button; until then, they're shown in blue. Clear invalid selections is at the bottom.
+- Quick add: its Selections, as a chain or a hub and spokes (Type), with Closed or Add circle, become one with Add
+  ribs; until then, they're highlighted in blue. Clear invalid selections is at the bottom.
 - Delete ribs: Start deleting ribs puts a toggle point on every rib, and Finish deleting ribs deletes those clicked,
   which are shown in red.
+- No parameter descriptions (Face to use and Add circle had them).
 
 ## Strings
 
@@ -32,17 +32,11 @@ circle's description, and the skipped warning. One file again: the ribs moved in
 
 ### Descriptions and hidden parameters
 
-| Parameter | Description |
-| --- | --- |
-| Face to use | Where the ribs are sketched (points are projected onto it). Filled in from what's chosen first. |
-| Selections (Quick add) | Points to add as a chain, in order, or as a hub (the first) and its spokes. |
-| Add circle | Add a circle through the first selected spoke. (Quick add's too.) |
-
-Three are hidden, set by editing logic and the toggle points: Deleted ribs (`deletedRibs`, their keys), Deleting
-ribs (`deletingRibs`, whether ribs are being chosen to delete; it shows Finish deleting ribs in place of Start deleting
-ribs), and Ribs to delete (`ribsToDelete`, those chosen so far). Quick add, Chains, Hub and spokes, Edge ribs, and
+No parameter has a description. Three are hidden, set by editing logic and the toggle points: Deleted ribs
+(`deletedRibs`, their keys), Deleting ribs (`deletingRibs`, whether ribs are being chosen to delete; it shows Finish
+deleting ribs in place of Start deleting ribs), and Ribs to delete (`ribsToDelete`, those chosen so far). Quick add, Chains, Hub and spokes, Edge ribs, and
 Delete ribs are each in a group of their own, with Clear invalid selections below them. Quick add is Type (Chain or
-Hub and spokes), Selections, Closed (Chain) or Add circle (Hub and spokes), and the Quick add button. Chains and Hub and spokes are
+Hub and spokes), Selections, Closed (Chain) or Add circle (Hub and spokes), and Add ribs. Chains and Hub and spokes are
 driven by their items' Points and Hub (selecting one adds an item), and focus moves into a new item's first selection.
 Each edge rib is End (Perpendicular to edge or Manipulator), Edge, Points (any number), and with Manipulator,
 Location.
@@ -53,20 +47,20 @@ Location.
 | --- | --- | --- | --- | --- |
 | Select a face to use. | error | no Face to use | `face` | Select faces to remove. |
 | Add chains, hubs, or edge ribs to sketch ribs. | error | nothing makes a rib, nor would Quick add | `chains`, `hubs`, `edgeRibs` | Select face or sketch region to extrude. |
-| All ribs are deleted. | error | Deleted ribs has them all (and there are some) | `startDeleting` | All instances have been hidden. |
+| All ribs are deleted. | error | Deleted ribs has them all (and there are some) | | All instances have been hidden. |
 | Some quick ribs are skipped because they're incomplete. | warning | a chain with fewer than two points, a hub without a hub or spokes, or an edge rib without an edge or points | `chains`, `hubs`, `edgeRibs` | Some selected parts could not be deleted. |
-| Click Quick add to add the ribs. | info | Quick add's Selections make ribs (shown in blue), unless deleting ribs (reported after it) or the warning above (more severe) | | Select faces to remove. |
-| Click ribs to delete. | info | while deleting ribs (the warning above shows instead, being more severe) | | Select faces to remove. |
+| Click add ribs to add the highlighted ribs. | info | Quick add's Selections make ribs (highlighted in blue), unless deleting ribs (reported after it) or the warning above (more severe) | | Select faces to remove. |
+| Select ribs to delete. | info | while deleting ribs (the warning above shows instead, being more severe) | | Select faces to remove. |
 
 ## How it works
 
 ### Execution order
 
-1. **Editing logic** (`quickRibEditLogic`): when Quick add (a button: std's `isButton`, which editing logic gets as
+1. **Editing logic** (`quickRibEditLogic`): when Add ribs (a button: std's `isButton`, which editing logic gets as
    `clickedButton`) is clicked, `addQuickRibs` adds Quick add's Selections (evaluated, in the order chosen) as a chain,
    with its Closed, or a hub and spokes, the first the hub and the rest its spokes, with its Add circle, and clears
    them; fewer than two are left as they are. (A query can't hold the same thing twice, so a chain can't come back to
-   its start except by Closed, and each Quick add makes one chain or one hub.) When Clear invalid selections is clicked,
+   its start except by Closed, and each Add ribs makes one chain or one hub.) When Clear invalid selections is clicked,
    `clearInvalidSelections` evaluates Quick add's Selections and each chain's, hub's, and edge rib's points (dropping
    what isn't there), and drops chains of fewer than two points, hubs without a hub, and edge ribs without an edge or
    points. Then unless Face to use has been set, and while it's empty, it's the face under what's chosen first
@@ -95,7 +89,7 @@ Location.
       entities: shown while the feature's edited).
    6. What Quick add would add from its Selections as they are (`quickAddRibs`: a chain, or a hub and spokes, as
       `addQuickRibs` makes them) is shown in blue, as std's `addDebugLine` shows lines (`showRibs`: sketched in a
-      subfeature, shown as debug entities, and rolled back), with info saying to click Quick add.
+      subfeature, shown as debug entities, and rolled back), with info saying to click Add ribs.
 
    Then a manipulator on the end of each Manipulator edge rib (`addEdgeRibManipulators`), along its edge, as std's
    fillet does its points on edges. With nothing to sketch (nor anything Quick add would add), or every rib deleted, an
@@ -129,5 +123,5 @@ says so). The only errors are nothing to sketch, every rib deleted, and no Face 
 - With Manipulator, an edge rib's points all meet its edge at one Location.
 - A deleted rib is remembered by where its ends are: moving a point it runs to brings it back (and leaves its old key
   in Deleted ribs, unused).
-- Quick add's ribs are only shown (in blue) until Quick add is clicked: they aren't in the sketch, so Robot lighten
+- Quick add's ribs are only shown (in blue) until Add ribs is clicked: they aren't in the sketch, so Robot lighten
   can't use them yet.

@@ -195,6 +195,13 @@ isButton(definition.clearInvalid);`). Clicking it runs the feature's editing log
 `clickedButton is string`: the button's parameter id (see std's `routingCurve.fs`). Don't fake one with a checkbox
 which unchecks itself.
 
+- **Don't highlight buttons**: Onshape doesn't show a button as a faulty parameter, so an error naming one highlights
+  nothing. Name the parameters to change, or none.
+- **Don't report on a click.** Editing logic can't report a status: a message saying what a click did, or that it
+  couldn't, would have to be stored in a hidden parameter (a status enum) for the body to report, a boomerang to
+  avoid. Report what the dialog's state calls for instead, in the body ("Click add ribs to add the highlighted ribs."
+  while Quick rib's Quick add has selections), and let a click do nothing when there's nothing to do.
+
 ## Remember previous values
 
 Give parameters `"UIHint" : ["REMEMBER_PREVIOUS_VALUE"]` (alongside any other hints), so a new feature starts with

@@ -19,8 +19,7 @@ annotation { "Feature Type Name" : "Quick rib",
 export const quickRib = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Face to use", "MaxNumberOfPicks" : 1, "Filter" : EntityType.FACE && GeometryType.PLANE && SketchObject.NO,
-                    "Description" : "Where the ribs are sketched (points are projected onto it). Filled in from what's chosen first." }
+        annotation { "Name" : "Face to use", "MaxNumberOfPicks" : 1, "Filter" : EntityType.FACE && GeometryType.PLANE && SketchObject.NO }
         definition.face is Query;
 
         annotation { "Group Name" : "Quick add", "Collapsed By Default" : false }
@@ -28,8 +27,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
             definition.quickRibType is QuickRibType;
 
-            annotation { "Name" : "Selections", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR,
-                        "Description" : "Points to add as a chain, in order, or as a hub (the first) and its spokes." }
+            annotation { "Name" : "Selections", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
             definition.quickSelections is Query;
 
             if (definition.quickRibType == QuickRibType.CHAIN)
@@ -39,12 +37,12 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             }
             else
             {
-                annotation { "Name" : "Add circle", "Description" : "Add a circle through the first selected spoke." }
+                annotation { "Name" : "Add circle" }
                 definition.quickAddCircle is boolean;
             }
 
-            annotation { "Name" : "Quick add" }
-            isButton(definition.quickAdd);
+            annotation { "Name" : "Add ribs" }
+            isButton(definition.addRibs);
         }
 
         annotation { "Group Name" : "Chains", "Collapsed By Default" : false }
@@ -80,7 +78,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                             "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
                 hub.spokes is Query;
 
-                annotation { "Name" : "Add circle", "Description" : "Add a circle through the first selected spoke." }
+                annotation { "Name" : "Add circle" }
                 hub.addCircle is boolean;
             }
         }
@@ -158,12 +156,12 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         const ribs = filter(quickRibs.ribs, rib => !isIn(rib.key, deleted));
         if (ribs == [] && quickRibs.ribs != [])
         {
-            throw regenError("All ribs are deleted.", ["startDeleting"]);
+            throw regenError("All ribs are deleted.");
         }
         sketchQuickRibs(context, id + "ribSketch", plane, ribs);
         if (quickAdd != [])
         {
-            reportFeatureInfo(context, id, "Click Quick add to add the ribs.");
+            reportFeatureInfo(context, id, "Click add ribs to add the highlighted ribs.");
         }
         if (definition.deletingRibs)
         {
@@ -176,7 +174,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                 addDebugEntities(context, qUnion(mapArray(toggled, index => sketchEntityQuery(id + "ribSketch", EntityType.EDGE, "rib" ~ index))),
                     DebugColor.RED);
             }
-            reportFeatureInfo(context, id, "Click ribs to delete.");
+            reportFeatureInfo(context, id, "Select ribs to delete.");
         }
         if (quickRibs.skipped > 0)
         {
@@ -195,7 +193,7 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 }
 
 /**
- * Quick add turns Quick add's selections into a chain or a hub and spokes (`addQuickRibs`). Clear invalid selections
+ * Add ribs turns Quick add's selections into a chain or a hub and spokes (`addQuickRibs`). Clear invalid selections
  * drops invalid selections (`clearInvalidSelections`). Start deleting ribs starts choosing ribs to delete, from those
  * deleted already (so they can be put back); Finish deleting ribs deletes those chosen. Fills in Face to use, while
  * it's empty and hasn't been set: the face under the first selection (`firstFaceUnder`).
@@ -203,7 +201,7 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    if (clickedButton == "quickAdd")
+    if (clickedButton == "addRibs")
     {
         definition = addQuickRibs(definition, evaluateQuery(context, definition.quickSelections));
     }
@@ -255,7 +253,7 @@ export enum QuickRibType
 }
 
 /**
- * Quick add (a button): Quick add's `selections` (evaluated, in the order chosen) become a chain, with its Closed, or a
+ * Add ribs (a button): Quick add's `selections` (evaluated, in the order chosen) become a chain, with its Closed, or a
  * hub and spokes, the first the hub and the rest its spokes, with its Add circle; then they're cleared. Fewer than two
  * are left as they are: they make no rib.
  */
