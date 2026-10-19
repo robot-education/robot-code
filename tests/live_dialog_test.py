@@ -97,3 +97,20 @@ def test_typed_values_are_drawn(tmp_path):
     expected = split_page(render_feature(project, config.std_dir, path, None, {typed: "1 <in>"})[0])[1]
     assert result["html"] == expected
     assert "1 &lt;in&gt;" in result["html"]
+
+
+def test_set_by_parameters_follow_what_their_functions_read(tmp_path):
+    # Robot frame's hidden Rectangular frame is set by editing logic from its "Set By" function, isRectangularFrame:
+    # a 2x1 tube shows each face's row distance, and a 1x1 tube one row distance, in fs ui and on the page alike
+    config = load_config()
+    project = _project(config)
+    path = config.root / "featurescripts/released/frame/robotFrame.fs"
+    custom = {"program": "FRC", "source": "CUSTOM"}
+    cases = [{**custom, "customFrame": "Tube > 2x1"}, {**custom, "customFrame": "Tube > 1x1"}, {"program": "FTC"}]
+    data, conditions = dialog_data(project, config.std_dir, path, None)
+    assert data["parameters"]["rectangularFrame"]["setBy"]["k"] == "program"
+    drawn = run_script(page_script(data, conditions), cases, tmp_path)
+    rendered = [split_page(render_feature(project, config.std_dir, path, None, settings)[0])[1] for settings in cases]
+    assert [same(result["html"]) for result in drawn] == [same(page) for page in rendered]
+    assert "2 in. face row distance" in rendered[0] and "Distance between rows" not in rendered[0]
+    assert "Distance between rows" in rendered[1] and "face row distance" not in rendered[1]

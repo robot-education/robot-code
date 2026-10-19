@@ -54,7 +54,7 @@ export enum FtcCustomShaft
 /**
  * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
  * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
- * Every FTC COTS shaft is; of FRC's, editing logic sets `presetShaft` from its table entry (`withShaft`).
+ * Every FTC COTS shaft is; of FRC's, editing logic sets `presetShaft` from its table entry (`isPresetShaft`).
  */
 predicate isPresetLength(definition is map)
 {
@@ -64,7 +64,7 @@ predicate isPresetLength(definition is map)
 
 /**
  * Whether a shaft has e-clip grooves at one end, as it's sold (goBILDA's REX with an e-clip), so Flip ends can put them
- * at the other. Editing logic sets `factoryGrooved` from its table entry (`withShaft`).
+ * at the other. Editing logic sets `factoryGrooved` from its table entry (`isFactoryGrooved`).
  */
 predicate hasFactoryGrooves(definition is map)
 {
@@ -468,12 +468,11 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Source", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.shaftSource is ShaftSource;
 
-        // From the COTS shaft's table entry, by editing logic (withShaft): a precondition can't read a lookup table's
-        // levels
-        annotation { "Name" : "Preset shaft", "UIHint" : ["ALWAYS_HIDDEN"] }
+        // From the COTS shaft's table entry, by editing logic: a precondition can't read a lookup table's levels
+        annotation { "Name" : "Preset shaft", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isPresetShaft" }
         definition.presetShaft is boolean;
 
-        annotation { "Name" : "Factory grooved", "UIHint" : ["ALWAYS_HIDDEN"] }
+        annotation { "Name" : "Factory grooved", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isFactoryGrooved" }
         definition.factoryGrooved is boolean;
 
         if (isCotsShaft(definition))
@@ -700,6 +699,24 @@ function getCotsShaft(definition is map)
 }
 
 /**
+ * Preset shaft: whether a COTS shaft's table entry has a preset length.
+ */
+function isPresetShaft(definition is map) returns boolean
+{
+    const shaft = getCotsShaft(definition);
+    return shaft != undefined && shaft.presetLength != undefined;
+}
+
+/**
+ * Factory grooved: whether a COTS shaft's table entry has factory grooves.
+ */
+function isFactoryGrooved(definition is map) returns boolean
+{
+    const shaft = getCotsShaft(definition);
+    return shaft != undefined && shaft.factoryGrooves != undefined && shaft.factoryGrooves != [];
+}
+
+/**
  * The definition with the unit system its program uses (inches for FRC, millimeters for FTC), and a COTS shaft's
  * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), or a custom FTC shaft's (from its Shaft), so the rest
  * of the feature can treat it as a custom FRC one. A
@@ -730,8 +747,6 @@ function withShaft(definition is map) returns map
             }
         }
         definition.predrilledHoleDiameter = shaft.predrilledHoleDiameter;
-        definition.presetShaft = shaft.presetLength != undefined;
-        definition.factoryGrooved = shaft.factoryGrooves != undefined && shaft.factoryGrooves != [];
         if (shaft.presetLength != undefined)
         {
             // A preset's length, from where it starts
@@ -1575,6 +1590,8 @@ function getGrooveDefinition(sideMount is boolean, hexSize is HexSize, unitSyste
 
 export function robotShaftEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    definition.presetShaft = isPresetShaft(definition);
+    definition.factoryGrooved = isFactoryGrooved(definition);
     // So the precondition shows what suits a COTS shaft (e.g. no shaft ends on splines)
     definition = withShaft(definition);
     // Extrude edit logic only runs when we're creating

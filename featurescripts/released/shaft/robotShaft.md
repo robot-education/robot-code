@@ -98,8 +98,9 @@ from the center to a tooth of the outside profiles, which didn't affect the shaf
 | Groove diameter (`firstEndGrooveDiameter`, `secondEndGrooveDiameter`) | The diameter of the groove the retaining ring or e-clip sits in. |
 | Extend shaft (`extendFirstEnd`, `extendSecondEnd`) | Whether to extend the shaft to accommodate hardware. |
 
-Two parameters are hidden, set by editing logic from a COTS shaft's table entry (`withShaft`), as a precondition can't
-read a lookup table's levels: Preset shaft (`presetShaft`: it's sold in set lengths, so its length and ends are as
+Two parameters are hidden, set by editing logic from a COTS shaft's table entry (their "Set By" functions,
+`isPresetShaft` and `isFactoryGrooved`), as a precondition can't read a lookup table's levels: Preset shaft
+(`presetShaft`: it's sold in set lengths, so its length and ends are as
 sold; `isPresetLength` only reads it for FRC, as every FTC COTS shaft is) and Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown). Editing logic also sets
 some shown ones: each end's tapped Hole diameter (from its hole table), and
 its captive shaft Diameter and Length (from the shaft's size), and its Groove diameter (the ring's usual groove, when
@@ -152,7 +153,8 @@ Holes get std's hole attributes (they're made by std's `hole`).
    metric hex's end operations (`isMetricHexShaft`) or the others.
    COTS shafts show Shaft ends by their profile, which editing logic copies into the definition (below).
 2. **Editing logic** (`robotShaftEditLogic`):
-   1. `withShaft`: sets the unit system from the program, and copies a COTS shaft's profile (`shaftType`, `hexType`,
+   1. Sets Preset shaft and Factory grooved from a COTS shaft's table entry (`isPresetShaft`, `isFactoryGrooved`).
+      `withShaft`: sets the unit system from the program, and copies a COTS shaft's profile (`shaftType`, `hexType`,
       `hexSize`, `splineType`, `predrilledHoleDiameter`) into the definition, or a custom FTC shaft's (from its Shaft), so
       the precondition shows what suits it.
       A preset length sets the extrude: Blind, its length, one way, not mirrored.

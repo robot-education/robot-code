@@ -32,8 +32,8 @@ Unreleased.
 | --- | --- |
 | Hole start distance (`holeStart`) | The distance from the start of the frame to its first hole. |
 
-`rectangularFrame` is hidden: editing logic sets it for custom frames whose faces differ in width
-(2x1), and it shows the 2 in. and 1 in. face row distances in place of Distance between rows. Hole diameter (FRC) is
+`rectangularFrame` is hidden: editing logic sets it (its "Set By" function, `isRectangularFrame`) for custom frames
+whose faces differ in width (2x1), and it shows the 2 in. and 1 in. face row distances in place of Distance between rows. Hole diameter (FRC) is
 shown, but editing logic sets it to the frame's when the frame changes, and likewise a COTS frame's Hole start distance
 to where its holes start as it's sold (unless it's been set).
 
@@ -59,9 +59,9 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 1. **Precondition**: Program; Source (FRC); the Frame group: FRC's, FTC's, or the custom table, and for custom frames
    the row distances (by the hidden `rectangularFrame`), wall thickness, and hole spacing; Hole diameter (FRC); Hole start distance; linear
    stock's groups.
-2. **Editing logic** (`robotFrameEditLogic`, then `frameChangeEditLogic`): if the program, source, or any of the three
-   frame paths changed (or the feature is being created), sets `rectangularFrame` for a custom frame (whether its width
-   and height differ), a COTS frame's Hole start distance to where its holes start as it's sold (`tieStart`) unless
+2. **Editing logic** (`robotFrameEditLogic`, then `frameChangeEditLogic`): sets `rectangularFrame` for a custom frame
+   (`isRectangularFrame`: whether its width and height differ). Then if the program, source, or any of the three frame
+   paths changed (or the feature is being created), sets a COTS frame's Hole start distance to where its holes start as it's sold (`tieStart`) unless
    it's been set, and Hole diameter to the frame's (`frameHoleDiameter`: the table's, or 0.196 in. for custom frames), unless it's
    been set larger. Then `stockEditLogic`, with no default offset.
 3. **Body**: `verifyHoles` checks the hole diameter or rows, then `getFrame` builds the `Stock`, and `placeStock`

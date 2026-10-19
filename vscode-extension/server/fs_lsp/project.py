@@ -76,6 +76,8 @@ ANNOTATION_KEYS = frozenset(
         "Lookup Table", "Lookup Table Path", "Manipulator Change Function", "MaxLength", "MaxNumberOfPicks", "Message",
         "MinLength", "Name", "Parameter Library Purpose Id", "Property Function Name", "Show labels only",
         "Table Type Name", "Tolerance Type Name", "Tooltip Template", "UIHint", "message", "showDefaultAlignmentPoints",
+        # Ours, which Onshape ignores: the function editing logic sets a hidden parameter from (see `_set_by_problems`)
+        "Set By",
     ]
 )
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
@@ -143,6 +145,7 @@ class FeatureParameter:
     module: Module  # Where it's declared: the feature's file, or a predicate's
     token: Token  # Its name, where it's declared
     declaration: str  # How it's declared, on `definition`: `definition.x is Program` or `isLength(definition.x, ...)`
+    set_by: Token | None = None  # Its annotation's "Set By" string, naming the function editing logic sets it from
 
 
 @dataclasses.dataclass(slots=True)
@@ -916,6 +919,7 @@ class Project:
         problems.extend(self._precondition_predicate_problems(module, providers))
         problems.extend(self._duplicate_parameter_problems(module))
         problems.extend(self._editing_logic_key_problems(module))
+        problems.extend(self._set_by_problems(module))
         problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
         problems.extend(_annotation_key_problems(module))
@@ -1323,6 +1327,104 @@ class Project:
                     report = at if owner is module else token
                     problems.append(Problem(report.offset, report.end, "error", message, "unknown-parameter"))
         return _dedupe_problems(problems)
+
+    def _set_by_problems(self, module: Module) -> list[Problem]:
+        """Hidden parameters set by editing logic from a function of the definition, which their annotations name
+        (`"Set By" : "isRectangularFrame"`), so the tools (`fs ui`, `fs audit`, the preview) can work out their values
+        as editing logic would. The function must take the definition (`(definition is map)`) and return the
+        parameter's type; the parameter must be hidden (editing logic overwrites it); and the feature's editing logic
+        must run on every change (declare `isCreating`) and set it from the function first thing, before anything
+        can return (`definition.x = f(definition);`), which `fs check --fix` adds (code "set-by-missing").
+        """
+        problems = []
+        for feature in module.parsed.nodes:
+            if feature.type != "FeatureDeclaration" or _feature_precondition(module, feature) is None:
+                continue
+            parameters = [p for p in self.feature_parameters(module, feature) if p.set_by is not None]
+            if not parameters:
+                continue
+            fallback = module.index.token_index_by_offset.get(feature.start)
+            feature_token = next(
+                (token for token in module.index.tokens if token.offset >= feature.start and token.value == feature.name),
+                module.index.tokens[fallback] if fallback is not None else module.index.tokens[0],
+            )
+            editing = [found for found in self._feature_functions(module, feature) if found[0] == "Editing Logic Function"]
+            for parameter in parameters:
+                assert parameter.set_by is not None
+                at = parameter.set_by if parameter.module is module else feature_token
+                function = parameter.set_by.value[1:-1]
+
+                def problem(message: str, severity: Severity = "error", code: str = "set-by", start=at) -> None:
+                    problems.append(Problem(start.offset, start.end, severity, message, code))
+
+                providers, _ = self.providers(parameter.module)
+                targets = [
+                    (parameter.module, declaration)
+                    for declaration in parameter.module.top_level.get(function, [])
+                    if declaration.kind == "function"
+                ] + [
+                    (provider.module, provider.declaration)
+                    for provider in providers.get(function, [])
+                    if provider.declaration.kind == "function"
+                ]
+                if not targets:
+                    problem(f"{parameter.name} is set by {function}, which isn't a function this file sees.")
+                    continue
+                owner, declaration = targets[0]
+                if _parameter_types(owner, declaration) != ("map",):
+                    problem(f"{function} must take just the definition, (definition is map), to set {parameter.name}.")
+                expected = parameter.type if parameter.declaration.endswith(f" is {parameter.type}") else None
+                returned = _return_type(owner, declaration)
+                if expected and returned != expected:
+                    problem(f"{function} must return {expected}, {parameter.name}'s type" + (f", not {returned}." if returned else "."))
+                if parameter.kind != "hidden":
+                    problem(
+                        f"{parameter.name} is set by {function}, so hide it (\"UIHint\" : [\"ALWAYS_HIDDEN\"]): editing "
+                        "logic overwrites what's chosen.",
+                        "warning",
+                    )
+                if not editing:
+                    problem(f"{parameter.name} is set by {function}, but {feature.name} has no editing logic to set it.")
+                    continue
+                _, name_token, logic_module, logic, map_name = editing[0]
+                logic_at = logic.token if logic_module is module else name_token
+                if "boolean" not in _parameter_types(logic_module, logic):
+                    problem(
+                        f"{logic.name} must declare isCreating (isCreating is boolean) to run on every change and set "
+                        f"{parameter.name}: without it, editing logic only runs when the feature's created.",
+                        start=logic_at,
+                    )
+                body = _function_body(logic_module, logic)
+                if body is None or not _sets_first(logic_module.index.tokens, body, map_name, parameter.name, function):
+                    statement = f"{map_name}.{parameter.name} = {function}({map_name});"
+                    problem(
+                        f"{logic.name} must set {parameter.name} first thing, before anything returns: {statement}",
+                        code="set-by-missing",
+                        start=logic_at,
+                    )
+        return _dedupe_problems(problems)
+
+    def set_by_insertion(self, module: Module, problem: Problem) -> tuple[int, str] | None:
+        """Where `fs check --fix` puts the statement a "set-by-missing" problem asks for, and its text: first in the
+        editing logic's body (when it's in module)."""
+        match = re.search(r": (\w+)\.(\w+) = (\w+)\(\w+\);$", problem.message)
+        declaration = next(
+            (d for d in module.index.declarations if d.token.offset == problem.start and d.kind == "function"), None
+        )
+        if match is None or declaration is None:
+            return None
+        body = _function_body(module, declaration)
+        if body is None:
+            return None
+        tokens = module.index.tokens
+        brace = tokens[body[0]]
+        source = module.parsed.source
+        following = tokens[body[0] + 1] if body[0] + 1 < len(tokens) else None
+        line_start = source.rfind("\n", 0, following.offset) + 1 if following is not None else brace.end
+        indent = source[line_start : following.offset] if following is not None else ""
+        if following is None or indent.strip():
+            indent = "    "
+        return brace.end, f"\n{indent}{match.group(1)}.{match.group(2)} = {match.group(3)}({match.group(1)});"
 
     def _definition_writes(
         self,
@@ -1833,6 +1935,17 @@ class Project:
             text = module.parsed.source[annotation.start : annotation.end] if annotation is not None else ""
             return "horizontal" if "HORIZONTAL_ENUM" in text else "hidden" if "ALWAYS_HIDDEN" in text else "shown"
 
+        def set_by(position: int) -> Token | None:
+            annotation = annotations.get(tokens[position - 1].end) if position else None
+            if annotation is None:
+                return None
+            for index in range(position - 1, -1, -1):
+                if tokens[index].offset < annotation.start:
+                    break
+                if tokens[index].value == '"Set By"' and value(index + 1) == ":" and tokens[index + 2].kind == "string":
+                    return tokens[index + 2]
+            return None
+
         def label(position: int) -> str | None:
             annotation = annotations.get(tokens[position - 1].end) if position else None
             if annotation is None:
@@ -1850,7 +1963,9 @@ class Project:
                     f"{predicate}(definition.{name.value}, ...)" if predicate else f"definition.{name.value} is {type}"
                 )
                 details.append(
-                    FeatureParameter(name.value, type, label(position), kind(position), module, name, declaration)
+                    FeatureParameter(
+                        name.value, type, label(position), kind(position), module, name, declaration, set_by(position)
+                    )
                 )
 
         for position, token in enumerate(tokens):
@@ -2150,6 +2265,59 @@ def _parameter_types(module: Module, declaration: Declaration) -> tuple[str, ...
     if parameters == [[]]:
         return ()
     return tuple(" ".join(values[values.index("is") + 1 :]) if "is" in values else "" for values in parameters)
+
+
+def _return_type(module: Module, declaration: Declaration) -> str | None:
+    """The type a function declares it returns (`returns boolean`), or None."""
+    tokens = module.index.tokens
+    index = module.index.token_index_by_offset.get(declaration.token.offset)
+    if index is None or index + 1 >= len(tokens) or tokens[index + 1].value != "(":
+        return None
+    close = _matching_index(tokens, index + 1)
+    if close is None or close + 2 >= len(tokens) or tokens[close + 1].value != "returns":
+        return None
+    parts = []
+    for token in tokens[close + 2 :]:
+        if token.value == "{":
+            break
+        parts.append(token.value)
+    return " ".join(parts) or None
+
+
+def _function_body(module: Module, declaration: Declaration) -> tuple[int, int] | None:
+    """The token indexes of a function's body's braces."""
+    tokens = module.index.tokens
+    index = module.index.token_index_by_offset.get(declaration.token.offset)
+    if index is None or index + 1 >= len(tokens) or tokens[index + 1].value != "(":
+        return None
+    close = _matching_index(tokens, index + 1)
+    if close is None:
+        return None
+    open_brace = next((i for i in range(close + 1, len(tokens)) if tokens[i].value == "{"), None)
+    if open_brace is None:
+        return None
+    end = _matching_index(tokens, open_brace)
+    return None if end is None else (open_brace, end)
+
+
+def _sets_first(tokens: list[Token], body: tuple[int, int], map_name: str, key: str, function: str) -> bool:
+    """Whether a function body sets `map_name.key = function(map_name);` directly in it (not in a nested block), before
+    any return."""
+    wanted = [map_name, ".", key, "=", function, "(", map_name, ")", ";"]
+    depth = 0
+    for index in range(body[0] + 1, body[1]):
+        value = tokens[index].value
+        if tokens[index].kind == "string":
+            continue
+        if value == "return":
+            return False
+        if value in ("{", "(", "["):
+            depth += 1
+        elif value in ("}", ")", "]"):
+            depth -= 1
+        elif depth == 0 and [t.value for t in tokens[index : index + len(wanted)]] == wanted:
+            return True
+    return False
 
 
 def _function_value_problems(module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:

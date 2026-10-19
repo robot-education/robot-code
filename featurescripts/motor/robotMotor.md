@@ -39,9 +39,9 @@ sets a material: they're envelopes, so their masses would be wrong.
 | Block motor | Model the motor as a block: its body's envelope, its pilot, and its shaft. |
 | Fit, Bore fit, and their clearances | `core/fit.fs`'s |
 
-Has block model is hidden: editing logic sets it, whether the chosen motor has a block model, and Block motor only
-shows when it does (conditions can't read lookup tables). Editing logic also sets the shown Merge scope and Flip primary
-axis (see How it works).
+Has block model is hidden: editing logic sets it (its "Set By" function, `motorHasBlockModel`), whether the chosen
+motor has a block model, and Block motor only shows when it does (conditions can't read lookup tables). Editing logic
+also sets the shown Merge scope and Flip primary axis (see How it works).
 
 ### Errors, warnings, and info
 
@@ -63,7 +63,8 @@ axis (see How it works).
 
 ### Execution order
 
-1. **Editing logic** (`robotMotorEditLogic`): sets Has block model from the chosen motor's table entry, then calls
+1. **Editing logic** (`robotMotorEditLogic`): sets Has block model from the chosen motor's table entry
+   (`motorHasBlockModel`), then calls
    `mountingEditLogic`: std's hole heuristics (`holeScopeFlipHeuristicsCall`), with a sketch point at the location,
    sets the merge scope to the parts at the location, and Flip primary axis so the holes go into them, unless they've
    been set.

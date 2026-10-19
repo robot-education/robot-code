@@ -341,9 +341,32 @@ def dialog_data(
     parameters = {
         key: parameter_data(parameter, theme) for key, parameter in builder.parameters.items() if "." not in key
     }
+    for key, set_by in set_by_trees(path, builder).items():
+        if key in parameters:
+            parameters[key]["setBy"] = set_by
     data = {"title": feature_title(builder.evaluator, feature, feature_name), "tree": tree, "parameters": parameters}
     conditions = "const CONDITIONS = [\n" + "".join(f"  (v) => {condition},\n" for condition in compiler.conditions) + "];\n"
     return data, conditions
+
+
+def set_by_trees(path: pathlib.Path, builder: DialogBuilder) -> dict[str, dict]:
+    """The settings of the parameters editing logic sets from a function of the definition, by what it reads (see
+    `fs_cli.set_by.SetBy.tree`), for the page's `setting`. Those it can't work out are left out (keeping their
+    defaults)."""
+    if not any("Set By" in parameter.annotation for parameter in builder.parameters.values()):
+        return {}
+    from fs_cli.set_by import SetBy
+
+    set_by = SetBy(path, builder)
+    trees = {}
+    for key in set_by.parameters:
+        try:
+            tree = set_by.tree(key)
+        except Exception:  # noqa: BLE001 - the feature's file doesn't load in the evaluator
+            continue
+        if tree is not None:
+            trees[key] = tree
+    return trees
 
 
 def buttons_json() -> str:
@@ -488,7 +511,26 @@ function lookupLevels(tree, path) {
 let SETTINGS = {};
 
 function setting(key) {
-  return key in SETTINGS ? SETTINGS[key] : DIALOG.parameters[key].default;
+  if (key in SETTINGS) {
+    return SETTINGS[key];
+  }
+  const parameter = DIALOG.parameters[key];
+  const set = parameter.setBy ? setByValue(parameter.setBy) : undefined;
+  return set === undefined || set === null ? parameter.default : set;
+}
+
+// A parameter's setting editing logic would set from its "Set By" function (see fs_cli.set_by.SetBy.tree): following
+// the tree by the settings of the parameters it read
+function setByValue(node) {
+  while (node && node.k !== undefined) {
+    const parameter = DIALOG.parameters[node.k];
+    let value = parameter ? setting(node.k) : undefined;
+    if (parameter && parameter.kind === "lookup" && parameter.tree) {
+      value = lookupLevels(parameter.tree, value).map(([, choice]) => choice).join(" > ");
+    }
+    node = node.b[value];
+  }
+  return node ? node.v : undefined;
 }
 
 // A parameter's value, as conditions read it (as fs_cli.ui.DialogBuilder.declare sets the definition's)

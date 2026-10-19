@@ -118,7 +118,10 @@ class FSArray:
 
 
 class FSMap:
-    """A map: `entries` maps each key's `key_of` to (key, value). Iterated in key order, as FeatureScript's are."""
+    """A map: `entries` maps each key's `key_of` to (key, value). Iterated in key order, as FeatureScript's are.
+
+    `entries` may be a dict subclass with a `copied()` method, which copies (by `with_entry` and `without`) keep, like
+    `fs_cli.set_by`'s, which watches what's read."""
 
     __slots__ = ("entries", "tag")
 
@@ -140,7 +143,7 @@ class FSMap:
 
     def with_entry(self, key, value) -> FSMap:
         """A copy with `key` set to `value`, or removed, if it's undefined (maps don't hold undefined)."""
-        entries = dict(self.entries)
+        entries = dict(self.entries) if type(self.entries) is dict else self.entries.copied()
         if value is None:
             entries.pop(key_of(key), None)
         else:
@@ -148,7 +151,7 @@ class FSMap:
         return FSMap(entries, self.tag)
 
     def without(self, key) -> FSMap:
-        entries = dict(self.entries)
+        entries = dict(self.entries) if type(self.entries) is dict else self.entries.copied()
         entries.pop(key_of(key), None)
         return FSMap(entries, self.tag)
 

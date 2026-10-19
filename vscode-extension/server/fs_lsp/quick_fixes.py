@@ -5,6 +5,7 @@
 - An import nothing is used from ("unused-import"): deleted.
 - A name nothing declares ("undefined") which one file in the project exports: an import of that file, by its path
   (which `fs push` resolves to its element id).
+- Editing logic which doesn't set a "Set By" parameter ("set-by-missing"): the statement setting it, first in its body.
 """
 
 from __future__ import annotations
@@ -50,6 +51,9 @@ def quick_fixes(project: Project, module: Module, problems: list[Problem]) -> li
             exporters = _exporters(project, module, name)
             if len(exporters) == 1:
                 fixes.append(Fix(f"Import {exporters[0]}", problem, [_import_edit(module, exporters[0])]))
+        elif problem.code == "set-by-missing" and (insertion := project.set_by_insertion(module, problem)):
+            at, text = insertion
+            fixes.append(Fix(f"Add {text.strip()}", problem, [(at, at, text)]))
     return fixes
 
 

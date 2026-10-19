@@ -232,7 +232,9 @@ which the extension watches for.
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
 values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic
-doesn't run, so values it would set (like Robot nut strip's end offsets) show their defaults. The dialog is written with
+doesn't run, so values it would set (like Robot nut strip's end offsets) show their defaults, except hidden parameters
+whose annotations name the function editing logic sets them from (`"Set By"`, see the style guide's "Hidden parameters
+set by editing logic"): `fs ui` runs it with the evaluator, for the values chosen. The dialog is written with
 Onshape's own markup and styled with Onshape's own styles and icons (in its dark theme, or `--theme light`), so it looks
 the same, down to the layout of rows. It needs Chromium, which it finds in Playwright's browsers folder, on the path,
 or through `CHROMIUM`.
@@ -268,7 +270,9 @@ or its imports (overloads Onshape can't choose between), keys a feature's editin
 (directly or through predicates, even in different branches of an if), and predicates in a precondition's `if`
 conditions which call other predicates (Onshape doesn't inline those). It warns about parameters which can be toleranced (`CAN_BE_TOLERANT`, ours never are; directly or through std's predicates), comparisons with `true` or `false`, reads of a feature's definition (`definition.x`, where it reaches: its body, editing logic, manipulator change function, and the functions and predicates they pass it to) of keys which aren't parameters or set on it anywhere it reaches (usually misspelled or renamed parameters; in code several features reach, only keys none of them has), local variables which are set but never used (name one you don't need `_`), map keys which are keywords (like `"type"`, which can't be read as `.type`; reading one that way is an error),
 precondition conditions Onshape can't evaluate (only parameters, enum values, literals, and predicates work), top-level
-declarations which aren't exported or used anywhere, and map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
+declarations which aren't exported or used anywhere, `"Set By"` parameters whose functions, or editing logic, don't
+fit them (see the style guide's "Hidden parameters set by editing logic"; `--fix` adds the statement setting one), and
+map keys written as bare names which are also constants or variables (`{ KEY : 1 }` is the string "KEY"; `{ (KEY) : 1 }` uses KEY's value). The work in
 progress in `featurescripts/frame/` doesn't pass yet.
 
 ## Generated files

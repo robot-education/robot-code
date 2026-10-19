@@ -51,7 +51,8 @@ annotation { "Feature Type Name" : "Robot bearing hat",
 export const robotBearingHat = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Has clearance", "UIHint" : "ALWAYS_HIDDEN" }
+        // Set by editing logic, as conditions can't read lookup tables
+        annotation { "Name" : "Has clearance", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "hasTappedHoles" }
         definition.hasClearance is boolean;
 
         annotation { "Name" : "HatType", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "HORIZONTAL_ENUM"] }
@@ -472,20 +473,21 @@ export function robotBearingHatManipulatorChange(context is Context, definition 
     return angleOffsetManipulatorChange(definition, newManipulators);
 }
 
+/**
+ * Has clearance: whether the hat's holes are tapped (from its hole table), which shows Tap drill diameter.
+ */
+function hasTappedHoles(definition is map) returns boolean
+{
+    return !useSingleHoleTable(definition) && getHolePathAndValue(definition).path.holeType == "Tapped";
+}
+
 export function robotBearingHatEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     isCreating is boolean, specifiedParameters is map) returns map
 {
+    definition.hasClearance = hasTappedHoles(definition);
     if (getActivePath(oldDefinition) != getActivePath(definition))
     {
         const pathAndValue = getHolePathAndValue(definition);
-        if (useSingleHoleTable(definition))
-        {
-            definition.hasClearance = false;
-        }
-        else
-        {
-            definition.hasClearance = pathAndValue.path.holeType == "Tapped";
-        }
         definition.holeDiameter = lookupTableEvaluate(pathAndValue.value.holeDiameter);
         if (pathAndValue.value.tapDrillDiameter != undefined)
         {

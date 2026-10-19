@@ -64,9 +64,8 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 annotation { "Name" : "Frame", "Lookup Table" : customFrameTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.customFrame is LookupTablePath;
 
-                // Whether the frame's faces differ in width (2x1), so their rows are spaced separately. Set by editing
-                // logic, as Onshape can't show parameters by a lookup table's value
-                annotation { "Name" : "Rectangular frame", "UIHint" : ["ALWAYS_HIDDEN"] }
+                // Set by editing logic, as Onshape can't show parameters by a lookup table's value
+                annotation { "Name" : "Rectangular frame", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isRectangularFrame" }
                 definition.rectangularFrame is boolean;
 
                 if (definition.rectangularFrame)
@@ -277,20 +276,29 @@ function rowsFit(count is number, spacing is ValueWithUnits, holeDiameter is Val
 }
 
 /**
+ * Rectangular frame: whether a custom frame's faces differ in width (2x1), so their rows are spaced separately (which
+ * shows its faces' row distances).
+ */
+function isRectangularFrame(definition is map) returns boolean
+{
+    return isCustomFrame(definition) && isRectangular(frameTableEntry(definition));
+}
+
+/**
  * @internal
- * The editing logic function for robot frame. When the frame changes (or the feature is created), its hole diameter is
- * set to the frame's, unless it's been set larger, and whether a custom frame is rectangular is set (which shows its
- * faces' row distances).
+ * The editing logic function for robot frame. Sets Rectangular frame (`isRectangularFrame`), and when the frame changes
+ * (or the feature is created), its hole diameter to the frame's, unless it's been set larger.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
+    definition.rectangularFrame = isRectangularFrame(definition);
     definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);
     return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
 }
 
 /**
- * When the frame changes: whether a custom frame is rectangular, a COTS frame's Hole start distance (where its holes
+ * When the frame changes: a COTS frame's Hole start distance (where its holes
  * start as it's sold, unless it's been set), and Hole diameter (the frame's, unless it's been set bigger).
  */
 export function frameChangeEditLogic(oldDefinition is map, definition is map, specifiedParameters is map) returns map
@@ -304,11 +312,7 @@ export function frameChangeEditLogic(oldDefinition is map, definition is map, sp
     {
         return definition;
     }
-    if (isCustomFrame(definition))
-    {
-        definition.rectangularFrame = isRectangular(frameTableEntry(definition));
-    }
-    else if (!(specifiedParameters.holeStart ?? false))
+    if (!isCustomFrame(definition) && !(specifiedParameters.holeStart ?? false))
     {
         definition.holeStart = frameTableEntry(definition).tieStart;
     }

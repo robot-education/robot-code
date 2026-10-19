@@ -205,7 +205,8 @@ def make_parser() -> argparse.ArgumentParser:
     ).add_argument(
         "--fix",
         action="store_true",
-        help="fix what has one right answer: misspelled annotation keys, unused imports, and imports of what one file exports",
+        help="fix what has one right answer: misspelled annotation keys, unused imports, imports of what one file exports, "
+        "and editing logic not setting a \"Set By\" parameter",
     )
     format_command = command(
         "format",

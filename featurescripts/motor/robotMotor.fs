@@ -57,9 +57,8 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Component type", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.componentType is ComponentType;
 
-        // Whether the chosen motor has a block model, which editing logic sets from its table (conditions can't read
-        // lookup tables)
-        annotation { "Name" : "Has block model", "UIHint" : ["ALWAYS_HIDDEN"] }
+        // Set by editing logic, as conditions can't read lookup tables
+        annotation { "Name" : "Has block model", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "motorHasBlockModel" }
         definition.hasBlockModel is boolean;
 
         if (isMotor(definition))
@@ -261,6 +260,14 @@ export function hasBlockModel(face is MotorFace) returns boolean
     return face.blockMotor != undefined || face.bodyDiameter != undefined;
 }
 
+/**
+ * Has block model: whether the chosen motor (not gearbox) has a block model.
+ */
+function motorHasBlockModel(definition is map) returns boolean
+{
+    return isMotor(definition) && hasBlockModel(getMotorFace(definition));
+}
+
 function getMotorFace(definition is map) returns MotorFace
 {
     if (isMotor(definition))
@@ -359,7 +366,7 @@ export function robotMotorManipulatorChange(context is Context, definition is ma
 export function robotMotorEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    definition.hasBlockModel = isMotor(definition) && hasBlockModel(getMotorFace(definition));
+    definition.hasBlockModel = motorHasBlockModel(definition);
     return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
 }
 

@@ -395,6 +395,64 @@ def test_editing_logic_keys(project):
     assert all("Unknown parameter" in p.message for p in problems)
 
 
+def set_by_feature(project, logic: str, set_by: str = "isWide", hint: str = ', "UIHint" : ["ALWAYS_HIDDEN"]'):
+    path = project.code_dir / "setBy.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'annotation { "Feature Type Name" : "F", "Editing Logic Function" : "fEdit" }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n        definition.size is boolean;\n"
+        f'        annotation {{ "Name" : "Wide"{hint}, "Set By" : "{set_by}" }}\n'
+        "        definition.wide is boolean;\n    }\n    {\n    });\n"
+        "export function isWide(definition is map) returns boolean\n{\n    return definition.size;\n}\n"
+        "export function wideCount(definition is map) returns number\n{\n    return 1;\n}\n"
+        f"{logic}"
+    )
+    module = project.module(path)
+    return module, [p for p in project.check(module) if p.code.startswith("set-by")]
+
+
+def test_set_by(project):
+    # Editing logic setting the hidden parameter from its function, first thing: nothing to report
+    logic = (
+        "export function fEdit(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean) returns map\n"
+        "{\n    definition.wide = isWide(definition);\n    return definition;\n}\n"
+    )
+    assert set_by_feature(project, logic)[1] == []
+    # Unknown, or of the wrong type, and shown
+    _, problems = set_by_feature(project, logic, "isNarrow")
+    assert [p.message for p in problems] == ["wide is set by isNarrow, which isn't a function this file sees."]
+    _, problems = set_by_feature(project, logic.replace("isWide(", "wideCount("), "wideCount", hint="")
+    assert [p.message.split(",")[0] for p in problems] == [
+        "wideCount must return boolean",
+        "wide is set by wideCount",
+    ]
+    assert problems[1].severity == "warning"
+    # Set too late (after a return), or in a branch, and without isCreating (so editing logic only runs on creation)
+    late = (
+        "export function fEdit(context is Context, id is Id, oldDefinition is map, definition is map) returns map\n"
+        "{\n    if (oldDefinition == {})\n    {\n        return definition;\n    }\n"
+        "    if (true)\n    {\n        definition.wide = isWide(definition);\n    }\n    return definition;\n}\n"
+    )
+    module, problems = set_by_feature(project, late)
+    source = module.parsed.source
+    assert [(source[p.start : p.end], p.code) for p in problems] == [("fEdit", "set-by"), ("fEdit", "set-by-missing")]
+    assert problems[1].message == "fEdit must set wide first thing, before anything returns: definition.wide = isWide(definition);"
+
+
+def test_set_by_fix(project):
+    from fs_lsp.quick_fixes import apply_fixes, quick_fixes
+
+    logic = (
+        "export function fEdit(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean) returns map\n"
+        "{\n    return definition;\n}\n"
+    )
+    module, problems = set_by_feature(project, logic)
+    fixed, count = apply_fixes(module.parsed.source, quick_fixes(project, module, problems))
+    assert count == 1
+    assert fixed.endswith("{\n    definition.wide = isWide(definition);\n    return definition;\n}\n")
+
+
 def test_unknown_definition_keys(project):
     # Reads of keys a feature's definition can't have: not parameters, nor set anywhere it reaches. A helper two
     # features share may read a parameter only one has

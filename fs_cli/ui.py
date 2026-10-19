@@ -799,6 +799,9 @@ class DialogBuilder:
         # The keys of the parameters any condition reads, and every parameter declared, by key
         self.condition_keys: set[str] = set()
         self.parameters: dict[str, Parameter] = {}
+        # Called once every parameter's declared, before the dialog's laid out, to set values editing logic would
+        # (see `fs_cli.set_by`)
+        self.after_declaring: Callable[[DialogBuilder], None] | None = None
 
     def build(self, feature: Feature) -> list:
         if feature.defaults is not None:
@@ -817,6 +820,8 @@ class DialogBuilder:
         self.every_branch = False
         self.warnings, self.declared, self.arrays = warnings, set(), {}
         self.all_keys, self.keys = self.keys, set()
+        if self.after_declaring is not None:
+            self.after_declaring(self)
         items: list = []
         self.walk(feature.precondition, {"definition": self.definition}, items, {})
         return items
@@ -1688,19 +1693,31 @@ def render_feature(
     """
     declarations, feature, feature_name = load_feature(project, std_dir, path, feature_name, sources)
     builder = DialogBuilder(declarations, overrides)
+    set_by_warnings: list[str] = []
+    builder.after_declaring = lambda built: set_by_warnings.extend(apply_set_by(path, built, overrides))
     items = builder.build(feature)
     if info is not None:
         info["conditions"] = builder.condition_keys
         info["parameters"] = builder.parameters
     title = feature_title(builder.evaluator, feature, feature_name)
     unused = set(overrides) - builder.keys
-    warnings = builder.warnings + [
+    warnings = builder.warnings + set_by_warnings + [
         f"{name} isn't shown, so --set {name} did nothing."
         if name in builder.all_keys
         else f"{name} isn't a parameter, so --set {name} did nothing."
         for name in sorted(unused)
     ]
     return Renderer(theme).page(title, items), warnings
+
+
+def apply_set_by(path: pathlib.Path, builder: DialogBuilder, overrides: dict[str, str]) -> list[str]:
+    """Sets the parameters a "Set By" annotation names a function for, as editing logic would (see `fs_cli.set_by`),
+    and returns warnings for those it couldn't."""
+    if not any("Set By" in parameter.annotation for parameter in builder.parameters.values()):
+        return []
+    from fs_cli.set_by import SetBy
+
+    return SetBy(path, builder).apply(overrides)
 
 
 def load_feature(
