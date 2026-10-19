@@ -29,7 +29,9 @@ Decide whether two things are the same, or touch, by std's tolerances, never by 
 | Name | Module | What it's for |
 | --- | --- | --- |
 | `startFeature` †, `endFeature` †, `abortFeature` † | feature | A feature of its own within a feature: `endFeature` keeps what's built since `startFeature`, `abortFeature` rolls it back. For trying something and undoing it, or retrying a sequence (see the style guide's "What rolls back when something throws") |
-| `processSubfeatureStatus` | error | Copies an operation's or subfeature's status onto the feature; with `propagateErrorDisplay`, its error display too (what Onshape highlights) |
+| `processSubfeatureStatus` | error | Copies an operation's or subfeature's status onto the feature; with `propagateErrorDisplay`, its error display too (what Onshape highlights). A copied error fails the feature when it's done, thrown or not (see the style guide's "Errors, warnings, and info") |
+| `clearFeatureStatus` | error | Clears a feature's status to OK; with `"withDisplayData" : false`, keeps its error display. To keep a failed operation's display but not its error, before reporting a warning |
+| `getFeatureStatus`, `getFeatureError` | error | A feature's status (the most severe reported, the last of those), and its error message if it has one: what `defineFeature` checks to roll a feature back |
 | `callSubfeatureAndProcessStatus` | feature | Calls a subfeature and processes its status, rethrowing its error |
 | `setHighlightedEntities` † | feature | Highlights entities (undocumented) |
 | `verifyNonemptyQuery` † | feature | Throws std's error for an empty selection parameter |

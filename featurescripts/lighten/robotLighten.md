@@ -22,6 +22,11 @@ Unreleased.
 - When the walls can't be made, the error says the wall thickness (plus the fillet radius) is too large, and shows the
   face or the holes they fail at, instead of the pockets sticking out of the part.
 - Every pocket is cut, however small: none are left solid.
+- Walls which exactly meet at the sizes given (like round ones) no longer fail: walls and ribs are built 0.1 mm
+  thicker, and with Fillet corners, the pockets grown back by as much, so their corners are rounded 0.1 mm more than
+  Fillet radius. Without Fillet corners, walls and ribs are 0.1 mm thicker. Exact pockets (under Options) takes it back
+  off.
+- Growing the pockets back failing is a warning again, rather than failing the feature.
 
 ## Strings
 
@@ -32,12 +37,14 @@ Unreleased.
 
 ### Descriptions and hidden parameters
 
-No parameters have descriptions, and none are hidden.
+Exact pockets has a description: "Make the pockets exactly as given: their corners rounded exactly Fillet radius, or
+without Fillet corners, their walls and ribs exactly as thick, rather than 0.1 mm off. Costs a step." None are hidden.
 
 ### Errors, warnings, and info
 
 Errors show what's at fault in red, with the failed operation's own error display. Warnings and info are reported
-where they come up, and show only once it's done; only the first reported shows.
+where they come up, and show only once it's done; of several, the last of the most severe shows (see the style guide's
+"An id has one status at a time").
 
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
@@ -68,7 +75,9 @@ where they come up, and show only once it's done; only the first reported shows.
 | There's no room for pockets between the walls and ribs. | error | the ribs leave nothing of the pockets | the wall, fillet, and rib parameters, and the face and ribs (what was cut is used up) |
 | Failed to fillet pocket. | warning | a corner's fillet fails, and neither side next to it has another corner to round across to: it's left sharp | `filletRadius`, and the corner |
 | Failed to round pocket. | warning | a full round across a failed corner's narrow side fails: the corner's left sharp, and the fillet it deleted is put back | `filletRadius`, the corner and the side |
-| Failed to grow back pockets. | warning | growing the rounded pockets back fails: they're cut smaller, by the fillet radius | `filletRadius`, the pockets, and the growth's error display |
+| Failed to grow back pockets. | warning | growing the rounded pockets back fails: they're cut smaller, by the fillet radius (the growth's error is copied for its display, then cleared, so it doesn't fail the feature) | `filletRadius`, the pockets, and the growth's error display |
+| Failed to make the pockets exact: their corners are rounded 0.1 mm more. | warning | with Exact pockets and Fillet corners, setting the corners' rounds to Fillet radius fails | `exactPockets`, the rounds |
+| Failed to make the pockets exact: their walls and ribs are 0.1 mm thicker. | warning | with Exact pockets, without Fillet corners, moving the pockets' sides back fails | `exactPockets`, the sides |
 | Failed to cut the pockets from the part. | error | cutting them fails | `face`, and the pockets |
 | Some ribs touch no wall or other rib, so they're left as loose parts. | warning | the cut leaves pieces of ribs free | the rib parameters, the loose parts |
 | Weight reduced by `<percent>`%. | info | the pockets are cut (shown if nothing was reported before it) | |
@@ -85,6 +94,7 @@ where they come up, and show only once it's done; only the first reported shows.
 - **Override wall thickness**: an array of the part's faces whose walls are other thicknesses (labeled like
   "0.0625 in walls"). Later overrides win, and all of them win over Faces to ignore.
 - End type (Through all or Blind), and Depth.
+- **Options** (collapsed): Exact pockets.
 
 ### Editing logic
 
@@ -120,12 +130,14 @@ robotLighten
     --> opModifyFillet "exactCorners"              // 7. inside corners: exactly wall + growth (info if not)
 --> buildRibs --> buildRibGroup                    // each rib: a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
---> roundPockets                                   // with Fillet corners, in steps:
+--> roundPockets                                   // with Fillet corners (radius + TIE_OFFSET), in steps:
     --> opFillet "fillet"                          // 1. each corner on its own, a hair, kept if it works
     --> narrowSide                                 // 2. each failed corner: the side to its nearest other corner
         --> opDeleteFace, opFullRoundFillet        //    that corner's fillet deleted, a full round across the side
     --> opOffsetFace "grow"                        // 3. the pockets, out by the radius less the hair
 --> opBoolean "cut"                                // pockets cut from the part
+--> exactPockets                                   // with Exact pockets: TIE_OFFSET taken back off
+    --> opModifyFillet or opOffsetFace             //    the corners' rounds to Fillet radius, or the sides moved back
 --> opDeleteBodies "cleanup"
 ```
 
@@ -171,7 +183,9 @@ display isn't copied: it shows the pockets, sticking out of the part.
 
 Where the walls around a hole exactly meet another hole's (or the outline's), the pockets either side of where they
 meet touch along an edge, and cutting the grown holes fails (`BOOLEAN_NON_MANIFOLD_RESULT`): on Exercise 3's Inner
-Plate, its two 1 1/8 in bearing holes are 0.875 in apart, so 0.4375 in walls meet exactly. Its error says so, showing
+Plate, its two 1 1/8 in bearing holes are 0.875 in apart, so 0.4375 in walls met exactly, before ties were broken
+(see Ties): at the sizes given, they now meet a little past that, so this is for ties at other sizes. Its error says
+so, showing
 the holes which meet: `holesFailingCut` cuts them in turn, skipping those whose cut fails, and finds the hole each
 which fails meets (the one whose cut, followed by its own, fails, or none, if it fails alone: it meets the outline's
 walls), each try in a feature of its own which is always rolled back. The grown holes no longer have the part's
@@ -194,6 +208,25 @@ radius, and growth, how many holes are cut separately, and how many pockets each
 between the walls and ribs), and shows them as debug entities. When growing the holes fails, it prints how many of
 them fail on their own.
 
+### Ties
+
+At round sizes, walls often exactly meet: Exercise 3's two bearing holes 0.875 in apart, with 0.4375 in walls, or a
+pocket exactly the bit's width (Robot Lighten Example 2, with 0.25 in walls, fillets, and ribs). Exactly met, the
+pockets either side touch along an edge, which no cut can leave (`BOOLEAN_NON_MANIFOLD_RESULT`), or are left a sliver,
+which growing them back fails on. So walls and ribs are built `TIE_OFFSET` (0.1 mm) thicker than they're to be, and
+where they'd meet exactly, they overlap a little instead: nothing's detected or retried, it's the same for every part.
+With Fillet corners, the pockets are grown back by as much, so walls and ribs are exactly as thick as asked, and the
+corners are rounded `TIE_OFFSET` more than Fillet radius. Without Fillet corners, nothing's grown back, and walls and
+ribs are left 0.1 mm thicker: rounding the corners just to grow them back costs as much as the rest of the feature
+(Exercise 3's Robot lighten 2: 310 ms, against 140 ms), and growing them back without rounding brings the tie back at
+the cut. It's more than std's boolean tolerance (0.01 mm), which booleans treat as touching.
+
+Exact pockets (under Options, off by default) takes it back off, after the cut: with Fillet corners, the corners'
+rounds are set to Fillet radius (`opModifyFillet`; full rounds across narrow sides are left), and without, the
+pockets' sides in the part are moved back into the walls and ribs (`opOffsetFace`), about 20 ms on Exercise 3's plate.
+If that fails, it's a warning, and they're left as they are. At an exact tie, it puts the walls back where they meet:
+on Exercise 3's plate, Onshape left the pockets apart (the face's loops and vertices are as without it).
+
 ### Ribs
 
 Each rib group's edges are extruded as sheets through the pockets, and each sheet thickened to half the group's
@@ -203,8 +236,9 @@ std's boolean tolerance of it) is a solid cylinder instead.
 
 ### Rounding the pockets
 
-The walls and ribs were built thicker by the fillet radius less a hair (std's boolean tolerance, 0.01 mm). Growing
-the pockets back out by that rounds their corners as a router bit of the radius would, and a pocket narrower than
+With Fillet corners, the walls and ribs were built thicker by the fillet radius and `TIE_OFFSET` (see Ties), less a
+hair (std's boolean tolerance, 0.01 mm). Growing the pockets back out by that rounds their corners as a router bit of
+the radius (and `TIE_OFFSET`) would, and a pocket narrower than
 the bit is already gone. This is Vent's `expandWithFillet`, and the previous Onshape Lighten feature's: corners get a
 hair fillet first, which the growth rounds. Vent grows by the whole radius, and sets the rounds back to it
 (`opModifyFillet`), since a hair and the growth make a round a hair bigger. Growing by the radius less the hair makes
@@ -266,9 +300,10 @@ the style guide's "Tolerances, not margins").
   checked, and nothing left is an error there, showing what's still there to show: when the cut used up the pockets
   and ribs, the face and the rib edges.
 - Failures it can carry on from aren't errors: anything in rounding (a corner left sharp, or the pockets left
-  ungrown) is a warning, and setting the walls'
-  inside corners' exact radius is info. Each is reported where it comes up; only the first reported shows. A warning is reported
-  before the failed operation's status is copied, so the warning shows, with the operation's error display.
+  ungrown), or in Exact pockets, is a warning, and setting the walls' inside corners' exact radius is info. Each is
+  reported where it comes up; the last of the most severe shows. Where a failed operation's error display is wanted
+  (growing the pockets back), its status is copied, then cleared keeping the display, then the warning's reported:
+  a copied error left in place fails the feature.
 
 ### `try`s
 
@@ -281,6 +316,7 @@ the style guide's "Tolerances, not margins").
 | `buildWalls` (`try silent`) | Setting the walls' inside corners to their exact radius | Info: they're a hair bigger. |
 | `holesFailingGrowth` (`try silent`) | Growing each hole on its own, once growing them all has failed | That hole isn't why; the feature it's in is rolled back either way. |
 | `holesFailingCut` (`try silent`) | Cutting each grown hole, in turn and after each other, once cutting them all has failed | That cut isn't why; the feature it's in is rolled back either way. |
+| `exactPockets` (`try silent`) | Setting the corners' rounds to Fillet radius, or moving the pockets' sides back | A warning, showing them, left 0.1 mm off. |
 | `robotLightenEditLogic` (`try silent`) | Finding the face to fill in | Left as it is. |
 
 ## Method comparison
@@ -321,12 +357,9 @@ support.
   corners, with 0.8 in walls).
 - Untested in Onshape: the errors when hollowing the outline or growing the holes fails, and holes along faces to
   ignore or overrides.
-- At exact ties (walls which exactly meet, or a pocket exactly the bit), the result is degenerate: walls meeting at a
-  point fail the cut of the holes (see Walls), and a pocket exactly the bit's size is left a sliver a hair wide (the
-  walls are built the radius less a hair thicker, see Rounding), which growing back fails on (Robot Lighten Example 2,
-  with 0.25 in walls, fillets, and ribs).
-- Growing the pockets back failing is meant to be a warning, but copying the offset's status
-  (`processSubfeatureStatus`) after it makes it the feature's error, so the feature fails.
+- Ties are broken at the sizes given (see Ties), but walls can still exactly meet at other sizes, 0.1 mm off round
+  ones: the holes' cut then fails with an error saying so, and growing a sliver back fails with a warning.
+- Without Fillet corners, walls and ribs are 0.1 mm thicker than asked, unless Exact pockets is on.
 - A narrow side next to a concave corner (one side of it a rib's or wall's corner) has no other corner to round
   across to, so its corner's left sharp with a warning.
 - Filleting each corner on its own costs a fillet per corner, where one fillet of all of them did before.

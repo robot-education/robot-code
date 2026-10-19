@@ -278,9 +278,17 @@ A feature (or subfeature) ends with one status: an error, a warning, or info (or
   `defineFeature` catches it, reports it (its message, faulty parameters, and entities), and rolls the feature back
   (`@abortFeature`).
 - **A warning or info** shows only if the feature completes (`reportFeatureWarning`, `reportFeatureInfo`), and can
-  have debug and error entities too. Only the first status reported shows; later ones are ignored. Report each
-  warning or info where it comes up, with its own parameters and entities, and let whichever comes first show. Never
-  gather them to report at the end, or join their messages into one.
+  have debug and error entities too.
+- **An id has one status at a time.** One more severe than it (info, then warning, then error) replaces it, so does
+  one as severe (the last reported shows), and one less severe is ignored: two warnings show the second, a warning
+  then info shows the warning, and a warning then an error shows the error. (Tried in Onshape: statuses reported in
+  each order, and read back with `getFeatureStatus`.) Report each warning or info where it comes up, with its own
+  parameters and entities, knowing the last of the most severe is what shows. Never gather them to report at the
+  end, or join their messages into one.
+- **An error status fails the feature, thrown or not**: when the feature's done, `defineFeature` checks its id for an
+  error (`getFeatureError`) and rolls it back if there's one, with its message. So an error copied onto the feature
+  (`processSubfeatureStatus`) fails it, even if the feature catches the operation's failure and carries on, and
+  reporting a warning after it doesn't help (the error's more severe).
 
 ### Subfeatures and operations
 
@@ -299,8 +307,9 @@ feature shows what failed itself (see "Failing, and carrying on").
   its message with a more generic or context specific one (`overrideStatus`, an `ErrorStringEnum`). Its `id` must be
   the feature's top level id for the error display to come through. `callSubfeatureAndProcessStatus` runs a
   subfeature and does this.
-- **Copy a status only when it isn't OK**: `processSubfeatureStatus` reports the subfeature's status even when it's
-  OK, which counts as the feature's first. Copy one only in a `catch`, or after `featureHasNonTrivialStatus`.
+- **Copy a status only where it's needed**: in a `catch`, just before throwing the feature's error, or to carry on
+  with a warning (below, clearing it). Copying an OK status changes nothing (it's less severe than any other), but a
+  copied error fails the feature (above).
 - **Std's messages can't be quoted.** Std's errors are `ErrorStringEnum`s, translated only in Onshape's UI, so a
   feature can't put one in its own message. Custom messages (`regenError("...")`) are strings.
 
@@ -332,19 +341,25 @@ feature shows what failed itself (see "Failing, and carrying on").
 - **Check for nothing left after each step which can leave nothing**: an enclose, a boolean, a filter. An empty
   result isn't an error to the operations after it, so without a check the feature carries on, does nothing, and
   ends with no result and no useful message. Throw at the step which emptied it, saying why, and showing what's left
-  to show (Robot lighten checks after the regions to ignore, the walls, the ribs, and dropping small pockets).
+  to show (Robot lighten checks after the regions to ignore, the walls, and the ribs).
 
-- **When a step can fail without spoiling the rest, carry on with a warning**: in its `catch`, report the warning
-  first, then copy the operation's status for its error display (its error, reported second, isn't shown), leave
-  out what it would have done, and keep going. Robot lighten's pocket fillets do this: a pocket whose corners can't
-  be filleted is left smaller, with "Failed to fillet pocket.", and `opFillet`'s display shows which fillets failed.
-  Something that only makes the result a little off (a fillet's radius a hair big) is info.
+- **When a step can fail without spoiling the rest, carry on with a warning**: in its `catch`, copy the operation's
+  status for its error display, clear the status but not the display (`clearFeatureStatus` with `"withDisplayData" :
+  false`), then report the warning, leave out what it would have done, and keep going. Without clearing it, the
+  copied error fails the feature (see "An error status fails the feature"). Clearing also clears any warning or info
+  reported before it, which the new warning replaces anyway. Robot lighten's growing its pockets back does this: if
+  it fails, they're cut ungrown, with "Failed to grow back pockets." and the offset's display. Where an operation
+  shows nothing of its own, skip copying, and show what's left out with `setErrorEntities`. Something that only makes
+  the result a little off (a fillet's radius a hair big) is info.
 
   ```
   catch
   {
-      reportFeatureWarning(context, id, "Failed to fillet pocket.", ["filletRadius"]);
-      processSubfeatureStatus(context, id, { "subfeatureId" : filletId, "propagateErrorDisplay" : true });
+      // Its error display, but not its error, which would fail the feature
+      processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
+      clearFeatureStatus(context, featureId, { "withDisplayData" : false });
+      reportFeatureWarning(context, featureId, "Failed to grow back pockets.", ["filletRadius"]);
+      setErrorEntities(context, featureId, { "entities" : pockets });
   }
   ```
 

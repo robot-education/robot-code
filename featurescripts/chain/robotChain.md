@@ -62,8 +62,9 @@ No parameters are hidden. Editing logic sets the shown Location type (see Execut
 
 `<odd>` is " An odd number of links needs an offset link." for an odd number of links, or nothing.
 
-Each warning and the info are reported where they come up. Only the first status reported shows: the sprockets'
-warnings, then the length's.
+Each warning and the info are reported where they come up. Of several, the last of the most severe shows (see the
+style guide's "An id has one status at a time"): the length's warning, if it's too long or short, over the sprockets'
+warnings, and any warning over the info.
 
 ## How it works
 
