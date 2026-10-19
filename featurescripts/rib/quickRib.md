@@ -9,7 +9,7 @@ run from points to an edge, meeting it square, or where a manipulator puts them.
 | --- | --- |
 | `quickRib.fs` | The feature: its dialog, editing logic, and manipulators, and the ribs: finding them (`getQuickRibs`) and their keys (`lineKey`, `circleKey`), sketching them (`sketchQuickRibs`), the edge ribs' manipulators, the toggle points for deleting ribs, finding Face to use, and clearing invalid selections |
 | `quickRibIcon.py`, `quickRibIcon.svg` | Its icon (`fs gen` writes the `.svg`): a hub and spokes, white circles joined by gray ribs (see `docs/icons.md`) |
-| `../../tests/featurescript/quickRib_test.fs` | Tests of the lines and circles it draws (`chainSegments`, `hubSegments`, `uniqueSegments`, `hubCircleRadius`), ribs' keys and toggle points, and the Delete ribs buttons |
+| `../../tests/featurescript/quickRib_test.fs` | Tests of the lines and circles it draws (`chainSegments`, `hubSegments`, `uniqueSegments`, `hubCircleRadius`), ribs' keys and toggle points, and the Add ribs and Delete ribs buttons |
 
 ## Changelog
 
@@ -18,6 +18,8 @@ edges); it keeps what changed there: Location's bounds are std's fillet's for po
 circle's description, and the skipped warning. One file again: the ribs moved into `quickRib.fs` from
 `quickRibs.fs`, whose tab is gone.
 
+- Quick rib: its Selections, as a chain or a hub and spokes (Type), with Closed or Add circle, become one with Add
+  ribs. Clear invalid selections is at the bottom.
 - Delete ribs: Start deleting ribs puts a toggle point on every rib, and Finish deleting ribs deletes those clicked.
 
 ## Strings
@@ -32,12 +34,15 @@ circle's description, and the skipped warning. One file again: the ribs moved in
 | Parameter | Description |
 | --- | --- |
 | Face to use | Where the ribs are sketched (points are projected onto it). Filled in from what's chosen first. |
-| Add circle | Add a circle through the first selected spoke. |
+| Selections (Quick rib) | Points to add as a chain, in order, or as a hub (the first) and its spokes. |
+| Add circle | Add a circle through the first selected spoke. (Quick rib's too.) |
 
 Three are hidden, set by editing logic and the toggle points: Deleted ribs (`deletedRibs`, their keys), Deleting
 ribs (`deletingRibs`, whether ribs are being chosen to delete; it shows Finish deleting ribs in place of Start deleting
-ribs), and Ribs to delete (`ribsToDelete`, those chosen so far). Chains, Hub and spokes, Edge ribs, and Delete ribs are
-each in a group of their own. Chains and Hub and spokes are driven by their items' Points and Hub (selecting one adds an item), and focus moves into a new item's first selection.
+ribs), and Ribs to delete (`ribsToDelete`, those chosen so far). Quick rib, Chains, Hub and spokes, Edge ribs, and
+Delete ribs are each in a group of their own, with Clear invalid selections below them. Quick rib is Type (Chain or
+Hub and spokes), Selections, Closed (Chain) or Add circle (Hub and spokes), and Add ribs. Chains and Hub and spokes are
+driven by their items' Points and Hub (selecting one adds an item), and focus moves into a new item's first selection.
 Each edge rib is End (Perpendicular to edge or Manipulator), Edge, Points (any number), and with Manipulator,
 Location.
 
@@ -55,14 +60,18 @@ Location.
 
 ### Execution order
 
-1. **Editing logic** (`quickRibEditLogic`): when Clear invalid selections (a button: std's `isButton`, which editing
-   logic gets as `clickedButton`) is clicked, `clearInvalidSelections` evaluates each chain's, hub's, and edge rib's
-   points (dropping what isn't there), and drops chains of fewer than two points, hubs without a hub, and edge ribs
-   without an edge or points. Then unless Face to use has been set, and while it's empty, it's the face under what's
-   chosen first (`firstFaceUnder`: the chains', the hubs' and spokes', then the edge ribs' points and edges). Under one
-   (`faceUnder`): the planar face, of the parts which aren't hidden, in its plane (a sketch entity's sketch plane, a
-   circle's or arc's plane, or a mate connector's XY plane) nearest its point; parts' vertices and lines give none. It
-   only evaluates, and passes over what isn't there (`try silent`): editing logic mustn't throw. Start deleting ribs
+1. **Editing logic** (`quickRibEditLogic`): when Add ribs (a button: std's `isButton`, which editing logic gets as
+   `clickedButton`) is clicked, `addQuickRibs` adds Quick rib's Selections (evaluated, in the order chosen) as a chain,
+   with its Closed, or a hub and spokes, the first the hub and the rest its spokes, with its Add circle, and clears
+   them; fewer than two are left as they are. (A query can't hold the same thing twice, so a chain can't come back to
+   its start except by Closed, and each Add ribs makes one chain or one hub.) When Clear invalid selections is clicked,
+   `clearInvalidSelections` evaluates Quick rib's Selections and each chain's, hub's, and edge rib's points (dropping
+   what isn't there), and drops chains of fewer than two points, hubs without a hub, and edge ribs without an edge or
+   points. Then unless Face to use has been set, and while it's empty, it's the face under what's chosen first
+   (`firstFaceUnder`: Quick rib's Selections, the chains', the hubs' and spokes', then the edge ribs' points and
+   edges). Under one (`faceUnder`): the planar face, of the parts which aren't hidden, in its plane (a sketch entity's
+   sketch plane, a circle's or arc's plane, or a mate connector's XY plane) nearest its point; parts' vertices and
+   lines give none. It only evaluates, and passes over what isn't there (`try silent`): editing logic mustn't throw. Start deleting ribs
    sets Deleting ribs, and Ribs to delete to Deleted ribs (so ribs deleted before start toggled, and clicking them puts
    them back); Finish deleting ribs sets Deleted ribs to Ribs to delete, and stops.
 2. **Body**: Face to use's plane (an error without one), then the ribs (`getQuickRibs`), each with its key: a line's
@@ -114,3 +123,4 @@ says so). The only errors are nothing to sketch, every rib deleted, and no Face 
 - With Manipulator, an edge rib's points all meet its edge at one Location.
 - A deleted rib is remembered by where its ends are: moving a point it runs to brings it back (and leaves its old key
   in Deleted ribs, unused).
+- Quick rib's Selections aren't sketched until Add ribs: they're shown only as selections.

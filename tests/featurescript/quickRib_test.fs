@@ -82,3 +82,40 @@ export function testFinishDeletingDeletesTheChosenRibs()
     expectEqual(definition.deletedRibs, ["b", "c"]);
     expectEqual(definition.ribsToDelete, []);
 }
+
+/**
+ * Quick rib's definition, without ribs, adding `type` with Closed and Add circle on.
+ */
+function quickAdding(type is QuickRibType) returns map
+{
+    return { "chains" : [], "hubs" : [], "edgeRibs" : [], "quickRibType" : type, "quickSelections" : qEverything(), "quickClosed" : true,
+            "quickAddCircle" : true };
+}
+
+// Stand-ins for selected points (queries' results aren't available in the evaluator)
+const P = qCreatedBy(makeId("p"), EntityType.VERTEX);
+const Q = qCreatedBy(makeId("q"), EntityType.VERTEX);
+const R = qCreatedBy(makeId("r"), EntityType.VERTEX);
+
+export function testAddRibsAddsAChain()
+{
+    const definition = addQuickRibs(quickAdding(QuickRibType.CHAIN), [P, Q, R]);
+    expectEqual(definition.chains, [{ "chainPoints" : qUnion([P, Q, R]), "closed" : true }]);
+    expectEqual(definition.hubs, []);
+    // Cleared, for the next
+    expectEqual(definition.quickSelections, qNothing());
+}
+
+export function testAddRibsAddsAHubAndSpokes()
+{
+    // The first selection is the hub
+    const definition = addQuickRibs(quickAdding(QuickRibType.HUB), [P, Q, R]);
+    expectEqual(definition.hubs, [{ "hub" : P, "spokes" : qUnion([Q, R]), "addCircle" : true }]);
+    expectEqual(definition.chains, []);
+}
+
+export function testAddRibsLeavesOneSelection()
+{
+    // One point makes no rib: it's left to add to
+    expectEqual(addQuickRibs(quickAdding(QuickRibType.CHAIN), [P]), quickAdding(QuickRibType.CHAIN));
+}

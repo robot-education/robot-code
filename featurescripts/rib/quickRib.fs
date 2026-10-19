@@ -23,6 +23,30 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                     "Description" : "Where the ribs are sketched (points are projected onto it). Filled in from what's chosen first." }
         definition.face is Query;
 
+        annotation { "Group Name" : "Quick rib", "Collapsed By Default" : false }
+        {
+            annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.quickRibType is QuickRibType;
+
+            annotation { "Name" : "Selections", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR,
+                        "Description" : "Points to add as a chain, in order, or as a hub (the first) and its spokes." }
+            definition.quickSelections is Query;
+
+            if (definition.quickRibType == QuickRibType.CHAIN)
+            {
+                annotation { "Name" : "Closed" }
+                definition.quickClosed is boolean;
+            }
+            else
+            {
+                annotation { "Name" : "Add circle", "Description" : "Add a circle through the first selected spoke." }
+                definition.quickAddCircle is boolean;
+            }
+
+            annotation { "Name" : "Add ribs" }
+            isButton(definition.addRibs);
+        }
+
         annotation { "Group Name" : "Chains", "Collapsed By Default" : false }
         {
             annotation { "Name" : "Chains", "Item name" : "chain", "Item label template" : "#chainPoints", "Driven query" : "chainPoints",
@@ -86,9 +110,6 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             }
         }
 
-        annotation { "Name" : "Clear invalid selections" }
-        isButton(definition.clearInvalid);
-
         // Ribs deleted (by key, see `lineKey`), whether they're being chosen, and those chosen so far: set by editing
         // logic and the toggle points
         annotation { "Name" : "Deleted ribs", "UIHint" : ["ALWAYS_HIDDEN"] }
@@ -113,6 +134,9 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                 isButton(definition.finishDeleting);
             }
         }
+
+        annotation { "Name" : "Clear invalid selections" }
+        isButton(definition.clearInvalid);
     }
     {
         if (isQueryEmpty(context, definition.face))
@@ -156,15 +180,19 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 }
 
 /**
- * When Clear invalid selections is clicked, drops invalid selections (`clearInvalidSelections`). Start deleting ribs
- * starts choosing ribs to delete, from those deleted already (so they can be put back); Finish deleting ribs deletes
- * those chosen. Fills in Face to use, while it's empty and hasn't been set: the face under the first selection
- * (`firstFaceUnder`).
+ * Add ribs turns Quick rib's selections into a chain or a hub and spokes (`addQuickRibs`). Clear invalid selections
+ * drops invalid selections (`clearInvalidSelections`). Start deleting ribs starts choosing ribs to delete, from those
+ * deleted already (so they can be put back); Finish deleting ribs deletes those chosen. Fills in Face to use, while
+ * it's empty and hasn't been set: the face under the first selection (`firstFaceUnder`).
  */
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    if (clickedButton == "clearInvalid")
+    if (clickedButton == "addRibs")
+    {
+        definition = addQuickRibs(definition, evaluateQuery(context, definition.quickSelections));
+    }
+    else if (clickedButton == "clearInvalid")
     {
         definition = clearInvalidSelections(context, definition);
     }
@@ -199,6 +227,41 @@ export function quickRibEditLogic(context is Context, id is Id, oldDefinition is
 const EDGE_RIB_LOCATION_RANGE = [0.001, 0.5, 0.999];
 export const EDGE_RIB_LOCATION_BOUNDS = { (unitless) : EDGE_RIB_LOCATION_RANGE } as RealBoundSpec;
 const EDGE_RIB_MANIPULATOR = "edgeRib";
+
+/**
+ * What Quick rib's selections are added as.
+ */
+export enum QuickRibType
+{
+    annotation { "Name" : "Chain" }
+    CHAIN,
+    annotation { "Name" : "Hub and spokes" }
+    HUB
+}
+
+/**
+ * Add ribs (a button): Quick rib's `selections` (evaluated, in the order chosen) become a chain, with its Closed, or a
+ * hub and spokes, the first the hub and the rest its spokes, with its Add circle; then they're cleared. Fewer than two
+ * are left as they are: they make no rib.
+ */
+export function addQuickRibs(definition is map, selections is array) returns map
+{
+    if (size(selections) < 2)
+    {
+        return definition;
+    }
+    if (definition.quickRibType == QuickRibType.CHAIN)
+    {
+        definition.chains = append(definition.chains, { "chainPoints" : qUnion(selections), "closed" : definition.quickClosed });
+    }
+    else
+    {
+        definition.hubs = append(definition.hubs, { "hub" : selections[0], "spokes" : qUnion(subArray(selections, 1)),
+                    "addCircle" : definition.quickAddCircle });
+    }
+    definition.quickSelections = qNothing();
+    return definition;
+}
 
 /**
  * Where an edge rib meets its edge.
@@ -558,15 +621,15 @@ export function edgeRibManipulatorIndex(key is string)
 }
 
 /**
- * The face under the first quick rib selection which has one (see `faceUnder`), in order: the chains', the hubs' and
- * their spokes', and the edge ribs' points and edges. Undefined if none do.
+ * The face under the first quick rib selection which has one (see `faceUnder`), in order: Quick rib's selections, the
+ * chains', the hubs' and their spokes', and the edge ribs' points and edges. Undefined if none do.
  */
 export function firstFaceUnder(context is Context, definition is map, hiddenBodies is Query)
 {
     const chains = definition.chains;
     const hubs = definition.hubs;
     const edgeRibs = definition.edgeRibs;
-    const selections = concatenateArrays([mapArray(chains, chain => chain.chainPoints), mapArray(hubs, hub => hub.hub),
+    const selections = concatenateArrays([[definition.quickSelections], mapArray(chains, chain => chain.chainPoints), mapArray(hubs, hub => hub.hub),
                 mapArray(hubs, hub => hub.spokes), mapArray(edgeRibs, edgeRib => edgeRib.ribPoints), mapArray(edgeRibs, edgeRib => edgeRib.ribEdge)]);
     for (var selection in selections)
     {
@@ -621,12 +684,13 @@ function faceUnder(context is Context, entity is Query, hiddenBodies is Query)
 }
 
 /**
- * Clear invalid selections (a button): drops what's chosen, but isn't there any more; chains of fewer than two points;
- * hubs without a hub; and edge ribs without an edge or points.
+ * Clear invalid selections (a button): drops what's chosen (Quick rib's selections too), but isn't there any more;
+ * chains of fewer than two points; hubs without a hub; and edge ribs without an edge or points.
  */
 export function clearInvalidSelections(context is Context, definition is map) returns map
 {
     // Evaluated, to keep only what's there
+    definition.quickSelections = qUnion(evaluateQuery(context, definition.quickSelections));
     var chains = [];
     for (var chain in definition.chains)
     {
