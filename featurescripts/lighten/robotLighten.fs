@@ -13,6 +13,9 @@ const RIB_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimete
 const WALL_OVERRIDE_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 1.5 } as LengthBoundSpec;
 const RIB_OVERRIDE_BOUNDS = { (meter) : [1e-5, 0.00635, 500], (inch) : 0.25, (millimeter) : 6 } as LengthBoundSpec;
 const DEPTH_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
+// A 1/8 in. router bit's
+const FILLET_RADIUS_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 1.5 } as LengthBoundSpec;
+
 // Walls and ribs are made this much thicker than they're to be: with Fillet corners, the pockets are grown back by as
 // much, rounding their corners this much more than Fillet radius; without, the walls and ribs are left this much
 // thicker. Walls which would exactly meet, or a pocket exactly the bit, at the sizes given (as round ones are) meet a
@@ -20,9 +23,6 @@ const DEPTH_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millime
 // fail on. Exact pockets takes it back off at the end. More than std's boolean tolerance, so it's never taken as
 // touching.
 const TIE_OFFSET = 1e-4 * meter;
-
-// A 1/8 in. router bit's
-const FILLET_RADIUS_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 1.5 } as LengthBoundSpec;
 
 /**
  * How deep pockets go into the part.
@@ -70,6 +70,10 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     annotation { "Name" : "Faces to ignore", "UIHint" : UIHint.INITIAL_FOCUS,
                                 "Filter" : EntityType.FACE && ((BodyType.SOLID && ModifiableEntityOnly.YES) || (SketchObject.YES && ConstructionObject.NO)) }
                     definition.ignoredFaces is Query;
+
+                    annotation { "Name" : "Add walls around ignored faces", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                                "Description" : "Wall the sketch regions to ignore, as the face's edges are. Unchecked, pockets go right up to them." }
+                    definition.wallIgnoredFaces is boolean;
                 }
             }
 
@@ -124,7 +128,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             if (definition.overrideWallThickness)
             {
-                // Later overrides take precedence over earlier ones (and all of them over Wall thickness and Faces to ignore)
+                // Later overrides take precedence over earlier ones (and all of them over Wall thickness and Faces to
+                // ignore)
                 annotation { "Name" : "Wall overrides", "Item name" : "override", "Item label template" : "#overrideWall walls" }
                 definition.wallOverrides is array;
 
@@ -160,11 +165,25 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // Its normal points out of its part, so pockets go against it
         const facePlane = evPlane(context, { "face" : face });
         const part = qOwnerBody(face);
+        // Mirrored or patterned onto another part (a feature mirror or pattern without the part): everything's built
+        // where the face is, and the pockets moved by this onto that part
+        const patternTransform = getRemainderPatternTransform(context, { "references" : face });
         const ignoredFaces = getIgnoredFaces(context, definition);
         const wallOverrides = getWallOverrides(context, definition, face);
-        const ribGroups = getRibGroups(context, definition);
-        const ribEdges = qUnion(mapArray(ribGroups, group => group.edges));
-        verifyParallel(context, face, facePlane, ribPlane(context, ribEdges, definition), definition);
+        var ribGroups = getRibGroups(context, definition);
+        var regions = qSketchFilter(ignoredFaces, SketchObject.YES);
+        // How the ribs and regions to ignore move relative to the face then (see `byFace`), found before any operation,
+        // as std asks of pattern transforms
+        const ribTransform = relativeTransform(context, patternTransform, qUnion(mapArray(ribGroups, group => group.edges)));
+        const regionTransform = relativeTransform(context, patternTransform, regions);
+        verifyParallel(context, definition, face, facePlane, ribGroups, ribTransform);
+        const ribEdgesByFace = byFace(context, id + "ribsByFace", mapArray(ribGroups, group => group.edges), ribTransform);
+        for (var i, edges in ribEdgesByFace)
+        {
+            ribGroups[i].edges = edges;
+        }
+        const ribEdges = qUnion(ribEdgesByFace);
+        regions = byFace(context, id + "regionsByFace", [regions], regionTransform)[0];
         // To round the pockets' corners as a router bit of the radius would, they're made with walls and ribs thicker,
         // their corners filleted a hair, and grown back (see `roundPockets`): by the radius less the hair, so the hair
         // and the growth make the radius. The radius is TIE_OFFSET more than Fillet radius, so walls and ribs are
@@ -204,20 +223,24 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         catch
         {
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "pocket", "propagateErrorDisplay" : true });
-            throw regenError("Failed to create pockets.", ["face", "depth"], face);
+            throw regenError("Failed to extrude face to lighten, check input.", ["face", "depth"], face);
         }
         // Its ends, on the face and its far side: every other face is a side
         const ends = qCapEntity(id + "pocket", CapType.EITHER, EntityType.FACE);
 
-        // Sketch regions to ignore are left solid: cut from the pocket, so walls go around them too
-        excludeRegions(context, id, facePlane, qCreatedBy(id + "pocket", EntityType.BODY), qSketchFilter(ignoredFaces, SketchObject.YES));
+        // Sketch regions to ignore are left solid: with walls around them, cut from the pocket now, so walls go around
+        // them too; without, cut from the pockets once they're rounded (below)
+        if (definition.wallIgnoredFaces)
+        {
+            excludeRegions(context, id, facePlane, qCreatedBy(id + "pocket", EntityType.BODY), regions);
+        }
 
         // The walls: the pocket (and the pieces regions to ignore split it into), inset by them, but along the part's
         // faces to ignore
         const extruded = qUnion([qCreatedBy(id + "pocket", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
         if (isQueryEmpty(context, extruded))
         {
-            throw regenError("The regions to ignore cover the whole face.", ["ignoredFaces"], qUnion([face, qSketchFilter(ignoredFaces, SketchObject.YES)]));
+            throw regenError("Regions to ignore cover the whole face to lighten.", ["ignoredFaces"], qUnion([face, regions]));
         }
         const pocketFaces = qOwnedByBody(extruded, EntityType.FACE);
         // The pockets' ends from here on, tracked from the extrude's caps (see `buildWalls`)
@@ -226,28 +249,31 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         // The ribs, cut from what's left: what the walls enclose
         const inset = qCreatedBy(id + "walls", EntityType.BODY);
-        const ribs = buildRibs(context, id, bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribGroups, grow);
-        try silent
+        if (ribGroups != [])
         {
-            opBoolean(context, id + "cutRibs", {
-                        "targets" : inset,
-                        "tools" : ribs,
-                        "operationType" : BooleanOperationType.SUBTRACTION
-                    });
-        }
-        catch
-        {
-            processSubfeatureStatus(context, id, { "subfeatureId" : id + "cutRibs", "propagateErrorDisplay" : true });
-            // A failed boolean changes nothing: the ribs are still there to show
-            throw regenError("Failed to cut the ribs from the pockets.", ribParameters(definition), ribs);
+            const ribs = buildRibs(context, id, bandExtent(context, facePlane, qUnion([inset, ribEdges])), ribGroups, grow);
+            try silent
+            {
+                opBoolean(context, id + "cutRibs", {
+                            "targets" : inset,
+                            "tools" : ribs,
+                            "operationType" : BooleanOperationType.SUBTRACTION
+                        });
+            }
+            catch
+            {
+                processSubfeatureStatus(context, id, { "subfeatureId" : id + "cutRibs", "propagateErrorDisplay" : true });
+                // A failed boolean changes nothing: the ribs are still there to show
+                throw regenError("Failed to cut ribs from pockets.", ribParameters(definition), ribs);
+            }
         }
         // The pockets left between them, which the walls and ribs split into pieces
-        const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY)]);
+        const pockets = qUnion([inset, qCreatedBy(id + "cutRibs", EntityType.BODY), qCreatedBy(id + "excludeRegions" + "cut", EntityType.BODY)]);
         logEntities(context, "Pockets between the walls and ribs", pockets, DebugColor.GREEN);
         if (isQueryEmpty(context, pockets))
         {
             // The cut used up the walls' insides and the ribs, so the selections are what's shown
-            throw regenError("There's no room for pockets between the walls and ribs.",
+            throw regenError("Walls and ribs do not leave room for pockets.",
                 concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : [], ribParameters(definition)]),
                 qUnion([face, ribEdges]));
         }
@@ -256,15 +282,36 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         {
             roundPockets(context, id, pockets, pocketEnds, grow);
         }
+        if (!definition.wallIgnoredFaces)
+        {
+            excludeRegions(context, id, facePlane, pockets, regions);
+            if (isQueryEmpty(context, pockets))
+            {
+                throw regenError("Regions to ignore cover the whole face to lighten.", ["ignoredFaces"], qUnion([face, regions]));
+            }
+        }
 
-        // The pockets' sides and their corners' rounds, found again on the part after the cut, for Exact pockets
-        const sides = startTracking(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE), pocketEnds));
+        // Mirrored or patterned onto another part: the pockets moved there, to cut that part
+        var target = part;
+        if (!tolerantEquals(patternTransform, identityTransform()))
+        {
+            target = patternedPart(context, id, face, facePlane, patternTransform);
+            opTransform(context, id + "patterned", {
+                        "bodies" : pockets,
+                        "transform" : patternTransform
+                    });
+        }
+
+        // The pockets' sides (but along regions to ignore, which have no walls to take back) and their corners' rounds,
+        // found again on the part after the cut, for Exact pockets
+        const sides = startTracking(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE),
+                qUnion([pocketEnds, qCreatedBy(id + "excludeRegions", EntityType.FACE)])));
         const corners = startTracking(context, qCreatedBy(id + "round", EntityType.FACE));
-        const volume = evVolume(context, { "entities" : part });
+        const volume = evVolume(context, { "entities" : target });
         try silent
         {
             opBoolean(context, id + "cut", {
-                        "targets" : part,
+                        "targets" : target,
                         "tools" : pockets,
                         "operationType" : BooleanOperationType.SUBTRACTION
                     });
@@ -272,25 +319,27 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         catch
         {
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
-            throw regenError("Failed to cut the pockets from the part.", ["face"], pockets);
-        }
-        // Pieces of ribs which touch no wall or other rib are cut free, as parts of their own
-        const loose = qCreatedBy(id + "cut", EntityType.BODY);
-        if (!isQueryEmpty(context, loose))
-        {
-            reportFeatureWarning(context, id, "Some ribs touch no wall or other rib, so they're left as loose parts.", ribParameters(definition));
-            setErrorEntities(context, id, { "entities" : loose });
+            throw regenError("Failed to cut pockets from part.", ["face"], pockets);
         }
         if (definition.exactPockets)
         {
-            exactPockets(context, id, definition, qOwnedByBody(part, EntityType.FACE), sides, corners, radius);
+            exactPockets(context, id, definition, qOwnedByBody(target, EntityType.FACE), sides, corners, radius);
         }
-        const lightened = 1 - evVolume(context, { "entities" : part }) / volume;
+        const lightened = 1 - evVolume(context, { "entities" : target }) / volume;
         reportFeatureInfo(context, id, "Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
+        // Pieces the cut left free (ribs which touch no wall or other rib) are parts of their own: shown, as info,
+        // which the weight's gives way to
+        const loose = qCreatedBy(id + "cut", EntityType.BODY);
+        if (!isQueryEmpty(context, loose))
+        {
+            reportFeatureInfo(context, id, "Some parts are loose.");
+            addDebugEntities(context, loose, DebugColor.BLUE);
+        }
 
-        // The pockets are used up by the cut
+        // The pockets are used up by the cut, and the sketches' copies aren't needed
         opDeleteBodies(context, id + "cleanup", {
-                    "entities" : qUnion([qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES), qCreatedBy(id + "ribs", EntityType.BODY)])
+                    "entities" : qUnion([qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES), qCreatedBy(id + "ribs", EntityType.BODY),
+                            qCreatedBy(id + "ribsByFace", EntityType.BODY), qCreatedBy(id + "regionsByFace", EntityType.BODY)])
                 });
     });
 
@@ -302,7 +351,7 @@ function getFace(context is Context, definition is map) returns Query
     const face = qEntityFilter(definition.face, EntityType.FACE);
     if (isQueryEmpty(context, face))
     {
-        throw regenError("Select the face to lighten.", ["face"]);
+        throw regenError("Select a face to lighten.", ["face"]);
     }
     return face;
 }
@@ -327,8 +376,8 @@ function getIgnoredFaces(context is Context, definition is map) returns Query
 /**
  * The wall overrides, with Override wall thickness: each of Wall overrides, its faces less those later ones have (so
  * later ones take precedence), and the edges `face` (the face to lighten) shares with them, which the pocket's sides
- * along them are swept from. Each must have faces, and border the face to lighten; those left with no faces are left
- * out.
+ * along them are swept from. Each must border the face to lighten; those with no faces (selected, or left by later
+ * ones) are left out.
  *
  * @returns {array} : Each override, as a map of `faces`, `edges`, `thickness`, and `parameters` (its parameters, for
  *          errors about it).
@@ -345,11 +394,11 @@ function getWallOverrides(context is Context, definition is map, face is Query) 
     {
         if (isQueryEmpty(context, wallOverride.selected))
         {
-            throw regenError("Select faces to override.", [wallOverride.parameters[0]]);
+            continue;
         }
         if (isQueryEmpty(context, qIntersection([qLoopEdges(face), qLoopEdges(wallOverride.selected)])))
         {
-            throw regenError("Face overrides must be adjacent to the lightened face.", [wallOverride.parameters[0]],
+            throw regenError("Override faces must be adjacent to the face to lighten.", [wallOverride.parameters[0]],
                 wallOverride.selected);
         }
         if (!isQueryEmpty(context, wallOverride.faces))
@@ -382,14 +431,145 @@ function wallOverrideGroups(definition is map) returns array
 }
 
 /**
- * Throws unless the face to lighten is parallel to the ribs' sketches, so the ribs go straight into it.
+ * Whether Wall overrides apply: with Override wall thickness.
  */
-function verifyParallel(context is Context, face is Query, facePlane is Plane, ribs is Plane, definition is map)
+function overridesWalls(definition is map) returns boolean
 {
-    if (!parallelVectors(facePlane.normal, ribs.normal))
+    return definition.overrideWallThickness;
+}
+
+/**
+ * The ribs, in groups of one thickness: Ribs to use, at Rib thickness, then with
+ * Override rib thickness, each of Rib overrides; each less what a later one has, so later ones take precedence (a
+ * whole sketch, then a few of its ribs at another thickness). An override's ribs needn't be among Ribs to use. Each
+ * group's edges are its sketch edges (and their construction edges, unless they're excluded); groups with none (none
+ * selected, or left by later ones) are left out, so there may be no ribs at all: just walls.
+ *
+ * @returns {array} : Each group, as a map of `edges` (a query), `thickness`, and `parameters` (its parameters, for
+ *          errors about its ribs).
+ */
+function getRibGroups(context is Context, definition is map) returns array
+{
+    return filter(ribGroups(definition), function(group)
+        {
+            return !isQueryEmpty(context, group.edges);
+        });
+}
+
+/**
+ * `getRibGroups`'s groups, before checking them: each with its `selected` edges too (less construction edges, if
+ * they're excluded), and its `edges`, less those later groups select.
+ */
+function ribGroups(definition is map) returns array
+{
+    var groups = [{ "edges" : definition.ribEdges, "thickness" : definition.ribThickness, "parameters" : ["ribEdges", "ribThickness"] }];
+    if (overridesRibs(definition))
     {
-        throw regenError("The face to lighten must be parallel to the ribs.", concatenateArrays([["face"], ribParameters(definition)]), face);
+        for (var i, ribOverride in definition.ribOverrides)
+        {
+            groups = append(groups, { "edges" : ribOverride.overrideEdges, "thickness" : ribOverride.overrideThickness,
+                        "parameters" : [faultyArrayParameterId("ribOverrides", i, "overrideEdges"),
+                                faultyArrayParameterId("ribOverrides", i, "overrideThickness")] });
+        }
     }
+    for (var i, group in groups)
+    {
+        var selected = qEntityFilter(group.edges, EntityType.EDGE);
+        if (definition.excludeConstruction)
+        {
+            selected = qConstructionFilter(selected, ConstructionObject.NO);
+        }
+        groups[i].selected = selected;
+    }
+    for (var i, group in groups)
+    {
+        const later = mapArray(subArray(groups, i + 1), other => other.selected);
+        groups[i].edges = qSubtraction(group.selected, qUnion(later));
+    }
+    return groups;
+}
+
+/**
+ * The parameters which set the ribs, for errors about them.
+ */
+function ribParameters(definition is map) returns array
+{
+    return concatenateArrays([["ribEdges", "ribThickness"], overridesRibs(definition) ? ["ribOverrides"] : []]);
+}
+
+/**
+ * Whether Rib overrides apply: with Override rib thickness.
+ */
+function overridesRibs(definition is map) returns boolean
+{
+    return definition.overrideRibThickness;
+}
+
+/**
+ * Throws unless the ribs' sketches (of `groups`, see `getRibGroups`), as they'll be relative to the face to lighten
+ * (moved by `transform`, see `byFace`), are parallel to it (`facePlane`), so the ribs go straight into it.
+ */
+function verifyParallel(context is Context, definition is map, face is Query, facePlane is Plane, groups is array, transform is Transform)
+{
+    const skewed = filter(evaluateQuery(context, qUnion(mapArray(groups, group => group.edges))), function(edge)
+        {
+            return !parallelVectors(transform.linear * evOwnerSketchPlane(context, { "entity" : edge }).normal, facePlane.normal);
+        });
+    if (skewed != [])
+    {
+        throw regenError("Face to lighten must be parallel to the ribs.", concatenateArrays([["face"], ribParameters(definition)]),
+            qUnion([face, qUnion(skewed)]));
+    }
+}
+
+/**
+ * How sketch entities (`references`) move relative to the face to lighten when the feature's mirrored or patterned (the
+ * face's `patternTransform`, see the body): the face's transform, undone, then theirs. Nothing (the identity) when
+ * they're patterned with the face, or nothing is; the face's, undone, when they're patterned but it isn't.
+ */
+function relativeTransform(context is Context, patternTransform is Transform, references is Query) returns Transform
+{
+    return inverse(patternTransform) * getRemainderPatternTransform(context, { "references" : references });
+}
+
+/**
+ * Sketch entities (each of `queries`) where they'd be relative to the face to lighten when the feature's mirrored or
+ * patterned: their sketches copied by `transform` (see `relativeTransform`), under `id`. Or as they are, if that's no
+ * move.
+ *
+ * @returns {array} : Each of `queries`, as its entities, or their copies.
+ */
+function byFace(context is Context, id is Id, queries is array, transform is Transform) returns array
+{
+    const entities = qUnion(queries);
+    if (tolerantEquals(transform, identityTransform()) || isQueryEmpty(context, entities))
+    {
+        return queries;
+    }
+    const copies = mapArray(queries, query => startTracking(context, query));
+    opPattern(context, id, {
+                "entities" : qOwnerBody(entities),
+                "transforms" : [transform],
+                "instanceNames" : ["1"]
+            });
+    return mapArray(copies, query => qUnion(evaluateQuery(context, query)));
+}
+
+/**
+ * The part the feature lightens when it's mirrored or patterned onto another part: the one with a face where `face` (in
+ * `plane`) goes by `transform`, through the middle of one of its edges.
+ */
+function patternedPart(context is Context, featureId is Id, face is Query, plane is Plane, transform is Transform) returns Query
+{
+    const edge = qNthElement(qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE), 0);
+    const point = transform * evEdgeTangentLine(context, { "edge" : edge, "parameter" : 0.5 }).origin;
+    const parts = qSubtraction(qAllModifiableSolidBodiesNoMesh(), qCreatedBy(featureId, EntityType.BODY));
+    const faces = qContainsPoint(qCoincidesWithPlane(qOwnedByBody(parts, EntityType.FACE), transform * plane), point);
+    if (isQueryEmpty(context, faces))
+    {
+        throw regenError("Cannot find a part to lighten where the feature is mirrored or patterned.", ["face"], face);
+    }
+    return qOwnerBody(qNthElement(faces, 0));
 }
 
 /**
@@ -444,16 +624,10 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
     {
         return definition;
     }
-    // A guard: editing logic mustn't throw while the dialog's being filled in, so without ribs yet, it's left
-    var plane;
-    var edges;
-    try silent
+    const edges = qUnion(mapArray(getRibGroups(context, definition), group => group.edges));
+    if (!isQueryEmpty(context, edges))
     {
-        edges = qUnion(mapArray(getRibGroups(context, definition), group => group.edges));
-        plane = ribPlane(context, edges, definition);
-    }
-    if (plane != undefined)
-    {
+        const plane = evOwnerSketchPlane(context, { "entity" : qNthElement(edges, 0) });
         const faces = facesUnder(context, plane, edges, hiddenBodies);
         if (evaluateQueryCount(context, faces) == 1)
         {
@@ -464,10 +638,90 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
 }
 
 /**
+ * The faces in `plane` (of parts which aren't hidden) which overlap `footprint` (the ribs), seen along
+ * the plane's normal: their bounding boxes in it overlap. Only evaluates, as editing logic should: running operations
+ * to see what they'd do (between `startFeature` and `abortFeature`) can crash the Part Studio.
+ */
+function facesUnder(context is Context, plane is Plane, footprint is Query, hiddenBodies is Query) returns Query
+{
+    const cSys = coordSystem(plane);
+    const area = evBox3d(context, { "topology" : footprint, "cSys" : cSys, "tight" : false });
+    const parts = qSubtraction(qAllModifiableSolidBodiesNoMesh(), hiddenBodies);
+    return qUnion(filter(evaluateQuery(context, qCoincidesWithPlane(qOwnedByBody(parts, EntityType.FACE), plane)), function(face)
+            {
+                const bounds = evBox3d(context, { "topology" : face, "cSys" : cSys, "tight" : false });
+                return bounds.minCorner[0] <= area.maxCorner[0] && area.minCorner[0] <= bounds.maxCorner[0] &&
+                    bounds.minCorner[1] <= area.maxCorner[1] && area.minCorner[1] <= bounds.maxCorner[1];
+            }));
+}
+
+/**
+ * Cuts `regions` (sketch regions), extruded along `plane`'s normal through `pockets`, from them, under `id`.
+ */
+function excludeRegions(context is Context, featureId is Id, plane is Plane, pockets is Query, regions is Query)
+{
+    if (isQueryEmpty(context, regions))
+    {
+        return;
+    }
+    const id = featureId + "excludeRegions";
+    const extent = bandExtent(context, plane, qUnion([pockets, regions]));
+    try silent
+    {
+        opExtrude(context, id + "extrude", {
+                    "entities" : regions,
+                    "direction" : plane.normal,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : extent.depth,
+                    "startBound" : BoundingType.BLIND,
+                    "startDepth" : extent.depth
+                });
+    }
+    catch
+    {
+        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "extrude", "propagateErrorDisplay" : true });
+        throw regenError("Failed to ignore selected regions, check input.", ["ignoredFaces"], regions);
+    }
+    try silent
+    {
+        opBoolean(context, id + "cut", {
+                    "targets" : pockets,
+                    "tools" : qCreatedBy(id + "extrude", EntityType.BODY),
+                    "operationType" : BooleanOperationType.SUBTRACTION
+                });
+    }
+    catch
+    {
+        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
+        throw regenError("Failed to ignore selected regions, check input.", ["ignoredFaces"], regions);
+    }
+}
+
+/**
+ * Where ribs (or regions to ignore) go, along `plane`'s normal: through `bounds` (the pockets, and the ribs' edges or
+ * the regions), exactly (their bounding box, tight).
+ *
+ * @returns {{
+ *      @field plane {Plane} : `plane`, moved halfway through them.
+ *      @field depth {ValueWithUnits} : How far each goes each way from its edge or region: through all of them, from
+ *              any one.
+ *      @field halfDepth {ValueWithUnits} : How far each goes each way from `plane`.
+ * }}
+ */
+function bandExtent(context is Context, plane is Plane, bounds is Query) returns map
+{
+    const boundingBox = evBox3d(context, { "topology" : bounds, "cSys" : coordSystem(plane), "tight" : true });
+    const height = boundingBox.maxCorner[2] - boundingBox.minCorner[2];
+    var middle = plane;
+    middle.origin += plane.normal * (boundingBox.minCorner[2] + boundingBox.maxCorner[2]) / 2;
+    return { "plane" : middle, "depth" : height, "halfDepth" : height / 2 };
+}
+
+/**
  * The walls, as the previous Onshape Lighten feature and Vent make them: `pockets`, inset by Wall thickness and
- * `grow` (the walls are thicker by what the pockets are grown back by later, see the body), under `featureId + "walls"`; but
- * at `ends` (their caps) and `ignoredSides`, which stay where they are, and at each of `overrides`' `sides`, inset by
- * its `thickness` instead. Hollowing the pockets with their holes fails, or leaves out pieces of them, where the
+ * `grow` (the walls are thicker by what the pockets are grown back by later, see the body), under
+ * `featureId + "walls"`; but at `ends` (their caps) and `ignoredSides`, which stay where they are, and at each of
+ * `overrides`' `sides`, inset by its `thickness` instead. Hollowing the pockets with their holes fails, or leaves out pieces of them, where the
  * offsets of holes and the outline meet (a hole in a rounded corner), so holes are cut separately: what's at least
  * the inset from the outline, less each hole grown by the inset, is what's at least the inset from both. In steps:
  *
@@ -481,8 +735,9 @@ export function robotLightenEditLogic(context is Context, id is Id, oldDefinitio
  * 5. The pockets are hollowed by the inset (`opShell`), which moves their outlines' faces in at once, and what's inside
  *    is kept (`opEnclose`, a pocket at a time).
  * 6. The holes are grown by the inset (`opOffsetFace`), and cut from what's inside.
- * 7. The inside corners' rounds are set to exactly the inset (`opModifyFillet`, as Vent does); if they can't be, they're
- *    a hair bigger, and it's said as info.
+ *
+ * The walls' inside corners are rounded the inset and the hair: a hair (0.01 mm) more than Wall thickness, once the
+ * pockets are grown back. Setting them to exactly it (`opModifyFillet`, as Vent does) cost a step for that hair.
  *
  * A failed step fails the feature, with its own error display, highlighting what sets it. Hollowing and growing fail
  * where the walls are too thick for the outline or a hole, so their errors say so, showing the face, or the holes
@@ -498,7 +753,9 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     const id = featureId + "walls";
     const distance = definition.wallThickness + grow;
     const parameters = concatenateArrays([["wallThickness", "filletRadius"], overridesWalls(definition) ? ["wallOverrides"] : []]);
-    const tooThick = (definition.filletCorners ? "Wall thickness plus fillet radius is" : "Wall thickness is") ~ " too large";
+    // Which parameters to decrease, after std's "Selected offset is too large, decrease the value."
+    const thickness = definition.filletCorners ? "Wall thickness plus fillet radius" : "Wall thickness";
+    const decrease = definition.filletCorners ? "decrease them." : "decrease the value.";
     const faces = qOwnedByBody(pockets, EntityType.FACE);
 
     // 1. Ends and ignored sides out
@@ -512,7 +769,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     catch
     {
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "extend", "propagateErrorDisplay" : true });
-        throw regenError("Failed to create the walls along the faces shown.", parameters, qIntersection([faces, qUnion([ends, ignoredSides])]));
+        throw regenError("Failed to create walls along highlighted faces.", parameters, qIntersection([faces, qUnion([ends, ignoredSides])]));
     }
     const trackedEnds = startTracking(context, qIntersection([faces, ends]));
 
@@ -536,7 +793,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : overrideId, "propagateErrorDisplay" : true });
-            throw regenError("Selected wall overrides are invalid.", wallOverride.parameters, wallOverride.faces);
+            throw regenError("Could not offset override faces as requested.", wallOverride.parameters, wallOverride.faces);
         }
     }
 
@@ -572,7 +829,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         catch
         {
             // The holes are filled once their copies are made, so it's the face that's shown if they're gone
-            throw regenError("Failed to create the walls around the holes shown.", parameters,
+            throw regenError("Failed to create walls around highlighted holes.", parameters,
                 isQueryEmpty(context, holes) ? face : partFaces(context, face, holes));
         }
     }
@@ -604,12 +861,9 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "roundConcave", "propagateErrorDisplay" : true });
-            throw regenError("Failed to round the walls' inside corners.", parameters, qUnion([concave, holeCorners]));
+            throw regenError("Failed to fillet inside corners of walls.", parameters, qUnion([concave, holeCorners]));
         }
     }
-    // Hollowing and growing change them, so they're tracked through it, to be set to exactly the inset after
-    const rounds = startTracking(context, qCreatedBy(id + "roundConcave", EntityType.FACE));
-
     // 5. Hollowed, and what's inside kept
     try silent
     {
@@ -621,7 +875,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     catch
     {
         // Not the shell's own display: it shows the pockets, sticking out of the part with their ends moved out
-        throw regenError(tooThick ~ " for the walls to fit the face's outline.", parameters, face);
+        throw regenError(thickness ~ " is too large, " ~ decrease, parameters, face);
     }
     for (var i, pocket in evaluateQuery(context, pockets))
     {
@@ -633,7 +887,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : encloseId, "propagateErrorDisplay" : true });
-            throw regenError("Failed to inset the pocket shown.", parameters, pocket);
+            throw regenError("Failed to create pocket inside highlighted walls.", parameters, pocket);
         }
     }
 
@@ -651,7 +905,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
         catch
         {
             const failing = holesFailingGrowth(context, id + "findHoles", holeBodies, holeSides, distance);
-            throw regenError(tooThick ~ " for the walls around the holes shown.", parameters,
+            throw regenError(thickness ~ " is too large for highlighted holes, " ~ decrease, parameters,
                 partFaces(context, face, qIntersection([holeSides, qOwnedByBody(qUnion(failing), EntityType.FACE)])));
         }
         if (isQueryEmpty(context, qCreatedBy(id + "enclose", EntityType.BODY)))
@@ -675,10 +929,10 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
                 const meeting = holesFailingCut(context, id + "findMeeting", qCreatedBy(id + "enclose", EntityType.BODY), holeBodies);
                 if (meeting == [])
                 {
-                    throw regenError("Failed to cut the walls around the holes from the pockets.", parameters, face);
+                    throw regenError("Failed to cut walls around holes from pockets.", parameters, face);
                 }
-                throw regenError("The walls around the holes shown exactly meet other walls: change " ~
-                        (definition.filletCorners ? "Wall thickness or Fillet radius" : "Wall thickness") ~ " a little.", parameters,
+                throw regenError("Walls around highlighted holes would make a non-manifold part, change " ~
+                        (definition.filletCorners ? "Wall thickness or Fillet radius" : "Wall thickness") ~ " slightly.", parameters,
                     grownHolesOnPart(context, face, qUnion(meeting), holeSides, distance));
             }
         }
@@ -687,27 +941,9 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
     logEntities(context, "Pockets inside the walls", inside, DebugColor.GREEN);
     if (isQueryEmpty(context, inside))
     {
-        throw regenError("There's no room for pockets inside the walls.", parameters, pockets);
+        throw regenError("Walls do not enclose a region for pockets, " ~ decrease, parameters, pockets);
     }
 
-    // 7. Inside corners, exactly the inset
-    const insideCorners = qIntersection([rounds, qOwnedByBody(inside, EntityType.FACE)]);
-    if (!isQueryEmpty(context, insideCorners))
-    {
-        try silent
-        {
-            opModifyFillet(context, id + "exactCorners", {
-                        "faces" : insideCorners,
-                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
-                        "reFillet" : false,
-                        "radius" : distance
-                    });
-        }
-        catch
-        {
-            reportFeatureInfo(context, featureId, "The walls' inside corners are rounded 0.01 mm larger than the wall thickness.");
-        }
-    }
     opDeleteBodies(context, id + "deleteShells", { "entities" : pockets });
     return trackedEnds;
 }
@@ -909,176 +1145,6 @@ function partFaces(context is Context, face is Query, sides is Query) returns Qu
 }
 
 /**
- * The ribs, in groups of one thickness: Ribs to use, at Rib thickness, then with
- * Override rib thickness, each of Rib overrides; each less what a later one has, so later ones take precedence (a
- * whole sketch, then a few of its ribs at another thickness). An override's ribs needn't be among Ribs to use. Each
- * group's edges are its sketch edges (and their construction edges, unless they're excluded); groups left with none
- * are left out.
- *
- * @returns {array} : Each group, as a map of `edges` (a query), `thickness`, and `parameters` (its parameters, for
- *          errors about its ribs).
- */
-function getRibGroups(context is Context, definition is map) returns array
-{
-    const groups = ribGroups(definition);
-    if (isQueryEmpty(context, groups[0].selected))
-    {
-        throw regenError("Select ribs to use.", ["ribEdges"]);
-    }
-    var found = [];
-    for (var i, group in groups)
-    {
-        if (i > 0 && isQueryEmpty(context, group.selected))
-        {
-            throw regenError("Select ribs to override.", [faultyArrayParameterId("ribOverrides", i - 1, "overrideEdges")]);
-        }
-        if (!isQueryEmpty(context, group.edges))
-        {
-            found = append(found, group);
-        }
-    }
-    return found;
-}
-
-/**
- * `getRibGroups`'s groups, before checking them: each with its `selected` edges too (less construction edges, if
- * they're excluded), and its `edges`, less those later groups select.
- */
-function ribGroups(definition is map) returns array
-{
-    var groups = [{ "edges" : definition.ribEdges, "thickness" : definition.ribThickness, "parameters" : ["ribEdges", "ribThickness"] }];
-    if (overridesRibs(definition))
-    {
-        for (var i, ribOverride in definition.ribOverrides)
-        {
-            groups = append(groups, { "edges" : ribOverride.overrideEdges, "thickness" : ribOverride.overrideThickness,
-                        "parameters" : [faultyArrayParameterId("ribOverrides", i, "overrideEdges"),
-                                faultyArrayParameterId("ribOverrides", i, "overrideThickness")] });
-        }
-    }
-    for (var i, group in groups)
-    {
-        var selected = qEntityFilter(group.edges, EntityType.EDGE);
-        if (definition.excludeConstruction)
-        {
-            selected = qConstructionFilter(selected, ConstructionObject.NO);
-        }
-        groups[i].selected = selected;
-    }
-    for (var i, group in groups)
-    {
-        const later = mapArray(subArray(groups, i + 1), other => other.selected);
-        groups[i].edges = qSubtraction(group.selected, qUnion(later));
-    }
-    return groups;
-}
-
-/**
- * The parameters which set the ribs, for errors about them.
- */
-function ribParameters(definition is map) returns array
-{
-    return concatenateArrays([["ribEdges", "ribThickness"], overridesRibs(definition) ? ["ribOverrides"] : []]);
-}
-
-/**
- * Whether Rib overrides apply: with Override rib thickness.
- */
-function overridesRibs(definition is map) returns boolean
-{
-    return definition.overrideRibThickness;
-}
-
-/**
- * Whether Wall overrides apply: with Override wall thickness.
- */
-function overridesWalls(definition is map) returns boolean
-{
-    return definition.overrideWallThickness;
-}
-
-/**
- * The plane of the first rib's sketch. The ribs can be from any sketches, as long as they're parallel: each is
- * extruded through everything along their normal.
- */
-function ribPlane(context is Context, edges is Query, definition is map) returns Plane
-{
-    const evaluated = evaluateQuery(context, edges);
-    const plane = evOwnerSketchPlane(context, { "entity" : evaluated[0] });
-    const skewed = filter(evaluated, function(edge)
-        {
-            return !parallelVectors(evOwnerSketchPlane(context, { "entity" : edge }).normal, plane.normal);
-        });
-    if (skewed != [])
-    {
-        throw regenError("The ribs must be in parallel sketches.", ribParameters(definition), qUnion(skewed));
-    }
-    return plane;
-}
-
-/**
- * Cuts `regions` (sketch regions), extruded along `plane`'s normal through `pockets`, from them, under `id`.
- */
-function excludeRegions(context is Context, featureId is Id, plane is Plane, pockets is Query, regions is Query)
-{
-    if (isQueryEmpty(context, regions))
-    {
-        return;
-    }
-    const id = featureId + "excludeRegions";
-    const extent = bandExtent(context, plane, qUnion([pockets, regions]));
-    try silent
-    {
-        opExtrude(context, id + "extrude", {
-                    "entities" : regions,
-                    "direction" : plane.normal,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : extent.depth,
-                    "startBound" : BoundingType.BLIND,
-                    "startDepth" : extent.depth
-                });
-    }
-    catch
-    {
-        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "extrude", "propagateErrorDisplay" : true });
-        throw regenError("Failed to ignore the selected regions.", ["ignoredFaces"], regions);
-    }
-    try silent
-    {
-        opBoolean(context, id + "cut", {
-                    "targets" : pockets,
-                    "tools" : qCreatedBy(id + "extrude", EntityType.BODY),
-                    "operationType" : BooleanOperationType.SUBTRACTION
-                });
-    }
-    catch
-    {
-        processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
-        throw regenError("Failed to ignore the selected regions.", ["ignoredFaces"], regions);
-    }
-}
-
-/**
- * Where ribs (or regions to ignore) go, along `plane`'s normal: through `bounds` (the pockets, and the ribs' edges or
- * the regions), exactly (their bounding box, tight).
- *
- * @returns {{
- *      @field plane {Plane} : `plane`, moved halfway through them.
- *      @field depth {ValueWithUnits} : How far each goes each way from its edge or region: through all of them, from
- *              any one.
- *      @field halfDepth {ValueWithUnits} : How far each goes each way from `plane`.
- * }}
- */
-function bandExtent(context is Context, plane is Plane, bounds is Query) returns map
-{
-    const boundingBox = evBox3d(context, { "topology" : bounds, "cSys" : coordSystem(plane), "tight" : true });
-    const height = boundingBox.maxCorner[2] - boundingBox.minCorner[2];
-    var middle = plane;
-    middle.origin += plane.normal * (boundingBox.minCorner[2] + boundingBox.maxCorner[2]) / 2;
-    return { "plane" : middle, "depth" : height, "halfDepth" : height / 2 };
-}
-
-/**
  * The ribs of `groups` (see `getRibGroups`), each half its group's thickness to each side (and `grow` more), through
  * `extent` (see `bandExtent`). Each is made on its own, as edges extruded together make one sheet, creased where they
  * meet, which can't be thickened. Each is its edge's sheet, thickened. An arc or circle whose radius is within std's
@@ -1130,7 +1196,7 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
             catch
             {
                 processSubfeatureStatus(context, featureId, { "subfeatureId" : ribId + "cylinder", "propagateErrorDisplay" : true });
-                throw regenError("Failed to create rib.", parameters, edge);
+                throw regenError("Failed to create a rib from highlighted edge.", parameters, edge);
             }
             continue;
         }
@@ -1149,7 +1215,7 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : ribId + "sheet", "propagateErrorDisplay" : true });
-            throw regenError("Failed to create rib.", parameters, edge);
+            throw regenError("Failed to create a rib from highlighted edge.", parameters, edge);
         }
         try silent
         {
@@ -1162,62 +1228,8 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
         catch
         {
             processSubfeatureStatus(context, featureId, { "subfeatureId" : ribId + "rib", "propagateErrorDisplay" : true });
-            throw regenError("Failed to create rib.", parameters, edge);
+            throw regenError("Failed to create a rib from highlighted edge.", parameters, edge);
         }
-    }
-}
-
-/**
- * With Exact pockets, takes `TIE_OFFSET` back off the pockets as cut in the part (`partFaces`). With Fillet corners,
- * their corners' rounds (`corners`, `radius`: Fillet radius and `TIE_OFFSET`) are set to exactly Fillet radius
- * (`opModifyFillet`); full rounds across narrow sides, which aren't `radius`, are left. Without, their sides (`sides`)
- * are moved into the walls and ribs by it (`opOffsetFace`). Where walls exactly meet, this brings back what
- * `TIE_OFFSET` kept apart, and fails: a warning, showing what's left as it is.
- */
-function exactPockets(context is Context, featureId is Id, definition is map, partFaces is Query, sides is Query, corners is Query,
-    radius is ValueWithUnits)
-{
-    const id = featureId + "exactPockets";
-    if (definition.filletCorners)
-    {
-        const rounds = qUnion(filter(evaluateQuery(context, qIntersection([corners, partFaces])), function(corner)
-                {
-                    const surface = evSurfaceDefinition(context, { "face" : corner });
-                    return surface is Cylinder && tolerantEquals(surface.radius, radius);
-                }));
-        if (isQueryEmpty(context, rounds))
-        {
-            return;
-        }
-        try silent
-        {
-            opModifyFillet(context, id, {
-                        "faces" : rounds,
-                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
-                        "reFillet" : false,
-                        "radius" : definition.filletRadius
-                    });
-        }
-        catch
-        {
-            reportFeatureWarning(context, featureId, "Failed to make the pockets exact: their corners are rounded 0.1 mm more.", ["exactPockets"]);
-            setErrorEntities(context, featureId, { "entities" : rounds });
-        }
-        return;
-    }
-    const pocketSides = qIntersection([sides, partFaces]);
-    try silent
-    {
-        // Their normals point out of the part, into the pockets
-        opOffsetFace(context, id, {
-                    "moveFaces" : pocketSides,
-                    "offsetDistance" : -TIE_OFFSET
-                });
-    }
-    catch
-    {
-        reportFeatureWarning(context, featureId, "Failed to make the pockets exact: their walls and ribs are 0.1 mm thicker.", ["exactPockets"]);
-        setErrorEntities(context, featureId, { "entities" : pocketSides });
     }
 }
 
@@ -1277,7 +1289,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
             const narrow = narrowSide(context, corner, qUnion(failed), qCreatedBy(filletsId, EntityType.FACE), ends);
             if (narrow == undefined)
             {
-                reportFeatureWarning(context, featureId, "Failed to fillet pocket.", ["filletRadius"]);
+                reportFeatureWarning(context, featureId, "Failed to fillet highlighted pocket corner.", ["filletRadius"]);
                 setErrorEntities(context, featureId, { "entities" : corner });
                 continue;
             }
@@ -1318,7 +1330,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
             }
             // Puts back the fillet it deleted
             abortFeature(context, roundId);
-            reportFeatureWarning(context, featureId, "Failed to round pocket.", ["filletRadius"]);
+            reportFeatureWarning(context, featureId, "Failed to fillet highlighted pocket end.", ["filletRadius"]);
             setErrorEntities(context, featureId, { "entities" : qUnion([corner, narrow.side]) });
         }
     }
@@ -1336,7 +1348,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
         // Its error display, but not its error, which would fail the feature
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
         clearFeatureStatus(context, featureId, { "withDisplayData" : false });
-        reportFeatureWarning(context, featureId, "Failed to grow back pockets.", ["filletRadius"]);
+        reportFeatureWarning(context, featureId, "Could not offset pockets to Fillet radius, they are smaller.", ["filletRadius"]);
         setErrorEntities(context, featureId, { "entities" : pockets });
     }
 }
@@ -1387,19 +1399,55 @@ function pocketCorners(context is Context, pocket is Query, ends is Query) retur
 }
 
 /**
- * The faces in `plane` (of parts which aren't hidden) which overlap `footprint` (the ribs), seen along
- * the plane's normal: their bounding boxes in it overlap. Only evaluates, as editing logic should: running operations
- * to see what they'd do (between `startFeature` and `abortFeature`) can crash the Part Studio.
+ * With Exact pockets, takes `TIE_OFFSET` back off the pockets as cut in the part (`targetFaces`, its faces). With
+ * Fillet corners, their corners' rounds (`corners`, `radius`: Fillet radius and `TIE_OFFSET`) are set to exactly
+ * Fillet radius (`opModifyFillet`); full rounds across narrow sides, which aren't `radius`, are left. Without, their
+ * sides (`sides`) are moved into the walls and ribs by it (`opOffsetFace`). Where walls exactly meet, this brings back what
+ * `TIE_OFFSET` kept apart, and fails: a warning, showing what's left as it is.
  */
-function facesUnder(context is Context, plane is Plane, footprint is Query, hiddenBodies is Query) returns Query
+function exactPockets(context is Context, featureId is Id, definition is map, targetFaces is Query, sides is Query, corners is Query,
+    radius is ValueWithUnits)
 {
-    const cSys = coordSystem(plane);
-    const area = evBox3d(context, { "topology" : footprint, "cSys" : cSys, "tight" : false });
-    const parts = qSubtraction(qAllModifiableSolidBodiesNoMesh(), hiddenBodies);
-    return qUnion(filter(evaluateQuery(context, qCoincidesWithPlane(qOwnedByBody(parts, EntityType.FACE), plane)), function(face)
-            {
-                const bounds = evBox3d(context, { "topology" : face, "cSys" : cSys, "tight" : false });
-                return bounds.minCorner[0] <= area.maxCorner[0] && area.minCorner[0] <= bounds.maxCorner[0] &&
-                    bounds.minCorner[1] <= area.maxCorner[1] && area.minCorner[1] <= bounds.maxCorner[1];
-            }));
+    const id = featureId + "exactPockets";
+    if (definition.filletCorners)
+    {
+        const rounds = qUnion(filter(evaluateQuery(context, qIntersection([corners, targetFaces])), function(corner)
+                {
+                    const surface = evSurfaceDefinition(context, { "face" : corner });
+                    return surface is Cylinder && tolerantEquals(surface.radius, radius);
+                }));
+        if (isQueryEmpty(context, rounds))
+        {
+            return;
+        }
+        try silent
+        {
+            opModifyFillet(context, id, {
+                        "faces" : rounds,
+                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
+                        "reFillet" : false,
+                        "radius" : definition.filletRadius
+                    });
+        }
+        catch
+        {
+            reportFeatureWarning(context, featureId, "Could not modify pocket fillets, they are 0.1 mm larger.", ["exactPockets"]);
+            setErrorEntities(context, featureId, { "entities" : rounds });
+        }
+        return;
+    }
+    const pocketSides = qIntersection([sides, targetFaces]);
+    try silent
+    {
+        // Their normals point out of the part, into the pockets
+        opOffsetFace(context, id, {
+                    "moveFaces" : pocketSides,
+                    "offsetDistance" : -TIE_OFFSET
+                });
+    }
+    catch
+    {
+        reportFeatureWarning(context, featureId, "Could not offset pocket faces, walls and ribs are 0.1 mm thicker.", ["exactPockets"]);
+        setErrorEntities(context, featureId, { "entities" : pocketSides });
+    }
 }

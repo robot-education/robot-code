@@ -350,7 +350,8 @@ feature shows what failed itself (see "Failing, and carrying on").
   false`), then report the warning, leave out what it would have done, and keep going. Without clearing it, the
   copied error fails the feature (see "An error status fails the feature"). Clearing also clears any warning or info
   reported before it, which the new warning replaces anyway. Robot lighten's growing its pockets back does this: if
-  it fails, they're cut ungrown, with "Failed to grow back pockets." and the offset's display. Where an operation
+  it fails, they're cut ungrown, with "Could not offset pockets to Fillet radius, they are smaller." and the offset's
+  display. Where an operation
   shows nothing of its own, skip copying, and show what's left out with `setErrorEntities`. Something that only makes
   the result a little off (a fillet's radius a hair big) is info.
 
@@ -360,14 +361,22 @@ feature shows what failed itself (see "Failing, and carrying on").
       // Its error display, but not its error, which would fail the feature
       processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
       clearFeatureStatus(context, featureId, { "withDisplayData" : false });
-      reportFeatureWarning(context, featureId, "Failed to grow back pockets.", ["filletRadius"]);
+      reportFeatureWarning(context, featureId, "Could not offset pockets to Fillet radius, they are smaller.", ["filletRadius"]);
       setErrorEntities(context, featureId, { "entities" : pockets });
   }
   ```
 
-- **Keep messages short, and show where.** A message says what's wrong and what to change ("Selected wall overrides
-  are invalid."); why belongs in the writeup. Show the culprit in red: the error's entities, and the operation's own
-  display where it has one.
+- **Keep messages short, and show where.** A message says what's wrong and what to change ("Wall thickness is too
+  large, decrease the value."); why belongs in the writeup. Show the culprit in red: the error's entities, and the
+  operation's own display where it has one.
+- **Model errors on std's.** For each error, warning, and info, find the std error closest to it, and write ours in its
+  form and words, so features read like Onshape's own. `python -m fs_cli.std_errors WORD...` searches std's errors'
+  messages (from `std/errorstringenum.gen.fs`, where each is the comment above its `ErrorStringEnum` value). Std's
+  forms: "Select faces to remove.", "Failed to fillet selections.", "Could not offset selected faces as requested.",
+  "Limit face must be parallel to face being moved.", "Selected offset is too large, decrease the value.",
+  "Selections do not enclose a region."; sentence case, parameters by their names ("Wall thickness"), no leading
+  "The", and "highlighted" for what's shown in red. The feature's writeup lists each one's closest std error in its
+  errors table ("Closest std error"; "none" where nothing's close). Robot lighten's is an example.
 - **What rolls back when something throws**: a feature, all of it, when it fails. A `try` rolls nothing back: FsDoc's
   "Exceptions" (https://cad.onshape.com/FsDoc/exceptions.html) says a `try` block is aborted when something's thrown,
   and operations in it before the one which threw stay done. To try a sequence of operations and undo it, run it in a

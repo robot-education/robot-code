@@ -38,6 +38,7 @@ Decide whether two things are the same, or touch, by std's tolerances, never by 
 | `getUnstableIncrementingId` † | feature | A function making ids under a prefix, numbered as it's called, each disambiguated by the query it's for |
 | `getFeatureName` †, `getLastActiveId` † | feature | The feature's name and the last active feature's id (undocumented) |
 | `arrayParameterId` † | error | An array item's parameter id, for errors (as `faultyArrayParameterId`) |
+| `ErrorStringEnum` † | errorstringenum | Std's errors; each one's message is the comment above it in `std/errorstringenum.gen.fs`. `python -m fs_cli.std_errors WORD...` searches them (see the style guide's "Model errors on std's") |
 | `processError` †, `reportFeatureError` † | error | What `defineFeature` does with a thrown error, and reporting a std error enum |
 | `getAllVariables` † | context | Every variable (configuration variables too) as a map |
 | `mapLookup` † | containers | `try (a.b.c)` without logging a warning |

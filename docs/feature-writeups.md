@@ -19,7 +19,8 @@ it.
    be audited in one place:
    - the feature's name and description;
    - parameters' descriptions (their tooltips), and hidden parameters (which editing logic sets);
-   - errors, warnings, and info messages: the message, when it's shown, and what it highlights;
+   - errors, warnings, and info messages: the message, when it's shown, what it highlights, and the closest std error
+     (a "Closest std error" column: see the style guide's "Model errors on std's");
    - part names and other properties it sets.
 
    Labels and options are left out: they're easy to audit in the dialog itself (`fs ui`, or the VS Code preview).
