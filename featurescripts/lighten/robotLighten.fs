@@ -932,7 +932,7 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
                     throw regenError("Failed to cut walls around holes from pockets.", parameters, face);
                 }
                 throw regenError("Walls around highlighted holes would make a non-manifold part, change " ~
-                        (definition.filletCorners ? "Wall thickness or Fillet radius" : "Wall thickness") ~ " slightly.", parameters,
+                        (definition.filletCorners ? "wall thickness or fillet radius" : "wall thickness") ~ " slightly.", parameters,
                     grownHolesOnPart(context, face, qUnion(meeting), holeSides, distance));
             }
         }
@@ -1330,7 +1330,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
             }
             // Puts back the fillet it deleted
             abortFeature(context, roundId);
-            reportFeatureWarning(context, featureId, "Failed to fillet highlighted pocket end.", ["filletRadius"]);
+            reportFeatureWarning(context, featureId, "Failed to fillet highlighted pocket.", ["filletRadius"]);
             setErrorEntities(context, featureId, { "entities" : qUnion([corner, narrow.side]) });
         }
     }
@@ -1348,7 +1348,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
         // Its error display, but not its error, which would fail the feature
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
         clearFeatureStatus(context, featureId, { "withDisplayData" : false });
-        reportFeatureWarning(context, featureId, "Could not offset pockets to Fillet radius, they are smaller.", ["filletRadius"]);
+        reportFeatureWarning(context, featureId, "Could not offset pockets to fillet radius.", ["filletRadius"]);
         setErrorEntities(context, featureId, { "entities" : pockets });
     }
 }
@@ -1431,7 +1431,7 @@ function exactPockets(context is Context, featureId is Id, definition is map, ta
         }
         catch
         {
-            reportFeatureWarning(context, featureId, "Could not modify pocket fillets, they are 0.1 mm larger.", ["exactPockets"]);
+            reportFeatureWarning(context, featureId, "Could not modify pocket fillets.", ["exactPockets"]);
             setErrorEntities(context, featureId, { "entities" : rounds });
         }
         return;
@@ -1447,7 +1447,7 @@ function exactPockets(context is Context, featureId is Id, definition is map, ta
     }
     catch
     {
-        reportFeatureWarning(context, featureId, "Could not offset pocket faces, walls and ribs are 0.1 mm thicker.", ["exactPockets"]);
+        reportFeatureWarning(context, featureId, "Could not offset pocket faces.", ["exactPockets"]);
         setErrorEntities(context, featureId, { "entities" : pocketSides });
     }
 }
