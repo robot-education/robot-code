@@ -760,13 +760,57 @@ def _workspace_projects(ls: FeatureScriptServer) -> list[Project]:
 # A feature's dialog, as `fs ui` renders it, for the extension's preview (see vscode-extension/src/uiPreview.ts).
 # Rendering here, rather than with `fs ui`, keeps the parsed std library between renders, and renders unsaved changes.
 RENDER_UI = "featurescript/renderUi"
+# What the preview's page needs from the repo, so changing it doesn't mean reinstalling the extension
+PREVIEW_PAGE = "featurescript/previewPage"
+# The rest of `fs audit`'s page, for the preview: the lookup tables, writeup, and problems
+AUDIT = "featurescript/audit"
+
+
+@server.feature(PREVIEW_PAGE)
+def preview_page(ls: FeatureScriptServer, params) -> dict:
+    """Returns the `script` making the dialog's controls work (`dialog_page.js`, shared with `fs audit`'s page), and
+    the `style` of the audit's sections."""
+    from fs_cli.audit import DIALOG_PAGE_SCRIPT, SECTION_STYLE
+
+    return {"script": DIALOG_PAGE_SCRIPT, "style": SECTION_STYLE}
+
+
+@server.feature(AUDIT)
+async def audit(ls: FeatureScriptServer, params) -> dict:
+    """Params: `uri`. Returns the HTML of `fs audit`'s sections other than the dialog (`tables`, `writeup`, and
+    `problems`, see `fs_cli.audit.audit_sections`) as `html`, and how many `tables` and `problems` there are; or an
+    `error`. The writeup and tables are read from disk, and the problems are of the unsaved file."""
+    from fs_cli.audit import audit_sections, check_problems, feature_tables
+    from fs_cli.config import ConfigError, load_config
+
+    uri = _param(params, "uri")
+    path = _path(uri) if uri else None
+    found = ls.project_module(uri) if path else None
+    if path is None or found is None:
+        return {"error": "Open a FeatureScript file in the robot-code repo to audit it."}
+    project, module = found
+    writeup = path.with_suffix(".md")
+
+    def build() -> tuple[dict[str, str], int, int]:
+        config = load_config(project.root)
+        problems = check_problems(project, module)
+        tables = feature_tables(config, project, module)
+        text = writeup.read_text(encoding="utf-8") if writeup.is_file() else None
+        return audit_sections(text, problems, tables), len(tables), len(problems)
+
+    try:
+        sections, tables, problems = await asyncio.to_thread(build)
+    except ConfigError as error:
+        return {"error": str(error)}
+    return {"html": sections, "tables": tables, "problems": problems}
 
 
 @server.feature(RENDER_UI)
 async def render_ui(ls: FeatureScriptServer, params) -> dict:
     """Params: `uri`, `feature` (optional), `settings` (`fs ui --set` settings, as [name, value] pairs, since pygls
     gives maps as named tuples, whose fields can't be names like `items.0.length`), and `theme`. Returns the dialog's
-    `html` (or an `error`), any `warnings`, the `features` the file defines, and the `feature` shown."""
+    `html` (or an `error`), any `warnings`, the `features` the file defines, the `feature` shown, and the `settings`
+    which do something: a parameter set to its default is left out, so setting it back unsets it."""
     from fs_cli.config import ConfigError, load_config
     from fs_cli.ui import UiError, parse_file, render_feature
 
@@ -788,10 +832,15 @@ async def render_ui(ls: FeatureScriptServer, params) -> dict:
     theme = _param(params, "theme") or "dark"
     try:
         std_dir = load_config(project.root).std_dir
-        page, warnings = await asyncio.to_thread(render_feature, project, std_dir, path, feature, settings, theme, sources)
+        info: dict = {}
+        page, warnings = await asyncio.to_thread(render_feature, project, std_dir, path, feature, settings, theme, sources, info)
     except (UiError, ConfigError) as error:
         return {"error": str(error), "features": features, "feature": feature}
-    return {"html": page, "warnings": warnings, "features": features, "feature": feature}
+    parameters = info["parameters"]
+    kept = [
+        [key, value] for key, value in settings.items() if key not in parameters or value != parameters[key].default_setting
+    ]
+    return {"html": page, "warnings": warnings, "features": features, "feature": feature, "settings": kept}
 
 
 def _param(params, name: str):

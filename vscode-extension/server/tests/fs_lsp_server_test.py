@@ -435,6 +435,11 @@ def test_render_ui(tmp_path):
         assert "data-os-theme='light'" in result["html"]
         assert "os-param-query-list-label os-grow'>Point<" in result["html"]
         assert result["warnings"] == ["nothing isn't a parameter, so --set nothing did nothing."]
+        assert result["settings"] == [["placement", "POINT"], ["nothing", "1"]]
+
+        # A parameter set to its default is unset
+        result = client.request("featurescript/renderUi", {"uri": uri, "settings": [["placement", "EDGE"]]})
+        assert result["settings"] == []
 
         # Unsaved changes are rendered
         client.notify(
@@ -446,6 +451,40 @@ def test_render_ui(tmp_path):
         )
         result = client.request("featurescript/renderUi", {"uri": uri, "settings": [["placement", "POINT"]]})
         assert "os-param-query-list-label os-grow'>Spot<" in result["html"]
+    finally:
+        client.close()
+
+
+def test_audit(tmp_path):
+    """The extension's preview gets the dialog's script, and `fs audit`'s other sections, through the server."""
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    code_dir = tmp_path / "featurescripts"
+    code_dir.mkdir()
+    (tmp_path / "std").mkdir()
+    (tmp_path / "std" / "common.fs").write_text("FeatureScript 1;\n")
+    path = code_dir / "widget.fs"
+    path.write_text(WIDGET)
+    (code_dir / "widget.md").write_text("# Widget\n\nPlaces *things*.\n")
+    uri = path.as_uri()
+    client = Client()
+    try:
+        client.request("initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}})
+        client.notify("initialized", {})
+        page = client.request("featurescript/previewPage", {})
+        assert "function dialogPage(root, host)" in page["script"]
+        assert ".writeup" in page["style"]
+
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": WIDGET + "const x = ;\n"}},
+        )
+        result = client.request("featurescript/audit", {"uri": uri})
+        assert result["tables"] == 0
+        assert "<em>things</em>" in result["html"]["writeup"]
+        assert "no lookup tables" in result["html"]["tables"]
+        # The unsaved file's problems, each with where it is
+        assert result["problems"] >= 1
+        assert "data-line='26'" in result["html"]["problems"]
     finally:
         client.close()
 

@@ -8,8 +8,13 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 
 /**
  * A gear's or rack's tooth form, for a module (`m`) and pressure angle (`α`): standard proportions (an addendum of `m`
- * and a dedendum of `1.25 m`), with a root fillet of `filletRadius`, and the whole profile offset outward by `offset`
+ * and a dedendum of `1.25 m`), with its roots rounded by `rootFillet`, and the whole profile offset outward by `offset`
  * (inward, if negative: for clearance).
+ *
+ * `rootFillet` is a number, the roots' fillet's radius as a fraction of the full round's (the round tangent to the
+ * root and both flanks: 1 is the full round, and 0 leaves them sharp), as Onshape's Spur gear's Root fillet; or a
+ * length, a router bit's radius (less the offset, as the profile's offset grows into the gap), with a full round of
+ * that radius where the gap's too narrow for both corners.
  *
  * @returns {{
  *      @field module {ValueWithUnits} :
@@ -19,19 +24,27 @@ import(path : "onshape/std/common.fs", version : "2960.0");
  *      @field baseRadius {ValueWithUnits} : A gear's: where its involutes start.
  *      @field tipRadius {ValueWithUnits} : A gear's.
  *      @field rootRadius {ValueWithUnits} : A gear's.
- *      @field filletRadius {ValueWithUnits} :
+ *      @field filletFraction {number} : By a fraction of the full round, or:
+ *      @field filletRadius {ValueWithUnits} : A router bit's.
  *      @field offset {ValueWithUnits} :
  * }}
  */
-export function getGearForm(module is ValueWithUnits, teeth, pressureAngle is ValueWithUnits, filletRadius is ValueWithUnits, offset is ValueWithUnits) returns map
+export function getGearForm(module is ValueWithUnits, teeth, pressureAngle is ValueWithUnits, rootFillet, offset is ValueWithUnits) returns map
 {
     var form = {
         "module" : module,
         "teeth" : teeth,
         "pressureAngle" : pressureAngle,
-        "filletRadius" : filletRadius - offset,
         "offset" : offset
     };
+    if (rootFillet is number)
+    {
+        form.filletFraction = rootFillet;
+    }
+    else
+    {
+        form.filletRadius = rootFillet - offset;
+    }
     if (teeth != undefined)
     {
         const pitchRadius = module * teeth / 2;
@@ -41,14 +54,6 @@ export function getGearForm(module is ValueWithUnits, teeth, pressureAngle is Va
         form.rootRadius = pitchRadius - 1.25 * module + offset;
     }
     return form;
-}
-
-/**
- * The standard root fillet's radius: 0.38 of the module.
- */
-export function standardFilletRadius(module is ValueWithUnits) returns ValueWithUnits
-{
-    return 0.38 * module;
 }
 
 function involute(angle is ValueWithUnits) returns ValueWithUnits
@@ -68,6 +73,112 @@ export function toothHalfAngle(form is map, radius is ValueWithUnits) returns Va
 
 const FLANK_POINTS = 8;
 
+function polar(radius is ValueWithUnits, angle is ValueWithUnits) returns Vector
+{
+    return vector(cos(angle), sin(angle)) * radius;
+}
+
+/**
+ * Half a gap and the flank above it, for a tooth centered at angle 0, on its clockwise side: from the middle of the gap
+ * up to the corner of its tip, as curves, each a "line", "arc" (with a middle point), or "spline" (points). The root
+ * is rounded as `gearRoot` says, below the involute flank.
+ */
+export function halfGapCurves(form is map) returns array
+{
+    if (toothHalfAngle(form, form.tipRadius) <= 0 * degree)
+    {
+        throw regenError("The gear's teeth come to points: give it more teeth, or less clearance.", ["teeth"]);
+    }
+    const toothAngle = 360 * degree / form.teeth;
+    const root = gearRoot(form);
+    var curves = [];
+    if (root.fullRound)
+    {
+        // A full round: from the bottom of the gap up to the line's tangent point
+        curves = append(curves, {
+                        "shape" : "arc",
+                        "points" : [polar(root.bottomRadius, -toothAngle / 2), root.filletMiddle, root.lineTangent]
+                    });
+    }
+    else
+    {
+        curves = append(curves, {
+                        "shape" : "arc",
+                        "points" : [polar(root.rootRadius, -toothAngle / 2), polar(root.rootRadius, (root.filletRootAngle - toothAngle / 2) / 2),
+                                polar(root.rootRadius, root.filletRootAngle)]
+                    });
+        if (root.filletMiddle != undefined)
+        {
+            curves = append(curves, {
+                            "shape" : "arc",
+                            "points" : [polar(root.rootRadius, root.filletRootAngle), root.filletMiddle, root.lineTangent]
+                        });
+        }
+    }
+    if (root.lineTop > norm(root.lineTangent) + TOLERANCE.zeroLength * meter)
+    {
+        curves = append(curves, { "shape" : "line", "points" : [root.lineTangent, polar(root.lineTop, -root.lineAngle)] });
+    }
+    var flank = [];
+    for (var i = 0; i <= FLANK_POINTS; i += 1)
+    {
+        const radius = root.lineTop + (form.tipRadius - root.lineTop) * i / FLANK_POINTS;
+        flank = append(flank, polar(radius, -toothHalfAngle(form, radius)));
+    }
+    return append(curves, { "shape" : "spline", "points" : flank });
+}
+
+/**
+ * `curves` (see `halfGapCurves`) mirrored across the x axis, and in reverse.
+ */
+function mirroredCurves(curves is array) returns array
+{
+    var result = [];
+    for (var i = size(curves) - 1; i >= 0; i -= 1)
+    {
+        result = append(result, {
+                        "shape" : curves[i].shape,
+                        "points" : reverse(mapArray(curves[i].points, point => vector(point[0], -point[1])))
+                    });
+    }
+    return result;
+}
+
+/**
+ * `curves` (see `halfGapCurves`) turned `angle` counterclockwise.
+ */
+function rotatedCurves(curves is array, angle is ValueWithUnits) returns array
+{
+    const rotate = function(point is Vector) returns Vector
+        {
+            return vector(point[0] * cos(angle) - point[1] * sin(angle), point[0] * sin(angle) + point[1] * cos(angle));
+        };
+    return mapArray(curves, curve => mergeMaps(curve, { "points" : mapArray(curve.points, rotate) }));
+}
+
+/**
+ * Sketches `curves` (see `halfGapCurves`), each named `prefix` and its index.
+ */
+function sketchCurves(sketch is Sketch, prefix is string, curves is array)
+{
+    for (var i, curve in curves)
+    {
+        const name = prefix ~ i;
+        if (curve.shape == "line")
+        {
+            skLineSegment(sketch, name, { "start" : curve.points[0], "end" : curve.points[1] });
+        }
+        else if (curve.shape == "arc")
+        {
+            skArc(sketch, name, { "start" : curve.points[0], "mid" : curve.points[1], "end" : curve.points[2] });
+        }
+        else
+        {
+            skFitSpline(sketch, name, { "points" : curve.points });
+        }
+    }
+}
+
 /**
  * Sketches a gear's profile on `plane`, centered on it, and returns its faces: every tooth, or (with `sectorTeeth`) a
  * sector of that many teeth, centered on the plane's x axis, closed back to its center.
@@ -76,67 +187,15 @@ export function sketchGearProfile(context is Context, id is Id, plane is Plane, 
 {
     const teeth = form.teeth;
     const toothAngle = 360 * degree / teeth;
-    const root = gearRoot(form);
-    if (toothHalfAngle(form, form.tipRadius) <= 0 * degree)
-    {
-        throw regenError("The gear's teeth come to points: give it more teeth, or less clearance.", ["teeth"]);
-    }
-    const at = function(radius is ValueWithUnits, angle is ValueWithUnits) returns Vector
-        {
-            return vector(cos(angle), sin(angle)) * radius;
-        };
-
     // A tooth centered at angle 0, from the middle of the gap before it (on its clockwise side) to the middle of the
-    // gap after it, as curves: each a "line", "arc" (with a middle point), or "spline" (points), as its shape
-    var halfGap = [];
-    if (root.fullRound)
-    {
-        // A full round: from the bottom of the gap up to the line's tangent point
-        halfGap = append(halfGap, {
-                        "shape" : "arc",
-                        "points" : [at(root.bottomRadius, -toothAngle / 2), root.filletMiddle, root.lineTangent]
-                    });
-    }
-    else
-    {
-        halfGap = append(halfGap, {
-                        "shape" : "arc",
-                        "points" : [at(root.rootRadius, -toothAngle / 2), at(root.rootRadius, (root.filletRootAngle - toothAngle / 2) / 2), at(root.rootRadius, root.filletRootAngle)]
-                    });
-        halfGap = append(halfGap, {
-                        "shape" : "arc",
-                        "points" : [at(root.rootRadius, root.filletRootAngle), root.filletMiddle, root.lineTangent]
-                    });
-    }
-    if (root.lineTop > norm(root.lineTangent))
-    {
-        halfGap = append(halfGap, { "shape" : "line", "points" : [root.lineTangent, at(root.lineTop, -root.lineAngle)] });
-    }
-    var flank = [];
-    for (var i = 0; i <= FLANK_POINTS; i += 1)
-    {
-        const radius = root.lineTop + (form.tipRadius - root.lineTop) * i / FLANK_POINTS;
-        flank = append(flank, at(radius, -toothHalfAngle(form, radius)));
-    }
-    halfGap = append(halfGap, { "shape" : "spline", "points" : flank });
-
+    // gap after it
+    const halfGap = halfGapCurves(form);
     const tipHalf = toothHalfAngle(form, form.tipRadius);
-    var curves = halfGap;
-    curves = append(curves, {
-                    "shape" : "arc",
-                    "points" : [at(form.tipRadius, -tipHalf), at(form.tipRadius, 0 * degree), at(form.tipRadius, tipHalf)]
-                });
-    // The other side, mirrored, in reverse
-    for (var i = size(halfGap) - 1; i >= 0; i -= 1)
-    {
-        curves = append(curves, {
-                        "shape" : halfGap[i].shape,
-                        "points" : reverse(mapArray(halfGap[i].points, function(point)
-                                {
-                                    return vector(point[0], -point[1]);
-                                }))
-                    });
-    }
+    const tip = {
+            "shape" : "arc",
+            "points" : [polar(form.tipRadius, -tipHalf), polar(form.tipRadius, 0 * degree), polar(form.tipRadius, tipHalf)]
+        };
+    const curves = concatenateArrays([halfGap, [tip], mirroredCurves(halfGap)]);
 
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
     const toothCount = sectorTeeth ?? teeth;
@@ -144,88 +203,120 @@ export function sketchGearProfile(context is Context, id is Id, plane is Plane, 
     const firstAngle = sectorTeeth == undefined ? 0 * degree : -(sectorTeeth - 1) / 2 * toothAngle;
     for (var tooth = 0; tooth < toothCount; tooth += 1)
     {
-        const angle = firstAngle + tooth * toothAngle;
-        const rotate = function(point is Vector) returns Vector
-            {
-                return vector(point[0] * cos(angle) - point[1] * sin(angle), point[0] * sin(angle) + point[1] * cos(angle));
-            };
-        for (var i, curve in curves)
-        {
-            const points = mapArray(curve.points, rotate);
-            const name = "tooth" ~ tooth ~ "_" ~ i;
-            if (curve.shape == "line")
-            {
-                skLineSegment(sketch, name, { "start" : points[0], "end" : points[1] });
-            }
-            else if (curve.shape == "arc")
-            {
-                skArc(sketch, name, { "start" : points[0], "mid" : points[1], "end" : points[2] });
-            }
-            else
-            {
-                skFitSpline(sketch, name, { "points" : points });
-            }
-        }
+        sketchCurves(sketch, "tooth" ~ tooth ~ "_", rotatedCurves(curves, firstAngle + tooth * toothAngle));
     }
     if (sectorTeeth != undefined)
     {
         // Back to the center, from the middles of the gaps at its ends
-        const bottom = root.fullRound ? root.bottomRadius : root.rootRadius;
-        skLineSegment(sketch, "sectorStart", { "start" : vector(0, 0) * meter, "end" : at(bottom, firstAngle - toothAngle / 2) });
-        skLineSegment(sketch, "sectorEnd", { "start" : at(bottom, firstAngle + (sectorTeeth - 0.5) * toothAngle), "end" : vector(0, 0) * meter });
+        const bottom = norm(halfGap[0].points[0]);
+        skLineSegment(sketch, "sectorStart", { "start" : vector(0, 0) * meter, "end" : polar(bottom, firstAngle - toothAngle / 2) });
+        skLineSegment(sketch, "sectorEnd", { "start" : polar(bottom, firstAngle + (sectorTeeth - 0.5) * toothAngle), "end" : vector(0, 0) * meter });
     }
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);
 }
 
 /**
- * The root of a gear's gaps, on a tooth's clockwise side (for a tooth centered at angle 0): a fillet between its root
- * circle and a radial line up to where its involute starts (its base circle, or above it, up to half the tooth's
- * height, to make room for the fillet), or, if two fillets don't fit in the gap, a full round.
+ * How many times `gearRoot` refines a full round: the radial line it's tangent to rises with its radius, which turns
+ * the line, which changes the radius a little less each time.
+ */
+const FULL_ROUND_STEPS = 12;
+
+/**
+ * The root of a gear's gaps, on a tooth's clockwise side (for a tooth centered at angle 0): below its involute, a
+ * radial line up to where the involute starts (its base circle, or above it, up to half the tooth's height, to make
+ * room for the fillet), and a fillet between it and the root circle (`form.filletFraction` of the full round's radius,
+ * or a router bit's `form.filletRadius`); or a full round, tangent to both sides' lines (and, by fraction, the root
+ * circle; a router bit's, where two of its fillets don't fit in the gap); or without a fillet, a sharp corner.
  *
  * @returns {{
  *      @field rootRadius {ValueWithUnits} :
  *      @field fullRound {boolean} :
  *      @field bottomRadius {ValueWithUnits} : A full round's bottom.
- *      @field filletRootAngle {ValueWithUnits} : Where a fillet meets the root circle.
- *      @field filletMiddle {Vector} :
+ *      @field filletRootAngle {ValueWithUnits} : Where a fillet (or a sharp corner) meets the root circle.
+ *      @field filletMiddle {Vector} : A fillet's or full round's: `undefined` for a sharp corner.
  *      @field lineTangent {Vector} : Where it meets the radial line.
  *      @field lineAngle {ValueWithUnits} : The radial line's angle (clockwise of the tooth's center).
  *      @field lineTop {ValueWithUnits} : Where the radial line meets the involute.
  * }}
  */
-function gearRoot(form is map) returns map
+export function gearRoot(form is map) returns map
 {
     const rootRadius = form.rootRadius;
-    const fillet = form.filletRadius;
     if (rootRadius <= 0 * meter)
     {
         throw regenError("The gear's too small for its teeth: give it more teeth.", ["teeth"]);
     }
-    // The profile's offset out by at least the root's round
-    if (fillet <= 0 * meter)
-    {
-        throw regenError("The profile offset is bigger than the roots' round: use less clearance, or a bigger router bit.", ["profileOffsetDistance"]);
-    }
     // Room for the fillet below the involute, up to half the tooth's height: above the base circle the line's a little
     // inside the involute, relieving it rather than interfering
-    const lineTop = max(form.baseRadius, rootRadius + min(2 * fillet, (form.tipRadius - rootRadius) / 2));
-    const lineAngle = toothHalfAngle(form, lineTop);
-    const halfGap = 180 * degree / form.teeth - lineAngle;
-    const at = function(radius is ValueWithUnits, angle is ValueWithUnits) returns Vector
+    const lineTopFor = function(fillet is ValueWithUnits) returns ValueWithUnits
         {
-            return vector(cos(angle), sin(angle)) * radius;
+            return max(form.baseRadius, rootRadius + min(2 * fillet, (form.tipRadius - rootRadius) / 2));
         };
+    // Half the gap's angle, between the lines
+    const halfGapAt = function(lineTop is ValueWithUnits) returns ValueWithUnits
+        {
+            const halfGap = 180 * degree / form.teeth - toothHalfAngle(form, lineTop);
+            if (halfGap <= 0 * degree)
+            {
+                throw regenError("The gear's teeth meet at their roots: use more clearance.", ["profileOffsetDistance"]);
+            }
+            return halfGap;
+        };
+
+    var fillet;
+    var lineTop;
+    if (form.filletFraction != undefined)
+    {
+        // The full round: tangent to the root circle and both sides' lines
+        var full = 0 * meter;
+        for (var i = 0; i < FULL_ROUND_STEPS; i += 1)
+        {
+            const halfGap = halfGapAt(lineTopFor(full));
+            full = rootRadius * sin(halfGap) / (1 - sin(halfGap));
+        }
+        lineTop = lineTopFor(full);
+        if ((rootRadius + full) * cos(halfGapAt(lineTop)) > lineTop + TOLERANCE.zeroLength * meter)
+        {
+            throw regenError("The root's full round doesn't fit below the teeth's flanks: use a smaller root fillet.", ["rootFillet"]);
+        }
+        fillet = full * form.filletFraction;
+    }
+    else
+    {
+        fillet = form.filletRadius;
+        // The profile's offset out by at least the root's round
+        if (fillet <= 0 * meter)
+        {
+            throw regenError("The profile offset is bigger than the roots' round: use less clearance, or a bigger router bit.", ["profileOffsetDistance"]);
+        }
+        lineTop = lineTopFor(fillet);
+    }
+    const lineAngle = toothHalfAngle(form, lineTop);
+    const halfGap = halfGapAt(lineTop);
+
+    if (fillet <= 0 * meter)
+    {
+        // A sharp corner, where the line meets the root circle
+        return {
+                "rootRadius" : rootRadius,
+                "fullRound" : false,
+                "filletRootAngle" : -lineAngle,
+                "lineTangent" : polar(rootRadius, -lineAngle),
+                "lineAngle" : lineAngle,
+                "lineTop" : lineTop
+            };
+    }
 
     // A fillet tangent to the root circle (outside it) and the line (on the gap's side)
     const centerRadius = rootRadius + fillet;
     const offAngle = asin(fillet / centerRadius);
-    if (offAngle < halfGap && centerRadius * cos(offAngle) <= lineTop)
+    if (form.filletFraction != 1 && offAngle < halfGap && centerRadius * cos(offAngle) <= lineTop)
     {
         const centerAngle = -lineAngle - offAngle;
-        const center = at(centerRadius, centerAngle);
-        const lineTangent = at(centerRadius * cos(offAngle), -lineAngle);
-        const rootTangent = at(rootRadius, centerAngle);
+        const center = polar(centerRadius, centerAngle);
+        const lineTangent = polar(centerRadius * cos(offAngle), -lineAngle);
+        const rootTangent = polar(rootRadius, centerAngle);
         return {
                 "rootRadius" : rootRadius,
                 "fullRound" : false,
@@ -239,14 +330,14 @@ function gearRoot(form is map) returns map
     // A full round: a circle of the fillet's radius tangent to both sides' lines, centered in the gap
     const roundCenterRadius = fillet / sin(halfGap);
     const tangentRadius = roundCenterRadius * cos(halfGap);
-    if (halfGap <= 0 * degree || tangentRadius > lineTop)
+    if (tangentRadius > lineTop + TOLERANCE.zeroLength * meter)
     {
         throw regenError("The root's round doesn't fit between the teeth: use a smaller router bit, or a bigger module.", ["bitDiameter"]);
     }
     const gapAngle = -180 * degree / form.teeth;
-    const center = at(roundCenterRadius, gapAngle);
-    const lineTangent = at(tangentRadius, -lineAngle);
-    const bottom = at(roundCenterRadius - fillet, gapAngle);
+    const center = polar(roundCenterRadius, gapAngle);
+    const lineTangent = polar(tangentRadius, -lineAngle);
+    const bottom = polar(roundCenterRadius - fillet, gapAngle);
     return {
             "rootRadius" : rootRadius,
             "fullRound" : true,
@@ -299,10 +390,10 @@ export function rackRoot(form is map) returns ValueWithUnits
  * (arrays of 2D points), from 0 to `length` along the face. The face is on the x axis, and its part toward -y; the
  * pitch line is `faceHeight` below it (0 for a face at the pitch line, `m` for one at the teeth's tips). Teeth are at
  * `centers` (see `rackToothCenters`), cut off at the face if they'd reach past it; beyond the first and last, it's cut
- * to the root. With a `relief` radius (a router bit's), the roots are rounded (see `relieveRackRoots`), which puts
+ * to the root. The roots are rounded as the form says (see `rackRootFilletRadius` and `relieveRackRoots`), which puts
  * arcs in the regions: a map `{ "mid" : Vector }` between two points is an arc through it, rather than a line.
  */
-export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array, relief is ValueWithUnits) returns array
+export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array) returns array
 {
     const root = rackRoot(form);
     const tip = min(form.module + form.offset, faceHeight);
@@ -350,19 +441,36 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
     }
     // A tooth whole to an end (within tolerance) leaves points on top of each other there
     regions = filter(mapArray(regions, region => distinctPoints(region)), region => size(region) >= 3);
-    if (relief <= 0 * meter)
+    const radius = rackRootFilletRadius(form);
+    if (radius <= 0 * meter)
     {
         return regions;
     }
-    return mapArray(regions, region => relieveRackRoots(form, region, relief, root - faceHeight, -faceHeight - form.module));
+    return mapArray(regions, region => relieveRackRoots(form, region, radius, root - faceHeight, -faceHeight - form.module));
+}
+
+/**
+ * The radius of a rack's root fillets: a router bit's (`form.filletRadius`), or `form.filletFraction` of the full
+ * round's, which is tangent to the floor between two teeth and both their flanks (their corners, `90° + α`, meet in
+ * the floor's middle).
+ */
+export function rackRootFilletRadius(form is map) returns ValueWithUnits
+{
+    if (form.filletFraction == undefined)
+    {
+        return form.filletRadius;
+    }
+    const floor = PI * form.module - 2 * rackHalfWidth(form, rackRoot(form));
+    return form.filletFraction * floor / 2 * tan(45 * degree + form.pressureAngle / 2);
 }
 
 const RACK_ROUND_DOESNT_FIT = "The root's round doesn't fit between the teeth: use a smaller router bit, or a bigger module.";
 
 /**
- * `region` (see `rackCutRegions`) with its roots rounded to `radius`, as a router bit cuts them: each corner at the root
- * (`rootY`) between the floor and a tooth's flank becomes an arc tangent to both. Where a gap's floor is too narrow for
- * both, it's a full round instead: an arc tangent to both flanks, centered in the gap, which a bit can't cut below. Its
+ * `region` (see `rackCutRegions`) with its roots rounded to `radius`: each corner at the root (`rootY`) between the
+ * floor and a tooth's flank becomes an arc tangent to both (a full round's two meet in the floor's middle). Where a
+ * gap's floor is too narrow for both (a router bit's), it's a full round of that radius instead: an arc tangent to
+ * both flanks, centered in the gap, which a bit can't cut below. Its
  * bottom must be below where a mating gear's tips reach (`tipReach`); a corner at an end's wall (not a flank) is left.
  */
 export function relieveRackRoots(form is map, region is array, radius is ValueWithUnits, rootY is ValueWithUnits, tipReach is ValueWithUnits) returns array
@@ -437,7 +545,12 @@ export function relieveRackRoots(form is map, region is array, radius is ValueWi
             // A gap's floor: fillets at both ends, or a full round if they'd overlap
             const left = fillet(i);
             const right = fillet(i + 1);
-            if (left.after[0] <= right.before[0] + TOLERANCE.zeroLength * meter)
+            if (tolerantEquals(left.after, right.before))
+            {
+                // Full rounds' fillets, meeting in the floor's middle
+                result = concatenateArrays([result, [left.before, { "mid" : left.mid }, left.after, { "mid" : right.mid }, right.after]]);
+            }
+            else if (left.after[0] < right.before[0])
             {
                 result = concatenateArrays([result, [left.before, { "mid" : left.mid }, left.after, right.before, { "mid" : right.mid }, right.after]]);
             }
@@ -585,60 +698,24 @@ export function bevelCones(module is ValueWithUnits, teeth is number, mateTeeth 
 
 /**
  * Sketches the gap between two of a gear's teeth on `plane` (centered on the gear's center), and returns its face: from
- * the root to a module past the tip, between the tooth centered on the plane's x axis and the next one around. Its
- * flanks are involutes (fit splines) down to the base circle, and radial lines below it; its root is an arc, without
- * a fillet. For cutting a bevel gear's teeth (see `bevelCones`), whose `form` can have a fractional number of teeth.
+ * its root (rounded as `halfGapCurves` rounds a gear's) to a module past the tip, between the tooth centered on the
+ * plane's x axis and the next one around. For cutting a bevel gear's teeth (see `bevelCones`), whose `form` can have a
+ * fractional number of teeth.
  */
 export function sketchToothGap(context is Context, id is Id, plane is Plane, form is map) returns Query
 {
     const pitch = 360 * degree / form.teeth;
-    if (form.rootRadius <= 0 * meter)
-    {
-        throw regenError("The gear's too small for its teeth: give it more teeth.", ["teeth"]);
-    }
-    if (toothHalfAngle(form, form.tipRadius) <= 0 * degree)
-    {
-        throw regenError("The gear's teeth come to points: give it more teeth, or less clearance.", ["teeth"]);
-    }
-    const bottom = max(form.baseRadius, form.rootRadius);
-    if (toothHalfAngle(form, bottom) >= pitch / 2)
-    {
-        throw regenError("The gear's teeth meet at their roots: use more clearance.", ["profileOffsetDistance"]);
-    }
-    const at = function(radius is ValueWithUnits, angle is ValueWithUnits) returns Vector
-        {
-            return vector(cos(angle), sin(angle)) * radius;
-        };
-    // The lower flank is the first tooth's, and the upper the next's, mirrored across the gap's middle
-    var lower = [];
-    var upper = [];
-    for (var i = 0; i <= FLANK_POINTS; i += 1)
-    {
-        const radius = bottom + (form.tipRadius - bottom) * i / FLANK_POINTS;
-        lower = append(lower, at(radius, toothHalfAngle(form, radius)));
-        upper = append(upper, at(radius, pitch - toothHalfAngle(form, radius)));
-    }
+    // Down the first tooth's counterclockwise side (its clockwise side's, mirrored) and up the next's clockwise side
+    const halfGap = halfGapCurves(form);
     const outside = form.tipRadius + form.module;
     const tipAngle = toothHalfAngle(form, form.tipRadius);
-    const bottomAngle = toothHalfAngle(form, bottom);
-
+    const top = [
+            { "shape" : "line", "points" : [polar(form.tipRadius, pitch - tipAngle), polar(outside, pitch - tipAngle)] },
+            { "shape" : "arc", "points" : [polar(outside, pitch - tipAngle), polar(outside, pitch / 2), polar(outside, tipAngle)] },
+            { "shape" : "line", "points" : [polar(outside, tipAngle), polar(form.tipRadius, tipAngle)] }
+        ];
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    skFitSpline(sketch, "lowerFlank", { "points" : lower });
-    skLineSegment(sketch, "lowerTop", { "start" : lower[FLANK_POINTS], "end" : at(outside, tipAngle) });
-    skArc(sketch, "top", { "start" : at(outside, tipAngle), "mid" : at(outside, pitch / 2), "end" : at(outside, pitch - tipAngle) });
-    skLineSegment(sketch, "upperTop", { "start" : at(outside, pitch - tipAngle), "end" : upper[FLANK_POINTS] });
-    skFitSpline(sketch, "upperFlank", { "points" : reverse(upper) });
-    if (form.rootRadius < bottom)
-    {
-        // Radial lines from the base circle down to the root
-        skLineSegment(sketch, "upperRadial", { "start" : upper[0], "end" : at(form.rootRadius, pitch - bottomAngle) });
-        skArc(sketch, "root", { "start" : at(form.rootRadius, pitch - bottomAngle), "mid" : at(form.rootRadius, pitch / 2), "end" : at(form.rootRadius, bottomAngle) });
-        skLineSegment(sketch, "lowerRadial", { "start" : at(form.rootRadius, bottomAngle), "end" : lower[0] });
-    }
-    else
-    {
-        skArc(sketch, "root", { "start" : upper[0], "mid" : at(form.rootRadius, pitch / 2), "end" : lower[0] });
-    }
+    sketchCurves(sketch, "gap", concatenateArrays([mirroredCurves(halfGap), rotatedCurves(halfGap, pitch), top]));
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);
 }

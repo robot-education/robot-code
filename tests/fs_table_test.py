@@ -70,7 +70,8 @@ def test_command(capsys):
     assert cli.main(["table", "featurescripts/released/shaft", "-n", "tappedHole"]) == 0
     out = capsys.readouterr().out
     assert out.startswith("tappedHoleTable  (released/shaft/robotShaftTables.gen.fs, 10 rows)")
-    assert "Used by: released/shaft/robotShaft.fs:" in out
+    used_by = next(line for line in out.splitlines() if line.startswith("Used by: "))
+    assert "released/shaft/robotShaft.fs:" in used_by
     assert "#10 *  32 tpi (UNF) *  0.19 in" in out
 
 

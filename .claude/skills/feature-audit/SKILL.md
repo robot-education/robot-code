@@ -1,11 +1,11 @@
 ---
 name: feature-audit
-description: Check, test, and show a FeatureScript feature after changing it, ending with its audit page (its working dialog, writeup, and problems) sent to the user. Use after adding or changing a feature in featurescripts/, or when the user asks to see, audit, or review a feature's options, dialog, or writeup.
+description: Check, test, and show a FeatureScript feature after changing it, ending with its audit page (its working dialog, writeup, and problems) shown to the user. Use after adding or changing a feature in featurescripts/, or when the user asks to see, audit, or review a feature's options, dialog, or writeup.
 ---
 
 # Auditing a feature
 
-After changing a feature (its `.fs`, what it imports, or its writeup), run these, fix what they find, then send the
+After changing a feature (its `.fs`, what it imports, or its writeup), run these, fix what they find, then show the
 audit page. All are offline: none of them call the Onshape API (never `fs push`, `pull`, `sync`, or `release` without
 the user's say-so).
 
@@ -14,7 +14,9 @@ the user's say-so).
    sketches) is tested with the evaluator (see `docs/testing.md`).
 3. The writeup (the `.md` beside the `.fs`) matches the change: strings, execution order, and `try`s (see
    `docs/feature-writeups.md`).
-4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html`, then send it with SendUserFile (`display: "render"`).
+4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html --open`. Run from VS Code, that shows it in VS Code's
+   feature preview (the same sections, with the language server drawing the dialog), and says so: then don't send the
+   page. Otherwise it says it isn't in VS Code: send the page with SendUserFile (`display: "render"`).
    It has the dialog, which works: its dropdowns, checkboxes, tabs, lookup table levels, and typed values show what
    each choice shows (a long press shows a parameter's tooltip by touch), in any combination: the page compiles the
    precondition's conditions to JavaScript and draws the dialog itself. Setting a parameter back to its default unsets it. Array items can't be added there;

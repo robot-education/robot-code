@@ -734,6 +734,9 @@ class Parameter:
     key: str = ""
     # Its default, as text, if it has one (for the preview's tooltips)
     default: str = ""
+    # Its default, as `fs ui --set` takes it (for an enum, its value, not its name), so the preview can tell when a
+    # setting does nothing
+    default_setting: str = ""
 
     def __post_init__(self) -> None:
         self.key = self.key or self.name
@@ -945,6 +948,7 @@ class DialogBuilder:
             value = default.value if isinstance(default, EnumValue) else next(iter(enum.values), None)
             default_value = feature_default.value if isinstance(feature_default, EnumValue) and not isinstance(default, EnumValue) else value
             parameter.default = enum.values.get(default_value, default_value or "")
+            parameter.default_setting = default_value or ""
             if key in self.overrides:
                 value = self.overrides[key]
                 if value not in enum.values:
@@ -979,6 +983,7 @@ class DialogBuilder:
             if not count.isdigit():
                 raise UiError(f"{name} is an array, so --set it to how many items to show, not {count}.")
             parameter.count = int(count)
+            parameter.default_setting = "0"
             self.arrays[name] = parameter
         elif type_name == "button":
             parameter.kind = "button"
@@ -992,6 +997,8 @@ class DialogBuilder:
             parameter.kind = type_name
             parameter.default = format_bounds(type_name, bounds)
             parameter.value = self.overrides.get(key) or parameter.default
+        if parameter.kind in ("boolean", "lookup", "string", "length", "angle", "integer", "real"):
+            parameter.default_setting = parameter.default
         items.append(parameter)
 
 
@@ -1123,9 +1130,9 @@ ICON_VALUES = {
 FILTER_TEXT = "__filter"
 
 # Styles of our own, on top of Onshape's: the page around the dialog, and open dropdowns (which Onshape's page didn't
-# have open), and the preview's tooltips. The preview places open dropdowns and tooltips (see
-# vscode-extension/src/uiPreview.ts): they're fixed, as Onshape's float above the dialog, since the dialog's parameter
-# list would cut them off. Tooltips use Onshape's tooltip colors and spacing (see extract.py's OWN_VARIABLES).
+# have open), and the preview's tooltips. The preview places open dropdowns and tooltips (see fs_cli/dialog_page.js):
+# they're fixed, as Onshape's float above the dialog, since the dialog's parameter list would cut them off. Tooltips use
+# Onshape's tooltip colors and spacing (see extract.py's OWN_VARIABLES).
 PAGE_STYLE = """
 html, body { margin: 0; }
 /* Onshape fixes its page in place, which would keep a long dialog from scrolling */

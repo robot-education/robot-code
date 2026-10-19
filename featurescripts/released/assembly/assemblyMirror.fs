@@ -343,7 +343,7 @@ export function assemblyMirrorEditLogic(context is Context, id is Id, oldDefinit
 
     if (oldDefinition.mirrorPlane != definition.mirrorPlane ||
         oldDefinition.entity != definition.entity ||
-        oldDefinition.customCoordSystem != definition.customCoordSystem ||
+        oldDefinition.customReferenceSystem != definition.customReferenceSystem ||
         oldDefinition.referenceSystem != definition.referenceSystem)
     {
         definition = updateTransform(context, id, definition);

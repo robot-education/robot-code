@@ -5,6 +5,8 @@ import { LanguageClient, type LanguageClientOptions, type ServerOptions } from "
 import { UiPreview, featureNames } from "./uiPreview";
 
 const CONFIG_FILE = "pyproject.toml";
+// Where `fs audit --open` asks for a feature's preview (see fs_cli/audit.py's OPEN_REQUEST)
+const OPEN_REQUEST = ".fs-audit/open.json";
 
 let client: LanguageClient | undefined;
 
@@ -38,7 +40,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       UiPreview.show(target, () => client);
     }),
-    vscode.workspace.onDidSaveTextDocument((document) => UiPreview.changed(document)),
+    vscode.workspace.onDidSaveTextDocument((document) => UiPreview.saved(document)),
     vscode.window.onDidChangeActiveColorTheme(() => UiPreview.renderAll()),
     // Shows the preview button for files defining a feature
     vscode.window.onDidChangeActiveTextEditor(updateDefinesFeature),
@@ -50,6 +52,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
   updateDefinesFeature(vscode.window.activeTextEditor);
+  watchOpenRequests(context);
 
   await startClient(output);
 }
@@ -57,6 +60,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 function updateDefinesFeature(editor: vscode.TextEditor | undefined): void {
   const defines = editor?.document.languageId === "featurescript" && featureNames(editor.document.getText()).length > 0;
   void vscode.commands.executeCommand("setContext", "featurescript.definesFeature", defines);
+}
+
+/** Shows the previews `fs audit --open` asks for, when it writes its request. */
+function watchOpenRequests(context: vscode.ExtensionContext): void {
+  const root = repoRoot();
+  if (!root || !isRepoRoot(root)) {
+    return;
+  }
+  const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, OPEN_REQUEST));
+  // Writing the file can be seen as it's created and then changed
+  let last = { text: "", time: 0 };
+  const open = async (uri: vscode.Uri): Promise<void> => {
+    let request: { file?: unknown; feature?: unknown };
+    try {
+      const text = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString("utf8");
+      if (text === last.text && Date.now() - last.time < 1000) {
+        return;
+      }
+      last = { text, time: Date.now() };
+      request = JSON.parse(text);
+    } catch {
+      return;
+    }
+    if (typeof request.file === "string") {
+      UiPreview.show(vscode.Uri.file(request.file), () => client, typeof request.feature === "string" ? request.feature : undefined);
+    }
+  };
+  context.subscriptions.push(watcher, watcher.onDidCreate(open), watcher.onDidChange(open));
 }
 
 export async function deactivate(): Promise<void> {

@@ -25,13 +25,17 @@ The extension provides:
   (as `fs refs` does). Std's files navigate the same way, and get no diagnostics or formatting. Completions, hovers,
   and signature help for std come from an index of it built by `fs pull-std`, which is quick to load; its files are
   only parsed when they're navigated to
-- A Preview Feature UI button (in the editor's title bar, for files defining a feature) which shows the feature's
-  dialog as `fs ui` renders it, beside the file, following edits as they're made (saved or not), in VS Code's light
-  or dark theme. It works like Onshape's dialog: clicking a tab, checkbox, button, or dropdown option, or entering a
-  value, changes that parameter (showing and hiding the parameters which depend on it); groups and array items open
-  and close; and array items can be added and removed. Clicking a number selects it all. Hovering over a parameter shows
-  a tooltip like Onshape's (its name, a number's value, and its description), with its default and UI hints under it.
-  The language server renders it, keeping the parsed std library between renders, so it updates in tens of milliseconds
+- A Preview Feature UI button (in the editor's title bar, for files defining a feature) which shows what `fs audit`'s
+  page does, beside the file: the feature's dialog as `fs ui` renders it, following edits as they're made (saved or
+  not), in VS Code's light or dark theme, and tabs for the lookup tables its parameters use, its writeup, and its
+  problems (click one to go to it), which follow saved files. The dialog works like Onshape's: clicking a tab,
+  checkbox, button, or dropdown option, or entering a value, changes that parameter (showing and hiding the parameters
+  which depend on it), and setting one back to its default unsets it; groups and array items open and close; and array
+  items can be added and removed. Clicking a number selects it all. Hovering over a parameter shows a tooltip like
+  Onshape's (its name, a number's value, and its description), with its default and UI hints under it. The language
+  server renders it, keeping the parsed std library between renders, so it updates in tens of milliseconds; the
+  script making its controls work is `fs_cli/dialog_page.js` (shared with `fs audit`'s page), which the server gives
+  it, so changing that needs only **Restart Language Server**. `fs audit --open`, run from VS Code, opens it
 - Hovers with doc comments laid out like Onshape's [FsDoc](https://cad.onshape.com/FsDoc/library.html) (for std
   symbols too), signatures, enum variants, feature definition fields, a feature's parameter on `definition.x` (how it's
   declared, its name, and whether it's hidden), and the file an import refers to

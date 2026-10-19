@@ -1,15 +1,17 @@
 """`fs audit`: one page to audit a feature by: its dialog, which works (clicking dropdowns, checkboxes, tabs, and lookup
-table levels, and typing values, shows the dialog as it would be), its writeup, and its file's `fs check` problems.
+table levels, and typing values, shows the dialog as it would be), the lookup tables its parameters use, its writeup,
+and its file's `fs check` problems.
 
 The dialog is drawn by the page's script (see `fs_cli.live_dialog`): its precondition's conditions are compiled to
 JavaScript, and each parameter is rendered ahead of time for each of its values, so the script draws any combination of
-choices as `fs ui --set` would, as they're made. Settings are listed above the dialog: a parameter set back to its
-default leaves the list, and removing one from the list sets it back.
+choices as `fs ui --set` would, as they're made. `dialog_page.js` makes its controls work, as it does in VS Code's
+feature panel, which shows the same sections (`audit_sections`, through the language server's `featurescript/audit`).
 """
 
 from __future__ import annotations
 
 import html
+import pathlib
 
 from markdown_it import MarkdownIt
 
@@ -18,6 +20,13 @@ from fs_cli.lookup_tables import TABLE_STYLE, Table, table_section
 # Where a dialog's parameters are, in a page `fs ui` renders
 LIST_START = "<os-parameter-list-view>"
 LIST_END = "</os-parameter-list-view>"
+
+# Where `fs audit --open` asks VS Code's FeatureScript extension to show a feature's preview: the extension watches for
+# it (see vscode-extension/src/extension.ts)
+OPEN_REQUEST = ".fs-audit/open.json"
+
+# Makes a dialog's controls work (see its comment), here and in VS Code's feature panel
+DIALOG_PAGE_SCRIPT = (pathlib.Path(__file__).parent / "dialog_page.js").read_text(encoding="utf-8")
 
 
 def split_page(page: str) -> tuple[str, str]:
@@ -31,43 +40,118 @@ def render_markdown(text: str) -> str:
     return MarkdownIt("commonmark", {"html": False}).enable("table").enable("strikethrough").render(text)
 
 
-def audit_page(title: str, source: str, shell: str, script: str, writeup: str | None, problems: list[str], theme: str,
-               tables: list[Table] | None = None) -> str:
-    """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), drawn by `script` (see
-    `fs_cli.live_dialog.page_script`) in `shell` (a page `fs ui` renders, see `split_page`), the lookup tables its
-    parameters use (every option at once), the writeup, and problems."""
-    dialog = (
-        shell.replace("\0", "")
-        .replace("<body>", "<body>" + _DIALOG_TOOLBAR, 1)
-        .replace("</body>", f"<script>{script}\n{_DIALOG_SCRIPT}</script></body>", 1)
-        .replace("<style>", "<style>" + _DIALOG_STYLE, 1)
-    )
-    problems_html = (
-        "<ul class='problems'>" + "".join(f"<li><code>{html.escape(problem)}</code></li>" for problem in problems) + "</ul>"
-        if problems
-        else "<p>No problems found.</p>"
-    )
+def check_problems(project, module) -> list[tuple[int, int, str]]:
+    """A module's `fs check` problems: each one's line and character (from 0), and its text (as `fs check` prints it,
+    without the file)."""
+    problems = []
+    for problem in project.check(module):
+        line, character = module.position(problem.start)
+        problems.append((line, character, f"{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]"))
+    return problems
+
+
+def feature_tables(config, project, module) -> list[Table]:
+    """The lookup tables a file's parameters use (theirs, or those of files it imports), in the order they're named."""
+    from fs_cli.lookup_tables import find_tables, find_uses, lookup_parameters, source_evaluator
+    from fs_eval import Evaluator
+
+    modules = [module]
+    seen = {module.path}
+    for current in modules:
+        for imported in current.imports:
+            if imported.is_std or imported.namespace:
+                continue
+            target = project.resolve(imported)
+            if target is not None and target.path not in seen:
+                seen.add(target.path)
+                modules.append(target)
+    names: list[str] = []
+    for current in modules:
+        for table_name, _ in lookup_parameters(current.path.read_text()):
+            if table_name not in names:
+                names.append(table_name)
+    if not names:
+        return []
+    evaluator = Evaluator(config.root)
+    found = {}
+    for current in modules:
+        if '"entries"' in current.path.read_text():
+            source = source_evaluator(project, config.std_dir, current.path)
+            for found_table in find_tables(evaluator, current.path, config.code_dir, source):
+                found.setdefault(found_table.name, found_table)
+    tables = [found[name] for name in names if name in found]
+    find_uses(tables, config.code_dir)
+    return tables
+
+
+def audit_sections(writeup: str | None, problems: list[tuple[int, int, str]], tables: list[Table]) -> dict[str, str]:
+    """The HTML of the sections beside the dialog, styled by `SECTION_STYLE`: `tables` (every option of the lookup
+    tables its parameters use, with a filter), `writeup`, and `problems` (each with its `data-line` and
+    `data-character`)."""
     if tables:
         tables_html = (
             "<p class='limit'>Every option, a row per path through its levels, in the dialog's order. ★ marks each level's "
             "default (where the dialog goes when you choose the level above), and the bold row is what it starts with.</p>"
-            "<input id='table-filter' type='search' placeholder='Filter rows (all words must match)'>"
+            "<input class='table-filter' type='search' placeholder='Filter rows (all words must match)'>"
             "<div class='lookup'>" + "".join(table_section(table, f"table-{index}", "h3", values=False) for index, table in enumerate(tables)) + "</div>"
         )
     else:
         tables_html = "<p>Its parameters use no lookup tables.</p>"
+    if problems:
+        problems_html = "<ul class='problems'>" + "".join(
+            f"<li data-line='{line}' data-character='{character}'><code>{html.escape(text)}</code></li>"
+            for line, character, text in problems
+        ) + "</ul>"
+    else:
+        problems_html = "<p>No problems found.</p>"
     writeup_html = render_markdown(writeup) if writeup is not None else "<p>It has no writeup (a <code>.md</code> beside it).</p>"
+    return {"tables": tables_html, "writeup": writeup_html, "problems": problems_html}
+
+
+def audit_page(title: str, source: str, shell: str, script: str, writeup: str | None, problems: list[tuple[int, int, str]],
+               theme: str, tables: list[Table] | None = None) -> str:
+    """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), drawn by `script` (see
+    `fs_cli.live_dialog.page_script`) in `shell` (a page `fs ui` renders, see `split_page`), and `audit_sections`."""
+    dialog = (
+        shell.replace("\0", "")
+        .replace("<body>", "<body>" + _DIALOG_TOOLBAR, 1)
+        .replace("</body>", f"<script>{script}\n{_safe(DIALOG_PAGE_SCRIPT)}\n{_DIALOG_SCRIPT}</script></body>", 1)
+        .replace("<style>", "<style>" + _DIALOG_STYLE, 1)
+    )
+    sections = audit_sections(writeup, problems, tables or [])
     return _PAGE.format(
         title=html.escape(title),
         source=html.escape(source),
         theme=theme,
         dialog=html.escape(dialog, quote=True),
-        problems=problems_html,
-        writeup=writeup_html,
-        tables=tables_html,
-        table_style=TABLE_STYLE,
+        problems=sections["problems"],
+        writeup=sections["writeup"],
+        tables=sections["tables"],
+        section_style=SECTION_STYLE,
     )
 
+
+def _safe(script: str) -> str:
+    """A script, safe in a page's script element."""
+    return script.replace("</", "<\\/")
+
+
+# The sections' styles, using the page's colors: --fg, --bg, --muted, --line, --head, --code, --accent, and --empty
+SECTION_STYLE = """
+.limit { color: var(--muted); font-size: 12px; margin: 4px 0; }
+.writeup table { border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
+.writeup th, .writeup td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.writeup th { background: var(--head); }
+.writeup code { background: var(--code); padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+.writeup pre { background: var(--code); padding: 8px; border-radius: 6px; overflow-x: auto; }
+.writeup pre code { padding: 0; }
+.writeup h1 { font-size: 18px; }
+.writeup h2 { font-size: 16px; margin-top: 24px; }
+.writeup h3 { font-size: 14px; }
+.problems code { background: var(--code); padding: 1px 4px; border-radius: 3px; }
+.table-filter { width: 100%; max-width: 420px; box-sizing: border-box; padding: 6px 8px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.lookup h3 { font-size: 14px; margin: 16px 0 2px; font-family: ui-monospace, monospace; }
+""" + TABLE_STYLE
 
 _DIALOG_STYLE = """
 #fs-note { margin: 0 0 8px; font: 12px system-ui, sans-serif; color: #f59e0b; }
@@ -84,9 +168,8 @@ _DIALOG_SCRIPT = r"""
 const dialog = document.getElementById("feature-dialog");
 const list = dialog.querySelector("os-parameter-list-view");
 const note = document.getElementById("fs-note");
-// What's been set (as fs ui --set takes it), and which groups and items have been opened or closed
+// What's been set (as fs ui --set takes it)
 const settings = {};
-const toggled = {};
 
 // The frame fits the dialog, and any open menu (which is fixed in place, so not in the page's height)
 function reportHeight() {
@@ -97,273 +180,33 @@ function reportHeight() {
   parent.postMessage({ fsAuditHeight: Math.ceil(bottom) + 12 }, "*");
 }
 
-function draw() {
-  hideTooltip();
-  const result = renderList({ ...settings });
-  list.innerHTML = result.html;
-  for (const [key, open] of Object.entries(toggled)) {
-    const expander = expanderFor(key);
-    if (expander) {
-      setOpen(expander, open);
+const page = dialogPage(dialog, {
+  // Setting a parameter to its default unsets it
+  set(key, value) {
+    const parameter = DIALOG.parameters[key];
+    if (!parameter) {
+      return;
     }
-  }
-  reportHeight();
-}
-
-// Setting a parameter to its default unsets it
-function set(key, value) {
-  const parameter = DIALOG.parameters[key];
-  if (!parameter) {
-    return;
-  }
-  if (value === parameter.default) {
-    delete settings[key];
-  } else {
-    settings[key] = value;
-  }
-  note.hidden = true;
-  draw();
-}
-
-function keyOf(expander) {
-  const group = expander.closest("[data-group]");
-  if (expander.classList.contains("os-param-group-expander") && group) {
-    return "group:" + group.dataset.group;
-  }
-  const item = expander.closest(".os-param-array-item");
-  if (item) {
-    return "item:" + item.dataset.parentParameterId + ":" + [...item.parentElement.children].indexOf(item);
-  }
-  return undefined;
-}
-
-function expanderFor(key) {
-  return [...dialog.querySelectorAll("[data-toggle]")].find((expander) => keyOf(expander) === key);
-}
-
-function contentsOf(expander) {
-  const item = expander.closest(".os-param-array-item");
-  if (item && !expander.classList.contains("os-param-group-expander")) {
-    return item.querySelector(".os-param-array-item-contents");
-  }
-  return expander.closest(".os-param-group-collapsible-container").querySelector(".os-param-group-collapsible-contents");
-}
-
-function setOpen(expander, open) {
-  contentsOf(expander).classList.toggle("ng-hide", !open);
-  expander.querySelector("svg").classList.toggle("expanded", open);
-}
-
-function placeMenu(toggle, menu) {
-  const box = toggle.getBoundingClientRect();
-  const below = window.innerHeight - box.bottom;
-  const up = menu.scrollHeight > below && box.top > below;
-  menu.style.left = box.left + "px";
-  menu.style.minWidth = box.width + "px";
-  menu.style.maxHeight = Math.min(300, (up ? box.top : below) - 4) + "px";
-  menu.style.top = up ? "auto" : box.bottom + "px";
-  menu.style.bottom = up ? window.innerHeight - box.top + "px" : "auto";
-}
-
-function closeMenus() {
-  for (const menu of dialog.querySelectorAll(".os-select-dropdown.open")) {
-    menu.classList.remove("open");
-    menu.classList.add("ng-hide");
-  }
-}
-
-function expanderAt(target) {
-  const expander = target.closest("[data-toggle]");
-  if (expander) {
-    return expander;
-  }
-  const header = target.closest(".os-param-group-header, .os-param-selection-list-entry");
-  if (!header || target.closest("[data-set], [data-remove]")) {
-    return null;
-  }
-  return header.querySelector("[data-toggle]");
-}
-
-dialog.addEventListener("click", (event) => {
-  const target = event.target;
-  const option = target.closest(".os-select-choices-row[data-set]");
-  if (option) {
-    closeMenus();
-    set(option.dataset.set, option.dataset.value);
-    return;
-  }
-  const toggle = target.closest(".os-select-toggle");
-  if (toggle) {
-    const menu = toggle.closest(".os-select-container").querySelector(".os-select-dropdown");
-    const open = menu.classList.contains("open");
-    closeMenus();
-    if (!open) {
-      menu.classList.remove("ng-hide");
-      menu.classList.add("open");
-      placeMenu(toggle, menu);
+    if (value === parameter.default) {
+      delete settings[key];
+    } else {
+      settings[key] = value;
     }
-    reportHeight();
-    return;
-  }
-  closeMenus();
-  const expander = expanderAt(target);
-  if (expander) {
-    const open = !expander.querySelector("svg").classList.contains("expanded");
-    setOpen(expander, open);
-    const key = keyOf(expander);
-    if (key) {
-      toggled[key] = open;
-    }
-    reportHeight();
-    return;
-  }
-  if (target.closest("[data-remove], .os-param-array-add-button, .os-param-array-clear-button")) {
-    note.textContent = "Array items aren't drawn here: use fs ui --set.";
+    note.hidden = true;
+    draw();
+  },
+  note(text) {
+    note.textContent = text;
     note.hidden = false;
-    reportHeight();
-    return;
-  }
-  // A typed value's whole row is its target, its label too (Onshape's labels aren't tied to their fields)
-  const field = target.closest(".os-param-container")?.querySelector("input[data-set]:not([type=checkbox])");
-  if (field && target !== field) {
-    field.focus();
-    field.select();
-    return;
-  }
-  if (target.closest("input[data-set]:not([type=checkbox])")) {
-    return;
-  }
-  const control = target.closest("[data-set]");
-  if (control && control.dataset.value !== undefined) {
-    event.preventDefault();
-    set(control.dataset.set, control.dataset.value);
-  }
+  },
+  toggled: {},
+  resized: reportHeight,
 });
 
-// Typed values
-dialog.addEventListener("change", (event) => {
-  if (event.target.matches("input[data-set]:not([type=checkbox])")) {
-    set(event.target.dataset.set, event.target.value);
-  }
-});
-
-// Tooltips: a parameter's name and description, then its default and UI hints, as the preview shows them
-const tooltip = document.createElement("div");
-tooltip.className = "fs-tooltip";
-tooltip.hidden = true;
-document.body.appendChild(tooltip);
-let tooltipFor = null;
-let tooltipTimer;
-
-function hideTooltip() {
-  clearTimeout(tooltipTimer);
-  tooltip.hidden = true;
-  tooltipFor = null;
+function draw() {
+  list.innerHTML = renderList({ ...settings }).html;
+  page.drawn();
 }
-
-function line(className, text) {
-  const element = document.createElement("div");
-  element.className = className;
-  element.textContent = text;
-  return element;
-}
-
-function showTooltip(parameter) {
-  const tip = parameter.dataset;
-  const parts = [line("fs-tooltip-name", tip.tipName)];
-  if (tip.tipDescription) {
-    parts.push(line("fs-tooltip-description", tip.tipDescription));
-  }
-  const details = document.createElement("dl");
-  details.className = "fs-tooltip-details";
-  for (const [term, value] of [["Default", tip.tipDefault], ["UI hints", tip.tipHints]]) {
-    if (value) {
-      const dt = document.createElement("dt");
-      dt.textContent = term;
-      const dd = document.createElement("dd");
-      dd.textContent = value;
-      details.append(dt, dd);
-    }
-  }
-  if (details.childElementCount) {
-    parts.push(details);
-  }
-  tooltip.replaceChildren(...parts);
-  tooltip.hidden = false;
-  const box = parameter.getBoundingClientRect();
-  const size = tooltip.getBoundingClientRect();
-  let left = box.right + 4;
-  let top = box.top;
-  if (left + size.width > window.innerWidth) {
-    left = Math.max(0, Math.min(box.left, window.innerWidth - size.width));
-    top = box.bottom + 4;
-  }
-  tooltip.style.left = left + "px";
-  tooltip.style.top = Math.max(0, top) + "px";
-}
-
-// With a mouse, hovering shows a tooltip
-document.addEventListener("pointerover", (event) => {
-  if (event.pointerType !== "mouse") {
-    return;
-  }
-  const parameter = event.target.closest(".os-select-dropdown.open") ? null : event.target.closest("[data-tip-name]");
-  if (parameter === tooltipFor) {
-    return;
-  }
-  hideTooltip();
-  tooltipFor = parameter;
-  if (parameter) {
-    tooltipTimer = setTimeout(() => showTooltip(parameter), 500);
-  }
-});
-
-// By touch, a tap chooses, as it does in Onshape, and a long press shows the tooltip instead (the tap it ends with is
-// ignored); the next touch hides it
-const LONG_PRESS_MS = 500;
-let pressTimer;
-let pressStart = null;
-let longPressed = false;
-document.addEventListener("pointerdown", (event) => {
-  if (event.pointerType === "mouse") {
-    return;
-  }
-  hideTooltip();
-  const parameter = event.target.closest(".os-select-dropdown.open") ? null : event.target.closest("[data-tip-name]");
-  if (!parameter) {
-    return;
-  }
-  pressStart = [event.clientX, event.clientY];
-  pressTimer = setTimeout(() => {
-    longPressed = true;
-    tooltipFor = parameter;
-    showTooltip(parameter);
-  }, LONG_PRESS_MS);
-});
-document.addEventListener("pointermove", (event) => {
-  if (pressStart && Math.hypot(event.clientX - pressStart[0], event.clientY - pressStart[1]) > 10) {
-    clearTimeout(pressTimer);
-    pressStart = null;
-  }
-});
-for (const type of ["pointerup", "pointercancel"]) {
-  document.addEventListener(type, () => {
-    clearTimeout(pressTimer);
-    pressStart = null;
-  });
-}
-document.addEventListener("click", (event) => {
-  if (longPressed) {
-    longPressed = false;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  }
-}, true);
-document.addEventListener("contextmenu", (event) => {
-  if (longPressed || pressStart) {
-    event.preventDefault();
-  }
-});
 
 draw();
 window.addEventListener("load", reportHeight);
@@ -389,21 +232,8 @@ nav {{ display: flex; gap: 16px; margin-bottom: 16px; }}
 nav a {{ color: var(--accent); text-decoration: none; }}
 section {{ margin-bottom: 32px; }}
 section > h2 {{ font-size: 16px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }}
-.limit {{ color: var(--muted); font-size: 12px; margin: 4px 0; }}
 iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--line); border-radius: 6px; display: block; }}
-.writeup table {{ border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }}
-.writeup th, .writeup td {{ border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }}
-.writeup th {{ background: var(--head); }}
-.writeup code {{ background: var(--code); padding: 1px 4px; border-radius: 3px; font-size: 12px; }}
-.writeup pre {{ background: var(--code); padding: 8px; border-radius: 6px; overflow-x: auto; }}
-.writeup pre code {{ padding: 0; }}
-.writeup h1 {{ font-size: 18px; }}
-.writeup h2 {{ font-size: 16px; margin-top: 24px; }}
-.writeup h3 {{ font-size: 14px; }}
-.problems code {{ background: var(--code); padding: 1px 4px; border-radius: 3px; }}
-#table-filter {{ width: 100%; max-width: 420px; box-sizing: border-box; padding: 6px 8px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }}
-.lookup h3 {{ font-size: 14px; margin: 16px 0 2px; font-family: ui-monospace, monospace; }}
-{table_style}
+{section_style}
 </style>
 </head>
 <body>
@@ -430,7 +260,7 @@ iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--
 </section>
 </main>
 <script>
-const tableFilter = document.getElementById("table-filter");
+const tableFilter = document.querySelector(".table-filter");
 if (tableFilter) {{
   tableFilter.addEventListener("input", () => {{
     const words = tableFilter.value.toLowerCase().split(/\\s+/).filter(Boolean);

@@ -310,6 +310,9 @@ def make_parser() -> argparse.ArgumentParser:
     audit_command.add_argument("--feature", help="the feature, if the file defines several")
     audit_command.add_argument("-o", "--output", help="the HTML to write (default: .fs-audit/<feature>.html)")
     audit_command.add_argument("--theme", choices=["dark", "light"], default="dark", help="the dialog's Onshape theme (default: dark)")
+    audit_command.add_argument(
+        "--open", action="store_true", help="also show it in VS Code's feature preview, when run inside VS Code"
+    )
 
     tabs_command = command(
         "tabs",
@@ -367,6 +370,12 @@ def make_parser() -> argparse.ArgumentParser:
     cots_command.add_argument("-n", "--limit", type=int, default=40, help="how many parts to list (default: 40)")
     cots_command.add_argument(
         "-d", "--details", action="store_true", help="also show each part's configuration usage and part numbers"
+    )
+
+    command(
+        "fsdoc",
+        "copy Onshape's FeatureScript guide (cad.onshape.com/FsDoc: the guide, language reference, and tutorials) to docs/fsdoc as Markdown (no Onshape API calls)",
+        targets=False,
     )
 
     step_command = command(
@@ -1375,6 +1384,36 @@ def mv(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def fsdoc(config: Config, args: argparse.Namespace) -> int:
+    import requests
+
+    from fs_cli.fsdoc import crawl, markdown_path
+
+    def fetch(url: str) -> str:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        response.encoding = "utf-8"
+        return response.text
+
+    folder = config.root / "docs" / "fsdoc"
+    pages = crawl(fetch)
+    written = set()
+    for page, markdown in sorted(pages.items()):
+        path = folder / markdown_path(page)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists() or path.read_text(encoding="utf-8") != markdown:
+            path.write_text(markdown, encoding="utf-8", newline="")
+            print(f"Wrote {_display_path(path)}")
+        written.add(path)
+    # Pages FsDoc no longer has
+    for path in sorted(folder.rglob("*.md")):
+        if path not in written and path.name != "README.md":
+            path.unlink()
+            print(f"Deleted {_display_path(path)}")
+    print(f"{_plural(len(pages), 'page')} in {_display_path(folder)}.")
+    return 0
+
+
 def cots(config: Config, args: argparse.Namespace) -> int:
     from fs_cli.cots import CotsError, FrcDesign, find
 
@@ -1424,7 +1463,7 @@ def evaluate(config: Config, args: argparse.Namespace) -> int:
 
 
 def audit(config: Config, args: argparse.Namespace) -> int:
-    from fs_cli.audit import audit_page, split_page
+    from fs_cli.audit import OPEN_REQUEST, audit_page, check_problems, feature_tables, split_page
     from fs_cli.live_dialog import dialog_data, page_script
 
     path = pathlib.Path(args.file)
@@ -1439,13 +1478,9 @@ def audit(config: Config, args: argparse.Namespace) -> int:
     writeup_path = path.with_suffix(".md")
     writeup = writeup_path.read_text() if writeup_path.is_file() else None
     module = project.module(path.resolve())
-    problems = []
-    if module is not None:
-        for problem in project.check(module):
-            line, character = module.position(problem.start)
-            problems.append(f"{line + 1}:{character + 1}: {problem.severity}: {problem.message} [{problem.code}]")
+    problems = check_problems(project, module) if module is not None else []
     source = pathlib.Path(os.path.relpath(path.resolve(), config.root)).as_posix()
-    tables = _feature_tables(config, project, module) if module is not None else []
+    tables = feature_tables(config, project, module) if module is not None else []
     page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -1454,41 +1489,15 @@ def audit(config: Config, args: argparse.Namespace) -> int:
         f"Wrote {_display_path(output)}: {len(data['parameters'])} parameters, {conditions.count("(v) =>")} conditions, "
         f"{len(problems)} problems."
     )
+    if args.open:
+        if os.environ.get("TERM_PROGRAM") != "vscode" and "VSCODE_PID" not in os.environ:
+            print("Not running in VS Code, so not shown in its preview: open the page instead.")
+            return 0
+        # The extension watches for this, and shows the feature's preview (in each window with the repo open)
+        request = config.root / OPEN_REQUEST
+        request.write_text(json.dumps({"file": path.resolve().as_posix(), "feature": feature}), newline="")
+        print("Showed it in VS Code's feature preview (if the FeatureScript extension is running).")
     return 0
-
-
-def _feature_tables(config: Config, project: Project, module: Module) -> list:
-    """The lookup tables a file's parameters use (theirs, or those of files it imports), in the order they're named."""
-    from fs_cli.lookup_tables import find_tables, find_uses, lookup_parameters, source_evaluator
-    from fs_eval import Evaluator
-
-    modules = [module]
-    seen = {module.path}
-    for current in modules:
-        for imported in current.imports:
-            if imported.is_std or imported.namespace:
-                continue
-            target = project.resolve(imported)
-            if target is not None and target.path not in seen:
-                seen.add(target.path)
-                modules.append(target)
-    names: list[str] = []
-    for current in modules:
-        for table_name, _ in lookup_parameters(current.path.read_text()):
-            if table_name not in names:
-                names.append(table_name)
-    if not names:
-        return []
-    evaluator = Evaluator(config.root)
-    found = {}
-    for current in modules:
-        if '"entries"' in current.path.read_text():
-            source = source_evaluator(project, config.std_dir, current.path)
-            for found_table in find_tables(evaluator, current.path, config.code_dir, source):
-                found.setdefault(found_table.name, found_table)
-    tables = [found[name] for name in names if name in found]
-    find_uses(tables, config.code_dir)
-    return tables
 
 
 def table(config: Config, args: argparse.Namespace) -> int:
@@ -1694,6 +1703,7 @@ OFFLINE_COMMANDS = {
     "gen": gen,
     "icons": icons,
     "cots": cots,
+    "fsdoc": fsdoc,
     "step": step,
     "unlink": unlink,
     # Online with --detect

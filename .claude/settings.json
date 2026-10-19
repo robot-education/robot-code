@@ -17,7 +17,11 @@
       "Bash(git diff *)",
       "Bash(git log *)",
       "Bash(git show *)",
-      "ClaudeInChromeDomain(cad.onshape.com)"
+      "ClaudeInChromeDomain(cad.onshape.com)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "ClaudeInChromeDomain(localhost:8765)",
+      "ClaudeInChromeDomain(localhost:8766)",
+      "ClaudeInChromeDomain(localhost:8767)"
     ]
   }
 }

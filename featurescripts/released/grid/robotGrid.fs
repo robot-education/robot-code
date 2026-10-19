@@ -239,12 +239,12 @@ export function robotGridEditLogic(context is Context, id is Id, oldDefinition i
                     });
             if (!coplanarPlanes(facePlanes[0], facePlanes[1]))
             {
-                return;
+                return definition;
             }
             const part = qOwnerBody(definition.face);
             if (isQueryEmpty(context, part))
             {
-                return;
+                return definition;
             }
 
             const start = facePlanes[0].origin;

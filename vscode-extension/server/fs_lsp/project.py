@@ -50,6 +50,17 @@ CALLABLE_KINDS = frozenset(["function", "predicate"])
 # Annotation keys whose values name a function (in the file, or one it imports) by its name
 FUNCTION_ANNOTATION_KEYS = frozenset(["Manipulator Change Function", "Editing Logic Function"])
 CALLABLE_KINDS = frozenset(["function", "predicate"])
+# The arguments Onshape passes editing logic, in order
+EDITING_LOGIC_ARGUMENTS = [
+    "context",
+    "id",
+    "oldDefinition",
+    "definition",
+    "isCreating",
+    "specifiedParameters",
+    "hiddenBodies",
+    "clickedButton",
+]
 ASSIGNMENT_OPERATORS = frozenset(["=", "+=", "-=", "*=", "/=", "~=", "||=", "&&="])
 # Annotation keys whose values (or values in an array) name a member of a std enum, e.g. `"UIHint" : ["SHOW_LABEL"]`
 ENUM_ANNOTATION_KEYS = {"UIHint": "UIHint"}

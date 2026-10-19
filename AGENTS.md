@@ -15,9 +15,16 @@ sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or P
 `docs/testing.md`. `uv run pytest` runs them all.
 
 After changing a feature, check, test, and show it as `.claude/skills/feature-audit/SKILL.md` says: it ends with its
-`fs audit` page, sent to the user.
+`fs audit` page, shown to the user (in VS Code, in its feature preview).
+
+`docs/using-onshape.md` is for driving Onshape from Chrome: opening tabs, reading FeatureScript notices, monitoring and
+profiling, the logging variable, and trying changes without `fs push`.
 
 `docs/std-functions.md` lists useful std functions, many of which std marks `@internal` (they work; use them).
+
+`docs/fsdoc/` is a copy of Onshape's FeatureScript guide (`uispec.md` for feature dialogs, manipulator change and
+editing logic functions; `syntax.md`, `type-tags.md`, and the rest for the language). Check it, then std's source,
+before stating how FeatureScript or Onshape behaves, or adding a rule here or to `fs check` about it.
 
 For FeatureScript names, `fs doc NAME` shows a std or project symbol's signature and documentation, `fs refs NAME`
 where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix` fixes problems with one right answer.

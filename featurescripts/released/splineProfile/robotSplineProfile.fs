@@ -120,7 +120,7 @@ export function robotSplineProfileManipulatorChange(context is Context, definiti
 export function robotSplineProfileEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map, hiddenBodies is Query) returns map
 {
     // Create entities to trigger merge scope logic
-    if (!isQueryEmpty(context, definition.locations))
+    if (!isQueryEmpty(context, definition.location))
     {
         definition.entities = try silent(createEntities(context, id, definition));
     }

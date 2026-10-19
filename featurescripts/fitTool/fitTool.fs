@@ -402,14 +402,14 @@ function addFitToolManipulators(context is Context, id is Id, definition is map,
                 "base" : line.origin,
                 "direction" : direction,
                 "offset" : definition.minFit / 2,
-                "sources" : definition.profiles,
+                "sources" : definition.profile,
                 "minValue" : 0 * meter
             });
     const maxOffsetManipulator = linearManipulator({
                 "base" : line.origin + plane.normal * definition.toolLength,
                 "direction" : direction,
                 "offset" : definition.maxFit / 2,
-                "sources" : definition.profiles,
+                "sources" : definition.profile,
                 "minValue" : 1e-5 * meter
             });
 

@@ -213,9 +213,11 @@ Write these defensively where values can be missing: check with `!= undefined` b
 surfaces when the user clicks a manipulator or edits a parameter, far from its cause. Parameters themselves are never
 missing (see "Definitions are maps").
 
-Editing logic's parameters are positional: `(context, id, oldDefinition, definition, isCreating, specifiedParameters,
-hiddenBodies, clickedButton)`. Declare each, in that order, up to the last one used: a `clickedButton` declared sixth
-gets `specifiedParameters` (a map), fails its `is string`, and the editing logic never runs (as Robot belt's didn't).
+Editing logic's arguments are `context, id, oldDefinition, definition`, then any of `isCreating is boolean`,
+`specifiedParameters is map`, `hiddenBodies is Query`, and `clickedButton is string`, in that order; leave out the
+ones it doesn't use ([Onshape's feature UI spec](https://cad.onshape.com/FsDoc/uispec.html#editing-logic-function)).
+Without `isCreating`, editing logic only runs when the feature is created (as std's extrude's, Primitive's, and Robot
+spline profile's do); declare it to run on every change.
 
 The first time editing logic runs (when the feature is created), `oldDefinition` is the empty map `{}`. Usually there's
 nothing to do then, so return early:

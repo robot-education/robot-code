@@ -204,7 +204,7 @@ uv run fs unused             # exports nothing uses (--local: also those only th
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 uv run fs eval "getSprocketRadius(0.25 * inch, 16) / inch" -m chain/robotChain.fs   # evaluate an expression (see below)
 uv run fs table featurescripts/released/shaft -n frcShaft   # lookup tables as rows (--md, or --html page.html)
-uv run fs audit featurescripts/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems
+uv run fs audit featurescripts/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
@@ -221,8 +221,14 @@ tree of its groups, parameters, and `if`s, whose conditions become JavaScript (w
 is evaluated first, as `fs ui` evaluates it), and each parameter is rendered once for each of its values. The page
 walks the tree with the current settings and lays the dialog out as `fs ui` does, so any combination of choices, and
 typed values, works (a test checks it draws what `fs ui --set` renders, state by state, for several features). Setting
-a parameter back to its default (like unchecking a checkbox) unsets it. Hovering a parameter (or by touch, a long press) shows its description, default, and UI
-hints, as the VS Code preview does. Array items can't be added there (`fs ui --set` renders any state).
+a parameter back to its default (like unchecking a checkbox) unsets it. Hovering a parameter (or by touch, a long press)
+shows its description, default, and UI hints. Array items can't be added there (`fs ui --set` renders any state).
+
+VS Code's feature preview is the same page, with the language server drawing the dialog instead (so it follows unsaved
+edits, and array items can be added): it has tabs for the lookup tables, writeup, and problems (`audit_sections` in
+`fs_cli/audit.py`), and `fs_cli/dialog_page.js` makes both dialogs' controls and tooltips work. Run from VS Code (its
+terminal, or Claude Code in it), `fs audit --open` shows the feature's preview there: it writes `.fs-audit/open.json`,
+which the extension watches for.
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
 values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic
@@ -378,6 +384,14 @@ first.
 
 `uv run fs sync-versions` creates any release versions that exist in the backend document but not in the
 frontend document.
+
+## Onshape's FeatureScript guide
+
+`docs/fsdoc/` is a copy of [Onshape's FeatureScript guide](https://cad.onshape.com/FsDoc/) as Markdown: the guide, the
+language reference, and the tutorials, each page at its path there (`uispec.html` is `docs/fsdoc/uispec.md`), linking
+to each other. `uv run fs fsdoc` copies it again (it makes no Onshape API calls). The standard library's documentation
+(`library.html`) is left out, as it's generated from std's doc comments in `std/` (see `fs doc`), and images are linked
+on Onshape rather than copied.
 
 ## The std library
 

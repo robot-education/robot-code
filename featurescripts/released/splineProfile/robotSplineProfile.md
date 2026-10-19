@@ -29,6 +29,13 @@ Since v1.1.0 (`fs changes robotSplineProfile`).
 
 - SplineXS (a solid 15 tooth spline). The description is now "Create MAXSpline, SplineXL, and SplineXS profiles."
 
+### Fixes
+
+- **Editing logic runs.** It read `definition.locations` (the parameter is `location`) and passed it to
+  `isQueryEmpty`, which only takes a `Query`, so it threw each time it ran (when a feature is created: it doesn't
+  take `isCreating`). Now std's extrude editing logic fills in a new feature's merge scope from what the profile
+  touches, as std's extrude does.
+
 The MAXSpline and SplineXL profiles are generated now (`splineProfiles.py`), with the same geometry: only a stray line
 from the center to a tooth of the outside profiles, which didn't change the sketch's region, is gone.
 
@@ -60,8 +67,9 @@ sketches an inside profile, so never shows it.
 
 1. **Precondition**: std's operation type, Spline type, Profile side, location, Fit, the extrude
    (`extrudePredicate`: end type and bounds, starting offset, symmetric, second end position), std's merge scope.
-2. **Editing logic** (`robotSplineProfileEditLogic`): meant to sketch the profile so std's extrude editing logic
-   (`stdExtrudeEditLogic`: up to flips, merge scope) can use it, then run it; but it throws first (see Issues found).
+2. **Editing logic** (`robotSplineProfileEditLogic`, only when the feature is created, as it doesn't take
+   `isCreating`): sketches the profile (`createEntities`), once there's a location, so std's extrude editing logic
+   (`stdExtrudeEditLogic`: up to flips, merge scope) can use it, then runs it.
 3. **Body**:
    1. `createEntities` sketches the spline's outside profile at the location (always the outside; Inside is made by
       offsetting it).
@@ -97,13 +105,10 @@ its own; std's extrude and boolean report their own errors.
 | Where | What it guards | When it fails |
 | --- | --- | --- |
 | The body | Offsetting the extrude's sides (`opOffsetFace`) | Throws "Failed to fit the spline profile." |
-| `robotSplineProfileEditLogic` (`try silent`) | Sketching the profile for std's extrude editing logic | A guard (but editing logic throws before it; see Issues found). |
+| `robotSplineProfileEditLogic` (`try silent`) | Sketching the profile for std's extrude editing logic | Std's editing logic runs without a profile. |
 
 ## Issues found
 
-- Editing logic reads `definition.locations`, which doesn't exist (the parameter is `location`), and passes it to
-  `isQueryEmpty`, which only takes a `Query`, so editing logic throws every time it runs: std's up to flips and merge
-  scope defaults never happen. This was in v1.1.0 too.
 - Profile side is offered for SplineXS, whose shafts are solid: Inside shrinks the outside profile by 1/16 in. (the
   tube wall of MAXSpline and SplineXL), which matches nothing.
 - "Sketch point to place spline" also takes circles and mate connectors.

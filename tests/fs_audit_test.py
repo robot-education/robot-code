@@ -48,12 +48,31 @@ def test_command_shows_lookup_tables(tmp_path):
     # Every table its parameters use, in the order they're named, with their rows
     tables = re.findall(r"<h3>(\w+Table)</h3>", page)
     assert tables == ["tappedHoleTable", "clearanceHoleTable", "frcShaftTable", "ftcShaftTable"]
-    assert "32 tpi (UNF)" in page and "id='table-filter'" in page
+    assert "32 tpi (UNF)" in page and "class='table-filter'" in page
     # Options only: no values
     assert "0.1590 in" not in page
     # Its lookup tables are drawn by the page's script, from their levels: in order, with their names
     tree = dialog_data(page)["parameters"]["frcShaft"]["tree"]
     assert tree["name"] == "vendor" and tree["entries"][0][0] == "WCP"
+
+
+def test_open_asks_vs_code_for_the_preview(tmp_path, monkeypatch, capsys):
+    request = tmp_path / "open.json"
+    monkeypatch.setattr("fs_cli.audit.OPEN_REQUEST", str(request))
+    monkeypatch.setenv("TERM_PROGRAM", "vscode")
+    path = "featurescripts/lighten/robotLighten.fs"
+    assert cli.main(["audit", path, "-o", str(tmp_path / "lighten.html"), "--open"]) == 0
+    assert "Showed it in VS Code's feature preview" in capsys.readouterr().out
+    asked = json.loads(request.read_text())
+    assert asked["file"].endswith(path) and asked["feature"] is None
+
+    # Outside VS Code, it says so
+    request.unlink()
+    monkeypatch.delenv("TERM_PROGRAM")
+    monkeypatch.delenv("VSCODE_PID", raising=False)
+    assert cli.main(["audit", path, "-o", str(tmp_path / "lighten.html"), "--open"]) == 0
+    assert "Not running in VS Code" in capsys.readouterr().out
+    assert not request.exists()
 
 
 def dump(page: str, script: str, tmp_path) -> str:

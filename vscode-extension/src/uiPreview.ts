@@ -17,31 +17,56 @@ interface RenderResult {
   warnings?: string[];
   features: string[];
   feature?: string;
+  settings?: [string, string][];
+}
+
+/** What its featurescript/previewPage request returns: the script making the dialog work, and the sections' style. */
+interface PageResult {
+  script: string;
+  style: string;
+}
+
+/** What its featurescript/audit request returns: `fs audit`'s other sections. */
+interface AuditResult {
+  html?: { tables: string; writeup: string; problems: string };
+  tables?: number;
+  problems?: number;
+  error?: string;
 }
 
 // How long to wait after an edit before rendering it
 const EDIT_DELAY_MS = 250;
 
 /**
- * A panel showing a feature's dialog as `fs ui` renders it (with Onshape's own markup and styles), rendered by the
- * language server, which keeps the parsed std library between renders. It follows edits to the file, saved or not.
+ * A panel showing what `fs audit`'s page does: a feature's dialog as `fs ui` renders it (with Onshape's own markup and
+ * styles), and tabs for the lookup tables its parameters use, its writeup, and its file's problems. The language
+ * server renders them, keeping the parsed std library between renders. The dialog follows edits to the file, saved
+ * or not, and the other tabs follow saved files.
  *
- * The dialog works like Onshape's: clicking a tab, checkbox, button, or dropdown option, or entering a value, changes
- * that parameter (as `fs ui --set` does), which shows and hides the parameters which depend on it; groups and array
- * items open and close; and array items can be added and removed.
+ * The dialog works like Onshape's (see fs_cli/dialog_page.js, which the server gives it): clicking a tab, checkbox,
+ * button, or dropdown option, or entering a value, changes that parameter (as `fs ui --set` does), which shows and
+ * hides the parameters which depend on it; groups and array items open and close; and array items can be added and
+ * removed.
  */
 export class UiPreview {
   private static readonly previews = new Map<string, UiPreview>();
 
-  private feature: string | undefined;
   private readonly settings = new Map<string, string>();
   private rendering = 0;
+  private auditing = 0;
   private pendingEdit: NodeJS.Timeout | undefined;
 
-  static show(uri: vscode.Uri, client: () => LanguageClient | undefined): void {
+  /** Shows a file's preview, of `feature` if it's given (or the one it showed, or the file's first). */
+  static show(uri: vscode.Uri, client: () => LanguageClient | undefined, feature?: string): void {
     const existing = UiPreview.previews.get(uri.fsPath);
     if (existing) {
       existing.panel.reveal(vscode.ViewColumn.Beside, true);
+      if (feature && feature !== existing.feature) {
+        existing.feature = feature;
+        existing.settings.clear();
+        void existing.render();
+      }
+      void existing.audit();
       return;
     }
     const panel = vscode.window.createWebviewPanel(
@@ -50,12 +75,22 @@ export class UiPreview {
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
       { enableScripts: true, localResourceRoots: [], retainContextWhenHidden: true }
     );
-    UiPreview.previews.set(uri.fsPath, new UiPreview(panel, uri, client));
+    UiPreview.previews.set(uri.fsPath, new UiPreview(panel, uri, client, feature));
   }
 
-  /** Re-renders a document's preview (debounced while it's being edited). */
+  /** Re-renders a document's dialog (debounced while it's being edited). */
   static changed(document: vscode.TextDocument): void {
     UiPreview.previews.get(document.uri.fsPath)?.renderSoon();
+  }
+
+  /** Updates the other tabs when a file they read is saved: any FeatureScript (which can hold tables), or a writeup. */
+  static saved(document: vscode.TextDocument): void {
+    UiPreview.changed(document);
+    if (document.languageId === "featurescript" || document.uri.fsPath.endsWith(".md")) {
+      for (const preview of UiPreview.previews.values()) {
+        void preview.audit();
+      }
+    }
   }
 
   /** Re-renders every preview, e.g. when the color theme changes. */
@@ -68,19 +103,39 @@ export class UiPreview {
   private constructor(
     private readonly panel: vscode.WebviewPanel,
     private readonly uri: vscode.Uri,
-    private readonly client: () => LanguageClient | undefined
+    private readonly client: () => LanguageClient | undefined,
+    private feature: string | undefined
   ) {
     panel.onDidDispose(() => {
       UiPreview.previews.delete(uri.fsPath);
       clearTimeout(this.pendingEdit);
     });
     panel.webview.onDidReceiveMessage((message: Message) => this.receive(message));
-    panel.webview.html = this.shell();
+    void this.load();
+  }
+
+  /** Shows the page, with the script from the server. */
+  private async load(): Promise<void> {
+    try {
+      const page = await this.request<PageResult>("featurescript/previewPage", {});
+      this.panel.webview.html = shell(page);
+    } catch (error) {
+      this.panel.webview.html = errorPage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  private async request<T>(method: string, params: object): Promise<T> {
+    const client = this.client();
+    if (!client) {
+      throw new Error("The FeatureScript language server isn't running.");
+    }
+    return client.sendRequest<T>(method, params);
   }
 
   private receive(message: Message): void {
     switch (message.type) {
       case "ready":
+        void this.audit();
         break;
       case "set":
         this.set(message.name, message.value);
@@ -95,6 +150,9 @@ export class UiPreview {
       case "reset":
         this.settings.clear();
         break;
+      case "reveal":
+        void this.reveal(message.line, message.character);
+        return;
       default:
         return;
     }
@@ -133,6 +191,16 @@ export class UiPreview {
     }
   }
 
+  /** Shows a problem in the file's editor (or opens it beside the preview). */
+  private async reveal(line: number, character: number): Promise<void> {
+    const position = new vscode.Position(line, character);
+    const editor = vscode.window.visibleTextEditors.find((visible) => visible.document.uri.fsPath === this.uri.fsPath);
+    await vscode.window.showTextDocument(this.uri, {
+      viewColumn: editor?.viewColumn ?? vscode.ViewColumn.Beside,
+      selection: new vscode.Range(position, position)
+    });
+  }
+
   private renderSoon(): void {
     clearTimeout(this.pendingEdit);
     this.pendingEdit = setTimeout(() => void this.render(), EDIT_DELAY_MS);
@@ -140,27 +208,29 @@ export class UiPreview {
 
   private async render(): Promise<void> {
     const rendering = ++this.rendering;
-    const client = this.client();
     let result: RenderResult;
-    if (!client) {
-      result = { error: "The FeatureScript language server isn't running.", features: [] };
-    } else {
-      try {
-        result = await client.sendRequest<RenderResult>("featurescript/renderUi", {
-          uri: this.uri.toString(),
-          feature: this.feature,
-          settings: [...this.settings],
-          theme: isLightTheme() ? "light" : "dark"
-        });
-      } catch (error) {
-        result = { error: error instanceof Error ? error.message : String(error), features: [] };
-      }
+    try {
+      result = await this.request<RenderResult>("featurescript/renderUi", {
+        uri: this.uri.toString(),
+        feature: this.feature,
+        settings: [...this.settings],
+        theme: isLightTheme() ? "light" : "dark"
+      });
+    } catch (error) {
+      result = { error: error instanceof Error ? error.message : String(error), features: [] };
     }
     // A newer render started while this one ran
     if (rendering !== this.rendering) {
       return;
     }
     this.feature = result.feature ?? this.feature;
+    // Without the settings which do nothing, like one set back to its default
+    if (result.settings) {
+      this.settings.clear();
+      for (const [name, value] of result.settings) {
+        this.settings.set(name, value);
+      }
+    }
     void this.panel.webview.postMessage({
       type: "render",
       ...result,
@@ -168,17 +238,17 @@ export class UiPreview {
     });
   }
 
-  /** The page the dialog is shown in: the dialog, a toolbar under it, and a script which shows renders and sends changes back. */
-  private shell(): string {
-    const nonce = crypto.randomBytes(16).toString("base64");
-    const csp = `default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'nonce-${nonce}';`;
-    return (
-      `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}">` +
-      `<style>${TOOLBAR_STYLE}</style><style id="dialog-style"></style></head><body><div id="dialog"></div>` +
-      `<div class="toolbar"><select id="feature" hidden></select><span id="settings"></span>` +
-      `<button id="reset" hidden>Reset</button></div><pre id="messages" hidden></pre>` +
-      `<script nonce="${nonce}">${SCRIPT}</script></body></html>`
-    );
+  private async audit(): Promise<void> {
+    const auditing = ++this.auditing;
+    let result: AuditResult;
+    try {
+      result = await this.request<AuditResult>("featurescript/audit", { uri: this.uri.toString() });
+    } catch (error) {
+      result = { error: error instanceof Error ? error.message : String(error) };
+    }
+    if (auditing === this.auditing) {
+      void this.panel.webview.postMessage({ type: "audit", ...result });
+    }
   }
 }
 
@@ -187,7 +257,8 @@ type Message =
   | { type: "set"; name: string; value: string }
   | { type: "remove"; name: string; index: number }
   | { type: "feature"; value: string }
-  | { type: "reset" };
+  | { type: "reset" }
+  | { type: "reveal"; line: number; character: number };
 
 /** The index of the array item a setting is for (like 1 for `items.1.length`), if it's for one of `array`'s. */
 function itemIndex(key: string, array: string): number | undefined {
@@ -200,21 +271,80 @@ function isLightTheme(): boolean {
   return kind === vscode.ColorThemeKind.Light || kind === vscode.ColorThemeKind.HighContrastLight;
 }
 
-const TOOLBAR_STYLE = `
+/** A script's text, safe in a page's script element. */
+function scriptText(text: string): string {
+  return text.replace(/<\//g, "<\\/");
+}
+
+function errorPage(message: string): string {
+  const escaped = message.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  return `<!doctype html><html><body><pre style="color: var(--vscode-errorForeground); white-space: pre-wrap">${escaped}</pre></body></html>`;
+}
+
+/**
+ * The page the preview is shown in: tabs, the dialog (with a toolbar under it), the other sections (in a shadow root,
+ * away from Onshape's styles), and a script which shows renders and sends changes back.
+ */
+function shell(page: PageResult): string {
+  const nonce = crypto.randomBytes(16).toString("base64");
+  const csp = `default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'nonce-${nonce}';`;
+  return (
+    `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}">` +
+    `<style>${PANEL_STYLE}</style><style id="dialog-style"></style></head><body>` +
+    `<nav class="fs-tabs">${TABS.map(([tab, label]) => `<button data-tab="${tab}">${label}</button>`).join("")}</nav>` +
+    `<div class="fs-page" data-page="dialog"><div id="dialog"></div>` +
+    `<div class="toolbar"><select id="feature" hidden></select><span id="settings"></span>` +
+    `<button id="reset" hidden>Reset</button></div><pre id="messages" hidden></pre></div>` +
+    `<div class="fs-page" data-page="sections" id="sections" hidden></div>` +
+    `<script nonce="${nonce}">const SECTION_STYLE = ${scriptText(JSON.stringify(SECTIONS_HOST_STYLE + page.style))};\n` +
+    `${scriptText(page.script)}\n${SCRIPT}</script></body></html>`
+  );
+}
+
+const TABS = [
+  ["dialog", "Dialog"],
+  ["tables", "Lookup tables"],
+  ["writeup", "Writeup"],
+  ["problems", "Problems"]
+] as const;
+
+const PANEL_STYLE = `
 body { margin: 0; }
-.toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font: 12px var(--vscode-font-family, sans-serif); color: var(--vscode-foreground); }
+.fs-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 10px; text-align: left; font: 12px var(--vscode-font-family, sans-serif); }
+.fs-tabs button { background: none; color: var(--vscode-foreground); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 3px 8px; opacity: 0.7; font: inherit; cursor: pointer; }
+.fs-tabs button[aria-selected="true"] { opacity: 1; border-bottom-color: var(--vscode-focusBorder); }
+.fs-tabs button[hidden], .fs-page[hidden] { display: none; }
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font: 12px var(--vscode-font-family, sans-serif); color: var(--vscode-foreground); text-align: left; }
 .toolbar #settings { flex: 1; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toolbar button, .toolbar select { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: 1px solid var(--vscode-contrastBorder, transparent); border-radius: 2px; }
-#messages { color: var(--vscode-editorWarning-foreground); white-space: pre-wrap; font: 11px var(--vscode-editor-font-family, monospace); margin: 0 10px 6px; }
+#messages { color: var(--vscode-editorWarning-foreground); white-space: pre-wrap; font: 11px var(--vscode-editor-font-family, monospace); margin: 0 10px 6px; text-align: left; }
+`;
+
+// The sections' page, in its shadow root: VS Code's colors, for the names SECTION_STYLE uses
+const SECTIONS_HOST_STYLE = `
+:host {
+  all: initial; display: block; box-sizing: border-box; padding: 4px 14px 16px; border-radius: 6px;
+  background: var(--bg); color: var(--fg); font: 13px/1.5 var(--vscode-font-family, system-ui, sans-serif); text-align: left;
+  --bg: var(--vscode-editor-background); --fg: var(--vscode-editor-foreground); --muted: var(--vscode-descriptionForeground);
+  --line: var(--vscode-panel-border, rgba(128, 128, 128, 0.35)); --head: var(--vscode-editorWidget-background);
+  --code: var(--vscode-textCodeBlock-background); --accent: var(--vscode-textLink-foreground); --empty: var(--vscode-editorWarning-foreground);
+}
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+.error { color: var(--vscode-errorForeground); white-space: pre-wrap; }
+.problems { padding-left: 18px; }
+.problems li[data-line] { cursor: pointer; margin: 2px 0; }
+.problems li[data-line]:hover code { text-decoration: underline; }
 `;
 
 /**
- * Shows renders, and sends changes back. Groups and array items are opened and closed here, and which were toggled
- * is kept across renders (and reloads).
+ * Shows renders and audits, and sends changes back. The dialog's controls are made to work by `dialogPage` (from
+ * fs_cli/dialog_page.js); which groups and array items were toggled, and the tab shown, are kept across renders (and
+ * reloads).
  */
 const SCRIPT = `
 const vscode = acquireVsCodeApi();
-const state = vscode.getState() || { toggled: {} };
+const state = Object.assign({ toggled: {}, tab: "dialog" }, vscode.getState());
 const dialog = document.getElementById("dialog");
 const style = document.getElementById("dialog-style");
 const messages = document.getElementById("messages");
@@ -224,11 +354,68 @@ const reset = document.getElementById("reset");
 featureSelect.addEventListener("change", () => vscode.postMessage({ type: "feature", value: featureSelect.value }));
 reset.addEventListener("click", () => vscode.postMessage({ type: "reset" }));
 
-window.addEventListener("message", (event) => {
-  const message = event.data;
-  if (message.type !== "render") {
-    return;
+const page = dialogPage(dialog, {
+  set: (name, value) => vscode.postMessage({ type: "set", name, value }),
+  remove: (name, index) => vscode.postMessage({ type: "remove", name, index }),
+  toggled: state.toggled,
+  saveToggled: () => vscode.setState(state),
+});
+
+// The other sections, away from Onshape's styles
+const sections = document.getElementById("sections").attachShadow({ mode: "open" });
+sections.innerHTML = "<style>" + SECTION_STYLE + "</style>" +
+  "<div data-section='tables'></div><div data-section='writeup' class='writeup'></div><div data-section='problems'></div>";
+let filter = "";
+
+function filterTables() {
+  const words = filter.toLowerCase().split(/\\s+/).filter(Boolean);
+  for (const row of sections.querySelectorAll(".lookup tbody tr")) {
+    row.classList.toggle("hidden", !words.every((word) => row.dataset.text.includes(word)));
   }
+}
+
+sections.addEventListener("input", (event) => {
+  if (event.target.matches(".table-filter")) {
+    filter = event.target.value;
+    filterTables();
+  }
+});
+sections.addEventListener("click", (event) => {
+  const problem = event.target.closest("li[data-line]");
+  if (problem) {
+    vscode.postMessage({ type: "reveal", line: Number(problem.dataset.line), character: Number(problem.dataset.character) });
+  }
+});
+
+function tabButton(tab) {
+  return document.querySelector(".fs-tabs [data-tab='" + tab + "']");
+}
+
+function showTab(tab) {
+  if (tabButton(tab).hidden) {
+    tab = "dialog";
+  }
+  state.tab = tab;
+  vscode.setState(state);
+  for (const button of document.querySelectorAll(".fs-tabs button")) {
+    button.setAttribute("aria-selected", String(button.dataset.tab === tab));
+  }
+  document.querySelector("[data-page='dialog']").hidden = tab !== "dialog";
+  document.getElementById("sections").hidden = tab === "dialog";
+  for (const section of sections.querySelectorAll("[data-section]")) {
+    section.hidden = section.dataset.section !== tab;
+  }
+}
+
+document.querySelector(".fs-tabs").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-tab]");
+  if (button) {
+    showTab(button.dataset.tab);
+  }
+});
+showTab(state.tab);
+
+function showRender(message) {
   featureSelect.replaceChildren(...message.features.map((name) => new Option(name, name, false, name === message.feature)));
   featureSelect.hidden = message.features.length < 2;
   document.getElementById("settings").textContent = message.settings.join(", ");
@@ -237,266 +424,42 @@ window.addEventListener("message", (event) => {
   messages.textContent = notes.join("\\n");
   messages.hidden = notes.length === 0;
   if (message.html) {
-    const page = new DOMParser().parseFromString(message.html, "text/html");
-    document.documentElement.setAttribute("data-os-theme", page.documentElement.getAttribute("data-os-theme") || "dark");
-    const css = page.querySelector("style").textContent;
+    const rendered = new DOMParser().parseFromString(message.html, "text/html");
+    document.documentElement.setAttribute("data-os-theme", rendered.documentElement.getAttribute("data-os-theme") || "dark");
+    const css = rendered.querySelector("style").textContent;
     if (style.textContent !== css) {
       style.textContent = css;
     }
-    hideTooltip();
-    dialog.replaceChildren(...page.body.childNodes);
-    for (const [key, open] of Object.entries(state.toggled)) {
-      const expander = expanderFor(key);
-      if (expander) {
-        setOpen(expander, open);
-      }
+    dialog.replaceChildren(...rendered.body.childNodes);
+    page.drawn();
+  }
+}
+
+function showAudit(message) {
+  for (const section of sections.querySelectorAll("[data-section]")) {
+    if (message.html) {
+      section.innerHTML = message.html[section.dataset.section];
+    } else {
+      section.replaceChildren(Object.assign(document.createElement("p"), { className: "error", textContent: message.error }));
     }
   }
-});
-
-/** A key for an expander, to remember whether it's open: its group's name, or its array item's position. */
-function keyOf(expander) {
-  const group = expander.closest("[data-group]");
-  if (expander.classList.contains("os-param-group-expander") && group) {
-    return "group:" + group.dataset.group;
+  const input = sections.querySelector(".table-filter");
+  if (input) {
+    input.value = filter;
+    filterTables();
   }
-  const item = expander.closest(".os-param-array-item");
-  if (item) {
-    const index = [...item.parentElement.children].indexOf(item);
-    return "item:" + item.dataset.parentParameterId + ":" + index;
-  }
-  return undefined;
+  tabButton("tables").hidden = message.tables === 0;
+  tabButton("problems").textContent = message.problems ? "Problems (" + message.problems + ")" : "Problems";
+  showTab(state.tab);
 }
 
-function expanderFor(key) {
-  return [...dialog.querySelectorAll("[data-toggle]")].find((expander) => keyOf(expander) === key);
-}
-
-function contentsOf(expander) {
-  const item = expander.closest(".os-param-array-item");
-  if (item && !expander.classList.contains("os-param-group-expander")) {
-    return item.querySelector(".os-param-array-item-contents");
-  }
-  return expander.closest(".os-param-group-collapsible-container").querySelector(".os-param-group-collapsible-contents");
-}
-
-function setOpen(expander, open) {
-  contentsOf(expander).classList.toggle("ng-hide", !open);
-  expander.querySelector("svg").classList.toggle("expanded", open);
-}
-
-function openMenu(toggle, menu) {
-  menu.classList.remove("ng-hide");
-  menu.classList.add("open");
-  placeMenu(toggle, menu);
-}
-
-/**
- * Places a dropdown's open menu under it, or over it if there's more room there. It's fixed in place, as Onshape's
- * float above the dialog, since the dialog's parameter list would cut it off; so it's placed again as the page
- * scrolls.
- */
-function placeMenu(toggle, menu) {
-  const box = toggle.getBoundingClientRect();
-  const below = window.innerHeight - box.bottom;
-  const up = menu.scrollHeight > below && box.top > below;
-  menu.style.left = box.left + "px";
-  menu.style.minWidth = box.width + "px";
-  menu.style.maxHeight = Math.min(300, (up ? box.top : below) - 4) + "px";
-  menu.style.top = up ? "auto" : box.bottom + "px";
-  menu.style.bottom = up ? window.innerHeight - box.top + "px" : "auto";
-}
-
-function closeMenus() {
-  for (const menu of dialog.querySelectorAll(".os-select-dropdown.open")) {
-    menu.classList.remove("open");
-    menu.classList.add("ng-hide");
-  }
-}
-
-function placeMenus() {
-  for (const menu of dialog.querySelectorAll(".os-select-dropdown.open")) {
-    placeMenu(menu.closest(".os-select-container").querySelector(".os-select-toggle"), menu);
-  }
-}
-
-window.addEventListener("resize", placeMenus);
-window.addEventListener("scroll", (event) => {
-  // Not when the menu itself scrolls
-  if (!(event.target instanceof Element && event.target.closest(".os-select-dropdown"))) {
-    placeMenus();
-  }
-}, true);
-
-/**
- * The expander a click opens or closes: the one clicked, or the one in the group or array item header clicked (as
- * clicking a group's name does in Onshape), but not through the header's checkbox or delete button.
- */
-function expanderAt(target) {
-  const expander = target.closest("[data-toggle]");
-  if (expander) {
-    return expander;
-  }
-  const header = target.closest(".os-param-group-header, .os-param-selection-list-entry");
-  if (!header || target.closest("[data-set], [data-remove]")) {
-    return null;
-  }
-  return header.querySelector("[data-toggle]");
-}
-
-function send(control) {
-  vscode.postMessage({ type: "set", name: control.dataset.set, value: control.dataset.value ?? control.value });
-}
-
-document.addEventListener("click", (event) => {
-  const target = event.target;
-  const option = target.closest(".os-select-choices-row[data-set]");
-  if (option) {
-    closeMenus();
-    send(option);
-    return;
-  }
-  const toggle = target.closest(".os-select-toggle");
-  if (toggle) {
-    const menu = toggle.closest(".os-select-container").querySelector(".os-select-dropdown");
-    const open = menu.classList.contains("open");
-    closeMenus();
-    if (!open) {
-      openMenu(toggle, menu);
-    }
-    return;
-  }
-  closeMenus();
-  const expander = expanderAt(target);
-  if (expander) {
-    const key = keyOf(expander);
-    const open = !expander.querySelector("svg").classList.contains("expanded");
-    setOpen(expander, open);
-    if (key) {
-      state.toggled[key] = open;
-      vscode.setState(state);
-    }
-    return;
-  }
-  const remove = target.closest("[data-remove]");
-  if (remove) {
-    vscode.postMessage({ type: "remove", name: remove.dataset.remove, index: Number(remove.dataset.index) });
-    return;
-  }
-  const control = target.closest("[data-set]");
-  if (control && control.tagName !== "INPUT") {
-    // Checkboxes change when the dialog is rendered with the new value
-    event.preventDefault();
-    send(control);
+window.addEventListener("message", (event) => {
+  if (event.data.type === "render") {
+    showRender(event.data);
+  } else if (event.data.type === "audit") {
+    showAudit(event.data);
   }
 });
-
-// Values are set when they're entered: Enter commits a value (which changes it, if it's new)
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && event.target.matches("input[data-set]")) {
-    event.target.blur();
-  }
-});
-document.addEventListener("change", (event) => {
-  if (event.target.matches("input[data-set]:not([type=checkbox])")) {
-    send(event.target);
-  }
-});
-
-// Clicking into a number selects all of it, as in Onshape (but not clicking in one that's already being edited)
-let editing = null;
-document.addEventListener("mousedown", (event) => {
-  editing = document.activeElement;
-  hideTooltip();
-});
-document.addEventListener("click", (event) => {
-  const input = event.target.closest("input.os-param-number[data-set]");
-  if (input && input !== editing) {
-    input.select();
-  }
-});
-
-/**
- * Tooltips: hovering over a parameter shows its name (and a number's value) and description, as Onshape's tooltips
- * do, beside it, then its default and UI hints.
- */
-const TOOLTIP_DELAY_MS = 500;
-const tooltip = document.createElement("div");
-tooltip.className = "fs-tooltip";
-tooltip.hidden = true;
-document.body.appendChild(tooltip);
-let tooltipFor = null;
-let tooltipTimer;
-
-function hideTooltip() {
-  clearTimeout(tooltipTimer);
-  tooltip.hidden = true;
-  tooltipFor = null;
-}
-
-document.addEventListener("mouseover", (event) => {
-  // Not over open dropdowns, which cover other parameters
-  const parameter = event.target.closest(".os-select-dropdown.open") ? null : event.target.closest("[data-tip-name]");
-  if (parameter === tooltipFor) {
-    return;
-  }
-  hideTooltip();
-  tooltipFor = parameter;
-  if (parameter) {
-    tooltipTimer = setTimeout(() => showTooltip(parameter), TOOLTIP_DELAY_MS);
-  }
-});
-document.documentElement.addEventListener("mouseleave", hideTooltip);
-window.addEventListener("scroll", hideTooltip, true);
-
-function line(className, text) {
-  const element = document.createElement("div");
-  element.className = className;
-  element.textContent = text;
-  return element;
-}
-
-function showTooltip(parameter) {
-  const tip = parameter.dataset;
-  const number = parameter.querySelector("input.os-param-number");
-  const parts = [line("fs-tooltip-name", tip.tipName + (number && number.value ? ": " + number.value : ""))];
-  if (tip.tipDescription) {
-    parts.push(line("fs-tooltip-description", tip.tipDescription));
-  }
-  const details = document.createElement("dl");
-  details.className = "fs-tooltip-details";
-  for (const [term, value] of [["Default", tip.tipDefault], ["UI hints", tip.tipHints]]) {
-    if (value) {
-      const dt = document.createElement("dt");
-      dt.textContent = term;
-      const dd = document.createElement("dd");
-      dd.textContent = value;
-      details.append(dt, dd);
-    }
-  }
-  if (details.childElementCount) {
-    parts.push(details);
-  }
-  tooltip.replaceChildren(...parts);
-  tooltip.hidden = false;
-  // Beside the parameter's control, centered on it, or under it if there's no room beside it
-  const control = parameter.querySelector(
-    "input, .os-select-container, .os-param-tabs, label.os-param-checkbox, .os-param-query-list, table, osc-svg-icon, .os-param-container"
-  ) || parameter;
-  const box = control.getBoundingClientRect();
-  const size = tooltip.getBoundingClientRect();
-  let left = box.right + 4;
-  let top = box.top + (box.height - size.height) / 2;
-  if (left + size.width > window.innerWidth) {
-    left = Math.max(0, Math.min(box.left, window.innerWidth - size.width));
-    top = box.bottom + 4;
-    if (top + size.height > window.innerHeight) {
-      top = box.top - 4 - size.height;
-    }
-  }
-  tooltip.style.left = left + "px";
-  tooltip.style.top = Math.max(0, top) + "px";
-}
 
 vscode.postMessage({ type: "ready" });
 `;
