@@ -1,7 +1,5 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-// ModifyFilletType, for opModifyFillet (common.fs doesn't export it)
-import(path : "onshape/std/modifyFillet.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 // With a variable #logging of true, it logs each step
@@ -16,13 +14,15 @@ const DEPTH_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millime
 // A 1/8 in. router bit's
 const FILLET_RADIUS_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millimeter) : 1.5 } as LengthBoundSpec;
 
-// Walls and ribs are made this much thicker than they're to be: with Fillet corners, the pockets are grown back by as
-// much, rounding their corners this much more than Fillet radius; without, the walls and ribs are left this much
-// thicker. Walls which would exactly meet, or a pocket exactly the bit, at the sizes given (as round ones are) meet a
-// little past them, rather than leaving pockets touching along an edge, or slivers, which the cuts and growing back
-// fail on. Exact pockets takes it back off at the end. More than std's boolean tolerance, so it's never taken as
-// touching.
+// Without Exact pockets, walls and ribs are made this much thicker than they're to be: with Fillet corners, the pockets
+// are grown back by as much, rounding their corners this much more than Fillet radius; without, the walls and ribs are
+// left this much thicker. Walls which would exactly meet, or a pocket exactly the bit, at the sizes given (as round
+// ones are) meet a little past them, rather than leaving pockets touching along an edge, or slivers, which the cuts
+// and growing back fail on. More than std's boolean tolerance, so it's never taken as touching.
 const TIE_OFFSET = 1e-4 * meter;
+
+// Errors which exact sizes can cause end with this
+const TRY_EXACT_POCKETS = " Try toggling the exact pockets option.";
 
 /**
  * How deep pockets go into the part.
@@ -71,8 +71,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                                 "Filter" : EntityType.FACE && ((BodyType.SOLID && ModifiableEntityOnly.YES) || (SketchObject.YES && ConstructionObject.NO)) }
                     definition.ignoredFaces is Query;
 
-                    annotation { "Name" : "Add walls around ignored faces", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                                "Description" : "Wall the sketch regions to ignore, as the face's edges are. Unchecked, pockets go right up to them." }
+                    annotation { "Name" : "Add walls around ignored faces", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     definition.wallIgnoredFaces is boolean;
                 }
             }
@@ -155,8 +154,8 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
         annotation { "Group Name" : "Options", "Collapsed By Default" : true }
         {
-            annotation { "Name" : "Exact pockets", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "Make the pockets exactly as given: their corners rounded exactly Fillet radius, or without Fillet corners, their walls and ribs exactly as thick, rather than 0.1 mm off. Costs a step." }
+            annotation { "Name" : "Exact pockets", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "If false, created pockets will be adjusted a slight amount in order to prevent issues with non-manifold geometry." }
             definition.exactPockets is boolean;
         }
     }
@@ -186,11 +185,12 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         regions = byFace(context, id + "regionsByFace", [regions], regionTransform)[0];
         // To round the pockets' corners as a router bit of the radius would, they're made with walls and ribs thicker,
         // their corners filleted a hair, and grown back (see `roundPockets`): by the radius less the hair, so the hair
-        // and the growth make the radius. The radius is TIE_OFFSET more than Fillet radius, so walls and ribs are
-        // exactly as thick as asked, but meet a little past where they would. Without Fillet corners, they're just
-        // TIE_OFFSET thicker, and nothing's grown back
-        const radius = definition.filletCorners ? definition.filletRadius + TIE_OFFSET : 0 * meter;
-        const grow = definition.filletCorners ? radius - TOLERANCE.booleanDefaultTolerance * meter : TIE_OFFSET;
+        // and the growth make the radius. Without Exact pockets, the radius is TIE_OFFSET more than Fillet radius, so
+        // walls and ribs are exactly as thick as asked, but meet a little past where they would; without Fillet
+        // corners, they're just TIE_OFFSET thicker, and nothing's grown back
+        const tieOffset = definition.exactPockets ? 0 * meter : TIE_OFFSET;
+        const radius = definition.filletCorners ? definition.filletRadius + tieOffset : 0 * meter;
+        const grow = definition.filletCorners ? radius - TOLERANCE.booleanDefaultTolerance * meter : tieOffset;
         logLine(context, "Robot lighten: wall " ~ lengthText(definition.wallThickness) ~ ", fillet radius " ~ lengthText(radius) ~ ", grown by " ~
                 lengthText(grow));
 
@@ -264,7 +264,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             {
                 processSubfeatureStatus(context, id, { "subfeatureId" : id + "cutRibs", "propagateErrorDisplay" : true });
                 // A failed boolean changes nothing: the ribs are still there to show
-                throw regenError("Failed to cut ribs from pockets.", ribParameters(definition), ribs);
+                throw regenError("Failed to cut ribs from pockets." ~ TRY_EXACT_POCKETS, append(ribParameters(definition), "exactPockets"), ribs);
             }
         }
         // The pockets left between them, which the walls and ribs split into pieces
@@ -302,11 +302,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     });
         }
 
-        // The pockets' sides (but along regions to ignore, which have no walls to take back) and their corners' rounds,
-        // found again on the part after the cut, for Exact pockets
-        const sides = startTracking(context, qSubtraction(qOwnedByBody(pockets, EntityType.FACE),
-                qUnion([pocketEnds, qCreatedBy(id + "excludeRegions", EntityType.FACE)])));
-        const corners = startTracking(context, qCreatedBy(id + "round", EntityType.FACE));
         const volume = evVolume(context, { "entities" : target });
         try silent
         {
@@ -319,11 +314,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         catch
         {
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
-            throw regenError("Failed to cut pockets from part.", ["face"], pockets);
-        }
-        if (definition.exactPockets)
-        {
-            exactPockets(context, id, definition, qOwnedByBody(target, EntityType.FACE), sides, corners, radius);
+            throw regenError("Failed to cut pockets from part." ~ TRY_EXACT_POCKETS, ["face", "exactPockets"], pockets);
         }
         const lightened = 1 - evVolume(context, { "entities" : target }) / volume;
         reportFeatureInfo(context, id, "Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
@@ -931,8 +922,8 @@ function buildWalls(context is Context, featureId is Id, definition is map, face
                 {
                     throw regenError("Failed to cut walls around holes from pockets.", parameters, face);
                 }
-                throw regenError("Walls around highlighted holes would make a non-manifold part, change " ~
-                        (definition.filletCorners ? "wall thickness or fillet radius" : "wall thickness") ~ " slightly.", parameters,
+                throw regenError("Walls around highlighted holes would make a non-manifold part." ~ TRY_EXACT_POCKETS,
+                    append(parameters, "exactPockets"),
                     grownHolesOnPart(context, face, qUnion(meeting), holeSides, distance));
             }
         }
@@ -1239,7 +1230,8 @@ function buildRibGroup(context is Context, featureId is Id, id is Id, extent is 
  * rest are grown back by `grow`. In steps, a pocket at a time:
  *
  * 1. Each corner gets a hair fillet (std's boolean tolerance) on its own, in turn, each kept if it works. Growing rounds
- *    them to the hair and `grow`: Fillet radius and `TIE_OFFSET` exactly (`grow` is that less the hair), so their
+ *    them to the hair and `grow`: Fillet radius (and `TIE_OFFSET`, without Exact pockets) exactly (`grow` is that
+ *    less the hair), so their
  *    radius needn't be set after. A corner fails where its side is too short for its fillet and its neighbor's.
  * 2. Each corner which failed gets a full round across its narrow side (`narrowSide`: the side next to it whose other
  *    corner, failed too or filleted, is nearest it), between the sides either side of it (`opFullRoundFillet`). If the
@@ -1348,7 +1340,7 @@ function roundPockets(context is Context, featureId is Id, pockets is Query, end
         // Its error display, but not its error, which would fail the feature
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "grow", "propagateErrorDisplay" : true });
         clearFeatureStatus(context, featureId, { "withDisplayData" : false });
-        reportFeatureWarning(context, featureId, "Could not offset pockets to fillet radius.", ["filletRadius"]);
+        reportFeatureWarning(context, featureId, "Could not offset pockets to fillet radius." ~ TRY_EXACT_POCKETS, ["filletRadius", "exactPockets"]);
         setErrorEntities(context, featureId, { "entities" : pockets });
     }
 }
@@ -1396,58 +1388,4 @@ function pocketCorners(context is Context, pocket is Query, ends is Query) retur
             {
                 return evEdgeConvexity(context, { "edge" : edge }) == EdgeConvexityType.CONVEX;
             }));
-}
-
-/**
- * With Exact pockets, takes `TIE_OFFSET` back off the pockets as cut in the part (`targetFaces`, its faces). With
- * Fillet corners, their corners' rounds (`corners`, `radius`: Fillet radius and `TIE_OFFSET`) are set to exactly
- * Fillet radius (`opModifyFillet`); full rounds across narrow sides, which aren't `radius`, are left. Without, their
- * sides (`sides`) are moved into the walls and ribs by it (`opOffsetFace`). Where walls exactly meet, this brings back what
- * `TIE_OFFSET` kept apart, and fails: a warning, showing what's left as it is.
- */
-function exactPockets(context is Context, featureId is Id, definition is map, targetFaces is Query, sides is Query, corners is Query,
-    radius is ValueWithUnits)
-{
-    const id = featureId + "exactPockets";
-    if (definition.filletCorners)
-    {
-        const rounds = qUnion(filter(evaluateQuery(context, qIntersection([corners, targetFaces])), function(corner)
-                {
-                    const surface = evSurfaceDefinition(context, { "face" : corner });
-                    return surface is Cylinder && tolerantEquals(surface.radius, radius);
-                }));
-        if (isQueryEmpty(context, rounds))
-        {
-            return;
-        }
-        try silent
-        {
-            opModifyFillet(context, id, {
-                        "faces" : rounds,
-                        "modifyFilletType" : ModifyFilletType.CHANGE_RADIUS,
-                        "reFillet" : false,
-                        "radius" : definition.filletRadius
-                    });
-        }
-        catch
-        {
-            reportFeatureWarning(context, featureId, "Could not modify pocket fillets.", ["exactPockets"]);
-            setErrorEntities(context, featureId, { "entities" : rounds });
-        }
-        return;
-    }
-    const pocketSides = qIntersection([sides, targetFaces]);
-    try silent
-    {
-        // Their normals point out of the part, into the pockets
-        opOffsetFace(context, id, {
-                    "moveFaces" : pocketSides,
-                    "offsetDistance" : -TIE_OFFSET
-                });
-    }
-    catch
-    {
-        reportFeatureWarning(context, featureId, "Could not offset pocket faces.", ["exactPockets"]);
-        setErrorEntities(context, featureId, { "entities" : pocketSides });
-    }
 }
