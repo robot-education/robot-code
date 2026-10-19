@@ -22,10 +22,9 @@ Unreleased.
 - When the walls can't be made, the error says the wall thickness (plus the fillet radius) is too large, and shows the
   face or the holes they fail at, instead of the pockets sticking out of the part.
 - Every pocket is cut, however small: none are left solid.
-- Walls which exactly meet at the sizes given (like round ones) no longer fail: walls and ribs are built 0.1 mm
-  thicker, and with Fillet corners, the pockets grown back by as much, so their corners are rounded 0.1 mm more than
-  Fillet radius. Without Fillet corners, walls and ribs are 0.1 mm thicker. Exact pockets (under Options) takes it back
-  off.
+- Exact pockets (under Options, on by default): off, walls and ribs are built 0.1 mm thicker, so walls which exactly
+  meet at the sizes given (like round ones) don't fail; with Fillet corners, the pockets are grown back by as much, so
+  their corners are rounded 0.1 mm more than Fillet radius. Errors which exact sizes can cause suggest it.
 - Growing the pockets back failing is a warning again, rather than failing the feature.
 - Ribs are optional: with none, there are just walls. Rib and wall overrides with nothing selected are left out,
   rather than errors.
@@ -48,8 +47,7 @@ Unreleased.
 
 | Parameter | Description |
 | --- | --- |
-| Add walls around ignored faces | Wall the sketch regions to ignore, as the face's edges are. Unchecked, pockets go right up to them. |
-| Exact pockets | Make the pockets exactly as given: their corners rounded exactly Fillet radius, or without Fillet corners, their walls and ribs exactly as thick, rather than 0.1 mm off. Costs a step. |
+| Exact pockets | If false, created pockets will be adjusted a slight amount in order to prevent issues with non-manifold geometry. |
 
 None are hidden.
 
@@ -76,18 +74,16 @@ where they come up, and show only once it's done; of several, the last of the mo
 | Wall thickness is too large, decrease the value. | error | hollowing the pockets (their outlines) fails; "Wall thickness plus fillet radius is too large, decrease them." with Fillet corners | the same, and the face | Selected offset is too large, decrease the value. |
 | Wall thickness is too large for highlighted holes, decrease the value. | error | growing the holes fails; with Fillet corners, as above | the same, and the faces and edges on the face of the holes which fail to grow on their own (`holesFailingGrowth`) | Selected offset is too large, decrease the value. |
 | Failed to create pocket inside highlighted walls. | error | enclosing a hollowed pocket fails | the same, and that pocket | Failed to create a part from enclosed region. |
-| Walls around highlighted holes would make a non-manifold part, change wall thickness slightly. | error | cutting the grown holes fails (`holesFailingCut` finds which); "wall thickness or fillet radius" with Fillet corners | the same, and those holes' faces and edges on the face, and the holes they meet | Boolean operation would result in non-manifold body. |
+| Walls around highlighted holes would make a non-manifold part. Try toggling the exact pockets option. | error | cutting the grown holes fails (`holesFailingCut` finds which) | the same and `exactPockets`, and those holes' faces and edges on the face, and the holes they meet | Boolean operation would result in non-manifold body. |
 | Failed to cut walls around holes from pockets. | error | cutting the grown holes fails, and no hole's cut fails on its own or after another's | the same, and the face | Boolean operation failed to return a valid part. |
 | Walls do not enclose a region for pockets, decrease the value. | error | hollowing encloses nothing: every pocket's narrower than twice the walls; "decrease them." with Fillet corners | the same, and the hollowed pockets | Selections do not enclose a region. |
 | Failed to create a rib from highlighted edge. | error | a rib's extrude, thicken, or cylinder fails | that rib's group's parameters, and its edge | Failed to create a rib from a selected profile. |
-| Failed to cut ribs from pockets. | error | cutting them fails | the rib parameters, and the ribs | Failed to merge ribs into parts. |
+| Failed to cut ribs from pockets. Try toggling the exact pockets option. | error | cutting them fails (as where a rib exactly meets a wall) | the rib parameters and `exactPockets`, and the ribs | Failed to merge ribs into parts. |
 | Walls and ribs do not leave room for pockets. | error | the ribs leave nothing of the pockets | the wall, fillet, and rib parameters, and the face and ribs (what was cut is used up) | Selections do not enclose a region. |
 | Failed to fillet highlighted pocket corner. | warning | a corner's fillet fails, and neither side next to it has another corner to round across to: it's left sharp | `filletRadius`, and the corner | Failed to fillet selections. |
 | Failed to fillet highlighted pocket. | warning | a full round across a failed corner's narrow side fails: the corner's left sharp, and the fillet it deleted is put back | `filletRadius`, the corner and the side | Failed to fillet selections. |
-| Could not offset pockets to fillet radius. | warning | growing the rounded pockets back fails: they're cut smaller, by the fillet radius (the growth's error is copied for its display, then cleared, so it doesn't fail the feature) | `filletRadius`, the pockets, and the growth's error display | Could not offset selected faces as requested. |
-| Failed to cut pockets from part. | error | cutting them fails | `face`, and the pockets | Boolean operation failed to return a valid part. |
-| Could not modify pocket fillets. | warning | with Exact pockets and Fillet corners, setting the corners' rounds to Fillet radius fails: they're left 0.1 mm larger | `exactPockets`, the rounds | Could not modify selected fillets. |
-| Could not offset pocket faces. | warning | with Exact pockets, without Fillet corners, moving the pockets' sides back fails: walls and ribs are left 0.1 mm thicker | `exactPockets`, the sides | Could not offset selected faces as requested. |
+| Could not offset pockets to fillet radius. Try toggling the exact pockets option. | warning | growing the rounded pockets back fails (as for a sliver left where walls and ribs exactly meet): they're cut smaller, by the fillet radius (the growth's error is copied for its display, then cleared, so it doesn't fail the feature) | `filletRadius` and `exactPockets`, the pockets, and the growth's error display | Could not offset selected faces as requested. |
+| Failed to cut pockets from part. Try toggling the exact pockets option. | error | cutting them fails | `face` and `exactPockets`, and the pockets | Boolean operation failed to return a valid part. |
 | Weight reduced by `<percent>`%. | info | the pockets are cut (shown if nothing was reported before it, or after it) | | none |
 | Some parts are loose. | info | the cut leaves pieces free (ribs which touch no wall or other rib): reported after the weight's, so it shows instead | the loose parts, in blue (debug entities) | Hole operation split part into multiple parts. |
 
@@ -141,7 +137,7 @@ robotLighten
         --> holesFailingCut, grownHolesOnPart      //    if cutting fails: the holes whose walls exactly meet others'
 --> buildRibs --> buildRibGroup                    // with ribs: each a sheet thickened, or a cylinder
 --> opBoolean "cutRibs"                            // ribs cut from the pockets
---> roundPockets                                   // with Fillet corners (radius + TIE_OFFSET), in steps:
+--> roundPockets                                   // with Fillet corners (and TIE_OFFSET), in steps:
     --> opFillet "fillet"                          // 1. each corner on its own, a hair, kept if it works
     --> narrowSide                                 // 2. each failed corner: the side to its nearest other corner
         --> opDeleteFace, opFullRoundFillet        //    that corner's fillet deleted, a full round across the side
@@ -149,8 +145,6 @@ robotLighten
 --> excludeRegions                                 // without walls around ignored faces: regions cut from pockets
 --> patternedPart, opTransform "patterned"         // in a mirror or pattern onto another part: pockets moved there
 --> opBoolean "cut"                                // pockets cut from the part
---> exactPockets                                   // with Exact pockets: TIE_OFFSET taken back off
-    --> opModifyFillet or opOffsetFace             //    the corners' rounds to Fillet radius, or the sides moved back
 --> reportFeatureInfo                              // weight reduced, then loose parts (blue)
 --> opDeleteBodies "cleanup"                       // pockets, ribs, and the sketches' copies
 ```
@@ -229,32 +223,32 @@ them fail on their own.
 At round sizes, walls often exactly meet: Exercise 3's two bearing holes 0.875 in apart, with 0.4375 in walls, or a
 pocket exactly the bit's width (Robot Lighten Example 2, with 0.25 in walls, fillets, and ribs). Exactly met, the
 pockets either side touch along an edge, which no cut can leave (`BOOLEAN_NON_MANIFOLD_RESULT`), or are left a sliver,
-which growing them back fails on. So walls and ribs are built `TIE_OFFSET` (0.1 mm) thicker than they're to be, and
-where they'd meet exactly, they overlap a little instead: nothing's detected or retried, it's the same for every part.
-With Fillet corners, the pockets are grown back by as much, so walls and ribs are exactly as thick as asked, and the
-corners are rounded `TIE_OFFSET` more than Fillet radius. Without Fillet corners, nothing's grown back, and walls and
-ribs are left 0.1 mm thicker: rounding the corners just to grow them back costs as much as the rest of the feature
-(Exercise 3's Robot lighten 2: 310 ms, against 140 ms), and growing them back without rounding brings the tie back at
-the cut. It's more than std's boolean tolerance (0.01 mm), which booleans treat as touching.
+which growing them back fails on.
 
-Exact pockets (under Options, off by default) takes it back off, after the cut: with Fillet corners, the corners'
-rounds are set to Fillet radius (`opModifyFillet`; full rounds across narrow sides are left), and without, the
-pockets' sides in the part are moved back into the walls and ribs (`opOffsetFace`), about 20 ms on Exercise 3's plate.
-If that fails, it's a warning, and they're left as they are. At an exact tie, it puts the walls back where they meet:
-on Exercise 3's plate, Onshape left the pockets apart (the face's loops and vertices are as without it).
+Exact pockets (under Options) is on by default, and builds everything exactly as given, ties and all. Off, walls and
+ribs are built `TIE_OFFSET` (0.1 mm) thicker than they're to be, and where they'd meet exactly, they overlap a little
+instead: nothing's detected or retried, it's the same for every part. With Fillet corners, the pockets are grown back
+by as much, so walls and ribs are exactly as thick as asked, and the corners are rounded `TIE_OFFSET` more than Fillet
+radius. Without Fillet corners, nothing's grown back, and walls and ribs are left 0.1 mm thicker: rounding the corners
+just to grow them back costs as much as the rest of the feature (Exercise 3's Robot lighten 2: 310 ms, against
+140 ms), and growing them back without rounding brings the tie back at the cut. It's more than std's boolean tolerance
+(0.01 mm), which booleans treat as touching.
 
-Exact pockets can't be folded into the offsets themselves: a tie is broken only if the hollow differs from the
-nominal one, and a pocket's corner is the hair and the growth back while its wall is the hollow less the growth, so
-with the hollow off by `TIE_OFFSET`, either the walls or the corners are off by it until something after the cut takes
-it back off.
+So the errors exact sizes can cause (cutting the grown holes, the ribs, or the pockets failing, and growing the
+pockets back failing) end with "Try toggling the exact pockets option.": off, it breaks ties at round sizes; on, a
+tie the offset happens to land on goes away. It says toggling, so it needn't know which it is.
+
+Either way, one of the walls or the corners is off when ties are broken: a tie is broken only if the hollow differs
+from the nominal one, and a pocket's corner is the hair and the growth back while its wall is the hollow less the
+growth. Taking it back off after the cut (`opModifyFillet` on the corners, or `opOffsetFace` on the pockets' sides)
+was tried as a step of Exact pockets, and dropped for the option deciding whether it's added at all.
 
 ### Regions to ignore
 
 Sketch regions to ignore are left solid. With Add walls around ignored faces (the default), they're cut from the
 pocket before the walls, so walls go around them as around holes. Without, they're cut from the pockets once the
-pockets are rounded and grown back, so the pockets go right up to them, and aren't grown into them; their sides
-along the regions are left out of Exact pockets, having no walls to take `TIE_OFFSET` off. Part faces to ignore never
-get walls, either way.
+pockets are rounded and grown back, so the pockets go right up to them, and aren't grown into them. Part faces to
+ignore never get walls, either way.
 
 ### Mirrors and patterns
 
@@ -282,9 +276,9 @@ std's boolean tolerance of it) is a solid cylinder instead.
 
 ### Rounding the pockets
 
-With Fillet corners, the walls and ribs were built thicker by the fillet radius and `TIE_OFFSET` (see Ties), less a
-hair (std's boolean tolerance, 0.01 mm). Growing the pockets back out by that rounds their corners as a router bit of
-the radius (and `TIE_OFFSET`) would, and a pocket narrower than
+With Fillet corners, the walls and ribs were built thicker by the fillet radius (and `TIE_OFFSET`, without Exact
+pockets, see Ties), less a hair (std's boolean tolerance, 0.01 mm). Growing the pockets back out by that rounds their
+corners as a router bit of that radius would, and a pocket narrower than
 the bit is already gone. This is Vent's `expandWithFillet`, and the previous Onshape Lighten feature's: corners get a
 hair fillet first, which the growth rounds. Vent grows by the whole radius, and sets the rounds back to it
 (`opModifyFillet`), since a hair and the growth make a round a hair bigger. Growing by the radius less the hair makes
@@ -348,7 +342,7 @@ the style guide's "Tolerances, not margins").
   checked, and nothing left is an error there, showing what's still there to show: when the cut used up the pockets
   and ribs, the face and the rib edges.
 - Failures it can carry on from aren't errors: anything in rounding (a corner left sharp, or the pockets left
-  ungrown), or in Exact pockets, is a warning, and loose parts are info. Each is reported where it comes up; the last
+  ungrown) is a warning, and loose parts are info. Each is reported where it comes up; the last
   of the most severe shows: loose parts' info after the weight's, so it shows instead. Where a failed operation's error display is wanted
   (growing the pockets back), its status is copied, then cleared keeping the display, then the warning's reported:
   a copied error left in place fails the feature.
@@ -363,7 +357,6 @@ the style guide's "Tolerances, not margins").
 | `roundPockets` (`try silent`) | Growing the pockets back | A warning, showing the pockets, cut smaller. |
 | `holesFailingGrowth` (`try silent`) | Growing each hole on its own, once growing them all has failed | That hole isn't why; the feature it's in is rolled back either way. |
 | `holesFailingCut` (`try silent`) | Cutting each grown hole, in turn and after each other, once cutting them all has failed | That cut isn't why; the feature it's in is rolled back either way. |
-| `exactPockets` (`try silent`) | Setting the corners' rounds to Fillet radius, or moving the pockets' sides back | A warning, showing them, left 0.1 mm off. |
 
 ## Method comparison
 
@@ -402,9 +395,11 @@ taking: Up to face and Up to part end types.
   corners, with 0.8 in walls).
 - Untested in Onshape: the errors when hollowing the outline or growing the holes fails, and holes along faces to
   ignore or overrides.
-- Ties are broken at the sizes given (see Ties), but walls can still exactly meet at other sizes, 0.1 mm off round
-  ones: the holes' cut then fails with an error saying so, and growing a sliver back fails with a warning.
-- Without Fillet corners, walls and ribs are 0.1 mm thicker than asked, unless Exact pockets is on.
+- With Exact pockets (the default), walls which exactly meet at round sizes fail the holes' cut (or the ribs' or
+  pockets'), or leave slivers which fail to grow back; the messages suggest toggling it. Off, ties are broken at the
+  sizes given, but walls can still exactly meet at other sizes, 0.1 mm off round ones.
+- Without Exact pockets, corners are 0.1 mm rounder than Fillet radius, or without Fillet corners, walls and ribs are
+  0.1 mm thicker than asked.
 - Untested in Onshape: no ribs, feature mirrors and patterns (onto another part, with ribs or regions patterned or
   not), Add walls around ignored faces off, and the loose parts' info. Checked only by `fs check`, and by Onshape's
   examples still building (none of them use these).
