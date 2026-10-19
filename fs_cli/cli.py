@@ -1495,6 +1495,7 @@ def audit(config: Config, args: argparse.Namespace) -> int:
             return 0
         # The extension watches for this, and shows the feature's preview (in each window with the repo open)
         request = config.root / OPEN_REQUEST
+        request.parent.mkdir(parents=True, exist_ok=True)
         request.write_text(json.dumps({"file": path.resolve().as_posix(), "feature": feature}), newline="")
         print("Showed it in VS Code's feature preview (if the FeatureScript extension is running).")
     return 0

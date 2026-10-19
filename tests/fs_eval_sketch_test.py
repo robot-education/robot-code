@@ -140,7 +140,7 @@ def test_open_belt_profile_is_closed_and_smooth():
         assert abs(out[0] * into[1] - out[1] * into[0]) < 1e-6, f"{before.id} and {after.id} aren't tangent"
 
 
-def gear_profile(teeth: int, module_mm: float = 1.27, pressure_degrees: float = 20, fillet: str = "standardFilletRadius(m)",
+def gear_profile(teeth: int, module_mm: float = 1.27, pressure_degrees: float = 20, fillet: str = "1",
                  sector: str = "undefined"):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
@@ -202,21 +202,70 @@ def test_router_relief_rounds_roots():
         gear_profile(14, fillet="1 / 16 * inch")
 
 
-RACK_FORM = "getGearForm(1 * millimeter, undefined, 20 * degree, 0 * meter, {offset} * millimeter)"
+ROOT_FILLETS = ["1", "2 / 3", "1 / 2", "0"]
+
+
+@pytest.mark.parametrize("teeth", [10, 24, 60])
+@pytest.mark.parametrize("pressure_degrees", [14.5, 20])
+@pytest.mark.parametrize("fillet", ROOT_FILLETS)
+def test_root_fillets_are_closed_and_meet_tangent(teeth, pressure_degrees, fillet):
+    # Full, 1/3, 1/4, and None, as Onshape's Spur gear's Root fillet: none of them dig below the root
+    sketch, form = gear_profile(teeth, pressure_degrees=pressure_degrees, fillet=fillet)
+    loops = sketch.loops()
+    assert len(loops) == 1 and loops[0].closed
+    assert min(curve.nearest() for curve in loops[0].curves) == pytest.approx(form["rootRadius"], abs=1e-9)
+    if fillet == "0":
+        return
+    for before, after in loops[0].joints():
+        if "spline" not in (before.kind, after.kind):
+            out, into = before.tangent(True), after.tangent(False)
+            assert abs(out[0] * into[1] - out[1] * into[0]) < 1e-6, f"{before.id} and {after.id} aren't tangent"
+
+
+def root_arcs(teeth: int, fillet: str):
+    """The first tooth's arcs on its clockwise side, below its flank: its root's and fillet's, or its full round."""
+    sketch, form = gear_profile(teeth, fillet=fillet)
+    arcs = [curve for curve in sketch.loops()[0].curves if curve.kind == "arc" and curve.id in ("tooth0_0", "tooth0_1")]
+    return arcs, form
+
+
+def test_full_round_is_tangent_to_the_root_circle():
+    (round_arc,), form = root_arcs(24, "1")
+    # Centered in the gap, a radius above the root circle
+    assert math.hypot(*round_arc.center) - round_arc.radius == pytest.approx(form["rootRadius"], abs=1e-9)
+    tooth_angle = 2 * math.pi / 24
+    assert math.atan2(round_arc.center[1], round_arc.center[0]) == pytest.approx(-tooth_angle / 2, abs=1e-9)
+
+
+@pytest.mark.parametrize("fillet, fraction", [("2 / 3", 2 / 3), ("1 / 2", 1 / 2)])
+def test_partial_root_fillets_are_a_fraction_of_the_full_round(fillet, fraction):
+    (full,), _ = root_arcs(24, "1")
+    root, round_arc = root_arcs(24, fillet)[0]
+    assert round_arc.radius == pytest.approx(full.radius * fraction, abs=1e-12)
+
+
+def test_no_root_fillet_leaves_a_sharp_corner():
+    sketch, form = gear_profile(24, fillet="0")
+    arcs = [curve for curve in sketch.loops()[0].curves if curve.kind == "arc"]
+    # Only the root's and tips' arcs
+    assert {round(arc.radius, 9) for arc in arcs} == {round(form["rootRadius"], 9), round(form["tipRadius"], 9)}
+
+
+RACK_FORM = "getGearForm(1 * millimeter, undefined, 20 * degree, {fillet}, {offset} * millimeter)"
 
 
 def rack_centers(length_mm: float, gap_mm: float, offset_mm: float = 0.0) -> list[float]:
-    form = RACK_FORM.format(offset=offset_mm)
+    form = RACK_FORM.format(fillet=0, offset=offset_mm)
     return to_python(shared_evaluator().eval(
         f"rackToothCenters({form}, {length_mm} * millimeter, {gap_mm} * millimeter)", "gear/gearCommon.fs"))
 
 
-def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0, relief: str = "0 * meter"):
+def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0, fillet: str = "0"):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
-    form = RACK_FORM.format(offset=offset_mm)
+    form = RACK_FORM.format(fillet=fillet, offset=offset_mm)
     centers = f"rackToothCenters({form}, {length_mm} * millimeter, 0 * meter)"
-    regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers}, {relief})"
+    regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers})"
     evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, {regions})', "gear/gearCommon.fs", context=context)
     return recorded_sketch(context, "profile")
 
@@ -270,7 +319,7 @@ def test_rack_cut_is_one_region_when_teeth_stop_short_of_the_face():
 
 def test_rack_roots_are_rounded_for_a_router_bit():
     # 1 mm module: a gap's floor is about 0.66 mm, room for a 0.2 mm radius bit's round at each corner
-    sketch = rack_cut("0 * meter", 10 * math.pi, relief="0.2 * millimeter")
+    sketch = rack_cut("0 * meter", 10 * math.pi, fillet="0.2 * millimeter")
     loops = sketch.loops()
     assert len(loops) == 11 and all(loop.closed for loop in loops)
     arcs = [curve for loop in loops for curve in loop.curves if curve.kind == "arc"]
@@ -284,7 +333,7 @@ def test_rack_roots_are_rounded_for_a_router_bit():
 
 def test_rack_roots_are_a_full_round_when_the_floor_is_too_narrow():
     # A 0.5 mm radius bit doesn't fit both corners: one round across each gap, above the root
-    sketch = rack_cut("0 * meter", 10 * math.pi, relief="0.5 * millimeter")
+    sketch = rack_cut("0 * meter", 10 * math.pi, fillet="0.5 * millimeter")
     loops = sketch.loops()
     assert all(loop.closed for loop in loops)
     gap = loops[1]
@@ -295,10 +344,35 @@ def test_rack_roots_are_a_full_round_when_the_floor_is_too_narrow():
     assert -0.00125 < bottom < -0.001
 
 
+def test_rack_full_round_fillets_meet_in_the_floors_middle():
+    sketch = rack_cut("0 * meter", 10 * math.pi, fillet="1")
+    loops = sketch.loops()
+    assert all(loop.closed for loop in loops)
+    alpha = math.radians(20)
+    floor = math.pi * 0.001 / 2 - 2.5 * 0.001 * math.tan(alpha)
+    expected = floor / 2 * math.tan(math.pi / 4 + alpha / 2)
+    gap = loops[1]
+    arcs = [curve for curve in gap.curves if curve.kind == "arc"]
+    assert len(arcs) == 2 and all(arc.radius == pytest.approx(expected, abs=1e-12) for arc in arcs)
+    # Meeting at the root, tangent to it, with no floor between them
+    assert arcs[0].end == pytest.approx(arcs[1].start, abs=1e-12) or arcs[1].end == pytest.approx(arcs[0].start, abs=1e-12)
+    points = [point for curve in gap.curves for point in (curve.start, curve.end)]
+    assert min(arc.center[1] - arc.radius for arc in arcs) == pytest.approx(-0.00125, abs=1e-12)
+    assert min(y for _, y in points) >= -0.00125 - 1e-12
+
+
+@pytest.mark.parametrize("fillet", ["2 / 3", "1 / 2"])
+def test_rack_partial_fillets_leave_a_floor(fillet):
+    sketch = rack_cut("0 * meter", 10 * math.pi, fillet=fillet)
+    gap = sketch.loops()[1]
+    lines = [curve for curve in gap.curves if curve.kind == "line" and abs(curve.start[1] + 0.00125) < 1e-12 and abs(curve.end[1] + 0.00125) < 1e-12]
+    assert len(lines) == 1
+
+
 def test_rack_round_too_big_for_its_gaps():
     # Its round would stop above where a mating gear's tips reach
     with pytest.raises(FSError, match="doesn't fit between the teeth"):
-        rack_cut("0 * meter", 10 * math.pi, relief="0.8 * millimeter")
+        rack_cut("0 * meter", 10 * math.pi, fillet="0.8 * millimeter")
 
 
 def test_rack_teeth_too_thin():
@@ -361,10 +435,11 @@ def test_bevel_cones():
 
 
 @pytest.mark.parametrize("virtual_teeth", [12.5, 28.28, 60])
-def test_tooth_gap_is_one_closed_loop(virtual_teeth):
+@pytest.mark.parametrize("fillet", ROOT_FILLETS)
+def test_tooth_gap_is_one_closed_loop(virtual_teeth, fillet):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
-    form = f"getGearForm(1 * millimeter, {virtual_teeth}, 20 * degree, 0.38 * millimeter, 0 * meter)"
+    form = f"getGearForm(1 * millimeter, {virtual_teeth}, 20 * degree, {fillet}, 0 * meter)"
     evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form})', "gear/gearCommon.fs", context=context)
     loops = recorded_sketch(context, "gap").loops()
     assert len(loops) == 1 and loops[0].closed

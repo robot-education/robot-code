@@ -139,3 +139,118 @@ export function testRevolveAnglesAsStdRevolve()
     expectEqual(revolveAngles(mergeMaps(base, { "symmetric" : true })), { "start" : -45 * degree, "end" : 45 * degree });
     expectEqual(revolveAngles(mergeMaps(base, { "hasStartBound" : true })), { "start" : -30 * degree, "end" : 90 * degree });
 }
+
+/**
+ * A 20 DP bevel gear with `teeth`, meshing with `mateTeeth` at `shaftAngle`, `thickness` thick.
+ */
+function bevel(teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits) returns map
+{
+    return bevelShape({
+                "gearType" : GearType.BEVEL,
+                "unitSystem" : UnitSystem.IMPERIAL,
+                "mateTeeth" : mateTeeth,
+                "shaftAngle" : shaftAngle,
+                "thickness" : thickness,
+                "addProfileOffset" : false
+            }, MODULE, teeth);
+}
+
+export function testBevelThicknessRunsFromItsBackToItsTop()
+{
+    // 45 degree cones: the apex is a pitch radius (half an inch) above the back's pitch circle
+    const shape = bevel(20, 20, 90 * degree, 0.25 * inch);
+    expectNear(shape.apex, 0.5 * inch, 1e-9 * meter);
+    // Its flat back is under its teeth's roots, along the back cone
+    expectNear(shape.bottom, -1.25 * MODULE * sin(45 * degree), 1e-9 * meter);
+    expectNear(shape.top - shape.bottom, 0.25 * inch, 1e-9 * meter);
+    // Its teeth run along the pitch cone to its top
+    expectNear(shape.faceWidth * cos(45 * degree), shape.top, 1e-9 * meter);
+}
+
+export function testBevelGearsPointsAreItsBottomMiddleTopAndApex()
+{
+    const definition = {
+            "gearType" : GearType.BEVEL,
+            "unitSystem" : UnitSystem.IMPERIAL,
+            "mateTeeth" : 20,
+            "shaftAngle" : 90 * degree,
+            "thickness" : 0.25 * inch,
+            "addProfileOffset" : false
+        };
+    const shape = bevelShape(definition, MODULE, 20);
+    const points = gearPointDistances(definition, MODULE, 20);
+    expectEqual(size(points), 4);
+    expectNear(points[0], shape.bottom, 1e-12 * meter);
+    expectNear(points[1], shape.bottom + 0.125 * inch, 1e-12 * meter);
+    expectNear(points[2], shape.top, 1e-12 * meter);
+    expectNear(points[3], shape.apex, 1e-12 * meter);
+}
+
+export function testSpurGearsPointsStartAtItsBottom()
+{
+    const points = gearPointDistances({ "gearType" : GearType.GEAR, "thickness" : 0.5 * inch }, MODULE, 24);
+    expectEqual(points, vector([-0.25 * inch, 0 * meter, 0.25 * inch]));
+    // As `applyPointManipulator` takes them
+    expectTrue(isLengthVector(points), "a length vector");
+}
+
+export function testBevelGearTooThinForItsTeeth()
+{
+    expectContains(expectThrows(function()
+            {
+                bevel(20, 20, 90 * degree, 0.05 * inch);
+            }), "too thin for its teeth");
+}
+
+export function testBevelGearTooThickReachesItsApex()
+{
+    expectContains(expectThrows(function()
+            {
+                bevel(20, 20, 90 * degree, 0.6 * inch);
+            }), "its top would reach its apex");
+}
+
+export function testBevelGearTooThinForItsMatesTeeth()
+{
+    // The pinion's thick enough for its own steep teeth, but its mate's, nearly flat, need a longer face
+    expectContains(expectThrows(function()
+            {
+                bevel(10, 40, 90 * degree, 0.15 * inch);
+            }), "too thin for its mate's teeth");
+    bevel(10, 40, 90 * degree, 0.25 * inch);
+}
+
+export function testBevelMateHasTheGearsFaceWidth()
+{
+    const gear = bevel(10, 40, 90 * degree, 0.25 * inch);
+    const mate = bevelShape({
+                "gearType" : GearType.BEVEL,
+                "mateTeeth" : 10,
+                "shaftAngle" : 90 * degree,
+                "faceWidth" : gear.faceWidth,
+                "addProfileOffset" : false
+            }, MODULE, 40);
+    expectNear(mate.faceWidth, gear.faceWidth, 1e-12 * meter);
+    expectNear(mate.top, gear.faceWidth * cos(mate.cones.gear.pitchAngle), 1e-12 * meter);
+}
+
+export function testSpansJoinWhereTheyMeet()
+{
+    expectEqual(joinSpans([{ "start" : 0 * degree, "end" : 90 * degree }, { "start" : 90 * degree, "end" : 180 * degree }]),
+        { "full" : false, "start" : 0 * degree, "end" : 180 * degree });
+    // Before the first, and a turn around
+    const before = joinSpans([{ "start" : 0 * degree, "end" : 90 * degree }, { "start" : 260 * degree, "end" : 360 * degree }]);
+    expectNear(before.start, -100 * degree, 1e-9 * degree);
+    expectNear(before.end, 90 * degree, 1e-9 * degree);
+    // All the way around
+    expectEqual(joinSpans([{ "start" : 0 * degree, "end" : 180 * degree }, { "start" : -180 * degree, "end" : 0 * degree }]), { "full" : true });
+    // Apart, it's the first's
+    expectEqual(joinSpans([{ "start" : 0 * degree, "end" : 10 * degree }, { "start" : 100 * degree, "end" : 110 * degree }]),
+        { "full" : false, "start" : 0 * degree, "end" : 10 * degree });
+}
+
+export function testPointManipulatorSetsTheIndex()
+{
+    const changed = robotGearManipulatorChange(newContext(), { "index" : 0 }, { "pointManipulator" : { "index" : 3 } });
+    expectEqual(changed.index, 3);
+}

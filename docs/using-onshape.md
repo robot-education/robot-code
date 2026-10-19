@@ -104,7 +104,12 @@ header, set to the `XSRF-TOKEN` cookie, with requests which change anything.
 - A feature's parameters: GET `/features`, change a parameter's `expression`, and POST the feature to
   `/features/featureid/{fid}` (with the listing's `serializationVersion` and `sourceMicroversion`); the response's
   `featureState` says whether it worked (`OK`, `INFO`, `WARNING`, `ERROR`), and the monitored tab's notices say why.
-  This changes the user's document, so put the value back after.
+  It's rate limited like the FeatureScript endpoint (a few dozen calls got a 429 with a `retry-after` of 16 hours),
+  while Feature Studio contents weren't.
+
+The backend document's examples are for trying things: changing a feature's parameters to test it is fine, and so is
+leaving them changed afterwards. Don't spend calls putting every value back; just don't leave a feature failing that
+was working.
 
 Close a Feature Studio's tab in Onshape before changing it this way (or reload it after), as with `fs push` (see
 `docs/fs-cli.md`).

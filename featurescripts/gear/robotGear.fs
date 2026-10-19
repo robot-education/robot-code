@@ -12,7 +12,7 @@ import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports BoreShape, Fit, and SplineType, parameter types
 export import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
-import(path : "f9a7532fe0d68211bd3a8112", version : "a308a92cbf8bc15418871819");
+import(path : "f9a7532fe0d68211bd3a8112", version : "88cdac249919d6e3b37ebf69");
 import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
 // Where the gear is on its location: its bottom, middle, top, or a bevel gear's apex
 import(path : "554542fc345271814c4463b0", version : "5b47f8330c585dfb754b8a98");
@@ -533,16 +533,16 @@ function boreReach(bore is Bore) returns ValueWithUnits
 /**
  * Where the point manipulator's points are, along the gear's axis from its plane (a spur gear's middle, or a bevel
  * gear's back pitch circle): its bottom (first, so the default), middle, and top, and a bevel gear's apex. The gear's
- * plane is the location's, less the chosen point's (see `applyPointManipulator`).
+ * plane is the location's, less the chosen point's (see `applyPointManipulator`, which takes them as a `Vector`).
  */
-export function gearPointDistances(definition is map, module is ValueWithUnits, teeth is number) returns array
+export function gearPointDistances(definition is map, module is ValueWithUnits, teeth is number) returns Vector
 {
     if (definition.gearType != GearType.BEVEL)
     {
-        return [-definition.thickness / 2, 0 * meter, definition.thickness / 2];
+        return vector([-definition.thickness / 2, 0 * meter, definition.thickness / 2]);
     }
     const shape = bevelShape(definition, module, teeth);
-    return [shape.bottom, (shape.bottom + shape.top) / 2, shape.top, shape.apex];
+    return vector([shape.bottom, (shape.bottom + shape.top) / 2, shape.top, shape.apex]);
 }
 
 /**
@@ -1160,17 +1160,20 @@ function moveFacesOut(context is Context, featureId is Id, id is Id, faces is Qu
 function cutRack(context is Context, id is Id, definition is map, face is Query, form is map)
 {
     var facePlane = evPlane(context, { "face" : face });
-    // Evaluated before they're moved
-    const faces = qUnion(evaluateQuery(context, definition.tangentPropagation ? qCoincidesWithPlane(qTangentConnectedFaces(face), facePlane) : face));
-    if (definition.rackFaceAt == RackFaceAt.PITCH)
-    {
-        moveFacesOut(context, id, id + "moveFace", faces, form.module);
-        facePlane.origin += facePlane.normal * form.module;
-    }
+    var faces = definition.tangentPropagation ? qCoincidesWithPlane(qTangentConnectedFaces(face), facePlane) : face;
+    // Before they're moved: the selection doesn't find moved faces
+    const part = qUnion(evaluateQuery(context, qOwnerBody(face)));
     const direction = longestEdgeDirection(context, faces);
     if (direction == undefined)
     {
         throw regenError("The face needs a straight edge for the teeth to run along.", ["rackFace"], face);
+    }
+    if (definition.rackFaceAt == RackFaceAt.PITCH)
+    {
+        moveFacesOut(context, id, id + "moveFace", faces, form.module);
+        // Moved, the faces beside them stretch to meet them, which can make them longer: measured where they are now
+        facePlane.origin += facePlane.normal * form.module;
+        faces = qCoincidesWithPlane(qOwnedByBody(part, EntityType.FACE), facePlane);
     }
     // x along the teeth, y out of the part, and z across the face
     const frame = coordSystem(facePlane.origin, direction, cross(direction, facePlane.normal));
@@ -1238,7 +1241,6 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
         cleanup(context, id + ("deleteSketch" ~ i), qUnion([qCreatedBy(profileId, EntityType.BODY), qCreatedBy(endId, EntityType.BODY)]));
         tools = append(tools, qCreatedBy(id + ("extrude" ~ i), EntityType.BODY));
     }
-    const part = qOwnerBody(face);
     opBoolean(context, id + "cut", {
                 "targets" : part,
                 "tools" : qUnion(tools),
@@ -1275,17 +1277,19 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
     {
         throw regenError("Teeth can't be cut inside a hole yet: select a round face on the outside of a part.", ["rackFace"], face);
     }
-    var faces = [face];
-    if (definition.tangentPropagation)
-    {
-        faces = filter(evaluateQuery(context, qUnion([face, qTangentConnectedFaces(face)])->qGeometry(GeometryType.CYLINDER)), function(other)
-            {
-                const surface = evSurfaceDefinition(context, { "face" : other });
-                return tolerantEquals(surface.radius, cylinder.radius) && parallelVectors(surface.coordSystem.zAxis, frame.zAxis) &&
-                    tolerantEquals(project(axis, surface.coordSystem.origin), surface.coordSystem.origin);
-            });
-    }
-    const allFaces = qUnion(faces);
+    // Faces on the same axis, of a radius
+    const onCylinder = function(faces is Query, radius is ValueWithUnits) returns array
+        {
+            return filter(evaluateQuery(context, faces->qGeometry(GeometryType.CYLINDER)), function(other)
+                {
+                    const surface = evSurfaceDefinition(context, { "face" : other });
+                    return tolerantEquals(surface.radius, radius) && parallelVectors(surface.coordSystem.zAxis, frame.zAxis) &&
+                        tolerantEquals(project(axis, surface.coordSystem.origin), surface.coordSystem.origin);
+                });
+        };
+    const faces = definition.tangentPropagation ? onCylinder(qUnion([face, qTangentConnectedFaces(face)]), cylinder.radius) : [face];
+    // Before they're moved: the selection doesn't find moved faces
+    const part = qUnion(evaluateQuery(context, qOwnerBody(face)));
 
     // Its teeth
     const pitchRadius = definition.rackFaceAt == RackFaceAt.PITCH ? cylinder.radius : cylinder.radius - module;
@@ -1301,18 +1305,22 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
         warning = "The face isn't the size of a gear with a whole number of teeth: it's cut as the nearest, with " ~ teeth ~ " teeth.";
     }
 
+    // Out to the tips. Moved, the faces beside them stretch to meet them, which can widen their angles: they're measured
+    // where they are now.
+    const tipRadius = module * teeth / 2 + module;
+    var tipFaces = faces;
+    if (!tolerantEquals(tipRadius, cylinder.radius))
+    {
+        moveFacesOut(context, id, id + "moveFace", qUnion(faces), tipRadius - cylinder.radius);
+        tipFaces = onCylinder(qOwnedByBody(part, EntityType.FACE), tipRadius);
+    }
+    const allFaces = qUnion(tipFaces);
+
     // Across its width, and around its angles
     const bounds = evBox3d(context, { "topology" : allFaces, "cSys" : frame, "tight" : true });
     const width = bounds.maxCorner[2] - bounds.minCorner[2];
     const middlePoint = toWorld(frame, vector(0 * meter, 0 * meter, (bounds.minCorner[2] + bounds.maxCorner[2]) / 2));
-    const span = roundFacesSpan(context, faces, frame);
-
-    // Out to the tips
-    const tipRadius = module * teeth / 2 + module;
-    if (!tolerantEquals(tipRadius, cylinder.radius))
-    {
-        moveFacesOut(context, id, id + "moveFace", allFaces, tipRadius - cylinder.radius);
-    }
+    const span = roundFacesSpan(context, tipFaces, frame);
 
     // Where a gap's centered
     const yAxis = cross(frame.zAxis, frame.xAxis);
@@ -1420,7 +1428,6 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
                 "operationType" : BooleanOperationType.SUBTRACTION
             });
     cleanup(context, id + "deleteSketches", qUnion([qCreatedBy(id + "profile", EntityType.BODY), qCreatedBy(id + "ring", EntityType.BODY)]));
-    const part = qOwnerBody(face);
     opBoolean(context, id + "cut", {
                 "targets" : part,
                 "tools" : tool,
