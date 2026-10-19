@@ -97,7 +97,7 @@ const P = qCreatedBy(makeId("p"), EntityType.VERTEX);
 const Q = qCreatedBy(makeId("q"), EntityType.VERTEX);
 const R = qCreatedBy(makeId("r"), EntityType.VERTEX);
 
-export function testAddRibsAddsAChain()
+export function testQuickAddAddsAChain()
 {
     const definition = addQuickRibs(quickAdding(QuickRibType.CHAIN), [P, Q, R]);
     expectEqual(definition.chains, [{ "chainPoints" : qUnion([P, Q, R]), "closed" : true }]);
@@ -106,7 +106,7 @@ export function testAddRibsAddsAChain()
     expectEqual(definition.quickSelections, qNothing());
 }
 
-export function testAddRibsAddsAHubAndSpokes()
+export function testQuickAddAddsAHubAndSpokes()
 {
     // The first selection is the hub
     const definition = addQuickRibs(quickAdding(QuickRibType.HUB), [P, Q, R]);
@@ -114,8 +114,26 @@ export function testAddRibsAddsAHubAndSpokes()
     expectEqual(definition.chains, []);
 }
 
-export function testAddRibsLeavesOneSelection()
+export function testQuickAddLeavesOneSelection()
 {
     // One point makes no rib: it's left to add to
     expectEqual(addQuickRibs(quickAdding(QuickRibType.CHAIN), [P]), quickAdding(QuickRibType.CHAIN));
+}
+
+export function testQuickAddShowsWhatItWouldAdd()
+{
+    // A closed chain through three points, or a hub with two spokes and its circle through the first
+    const chain = quickAddRibsOf(quickAdding(QuickRibType.CHAIN), [A, B, C]);
+    expectEqual(mapArray(chain, rib => rib.line), [[A, B], [B, C], [C, A]]);
+    const hub = quickAddRibsOf(quickAdding(QuickRibType.HUB), [A, B, C]);
+    expectEqual(mapArray(hub, rib => rib.line), [[A, B], [A, C], undefined]);
+    expectEqual(hub[2].circle, { "center" : A, "through" : B });
+    expectEqual(quickAddRibsOf(quickAdding(QuickRibType.CHAIN), [A]), []);
+}
+
+export function testToggledRibs()
+{
+    const ribs = [{ "key" : "a" }, { "key" : "b" }, { "key" : "c" }];
+    expectEqual(toggledRibs(ribs, ["c", "a", "gone"]), [0, 2]);
+    expectEqual(toggledRibs(ribs, []), []);
 }

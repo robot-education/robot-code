@@ -23,7 +23,7 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                     "Description" : "Where the ribs are sketched (points are projected onto it). Filled in from what's chosen first." }
         definition.face is Query;
 
-        annotation { "Group Name" : "Quick rib", "Collapsed By Default" : false }
+        annotation { "Group Name" : "Quick add", "Collapsed By Default" : false }
         {
             annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
             definition.quickRibType is QuickRibType;
@@ -43,8 +43,8 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
                 definition.quickAddCircle is boolean;
             }
 
-            annotation { "Name" : "Add ribs" }
-            isButton(definition.addRibs);
+            annotation { "Name" : "Quick add" }
+            isButton(definition.quickAdd);
         }
 
         annotation { "Group Name" : "Chains", "Collapsed By Default" : false }
@@ -145,22 +145,37 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         }
         const plane = evPlane(context, { "face" : definition.face });
         const quickRibs = getQuickRibs(context, definition);
+        const quickAdd = quickAddRibs(context, definition);
         addEdgeRibManipulators(context, id, definition);
-        if (quickRibs.ribs == [])
+        if (quickRibs.ribs == [] && quickAdd == [])
         {
             throw regenError("Add chains, hubs, or edge ribs to sketch ribs.", ["chains", "hubs", "edgeRibs"]);
         }
+        // What Quick add would add, in blue
+        showRibs(context, id + "quickAdd", plane, quickAdd, DebugColor.BLUE);
         // While deleting, every rib is sketched, with a toggle point to delete it (deleted ones toggled already)
         const deleted = definition.deletingRibs ? [] : definition.deletedRibs ?? [];
         const ribs = filter(quickRibs.ribs, rib => !isIn(rib.key, deleted));
-        if (ribs == [])
+        if (ribs == [] && quickRibs.ribs != [])
         {
             throw regenError("All ribs are deleted.", ["startDeleting"]);
         }
         sketchQuickRibs(context, id + "ribSketch", plane, ribs);
+        if (quickAdd != [])
+        {
+            reportFeatureInfo(context, id, "Click Quick add to add the ribs.");
+        }
         if (definition.deletingRibs)
         {
-            addDeleteRibsManipulator(context, id, plane, quickRibs.ribs, definition.ribsToDelete ?? []);
+            const toDelete = definition.ribsToDelete ?? [];
+            addDeleteRibsManipulator(context, id, plane, quickRibs.ribs, toDelete);
+            // Those toggled, in red
+            const toggled = toggledRibs(quickRibs.ribs, toDelete);
+            if (toggled != [])
+            {
+                addDebugEntities(context, qUnion(mapArray(toggled, index => sketchEntityQuery(id + "ribSketch", EntityType.EDGE, "rib" ~ index))),
+                    DebugColor.RED);
+            }
             reportFeatureInfo(context, id, "Click ribs to delete.");
         }
         if (quickRibs.skipped > 0)
@@ -180,7 +195,7 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 }
 
 /**
- * Add ribs turns Quick rib's selections into a chain or a hub and spokes (`addQuickRibs`). Clear invalid selections
+ * Quick add turns Quick add's selections into a chain or a hub and spokes (`addQuickRibs`). Clear invalid selections
  * drops invalid selections (`clearInvalidSelections`). Start deleting ribs starts choosing ribs to delete, from those
  * deleted already (so they can be put back); Finish deleting ribs deletes those chosen. Fills in Face to use, while
  * it's empty and hasn't been set: the face under the first selection (`firstFaceUnder`).
@@ -188,7 +203,7 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    if (clickedButton == "addRibs")
+    if (clickedButton == "quickAdd")
     {
         definition = addQuickRibs(definition, evaluateQuery(context, definition.quickSelections));
     }
@@ -229,7 +244,7 @@ export const EDGE_RIB_LOCATION_BOUNDS = { (unitless) : EDGE_RIB_LOCATION_RANGE }
 const EDGE_RIB_MANIPULATOR = "edgeRib";
 
 /**
- * What Quick rib's selections are added as.
+ * What Quick add's selections are added as.
  */
 export enum QuickRibType
 {
@@ -240,7 +255,7 @@ export enum QuickRibType
 }
 
 /**
- * Add ribs (a button): Quick rib's `selections` (evaluated, in the order chosen) become a chain, with its Closed, or a
+ * Quick add (a button): Quick add's `selections` (evaluated, in the order chosen) become a chain, with its Closed, or a
  * hub and spokes, the first the hub and the rest its spokes, with its Add circle; then they're cleared. Fewer than two
  * are left as they are: they make no rib.
  */
@@ -324,9 +339,63 @@ export function getQuickRibs(context is Context, definition is map) returns map
         }
         segments = concatenateArrays([segments, ribs]);
     }
+    return { "ribs" : ribsOf(segments, circles), "skipped" : skipped };
+}
+
+/**
+ * Ribs (see `getQuickRibs`) from lines (each `[from, to]`, without repeats or lines with no length) and circles (each
+ * its `center` and the point it goes `through`).
+ */
+function ribsOf(segments is array, circles is array) returns array
+{
     const lines = mapArray(uniqueSegments(segments), segment => { "key" : lineKey(segment), "line" : segment });
     const rounds = mapArray(circles, circle => { "key" : circleKey(circle.center, circle.through), "circle" : circle });
-    return { "ribs" : concatenateArrays([lines, rounds]), "skipped" : skipped };
+    return concatenateArrays([lines, rounds]);
+}
+
+/**
+ * The ribs Quick add would add (see `addQuickRibs`), from its selections as they are (see `getQuickRibs`): none with
+ * fewer than two points.
+ */
+export function quickAddRibs(context is Context, definition is map) returns array
+{
+    return quickAddRibsOf(definition, pointsOf(context, definition.quickSelections));
+}
+
+/**
+ * The ribs Quick add would add through `points` (see `quickAddRibs`): a chain through them, or a hub (the first) and
+ * its spokes.
+ */
+export function quickAddRibsOf(definition is map, points is array) returns array
+{
+    if (size(points) < 2)
+    {
+        return [];
+    }
+    if (definition.quickRibType == QuickRibType.CHAIN)
+    {
+        return ribsOf(chainSegments(points, definition.quickClosed), []);
+    }
+    const circles = definition.quickAddCircle ? [{ "center" : points[0], "through" : points[1] }] : [];
+    return ribsOf(hubSegments(points[0], subArray(points, 1)), circles);
+}
+
+/**
+ * Shows `ribs` (see `getQuickRibs`) on `plane` in `color` while the feature's edited, adding nothing: as std's
+ * `addDebugLine` does, they're sketched in a subfeature under `id`, shown, and rolled back.
+ */
+function showRibs(context is Context, id is Id, plane is Plane, ribs is array, color is DebugColor)
+{
+    if (ribs == [])
+    {
+        return;
+    }
+    startFeature(context, id, {});
+    try silent
+    {
+        addDebugEntities(context, sketchQuickRibs(context, id + "sketch", plane, ribs), color);
+    }
+    abortFeature(context, id);
 }
 
 /**
@@ -417,23 +486,31 @@ export function ribTogglePoint(plane is Plane, rib is map) returns Vector
 const DELETE_RIBS_MANIPULATOR = "deleteRibs";
 
 /**
+ * The indices of `ribs` whose keys are in `toDelete`: those toggled to be deleted.
+ */
+export function toggledRibs(ribs is array, toDelete is array) returns array
+{
+    var toggled = [];
+    for (var i, rib in ribs)
+    {
+        if (isIn(rib.key, toDelete))
+        {
+            toggled = append(toggled, i);
+        }
+    }
+    return toggled;
+}
+
+/**
  * A toggle point on each of `ribs` (see `ribTogglePoint`), selected for those whose keys are in `toDelete`, as std's
  * patterns' Skip instances do.
  */
 export function addDeleteRibsManipulator(context is Context, id is Id, plane is Plane, ribs is array, toDelete is array)
 {
-    var selected = [];
-    for (var i, rib in ribs)
-    {
-        if (isIn(rib.key, toDelete))
-        {
-            selected = append(selected, i);
-        }
-    }
     addManipulators(context, id, {
                 (DELETE_RIBS_MANIPULATOR) : togglePointsManipulator({
                         "points" : mapArray(ribs, rib => ribTogglePoint(plane, rib)),
-                        "selectedIndices" : selected,
+                        "selectedIndices" : toggledRibs(ribs, toDelete),
                         "suppressedIndices" : []
                     })
             });
@@ -621,7 +698,7 @@ export function edgeRibManipulatorIndex(key is string)
 }
 
 /**
- * The face under the first quick rib selection which has one (see `faceUnder`), in order: Quick rib's selections, the
+ * The face under the first quick rib selection which has one (see `faceUnder`), in order: Quick add's selections, the
  * chains', the hubs' and their spokes', and the edge ribs' points and edges. Undefined if none do.
  */
 export function firstFaceUnder(context is Context, definition is map, hiddenBodies is Query)
@@ -684,7 +761,7 @@ function faceUnder(context is Context, entity is Query, hiddenBodies is Query)
 }
 
 /**
- * Clear invalid selections (a button): drops what's chosen (Quick rib's selections too), but isn't there any more;
+ * Clear invalid selections (a button): drops what's chosen (Quick add's selections too), but isn't there any more;
  * chains of fewer than two points; hubs without a hub; and edge ribs without an edge or points.
  */
 export function clearInvalidSelections(context is Context, definition is map) returns map
