@@ -242,6 +242,7 @@ annotation {
         "Feature Type Name" : "Robot gear",
         "Feature Type Description" : "Create spur, helical, herringbone, and bevel gears, or cut racks and gear teeth into parts, at FRC and FTC gears' standard pitches." ~ CREDIT,
         "Manipulator Change Function" : "robotGearManipulatorChange",
+        "Editing Logic Function" : "robotGearEditLogic",
         "Icon" : RobotIcon::BLOB_DATA
     }
 export const robotGear = defineFeature(function(context is Context, id is Id, definition is map)
@@ -1156,6 +1157,54 @@ function gearSize(context is Context, definition is map, module is ValueWithUnit
         result.warning = "Pitch circle is not a whole number of teeth, using nearest (" ~ teeth ~ " teeth).";
     }
     return result;
+}
+
+/**
+ * Editing logic: choosing a circle for the location that's a pitch circle at this pitch (a whole number of teeth's)
+ * switches Size by to Pitch circle, with it; likewise a circle for Gear pair's angle reference switches Mate selection
+ * to Pitch circle.
+ */
+export function robotGearEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
+    specifiedParameters is map, hiddenBodies is Query) returns map
+{
+    if (!isGear(definition))
+    {
+        return definition;
+    }
+    const module = gearModule(definition);
+    if (definition.sizeBy == GearSize.TEETH && oldDefinition.location != definition.location && isPitchCircle(context, definition.location, module))
+    {
+        definition.sizeBy = GearSize.PITCH_CIRCLE;
+        definition.pitchCircle = definition.location;
+        definition.location = qNothing();
+    }
+    if (definition.gearType != GearType.BEVEL && definition.gearPair && definition.mateSizeBy == GearSize.TEETH &&
+        oldDefinition.angleReference != definition.angleReference && isPitchCircle(context, definition.angleReference, module))
+    {
+        definition.mateSizeBy = GearSize.PITCH_CIRCLE;
+        definition.matePitchCircle = definition.angleReference;
+        definition.angleReference = qNothing();
+    }
+    return definition;
+}
+
+/**
+ * Whether `selection` is a circle whose radius is a gear's pitch radius at `module` (see `isWholeTeeth`).
+ */
+function isPitchCircle(context is Context, selection is Query, module is ValueWithUnits) returns boolean
+{
+    const circle = selection->qNthElement(0)->qGeometry(GeometryType.CIRCLE);
+    return !isQueryEmpty(context, circle) && isWholeTeeth(evCurveDefinition(context, { "edge" : circle }).radius, module);
+}
+
+/**
+ * Whether a pitch circle of `radius` is a gear's at `module`: a whole number of teeth's (within std's length tolerance),
+ * at least a gear's least.
+ */
+export function isWholeTeeth(radius is ValueWithUnits, module is ValueWithUnits) returns boolean
+{
+    const teeth = nearestGearTeeth(radius, module);
+    return teeth >= 4 && tolerantEquals(teeth * module / 2, radius);
 }
 
 /**

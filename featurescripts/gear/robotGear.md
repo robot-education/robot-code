@@ -55,6 +55,8 @@ Unreleased.
   teeth in red.
 - Most parameters' descriptions are gone (see the style guide's "Descriptions"), and the errors are reworded in std's
   form.
+- Choosing a circle that's a pitch circle at the gear's pitch (a whole number of teeth's) for the location switches
+  Size by to Pitch circle; for Gear pair's Angle reference, Mate selection.
 - Bevel gears check their mate's pitch cone too: a shaft angle where the mate would be a crown or internal gear is an
   error.
 - Bevel gears take a Thickness (shared with Gear's) rather than Face width: flat back and top, their teeth as long as
@@ -176,7 +178,10 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
    - Gear pair: its mate, built the same way (`buildGear`) where `matePlacement` puts it (below), with its own mate
      connector and bore.
    - Rack: `cutTeeth`: `cutRack` for a flat face, `cutRoundTeeth` for a round one (below).
-3. **Manipulator change** (`robotGearManipulatorChange`): the rack's end flip, or the angle's, profile offset's, point
+3. **Editing logic** (`robotGearEditLogic`): a circle newly chosen for the location, or Gear pair's Angle reference,
+   whose radius is a pitch radius at the gear's pitch (`isWholeTeeth`: a whole number of teeth's, at least 4) moves to
+   Pitch circle (or Mate pitch circle), switching Size by (or Mate selection) to Pitch circle.
+4. **Manipulator change** (`robotGearManipulatorChange`): the rack's end flip, or the angle's, profile offset's, point
    manipulator's (`index`), and starting offset's.
 
 A gear's profile (`sketchGearProfile`), per tooth (rotated copies of one centered on the plane's x axis, its other

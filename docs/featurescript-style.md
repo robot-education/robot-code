@@ -80,11 +80,16 @@ Don't implement the "editing logic boomerang", where editing logic computes a va
 
 The feature's body should use the same predicates, so the parameters it reads are exactly the ones shown.
 
-A boomerang is any editing logic which sets a parameter to change what the dialog shows: a hidden one the precondition
-reads, or a visible mode the user chose, like switching Size by to Pitch circle (hiding Teeth) when a pitch circle is
-picked as the location. Treat one as a code smell: a symptom of a dialog that doesn't let the user say what they mean.
-Fix the dialog instead (here, Teeth or Pitch circle as a top level option, which the user chooses). Use one only when
-it's strictly necessary, which in practice means a lookup table's value (see "Hidden parameters set by editing logic").
+Treat a boomerang as a code smell, a symptom of bad UI design, and add one only when it's strictly necessary, which in
+practice means a lookup table's value (see "Hidden parameters set by editing logic"). In particular, never add one to
+get around the dialog's order: a hidden parameter high in the precondition, set by editing logic from parameters below
+it, so a condition up there can read it. A condition can read any parameter, wherever it's declared (Robot gear's Teeth
+is shown by Size by, which used to be declared below it), so write a predicate of the parameters themselves, or reorder
+the dialog.
+
+Editing logic which responds to a selection by changing the visible parameters is fine, and isn't a boomerang: Robot
+gear's switches Size by to Pitch circle (moving the selection there) when a circle that's a pitch circle at the gear's
+pitch is picked as its location.
 
 A precondition's conditions can only use parameters, enum values, literals, and predicates, because Onshape works
 out which parameters to show without running the feature. Constants and functions don't work (`fs check` warns about

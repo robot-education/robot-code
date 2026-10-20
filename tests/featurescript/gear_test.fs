@@ -118,6 +118,21 @@ export function testDoubleHelicalRackMeetsInTheMiddle()
     expectNear(pieces[0].slant, -pieces[1].slant, 1e-9);
 }
 
+export function testWholeTeethPitchCircles()
+{
+    // 24 teeth at 20 DP: 1.2 in. across
+    expectTrue(isWholeTeeth(0.6 * inch, MODULE), "24 teeth");
+    expectTrue(!isWholeTeeth(0.61 * inch, MODULE), "between sizes");
+    // Too few teeth for a gear
+    expectTrue(!isWholeTeeth(0.05 * inch, MODULE), "2 teeth");
+}
+
+export function testRacksHaveNoEditingLogic()
+{
+    const definition = { "gearType" : GearType.RACK };
+    expectEqual(robotGearEditLogic(newContext(), newId(), {}, definition, true, {}, qNothing()), definition);
+}
+
 export function testSectorByAngleFitsWholeTeeth()
 {
     // 20 teeth: one every 18 degrees, so 100 degrees fits 5, centered in it
