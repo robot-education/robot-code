@@ -17,7 +17,7 @@ third or a quarter of the gap's width, or sharp; or a router bit's radius), and 
 | `../core/location.fs`, `../core/startOffset.fs`, `../core/profileOffset.fs` | The location, starting offset, and profile offset |
 | `../core/pointManipulator.fs` | Where the gear sits on its location, as Robot pulley's (`pointManipulatorPredicate`, `applyPointManipulator`) |
 | `../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
-| `../../tests/fs_eval_sketch_test.py` | Tests of gears' profiles and root fillets, the standard pitches, pitch circles' teeth, bevel gaps, and where a rack's teeth go and what's cut |
+| `../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles and root fillets, the standard pitches, pitch circles' teeth, bevel gaps, and where a rack's teeth go and what's cut |
 | `../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, sector, and bevel), bevel gears' crown gear and thickness errors, their shape and points, and joining round faces' angles |
 | `spurGear.local.fs` | Onshape's Spur gear, for reference (see Compared with Spur gear): not synced |
 

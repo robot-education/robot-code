@@ -9,7 +9,7 @@ import pytest
 from fs_eval import ast
 from fs_eval.pytest_plugin import shared_evaluator
 
-CODE = pathlib.Path(__file__).parent.parent / "featurescripts"
+CODE = pathlib.Path(__file__).parents[2] / "featurescripts"
 FILES = sorted(path for path in CODE.rglob("*.fs") if ".local." not in path.name)
 
 

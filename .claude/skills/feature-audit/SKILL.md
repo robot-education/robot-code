@@ -10,8 +10,9 @@ audit page. All are offline: none of them call the Onshape API (never `fs push`,
 the user's say-so).
 
 1. `uv run fs format <files>` and `uv run fs check <files>`: no new problems.
-2. `uv run pytest -q`: FeatureScript which computes values (math, tables, editing logic, manipulator change functions,
-   sketches) is tested with the evaluator (see `docs/testing.md`).
+2. `uv run pytest -q tests/featurescript`: FeatureScript which computes values (math, tables, editing logic,
+   manipulator change functions, sketches) is tested with the evaluator (see `docs/testing.md`). If you changed the
+   tooling too, run every test (`uv run pytest -q`).
 3. The writeup (the `.md` beside the `.fs`) matches the change: strings, execution order, and `try`s (see
    `docs/feature-writeups.md`).
 4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html --open`. Run from VS Code, that shows it in VS Code's

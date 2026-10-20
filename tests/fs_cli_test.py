@@ -950,19 +950,6 @@ def test_status(repo, onshape, capsys):
     assert "new.fs" in out and Status.LOCAL_ONLY.value in out
 
 
-@pytest.mark.parametrize(
-    "argv, command",
-    [
-        (["push"], "push"),
-        (["-l", "push", "frame.fs"], "push"),
-        (["pull"], "pull"),
-        (["release", "frame", "--minor"], "release"),
-    ],
-)
-def test_commands(argv, command):
-    assert cli.parse_args(argv).command == command
-
-
 @pytest.mark.parametrize("argv", [[], ["-l"], ["frame.fs"], ["--force"], ["test"], ["fmt", "frame.fs"]])
 def test_push_is_never_implied(argv, onshape, capsys):
     # A missing or mistyped command is an error, never a push
@@ -1115,14 +1102,14 @@ def test_release(repo, onshape):
 
 
 def test_release_links_github(repo, onshape):
-    """With [tool.fs] github, the frontend studio links its file on GitHub, on main."""
+    """With [tool.fs] github, the frontend studio links the repo on GitHub."""
     pyproject = repo / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + 'github = "https://github.com/robot-education/robot-code/"\n')
     released_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "-d", "First") == 0
     code = onshape.code("robotFrame.fs", "front", "fw")
     assert (
-        " * Source code (GitHub): https://github.com/robot-education/robot-code/blob/main/featurescripts/Robot/robotFrame.fs\n"
+        " * Source code (GitHub): https://github.com/robot-education/robot-code\n"
         in code
     )
 

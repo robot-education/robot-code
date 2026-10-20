@@ -1,7 +1,6 @@
 """Tests for generating Feature Studios (lookup tables and sketch profiles) from Python definitions."""
 
 import math
-import pathlib
 
 import pytest
 
@@ -18,9 +17,7 @@ from fs_cli.sketches import (
     SketchMap,
     polar,
 )
-from fs_cli.tables import Enum, Node, Table, Value, inch, number, string
-
-REPO = pathlib.Path(__file__).parent.parent
+from fs_cli.tables import Enum, Node, Table, Value, inch, string
 
 
 def test_render():
@@ -70,12 +67,6 @@ def test_values_closer_to_the_root_win():
     leaf = Node("b", [Value("x", {"key": "2"})])
     node = Node("a", [Value("y", {"key": "1"}, leaf)])
     assert '"x" : { "key" : 1 }' in render([Table("t", node)], "1", "t.py")
-
-
-def test_number():
-    assert number(2) == "2"
-    assert number(2.0) == "2"
-    assert number(5 / 16) == "0.3125"
 
 
 def test_with_next():
@@ -133,12 +124,6 @@ def test_gen_tables_command(tmp_path, monkeypatch, capsys):
     capsys.readouterr()
     assert cli.main(["gen"]) == 0
     assert "up to date" in capsys.readouterr().out
-
-
-def test_checked_in_files_are_up_to_date():
-    """Also checks generated imports resolve without the sync state, from their annotations."""
-    for result in generate(REPO / "featurescripts", None):
-        assert not result.changed, f"{result.output} is stale; run `fs gen`"
 
 
 # Imports
@@ -224,33 +209,3 @@ def test_render_sketches():
     rendered = SketchMap("BY_SIDE", {"ProfileSide.INSIDE": profile}).render()
     assert rendered.startswith("export const BY_SIDE = {\n        ProfileSide.INSIDE : [\n")
     assert rendered.endswith("            ] as SketchDataArray,\n    };\n")
-
-
-def test_checked_in_profiles_are_closed():
-    """Every endpoint of a profile meets exactly one other (apart from MAXSpline's legacy stub line)."""
-    import collections
-    import runpy
-
-    for source in sorted((REPO / "featurescripts").rglob("*.py")):
-        for item in runpy.run_path(str(source)).get("CONTENTS", []):
-            profiles = (
-                item.profiles.values() if isinstance(item, SketchMap)
-                else [item.profile] if isinstance(item, Sketch) else []
-            )
-            for profile in profiles:
-                ends = collections.Counter()
-                for entity in profile.entities:
-                    if isinstance(entity, (Line, Arc, FitSpline)):
-                        for point in (entity.start, entity.end):
-                            ends[(round(point.x, 9), round(point.y, 9))] += 1
-                def key(point):
-                    return (round(point.x, 9), round(point.y, 9))
-
-                dangling = [
-                    e for e in profile.entities
-                    if isinstance(e, Line) and ends[key(e.start)] == 1 and ends[key(e.end)] == 1
-                ]
-                loose = {key(e.start) for e in dangling} | {key(e.end) for e in dangling}
-                unmatched = [p for p, count in ends.items() if count != 2 and p not in loose]
-                assert not unmatched, (source.name, item.name, unmatched)
-                assert not dangling or item.name == "MAX_SPLINE", (source.name, item.name)

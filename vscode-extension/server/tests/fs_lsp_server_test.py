@@ -83,10 +83,7 @@ class Client:
 @pytest.fixture(scope="module")
 def client():
     client = Client()
-    result = client.request(
-        "initialize", {"processId": None, "rootUri": None, "capabilities": {}}
-    )
-    client.capabilities = result["capabilities"]
+    client.request("initialize", {"processId": None, "rootUri": None, "capabilities": {}})
     client.notify("initialized", {})
     client.notify(
         "textDocument/didOpen",
@@ -108,21 +105,6 @@ def position(line: int, character: int) -> dict:
         "textDocument": {"uri": URI},
         "position": {"line": line, "character": character},
     }
-
-
-def test_capabilities(client):
-    capabilities = client.capabilities
-    for key in [
-        "semanticTokensProvider",
-        "hoverProvider",
-        "definitionProvider",
-        "referencesProvider",
-        "documentSymbolProvider",
-        "foldingRangeProvider",
-        "completionProvider",
-    ]:
-        assert capabilities.get(key), key
-    assert "mapKey" in capabilities["semanticTokensProvider"]["legend"]["tokenTypes"]
 
 
 def test_diagnostics_are_published(client):

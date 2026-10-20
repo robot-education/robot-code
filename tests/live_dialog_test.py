@@ -22,16 +22,21 @@ pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="needs node
 # What clicking a control sets
 SETTING = re.compile(r"data-set='([^']*)' data-value='([^']*)'")
 
+CODE = pathlib.Path(__file__).parents[1] / "featurescripts"
+
+
+def feature(name: str) -> pathlib.Path:
+    """A feature's file, wherever in the code folder it is."""
+    [path] = CODE.rglob(name)
+    return path
+
+
 FEATURES = [
-    "featurescripts/released/lighten/robotLighten.fs",
-    "featurescripts/released/lighten/quickRib.fs",
-    "featurescripts/released/shaft/robotShaft.fs",
-    "featurescripts/released/frame/robotFrame.fs",
-    "featurescripts/motor/robotMotor.fs",
-    "featurescripts/gear/robotGear.fs",
-    "featurescripts/released/spacer/robotSpacer.fs",
     # Every kind of parameter and layout
-    "featurescripts/uiTestBench/uiTestBench.fs",
+    "uiTestBench.fs",
+    # The deepest conditions (predicates calling predicates, lookup tables), and a "Set By" parameter
+    "robotShaft.fs",
+    "robotFrame.fs",
 ]
 
 # Inline icons' ids are made unique by a counter, so they differ with the order they're drawn in
@@ -70,11 +75,11 @@ def run_script(script: str, cases: list[dict[str, str]], tmp_path: pathlib.Path)
     return json.loads(result.stdout)
 
 
-@pytest.mark.parametrize("feature", FEATURES)
-def test_script_draws_what_fs_ui_renders(feature, tmp_path):
+@pytest.mark.parametrize("name", FEATURES)
+def test_script_draws_what_fs_ui_renders(name, tmp_path):
     config = load_config()
     project = _project(config)
-    path = config.root / feature
+    path = feature(name)
     rendered: dict[str, str] = {}
 
     def render(settings: dict[str, str]) -> str:
@@ -88,18 +93,17 @@ def test_script_draws_what_fs_ui_renders(feature, tmp_path):
     drawn = run_script(page_script(data, conditions), cases, tmp_path)
     for settings, result in zip(cases, drawn):
         expected = split_page(render(settings))[1]
-        assert same(result["html"]) == same(expected), f"{feature} with {settings}"
+        assert same(result["html"]) == same(expected), f"{name} with {settings}"
 
 
 def test_typed_values_are_drawn(tmp_path):
     config = load_config()
     project = _project(config)
-    path = config.root / "featurescripts/released/lighten/robotLighten.fs"
+    path = feature("uiTestBench.fs")
     data, conditions = dialog_data(project, config.std_dir, path, None)
-    typed = next(key for key, parameter in data["parameters"].items() if parameter["kind"] == "length")
-    [result] = run_script(page_script(data, conditions), [{typed: "1 <in>"}], tmp_path)
-    expected = split_page(render_feature(project, config.std_dir, path, None, {typed: "1 <in>"})[0])[1]
-    assert result["html"] == expected
+    [result] = run_script(page_script(data, conditions), [{"length": "1 <in>"}], tmp_path)
+    expected = split_page(render_feature(project, config.std_dir, path, None, {"length": "1 <in>"})[0])[1]
+    assert same(result["html"]) == same(expected)
     assert "1 &lt;in&gt;" in result["html"]
 
 
@@ -108,7 +112,7 @@ def test_set_by_parameters_follow_what_their_functions_read(tmp_path):
     # a 2x1 tube shows each face's row distance, and a 1x1 tube one row distance, in fs ui and on the page alike
     config = load_config()
     project = _project(config)
-    path = config.root / "featurescripts/released/frame/robotFrame.fs"
+    path = feature("robotFrame.fs")
     custom = {"program": "FRC", "source": "CUSTOM"}
     cases = [{**custom, "customFrame": "Tube > 2x1"}, {**custom, "customFrame": "Tube > 1x1"}, {"program": "FTC"}]
     data, conditions = dialog_data(project, config.std_dir, path, None)

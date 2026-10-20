@@ -346,9 +346,9 @@ uv run fs release-tags           # tag final releases which aren't yet
 uv run fs changes robotFrame     # what's changed since robotFrame's last release
 ```
 
-The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, its
-file on GitHub (on `github_branch`, `main` by default). It's written when the studio's released, so each
-FeatureScript gets the GitHub link at its next release.
+The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, the
+repo on GitHub (the repo, not the file, so the link doesn't break when files move). It's written when the studio's
+released, so each FeatureScript gets the GitHub link at its next release.
 
 ### Released FeatureScripts
 

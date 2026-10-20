@@ -207,9 +207,10 @@ ROOT_FILLETS = ["1", "2 / 3", "1 / 2", "0"]
 
 @pytest.mark.parametrize("teeth", [10, 24, 60])
 @pytest.mark.parametrize("pressure_degrees", [14.5, 20])
-@pytest.mark.parametrize("fillet", ROOT_FILLETS)
+@pytest.mark.parametrize("fillet", ROOT_FILLETS[1:])
 def test_root_fillets_are_closed_and_meet_tangent(teeth, pressure_degrees, fillet):
-    # Full, 1/3, 1/4, and None, as Onshape's Spur gear's Root fillet: none of them dig below the root
+    # 1/3, 1/4, and None, as Onshape's Spur gear's Root fillet (test_gear_profile checks Full): none of them dig below
+    # the root
     sketch, form = gear_profile(teeth, pressure_degrees=pressure_degrees, fillet=fillet)
     loops = sketch.loops()
     assert len(loops) == 1 and loops[0].closed

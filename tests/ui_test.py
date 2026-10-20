@@ -1,4 +1,3 @@
-import pathlib
 import re
 
 import pytest
@@ -519,20 +518,14 @@ def test_tooltips(repo):
     }
 
 
-def test_render_reports_what_conditions_read():
+def test_render_reports_what_conditions_read(repo):
     from fs_cli.config import load_config
     from fs_cli.cli import _project
     from fs_cli.ui import render_feature
 
-    config = load_config(pathlib.Path(__file__).parent.parent)
+    config = load_config()
     info = {}
-    render_feature(_project(config), config.std_dir, config.code_dir / "released" / "lighten" / "robotLighten.fs", None, {}, info=info)
-    # Every condition's parameters, even those of branches not shown
-    assert info["conditions"] == {
-        "endType",
-        "filletCorners",
-        "ignoreFaces",
-        "overrideRibThickness",
-        "overrideWallThickness",
-    }
-    assert info["parameters"]["excludeConstruction"].kind == "boolean"
+    render_feature(_project(config), config.std_dir, repo / "featurescripts" / "widget.fs", None, {"hasSecond": "false"}, info=info)
+    # Every condition's parameters, even those of branches not shown, and in predicates in other files
+    assert info["conditions"] == {"placement", "hasSecond", "hasOffset"}
+    assert info["parameters"]["hasSecond"].kind == "boolean"

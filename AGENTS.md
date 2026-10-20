@@ -11,8 +11,9 @@ The Python runs on Windows too: write files that are checked in or pushed with `
 tests' `write_text` write `\n`.
 
 Test FeatureScript which computes values (math, lookup tables, editing logic, manipulator change functions,
-sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval`; see
-`docs/testing.md`. `uv run pytest` runs them all.
+sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval` beside
+them; see `docs/testing.md`. `uv run pytest tests/featurescript` runs them, after changing only FeatureScript; after
+changing the tooling, `uv run pytest` runs every test.
 
 After changing a feature, check, test, and show it as `.claude/skills/feature-audit/SKILL.md` says: it ends with its
 `fs audit` page, shown to the user (in VS Code, in its feature preview).

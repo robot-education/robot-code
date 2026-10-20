@@ -59,20 +59,21 @@ def test_outputs():
     assert 'class="level default"' in page and "no values" in page and 'style="background:#ff0080"' in page
 
 
-def test_find_tables_skips_other_constants(tmp_path):
+# The UI test bench (a feature with every kind of parameter) has a lookup table among its bounds and enums
+BENCH = "uiTestBench/uiTestBench.fs"
+
+
+def test_find_tables_skips_other_constants():
     evaluator = shared_evaluator()
     code_dir = evaluator.config.code_dir
-    tables = find_tables(evaluator, code_dir / "released/shaft/robotShaftTables.gen.fs", code_dir)
-    assert [found.name for found in tables] == ["tappedHoleTable", "clearanceHoleTable", "frcShaftTable", "ftcShaftTable"]
+    assert [found.name for found in find_tables(evaluator, code_dir / BENCH, code_dir)] == ["TEST_TABLE"]
 
 
 def test_command(capsys):
-    assert cli.main(["table", "featurescripts/released/shaft", "-n", "tappedHole"]) == 0
+    assert cli.main(["table", "featurescripts/uiTestBench", "-n", "TEST"]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("tappedHoleTable  (released/shaft/robotShaftTables.gen.fs, 10 rows)")
-    used_by = next(line for line in out.splitlines() if line.startswith("Used by: "))
-    assert "released/shaft/robotShaft.fs:" in used_by
-    assert "#10 *  32 tpi (UNF) *  0.19 in" in out
+    assert out.startswith(f"TEST_TABLE  ({BENCH}, 4 rows)\nUsed by: {BENCH}: Lookup table\n")
+    assert "WCP *   3/8 in.    Rounded *  3" in out
 
 
 def test_lookup_parameters():

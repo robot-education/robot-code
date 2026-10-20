@@ -356,11 +356,6 @@ def test_edits_only_change_changed_lines():
     assert edits(source) == [(24, 31, "    h();\n")]
 
 
-def test_generated_files():
-    assert is_generated("featurescripts/frame/frameTables.gen.fs")
-    assert not is_generated("featurescripts/frame/robotFrame.fs")
-
-
 @pytest.mark.skipif(not STD.is_dir(), reason="needs the copy of std")
 def test_std_is_nearly_formatted():
     """Formatting std's hand-written files, which this formats like, changes few lines (mostly fixing its own

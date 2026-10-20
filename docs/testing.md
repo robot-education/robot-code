@@ -1,12 +1,30 @@
 # Testing
 
 ```
-uv run pytest                                      # fs CLI, Onshape client, language server, evaluator, and FeatureScript tests
+uv run pytest tests/featurescript                  # the FeatureScripts' tests: after changing only FeatureScript
+uv run pytest                                      # every test: after changing the tooling (below)
 cd vscode-extension && npm test                    # TextMate grammar
 cd vscode-extension && npm run test:integration    # the extension inside a real VS Code
 ```
 
 On a headless Linux machine, run the integration test under `xvfb-run -a`.
+
+## The FeatureScripts' tests, and the tooling's
+
+`tests/featurescript` tests the FeatureScripts in `featurescripts/`: the `*_test.fs` files, the Python tests which
+evaluate their code (`fs_eval_*_test.py`), and checks of what `fs gen` generates from their Python definitions
+(`generated_test.py`). After changing only FeatureScript, or a lookup table's or profile's definition, run just these.
+
+The rest test the tooling: the fs CLI, the Onshape client, the evaluator, the language server and formatter, and
+the dialog preview and `fs audit` page. After changing any of it, run every test, since the FeatureScripts' tests run
+on the evaluator.
+
+So that changing a feature never breaks the tooling's tests, they don't depend on what's in the features: they write
+the FeatureScript they need to a repo in `tmp_path` (with `std = "..."` in its `[tool.fs]` pointing at the checked-in
+std, rather than a copy), or use `featurescripts/uiTestBench/uiTestBench.fs`, a feature with every kind of parameter
+which exists for comparing dialogs. The exceptions are corpora: std, which the parser and formatter are run over, and
+the shaft and frame features, whose dialogs `live_dialog_test.py` draws (found by name, wherever they are) without
+checking what's in them.
 
 pytest runs the tests in parallel (pytest-xdist's `-n auto`, in `pyproject.toml`), a process per core, so tests
 mustn't share files they write: use `tmp_path`, and write shared caches (like `.fs-eval-cache`) to a file beside them
@@ -47,7 +65,7 @@ export function testSprocketPitchDiameter()
 
 Python tests can use the evaluator too (`fs_eval.Evaluator`, or `fs_eval.pytest_plugin.shared_evaluator()` to share
 one), to evaluate expressions in a module's own scope (where what it doesn't export is visible), or check recorded
-sketches: see `tests/fs_eval_features_test.py` and `tests/fs_eval_sketch_test.py`. `fs eval` evaluates an expression
+sketches: see `tests/featurescript/fs_eval_features_test.py` and `tests/featurescript/fs_eval_sketch_test.py`. `fs eval` evaluates an expression
 from the command line, in std's scope or a file's (`-m`).
 
 What's parsed is cached in `.fs-eval-cache`, so loading std takes about half a second after the first run. The

@@ -23,7 +23,6 @@ import pathlib
 import re
 from typing import Callable
 
-from fs_cli.config import Config
 from fs_cli.git import commit_with_contents, create_tag, has_tag, is_repository, push_tag
 from fs_cli.remote import RemoteStudio, Version
 from fs_cli.versions import (
@@ -61,7 +60,7 @@ def release_studio_code(
     github_url: str | None = None,
 ) -> str:
     """Generates a frontend studio which re-exports a released (versioned) backend studio, linking its source in the
-    backend document, and on GitHub (`github_url`, its file's page), if given."""
+    backend document, and on GitHub (`github_url`, the repo's page), if given."""
     return RELEASE_TEMPLATE.format(
         std_version=std_version,
         version_name=version_name,
@@ -313,16 +312,8 @@ def _version_backend(
         remote.latest_std_version(),
         ElementPath.from_path(version_instance, released.element_id),
         released.microversion_id,
-        github_file_url(workspace.config, studio),
+        workspace.config.github,
     )
-
-
-def github_file_url(config: Config, studio: Studio) -> str | None:
-    """The page of a studio's file on GitHub, on the configured branch, or None if no repo is configured."""
-    if config.github is None:
-        return None
-    path = (config.code_dir / studio.path).relative_to(config.root).as_posix()
-    return f"{config.github}/blob/{config.github_branch}/{path}"
 
 
 def unsynced_versions(workspace: Workspace) -> list[Version]:
