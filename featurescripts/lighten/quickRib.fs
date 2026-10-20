@@ -27,16 +27,22 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
             definition.quickRibType is QuickRibType;
 
-            annotation { "Name" : "Selections", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-            definition.quickSelections is Query;
-
             if (definition.quickRibType == QuickRibType.CHAIN)
             {
+                annotation { "Name" : "Points", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                definition.quickPoints is Query;
+
                 annotation { "Name" : "Closed" }
                 definition.quickClosed is boolean;
             }
             else
             {
+                annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1, "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                definition.quickHub is Query;
+
+                annotation { "Name" : "Spokes", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                definition.quickSpokes is Query;
+
                 annotation { "Name" : "Add circle" }
                 definition.quickAddCircle is boolean;
             }
@@ -193,7 +199,7 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 }
 
 /**
- * Add ribs turns Quick add's selections into a chain or a hub and spokes (`addQuickRibs`). Clear invalid selections
+ * Add ribs adds Quick add's chain or hub and spokes (`addQuickRibs`), when it makes ribs (`quickAddRibs`). Clear invalid selections
  * drops invalid selections (`clearInvalidSelections`). Start deleting ribs starts choosing ribs to delete, from those
  * deleted already (so they can be put back); Finish deleting ribs deletes those chosen. Fills in Face to use, while
  * it's empty and hasn't been set: the face under the first selection (`firstFaceUnder`).
@@ -201,9 +207,9 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    if (clickedButton == "addRibs")
+    if (clickedButton == "addRibs" && quickAddRibs(context, definition) != [])
     {
-        definition = addQuickRibs(definition, evaluateQuery(context, definition.quickSelections));
+        definition = addQuickRibs(definition);
     }
     else if (clickedButton == "clearInvalid")
     {
@@ -253,26 +259,23 @@ export enum QuickRibType
 }
 
 /**
- * Add ribs (a button): Quick add's `selections` (evaluated, in the order chosen) become a chain, with its Closed, or a
- * hub and spokes, the first the hub and the rest its spokes, with its Add circle; then they're cleared. Fewer than two
- * are left as they are: they make no rib.
+ * Add ribs (a button): Quick add's Points and Closed become a chain, or its Hub, Spokes, and Add circle a hub and
+ * spokes; then its selections are cleared, for the next.
  */
-export function addQuickRibs(definition is map, selections is array) returns map
+export function addQuickRibs(definition is map) returns map
 {
-    if (size(selections) < 2)
-    {
-        return definition;
-    }
     if (definition.quickRibType == QuickRibType.CHAIN)
     {
-        definition.chains = append(definition.chains, { "chainPoints" : qUnion(selections), "closed" : definition.quickClosed });
+        definition.chains = append(definition.chains, { "chainPoints" : definition.quickPoints, "closed" : definition.quickClosed });
+        definition.quickPoints = qNothing();
     }
     else
     {
-        definition.hubs = append(definition.hubs, { "hub" : selections[0], "spokes" : qUnion(subArray(selections, 1)),
+        definition.hubs = append(definition.hubs, { "hub" : definition.quickHub, "spokes" : definition.quickSpokes,
                     "addCircle" : definition.quickAddCircle });
+        definition.quickHub = qNothing();
+        definition.quickSpokes = qNothing();
     }
-    definition.quickSelections = qNothing();
     return definition;
 }
 
@@ -352,30 +355,38 @@ function ribsOf(segments is array, circles is array) returns array
 }
 
 /**
- * The ribs Quick add would add (see `addQuickRibs`), from its selections as they are (see `getQuickRibs`): none with
- * fewer than two points.
+ * The ribs Quick add would add (see `addQuickRibs`), from its selections as they are (see `getQuickRibs`): its chain's
+ * (`chainRibs`), or its hub and spokes' (`hubRibs`).
  */
 export function quickAddRibs(context is Context, definition is map) returns array
 {
-    return quickAddRibsOf(definition, pointsOf(context, definition.quickSelections));
+    if (definition.quickRibType == QuickRibType.CHAIN)
+    {
+        return chainRibs(pointsOf(context, definition.quickPoints), definition.quickClosed);
+    }
+    return hubRibs(pointsOf(context, definition.quickHub), pointsOf(context, definition.quickSpokes), definition.quickAddCircle);
 }
 
 /**
- * The ribs Quick add would add through `points` (see `quickAddRibs`): a chain through them, or a hub (the first) and
- * its spokes.
+ * A chain's ribs (see `getQuickRibs`) through `points`: none with fewer than two.
  */
-export function quickAddRibsOf(definition is map, points is array) returns array
+export function chainRibs(points is array, closed is boolean) returns array
 {
-    if (size(points) < 2)
+    return ribsOf(chainSegments(points, closed), []);
+}
+
+/**
+ * A hub and spokes' ribs (see `getQuickRibs`): from `hub` (the hub's point, or none) to each of `spokes`, and with
+ * `addCircle`, a circle around it through the first. None without a hub or spokes.
+ */
+export function hubRibs(hub is array, spokes is array, addCircle is boolean) returns array
+{
+    if (hub == [] || spokes == [])
     {
         return [];
     }
-    if (definition.quickRibType == QuickRibType.CHAIN)
-    {
-        return ribsOf(chainSegments(points, definition.quickClosed), []);
-    }
-    const circles = definition.quickAddCircle ? [{ "center" : points[0], "through" : points[1] }] : [];
-    return ribsOf(hubSegments(points[0], subArray(points, 1)), circles);
+    const circles = addCircle ? [{ "center" : hub[0], "through" : spokes[0] }] : [];
+    return ribsOf(hubSegments(hub[0], spokes), circles);
 }
 
 /**
@@ -705,15 +716,15 @@ export function edgeRibManipulatorIndex(key is string)
 }
 
 /**
- * The face under the first quick rib selection which has one (see `faceUnder`), in order: Quick add's selections, the
- * chains', the hubs' and their spokes', and the edge ribs' points and edges. Undefined if none do.
+ * The face under the first quick rib selection which has one (see `faceUnder`), in order: Quick add's Points, Hub, and
+ * Spokes, the chains', the hubs' and their spokes', and the edge ribs' points and edges. Undefined if none do.
  */
 export function firstFaceUnder(context is Context, definition is map, hiddenBodies is Query)
 {
     const chains = definition.chains;
     const hubs = definition.hubs;
     const edgeRibs = definition.edgeRibs;
-    const selections = concatenateArrays([[definition.quickSelections], mapArray(chains, chain => chain.chainPoints), mapArray(hubs, hub => hub.hub),
+    const selections = concatenateArrays([[definition.quickPoints, definition.quickHub, definition.quickSpokes], mapArray(chains, chain => chain.chainPoints), mapArray(hubs, hub => hub.hub),
                 mapArray(hubs, hub => hub.spokes), mapArray(edgeRibs, edgeRib => edgeRib.ribPoints), mapArray(edgeRibs, edgeRib => edgeRib.ribEdge)]);
     for (var selection in selections)
     {
@@ -774,7 +785,9 @@ function faceUnder(context is Context, entity is Query, hiddenBodies is Query)
 export function clearInvalidSelections(context is Context, definition is map) returns map
 {
     // Evaluated, to keep only what's there
-    definition.quickSelections = qUnion(evaluateQuery(context, definition.quickSelections));
+    definition.quickPoints = qUnion(evaluateQuery(context, definition.quickPoints));
+    definition.quickHub = qUnion(evaluateQuery(context, definition.quickHub));
+    definition.quickSpokes = qUnion(evaluateQuery(context, definition.quickSpokes));
     var chains = [];
     for (var chain in definition.chains)
     {
