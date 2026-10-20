@@ -80,6 +80,12 @@ Don't implement the "editing logic boomerang", where editing logic computes a va
 
 The feature's body should use the same predicates, so the parameters it reads are exactly the ones shown.
 
+A boomerang is any editing logic which sets a parameter to change what the dialog shows: a hidden one the precondition
+reads, or a visible mode the user chose, like switching Size by to Pitch circle (hiding Teeth) when a pitch circle is
+picked as the location. Treat one as a code smell: a symptom of a dialog that doesn't let the user say what they mean.
+Fix the dialog instead (here, Teeth or Pitch circle as a top level option, which the user chooses). Use one only when
+it's strictly necessary, which in practice means a lookup table's value (see "Hidden parameters set by editing logic").
+
 A precondition's conditions can only use parameters, enum values, literals, and predicates, because Onshape works
 out which parameters to show without running the feature. Constants and functions don't work (`fs check` warns about
 them). When a UI state depends on data, like whether the chosen part has some property, generate the predicate from
@@ -98,8 +104,8 @@ from the selections (`mountingEditLogic`) or filling in a plane from selected ge
 
 ## Hidden parameters set by editing logic
 
-The one boomerang that's needed: what a precondition can't read, like a lookup table's value (whether the chosen frame
-is 2x1, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
+The one boomerang that's needed, and the only common one: what a precondition can't read, like a lookup table's value
+(whether the chosen frame is 2x1, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
 hidden parameter's annotation with `"Set By"` (a key of ours, for the tools: Onshape ignores keys it doesn't know, as
 `fs check`'s annotation key rule has it), and set the parameter from it first thing in editing logic, on every change:
 

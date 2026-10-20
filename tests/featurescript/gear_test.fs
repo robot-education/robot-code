@@ -12,7 +12,7 @@ const MODULE = inch / 20;
  */
 function spur(teeth is number, mateTeeth is number) returns map
 {
-    return gearMesh({ "gearType" : GearType.GEAR }, MODULE, teeth, mateTeeth);
+    return gearMesh({ "gearType" : GearType.GEAR, "centerToCenterAdjustment" : 0 * meter }, MODULE, teeth, mateTeeth);
 }
 
 export function testSpurMateIsThePitchRadiiAway()
@@ -20,6 +20,17 @@ export function testSpurMateIsThePitchRadiiAway()
     const mate = gearMatePlane(XY_PLANE, X_DIRECTION, spur(20, 30));
     expectNear(norm(mate.origin - vector(25, 0, 0) * MODULE), 0 * meter, 1e-9 * meter);
     expectNear(norm(mate.normal - Z_DIRECTION), 0, 1e-9);
+}
+
+export function testCenterToCenterAdjustmentMovesTheMate()
+{
+    const mesh = gearMesh({ "gearType" : GearType.GEAR, "centerToCenterAdjustment" : 0.003 * inch }, MODULE, 20, 30);
+    expectNear(mesh.centerDistance, 25 * MODULE + 0.003 * inch, 1e-12 * meter);
+    const mate = gearMatePlane(XY_PLANE, Y_DIRECTION, mesh);
+    expectNear(norm(mate.origin - Y_DIRECTION * (25 * MODULE + 0.003 * inch)), 0 * meter, 1e-9 * meter);
+    // Its teeth turn as they would without it: it moves straight out
+    const plain = gearMatePlane(XY_PLANE, Y_DIRECTION, spur(20, 30));
+    expectNear(norm(mate.x - plain.x), 0, 1e-9);
 }
 
 export function testSpurMateHasAGapAtTheGearsTooth()
@@ -42,7 +53,7 @@ export function testSpurMateHasAToothAtTheGearsGap()
 
 export function testEvenSectorsHaveAGapOnTheirAxis()
 {
-    const sector = gearMesh({ "gearType" : GearType.GEAR, "sector" : true, "sectorTeeth" : 4 }, MODULE, 20, 20);
+    const sector = gearMesh({ "gearType" : GearType.GEAR, "sector" : true, "sectorTeeth" : 4, "centerToCenterAdjustment" : 0 * meter }, MODULE, 20, 20);
     expectNear(sector.toothPhase, 9 * degree, 1e-9 * degree);
     // So their mate has a tooth pointing back at them
     const mate = gearMatePlane(XY_PLANE, X_DIRECTION, sector);
@@ -105,21 +116,6 @@ export function testDoubleHelicalRackMeetsInTheMiddle()
     expectNear(pieces[0].shift + pieces[0].slant * pieces[0].width, pieces[1].shift, 1e-12 * meter);
     expectNear(pieces[1].shift, 0 * meter, 1e-12 * meter);
     expectNear(pieces[0].slant, -pieces[1].slant, 1e-9);
-}
-
-export function testWholeTeethPitchCircles()
-{
-    // 24 teeth at 20 DP: 1.2 in. across
-    expectTrue(isWholeTeeth(0.6 * inch, MODULE), "24 teeth");
-    expectTrue(!isWholeTeeth(0.61 * inch, MODULE), "between sizes");
-    // Too few teeth for a gear
-    expectTrue(!isWholeTeeth(0.05 * inch, MODULE), "2 teeth");
-}
-
-export function testRacksHaveNoEditingLogic()
-{
-    const definition = { "gearType" : GearType.RACK };
-    expectEqual(robotGearEditLogic(newContext(), newId(), {}, definition, true, {}, qNothing()), definition);
 }
 
 export function testSectorByAngleFitsWholeTeeth()

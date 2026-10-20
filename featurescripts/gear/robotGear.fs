@@ -188,6 +188,16 @@ predicate isPair(definition is map)
 }
 
 /**
+ * A spur gear (or a sector of one) made with its mate, whose centers are their pitch radii apart (and the center to
+ * center adjustment): not a bevel gear, whose mate shares its apex.
+ */
+predicate isSpurPair(definition is map)
+{
+    definition.gearType == GearType.GEAR;
+    definition.gearPair;
+}
+
+/**
  * A pair whose mate is placed by its teeth and the angle (a bevel gear's always is), not its pitch circle.
  */
 predicate isMateByTeeth(definition is map)
@@ -232,7 +242,6 @@ annotation {
         "Feature Type Name" : "Robot gear",
         "Feature Type Description" : "Create spur, helical, herringbone, and bevel gears, or cut racks and gear teeth into parts, at FRC and FTC gears' standard pitches." ~ CREDIT,
         "Manipulator Change Function" : "robotGearManipulatorChange",
-        "Editing Logic Function" : "robotGearEditLogic",
         "Icon" : RobotIcon::BLOB_DATA
     }
 export const robotGear = defineFeature(function(context is Context, id is Id, definition is map)
@@ -242,6 +251,12 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
         annotation { "Name" : "Gear type", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.gearType is GearType;
+
+        if (isGear(definition))
+        {
+            annotation { "Name" : "Size by", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.sizeBy is GearSize;
+        }
 
         annotation { "Group Name" : "Gear", "Collapsed By Default" : false }
         {
@@ -313,9 +328,6 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
         if (isGear(definition))
         {
-            annotation { "Name" : "Selection", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.sizeBy is GearSize;
-
             if (definition.sizeBy == GearSize.TEETH)
             {
                 locationPredicate(definition, "gear");
@@ -459,6 +471,13 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Name" : "Add mate connector", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.addMateConnectors is boolean;
+            }
+
+            if (isSpurPair(definition))
+            {
+                annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                            "Description" : "Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh." }
+                isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
             }
 
             if (definition.gearType == GearType.BEVEL)
@@ -707,7 +726,8 @@ function checkBitSlots(context is Context, id is Id, definition is map, gearPlan
 /**
  * Where a gear's mate goes, and its teeth: by Mating gear teeth, toward the angle reference turned by the angle (with
  * its manipulator); or by Mate pitch circle, at its center (on the gear's plane), with the nearest whole number of
- * teeth to its size, and a `warning` if it isn't exactly their size, or doesn't touch the gear's pitch circle.
+ * teeth to its size, and a `warning` if it isn't exactly their size, or isn't the center to center distance (see
+ * `gearMesh`) from the gear.
  *
  * @returns {{
  *      @field plane {Plane} : See `gearMatePlane`.
@@ -742,16 +762,17 @@ function matePlacement(context is Context, id is Id, definition is map, gearPlan
     {
         throw regenError("Mate pitch circle is centered on gear, select a circle beside it.", ["matePitchCircle"], circle);
     }
-    var plane = gearMatePlane(gearPlane, (center - gearPlane.origin) / distance, gearMesh(definition, module, teeth, mateTeeth));
+    const mesh = gearMesh(definition, module, teeth, mateTeeth);
+    var plane = gearMatePlane(gearPlane, (center - gearPlane.origin) / distance, mesh);
     plane.origin = center;
     var result = { "plane" : plane, "teeth" : mateTeeth };
     if (!tolerantEquals(mateTeeth * module / 2, curve.radius))
     {
         result.warning = "Mate pitch circle is not a whole number of teeth, using nearest (" ~ mateTeeth ~ " teeth).";
     }
-    else if (!tolerantEquals(distance, module * (teeth + mateTeeth) / 2))
+    else if (!tolerantEquals(distance, mesh.centerDistance))
     {
-        result.warning = "Pitch circles do not touch, gears will not mesh.";
+        result.warning = "Mate pitch circle is not the center to center distance away, gears will not mesh.";
     }
     return result;
 }
@@ -775,8 +796,8 @@ function mateDefinition(definition is map, teeth is number) returns map
 /**
  * How a gear (with `teeth`) and its mate (with `mateTeeth`) mesh, for `gearMatePlane`: their teeth, the angle
  * between their teeth's centers (`pitch`, for the gear), where the gear's first tooth is, from its x axis (a sector with
- * an even number of teeth has a gap there), and for a spur pair, how far apart their centers are, or for a bevel pair,
- * their cones (see `bevelPairCones`) and shaft angle.
+ * an even number of teeth has a gap there), and for a spur pair, how far apart their centers are (their pitch radii, and
+ * the center to center adjustment), or for a bevel pair, their cones (see `bevelPairCones`) and shaft angle.
  */
 export function gearMesh(definition is map, module is ValueWithUnits, teeth is number, mateTeeth is number) returns map
 {
@@ -792,7 +813,7 @@ export function gearMesh(definition is map, module is ValueWithUnits, teeth is n
     }
     else
     {
-        result.centerDistance = module * (teeth + mateTeeth) / 2;
+        result.centerDistance = module * (teeth + mateTeeth) / 2 + definition.centerToCenterAdjustment;
     }
     return result;
 }
@@ -800,7 +821,8 @@ export function gearMesh(definition is map, module is ValueWithUnits, teeth is n
 /**
  * Where a gear's mate goes, meshing with it, with the gear on `gearPlane` (its center, or a bevel gear's back) and the
  * mate toward `toward` (a direction square to its axis) from it: its plane (a bevel gear's back), with its first tooth
- * on its x axis, as `buildGear` builds it. A spur mate is the gears' pitch radii away, on the same plane. A bevel mate
+ * on its x axis, as `buildGear` builds it. A spur mate is the mesh's center distance away (see `gearMesh`), on the same
+ * plane. A bevel mate
  * shares the gear's apex, its axis the shaft angle from the gear's, and its pitch cone touching the gear's toward
  * `toward`.
  *
@@ -1134,54 +1156,6 @@ function gearSize(context is Context, definition is map, module is ValueWithUnit
         result.warning = "Pitch circle is not a whole number of teeth, using nearest (" ~ teeth ~ " teeth).";
     }
     return result;
-}
-
-/**
- * Editing logic: choosing a circle for the location that's a pitch circle at this pitch (a whole number of teeth's)
- * switches Selection to Pitch circle, with it; likewise a circle for Gear pair's angle reference switches Mate selection
- * to Pitch circle.
- */
-export function robotGearEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
-    specifiedParameters is map, hiddenBodies is Query) returns map
-{
-    if (!isGear(definition))
-    {
-        return definition;
-    }
-    const module = gearModule(definition);
-    if (definition.sizeBy == GearSize.TEETH && oldDefinition.location != definition.location && isPitchCircle(context, definition.location, module))
-    {
-        definition.sizeBy = GearSize.PITCH_CIRCLE;
-        definition.pitchCircle = definition.location;
-        definition.location = qNothing();
-    }
-    if (definition.gearType != GearType.BEVEL && definition.gearPair && definition.mateSizeBy == GearSize.TEETH &&
-        oldDefinition.angleReference != definition.angleReference && isPitchCircle(context, definition.angleReference, module))
-    {
-        definition.mateSizeBy = GearSize.PITCH_CIRCLE;
-        definition.matePitchCircle = definition.angleReference;
-        definition.angleReference = qNothing();
-    }
-    return definition;
-}
-
-/**
- * Whether `selection` is a circle whose radius is a gear's pitch radius at `module` (see `isWholeTeeth`).
- */
-function isPitchCircle(context is Context, selection is Query, module is ValueWithUnits) returns boolean
-{
-    const circle = selection->qNthElement(0)->qGeometry(GeometryType.CIRCLE);
-    return !isQueryEmpty(context, circle) && isWholeTeeth(evCurveDefinition(context, { "edge" : circle }).radius, module);
-}
-
-/**
- * Whether a pitch circle of `radius` is a gear's at `module`: a whole number of teeth's (within std's length tolerance),
- * at least a gear's least.
- */
-export function isWholeTeeth(radius is ValueWithUnits, module is ValueWithUnits) returns boolean
-{
-    const teeth = nearestGearTeeth(radius, module);
-    return teeth >= 4 && tolerantEquals(teeth * module / 2, radius);
 }
 
 /**
