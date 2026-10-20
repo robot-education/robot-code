@@ -63,7 +63,7 @@ export function testBevelGearCantBeACrownGear()
     expectContains(expectThrows(function()
             {
                 bevelPairCones(MODULE, 40, 10, 120 * degree);
-            }), "it would be a crown or internal gear");
+            }), "too large for a bevel gear");
 }
 
 export function testBevelGearsMateCantBeACrownGear()
@@ -71,7 +71,7 @@ export function testBevelGearsMateCantBeACrownGear()
     expectContains(expectThrows(function()
             {
                 bevelPairCones(MODULE, 10, 40, 120 * degree);
-            }), "its mate would be a crown or internal gear");
+            }), "too large for a bevel mating gear");
 }
 
 export function testBevelPairConesAddToTheShaftAngle()
@@ -199,7 +199,7 @@ export function testBevelGearTooThinForItsTeeth()
     expectContains(expectThrows(function()
             {
                 bevel(20, 20, 90 * degree, 0.05 * inch);
-            }), "too thin for its teeth");
+            }), "too small for the teeth");
 }
 
 export function testBevelGearTooThickReachesItsApex()
@@ -207,7 +207,7 @@ export function testBevelGearTooThickReachesItsApex()
     expectContains(expectThrows(function()
             {
                 bevel(20, 20, 90 * degree, 0.6 * inch);
-            }), "its top would reach its apex");
+            }), "reaching the apex");
 }
 
 export function testBevelGearTooThinForItsMatesTeeth()
@@ -216,7 +216,7 @@ export function testBevelGearTooThinForItsMatesTeeth()
     expectContains(expectThrows(function()
             {
                 bevel(10, 40, 90 * degree, 0.15 * inch);
-            }), "too thin for its mate's teeth");
+            }), "too small for the mating gear's teeth");
     bevel(10, 40, 90 * degree, 0.25 * inch);
 }
 

@@ -13,8 +13,8 @@ import(path : "onshape/std/common.fs", version : "2960.0");
  *
  * `rootFillet` is a number, the roots' fillet's radius as a fraction of the full round's (the round tangent to the
  * root and both flanks: 1 is the full round, and 0 leaves them sharp), as Onshape's Spur gear's Root fillet; or a
- * length, a router bit's radius (less the offset, as the profile's offset grows into the gap), with a full round of
- * that radius where the gap's too narrow for both corners.
+ * length, a router bit's radius (less the offset, as the profile's offset grows into the gap), with a slot the bit's
+ * width down the middle of a gap too narrow for it to reach the root (see `gearRoot`).
  *
  * @returns {{
  *      @field module {ValueWithUnits} :
@@ -87,12 +87,28 @@ export function halfGapCurves(form is map) returns array
 {
     if (toothHalfAngle(form, form.tipRadius) <= 0 * degree)
     {
-        throw regenError("The gear's teeth come to points: give it more teeth, or less clearance.", ["teeth"]);
+        throw regenError("Teeth come to points, increase teeth or change profile offset.", ["teeth", "profileOffsetDistance"]);
     }
     const toothAngle = 360 * degree / form.teeth;
     const root = gearRoot(form);
     var curves = [];
-    if (root.fullRound)
+    // Where the involute starts: the top of the radial line, or above it, where a slot meets it
+    var flankStart = root.lineTop;
+    if (root.slot != undefined)
+    {
+        // A slot: round at the bottom, then up its side to where it meets the tooth's flank
+        const slot = root.slot;
+        curves = [
+                { "shape" : "arc", "points" : [polar(root.rootRadius, -toothAngle / 2), slot.middle, slot.side] },
+                { "shape" : "line", "points" : [slot.side, slot.exit] }
+            ];
+        if (slot.exitRadius < root.lineTop - TOLERANCE.zeroLength * meter)
+        {
+            curves = append(curves, { "shape" : "line", "points" : [slot.exit, polar(root.lineTop, -root.lineAngle)] });
+        }
+        flankStart = max(slot.exitRadius, root.lineTop);
+    }
+    else if (root.fullRound)
     {
         // A full round: from the bottom of the gap up to the line's tangent point
         curves = append(curves, {
@@ -115,14 +131,19 @@ export function halfGapCurves(form is map) returns array
                         });
         }
     }
-    if (root.lineTop > norm(root.lineTangent) + TOLERANCE.zeroLength * meter)
+    if (root.slot == undefined && root.lineTop > norm(root.lineTangent) + TOLERANCE.zeroLength * meter)
     {
         curves = append(curves, { "shape" : "line", "points" : [root.lineTangent, polar(root.lineTop, -root.lineAngle)] });
+    }
+    // A slot wider than the gap at the tip runs up to the tip's corner, leaving no flank
+    if (flankStart >= form.tipRadius - TOLERANCE.zeroLength * meter)
+    {
+        return curves;
     }
     var flank = [];
     for (var i = 0; i <= FLANK_POINTS; i += 1)
     {
-        const radius = root.lineTop + (form.tipRadius - root.lineTop) * i / FLANK_POINTS;
+        const radius = flankStart + (form.tipRadius - flankStart) * i / FLANK_POINTS;
         flank = append(flank, polar(radius, -toothHalfAngle(form, radius)));
     }
     return append(curves, { "shape" : "spline", "points" : flank });
@@ -223,15 +244,27 @@ export function sketchGearProfile(context is Context, id is Id, plane is Plane, 
 const FULL_ROUND_STEPS = 12;
 
 /**
+ * How many times `gearSlot` halves the range where a slot meets the tooth's flank: from the root circle to the tip, to
+ * well within std's length tolerance.
+ */
+const SLOT_STEPS = 50;
+
+/**
  * The root of a gear's gaps, on a tooth's clockwise side (for a tooth centered at angle 0): below its involute, a
  * radial line up to where the involute starts (its base circle, or above it, up to half the tooth's height, to make
  * room for the fillet), and a fillet between it and the root circle (`form.filletFraction` of the full round's radius,
  * or a router bit's `form.filletRadius`); or a full round, tangent to both sides' lines (and, by fraction, the root
- * circle; a router bit's, where two of its fillets don't fit in the gap); or without a fillet, a sharp corner.
+ * circle; a router bit's, where two of its fillets don't fit in the gap, but it reaches the root circle between the
+ * lines); or without a fillet, a sharp corner.
+ *
+ * A router bit too wide to reach the root circle between the lines cuts a slot instead (`gearSlot`), as robot gears
+ * cut with a router are: the bit's path straight down the middle of the gap, square to the pitch circle, to the root
+ * circle. Its sides cut into the teeth's flanks, up to where the gap's as wide as the bit.
  *
  * @returns {{
  *      @field rootRadius {ValueWithUnits} :
  *      @field fullRound {boolean} :
+ *      @field slot {map} : A router bit's slot (see `gearSlot`), or `undefined`.
  *      @field bottomRadius {ValueWithUnits} : A full round's bottom.
  *      @field filletRootAngle {ValueWithUnits} : Where a fillet (or a sharp corner) meets the root circle.
  *      @field filletMiddle {Vector} : A fillet's or full round's: `undefined` for a sharp corner.
@@ -245,7 +278,7 @@ export function gearRoot(form is map) returns map
     const rootRadius = form.rootRadius;
     if (rootRadius <= 0 * meter)
     {
-        throw regenError("The gear's too small for its teeth: give it more teeth.", ["teeth"]);
+        throw regenError("Too few teeth for a gear, increase teeth.", ["teeth"]);
     }
     // Room for the fillet below the involute, up to half the tooth's height: above the base circle the line's a little
     // inside the involute, relieving it rather than interfering
@@ -259,7 +292,7 @@ export function gearRoot(form is map) returns map
             const halfGap = 180 * degree / form.teeth - toothHalfAngle(form, lineTop);
             if (halfGap <= 0 * degree)
             {
-                throw regenError("The gear's teeth meet at their roots: use more clearance.", ["profileOffsetDistance"]);
+                throw regenError("Teeth meet at their roots, change profile offset.", ["profileOffsetDistance"]);
             }
             return halfGap;
         };
@@ -276,9 +309,9 @@ export function gearRoot(form is map) returns map
             full = rootRadius * sin(halfGap) / (1 - sin(halfGap));
         }
         lineTop = lineTopFor(full);
-        if ((rootRadius + full) * cos(halfGapAt(lineTop)) > lineTop + TOLERANCE.zeroLength * meter)
+        if (form.filletFraction > 0 && (rootRadius + full) * cos(halfGapAt(lineTop)) > lineTop + TOLERANCE.zeroLength * meter)
         {
-            throw regenError("The root's full round doesn't fit below the teeth's flanks: use a smaller root fillet.", ["rootFillet"]);
+            throw regenError("Full root fillet does not fit below the flanks, select a smaller root fillet.", ["rootFillet"]);
         }
         fillet = full * form.filletFraction;
     }
@@ -288,7 +321,7 @@ export function gearRoot(form is map) returns map
         // The profile's offset out by at least the root's round
         if (fillet <= 0 * meter)
         {
-            throw regenError("The profile offset is bigger than the roots' round: use less clearance, or a bigger router bit.", ["profileOffsetDistance"]);
+            throw regenError("Profile offset is larger than the bit's radius, decrease profile offset or increase bit diameter.", ["profileOffsetDistance", "bitDiameter"]);
         }
         lineTop = lineTopFor(fillet);
     }
@@ -329,10 +362,21 @@ export function gearRoot(form is map) returns map
     }
     // A full round: a circle of the fillet's radius tangent to both sides' lines, centered in the gap
     const roundCenterRadius = fillet / sin(halfGap);
+    if (form.filletRadius != undefined && roundCenterRadius - fillet > rootRadius + TOLERANCE.zeroLength * meter)
+    {
+        // A router bit which doesn't reach the root circle between the lines: a slot down to it
+        return {
+                "rootRadius" : rootRadius,
+                "fullRound" : false,
+                "slot" : gearSlot(form, fillet, lineAngle, lineTop),
+                "lineAngle" : lineAngle,
+                "lineTop" : lineTop
+            };
+    }
     const tangentRadius = roundCenterRadius * cos(halfGap);
     if (tangentRadius > lineTop + TOLERANCE.zeroLength * meter)
     {
-        throw regenError("The root's round doesn't fit between the teeth: use a smaller router bit, or a bigger module.", ["bitDiameter"]);
+        throw regenError("Bit diameter is too large, decrease the value.", ["bitDiameter"]);
     }
     const gapAngle = -180 * degree / form.teeth;
     const center = polar(roundCenterRadius, gapAngle);
@@ -346,6 +390,65 @@ export function gearRoot(form is map) returns map
             "lineTangent" : lineTangent,
             "lineAngle" : lineAngle,
             "lineTop" : lineTop
+        };
+}
+
+/**
+ * A router bit's slot down the middle of a gear's gap (see `gearRoot`), on the clockwise side of a tooth centered at
+ * angle 0, whose flank below `lineTop` is a radial line at `lineAngle`: its round bottom, of the bit's `radius`, on the
+ * root circle; where its side leaves that; and where its side meets the flank (its `exit`), found by halving the range
+ * it's in, as the gap only widens outward. A slot wider than the gap at the tip meets it at the tip's corner.
+ *
+ * It's `tooLarge` if it meets the flank above the pitch circle: the bit's wider than the gap there (as wide as a tooth,
+ * half the circular pitch), so it cuts into the middle of the flank, where meshing teeth always touch.
+ *
+ * @returns {{
+ *      @field middle {Vector} : The middle of its bottom's round, from the root circle up to its side.
+ *      @field side {Vector} :
+ *      @field exit {Vector} :
+ *      @field exitRadius {ValueWithUnits} :
+ *      @field tooLarge {boolean} :
+ * }}
+ */
+export function gearSlot(form is map, radius is ValueWithUnits, lineAngle is ValueWithUnits, lineTop is ValueWithUnits) returns map
+{
+    const gapAngle = -180 * degree / form.teeth;
+    // Out along the gap's middle, and across it toward the tooth
+    const out = vector(cos(gapAngle), sin(gapAngle));
+    const across = vector(-sin(gapAngle), cos(gapAngle));
+    const flankAngle = function(at is ValueWithUnits) returns ValueWithUnits
+        {
+            return at <= lineTop ? lineAngle : toothHalfAngle(form, at);
+        };
+    // How far the flank is from the gap's middle
+    const halfWidth = function(at is ValueWithUnits) returns ValueWithUnits
+        {
+            return at * sin(180 * degree / form.teeth - flankAngle(at));
+        };
+    var low = form.rootRadius;
+    var high = form.tipRadius;
+    if (halfWidth(high) > radius)
+    {
+        for (var i = 0; i < SLOT_STEPS; i += 1)
+        {
+            const middle = (low + high) / 2;
+            if (halfWidth(middle) < radius)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+    }
+    const center = out * (form.rootRadius + radius);
+    return {
+            "middle" : center + normalize(across - out) * radius,
+            "side" : center + across * radius,
+            "exit" : polar(high, -flankAngle(high)),
+            "exitRadius" : high,
+            "tooLarge" : high > form.pitchRadius + TOLERANCE.zeroLength * meter
         };
 }
 
@@ -399,11 +502,11 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
     const tip = min(form.module + form.offset, faceHeight);
     if (rackHalfWidth(form, tip) <= 0 * meter)
     {
-        throw regenError("The rack's teeth come to points: use less clearance.", ["profileOffsetDistance"]);
+        throw regenError("Teeth come to points, change profile offset.", ["profileOffsetDistance"]);
     }
     if (rackHalfWidth(form, root) >= PI * form.module / 2)
     {
-        throw regenError("The rack's teeth meet at their roots: use more clearance.", ["profileOffsetDistance"]);
+        throw regenError("Teeth meet at their roots, change profile offset.", ["profileOffsetDistance"]);
     }
     // In the face's coordinates: the face at y = 0
     const at = function(x is ValueWithUnits, y is ValueWithUnits) returns Vector
@@ -446,7 +549,7 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
     {
         return regions;
     }
-    return mapArray(regions, region => relieveRackRoots(form, region, radius, root - faceHeight, -faceHeight - form.module));
+    return mapArray(regions, region => relieveRackRoots(form, region, radius, root - faceHeight));
 }
 
 /**
@@ -464,16 +567,43 @@ export function rackRootFilletRadius(form is map) returns ValueWithUnits
     return form.filletFraction * floor / 2 * tan(45 * degree + form.pressureAngle / 2);
 }
 
-const RACK_ROUND_DOESNT_FIT = "The root's round doesn't fit between the teeth: use a smaller router bit, or a bigger module.";
+/**
+ * Whether a router bit's slots (see `relieveRackRoots`) cut a rack's teeth's flanks above its pitch line, as a gear's
+ * mustn't above its pitch circle (see `gearSlot`). With no slots (its fillets fit across the floor), they don't. Worked
+ * out from the form, as every gap between teeth is the same: its floor's half width `f`, and the corners between it
+ * and the flanks, `90° + α`.
+ */
+export function rackBitTooLarge(form is map) returns boolean
+{
+    const radius = form.filletRadius;
+    if (radius == undefined)
+    {
+        return false;
+    }
+    const tolerance = TOLERANCE.zeroLength * meter;
+    const alpha = form.pressureAngle;
+    const root = rackRoot(form);
+    const f = PI * form.module / 2 - rackHalfWidth(form, root);
+    // Each fillet runs along the floor `r / tan(45° + α / 2)`
+    if (radius / tan(45 * degree + alpha / 2) <= f + tolerance)
+    {
+        return false;
+    }
+    // The flanks are `r` from the gap's middle `(r - f) / tan(α)` above the root
+    return root + (radius - f) / tan(alpha) > tolerance;
+}
+
+const RACK_ROUND_DOESNT_FIT = "Bit diameter is too large, decrease the value.";
 
 /**
  * `region` (see `rackCutRegions`) with its roots rounded to `radius`: each corner at the root (`rootY`) between the
  * floor and a tooth's flank becomes an arc tangent to both (a full round's two meet in the floor's middle). Where a
- * gap's floor is too narrow for both (a router bit's), it's a full round of that radius instead: an arc tangent to
- * both flanks, centered in the gap, which a bit can't cut below. Its
- * bottom must be below where a mating gear's tips reach (`tipReach`); a corner at an end's wall (not a flank) is left.
+ * gap's floor is too narrow for both (a router bit's), the bit can't reach the root between the flanks (a round
+ * tangent to both is above it once its fillets overlap): it's a slot the bit's width down the gap's middle instead,
+ * square to the pitch line, to the root, cutting into the flanks (`rackSlot`; see `rackBitTooLarge` for where it
+ * mustn't). A corner at an end's wall (not a flank) is left.
  */
-export function relieveRackRoots(form is map, region is array, radius is ValueWithUnits, rootY is ValueWithUnits, tipReach is ValueWithUnits) returns array
+export function relieveRackRoots(form is map, region is array, radius is ValueWithUnits, rootY is ValueWithUnits) returns array
 {
     const count = size(region);
     const point = function(i is number) returns Vector
@@ -502,7 +632,7 @@ export function relieveRackRoots(form is map, region is array, radius is ValueWi
             return false;
         };
     // A corner's fillet: where it leaves the edges before and after, its middle and center, and whether it runs past
-    // the end of the edge before (or after) it. It mustn't run past the flank's.
+    // the end of the edge before (or after) it, or past the flank's
     const fillet = function(i is number) returns map
         {
             const p = point(i);
@@ -512,10 +642,6 @@ export function relieveRackRoots(form is map, region is array, radius is ValueWi
             const along = radius / tan(half);
             const pastBefore = along > norm(point(i - 1) - p) + TOLERANCE.zeroLength * meter;
             const pastAfter = along > norm(point(i + 1) - p) + TOLERANCE.zeroLength * meter;
-            if ((pastBefore && !atRoot(point(i - 1))) || (pastAfter && !atRoot(point(i + 1))))
-            {
-                throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
-            }
             const bisector = normalize(u + v);
             const center = p + bisector * radius / sin(half);
             return {
@@ -524,7 +650,8 @@ export function relieveRackRoots(form is map, region is array, radius is ValueWi
                     "after" : p + v * along,
                     "center" : center,
                     "pastBefore" : pastBefore,
-                    "pastAfter" : pastAfter
+                    "pastAfter" : pastAfter,
+                    "pastFlank" : (pastBefore && !atRoot(point(i - 1))) || (pastAfter && !atRoot(point(i + 1)))
                 };
         };
     // Where a fillet running past an end's wall (at `wall`) crosses it, below its center, and the arc's middle from
@@ -542,27 +669,36 @@ export function relieveRackRoots(form is map, region is array, radius is ValueWi
     {
         if (flankCorner(i) && flankCorner(i + 1) && atRoot(point(i + 1)))
         {
-            // A gap's floor: fillets at both ends, or a full round if they'd overlap
+            // A gap's floor: fillets at both ends, or a router bit's slot if they'd overlap
             const left = fillet(i);
             const right = fillet(i + 1);
+            const overlap = !tolerantEquals(left.after, right.before) && left.after[0] > right.before[0];
+            if (!overlap && (left.pastFlank || right.pastFlank))
+            {
+                throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
+            }
             if (tolerantEquals(left.after, right.before))
             {
                 // Full rounds' fillets, meeting in the floor's middle
                 result = concatenateArrays([result, [left.before, { "mid" : left.mid }, left.after, { "mid" : right.mid }, right.after]]);
             }
-            else if (left.after[0] < right.before[0])
+            else if (!overlap)
             {
                 result = concatenateArrays([result, [left.before, { "mid" : left.mid }, left.after, right.before, { "mid" : right.mid }, right.after]]);
             }
             else
             {
-                result = concatenateArrays([result, fullRound(point(i - 1), point(i), point(i + 1), point(i + 2), radius, tipReach)]);
+                result = concatenateArrays([result, rackSlot(point(i - 1), point(i), point(i + 1), radius)]);
             }
             i += 2;
         }
         else if (flankCorner(i))
         {
             const corner = fillet(i);
+            if (corner.pastFlank)
+            {
+                throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
+            }
             if (corner.pastBefore)
             {
                 // The floor before it is an end's, too short: the round's cut off at the end's wall, in place of its
@@ -593,30 +729,24 @@ export function relieveRackRoots(form is map, region is array, radius is ValueWi
 }
 
 /**
- * A full round across a gap's floor, from `p` to `q`: an arc of `radius` tangent to the flanks from `above` down to `p`,
- * and from `q` up to `after`, centered between them. Its bottom must be below `tipReach`.
+ * A router bit's slot across a gap's floor, from `p` to `q`, between the flanks from `above` down to `p` and from `q`
+ * up (the same, mirrored across the gap's middle): the bit's width (`radius` each side) straight down the gap's middle,
+ * square to the floor, to it. Its sides run up from its round bottom to where they meet the flanks, or (a slot wider
+ * than the gap) up to the flanks' tops.
  */
-function fullRound(above is Vector, p is Vector, q is Vector, after is Vector, radius is ValueWithUnits, tipReach is ValueWithUnits) returns array
+function rackSlot(above is Vector, p is Vector, q is Vector, radius is ValueWithUnits) returns array
 {
     const up = normalize(above - p);
-    // Into the gap, square to the flank
-    const inward = vector(up[1], -up[0]);
     const middle = (p[0] + q[0]) / 2;
-    // Its center, on the gap's middle, is the radius from the flank
-    const height = p[1] + (radius - (middle - p[0]) * inward[0]) / inward[1];
-    const center = vector(middle, height);
-    const bottom = height - radius;
-    if (bottom > tipReach)
+    // Up the flank to where it's the radius from the gap's middle
+    const exit = p + up * min((middle - radius - p[0]) / up[0], norm(above - p));
+    const side = vector(middle - radius, p[1] + radius);
+    const points = [side, { "mid" : vector(middle, p[1]) }, vector(middle + radius, side[1])];
+    if (tolerantEquals(exit, above))
     {
-        throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
+        return points;
     }
-    const left = center - inward * radius;
-    if (dot(left - p, up) > norm(above - p))
-    {
-        throw regenError(RACK_ROUND_DOESNT_FIT, ["bitDiameter"]);
-    }
-    const right = vector(2 * middle - left[0], left[1]);
-    return [left, { "mid" : vector(middle, bottom) }, right];
+    return concatenateArrays([[exit], points, [vector(2 * middle - exit[0], exit[1])]]);
 }
 
 /**

@@ -192,14 +192,49 @@ def test_sector_gear_closes_through_its_center():
 
 
 def test_router_relief_rounds_roots():
-    # A 1/16 in. bit fits a 20 DP gear's gaps as fillets; a 1/8 in. one doesn't fit at all
+    # A 1/16 in. bit fits a 20 DP gear's gaps as fillets
     sketch, form = gear_profile(24, fillet="1 / 32 * inch")
     loops = sketch.loops()
     assert len(loops) == 1 and loops[0].closed
     radii = {round(curve.radius, 9) for curve in loops[0].curves if curve.kind == "arc" and "_4" not in curve.id}
     assert round(0.0254 / 32, 9) in radii
-    with pytest.raises(FSError, match="doesn't fit between the teeth"):
-        gear_profile(14, fillet="1 / 16 * inch")
+
+
+def gear_slot(teeth: int, bit_radius: str) -> dict:
+    form = f"getGearForm(1.27 * millimeter, {teeth}, 20 * degree, {bit_radius}, 0 * meter)"
+    return to_python(shared_evaluator().eval(f"gearRoot({form}).slot", "gear/gearCommon.fs"))
+
+
+def test_router_bit_too_wide_for_the_root_cuts_a_slot():
+    # A 5/64 in. bit can't reach a 24T 20 DP gear's root between its flanks: a slot of its width down the gap's middle,
+    # square to the pitch circle, to the root circle
+    sketch, form = gear_profile(24, fillet="5 / 128 * inch")
+    loops = sketch.loops()
+    assert len(loops) == 1 and loops[0].closed
+    curves = loops[0].curves
+    assert min(curve.nearest() for curve in curves) == pytest.approx(form["rootRadius"], abs=1e-9)
+    radius = 0.0254 * 5 / 128
+    gap = -math.pi / 24
+    # Its round bottom: the bit's radius, centered on the gap's middle, a radius above the root circle
+    (bottom,) = [curve for curve in curves if curve.id == "tooth0_0"]
+    assert bottom.radius == pytest.approx(radius, abs=1e-12)
+    assert math.atan2(bottom.center[1], bottom.center[0]) == pytest.approx(gap, abs=1e-9)
+    assert math.hypot(*bottom.center) == pytest.approx(form["rootRadius"] + radius, abs=1e-12)
+    # Its side: parallel to the gap's middle, the radius from it
+    (side,) = [curve for curve in curves if curve.id == "tooth0_1"]
+    direction = (math.cos(gap), math.sin(gap))
+    for x, y in (side.start, side.end):
+        assert abs(x * direction[1] - y * direction[0]) == pytest.approx(radius, abs=1e-9)
+    assert not gear_slot(24, "5 / 128 * inch")["tooLarge"]
+
+
+def test_router_bit_too_wide_for_the_gap_at_the_pitch_circle():
+    # A 1/8 in. bit's slots cut a 20 DP gear's flanks above its pitch circle (its gaps are about 0.08 in. wide there)
+    slot = gear_slot(24, "1 / 16 * inch")
+    assert slot["tooLarge"] and slot["exitRadius"] > 24 * 1.27e-3 / 2
+    # Its profile still closes, for showing what the slots cut
+    sketch, _ = gear_profile(14, fillet="1 / 16 * inch")
+    assert len(sketch.loops()) == 1 and sketch.loops()[0].closed
 
 
 ROOT_FILLETS = ["1", "2 / 3", "1 / 2", "0"]
@@ -332,17 +367,26 @@ def test_rack_roots_are_rounded_for_a_router_bit():
     assert min(y for _, y in points) == pytest.approx(-0.00125, abs=1e-12)
 
 
-def test_rack_roots_are_a_full_round_when_the_floor_is_too_narrow():
-    # A 0.5 mm radius bit doesn't fit both corners: one round across each gap, above the root
+def rack_bit_too_large(radius_mm: float) -> bool:
+    form = RACK_FORM.format(fillet=f"{radius_mm} * millimeter", offset=0)
+    return to_python(shared_evaluator().eval(f"rackBitTooLarge({form})", "gear/gearCommon.fs"))
+
+
+def test_rack_roots_are_a_slot_when_the_floor_is_too_narrow():
+    # A 0.5 mm radius bit doesn't fit both corners: a slot of its width down each gap's middle, to the root
     sketch = rack_cut("0 * meter", 10 * math.pi, fillet="0.5 * millimeter")
     loops = sketch.loops()
     assert all(loop.closed for loop in loops)
     gap = loops[1]
     arcs = [curve for curve in gap.curves if curve.kind == "arc"]
     assert len(arcs) == 1 and arcs[0].radius == pytest.approx(0.0005, abs=1e-12)
-    # Its bottom: above the root, but below where a mating gear's tips reach
-    bottom = arcs[0].center[1] - arcs[0].radius
-    assert -0.00125 < bottom < -0.001
+    assert arcs[0].center[1] - arcs[0].radius == pytest.approx(-0.00125, abs=1e-12)
+    # Its sides square to the floor, the radius from its middle
+    sides = [curve for curve in gap.curves if curve.kind == "line" and abs(curve.start[0] - curve.end[0]) < 1e-12]
+    assert sorted(abs(side.start[0] - arcs[0].center[0]) for side in sides) == pytest.approx([0.0005, 0.0005], abs=1e-12)
+    assert not rack_bit_too_large(0.5)
+    # Fillets fit, so no slots
+    assert not rack_bit_too_large(0.2)
 
 
 def test_rack_full_round_fillets_meet_in_the_floors_middle():
@@ -370,10 +414,12 @@ def test_rack_partial_fillets_leave_a_floor(fillet):
     assert len(lines) == 1
 
 
-def test_rack_round_too_big_for_its_gaps():
-    # Its round would stop above where a mating gear's tips reach
-    with pytest.raises(FSError, match="doesn't fit between the teeth"):
-        rack_cut("0 * meter", 10 * math.pi, fillet="0.8 * millimeter")
+def test_rack_slot_too_big_for_its_gaps():
+    # Its slots would cut the flanks above the pitch line, where the gaps are about 0.79 mm across; they're still cut,
+    # for showing what they cut
+    assert rack_bit_too_large(0.8)
+    sketch = rack_cut("0 * meter", 10 * math.pi, fillet="0.8 * millimeter")
+    assert all(loop.closed for loop in sketch.loops())
 
 
 def test_rack_teeth_too_thin():
@@ -397,12 +443,14 @@ def test_standard_pitches(pitch, module_mm, pressure_degrees):
     assert gear_eval(f"pressureAngle({definition}) / degree") == pytest.approx(pressure_degrees)
 
 
-def test_custom_pitch_by_unit_system():
-    imperial = '{ "pitch" : GearPitch.CUSTOM, "unitSystem" : UnitSystem.IMPERIAL, "diametralPitch" : 24, "pressureAngle" : 25 * degree }'
-    metric = '{ "pitch" : GearPitch.CUSTOM, "unitSystem" : UnitSystem.METRIC, "module" : 1.5 * millimeter }'
-    assert gear_eval(f"gearModule({imperial}) / inch") == pytest.approx(1 / 24)
-    assert gear_eval(f"pressureAngle({imperial}) / degree") == pytest.approx(25)
-    assert gear_eval(f"gearModule({metric}) / millimeter") == pytest.approx(1.5)
+def test_custom_pitch():
+    diametral = '{ "pitch" : GearPitch.CUSTOM, "customPitch" : CustomPitch.DIAMETRAL_PITCH, "diametralPitch" : 24, "pressureAngle" : 25 * degree }'
+    module = '{ "pitch" : GearPitch.CUSTOM, "customPitch" : CustomPitch.MODULE, "module" : 1.5 * millimeter }'
+    circular = '{ "pitch" : GearPitch.CUSTOM, "customPitch" : CustomPitch.CIRCULAR_PITCH, "circularPitch" : PI * 2 * millimeter }'
+    assert gear_eval(f"gearModule({diametral}) / inch") == pytest.approx(1 / 24)
+    assert gear_eval(f"pressureAngle({diametral}) / degree") == pytest.approx(25)
+    assert gear_eval(f"gearModule({module}) / millimeter") == pytest.approx(1.5)
+    assert gear_eval(f"gearModule({circular}) / millimeter") == pytest.approx(2)
 
 
 def test_nearest_gear_teeth():

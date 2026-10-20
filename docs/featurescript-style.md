@@ -144,6 +144,14 @@ holes", "Rounded hex", "Stainless steel". Product and company names keep their o
 "UltraHex", "SplineXS", "The Thrifty Bot"), as do part names, which are titles ("3 in. Rounded Hex Shaft (WCP 1/2
 in.)").
 
+## Descriptions
+
+Give a parameter a `"Description"` (its tooltip) only if it's both non-standard or confusing and has no clear
+effect when it's changed, like a rack's Face at (which moves the face out before cutting) or a bevel gear's Shaft
+angle without its mate. Most parameters need none: their name, their options, and what changing them does to the
+model say enough. Don't describe a parameter just to restate its name, give its units, or explain a standard term
+(Module, Diametral pitch, Helix angle).
+
 ## Horizontal enums go at the top
 
 As in std features, a horizontal enum (`"UIHint" : ["HORIZONTAL_ENUM"]`) belongs at the top of the feature: it may
