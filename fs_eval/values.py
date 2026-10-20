@@ -229,14 +229,37 @@ def key_of(value):
 
 
 def equal(a, b) -> bool:
+    """Whether `key_of(a) == key_of(b)`, without building either: arrays and maps (such as lookup tables) are compared
+    item by item, stopping at the first difference."""
+    if a is b and type(a) is not float:  # NaN isn't equal to itself
+        return True
     ta = type(a)
-    if ta is type(b):
+    if ta is Tagged:
+        return equal(a.value, b)
+    tb = type(b)
+    if tb is Tagged:
+        return equal(a, b.value)
+    if ta is tb:
         if ta is float or ta is str or ta is bool:
             return a == b
         if a is None:
             return True
         if ta is EnumValue:
             return a.enum is b.enum and a.name == b.name
+        if ta is FSArray:
+            return len(a.items) == len(b.items) and all(map(equal, a.items, b.items))
+        if ta is FSMap:
+            if len(a.entries) != len(b.entries):
+                return False
+            # As key_of reads them: by dict's own methods, past a subclass's (like fs_cli.set_by's, which watches reads)
+            for key, (_, value) in dict.items(a.entries):
+                other = dict.get(b.entries, key)
+                if other is None or not equal(value, other[1]):
+                    return False
+            return True
+    if ta is FSArray or ta is FSMap or tb is FSArray or tb is FSMap:
+        # Only equal to another of the same kind (as `table == undefined` checks)
+        return False
     return key_of(a) == key_of(b)
 
 

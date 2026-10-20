@@ -75,9 +75,13 @@ def test_script_draws_what_fs_ui_renders(feature, tmp_path):
     config = load_config()
     project = _project(config)
     path = config.root / feature
+    rendered: dict[str, str] = {}
 
     def render(settings: dict[str, str]) -> str:
-        return render_feature(project, config.std_dir, path, None, settings)[0]
+        key = json.dumps(settings, sort_keys=True)
+        if key not in rendered:
+            rendered[key] = render_feature(project, config.std_dir, path, None, settings)[0]
+        return rendered[key]
 
     cases = states(render, 40)
     data, conditions = dialog_data(project, config.std_dir, path, None)

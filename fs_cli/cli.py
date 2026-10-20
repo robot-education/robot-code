@@ -1472,16 +1472,17 @@ def audit(config: Config, args: argparse.Namespace) -> int:
         raise UsageError(f"{args.file} isn't a file.")
     project = _project(config)
     feature = args.feature
-    # The dialog's page, without its parameters, which the page's script draws
-    shell = split_page(render_feature(project, config.std_dir, path, feature, {}, args.theme)[0])[0]
-    data, conditions = dialog_data(project, config.std_dir, path, feature, args.theme)
+    with project.snapshot():
+        # The dialog's page, without its parameters, which the page's script draws
+        shell = split_page(render_feature(project, config.std_dir, path, feature, {}, args.theme)[0])[0]
+        data, conditions = dialog_data(project, config.std_dir, path, feature, args.theme)
+        module = project.module(path.resolve())
+        problems = check_problems(project, module) if module is not None else []
+        tables = feature_tables(config, project, module) if module is not None else []
     name = data["title"].removesuffix(" 1")
     writeup_path = path.with_suffix(".md")
     writeup = writeup_path.read_text() if writeup_path.is_file() else None
-    module = project.module(path.resolve())
-    problems = check_problems(project, module) if module is not None else []
     source = pathlib.Path(os.path.relpath(path.resolve(), config.root)).as_posix()
-    tables = feature_tables(config, project, module) if module is not None else []
     page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)

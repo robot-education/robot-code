@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
 import pickle
 import re
@@ -321,6 +322,7 @@ class Module:
                 function = DeclFunction(decl, self)
                 if decl.kind == "operator":
                     self.interpreter.operators.setdefault((decl.name, len(decl.params)), []).append(function)
+                    self.interpreter.operator_choices.clear()
                     continue
                 self.functions.setdefault(decl.name, []).append(function)
             elif kind is ast.ConstDecl:
@@ -399,6 +401,8 @@ class Interpreter:
         self.cache_dir = cache_dir
         self.modules: dict[pathlib.Path, Module] = {}
         self.operators: dict[tuple[str, int], list[DeclFunction]] = {}
+        # The overload `operator` chose, by the operator and its arguments' types (see `operator_choice`)
+        self.operator_choices: dict[tuple, DeclFunction | None] = {}
         self.builtins = BUILTINS
         self.output: list[str] = []
         self.trace: list[str] = []
@@ -444,11 +448,18 @@ class Interpreter:
         except (OSError, pickle.PickleError, EOFError, AttributeError):
             pass
         program = parse(source, label)
+        # Written beside it and moved into place, so another process (the language server, or a parallel test) never
+        # reads half of it
+        written = cached.with_name(f"{cached.name}.{os.getpid()}.tmp")
         try:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
-            cached.write_bytes(pickle.dumps(program, protocol=pickle.HIGHEST_PROTOCOL))
+            written.write_bytes(pickle.dumps(program, protocol=pickle.HIGHEST_PROTOCOL))
+            os.replace(written, cached)
         except OSError:
-            pass
+            try:
+                written.unlink(missing_ok=True)
+            except OSError:
+                pass
         return program
 
     def resolve_import(self, path: str) -> pathlib.Path | None:
@@ -608,25 +619,35 @@ class Interpreter:
         """Calls an overloaded operator (like std's `+` for `ValueWithUnits`)."""
         overloads = self.operators.get((op, len(args)))
         if overloads:
-            best = None
-            best_score = -1
-            for function in overloads:
-                score = 0
-                for param, arg in zip(function.decl.params, args):
-                    if param.type is None:
-                        continue
-                    match = self.type_matches(arg, param.type, function.module)
-                    if match == 0:
-                        score = -1
-                        break
-                    score += match
-                if score > best_score:
-                    best = function
-                    best_score = score
+            # Which overload matches depends only on each argument's Python type and type tag (see `is_type`)
+            key = (op, *((type(untag(arg)), tag_of(arg)) for arg in args))
+            if key in self.operator_choices:
+                best = self.operator_choices[key]
+            else:
+                best = self.operator_choices[key] = self.operator_choice(overloads, args)
             if best is not None:
                 return self._invoke(best.compiled(), args, f"operator{op}", at)
         described = f" {op} ".join(_describe(arg) for arg in args) if len(args) == 2 else op + _describe(args[0])
         raise error(f"Can't evaluate {described}", at)
+
+    def operator_choice(self, overloads: list[DeclFunction], args: list) -> DeclFunction | None:
+        """The overload whose parameters' types match the arguments most specifically, or None if none match."""
+        best = None
+        best_score = -1
+        for function in overloads:
+            score = 0
+            for param, arg in zip(function.decl.params, args):
+                if param.type is None:
+                    continue
+                match = self.type_matches(arg, param.type, function.module)
+                if match == 0:
+                    score = -1
+                    break
+                score += match
+            if score > best_score:
+                best = function
+                best_score = score
+        return best
 
     def binary(self, op: str, a, b, at):
         ta = type(a)

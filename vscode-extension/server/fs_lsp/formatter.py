@@ -26,6 +26,8 @@ Formatting std changes almost nothing (see the tests), and formatting is idempot
 from __future__ import annotations
 
 import dataclasses
+import itertools
+from typing import Iterator
 
 from fs_lsp.scanner import _TOKEN_PATTERN
 
@@ -123,13 +125,16 @@ def _join(lines: list[str | None]) -> str:
 def _same_tokens(source: str, formatted: str) -> bool:
     """Whether two sources have the same tokens (ignoring the whitespace starting and ending comments' lines)."""
 
-    def values(text: str) -> list[str]:
-        return [
-            "\n".join(line.strip() for line in token.value.split("\n")) if "comment" in token.kind else token.value
-            for token in _lex(text)
-        ]
+    def values(text: str) -> Iterator[str]:
+        # As _lex's tokens' values, without building the tokens, which takes most of the time
+        for match in _TOKEN_PATTERN.finditer(text):
+            kind = match.lastgroup or "invalid"
+            if kind == "space":
+                continue
+            value = match.group()
+            yield "\n".join(line.strip() for line in value.split("\n")) if "comment" in kind else value
 
-    return values(source) == values(formatted)
+    return all(a == b for a, b in itertools.zip_longest(values(source), values(formatted)))
 
 
 def is_generated(path: str) -> bool:

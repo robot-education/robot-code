@@ -315,6 +315,21 @@ class Feature:
     defaults: Node | None
 
 
+@dataclasses.dataclass
+class Constant:
+    """A constant's value, as its file's tokens and where it starts: parsed when it's first read, and kept (as each
+    file's declarations are, see parse_file), since lookup tables are long."""
+
+    tokens: list[Token]
+    start: int
+    parsed: Node | None = None
+
+    def expression(self) -> Node:
+        if self.parsed is None:
+            self.parsed = Parser(self.tokens, self.start).expression()
+        return self.parsed
+
+
 UNITS = {"meter", "centimeter", "millimeter", "inch", "foot", "yard", "degree", "radian", "unitless"}
 
 
@@ -328,7 +343,7 @@ class Declarations:
     def __init__(self) -> None:
         self.predicates: dict[str, Predicate] = {}
         self.enums: dict[str, EnumType] = {}
-        self.constants: dict[str, tuple[list[Token], int]] = {}
+        self.constants: dict[str, Constant] = {}
         self.features: dict[str, Feature] = {}
 
     def merge(self, other: Declarations) -> None:
@@ -408,7 +423,7 @@ class Declarations:
         if parser.check("defineFeature"):
             self.features.setdefault(name, self._feature(parser, name, annotation))
             return
-        self.constants.setdefault(name, (tokens, start))
+        self.constants.setdefault(name, Constant(tokens, start))
         # Skip to the end of the constant
         while not parser.check(";") and parser.peek().kind != "eof":
             if parser.peek().value in ("(", "[", "{"):
@@ -485,7 +500,10 @@ def load_declarations(
     declarations = Declarations()
     element_ids = project.element_ids()
     seen: set[pathlib.Path] = set()
-    pending = [path.resolve()]
+    # Paths as imports name them, as resolving them is slow (on Windows), and std's files import the same files many
+    # times over
+    queued = {path}
+    pending = [path]
     while pending:
         current = pending.pop(0).resolve()
         if current in seen:
@@ -499,11 +517,16 @@ def load_declarations(
             if namespace:
                 continue
             if imported.startswith(STD_PREFIX):
-                pending.append(std_dir / imported[len(STD_PREFIX) :])
+                found = std_dir / imported[len(STD_PREFIX) :]
             elif imported in element_ids:
-                pending.append(element_ids[imported])
+                found = element_ids[imported]
             elif imported.endswith(".fs"):
-                pending.append(project.code_dir / imported)
+                found = project.code_dir / imported
+            else:
+                continue
+            if found not in queued:
+                queued.add(found)
+                pending.append(found)
     return declarations
 
 
@@ -609,9 +632,8 @@ class Evaluator:
         if name in self.declarations.constants:
             if name not in self.constant_values:
                 self.constant_values[name] = UNKNOWN  # Guards against cycles
-                tokens, start = self.declarations.constants[name]
                 try:
-                    self.constant_values[name] = self.value(Parser(tokens, start).expression(), {})
+                    self.constant_values[name] = self.value(self.declarations.constants[name].expression(), {})
                 except UiError:
                     pass
             return self.constant_values[name]

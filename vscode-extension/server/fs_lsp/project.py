@@ -254,6 +254,11 @@ class Module:
         return export is not None and export.value == "export"
 
 
+# Modules parsed from files (not overlays), by resolved path, with the file's (mtime, size) when parsed: shared by every
+# Project in the process, as parsing std takes seconds, and the fs CLI (and its tests) make a Project per command
+_file_modules: dict[pathlib.Path, tuple[object, Module]] = {}
+
+
 class Project:
     """The FeatureScripts in a repo's code folder (see the fs CLI's [tool.fs] config)."""
 
@@ -383,14 +388,20 @@ class Project:
         cached = self._modules.get(path)
         if cached and cached[0] == key:
             return cached[1]
-        if source is None:
-            source = path.read_text(encoding="utf-8", errors="replace")
         if self.in_std(path):
             # As std's files import each other
             relative = STD_PREFIX + path.relative_to(self._resolve(self.std_dir)).as_posix()
         else:
             relative = path.relative_to(self._resolve(self.code_dir)).as_posix()
-        module = Module(path, relative, source)
+        shared = _file_modules.get(path) if source is None else None
+        if shared and shared[0] == key and shared[1].relative == relative:
+            module = shared[1]
+        else:
+            if source is None:
+                source = path.read_text(encoding="utf-8", errors="replace")
+            module = Module(path, relative, source)
+            if key[0] != "overlay":
+                _file_modules[path] = (key, module)
         self._modules[path] = (key, module)
         return module
 

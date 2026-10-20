@@ -5,7 +5,7 @@ import textwrap
 
 import pytest
 
-from fs_lsp.formatter import _same_tokens, edits, format_source, is_generated
+from fs_lsp.formatter import _checked_lines, _join, _same_tokens, edits, format_source, is_generated
 
 STD = pathlib.Path(__file__).parents[3] / "std"
 
@@ -370,8 +370,10 @@ def test_std_is_nearly_formatted():
         if is_generated(path.name):
             continue
         source = path.read_text(encoding="utf-8")
-        formatted = format_source(source)
-        assert _same_tokens(source, formatted), path.name
+        # Only whitespace changes, or it'd be left as it is
+        checked = _checked_lines(source)
+        assert checked is not None, path.name
+        formatted = _join(checked)
         assert format_source(formatted) == formatted, path.name
         lines += source.count("\n")
         changed += sum(source.count("\n", start, end) for start, end, _ in edits(source))

@@ -8,6 +8,12 @@ cd vscode-extension && npm run test:integration    # the extension inside a real
 
 On a headless Linux machine, run the integration test under `xvfb-run -a`.
 
+pytest runs the tests in parallel (pytest-xdist's `-n auto`, in `pyproject.toml`), a process per core, so tests
+mustn't share files they write: use `tmp_path`, and write shared caches (like `.fs-eval-cache`) to a file beside them
+and move it into place. `-n0` runs them in one process, for a debugger or `print`s. Parsing std's files is cached in
+each process (`fs_lsp.project`'s `_file_modules`, and `fs_cli.ui`'s `_parsed_files`), so a test which makes its own
+`Project` costs little more than one which shares one.
+
 ## Testing FeatureScript
 
 `fs_eval` runs FeatureScript locally: a parser and an interpreter for the language, which runs std's own FeatureScript

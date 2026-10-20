@@ -61,6 +61,32 @@ def test_overloads_choose_the_most_specific():
     assert run(source, "describe({})") == "map"
 
 
+def test_operators_choose_by_each_calls_types():
+    # Which overload is chosen is kept by the arguments' types, so the same operator on other types chooses again
+    source = """
+    export type Pair typecheck function(value) { return value is map; };
+    export operator+(a is Pair, b is Pair) returns Pair { return { "sum" : a.sum + b.sum } as Pair; }
+    """
+    assert to_display(run(source, "1 * inch + 1 * inch")) == to_display(run(source, "2 * inch"))
+    assert run(source, '(({ "sum" : 1 } as Pair) + ({ "sum" : 2 } as Pair)).sum') == 3
+    assert run(source, "1 + 2") == 3
+    with pytest.raises(FSError, match="Can't evaluate"):
+        run(source, '({ "sum" : 1 } as Pair) + 1')
+
+
+def test_equality():
+    # Arrays and maps by their items, ignoring type tags, and numbers whether whole or not
+    assert run("", '{ "a" : [1, 2.0], "b" : { "c" : "d" } } == { "b" : { "c" : "d" }, "a" : [1.0, 2] }') is True
+    assert run("", '{ "a" : [1, 2] } == { "a" : [1, 3] }') is False
+    assert run("", '{ "a" : 1 } == { "a" : 1, "b" : 2 }') is False
+    assert run("", '({ "a" : "b" } as LookupTablePath) == { "a" : "b" }') is True
+    assert run("", "[1, 2] == [1, 2, 3]") is False
+    # Never equal to another kind of value
+    assert run("", "{} == undefined") is False
+    assert run("", "[] == {}") is False
+    assert run("", '[1] == "1"') is False
+
+
 def test_units():
     assert to_python(run("", "3 * inch + 2 * millimeter"), "millimeter") == pytest.approx(78.2)
     assert run("", "(2 * inch) / inch") == pytest.approx(2)

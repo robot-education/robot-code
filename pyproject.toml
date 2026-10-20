@@ -18,8 +18,8 @@ fs = "fs_cli.cli:run"
 fs-lsp = "fs_lsp.server:main"
 
 [dependency-groups]
-# shapely: for icons (fs_cli/icons.py)
-dev = ["pytest>=8.0.0", "shapely>=2.0"]
+# shapely: for icons (fs_cli/icons.py); pytest-xdist: to run tests in parallel
+dev = ["pytest>=8.0.0", "pytest-xdist>=3.6", "shapely>=2.0"]
 # For regenerating fs_cli/onshape_ui (see its extract.py)
 onshape-ui = ["beautifulsoup4>=4.12", "tinycss2>=1.3"]
 
@@ -38,6 +38,8 @@ frontend_beta = "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/75
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]
 python_files = ["*test*.py"]
+# In parallel, a process per core (`-n0` runs them in this one, as a debugger needs)
+addopts = "-n auto"
 
 [tool.hatch.build.targets.wheel]
 packages = ["onshape_api", "fs_cli", "fs_eval", "vscode-extension/server/fs_lsp"]
