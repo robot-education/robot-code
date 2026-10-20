@@ -934,6 +934,7 @@ class Project:
         problems.extend(self._button_problems(module))
         problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
+        problems.extend(self._parameter_order_problems(module))
         problems.extend(_annotation_key_problems(module))
         problems.extend(self._array_group_problems(module))
         problems.extend(self._tolerant_parameter_problems(module))
@@ -2143,6 +2144,139 @@ class Project:
                             )
                         )
         return found
+
+    def _parameter_order_problems(self, module: Module) -> list[Problem]:
+        """Conditions in a feature's precondition which read a parameter it declares after them.
+
+        A precondition's if conditions can only read parameters declared before them (docs/fsdoc/uispec.md: "prior
+        boolean and enum parameters"). The precondition is followed in order through the predicates it calls, as
+        statements (declaring parameters, with conditions of their own) and in conditions (reading parameters). A read
+        is reported in its condition here: at the predicate a condition calls, or the call here which reaches another
+        file's predicate.
+        """
+        problems: list[Problem] = []
+        for node in module.parsed.nodes:
+            if node.type != "PreconditionBlock":
+                continue
+            if module.index.enclosing(node.token, frozenset(["FeatureDeclaration"])) is None:
+                continue
+            declarations = self._declared_parameters(module, node.start, node.end, "definition", frozenset())
+            lines = {}
+            for name, report_at, _ in declarations:
+                lines.setdefault(name, module.position(report_at.offset)[0] + 1)
+            self._walk_parameter_order(module, node.start, node.end, "definition", frozenset(), set(), lines, None, problems)
+        return _dedupe_problems(problems)
+
+    def _walk_parameter_order(
+        self,
+        module: Module,
+        start: int,
+        end: int,
+        map_name: str,
+        path: frozenset[tuple[pathlib.Path, int]],
+        declared: set[str],
+        lines: dict[str, int],
+        report_at: Token | None,
+        problems: list[Problem],
+    ) -> None:
+        """Walks a region of a precondition (or a predicate it calls, whose definition is `map_name`) in order, adding
+        the parameters it declares to `declared`, and reporting reads in its conditions of parameters in `lines` (the
+        precondition's, with the line each is first declared on) which aren't declared yet. `report_at` is the call in
+        the feature's file to report at, for a predicate in another file."""
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+
+        def value(position: int) -> str | None:
+            return tokens[position].value if position < len(tokens) else None
+
+        def called(position: int, inner_map: str) -> tuple[Module, AstNode, str] | None:
+            """The predicate called at position with `inner_map` as an argument: its module, body, and its name for it."""
+            for owner, declaration in self._predicate_targets(module, tokens[position], providers)[:1]:
+                body = _predicate_node(owner, declaration)
+                if body is None or (owner.path, declaration.token.offset) in path:
+                    return None
+                names = _parameter_names(owner, body)
+                for index, argument in enumerate(_call_arguments(tokens, position + 1)):
+                    if index < len(names) and [t.value for t in argument] == [inner_map]:
+                        return owner, body, names[index]
+            return None
+
+        def reads(owner: Module, first: int, last: int, inner_map: str) -> list[tuple[Token, str]]:
+            """The parameters read in owner's tokens first..last (a condition, or a predicate's body)."""
+            owner_tokens = owner.index.tokens
+            found = []
+            for position in range(first, last):
+                token = owner_tokens[position]
+                if token.kind != "identifier" or token.value != inner_map:
+                    continue
+                if position and owner_tokens[position - 1].value in (".", "?."):
+                    continue
+                if position + 2 < len(owner_tokens) and owner_tokens[position + 1].value == "." and owner_tokens[position + 2].kind == "identifier":
+                    found.append((owner_tokens[position + 2], owner_tokens[position + 2].value))
+            return found
+
+        def report(token: Token, name: str) -> None:
+            if name in declared or name not in lines:
+                return
+            at = report_at or token
+            problems.append(
+                Problem(
+                    at.offset,
+                    at.end,
+                    "warning",
+                    f"This condition reads {name}, which the precondition declares after it (line {lines[name]}): "
+                    f"conditions can only read parameters declared before them. Declare {name} first.",
+                    "parameter-order",
+                )
+            )
+
+        position = 0
+        while position < len(tokens):
+            token = tokens[position]
+            if not start <= token.offset < end or token.kind == "string":
+                position += 1
+                continue
+            if token.value == "if" and value(position + 1) == "(":
+                close = _matching_index(tokens, position + 1)
+                close = close if close is not None else position + 1
+                for read, name in reads(module, position + 1, close, map_name):
+                    report(read, name)
+                for inner in range(position + 1, close):
+                    if tokens[inner].kind == "identifier" and value(inner + 1) == "(":
+                        target = called(inner, map_name)
+                        if target is not None:
+                            owner, body, inner_map = target
+                            first = next(i for i, t in enumerate(owner.index.tokens) if t.offset >= body.start)
+                            last = next((i for i, t in enumerate(owner.index.tokens) if t.offset >= body.end), len(owner.index.tokens))
+                            for read, name in reads(owner, first, last, inner_map):
+                                report(tokens[inner], name)
+                position = close + 1
+                continue
+            if token.kind == "identifier" and (not position or value(position - 1) in (";", "{", "}")):
+                if token.value == map_name and value(position + 1) == "." and value(position + 3) == "is":
+                    declared.add(tokens[position + 2].value)
+                elif value(position + 1) == "(" and token.value in PARAMETER_PREDICATES:
+                    if value(position + 2) == map_name and value(position + 3) == "." and value(position + 5) in (",", ")"):
+                        declared.add(tokens[position + 4].value)
+                elif value(position + 1) == "(":
+                    target = called(position, map_name)
+                    if target is not None:
+                        owner, body, inner_map = target
+                        declaration = next(
+                            d for d in owner.index.declarations if d.kind == "predicate" and body.start <= d.token.offset < body.end
+                        )
+                        self._walk_parameter_order(
+                            owner,
+                            body.start,
+                            body.end,
+                            inner_map,
+                            path | {(owner.path, declaration.token.offset)},
+                            declared,
+                            lines,
+                            report_at or (None if owner is module else token),
+                            problems,
+                        )
+            position += 1
 
     def _nested_predicate_problems(self, module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
         """Predicates in a precondition's if conditions which call other predicates.

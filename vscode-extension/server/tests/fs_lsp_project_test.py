@@ -995,6 +995,41 @@ def test_horizontal_enums_go_at_the_top(project):
     assert problems(shown + horizontal + "        modePredicate(definition);\n") == ["other", "modePredicate"]
 
 
+def test_conditions_read_only_parameters_declared_before_them(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export predicate sizePredicate(definition is map)\n{\n"
+        "    definition.size is boolean;\n}\n"
+        "export predicate widthPredicate(definition is map)\n{\n"
+        "    if (definition.wide)\n    {\n        definition.width is boolean;\n    }\n}\n"
+    )
+    feature = (
+        f'FeatureScript 2909;\nexport import(path : "{SHAPES_ID}", version : "v");\n'
+        "predicate isBig(definition is map)\n{{\n    definition.big;\n}}\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {{\n{body}    }}\n    {{\n    }});\n"
+    )
+    path = project.code_dir / "feature2.fs"
+
+    def problems(body: str) -> list[str]:
+        path.write_text(feature.format(body=body))
+        source = project.module(path).parsed.source
+        return [source[p.start:p.end] for p in project.check(project.module(path)) if p.code == "parameter-order"]
+
+    big = "        definition.big is boolean;\n"
+    wide = "        definition.wide is boolean;\n"
+    shown_if = "        if ({condition})\n        {{\n            definition.shown is boolean;\n        }}\n"
+    # Declared before (directly, or by a predicate called before), they're fine
+    assert problems(big + shown_if.format(condition="definition.big")) == []
+    assert problems("        sizePredicate(definition);\n" + shown_if.format(condition="definition.size")) == []
+    assert problems(wide + "        widthPredicate(definition);\n") == []
+    # Declared after, they're reported: at the read, at a predicate in the condition, or at the call reaching another
+    # file's predicate whose condition reads it
+    assert problems(shown_if.format(condition="definition.big") + big) == ["big"]
+    assert problems(shown_if.format(condition="isBig(definition)") + big) == ["isBig"]
+    assert problems("        widthPredicate(definition);\n" + wide) == ["widthPredicate"]
+
+
 def test_horizontal_enums_go_in_no_groups_or_arrays(project):
     path = project.code_dir / "feature2.fs"
     path.write_text(

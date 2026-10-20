@@ -8,7 +8,7 @@ module, diametral pitch, or circular pitch, with standard proportions (a bevel g
 circle, sits on its location by its bottom (or middle, top, or a bevel gear's apex, by a point manipulator), and with
 Gear pair, the gear it meshes with is made too. Its roots are fully rounded (or, as Onshape's Spur gear's Root fillet,
 a third or a quarter of the gap's width, or sharp; or a router bit's radius, with a slot of the bit's width down each
-gap too narrow for it; a spherical bevel gear's are always full rounds), and it can have a bore.
+gap too narrow for it; a bevel gear's are always full rounds), and it can have a bore.
 
 | File | What it is |
 | --- | --- |
@@ -31,7 +31,8 @@ Unreleased.
 - Bevel gears have spherical involute teeth (exactly conjugate) and Gleason's proportions, as bought straight bevel
   gears do: a small pinion's teeth are longer and thicker (and its mate's shorter and thinner), their roots `0.188 m`
   (and 0.002 in.) below their mate's tips, rather than `0.25 m`, and their tips' cones parallel to their mate's root
-  cones, so they come down a little toward the apex. Their roots are always full rounds (Root fillet is hidden).
+  cones, so they come down a little toward the apex.
+- Bevel gears' roots are always full rounds (Root fillet is hidden for them), Simplified bevels' too.
 - Simplified bevels (in Other options) makes them as before, by Tredgold's approximation with a spur gear's
   proportions, except that each gap is now sketched centered on its middle (it was sketched at the tooth before it).
 - The Gear group (was Teeth) is at the top, under Gear type, with Teeth first in it, and a bevel gear's Mating gear
@@ -112,14 +113,13 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Thickness is too small for the teeth, increase it past `<thickness>`. | error | a bevel gear's top is below its teeth's tips at its back | `thickness` | Bend angle is too small. |
 | Thickness is too large, reaching the apex. Decrease it below `<thickness>`. | error | a bevel gear's top is at its apex or past it | `thickness` | Selected offset is too large, decrease the value. |
 | Thickness is too small for the mating gear's teeth, increase it past `<thickness>`. | error | a bevel gear's mate's teeth, as long as its, don't reach the mate's top | `thickness` | Bend angle is too small. |
-| Router bit root fillet is not available for bevel gears, select another root fillet. | error | Bevel with Simplified bevels, with Root fillet Router bit (hidden for spherical bevels) | `rootFillet` | Select an entity to align to. |
 | Teeth come to points, increase teeth or change profile offset. / Teeth meet at their roots, change profile offset. | error | a gear's (or a bevel gear's virtual or projected) tooth's flanks meet below the tip circle, or above the root | `teeth`, `profileOffsetDistance` / `profileOffsetDistance` | none |
 | Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the gap's loft, or cutting the gaps from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the gap's sketches or the gaps | Failed to extrude selections, check input. |
 | Too few teeth for a gear, increase teeth. | error | the root circle's at or below the center | `teeth` | Cannot create hem, increase total length. |
 | Profile offset is larger than the bit's radius, decrease profile offset or increase bit diameter. | error | the profile offset leaves no root fillet | `profileOffsetDistance`, `bitDiameter` | Cannot create hem, decrease gap. |
 | Bit diameter is too large, decrease the value. | error | a router bit's full round, where it reaches the root but its fillets don't fit, meets the radial lines above where they meet the involutes; or a rack's corner fillet runs past its flank | `bitDiameter` | Selected offset is too large, decrease the value. |
 | Bit diameter is too large, decrease the value. Highlighted slots cut into the teeth's flanks. | error | a router bit's slots (`gearSlot`, `rackBitTooLarge`) meet the flanks above the pitch circle (or a rack's pitch line): the bit's wider than the gap there | `bitDiameter`; the gear (or the cut rack) in blue, and what the slots cut from its teeth in red | Selected offset is too large, decrease the value. |
-| Full root fillet does not fit below the flanks, select a smaller root fillet. | error | the full round would meet the radial lines above where they meet the involutes (a spherical bevel gear's too, whose Root fillet is hidden) | `rootFillet` | Radius of fillet on face too large. |
+| Full root fillet does not fit below the flanks, select a smaller root fillet. | error | the full round would meet the radial lines above where they meet the involutes (a bevel gear's too, whose Root fillet is hidden) | `rootFillet` | Radius of fillet on face too large. |
 | Select a face to cut teeth into. | error | Rack, no face | `rackFace` | Select a face to terminate the extrude. |
 | Could not offset face to tooth tips. | error | Face at Pitch diameter (or a round face not at its tips), and moving the faces fails | `rackFace`, `rackFaceAt`, the faces | Could not offset selected faces as requested. |
 | Cannot cut teeth inside a hole, select a round face on the outside of a part. | error | a round face whose part is inside it | `rackFace`, the face | Cannot fillet parallel edges. |
@@ -145,8 +145,8 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 1. **Precondition**: Gear type (Gear, Rack, or Bevel), and a gear's Size by (`sizeBy`: Teeth or Pitch circle), then the
    Gear group: Teeth (a gear's, by Teeth), a bevel gear's Mating gear teeth (`bevelMateTeeth`) and Shaft angle (its cones depend on them, with or
    without Gear pair), Pitch (with Custom, Pitch type: Module, Diametral pitch, or Circular pitch, and Pressure
-   angle), a gear's Thickness, and Root fillet (with Router bit, Bit diameter; hidden for a spherical bevel gear,
-   `isSphericalBevel`, whose roots are full rounds).
+   angle), a gear's Thickness, and Root fillet (with Router bit, Bit diameter; hidden for a bevel gear, whose roots are
+   full rounds).
    - Gear and Bevel: the location (by Teeth) or Pitch circle, and the starting offset under it; a gear's Sector gear, with Sector size (Teeth or Angle, unlabeled),
      Angle reference, and Sector teeth or std revolve's angles (Angle, Opposite direction, Symmetric, and Second end
      position with Start angle).
@@ -252,9 +252,8 @@ bevels, by Tredgold's approximation with a spur gear's proportions:
     is on the root cone there). The flank runs up to its tips at the back, the highest they reach.
   - Simplified (Tredgold's approximation): its teeth, seen on its back cone, are close to a spur gear's whose pitch
     radius is the back cone's: the pitch radius over the pitch angle's cosine, with `z / cos(pitch angle)` teeth (its
-    virtual teeth, not a whole number). Its roots are rounded as a spur gear's are (`halfGapCurves`), by Root fillet's
-    fraction: the shapes scale with the gap, so both ends of the loft match. A router bit can't cut them: its teeth
-    aren't square to its faces, and a bit's radius doesn't scale toward the apex, so Router bit is an error.
+    virtual teeth, not a whole number). Its roots are full rounds, as a spur gear's are (`halfGapCurves`): the shapes
+    scale with the gap, so both ends of the loft match.
 - **Thickness** (`bevelShape`): its flat bottom is under its teeth's roots at its back (its dedendum down its back
   cone); its flat top, Thickness above it, square to its axis; its teeth run along its pitch cone from its back to its
   top (its face width). Its mate's teeth are as long (`mateDefinition` passes the face width on), so their ends meet,
@@ -407,8 +406,8 @@ around it.
   more thickness for the pinion, from a chart) is left out.
 - Gleason's proportions are for a 20° pressure angle; at 20 DP's 14.5°, Gleason's least teeth to avoid undercut are
   far more (24 or more on the pinion), and nothing warns of it (see No undercut, above).
-- A spherical bevel gear's full round that doesn't fit below its flanks says to select a smaller root fillet, which it
-  doesn't have (Root fillet is hidden).
+- A bevel gear's full round that doesn't fit below its flanks says to select a smaller root fillet, which it doesn't
+  have (Root fillet is hidden).
 - Router bit slots, and their error bodies, are untried in Onshape. A slot is allowed to cut a flank below the pitch
   circle, which is where a mating gear's tips touch on the lower flank: a bit nearly as wide as the gap there takes
   some contact away. A gear's error shows its own teeth (or a round face's), not the part; a rack's shows the part

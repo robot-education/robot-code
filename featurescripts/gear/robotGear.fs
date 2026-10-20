@@ -215,16 +215,6 @@ predicate isSector(definition is map)
 }
 
 /**
- * A bevel gear with spherical involute teeth and Gleason's proportions (without Simplified bevels), whose roots are
- * always full rounds.
- */
-predicate isSphericalBevel(definition is map)
-{
-    definition.gearType == GearType.BEVEL;
-    !definition.simplifiedBevel;
-}
-
-/**
  * A spur gear (or a sector of one).
  */
 predicate isSpur(definition is map)
@@ -313,8 +303,8 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
 
-            // A spherical bevel gear's roots are full rounds
-            if (!isSphericalBevel(definition))
+            // A bevel gear's roots are full rounds
+            if (definition.gearType != GearType.BEVEL)
             {
                 annotation { "Name" : "Root fillet", "Default" : RootFillet.FULL, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
                 definition.rootFillet is RootFillet;
@@ -1009,16 +999,12 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
  */
 function buildBevelGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
 {
-    if (definition.simplifiedBevel && definition.rootFillet == RootFillet.ROUTER_BIT)
-    {
-        throw regenError("Router bit root fillet is not available for bevel gears, select another root fillet.", ["rootFillet"]);
-    }
     const shape = bevelShape(definition, module, teeth);
     const cones = shape.cones.gear;
     const depths = shape.depths;
     const offset = getProfileOffset(definition);
     const form = definition.simplifiedBevel ?
-        getGearForm(module, cones.virtualTeeth, pressureAngle(definition), rootFilletSize(definition), offset) :
+        getGearForm(module, cones.virtualTeeth, pressureAngle(definition), ROOT_FILLET_FRACTIONS[RootFillet.FULL], offset) :
         sphericalBevelForm(module, teeth, cones, pressureAngle(definition), depths.thickness, depths.addendum, depths.dedendum, offset);
 
     const axis = gearPlane.normal;
