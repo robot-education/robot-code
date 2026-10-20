@@ -63,10 +63,15 @@ function involute(angle is ValueWithUnits) returns ValueWithUnits
 
 /**
  * Half of a gear's tooth's angular width at `radius` (at least its base radius): its flank's angle from its center
- * line. An involute offset along its normal is the same involute rotated, by the offset over the base radius.
+ * line. An involute offset along its normal is the same involute rotated, by the offset over the base radius. A form
+ * with a `flankAngle` function (a spherical involute bevel gear's, see `sphericalBevelForm`) gives it instead.
  */
 export function toothHalfAngle(form is map, radius is ValueWithUnits) returns ValueWithUnits
 {
+    if (form.flankAngle != undefined)
+    {
+        return form.flankAngle(radius);
+    }
     const atRadius = acos(min(form.baseRadius / radius, 1));
     return 90 * degree / form.teeth + involute(form.pressureAngle) - involute(atRadius) + form.offset / form.baseRadius * radian;
 }
@@ -801,11 +806,11 @@ export function sketchRackCut(context is Context, id is Id, plane is Plane, regi
 }
 
 /**
- * A straight bevel gear's cones, by Tredgold's approximation, for `teeth` meshing with `mateTeeth` with their shafts
- * `shaftAngle` apart: its pitch cone's angle from its axis, its pitch circle's radius (at its back), the cone
- * distance (along its pitch cone, from its apex to that circle), and its virtual teeth. Its teeth are a spur gear's on
- * its back cone (the cone square to its pitch cone at its back), whose radius is the pitch radius over the pitch
- * angle's cosine: a spur gear with `teeth / cos(pitchAngle)` teeth, not a whole number.
+ * A straight bevel gear's cones, for `teeth` meshing with `mateTeeth` with their shafts `shaftAngle` apart: its pitch
+ * cone's angle from its axis, its pitch circle's radius (at its back), the cone distance (along its pitch cone, from
+ * its apex to that circle), and its virtual teeth, for Tredgold's approximation: its teeth as a spur gear's on its back
+ * cone (the cone square to its pitch cone at its back), whose radius is the pitch radius over the pitch angle's cosine:
+ * a spur gear with `teeth / cos(pitchAngle)` teeth, not a whole number.
  *
  * @returns {{
  *      @field pitchAngle {ValueWithUnits} :
@@ -827,12 +832,175 @@ export function bevelCones(module is ValueWithUnits, teeth is number, mateTeeth 
 }
 
 /**
- * Sketches the gap between two of a gear's teeth on `plane` (centered on the gear's center), and returns its face: from
- * its root (rounded as `halfGapCurves` rounds a gear's) to a module past the tip, between the tooth centered on the
- * plane's x axis and the next one around. For cutting a bevel gear's teeth (see `bevelCones`), whose `form` can have a
- * fractional number of teeth.
+ * Gleason's allowance on a straight bevel gear's whole depth (`2.188 m` and this), as the cutter's: its clearance is a
+ * little more than `0.188 m`.
  */
-export function sketchToothGap(context is Context, id is Id, plane is Plane, form is map) returns Query
+const GLEASON_DEPTH_ALLOWANCE = 0.002 * inch;
+
+/**
+ * A straight bevel gear's proportions at its back, by Gleason's system for straight bevel gears (as KHK's and Boston
+ * Gear's are), for `teeth` meshing with `mateTeeth`, with pitch cones `pitchAngle` and `matePitchAngle` from their axes:
+ *
+ * - A working depth of `2 m`, shared between them by their ratio, so a small pinion's teeth are long and thick, and
+ *   don't undercut: the gear with more teeth's addendum is `0.54 m + 0.46 m / m90²`, where `m90²` is
+ *   `z_gear cos(pitch angle_pinion) / (z_pinion cos(pitch angle_gear))` (their ratio, squared, at a right angle), and
+ *   the pinion's is the rest. A pair with the same teeth has `m` each.
+ * - A whole depth of `2.188 m` (and Gleason's allowance, `GLEASON_DEPTH_ALLOWANCE`): its dedendum is the rest.
+ * - Its circular thickness at its back's pitch circle: half the circular pitch, and the difference in their addenda
+ *   times the pressure angle's tangent (as a profile shift would), so the pair's add up to the circular pitch. Gleason
+ *   also takes a little more from the gear for the pinion (`K m`, from a chart, for strength): that's left out.
+ *
+ * @returns {{
+ *      @field addendum {ValueWithUnits} :
+ *      @field dedendum {ValueWithUnits} :
+ *      @field mateAddendum {ValueWithUnits} :
+ *      @field mateDedendum {ValueWithUnits} :
+ *      @field thickness {ValueWithUnits} :
+ * }}
+ */
+export function gleasonProportions(module is ValueWithUnits, teeth is number, mateTeeth is number, pitchAngle is ValueWithUnits,
+    matePitchAngle is ValueWithUnits, pressureAngle is ValueWithUnits) returns map
+{
+    const isGear = teeth >= mateTeeth;
+    const ratio = isGear ? teeth * cos(matePitchAngle) / (mateTeeth * cos(pitchAngle)) : mateTeeth * cos(pitchAngle) / (teeth * cos(matePitchAngle));
+    const gearAddendum = module * (0.54 + 0.46 / ratio);
+    const addendum = isGear ? gearAddendum : 2 * module - gearAddendum;
+    const mateAddendum = 2 * module - addendum;
+    const wholeDepth = 2.188 * module + GLEASON_DEPTH_ALLOWANCE;
+    return {
+            "addendum" : addendum,
+            "dedendum" : wholeDepth - addendum,
+            "mateAddendum" : mateAddendum,
+            "mateDedendum" : wholeDepth - mateAddendum,
+            "thickness" : PI * module / 2 + (addendum - mateAddendum) * tan(pressureAngle)
+        };
+}
+
+/**
+ * The spherical involute function: how far around its base cone's axis a spherical involute is at `angle` from the
+ * axis, from where it leaves its base cone (`baseAngle` from the axis). A spherical involute is traced by a point on a
+ * plane through the cone's apex rolling around it; `roll` is how far the plane has turned about the line it touches the
+ * cone along.
+ */
+export function sphericalInvolute(baseAngle is ValueWithUnits, angle is ValueWithUnits) returns ValueWithUnits
+{
+    const roll = acos(min(cos(angle) / cos(baseAngle), 1));
+    return roll / sin(baseAngle) - atan(tan(roll) / sin(baseAngle));
+}
+
+/**
+ * How many times `sphericalBevelForm` halves the range of angles a point on its flank is in, to find it at a radius:
+ * from the base cone to the tip, to well within std's length tolerance.
+ */
+const BEVEL_FLANK_STEPS = 50;
+
+/**
+ * A straight bevel gear's tooth form with spherical involute flanks (exactly conjugate, unlike Tredgold's virtual spur
+ * gear), as `sketchToothGap` sketches a gap: its teeth's flanks are cones through its apex, through spherical
+ * involutes on the sphere of its cone distance, so they're sketched as seen from its apex, projected onto the plane
+ * square to its pitch cone at its back, through a gap's middle. There, lines through the axis's point on the plane (the
+ * back cone's apex, the sketch's center) are planes through the axis, and scaled about its apex, the gap's the same
+ * sketch scaled. So the form is a gear's (see `getGearForm`) in that plane, centered on that point, whose
+ * `flankAngle` (see `toothHalfAngle`) is the projected flank's, whose teeth's middles are as far around as the
+ * projected teeth's (`teeth`, not a whole number), and whose roots are full rounds:
+ *
+ * - Its base cone's angle from its axis is `asin(sin(pitch angle) cos(pressure angle))`: a spherical involute from it
+ *   crosses the pitch cone at the pressure angle.
+ * - A tooth is `thickness` thick on its back's pitch circle, and offset by `offset`, as an involute is (rotated about
+ *   the axis by the offset over the base cone's radius, at the back).
+ * - Its tips (`addendum` out along the back cone from its back's pitch circle) and roots (`dedendum` in) are as far
+ *   from that circle in the plane, through the gap's middle; its tips there are the highest its teeth reach (by Gleason's
+ *   proportions, the tips come down toward the apex, see `bevelDepths`).
+ *
+ * @param cones : Its, as `bevelCones` gives them.
+ */
+export function sphericalBevelForm(module is ValueWithUnits, teeth is number, cones is map, pressureAngle is ValueWithUnits, thickness is ValueWithUnits,
+    addendum is ValueWithUnits, dedendum is ValueWithUnits, offset is ValueWithUnits) returns map
+{
+    const pitchAngle = cones.pitchAngle;
+    const coneDistance = cones.coneDistance;
+    // The back cone's, from its apex to the pitch circle
+    const backRadius = coneDistance * tan(pitchAngle);
+    const baseAngle = asin(sin(pitchAngle) * cos(pressureAngle));
+    // Half a tooth, around the axis, at the back's pitch circle
+    const pitchHalf = (thickness / 2 / cones.pitchRadius + offset / (coneDistance * sin(baseAngle))) * radian;
+    const halfPitch = 180 * degree / teeth;
+    // How far around from the gap's middle the next tooth's flank is, at `angle` from the axis (along a plane through the
+    // axis below the base cone)
+    const flankAround = function(angle is ValueWithUnits) returns ValueWithUnits
+        {
+            return halfPitch - pitchHalf - sphericalInvolute(baseAngle, pitchAngle) + sphericalInvolute(baseAngle, max(angle, baseAngle));
+        };
+    // A direction `angle` from the axis and `around` from the gap's middle, projected onto the plane: out along the back
+    // cone from its apex, and around
+    const projected = function(angle is ValueWithUnits, around is ValueWithUnits) returns Vector
+        {
+            const along = sin(angle) * cos(around) * sin(pitchAngle) + cos(angle) * cos(pitchAngle);
+            return vector(backRadius + coneDistance * (sin(angle) * cos(around) * cos(pitchAngle) - cos(angle) * sin(pitchAngle)) / along,
+                coneDistance * sin(angle) * sin(around) / along);
+        };
+    const flankPoint = function(angle is ValueWithUnits) returns Vector
+        {
+            return projected(angle, flankAround(angle));
+        };
+    const tipAngle = pitchAngle + atan(addendum / coneDistance);
+    const baseRadius = norm(flankPoint(baseAngle));
+    // The teeth's middles, around from the gap's middle (as Tredgold's teeth are about `180° cos(pitch angle) / teeth`)
+    const toothLine = atan(tan(halfPitch) * cos(pitchAngle));
+    return {
+            "module" : module,
+            "teeth" : 180 * degree / toothLine,
+            "pressureAngle" : pressureAngle,
+            "offset" : offset,
+            "filletFraction" : 1,
+            "pitchRadius" : backRadius,
+            "baseRadius" : baseRadius,
+            "tipRadius" : norm(flankPoint(tipAngle)),
+            "rootRadius" : backRadius - dedendum,
+            "flankAngle" : function(radius is ValueWithUnits) returns ValueWithUnits
+                {
+                    // Out along the flank from the base cone to its tip, as far as `radius`: below the base cone, it's
+                    // the plane through the axis there
+                    var low = baseAngle;
+                    var high = tipAngle;
+                    if (radius <= baseRadius)
+                    {
+                        high = baseAngle;
+                    }
+                    for (var i = 0; i < BEVEL_FLANK_STEPS && radius > baseRadius; i += 1)
+                    {
+                        const middle = (low + high) / 2;
+                        if (norm(flankPoint(middle)) < radius)
+                        {
+                            low = middle;
+                        }
+                        else
+                        {
+                            high = middle;
+                        }
+                    }
+                    const point = flankPoint(high);
+                    return toothLine - atan2(point[1], point[0]);
+                }
+        };
+}
+
+/**
+ * `curves` (see `halfGapCurves`) scaled about the center by `scale`.
+ */
+function scaledCurves(curves is array, scale is number) returns array
+{
+    return mapArray(curves, curve => mergeMaps(curve, { "points" : mapArray(curve.points, point => point * scale) }));
+}
+
+/**
+ * Sketches the gap between two of a gear's teeth on `plane` (centered on the gear's center), scaled about its center by
+ * `scale`, and returns its face: from its root (rounded as `halfGapCurves` rounds a gear's) to a module past the tip,
+ * between the tooth centered on the plane's x axis and the next one around. For cutting a bevel gear's teeth, whose
+ * `form` (a Tredgold virtual spur gear's, see `bevelCones`, or `sphericalBevelForm`) can have a fractional number of
+ * teeth, at both ends of the gap.
+ */
+export function sketchToothGap(context is Context, id is Id, plane is Plane, form is map, scale is number) returns Query
 {
     const pitch = 360 * degree / form.teeth;
     // Down the first tooth's counterclockwise side (its clockwise side's, mirrored) and up the next's clockwise side
@@ -845,7 +1013,7 @@ export function sketchToothGap(context is Context, id is Id, plane is Plane, for
             { "shape" : "line", "points" : [polar(outside, tipAngle), polar(form.tipRadius, tipAngle)] }
         ];
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    sketchCurves(sketch, "gap", concatenateArrays([mirroredCurves(halfGap), rotatedCurves(halfGap, pitch), top]));
+    sketchCurves(sketch, "gap", scaledCurves(concatenateArrays([mirroredCurves(halfGap), rotatedCurves(halfGap, pitch), top]), scale));
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);
 }

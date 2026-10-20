@@ -205,6 +205,16 @@ predicate isSector(definition is map)
 }
 
 /**
+ * A bevel gear with spherical involute teeth and Gleason's proportions (without Simplified bevels), whose roots are
+ * always full rounds.
+ */
+predicate isSphericalBevel(definition is map)
+{
+    definition.gearType == GearType.BEVEL;
+    !definition.simplifiedBevel;
+}
+
+/**
  * A spur gear (or a sector of one).
  */
 predicate isSpur(definition is map)
@@ -213,10 +223,10 @@ predicate isSpur(definition is map)
 }
 
 /**
- * Makes involute spur, helical, and herringbone gears (or sectors of them) and straight bevel gears, with fully rounded
- * roots (or Onshape's Spur gear's other root fillets, or a router bit's), or cuts rack teeth into a part's flat face (or
- * a gear's teeth around its round face); at robot gears' standard pitches, or by diametral pitch (in inches) or module
- * (metric).
+ * Makes involute spur, helical, and herringbone gears (or sectors of them) and straight bevel gears (with spherical
+ * involute teeth and Gleason's proportions, or simplified, by Tredgold's approximation), with fully rounded roots (or
+ * Onshape's Spur gear's other root fillets, or a router bit's), or cuts rack teeth into a part's flat face (or a gear's
+ * teeth around its round face); at robot gears' standard pitches, or by diametral pitch (in inches) or module (metric).
  */
 annotation {
         "Feature Type Name" : "Robot gear",
@@ -287,13 +297,17 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
 
-            annotation { "Name" : "Root fillet", "Default" : RootFillet.FULL, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-            definition.rootFillet is RootFillet;
-
-            if (definition.rootFillet == RootFillet.ROUTER_BIT)
+            // A spherical bevel gear's roots are full rounds
+            if (!isSphericalBevel(definition))
             {
-                annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
+                annotation { "Name" : "Root fillet", "Default" : RootFillet.FULL, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.rootFillet is RootFillet;
+
+                if (definition.rootFillet == RootFillet.ROUTER_BIT)
+                {
+                    annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
+                }
             }
         }
 
@@ -445,6 +459,13 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Name" : "Add mate connector", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.addMateConnectors is boolean;
+            }
+
+            if (definition.gearType == GearType.BEVEL)
+            {
+                annotation { "Name" : "Simplified bevels", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                            "Description" : "Tredgold's approximation, with a spur gear's proportions: a spur gear's teeth on its back cone, rather than spherical involute teeth with Gleason's proportions." }
+                definition.simplifiedBevel is boolean;
             }
         }
 
@@ -836,15 +857,52 @@ export function bevelPairCones(module is ValueWithUnits, teeth is number, mateTe
 }
 
 /**
+ * A bevel gear's teeth's depths at its back (along its back cone, from its pitch circle), with the profile offset: its
+ * `addendum` and `dedendum`, and its mate's addendum (`mateAddendum`); the angle its tips' cone (its face cone) makes
+ * with its pitch cone, toward its apex (`faceAngle`), and its mate's (`mateFaceAngle`); and how thick its teeth are on
+ * its back's pitch circle
+ * (`thickness`). With Simplified bevels, a spur gear's: an addendum of `m` and a dedendum of `1.25 m`, half the circular
+ * pitch thick, its tips' cone through its apex. Otherwise Gleason's (`gleasonProportions`), its face cone parallel to its
+ * mate's root cone (through their apex), so the clearance between them is the same all along, and its tips come down
+ * a little toward its apex.
+ */
+export function bevelDepths(definition is map, module is ValueWithUnits, teeth is number, cones is map) returns map
+{
+    const offset = getProfileOffset(definition);
+    const coneDistance = cones.gear.coneDistance;
+    if (definition.simplifiedBevel)
+    {
+        return {
+                "addendum" : module + offset,
+                "dedendum" : 1.25 * module - offset,
+                "mateAddendum" : module + offset,
+                "faceAngle" : atan((module + offset) / coneDistance),
+                "mateFaceAngle" : atan((module + offset) / coneDistance),
+                "thickness" : PI * module / 2
+            };
+    }
+    const gleason = gleasonProportions(module, teeth, definition.mateTeeth, cones.gear.pitchAngle, cones.mate.pitchAngle, pressureAngle(definition));
+    return {
+            "addendum" : gleason.addendum + offset,
+            "dedendum" : gleason.dedendum - offset,
+            "mateAddendum" : gleason.mateAddendum + offset,
+            "faceAngle" : atan((gleason.mateDedendum - offset) / coneDistance),
+            "mateFaceAngle" : atan((gleason.dedendum - offset) / coneDistance),
+            "thickness" : gleason.thickness
+        };
+}
+
+/**
  * A bevel gear's shape along its axis, from its back's pitch circle toward its apex: its cones (see `bevelPairCones`),
- * its `bottom` (its flat back, under its teeth's back ends), its `top` (flat, square to its axis, where its teeth stop
- * toward its apex), its `apex`, and its `faceWidth`, how far its teeth run along its pitch cone from its back to its
- * top. A gear's face width is from its thickness; its mate's is the gear's (`definition.faceWidth`, see `mateDefinition`),
- * so their teeth meet end to end. Errors if the gear (or its mate) is too thin for its teeth to reach its top, or so
- * thick its top reaches its apex.
+ * its teeth's depths (see `bevelDepths`), its `bottom` (its flat back, under its teeth's back ends), its `top` (flat,
+ * square to its axis, where its teeth stop toward its apex), its `apex`, and its `faceWidth`, how far its teeth run along
+ * its pitch cone from its back to its top. A gear's face width is from its thickness; its mate's is the gear's
+ * (`definition.faceWidth`, see `mateDefinition`), so their teeth meet end to end. Errors if the gear (or its mate) is too
+ * thin for its teeth to reach its top, or so thick its top reaches its apex.
  *
  * @returns {{
  *      @field cones {map} : Its and its mate's, as `bevelPairCones` gives them.
+ *      @field depths {map} : As `bevelDepths` gives them.
  *      @field bottom {ValueWithUnits} :
  *      @field top {ValueWithUnits} :
  *      @field apex {ValueWithUnits} :
@@ -855,12 +913,12 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
 {
     const cones = bevelPairCones(module, teeth, definition.mateTeeth, definition.shaftAngle);
     const pitchAngle = cones.gear.pitchAngle;
-    const offset = getProfileOffset(definition);
+    const depths = bevelDepths(definition, module, teeth, cones);
     // Its teeth's back ends' tips and roots, along the back cone
-    const bottom = -(1.25 * module - offset) * sin(pitchAngle);
-    const tipHeight = function(angle is ValueWithUnits) returns ValueWithUnits
+    const bottom = -depths.dedendum * sin(pitchAngle);
+    const tipHeight = function(addendum is ValueWithUnits, angle is ValueWithUnits) returns ValueWithUnits
         {
-            return (module + offset) * sin(angle);
+            return addendum * sin(angle);
         };
     const apex = cones.gear.coneDistance * cos(pitchAngle);
     const thicknessString = function(thickness is ValueWithUnits) returns string
@@ -870,10 +928,19 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
     var faceWidth = definition.faceWidth;
     if (faceWidth == undefined)
     {
-        const top = bottom + definition.thickness;
-        if (top <= tipHeight(pitchAngle) + TOLERANCE.zeroLength * meter)
+        // Its tips' cone, and its mate's, as for its pitch cone (see `bevelPairCones`): flat, they'd never reach its top
+        if (pitchAngle + depths.faceAngle >= 90 * degree - TOLERANCE.zeroAngle * radian)
         {
-            throw regenError("Thickness is too small for the teeth, increase it past " ~ thicknessString(tipHeight(pitchAngle) - bottom) ~ ".", ["thickness"]);
+            throw regenError("Shaft angle is too large for a bevel gear, decrease the value or increase mating gear teeth.", ["shaftAngle", "bevelMateTeeth"]);
+        }
+        if (cones.mate.pitchAngle + depths.mateFaceAngle >= 90 * degree - TOLERANCE.zeroAngle * radian)
+        {
+            throw regenError("Shaft angle is too large for a bevel mating gear, decrease the value or decrease mating gear teeth.", ["shaftAngle", "bevelMateTeeth"]);
+        }
+        const top = bottom + definition.thickness;
+        if (top <= tipHeight(depths.addendum, pitchAngle) + TOLERANCE.zeroLength * meter)
+        {
+            throw regenError("Thickness is too small for the teeth, increase it past " ~ thicknessString(tipHeight(depths.addendum, pitchAngle) - bottom) ~ ".", ["thickness"]);
         }
         if (top >= apex - TOLERANCE.zeroLength * meter)
         {
@@ -882,14 +949,15 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
         faceWidth = top / cos(pitchAngle);
         // Its mate's teeth run as far along its pitch cone
         const matePitchAngle = cones.mate.pitchAngle;
-        if (faceWidth * cos(matePitchAngle) <= tipHeight(matePitchAngle) + TOLERANCE.zeroLength * meter)
+        if (faceWidth * cos(matePitchAngle) <= tipHeight(depths.mateAddendum, matePitchAngle) + TOLERANCE.zeroLength * meter)
         {
-            const least = tipHeight(matePitchAngle) / cos(matePitchAngle) * cos(pitchAngle) - bottom;
+            const least = tipHeight(depths.mateAddendum, matePitchAngle) / cos(matePitchAngle) * cos(pitchAngle) - bottom;
             throw regenError("Thickness is too small for the mating gear's teeth, increase it past " ~ thicknessString(least) ~ ".", ["thickness"]);
         }
     }
     return {
             "cones" : cones,
+            "depths" : depths,
             "bottom" : bottom,
             "top" : faceWidth * cos(pitchAngle),
             "apex" : apex,
@@ -898,15 +966,16 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
 }
 
 /**
- * A straight bevel gear (Tredgold's approximation, see `bevelCones`), with its pitch circle on `gearPlane` (its back)
- * and its apex in front of it, along its normal, as `bevelShape` shapes it. In steps:
+ * A straight bevel gear, with spherical involute teeth (`sphericalBevelForm`), or with Simplified bevels, Tredgold's
+ * approximation (its back cone's virtual spur gear's, see `bevelCones`); with its pitch circle on `gearPlane` (its
+ * back) and its apex in front of it, along its normal, as `bevelShape` shapes it. In steps:
  *
- * 1. Its blank: revolved from its section through its axis: its flat bottom, out to its back cone, up that to its tip
- *    cone, along that toward the apex to its flat top, and back to its axis.
- * 2. A tooth gap: its back cone's virtual spur gear's gap (`sketchToothGap`), on the plane square to its pitch cone at
- *    its first tooth, lofted to the same gap scaled toward the apex. Scaled about the apex, its flanks run straight
- *    to it. It runs a tooth's height past the blank at both ends (past where its root cone reaches the top, or half
- *    way from there to the apex, if that's nearer), so it cuts through it.
+ * 1. Its blank: revolved from its section through its axis: its flat bottom, out to its back cone, up that to its face
+ *    cone (its tips'), along that toward the apex to its flat top, and back to its axis.
+ * 2. A tooth gap (`sketchToothGap`), on the plane square to its pitch cone at the middle of the gap after its first
+ *    tooth, lofted to the same gap scaled toward the apex. Scaled about the apex, its flanks run straight to it. It runs
+ *    a tooth's height past the blank at both ends (past where its root cone reaches the top, or half way from there to
+ *    the apex, if that's nearer), so it cuts through it.
  * 3. The gap, patterned around the axis once per tooth, and cut from the blank.
  *
  * @returns {{
@@ -917,23 +986,25 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
  */
 function buildBevelGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
 {
-    if (definition.rootFillet == RootFillet.ROUTER_BIT)
+    if (definition.simplifiedBevel && definition.rootFillet == RootFillet.ROUTER_BIT)
     {
         throw regenError("Router bit root fillet is not available for bevel gears, select another root fillet.", ["rootFillet"]);
     }
     const shape = bevelShape(definition, module, teeth);
     const cones = shape.cones.gear;
+    const depths = shape.depths;
     const offset = getProfileOffset(definition);
-    const fillet = rootFilletSize(definition);
-    const form = getGearForm(module, cones.virtualTeeth, pressureAngle(definition), fillet, offset);
+    const form = definition.simplifiedBevel ?
+        getGearForm(module, cones.virtualTeeth, pressureAngle(definition), rootFilletSize(definition), offset) :
+        sphericalBevelForm(module, teeth, cones, pressureAngle(definition), depths.thickness, depths.addendum, depths.dedendum, offset);
 
     const axis = gearPlane.normal;
     const x = gearPlane.x;
     const apex = gearPlane.origin + axis * shape.apex;
-    // Along the back cone, out from the virtual spur gear's center to the first tooth's pitch point
+    // Along the back cone, out from its apex (on the axis) to the first tooth's pitch point
     const radial = x * cos(cones.pitchAngle) + axis * sin(cones.pitchAngle);
     const pitchPoint = gearPlane.origin + x * cones.pitchRadius;
-    const virtualCenter = pitchPoint - radial * form.pitchRadius;
+    const backApex = pitchPoint - radial * cones.coneDistance * tan(cones.pitchAngle);
     const scaled = function(point is Vector, scale is number) returns Vector
         {
             return apex + (point - apex) * scale;
@@ -944,11 +1015,13 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
             return (shape.apex - shape.top) / (shape.apex - dot(point - gearPlane.origin, axis));
         };
 
-    // 1. The blank, revolved from its section: across its bottom, up its back and tip cones to its top, and to its axis
-    const tipBack = pitchPoint + radial * (form.tipRadius - form.pitchRadius);
-    const rootBack = pitchPoint + radial * (form.rootRadius - form.pitchRadius);
+    // 1. The blank, revolved from its section: across its bottom, up its back and face cones to its top, and to its axis
+    const tipBack = pitchPoint + radial * depths.addendum;
+    const rootBack = pitchPoint - radial * depths.dedendum;
+    const face = normalize(apex - pitchPoint) * cos(depths.faceAngle) - radial * sin(depths.faceAngle);
+    const tipTop = tipBack + face * (shape.top - dot(tipBack - gearPlane.origin, axis)) / dot(face, axis);
     const sectionPlane = plane(gearPlane.origin, cross(x, axis), x);
-    const section = mapArray([rootBack, tipBack, scaled(tipBack, topScale(tipBack))], point => worldToPlane(sectionPlane, point));
+    const section = mapArray([rootBack, tipBack, tipTop], point => worldToPlane(sectionPlane, point));
     const outline = [section[0], section[1], section[2], vector(0 * meter, section[2][1]), vector(0 * meter, section[0][1])];
     const blankSketch = newSketchOnPlane(context, id + "section", { "sketchPlane" : sectionPlane });
     for (var i, point in outline)
@@ -963,16 +1036,21 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
             });
     const blank = qCreatedBy(id + "blank", EntityType.BODY);
 
-    // 2. A gap, lofted between its virtual spur gear's gaps at both ends, scaled about the apex
+    // 2. A gap, lofted between its gaps at both ends, scaled about the apex: on the plane square to the pitch cone through
+    // the middle of the gap after the first tooth, centered on the back cone's apex, its x axis toward the first tooth's
+    // middle there
+    const gapTurn = rotationAround(line(gearPlane.origin, axis), 180 * degree / teeth);
+    const gapRadial = gapTurn.linear * radial;
+    const gapAround = cross(axis, gapTurn.linear * x);
+    const toothLine = 180 * degree / form.teeth;
     const height = form.tipRadius - form.rootRadius;
     const rootTop = topScale(rootBack);
     const scales = [1 + height / cones.coneDistance, max(rootTop - height / cones.coneDistance, rootTop / 2)];
     var gapFaces = [];
     for (var i, scale in scales)
     {
-        const gapPlane = plane(scaled(virtualCenter, scale), cross(radial, gearPlane->yAxis()), radial);
-        const scaledForm = getGearForm(module * scale, cones.virtualTeeth, pressureAngle(definition), fillet, offset * scale);
-        gapFaces = append(gapFaces, sketchToothGap(context, id + ("gap" ~ i), gapPlane, scaledForm));
+        const gapPlane = plane(scaled(backApex, scale), cross(gapRadial, gapAround), gapRadial * cos(toothLine) - gapAround * sin(toothLine));
+        gapFaces = append(gapFaces, sketchToothGap(context, id + ("gap" ~ i), gapPlane, form, scale));
     }
     try silent
     {

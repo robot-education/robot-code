@@ -489,7 +489,7 @@ def test_tooth_gap_is_one_closed_loop(virtual_teeth, fillet):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     form = f"getGearForm(1 * millimeter, {virtual_teeth}, 20 * degree, {fillet}, 0 * meter)"
-    evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form})', "gear/gearCommon.fs", context=context)
+    evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form}, 1)', "gear/gearCommon.fs", context=context)
     loops = recorded_sketch(context, "gap").loops()
     assert len(loops) == 1 and loops[0].closed
     info = to_python(evaluator.eval(form, "gear/gearCommon.fs"))
