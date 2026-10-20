@@ -526,7 +526,7 @@ def test_render_reports_what_conditions_read():
 
     config = load_config(pathlib.Path(__file__).parent.parent)
     info = {}
-    render_feature(_project(config), config.std_dir, config.code_dir / "lighten" / "robotLighten.fs", None, {}, info=info)
+    render_feature(_project(config), config.std_dir, config.code_dir / "released" / "lighten" / "robotLighten.fs", None, {}, info=info)
     # Every condition's parameters, even those of branches not shown
     assert info["conditions"] == {
         "endType",

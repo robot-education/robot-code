@@ -2,7 +2,7 @@
 
 Lightens a part with pockets. Everything within the extrude of the face to lighten (into its part, through it or to a
 depth) is cut away, except walls along the face's edges (the part's sides and holes) and ribs. Ribs run along selected
-sketch edges: a sketch's, or Quick rib's (`../rib/quickRib.fs`), which sketches them between points and to edges. The
+sketch edges: a sketch's, or Quick rib's (`quickRib.fs`), which sketches them between points and to edges. The
 pockets' corners are rounded as a router bit leaves them.
 
 | File | What it is |

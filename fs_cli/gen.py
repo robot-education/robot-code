@@ -6,7 +6,7 @@ CONTENTS to a list of items: lookup tables and enums (fs_cli.tables), sketch pro
 beside it (belt/robotBeltTables.gen.fs), which `fs push` then pushes like any other file.
 
 An icon definition (see fs_cli.icons) sets ICON instead, which `fs gen` writes to the .svg file of the same name
-(lighten/robotLightenIcon.py writes lighten/robotLightenIcon.svg).
+(released/lighten/robotLightenIcon.py writes released/lighten/robotLightenIcon.svg).
 """
 
 from __future__ import annotations

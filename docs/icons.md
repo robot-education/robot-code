@@ -24,8 +24,8 @@ its `viewBox`), and run `uv run python onshape_icons/make_index.py`.
 
 ## Drawing one
 
-An icon definition is a Python file beside its feature, named like the icon (`lighten/robotLightenIcon.py`), which
-sets `ICON` to an `Icon`; see `featurescripts/lighten/robotLightenIcon.py`. Shapes are shapely geometry in the icon's
+An icon definition is a Python file beside its feature, named like the icon (`released/lighten/robotLightenIcon.py`), which
+sets `ICON` to an `Icon`; see `featurescripts/released/lighten/robotLightenIcon.py`. Shapes are shapely geometry in the icon's
 units (y down, as in SVG), so they combine (`union`, `difference`), offset, and move freely. `fs_cli/icons.py` has:
 
 | Function | What it does |
@@ -45,7 +45,7 @@ Then:
 
 ```
 uv run fs gen                                     # writes the .svg beside the definition (no API calls)
-uv run fs icons featurescripts/plate/Plate_v2.svg featurescripts/lighten/robotLightenIcon.svg -o icons.png
+uv run fs icons featurescripts/plate/Plate_v2.svg featurescripts/released/lighten/robotLightenIcon.svg -o icons.png
 ```
 
 `fs icons` saves a picture of icons side by side: each big, and at 20 px on light and dark. Put a few variations (and
@@ -55,7 +55,7 @@ simplified to within 0.02 units, which keeps an icon around 10 KB; check that `f
 A feature imports its icon by path until it's pushed (see "Images" in `fs-cli.md`):
 
 ```
-RobotLightenIcon::import(path : "lighten/robotLightenIcon.svg", version : "");
+RobotLightenIcon::import(path : "released/lighten/robotLightenIcon.svg", version : "");
 
 annotation { "Feature Type Name" : "Robot lighten", "Icon" : RobotLightenIcon::BLOB_DATA }
 ```
@@ -74,7 +74,7 @@ From Robot lighten's icon, which went through a dozen versions:
 - Round where walls meet (`round_corners`); too much rounding turns a pocket into a blob.
 - Thin sides (a plate's thickness under 2 units) disappear at 20 px, and so do pockets under about 2 units across.
 
-From Quick rib's (`rib/quickRibIcon.py`):
+From Quick rib's (`released/lighten/quickRibIcon.py`):
 
 - Check the 20 px dark preview: Onshape's outlines are #333 whatever the theme, so on dark they vanish into the
   background, and an icon reads only by its light areas. Small white shapes inside 1.3 unit outlines turn into dots;

@@ -11,7 +11,7 @@ QuickRibIcon::import(path : "f9fda209a03cf7514da2a818", version : "ec13dad85d838
  * points to an edge, meeting it square, or where a manipulator puts them.
  */
 annotation { "Feature Type Name" : "Quick rib",
-        "Feature Type Description" : "Sketch ribs between circles and points, as chains or hubs and spokes, or to edges, for Robot lighten." ~ CREDIT,
+        "Feature Type Description" : "Quickly sketch ribs for use in part lightening." ~ CREDIT,
         "Editing Logic Function" : "quickRibEditLogic",
         "Manipulator Change Function" : "quickRibManipulatorChange",
         "Icon" : QuickRibIcon::BLOB_DATA
@@ -27,16 +27,22 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
             definition.quickRibType is QuickRibType;
 
-            annotation { "Name" : "Selections", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
-            definition.quickSelections is Query;
-
             if (definition.quickRibType == QuickRibType.CHAIN)
             {
+                annotation { "Name" : "Points", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                definition.quickPoints is Query;
+
                 annotation { "Name" : "Closed" }
                 definition.quickClosed is boolean;
             }
             else
             {
+                annotation { "Name" : "Hub", "MaxNumberOfPicks" : 1, "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                definition.quickHub is Query;
+
+                annotation { "Name" : "Spokes", "Filter" : EntityType.VERTEX || (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.EDGE && GeometryType.ARC) || BodyType.MATE_CONNECTOR }
+                definition.quickSpokes is Query;
+
                 annotation { "Name" : "Add circle" }
                 definition.quickAddCircle is boolean;
             }
@@ -108,11 +114,8 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
             }
         }
 
-        // Ribs deleted (by key, see `lineKey`), whether they're being chosen, and those chosen so far: set by editing
-        // logic and the toggle points
-        annotation { "Name" : "Deleted ribs", "UIHint" : ["ALWAYS_HIDDEN"] }
-        isAnything(definition.deletedRibs);
-
+        // Whether ribs are being chosen to delete, and those chosen so far (indices into `getQuickRibs`'s ribs): set by
+        // editing logic and the toggle points
         annotation { "Name" : "Deleting ribs", "UIHint" : ["ALWAYS_HIDDEN"] }
         definition.deletingRibs is boolean;
 
@@ -151,27 +154,19 @@ export const quickRib = defineFeature(function(context is Context, id is Id, def
         }
         // What Quick add would add, in blue
         showRibs(context, id + "quickAdd", plane, quickAdd, DebugColor.BLUE);
-        // While deleting, every rib is sketched, with a toggle point to delete it (deleted ones toggled already)
-        const deleted = definition.deletingRibs ? [] : definition.deletedRibs ?? [];
-        const ribs = filter(quickRibs.ribs, rib => !isIn(rib.key, deleted));
-        if (ribs == [] && quickRibs.ribs != [])
-        {
-            throw regenError("All ribs are deleted.");
-        }
-        sketchQuickRibs(context, id + "ribSketch", plane, ribs);
+        sketchQuickRibs(context, id + "ribSketch", plane, quickRibs.ribs);
         if (quickAdd != [])
         {
             reportFeatureInfo(context, id, "Click add ribs to add the highlighted ribs.");
         }
         if (definition.deletingRibs)
         {
-            const toDelete = definition.ribsToDelete ?? [];
+            const toDelete = filter(ribIndices(definition.ribsToDelete), index => index < size(quickRibs.ribs));
             addDeleteRibsManipulator(context, id, plane, quickRibs.ribs, toDelete);
             // Those toggled, in red
-            const toggled = toggledRibs(quickRibs.ribs, toDelete);
-            if (toggled != [])
+            if (toDelete != [])
             {
-                addDebugEntities(context, qUnion(mapArray(toggled, index => sketchEntityQuery(id + "ribSketch", EntityType.EDGE, "rib" ~ index))),
+                addDebugEntities(context, qUnion(mapArray(toDelete, index => sketchEntityQuery(id + "ribSketch", EntityType.EDGE, "rib" ~ index))),
                     DebugColor.RED);
             }
             reportFeatureInfo(context, id, "Select ribs to delete.");
@@ -193,17 +188,17 @@ export function quickRibManipulatorChange(context is Context, definition is map,
 }
 
 /**
- * Add ribs turns Quick add's selections into a chain or a hub and spokes (`addQuickRibs`). Clear invalid selections
- * drops invalid selections (`clearInvalidSelections`). Start deleting ribs starts choosing ribs to delete, from those
- * deleted already (so they can be put back); Finish deleting ribs deletes those chosen. Fills in Face to use, while
+ * Add ribs adds Quick add's chain or hub and spokes (`addQuickRibs`), when it makes ribs (`quickAddRibs`). Clear invalid selections
+ * drops invalid selections (`clearInvalidSelections`). Start deleting ribs starts choosing ribs to delete; Finish
+ * deleting ribs deletes those chosen, by deleting what makes them (`deleteRibs`). Fills in Face to use, while
  * it's empty and hasn't been set: the face under the first selection (`firstFaceUnder`).
  */
 export function quickRibEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    if (clickedButton == "addRibs")
+    if (clickedButton == "addRibs" && quickAddRibs(context, definition) != [])
     {
-        definition = addQuickRibs(definition, evaluateQuery(context, definition.quickSelections));
+        definition = addQuickRibs(definition);
     }
     else if (clickedButton == "clearInvalid")
     {
@@ -212,11 +207,11 @@ export function quickRibEditLogic(context is Context, id is Id, oldDefinition is
     else if (clickedButton == "startDeleting")
     {
         definition.deletingRibs = true;
-        definition.ribsToDelete = definition.deletedRibs ?? [];
+        definition.ribsToDelete = [];
     }
     else if (clickedButton == "finishDeleting")
     {
-        definition.deletedRibs = definition.ribsToDelete ?? [];
+        definition = deleteRibs(context, definition, ribIndices(definition.ribsToDelete));
         definition.deletingRibs = false;
         definition.ribsToDelete = [];
     }
@@ -253,26 +248,23 @@ export enum QuickRibType
 }
 
 /**
- * Add ribs (a button): Quick add's `selections` (evaluated, in the order chosen) become a chain, with its Closed, or a
- * hub and spokes, the first the hub and the rest its spokes, with its Add circle; then they're cleared. Fewer than two
- * are left as they are: they make no rib.
+ * Add ribs (a button): Quick add's Points and Closed become a chain, or its Hub, Spokes, and Add circle a hub and
+ * spokes; then its selections are cleared, for the next.
  */
-export function addQuickRibs(definition is map, selections is array) returns map
+export function addQuickRibs(definition is map) returns map
 {
-    if (size(selections) < 2)
-    {
-        return definition;
-    }
     if (definition.quickRibType == QuickRibType.CHAIN)
     {
-        definition.chains = append(definition.chains, { "chainPoints" : qUnion(selections), "closed" : definition.quickClosed });
+        definition.chains = append(definition.chains, { "chainPoints" : definition.quickPoints, "closed" : definition.quickClosed });
+        definition.quickPoints = qNothing();
     }
     else
     {
-        definition.hubs = append(definition.hubs, { "hub" : selections[0], "spokes" : qUnion(subArray(selections, 1)),
+        definition.hubs = append(definition.hubs, { "hub" : definition.quickHub, "spokes" : definition.quickSpokes,
                     "addCircle" : definition.quickAddCircle });
+        definition.quickHub = qNothing();
+        definition.quickSpokes = qNothing();
     }
-    definition.quickSelections = qNothing();
     return definition;
 }
 
@@ -292,17 +284,16 @@ export enum EdgeRibEnd
  * and edge ribs, and selections which aren't there, are skipped.
  *
  * @returns {{
- *      @field ribs {array} : Each a map of its `key` (see `lineKey` and `circleKey`), and its `line` (`[from, to]`) or
- *              `circle` (its `center`, and the `through` point it goes through).
+ *      @field ribs {array} : Each a map of its `line` (`[from, to]`) or `circle` (its `center`, and the `through`
+ *              point it goes through), and its `sources`: what makes it, for deleting it (see `deleteRibSources`).
  *      @field skipped {number} : How many chains, hubs, and edge ribs were skipped.
  * }}
  */
 export function getQuickRibs(context is Context, definition is map) returns map
 {
-    var segments = [];
-    var circles = [];
+    var parts = [];
     var skipped = 0;
-    for (var chain in definition.chains)
+    for (var i, chain in definition.chains)
     {
         const points = pointsOf(context, chain.chainPoints);
         if (size(points) < 2)
@@ -310,9 +301,9 @@ export function getQuickRibs(context is Context, definition is map) returns map
             skipped += 1;
             continue;
         }
-        segments = concatenateArrays([segments, chainSegments(points, chain.closed)]);
+        parts = concatenateArrays([parts, chainParts(points, chain.closed, { "chain" : i })]);
     }
-    for (var hub in definition.hubs)
+    for (var i, hub in definition.hubs)
     {
         const center = pointsOf(context, hub.hub);
         const spokes = pointsOf(context, hub.spokes);
@@ -321,61 +312,139 @@ export function getQuickRibs(context is Context, definition is map) returns map
             skipped += 1;
             continue;
         }
-        segments = concatenateArrays([segments, hubSegments(center[0], spokes)]);
-        if (hub.addCircle)
-        {
-            circles = append(circles, { "center" : center[0], "through" : spokes[0] });
-        }
+        parts = concatenateArrays([parts, hubParts(center[0], spokes, hub.addCircle, { "hub" : i })]);
     }
-    for (var edgeRib in definition.edgeRibs)
+    for (var i, edgeRib in definition.edgeRibs)
     {
-        const ribs = edgeRibSegments(context, edgeRib);
-        if (ribs == [])
+        const segments = edgeRibSegments(context, edgeRib);
+        if (segments == [])
         {
             skipped += 1;
             continue;
         }
-        segments = concatenateArrays([segments, ribs]);
+        for (var j, segment in segments)
+        {
+            parts = append(parts, { "line" : segment, "source" : { "edgeRib" : i, "point" : j } });
+        }
     }
-    return { "ribs" : ribsOf(segments, circles), "skipped" : skipped };
+    return { "ribs" : ribsOf(parts), "skipped" : skipped };
 }
 
 /**
- * Ribs (see `getQuickRibs`) from lines (each `[from, to]`, without repeats or lines with no length) and circles (each
- * its `center` and the point it goes `through`).
+ * A chain's lines through `points` (see `chainSegments`), each from `source` (which chain) and its `segment`: its
+ * index, the closing one last.
  */
-function ribsOf(segments is array, circles is array) returns array
+export function chainParts(points is array, closed is boolean, source is map) returns array
 {
-    const lines = mapArray(uniqueSegments(segments), segment => { "key" : lineKey(segment), "line" : segment });
-    const rounds = mapArray(circles, circle => { "key" : circleKey(circle.center, circle.through), "circle" : circle });
-    return concatenateArrays([lines, rounds]);
+    var parts = [];
+    for (var j, segment in chainSegments(points, closed))
+    {
+        parts = append(parts, { "line" : segment, "source" : mergeMaps(source, { "segment" : j }) });
+    }
+    return parts;
 }
 
 /**
- * The ribs Quick add would add (see `addQuickRibs`), from its selections as they are (see `getQuickRibs`): none with
- * fewer than two points.
+ * A hub and spokes' lines (see `hubSegments`), each from `source` (which hub) and its `spoke`'s index, and with
+ * `addCircle`, its circle around the hub through the first spoke, from `source` and `circle`.
+ */
+export function hubParts(hub is Vector, spokes is array, addCircle is boolean, source is map) returns array
+{
+    var parts = [];
+    for (var j, segment in hubSegments(hub, spokes))
+    {
+        parts = append(parts, { "line" : segment, "source" : mergeMaps(source, { "spoke" : j }) });
+    }
+    if (addCircle)
+    {
+        parts = append(parts, { "circle" : { "center" : hub, "through" : spokes[0] }, "source" : mergeMaps(source, { "circle" : true }) });
+    }
+    return parts;
+}
+
+/**
+ * Ribs (see `getQuickRibs`) from parts (each a `line` or a `circle`, and its `source`), lines first: the same rib
+ * (`sameRib`) is one, with each's source, and lines with no length are dropped.
+ */
+export function ribsOf(parts is array) returns array
+{
+    var ribs = [];
+    for (var part in concatenateArrays([filter(parts, part => part.line != undefined), filter(parts, part => part.circle != undefined)]))
+    {
+        if (part.line != undefined && tolerantEquals(part.line[0], part.line[1]))
+        {
+            continue;
+        }
+        var found = false;
+        for (var i, rib in ribs)
+        {
+            if (sameRib(rib, part))
+            {
+                ribs[i].sources = append(rib.sources, part.source);
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            ribs = append(ribs, part.line != undefined ? { "line" : part.line, "sources" : [part.source] } :
+                    { "circle" : part.circle, "sources" : [part.source] });
+        }
+    }
+    return ribs;
+}
+
+/**
+ * Whether two ribs (or parts, see `ribsOf`) are the same: lines with the same ends, either way round, or circles with
+ * the same center and radius.
+ */
+function sameRib(a is map, b is map) returns boolean
+{
+    if (a.line != undefined && b.line != undefined)
+    {
+        return (tolerantEquals(a.line[0], b.line[0]) && tolerantEquals(a.line[1], b.line[1])) ||
+            (tolerantEquals(a.line[0], b.line[1]) && tolerantEquals(a.line[1], b.line[0]));
+    }
+    if (a.circle != undefined && b.circle != undefined)
+    {
+        return tolerantEquals(a.circle.center, b.circle.center) &&
+            tolerantEquals(norm(a.circle.through - a.circle.center), norm(b.circle.through - b.circle.center));
+    }
+    return false;
+}
+
+/**
+ * The ribs Quick add would add (see `addQuickRibs`), from its selections as they are (see `getQuickRibs`): its chain's
+ * (`chainRibs`), or its hub and spokes' (`hubRibs`).
  */
 export function quickAddRibs(context is Context, definition is map) returns array
 {
-    return quickAddRibsOf(definition, pointsOf(context, definition.quickSelections));
+    if (definition.quickRibType == QuickRibType.CHAIN)
+    {
+        return chainRibs(pointsOf(context, definition.quickPoints), definition.quickClosed);
+    }
+    return hubRibs(pointsOf(context, definition.quickHub), pointsOf(context, definition.quickSpokes), definition.quickAddCircle);
 }
 
 /**
- * The ribs Quick add would add through `points` (see `quickAddRibs`): a chain through them, or a hub (the first) and
- * its spokes.
+ * A chain's ribs (see `getQuickRibs`) through `points`: none with fewer than two.
  */
-export function quickAddRibsOf(definition is map, points is array) returns array
+export function chainRibs(points is array, closed is boolean) returns array
 {
-    if (size(points) < 2)
+    return ribsOf(chainParts(points, closed, {}));
+}
+
+/**
+ * A hub and spokes' ribs (see `getQuickRibs`): from `hub` (the hub's point, or none) to each of `spokes`, and with
+ * `addCircle`, a circle around it through the first. None without a hub or spokes.
+ */
+export function hubRibs(hub is array, spokes is array, addCircle is boolean) returns array
+{
+    if (hub == [] || spokes == [])
     {
         return [];
     }
-    if (definition.quickRibType == QuickRibType.CHAIN)
-    {
-        return ribsOf(chainSegments(points, definition.quickClosed), []);
-    }
-    const circles = definition.quickAddCircle ? [{ "center" : points[0], "through" : points[1] }] : [];
-    return ribsOf(hubSegments(points[0], subArray(points, 1)), circles);
+    return ribsOf(hubParts(hub[0], spokes, addCircle, {}));
 }
 
 /**
@@ -424,44 +493,12 @@ export function sketchQuickRibs(context is Context, id is Id, plane is Plane, ri
 }
 
 /**
- * A line rib's key, which stays the same while its ends do (to a micrometer), either way round: for remembering which
- * are deleted.
+ * The rib indices in Ribs to delete: none until it's set, when it's a number (an `isAnything` parameter's unset value),
+ * not undefined.
  */
-export function lineKey(segment is array) returns string
+export function ribIndices(value) returns array
 {
-    const first = pointKey(segment[0]);
-    const second = pointKey(segment[1]);
-    // Either way round: the ends in a set order
-    return precedes(segment[0], segment[1]) ? "line " ~ first ~ " " ~ second : "line " ~ second ~ " " ~ first;
-}
-
-/**
- * A hub circle's key (see `lineKey`): its center and radius.
- */
-export function circleKey(center is Vector, through is Vector) returns string
-{
-    return "circle " ~ pointKey(center) ~ " " ~ roundToPrecision(norm(through - center) / meter, 6);
-}
-
-function pointKey(point is Vector) returns string
-{
-    return "(" ~ roundToPrecision(point[0] / meter, 6) ~ ", " ~ roundToPrecision(point[1] / meter, 6) ~ ", " ~ roundToPrecision(point[2] / meter, 6) ~ ")";
-}
-
-/**
- * Whether `a` comes before `b`, by x, then y, then z (to a micrometer, as `pointKey` rounds them).
- */
-function precedes(a is Vector, b is Vector) returns boolean
-{
-    for (var i in [0, 1, 2])
-    {
-        const difference = roundToPrecision(a[i] / meter, 6) - roundToPrecision(b[i] / meter, 6);
-        if (difference != 0)
-        {
-            return difference < 0;
-        }
-    }
-    return false;
+    return value is array ? value : [];
 }
 
 /**
@@ -484,23 +521,7 @@ export function ribTogglePoint(plane is Plane, rib is map) returns Vector
 const DELETE_RIBS_MANIPULATOR = "deleteRibs";
 
 /**
- * The indices of `ribs` whose keys are in `toDelete`: those toggled to be deleted.
- */
-export function toggledRibs(ribs is array, toDelete is array) returns array
-{
-    var toggled = [];
-    for (var i, rib in ribs)
-    {
-        if (isIn(rib.key, toDelete))
-        {
-            toggled = append(toggled, i);
-        }
-    }
-    return toggled;
-}
-
-/**
- * A toggle point on each of `ribs` (see `ribTogglePoint`), selected for those whose keys are in `toDelete`, as std's
+ * A toggle point on each of `ribs` (see `ribTogglePoint`), selected for those at `toDelete` (indices), as std's
  * patterns' Skip instances do.
  */
 export function addDeleteRibsManipulator(context is Context, id is Id, plane is Plane, ribs is array, toDelete is array)
@@ -508,14 +529,14 @@ export function addDeleteRibsManipulator(context is Context, id is Id, plane is 
     addManipulators(context, id, {
                 (DELETE_RIBS_MANIPULATOR) : togglePointsManipulator({
                         "points" : mapArray(ribs, rib => ribTogglePoint(plane, rib)),
-                        "selectedIndices" : toggledRibs(ribs, toDelete),
+                        "selectedIndices" : toDelete,
                         "suppressedIndices" : []
                     })
             });
 }
 
 /**
- * Clicking ribs' toggle points (see `addDeleteRibsManipulator`) sets which are to be deleted (`ribsToDelete`), by key.
+ * Clicking ribs' toggle points (see `addDeleteRibsManipulator`) sets which are to be deleted (`ribsToDelete`), by index.
  */
 export function deleteRibsManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
@@ -524,26 +545,175 @@ export function deleteRibsManipulatorChange(context is Context, definition is ma
     {
         return definition;
     }
-    const ribs = getQuickRibs(context, definition).ribs;
-    definition.ribsToDelete = mapArray(filter(points.selectedIndices, index => index < size(ribs)), index => ribs[index].key);
+    definition.ribsToDelete = points.selectedIndices;
     return definition;
 }
 
 /**
- * The points of a selection, in order: a mate connector's origin, a vertex's point, or a circle's or arc's center. What
- * isn't there any more is left out.
+ * Finish deleting ribs (a button): deletes the ribs at `indices` (into `getQuickRibs`'s) by deleting what makes them
+ * (see `deleteRibSources`). If the ribs have changed so an index is past them, nothing is deleted.
+ */
+export function deleteRibs(context is Context, definition is map, indices is array) returns map
+{
+    const ribs = getQuickRibs(context, definition).ribs;
+    if (any(indices, index => index >= size(ribs)))
+    {
+        return definition;
+    }
+    const sources = concatenateArrays(mapArray(indices, index => ribs[index].sources));
+    // The selections with points, as `getQuickRibs` finds them: sources' indices are into these
+    return deleteRibSources(definition, {
+                "chains" : mapArray(definition.chains, chain => pointEntitiesOf(context, chain.chainPoints)),
+                "spokes" : mapArray(definition.hubs, hub => pointEntitiesOf(context, hub.spokes)),
+                "edgeRibs" : mapArray(definition.edgeRibs, edgeRib => pointEntitiesOf(context, edgeRib.ribPoints))
+            }, sources);
+}
+
+/**
+ * Deletes what makes ribs (`sources`, see `getQuickRibs`), given `entities`: each chain's, hub's spokes', and edge
+ * rib's selections with points (`chains`, `spokes`, `edgeRibs`). A chain is split where its segments are (see
+ * `chainPieces`); a hub loses its spokes, and its circle (Add circle); an edge rib loses its points. Those left with no
+ * ribs (a chain with fewer than two points, a hub without spokes, or an edge rib without points) are removed.
+ */
+export function deleteRibSources(definition is map, entities is map, sources is array) returns map
+{
+    var chains = [];
+    for (var i, chain in definition.chains)
+    {
+        const segments = mapArray(filter(sources, source => source.chain == i), source => source.segment);
+        if (segments == [])
+        {
+            chains = append(chains, chain);
+            continue;
+        }
+        const points = entities.chains[i];
+        for (var piece in chainPieces(size(points), chain.closed, segments))
+        {
+            chain.chainPoints = qUnion(mapArray(piece.indices, index => points[index]));
+            chain.closed = piece.closed;
+            chains = append(chains, chain);
+        }
+    }
+    var hubs = [];
+    for (var i, hub in definition.hubs)
+    {
+        const deleted = filter(sources, source => source.hub == i);
+        const spokes = withoutIndices(entities.spokes[i], mapArray(filter(deleted, source => source.spoke != undefined), source => source.spoke));
+        if (deleted == [])
+        {
+            hubs = append(hubs, hub);
+        }
+        else if (spokes != [])
+        {
+            hub.spokes = qUnion(spokes);
+            hub.addCircle = hub.addCircle && !any(deleted, source => source.circle != undefined);
+            hubs = append(hubs, hub);
+        }
+    }
+    var edgeRibs = [];
+    for (var i, edgeRib in definition.edgeRibs)
+    {
+        const deleted = mapArray(filter(sources, source => source.edgeRib == i), source => source.point);
+        const points = withoutIndices(entities.edgeRibs[i], deleted);
+        if (deleted == [])
+        {
+            edgeRibs = append(edgeRibs, edgeRib);
+        }
+        else if (points != [])
+        {
+            edgeRib.ribPoints = qUnion(points);
+            edgeRibs = append(edgeRibs, edgeRib);
+        }
+    }
+    definition.chains = chains;
+    definition.hubs = hubs;
+    definition.edgeRibs = edgeRibs;
+    return definition;
+}
+
+/**
+ * What's left of a chain of `count` points when its `segments` (indices, see `chainParts`) are deleted: the runs of
+ * points between them, each its `indices` and whether it's `closed`. A closed chain opens at its last deleted segment,
+ * running on around from it; runs of one point make no rib, and are dropped.
+ */
+export function chainPieces(count is number, closed is boolean, segments is array) returns array
+{
+    // An open chain has no closing segment: as if it were deleted
+    const deleted = closed && count > 2 ? segments : append(segments, count - 1);
+    if (!any(range(0, count - 1), segment => isIn(segment, deleted)))
+    {
+        return [{ "indices" : range(0, count - 1), "closed" : true }];
+    }
+    // Start after the last deleted segment, so no run wraps past it
+    var last = 0;
+    for (var segment in deleted)
+    {
+        last = max(last, segment);
+    }
+    var pieces = [];
+    var run = [];
+    for (var k = 0; k < count; k += 1)
+    {
+        const index = (last + 1 + k) % count;
+        // The segment from the point before it is deleted
+        if (run != [] && isIn((index + count - 1) % count, deleted))
+        {
+            pieces = append(pieces, run);
+            run = [];
+        }
+        run = append(run, index);
+    }
+    pieces = append(pieces, run);
+    return mapArray(filter(pieces, piece => size(piece) >= 2), piece => { "indices" : piece, "closed" : false });
+}
+
+/**
+ * `items` without those at `indices`.
+ */
+function withoutIndices(items is array, indices is array) returns array
+{
+    var kept = [];
+    for (var i, item in items)
+    {
+        if (!isIn(i, indices))
+        {
+            kept = append(kept, item);
+        }
+    }
+    return kept;
+}
+
+/**
+ * The points of a selection, in order (see `selectedPoints`).
  */
 function pointsOf(context is Context, selection is Query) returns array
 {
-    var points = [];
+    return mapArray(selectedPoints(context, selection), found => found.point);
+}
+
+/**
+ * The entities of a selection which have points, in order (see `selectedPoints`).
+ */
+function pointEntitiesOf(context is Context, selection is Query) returns array
+{
+    return mapArray(selectedPoints(context, selection), found => found.entity);
+}
+
+/**
+ * A selection's entities and their points, in order, each its `entity` and `point`: a mate connector's origin, a
+ * vertex's point, or a circle's or arc's center. What isn't there any more is left out.
+ */
+function selectedPoints(context is Context, selection is Query) returns array
+{
+    var found = [];
     for (var entity in evaluateQuery(context, selection))
     {
         try silent
         {
-            points = append(points, pointOf(context, entity));
+            found = append(found, { "entity" : entity, "point" : pointOf(context, entity) });
         }
     }
-    return points;
+    return found;
 }
 
 function pointOf(context is Context, entity is Query) returns Vector
@@ -619,27 +789,6 @@ export function hubCircleRadius(plane is Plane, hub is Vector, firstSpoke is Vec
 }
 
 /**
- * Segments without repeats (either way round) or zero length ones.
- */
-export function uniqueSegments(segments is array) returns array
-{
-    var unique = [];
-    for (var segment in segments)
-    {
-        if (tolerantEquals(segment[0], segment[1]))
-        {
-            continue;
-        }
-        if (!any(unique, other => (tolerantEquals(other[0], segment[0]) && tolerantEquals(other[1], segment[1])) ||
-                        (tolerantEquals(other[0], segment[1]) && tolerantEquals(other[1], segment[0]))))
-        {
-            unique = append(unique, segment);
-        }
-    }
-    return unique;
-}
-
-/**
  * A manipulator on the end of each edge rib with Manipulator, to drag it along its edge (as std's fillet does its
  * points on edges).
  */
@@ -696,15 +845,15 @@ export function edgeRibManipulatorIndex(key is string)
 }
 
 /**
- * The face under the first quick rib selection which has one (see `faceUnder`), in order: Quick add's selections, the
- * chains', the hubs' and their spokes', and the edge ribs' points and edges. Undefined if none do.
+ * The face under the first quick rib selection which has one (see `faceUnder`), in order: Quick add's Points, Hub, and
+ * Spokes, the chains', the hubs' and their spokes', and the edge ribs' points and edges. Undefined if none do.
  */
 export function firstFaceUnder(context is Context, definition is map, hiddenBodies is Query)
 {
     const chains = definition.chains;
     const hubs = definition.hubs;
     const edgeRibs = definition.edgeRibs;
-    const selections = concatenateArrays([[definition.quickSelections], mapArray(chains, chain => chain.chainPoints), mapArray(hubs, hub => hub.hub),
+    const selections = concatenateArrays([[definition.quickPoints, definition.quickHub, definition.quickSpokes], mapArray(chains, chain => chain.chainPoints), mapArray(hubs, hub => hub.hub),
                 mapArray(hubs, hub => hub.spokes), mapArray(edgeRibs, edgeRib => edgeRib.ribPoints), mapArray(edgeRibs, edgeRib => edgeRib.ribEdge)]);
     for (var selection in selections)
     {
@@ -765,7 +914,9 @@ function faceUnder(context is Context, entity is Query, hiddenBodies is Query)
 export function clearInvalidSelections(context is Context, definition is map) returns map
 {
     // Evaluated, to keep only what's there
-    definition.quickSelections = qUnion(evaluateQuery(context, definition.quickSelections));
+    definition.quickPoints = qUnion(evaluateQuery(context, definition.quickPoints));
+    definition.quickHub = qUnion(evaluateQuery(context, definition.quickHub));
+    definition.quickSpokes = qUnion(evaluateQuery(context, definition.quickSpokes));
     var chains = [];
     for (var chain in definition.chains)
     {

@@ -11,7 +11,7 @@ def test_doc_shows_std_and_project_names(capsys):
     out = capsys.readouterr().out
     assert "qCapEntity(featureId is Id" in out and "From std's query.fs" in out
     assert cli.main(["doc", "getRibGroups"]) == 0
-    assert "featurescripts/lighten/robotLighten.fs" in capsys.readouterr().out
+    assert "featurescripts/released/lighten/robotLighten.fs" in capsys.readouterr().out
     assert cli.main(["doc", "noSuchName"]) == 1
 
 

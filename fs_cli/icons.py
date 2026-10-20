@@ -1,7 +1,7 @@
 """Feature icons drawn from shapes (with shapely), in the style of Onshape's own.
 
 An icon definition is a Python file in the code folder, beside the feature, which sets ICON to an `Icon`; `fs gen`
-writes it to the .svg file of the same name (lighten/robotLightenIcon.py writes lighten/robotLightenIcon.svg), and
+writes it to the .svg file of the same name (released/lighten/robotLightenIcon.py writes released/lighten/robotLightenIcon.svg), and
 `fs icons` shows icons side by side, big and at the size Onshape shows them. See docs/icons.md.
 
 Icons are 20 units square, drawn in Onshape's oblique view: the face toward you, with what's behind it going back up

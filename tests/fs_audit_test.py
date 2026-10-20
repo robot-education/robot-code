@@ -28,7 +28,7 @@ def dialog_data(page: str) -> dict:
 
 def test_command(tmp_path, capsys):
     output = tmp_path / "lighten.html"
-    assert cli.main(["audit", "featurescripts/lighten/robotLighten.fs", "-o", str(output)]) == 0
+    assert cli.main(["audit", "featurescripts/released/lighten/robotLighten.fs", "-o", str(output)]) == 0
     assert re.search(r"\d+ parameters, \d+ conditions, \d+ problems\.", capsys.readouterr().out)
     page = output.read_text()
     assert "<h1>Robot lighten</h1>" in page
@@ -60,7 +60,7 @@ def test_open_asks_vs_code_for_the_preview(tmp_path, monkeypatch, capsys):
     request = tmp_path / "open.json"
     monkeypatch.setattr("fs_cli.audit.OPEN_REQUEST", str(request))
     monkeypatch.setenv("TERM_PROGRAM", "vscode")
-    path = "featurescripts/lighten/robotLighten.fs"
+    path = "featurescripts/released/lighten/robotLighten.fs"
     assert cli.main(["audit", path, "-o", str(tmp_path / "lighten.html"), "--open"]) == 0
     assert "Showed it in VS Code's feature preview" in capsys.readouterr().out
     asked = json.loads(request.read_text())
@@ -94,7 +94,7 @@ def test_clicks_set_and_unset(tmp_path):
     except Exception:
         pytest.skip("needs Chromium")
     output = tmp_path / "lighten.html"
-    assert cli.main(["audit", "featurescripts/lighten/robotLighten.fs", "-o", str(output)]) == 0
+    assert cli.main(["audit", "featurescripts/released/lighten/robotLighten.fs", "-o", str(output)]) == 0
     page = output.read_text()
     script = """
     const results = [];

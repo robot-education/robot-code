@@ -77,7 +77,7 @@ import(path : "core/myNewUtils.fs", version : "");
 
 FeatureScripts named `*.local.fs`, like another lighten feature kept for reference, stay in the repo too: they
 aren't synced with tabs, and `fs check` and `fs format` skip them unless they're named (`fs check
-featurescripts/lighten/partLighten.local.fs`).
+featurescripts/released/lighten/partLighten.local.fs`).
 
 ### Images
 
@@ -204,7 +204,7 @@ uv run fs unused             # exports nothing uses (--local: also those only th
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 uv run fs eval "getSprocketRadius(0.25 * inch, 16) / inch" -m chain/robotChain.fs   # evaluate an expression (see below)
 uv run fs table featurescripts/released/shaft -n frcShaft   # lookup tables as rows (--md, or --html page.html)
-uv run fs audit featurescripts/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
+uv run fs audit featurescripts/released/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
@@ -294,7 +294,7 @@ sets `CONTENTS` to a list of items:
 - `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
 
 Feature icons are generated the same way: a definition which sets `ICON` (an `fs_cli.icons.Icon`, drawn from shapely
-shapes) is written to the `.svg` of the same name, e.g. `lighten/robotLightenIcon.py` to `lighten/robotLightenIcon.svg`;
+shapes) is written to the `.svg` of the same name, e.g. `released/lighten/robotLightenIcon.py` to `released/lighten/robotLightenIcon.svg`;
 `fs icons` saves a picture of icons side by side to compare them. See [docs/icons.md](icons.md).
 
 After editing one:

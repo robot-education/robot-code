@@ -23,8 +23,8 @@ pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="needs node
 SETTING = re.compile(r"data-set='([^']*)' data-value='([^']*)'")
 
 FEATURES = [
-    "featurescripts/lighten/robotLighten.fs",
-    "featurescripts/rib/quickRib.fs",
+    "featurescripts/released/lighten/robotLighten.fs",
+    "featurescripts/released/lighten/quickRib.fs",
     "featurescripts/released/shaft/robotShaft.fs",
     "featurescripts/released/frame/robotFrame.fs",
     "featurescripts/motor/robotMotor.fs",
@@ -90,7 +90,7 @@ def test_script_draws_what_fs_ui_renders(feature, tmp_path):
 def test_typed_values_are_drawn(tmp_path):
     config = load_config()
     project = _project(config)
-    path = config.root / "featurescripts/lighten/robotLighten.fs"
+    path = config.root / "featurescripts/released/lighten/robotLighten.fs"
     data, conditions = dialog_data(project, config.std_dir, path, None)
     typed = next(key for key, parameter in data["parameters"].items() if parameter["kind"] == "length")
     [result] = run_script(page_script(data, conditions), [{typed: "1 <in>"}], tmp_path)

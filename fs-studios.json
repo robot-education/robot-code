@@ -56,7 +56,7 @@
     "afa4f72a120e4ce160eb6972": "released/spacer/robotSpacerUi.fs",
     "aff3918ff64d6eafb99fddcf": "core/simpleExtrude.fs",
     "b1351a2be9415e873eb0b5a8": "released/shaft/robotShaft.fs",
-    "b6a0ca44656786e64df97fca": "lighten/quickRib.fs",
+    "b6a0ca44656786e64df97fca": "released/lighten/quickRib.fs",
     "b75434df23d86ba9542f761e": "core/profileSide.fs",
     "b82468283e5ec09720bad185": "core/startOffset.fs",
     "b82b6882649b943622cbeb02": "uiTestBench/uiTestBench.fs",
@@ -65,7 +65,7 @@
     "cd2c6499801ec51a7947274e": "released/bearingHat/bearingHatTables.gen.fs",
     "d22e6409e86d7c19c6dfcbfe": "released/fillet/robotFillet.fs",
     "d82c5bf9082d0054f8f0b419": "released/belt/robotBeltTables.gen.fs",
-    "ddb7ed34daacf0c723da6d87": "lighten/robotLighten.fs",
+    "ddb7ed34daacf0c723da6d87": "released/lighten/robotLighten.fs",
     "e14d0b81a4d6b12b9dda1cb5": "core/iterUtils.fs",
     "e269bd2b7266145c47eaf374": "released/belt/robotPulleyCommon.fs",
     "e316d3a31f8726cbc70fe081": "released/nutStrip/nutStripTables.gen.fs",
@@ -91,8 +91,10 @@
     "8fce00629c71b941d2d87732",
     "a5f2644501a90a06b7602898",
     "b1351a2be9415e873eb0b5a8",
+    "b6a0ca44656786e64df97fca",
     "c9dd8f6ce3af5ba6be6b6fb1",
     "d22e6409e86d7c19c6dfcbfe",
+    "ddb7ed34daacf0c723da6d87",
     "f9a57bf84c97524d1eb789d6"
   ],
   "images": {
@@ -103,11 +105,11 @@
     "70fa8905356b9bb43809037c": "released/nutStrip/robotNutStripIcon.svg",
     "94bcdc0a50ec32f81a3aa449": "released/frame/robotFrameIcon.svg",
     "bd6028cdede1b8e094b97d84": "core/wallThickness.svg",
-    "bfffc466263212064267fd69": "lighten/robotLightenIcon.svg",
+    "bfffc466263212064267fd69": "released/lighten/robotLightenIcon.svg",
     "c0e2bec1df9e786c331121f2": "released/multiRevolve/revolve.svg",
     "e4dd2771f6ee924d601486f7": "released/spacer/robotSpacerIcon.svg",
     "f4499b93a8838a7034e96418": "plate/Plate_v2.svg",
     "f7208b20c64f74041af4afa2": "released/belt/beltIcon.svg",
-    "f9fda209a03cf7514da2a818": "lighten/quickRibIcon.svg"
+    "f9fda209a03cf7514da2a818": "released/lighten/quickRibIcon.svg"
   }
 }

@@ -34,7 +34,7 @@ def test_closest_links_are_even(length, links):
     assert evaluate(f"closestLinks(getChainInfo(ChainType.ANSI_25), {length} * inch)", CHAIN) == links
 
 
-LIGHTEN = "lighten/robotLighten.fs"
+LIGHTEN = "released/lighten/robotLighten.fs"
 SKETCH, FEW = "qEverything(EntityType.EDGE)", "qNthElement(qEverything(EntityType.EDGE), 0)"
 
 
