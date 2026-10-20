@@ -920,6 +920,7 @@ class Project:
         problems.extend(self._duplicate_parameter_problems(module))
         problems.extend(self._editing_logic_key_problems(module))
         problems.extend(self._set_by_problems(module))
+        problems.extend(self._button_problems(module))
         problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
         problems.extend(_annotation_key_problems(module))
@@ -1403,6 +1404,134 @@ class Project:
                         start=logic_at,
                     )
         return _dedupe_problems(problems)
+
+    def _button_problems(self, module: Module) -> list[Problem]:
+        """A feature's buttons (`isButton`) and the clicks its editing logic checks for (`clickedButton == "x"`, in
+        it or the project functions it passes clickedButton to): a click it checks for which isn't one of its buttons
+        (a misspelled or renamed button, which never matches), a button it never checks for (clicking it does
+        nothing), and reads or sets of a button on the definition (`definition.x`), anywhere the definition reaches:
+        std's `isButton` is `value is undefined`, so a button has no value while the feature runs.
+        """
+        problems = []
+        tokens = module.index.tokens
+        for feature in module.parsed.nodes:
+            if feature.type != "FeatureDeclaration" or _feature_precondition(module, feature) is None:
+                continue
+            buttons = {p.name: p for p in self.feature_parameters(module, feature) if p.type == "button"}
+            editing = [found for found in self._feature_functions(module, feature) if found[0] == "Editing Logic Function"]
+            clicks: list[tuple[Module, Token]] = []
+            logic_name = None
+            if editing:
+                _, name_token, logic_module, logic, _ = editing[0]
+                logic_name = logic.name
+                node = _function_node(logic_module, logic)
+                names = _parameter_names(logic_module, node) if node is not None else []
+                types = _parameter_types(logic_module, logic)
+                clicked = next((name for name, kind in zip(names, types) if kind == "string"), None)
+                if clicked is not None:
+                    self._clicks(logic_module, logic, clicked, clicks, set())
+            for owner, token in clicks:
+                name = token.value[1:-1]
+                if name in buttons:
+                    continue
+                close = difflib.get_close_matches(name, sorted(buttons), n=1)
+                hint = f' Did you mean "{close[0]}"?' if close else ""
+                at = token if owner is module else name_token
+                problems.append(
+                    Problem(
+                        at.offset,
+                        at.end,
+                        "error",
+                        f"{name} isn't a button of {feature.name}, so clickedButton is never \"{name}\".{hint}",
+                        "button",
+                    )
+                )
+            checked = {token.value[1:-1] for _, token in clicks}
+            for name, button in buttons.items():
+                if name in checked or button.module is not module:
+                    continue
+                what = f"{logic_name} never checks for it (clickedButton == \"{name}\")" if logic_name else (
+                    f"{feature.name} has no editing logic to check for it"
+                )
+                problems.append(
+                    Problem(button.token.offset, button.token.end, "warning", f"Clicking {name} does nothing: {what}.", "button")
+                )
+            if not buttons:
+                continue
+            # Buttons read or set where the definition reaches, in this file
+            self._refresh_reach_cache()
+            for owner, node, map_name in [(module, feature, "definition"), *self._functions_reached(module, feature)]:
+                if owner is not module:
+                    continue
+                first = bisect.bisect_left(tokens, node.start, key=lambda token: token.offset)
+                for index in range(first, len(tokens) - 2):
+                    token = tokens[index]
+                    if token.offset >= node.end:
+                        break
+                    if token.value != map_name or tokens[index + 1].value not in (".", "?.") or tokens[index + 2].value not in buttons:
+                        continue
+                    if index and tokens[index - 1].value in (".", "?."):
+                        continue  # Someone else's member
+                    if index >= 2 and tokens[index - 1].value == "(" and tokens[index - 2].value == "isButton":
+                        continue  # Its declaration
+                    key = tokens[index + 2]
+                    problems.append(
+                        Problem(
+                            key.offset,
+                            key.end,
+                            "error",
+                            f"{key.value} is a button, which has no value while the feature runs (std's isButton is "
+                            "`value is undefined`): editing logic gets a click as clickedButton.",
+                            "button-value",
+                        )
+                    )
+        return _dedupe_problems(problems)
+
+    def _clicks(
+        self,
+        module: Module,
+        declaration: Declaration,
+        clicked: str,
+        clicks: list[tuple[Module, Token]],
+        seen: set[tuple[pathlib.Path, int, str]],
+    ) -> None:
+        """The strings a function compares `clicked` (its clickedButton) with, into `clicks`, following the project
+        functions it passes it to."""
+        node = _function_node(module, declaration)
+        key = (module.path, declaration.token.offset, clicked)
+        if node is None or key in seen:
+            return
+        seen.add(key)
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+        first = bisect.bisect_left(tokens, node.start, key=lambda token: token.offset)
+        for index in range(first, len(tokens)):
+            token = tokens[index]
+            if token.offset >= node.end:
+                break
+            if token.value != clicked or token.kind != "identifier":
+                continue
+            following = tokens[index + 2] if index + 2 < len(tokens) else None
+            previous = tokens[index - 2] if index >= 2 else None
+            if index + 1 < len(tokens) and tokens[index + 1].value in ("==", "!=") and following and following.kind == "string":
+                clicks.append((module, following))
+            elif tokens[index - 1].value in ("==", "!=") and previous and previous.kind == "string":
+                clicks.append((module, previous))
+        for index in range(first, len(tokens)):
+            token = tokens[index]
+            if token.offset >= node.end:
+                break
+            if token.kind != "identifier" or index + 1 >= len(tokens) or tokens[index + 1].value != "(":
+                continue
+            arguments = _call_arguments(tokens, index + 1)
+            at = next((i for i, argument in enumerate(arguments) if [t.value for t in argument] == [clicked]), None)
+            if at is None:
+                continue
+            for owner, target in self._function_targets(module, token, providers):
+                inner = _function_node(owner, target)
+                names = _parameter_names(owner, inner) if inner is not None else []
+                if at < len(names):
+                    self._clicks(owner, target, names[at], clicks, seen)
 
     def set_by_insertion(self, module: Module, problem: Problem) -> tuple[int, str] | None:
         """Where `fs check --fix` puts the statement a "set-by-missing" problem asks for, and its text: first in the

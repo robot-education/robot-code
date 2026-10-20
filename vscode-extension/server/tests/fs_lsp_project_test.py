@@ -453,6 +453,47 @@ def test_set_by_fix(project):
     assert fixed.endswith("{\n    definition.wide = isWide(definition);\n    return definition;\n}\n")
 
 
+def test_buttons(project):
+    from fs_lsp.quick_fixes import apply_fixes, quick_fixes
+
+    path = project.code_dir / "buttons.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'annotation { "Feature Type Name" : "F", "Editing Logic Function" : "fEdit" }\n'
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {\n"
+        '        annotation { "Name" : "Reset" }\n        isButton(definition.reset);\n'
+        '        annotation { "Name" : "Recalculate" }\n        isButton(definition.recalculate);\n'
+        '        annotation { "Name" : "Unused" }\n        isButton(definition.unused);\n'
+        "    }\n    {\n        if (definition.reset == undefined) { }\n    });\n"
+        "export function fEdit(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,\n"
+        "    specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map\n{\n"
+        '    if (clickedButton == "reset")\n    {\n        definition.recalculate = true;\n    }\n'
+        "    return clicked(definition, clickedButton);\n}\n"
+        "function clicked(definition is map, button is string) returns map\n{\n"
+        '    if ("recalclate" == button)\n    {\n        return definition;\n    }\n    return definition;\n}\n'
+    )
+    module = project.module(path)
+    problems = [p for p in project.check(module) if p.code.startswith("button")]
+    source = module.parsed.source
+    line = lambda p: module.position(p.start)[0]  # noqa: E731
+    assert sorted((line(p), source[p.start : p.end], p.code, p.severity) for p in problems) == [
+        # Misspelled where clickedButton's passed on, so Recalculate does nothing; Unused does nothing; and buttons
+        # have no value, read in the body or set by editing logic
+        (8, "recalculate", "button", "warning"),
+        (10, "unused", "button", "warning"),
+        (13, "reset", "button-value", "error"),
+        (20, "recalculate", "button-value", "error"),
+        (26, '"recalclate"', "button", "error"),
+    ]
+    misspelled = next(p for p in problems if p.severity == "error" and p.code == "button")
+    assert misspelled.message == (
+        'recalclate isn\'t a button of f, so clickedButton is never "recalclate". Did you mean "recalculate"?'
+    )
+    fixed, count = apply_fixes(source, quick_fixes(project, module, [misspelled]))
+    assert count == 1 and '"recalculate" == button' in fixed
+
+
 def test_unknown_definition_keys(project):
     # Reads of keys a feature's definition can't have: not parameters, nor set anywhere it reaches. A helper two
     # features share may read a parameter only one has

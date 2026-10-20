@@ -195,6 +195,9 @@ isButton(definition.clearInvalid);`). Clicking it runs the feature's editing log
 `clickedButton is string`: the button's parameter id (see std's `routingCurve.fs`). Don't fake one with a checkbox
 which unchecks itself.
 
+A button has no value: std's `isButton` is `value is undefined`, so `definition.reset` is always undefined while the
+feature runs. Don't read or set it anywhere; a click only reaches editing logic, as `clickedButton`.
+
 - **Don't highlight buttons**: Onshape doesn't show a button as a faulty parameter, so an error naming one highlights
   nothing. Name the parameters to change, or none.
 - **Don't report on a click.** Editing logic can't report a status: a message saying what a click did, or that it
@@ -597,6 +600,9 @@ Onshape warns about a variable which is set but never used. Name one you don't n
   query"` for `"Driven query"`, `"UIHInt"`) silently does nothing.
 - Horizontal enums go at the top of the dialog: before any other shown parameter, and not in groups or array
   parameters' items (see "Horizontal enums go at the top").
+- Buttons: each `clickedButton == "x"` editing logic checks (in it, or the functions it passes `clickedButton` to)
+  names one of the feature's buttons (`--fix` corrects a close misspelling), each button is checked for, and nothing
+  reads or sets a button on the definition (see "Buttons").
 - A `"Set By"` parameter's function exists, takes the definition, and returns the parameter's type; the parameter is
   hidden; and the feature's editing logic declares `isCreating` and sets it from the function first thing (see
   "Hidden parameters set by editing logic").

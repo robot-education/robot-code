@@ -1,7 +1,8 @@
 """Fixes for `fs check`'s problems which have one right answer: the language server offers them as quick fixes, and
 `fs check --fix` applies them.
 
-- An annotation key Onshape doesn't know, with a close match ("annotation-key"): the match.
+- An annotation key Onshape doesn't know, or a click editing logic checks for which isn't a button, with a close match
+  ("annotation-key", "button"): the match.
 - An import nothing is used from ("unused-import"): deleted.
 - A name nothing declares ("undefined") which one file in the project exports: an import of that file, by its path
   (which `fs push` resolves to its element id).
@@ -32,7 +33,7 @@ def quick_fixes(project: Project, module: Module, problems: list[Problem]) -> li
     fixes = []
     source = module.parsed.source
     for problem in problems:
-        if problem.code == "annotation-key" and (match := _SUGGESTION.search(problem.message)):
+        if problem.code in ("annotation-key", "button") and (match := _SUGGESTION.search(problem.message)):
             fixes.append(Fix(f'Change to "{match.group(1)}"', problem, [(problem.start, problem.end, f'"{match.group(1)}"')]))
         elif problem.code == "unused-import":
             end = problem.end
