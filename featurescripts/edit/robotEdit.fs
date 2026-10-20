@@ -1,12 +1,12 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "core/robotFeature.fs", version : "");
+import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 // Also exports std's hole.fs
-export import(path : "core/stdHole.fs", version : "");
-import(path : "core/tappedHole.fs", version : "");
+export import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
+import(path : "f58a965fe7005e2e3c9a67c7", version : "d96cdaac91eb8183e20e6de7");
 // The hole tables Robot shaft and Robot spacer use
-import(path : "released/shaft/robotShaftTables.gen.fs", version : "");
+import(path : "8fc3df84a88e74d27ad43d26", version : "06fb8de71c6fd5a2c48eb7fd");
 
 /**
  * What Robot edit does to the parts it's given.

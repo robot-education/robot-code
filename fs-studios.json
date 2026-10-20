@@ -38,6 +38,7 @@
     "6ee1babe7f56dc1439271f45": "released/belt/robotPulley.fs",
     "70d403fe3ae377ef6f571c77": "core/loop.fs",
     "72b77780ed382be329401627": "core/frameTags.fs",
+    "8476fdfb6850f8991026c12f": "edit/robotEdit.fs",
     "8b8c46128a5dbc2594925f4a": "core/coreUtils.fs",
     "8fc3df84a88e74d27ad43d26": "released/shaft/robotShaftTables.gen.fs",
     "8fce00629c71b941d2d87732": "released/belt/robotBelt.fs",
