@@ -165,7 +165,7 @@ function bevelDefinition(mateTeeth is number, shaftAngle is ValueWithUnits, thic
             "mateTeeth" : mateTeeth,
             "shaftAngle" : shaftAngle,
             "thickness" : thickness,
-            "simplifiedBevel" : simplified,
+            "bevelForm" : simplified ? BevelForm.SIMPLIFIED : BevelForm.SPHERICAL_INVOLUTE,
             "addProfileOffset" : false
         };
 }
@@ -322,10 +322,37 @@ export function testGleasonFaceConeIsParallelToItsMatesRootCone()
     expectNear(depths.faceAngle, atan(mate.dedendum / cones.gear.coneDistance), 1e-12 * degree);
     // Simplified, its tips' cone runs to its apex
     var simplified = definition;
-    simplified.simplifiedBevel = true;
+    simplified.bevelForm = BevelForm.SIMPLIFIED;
     const spur = bevelDepths(simplified, MODULE, 13, cones);
     expectNear(spur.faceAngle, atan(MODULE / cones.gear.coneDistance), 1e-12 * degree);
     expectNear(spur.dedendum, 1.25 * MODULE, 1e-12 * meter);
+}
+
+export function testLowestContactRadius()
+{
+    // 24T meshing with 24T, module 1 at 20 degrees: its mate's tips cross the line of action 1.74 mm from its base circle
+    const base = 12 * millimeter * cos(20 * degree);
+    const along = 24 * millimeter * sin(20 * degree) - sqrt((13 * millimeter) ^ 2 - base ^ 2);
+    expectNear(lowestContactRadius(12 * millimeter, 12 * millimeter, millimeter, 20 * degree), sqrt(base ^ 2 + along ^ 2), 1e-12 * meter);
+    // A mate whose tips reach past the line of action's end interferes there: its base circle
+    expectNear(lowestContactRadius(4 * millimeter, 40 * millimeter, 3 * millimeter, 20 * degree), 4 * millimeter * cos(20 * degree), 1e-12 * meter);
+}
+
+export function testRootsRadialLinesStayBelowWhereTheMateTouches()
+{
+    // A 24T gear's full round's line runs up past where its mate touches it; with that, it stops there
+    var form = getGearForm(millimeter, 24, 20 * degree, 1, 0 * meter);
+    expectTrue(gearRoot(form).lineTop > 11.5 * millimeter, "past it");
+    form.contactRadius = 11.4 * millimeter;
+    expectNear(gearRoot(form).lineTop, 11.4 * millimeter, 1e-12 * meter);
+    expectTrue(gearRoot(form).fullRound, "a full round, which fits below it");
+    // Below the base circle, at the base circle; too low for a full round, it's the largest fillet that fits, tangent to
+    // the line at its top
+    form.contactRadius = 11 * millimeter;
+    const root = gearRoot(form);
+    expectNear(root.lineTop, form.baseRadius, 1e-12 * meter);
+    expectTrue(!root.fullRound && root.filletMiddle != undefined, "a fillet");
+    expectNear(norm(root.lineTangent), form.baseRadius, 1e-9 * meter);
 }
 
 export function testSphericalInvoluteLeavesItsBaseCone()

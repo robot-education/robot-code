@@ -257,10 +257,12 @@ const SLOT_STEPS = 50;
 /**
  * The root of a gear's gaps, on a tooth's clockwise side (for a tooth centered at angle 0): below its involute, a
  * radial line up to where the involute starts (its base circle, or above it, up to half the tooth's height, to make
- * room for the fillet), and a fillet between it and the root circle (`form.filletFraction` of the full round's radius,
+ * room for the fillet; with `form.contactRadius`, no higher than that, where its mate's tips touch it, see
+ * `lowestContactRadius`), and a fillet between it and the root circle (`form.filletFraction` of the full round's radius,
  * or a router bit's `form.filletRadius`); or a full round, tangent to both sides' lines (and, by fraction, the root
  * circle; a router bit's, where two of its fillets don't fit in the gap, but it reaches the root circle between the
- * lines); or without a fillet, a sharp corner.
+ * lines); or without a fillet, a sharp corner. With `form.contactRadius`, a full round which doesn't fit below the
+ * line's top is the largest fillet which does: tangent to the root circle, and the line at its top.
  *
  * A router bit too wide to reach the root circle between the lines cuts a slot instead (`gearSlot`), as robot gears
  * cut with a router are: the bit's path straight down the middle of the gap, square to the pitch circle, to the root
@@ -289,7 +291,8 @@ export function gearRoot(form is map) returns map
     // inside the involute, relieving it rather than interfering
     const lineTopFor = function(fillet is ValueWithUnits) returns ValueWithUnits
         {
-            return max(form.baseRadius, rootRadius + min(2 * fillet, (form.tipRadius - rootRadius) / 2));
+            const top = rootRadius + min(2 * fillet, (form.tipRadius - rootRadius) / 2);
+            return max(form.baseRadius, form.contactRadius == undefined ? top : min(top, form.contactRadius));
         };
     // Half the gap's angle, between the lines
     const halfGapAt = function(lineTop is ValueWithUnits) returns ValueWithUnits
@@ -304,6 +307,8 @@ export function gearRoot(form is map) returns map
 
     var fillet;
     var lineTop;
+    // A fillet, not a full round, though by fraction it'd be one
+    var partial = form.filletFraction != 1;
     if (form.filletFraction != undefined)
     {
         // The full round: tangent to the root circle and both sides' lines
@@ -316,7 +321,13 @@ export function gearRoot(form is map) returns map
         lineTop = lineTopFor(full);
         if (form.filletFraction > 0 && (rootRadius + full) * cos(halfGapAt(lineTop)) > lineTop + TOLERANCE.zeroLength * meter)
         {
-            throw regenError("Full root fillet does not fit below the flanks, select a smaller root fillet.", ["rootFillet"]);
+            if (form.contactRadius == undefined)
+            {
+                throw regenError("Full root fillet does not fit below the flanks, select a smaller root fillet.", ["rootFillet"]);
+            }
+            // The largest which does: its center the root radius and it out, its tangent on the line at the line's top
+            full = (lineTop ^ 2 - rootRadius ^ 2) / (2 * rootRadius) / form.filletFraction;
+            partial = true;
         }
         fillet = full * form.filletFraction;
     }
@@ -349,7 +360,7 @@ export function gearRoot(form is map) returns map
     // A fillet tangent to the root circle (outside it) and the line (on the gap's side)
     const centerRadius = rootRadius + fillet;
     const offAngle = asin(fillet / centerRadius);
-    if (form.filletFraction != 1 && offAngle < halfGap && centerRadius * cos(offAngle) <= lineTop)
+    if (partial && offAngle < halfGap && centerRadius * cos(offAngle) <= lineTop + TOLERANCE.zeroLength * meter)
     {
         const centerAngle = -lineAngle - offAngle;
         const center = polar(centerRadius, centerAngle);
@@ -877,6 +888,22 @@ export function gleasonProportions(module is ValueWithUnits, teeth is number, ma
 }
 
 /**
+ * The least radius a gear's flanks (pitch radius `pitchRadius`: a bevel gear's virtual spur gear's, on its back cone)
+ * are touched at by its mate's tips (its pitch radius `matePitchRadius`, its tips `mateAddendum` past it), meshing at
+ * `pressureAngle`: where the mate's tip circle crosses their line of action. Below it, its flanks can be relieved. If the
+ * mate's tips reach past where the line of action touches its base circle, its base radius (they'd interfere there).
+ */
+export function lowestContactRadius(pitchRadius is ValueWithUnits, matePitchRadius is ValueWithUnits, mateAddendum is ValueWithUnits,
+    pressureAngle is ValueWithUnits) returns ValueWithUnits
+{
+    const base = pitchRadius * cos(pressureAngle);
+    const mateBase = matePitchRadius * cos(pressureAngle);
+    // Along the line of action, from where it touches the base circle to where the mate's tips cross it
+    const along = (pitchRadius + matePitchRadius) * sin(pressureAngle) - sqrt((matePitchRadius + mateAddendum) ^ 2 - mateBase ^ 2);
+    return along <= 0 * meter ? base : sqrt(base ^ 2 + along ^ 2);
+}
+
+/**
  * The spherical involute function: how far around its base cone's axis a spherical involute is at `angle` from the
  * axis, from where it leaves its base cone (`baseAngle` from the axis). A spherical involute is traced by a point on a
  * plane through the cone's apex rolling around it; `roll` is how far the plane has turned about the line it touches the
@@ -911,11 +938,14 @@ const BEVEL_FLANK_STEPS = 50;
  * - Its tips (`addendum` out along the back cone from its back's pitch circle) and roots (`dedendum` in) are as far
  *   from that circle in the plane, through the gap's middle; its tips there are the highest its teeth reach (by Gleason's
  *   proportions, the tips come down toward the apex, see `bevelDepths`).
+ * - Its root's radial lines stay below where its mate's tips touch it (`contactRadius`, see `gearRoot`): on its back
+ *   cone's virtual spur gear, meshing with its mate's (`matePitchAngle` from its axis), whose tips are `mateAddendum`
+ *   past its pitch circle.
  *
  * @param cones : Its, as `bevelCones` gives them.
  */
-export function sphericalBevelForm(module is ValueWithUnits, teeth is number, cones is map, pressureAngle is ValueWithUnits, thickness is ValueWithUnits,
-    addendum is ValueWithUnits, dedendum is ValueWithUnits, offset is ValueWithUnits) returns map
+export function sphericalBevelForm(module is ValueWithUnits, teeth is number, cones is map, matePitchAngle is ValueWithUnits, pressureAngle is ValueWithUnits,
+    thickness is ValueWithUnits, addendum is ValueWithUnits, dedendum is ValueWithUnits, mateAddendum is ValueWithUnits, offset is ValueWithUnits) returns map
 {
     const pitchAngle = cones.pitchAngle;
     const coneDistance = cones.coneDistance;
@@ -957,6 +987,7 @@ export function sphericalBevelForm(module is ValueWithUnits, teeth is number, co
             "baseRadius" : baseRadius,
             "tipRadius" : norm(flankPoint(tipAngle)),
             "rootRadius" : backRadius - dedendum,
+            "contactRadius" : lowestContactRadius(backRadius, coneDistance * tan(matePitchAngle), mateAddendum, pressureAngle),
             "flankAngle" : function(radius is ValueWithUnits) returns ValueWithUnits
                 {
                     // Out along the flank from the base cone to its tip, as far as `radius`: below the base cone, it's
@@ -983,6 +1014,21 @@ export function sphericalBevelForm(module is ValueWithUnits, teeth is number, co
                     return toothLine - atan2(point[1], point[0]);
                 }
         };
+}
+
+/**
+ * The root a router bit of `bitRadius` cuts in a bevel gear's gap (`form`, at its back, as `sketchToothGap` sketches
+ * it) where the gap is scaled by `scale` toward its apex: as `gearRoot` gives it, at the form's size (the bit's radius
+ * over the scale), less the profile offset. Its `slot` is there where the bit's too wide to reach the gap's full round:
+ * then it cuts a slot its width straight down the gap's middle to the root (see `gearSlot`), `tooLarge` if it meets the
+ * flanks above the pitch cone.
+ */
+export function bevelBitRoot(form is map, bitRadius is ValueWithUnits, scale is number) returns map
+{
+    var bitForm = form;
+    bitForm.filletFraction = undefined;
+    bitForm.filletRadius = bitRadius / scale - form.offset;
+    return gearRoot(bitForm);
 }
 
 /**

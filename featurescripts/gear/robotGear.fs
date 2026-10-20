@@ -28,6 +28,29 @@ export enum GearType
 }
 
 /**
+ * A bevel gear's teeth: spherical involutes, with Gleason's proportions (as bought straight bevel gears' are), or
+ * simplified, by Tredgold's approximation (a spur gear's teeth on its back cone), with a spur gear's proportions.
+ */
+export enum BevelForm
+{
+    annotation { "Name" : "Spherical involute" }
+    SPHERICAL_INVOLUTE,
+    annotation { "Name" : "Simplified" }
+    SIMPLIFIED
+}
+
+/**
+ * A bevel gear's roots: full rounds, or a router bit's (see `bevelBitRoot`).
+ */
+export enum BevelRootFillet
+{
+    annotation { "Name" : "Full" }
+    FULL,
+    annotation { "Name" : "Router bit" }
+    ROUTER_BIT
+}
+
+/**
  * What sizes a gear: its teeth, or a pitch circle (whose center places it, too).
  */
 export enum GearSize
@@ -215,6 +238,15 @@ predicate isSector(definition is map)
 }
 
 /**
+ * A gear's or rack's roots are cut by a router bit: Root fillet's Router bit (a bevel gear's own Root fillet's).
+ */
+predicate isRouterBit(definition is map)
+{
+    (definition.gearType != GearType.BEVEL && definition.rootFillet == RootFillet.ROUTER_BIT) ||
+        (definition.gearType == GearType.BEVEL && definition.bevelRootFillet == BevelRootFillet.ROUTER_BIT);
+}
+
+/**
  * A spur gear (or a sector of one).
  */
 predicate isSpur(definition is map)
@@ -247,6 +279,13 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         {
             annotation { "Name" : "Size by", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
             definition.sizeBy is GearSize;
+        }
+
+        if (definition.gearType == GearType.BEVEL)
+        {
+            annotation { "Name" : "Tooth form", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "Spherical involute teeth with Gleason's proportions, as bought bevel gears have; or simplified, by Tredgold's approximation, a spur gear's teeth on its back cone." }
+            definition.bevelForm is BevelForm;
         }
 
         annotation { "Group Name" : "Gear", "Collapsed By Default" : false }
@@ -303,17 +342,22 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
 
-            // A bevel gear's roots are full rounds
+            // A bevel gear's roots are full rounds, or a router bit's
             if (definition.gearType != GearType.BEVEL)
             {
                 annotation { "Name" : "Root fillet", "Default" : RootFillet.FULL, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
                 definition.rootFillet is RootFillet;
+            }
+            else
+            {
+                annotation { "Name" : "Root fillet", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.bevelRootFillet is BevelRootFillet;
+            }
 
-                if (definition.rootFillet == RootFillet.ROUTER_BIT)
-                {
-                    annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
-                }
+            if (isRouterBit(definition))
+            {
+                annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
             }
         }
 
@@ -469,13 +513,6 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                             "Description" : "Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh." }
                 isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
-            }
-
-            if (definition.gearType == GearType.BEVEL)
-            {
-                annotation { "Name" : "Simplified bevels", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                            "Description" : "Tredgold's approximation, with a spur gear's proportions: a spur gear's teeth on its back cone, rather than spherical involute teeth with Gleason's proportions." }
-                definition.simplifiedBevel is boolean;
             }
         }
 
@@ -874,7 +911,7 @@ export function bevelPairCones(module is ValueWithUnits, teeth is number, mateTe
  * `addendum` and `dedendum`, and its mate's addendum (`mateAddendum`); the angle its tips' cone (its face cone) makes
  * with its pitch cone, toward its apex (`faceAngle`), and its mate's (`mateFaceAngle`); and how thick its teeth are on
  * its back's pitch circle
- * (`thickness`). With Simplified bevels, a spur gear's: an addendum of `m` and a dedendum of `1.25 m`, half the circular
+ * (`thickness`). Simplified (`bevelForm`), a spur gear's: an addendum of `m` and a dedendum of `1.25 m`, half the circular
  * pitch thick, its tips' cone through its apex. Otherwise Gleason's (`gleasonProportions`), its face cone parallel to its
  * mate's root cone (through their apex), so the clearance between them is the same all along, and its tips come down
  * a little toward its apex.
@@ -883,7 +920,7 @@ export function bevelDepths(definition is map, module is ValueWithUnits, teeth i
 {
     const offset = getProfileOffset(definition);
     const coneDistance = cones.gear.coneDistance;
-    if (definition.simplifiedBevel)
+    if (definition.bevelForm == BevelForm.SIMPLIFIED)
     {
         return {
                 "addendum" : module + offset,
@@ -979,9 +1016,10 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
 }
 
 /**
- * A straight bevel gear, with spherical involute teeth (`sphericalBevelForm`), or with Simplified bevels, Tredgold's
+ * A straight bevel gear, with spherical involute teeth (`sphericalBevelForm`), or simplified, by Tredgold's
  * approximation (its back cone's virtual spur gear's, see `bevelCones`); with its pitch circle on `gearPlane` (its
- * back) and its apex in front of it, along its normal, as `bevelShape` shapes it. In steps:
+ * back) and its apex in front of it, along its normal, as `bevelShape` shapes it. Its roots are full rounds, and with
+ * a router bit, slots where the bit can't reach them. In steps:
  *
  * 1. Its blank: revolved from its section through its axis: its flat bottom, out to its back cone, up that to its face
  *    cone (its tips'), along that toward the apex to its flat top, and back to its axis.
@@ -989,7 +1027,11 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
  *    tooth, lofted to the same gap scaled toward the apex. Scaled about the apex, its flanks run straight to it. It runs
  *    a tooth's height past the blank at both ends (past where its root cone reaches the top, or half way from there to
  *    the apex, if that's nearer), so it cuts through it.
- * 3. The gap, patterned around the axis once per tooth, and cut from the blank.
+ * 3. With a router bit too wide to reach the full round at the gap's small end (at its pitch cone, where it's
+ *    narrowest, see `bevelBitRoot`), a slot the bit's width straight down the gap's middle to its root, as a ball end
+ *    bit square to the root cuts running along it toward the apex, joined to the gap. Where it's wide, the bit cuts the
+ *    full round, and the slot's inside it. A slot meeting the flanks above the pitch cone at the small end is an error.
+ * 4. The gap, patterned around the axis once per tooth, and cut from the blank.
  *
  * @returns {{
  *      @field body {Query} :
@@ -1003,9 +1045,19 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
     const cones = shape.cones.gear;
     const depths = shape.depths;
     const offset = getProfileOffset(definition);
-    const form = definition.simplifiedBevel ?
-        getGearForm(module, cones.virtualTeeth, pressureAngle(definition), ROOT_FILLET_FRACTIONS[RootFillet.FULL], offset) :
-        sphericalBevelForm(module, teeth, cones, pressureAngle(definition), depths.thickness, depths.addendum, depths.dedendum, offset);
+    const matePitchAngle = shape.cones.mate.pitchAngle;
+    var form;
+    if (definition.bevelForm == BevelForm.SIMPLIFIED)
+    {
+        form = getGearForm(module, cones.virtualTeeth, pressureAngle(definition), ROOT_FILLET_FRACTIONS[RootFillet.FULL], offset);
+        // Its root's radial lines below where its mate's virtual spur gear's tips touch it
+        form.contactRadius = lowestContactRadius(form.pitchRadius, cones.coneDistance * tan(matePitchAngle), depths.mateAddendum, pressureAngle(definition));
+    }
+    else
+    {
+        form = sphericalBevelForm(module, teeth, cones, matePitchAngle, pressureAngle(definition), depths.thickness, depths.addendum, depths.dedendum,
+            depths.mateAddendum, offset);
+    }
 
     const axis = gearPlane.normal;
     const x = gearPlane.x;
@@ -1073,8 +1125,51 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "loft", "propagateErrorDisplay" : true });
         throw regenError("Failed to create bevel gear teeth.", ["teeth", "bevelMateTeeth", "thickness"], qUnion(gapFaces));
     }
+    const gap = qUnion([qCreatedBy(id + "loft", EntityType.BODY), qCreatedBy(id + "slot", EntityType.BODY)]);
 
-    // 3. Patterned once per tooth, and cut from the blank
+    // 3. A router bit's slot, where it can't reach the full round: in the plane square to the root through the gap's
+    // middle, its round bottom on the root, up past the tips
+    const bitRoot = isRouterBit(definition) ? bevelBitRoot(form, definition.bitDiameter / 2, topScale(pitchPoint)) : undefined;
+    if (bitRoot != undefined && bitRoot.slot != undefined)
+    {
+        if (bitRoot.slot.tooLarge)
+        {
+            throw regenError("Bit diameter is too large, decrease the value. Its slots cut into the teeth's flanks at their small end.", ["bitDiameter"]);
+        }
+        const radius = definition.bitDiameter / 2;
+        const rootPoint = backApex + gapRadial * form.rootRadius;
+        const along = normalize(rootPoint - apex);
+        const length = norm(rootPoint - apex);
+        const slotTop = (height + module) * scales[0];
+        const slotSketch = newSketchOnPlane(context, id + "slotSketch", {
+                    "sketchPlane" : plane(apex + along * length * scales[0], along, normalize(gapRadial - along * dot(gapRadial, along)))
+                });
+        skArc(slotSketch, "bottom", { "start" : vector(radius, -radius), "mid" : vector(0 * meter, 0 * meter), "end" : vector(radius, radius) });
+        skLineSegment(slotSketch, "side", { "start" : vector(radius, radius), "end" : vector(slotTop, radius) });
+        skLineSegment(slotSketch, "top", { "start" : vector(slotTop, radius), "end" : vector(slotTop, -radius) });
+        skLineSegment(slotSketch, "otherSide", { "start" : vector(slotTop, -radius), "end" : vector(radius, -radius) });
+        skSolve(slotSketch);
+        opExtrude(context, id + "slot", {
+                    "entities" : qCreatedBy(id + "slotSketch", EntityType.FACE),
+                    "direction" : -along,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : length * (scales[0] - scales[1])
+                });
+        try silent
+        {
+            opBoolean(context, id + "addSlot", {
+                        "tools" : gap,
+                        "operationType" : BooleanOperationType.UNION
+                    });
+        }
+        catch
+        {
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "addSlot", "propagateErrorDisplay" : true });
+            throw regenError("Failed to cut router bit slots.", ["bitDiameter"], gap);
+        }
+    }
+
+    // 4. Patterned once per tooth, and cut from the blank
     var transforms = [];
     var names = [];
     for (var i = 1; i < teeth; i += 1)
@@ -1083,11 +1178,11 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         names = append(names, "" ~ i);
     }
     opPattern(context, id + "gaps", {
-                "entities" : qCreatedBy(id + "loft", EntityType.BODY),
+                "entities" : gap,
                 "transforms" : transforms,
                 "instanceNames" : names
             });
-    const gaps = qUnion([qCreatedBy(id + "loft", EntityType.BODY), qCreatedBy(id + "gaps", EntityType.BODY)]);
+    const gaps = qUnion([gap, qCreatedBy(id + "gaps", EntityType.BODY)]);
     try silent
     {
         opBoolean(context, id + "cut", {

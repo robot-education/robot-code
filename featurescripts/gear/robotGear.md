@@ -1,14 +1,14 @@
 # Robot gear
 
 Makes involute spur, helical, and herringbone gears or sectors of them, straight bevel gears (with spherical involute
-teeth and Gleason's proportions, or with Simplified bevels, Tredgold's approximation), or cuts rack teeth into a part's
+teeth and Gleason's proportions, or simplified, by Tredgold's approximation), or cuts rack teeth into a part's
 flat face, or a gear's teeth around its round one (Gear type: Gear, with Sector gear for a sector of one, Rack, or
 Bevel). All are at a standard pitch (10 DP for 3D printing, 20 DP or 32 DP for FRC, module 0.8 for FTC), or a custom
 module, diametral pitch, or circular pitch, with standard proportions (a bevel gear's, Gleason's). A gear is sized by its teeth or a pitch
 circle, sits on its location by its bottom (or middle, top, or a bevel gear's apex, by a point manipulator), and with
 Gear pair, the gear it meshes with is made too. Its roots are fully rounded (or, as Onshape's Spur gear's Root fillet,
 a third or a quarter of the gap's width, or sharp; or a router bit's radius, with a slot of the bit's width down each
-gap too narrow for it; a bevel gear's are always full rounds), and it can have a bore.
+gap too narrow for it; a bevel gear's are full rounds, or a router bit's slots where it can't reach them), and it can have a bore.
 
 | File | What it is |
 | --- | --- |
@@ -21,7 +21,7 @@ gap too narrow for it; a bevel gear's are always full rounds), and it can have a
 | `../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
 | `../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), the standard and custom pitches, pitch circles' teeth, bevel gaps, and where a rack's teeth go and what's cut |
 | `../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, with the center to center adjustment, sector, and bevel), bevel gears' crown gear and thickness errors, their shape, points, and Gleason proportions, and joining round faces' angles |
-| `../../tests/featurescript/fs_eval_bevel_test.py` | Tests of spherical bevel gears' teeth: taken back onto the sphere, a pair meshes (touching on both sides, not overlapping) through a tooth; their thickness at the pitch cone; their gap's sketch |
+| `../../tests/featurescript/fs_eval_bevel_test.py` | Tests of spherical bevel gears' teeth: taken back onto the sphere (their roots' radial lines too), a pair meshes (touching on both sides, not overlapping) through a tooth; their thickness at the pitch cone; their gap's sketch; where a router bit cuts slots |
 | `spurGear.local.fs` | Onshape's Spur gear, for reference (see Compared with Spur gear): not synced |
 
 ## Changelog
@@ -32,9 +32,14 @@ Unreleased.
   gears do: a small pinion's teeth are longer and thicker (and its mate's shorter and thinner), their roots `0.188 m`
   (and 0.002 in.) below their mate's tips, rather than `0.25 m`, and their tips' cones parallel to their mate's root
   cones, so they come down a little toward the apex.
-- Bevel gears' roots are always full rounds (Root fillet is hidden for them), Simplified bevels' too.
-- Simplified bevels (in Other options) makes them as before, by Tredgold's approximation with a spur gear's
-  proportions, except that each gap is now sketched centered on its middle (it was sketched at the tooth before it).
+- Bevel gears have their own Root fillet: Full, or Router bit (with Bit diameter), which cuts a slot of the bit's width
+  down each gap's middle where the bit can't reach the full round, toward the apex. Their roots' radial lines stop
+  where their mate's tips touch the flanks, rather than relieving the flanks above that (up to half the tooth's
+  height, above the pitch cone on a Gleason pinion); where a full round doesn't fit below that, it's the largest
+  fillet that does.
+- Tooth form (a top level option, for bevel gears): Spherical involute, or Simplified, as before, by Tredgold's
+  approximation with a spur gear's proportions, except that each gap is now sketched centered on its middle (it was
+  sketched at the tooth before it).
 - The Gear group (was Teeth) is at the top, under Gear type, with Teeth first in it, and a bevel gear's Mating gear
   teeth and Shaft angle under that. Gear pair is at the bottom, under the bore.
 - Sector gear (was Sector) is a checkbox on Gear, rather than a Gear type: sized by Sector teeth, or an angle as std's
@@ -87,7 +92,7 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | --- | --- |
 | Shaft angle (`shaftAngle`) | Between its shaft and its mate's (90 degrees for a right angle): it sets the angle of its teeth's cone. |
 | Center to center adjustment (`centerToCenterAdjustment`) | Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh. |
-| Simplified bevels (`simplifiedBevel`) | Tredgold's approximation, with a spur gear's proportions: a spur gear's teeth on its back cone, rather than spherical involute teeth with Gleason's proportions. |
+| Tooth form (`bevelForm`) | Spherical involute teeth with Gleason's proportions, as bought bevel gears have; or simplified, by Tredgold's approximation, a spur gear's teeth on its back cone. |
 | Face at (`rackFaceAt`) | Where the face is on the teeth: their pitch line (the face is moved out to their tips first), or their tips. |
 | Angle reference (`rackReference`) | A point a gap is centered on, as on an end. |
 | (the bore's, location's, and Gear pair's angle reference, from `core/`) | |
@@ -117,9 +122,11 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the gap's loft, or cutting the gaps from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the gap's sketches or the gaps | Failed to extrude selections, check input. |
 | Too few teeth for a gear, increase teeth. | error | the root circle's at or below the center | `teeth` | Cannot create hem, increase total length. |
 | Profile offset is larger than the bit's radius, decrease profile offset or increase bit diameter. | error | the profile offset leaves no root fillet | `profileOffsetDistance`, `bitDiameter` | Cannot create hem, decrease gap. |
-| Bit diameter is too large, decrease the value. | error | a router bit's full round, where it reaches the root but its fillets don't fit, meets the radial lines above where they meet the involutes; or a rack's corner fillet runs past its flank | `bitDiameter` | Selected offset is too large, decrease the value. |
+| Bit diameter is too large, decrease the value. | error | a router bit's full round, where it reaches the root but its fillets don't fit, meets the radial lines above where they meet the involutes (a bevel gear's, at its gap's small end); or a rack's corner fillet runs past its flank | `bitDiameter` | Selected offset is too large, decrease the value. |
 | Bit diameter is too large, decrease the value. Highlighted slots cut into the teeth's flanks. | error | a router bit's slots (`gearSlot`, `rackBitTooLarge`) meet the flanks above the pitch circle (or a rack's pitch line): the bit's wider than the gap there | `bitDiameter`; the gear (or the cut rack) in blue, and what the slots cut from its teeth in red | Selected offset is too large, decrease the value. |
-| Full root fillet does not fit below the flanks, select a smaller root fillet. | error | the full round would meet the radial lines above where they meet the involutes (a bevel gear's too, whose Root fillet is hidden) | `rootFillet` | Radius of fillet on face too large. |
+| Full root fillet does not fit below the flanks, select a smaller root fillet. | error | a spur gear's full round would meet the radial lines above where they meet the involutes (a bevel gear's is a smaller fillet instead) | `rootFillet` | Radius of fillet on face too large. |
+| Bit diameter is too large, decrease the value. Its slots cut into the teeth's flanks at their small end. | error | a bevel gear's router bit slot meets its flanks above the pitch cone at its gap's small end (at its pitch cone), where it's narrowest (`bevelBitRoot`) | `bitDiameter` | Selected offset is too large, decrease the value. |
+| Failed to cut router bit slots. | error | joining a bevel gear's slot to its gap fails | `bitDiameter`, the gap and slot | Failed to extrude selections, check input. |
 | Select a face to cut teeth into. | error | Rack, no face | `rackFace` | Select a face to terminate the extrude. |
 | Could not offset face to tooth tips. | error | Face at Pitch diameter (or a round face not at its tips), and moving the faces fails | `rackFace`, `rackFaceAt`, the faces | Could not offset selected faces as requested. |
 | Cannot cut teeth inside a hole, select a round face on the outside of a part. | error | a round face whose part is inside it | `rackFace`, the face | Cannot fillet parallel edges. |
@@ -142,11 +149,12 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 
 ### Execution order
 
-1. **Precondition**: Gear type (Gear, Rack, or Bevel), and a gear's Size by (`sizeBy`: Teeth or Pitch circle), then the
+1. **Precondition**: Gear type (Gear, Rack, or Bevel), a gear's Size by (`sizeBy`: Teeth or Pitch circle), and a bevel
+   gear's Tooth form (`bevelForm`: Spherical involute or Simplified), then the
    Gear group: Teeth (a gear's, by Teeth), a bevel gear's Mating gear teeth (`bevelMateTeeth`) and Shaft angle (its cones depend on them, with or
    without Gear pair), Pitch (with Custom, Pitch type: Module, Diametral pitch, or Circular pitch, and Pressure
-   angle), a gear's Thickness, and Root fillet (with Router bit, Bit diameter; hidden for a bevel gear, whose roots are
-   full rounds).
+   angle), a gear's Thickness, and Root fillet (a bevel gear's own, `bevelRootFillet`: Full or Router bit), with Router
+   bit, Bit diameter (`isRouterBit`).
    - Gear and Bevel: the location (by Teeth) or Pitch circle, and the starting offset under it; a gear's Sector gear, with Sector size (Teeth or Angle, unlabeled),
      Angle reference, and Sector teeth or std revolve's angles (Angle, Opposite direction, Symmetric, and Second end
      position with Start angle).
@@ -156,8 +164,8 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
    - Gear and Bevel: bore, then Gear pair, with Mate selection (Teeth or Pitch circle, unlabeled; a bevel mate's by
      its teeth, above) and either Mating gear teeth (a spur mate's), Angle reference, and Angle (and its Opposite
      direction), or Mate pitch circle.
-   - Then the profile offset, a gear's Add mate connector, a spur pair's Center to center adjustment (`isSpurPair`), a
-     bevel gear's Simplified bevels (`simplifiedBevel`), and the hidden `index`.
+   - Then the profile offset, a gear's Add mate connector, a spur pair's Center to center adjustment (`isSpurPair`), and
+     the hidden `index`.
 2. **Body**: the module and pressure angle (a standard pitch's, see `GEAR_PITCHES`, or Custom's: Module, an inch over
    the diametral pitch, or the circular pitch over pi), a bevel gear's mate's teeth (`mateTeeth`, from
    `bevelMateTeeth`), and the tooth form (`getGearForm`: pitch radius `m z / 2`,
@@ -191,8 +199,9 @@ side mirrored):
   angle at radius `r` is `90°/z + inv(α) - inv(acos(r_b / r))` (plus the offset over the base radius: an involute
   offset along its normal is the same involute rotated).
 - **Root** (`gearRoot`, `halfGapCurves`): the radial line runs down from the base circle (or higher, up to half the
-  tooth's height, to make room for the fillet; there it's a little inside the involute, relieving it), and a fillet
-  joins it to the root circle. Full is the full round: tangent to both teeth's lines and the root circle, found by
+  tooth's height, to make room for the fillet; there it's a little inside the involute, relieving it; a bevel gear's
+  stops at `contactRadius`, where its mate's tips touch it, `lowestContactRadius`), and a fillet joins it to the root
+  circle. Full is the full round: tangent to both teeth's lines and the root circle, found by
   refining its radius (the line rises with it, which turns the line), 12 times. 1/3 and 1/4 are as Onshape's Spur
   gear's: fillets of a third or a quarter of the gap's width (two thirds or half the full round's radius). None is a
   sharp corner. A router bit's fillet that doesn't fit twice in the gap is a full round of its radius tangent to both
@@ -216,8 +225,8 @@ half each way with Symmetric; and back to Start angle with a second end position
 
 ### Bevel gears
 
-`buildBevelGear` makes a straight bevel gear with spherical involute teeth and Gleason's proportions, or with Simplified
-bevels, by Tredgold's approximation with a spur gear's proportions:
+`buildBevelGear` makes a straight bevel gear (by Tooth form) with spherical involute teeth and Gleason's proportions, or
+simplified, by Tredgold's approximation with a spur gear's proportions:
 
 - **Cones** (`bevelCones`): its pitch cone's angle from its axis is `atan(sin Σ / (z₂ / z + cos Σ))`, for its teeth
   `z`, its mate's `z₂`, and shaft angle `Σ` (`atan(z / z₂)` at 90°). Its pitch circle (radius `m z / 2`) is at its
@@ -250,10 +259,22 @@ bevels, by Tredgold's approximation with a spur gear's proportions:
     angle at a radius is found by halving the range of angles from the axis the flank's point there is in (50 times),
     and whose roots are full rounds (`gearRoot`, as a gear's; the root, `b` from the pitch circle on the gap's middle,
     is on the root cone there). The flank runs up to its tips at the back, the highest they reach.
+  - Either way, its root's radial lines stop where its mate's tips touch its flanks (`contactRadius`, from their back
+    cones' virtual spur gears, `lowestContactRadius`), so they don't relieve flank its mate touches; where a full round
+    doesn't fit below that (a Gleason pinion's, whose teeth are long), it's the largest fillet that does, tangent to the
+    root circle and the line at its top.
   - Simplified (Tredgold's approximation): its teeth, seen on its back cone, are close to a spur gear's whose pitch
     radius is the back cone's: the pitch radius over the pitch angle's cosine, with `z / cos(pitch angle)` teeth (its
     virtual teeth, not a whole number). Its roots are full rounds, as a spur gear's are (`halfGapCurves`): the shapes
     scale with the gap, so both ends of the loft match.
+- **Router bit** (Root fillet's, `bevelRootFillet`): a ball end bit square to the root, running along it toward the
+  apex, cuts the full round where it fits, and where it doesn't (toward the apex, as the gap narrows), a slot its width
+  straight down the gap's middle to the root, as a spur gear's (`gearSlot`). Whether it fits is worked out at the gap's
+  small end, at its pitch cone (`bevelBitRoot`: `gearRoot` at that scale, with the bit's radius), where it's narrowest;
+  a slot meeting the flanks above the pitch cone there is an error. The slot is a U (its round bottom on the root line,
+  its sides the bit's radius from the gap's middle, up past the tips) on the plane square to the root line through the
+  gap's middle, extruded along it as far as the gap runs, and joined to the gap before it's patterned. Where the gap's
+  wide, the slot's inside it.
 - **Thickness** (`bevelShape`): its flat bottom is under its teeth's roots at its back (its dedendum down its back
   cone); its flat top, Thickness above it, square to its axis; its teeth run along its pitch cone from its back to its
   top (its face width). Its mate's teeth are as long (`mateDefinition` passes the face width on), so their ends meet,
@@ -401,13 +422,16 @@ around it.
 - Helical racks aren't cut.
 - Spherical bevel gears are untried in Onshape: their blank's face cone, the gap's loft between the projected
   sketches, and cutting it. Their meshing is tested on the sphere (`fs_eval_bevel_test.py`), from the form's flanks.
-- Bevel gears' teeth aren't crowned, and they have no router bit roots, helical (spiral) teeth, or check of their
+- Bevel gears' teeth aren't crowned, and they have no helical (spiral) teeth, 1/3, 1/4, or no root fillets, or check of their
   face width against a third of the cone distance (Gleason's most). Gleason's tooth thickness factor `K` (a little
   more thickness for the pinion, from a chart) is left out.
 - Gleason's proportions are for a 20° pressure angle; at 20 DP's 14.5°, Gleason's least teeth to avoid undercut are
   far more (24 or more on the pinion), and nothing warns of it (see No undercut, above).
-- A bevel gear's full round that doesn't fit below its flanks says to select a smaller root fillet, which it doesn't
-  have (Root fillet is hidden).
+- A bevel gear's router bit slot is untried in Onshape: its round bottom is tangent to the gap's full round along the
+  root line where the bit fits, which a boolean may not like. The slot's error shows nothing (only Bit diameter).
+- Spur gears' radial lines (as a bevel gear's were) can run above where their mate's tips touch them, relieving flank
+  the mate touches: on a 24T pair, from about `r - 0.6 m` up to `r - 0.125 m`, up to `0.1 m` deep (found testing bevel
+  gears' meshing). A spur gear knows its mate only in a pair (or for a rack, a rack's), so it's left as it is.
 - Router bit slots, and their error bodies, are untried in Onshape. A slot is allowed to cut a flank below the pitch
   circle, which is where a mating gear's tips touch on the lower flank: a bit nearly as wide as the gap there takes
   some contact away. A gear's error shows its own teeth (or a round face's), not the part; a rack's shows the part

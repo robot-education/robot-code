@@ -17,8 +17,9 @@ FLANK_SAMPLES = 40
 
 @functools.cache
 def bevel_form(teeth: int, mate_teeth: int, shaft_degrees: float, pressure_degrees: float = 20, offset_mm: float = 0):
-    """The gear's cones, depths, and form, and its flank: its tooth's half angle at radii from its base to its tip."""
-    definition = ('{ "gearType" : GearType.BEVEL, "simplifiedBevel" : false, "pitch" : GearPitch.CUSTOM, '
+    """The gear's cones, depths, and form, and its flank: its tooth's half angle at radii from the top of its root's
+    radial line (`gearRoot`'s `lineTop`, where the involute starts) to its tip."""
+    definition = ('{ "gearType" : GearType.BEVEL, "bevelForm" : BevelForm.SPHERICAL_INVOLUTE, "pitch" : GearPitch.CUSTOM, '
                   f'"pressureAngle" : {pressure_degrees} * degree, "mateTeeth" : {mate_teeth}, "shaftAngle" : {shaft_degrees} * degree, '
                   f'"addProfileOffset" : {"true" if offset_mm else "false"}, "profileOffsetDistance" : {abs(offset_mm)} * millimeter, '
                   f'"profileOffsetOppositeDirection" : {"true" if offset_mm < 0 else "false"} }}')
@@ -26,12 +27,13 @@ def bevel_form(teeth: int, mate_teeth: int, shaft_degrees: float, pressure_degre
         const definition = {definition};
         const cones = bevelPairCones(millimeter, {teeth}, {mate_teeth}, {shaft_degrees} * degree);
         const depths = bevelDepths(definition, millimeter, {teeth}, cones);
-        const form = sphericalBevelForm(millimeter, {teeth}, cones.gear, {pressure_degrees} * degree, depths.thickness, depths.addendum,
-            depths.dedendum, getProfileOffset(definition));
+        const form = sphericalBevelForm(millimeter, {teeth}, cones.gear, cones.mate.pitchAngle, {pressure_degrees} * degree, depths.thickness,
+            depths.addendum, depths.dedendum, depths.mateAddendum, getProfileOffset(definition));
+        const lineTop = gearRoot(form).lineTop;
         var flank = [];
         for (var i = 0; i <= {FLANK_SAMPLES}; i += 1)
         {{
-            const radius = form.baseRadius + (form.tipRadius - form.baseRadius) * i / {FLANK_SAMPLES};
+            const radius = lineTop + (form.tipRadius - lineTop) * i / {FLANK_SAMPLES};
             flank = append(flank, [radius, toothHalfAngle(form, radius)]);
         }}
         return {{ "cones" : cones.gear, "depths" : depths, "teeth" : form.teeth, "rootRadius" : form.rootRadius, "flank" : flank }};
@@ -65,7 +67,8 @@ class Teeth:
         self.root = pitch - math.atan(depths["dedendum"] / distance)
 
     def half(self, angle: float) -> float:
-        """Half the tooth's width around the axis at `angle` from it: along a plane through the axis below its base cone."""
+        """Half the tooth's width around the axis at `angle` from it: below its involute, its root's radial line (a plane
+        through the axis), which mustn't reach where its mate's teeth touch it."""
         if angle <= self.angles[0]:
             return self.halves[0]
         # Through the three samples nearest it
@@ -133,10 +136,10 @@ def mesh_margins(teeth: int, mate_teeth: int, shaft_degrees: float, turn: float,
 def test_spherical_bevel_pair_meshes_through_a_tooth(teeth, mate_teeth, shaft_degrees):
     # Touching (within the flanks' sampling) on both sides, without overlapping, wherever they're turned to
     pitch = 2 * math.pi / teeth
-    for step in range(5):
-        least = mesh_margins(teeth, mate_teeth, shaft_degrees, pitch * (step / 5 - 0.5))
+    for step in range(10):
+        least = mesh_margins(teeth, mate_teeth, shaft_degrees, pitch * (step / 10 - 0.5))
         for side, margin in least.items():
-            assert -1e-6 < margin < 1e-5, f"side {side}, turned {step}/5 of a tooth: {margin}"
+            assert -1e-6 < margin < 1e-5, f"side {side}, turned {step}/10 of a tooth: {margin}"
 
 
 def test_negative_profile_offset_leaves_backlash():
@@ -159,10 +162,11 @@ def test_spherical_bevel_gap_is_one_closed_loop(teeth, mate_teeth, shaft_degrees
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     form = f"""(function() {{
-        const definition = {{ "simplifiedBevel" : false, "pitch" : GearPitch.DP_10, "mateTeeth" : {mate_teeth}, "addProfileOffset" : false }};
+        const definition = {{ "bevelForm" : BevelForm.SPHERICAL_INVOLUTE, "pitch" : GearPitch.DP_10, "mateTeeth" : {mate_teeth}, "addProfileOffset" : false }};
         const cones = bevelPairCones(inch / 10, {teeth}, {mate_teeth}, {shaft_degrees} * degree);
         const depths = bevelDepths(definition, inch / 10, {teeth}, cones);
-        return sphericalBevelForm(inch / 10, {teeth}, cones.gear, 20 * degree, depths.thickness, depths.addendum, depths.dedendum, 0 * meter);
+        return sphericalBevelForm(inch / 10, {teeth}, cones.gear, cones.mate.pitchAngle, 20 * degree, depths.thickness, depths.addendum,
+            depths.dedendum, depths.mateAddendum, 0 * meter);
     }})()"""
     evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form}, 0.5)', "gear/robotGear.fs", context=context)
     loops = recorded_sketch(context, "gap").loops()
@@ -172,3 +176,20 @@ def test_spherical_bevel_gap_is_one_closed_loop(teeth, mate_teeth, shaft_degrees
     # Scaled by half: from the root to a module past the tip
     assert min(curve.nearest() for curve in curves) == pytest.approx(info[0] / 2, abs=1e-9)
     assert max(curve.farthest() for curve in curves) == pytest.approx((info[1] + 0.00254) / 2, abs=1e-9)
+
+
+@pytest.mark.parametrize("bit_mm,expected", [(0.25, "none"), (0.35, "slot"), (0.45, "too large")])
+def test_router_bit_slots_where_it_cant_reach_the_root(bit_mm, expected):
+    # A 13T pinion's gap, at 0.6 of its back's size: a small bit reaches its fillets, a bigger one cuts a slot down its
+    # middle, and one so big its slot meets the flanks above the pitch cone is too large
+    expression = f"""(function() {{
+        const definition = {{ "bevelForm" : BevelForm.SPHERICAL_INVOLUTE, "pitch" : GearPitch.CUSTOM, "pressureAngle" : 20 * degree,
+            "mateTeeth" : 31, "addProfileOffset" : false }};
+        const cones = bevelPairCones(millimeter, 13, 31, 90 * degree);
+        const depths = bevelDepths(definition, millimeter, 13, cones);
+        const form = sphericalBevelForm(millimeter, 13, cones.gear, cones.mate.pitchAngle, 20 * degree, depths.thickness, depths.addendum,
+            depths.dedendum, depths.mateAddendum, 0 * meter);
+        const root = bevelBitRoot(form, {bit_mm} * millimeter, 0.6);
+        return root.slot == undefined ? "none" : root.slot.tooLarge ? "too large" : "slot";
+    }})()"""
+    assert to_python(shared_evaluator().eval(expression, "gear/robotGear.fs")) == expected
