@@ -56,7 +56,7 @@
     "afa4f72a120e4ce160eb6972": "released/spacer/robotSpacerUi.fs",
     "aff3918ff64d6eafb99fddcf": "core/simpleExtrude.fs",
     "b1351a2be9415e873eb0b5a8": "released/shaft/robotShaft.fs",
-    "b6a0ca44656786e64df97fca": "rib/quickRib.fs",
+    "b6a0ca44656786e64df97fca": "lighten/quickRib.fs",
     "b75434df23d86ba9542f761e": "core/profileSide.fs",
     "b82468283e5ec09720bad185": "core/startOffset.fs",
     "b82b6882649b943622cbeb02": "uiTestBench/uiTestBench.fs",
@@ -108,6 +108,6 @@
     "e4dd2771f6ee924d601486f7": "released/spacer/robotSpacerIcon.svg",
     "f4499b93a8838a7034e96418": "plate/Plate_v2.svg",
     "f7208b20c64f74041af4afa2": "released/belt/beltIcon.svg",
-    "f9fda209a03cf7514da2a818": "rib/quickRibIcon.svg"
+    "f9fda209a03cf7514da2a818": "lighten/quickRibIcon.svg"
   }
 }
