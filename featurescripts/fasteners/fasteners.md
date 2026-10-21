@@ -2,12 +2,12 @@
 
 ## Summary
 
-FRCDesign's library fasteners, which Quick fastener inserts into assemblies too: `fastenerScrew`,
+FRCDesign's library fasteners, generated for FRCDesignApp, which inserts them from the library and into assemblies: `fastenerScrew`,
 `fastenerWasher`, and `fastenerNut`, each built in a Part Studio of its own whose configuration sets every
 parameter. Files: `fasteners.fs` (the features), `fastenerTables.py` (the catalog, from FRCDesign's Fasteners
 group in `vendor/frcdesign-fasteners.json`, with WCP's and AndyMark's screws from their stores in `vendor/stores.json`,
 refreshed by `uv run python featurescripts/fasteners/fastenerTables.py fetch`: the enums and data in `fastenerTables.gen.fs`, the Part Studios'
-configurations, and FRCDesign's manifest `fasteners.gen.json`), and `quickFastenerHoleScan.fs` (what FRCDesign
+configurations, and FRCDesign's manifest `fasteners.gen.json`), and `fastenerHoleScan.fs` (what FRCDesign
 evaluates in the Part Studios of the parts it fastens).
 
 Unreleased. It's released to FRCDesign's Fasteners library document (`[tool.fs.libraries.fasteners]`), whose Part
@@ -65,7 +65,7 @@ major diameter) up from the origin, add the mate connector, and name the part.
 
 Nothing is threaded, and nylock nuts have no nylon insert: the parts are for fit and clearance.
 
-`quickFastenerHoleScan` isn't a feature: FRCDesign evaluates its body as a lambda, so it uses only std's common.fs. It
+`fastenerHoleScan` isn't a feature: FRCDesign evaluates its body as a lambda, so it uses only std's common.fs. It
 reports each solid part's cylindrical faces which face their axis (holes), with their extent along it, their circular
 edges, whether the part goes on past each end, and a Hole feature's thread; and each selected circular edge (or
 circular edge of a selected face), with the normal of the plane beside it.
@@ -76,7 +76,7 @@ There are no `try`s.
 
 - Tried in Onshape (FeatureScript 3095, in a scratch Part Studio, not yet in the released studios): each kind of
   screw, washer, and nut regenerates as one part with its mate connector at the origin pointing up, named, and with
-  its part number; and `quickFastenerHoleScan` reports a plate's through and blind holes, and the circles of a
+  its part number; and `fastenerHoleScan` reports a plate's through and blind holes, and the circles of a
   selected face, whose ids `qTransient` finds again. That found `qOwnerBody` passed to `transientQueriesToStrings`,
   which only names transient queries, so the scan failed whenever anything was selected; it now names the evaluated
   body.

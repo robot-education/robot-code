@@ -1,4 +1,4 @@
-"""FRCDesign's library fasteners, which Quick fastener inserts too: screws, washers, and nuts for FRC. Run `uv run fs gen` after
+"""FRCDesign's library fasteners, generated for FRCDesignApp: screws, washers, and nuts for FRC. Run `uv run fs gen` after
 editing.
 
 This is the source of three things, which must agree:
@@ -40,7 +40,7 @@ from fs_cli.tables import Enum, inch, string
 FOLDER = pathlib.Path(__file__).parent
 SNAPSHOT = json.loads((FOLDER / "vendor" / "frcdesign-fasteners.json").read_text())
 STORES_SNAPSHOT = FOLDER / "vendor" / "stores.json"
-HOLE_SCAN = FOLDER / "quickFastenerHoleScan.fs"
+HOLE_SCAN = FOLDER / "fastenerHoleScan.fs"
 
 INCH = 0.0254
 
@@ -600,15 +600,15 @@ CONTENTS = [
 
 
 def hole_scan_lambda(code: str) -> str:
-    """The body of `quickFastenerHoleScan` as the lambda Onshape's FeatureScript evaluation takes: only std's
+    """The body of `fastenerHoleScan` as the lambda Onshape's FeatureScript evaluation takes: only std's
     common.fs is in scope there, so the function uses nothing else, and keeps its helpers inside it."""
     match = re.search(
-        r"export function quickFastenerHoleScan\(context is Context, queries is map\) returns map\n\{\n(.*?)\n\}\n",
+        r"export function fastenerHoleScan\(context is Context, queries is map\) returns map\n\{\n(.*?)\n\}\n",
         code,
         re.DOTALL,
     )
     if match is None:
-        raise ValueError(f"{HOLE_SCAN.name} has no quickFastenerHoleScan(context is Context, queries is map)")
+        raise ValueError(f"{HOLE_SCAN.name} has no fastenerHoleScan(context is Context, queries is map)")
     return "function(context is Context, queries is map)\n{\n" + match.group(1) + "\n}"
 
 

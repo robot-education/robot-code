@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 /**
- * What FRCDesign's Quick fastener needs to know about a Part Studio to fasten parts from it: each part's holes, and
+ * What FRCDesignApp needs to know about a Part Studio to fasten parts from it: each part's holes, and
  * the circles and faces selected in an assembly. FRCDesign evaluates it with Onshape's FeatureScript evaluation, which
  * takes a lambda: `fastenerTables.py` copies this function's body into its manifest, so it uses nothing but
  * std's common.fs, and keeps its helpers inside it.
@@ -24,7 +24,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
  *              selected face.
  * }}
  */
-export function quickFastenerHoleScan(context is Context, queries is map) returns map
+export function fastenerHoleScan(context is Context, queries is map) returns map
 {
     const toMeters = function(point is Vector) returns array
         {

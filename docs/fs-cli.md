@@ -295,7 +295,7 @@ sets `CONTENTS` to a list of items:
 
 A definition can also set `EXPORTS`, a map of file names to their text, for what reads its data outside Onshape;
 `fs gen` writes each beside it (`fasteners/fastenerTables.py` writes `fasteners.gen.json`, the catalog
-FRCDesign reads for its library fasteners and Quick fastener).
+FRCDesignApp reads for its library fasteners).
 
 ### Configured Part Studios
 

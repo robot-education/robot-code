@@ -23,7 +23,7 @@ def test_hole_scan_is_the_function_body_as_a_lambda():
 
 
 def test_hole_scan_needs_its_signature():
-    with pytest.raises(ValueError, match="quickFastenerHoleScan"):
+    with pytest.raises(ValueError, match="fastenerHoleScan"):
         DEFINITION["hole_scan_lambda"]("export function other() {}\n")
 
 

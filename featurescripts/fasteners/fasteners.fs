@@ -8,7 +8,7 @@ import(path : "core/coreUtils.fs", version : "");
 export import(path : "fasteners/fastenerTables.gen.fs", version : "");
 
 /**
- * FRCDesign's library fasteners: its screws, washers, and nuts, which Quick fastener inserts too. Each is made in a Part
+ * FRCDesign's library fasteners: its screws, washers, and nuts, generated for FRCDesignApp. Each is made in a Part
  * Studio of its own, whose configuration sets every parameter and offers only what's made (see fastenerTables.py),
  * so these dialogs are rarely seen: each is a flat list of enums, with no conditions, which the configuration filters.
  *
