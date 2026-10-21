@@ -1,21 +1,27 @@
-"""The fasteners FRCDesign's Quick fastener inserts: screws, washers, and nuts for FRC and FTC. Run `uv run fs gen`
-after editing.
+"""The fasteners FRCDesign's Quick fastener inserts: screws, washers, and nuts for FRC. Run `uv run fs gen` after
+editing.
 
 This is the source of three things, which must agree:
 
-- quickFastenerTables.gen.fs: the enums and dimensions the screw, washer, and nut features build from.
-- The configurations of the Part Studios exposing those features, one per program and kind (`STUDIOS`), which
-  `fs configure-studio` writes: a List input per feature parameter, Length showing only the lengths the chosen Size
-  comes in. A screw's and a nut's Washer input moves only its mate connector, onto the washer it sits on, so each
-  part is fastened to the hole's own edge with one mate connector and no offset.
+- quickFastenerTables.gen.fs: the enums and data the screw, washer, and nut features build from.
+- The configurations of the Part Studios exposing those features, one per kind (`STUDIOS`), which
+  `fs configure-studio` writes: an input per feature parameter, each List's options shown only where they're made
+  (Length shows only the lengths the chosen vendor makes in the chosen size and head).
 - quickFastener.gen.json: the same catalog for FRCDesign, which picks a fastener for each hole and inserts its studio
   with a configuration of these option ids. FRCDesign stores those configurations in documents, so never rename or
   remove a released option id (as with enums stored in documents); add new ones.
 
-Dimensions are the nominal ones of each standard (ASME B18.3 and B18.6 for inch screws, ISO 4762, 7380, and 10642 for
-metric ones; SAE and ISO 7089/7093 washers; hex and nylon-insert lock nuts), close enough to check fit and clearance,
-not to make the parts. Clearance holes are std's (`ANSI_V2ClearanceHoleTable`, `ISO_V2ClearanceHoleTable`), and tap
-drills are std's 75% engagement ones.
+What each vendor makes, and its part numbers, come from FRCDesign's own Fasteners group (vendor/frcdesign-fasteners.json,
+a snapshot of its configurations): black oxide screws, McMaster-Carr's nuts, and black washers. Generic offers every
+length any vendor makes, without part numbers.
+
+A screw's and a nut's Washer moves only its mate connector, onto the washer it sits on, so each part is fastened to the
+hole's own edge with one mate connector and no offset. Which washer that is (its seat washer, `SEAT_WASHERS`) is fixed
+by the vendor and size, and FRCDesign inserts the same one.
+
+Dimensions are nominal (ASME B18.3 screws, SAE washers, hex and nylon-insert lock nuts): close enough to check fit
+and clearance, not to make the parts. Clearance holes are std's (`ANSI_V2ClearanceHoleTable`), and tap drills std's
+75% engagement ones.
 """
 
 from __future__ import annotations
@@ -27,34 +33,55 @@ import re
 from fractions import Fraction
 
 from fs_cli.configured_studios import ConfiguredStudio, Input, Option
-from fs_cli.gen import Constant
-from fs_cli.tables import Enum, inch, mm, string
+from fs_cli.gen import Code, Constant
+from fs_cli.tables import Enum, inch, string
+
+FOLDER = pathlib.Path(__file__).parent
+SNAPSHOT = json.loads((FOLDER / "vendor" / "frcdesign-fasteners.json").read_text())
+HOLE_SCAN = FOLDER / "quickFastenerHoleScan.fs"
 
 INCH = 0.0254
-MILLIMETER = 0.001
+
+
+# Vendors, sizes, and heads
+
+
+FastenerVendor = Enum(
+    "FastenerVendor",
+    ["GENERIC", "MCMASTER", "REV", "WCP"],
+    {"GENERIC": "Generic", "MCMASTER": "McMaster-Carr", "REV": "REV", "WCP": "WCP"},
+)
+# FRCDesign's vendor codes
+VENDOR_CODES = {"MCM": "MCMASTER", "REV": "REV", "WCP": "WCP"}
 
 
 @dataclasses.dataclass
 class Size:
     id: str
     name: str
-    program: str
-    metric: bool
     # As in std's hole tables
     hole_table_size: str
-    pitch: str
+    threads_per_inch: int
     major_diameter: float
     tap_drill_diameter: float
     close_clearance_diameter: float
     free_clearance_diameter: float
-    # The screw lengths it comes in, shortest first
-    lengths: list[float]
 
-    def length(self, value: float) -> str:
-        return mm(value) if self.metric else inch(value)
 
-    def meters(self, value: float) -> float:
-        return round(value * (MILLIMETER if self.metric else INCH), 9)
+SIZES = [
+    Size("NO_4_40", "#4-40", "#4", 40, 0.112, 0.089, 0.116, 0.1285),
+    Size("NO_6_32", "#6-32", "#6", 32, 0.138, 0.1065, 0.144, 0.1495),
+    Size("NO_8_32", "#8-32", "#8", 32, 0.164, 0.136, 0.1695, 0.177),
+    Size("NO_10_32", "#10-32", "#10", 32, 0.19, 0.159, 0.196, 0.201),
+    Size("QUARTER_20", "1/4-20", "1/4", 20, 0.25, 0.201, 0.257, 0.266),
+]
+SIZES_BY_NAME = {size.name: size for size in SIZES}
+FastenerSize = Enum("FastenerSize", [size.id for size in SIZES], {size.id: size.name for size in SIZES})
+
+ScrewHead = Enum(
+    "ScrewHead", ["SOCKET", "BUTTON", "FLAT"], {"SOCKET": "Socket head", "BUTTON": "Button head", "FLAT": "Flat head"}
+)
+HEAD_CODES = {"SHCS": "SOCKET", "BHCS": "BUTTON", "FHCS": "FLAT"}
 
 
 @dataclasses.dataclass
@@ -63,100 +90,84 @@ class Head:
     height: float
     # Across the flats of its hex socket
     socket: float
-    # A flat head's length includes its head, which sits in a countersink of this angle
-    countersink_angle: float | None = None
+    # A flat head's length includes its head, which sits in an 82 degree countersink
+    countersunk: bool = False
 
 
-@dataclasses.dataclass
-class Washer:
-    inner_diameter: float
-    outer_diameter: float
-    thickness: float
-
-
-@dataclasses.dataclass
-class Nut:
-    across_flats: float
-    height: float
-
-
-def lengths(*values: float | str) -> list[float]:
-    return [float(Fraction(value)) if isinstance(value, str) else float(value) for value in values]
-
-
-INCH_LENGTHS = ["1/4", "3/8", "1/2", "5/8", "3/4", "7/8", 1, "5/4", "3/2", "7/4", 2, "9/4", "5/2", "11/4", 3, "7/2", 4]
-
-SIZES = [
-    Size("NO_6_32", "#6-32", "frc", False, "#6", "32 tpi", 0.138, 0.1065, 0.144, 0.1495,
-         lengths("1/4", "3/8", "1/2", "5/8", "3/4", 1, "5/4", "3/2")),
-    Size("NO_8_32", "#8-32", "frc", False, "#8", "32 tpi", 0.164, 0.136, 0.1695, 0.177,
-         lengths("1/4", "3/8", "1/2", "5/8", "3/4", 1, "5/4", "3/2", "7/4", 2)),
-    Size("NO_10_32", "#10-32", "frc", False, "#10", "32 tpi", 0.19, 0.159, 0.196, 0.201, lengths(*INCH_LENGTHS)),
-    Size("QUARTER_20", "1/4-20", "frc", False, "1/4", "20 tpi", 0.25, 0.201, 0.257, 0.266,
-         lengths(*INCH_LENGTHS[1:])),
-    Size("M3", "M3", "ftc", True, "M3", "0.5 mm", 3, 2.5, 3.2, 3.4,
-         lengths(4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 30, 35, 40)),
-    Size("M4", "M4", "ftc", True, "M4", "0.7 mm", 4, 3.3, 4.3, 4.5,
-         lengths(6, 8, 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50)),
-]
-SIZES_BY_ID = {size.id: size for size in SIZES}
-
-FastenerSize = Enum("FastenerSize", [size.id for size in SIZES], {size.id: size.name for size in SIZES})
-ScrewHead = Enum(
-    "ScrewHead", ["SOCKET", "BUTTON", "FLAT"], {"SOCKET": "Socket head", "BUTTON": "Button head", "FLAT": "Flat head"}
-)
-WasherType = Enum("WasherType", ["FLAT", "WIDE"], {"FLAT": "Flat", "WIDE": "Wide"})
-NutType = Enum("NutType", ["NYLOCK", "HEX"], {"NYLOCK": "Nylock", "HEX": "Hex"})
-SeatWasher = Enum("SeatWasher", ["NONE", "FLAT", "WIDE"], {"NONE": "None", "FLAT": "Flat washer", "WIDE": "Wide washer"})
-
-# Inch heads: B18.3 socket and button heads, and B18.3 82 degree flat heads
 HEADS = {
-    "NO_6_32": {"SOCKET": Head(0.226, 0.138, 7 / 64), "BUTTON": Head(0.262, 0.074, 5 / 64), "FLAT": Head(0.307, 0.097, 5 / 64, 82)},
-    "NO_8_32": {"SOCKET": Head(0.27, 0.164, 9 / 64), "BUTTON": Head(0.312, 0.087, 3 / 32), "FLAT": Head(0.359, 0.115, 3 / 32, 82)},
-    "NO_10_32": {"SOCKET": Head(0.312, 0.19, 5 / 32), "BUTTON": Head(0.375, 0.102, 1 / 8), "FLAT": Head(0.411, 0.132, 1 / 8, 82)},
-    "QUARTER_20": {"SOCKET": Head(0.375, 0.25, 3 / 16), "BUTTON": Head(0.437, 0.132, 5 / 32), "FLAT": Head(0.531, 0.153, 5 / 32, 82)},
-    "M3": {"SOCKET": Head(5.5, 3, 2.5), "BUTTON": Head(5.7, 1.65, 2), "FLAT": Head(6.72, 1.86, 2, 90)},
-    "M4": {"SOCKET": Head(7, 4, 3), "BUTTON": Head(7.6, 2.2, 2.5), "FLAT": Head(8.96, 2.48, 2.5, 90)},
+    "NO_4_40": {"SOCKET": Head(0.183, 0.112, 3 / 32), "BUTTON": Head(0.213, 0.059, 5 / 64), "FLAT": Head(0.255, 0.083, 1 / 16, True)},
+    "NO_6_32": {"SOCKET": Head(0.226, 0.138, 7 / 64), "BUTTON": Head(0.262, 0.074, 5 / 64), "FLAT": Head(0.307, 0.097, 5 / 64, True)},
+    "NO_8_32": {"SOCKET": Head(0.27, 0.164, 9 / 64), "BUTTON": Head(0.312, 0.087, 3 / 32), "FLAT": Head(0.359, 0.115, 3 / 32, True)},
+    "NO_10_32": {"SOCKET": Head(0.312, 0.19, 5 / 32), "BUTTON": Head(0.375, 0.102, 1 / 8), "FLAT": Head(0.411, 0.132, 1 / 8, True)},
+    "QUARTER_20": {"SOCKET": Head(0.375, 0.25, 3 / 16), "BUTTON": Head(0.437, 0.132, 5 / 32), "FLAT": Head(0.531, 0.153, 5 / 32, True)},
 }
-
-# SAE flat and fender washers; ISO 7089 and 7093
-WASHERS = {
-    "NO_6_32": {"FLAT": Washer(0.156, 0.312, 0.032), "WIDE": Washer(0.156, 0.5, 0.04)},
-    "NO_8_32": {"FLAT": Washer(0.188, 0.375, 0.049), "WIDE": Washer(0.188, 0.625, 0.04)},
-    "NO_10_32": {"FLAT": Washer(0.219, 0.5, 0.049), "WIDE": Washer(0.219, 0.75, 0.05)},
-    "QUARTER_20": {"FLAT": Washer(0.281, 0.625, 0.065), "WIDE": Washer(0.281, 1, 0.063)},
-    "M3": {"FLAT": Washer(3.2, 7, 0.5), "WIDE": Washer(3.2, 9, 0.8)},
-    "M4": {"FLAT": Washer(4.3, 9, 0.8), "WIDE": Washer(4.3, 12, 1)},
-}
-
-# Machine screw hex nuts and nylon-insert lock nuts; ISO 4032 and 10511
-NUTS = {
-    "NO_6_32": {"NYLOCK": Nut(0.3125, 0.172), "HEX": Nut(0.3125, 0.109)},
-    "NO_8_32": {"NYLOCK": Nut(0.34375, 0.203), "HEX": Nut(0.34375, 0.125)},
-    "NO_10_32": {"NYLOCK": Nut(0.375, 0.236), "HEX": Nut(0.375, 0.125)},
-    "QUARTER_20": {"NYLOCK": Nut(0.4375, 0.312), "HEX": Nut(0.4375, 0.219)},
-    "M3": {"NYLOCK": Nut(5.5, 4), "HEX": Nut(5.5, 2.4)},
-    "M4": {"NYLOCK": Nut(7, 5), "HEX": Nut(7, 3.2)},
-}
-
-PROGRAMS = {"frc": "FRC", "ftc": "FTC"}
-DEFAULT_SIZES = {"frc": "NO_10_32", "ftc": "M4"}
-DEFAULT_LENGTHS = {"frc": 0.5, "ftc": 10}
+COUNTERSINK_ANGLE = 82
 
 
-def length_id(size: Size, length: float) -> str:
-    """e.g. IN_0_375, or MM_10."""
-    if size.metric:
-        return "MM_" + _number(length).replace(".", "_")
-    return "IN_" + _number(length).replace(".", "_")
+# Screws: what each vendor makes, from FRCDesign's records, like `#10-32 x 1-1/4" L BHCS (Steel, Black Oxide)`
 
 
-def length_name(size: Size, length: float) -> str:
-    """e.g. 3/8 in., 1-1/4 in., or 10 mm."""
-    if size.metric:
-        return f"{_number(length)} mm"
-    fraction = Fraction(length).limit_denominator(64)
-    whole, part = divmod(fraction, 1)
+@dataclasses.dataclass(frozen=True)
+class Stock:
+    part_number: str | None = None
+    url: str | None = None
+
+
+_SCREW = re.compile(r'^(#\d+-\d+|1/4-20)\s+x\s+([\d\-/\.]+)"\s*L\s+(SHCS|BHCS|FHCS)\s*\(([^)]*)\)')
+
+
+def parse_inches(text: str) -> Fraction:
+    """`1-1/4`, `3/8`, `2`, or `0.031`, in inches."""
+    whole, dash, part = text.partition("-")
+    if dash:
+        return Fraction(whole) + Fraction(part)
+    return Fraction(text)
+
+
+def _vendor(part: dict) -> str:
+    [code] = part["vendors"]
+    return VENDOR_CODES[code]
+
+
+def _stocked_screws() -> dict[tuple[str, str, str], dict[Fraction, Stock]]:
+    stocked: dict[tuple[str, str, str], dict[Fraction, Stock]] = {}
+    for part in SNAPSHOT["parts"]:
+        if " Bolt (" not in part["name"]:
+            continue
+        vendor = _vendor(part)
+        for record in part["records"]:
+            match = _SCREW.match(record["name"])
+            assert match, record["name"]
+            size, length, head, finish = match.groups()
+            if "Black Oxide" not in finish:
+                continue
+            key = (vendor, SIZES_BY_NAME[size].id, HEAD_CODES[head])
+            stocked.setdefault(key, {})[parse_inches(length)] = Stock(record["partNumber"], record.get("url"))
+    # Generic: every length anyone makes
+    for (_, size, head), lengths in list(stocked.items()):
+        generic = stocked.setdefault(("GENERIC", size, head), {})
+        for length in lengths:
+            generic[length] = Stock()
+    return {key: dict(sorted(lengths.items())) for key, lengths in sorted(stocked.items(), key=_screw_order)}
+
+
+def _screw_order(item) -> tuple:
+    vendor, size, head = item[0]
+    return (FastenerVendor.values.index(vendor), FastenerSize.values.index(size), ScrewHead.values.index(head))
+
+
+SCREWS = _stocked_screws()
+LENGTHS = sorted({length for lengths in SCREWS.values() for length in lengths})
+
+
+def length_id(length: Fraction) -> str:
+    """e.g. IN_0_375 for 3/8 in., IN_1_25 for 1-1/4 in."""
+    return "IN_" + f"{float(length):g}".replace(".", "_")
+
+
+def length_name(length: Fraction) -> str:
+    """e.g. 3/8 in., or 1-1/4 in."""
+    whole, part = divmod(length, 1)
     if part == 0:
         return f"{whole} in."
     if whole == 0:
@@ -164,166 +175,400 @@ def length_name(size: Size, length: float) -> str:
     return f"{whole}-{part} in."
 
 
-def _number(value: float) -> str:
-    return f"{value:g}" if value < 1e6 else repr(value)
+ScrewLength = Enum(
+    "ScrewLength", [length_id(length) for length in LENGTHS], {length_id(length): length_name(length) for length in LENGTHS}
+)
 
 
-def _program_sizes(program: str) -> list[Size]:
-    return [size for size in SIZES if size.program == program]
+# Nuts: McMaster-Carr's, like `#10-32 Thin Nylon-Insert Locknut`; Generic makes the same ones
 
 
-def _size_input(program: str) -> Input:
-    return Input(
-        "size",
-        "Size",
-        "size",
-        [Option(size.id, size.name, size.id) for size in _program_sizes(program)],
-        enum_name="FastenerSize",
-        default=DEFAULT_SIZES[program],
+NutType = Enum(
+    "NutType",
+    ["NYLOCK", "THIN_NYLOCK", "HEX", "THIN_HEX", "SQUARE"],
+    {"NYLOCK": "Nylock", "THIN_NYLOCK": "Thin nylock", "HEX": "Hex", "THIN_HEX": "Thin hex", "SQUARE": "Square"},
+)
+NUT_CODES = {
+    "Nylon-Insert Locknut": "NYLOCK",
+    "Thin Nylon-Insert Locknut": "THIN_NYLOCK",
+    "Hex Nut": "HEX",
+    "Thin Hex Nut": "THIN_HEX",
+    "Square Nut": "SQUARE",
+}
+NUT_VENDORS = ["GENERIC", "MCMASTER"]
+
+
+@dataclasses.dataclass
+class Nut:
+    # A square nut's width
+    across_flats: float
+    height: float
+
+
+NUT_DIMENSIONS = {
+    "NO_4_40": {"NYLOCK": Nut(0.25, 0.141), "THIN_NYLOCK": Nut(0.25, 0.109), "HEX": Nut(0.25, 0.094), "THIN_HEX": Nut(0.25, 0.063)},
+    "NO_6_32": {"NYLOCK": Nut(0.3125, 0.172), "THIN_NYLOCK": Nut(0.3125, 0.125), "HEX": Nut(0.3125, 0.109), "THIN_HEX": Nut(0.3125, 0.078)},
+    "NO_8_32": {"NYLOCK": Nut(0.34375, 0.203), "THIN_NYLOCK": Nut(0.34375, 0.141), "HEX": Nut(0.34375, 0.125), "SQUARE": Nut(0.34375, 0.125)},
+    "NO_10_32": {"NYLOCK": Nut(0.375, 0.236), "THIN_NYLOCK": Nut(0.375, 0.156), "HEX": Nut(0.375, 0.125), "SQUARE": Nut(0.375, 0.125)},
+    "QUARTER_20": {"NYLOCK": Nut(0.4375, 0.312), "THIN_NYLOCK": Nut(0.4375, 0.203), "HEX": Nut(0.4375, 0.219), "SQUARE": Nut(0.4375, 0.219)},
+}
+
+_NUT = re.compile(r"^(#\d+-\d+|1/4-20)\s+(.+)$")
+
+
+def _stocked_nuts() -> dict[tuple[str, str, str], Stock]:
+    stocked: dict[tuple[str, str, str], Stock] = {}
+    for part in SNAPSHOT["parts"]:
+        if not part["name"].endswith(" Nut"):
+            continue
+        for record in part["records"]:
+            match = _NUT.match(record["name"])
+            assert match, record["name"]
+            size, kind = match.groups()
+            key = (SIZES_BY_NAME[size].id, NUT_CODES[kind])
+            stocked[("MCMASTER", *key)] = Stock(record["partNumber"], record.get("url"))
+            stocked[("GENERIC", *key)] = Stock()
+    assert {(size, type) for _, size, type in stocked} == {
+        (size, type) for size, types in NUT_DIMENSIONS.items() for type in types
+    }, "Every nut needs its dimensions"
+    return dict(
+        sorted(
+            stocked.items(),
+            key=lambda item: (
+                NUT_VENDORS.index(item[0][0]),
+                FastenerSize.values.index(item[0][1]),
+                NutType.values.index(item[0][2]),
+            ),
+        )
     )
 
 
-def _enum_input(id: str, name: str, enum: Enum, parameter: str | None = None) -> Input:
-    assert enum.names is not None
-    options = [Option(value, enum.names[value], value) for value in enum.values]
-    return Input(id, name, parameter or id, options, enum_name=enum.name)
+NUTS = _stocked_nuts()
 
 
-def _length_input(program: str) -> Input:
-    sizes = _program_sizes(program)
-    options: dict[str, Option] = {}
-    for size in sizes:
-        for length in size.lengths:
-            id = length_id(size, length)
-            if id not in options:
-                options[id] = Option(id, length_name(size, length), _expression(size, length), [])
-            options[id].shown_with.append(size.id)  # type: ignore[union-attr]
-    ordered = sorted(options.values(), key=lambda option: _meters(option.value))
-    for option in ordered:
-        if len(option.shown_with or []) == len(sizes):
-            option.shown_with = None
-    default = length_id(sizes[0], DEFAULT_LENGTHS[program])
-    return Input("length", "Length", "length", ordered, kind="length", default=default, depends_on="size")
+# Washers: black ones, like `#10 Washer (7/16" OD, 0.03" WD, Stainless Steel, Black Oxide)`; Generic's are SAE flat
 
 
-def _expression(size: Size, length: float) -> str:
-    return f"{_number(length)} {'mm' if size.metric else 'in'}"
+@dataclasses.dataclass(frozen=True)
+class Washer:
+    inner_diameter: float
+    outer_diameter: Fraction
+    thickness: str
+    stock: Stock = Stock()
 
 
-def _meters(expression: str) -> float:
-    value, unit = expression.split(" ")
-    return float(value) * (MILLIMETER if unit == "mm" else INCH)
-
-
-def studios(program: str) -> dict[str, ConfiguredStudio]:
-    return {
-        "screw": ConfiguredStudio(
-            f"{program}Screw",
-            "quickFastenerScrew",
-            [
-                _size_input(program),
-                _enum_input("head", "Head", ScrewHead),
-                _length_input(program),
-                _enum_input("washer", "Washer", SeatWasher),
-            ],
-        ),
-        "washer": ConfiguredStudio(
-            f"{program}Washer", "quickFastenerWasher", [_size_input(program), _enum_input("type", "Type", WasherType, "washerType")]
-        ),
-        "nut": ConfiguredStudio(
-            f"{program}Nut",
-            "quickFastenerNut",
-            [_size_input(program), _enum_input("type", "Type", NutType, "nutType"), _enum_input("washer", "Washer", SeatWasher)],
-        ),
-    }
-
-
-STUDIOS = {program: studios(program) for program in PROGRAMS}
-
-# Where each studio is: its document and tab, and the version FRCDesign inserts. Fill one in once its Part Studio is
-# made and configured (`fs configure-studio`), and the version after each release of it.
-LOCATIONS: dict[str, dict[str, dict[str, str] | None]] = {
-    program: {"screw": None, "washer": None, "nut": None} for program in PROGRAMS
+# SAE flat washers' inner diameters, which FRCDesign's records leave out
+WASHER_INNER_DIAMETERS = {"NO_4_40": 0.125, "NO_6_32": 0.156, "NO_8_32": 0.188, "NO_10_32": 0.219, "QUARTER_20": 0.281}
+GENERIC_WASHERS = {
+    "NO_4_40": ("5/16", "0.032"),
+    "NO_6_32": ("3/8", "0.049"),
+    "NO_8_32": ("7/16", "0.049"),
+    "NO_10_32": ("1/2", "0.049"),
+    "QUARTER_20": ("5/8", "0.065"),
 }
+WASHER_VENDORS = ["GENERIC", "MCMASTER", "WCP"]
+_WASHER = re.compile(r'^(#\d+|[\d/\.]+" ID) Washer \(([\d/\.]+)" OD, ([\d\.]+)" WD, ([^)]*)\)')
+_WASHER_SIZES = {"#4": "NO_4_40", "#6": "NO_6_32", "#8": "NO_8_32", "#10": "NO_10_32", '1/4" ID': "QUARTER_20"}
+
+
+def washer_type(outer_diameter: Fraction, thickness: str) -> str:
+    """e.g. OD_7_16_X_0_03, for 7/16 in. OD and 0.03 in. thick."""
+    return f"OD_{outer_diameter}_X_{thickness}".replace("/", "_").replace(".", "_")
+
+
+def washer_type_name(outer_diameter: Fraction, thickness: str) -> str:
+    """e.g. 7/16 in. OD x 0.03 in."""
+    return f"{length_name(outer_diameter)} OD x {thickness} in."
+
+
+def _washers() -> dict[tuple[str, str, str], Washer]:
+    washers: dict[tuple[str, str, str], Washer] = {}
+    for size, (outer, thickness) in GENERIC_WASHERS.items():
+        od = Fraction(outer)
+        washers[("GENERIC", size, washer_type(od, thickness))] = Washer(WASHER_INNER_DIAMETERS[size], od, thickness)
+    for part in SNAPSHOT["parts"]:
+        if "Washer" not in part["name"]:
+            continue
+        vendor = _vendor(part)
+        for record in part["records"]:
+            match = _WASHER.match(record["name"])
+            assert match, record["name"]
+            size_name, outer, thickness, finish = match.groups()
+            if size_name not in _WASHER_SIZES or "Black" not in finish:
+                continue
+            size = _WASHER_SIZES[size_name]
+            od = parse_inches(outer)
+            washers[(vendor, size, washer_type(od, thickness))] = Washer(
+                WASHER_INNER_DIAMETERS[size], od, thickness, Stock(record["partNumber"], record.get("url"))
+            )
+    return dict(
+        sorted(
+            washers.items(),
+            key=lambda item: (
+                WASHER_VENDORS.index(item[0][0]),
+                FastenerSize.values.index(item[0][1]),
+                item[1].outer_diameter,
+                float(item[1].thickness),
+            ),
+        )
+    )
+
+
+WASHERS = _washers()
+_WASHER_TYPES = sorted(
+    {(washer.outer_diameter, float(washer.thickness), washer.thickness) for washer in WASHERS.values()}
+)
+WasherType = Enum(
+    "WasherType",
+    [washer_type(od, thickness) for od, _, thickness in _WASHER_TYPES],
+    {washer_type(od, thickness): washer_type_name(od, thickness) for od, _, thickness in _WASHER_TYPES},
+)
+
+
+def _seat_washers() -> dict[tuple[str, str], tuple[str, str]]:
+    """The washer a screw or nut of each vendor and size sits on: its vendor's thickest, else Generic's."""
+    seats = {}
+    for vendor in FastenerVendor.values:
+        for size in FastenerSize.values:
+            own = [(key, washer) for key, washer in WASHERS.items() if key[0] == vendor and key[1] == size]
+            if not own:
+                own = [(key, washer) for key, washer in WASHERS.items() if key[0] == "GENERIC" and key[1] == size]
+            (washer_vendor, _, type), _ = max(
+                own, key=lambda item: (float(item[1].thickness), -item[1].outer_diameter)
+            )
+            seats[(vendor, size)] = (washer_vendor, type)
+    return seats
+
+
+SEAT_WASHERS = _seat_washers()
+
+
+# The studios' configurations
+
+
+def _shown(keys, names: tuple[str, ...], value_index: int):
+    """For each value of position `value_index` in keys, the combinations of the earlier inputs `names` (the key's
+    other positions before it) it's made in; None when it's made in every one."""
+    combinations: dict[str, set[tuple]] = {}
+    for key in keys:
+        combinations.setdefault(key[value_index], set()).add(tuple(zip(names, key[:value_index])))
+    every = set().union(*combinations.values())
+
+    def shown_when(value: str):
+        mine = combinations[value]
+        return None if mine == every else [dict(combination) for combination in sorted(mine)]
+
+    return shown_when
+
+
+def _list(id, name, enum: Enum, parameter, values, shown_when=lambda value: None, default=None) -> Input:
+    assert enum.names is not None
+    options = [Option(value, enum.names[value], value, shown_when(value)) for value in values]
+    return Input(id, name, parameter, options, enum_name=enum.name, default=default)
+
+
+def _used(enum: Enum, keys, index: int) -> list[str]:
+    present = {key[index] for key in keys}
+    return [value for value in enum.values if value in present]
+
+
+def _screw_inputs() -> list[Input]:
+    keys = list(SCREWS)
+    lengths = [key + (length_id(length),) for key, stocked in SCREWS.items() for length in stocked]
+    return [
+        _list("vendor", "Vendor", FastenerVendor, "vendor", _used(FastenerVendor, keys, 0)),
+        _list("size", "Size", FastenerSize, "size", _used(FastenerSize, keys, 1), _shown(keys, ("vendor",), 1), "NO_10_32"),
+        _list("head", "Head", ScrewHead, "head", _used(ScrewHead, keys, 2), _shown(keys, ("vendor", "size"), 2), "BUTTON"),
+        _list(
+            "length",
+            "Length",
+            ScrewLength,
+            "length",
+            ScrewLength.values,
+            _shown(lengths, ("vendor", "size", "head"), 3),
+            length_id(Fraction(1, 2)),
+        ),
+        Input("washer", "Washer", "washer", kind="boolean"),
+    ]
+
+
+def _nut_inputs() -> list[Input]:
+    keys = list(NUTS)
+    return [
+        _list("vendor", "Vendor", FastenerVendor, "vendor", NUT_VENDORS),
+        _list("size", "Size", FastenerSize, "size", _used(FastenerSize, keys, 1), _shown(keys, ("vendor",), 1), "NO_10_32"),
+        _list("type", "Type", NutType, "nutType", _used(NutType, keys, 2), _shown(keys, ("vendor", "size"), 2)),
+        Input("washer", "Washer", "washer", kind="boolean"),
+    ]
+
+
+def _washer_inputs() -> list[Input]:
+    keys = list(WASHERS)
+    return [
+        _list("vendor", "Vendor", FastenerVendor, "vendor", WASHER_VENDORS),
+        _list("size", "Size", FastenerSize, "size", _used(FastenerSize, keys, 1), _shown(keys, ("vendor",), 1), "NO_10_32"),
+        _list(
+            "type",
+            "Type",
+            WasherType,
+            "washerType",
+            WasherType.values,
+            _shown(keys, ("vendor", "size"), 2),
+            SEAT_WASHERS[("GENERIC", "NO_10_32")][1],
+        ),
+    ]
+
+
+STUDIOS = {
+    "screw": ConfiguredStudio("screw", "quickFastenerScrew", _screw_inputs()),
+    "nut": ConfiguredStudio("nut", "quickFastenerNut", _nut_inputs()),
+    "washer": ConfiguredStudio("washer", "quickFastenerWasher", _washer_inputs()),
+}
+
+# Where each studio is: its document and tab, and the version FRCDesign inserts (`documentId`, `versionId`,
+# `elementId`). Fill one in once its Part Studio is made and configured (`fs configure-studio`).
+LOCATIONS: dict[str, dict[str, str] | None] = {"screw": None, "washer": None, "nut": None}
 
 
 # FeatureScript
 
 
-def _size_map(render) -> str:
-    entries = [f"            {FastenerSize[size.id]} : {render(size)}" for size in SIZES]
-    return "{\n" + ",\n".join(entries) + "\n        }"
+def _in(value: float | Fraction) -> str:
+    return inch(round(float(value), 6))
+
+
+def _map(entries: list[tuple[str, str]], indent: int) -> str:
+    pad = " " * indent
+    return "{\n" + ",\n".join(f"{pad}    {key} : {value}" for key, value in entries) + f"\n{pad}}}"
 
 
 def _fields(fields: dict[str, str]) -> str:
+    if not fields:
+        return "{}"
     return "{ " + ", ".join(f"{string(key)} : {value}" for key, value in fields.items()) + " }"
+
+
+def _stock_fields(stock: Stock) -> dict[str, str]:
+    return {key: string(value) for key, value in (("partNumber", stock.part_number), ("url", stock.url)) if value}
+
+
+def _nested(table: dict[tuple, object], enums: list[Enum], render, indent: int = 8) -> str:
+    """A map of maps, keyed by each level's enum, from a table keyed by tuples of their values."""
+    groups: dict[str, dict] = {}
+    for key, value in table.items():
+        groups.setdefault(key[0], {})[key[1:]] = value
+    entries = [
+        (enums[0][first], render(rest[()]) if len(enums) == 1 else _nested(rest, enums[1:], render, indent + 4))
+        for first, rest in groups.items()
+    ]
+    return _map(entries, indent)
 
 
 def _size_fields(size: Size) -> str:
     return _fields(
         {
             "name": string(size.name),
-            "metric": "true" if size.metric else "false",
             "size": string(size.hole_table_size),
-            "pitch": string(size.pitch),
-            "majorDiameter": size.length(size.major_diameter),
-            "tapDrillDiameter": size.length(size.tap_drill_diameter),
-            "closeClearanceDiameter": size.length(size.close_clearance_diameter),
-            "freeClearanceDiameter": size.length(size.free_clearance_diameter),
-            "lengths": "[" + ", ".join(size.length(length) for length in size.lengths) + "]",
+            "pitch": string(f"{size.threads_per_inch} tpi"),
+            "majorDiameter": _in(size.major_diameter),
+            "tapDrillDiameter": _in(size.tap_drill_diameter),
+            "closeClearanceDiameter": _in(size.close_clearance_diameter),
+            "freeClearanceDiameter": _in(size.free_clearance_diameter),
         }
     )
 
 
-def _by_type(enum: Enum, table: dict[str, dict[str, object]], render) -> object:
-    def render_size(size: Size) -> str:
-        entries = [f"{enum[key]} : {render(size, value)}" for key, value in table[size.id].items()]
-        return "{\n                " + ",\n                ".join(entries) + "\n            }"
-
-    return render_size
-
-
-def _head_fields(size: Size, head: Head) -> str:
-    fields = {
-        "headDiameter": size.length(head.diameter),
-        "headHeight": size.length(head.height),
-        "socketSize": size.length(head.socket),
-    }
-    if head.countersink_angle is not None:
-        fields["countersinkAngle"] = f"{_number(head.countersink_angle)} * degree"
+def _head_fields(head: Head) -> str:
+    fields = {"headDiameter": _in(head.diameter), "headHeight": _in(head.height), "socketSize": _in(head.socket)}
+    if head.countersunk:
+        fields["countersinkAngle"] = f"{COUNTERSINK_ANGLE} * degree"
     return _fields(fields)
 
 
-def _washer_fields(size: Size, washer: Washer) -> str:
+def _nut_fields(item: tuple[str, str, Stock]) -> str:
+    size, type, stock = item
+    nut = NUT_DIMENSIONS[size][type]
+    return _fields({"acrossFlats": _in(nut.across_flats), "height": _in(nut.height), **_stock_fields(stock)})
+
+
+def _washer_fields(washer: Washer) -> str:
     return _fields(
         {
-            "innerDiameter": size.length(washer.inner_diameter),
-            "outerDiameter": size.length(washer.outer_diameter),
-            "thickness": size.length(washer.thickness),
+            "innerDiameter": _in(washer.inner_diameter),
+            "outerDiameter": _in(washer.outer_diameter),
+            "thickness": _in(float(washer.thickness)),
+            **_stock_fields(washer.stock),
         }
     )
 
 
-def _nut_fields(size: Size, nut: Nut) -> str:
-    return _fields({"acrossFlats": size.length(nut.across_flats), "height": size.length(nut.height)})
+def _documented(doc: str, name: str, expression: str) -> Code:
+    return Code(f"/** {doc} */\nexport const {name} = {expression};")
 
 
 CONTENTS = [
+    FastenerVendor,
     FastenerSize,
     ScrewHead,
-    WasherType,
+    ScrewLength,
     NutType,
-    SeatWasher,
-    Constant("FASTENER_SIZES", _size_map(_size_fields)),
-    Constant("SCREW_HEADS", _size_map(_by_type(ScrewHead, HEADS, _head_fields))),
-    Constant("WASHERS", _size_map(_by_type(WasherType, WASHERS, _washer_fields))),
-    Constant("NUTS", _size_map(_by_type(NutType, NUTS, _nut_fields))),
+    WasherType,
+    Constant("FASTENER_SIZES", _map([(FastenerSize[size.id], _size_fields(size)) for size in SIZES], 8)),
+    Constant(
+        "SCREW_HEADS",
+        _nested(
+            {(size, head): value for size, heads in HEADS.items() for head, value in heads.items()},
+            [FastenerSize, ScrewHead],
+            _head_fields,
+        ),
+    ),
+    Constant(
+        "SCREW_LENGTHS",
+        _map(
+            [
+                (ScrewLength[length_id(length)], _fields({"length": _in(length), "name": string(length_name(length))}))
+                for length in LENGTHS
+            ],
+            8,
+        ),
+    ),
+    _documented(
+        "What each vendor makes, by vendor, size, head, and length: each screw's part number and url, where it has them.",
+        "SCREWS",
+        _nested(
+            {key + (length_id(length),): stock for key, lengths in SCREWS.items() for length, stock in lengths.items()},
+            [FastenerVendor, FastenerSize, ScrewHead, ScrewLength],
+            lambda stock: _fields(_stock_fields(stock)),
+            4,
+        ),
+    ),
+    Constant(
+        "NUTS",
+        _nested(
+            {key: (key[1], key[2], stock) for key, stock in NUTS.items()},
+            [FastenerVendor, FastenerSize, NutType],
+            _nut_fields,
+        ),
+    ),
+    Constant("WASHERS", _nested(dict(WASHERS), [FastenerVendor, FastenerSize, WasherType], _washer_fields)),
+    Constant(
+        "WASHER_TYPE_NAMES",
+        _map([(WasherType[type], string(name)) for type, name in WasherType.names.items()], 8),  # type: ignore[union-attr]
+    ),
+    _documented(
+        "The washer a screw or nut of each vendor and size sits on, which its Washer moves its mate connector onto.",
+        "SEAT_WASHERS",
+        _nested(
+            SEAT_WASHERS,
+            [FastenerVendor, FastenerSize],
+            lambda seat: _fields({"vendor": FastenerVendor[seat[0]], "washerType": WasherType[seat[1]]}),
+            4,
+        ),
+    ),
 ]
 
 
 # FRCDesign's manifest
-
-HOLE_SCAN = pathlib.Path(__file__).with_name("quickFastenerHoleScan.fs")
 
 
 def hole_scan_lambda(code: str) -> str:
@@ -339,38 +584,28 @@ def hole_scan_lambda(code: str) -> str:
     return "function(context is Context, queries is map)\n{\n" + match.group(1) + "\n}"
 
 
-def _round(value: float) -> float:
-    return round(value, 9)
+def _meters(inches: float | Fraction | str) -> float:
+    return round(float(inches) * INCH, 9)
+
+
+def _stock_json(stock: Stock) -> dict:
+    return {key: value for key, value in (("partNumber", stock.part_number), ("url", stock.url)) if value}
 
 
 def manifest() -> dict:
     return {
         "source": "featurescripts/quickFastener/quickFastenerTables.py",
-        "programs": [
-            {
-                "id": program,
-                "name": name,
-                "sizes": [size.id for size in _program_sizes(program)],
-                "studios": {
-                    kind: {**studio.manifest(), "location": LOCATIONS[program][kind]}
-                    for kind, studio in STUDIOS[program].items()
-                },
-            }
-            for program, name in PROGRAMS.items()
-        ],
+        "studios": {kind: {**studio.manifest(), "location": LOCATIONS[kind]} for kind, studio in STUDIOS.items()},
+        "vendors": [{"id": id, "name": FastenerVendor.names[id]} for id in FastenerVendor.values],  # type: ignore[index]
         "sizes": [
             {
                 "id": size.id,
                 "name": size.name,
-                "program": size.program,
-                "majorDiameter": size.meters(size.major_diameter),
-                "pitch": _round(1 / float(size.pitch.split(" ")[0]) * INCH)
-                if not size.metric
-                else _round(float(size.pitch.split(" ")[0]) * MILLIMETER),
-                "tapDrillDiameter": size.meters(size.tap_drill_diameter),
-                "closeClearanceDiameter": size.meters(size.close_clearance_diameter),
-                "freeClearanceDiameter": size.meters(size.free_clearance_diameter),
-                "lengths": [{"id": length_id(size, length), "length": size.meters(length)} for length in size.lengths],
+                "majorDiameter": _meters(size.major_diameter),
+                "pitch": _meters(1 / size.threads_per_inch),
+                "tapDrillDiameter": _meters(size.tap_drill_diameter),
+                "closeClearanceDiameter": _meters(size.close_clearance_diameter),
+                "freeClearanceDiameter": _meters(size.free_clearance_diameter),
             }
             for size in SIZES
         ],
@@ -379,44 +614,61 @@ def manifest() -> dict:
                 "id": head,
                 "name": ScrewHead.names[head],  # type: ignore[index]
                 "sizes": {
-                    size.id: {
-                        "diameter": size.meters(HEADS[size.id][head].diameter),
-                        "height": size.meters(HEADS[size.id][head].height),
-                        "countersunk": HEADS[size.id][head].countersink_angle is not None,
+                    size: {
+                        "diameter": _meters(heads[head].diameter),
+                        "height": _meters(heads[head].height),
+                        "countersunk": heads[head].countersunk,
                     }
-                    for size in SIZES
+                    for size, heads in HEADS.items()
                 },
             }
             for head in ScrewHead.values
         ],
-        "washers": [
+        "screws": [
             {
-                "id": type,
-                "name": WasherType.names[type],  # type: ignore[index]
-                "sizes": {
-                    size.id: {
-                        "innerDiameter": size.meters(WASHERS[size.id][type].inner_diameter),
-                        "outerDiameter": size.meters(WASHERS[size.id][type].outer_diameter),
-                        "thickness": size.meters(WASHERS[size.id][type].thickness),
+                "vendor": vendor,
+                "size": size,
+                "head": head,
+                "lengths": [
+                    {
+                        "id": length_id(length),
+                        "name": length_name(length),
+                        "length": _meters(length),
+                        **_stock_json(stock),
                     }
-                    for size in SIZES
-                },
+                    for length, stock in lengths.items()
+                ],
             }
-            for type in WasherType.values
+            for (vendor, size, head), lengths in SCREWS.items()
         ],
+        "nutTypes": [{"id": id, "name": NutType.names[id]} for id in NutType.values],  # type: ignore[index]
         "nuts": [
             {
-                "id": type,
-                "name": NutType.names[type],  # type: ignore[index]
-                "sizes": {
-                    size.id: {
-                        "acrossFlats": size.meters(NUTS[size.id][type].across_flats),
-                        "height": size.meters(NUTS[size.id][type].height),
-                    }
-                    for size in SIZES
-                },
+                "vendor": vendor,
+                "size": size,
+                "type": type,
+                "acrossFlats": _meters(NUT_DIMENSIONS[size][type].across_flats),
+                "height": _meters(NUT_DIMENSIONS[size][type].height),
+                **_stock_json(stock),
             }
-            for type in NutType.values
+            for (vendor, size, type), stock in NUTS.items()
+        ],
+        "washers": [
+            {
+                "vendor": vendor,
+                "size": size,
+                "type": type,
+                "name": WasherType.names[type],  # type: ignore[index]
+                "innerDiameter": _meters(washer.inner_diameter),
+                "outerDiameter": _meters(washer.outer_diameter),
+                "thickness": _meters(washer.thickness),
+                **_stock_json(washer.stock),
+            }
+            for (vendor, size, type), washer in WASHERS.items()
+        ],
+        "seatWashers": [
+            {"vendor": vendor, "size": size, "washerVendor": washer_vendor, "washerType": type}
+            for (vendor, size), (washer_vendor, type) in SEAT_WASHERS.items()
         ],
         "holeScan": hole_scan_lambda(HOLE_SCAN.read_text()),
     }

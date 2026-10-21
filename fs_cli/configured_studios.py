@@ -1,10 +1,11 @@
 """Part Studios which expose a feature through their configuration, for definitions in featurescripts/ (see
 quickFastener/quickFastenerTables.py).
 
-A configured studio holds one instance of a feature, and a List configuration input for each of its parameters: each
-input configures its parameter (a configured parameter, `BTMParameterConfigured`), with one value per option. An
-input's options can each be shown only while another input has some values, which is how a nested lookup table is laid
-out as a configuration: Length shows only the lengths the chosen Size comes in.
+A configured studio holds one instance of a feature, and a configuration input for each of its parameters: each input
+configures its parameter (a configured parameter, `BTMParameterConfigured`), with one value per option, or per state
+of a checkbox. A List input's options can each be shown only for some combinations of earlier inputs, which is how a
+lookup table is laid out as a configuration: Length shows only the lengths the chosen vendor makes in the chosen size
+and head.
 
 The definition is the source of both sides: the feature's enums and data (`fs gen`), and the configuration
 (`fs configure-studio`), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
@@ -15,9 +16,12 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from typing import Literal, Sequence
+from typing import Literal, Mapping, Sequence
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+# Each, the options of earlier inputs it shows with: shown when any one matches
+Combinations = Sequence[Mapping[str, str]]
 
 
 @dataclasses.dataclass
@@ -29,52 +33,63 @@ class Option:
         name: The name shown, like `#10-32`.
         value: The configured parameter's value for it: an enum value's name for an enum parameter, or an expression
             for a quantity, like `0.5 in`.
-        shown_with: The options of the input's `depends_on` input which show it; every option shows it when None.
+        shown_when: The combinations of earlier inputs' options which show it, like `[{"size": "NO_10_32"}]`; every
+            combination shows it when None.
     """
 
     id: str
     name: str
     value: str
-    shown_with: Sequence[str] | None = None
+    shown_when: Combinations | None = None
 
 
 @dataclasses.dataclass
 class Input:
-    """A List configuration input, configuring one of the feature's parameters.
+    """A configuration input, configuring one of the feature's parameters.
 
     Attributes:
-        id: The input's id, which configurations are encoded with (`size=NO_10_32;length=IN_0_5`).
+        id: The input's id, which configurations are encoded with (`size=NO_10_32;washer=true`).
         parameter: The feature parameter it configures.
-        kind: Whether that parameter is an enum (`enum_name` its type) or a quantity (`units` its units).
-        depends_on: The input whose value decides which options show (see `Option.shown_with`).
+        kind: A List of `options` configuring an enum (`enum_name` its type) or a length, or a checkbox configuring a
+            boolean.
     """
 
     id: str
     name: str
     parameter: str
-    options: Sequence[Option]
-    kind: Literal["enum", "length"] = "enum"
+    options: Sequence[Option] = ()
+    kind: Literal["enum", "length", "boolean"] = "enum"
     enum_name: str | None = None
     default: str | None = None
-    depends_on: str | None = None
 
     def __post_init__(self) -> None:
+        if not _IDENTIFIER.match(self.id):
+            raise ValueError(f"Input {self.id!r} isn't a FeatureScript identifier")
+        if self.kind == "boolean":
+            if self.options or self.default not in (None, "true", "false"):
+                raise ValueError(f"Input {self.id} is a checkbox: it has no options, and defaults to true or false")
+            return
         ids = [option.id for option in self.options]
+        if not ids:
+            raise ValueError(f"Input {self.id} has no options")
         if len(set(ids)) != len(ids):
             raise ValueError(f"Input {self.id} has duplicate options: {ids}")
-        for id in [self.id, *ids]:
+        for id in ids:
             if not _IDENTIFIER.match(id):
                 raise ValueError(f"Input {self.id}: {id!r} isn't a FeatureScript identifier")
         if self.kind == "enum" and self.enum_name is None:
             raise ValueError(f"Input {self.id} configures an enum, so it needs its enum_name")
         if self.default is not None and self.default not in ids:
             raise ValueError(f"Input {self.id} has default {self.default!r}, which isn't one of {ids}")
-        if self.depends_on is None and any(option.shown_with is not None for option in self.options):
-            raise ValueError(f"Input {self.id} shows options by another input, so it needs depends_on")
 
     @property
     def default_option(self) -> str:
+        if self.kind == "boolean":
+            return self.default or "false"
         return self.default or self.options[0].id
+
+    def option_ids(self) -> set[str]:
+        return {option.id for option in self.options}
 
 
 @dataclasses.dataclass
@@ -86,40 +101,42 @@ class ConfiguredStudio:
     inputs: Sequence[Input]
 
     def __post_init__(self) -> None:
-        by_id = {input.id: input for input in self.inputs}
+        defaults: dict[str, str] = {}
+        earlier: dict[str, Input] = {}
         for input in self.inputs:
-            if input.depends_on is None:
-                continue
-            parent = by_id.get(input.depends_on)
-            if parent is None or self.inputs.index(parent) > self.inputs.index(input):
-                raise ValueError(f"{self.name}: {input.id} depends on {input.depends_on}, which must come before it")
-            parent_ids = {option.id for option in parent.options}
             for option in input.options:
-                unknown = set(option.shown_with or ()) - parent_ids
-                if unknown:
-                    raise ValueError(f"{self.name}: {input.id}'s {option.id} is shown with unknown {sorted(unknown)}")
-            default = next(option for option in input.options if option.id == input.default_option)
-            if default.shown_with is not None and parent.default_option not in default.shown_with:
-                raise ValueError(f"{self.name}: {input.id}'s default isn't shown with {parent.id}'s default")
+                for combination in option.shown_when or ():
+                    for id, value in combination.items():
+                        parent = earlier.get(id)
+                        if parent is None:
+                            raise ValueError(f"{self.name}: {input.id}'s {option.id} shows by {id}, which isn't before it")
+                        if parent.kind == "boolean" or value not in parent.option_ids():
+                            raise ValueError(f"{self.name}: {input.id}'s {option.id} shows with unknown {id}={value}")
+            if input.kind != "boolean":
+                default = next(option for option in input.options if option.id == input.default_option)
+                if not shows(default, defaults):
+                    raise ValueError(f"{self.name}: {input.id}'s default isn't shown with the other inputs' defaults")
+            defaults[input.id] = input.default_option
+            earlier[input.id] = input
+
+    def defaults(self) -> dict[str, str]:
+        return {input.id: input.default_option for input in self.inputs}
 
     def manifest(self) -> dict:
-        """The configuration as FRCDesign reads it: each input's options, and which show with which."""
+        """The configuration as FRCDesign reads it: each input's options, by id."""
         return {
             "feature": self.feature,
             "inputs": [
                 {
                     "id": input.id,
                     "name": input.name,
+                    "kind": "boolean" if input.kind == "boolean" else "list",
                     "default": input.default_option,
-                    **({"dependsOn": input.depends_on} if input.depends_on else {}),
-                    "options": [
-                        {
-                            "id": option.id,
-                            "name": option.name,
-                            **({"shownWith": list(option.shown_with)} if option.shown_with is not None else {}),
-                        }
-                        for option in input.options
-                    ],
+                    **(
+                        {"options": [{"id": option.id, "name": option.name} for option in input.options]}
+                        if input.kind != "boolean"
+                        else {}
+                    ),
                 }
                 for input in self.inputs
             ],
@@ -137,7 +154,21 @@ class ConfiguredStudio:
         return [_configured_parameter(input) for input in self.inputs]
 
 
+def shows(option: Option, selection: Mapping[str, str]) -> bool:
+    """Whether an option is shown while earlier inputs are set to `selection`."""
+    if option.shown_when is None:
+        return True
+    return any(all(selection.get(id) == value for id, value in combination.items()) for combination in option.shown_when)
+
+
 def _configuration_parameter(input: Input) -> dict:
+    if input.kind == "boolean":
+        return {
+            "btType": "BTMConfigurationParameterBoolean-2550",
+            "parameterId": input.id,
+            "parameterName": input.name,
+            "defaultValue": input.default_option == "true",
+        }
     parameter = {
         "btType": "BTMConfigurationParameterEnum-105",
         "parameterId": input.id,
@@ -160,35 +191,52 @@ def _configuration_parameter(input: Input) -> dict:
 
 
 def _option_visibility(input: Input) -> list[dict]:
-    """One condition per set of `depends_on` options, controlling the options shown with exactly that set: Onshape's
+    """One condition per distinct set of combinations, controlling the options shown with exactly that set: Onshape's
     conditions each control a list of options, so no option is controlled twice."""
-    groups: dict[tuple[str, ...], list[str]] = {}
+    groups: dict[tuple, list[str]] = {}
     for option in input.options:
-        if option.shown_with is not None:
-            groups.setdefault(tuple(option.shown_with), []).append(option.id)
-    conditions = []
-    for shown_with, options in groups.items():
-        equals = [
-            {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": input.depends_on, "value": value}
-            for value in shown_with
-        ]
-        condition = (
-            equals[0]
-            if len(equals) == 1
-            else {"btType": "BTParameterVisibilityLogical-178", "operation": "OR", "children": equals}
-        )
-        conditions.append(
-            {"btType": "BTEnumOptionVisibilityForList-1613", "controlledOptions": options, "condition": condition}
-        )
-    return conditions
+        if option.shown_when is not None:
+            key = tuple(tuple(sorted(combination.items())) for combination in option.shown_when)
+            groups.setdefault(key, []).append(option.id)
+    return [
+        {"btType": "BTEnumOptionVisibilityForList-1613", "controlledOptions": options, "condition": _condition(key)}
+        for key, options in groups.items()
+    ]
+
+
+def _condition(combinations: tuple) -> dict:
+    def logical(operation: str, children: list[dict]) -> dict:
+        if len(children) == 1:
+            return children[0]
+        return {"btType": "BTParameterVisibilityLogical-178", "operation": operation, "children": children}
+
+    return logical(
+        "OR",
+        [
+            logical(
+                "AND",
+                [
+                    {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
+                    for id, value in combination
+                ],
+            )
+            for combination in combinations
+        ],
+    )
 
 
 def _configured_parameter(input: Input) -> dict:
-    return {
-        "btType": "BTMParameterConfigured-2222",
-        "parameterId": input.parameter,
-        "configurationParameterId": input.id,
-        "values": [
+    if input.kind == "boolean":
+        values = [
+            {
+                "btType": "BTMConfiguredValueByBoolean-1501",
+                "booleanValue": state,
+                "value": {"btType": "BTMParameterBoolean-144", "parameterId": input.parameter, "value": state},
+            }
+            for state in (False, True)
+        ]
+    else:
+        values = [
             {
                 "btType": "BTMConfiguredValueByEnum-1923",
                 "enumName": f"{input.id}_conf",
@@ -197,7 +245,12 @@ def _configured_parameter(input: Input) -> dict:
                 "value": _value(input, option),
             }
             for option in input.options
-        ],
+        ]
+    return {
+        "btType": "BTMParameterConfigured-2222",
+        "parameterId": input.parameter,
+        "configurationParameterId": input.id,
+        "values": values,
     }
 
 

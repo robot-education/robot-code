@@ -15,41 +15,41 @@ export import(path : "quickFastener/quickFastenerTables.gen.fs", version : "");
  * against the part it fastens, or against the washer it sits on.
  */
 
-const SCREW_LENGTH_BOUNDS = { (inch) : [0.0625, 0.5, 12] } as LengthBoundSpec;
-
 // How deep a socket is, of its head's height
 const SOCKET_DEPTH = 0.6;
 
 annotation { "Feature Type Name" : "Quick fastener screw",
-        "Feature Type Description" : "A screw for FRCDesign's Quick fastener, seated at the origin." ~ CREDIT }
+        "Feature Type Description" : "A standard screw for FRCDesign's Quick fastener, seated at the origin." ~ CREDIT }
 export const quickFastenerScrew = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.size is FastenerSize;
+        vendorPredicate(definition);
+
+        sizePredicate(definition);
 
         annotation { "Name" : "Head", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.head is ScrewHead;
 
         annotation { "Name" : "Length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        isLength(definition.length, SCREW_LENGTH_BOUNDS);
+        definition.length is ScrewLength;
 
-        annotation { "Name" : "Washer", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.washer is SeatWasher;
+        washerPredicate(definition);
     }
     {
+        const stock = SCREWS[definition.vendor][definition.size][definition.head][definition.length];
+        if (stock == undefined)
+        {
+            throw regenError("Selected vendor does not make this screw, change the length.", ["length"]);
+        }
         const size = FASTENER_SIZES[definition.size];
         const head = SCREW_HEADS[definition.size][definition.head];
+        const length = SCREW_LENGTHS[definition.length];
         const isFlat = definition.head == ScrewHead.FLAT;
-        if (isFlat && !tolerantGreaterThan(definition.length, flatHeadHeight(size, head)))
-        {
-            throw regenError("Length must be longer than the head, increase the value.", ["length"]);
-        }
 
         // 1. Revolve the screw's profile: its head above the origin, or a flat head's below it, and its shank down
         const sketchId = id + "profile";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : PROFILE_PLANE });
-        skPolyline(sketch, "profile", { "points" : screwProfile(size, head, definition.head, definition.length) });
+        skPolyline(sketch, "profile", { "points" : screwProfile(size, head, definition.head, length.length) });
         if (definition.head == ScrewHead.BUTTON)
         {
             skArc(sketch, "dome", buttonDome(head));
@@ -87,13 +87,10 @@ export const quickFastenerScrew = defineFeature(function(context is Context, id 
                 });
 
         // 3. Seat it: on the hole's edge, or on the washer under its head
-        opMateConnector(context, id + "mateConnector", {
-                    "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, -washerThickness(definition.size, definition.washer)), X_DIRECTION, Z_DIRECTION),
-                    "owner" : screw
-                });
+        addSeatMateConnector(context, id + "mateConnector", definition, screw);
 
         cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
-        setFastenerProperties(context, screw, size.name ~ " x " ~ lengthName(size, definition.length) ~ " " ~ HEAD_NAMES[definition.head] ~ " Screw");
+        setFastenerProperties(context, screw, size.name ~ " x " ~ length.name ~ " " ~ HEAD_NAMES[definition.head] ~ " Screw", stock);
     });
 
 /**
@@ -104,15 +101,19 @@ annotation { "Feature Type Name" : "Quick fastener washer",
 export const quickFastenerWasher = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.size is FastenerSize;
+        vendorPredicate(definition);
+
+        sizePredicate(definition);
 
         annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.washerType is WasherType;
     }
     {
-        const size = FASTENER_SIZES[definition.size];
-        const washer = WASHERS[definition.size][definition.washerType];
+        const washer = WASHERS[definition.vendor][definition.size][definition.washerType];
+        if (washer == undefined)
+        {
+            throw regenError("Selected vendor does not make this washer, change the type.", ["washerType"]);
+        }
 
         const sketchId = id + "sketch";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
@@ -133,7 +134,7 @@ export const quickFastenerWasher = defineFeature(function(context is Context, id
                 });
 
         cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
-        setFastenerProperties(context, body, size.name ~ " " ~ WASHER_NAMES[definition.washerType] ~ " Washer");
+        setFastenerProperties(context, body, washerName(definition), washer);
     });
 
 /**
@@ -144,26 +145,40 @@ annotation { "Feature Type Name" : "Quick fastener nut",
 export const quickFastenerNut = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.size is FastenerSize;
+        vendorPredicate(definition);
+
+        sizePredicate(definition);
 
         annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.nutType is NutType;
 
-        annotation { "Name" : "Washer", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.washer is SeatWasher;
+        washerPredicate(definition);
     }
     {
+        const nut = NUTS[definition.vendor][definition.size][definition.nutType];
+        if (nut == undefined)
+        {
+            throw regenError("Selected vendor does not make this nut, change the type.", ["nutType"]);
+        }
         const size = FASTENER_SIZES[definition.size];
-        const nut = NUTS[definition.size][definition.nutType];
 
         const sketchId = id + "sketch";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
-        skRegularPolygon(sketch, "hex", {
-                    "center" : vector(0, 0) * meter,
-                    "firstVertex" : vector(nut.acrossFlats / sqrt(3), 0 * meter),
-                    "sides" : 6
-                });
+        if (definition.nutType == NutType.SQUARE)
+        {
+            skRectangle(sketch, "square", {
+                        "firstCorner" : vector(-nut.acrossFlats / 2, -nut.acrossFlats / 2),
+                        "secondCorner" : vector(nut.acrossFlats / 2, nut.acrossFlats / 2)
+                    });
+        }
+        else
+        {
+            skRegularPolygon(sketch, "hex", {
+                        "center" : vector(0, 0) * meter,
+                        "firstVertex" : vector(nut.acrossFlats / sqrt(3), 0 * meter),
+                        "sides" : 6
+                    });
+        }
         skCircle(sketch, "hole", { "center" : vector(0, 0) * meter, "radius" : size.majorDiameter / 2 });
         skSolve(sketch);
         opExtrude(context, id + "extrude", {
@@ -174,21 +189,63 @@ export const quickFastenerNut = defineFeature(function(context is Context, id is
                 });
         const body = qCreatedBy(id + "extrude", EntityType.BODY);
 
-        opMateConnector(context, id + "mateConnector", {
-                    "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, -washerThickness(definition.size, definition.washer)), X_DIRECTION, Z_DIRECTION),
-                    "owner" : body
-                });
+        addSeatMateConnector(context, id + "mateConnector", definition, body);
 
         cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
-        setFastenerProperties(context, body, size.name ~ " " ~ NUT_NAMES[definition.nutType] ~ " Nut");
+        setFastenerProperties(context, body, size.name ~ " " ~ NUT_NAMES[definition.nutType] ~ " Nut", nut);
     });
+
+predicate vendorPredicate(definition is map)
+{
+    annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.vendor is FastenerVendor;
+}
+
+predicate sizePredicate(definition is map)
+{
+    annotation { "Name" : "Size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.size is FastenerSize;
+}
+
+predicate washerPredicate(definition is map)
+{
+    annotation { "Name" : "Washer", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.washer is boolean;
+}
 
 // The XZ plane, with the sketch's X along the radius and its Y along the axis
 const PROFILE_PLANE = plane(WORLD_ORIGIN, -Y_DIRECTION, X_DIRECTION);
 
 const HEAD_NAMES = { ScrewHead.SOCKET : "Socket Head", ScrewHead.BUTTON : "Button Head", ScrewHead.FLAT : "Flat Head" };
-const WASHER_NAMES = { WasherType.FLAT : "Flat", WasherType.WIDE : "Wide" };
-const NUT_NAMES = { NutType.NYLOCK : "Nylock", NutType.HEX : "Hex" };
+const NUT_NAMES = {
+        NutType.NYLOCK : "Nylock",
+        NutType.THIN_NYLOCK : "Thin Nylock",
+        NutType.HEX : "Hex",
+        NutType.THIN_HEX : "Thin Hex",
+        NutType.SQUARE : "Square"
+    };
+
+/**
+ * A mate connector at the origin, pointing up, moved down by the seat washer's thickness when the part has a washer:
+ * fastened to the hole's edge, the part sits on the washer fastened there.
+ */
+function addSeatMateConnector(context is Context, id is Id, definition is map, owner is Query)
+{
+    const below = definition.washer ? seatWasher(definition.vendor, definition.size).thickness : 0 * meter;
+    opMateConnector(context, id, {
+                "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, -below), X_DIRECTION, Z_DIRECTION),
+                "owner" : owner
+            });
+}
+
+/**
+ * The washer a screw or nut of a vendor and size sits on (see `SEAT_WASHERS`).
+ */
+export function seatWasher(vendor is FastenerVendor, size is FastenerSize) returns map
+{
+    const seat = SEAT_WASHERS[vendor][size];
+    return WASHERS[seat.vendor][size][seat.washerType];
+}
 
 /**
  * How far a flat head goes into its countersink: from its diameter down to the shank's at its countersink angle.
@@ -196,18 +253,6 @@ const NUT_NAMES = { NutType.NYLOCK : "Nylock", NutType.HEX : "Hex" };
 export function flatHeadHeight(size is map, head is map) returns ValueWithUnits
 {
     return (head.headDiameter - size.majorDiameter) / 2 / tan(head.countersinkAngle / 2);
-}
-
-/**
- * How far the washer a screw or nut sits on raises it.
- */
-export function washerThickness(size is FastenerSize, washer is SeatWasher) returns ValueWithUnits
-{
-    if (washer == SeatWasher.NONE)
-    {
-        return 0 * meter;
-    }
-    return WASHERS[size][washer == SeatWasher.FLAT ? WasherType.FLAT : WasherType.WIDE].thickness;
 }
 
 /**
@@ -260,20 +305,28 @@ export function buttonDome(head is map) returns map
 }
 
 /**
- * A screw's length as its size names it, e.g. `1/2 in.` or `10 mm`.
+ * e.g. `#10 Washer (1/2 in. OD x 0.049 in.)`.
  */
-export function lengthName(size is map, length is ValueWithUnits) returns string
+export function washerName(definition is map) returns string
 {
-    if (size.metric)
-    {
-        return roundToPrecision(length / millimeter, 1) ~ " mm";
-    }
-    return roundToPrecision(length / inch, 4) ~ " in.";
+    const holeSize = FASTENER_SIZES[definition.size].size;
+    return holeSize ~ (holeSize == "1/4" ? " in." : "") ~ " Washer (" ~ WASHER_TYPE_NAMES[definition.washerType] ~ ")";
 }
 
-function setFastenerProperties(context is Context, body is Query, name is string)
+/**
+ * Names a part, gives it its part number and a link to buy it where it has them, and sets its material and appearance.
+ */
+function setFastenerProperties(context is Context, body is Query, name is string, stock is map)
 {
     setProperty(context, { "entities" : body, "propertyType" : PropertyType.NAME, "value" : name });
+    if (stock.partNumber != undefined)
+    {
+        setProperty(context, { "entities" : body, "propertyType" : PropertyType.PART_NUMBER, "value" : stock.partNumber });
+    }
+    if (stock.url != undefined)
+    {
+        setProperty(context, { "entities" : body, "propertyType" : PropertyType.DESCRIPTION, "value" : stock.url });
+    }
     setProperty(context, { "entities" : body, "propertyType" : PropertyType.MATERIAL, "value" : STEEL });
     setProperty(context, { "entities" : body, "propertyType" : PropertyType.APPEARANCE, "value" : BLACK });
 }

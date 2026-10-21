@@ -3,11 +3,22 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "quickFastener/quickFastener.fs", version : "");
 import(path : "testing.fs", version : "");
 
-export function testWasherThickness()
+export function testSeatWasherIsTheVendorsOwnOrGenerics()
 {
-    expectEqual(washerThickness(FastenerSize.NO_10_32, SeatWasher.NONE), 0 * meter);
-    expectNear(washerThickness(FastenerSize.NO_10_32, SeatWasher.FLAT), 0.049 * inch, 1e-9 * meter);
-    expectNear(washerThickness(FastenerSize.M3, SeatWasher.WIDE), 0.8 * millimeter, 1e-9 * meter);
+    expectNear(seatWasher(FastenerVendor.MCMASTER, FastenerSize.NO_10_32).thickness, 0.04 * inch, 1e-9 * meter);
+    // REV makes no washers
+    expectNear(seatWasher(FastenerVendor.REV, FastenerSize.NO_10_32).thickness, 0.049 * inch, 1e-9 * meter);
+}
+
+export function testEverySeatWasherIsMade()
+{
+    for (var vendor, sizes in SEAT_WASHERS)
+    {
+        for (var size, seat in sizes)
+        {
+            expectTrue(WASHERS[seat.vendor][size][seat.washerType] != undefined, "Seat washer isn't made");
+        }
+    }
 }
 
 export function testFlatHeadMeetsShankAtCountersinkAngle()
@@ -24,7 +35,7 @@ export function testProfilesCloseOnTheAxis()
     {
         for (var headType, head in SCREW_HEADS[sizeId])
         {
-            const length = spec.lengths[size(spec.lengths) - 1];
+            const length = 2 * inch;
             const points = screwProfile(spec, head, headType, length);
             // Down to the end of the shank, and back along the axis
             expectSamePoint(points[size(points) - 2], vector(0 * meter, -length));
@@ -54,21 +65,30 @@ export function testButtonDomeIsAnArcCenteredOnTheAxis()
     expectNear(norm(dome.start - center), radius, 1e-9 * meter);
 }
 
-export function testLengthNames()
+export function testEveryFlatHeadIsShorterThanItsScrews()
 {
-    expectEqual(lengthName(FASTENER_SIZES[FastenerSize.NO_10_32], 0.5 * inch), "0.5 in.");
-    expectEqual(lengthName(FASTENER_SIZES[FastenerSize.M3], 10 * millimeter), "10 mm");
-}
-
-export function testEveryScrewLengthIsInBounds()
-{
-    for (var _, spec in FASTENER_SIZES)
+    for (var _, sizes in SCREWS)
     {
-        for (var length in spec.lengths)
+        for (var size, heads in sizes)
         {
-            expectTrue(length > 0 * meter && length <= 12 * inch, "Length out of bounds");
+            const flat = heads[ScrewHead.FLAT];
+            if (flat == undefined)
+            {
+                continue;
+            }
+            for (var length, _ in flat)
+            {
+                expectTrue(SCREW_LENGTHS[length].length > flatHeadHeight(FASTENER_SIZES[size], SCREW_HEADS[size][ScrewHead.FLAT]),
+                    "Flat head longer than its screw");
+            }
         }
     }
+}
+
+export function testWasherNames()
+{
+    expectEqual(washerName({ "size" : FastenerSize.NO_10_32, "washerType" : WasherType.OD_1_2_X_0_049 }), "#10 Washer (1/2 in. OD x 0.049 in.)");
+    expectEqual(washerName({ "size" : FastenerSize.QUARTER_20, "washerType" : WasherType.OD_5_8_X_0_065 }), "1/4 in. Washer (5/8 in. OD x 0.065 in.)");
 }
 
 function expectSamePoint(actual is Vector, expected is Vector)

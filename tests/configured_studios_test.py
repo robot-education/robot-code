@@ -16,12 +16,12 @@ def studio() -> ConfiguredStudio:
                 "length",
                 [
                     Option("L1", "1 in.", "1 in"),
-                    Option("L2", "2 in.", "2 in", ["B"]),
-                    Option("L3", "3 in.", "3 in", ["A", "B"]),
+                    Option("L2", "2 in.", "2 in", [{"size": "B"}]),
+                    Option("L3", "3 in.", "3 in", [{"size": "A"}, {"size": "B"}]),
                 ],
                 kind="length",
-                depends_on="size",
             ),
+            Input("washer", "Washer", "washer", kind="boolean"),
         ],
     )
 
@@ -33,8 +33,16 @@ def test_inputs_are_checked():
         Input("size", "Size", "size", [Option("1/4", "1/4", "A")], enum_name="Size")
     with pytest.raises(ValueError, match="enum_name"):
         Input("size", "Size", "size", [Option("A", "A", "A")])
-    with pytest.raises(ValueError, match="depends_on"):
-        Input("length", "Length", "length", [Option("L", "L", "1 in", ["A"])], kind="length")
+    with pytest.raises(ValueError, match="checkbox"):
+        Input("washer", "Washer", "washer", [Option("A", "A", "A")], kind="boolean")
+
+
+def test_options_show_only_with_earlier_inputs():
+    size = Input("size", "Size", "size", [Option("A", "A", "A")], enum_name="Size")
+    with pytest.raises(ValueError, match="isn't before it"):
+        ConfiguredStudio("s", "f", [Input("length", "Length", "length", [Option("L", "L", "1 in", [{"size": "A"}])], kind="length"), size])
+    with pytest.raises(ValueError, match="unknown size=B"):
+        ConfiguredStudio("s", "f", [size, Input("length", "Length", "length", [Option("L", "L", "1 in", [{"size": "B"}])], kind="length")])
 
 
 def test_a_default_must_show_with_its_parents_default():
@@ -44,13 +52,19 @@ def test_a_default_must_show_with_its_parents_default():
             "f",
             [
                 Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size"),
-                Input("length", "Length", "length", [Option("L", "L", "1 in", ["B"])], kind="length", depends_on="size"),
+                Input("length", "Length", "length", [Option("L", "L", "1 in", [{"size": "B"}])], kind="length"),
             ],
         )
 
 
 def test_each_option_is_controlled_by_one_condition():
     length = studio().configuration_body()["configurationParameters"][1]
+    assert studio().configuration_body()["configurationParameters"][2] == {
+        "btType": "BTMConfigurationParameterBoolean-2550",
+        "parameterId": "washer",
+        "parameterName": "Washer",
+        "defaultValue": False,
+    }
     assert length["enumName"] == "length_conf"
     assert [option["option"] for option in length["options"]] == ["L1", "L2", "L3"]
     conditions = length["enumOptionVisibilityConditions"]["visibilityConditions"]
@@ -75,8 +89,23 @@ def test_each_option_is_controlled_by_one_condition():
     ]
 
 
+def test_combinations_of_several_inputs_are_ands_ored():
+    from fs_cli.configured_studios import _condition
+
+    condition = _condition(((("head", "X"), ("size", "A")), (("head", "Y"), ("size", "B"))))
+    assert condition["operation"] == "OR"
+    assert [child["operation"] for child in condition["children"]] == ["AND", "AND"]
+    assert condition["children"][0]["children"][1] == {
+        "btType": "BTParameterVisibilityOnEqual-180",
+        "parameterId": "size",
+        "value": "A",
+    }
+
+
 def test_configured_parameters_set_each_option():
-    size, length = studio().configured_parameters()
+    size, length, washer = studio().configured_parameters()
+    assert [value["booleanValue"] for value in washer["values"]] == [False, True]
+    assert washer["values"][1]["value"] == {"btType": "BTMParameterBoolean-144", "parameterId": "washer", "value": True}
     assert size["configurationParameterId"] == "size"
     assert size["values"][1]["enumValue"] == "B"
     assert size["values"][1]["value"] == {
@@ -92,11 +121,10 @@ def test_configured_parameters_set_each_option():
     }
 
 
-def test_manifest_lists_options_and_what_shows_them():
+def test_manifest_lists_each_inputs_options():
     inputs = studio().manifest()["inputs"]
-    assert inputs[1]["dependsOn"] == "size"
-    assert inputs[1]["options"][0] == {"id": "L1", "name": "1 in."}
-    assert inputs[1]["options"][1] == {"id": "L2", "name": "2 in.", "shownWith": ["B"]}
+    assert inputs[1]["options"][1] == {"id": "L2", "name": "2 in."}
+    assert inputs[2] == {"id": "washer", "name": "Washer", "kind": "boolean", "default": "false"}
 
 
 def test_find_studio_searches_nested_maps():
@@ -138,12 +166,12 @@ def test_configure_writes_the_configuration_then_the_feature():
 
     [_, (method, path, configuration), _, (_, feature_path, update)] = api.requests
     assert (method, path) == ("POST", "/elements/d/d/w/w/e/e/configuration")
-    assert [parameter["parameterId"] for parameter in configuration["configurationParameters"]] == ["size", "length"]
+    assert [parameter["parameterId"] for parameter in configuration["configurationParameters"]] == ["size", "length", "washer"]
     assert feature_path == "/partstudios/d/d/w/w/e/e/features/featureid/F1"
     # The microversion after the configuration changed
     assert update["sourceMicroversion"] == "mv3"
     parameters = update["feature"]["parameters"]
-    assert [parameter["parameterId"] for parameter in parameters] == ["size", "other", "length"]
+    assert [parameter["parameterId"] for parameter in parameters] == ["size", "other", "length", "washer"]
     assert parameters[0]["btType"] == "BTMParameterConfigured-2222"
     assert parameters[1] == feature["parameters"][1]
 

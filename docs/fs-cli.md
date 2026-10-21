@@ -299,14 +299,15 @@ FRCDesign's Quick fastener reads).
 
 ### Configured Part Studios
 
-A Part Studio can expose a feature through its configuration: a List input per parameter, each configuring that
-parameter, with options shown only alongside another input's (a nested lookup table, laid out as a configuration).
+A Part Studio can expose a feature through its configuration: an input per parameter (a List, or a checkbox for a
+boolean), each configuring that parameter, with a List's options shown only for some combinations of the inputs before
+it (a lookup table, laid out as a configuration).
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. Insert the
 feature into the Part Studio once, from the version it should use, then:
 
 ```
-uv run fs configure-studio featurescripts/quickFastener/quickFastenerTables.py frcScrew <Part Studio url>
+uv run fs configure-studio featurescripts/quickFastener/quickFastenerTables.py screw <Part Studio url>
 ```
 
 which replaces the Part Studio's configuration with the definition's, and configures the feature's parameters by it.
