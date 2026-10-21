@@ -14,6 +14,7 @@ import difflib
 import json
 import os
 import pathlib
+import runpy
 import sys
 
 from fs_lsp.formatter import format_source, is_generated
@@ -473,6 +474,17 @@ def make_parser() -> argparse.ArgumentParser:
     )
     no_push_tags(sync_versions)
     dry_run(sync_versions)
+
+    configure_command = command(
+        "configure-studio",
+        "write a Part Studio's configuration from its definition, and configure its feature's parameters by it "
+        "(2 API calls, and 2 more unless the document is public)",
+        targets=False,
+    )
+    configure_command.add_argument("definition", help="the definition, e.g. featurescripts/quickFastener/quickFastenerTables.py")
+    configure_command.add_argument("studio", help="the configured studio's name in it, e.g. frcScrew")
+    configure_command.add_argument("url", help="the Part Studio's url, in a workspace")
+    configure_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
 
     release_tags = command(
         "release-tags",
@@ -1687,6 +1699,29 @@ def _display_path(path: pathlib.Path) -> str:
 
 # Commands which don't need Onshape
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
+def configure_studio(workspace: Workspace, args: argparse.Namespace) -> int:
+    from fs_cli.configured_studios import ConfigureError, configure, find_studio
+    from onshape_api.paths.paths import url_to_element_path
+
+    definition = runpy.run_path(args.definition)
+    try:
+        studio = find_studio(definition, args.studio)
+    except ConfigureError as error:
+        raise UsageError(str(error)) from error
+    part_studio = url_to_element_path(args.url)
+    if not args.yes:
+        confirm(
+            f"This replaces the Part Studio's configuration with {studio.name}'s "
+            f"({', '.join(input.name for input in studio.inputs)}), and configures its {studio.feature} feature by it."
+        )
+    try:
+        configure(workspace.remote.api, part_studio, studio)
+    except ConfigureError as error:
+        raise UsageError(str(error)) from error
+    print(f"Configured {studio.name}.")
+    return 0
+
+
 STATE_COMMANDS = {"mv", "unlink", "released"}
 
 OFFLINE_COMMANDS = {
@@ -1726,6 +1761,7 @@ COMMANDS = {
     "deprecate": deprecate,
     "sync-versions": sync_versions,
     "release-tags": release_tags,
+    "configure-studio": configure_studio,
     "tabs": tabs,
     "link": link,
     "released": detect_released,

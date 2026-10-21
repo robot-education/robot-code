@@ -209,3 +209,21 @@ def test_render_sketches():
     rendered = SketchMap("BY_SIDE", {"ProfileSide.INSIDE": profile}).render()
     assert rendered.startswith("export const BY_SIDE = {\n        ProfileSide.INSIDE : [\n")
     assert rendered.endswith("            ] as SketchDataArray,\n    };\n")
+
+
+def test_generate_writes_exports_beside_the_definition(tmp_path):
+    (tmp_path / "tables.py").write_text(
+        "from fs_cli.tables import Enum\nCONTENTS = [Enum('E', ['A'])]\nEXPORTS = {'tables.gen.json': '{}\\n'}\n"
+    )
+    studio, exported = generate(tmp_path, "2960")
+    assert studio.output == tmp_path / "tables.gen.fs"
+    assert (exported.output, exported.code, exported.changed) == (tmp_path / "tables.gen.json", "{}\n", True)
+
+    exported.output.write_text(exported.code)
+    assert not generate(tmp_path, "2960")[1].changed
+
+
+def test_generate_rejects_exported_feature_studios(tmp_path):
+    (tmp_path / "tables.py").write_text("CONTENTS = []\nEXPORTS = {'other.fs': ''}\n")
+    with pytest.raises(GenerateError, match="Feature Studio"):
+        generate(tmp_path, "2960")

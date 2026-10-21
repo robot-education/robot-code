@@ -293,6 +293,24 @@ sets `CONTENTS` to a list of items:
   parameters based on it (see `released/printAdapter/printAdapterProfiles.py`)
 - `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
 
+A definition can also set `EXPORTS`, a map of file names to their text, for what reads its data outside Onshape;
+`fs gen` writes each beside it (`quickFastener/quickFastenerTables.py` writes `quickFastener.gen.json`, the catalog
+FRCDesign's Quick fastener reads).
+
+### Configured Part Studios
+
+A Part Studio can expose a feature through its configuration: a List input per parameter, each configuring that
+parameter, with options shown only alongside another input's (a nested lookup table, laid out as a configuration).
+A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
+in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. Insert the
+feature into the Part Studio once, from the version it should use, then:
+
+```
+uv run fs configure-studio featurescripts/quickFastener/quickFastenerTables.py frcScrew <Part Studio url>
+```
+
+which replaces the Part Studio's configuration with the definition's, and configures the feature's parameters by it.
+
 Feature icons are generated the same way: a definition which sets `ICON` (an `fs_cli.icons.Icon`, drawn from shapely
 shapes) is written to the `.svg` of the same name, e.g. `released/lighten/robotLightenIcon.py` to `released/lighten/robotLightenIcon.svg`;
 `fs icons` saves a picture of icons side by side to compare them. See [docs/icons.md](icons.md).

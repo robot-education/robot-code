@@ -7,6 +7,9 @@ beside it (belt/robotBeltTables.gen.fs), which `fs push` then pushes like any ot
 
 An icon definition (see fs_cli.icons) sets ICON instead, which `fs gen` writes to the .svg file of the same name
 (released/lighten/robotLightenIcon.py writes released/lighten/robotLightenIcon.svg).
+
+A definition may also set EXPORTS, a map of file names to their text, for what reads its data outside Onshape (like
+quickFastener/quickFastenerTables.py's manifest for FRCDesign); each is written beside it.
 """
 
 from __future__ import annotations
@@ -143,6 +146,12 @@ def generate(
             # Onshape manages the versions of imports, so keep its
             code = apply_import_versions(code, import_versions(old))
         results.append(Generated(source, output, code, code != old))
+        for name, text in definition.get("EXPORTS", {}).items():
+            exported = source.with_name(name)
+            if exported.suffix == ".fs":
+                raise GenerateError(f"{source.name} exports {name}, a Feature Studio: put it in CONTENTS.")
+            previous = exported.read_text() if exported.is_file() else None
+            results.append(Generated(source, exported, text, text != previous))
     return results
 
 
