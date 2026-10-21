@@ -294,8 +294,8 @@ sets `CONTENTS` to a list of items:
 - `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
 
 A definition can also set `EXPORTS`, a map of file names to their text, for what reads its data outside Onshape;
-`fs gen` writes each beside it (`quickFastener/quickFastenerTables.py` writes `quickFastener.gen.json`, the catalog
-FRCDesign's Quick fastener reads).
+`fs gen` writes each beside it (`fasteners/fastenerTables.py` writes `fasteners.gen.json`, the catalog
+FRCDesign reads for its library fasteners and Quick fastener).
 
 ### Configured Part Studios
 
@@ -307,13 +307,13 @@ in its `STUDIOS`, and the feature's enums come from the same definition, so the 
 feature into the Part Studio once, from the version it should use, then:
 
 ```
-uv run fs configure-studio featurescripts/quickFastener/quickFastenerTables.py screw <Part Studio url>
+uv run fs configure-studio featurescripts/fasteners/fastenerTables.py screw <Part Studio url>
 ```
 
 which replaces the Part Studio's configuration with the definition's, and configures the feature's parameters by it.
 A List's visibility conditions are factored by input, earliest first, so a lookup table's conditions don't repeat
 themselves (the screw studio's Length is 61 KB rather than 192 KB). `ConfiguredStudio.manifest()` gives the
-configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses Quick fastener's as it parses
+configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
 any configuration).
 
 Feature icons are generated the same way: a definition which sets `ICON` (an `fs_cli.icons.Icon`, drawn from shapely
@@ -357,7 +357,7 @@ workspace) instead, never as betas, and a studio there may define several featur
 ```toml
 [tool.fs.libraries.fasteners]
 document = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
-folders = ["quickFastener"]
+folders = ["fasteners"]
 ```
 
 `fs sync-versions` leaves their releases out, since they aren't the frontend's. The studio must be pushed and in

@@ -50,9 +50,9 @@ Never rename a released feature's constant (the name `defineFeature` is exported
 documents store it as the feature's type, and lose the feature if it changes. Rename its Feature Type Name and its file
 instead (see `docs/featurescript-style.md`'s "Released feature constants").
 
-Quick fastener's configured Part Studios are an exception too: FRCDesign inserts them with configurations of their
+FRCDesign's library fasteners' configured Part Studios are an exception too: FRCDesign inserts them with configurations of their
 option ids, and recognizes the fasteners already in assemblies by them, so never rename or remove a released option
-id (see `featurescripts/quickFastener/quickFastenerTables.py`); add new ones.
+id (see `featurescripts/fasteners/fastenerTables.py`); add new ones.
 
 The other exception is attributes, which other features and documents read back. When an attribute's format changes, either
 handle old attributes or report them as an error; either is fine.

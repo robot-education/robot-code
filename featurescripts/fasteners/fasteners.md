@@ -1,13 +1,13 @@
-# Quick fastener
+# Fasteners
 
 ## Summary
 
-The screws, washers, and nuts FRCDesign's Quick fastener inserts into assemblies: `quickFastenerScrew`,
-`quickFastenerWasher`, and `quickFastenerNut`, each built in a Part Studio of its own whose configuration sets every
-parameter. Files: `quickFastener.fs` (the features), `quickFastenerTables.py` (the catalog, from FRCDesign's Fasteners
+FRCDesign's library fasteners, which Quick fastener inserts into assemblies too: `fastenerScrew`,
+`fastenerWasher`, and `fastenerNut`, each built in a Part Studio of its own whose configuration sets every
+parameter. Files: `fasteners.fs` (the features), `fastenerTables.py` (the catalog, from FRCDesign's Fasteners
 group in `vendor/frcdesign-fasteners.json`, with WCP's and AndyMark's screws from their stores in `vendor/stores.json`,
-refreshed by `uv run python featurescripts/quickFastener/quickFastenerTables.py fetch`: the enums and data in `quickFastenerTables.gen.fs`, the Part Studios'
-configurations, and FRCDesign's manifest `quickFastener.gen.json`), and `quickFastenerHoleScan.fs` (what FRCDesign
+refreshed by `uv run python featurescripts/fasteners/fastenerTables.py fetch`: the enums and data in `fastenerTables.gen.fs`, the Part Studios'
+configurations, and FRCDesign's manifest `fasteners.gen.json`), and `quickFastenerHoleScan.fs` (what FRCDesign
 evaluates in the Part Studios of the parts it fastens).
 
 Unreleased. It's released to FRCDesign's Fasteners library document (`[tool.fs.libraries.fasteners]`), whose Part
@@ -17,9 +17,9 @@ Studios use it, rather than the frontend document.
 
 | Feature | Name | Description |
 | --- | --- | --- |
-| `quickFastenerScrew` | Quick fastener screw | A standard screw for FRCDesign's Quick fastener, seated at the origin. |
-| `quickFastenerWasher` | Quick fastener washer | A washer for FRCDesign's Quick fastener, from the origin up. |
-| `quickFastenerNut` | Quick fastener nut | A nut for FRCDesign's Quick fastener, seated at the origin. |
+| `fastenerScrew` | Screw | A standard screw from FRCDesign's library, seated at the origin. |
+| `fastenerWasher` | Washer | A washer from FRCDesign's library, from the origin up. |
+| `fastenerNut` | Nut | A nut from FRCDesign's library, seated at the origin. |
 
 Each description ends with the credit.
 
@@ -44,10 +44,15 @@ the vendor has them (Generic has neither).
 
 Every part is built along the Z axis, and has one mate connector at the origin, pointing out of the hole, where it
 seats: FRCDesign fastens a screw or nut to the top edge of the washer under it, or to the hole's edge, and a washer to
-the hole's edge. So any washer goes under any screw or nut, and none has a washer input. Every part is one its vendor makes (`SCREWS`, `WASHERS`, `NUTS`), and lengths are
-the standard ones (`ScrewLength`); anything else is an error.
+the hole's edge. So any washer goes under any screw or nut, and none has a washer input.
 
-`quickFastenerScrew`:
+Each dialog is a flat list of enums, with no conditions: Vendor, Size, Head, and one `ScrewLength` of every length any
+vendor makes, for a screw; Vendor, Size, and Type for a washer or nut. So each Part Studio wires every parameter to a
+configuration input of the same options one for one, and the configuration's visibility conditions, not the dialog, show
+only what's made (Length shows the lengths the chosen vendor makes in the chosen size and head). Every part is one its
+vendor makes (`SCREWS`, `WASHERS`, `NUTS`); anything else is an error.
+
+`fastenerScrew`:
 
 1. Revolves its profile (`screwProfile`, in `PROFILE_PLANE`) a full turn about Z. A socket or button head is above the
    origin, from its underside; a flat head is below it, its top flush with the origin, and its length includes it. A
@@ -55,7 +60,7 @@ the standard ones (`ScrewLength`); anything else is an error.
 2. Cuts a hex socket, `SOCKET_DEPTH` of the head's height deep, from the top of the head.
 3. Adds the mate connector, then deletes the sketches and names the part.
 
-`quickFastenerWasher` and `quickFastenerNut` extrude a ring (a hexagon or square for a nut, with a hole the screw's
+`fastenerWasher` and `fastenerNut` extrude a ring (a hexagon or square for a nut, with a hole the screw's
 major diameter) up from the origin, add the mate connector, and name the part.
 
 Nothing is threaded, and nylock nuts have no nylon insert: the parts are for fit and clearance.

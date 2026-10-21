@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-/* Generated from quickFastenerTables.py by `fs gen` -- DO NOT EDIT */
+/* Generated from fastenerTables.py by `fs gen` -- DO NOT EDIT */
 
 export enum FastenerVendor
 {

@@ -1,4 +1,4 @@
-"""Checks of quickFastenerTables.py: what it reads from FRCDesign's snapshot, the configurations it lays out, and the
+"""Checks of fastenerTables.py: what it reads from FRCDesign's snapshot, the configurations it lays out, and the
 manifest it writes for FRCDesign."""
 
 import json
@@ -10,9 +10,9 @@ import pytest
 
 from fs_cli.configured_studios import shows
 
-FOLDER = pathlib.Path(__file__).parents[2] / "featurescripts" / "quickFastener"
-DEFINITION = runpy.run_path(str(FOLDER / "quickFastenerTables.py"))
-MANIFEST = json.loads((FOLDER / "quickFastener.gen.json").read_text())
+FOLDER = pathlib.Path(__file__).parents[2] / "featurescripts" / "fasteners"
+DEFINITION = runpy.run_path(str(FOLDER / "fastenerTables.py"))
+MANIFEST = json.loads((FOLDER / "fasteners.gen.json").read_text())
 
 
 def test_hole_scan_is_the_function_body_as_a_lambda():

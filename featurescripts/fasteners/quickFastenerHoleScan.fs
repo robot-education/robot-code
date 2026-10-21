@@ -4,7 +4,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 /**
  * What FRCDesign's Quick fastener needs to know about a Part Studio to fasten parts from it: each part's holes, and
  * the circles and faces selected in an assembly. FRCDesign evaluates it with Onshape's FeatureScript evaluation, which
- * takes a lambda: `quickFastenerTables.py` copies this function's body into its manifest, so it uses nothing but
+ * takes a lambda: `fastenerTables.py` copies this function's body into its manifest, so it uses nothing but
  * std's common.fs, and keeps its helpers inside it.
  *
  * Lengths are unitless meters, and points and directions are in the Part Studio's coordinates.

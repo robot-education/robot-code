@@ -1,5 +1,5 @@
 """Part Studios which expose a feature through their configuration, for definitions in featurescripts/ (see
-quickFastener/quickFastenerTables.py).
+fasteners/fastenerTables.py).
 
 A configured studio holds one instance of a feature, and a configuration input for each of its parameters: each input
 configures its parameter (a configured parameter, `BTMParameterConfigured`), with one value per option, or per state

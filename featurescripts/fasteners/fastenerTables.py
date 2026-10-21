@@ -1,20 +1,20 @@
-"""The fasteners FRCDesign's Quick fastener inserts: screws, washers, and nuts for FRC. Run `uv run fs gen` after
+"""FRCDesign's library fasteners, which Quick fastener inserts too: screws, washers, and nuts for FRC. Run `uv run fs gen` after
 editing.
 
 This is the source of three things, which must agree:
 
-- quickFastenerTables.gen.fs: the enums and data the screw, washer, and nut features build from.
+- fastenerTables.gen.fs: the enums and data the screw, washer, and nut features build from.
 - The configurations of the Part Studios exposing those features, one per kind (`STUDIOS`), which
   `fs configure-studio` writes: an input per feature parameter, each List's options shown only where they're made
   (Length shows only the lengths the chosen vendor makes in the chosen size and head).
-- quickFastener.gen.json: the same catalog for FRCDesign, with each studio's configuration as Onshape answers it, which
+- fasteners.gen.json: the same catalog for FRCDesign, with each studio's configuration as Onshape answers it, which
   picks a fastener for each hole and inserts its studio with a configuration of these option ids. FRCDesign stores those configurations in documents, so never rename or
   remove a released option id (as with enums stored in documents); add new ones.
 
 What each vendor makes, and its part numbers, come from FRCDesign's own Fasteners group (vendor/frcdesign-fasteners.json,
 a snapshot of its configurations): black oxide screws, McMaster-Carr's nuts, and black washers. The screws of vendors
 whose stores list them (`STORES`: WCP and AndyMark) come from their stores instead (vendor/stores.json, which
-`uv run python featurescripts/quickFastener/quickFastenerTables.py fetch` refreshes), since a store is current where
+`uv run python featurescripts/fasteners/fastenerTables.py fetch` refreshes), since a store is current where
 the group may not be. Generic offers every length any vendor makes, without part numbers.
 
 Each part has one mate connector, where it seats: FRCDesign fastens a screw or nut to the top edge of the washer it
@@ -458,9 +458,9 @@ def _washer_inputs() -> list[Input]:
 
 
 STUDIOS = {
-    "screw": ConfiguredStudio("screw", "quickFastenerScrew", _screw_inputs()),
-    "nut": ConfiguredStudio("nut", "quickFastenerNut", _nut_inputs()),
-    "washer": ConfiguredStudio("washer", "quickFastenerWasher", _washer_inputs()),
+    "screw": ConfiguredStudio("screw", "fastenerScrew", _screw_inputs()),
+    "nut": ConfiguredStudio("nut", "fastenerNut", _nut_inputs()),
+    "washer": ConfiguredStudio("washer", "fastenerWasher", _washer_inputs()),
 }
 
 # Where each studio is: its document and tab, and the version FRCDesign inserts (`documentId`, `versionId`,
@@ -622,7 +622,7 @@ def _stock_json(stock: Stock) -> dict:
 
 def manifest() -> dict:
     return {
-        "source": "featurescripts/quickFastener/quickFastenerTables.py",
+        "source": "featurescripts/fasteners/fastenerTables.py",
         "studios": {kind: {**studio.manifest(), "location": LOCATIONS[kind]} for kind, studio in STUDIOS.items()},
         "vendors": [{"id": id, "name": FastenerVendor.names[id]} for id in FastenerVendor.values],  # type: ignore[index]
         "sizes": [
@@ -698,7 +698,7 @@ def manifest() -> dict:
     }
 
 
-EXPORTS = {"quickFastener.gen.json": json.dumps(manifest(), indent=2) + "\n"}
+EXPORTS = {"fasteners.gen.json": json.dumps(manifest(), indent=2) + "\n"}
 
 
 # Refreshing vendor/stores.json, which only `fetch` does: `fs gen` runs this file without it, and makes no requests
@@ -716,7 +716,7 @@ def fetch_stores() -> None:
         for page in range(1, 100):
             url = f"https://{store}/products.json?limit=250&page={page}"
             # Stores refuse Python's own user agent
-            request = urllib.request.Request(url, headers={"User-Agent": "robot-code quickFastenerTables.py fetch"})
+            request = urllib.request.Request(url, headers={"User-Agent": "robot-code fastenerTables.py fetch"})
             with urllib.request.urlopen(request, timeout=60) as response:
                 listed = json.load(response)["products"]
             if not listed:
@@ -732,7 +732,7 @@ def fetch_stores() -> None:
                         }
                     )
     products.sort(key=lambda product: (product["store"], product["sku"], product["title"]))
-    snapshot = {"source": "Each store's /products.json, by quickFastenerTables.py fetch", "products": products}
+    snapshot = {"source": "Each store's /products.json, by fastenerTables.py fetch", "products": products}
     STORES_SNAPSHOT.write_text(json.dumps(snapshot, indent=1) + "\n")
     print(f"Wrote {len(products)} products to {STORES_SNAPSHOT}.")
 
@@ -741,5 +741,5 @@ if __name__ == "__main__":
     import sys
 
     if sys.argv[1:] != ["fetch"]:
-        sys.exit("Usage: python quickFastenerTables.py fetch")
+        sys.exit("Usage: python fastenerTables.py fetch")
     fetch_stores()

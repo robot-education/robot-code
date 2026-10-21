@@ -7,7 +7,7 @@ from onshape_api.paths.paths import ElementPath
 def studio() -> ConfiguredStudio:
     return ConfiguredStudio(
         "screw",
-        "quickFastenerScrew",
+        "fastenerScrew",
         [
             Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size"),
             Input(
@@ -192,7 +192,7 @@ def part_studio() -> ElementPath:
 def test_configure_writes_the_configuration_then_the_feature():
     feature = {
         "featureId": "F1",
-        "featureType": "quickFastenerScrew",
+        "featureType": "fastenerScrew",
         "parameters": [
             {"btType": "BTMParameterEnum-145", "parameterId": "size", "value": "A"},
             {"btType": "BTMParameterBoolean-144", "parameterId": "other", "value": True},
@@ -215,6 +215,6 @@ def test_configure_writes_the_configuration_then_the_feature():
 
 def test_configure_needs_exactly_one_feature():
     api = FakeApi([])
-    with pytest.raises(ConfigureError, match="0 quickFastenerScrew"):
+    with pytest.raises(ConfigureError, match="0 fastenerScrew"):
         configure(api, part_studio(), studio())
     assert [method for method, _, _ in api.requests] == ["GET"]

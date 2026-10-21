@@ -5,11 +5,12 @@ import(path : "core/robotFeature.fs", version : "");
 import(path : "core/robotProperties.fs", version : "");
 import(path : "core/coreUtils.fs", version : "");
 // Also exports the enums used as parameter types
-export import(path : "quickFastener/quickFastenerTables.gen.fs", version : "");
+export import(path : "fasteners/fastenerTables.gen.fs", version : "");
 
 /**
- * The screws, washers, and nuts FRCDesign's Quick fastener inserts. Each is made in a Part Studio of its own, whose
- * configuration sets every parameter (see quickFastenerTables.py), so these dialogs are rarely seen.
+ * FRCDesign's library fasteners: its screws, washers, and nuts, which Quick fastener inserts too. Each is made in a Part
+ * Studio of its own, whose configuration sets every parameter and offers only what's made (see fastenerTables.py),
+ * so these dialogs are rarely seen: each is a flat list of enums, with no conditions, which the configuration filters.
  *
  * Each part is built along the Z axis, with one mate connector at the origin pointing out of the hole: where it seats
  * against the part or washer it sits on.
@@ -18,9 +19,9 @@ export import(path : "quickFastener/quickFastenerTables.gen.fs", version : "");
 // How deep a socket is, of its head's height
 const SOCKET_DEPTH = 0.6;
 
-annotation { "Feature Type Name" : "Quick fastener screw",
-        "Feature Type Description" : "A standard screw for FRCDesign's Quick fastener, seated at the origin." ~ CREDIT }
-export const quickFastenerScrew = defineFeature(function(context is Context, id is Id, definition is map)
+annotation { "Feature Type Name" : "Screw",
+        "Feature Type Description" : "A standard screw from FRCDesign's library, seated at the origin." ~ CREDIT }
+export const fastenerScrew = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
         vendorPredicate(definition);
@@ -94,9 +95,9 @@ export const quickFastenerScrew = defineFeature(function(context is Context, id 
 /**
  * A washer, from its bottom face at the origin up.
  */
-annotation { "Feature Type Name" : "Quick fastener washer",
-        "Feature Type Description" : "A washer for FRCDesign's Quick fastener, from the origin up." ~ CREDIT }
-export const quickFastenerWasher = defineFeature(function(context is Context, id is Id, definition is map)
+annotation { "Feature Type Name" : "Washer",
+        "Feature Type Description" : "A washer from FRCDesign's library, from the origin up." ~ CREDIT }
+export const fastenerWasher = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
         vendorPredicate(definition);
@@ -138,9 +139,9 @@ export const quickFastenerWasher = defineFeature(function(context is Context, id
 /**
  * A nut, from its bearing face at the origin up.
  */
-annotation { "Feature Type Name" : "Quick fastener nut",
-        "Feature Type Description" : "A nut for FRCDesign's Quick fastener, seated at the origin." ~ CREDIT }
-export const quickFastenerNut = defineFeature(function(context is Context, id is Id, definition is map)
+annotation { "Feature Type Name" : "Nut",
+        "Feature Type Description" : "A nut from FRCDesign's library, seated at the origin." ~ CREDIT }
+export const fastenerNut = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
         vendorPredicate(definition);

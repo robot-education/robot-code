@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "quickFastener/quickFastener.fs", version : "");
+import(path : "fasteners/fasteners.fs", version : "");
 import(path : "testing.fs", version : "");
 
 export function testFlatHeadMeetsShankAtCountersinkAngle()

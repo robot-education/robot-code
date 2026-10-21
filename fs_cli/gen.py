@@ -9,7 +9,7 @@ An icon definition (see fs_cli.icons) sets ICON instead, which `fs gen` writes t
 (released/lighten/robotLightenIcon.py writes released/lighten/robotLightenIcon.svg).
 
 A definition may also set EXPORTS, a map of file names to their text, for what reads its data outside Onshape (like
-quickFastener/quickFastenerTables.py's manifest for FRCDesign); each is written beside it.
+fasteners/fastenerTables.py's manifest for FRCDesign); each is written beside it.
 """
 
 from __future__ import annotations

@@ -1,8 +1,8 @@
 {
-  "source": "featurescripts/quickFastener/quickFastenerTables.py",
+  "source": "featurescripts/fasteners/fastenerTables.py",
   "studios": {
     "screw": {
-      "feature": "quickFastenerScrew",
+      "feature": "fastenerScrew",
       "configuration": {
         "btType": "BTConfigurationUpdateCall-2933",
         "configurationParameters": [
@@ -6682,7 +6682,7 @@
       "location": null
     },
     "nut": {
-      "feature": "quickFastenerNut",
+      "feature": "fastenerNut",
       "configuration": {
         "btType": "BTConfigurationUpdateCall-2933",
         "configurationParameters": [
@@ -6879,7 +6879,7 @@
       "location": null
     },
     "washer": {
-      "feature": "quickFastenerWasher",
+      "feature": "fastenerWasher",
       "configuration": {
         "btType": "BTConfigurationUpdateCall-2933",
         "configurationParameters": [

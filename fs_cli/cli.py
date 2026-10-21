@@ -481,7 +481,7 @@ def make_parser() -> argparse.ArgumentParser:
         "(2 API calls, and 2 more unless the document is public)",
         targets=False,
     )
-    configure_command.add_argument("definition", help="the definition, e.g. featurescripts/quickFastener/quickFastenerTables.py")
+    configure_command.add_argument("definition", help="the definition, e.g. featurescripts/fasteners/fastenerTables.py")
     configure_command.add_argument("studio", help="the configured studio's name in it, e.g. screw")
     configure_command.add_argument("url", help="the Part Studio's url, in a workspace")
     configure_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
