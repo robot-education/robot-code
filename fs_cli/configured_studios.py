@@ -119,6 +119,24 @@ class ConfiguredStudio:
             defaults[input.id] = input.default_option
             earlier[input.id] = input
 
+    def combinations(self) -> list[dict[str, str]]:
+        """Every combination of its inputs' options the configuration shows, earliest input first: each a choice
+        of every input, with each List's option one shown with the choices before it."""
+        combinations: list[dict[str, str]] = [{}]
+        for input in self.inputs:
+            choices = (
+                ["false", "true"]
+                if input.kind == "boolean"
+                else [option.id for option in input.options]
+            )
+            combinations = [
+                {**combination, input.id: choice}
+                for combination in combinations
+                for choice in choices
+                if input.kind == "boolean" or shows(_option(input, choice), combination)
+            ]
+        return combinations
+
     def defaults(self) -> dict[str, str]:
         return {input.id: input.default_option for input in self.inputs}
 
@@ -139,6 +157,10 @@ class ConfiguredStudio:
     def configured_parameters(self) -> list[dict]:
         """The feature's parameters, each configured by its input."""
         return [_configured_parameter(input) for input in self.inputs]
+
+
+def _option(input: Input, id: str) -> Option:
+    return next(option for option in input.options if option.id == id)
 
 
 def shows(option: Option, selection: Mapping[str, str]) -> bool:

@@ -95,3 +95,22 @@ def test_washers_and_nuts_fit_their_screws():
     for size in MANIFEST["sizes"]:
         assert size["tapDrillDiameter"] < size["majorDiameter"] < size["closeClearanceDiameter"]
         assert size["closeClearanceDiameter"] < size["freeClearanceDiameter"]
+
+
+@pytest.mark.parametrize("kind", ["screw", "nut", "washer"])
+def test_each_configuration_has_one_record(kind):
+    """FRCDesignApp indexes these instead of asking Onshape, so they must be exactly what the configuration offers."""
+    records = [record["values"] for record in MANIFEST["studios"][kind]["records"]]
+    assert sorted(map(str, records)) == sorted(map(str, DEFINITION["STUDIOS"][kind].combinations()))
+
+
+def test_records_name_and_sell_each_part():
+    records = {tuple(record["values"].values()): record for record in MANIFEST["studios"]["screw"]["records"]}
+    mcmaster = records[("MCMASTER", "NO_10_32", "BUTTON", "IN_0_5")]
+    assert mcmaster["name"] == "#10-32 x 1/2 in. Button Head Screw"
+    assert mcmaster["vendor"] == "McMaster-Carr"
+    assert mcmaster["partNumber"] == "91255A265"
+    assert mcmaster["material"] == "Steel"
+    # Generic parts have no vendor or part number
+    generic = records[("GENERIC", "NO_10_32", "BUTTON", "IN_0_5")]
+    assert "vendor" not in generic and "partNumber" not in generic

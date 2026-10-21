@@ -89,7 +89,7 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
         addSeatMateConnector(context, id + "mateConnector", screw);
 
         cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
-        setFastenerProperties(context, screw, size.name ~ " x " ~ length.name ~ " " ~ HEAD_NAMES[definition.head] ~ " Screw", stock);
+        setFastenerProperties(context, screw, stock);
     });
 
 /**
@@ -133,7 +133,7 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
                 });
 
         cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
-        setFastenerProperties(context, body, washerName(definition), washer);
+        setFastenerProperties(context, body, washer);
     });
 
 /**
@@ -189,7 +189,7 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
         addSeatMateConnector(context, id + "mateConnector", body);
 
         cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
-        setFastenerProperties(context, body, size.name ~ " " ~ NUT_NAMES[definition.nutType] ~ " Nut", nut);
+        setFastenerProperties(context, body, nut);
     });
 
 predicate vendorPredicate(definition is map)
@@ -207,14 +207,6 @@ predicate sizePredicate(definition is map)
 // The XZ plane, with the sketch's X along the radius and its Y along the axis
 const PROFILE_PLANE = plane(WORLD_ORIGIN, -Y_DIRECTION, X_DIRECTION);
 
-const HEAD_NAMES = { ScrewHead.SOCKET : "Socket Head", ScrewHead.BUTTON : "Button Head", ScrewHead.FLAT : "Flat Head" };
-const NUT_NAMES = {
-        NutType.NYLOCK : "Nylock",
-        NutType.THIN_NYLOCK : "Thin Nylock",
-        NutType.HEX : "Hex",
-        NutType.THIN_HEX : "Thin Hex",
-        NutType.SQUARE : "Square"
-    };
 
 /**
  * A mate connector at the origin, pointing up: fastened to an edge, the part sits on it.
@@ -285,27 +277,24 @@ export function buttonDome(head is map) returns map
 }
 
 /**
- * e.g. `#10 Washer (1/2 in. OD x 0.049 in.)`.
+ * Sets a part's properties from its table entry (see fastenerTables.py's `Record`): its name, its vendor and part
+ * number, and a link to buy it where it has them, and its material and appearance. FRCDesignApp indexes the same
+ * records, so these are the only properties set.
  */
-export function washerName(definition is map) returns string
+function setFastenerProperties(context is Context, body is Query, entry is map)
 {
-    const holeSize = FASTENER_SIZES[definition.size].size;
-    return holeSize ~ (holeSize == "1/4" ? " in." : "") ~ " Washer (" ~ WASHER_TYPE_NAMES[definition.washerType] ~ ")";
-}
-
-/**
- * Names a part, gives it its part number and a link to buy it where it has them, and sets its material and appearance.
- */
-function setFastenerProperties(context is Context, body is Query, name is string, stock is map)
-{
-    setProperty(context, { "entities" : body, "propertyType" : PropertyType.NAME, "value" : name });
-    if (stock.partNumber != undefined)
+    setProperty(context, { "entities" : body, "propertyType" : PropertyType.NAME, "value" : entry.name });
+    if (entry.vendor != undefined)
     {
-        setProperty(context, { "entities" : body, "propertyType" : PropertyType.PART_NUMBER, "value" : stock.partNumber });
+        setProperty(context, { "entities" : body, "propertyType" : PropertyType.VENDOR, "value" : entry.vendor });
     }
-    if (stock.url != undefined)
+    if (entry.partNumber != undefined)
     {
-        setProperty(context, { "entities" : body, "propertyType" : PropertyType.DESCRIPTION, "value" : stock.url });
+        setProperty(context, { "entities" : body, "propertyType" : PropertyType.PART_NUMBER, "value" : entry.partNumber });
+    }
+    if (entry.url != undefined)
+    {
+        setProperty(context, { "entities" : body, "propertyType" : PropertyType.DESCRIPTION, "value" : entry.url });
     }
     setProperty(context, { "entities" : body, "propertyType" : PropertyType.MATERIAL, "value" : STEEL });
     setProperty(context, { "entities" : body, "propertyType" : PropertyType.APPEARANCE, "value" : BLACK });

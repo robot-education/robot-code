@@ -37,8 +37,11 @@ The configurations only offer what's made, so these show only in the features' o
 | Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in. OD x 0.049 in.)` |
 | Nut | `<size> <type> Nut`, e.g. `#10-32 Thin Nylock Nut` |
 
-Each is steel, with the black appearance, and has its vendor's part number, and its link as its description, where
-the vendor has them (Generic has neither).
+Each is steel, with the black appearance, and has its vendor as its Vendor, its part number, and its link as its
+description, where the vendor has them (Generic has none). `fastenerTables.py` names every configuration's part (its
+`Record`s) and writes each into the tables, which the features set as they are, and into the manifest, which
+FRCDesignApp indexes in place of asking Onshape: one record per configuration the Part Studio offers, so the two
+can't disagree.
 
 ## How it works
 

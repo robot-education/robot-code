@@ -158,6 +158,22 @@ def test_configured_parameters_set_each_option():
     }
 
 
+def test_combinations_are_what_the_configuration_shows():
+    # L1 shows with any size, L2 only with B, L3 with either
+    assert studio().combinations() == [
+        {"size": "A", "length": "L1", "washer": "false"},
+        {"size": "A", "length": "L1", "washer": "true"},
+        {"size": "A", "length": "L3", "washer": "false"},
+        {"size": "A", "length": "L3", "washer": "true"},
+        {"size": "B", "length": "L1", "washer": "false"},
+        {"size": "B", "length": "L1", "washer": "true"},
+        {"size": "B", "length": "L2", "washer": "false"},
+        {"size": "B", "length": "L2", "washer": "true"},
+        {"size": "B", "length": "L3", "washer": "false"},
+        {"size": "B", "length": "L3", "washer": "true"},
+    ]
+
+
 def test_manifest_holds_the_configuration_onshape_answers():
     manifest = studio().manifest()
     assert manifest["configuration"] == studio().configuration_body()

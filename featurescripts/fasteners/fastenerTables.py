@@ -383,6 +383,96 @@ def _thickest_washer(vendor: str, size: str) -> str:
     return type
 
 
+# What each part is called and sold as: the features set these, and FRCDesignApp indexes the same records
+
+
+SIZES_BY_ID = {size.id: size for size in SIZES}
+MATERIAL = "Steel"
+HEAD_NAMES = {"SOCKET": "Socket Head", "BUTTON": "Button Head", "FLAT": "Flat Head"}
+NUT_NAMES = {"NYLOCK": "Nylock", "THIN_NYLOCK": "Thin Nylock", "HEX": "Hex", "THIN_HEX": "Thin Hex", "SQUARE": "Square"}
+
+
+def screw_name(size: str, head: str, length: Fraction) -> str:
+    """e.g. `#10-32 x 1/2 in. Button Head Screw`."""
+    return f"{SIZES_BY_ID[size].name} x {length_name(length)} {HEAD_NAMES[head]} Screw"
+
+
+def nut_name(size: str, type: str) -> str:
+    """e.g. `#10-32 Thin Nylock Nut`."""
+    return f"{SIZES_BY_ID[size].name} {NUT_NAMES[type]} Nut"
+
+
+def washer_name(size: str, type: str) -> str:
+    """e.g. `#10 Washer (1/2 in. OD x 0.049 in.)`, or `1/4 in. Washer (...)`."""
+    hole = SIZES_BY_ID[size].hole_table_size
+    return f"{hole}{' in.' if hole == '1/4' else ''} Washer ({WasherType.names[type]})"  # type: ignore[index]
+
+
+def vendor_name(vendor: str) -> str | None:
+    """The name a part's Vendor property says; Generic parts have none."""
+    return None if vendor == "GENERIC" else FastenerVendor.names[vendor]  # type: ignore[index]
+
+
+@dataclasses.dataclass(frozen=True)
+class Record:
+    """One configuration of a studio: its inputs' options, and the part it makes."""
+
+    values: dict[str, str]
+    name: str
+    vendor: str
+    stock: Stock
+
+    def fields(self) -> dict[str, str]:
+        """What the FeatureScript table holds for it, which the feature sets as the part's properties."""
+        vendor = vendor_name(self.vendor)
+        return {"name": string(self.name), **({"vendor": string(vendor)} if vendor else {}), **_stock_fields(self.stock)}
+
+    def manifest(self) -> dict:
+        vendor = vendor_name(self.vendor)
+        return {
+            "values": self.values,
+            "name": self.name,
+            **({"vendor": vendor} if vendor else {}),
+            **_stock_json(self.stock),
+            "material": MATERIAL,
+        }
+
+
+def _screw_records() -> dict[tuple[str, str, str, str], Record]:
+    return {
+        (vendor, size, head, length_id(length)): Record(
+            {"vendor": vendor, "size": size, "head": head, "length": length_id(length)},
+            screw_name(size, head, length),
+            vendor,
+            stock,
+        )
+        for (vendor, size, head), lengths in SCREWS.items()
+        for length, stock in lengths.items()
+    }
+
+
+def _nut_records() -> dict[tuple[str, str, str], Record]:
+    return {
+        (vendor, size, type): Record({"vendor": vendor, "size": size, "type": type}, nut_name(size, type), vendor, stock)
+        for (vendor, size, type), stock in NUTS.items()
+    }
+
+
+def _washer_records() -> dict[tuple[str, str, str], Record]:
+    return {
+        (vendor, size, type): Record(
+            {"vendor": vendor, "size": size, "type": type}, washer_name(size, type), vendor, washer.stock
+        )
+        for (vendor, size, type), washer in WASHERS.items()
+    }
+
+
+SCREW_RECORDS = _screw_records()
+NUT_RECORDS = _nut_records()
+WASHER_RECORDS = _washer_records()
+RECORDS = {"screw": SCREW_RECORDS, "nut": NUT_RECORDS, "washer": WASHER_RECORDS}
+
+
 # The studios' configurations
 
 
@@ -523,19 +613,19 @@ def _head_fields(head: Head) -> str:
     return _fields(fields)
 
 
-def _nut_fields(item: tuple[str, str, Stock]) -> str:
-    size, type, stock = item
-    nut = NUT_DIMENSIONS[size][type]
-    return _fields({"acrossFlats": _in(nut.across_flats), "height": _in(nut.height), **_stock_fields(stock)})
+def _nut_fields(record: Record) -> str:
+    nut = NUT_DIMENSIONS[record.values["size"]][record.values["type"]]
+    return _fields({"acrossFlats": _in(nut.across_flats), "height": _in(nut.height), **record.fields()})
 
 
-def _washer_fields(washer: Washer) -> str:
+def _washer_fields(item: tuple[Washer, Record]) -> str:
+    washer, record = item
     return _fields(
         {
             "innerDiameter": _in(washer.inner_diameter),
             "outerDiameter": _in(washer.outer_diameter),
             "thickness": _in(float(washer.thickness)),
-            **_stock_fields(washer.stock),
+            **record.fields(),
         }
     )
 
@@ -574,24 +664,23 @@ CONTENTS = [
         "What each vendor makes, by vendor, size, head, and length: each screw's part number and url, where it has them.",
         "SCREWS",
         _nested(
-            {key + (length_id(length),): stock for key, lengths in SCREWS.items() for length, stock in lengths.items()},
+            SCREW_RECORDS,
             [FastenerVendor, FastenerSize, ScrewHead, ScrewLength],
-            lambda stock: _fields(_stock_fields(stock)),
+            lambda record: _fields(record.fields()),
             4,
         ),
     ),
     Constant(
         "NUTS",
         _nested(
-            {key: (key[1], key[2], stock) for key, stock in NUTS.items()},
+            NUT_RECORDS,
             [FastenerVendor, FastenerSize, NutType],
             _nut_fields,
         ),
     ),
-    Constant("WASHERS", _nested(dict(WASHERS), [FastenerVendor, FastenerSize, WasherType], _washer_fields)),
     Constant(
-        "WASHER_TYPE_NAMES",
-        _map([(WasherType[type], string(name)) for type, name in WasherType.names.items()], 8),  # type: ignore[union-attr]
+        "WASHERS",
+        _nested({key: (WASHERS[key], record) for key, record in WASHER_RECORDS.items()}, [FastenerVendor, FastenerSize, WasherType], _washer_fields),
     ),
 ]
 
@@ -623,7 +712,14 @@ def _stock_json(stock: Stock) -> dict:
 def manifest() -> dict:
     return {
         "source": "featurescripts/fasteners/fastenerTables.py",
-        "studios": {kind: {**studio.manifest(), "location": LOCATIONS[kind]} for kind, studio in STUDIOS.items()},
+        "studios": {
+            kind: {
+                **studio.manifest(),
+                "location": LOCATIONS[kind],
+                "records": [record.manifest() for record in RECORDS[kind].values()],
+            }
+            for kind, studio in STUDIOS.items()
+        },
         "vendors": [{"id": id, "name": FastenerVendor.names[id]} for id in FastenerVendor.values],  # type: ignore[index]
         "sizes": [
             {
