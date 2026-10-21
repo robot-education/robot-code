@@ -12,7 +12,7 @@ export import(path : "quickFastener/quickFastenerTables.gen.fs", version : "");
  * configuration sets every parameter (see quickFastenerTables.py), so these dialogs are rarely seen.
  *
  * Each part is built along the Z axis, with one mate connector at the origin pointing out of the hole: where it seats
- * against the part it fastens, or against the washer it sits on.
+ * against the part or washer it sits on.
  */
 
 // How deep a socket is, of its head's height
@@ -32,8 +32,6 @@ export const quickFastenerScrew = defineFeature(function(context is Context, id 
 
         annotation { "Name" : "Length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.length is ScrewLength;
-
-        washerPredicate(definition);
     }
     {
         const stock = SCREWS[definition.vendor][definition.size][definition.head][definition.length];
@@ -86,8 +84,8 @@ export const quickFastenerScrew = defineFeature(function(context is Context, id 
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
 
-        // 3. Seat it: on the hole's edge, or on the washer under its head
-        addSeatMateConnector(context, id + "mateConnector", definition, screw);
+        // 3. Seat it, under its head
+        addSeatMateConnector(context, id + "mateConnector", screw);
 
         cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
         setFastenerProperties(context, screw, size.name ~ " x " ~ length.name ~ " " ~ HEAD_NAMES[definition.head] ~ " Screw", stock);
@@ -151,8 +149,6 @@ export const quickFastenerNut = defineFeature(function(context is Context, id is
 
         annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.nutType is NutType;
-
-        washerPredicate(definition);
     }
     {
         const nut = NUTS[definition.vendor][definition.size][definition.nutType];
@@ -189,7 +185,7 @@ export const quickFastenerNut = defineFeature(function(context is Context, id is
                 });
         const body = qCreatedBy(id + "extrude", EntityType.BODY);
 
-        addSeatMateConnector(context, id + "mateConnector", definition, body);
+        addSeatMateConnector(context, id + "mateConnector", body);
 
         cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
         setFastenerProperties(context, body, size.name ~ " " ~ NUT_NAMES[definition.nutType] ~ " Nut", nut);
@@ -207,12 +203,6 @@ predicate sizePredicate(definition is map)
     definition.size is FastenerSize;
 }
 
-predicate washerPredicate(definition is map)
-{
-    annotation { "Name" : "Washer", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-    definition.washer is boolean;
-}
-
 // The XZ plane, with the sketch's X along the radius and its Y along the axis
 const PROFILE_PLANE = plane(WORLD_ORIGIN, -Y_DIRECTION, X_DIRECTION);
 
@@ -226,25 +216,14 @@ const NUT_NAMES = {
     };
 
 /**
- * A mate connector at the origin, pointing up, moved down by the seat washer's thickness when the part has a washer:
- * fastened to the hole's edge, the part sits on the washer fastened there.
+ * A mate connector at the origin, pointing up: fastened to an edge, the part sits on it.
  */
-function addSeatMateConnector(context is Context, id is Id, definition is map, owner is Query)
+function addSeatMateConnector(context is Context, id is Id, owner is Query)
 {
-    const below = definition.washer ? seatWasher(definition.vendor, definition.size).thickness : 0 * meter;
     opMateConnector(context, id, {
-                "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, -below), X_DIRECTION, Z_DIRECTION),
+                "coordSystem" : coordSystem(WORLD_ORIGIN, X_DIRECTION, Z_DIRECTION),
                 "owner" : owner
             });
-}
-
-/**
- * The washer a screw or nut of a vendor and size sits on (see `SEAT_WASHERS`).
- */
-export function seatWasher(vendor is FastenerVendor, size is FastenerSize) returns map
-{
-    const seat = SEAT_WASHERS[vendor][size];
-    return WASHERS[seat.vendor][size][seat.washerType];
 }
 
 /**

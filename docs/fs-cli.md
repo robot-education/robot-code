@@ -311,6 +311,10 @@ uv run fs configure-studio featurescripts/quickFastener/quickFastenerTables.py s
 ```
 
 which replaces the Part Studio's configuration with the definition's, and configures the feature's parameters by it.
+A List's visibility conditions are factored by input, earliest first, so a lookup table's conditions don't repeat
+themselves (the screw studio's Length is 61 KB rather than 192 KB). `ConfiguredStudio.manifest()` gives the
+configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses Quick fastener's as it parses
+any configuration).
 
 Feature icons are generated the same way: a definition which sets `ICON` (an `fs_cli.icons.Icon`, drawn from shapely
 shapes) is written to the `.svg` of the same name, e.g. `released/lighten/robotLightenIcon.py` to `released/lighten/robotLightenIcon.svg`;
@@ -346,11 +350,21 @@ uv run fs release robotFrame --minor --dry-run            # show the plan withou
 
 A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
 frontend studio of the same name at it (creating the studio if needed). Beta releases go to the separate
-`frontend_beta` document instead, and the feature's name must contain "beta". The studio must be pushed and in
+`frontend_beta` document instead, and the feature's name must contain "beta". A library's FeatureScripts, those in a
+folder `[tool.fs.libraries]` lists, are only for its parts, so they're released to that library's document (its default
+workspace) instead, never as betas, and a studio there may define several features, released together:
+
+```toml
+[tool.fs.libraries.fasteners]
+document = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
+folders = ["quickFastener"]
+```
+
+`fs sync-versions` leaves their releases out, since they aren't the frontend's. The studio must be pushed and in
 sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
 skips the prompt).
 
-A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
+A release is final once its version is in the frontend document (or its library's): with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend
 versions the backend has that it doesn't. Then it's tagged in git, e.g. `robotFrame/v1.3.0`, on the newest commit
 whose file is as released (`fs push` commits what it pushes, so that's usually the last one), and the tag is pushed to

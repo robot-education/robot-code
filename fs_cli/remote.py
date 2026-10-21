@@ -9,7 +9,7 @@ from typing import Protocol
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
-from onshape_api.paths.paths import ElementPath, InstancePath
+from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
 from onshape_api.types import ElementGroup, ElementType
 
 
@@ -126,6 +126,8 @@ class Remote(Protocol):
 
     def latest_std_version(self) -> str: ...
 
+    def default_workspace(self, document_id: str) -> InstancePath: ...
+
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         """Lists the images (blob elements holding SVGs or PNGs) in a document, with their microversions."""
         ...
@@ -200,6 +202,9 @@ class OnshapeRemote:
 
     def latest_std_version(self) -> str:
         return get_latest_std_version(self.api)
+
+    def default_workspace(self, document_id: str) -> InstancePath:
+        return documents.get_default_workspace(self.api, DocumentPath(document_id))
 
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         elements = documents.get_document_elements(self.api, instance, ElementType.BLOB)

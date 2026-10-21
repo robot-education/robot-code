@@ -17,6 +17,7 @@ from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
 from onshape_api.exceptions import ApiError
+from onshape_api.paths.paths import InstancePath
 from semver import Version as SemVersion
 
 BACKEND = "https://cad.onshape.com/documents/back/w/bw"
@@ -166,6 +167,10 @@ class FakeOnshape:
     def latest_std_version(self):
         self.calls["latest_std_version"] += 1
         return "2909"
+
+    def default_workspace(self, document_id):
+        self.calls["default_workspace"] += 1
+        return InstancePath(document_id, "lw")
 
     def list_images(self, instance):
         self.calls["list_images"] += 1
@@ -964,6 +969,23 @@ def test_missing_config(tmp_path, monkeypatch, onshape, capsys):
     assert "[tool.fs]" in capsys.readouterr().err
 
 
+def test_a_library_needs_a_document_and_its_folders(tmp_path):
+    from fs_cli.config import ConfigError, parse_config
+
+    base = {"backend": BACKEND}
+    with pytest.raises(ConfigError, match="document must be"):
+        parse_config(tmp_path, {**base, "libraries": {"parts": {"document": "nope", "folders": ["Parts"]}}})
+    with pytest.raises(ConfigError, match="folders must"):
+        parse_config(tmp_path, {**base, "libraries": {"parts": {"document": f"https://cad.onshape.com/documents/{LIBRARY}"}}})
+    config = parse_config(
+        tmp_path,
+        {**base, "libraries": {"parts": {"document": f"https://cad.onshape.com/documents/{LIBRARY}/w/x", "folders": ["Parts/"]}}},
+    )
+    assert config.library_for("Parts/partMaker.fs").document_id == LIBRARY
+    assert config.library_for("PartsBin/x.fs") is None
+    assert config.library_for("robotFrame.fs") is None
+
+
 # Updating the std
 
 
@@ -1151,6 +1173,56 @@ def test_release_requires_confirmation_when_not_interactive(repo, onshape, capsy
     released_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--minor") == 2
     assert "--yes" in capsys.readouterr().err
+
+
+LIBRARY = "abcdef0123456789abcdef01"
+
+
+def with_library(repo: pathlib.Path) -> None:
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text()
+        + f'\n[tool.fs.libraries.parts]\ndocument = "https://cad.onshape.com/documents/{LIBRARY}"\nfolders = ["Parts"]\n'
+    )
+
+
+def test_a_librarys_featurescript_is_released_to_its_library(repo, onshape):
+    with_library(repo)
+    # Its parts' features, released together
+    element_id = onshape.add("partMaker.fs", "parts", folders=("Parts",), features=["Screw", "Nut"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "partMaker", "--minor", "-y", "--publish") == 0
+
+    [version] = onshape.versions_by_document["back"]
+    assert version.name == "Part maker - v0.1.0"
+    assert f'"back/{version.id}/{element_id}"' in onshape.code("partMaker.fs", LIBRARY, "lw")
+    assert [v.name for v in onshape.versions_by_document[LIBRARY]] == ["Part maker - v0.1.0"]
+    assert "front" not in onshape.versions_by_document
+
+
+def test_a_librarys_featurescript_has_no_beta(repo, onshape, capsys):
+    with_library(repo)
+    onshape.add("partMaker.fs", "parts", folders=("Parts",), features=["Screw beta"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "partMaker", "--beta", "-y") != 0
+    assert "parts library, which has no beta releases" in capsys.readouterr().err
+
+
+def test_sync_versions_leaves_out_library_releases(repo, onshape):
+    with_library(repo)
+    onshape.add("partMaker.fs", "parts", folders=("Parts",), features=["Screw"])
+    run(onshape, "pull")
+    onshape.versions_by_document["back"] = [
+        Version("1", "Robot frame - v1.0.0"),
+        Version("2", "Part maker - v0.1.0"),
+        Version("3", "Robot frame - v1.1.0"),
+    ]
+    onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]
+    assert run(onshape, "sync-versions", "-y") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == [
+        "Robot frame - v1.0.0",
+        "Robot frame - v1.1.0",
+    ]
 
 
 def test_sync_versions(repo, onshape):

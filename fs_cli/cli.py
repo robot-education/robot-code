@@ -407,7 +407,7 @@ def make_parser() -> argparse.ArgumentParser:
     dry_run(gen_command)
 
     release = command(
-        "release", "release a FeatureScript to the frontend document", targets=False
+        "release", "release a FeatureScript to the frontend document, or to its library's (see [tool.fs.libraries])", targets=False
     )
     release.add_argument(
         "script", help="the .fs file or Feature Studio name, e.g. robotFrame"

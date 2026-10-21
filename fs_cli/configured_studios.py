@@ -123,30 +123,17 @@ class ConfiguredStudio:
         return {input.id: input.default_option for input in self.inputs}
 
     def manifest(self) -> dict:
-        """The configuration as FRCDesign reads it: each input's options, by id."""
-        return {
-            "feature": self.feature,
-            "inputs": [
-                {
-                    "id": input.id,
-                    "name": input.name,
-                    "kind": "boolean" if input.kind == "boolean" else "list",
-                    "default": input.default_option,
-                    **(
-                        {"options": [{"id": option.id, "name": option.name} for option in input.options]}
-                        if input.kind != "boolean"
-                        else {}
-                    ),
-                }
-                for input in self.inputs
-            ],
-        }
+        """The studio as FRCDesign reads it: its feature, and its configuration as Onshape answers it, which FRCDesign
+        parses as it parses any configuration."""
+        return {"feature": self.feature, "configuration": self.configuration_body()}
 
     def configuration_body(self) -> dict:
         """The body of `POST /elements/.../configuration` setting the studio's inputs."""
         return {
             "btType": "BTConfigurationUpdateCall-2933",
-            "configurationParameters": [_configuration_parameter(input) for input in self.inputs],
+            "configurationParameters": [
+                _configuration_parameter(input, [earlier.id for earlier in self.inputs]) for input in self.inputs
+            ],
         }
 
     def configured_parameters(self) -> list[dict]:
@@ -161,7 +148,7 @@ def shows(option: Option, selection: Mapping[str, str]) -> bool:
     return any(all(selection.get(id) == value for id, value in combination.items()) for combination in option.shown_when)
 
 
-def _configuration_parameter(input: Input) -> dict:
+def _configuration_parameter(input: Input, order: Sequence[str]) -> dict:
     if input.kind == "boolean":
         return {
             "btType": "BTMConfigurationParameterBoolean-2550",
@@ -181,7 +168,7 @@ def _configuration_parameter(input: Input) -> dict:
             for option in input.options
         ],
     }
-    conditions = _option_visibility(input)
+    conditions = _option_visibility(input, order)
     if conditions:
         parameter["enumOptionVisibilityConditions"] = {
             "btType": "BTEnumOptionVisibilityConditionList-2936",
@@ -190,39 +177,64 @@ def _configuration_parameter(input: Input) -> dict:
     return parameter
 
 
-def _option_visibility(input: Input) -> list[dict]:
+def _option_visibility(input: Input, order: Sequence[str]) -> list[dict]:
     """One condition per distinct set of combinations, controlling the options shown with exactly that set: Onshape's
     conditions each control a list of options, so no option is controlled twice."""
     groups: dict[tuple, list[str]] = {}
     for option in input.options:
         if option.shown_when is not None:
-            key = tuple(tuple(sorted(combination.items())) for combination in option.shown_when)
+            key = tuple(sorted(tuple(sorted(combination.items())) for combination in option.shown_when))
             groups.setdefault(key, []).append(option.id)
     return [
-        {"btType": "BTEnumOptionVisibilityForList-1613", "controlledOptions": options, "condition": _condition(key)}
+        {
+            "btType": "BTEnumOptionVisibilityForList-1613",
+            "controlledOptions": options,
+            "condition": _condition([dict(combination) for combination in key], order),
+        }
         for key, options in groups.items()
     ]
 
 
-def _condition(combinations: tuple) -> dict:
-    def logical(operation: str, children: list[dict]) -> dict:
-        if len(children) == 1:
-            return children[0]
-        return {"btType": "BTParameterVisibilityLogical-178", "operation": operation, "children": children}
+def _equal(id: str, value: str) -> dict:
+    return {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
 
-    return logical(
-        "OR",
-        [
-            logical(
-                "AND",
-                [
-                    {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
-                    for id, value in combination
-                ],
-            )
-            for combination in combinations
-        ],
-    )
+
+def _logical(operation: str, children: list[dict]) -> dict:
+    if len(children) == 1:
+        return children[0]
+    return {"btType": "BTParameterVisibilityLogical-178", "operation": operation, "children": children}
+
+
+def _condition(combinations: Combinations, order: Sequence[str]) -> dict:
+    """Shown when any combination matches, factored by input in `order`: the combinations are grouped by their first
+    input's value, and values whose rest is the same share one branch. A lookup table's conditions are mostly
+    repetition, which this keeps out of the configuration."""
+    ids = [id for id in order if any(id in combination for combination in combinations)]
+    if not ids:
+        raise ValueError("A condition needs at least one input")
+    return _factor(combinations, ids) or _logical("OR", [])
+
+
+def _factor(combinations: Combinations, ids: Sequence[str]) -> dict | None:
+    """The condition on `ids` matching any of `combinations`; None when every combination is empty (always shown)."""
+    if not ids or all(not combination for combination in combinations):
+        return None
+    first, rest = ids[0], ids[1:]
+    by_value: dict[str, list[dict[str, str]]] = {}
+    for combination in combinations:
+        remainder = {id: value for id, value in combination.items() if id != first}
+        by_value.setdefault(combination[first], []).append(remainder)
+    # Values with the same rest share it
+    branches: dict[str, tuple[list[str], dict | None]] = {}
+    for value, remainders in by_value.items():
+        sub = _factor(remainders, rest)
+        key = repr(sub)
+        branches.setdefault(key, ([], sub))[0].append(value)
+    children = []
+    for values, sub in branches.values():
+        equal = _logical("OR", [_equal(first, value) for value in values])
+        children.append(equal if sub is None else _logical("AND", [equal, sub]))
+    return _logical("OR", children)
 
 
 def _configured_parameter(input: Input) -> dict:

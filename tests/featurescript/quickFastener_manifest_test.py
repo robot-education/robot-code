@@ -58,14 +58,6 @@ def test_length_names_and_ids():
     assert DEFINITION["parse_inches"]("0.031") == Fraction("0.031")
 
 
-def test_every_vendor_and_size_has_a_seat_washer():
-    seats = {(seat["vendor"], seat["size"]) for seat in MANIFEST["seatWashers"]}
-    assert seats == {(vendor["id"], size["id"]) for vendor in MANIFEST["vendors"] for size in MANIFEST["sizes"]}
-    washers = {(washer["vendor"], washer["size"], washer["type"]) for washer in MANIFEST["washers"]}
-    for seat in MANIFEST["seatWashers"]:
-        assert (seat["washerVendor"], seat["size"], seat["washerType"]) in washers
-
-
 def test_washers_and_nuts_fit_their_screws():
     by_id = {size["id"]: size for size in MANIFEST["sizes"]}
     for washer in MANIFEST["washers"]:

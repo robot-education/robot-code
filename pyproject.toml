@@ -35,6 +35,13 @@ github = "https://github.com/robot-education/robot-code"
 # The document `fs release --beta` publishes beta releases to.
 frontend_beta = "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/7517d9bc30a444e88795c529"
 
+# Library documents: the FeatureScripts in `folders` are only for that library's parts, so `fs release` releases them to
+# the library document's default workspace instead of the frontend document.
+[tool.fs.libraries.fasteners]
+# FRCDesign's Fasteners library, which holds Quick fastener's Part Studios
+document = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
+folders = ["quickFastener"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]
 python_files = ["*test*.py"]

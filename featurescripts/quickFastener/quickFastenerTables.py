@@ -7,17 +7,16 @@ This is the source of three things, which must agree:
 - The configurations of the Part Studios exposing those features, one per kind (`STUDIOS`), which
   `fs configure-studio` writes: an input per feature parameter, each List's options shown only where they're made
   (Length shows only the lengths the chosen vendor makes in the chosen size and head).
-- quickFastener.gen.json: the same catalog for FRCDesign, which picks a fastener for each hole and inserts its studio
-  with a configuration of these option ids. FRCDesign stores those configurations in documents, so never rename or
+- quickFastener.gen.json: the same catalog for FRCDesign, with each studio's configuration as Onshape answers it, which
+  picks a fastener for each hole and inserts its studio with a configuration of these option ids. FRCDesign stores those configurations in documents, so never rename or
   remove a released option id (as with enums stored in documents); add new ones.
 
 What each vendor makes, and its part numbers, come from FRCDesign's own Fasteners group (vendor/frcdesign-fasteners.json,
 a snapshot of its configurations): black oxide screws, McMaster-Carr's nuts, and black washers. Generic offers every
 length any vendor makes, without part numbers.
 
-A screw's and a nut's Washer moves only its mate connector, onto the washer it sits on, so each part is fastened to the
-hole's own edge with one mate connector and no offset. Which washer that is (its seat washer, `SEAT_WASHERS`) is fixed
-by the vendor and size, and FRCDesign inserts the same one.
+Each part has one mate connector, where it seats: FRCDesign fastens a screw or nut to the top edge of the washer it
+sits on, or to the hole's own edge, so any washer goes under any screw or nut of its size.
 
 Dimensions are nominal (ASME B18.3 screws, SAE washers, hex and nylon-insert lock nuts): close enough to check fit
 and clearance, not to make the parts. Clearance holes are std's (`ANSI_V2ClearanceHoleTable`), and tap drills std's
@@ -325,22 +324,11 @@ WasherType = Enum(
 )
 
 
-def _seat_washers() -> dict[tuple[str, str], tuple[str, str]]:
-    """The washer a screw or nut of each vendor and size sits on: its vendor's thickest, else Generic's."""
-    seats = {}
-    for vendor in FastenerVendor.values:
-        for size in FastenerSize.values:
-            own = [(key, washer) for key, washer in WASHERS.items() if key[0] == vendor and key[1] == size]
-            if not own:
-                own = [(key, washer) for key, washer in WASHERS.items() if key[0] == "GENERIC" and key[1] == size]
-            (washer_vendor, _, type), _ = max(
-                own, key=lambda item: (float(item[1].thickness), -item[1].outer_diameter)
-            )
-            seats[(vendor, size)] = (washer_vendor, type)
-    return seats
-
-
-SEAT_WASHERS = _seat_washers()
+def _thickest_washer(vendor: str, size: str) -> str:
+    """The type of a vendor's thickest washer in a size: the washer studio's default."""
+    made = [(key, washer) for key, washer in WASHERS.items() if key[0] == vendor and key[1] == size]
+    (_, _, type), _ = max(made, key=lambda item: (float(item[1].thickness), -item[1].outer_diameter))
+    return type
 
 
 # The studios' configurations
@@ -388,7 +376,6 @@ def _screw_inputs() -> list[Input]:
             _shown(lengths, ("vendor", "size", "head"), 3),
             length_id(Fraction(1, 2)),
         ),
-        Input("washer", "Washer", "washer", kind="boolean"),
     ]
 
 
@@ -398,7 +385,6 @@ def _nut_inputs() -> list[Input]:
         _list("vendor", "Vendor", FastenerVendor, "vendor", NUT_VENDORS),
         _list("size", "Size", FastenerSize, "size", _used(FastenerSize, keys, 1), _shown(keys, ("vendor",), 1), "NO_10_32"),
         _list("type", "Type", NutType, "nutType", _used(NutType, keys, 2), _shown(keys, ("vendor", "size"), 2)),
-        Input("washer", "Washer", "washer", kind="boolean"),
     ]
 
 
@@ -414,7 +400,7 @@ def _washer_inputs() -> list[Input]:
             "washerType",
             WasherType.values,
             _shown(keys, ("vendor", "size"), 2),
-            SEAT_WASHERS[("GENERIC", "NO_10_32")][1],
+            _thickest_washer("GENERIC", "NO_10_32"),
         ),
     ]
 
@@ -555,16 +541,6 @@ CONTENTS = [
         "WASHER_TYPE_NAMES",
         _map([(WasherType[type], string(name)) for type, name in WasherType.names.items()], 8),  # type: ignore[union-attr]
     ),
-    _documented(
-        "The washer a screw or nut of each vendor and size sits on, which its Washer moves its mate connector onto.",
-        "SEAT_WASHERS",
-        _nested(
-            SEAT_WASHERS,
-            [FastenerVendor, FastenerSize],
-            lambda seat: _fields({"vendor": FastenerVendor[seat[0]], "washerType": WasherType[seat[1]]}),
-            4,
-        ),
-    ),
 ]
 
 
@@ -665,10 +641,6 @@ def manifest() -> dict:
                 **_stock_json(washer.stock),
             }
             for (vendor, size, type), washer in WASHERS.items()
-        ],
-        "seatWashers": [
-            {"vendor": vendor, "size": size, "washerVendor": washer_vendor, "washerType": type}
-            for (vendor, size), (washer_vendor, type) in SEAT_WASHERS.items()
         ],
         "holeScan": hole_scan_lambda(HOLE_SCAN.read_text()),
     }

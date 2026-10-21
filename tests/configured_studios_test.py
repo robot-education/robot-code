@@ -92,14 +92,51 @@ def test_each_option_is_controlled_by_one_condition():
 def test_combinations_of_several_inputs_are_ands_ored():
     from fs_cli.configured_studios import _condition
 
-    condition = _condition(((("head", "X"), ("size", "A")), (("head", "Y"), ("size", "B"))))
+    condition = _condition([{"head": "X", "size": "A"}, {"head": "Y", "size": "B"}], ["size", "head"])
     assert condition["operation"] == "OR"
     assert [child["operation"] for child in condition["children"]] == ["AND", "AND"]
-    assert condition["children"][0]["children"][1] == {
-        "btType": "BTParameterVisibilityOnEqual-180",
-        "parameterId": "size",
-        "value": "A",
-    }
+    assert condition["children"][0]["children"] == [
+        {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "size", "value": "A"},
+        {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "head", "value": "X"},
+    ]
+
+
+def test_conditions_are_factored_by_input_order():
+    from fs_cli.configured_studios import _condition
+
+    # Sizes A and B both take heads X and Y, so they share one branch
+    combinations = [{"size": size, "head": head} for size in "AB" for head in "XY"] + [{"size": "C", "head": "X"}]
+    condition = _condition(combinations, ["size", "head"])
+
+    def equal(id, value):
+        return {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
+
+    def logical(operation, *children):
+        return {"btType": "BTParameterVisibilityLogical-178", "operation": operation, "children": list(children)}
+
+    assert condition == logical(
+        "OR",
+        logical("AND", logical("OR", equal("size", "A"), equal("size", "B")), logical("OR", equal("head", "X"), equal("head", "Y"))),
+        logical("AND", equal("size", "C"), equal("head", "X")),
+    )
+
+
+def test_factored_conditions_show_exactly_the_combinations():
+    from fs_cli.configured_studios import _condition
+
+    def holds(condition, selection):
+        if condition["btType"] == "BTParameterVisibilityOnEqual-180":
+            return selection[condition["parameterId"]] == condition["value"]
+        results = [holds(child, selection) for child in condition["children"]]
+        return all(results) if condition["operation"] == "AND" else any(results)
+
+    combinations = [{"v": "1", "s": "A", "h": "X"}, {"v": "1", "s": "B", "h": "X"}, {"v": "2", "s": "A", "h": "Y"}]
+    condition = _condition(combinations, ["v", "s", "h"])
+    for v in "12":
+        for s in "AB":
+            for h in "XY":
+                selection = {"v": v, "s": s, "h": h}
+                assert holds(condition, selection) == (selection in combinations)
 
 
 def test_configured_parameters_set_each_option():
@@ -121,10 +158,10 @@ def test_configured_parameters_set_each_option():
     }
 
 
-def test_manifest_lists_each_inputs_options():
-    inputs = studio().manifest()["inputs"]
-    assert inputs[1]["options"][1] == {"id": "L2", "name": "2 in."}
-    assert inputs[2] == {"id": "washer", "name": "Washer", "kind": "boolean", "default": "false"}
+def test_manifest_holds_the_configuration_onshape_answers():
+    manifest = studio().manifest()
+    assert manifest["configuration"] == studio().configuration_body()
+    assert "inputs" not in manifest
 
 
 def test_find_studio_searches_nested_maps():

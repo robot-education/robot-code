@@ -1301,35 +1301,3 @@ export const WASHER_TYPE_NAMES = {
             WasherType.OD_5_8_X_0_05 : "5/8 in. OD x 0.05 in.",
             WasherType.OD_5_8_X_0_065 : "5/8 in. OD x 0.065 in."
         };
-
-/** The washer a screw or nut of each vendor and size sits on, which its Washer moves its mate connector onto. */
-export const SEAT_WASHERS = {
-        FastenerVendor.GENERIC : {
-            FastenerSize.NO_4_40 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_5_16_X_0_032 },
-            FastenerSize.NO_6_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_3_8_X_0_049 },
-            FastenerSize.NO_8_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_7_16_X_0_049 },
-            FastenerSize.NO_10_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_1_2_X_0_049 },
-            FastenerSize.QUARTER_20 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_5_8_X_0_065 }
-        },
-        FastenerVendor.MCMASTER : {
-            FastenerSize.NO_4_40 : { "vendor" : FastenerVendor.MCMASTER, "washerType" : WasherType.OD_5_16_X_0_03 },
-            FastenerSize.NO_6_32 : { "vendor" : FastenerVendor.MCMASTER, "washerType" : WasherType.OD_3_8_X_0_03 },
-            FastenerSize.NO_8_32 : { "vendor" : FastenerVendor.MCMASTER, "washerType" : WasherType.OD_3_8_X_0_03 },
-            FastenerSize.NO_10_32 : { "vendor" : FastenerVendor.MCMASTER, "washerType" : WasherType.OD_1_2_X_0_04 },
-            FastenerSize.QUARTER_20 : { "vendor" : FastenerVendor.MCMASTER, "washerType" : WasherType.OD_5_8_X_0_05 }
-        },
-        FastenerVendor.REV : {
-            FastenerSize.NO_4_40 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_5_16_X_0_032 },
-            FastenerSize.NO_6_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_3_8_X_0_049 },
-            FastenerSize.NO_8_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_7_16_X_0_049 },
-            FastenerSize.NO_10_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_1_2_X_0_049 },
-            FastenerSize.QUARTER_20 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_5_8_X_0_065 }
-        },
-        FastenerVendor.WCP : {
-            FastenerSize.NO_4_40 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_5_16_X_0_032 },
-            FastenerSize.NO_6_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_3_8_X_0_049 },
-            FastenerSize.NO_8_32 : { "vendor" : FastenerVendor.GENERIC, "washerType" : WasherType.OD_7_16_X_0_049 },
-            FastenerSize.NO_10_32 : { "vendor" : FastenerVendor.WCP, "washerType" : WasherType.OD_3_8_X_0_031 },
-            FastenerSize.QUARTER_20 : { "vendor" : FastenerVendor.WCP, "washerType" : WasherType.OD_3_8_X_0_031 }
-        }
-    };

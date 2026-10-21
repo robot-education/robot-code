@@ -7,7 +7,8 @@ A release:
     3. Optionally creates a version in the frontend document too, which publishes the release: it's final once it's
        there (with `--publish`, or later by `fs sync-versions`), and then it's tagged in git (see `tag_release`).
 
-Beta releases go to the separate frontend_beta document instead.
+Beta releases go to the separate frontend_beta document instead, and a library's FeatureScripts (`[tool.fs.libraries]`)
+to its library document: they're only for that library's parts, not for everyone.
 
 Deprecating a released FeatureScript retires it without breaking Part Studios using it: they keep working, and
 still update to newer versions of the frontend document, since its frontend studio is kept (with the same element
@@ -90,6 +91,9 @@ def plan_release(
     studio = find_studio(workspace, script)
     _check_in_sync(studio, "releasing")
     assert studio.remote
+    library = workspace.config.library_for(studio.path)
+    if beta and library:
+        raise UsageError(f"{studio.path} is released to the {library.name} library, which has no beta releases.")
     is_beta_feature = _is_beta(workspace, studio)
     if beta and not is_beta_feature:
         raise UsageError(
@@ -99,7 +103,7 @@ def plan_release(
         raise UsageError(
             "Features whose name contains 'beta' can only be released with --beta."
         )
-    target, target_label = _target(workspace, beta)
+    target, target_label = _target(workspace, studio, beta)
 
     feature_name = feature_name_for(studio.remote.name)
     previous = latest_release(feature_name, remote.versions(workspace.instance))
@@ -197,7 +201,7 @@ def plan_deprecate(workspace: Workspace, script: str, keep_backend: bool) -> Dep
     code = deprecated_code(studio.local_code)
     if code is None:
         raise UsageError(f'{studio.path} has no "Feature Type Name" to mark deprecated.')
-    target, target_label = _target(workspace, _is_beta(workspace, studio))
+    target, target_label = _target(workspace, studio, _is_beta(workspace, studio))
     frontend_studio = _frontend_studio(workspace, target, studio.remote.name)
     if frontend_studio is None:
         raise UsageError(
@@ -260,8 +264,11 @@ def _check_in_sync(studio: Studio, doing: str) -> None:
 
 
 def _is_beta(workspace: Workspace, studio: Studio) -> bool:
-    """Whether the one feature studio defines is a beta (released to the frontend_beta document)."""
+    """Whether the one feature studio defines is a beta (released to the frontend_beta document). A library's studio
+    is never a beta, and may define several features: they're its parts' features, released together."""
     assert studio.remote
+    if workspace.config.library_for(studio.path):
+        return False
     feature_names = workspace.remote.feature_names(workspace.instance, studio.remote.element_id)
     if len(feature_names) != 1:
         found = ", ".join(feature_names) or "none"
@@ -271,8 +278,11 @@ def _is_beta(workspace: Workspace, studio: Studio) -> bool:
     return "beta" in feature_names[0].lower()
 
 
-def _target(workspace: Workspace, beta: bool) -> tuple[InstancePath, str]:
+def _target(workspace: Workspace, studio: Studio, beta: bool) -> tuple[InstancePath, str]:
     config = workspace.config
+    library = config.library_for(studio.path)
+    if library is not None:
+        return workspace.remote.default_workspace(library.document_id), f"{library.name} library"
     target = config.frontend_beta if beta else config.frontend
     target_label = "frontend_beta" if beta else "frontend"
     if target is None:
@@ -316,8 +326,18 @@ def _version_backend(
     )
 
 
+def _library_features(workspace: Workspace) -> set[str]:
+    """The feature names of the FeatureScripts released to libraries, which their release versions are named by."""
+    return {
+        feature_name_for(studio.remote.name)
+        for studio in workspace.match()
+        if studio.remote and workspace.config.library_for(studio.path)
+    }
+
+
 def unsynced_versions(workspace: Workspace) -> list[Version]:
-    """Returns the release versions in the backend which are missing from the frontend, oldest first."""
+    """Returns the release versions in the backend which are missing from the frontend, oldest first. A library's
+    releases aren't the frontend's, so they're left out."""
     config, remote = workspace.config, workspace.remote
     if config.frontend is None:
         raise UsageError("Set [tool.fs] frontend in pyproject.toml to sync versions.")
@@ -326,10 +346,12 @@ def unsynced_versions(workspace: Workspace) -> list[Version]:
         for version in remote.versions(config.frontend)
         if parse_version_name(version.name)
     }
+    library_features = _library_features(workspace) if config.libraries else set()
     missing = []
     # Walk back from the newest backend version until reaching one already in the frontend
     for version in reversed(remote.versions(workspace.instance)):
-        if not parse_version_name(version.name):
+        released = parse_version_name(version.name)
+        if not released or released.feature_name in library_features:
             continue
         if version.name in frontend_names:
             break
@@ -386,9 +408,12 @@ def finalized_versions(workspace: Workspace) -> list[Version]:
     oldest first."""
     config, remote = workspace.config, workspace.remote
     published = set()
-    for frontend in (config.frontend, config.frontend_beta):
-        if frontend is not None:
-            published.update(version.name for version in remote.versions(frontend))
+    targets = [config.frontend, config.frontend_beta] + [
+        remote.default_workspace(library.document_id) for library in config.libraries
+    ]
+    for target in targets:
+        if target is not None:
+            published.update(version.name for version in remote.versions(target))
     return [
         version
         for version in remote.versions(workspace.instance)

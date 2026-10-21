@@ -3,24 +3,6 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "quickFastener/quickFastener.fs", version : "");
 import(path : "testing.fs", version : "");
 
-export function testSeatWasherIsTheVendorsOwnOrGenerics()
-{
-    expectNear(seatWasher(FastenerVendor.MCMASTER, FastenerSize.NO_10_32).thickness, 0.04 * inch, 1e-9 * meter);
-    // REV makes no washers
-    expectNear(seatWasher(FastenerVendor.REV, FastenerSize.NO_10_32).thickness, 0.049 * inch, 1e-9 * meter);
-}
-
-export function testEverySeatWasherIsMade()
-{
-    for (var vendor, sizes in SEAT_WASHERS)
-    {
-        for (var size, seat in sizes)
-        {
-            expectTrue(WASHERS[seat.vendor][size][seat.washerType] != undefined, "Seat washer isn't made");
-        }
-    }
-}
-
 export function testFlatHeadMeetsShankAtCountersinkAngle()
 {
     const size = FASTENER_SIZES[FastenerSize.NO_10_32];

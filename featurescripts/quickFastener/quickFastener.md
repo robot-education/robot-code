@@ -9,7 +9,8 @@ group in `vendor/frcdesign-fasteners.json`: the enums and data in `quickFastener
 configurations, and FRCDesign's manifest `quickFastener.gen.json`), and `quickFastenerHoleScan.fs` (what FRCDesign
 evaluates in the Part Studios of the parts it fastens).
 
-Unreleased.
+Unreleased. It's released to FRCDesign's Fasteners library document (`[tool.fs.libraries.fasteners]`), whose Part
+Studios use it, rather than the frontend document.
 
 ## Strings
 
@@ -40,10 +41,9 @@ the vendor has them (Generic has neither).
 
 ## How it works
 
-Every part is built along the Z axis, and has one mate connector at the origin, pointing out of the hole: FRCDesign
-fastens it to the hole's edge in the assembly. A screw's and a nut's Washer moves the mate connector down by its seat
-washer's thickness (`seatWasher`: its vendor's thickest washer in its size, else Generic's), so it seats on the washer
-FRCDesign fastens to the same edge. Every part is one its vendor makes (`SCREWS`, `WASHERS`, `NUTS`), and lengths are
+Every part is built along the Z axis, and has one mate connector at the origin, pointing out of the hole, where it
+seats: FRCDesign fastens a screw or nut to the top edge of the washer under it, or to the hole's edge, and a washer to
+the hole's edge. So any washer goes under any screw or nut, and none has a washer input. Every part is one its vendor makes (`SCREWS`, `WASHERS`, `NUTS`), and lengths are
 the standard ones (`ScrewLength`); anything else is an error.
 
 `quickFastenerScrew`:
