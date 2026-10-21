@@ -1,26 +1,25 @@
 # Robot gear
 
-Makes involute spur, helical, and herringbone gears or sectors of them, straight bevel gears (with spherical involute
-teeth and Gleason's proportions, or simplified, by Tredgold's approximation), or cuts rack teeth into a part's
-flat face, or a gear's teeth around its round one (Gear type: Gear, with Sector gear for a sector of one, Rack, or
-Bevel). All are at a standard pitch (10 DP for 3D printing, 20 DP or 32 DP for FRC, module 0.8 for FTC), or a custom
+Makes involute spur, helical, and herringbone gears, straight bevel gears (by Profile: Exact, spherical involute teeth
+with Gleason's proportions, or Approximate, by Tredgold's approximation), or cuts rack teeth into a part's flat face,
+or a gear's teeth around its round one, all along it or (Partial rack) part of it (Gear type: Gear, Rack, or Bevel). All are at a standard pitch (10 DP for 3D printing, 20 DP or 32 DP for FRC, module 0.8 for FTC), or a custom
 module, diametral pitch, or circular pitch, with standard proportions (a bevel gear's, Gleason's). A gear is sized by its teeth or a pitch
 circle, sits on its location by its bottom (or middle, top, or a bevel gear's apex, by a point manipulator), and with
 Gear pair, the gear it meshes with is made too. Its roots are fully rounded (or, as Onshape's Spur gear's Root fillet,
 a third or a quarter of the gap's width, or sharp; or a router bit's radius, with a slot of the bit's width down each
-gap too narrow for it; a bevel gear's are full rounds, or a router bit's slots where it can't reach them), and it can have a bore.
+gap too narrow for it; a bevel gear's are full rounds or sharp, or a router bit's slots where it can't reach them), and
+it can have a bore.
 
 | File | What it is |
 | --- | --- |
 | `robotGear.fs` | The feature: its dialog, the gear and its mate (`buildGear`, `gearMesh`, `gearMatePlane`, `bevelPairCones`), a bevel gear's depths and shape (`bevelDepths`, `bevelShape`), and cutting a rack (`cutRack`) |
-| `gearCommon.fs` | The tooth form (`getGearForm`), its roots (`gearRoot`, `halfGapCurves`), a gear's profile (`sketchGearProfile`), a bevel gear's cones, proportions, spherical involute teeth, and tooth gap (`bevelCones`, `gleasonProportions`, `sphericalInvolute`, `sphericalBevelForm`, `sketchToothGap`), and a cut rack's teeth and regions (`rackToothCenters`, `rackCutRegions`, `rackRootFilletRadius`, `relieveRackRoots`, `sketchRackCut`) |
+| `gearCommon.fs` | The tooth form (`getGearForm`), its roots (`gearRoot`, `halfGapCurves`, `lowestContactRadius`), a gear's profile (`sketchGearProfile`), a bevel gear's cones, proportions, spherical involute teeth, tooth gap, and router bit slots (`bevelCones`, `gleasonProportions`, `sphericalInvolute`, `sphericalBevelForm`, `sketchToothGap`, `bevelBitRoot`), and a cut rack's teeth and regions (`rackToothCenters`, `partialTeeth`, `rackCutRegions`, `rackRootFilletRadius`, `relieveRackRoots`, `sketchRackCut`) |
 | `../core/bore.fs` | The bore: its parameters, and cutting it |
-| `../core/stdRevolve.fs` | A sector's angles by Angle, as std's revolve has them (`revolveAnglePredicate`, `revolveAngles`) |
 | `../core/location.fs`, `../core/startOffset.fs`, `../core/profileOffset.fs` | The location, starting offset, and profile offset |
 | `../core/pointManipulator.fs` | Where the gear sits on its location, as Robot pulley's (`pointManipulatorPredicate`, `applyPointManipulator`) |
 | `../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
-| `../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), the standard and custom pitches, pitch circles' teeth, bevel gaps, and where a rack's teeth go and what's cut |
-| `../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, with the center to center adjustment, sector, and bevel), bevel gears' crown gear and thickness errors, their shape, points, and Gleason proportions, and joining round faces' angles |
+| `../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), the standard and custom pitches, pitch circles' teeth, bevel gaps, the units values are shown in, where a rack's teeth go and what's cut (never a partial tooth at an end), and a partial rack's teeth and stop |
+| `../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, with the center to center adjustment, and bevel), bevel gears' crown gear and thickness errors, their shape, points, and Gleason proportions, and joining round faces' angles |
 | `../../tests/featurescript/fs_eval_bevel_test.py` | Tests of spherical bevel gears' teeth: taken back onto the sphere (their roots' radial lines too), a pair meshes (touching on both sides, not overlapping) through a tooth; their thickness at the pitch cone; their gap's sketch; where a router bit cuts slots |
 | `spurGear.local.fs` | Onshape's Spur gear, for reference (see Compared with Spur gear): not synced |
 
@@ -32,18 +31,23 @@ Unreleased.
   gears do: a small pinion's teeth are longer and thicker (and its mate's shorter and thinner), their roots `0.188 m`
   (and 0.002 in.) below their mate's tips, rather than `0.25 m`, and their tips' cones parallel to their mate's root
   cones, so they come down a little toward the apex.
-- Bevel gears have their own Root fillet: Full, or Router bit (with Bit diameter), which cuts a slot of the bit's width
+- Unit system (Inch or Metric) is gone: messages show values in the pitch's units (`pitchUnits`: a diametral pitch's
+  inches, a module's metric; a circular pitch's inches if it's a whole number of thousandths of an inch), as does a
+  circular pitch's part name.
+- Sector (a Gear type) is gone, for now.
+- Rack: Partial rack, with a Stop reference and Limit teeth (Rack teeth), to cut teeth along part of the face: from an
+  end, they stop where the gap after the last would run past the stop reference, or after Rack teeth. Past them, the
+  face is left as it is, its near side shaped like the next tooth's flank, as a stop.
+- Bevel gears have their own Root fillet: Full, None, or Router bit (with Bit diameter), which cuts a slot of the bit's width
   down each gap's middle where the bit can't reach the full round, toward the apex. Their roots' radial lines stop
   where their mate's tips touch the flanks, rather than relieving the flanks above that (up to half the tooth's
   height, above the pitch cone on a Gleason pinion); where a full round doesn't fit below that, it's the largest
   fillet that does.
-- Tooth form (a top level option, for bevel gears): Spherical involute, or Simplified, as before, by Tredgold's
+- Profile (an unlabeled dropdown, first in a bevel gear's Gear group): Exact, or Approximate, as before, by Tredgold's
   approximation with a spur gear's proportions, except that each gap is now sketched centered on its middle (it was
   sketched at the tooth before it).
 - The Gear group (was Teeth) is at the top, under Gear type, with Teeth first in it, and a bevel gear's Mating gear
   teeth and Shaft angle under that. Gear pair is at the bottom, under the bore.
-- Sector gear (was Sector) is a checkbox on Gear, rather than a Gear type: sized by Sector teeth, or an angle as std's
-  revolve gives one (Angle, Opposite direction, Symmetric, Second end position), from an Angle reference.
 - Gear type's Bevel is last. Size by (Teeth or Pitch circle) is a top level option, under Gear type, rather than a
   dropdown in the dialog; the starting offset is under the location or Pitch circle.
 - Gear pair: a spur pair has a Center to center adjustment (in Other options), as Robot belt's: added to the distance
@@ -51,7 +55,7 @@ Unreleased.
 - Gear pair: the gear it meshes with, placed by Mating gear teeth, Angle reference, and Angle, or by its pitch circle.
   It's optional for a bevel gear too, whose cones take Mating gear teeth and Shaft angle either way.
 - Custom pitch takes a Pitch type (Module, Diametral pitch, or Circular pitch), as Onshape's Spur gear does, rather
-  than diametral pitch for Inch and module for Metric.
+  than diametral pitch in inches and module in metric.
 - Helical gear (was Helical): Herringbone gear (was Double helical) is above Hand, which it hides.
 - Racks can be helical or herringbone, and have router relief.
 - Rack: Tangent propagation is gone: the faces in line with Face to cut (or on its cylinder) are always cut too.
@@ -82,7 +86,7 @@ Unreleased.
 | --- | --- |
 | Robot gear | feature name |
 | Create spur, helical, herringbone, and bevel gears, or cut racks and gear teeth into parts, at FRC and FTC gears' standard pitches. `<CREDIT>` | feature description |
-| `<teeth>`T `<pitch>` `<kind>`: the pitch is like 20DP, Module 0.8, or 0.25 in. CP (mm by Metric), and the kind Gear, Sector Gear, or Bevel Gear, after Helical or Herringbone if it's helical | part name |
+| `<teeth>`T `<pitch>` `<kind>`: the pitch is like 20DP, Module 0.8, or 0.25 in. CP (or mm, see `pitchUnits`), and the kind Gear or Bevel Gear, after Helical or Herringbone if it's helical | part name |
 
 A gear's material is Onyx, and its appearance printed green. A cut rack leaves its part's properties as they are.
 
@@ -92,7 +96,8 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | --- | --- |
 | Shaft angle (`shaftAngle`) | Between its shaft and its mate's (90 degrees for a right angle): it sets the angle of its teeth's cone. |
 | Center to center adjustment (`centerToCenterAdjustment`) | Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh. |
-| Tooth form (`bevelForm`) | Spherical involute teeth with Gleason's proportions, as bought bevel gears have; or simplified, by Tredgold's approximation, a spur gear's teeth on its back cone. |
+| Profile (`bevelProfile`) | Exact: spherical involute teeth, with Gleason's proportions, as bought bevel gears have. Approximate: Tredgold's approximation, a spur gear's teeth on its back cone, with its proportions. |
+| Stop reference (`rackStop`) | A point the teeth stop at: past it, the face is left as it is, as a stop. |
 | Face at (`rackFaceAt`) | Where the face is on the teeth: their pitch line (the face is moved out to their tips first), or their tips. |
 | Angle reference (`rackReference`) | A point a gap is centered on, as on an end. |
 | (the bore's, location's, and Gear pair's angle reference, from `core/`) | |
@@ -109,12 +114,9 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Select a pitch circle. | error | Size by Pitch circle, with none | `pitchCircle` | Select a circle or arc. |
 | Pitch circle is too small for this pitch, select a larger circle. | error | it's under 4 teeth's | `pitchCircle`, the circle | Selected offset is too large, decrease the value. |
 | Pitch circle is not a whole number of teeth, using nearest (`<teeth>` teeth). | warning | its diameter isn't a whole number of modules (within std's length tolerance) | `pitchCircle` | none |
-| Sector teeth must be fewer than the gear's `<teeth>` teeth. | error | Sector gear by Sector teeth, with the gear's teeth or more | `sectorTeeth`, `teeth` | The counterbore diameter must be larger than the hole diameter. |
-| Sector angle is too small for a tooth, increase the value. | error | Sector gear by Angle, spanning less than a tooth | `angle`, `angleBack` | Bend angle is too small. |
-| Sector angle must be less than a full turn, decrease the value. | error | Sector gear by Angle, spanning every tooth | `angle`, `angleBack` | Animation start value must be less than or equal to the end value. |
 | Shaft angle is too large for a bevel gear, decrease the value or increase mating gear teeth. | error | a bevel gear's pitch cone is 90° or more: a crown or internal gear; or its face cone (its tips') is | `shaftAngle`, `bevelMateTeeth` | Selected offset is too large, decrease the value. |
 | Shaft angle is too large for a bevel mating gear, decrease the value or decrease mating gear teeth. | error | its mate's pitch cone (or face cone) is 90° or more (with or without Gear pair: the pair is what it's made for) | `shaftAngle`, `bevelMateTeeth` | Selected offset is too large, decrease the value. |
-| The angle reference is on the axis, so it doesn't give an angle. / The angle reference must be parallel to the location's plane. / The angle reference must be a point, circle, or line. | error | Gear pair's or a sector's Angle reference (`core/mounting.fs`, shared with Robot motor, so not reworded here) | the location or `pitchCircle`, the angle reference | Limit face must be parallel to face being moved. |
+| The angle reference is on the axis, so it doesn't give an angle. / The angle reference must be parallel to the location's plane. / The angle reference must be a point, circle, or line. | error | Gear pair's Angle reference (`core/mounting.fs`, shared with Robot motor, so not reworded here) | the location or `pitchCircle`, the angle reference | Limit face must be parallel to face being moved. |
 | Thickness is too small for the teeth, increase it past `<thickness>`. | error | a bevel gear's top is below its teeth's tips at its back | `thickness` | Bend angle is too small. |
 | Thickness is too large, reaching the apex. Decrease it below `<thickness>`. | error | a bevel gear's top is at its apex or past it | `thickness` | Selected offset is too large, decrease the value. |
 | Thickness is too small for the mating gear's teeth, increase it past `<thickness>`. | error | a bevel gear's mate's teeth, as long as its, don't reach the mate's top | `thickness` | Bend angle is too small. |
@@ -134,6 +136,9 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Face to cut is not a whole number of teeth, cutting nearest (`<teeth>` teeth). | warning | a round face's pitch circle (its own, or a module inside it at Outside diameter) isn't a whole number of teeth's | `rackFace` | none |
 | Angle reference must not be on the face's axis. | error | a round face's Angle reference, on its axis | `rackReference`, the reference | Reference must be to a face. |
 | Face to cut must have a straight edge. | error | none of the faces' edges is a line | `rackFace`, the face | Reference must be to a face. |
+| Select a stop reference or limit rack teeth. | error | Partial rack, with neither | `rackStop`, `limitRackTeeth` | Select a face to terminate the extrude. |
+| Stop reference must be a point. / Stop reference must be a point off the face's axis. | error | a flat (or round) face's Stop reference isn't a point (or is on its axis) | `rackStop`, the reference | Reference must be to a face. |
+| Stop reference is too near the end for a tooth, select another. | error | the gap after the first tooth would run past it | `rackStop`, the reference | Bend angle is too small. |
 | Select an angle reference. / Angle reference must be a point. | error | a rack's Angle reference, with none, or a selection that isn't a point | `rackReference` | Select a pattern axis. / Reference must be to a face. |
 | Face to cut is too short for a tooth. | error | no whole tooth fits along it | `rackFace`, the faces | Bend angle is too small. |
 | Teeth come to points, change profile offset. / Teeth meet at their roots, change profile offset. | error | a rack's profile offset's too far | `profileOffsetDistance` | none |
@@ -149,16 +154,14 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 
 ### Execution order
 
-1. **Precondition**: Gear type (Gear, Rack, or Bevel), a gear's Size by (`sizeBy`: Teeth or Pitch circle), and a bevel
-   gear's Tooth form (`bevelForm`: Spherical involute or Simplified), then the
-   Gear group: Teeth (a gear's, by Teeth), a bevel gear's Mating gear teeth (`bevelMateTeeth`) and Shaft angle (its cones depend on them, with or
+1. **Precondition**: Gear type (Gear, Rack, or Bevel), and a gear's Size by (`sizeBy`: Teeth or Pitch circle), then the
+   Gear group: a bevel gear's Profile (`bevelProfile`: Approximate or Exact, unlabeled), Teeth (a gear's, by Teeth), a bevel gear's Mating gear teeth (`bevelMateTeeth`) and Shaft angle (its cones depend on them, with or
    without Gear pair), Pitch (with Custom, Pitch type: Module, Diametral pitch, or Circular pitch, and Pressure
-   angle), a gear's Thickness, and Root fillet (a bevel gear's own, `bevelRootFillet`: Full or Router bit), with Router
+   angle), a gear's Thickness, and Root fillet (a bevel gear's own, `bevelRootFillet`: Full, None, or Router bit), with Router
    bit, Bit diameter (`isRouterBit`).
-   - Gear and Bevel: the location (by Teeth) or Pitch circle, and the starting offset under it; a gear's Sector gear, with Sector size (Teeth or Angle, unlabeled),
-     Angle reference, and Sector teeth or std revolve's angles (Angle, Opposite direction, Symmetric, and Second end
-     position with Start angle).
-   - Rack: Face to cut, Face at, Align teeth to (End, with Opposite end, or Angle reference).
+   - Gear and Bevel: the location (by Teeth) or Pitch circle, and the starting offset under it.
+   - Rack: Face to cut, Face at, Align teeth to (End, with Opposite end, or Angle reference), and Partial rack, with
+     Stop reference (`rackStop`) and Limit teeth (`limitRackTeeth`), with Rack teeth.
    - All but Bevel: Helical gear, with Helix angle, Herringbone gear (`doubleHelical`), and Hand (hidden for
      Herringbone gear: a herringbone turned over is the other hand).
    - Gear and Bevel: bore, then Gear pair, with Mate selection (Teeth or Pitch circle, unlabeled; a bevel mate's by
@@ -172,7 +175,7 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
    base radius its cosine of the pressure angle, tip `m` above it and root `1.25 m` below, all offset by the profile
    offset, and the root fillet: a fraction of the full round's radius, `ROOT_FILLET_FRACTIONS`, or the bit's radius).
    Then:
-   - Gear (or a sector): its teeth and plane (`gearSize`: Teeth at the location, or the nearest whole number of teeth to
+   - Gear: its teeth and plane (`gearSize`: Teeth at the location, or the nearest whole number of teeth to
      the pitch circle, `nearestGearTeeth`, at its center, with its x axis to an arc's middle), after the starting
      offset; its points along its axis (`gearPointDistances`: its bottom, middle, and top), with the point
      manipulator, which moves the gear so the chosen point is on the location (`applyPointManipulator`); the profile
@@ -216,17 +219,10 @@ side mirrored):
   slots cut. The gear is shown in blue (a debug entity), and what's cut in red (the error's entities).
 - **Tip**: an arc on the tip circle.
 
-A sector's teeth are centered on the x axis, and its ends run from the middle of the gaps at its ends to the center;
-only its teeth are sketched, swept, and cut. `sectorPlacement` turns the plane first: by Sector teeth, so its middle
-points toward the Angle reference (or a pitch arc's middle, or the location's x axis, without one); by Angle, to the
-middle of the angles from it (`revolveAngles`, as std's revolve: Angle that way, or the other with Opposite direction;
-half each way with Symmetric; and back to Start angle with a second end position), with as many whole teeth as fit
-(`sectorSpan`). A gear pair's mate, without its own angle reference, goes toward the sector's middle.
-
 ### Bevel gears
 
-`buildBevelGear` makes a straight bevel gear (by Tooth form) with spherical involute teeth and Gleason's proportions, or
-simplified, by Tredgold's approximation with a spur gear's proportions:
+`buildBevelGear` makes a straight bevel gear (by Profile) with spherical involute teeth and Gleason's proportions
+(Exact), or by Tredgold's approximation with a spur gear's proportions (Approximate):
 
 - **Cones** (`bevelCones`): its pitch cone's angle from its axis is `atan(sin Σ / (z₂ / z + cos Σ))`, for its teeth
   `z`, its mate's `z₂`, and shaft angle `Σ` (`atan(z / z₂)` at 90°). Its pitch circle (radius `m z / 2`) is at its
@@ -242,7 +238,7 @@ simplified, by Tredgold's approximation with a spur gear's proportions:
     from a chart, is left out); and its face cone parallel to its mate's root cone (`atan(b₂ / R)` from its pitch cone,
     for the mate's dedendum `b₂`), so the clearance between them is the same all along, and its tips come down a
     little toward the apex.
-  - Simplified: a spur gear's (`m` and `1.25 m`, half the circular pitch thick), its face cone through its apex.
+  - Approximate: a spur gear's (`m` and `1.25 m`, half the circular pitch thick), its face cone through its apex.
 - **Teeth**: a gap between two teeth (`sketchToothGap`) is sketched on the plane square to the pitch cone through the
   middle of the gap after the first tooth, centered where the axis meets it (the back cone's apex), and lofted to the
   same gap scaled toward the apex: scaled about the apex, its flanks run straight to it, as a straight bevel's do.
@@ -263,7 +259,7 @@ simplified, by Tredgold's approximation with a spur gear's proportions:
     cones' virtual spur gears, `lowestContactRadius`), so they don't relieve flank its mate touches; where a full round
     doesn't fit below that (a Gleason pinion's, whose teeth are long), it's the largest fillet that does, tangent to the
     root circle and the line at its top.
-  - Simplified (Tredgold's approximation): its teeth, seen on its back cone, are close to a spur gear's whose pitch
+  - Approximate (Tredgold's approximation): its teeth, seen on its back cone, are close to a spur gear's whose pitch
     radius is the back cone's: the pitch radius over the pitch angle's cosine, with `z / cos(pitch angle)` teeth (its
     virtual teeth, not a whole number). Its roots are full rounds, as a spur gear's are (`halfGapCurves`): the shapes
     scale with the gap, so both ends of the loft match.
@@ -302,10 +298,10 @@ the same gear, without its mate:
   apex.
 - **Its teeth** (`gearMatePlane`): where their pitch circles touch, a tooth of one meets a gap of the other. The gear's
   tooth nearest the touching point is the angle to it (less a whole number of teeth) from its first tooth, which is on
-  its x axis (or for a sector with an even number of teeth, half a tooth from it: `gearMesh`'s tooth phase). Turning
+  its x axis. Turning
   the gear back by that angle turns the mate forward by it times the ratio, so the mate is turned that far from a gap
   facing the gear. Bevel gears turn the same way, each about its axis toward its apex.
-- **What it is**: a whole gear (a sector's mate too), of the opposite hand if helical, with the gear's pitch,
+- **What it is**: a whole gear, of the opposite hand if helical, with the gear's pitch,
   thickness (a bevel mate's face width), root fillet, profile offset, and bore (`mateDefinition`). It's named for its
   own teeth. It sits on the gear's plane (a spur mate), so it's placed by the same point as the gear.
 - **Bevel gears**: both pitch cones (`bevelPairCones`) are checked. Over 90°, one would be a crown or internal gear,
@@ -328,8 +324,6 @@ its axis as it goes, as Onshape's Spur gear does for each tooth. The two halves 
 
 ### Cutting a rack
 
-`cutRack` cuts teeth into the part that owns Face to cut:
-
 `cutTeeth` cuts teeth into the part that owns Face to cut: a rack along a flat face (`cutRack`), or a gear's teeth
 around a round one (`cutRoundTeeth`, below). `cutRack`:
 
@@ -342,12 +336,19 @@ around a round one (`cutRoundTeeth`, below). `cutRack`:
    the direction and across it.
 3. **Where the teeth go** (`rackToothCenters`): a pitch (`π m`) apart, with a gap centered on the start (End), the end
    (Opposite end, also flipped by a manipulator there), or the angle reference projected onto it. As many whole teeth
-   as fit, root and all, fill it.
+   as fit, root and all, fill it (so there's never a partial tooth at an end: past the first and last, it's cut to
+   the root).
+   A partial rack's (`rackStop`, `partialTeeth`) run from an end: End's (the start, or with Opposite end, the end),
+   or by Angle reference, the end farther from the Stop reference, or without one, the end nearer the angle
+   reference. They stop where the gap after the last would run past the Stop reference (projected onto the face; the
+   next tooth's root, `halfRoot` from its center, its far side), or after Rack teeth (Limit teeth), whichever's first.
+   The next tooth after them is the stop: the face is left as it is from its near flank on.
 4. **What's cut** (`rackCutRegions`): everything between the face and the teeth. The face is `m` above the pitch line,
    at the tips. Flanks are straight at the pressure angle (a rack's involute: a gear's of infinite radius), and the
    root is `1.25 m` below the pitch line, both offset by the profile offset. Teeth reaching the face leave a region per
    gap. Teeth stopping short of it (with clearance) are cut over too, in one region. Past the first and last teeth,
-   it's cut to the root.
+   it's cut to the root; past a partial rack's stop, the region ends at the stop's near flank (up from its tip to the
+   face, for teeth stopping short of it), and nothing past it is cut.
    The roots are rounded (`rackRootFilletRadius`, `relieveRackRoots`): each corner between the floor and a flank, by
    a fraction of the full round's radius (the full round's two fillets meet in the floor's middle: `w / 2 · tan(45° +
    α / 2)`, for the floor's width `w`), or a router bit's radius; a bit's, across a gap too narrow for both, a slot
@@ -380,12 +381,15 @@ axis) is an error: that would be an internal gear's teeth.
    around if it has circles for edges or they join all the way around.
 4. **Where the teeth go**: a gap is centered on its start (End), its end (Opposite end, also flipped by a manipulator
    there), the angle reference's angle, or (all the way around, by End) the cylinder's x axis. Whole teeth, each from
-   a gap's middle to the next's, fill its angles: a sector of them, or all of them.
+   a gap's middle to the next's, fill its angles: a sector of them, or all of them. A partial rack's
+   (`roundRackStop`) are chosen as a flat face's (`partialTeeth`, with angles), with its stop's tooth among them; all
+   the way around, they start at the gap and go counterclockwise, with a stop before them too.
 5. **What's cut**: the teeth (`sketchGearProfile`, `buildGearBody`: helical and herringbone too) on the plane through
    the middle of its width, centered on the sector's middle (or a tooth), its router bit's slots checked as a gear's
    (`checkBitSlots`), cut from a ring around them: from their root
-   circle out a module past their tips, across its angles, through its width. That's cut from the part, so past the
-   first and last teeth, it's cut to the root.
+   circle out a module past their tips, across its angles (a partial rack's, from its start to its stop's middle, or
+   between its stops' middles), through its width. That's cut from the part, so past the first and last teeth, it's
+   cut to the root, and past a stop's middle, nothing's cut: its near half is a tooth's, its far half the face.
 
 ## Compared with Spur gear
 
@@ -420,6 +424,9 @@ around it.
   flat rack at Pitch diameter, helical round teeth, and the bore warning.
 - Helical gears sweep the whole profile along each helix; Onshape's Spur gear sweeps one tooth. Untried in Onshape.
 - Helical racks aren't cut.
+- Partial racks are untried in Onshape, flat and round. A helical one's stop is where it says at the middle of the
+  face's width; across it, its teeth (and the stop) slant past it. A stop is only as tall as the face: a mating gear
+  stops when its tooth meets it, so the stop takes the load.
 - Spherical bevel gears are untried in Onshape: their blank's face cone, the gap's loft between the projected
   sketches, and cutting it. Their meshing is tested on the sphere (`fs_eval_bevel_test.py`), from the form's flanks.
 - Bevel gears' teeth aren't crowned, and they have no helical (spiral) teeth, 1/3, 1/4, or no root fillets, or check of their

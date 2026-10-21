@@ -497,6 +497,39 @@ export function rackToothCenters(form is map, length is ValueWithUnits, gap is V
 }
 
 /**
+ * A partial rack's teeth (or a partial round face's), of the whole teeth along it (`centers`, as far from its start
+ * as they're centered, in order, `pitch` apart, as `rackToothCenters` gives them): the first `count` (or all, if it's
+ * `undefined`), and none so far along that the gap after it runs past `stop` (as far from the start; or anywhere, if
+ * it's `undefined`), its far side being the next tooth's flank, which leaves its root `halfRoot` from its center. The
+ * next tooth after them (`stopCenter`, `undefined` if they're all of them) is left with the face past it: tooth shaped
+ * on its near side, as a stop, so there's no partial tooth.
+ *
+ * @returns {{
+ *      @field centers {array} :
+ *      @field stopCenter : @optional
+ * }}
+ */
+export function partialTeeth(centers is array, pitch is ValueWithUnits, halfRoot is ValueWithUnits, count, stop) returns map
+{
+    var kept = size(centers);
+    if (count != undefined)
+    {
+        kept = min(kept, count);
+    }
+    if (stop != undefined && centers != [])
+    {
+        // The next tooth's root mustn't be past it
+        kept = min(kept, floor((stop + halfRoot - centers[0]) / pitch + TOLERANCE.zeroLength));
+    }
+    kept = max(kept, 0);
+    if (kept >= size(centers))
+    {
+        return { "centers" : centers };
+    }
+    return { "centers" : subArray(centers, 0, kept), "stopCenter" : centers[kept] };
+}
+
+/**
  * A rack's root: `1.25 m` below its pitch line, less the profile offset.
  */
 export function rackRoot(form is map) returns ValueWithUnits
@@ -511,8 +544,11 @@ export function rackRoot(form is map) returns ValueWithUnits
  * `centers` (see `rackToothCenters`), cut off at the face if they'd reach past it; beyond the first and last, it's cut
  * to the root. The roots are rounded as the form says (see `rackRootFilletRadius` and `relieveRackRoots`), which puts
  * arcs in the regions: a map `{ "mid" : Vector }` between two points is an arc through it, rather than a line.
+ *
+ * A partial rack's `stop` (or `undefined`) is a tooth (its `center`) after its teeth (or before them, unless it's
+ * `after`), past which nothing's cut: the face past it is left as it is, shaped like a tooth on its near side.
  */
-export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array) returns array
+export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array, stop) returns array
 {
     const root = rackRoot(form);
     const tip = min(form.module + form.offset, faceHeight);
@@ -529,12 +565,15 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
         {
             return vector(x, y - faceHeight);
         };
+    // With a stop, its tooth too, at the end it's at
+    const stopAfter = stop != undefined && stop.after;
+    const teeth = stop == undefined ? centers : stopAfter ? append(centers, stop.center) : concatenateArrays([[stop.center], centers]);
     var regions = [];
     if (tip < faceHeight)
     {
         // The teeth stop short of the face: one region, over them
         var points = [at(0 * meter, faceHeight), at(0 * meter, root)];
-        for (var center in centers)
+        for (var center in teeth)
         {
             points = concatenateArrays([points, [
                             at(center - rackHalfWidth(form, root), root),
@@ -543,20 +582,41 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
                             at(center + rackHalfWidth(form, root), root)
                         ]]);
         }
-        regions = [concatenateArrays([points, [at(length, root), at(length, faceHeight)]])];
+        points = concatenateArrays([points, [at(length, root), at(length, faceHeight)]]);
+        if (stopAfter)
+        {
+            // Up from the stop's near flank's tip to the face, and nothing past it
+            const flank = teeth[size(teeth) - 1] - rackHalfWidth(form, tip);
+            points = append(subArray(points, 0, size(points) - 4), at(flank, faceHeight));
+        }
+        else if (stop != undefined)
+        {
+            const flank = teeth[0] + rackHalfWidth(form, tip);
+            points = concatenateArrays([[at(flank, faceHeight)], subArray(points, 4)]);
+        }
+        regions = [points];
     }
     else
     {
         // The teeth reach the face: a region for each gap, between the ends and the teeth's flanks
         var top = at(0 * meter, faceHeight);
         var bottom = at(0 * meter, root);
-        for (var center in centers)
+        for (var center in teeth)
         {
             regions = append(regions, [top, bottom, at(center - rackHalfWidth(form, root), root), at(center - rackHalfWidth(form, tip), tip)]);
             top = at(center + rackHalfWidth(form, tip), tip);
             bottom = at(center + rackHalfWidth(form, root), root);
         }
         regions = append(regions, [top, bottom, at(length, root), at(length, faceHeight)]);
+        // Nothing's cut past the stop
+        if (stopAfter)
+        {
+            regions = resize(regions, size(regions) - 1);
+        }
+        else if (stop != undefined)
+        {
+            regions = subArray(regions, 1);
+        }
     }
     // A tooth whole to an end (within tolerance) leaves points on top of each other there
     regions = filter(mapArray(regions, region => distinctPoints(region)), region => size(region) >= 3);

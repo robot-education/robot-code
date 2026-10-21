@@ -301,7 +301,7 @@ def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0, fillet:
     context = evaluator.eval("newContext()")
     form = RACK_FORM.format(fillet=fillet, offset=offset_mm)
     centers = f"rackToothCenters({form}, {length_mm} * millimeter, 0 * meter)"
-    regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers})"
+    regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers}, undefined)"
     evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, {regions})', "gear/gearCommon.fs", context=context)
     return recorded_sketch(context, "profile")
 
@@ -318,6 +318,95 @@ def test_rack_teeth_fill_the_face_from_a_gap():
     assert all(c % pitch == pytest.approx(0.8 * pitch % pitch, abs=1e-12) for c in shifted)
     # Too short for a whole tooth, root and all
     assert rack_centers(2, 0) == []
+
+
+def rack_regions(length_mm: float, gap_mm: float, face_height: str = "1 * millimeter", offset_mm: float = 0.0, stop: str = "undefined"):
+    """A rack's cut regions (without root fillets), as lists of (x, y) in mm, and its teeth's centers."""
+    form = RACK_FORM.format(fillet=0, offset=offset_mm)
+    centers = rack_centers(length_mm, gap_mm, offset_mm)
+    centers_fs = "[" + ", ".join(f"{c} * meter" for c in centers) + "]"
+    regions = to_python(shared_evaluator().eval(
+        f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers_fs}, {stop})", "gear/gearCommon.fs"))
+    return [[(x * 1000, y * 1000) for x, y in region] for region in regions], [c * 1000 for c in centers]
+
+
+def inside(polygon, point) -> bool:
+    x, y = point
+    result = False
+    for (x1, y1), (x2, y2) in zip(polygon, polygon[1:] + polygon[:1]):
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+            result = not result
+    return result
+
+
+@pytest.mark.parametrize("length_mm", [10 * math.pi, 7.3, 12.9, 20.05, 31.4])
+@pytest.mark.parametrize("gap_mm", [0, 0.4, 1.1, 2.9])
+@pytest.mark.parametrize("face_height,offset_mm", [("1 * millimeter", 0), ("0 * meter", 0), ("1 * millimeter", -0.1)])
+def test_rack_leaves_no_partial_teeth(length_mm, gap_mm, face_height, offset_mm):
+    # Whatever its length and wherever it's lined up, the teeth are whole and a pitch apart, and past the first and
+    # last, it's cut to the root: just above the root, everything's cut but the teeth's roots
+    regions, centers = rack_regions(length_mm, gap_mm, face_height, offset_mm)
+    pitch = math.pi
+    half_root = pitch / 4 + offset_mm / math.cos(math.radians(20)) + (1.25 - offset_mm) * math.tan(math.radians(20))
+    assert centers and all(c - half_root >= -1e-9 and c + half_root <= length_mm + 1e-9 for c in centers)
+    assert all(b - a == pytest.approx(pitch) for a, b in zip(centers, centers[1:]))
+    face = 1 if face_height.startswith("1") else 0
+    y = -1.25 + offset_mm - face + 1e-6
+    for i in range(1, 400):
+        x = length_mm * i / 400
+        in_tooth = any(abs(x - c) < half_root - 1e-6 for c in centers)
+        near_corner = any(abs(abs(x - c) - half_root) < 1e-5 for c in centers)
+        if not near_corner:
+            assert any(inside(region, (x, y)) for region in regions) != in_tooth, f"at {x} mm"
+
+
+def test_partial_teeth_stop_at_a_count_or_a_point():
+    pitch = math.pi * 0.001
+    centers = "[" + ", ".join(f"{(k + 0.5) * pitch} * meter" for k in range(10)) + "]"
+
+    def partial(count: str, stop: str) -> dict:
+        return to_python(shared_evaluator().eval(
+            f"partialTeeth({centers}, {pitch} * meter, 1 * millimeter, {count}, {stop})", "gear/gearCommon.fs"))
+
+    # The first 3, and the 4th as the stop
+    three = partial("3", "undefined")
+    assert three["centers"] == pytest.approx([(k + 0.5) * pitch for k in range(3)])
+    assert three["stopCenter"] == pytest.approx(3.5 * pitch)
+    # As many as fit before the stop: the next tooth's root (1 mm from its center) at it or before it
+    stop = 4.5 * pitch - 0.001
+    assert len(partial("undefined", f"{stop} * meter")["centers"]) == 4
+    assert len(partial("undefined", f"{stop - 1e-6} * meter")["centers"]) == 3
+    # Whichever's fewer; and all of them, with no stop, if neither stops them
+    assert len(partial("2", f"{stop} * meter")["centers"]) == 2
+    everything = partial("20", "undefined")
+    assert len(everything["centers"]) == 10 and "stopCenter" not in everything
+
+
+@pytest.mark.parametrize("face_height,offset_mm", [("1 * millimeter", 0), ("1 * millimeter", -0.1)])
+def test_partial_rack_leaves_the_face_past_its_stop(face_height, offset_mm):
+    # Ten pitches long, stopping after four teeth: the fifth's near flank, and past it, nothing's cut
+    length = 10 * math.pi
+    centers = rack_centers(length, 0, offset_mm)
+    stop_center = centers[4]
+    kept = "[" + ", ".join(f"{c} * meter" for c in centers[:4]) + "]"
+    form = RACK_FORM.format(fillet=0, offset=offset_mm)
+    regions = to_python(shared_evaluator().eval(
+        f'rackCutRegions({form}, {face_height}, {length} * millimeter, {kept}, {{ "center" : {stop_center} * meter, "after" : true }})',
+        "gear/gearCommon.fs"))
+    points = [(x * 1000, y * 1000) for region in regions for x, y in region]
+    alpha = math.radians(20)
+    tip = 1 + offset_mm
+    near_tip = stop_center * 1000 - (math.pi / 4 + offset_mm / math.cos(alpha) - tip * math.tan(alpha))
+    assert max(x for x, _ in points) == pytest.approx(near_tip, abs=1e-9)
+    # A gap before each of the four teeth and after the last; or teeth stopping short of the face, one region
+    assert len(regions) == (5 if offset_mm == 0 else 1)
+    # The other way, from the end: before the stop, nothing's cut
+    kept = "[" + ", ".join(f"{c} * meter" for c in centers[6:]) + "]"
+    regions = to_python(shared_evaluator().eval(
+        f'rackCutRegions({form}, {face_height}, {length} * millimeter, {kept}, {{ "center" : {centers[5]} * meter, "after" : false }})',
+        "gear/gearCommon.fs"))
+    points = [(x * 1000, y * 1000) for region in regions for x, y in region]
+    assert min(x for x, _ in points) == pytest.approx(centers[5] * 1000 + (near_tip - centers[4] * 1000) * -1, abs=1e-9)
 
 
 @pytest.mark.parametrize("face_height", ["1 * millimeter", "0 * meter"])
@@ -451,6 +540,19 @@ def test_custom_pitch():
     assert gear_eval(f"pressureAngle({diametral}) / degree") == pytest.approx(25)
     assert gear_eval(f"gearModule({module}) / millimeter") == pytest.approx(1.5)
     assert gear_eval(f"gearModule({circular}) / millimeter") == pytest.approx(2)
+
+
+@pytest.mark.parametrize("definition,units", [
+    ('{ "pitch" : GearPitch.DP_20 }', "IMPERIAL"),
+    ('{ "pitch" : GearPitch.MODULE_0_8 }', "METRIC"),
+    ('{ "pitch" : GearPitch.CUSTOM, "customPitch" : CustomPitch.DIAMETRAL_PITCH }', "IMPERIAL"),
+    ('{ "pitch" : GearPitch.CUSTOM, "customPitch" : CustomPitch.MODULE }', "METRIC"),
+    # A circular pitch typed in inches, or in millimeters
+    ('{ "pitch" : GearPitch.CUSTOM, "customPitch" : CustomPitch.CIRCULAR_PITCH, "circularPitch" : 0.25 * inch }', "IMPERIAL"),
+    ('{ "pitch" : GearPitch.CUSTOM, "customPitch" : CustomPitch.CIRCULAR_PITCH, "circularPitch" : 5 * millimeter }', "METRIC"),
+])
+def test_values_are_shown_in_the_pitchs_units(definition, units):
+    assert gear_eval(f"pitchUnits({definition}) == UnitSystem.{units}") is True
 
 
 def test_nearest_gear_teeth():

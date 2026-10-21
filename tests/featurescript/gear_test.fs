@@ -51,15 +51,6 @@ export function testSpurMateHasAToothAtTheGearsGap()
     expectNear((turned / degree + 360) % 18, 0, 1e-6);
 }
 
-export function testEvenSectorsHaveAGapOnTheirAxis()
-{
-    const sector = gearMesh({ "gearType" : GearType.GEAR, "sector" : true, "sectorTeeth" : 4, "centerToCenterAdjustment" : 0 * meter }, MODULE, 20, 20);
-    expectNear(sector.toothPhase, 9 * degree, 1e-9 * degree);
-    // So their mate has a tooth pointing back at them
-    const mate = gearMatePlane(XY_PLANE, X_DIRECTION, sector);
-    expectNear(norm(mate.x + X_DIRECTION), 0, 1e-9);
-}
-
 export function testBevelMateSharesTheApex()
 {
     const pair = gearMesh({ "gearType" : GearType.BEVEL, "shaftAngle" : 90 * degree }, MODULE, 20, 20);
@@ -133,16 +124,6 @@ export function testRacksHaveNoEditingLogic()
     expectEqual(robotGearEditLogic(newContext(), newId(), {}, definition, true, {}, qNothing()), definition);
 }
 
-export function testSectorByAngleFitsWholeTeeth()
-{
-    // 20 teeth: one every 18 degrees, so 100 degrees fits 5, centered in it
-    const span = sectorSpan({ "start" : 0 * degree, "end" : 100 * degree }, 20);
-    expectEqual(span.teeth, 5);
-    expectNear(span.middle, 50 * degree, 1e-9 * degree);
-    // Exactly 90 degrees is 5 whole teeth
-    expectEqual(sectorSpan({ "start" : -45 * degree, "end" : 45 * degree }, 20).teeth, 5);
-}
-
 export function testRevolveAnglesAsStdRevolve()
 {
     const base = { "angle" : 90 * degree, "oppositeDirection" : false, "symmetric" : false, "hasStartBound" : false, "angleBack" : 30 * degree };
@@ -160,12 +141,11 @@ function bevelDefinition(mateTeeth is number, shaftAngle is ValueWithUnits, thic
 {
     return {
             "gearType" : GearType.BEVEL,
-            "unitSystem" : UnitSystem.IMPERIAL,
             "pitch" : GearPitch.DP_20,
             "mateTeeth" : mateTeeth,
             "shaftAngle" : shaftAngle,
             "thickness" : thickness,
-            "bevelForm" : simplified ? BevelForm.SIMPLIFIED : BevelForm.SPHERICAL_INVOLUTE,
+            "bevelProfile" : simplified ? BevelProfile.APPROXIMATE : BevelProfile.EXACT,
             "addProfileOffset" : false
         };
 }
@@ -322,7 +302,7 @@ export function testGleasonFaceConeIsParallelToItsMatesRootCone()
     expectNear(depths.faceAngle, atan(mate.dedendum / cones.gear.coneDistance), 1e-12 * degree);
     // Simplified, its tips' cone runs to its apex
     var simplified = definition;
-    simplified.bevelForm = BevelForm.SIMPLIFIED;
+    simplified.bevelProfile = BevelProfile.APPROXIMATE;
     const spur = bevelDepths(simplified, MODULE, 13, cones);
     expectNear(spur.faceAngle, atan(MODULE / cones.gear.coneDistance), 1e-12 * degree);
     expectNear(spur.dedendum, 1.25 * MODULE, 1e-12 * meter);
