@@ -12,8 +12,10 @@ This is the source of three things, which must agree:
   remove a released option id (as with enums stored in documents); add new ones.
 
 What each vendor makes, and its part numbers, come from FRCDesign's own Fasteners group (vendor/frcdesign-fasteners.json,
-a snapshot of its configurations): black oxide screws, McMaster-Carr's nuts, and black washers. Generic offers every
-length any vendor makes, without part numbers.
+a snapshot of its configurations): black oxide screws, McMaster-Carr's nuts, and black washers. The screws of vendors
+whose stores list them (`STORES`: WCP and AndyMark) come from their stores instead (vendor/stores.json, which
+`uv run python featurescripts/quickFastener/quickFastenerTables.py fetch` refreshes), since a store is current where
+the group may not be. Generic offers every length any vendor makes, without part numbers.
 
 Each part has one mate connector, where it seats: FRCDesign fastens a screw or nut to the top edge of the washer it
 sits on, or to the hole's own edge, so any washer goes under any screw or nut of its size.
@@ -37,6 +39,7 @@ from fs_cli.tables import Enum, inch, string
 
 FOLDER = pathlib.Path(__file__).parent
 SNAPSHOT = json.loads((FOLDER / "vendor" / "frcdesign-fasteners.json").read_text())
+STORES_SNAPSHOT = FOLDER / "vendor" / "stores.json"
 HOLE_SCAN = FOLDER / "quickFastenerHoleScan.fs"
 
 INCH = 0.0254
@@ -47,8 +50,8 @@ INCH = 0.0254
 
 FastenerVendor = Enum(
     "FastenerVendor",
-    ["GENERIC", "MCMASTER", "REV", "WCP"],
-    {"GENERIC": "Generic", "MCMASTER": "McMaster-Carr", "REV": "REV", "WCP": "WCP"},
+    ["GENERIC", "MCMASTER", "REV", "WCP", "ANDYMARK"],
+    {"GENERIC": "Generic", "MCMASTER": "McMaster-Carr", "REV": "REV", "WCP": "WCP", "ANDYMARK": "AndyMark"},
 )
 # FRCDesign's vendor codes
 VENDOR_CODES = {"MCM": "MCMASTER", "REV": "REV", "WCP": "WCP"}
@@ -128,12 +131,60 @@ def _vendor(part: dict) -> str:
     return VENDOR_CODES[code]
 
 
+# Vendors' Shopify stores, whose screws replace the group's: each store's vendor, and how its screws are titled
+STORES = {"wcproducts.com": "WCP", "andymark.com": "ANDYMARK"}
+_STORE_SCREWS = {
+    # `#10-32 x .375" L BHCS (Steel, Black Oxide) (50-Pack)`, or a Kraken's spares, `#4-40 x 1/4" BHCS (IP8, ...)`; not
+    # aluminum or ultra low profile ones, whose heads aren't standard
+    "WCP": re.compile(r'^(#\d+-\d+) x ([\d./]+)"? (?:L )?(BHCS|SHCS|FHCS) \((?:Steel, Black Oxide|IP\d+, [^)]*)\)'),
+    # `10-32 x 0.5 in. Button Head Cap Screw`, `1/4-20 x 2 in. Flat Head Cap Screw with Nylon Patch`
+    "ANDYMARK": re.compile(
+        r"^(\d+-\d+|1/4-20) x ([\d./]+) in\.? (?:Hex Drive )?"
+        r"(Button Head Cap Screw|Socket Head Cap Screw|Flat Head Cap Screw|Flat Head Socket Cap Screw)"
+        r"(?: Black Oxide)?( with Nylon(?: Thread Lock)? Patch)?$"
+    ),
+}
+_STORE_HEADS = {
+    "BHCS": "BUTTON",
+    "SHCS": "SOCKET",
+    "FHCS": "FLAT",
+    "Button Head Cap Screw": "BUTTON",
+    "Socket Head Cap Screw": "SOCKET",
+    "Flat Head Cap Screw": "FLAT",
+    "Flat Head Socket Cap Screw": "FLAT",
+}
+
+
+def _store_screws() -> dict[tuple[str, str, str], dict[Fraction, Stock]]:
+    """The screws each store sells in a size and head the catalog has: one per length, one without a thread lock patch
+    where it sells both."""
+    stocked: dict[tuple[str, str, str], dict[Fraction, tuple[bool, Stock]]] = {}
+    for product in json.loads(STORES_SNAPSHOT.read_text())["products"]:
+        vendor = STORES[product["store"]]
+        match = _STORE_SCREWS[vendor].match(product["title"])
+        if match is None:
+            continue
+        size, length, head, *patched = match.groups()
+        size = size if size.startswith("#") or size == "1/4-20" else "#" + size
+        if size not in SIZES_BY_NAME:
+            continue
+        key = (vendor, SIZES_BY_NAME[size].id, _STORE_HEADS[head])
+        has_patch = bool(patched and patched[0])
+        lengths = stocked.setdefault(key, {})
+        inches = parse_inches(length)
+        if inches not in lengths or lengths[inches][0] and not has_patch:
+            lengths[inches] = (has_patch, Stock(product["sku"], product["url"]))
+    return {key: {length: stock for length, (_, stock) in lengths.items()} for key, lengths in stocked.items()}
+
+
 def _stocked_screws() -> dict[tuple[str, str, str], dict[Fraction, Stock]]:
     stocked: dict[tuple[str, str, str], dict[Fraction, Stock]] = {}
     for part in SNAPSHOT["parts"]:
         if " Bolt (" not in part["name"]:
             continue
         vendor = _vendor(part)
+        if vendor in STORES.values():
+            continue
         for record in part["records"]:
             match = _SCREW.match(record["name"])
             assert match, record["name"]
@@ -142,6 +193,7 @@ def _stocked_screws() -> dict[tuple[str, str, str], dict[Fraction, Stock]]:
                 continue
             key = (vendor, SIZES_BY_NAME[size].id, HEAD_CODES[head])
             stocked.setdefault(key, {})[parse_inches(length)] = Stock(record["partNumber"], record.get("url"))
+    stocked.update(_store_screws())
     # Generic: every length anyone makes
     for (_, size, head), lengths in list(stocked.items()):
         generic = stocked.setdefault(("GENERIC", size, head), {})
@@ -647,3 +699,47 @@ def manifest() -> dict:
 
 
 EXPORTS = {"quickFastener.gen.json": json.dumps(manifest(), indent=2) + "\n"}
+
+
+# Refreshing vendor/stores.json, which only `fetch` does: `fs gen` runs this file without it, and makes no requests
+
+# Words in a screw's title, which keep the snapshot to what might be one
+_SCREW_WORDS = re.compile(r"BHCS|SHCS|FHCS|Cap Screw")
+
+
+def fetch_stores() -> None:
+    """Writes each store's products whose titles might be screws to vendor/stores.json, from Shopify's product list."""
+    import urllib.request
+
+    products = []
+    for store in STORES:
+        for page in range(1, 100):
+            url = f"https://{store}/products.json?limit=250&page={page}"
+            # Stores refuse Python's own user agent
+            request = urllib.request.Request(url, headers={"User-Agent": "robot-code quickFastenerTables.py fetch"})
+            with urllib.request.urlopen(request, timeout=60) as response:
+                listed = json.load(response)["products"]
+            if not listed:
+                break
+            for product in listed:
+                if _SCREW_WORDS.search(product["title"]) and product["variants"]:
+                    products.append(
+                        {
+                            "store": store,
+                            "title": product["title"],
+                            "sku": product["variants"][0]["sku"],
+                            "url": f"https://{store}/products/{product['handle']}",
+                        }
+                    )
+    products.sort(key=lambda product: (product["store"], product["sku"], product["title"]))
+    snapshot = {"source": "Each store's /products.json, by quickFastenerTables.py fetch", "products": products}
+    STORES_SNAPSHOT.write_text(json.dumps(snapshot, indent=1) + "\n")
+    print(f"Wrote {len(products)} products to {STORES_SNAPSHOT}.")
+
+
+if __name__ == "__main__":
+    import sys
+
+    if sys.argv[1:] != ["fetch"]:
+        sys.exit("Usage: python quickFastenerTables.py fetch")
+    fetch_stores()

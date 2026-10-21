@@ -1,0 +1,881 @@
+{
+ "source": "Each store's /products.json, by quickFastenerTables.py fetch",
+ "products": [
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.5 in. Socket Head Cap Screw",
+   "sku": "am-1002",
+   "url": "https://andymark.com/products/10-32-x-0-5-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 0.5 in. Socket Head Cap Screw",
+   "sku": "am-1002AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-0-5-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.625 in. Socket Head Cap Screw",
+   "sku": "am-1007",
+   "url": "https://andymark.com/products/10-32-x-0-625-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 2 in. Socket Head Cap Screw",
+   "sku": "am-1012",
+   "url": "https://andymark.com/products/1-4-20-x-2-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.125 in. Socket Head Cap Screw",
+   "sku": "am-1013",
+   "url": "https://andymark.com/products/10-32-x-1-125-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.5 in. Socket Head Cap Screw",
+   "sku": "am-1014",
+   "url": "https://andymark.com/products/10-32-x-1-5-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 1.5 in. Socket Head Cap Screw",
+   "sku": "am-1014AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-1-5-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M5-0.8 x 20 mm Socket Head Cap Screw",
+   "sku": "am-1020",
+   "url": "https://andymark.com/products/m5-0-8-x-20-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 10 mm Socket Head Cap Screw",
+   "sku": "am-1021",
+   "url": "https://andymark.com/products/m3-0-5-x-10-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 2.5 in. Socket Head Cap Screw",
+   "sku": "am-1024",
+   "url": "https://andymark.com/products/10-32-x-2-5-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 3 in. Socket Head Cap Screw",
+   "sku": "am-1030",
+   "url": "https://andymark.com/products/1-4-20-x-3-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 2.5 in Hex Drive Socket Head Cap Screw",
+   "sku": "am-1031",
+   "url": "https://andymark.com/products/1-4-20-x-2-5-in-hex-drive-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "4-40 x 0.375 in. Socket Head Cap Screw",
+   "sku": "am-1032",
+   "url": "https://andymark.com/products/4-40-x-0-375-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 0.5 in. Button Head Cap Screw",
+   "sku": "am-1039",
+   "url": "https://andymark.com/products/1-4-20-x-0-5-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.25 in. Socket Head Cap Screw",
+   "sku": "am-1041",
+   "url": "https://andymark.com/products/10-32-x-1-25-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 1.25 in. Socket Head Cap Screw",
+   "sku": "am-1041AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-1-25-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.75 in. Socket Head Cap Screw",
+   "sku": "am-1047",
+   "url": "https://andymark.com/products/10-32-x-0-75-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 0.75 in. Socket Head Cap Screw",
+   "sku": "am-1047AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-0-75-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.75 in. Socket Head Cap Screw",
+   "sku": "am-1048",
+   "url": "https://andymark.com/products/10-32-x-1-75-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 1.75 in. Socket Head Cap Screw",
+   "sku": "am-1048AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-1-75-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 2 in. Socket Head Cap Screw",
+   "sku": "am-1049",
+   "url": "https://andymark.com/products/10-32-x-2-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 2 in. Socket Head Cap Screw",
+   "sku": "am-1049AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-2-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 0.625 in. Hex Drive Socket Head Cap Screw",
+   "sku": "am-1053",
+   "url": "https://andymark.com/products/1-4-20-x-0-625-in-hex-drive-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1 in. Socket Head Cap Screw",
+   "sku": "am-1056",
+   "url": "https://andymark.com/products/10-32-x-1-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 1 in. Socket Head Cap Screw",
+   "sku": "am-1056AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-1-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 1.75 in. Hex Drive Socket Head Cap Screw",
+   "sku": "am-1058",
+   "url": "https://andymark.com/products/1-4-20-x-1-75-in-hex-drive-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 1.5 in. Button Head Cap Screw",
+   "sku": "am-1118",
+   "url": "https://andymark.com/products/1-4-20-x-1-5-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.625 in. Socket Head Cap Screw with Nylon Thread Lock Patch",
+   "sku": "am-1120",
+   "url": "https://andymark.com/products/10-32-x-0-625-in-socket-head-cap-screw-with-nylon-thread-lock-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 0.625 in. Socket Head Cap Screw with Nylon Thread Lock Patch",
+   "sku": "am-1120AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-0-625-in-socket-head-cap-screw-with-nylon-thread-lock-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 1.5 in. Socket Head Cap Screw",
+   "sku": "am-1131",
+   "url": "https://andymark.com/products/1-4-20-x-1-5-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "4-40 x 0.5 in. Socket Head Cap Screw",
+   "sku": "am-1136",
+   "url": "https://andymark.com/products/4-40-x-0-5-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.375 in. Socket Head Cap Screw",
+   "sku": "am-1154",
+   "url": "https://andymark.com/products/10-32-x-1-375-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 2.25 in. Socket Head Cap Screw",
+   "sku": "am-1156",
+   "url": "https://andymark.com/products/10-32-x-2-25-in-socket-head-cap-screw-2"
+  },
+  {
+   "store": "andymark.com",
+   "title": "Ships from Sydney - 10-32 x 2.25 in. Socket Head Cap Screw",
+   "sku": "am-1156AUS",
+   "url": "https://andymark.com/products/sydney-10-32-x-2-25-in-socket-head-cap-screw-2"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.75 in. Flat Head Cap Screw",
+   "sku": "am-1170",
+   "url": "https://andymark.com/products/10-32-x-0-75-in-flat-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 1.25 in. Button Head Cap Screw",
+   "sku": "am-1183",
+   "url": "https://andymark.com/products/1-4-20-x-1-25-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 55 mm Socket Head Cap Screw",
+   "sku": "am-1251",
+   "url": "https://andymark.com/products/m4-0-7-x-55-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.625 in. Flat Head Cap Screw",
+   "sku": "am-1252",
+   "url": "https://andymark.com/products/10-32-x-0-625-in-flat-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 6 mm Socket Head Cap Screw",
+   "sku": "am-1254",
+   "url": "https://andymark.com/products/m3-0-5-x-6-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 3.25 in. Socket Head Cap Screw",
+   "sku": "am-1258",
+   "url": "https://andymark.com/products/10-32-x-3-25-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.25 in. Button Head Cap Screw",
+   "sku": "am-1260",
+   "url": "https://andymark.com/products/10-32-x-1-25-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 10 mm Socket Head Cap Screw",
+   "sku": "am-1264",
+   "url": "https://andymark.com/products/m4-0-7-x-10-mm-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1 in. Flat Head Cap Screw",
+   "sku": "am-1324",
+   "url": "https://andymark.com/products/10-32-x-1-in-flat-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 1 in. Socket Head Cap Screw",
+   "sku": "am-1341",
+   "url": "https://andymark.com/products/1-4-20-x-1-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 5 mm Socket Head Cap Screw",
+   "sku": "am-1343",
+   "url": "https://andymark.com/products/m4-0-7-x-5-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.375 in. Socket Head Cap Screw",
+   "sku": "am-1359",
+   "url": "https://andymark.com/products/10-32-x-0-375-in-socket-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 14 mm Socket Head Cap Screw",
+   "sku": "am-1367",
+   "url": "https://andymark.com/products/m3-0-5-x-14-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 55 mm Socket Head Cap Screw",
+   "sku": "am-1379",
+   "url": "https://andymark.com/products/m3-0-5-x-55-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 2 in. Flat Head Cap Screw Black Oxide",
+   "sku": "am-1383",
+   "url": "https://andymark.com/products/10-32-x-2-in-flat-head-cap-screw-black-oxide"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1 in. Button Head Cap Screw",
+   "sku": "am-1396",
+   "url": "https://andymark.com/products/10-32-x-1-in-button-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 2.75 in. Socket Head Cap Screw",
+   "sku": "am-1397",
+   "url": "https://andymark.com/products/10-32-x-2-75-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 50 mm Socket Head Cap Screw",
+   "sku": "am-1401",
+   "url": "https://andymark.com/products/m4-0-7-x-50-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 3.5 in. Socket Head Cap Screw",
+   "sku": "am-1402",
+   "url": "https://andymark.com/products/10-32-x-3-5-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.5 in. Flat Head Cap Screw",
+   "sku": "am-1404",
+   "url": "https://andymark.com/products/10-32-x-0-5-in-flat-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M6-1 x 75 mm Socket Head Cap Screw",
+   "sku": "am-1417",
+   "url": "https://andymark.com/products/m6-1-0-x-75-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 1.75 in. Button Head Cap Screw",
+   "sku": "am-1420",
+   "url": "https://andymark.com/products/1-4-20-x-1-75-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 40 mm Socket Head Cap Screw",
+   "sku": "am-1422",
+   "url": "https://andymark.com/products/m4-0-7-x-40-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "4-40 x 0.75 in. Shoulder Socket Head Cap Screw",
+   "sku": "am-1423",
+   "url": "https://andymark.com/products/4-40-x-0-75-in-shoulder-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 35 mm Black Oxide Button Head Cap Screw",
+   "sku": "am-1441",
+   "url": "https://andymark.com/products/m4-0-7-x-35-mm-black-oxide-button-head-cap-screw-1"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 4 in. Flanged Hex Head Cap Screw (FHHCS)",
+   "sku": "am-1484",
+   "url": "https://andymark.com/products/10-32-x-4-in-fhhcs"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 8 mm Socket Head Cap Screw with Thread Patch",
+   "sku": "am-1500",
+   "url": "https://andymark.com/products/m3-0-5-x-8-mm-socket-head-cap-screw-with-thread-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.5 in. Hex Drive Flat Head Cap Screw with Nylon Patch",
+   "sku": "am-1505",
+   "url": "https://andymark.com/products/10-32-x-0-5-in-hex-drive-flat-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M8-1.25 x 80 mm Button Head Cap Screw",
+   "sku": "am-1510",
+   "url": "https://andymark.com/products/m8-1-25-x-80-mm-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.5 in. Button Head Cap Screw",
+   "sku": "am-1512",
+   "url": "https://andymark.com/products/10-32-x-0-5-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 0.375 in. Button Head Cap Screw",
+   "sku": "am-1520",
+   "url": "https://andymark.com/products/1-4-20-x-0-375-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 3 in. Socket Head Cap Screw",
+   "sku": "am-1522",
+   "url": "https://andymark.com/products/10-32-x-3-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.75 in. Hex Drive Button Head Cap Screw",
+   "sku": "am-1524",
+   "url": "https://andymark.com/products/10-32-x-0-75-in-hex-drive-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 1 in. Button Head Cap Screw",
+   "sku": "am-1525",
+   "url": "https://andymark.com/products/1-4-20-x-1-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 25 mm Socket Head Cap Screw",
+   "sku": "am-1532",
+   "url": "https://andymark.com/products/m4-0-7-x-25-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M4-0.7 x 30 mm Socket Head Cap Screw",
+   "sku": "am-1533",
+   "url": "https://andymark.com/products/m4-0-7-x-30-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.625 in. Button Head Cap Screw with Nylon Patch",
+   "sku": "am-1549",
+   "url": "https://andymark.com/products/10-32-x-0-625-in-button-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "6-32 x 0.625 in. Flat Head Socket Cap Screw",
+   "sku": "am-1570",
+   "url": "https://andymark.com/products/6-32-x-0-625-in-flat-head-socket-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 30 mm Socket Head Cap Screw",
+   "sku": "am-1578",
+   "url": "https://andymark.com/products/m3-0-5-x-30-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.75 in. Button Head Cap Screw",
+   "sku": "am-1584",
+   "url": "https://andymark.com/products/10-32-x-1-75-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "4-40 x 0.375 in. Flat Head Cap Screw with Nylon Patch",
+   "sku": "am-1586",
+   "url": "https://andymark.com/products/4-40-x-0-375-in-flat-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 3/8 in. Button Head Cap Screw with Nylon Patch",
+   "sku": "am-1588",
+   "url": "https://andymark.com/products/10-32-x-3-8-in-button-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-12 x 1.25 in. Self Piercing Hex Head Cap Screw",
+   "sku": "am-1592",
+   "url": "https://andymark.com/products/10-12-x-1-25-in-self-piercing-hex-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M5-0.8 x 50 mm Socket Head Cap Screw",
+   "sku": "am-1598",
+   "url": "https://andymark.com/products/m5-0-8-mm-x-50-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-12 x 1.5 in Self Piercing Hex Head Cap Screw",
+   "sku": "am-1654",
+   "url": "https://andymark.com/products/10-12-x-1-5-in-self-piercing-hex-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 2 in. Button Head Cap Screw",
+   "sku": "am-1655",
+   "url": "https://andymark.com/products/1-4-20-x-2-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "6-32 x 2.125 in. Socket Head Cap Screw",
+   "sku": "am-1657",
+   "url": "https://andymark.com/products/6-32-x-2-125-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 45 mm Socket Head Cap Screw",
+   "sku": "am-1659",
+   "url": "https://andymark.com/products/m3-0-5-x-45-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 35 mm Socket Head Cap Screw",
+   "sku": "am-1671",
+   "url": "https://andymark.com/products/m3-0-5-x-35-mm-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 0.75 in. Flat Head Cap Screw",
+   "sku": "am-1672",
+   "url": "https://andymark.com/products/1-4-20-x-0-75-in-flat-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 5 mm Socket Head Cap Screw with Nylon Patch",
+   "sku": "am-1675",
+   "url": "https://andymark.com/products/m3-0-5-x-5-mm-socket-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.5 in. Button Head Cap Screw with Nylon Patch",
+   "sku": "am-1676",
+   "url": "https://andymark.com/products/10-32-x-0-5-in-button-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "4-40 x 0.25 in. Button Head Cap Screw with Nylon Patch",
+   "sku": "am-1679",
+   "url": "https://andymark.com/products/4-40-x-0-25-in-button-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 0.625 in. Button Head Cap Screw",
+   "sku": "am-1681",
+   "url": "https://andymark.com/products/1-4-20-x-0-625-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "8-32 x 0.5 in. Button Head Cap Screw with Nylon Patch",
+   "sku": "am-1691",
+   "url": "https://andymark.com/products/8-32-x-0-5-in-button-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 2.5 in. Button Head Cap Screw",
+   "sku": "am-1695",
+   "url": "https://andymark.com/products/1-4-20-x-2-5-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 12 mm Socket Head Cap Screw with Nylon Patch",
+   "sku": "am-1706",
+   "url": "https://andymark.com/products/m3-0-5-x-12-mm-socket-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 2 in. Flat Head Cap Screw",
+   "sku": "am-1707",
+   "url": "https://andymark.com/products/1-4-20-x-2-in-flat-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 8 mm Flat Head Cap Screw",
+   "sku": "am-1723",
+   "url": "https://andymark.com/products/m3-0-5-x-8mm-flat-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 5 mm Zinc Flat Head Cap Screw with Nylon Patch",
+   "sku": "am-1724",
+   "url": "https://andymark.com/products/m3-0-5-x-5-mm-zinc-flat-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.5 in. Button Head Cap Screw",
+   "sku": "am-1730",
+   "url": "https://andymark.com/products/10-32-x-1-5-in-button-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.875 in. Socket Head Cap Screw with Nylon Patch",
+   "sku": "am-1737",
+   "url": "https://andymark.com/products/10-32-x-0-875-in-socket-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.5 in. Socket Head Cap Screw with Nylon Thread Lock Patch",
+   "sku": "am-1744",
+   "url": "https://andymark.com/products/10-32-x-0-500-in-socket-head-cap-screw-with-nylon-thread-lock-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.375 in. Socket Head Cap Screw with Nylon Patch",
+   "sku": "am-1745",
+   "url": "https://andymark.com/products/10-32-x-0-375-in-socket-head-cap-screw-with-nylon-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 14 mm Socket Head Cap Screw with Nylon Thread Lock Patch",
+   "sku": "am-1750",
+   "url": "https://andymark.com/products/m3-0-5-x-14-mm-socket-head-cap-screw-with-nylon-thread-lock-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.875 in. Socket Head Cap Screw",
+   "sku": "am-1753",
+   "url": "https://andymark.com/products/10-32-x-0-875-in-socket-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 0.75 in. Button Head Cap Screw",
+   "sku": "am-1754",
+   "url": "https://andymark.com/products/screw-bhcs-1-4-20-x-750-zinc"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1.500 in. Flat Head Cap Screw",
+   "sku": "am-1756",
+   "url": "https://andymark.com/products/10-32-x-1-500-in-flat-head-cap-screw"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 1 in. Socket Head Cap Screw with Nylon Thread Lock Patch",
+   "sku": "am-1763",
+   "url": "https://andymark.com/products/10-32-x-1-000-in-socket-head-cap-screw-with-nylon-thread-lock-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "M3-0.5 x 12 mm Flat Head Cap Screw",
+   "sku": "am-1765",
+   "url": "https://andymark.com/products/hardware-screw-fhsc-m3-0-5-x-12mm-steel-zinc-plated"
+  },
+  {
+   "store": "andymark.com",
+   "title": "10-32 x 0.25 in. Socket Head Cap Screw with Nylon Thread Lock Patch",
+   "sku": "am-1771",
+   "url": "https://andymark.com/products/10-32-x-250-in-socket-head-cap-screw-with-nylon-thread-lock-patch"
+  },
+  {
+   "store": "andymark.com",
+   "title": "1/4-20 x 3.25 in. Socket Head Cap Screw",
+   "sku": "am-3338",
+   "url": "https://andymark.com/products/1-4-20-x-3-25-in-socket-head-cap-screw"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .375\" L SHCS (Steel, Ultra Low Profile) (2-Pack)",
+   "sku": "WCP-0034",
+   "url": "https://wcproducts.com/products/wcp-0034"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .750\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0135",
+   "url": "https://wcproducts.com/products/wcp-0135"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#8-32 x .500\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0250",
+   "url": "https://wcproducts.com/products/wcp-0250"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .250\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0251",
+   "url": "https://wcproducts.com/products/wcp-0251"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .375\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0252",
+   "url": "https://wcproducts.com/products/wcp-0252"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .500\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0253",
+   "url": "https://wcproducts.com/products/wcp-0253"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.000\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0255",
+   "url": "https://wcproducts.com/products/wcp-0255"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.250\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0256",
+   "url": "https://wcproducts.com/products/wcp-0256"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.500\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0257",
+   "url": "https://wcproducts.com/products/wcp-0257"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.750\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0258",
+   "url": "https://wcproducts.com/products/wcp-0258"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.000\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0259",
+   "url": "https://wcproducts.com/products/wcp-0259"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.250\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0260",
+   "url": "https://wcproducts.com/products/wcp-0260"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.500\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0261",
+   "url": "https://wcproducts.com/products/wcp-0261"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.750\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0262",
+   "url": "https://wcproducts.com/products/wcp-0262"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 3.000\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0263",
+   "url": "https://wcproducts.com/products/wcp-0263"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .250\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0264",
+   "url": "https://wcproducts.com/products/wcp-0264"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .375\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0265",
+   "url": "https://wcproducts.com/products/wcp-0265"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .500\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0266",
+   "url": "https://wcproducts.com/products/wcp-0266"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.000\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0267",
+   "url": "https://wcproducts.com/products/wcp-0267"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.500\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0268",
+   "url": "https://wcproducts.com/products/wcp-0268"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.000\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0269",
+   "url": "https://wcproducts.com/products/wcp-0269"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.500\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0270",
+   "url": "https://wcproducts.com/products/wcp-0270"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 3.000\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-0271",
+   "url": "https://wcproducts.com/products/wcp-0271"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 3.500\" L SHCS (Steel, Black Oxide) (25-Pack)",
+   "sku": "WCP-0272",
+   "url": "https://wcproducts.com/products/wcp-0272"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 4.000\" L SHCS (Steel, Black Oxide) (25-Pack)",
+   "sku": "WCP-0273",
+   "url": "https://wcproducts.com/products/wcp-0273"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 4.500\" L SHCS (Steel, Black Oxide) (25-Pack)",
+   "sku": "WCP-0274",
+   "url": "https://wcproducts.com/products/wcp-0274"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 5.000\" L SHCS (Steel, Black Oxide) (25-Pack)",
+   "sku": "WCP-0275",
+   "url": "https://wcproducts.com/products/wcp-0275"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .875\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-1463",
+   "url": "https://wcproducts.com/products/wcp-1463"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#8-32 x .250\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-1548",
+   "url": "https://wcproducts.com/products/wcp-1548"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.750\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-1549",
+   "url": "https://wcproducts.com/products/wcp-1549"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 4.750 L BHCS (Steel, Black Oxide) (25-Pack)",
+   "sku": "WCP-1656",
+   "url": "https://wcproducts.com/products/wcp-1656"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .250\" L BHCS (Aluminum, Anodized) (25-Pack)",
+   "sku": "WCP-2110",
+   "url": "https://wcproducts.com/products/wcp-2110"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .375\" L BHCS (Aluminum, Anodized) (25-Pack)",
+   "sku": "WCP-2111",
+   "url": "https://wcproducts.com/products/wcp-2111"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .500\" L BHCS (Aluminum, Anodized) (25-Pack)",
+   "sku": "WCP-2112",
+   "url": "https://wcproducts.com/products/wcp-2112"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#8-32 x 1.000\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2249",
+   "url": "https://wcproducts.com/products/wcp-2249"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#6-32 x 1/4\" BHCS (IP10, Kraken Power Terminal & PowerPole Adapter Board) (25-Pack)",
+   "sku": "WCP-2353",
+   "url": "https://wcproducts.com/products/wcp-2353"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#4-40 x 1/4\" BHCS (IP8, Kraken CAN Terminal) (25-Pack)",
+   "sku": "WCP-2354",
+   "url": "https://wcproducts.com/products/wcp-2354"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#4-40 x 3/8\" BHCS (IP10, Kraken CAN PowerPole Adapter Board) (25-Pack)",
+   "sku": "WCP-2355",
+   "url": "https://wcproducts.com/products/wcp-2355"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#4-40 x 3/4\" BHCS (IP8, Kraken Terminal Cover) (25-Pack)",
+   "sku": "WCP-2356",
+   "url": "https://wcproducts.com/products/wcp-2356"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#4-40 x 3/4\" BHCS (IP10, Kraken PowerPole Adapter Board Cover) (25-Pack)",
+   "sku": "WCP-2357",
+   "url": "https://wcproducts.com/products/wcp-2357"
+  }
+ ]
+}

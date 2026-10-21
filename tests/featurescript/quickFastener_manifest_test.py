@@ -27,13 +27,40 @@ def test_hole_scan_needs_its_signature():
         DEFINITION["hole_scan_lambda"]("export function other() {}\n")
 
 
+def test_store_screws_replace_the_snapshots():
+    screws = DEFINITION["SCREWS"]
+    wcp_button = screws[("WCP", "NO_10_32", "BUTTON")]
+    # The group's 3/4 in. is WCP-0254, which WCP no longer lists
+    assert wcp_button[Fraction(3, 4)].part_number == "WCP-0135"
+    assert wcp_button[Fraction(3, 4)].url == "https://wcproducts.com/products/wcp-0135"
+    # Sizes the group has none of from WCP, and none of its aluminum or ultra low profile screws
+    assert screws[("WCP", "NO_8_32", "BUTTON")][Fraction(1, 2)].part_number == "WCP-0250"
+    assert ("WCP", "NO_10_32", "FLAT") not in screws
+    assert screws[("ANDYMARK", "QUARTER_20", "BUTTON")][Fraction(1)].part_number == "am-1525"
+
+
+def test_a_store_screw_without_a_thread_lock_patch_is_preferred():
+    # AndyMark sells #10-32 x 1/2 in. socket heads with (am-1744) and without (am-1002) one
+    assert DEFINITION["SCREWS"][("ANDYMARK", "NO_10_32", "SOCKET")][Fraction(1, 2)].part_number == "am-1002"
+
+
+def test_store_titles_parse():
+    wcp, andymark = DEFINITION["_STORE_SCREWS"]["WCP"], DEFINITION["_STORE_SCREWS"]["ANDYMARK"]
+    assert wcp.match('#10-32 x 4.750 L BHCS (Steel, Black Oxide) (25-Pack)').groups() == ("#10-32", "4.750", "BHCS")
+    assert wcp.match('#4-40 x 1/4" BHCS (IP8, Kraken CAN Terminal) (25-Pack)').groups() == ("#4-40", "1/4", "BHCS")
+    assert wcp.match('#10-32 x .250" L BHCS (Aluminum, Anodized) (25-Pack)') is None
+    assert wcp.match('#10-32 x .375" L SHCS (Steel, Ultra Low Profile) (2-Pack)') is None
+    patched = andymark.match("10-32 x 3/8 in. Button Head Cap Screw with Nylon Patch")
+    assert patched.groups() == ("10-32", "3/8", "Button Head Cap Screw", " with Nylon Patch")
+    assert andymark.match("1/4-20 x 1 in. Pan Head Phillips Screw") is None
+
+
 def test_screws_come_from_the_snapshot():
     screws = DEFINITION["SCREWS"]
     rev_button = screws[("REV", "NO_10_32", "BUTTON")]
     assert rev_button[Fraction(3, 8)].part_number == "REV-29-2941-PK50"
-    # WCP makes no flat heads, and REV and WCP only #10-32
-    assert ("WCP", "NO_10_32", "FLAT") not in screws
-    assert {size for vendor, size, _ in screws if vendor in ("REV", "WCP")} == {"NO_10_32"}
+    # REV only makes #10-32
+    assert {size for vendor, size, _ in screws if vendor == "REV"} == {"NO_10_32"}
     # Generic makes every length anyone does, without part numbers
     generic = screws[("GENERIC", "NO_10_32", "BUTTON")]
     assert set(rev_button) <= set(generic)

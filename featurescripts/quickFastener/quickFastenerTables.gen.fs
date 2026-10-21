@@ -12,7 +12,9 @@ export enum FastenerVendor
     annotation { "Name" : "REV" }
     REV,
     annotation { "Name" : "WCP" }
-    WCP
+    WCP,
+    annotation { "Name" : "AndyMark" }
+    ANDYMARK
 }
 
 export enum FastenerSize
@@ -87,6 +89,8 @@ export enum ScrewLength
     IN_1_875,
     annotation { "Name" : "2 in." }
     IN_2,
+    annotation { "Name" : "2-1/8 in." }
+    IN_2_125,
     annotation { "Name" : "2-1/4 in." }
     IN_2_25,
     annotation { "Name" : "2-3/8 in." }
@@ -245,6 +249,7 @@ export const SCREW_LENGTHS = {
             ScrewLength.IN_1_75 : { "length" : 1.75 * inch, "name" : "1-3/4 in." },
             ScrewLength.IN_1_875 : { "length" : 1.875 * inch, "name" : "1-7/8 in." },
             ScrewLength.IN_2 : { "length" : 2 * inch, "name" : "2 in." },
+            ScrewLength.IN_2_125 : { "length" : 2.125 * inch, "name" : "2-1/8 in." },
             ScrewLength.IN_2_25 : { "length" : 2.25 * inch, "name" : "2-1/4 in." },
             ScrewLength.IN_2_375 : { "length" : 2.375 * inch, "name" : "2-3/8 in." },
             ScrewLength.IN_2_5 : { "length" : 2.5 * inch, "name" : "2-1/2 in." },
@@ -366,6 +371,7 @@ export const SCREWS = {
                     ScrewLength.IN_1_75 : {},
                     ScrewLength.IN_1_875 : {},
                     ScrewLength.IN_2 : {},
+                    ScrewLength.IN_2_125 : {},
                     ScrewLength.IN_2_25 : {},
                     ScrewLength.IN_2_5 : {},
                     ScrewLength.IN_2_75 : {},
@@ -519,6 +525,7 @@ export const SCREWS = {
                     ScrewLength.IN_2_5 : {},
                     ScrewLength.IN_2_75 : {},
                     ScrewLength.IN_3 : {},
+                    ScrewLength.IN_3_25 : {},
                     ScrewLength.IN_3_5 : {},
                     ScrewLength.IN_3_75 : {},
                     ScrewLength.IN_4 : {},
@@ -1133,6 +1140,27 @@ export const SCREWS = {
             }
         },
         FastenerVendor.WCP : {
+            FastenerSize.NO_4_40 : {
+                ScrewHead.BUTTON : {
+                    ScrewLength.IN_0_25 : { "partNumber" : "WCP-2354", "url" : "https://wcproducts.com/products/wcp-2354" },
+                    ScrewLength.IN_0_375 : { "partNumber" : "WCP-2355", "url" : "https://wcproducts.com/products/wcp-2355" },
+                    ScrewLength.IN_0_75 : { "partNumber" : "WCP-2356", "url" : "https://wcproducts.com/products/wcp-2356" }
+                }
+            },
+            FastenerSize.NO_6_32 : {
+                ScrewHead.BUTTON : {
+                    ScrewLength.IN_0_25 : { "partNumber" : "WCP-2353", "url" : "https://wcproducts.com/products/wcp-2353" }
+                }
+            },
+            FastenerSize.NO_8_32 : {
+                ScrewHead.SOCKET : {
+                    ScrewLength.IN_1 : { "partNumber" : "WCP-2249", "url" : "https://wcproducts.com/products/wcp-2249" }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewLength.IN_0_25 : { "partNumber" : "WCP-1548", "url" : "https://wcproducts.com/products/wcp-1548" },
+                    ScrewLength.IN_0_5 : { "partNumber" : "WCP-0250", "url" : "https://wcproducts.com/products/wcp-0250" }
+                }
+            },
             FastenerSize.NO_10_32 : {
                 ScrewHead.SOCKET : {
                     ScrewLength.IN_0_25 : { "partNumber" : "WCP-0264", "url" : "https://wcproducts.com/products/wcp-0264" },
@@ -1153,7 +1181,7 @@ export const SCREWS = {
                     ScrewLength.IN_0_25 : { "partNumber" : "WCP-0251", "url" : "https://wcproducts.com/products/wcp-0251" },
                     ScrewLength.IN_0_375 : { "partNumber" : "WCP-0252", "url" : "https://wcproducts.com/products/wcp-0252" },
                     ScrewLength.IN_0_5 : { "partNumber" : "WCP-0253", "url" : "https://wcproducts.com/products/wcp-0253" },
-                    ScrewLength.IN_0_75 : { "partNumber" : "WCP-0254", "url" : "https://wcproducts.com/products/wcp-0254" },
+                    ScrewLength.IN_0_75 : { "partNumber" : "WCP-0135", "url" : "https://wcproducts.com/products/wcp-0135" },
                     ScrewLength.IN_0_875 : { "partNumber" : "WCP-1463", "url" : "https://wcproducts.com/products/wcp-1463" },
                     ScrewLength.IN_1 : { "partNumber" : "WCP-0255", "url" : "https://wcproducts.com/products/wcp-0255" },
                     ScrewLength.IN_1_25 : { "partNumber" : "WCP-0256", "url" : "https://wcproducts.com/products/wcp-0256" },
@@ -1165,6 +1193,102 @@ export const SCREWS = {
                     ScrewLength.IN_2_75 : { "partNumber" : "WCP-0262", "url" : "https://wcproducts.com/products/wcp-0262" },
                     ScrewLength.IN_3 : { "partNumber" : "WCP-0263", "url" : "https://wcproducts.com/products/wcp-0263" },
                     ScrewLength.IN_4_75 : { "partNumber" : "WCP-1656", "url" : "https://wcproducts.com/products/wcp-1656" }
+                }
+            }
+        },
+        FastenerVendor.ANDYMARK : {
+            FastenerSize.NO_4_40 : {
+                ScrewHead.SOCKET : {
+                    ScrewLength.IN_0_375 : { "partNumber" : "am-1032", "url" : "https://andymark.com/products/4-40-x-0-375-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_0_5 : { "partNumber" : "am-1136", "url" : "https://andymark.com/products/4-40-x-0-5-in-socket-head-cap-screw" }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewLength.IN_0_25 : { "partNumber" : "am-1679", "url" : "https://andymark.com/products/4-40-x-0-25-in-button-head-cap-screw-with-nylon-patch" }
+                },
+                ScrewHead.FLAT : {
+                    ScrewLength.IN_0_375 : { "partNumber" : "am-1586", "url" : "https://andymark.com/products/4-40-x-0-375-in-flat-head-cap-screw-with-nylon-patch" }
+                }
+            },
+            FastenerSize.NO_6_32 : {
+                ScrewHead.SOCKET : {
+                    ScrewLength.IN_2_125 : { "partNumber" : "am-1657", "url" : "https://andymark.com/products/6-32-x-2-125-in-socket-head-cap-screw" }
+                },
+                ScrewHead.FLAT : {
+                    ScrewLength.IN_0_625 : { "partNumber" : "am-1570", "url" : "https://andymark.com/products/6-32-x-0-625-in-flat-head-socket-cap-screw" }
+                }
+            },
+            FastenerSize.NO_8_32 : {
+                ScrewHead.BUTTON : {
+                    ScrewLength.IN_0_5 : { "partNumber" : "am-1691", "url" : "https://andymark.com/products/8-32-x-0-5-in-button-head-cap-screw-with-nylon-patch" }
+                }
+            },
+            FastenerSize.NO_10_32 : {
+                ScrewHead.SOCKET : {
+                    ScrewLength.IN_0_25 : { "partNumber" : "am-1771", "url" : "https://andymark.com/products/10-32-x-250-in-socket-head-cap-screw-with-nylon-thread-lock-patch" },
+                    ScrewLength.IN_0_375 : { "partNumber" : "am-1359", "url" : "https://andymark.com/products/10-32-x-0-375-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_0_5 : { "partNumber" : "am-1002", "url" : "https://andymark.com/products/10-32-x-0-5-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_0_625 : { "partNumber" : "am-1007", "url" : "https://andymark.com/products/10-32-x-0-625-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_0_75 : { "partNumber" : "am-1047", "url" : "https://andymark.com/products/10-32-x-0-75-in-socket-head-cap-screw" },
+                    ScrewLength.IN_0_875 : { "partNumber" : "am-1753", "url" : "https://andymark.com/products/10-32-x-0-875-in-socket-head-cap-screw" },
+                    ScrewLength.IN_1 : { "partNumber" : "am-1056", "url" : "https://andymark.com/products/10-32-x-1-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_1_125 : { "partNumber" : "am-1013", "url" : "https://andymark.com/products/10-32-x-1-125-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_1_25 : { "partNumber" : "am-1041", "url" : "https://andymark.com/products/10-32-x-1-25-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_1_375 : { "partNumber" : "am-1154", "url" : "https://andymark.com/products/10-32-x-1-375-in-socket-head-cap-screw" },
+                    ScrewLength.IN_1_5 : { "partNumber" : "am-1014", "url" : "https://andymark.com/products/10-32-x-1-5-in-socket-head-cap-screw" },
+                    ScrewLength.IN_1_75 : { "partNumber" : "am-1048", "url" : "https://andymark.com/products/10-32-x-1-75-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_2 : { "partNumber" : "am-1049", "url" : "https://andymark.com/products/10-32-x-2-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_2_25 : { "partNumber" : "am-1156", "url" : "https://andymark.com/products/10-32-x-2-25-in-socket-head-cap-screw-2" },
+                    ScrewLength.IN_2_5 : { "partNumber" : "am-1024", "url" : "https://andymark.com/products/10-32-x-2-5-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_2_75 : { "partNumber" : "am-1397", "url" : "https://andymark.com/products/10-32-x-2-75-in-socket-head-cap-screw" },
+                    ScrewLength.IN_3 : { "partNumber" : "am-1522", "url" : "https://andymark.com/products/10-32-x-3-in-socket-head-cap-screw" },
+                    ScrewLength.IN_3_25 : { "partNumber" : "am-1258", "url" : "https://andymark.com/products/10-32-x-3-25-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_3_5 : { "partNumber" : "am-1402", "url" : "https://andymark.com/products/10-32-x-3-5-in-socket-head-cap-screw" }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewLength.IN_0_375 : { "partNumber" : "am-1588", "url" : "https://andymark.com/products/10-32-x-3-8-in-button-head-cap-screw-with-nylon-patch" },
+                    ScrewLength.IN_0_5 : { "partNumber" : "am-1512", "url" : "https://andymark.com/products/10-32-x-0-5-in-button-head-cap-screw" },
+                    ScrewLength.IN_0_625 : { "partNumber" : "am-1549", "url" : "https://andymark.com/products/10-32-x-0-625-in-button-head-cap-screw-with-nylon-patch" },
+                    ScrewLength.IN_0_75 : { "partNumber" : "am-1524", "url" : "https://andymark.com/products/10-32-x-0-75-in-hex-drive-button-head-cap-screw" },
+                    ScrewLength.IN_1 : { "partNumber" : "am-1396", "url" : "https://andymark.com/products/10-32-x-1-in-button-head-cap-screw-1" },
+                    ScrewLength.IN_1_25 : { "partNumber" : "am-1260", "url" : "https://andymark.com/products/10-32-x-1-25-in-button-head-cap-screw" },
+                    ScrewLength.IN_1_5 : { "partNumber" : "am-1730", "url" : "https://andymark.com/products/10-32-x-1-5-in-button-head-cap-screw" },
+                    ScrewLength.IN_1_75 : { "partNumber" : "am-1584", "url" : "https://andymark.com/products/10-32-x-1-75-in-button-head-cap-screw" }
+                },
+                ScrewHead.FLAT : {
+                    ScrewLength.IN_0_5 : { "partNumber" : "am-1404", "url" : "https://andymark.com/products/10-32-x-0-5-in-flat-head-cap-screw" },
+                    ScrewLength.IN_0_625 : { "partNumber" : "am-1252", "url" : "https://andymark.com/products/10-32-x-0-625-in-flat-head-cap-screw" },
+                    ScrewLength.IN_0_75 : { "partNumber" : "am-1170", "url" : "https://andymark.com/products/10-32-x-0-75-in-flat-head-cap-screw" },
+                    ScrewLength.IN_1 : { "partNumber" : "am-1324", "url" : "https://andymark.com/products/10-32-x-1-in-flat-head-cap-screw-1" },
+                    ScrewLength.IN_1_5 : { "partNumber" : "am-1756", "url" : "https://andymark.com/products/10-32-x-1-500-in-flat-head-cap-screw" },
+                    ScrewLength.IN_2 : { "partNumber" : "am-1383", "url" : "https://andymark.com/products/10-32-x-2-in-flat-head-cap-screw-black-oxide" }
+                }
+            },
+            FastenerSize.QUARTER_20 : {
+                ScrewHead.SOCKET : {
+                    ScrewLength.IN_0_625 : { "partNumber" : "am-1053", "url" : "https://andymark.com/products/1-4-20-x-0-625-in-hex-drive-socket-head-cap-screw" },
+                    ScrewLength.IN_1 : { "partNumber" : "am-1341", "url" : "https://andymark.com/products/1-4-20-x-1-in-socket-head-cap-screw" },
+                    ScrewLength.IN_1_5 : { "partNumber" : "am-1131", "url" : "https://andymark.com/products/1-4-20-x-1-5-in-socket-head-cap-screw" },
+                    ScrewLength.IN_1_75 : { "partNumber" : "am-1058", "url" : "https://andymark.com/products/1-4-20-x-1-75-in-hex-drive-socket-head-cap-screw" },
+                    ScrewLength.IN_2 : { "partNumber" : "am-1012", "url" : "https://andymark.com/products/1-4-20-x-2-in-socket-head-cap-screw" },
+                    ScrewLength.IN_2_5 : { "partNumber" : "am-1031", "url" : "https://andymark.com/products/1-4-20-x-2-5-in-hex-drive-socket-head-cap-screw" },
+                    ScrewLength.IN_3 : { "partNumber" : "am-1030", "url" : "https://andymark.com/products/1-4-20-x-3-in-socket-head-cap-screw-1" },
+                    ScrewLength.IN_3_25 : { "partNumber" : "am-3338", "url" : "https://andymark.com/products/1-4-20-x-3-25-in-socket-head-cap-screw" }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewLength.IN_0_375 : { "partNumber" : "am-1520", "url" : "https://andymark.com/products/1-4-20-x-0-375-in-button-head-cap-screw" },
+                    ScrewLength.IN_0_5 : { "partNumber" : "am-1039", "url" : "https://andymark.com/products/1-4-20-x-0-5-in-button-head-cap-screw" },
+                    ScrewLength.IN_0_625 : { "partNumber" : "am-1681", "url" : "https://andymark.com/products/1-4-20-x-0-625-in-button-head-cap-screw" },
+                    ScrewLength.IN_0_75 : { "partNumber" : "am-1754", "url" : "https://andymark.com/products/screw-bhcs-1-4-20-x-750-zinc" },
+                    ScrewLength.IN_1 : { "partNumber" : "am-1525", "url" : "https://andymark.com/products/1-4-20-x-1-in-button-head-cap-screw" },
+                    ScrewLength.IN_1_25 : { "partNumber" : "am-1183", "url" : "https://andymark.com/products/1-4-20-x-1-25-in-button-head-cap-screw" },
+                    ScrewLength.IN_1_5 : { "partNumber" : "am-1118", "url" : "https://andymark.com/products/1-4-20-x-1-5-in-button-head-cap-screw" },
+                    ScrewLength.IN_1_75 : { "partNumber" : "am-1420", "url" : "https://andymark.com/products/1-4-20-x-1-75-in-button-head-cap-screw" },
+                    ScrewLength.IN_2 : { "partNumber" : "am-1655", "url" : "https://andymark.com/products/1-4-20-x-2-in-button-head-cap-screw" },
+                    ScrewLength.IN_2_5 : { "partNumber" : "am-1695", "url" : "https://andymark.com/products/1-4-20-x-2-5-in-button-head-cap-screw" }
+                },
+                ScrewHead.FLAT : {
+                    ScrewLength.IN_0_75 : { "partNumber" : "am-1672", "url" : "https://andymark.com/products/1-4-20-x-0-75-in-flat-head-cap-screw" },
+                    ScrewLength.IN_2 : { "partNumber" : "am-1707", "url" : "https://andymark.com/products/1-4-20-x-2-in-flat-head-cap-screw" }
                 }
             }
         }

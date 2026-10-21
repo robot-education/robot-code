@@ -5,7 +5,8 @@
 The screws, washers, and nuts FRCDesign's Quick fastener inserts into assemblies: `quickFastenerScrew`,
 `quickFastenerWasher`, and `quickFastenerNut`, each built in a Part Studio of its own whose configuration sets every
 parameter. Files: `quickFastener.fs` (the features), `quickFastenerTables.py` (the catalog, from FRCDesign's Fasteners
-group in `vendor/frcdesign-fasteners.json`: the enums and data in `quickFastenerTables.gen.fs`, the Part Studios'
+group in `vendor/frcdesign-fasteners.json`, with WCP's and AndyMark's screws from their stores in `vendor/stores.json`,
+refreshed by `uv run python featurescripts/quickFastener/quickFastenerTables.py fetch`: the enums and data in `quickFastenerTables.gen.fs`, the Part Studios'
 configurations, and FRCDesign's manifest `quickFastener.gen.json`), and `quickFastenerHoleScan.fs` (what FRCDesign
 evaluates in the Part Studios of the parts it fastens).
 
