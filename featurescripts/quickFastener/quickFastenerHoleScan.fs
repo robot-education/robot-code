@@ -16,8 +16,9 @@ import(path : "onshape/std/common.fs", version : "2960.0");
  * @returns {{
  *      @field parts {map} : By part id, its `holes`: each cylindrical hole's `origin` and `direction` (its axis), its
  *              `radius`, its `start` and `end` along the axis from `origin`, whether each end is `closedAtStart` or
- *              `closedAtEnd` (the part goes on past it, as at the bottom of a blind hole), and `threaded` with its
- *              `majorDiameter` if a Hole feature tapped it.
+ *              `closedAtEnd` (the part goes on past it, as at the bottom of a blind hole), its circular `edges` (each
+ *              `id`, and where it is along the axis, `at`), and `threaded` with its `majorDiameter` if a Hole feature
+ *              tapped it.
  *      @field circles {array} : Each selected circle, and each circle bounding a selected face: its `id`, its `partId`,
  *              its `center`, `radius`, and `normal` (out of the part, along the hole), and `faceId` if it came from a
  *              selected face.
@@ -61,8 +62,17 @@ export function quickFastenerHoleScan(context is Context, queries is map) return
             const closedAtStart = !isQueryEmpty(context, qContainsPoint(body, axis.origin + axis.zAxis * (start - probe)));
             const closedAtEnd = !isQueryEmpty(context, qContainsPoint(body, axis.origin + axis.zAxis * (end + probe)));
 
+            // Its circular edges, by where they are along the axis: a nut or a screw is fastened to one
+            var edges = [];
+            for (var edge in evaluateQuery(context, qAdjacent(face, AdjacencyType.EDGE, EntityType.EDGE)->qGeometry(GeometryType.CIRCLE)))
+            {
+                const center = evCurveDefinition(context, { "edge" : edge }).coordSystem.origin;
+                edges = append(edges, { "id" : idOf(edge), "at" : dot(center - axis.origin, axis.zAxis) / meter });
+            }
+
             var hole = {
                 "faceId" : idOf(face),
+                "edges" : edges,
                 "origin" : toMeters(axis.origin),
                 "direction" : toArray(axis.zAxis),
                 "radius" : cylinder.radius / meter,
