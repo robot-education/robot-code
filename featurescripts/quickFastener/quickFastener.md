@@ -68,5 +68,10 @@ There are no `try`s.
 
 ## Issues found
 
-- Untried in Onshape: the geometry, the mate connectors' placement, and `quickFastenerHoleScan`'s evaluation.
+- Tried in Onshape (FeatureScript 3095, in a scratch Part Studio, not yet in the released studios): each kind of
+  screw, washer, and nut regenerates as one part with its mate connector at the origin pointing up, named, and with
+  its part number; and `quickFastenerHoleScan` reports a plate's through and blind holes, and the circles of a
+  selected face, whose ids `qTransient` finds again. That found `qOwnerBody` passed to `transientQueriesToStrings`,
+  which only names transient queries, so the scan failed whenever anything was selected; it now names the evaluated
+  body.
 - Nut heights for thin nylock, thin hex, and #4-40 nuts are nominal guesses, not from McMaster-Carr's drawings.

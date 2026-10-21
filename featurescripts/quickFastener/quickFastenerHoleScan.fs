@@ -109,7 +109,8 @@ export function quickFastenerHoleScan(context is Context, queries is map) return
             }
             var circle = {
                 "id" : idOf(edge),
-                "partId" : idOf(qOwnerBody(edge)),
+                // An owner query isn't transient: its one body is
+                "partId" : idOf(evaluateQuery(context, qOwnerBody(edge))[0]),
                 "center" : toMeters(curve.coordSystem.origin),
                 "radius" : curve.radius / meter,
                 "normal" : toArray(normal)
