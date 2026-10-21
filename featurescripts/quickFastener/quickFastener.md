@@ -53,11 +53,10 @@ diameter) up from the origin, add the mate connector, and name the part.
 
 Nothing is threaded, and nylock nuts have no nylon insert: the parts are for fit and clearance.
 
-`quickFastenerHoleScan` isn't a feature: FRCDesign evaluates its body as a lambda, so it uses only std's common.fs.
-It reports each solid part's cylindrical faces which face their axis (holes), with their extent along it, their
-circular edges, whether
-the part goes on past each end, and a Hole feature's thread; and each selected circular edge (or circular edge of a
-selected face), with the normal of the plane beside it.
+`quickFastenerHoleScan` isn't a feature: FRCDesign evaluates its body as a lambda, so it uses only std's common.fs. It
+reports each solid part's cylindrical faces which face their axis (holes), with their extent along it, their circular
+edges, whether the part goes on past each end, and a Hole feature's thread; and each selected circular edge (or circular
+edge of a selected face), with the normal of the plane beside it.
 
 There are no `try`s.
 
