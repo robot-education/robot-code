@@ -73,15 +73,24 @@ fall back to the standard: a washer's finish with `made`, and a screw's thread w
 `fastenerScrew`:
 
 1. Revolves its profile (`screwProfile`, in `PROFILE_PLANE`) a full turn about Z. A socket or button head is above the
-   origin, from its underside; a flat head is below it, its top flush with the origin, and its length includes it. A
-   button head's dome is an arc (`buttonDome`) from the axis to the head's edge, a quarter of its height up.
-2. Cuts a hex socket, `SOCKET_DEPTH` of the head's height deep, from the top of the head.
-3. Adds the mate connector, then deletes the sketches and names the part.
+   origin, from its underside; a flat head is below it, its top flush with the origin, and its length includes it. The
+   proportions are McMaster-Carr's models': every tip has a 45 degree chamfer (`tipChamfer`), a socket head a 45 degree
+   chamfer around its top, a flat head a short band above its cone (`flatHeadDepth`), and a button head a short side
+   below its dome, an arc (`buttonDome`) up to a flat top 1.4 times its socket's size across.
+2. Cuts a hex socket from the top of the head (`socketDepth`: half a socket head's height, 0.45 of a button head's,
+   0.46 of a flat head's cone).
+3. Threads the shank as std's External thread does: a hole attribute on the shank and the edge above the tip
+   chamfer, and on the chamfer as its chamfer face, and a cosmetic thread up the shank from that edge, at the size's
+   pitch, `threadLength` long. That's up to the head, except on a standard socket head, threaded 2D + 1/2 in (ASTM
+   A574) where it's longer.
+4. Adds the mate connector, then deletes the sketches and names the part.
 
-`fastenerWasher` and `fastenerNut` extrude a ring (a hexagon or square for a nut, with a hole the screw's
-major diameter) up from the origin, add the mate connector, and name the part.
+`fastenerWasher` extrudes a ring up from the origin, adds the mate connector, and names the part. `fastenerNut`
+extrudes a hexagon or square up from the origin, with a hole the size's tap drill, and taps it through as std's Hole
+does: a hole attribute on the bore (which `fastenerHoleScan` reads as threaded), and a cosmetic thread up from the
+origin. Then it adds the mate connector and names the part.
 
-Nothing is threaded, and nylock nuts have no nylon insert: the parts are for fit and clearance.
+Threads are cosmetic, and nylock nuts have no nylon insert: the parts are for fit and clearance.
 
 `fastenerHoleScan` isn't a feature: FRCDesign evaluates its body as a lambda, so it uses only std's common.fs. It
 reports each solid part's cylindrical faces which face their axis (holes), with their extent along it, their circular
@@ -99,3 +108,5 @@ There are no `try`s.
   which only names transient queries, so the scan failed whenever anything was selected; it now names the evaluated
   body.
 - Nut heights for thin nylock, thin hex, and #4-40 nuts are nominal guesses, not from McMaster-Carr's drawings.
+- Not yet tried in Onshape: the chamfers, button domes, and threads. Neither is whether Onshape's hole callouts and
+  Fasten mates read the attributes as they read std's.

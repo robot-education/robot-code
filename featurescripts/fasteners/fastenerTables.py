@@ -71,14 +71,16 @@ class Size:
     tap_drill_diameter: float
     close_clearance_diameter: float
     free_clearance_diameter: float
+    # An external thread's, as std's ANSI_ExternalThreadTable has it
+    minor_diameter: float
 
 
 SIZES = [
-    Size("NO_4_40", "#4-40", "#4", 40, 0.112, 0.089, 0.116, 0.1285),
-    Size("NO_6_32", "#6-32", "#6", 32, 0.138, 0.1065, 0.144, 0.1495),
-    Size("NO_8_32", "#8-32", "#8", 32, 0.164, 0.136, 0.1695, 0.177),
-    Size("NO_10_32", "#10-32", "#10", 32, 0.19, 0.159, 0.196, 0.201),
-    Size("QUARTER_20", "1/4-20", "1/4", 20, 0.25, 0.201, 0.257, 0.266),
+    Size("NO_4_40", "#4-40", "#4", 40, 0.112, 0.089, 0.116, 0.1285, 0.0814),
+    Size("NO_6_32", "#6-32", "#6", 32, 0.138, 0.1065, 0.144, 0.1495, 0.1),
+    Size("NO_8_32", "#8-32", "#8", 32, 0.164, 0.136, 0.1695, 0.177, 0.1259),
+    Size("NO_10_32", "#10-32", "#10", 32, 0.19, 0.159, 0.196, 0.201, 0.1528),
+    Size("QUARTER_20", "1/4-20", "1/4", 20, 0.25, 0.201, 0.257, 0.266, 0.1894),
 ]
 SIZES_BY_NAME = {size.name: size for size in SIZES}
 FastenerSize = Enum("FastenerSize", [size.id for size in SIZES], {size.id: size.name for size in SIZES})
@@ -823,7 +825,9 @@ def _size_fields(size: Size) -> str:
             "name": string(size.name),
             "size": string(size.hole_table_size),
             "pitch": string(f"{size.threads_per_inch} tpi"),
+            "threadPitch": f"inch / {size.threads_per_inch}",
             "majorDiameter": _in(size.major_diameter),
+            "minorDiameter": _in(size.minor_diameter),
             "tapDrillDiameter": _in(size.tap_drill_diameter),
             "closeClearanceDiameter": _in(size.close_clearance_diameter),
             "freeClearanceDiameter": _in(size.free_clearance_diameter),

@@ -203,11 +203,11 @@ export enum WasherType
 }
 
 export const FASTENER_SIZES = {
-            FastenerSize.NO_4_40 : { "name" : "#4-40", "size" : "#4", "pitch" : "40 tpi", "majorDiameter" : 0.112 * inch, "tapDrillDiameter" : 0.089 * inch, "closeClearanceDiameter" : 0.116 * inch, "freeClearanceDiameter" : 0.1285 * inch },
-            FastenerSize.NO_6_32 : { "name" : "#6-32", "size" : "#6", "pitch" : "32 tpi", "majorDiameter" : 0.138 * inch, "tapDrillDiameter" : 0.1065 * inch, "closeClearanceDiameter" : 0.144 * inch, "freeClearanceDiameter" : 0.1495 * inch },
-            FastenerSize.NO_8_32 : { "name" : "#8-32", "size" : "#8", "pitch" : "32 tpi", "majorDiameter" : 0.164 * inch, "tapDrillDiameter" : 0.136 * inch, "closeClearanceDiameter" : 0.1695 * inch, "freeClearanceDiameter" : 0.177 * inch },
-            FastenerSize.NO_10_32 : { "name" : "#10-32", "size" : "#10", "pitch" : "32 tpi", "majorDiameter" : 0.19 * inch, "tapDrillDiameter" : 0.159 * inch, "closeClearanceDiameter" : 0.196 * inch, "freeClearanceDiameter" : 0.201 * inch },
-            FastenerSize.QUARTER_20 : { "name" : "1/4-20", "size" : "1/4", "pitch" : "20 tpi", "majorDiameter" : 0.25 * inch, "tapDrillDiameter" : 0.201 * inch, "closeClearanceDiameter" : 0.257 * inch, "freeClearanceDiameter" : 0.266 * inch }
+            FastenerSize.NO_4_40 : { "name" : "#4-40", "size" : "#4", "pitch" : "40 tpi", "threadPitch" : inch / 40, "majorDiameter" : 0.112 * inch, "minorDiameter" : 0.0814 * inch, "tapDrillDiameter" : 0.089 * inch, "closeClearanceDiameter" : 0.116 * inch, "freeClearanceDiameter" : 0.1285 * inch },
+            FastenerSize.NO_6_32 : { "name" : "#6-32", "size" : "#6", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.138 * inch, "minorDiameter" : 0.1 * inch, "tapDrillDiameter" : 0.1065 * inch, "closeClearanceDiameter" : 0.144 * inch, "freeClearanceDiameter" : 0.1495 * inch },
+            FastenerSize.NO_8_32 : { "name" : "#8-32", "size" : "#8", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.164 * inch, "minorDiameter" : 0.1259 * inch, "tapDrillDiameter" : 0.136 * inch, "closeClearanceDiameter" : 0.1695 * inch, "freeClearanceDiameter" : 0.177 * inch },
+            FastenerSize.NO_10_32 : { "name" : "#10-32", "size" : "#10", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.19 * inch, "minorDiameter" : 0.1528 * inch, "tapDrillDiameter" : 0.159 * inch, "closeClearanceDiameter" : 0.196 * inch, "freeClearanceDiameter" : 0.201 * inch },
+            FastenerSize.QUARTER_20 : { "name" : "1/4-20", "size" : "1/4", "pitch" : "20 tpi", "threadPitch" : inch / 20, "majorDiameter" : 0.25 * inch, "minorDiameter" : 0.1894 * inch, "tapDrillDiameter" : 0.201 * inch, "closeClearanceDiameter" : 0.257 * inch, "freeClearanceDiameter" : 0.266 * inch }
         };
 
 export const SCREW_HEADS = {
