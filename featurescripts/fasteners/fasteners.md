@@ -27,8 +27,8 @@ Each description ends with the credit.
 
 | Message | When | Highlights | Closest std error |
 | --- | --- | --- | --- |
-| Selected vendor does not make this screw, change the length. (error) | The vendor makes no screw of this size, head, and length | Length | none |
-| Selected vendor does not make this screw in this variant, change the variant. (error) | The length is made, but neither in this variant nor the standard one | Variant | none |
+| Selected vendor does not make this screw in this finish, change the finish. (error) | The vendor makes no screw of this size and head in this finish | Finish | none |
+| Selected vendor does not make this screw, change the length. (error) | The vendor makes no screw of this size, head, finish, and length | Length | none |
 | Selected vendor does not make this washer, change the type. (error) | The vendor makes no washer of this size and type | Type | none |
 | Selected vendor does not make this washer in this finish, change the finish. (error) | The type is made, but neither in this finish nor black | Finish | none |
 | Selected vendor does not make this nut, change the type. (error) | The vendor makes no nut of this size and type | Type | none |
@@ -37,7 +37,7 @@ The configurations only offer what's made, so these show only in the features' o
 
 | Part | Name |
 | --- | --- |
-| Screw | `<size> x <length> <head> Screw`, e.g. `#10-32 x 1/2 in. Button Head Screw`, with any variant but the standard after it: `... Socket Head Screw (Fully threaded)` |
+| Screw | `<size> x <length> <head> Screw`, e.g. `#10-32 x 1/2 in. Button Head Screw`, with any finish but black, and fully threaded, after it: `... Socket Head Screw (Zinc plated)`, `... (Fully threaded)` |
 | Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in. OD x 0.049 in.)`, with any finish but black after the type: `(7/16 in. OD x 0.03 in., Stainless steel)` |
 | Nut | `<size> <type> Nut`, e.g. `#10-32 Thin Nylock Nut` |
 
@@ -54,17 +54,20 @@ Every part is built along the Z axis, and has one mate connector at the origin, 
 seats: FRCDesign fastens a screw or nut to the top edge of the washer under it, or to the hole's edge, and a washer to
 the hole's edge. So any washer goes under any screw or nut, and none has a washer input.
 
-Each dialog is a flat list of enums, with no conditions: Vendor, Size, Head, one `ScrewLength` of every length any
-vendor makes, and Variant, for a screw; Vendor, Size, Type, and Finish for a washer; Vendor, Size, and Type for a nut.
+Each dialog is a flat list, with no conditions: Vendor, Size, Head, Finish, one `ScrewLength` of every length any vendor
+makes, and a Fully threaded checkbox, for a screw; Vendor, Size, Type, and Finish for a washer; Vendor, Size, and Type
+for a nut.
 So each Part Studio wires every parameter to a configuration input of the same options one for one, and the
 configuration's visibility conditions, not the dialog, show only what's made (Length shows the lengths the chosen vendor
-makes in the chosen size and head). Every part is one its vendor makes (`SCREWS`, `WASHERS`, `NUTS`); anything else is
+makes in the chosen size, head, and finish). Every part is one its vendor makes (`SCREWS`, `WASHERS`, `NUTS`); anything else is
 an error.
 
-Variant and Finish are each part beyond its standard: a screw zinc plated, aluminum, or fully threaded (McMaster-Carr's
-long socket heads, whose standard is partly threaded), and a washer in plain stainless steel. The configuration shows
-each only where the vendor sells more than the standard, so never for Generic. Hidden, an input keeps whatever it was
-last set to, so the features look a variant or finish up with `made`, which falls back to the standard one.
+Each part is its vendor's standard unless chosen otherwise. A screw's Finish always shows, offering only what's made in
+its size and head (Generic's only black), so Length can show by it: black, zinc plated, or aluminum. Fully threaded
+shows only where a length is sold both ways (McMaster-Carr's long socket heads, whose standard is partly threaded); a
+screw's table entry has its `standard` part and, there, its `fullThread` one. A washer's Finish (plain stainless steel)
+shows only where its vendor sells more than black. Hidden, an input keeps whatever it was last set to, so the features
+fall back to the standard: a washer's finish with `made`, and a screw's thread when it has no `fullThread`.
 
 `fastenerScrew`:
 

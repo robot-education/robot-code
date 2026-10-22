@@ -201,6 +201,18 @@ def finished() -> ConfiguredStudio:
     )
 
 
+def test_conditions_can_be_factored_by_a_later_input_first():
+    shown = [{"size": size, "finish": "BLACK"} for size in "AB"]
+    order = ConfiguredStudio("s", "f", finished().inputs, factor_first=["finish"])._factor_order()
+    assert order == ["finish", "size"]
+    from fs_cli.configured_studios import _condition
+
+    condition = _condition(shown, order)
+    # One branch on the finish, holding both sizes
+    assert condition["operation"] == "AND"
+    assert condition["children"][0] == {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "finish", "value": "BLACK"}
+
+
 def test_a_hidden_input_is_left_out_of_combinations():
     assert finished().combinations() == [{"size": "A"}, {"size": "B", "finish": "BLACK"}, {"size": "B", "finish": "ZINC"}]
 

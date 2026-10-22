@@ -30,23 +30,28 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
         annotation { "Name" : "Head", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.head is ScrewHead;
 
+        annotation { "Name" : "Finish", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.finish is FastenerFinish;
+
         annotation { "Name" : "Length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.length is ScrewLength;
 
-        annotation { "Name" : "Variant", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.variant is ScrewVariant;
+        annotation { "Name" : "Fully threaded", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.fullyThreaded is boolean;
     }
     {
-        const variants = SCREWS[definition.vendor][definition.size][definition.head][definition.length];
-        if (variants == undefined)
+        const finishes = SCREWS[definition.vendor][definition.size][definition.head];
+        if (finishes == undefined || finishes[definition.finish] == undefined)
+        {
+            throw regenError("Selected vendor does not make this screw in this finish, change the finish.", ["finish"]);
+        }
+        const threads = finishes[definition.finish][definition.length];
+        if (threads == undefined)
         {
             throw regenError("Selected vendor does not make this screw, change the length.", ["length"]);
         }
-        const stock = made(variants, definition.variant, ScrewVariant.STANDARD);
-        if (stock == undefined)
-        {
-            throw regenError("Selected vendor does not make this screw in this variant, change the variant.", ["variant"]);
-        }
+        // The configuration hides Fully threaded where a length is sold one way, and a hidden input keeps its last value
+        const stock = definition.fullyThreaded && threads.fullThread != undefined ? threads.fullThread : threads.standard;
         const size = FASTENER_SIZES[definition.size];
         const head = SCREW_HEADS[definition.size][definition.head];
         const length = SCREW_LENGTHS[definition.length];

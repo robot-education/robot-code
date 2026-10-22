@@ -105,12 +105,15 @@ class ConfiguredStudio:
     Attributes:
         name: Its key in the definition, like `screw`.
         tab: Its tab's name, which `build` finds it by; `name` capitalized when None.
+        factor_first: Inputs to factor visibility conditions by before the rest, which are in order: a lookup
+            table's conditions can be far smaller factored by one with few values, like a finish.
     """
 
     name: str
     feature: str
     inputs: Sequence[Input]
     tab: str | None = None
+    factor_first: Sequence[str] = ()
 
     @property
     def tab_name(self) -> str:
@@ -168,12 +171,15 @@ class ConfiguredStudio:
         parses as it parses any configuration."""
         return {"feature": self.feature, "configuration": self.configuration_body()}
 
+    def _factor_order(self) -> list[str]:
+        return [*self.factor_first, *(input.id for input in self.inputs if input.id not in self.factor_first)]
+
     def configuration_body(self) -> dict:
         """The body of `POST /elements/.../configuration` setting the studio's inputs."""
         return {
             "btType": "BTConfigurationUpdateCall-2933",
             "configurationParameters": [
-                _configuration_parameter(input, [earlier.id for earlier in self.inputs]) for input in self.inputs
+                _configuration_parameter(input, self._factor_order()) for input in self.inputs
             ],
         }
 

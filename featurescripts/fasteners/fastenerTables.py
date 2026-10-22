@@ -12,10 +12,9 @@ This is the source of three things, which must agree:
   remove a released option id (as with enums stored in documents); add new ones.
 
 What each vendor makes, and its part numbers, come from FRCDesign's own Fasteners group (vendor/frcdesign-fasteners.json,
-a snapshot of its configurations): screws, McMaster-Carr's nuts, and washers. Each part is its vendor's standard: black,
-and for a screw, threaded as the vendor's standard line is. Where a vendor also sells others, in another finish or fully
-threaded, the screw's Variant and the washer's Finish choose among them, and are hidden everywhere else, Generic
-included. The screws of vendors
+a snapshot of its configurations): screws, McMaster-Carr's nuts, and washers. Each part is its vendor's standard unless chosen otherwise:
+a screw's Finish (always shown, offering what's made: Generic's only black) and Fully threaded (shown only where a
+length is sold both ways), and a washer's Finish (shown only where a vendor sells more than black). The screws of vendors
 whose stores list them (`STORES`: WCP and AndyMark) come from their stores instead (vendor/stores.json, which
 `uv run python featurescripts/fasteners/fastenerTables.py fetch` refreshes), since a store is current where
 the group may not be. Generic offers every length any vendor makes, without part numbers.
@@ -154,11 +153,6 @@ class Variant:
 
     finish: str = STANDARD_FINISH
     full_thread: bool = False
-
-    @property
-    def id(self) -> str:
-        parts = ([] if self.finish == STANDARD_FINISH else [self.finish]) + (["FULL_THREAD"] if self.full_thread else [])
-        return "_".join(parts) or "STANDARD"
 
     @property
     def name(self) -> str:
@@ -314,10 +308,11 @@ def _screw_order(item) -> tuple:
 
 SCREWS = _stocked_screws()
 LENGTHS = sorted({length for lengths in SCREWS.values() for length in lengths})
-VARIANTS = sorted(
-    {variant for lengths in SCREWS.values() for variants in lengths.values() for variant in variants}, key=_variant_order
-)
-ScrewVariant = Enum("ScrewVariant", [variant.id for variant in VARIANTS], {variant.id: variant.name for variant in VARIANTS})
+
+
+def has_full_thread_choice(variants: dict[Variant, Stock], finish: str) -> bool:
+    """Whether a length is sold both partly and fully threaded in a finish, so the studio asks which."""
+    return Variant(finish) in variants and Variant(finish, True) in variants
 
 
 def length_id(length: Fraction) -> str:
@@ -560,17 +555,22 @@ class Record:
         }
 
 
-def _screw_records() -> dict[tuple[str, str, str, str, str], Record]:
-    """By vendor, size, head, length, and variant. Variant is only chosen where a length has others than the
-    standard, and is the standard where it's hidden."""
+def _screw_records() -> dict[tuple[str, str, str, str, str, bool], Record]:
+    """By vendor, size, head, finish, length, and whether it's fully threaded. Fully threaded is only chosen where a
+    length is sold both ways in its finish, and is false where it's hidden."""
     return {
-        (vendor, size, head, length_id(length), variant.id): Record(
+        (vendor, size, head, variant.finish, length_id(length), variant.full_thread): Record(
             {
                 "vendor": vendor,
                 "size": size,
                 "head": head,
+                "finish": variant.finish,
                 "length": length_id(length),
-                **({} if list(variants) == [STANDARD] else {"variant": variant.id}),
+                **(
+                    {"fullyThreaded": str(variant.full_thread).lower()}
+                    if has_full_thread_choice(variants, variant.finish)
+                    else {}
+                ),
             },
             screw_name(size, head, length, variant),
             vendor,
@@ -668,33 +668,45 @@ def _used(enum: Enum, keys, index: int) -> list[str]:
 
 def _screw_inputs() -> list[Input]:
     keys = list(SCREWS)
-    lengths = [key + (length_id(length),) for key, stocked in SCREWS.items() for length in stocked]
+    finishes = [key + (variant.finish,) for key, stocked in SCREWS.items() for variants in stocked.values() for variant in variants]
+    lengths = [
+        key + (variant.finish, length_id(length))
+        for key, stocked in SCREWS.items()
+        for length, variants in stocked.items()
+        for variant in variants
+    ]
+    # Every Finish shows somewhere, so Length can show by it; Generic's offers only black
+    both = [
+        dict(zip(("vendor", "size", "head", "finish", "length"), key + (variant.finish, length_id(length))))
+        for key, stocked in SCREWS.items()
+        for length, variants in stocked.items()
+        for variant in variants
+        if not variant.full_thread and has_full_thread_choice(variants, variant.finish)
+    ]
     return [
         _list("vendor", "Vendor", FastenerVendor, "vendor", _used(FastenerVendor, keys, 0)),
         _list("size", "Size", FastenerSize, "size", _used(FastenerSize, keys, 1), _shown(keys, ("vendor",), 1), "NO_10_32"),
         _list("head", "Head", ScrewHead, "head", _used(ScrewHead, keys, 2), _shown(keys, ("vendor", "size"), 2), "BUTTON"),
+        _list(
+            "finish",
+            "Finish",
+            FastenerFinish,
+            "finish",
+            _used(FastenerFinish, finishes, 3),
+            _shown(finishes, ("vendor", "size", "head"), 3),
+            STANDARD_FINISH,
+        ),
         _list(
             "length",
             "Length",
             ScrewLength,
             "length",
             ScrewLength.values,
-            _shown(lengths, ("vendor", "size", "head"), 3),
+            _shown(lengths, ("vendor", "size", "head", "finish"), 4),
             length_id(Fraction(1, 2)),
         ),
-        _variants(
-            "variant",
-            "Variant",
-            ScrewVariant,
-            "variant",
-            {
-                key + (length_id(length),): [variant.id for variant in variants]
-                for key, stocked in SCREWS.items()
-                for length, variants in stocked.items()
-            },
-            ("vendor", "size", "head", "length"),
-            STANDARD.id,
-        ),
+        # Hidden, and so partly threaded, wherever a length is only sold one way
+        Input("fullyThreaded", "Fully threaded", "fullyThreaded", kind="boolean", shown_when=both),
     ]
 
 
@@ -734,7 +746,8 @@ def _washer_inputs() -> list[Input]:
 
 
 STUDIOS = {
-    "screw": ConfiguredStudio("screw", "fastenerScrew", _screw_inputs()),
+    # Nearly every length is black, so Length's conditions are smallest split by finish first
+    "screw": ConfiguredStudio("screw", "fastenerScrew", _screw_inputs(), factor_first=["finish"]),
     "nut": ConfiguredStudio("nut", "fastenerNut", _nut_inputs()),
     "washer": ConfiguredStudio("washer", "fastenerWasher", _washer_inputs()),
 }
@@ -798,6 +811,20 @@ def _head_fields(head: Head) -> str:
     return _fields(fields)
 
 
+def _screw_table() -> dict[tuple, dict[bool, Record]]:
+    table: dict[tuple, dict[bool, Record]] = {}
+    for (*key, full_thread), record in SCREW_RECORDS.items():
+        table.setdefault(tuple(key), {})[full_thread] = record
+    return table
+
+
+def _screw_fields(threads: dict[bool, Record]) -> str:
+    entries = [(string("standard"), _fields(threads[False].fields()))]
+    if True in threads:
+        entries.append((string("fullThread"), _fields(threads[True].fields())))
+    return "{ " + ", ".join(f"{key} : {value}" for key, value in entries) + " }"
+
+
 def _nut_fields(record: Record) -> str:
     nut = NUT_DIMENSIONS[record.values["size"]][record.values["type"]]
     return _fields({"acrossFlats": _in(nut.across_flats), "height": _in(nut.height), **record.fields()})
@@ -825,7 +852,6 @@ CONTENTS = [
     FastenerSize,
     ScrewHead,
     ScrewLength,
-    ScrewVariant,
     FastenerFinish,
     NutType,
     WasherType,
@@ -849,12 +875,13 @@ CONTENTS = [
         ),
     ),
     _documented(
-        "What each vendor makes, by vendor, size, head, length, and variant: each screw's properties.",
+        "What each vendor makes, by vendor, size, head, finish, and length: each screw's properties, partly threaded"
+        " (`standard`) and, where it's sold so too, fully threaded (`fullThread`).",
         "SCREWS",
         _nested(
-            SCREW_RECORDS,
-            [FastenerVendor, FastenerSize, ScrewHead, ScrewLength, ScrewVariant],
-            lambda record: _fields(record.fields()),
+            _screw_table(),
+            [FastenerVendor, FastenerSize, ScrewHead, FastenerFinish, ScrewLength],
+            _screw_fields,
             4,
         ),
     ),
@@ -945,17 +972,21 @@ def manifest() -> dict:
                 "vendor": vendor,
                 "size": size,
                 "head": head,
+                "finish": finish,
                 "lengths": [
                     {
                         "id": length_id(length),
                         "name": length_name(length),
                         "length": _meters(length),
-                        "variants": [variant.id for variant in variants],
+                        "fullThreadChoice": has_full_thread_choice(variants, finish),
                     }
                     for length, variants in lengths.items()
+                    if Variant(finish) in variants
                 ],
             }
             for (vendor, size, head), lengths in SCREWS.items()
+            for finish in FastenerFinish.values
+            if any(Variant(finish) in variants for variants in lengths.values())
         ],
         "nutTypes": [{"id": id, "name": NutType.names[id]} for id in NutType.values],  # type: ignore[index]
         "nuts": [

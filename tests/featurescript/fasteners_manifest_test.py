@@ -90,19 +90,33 @@ def test_mcmaster_carrs_long_socket_heads_come_fully_threaded_too():
     assert list(socket[Fraction(1, 2)]) == [STANDARD, Variant("ZINC_PLATED")]
 
 
-def test_variant_shows_only_where_more_than_the_standard_is_made():
+def test_fully_threaded_shows_only_where_a_length_is_sold_both_ways():
     screw = DEFINITION["STUDIOS"]["screw"]
-    variant = next(input for input in screw.inputs if input.id == "variant")
+    fully_threaded = next(input for input in screw.inputs if input.id == "fullyThreaded")
+    assert screw.inputs[-1] is fully_threaded and fully_threaded.kind == "boolean"
     length_id = DEFINITION["length_id"]
     for (vendor, size, head), stocked in DEFINITION["SCREWS"].items():
         for length, variants in stocked.items():
-            selection = {"vendor": vendor, "size": size, "head": head, "length": length_id(length)}
-            if list(variants) == [STANDARD]:
-                assert not input_shows(variant, selection)
-            else:
-                assert {option.id for option in variant.options if shows(option, selection)} == {
-                    each.id for each in variants
+            for variant in variants:
+                selection = {
+                    "vendor": vendor,
+                    "size": size,
+                    "head": head,
+                    "finish": variant.finish,
+                    "length": length_id(length),
                 }
+                both = Variant(variant.finish) in variants and Variant(variant.finish, True) in variants
+                assert input_shows(fully_threaded, selection) == both, selection
+
+
+def test_finish_comes_between_head_and_length_and_shows_everywhere():
+    screw = DEFINITION["STUDIOS"]["screw"]
+    assert [input.id for input in screw.inputs] == ["vendor", "size", "head", "finish", "length", "fullyThreaded"]
+    finish = screw.inputs[3]
+    assert finish.shown_when is None
+    # Generic's offers black alone
+    generic = {"vendor": "GENERIC", "size": "NO_10_32", "head": "BUTTON"}
+    assert [option.id for option in finish.options if shows(option, generic)] == ["BLACK"]
 
 
 def test_washer_finishes():
@@ -124,9 +138,11 @@ def test_lengths_show_only_where_theyre_made():
     screw = DEFINITION["STUDIOS"]["screw"]
     length = next(input for input in screw.inputs if input.id == "length")
     for (vendor, size, head), stocked in DEFINITION["SCREWS"].items():
-        selection = {"vendor": vendor, "size": size, "head": head}
-        shown = {option.id for option in length.options if shows(option, selection)}
-        assert shown == {DEFINITION["length_id"](each) for each in stocked}, selection
+        for finish in {variant.finish for variants in stocked.values() for variant in variants}:
+            selection = {"vendor": vendor, "size": size, "head": head, "finish": finish}
+            shown = {option.id for option in length.options if shows(option, selection)}
+            made = {DEFINITION["length_id"](each) for each, variants in stocked.items() if Variant(finish) in variants}
+            assert shown == made, selection
 
 
 def test_length_names_and_ids():
@@ -159,13 +175,16 @@ def test_each_configuration_has_one_record(kind):
 
 def test_records_name_and_sell_each_part():
     records = {tuple(record["values"].values()): record for record in MANIFEST["studios"]["screw"]["records"]}
-    mcmaster = records[("MCMASTER", "NO_10_32", "BUTTON", "IN_0_5", "STANDARD")]
+    mcmaster = records[("MCMASTER", "NO_10_32", "BUTTON", "BLACK", "IN_0_5")]
     assert mcmaster["name"] == "#10-32 x 1/2 in. Button Head Screw"
     assert mcmaster["vendor"] == "McMaster-Carr"
     assert mcmaster["partNumber"] == "91255A265"
     assert mcmaster["material"] == "Steel"
-    zinc = records[("MCMASTER", "NO_10_32", "BUTTON", "IN_0_5", "ZINC_PLATED")]
+    zinc = records[("MCMASTER", "NO_10_32", "BUTTON", "ZINC_PLATED", "IN_0_5")]
     assert zinc["name"] == "#10-32 x 1/2 in. Button Head Screw (Zinc plated)"
-    # Generic parts have no vendor or part number, nor a variant
-    generic = records[("GENERIC", "NO_10_32", "BUTTON", "IN_0_5")]
+    full = records[("MCMASTER", "NO_8_32", "SOCKET", "BLACK", "IN_2", "true")]
+    assert (full["name"], full["partNumber"]) == ("#8-32 x 2 in. Socket Head Screw (Fully threaded)", "90044A113")
+    assert records[("MCMASTER", "NO_8_32", "SOCKET", "BLACK", "IN_2", "false")]["partNumber"] == "91251A205"
+    # Generic parts have no vendor or part number
+    generic = records[("GENERIC", "NO_10_32", "BUTTON", "BLACK", "IN_0_5")]
     assert "vendor" not in generic and "partNumber" not in generic

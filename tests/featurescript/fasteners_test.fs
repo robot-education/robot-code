@@ -59,10 +59,13 @@ export function testEveryFlatHeadIsShorterThanItsScrews()
             {
                 continue;
             }
-            for (var length, _ in flat)
+            for (var _, lengths in flat)
             {
-                expectTrue(SCREW_LENGTHS[length].length > flatHeadHeight(FASTENER_SIZES[size], SCREW_HEADS[size][ScrewHead.FLAT]),
-                    "Flat head longer than its screw");
+                for (var length, _ in lengths)
+                {
+                    expectTrue(SCREW_LENGTHS[length].length > flatHeadHeight(FASTENER_SIZES[size], SCREW_HEADS[size][ScrewHead.FLAT]),
+                        "Flat head longer than its screw");
+                }
             }
         }
     }
@@ -74,12 +77,19 @@ export function testWasherNames()
     expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.QUARTER_20][WasherType.OD_5_8_X_0_065][FastenerFinish.BLACK].name, "1/4 in. Washer (5/8 in. OD x 0.065 in.)");
 }
 
-export function testVariantsSetTheirMaterialAndAppearance()
+export function testFinishesSetTheirMaterialAndAppearance()
 {
-    const variants = SCREWS[FastenerVendor.WCP][FastenerSize.NO_10_32][ScrewHead.BUTTON][ScrewLength.IN_0_25];
-    expectEqual(variants[ScrewVariant.STANDARD].material, STEEL);
-    expectEqual(variants[ScrewVariant.STANDARD].appearance, BLACK);
-    expectEqual(variants[ScrewVariant.ALUMINUM].material, ALUMINUM);
+    const finishes = SCREWS[FastenerVendor.WCP][FastenerSize.NO_10_32][ScrewHead.BUTTON];
+    expectEqual(finishes[FastenerFinish.BLACK][ScrewLength.IN_0_25].standard.material, STEEL);
+    expectEqual(finishes[FastenerFinish.BLACK][ScrewLength.IN_0_25].standard.appearance, BLACK);
+    expectEqual(finishes[FastenerFinish.ALUMINUM][ScrewLength.IN_0_25].standard.material, ALUMINUM);
+}
+
+export function testLongSocketHeadsComeFullyThreadedToo()
+{
+    const threads = SCREWS[FastenerVendor.MCMASTER][FastenerSize.NO_8_32][ScrewHead.SOCKET][FastenerFinish.BLACK][ScrewLength.IN_2];
+    expectEqual(threads.standard.partNumber, "91251A205");
+    expectEqual(threads.fullThread.partNumber, "90044A113");
 }
 
 function expectSamePoint(actual is Vector, expected is Vector)
