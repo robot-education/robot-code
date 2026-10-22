@@ -353,12 +353,13 @@ def _product_condition(product: Product) -> dict:
 
 
 def _configured_parameter(input: Input, namespace: str = "") -> dict:
+    """Configured by its input. Onshape refuses a configured value naming the parameter, which only the whole names."""
     if input.kind == "boolean":
         values = [
             {
                 "btType": "BTMConfiguredValueByBoolean-1501",
                 "booleanValue": state,
-                "value": {"btType": "BTMParameterBoolean-144", "parameterId": input.parameter, "value": state},
+                "value": {"btType": "BTMParameterBoolean-144", "parameterId": "", "value": state},
             }
             for state in (False, True)
         ]
@@ -369,7 +370,7 @@ def _configured_parameter(input: Input, namespace: str = "") -> dict:
                 "enumName": f"{input.id}_conf",
                 "namespace": "",
                 "enumValue": option.id,
-                "value": _value(input, option, namespace),
+                "value": {**_value(input, option, namespace), "parameterId": ""},
             }
             for option in input.options
         ]

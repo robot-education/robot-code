@@ -82,7 +82,7 @@ def test_a_list_with_no_option_shown_is_hidden_so_its_default_needs_no_showing()
     assert hidden.combinations() == [{"size": "A"}, {"size": "B", "thread": "false"}, {"size": "B", "thread": "true"}]
     assert hidden.configured_parameters()[1]["values"][1]["value"] == {
         "btType": "BTMParameterBoolean-144",
-        "parameterId": "thread",
+        "parameterId": "",
         "value": True,
     }
 
@@ -175,19 +175,19 @@ def test_a_checkbox_shows_by_one_condition():
 def test_configured_parameters_set_each_option():
     size, length, washer = studio().configured_parameters()
     assert [value["booleanValue"] for value in washer["values"]] == [False, True]
-    assert washer["values"][1]["value"] == {"btType": "BTMParameterBoolean-144", "parameterId": "washer", "value": True}
+    assert washer["values"][1]["value"] == {"btType": "BTMParameterBoolean-144", "parameterId": "", "value": True}
     assert size["configurationParameterId"] == "size"
     assert size["values"][1]["enumValue"] == "B"
     assert size["values"][1]["value"] == {
         "btType": "BTMParameterEnum-145",
-        "parameterId": "size",
+        "parameterId": "",
         "namespace": "",
         "enumName": "Size",
         "value": "B",
     }
     assert length["values"][0]["value"] == {
         "btType": "BTMParameterQuantity-147",
-        "parameterId": "length",
+        "parameterId": "",
         "expression": "1 in",
     }
 
