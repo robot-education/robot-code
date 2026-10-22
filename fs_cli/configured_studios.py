@@ -5,7 +5,7 @@ A configured studio holds one instance of a feature, and a configuration input f
 configures its parameter (a configured parameter, `BTMParameterConfigured`), with one value per option, or per state
 of a checkbox. A List input's options can each be shown only for some combinations of earlier inputs, which is how a
 lookup table is laid out as a configuration: Length shows only the lengths the chosen vendor makes in the chosen size
-and head.
+and head. A whole input can be shown only for some, too; hidden, it takes its default.
 
 The definition is the source of both sides: the feature's enums and data (`fs gen`), and the configuration
 (`fs configure-studio`), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
@@ -52,6 +52,9 @@ class Input:
         parameter: The feature parameter it configures.
         kind: A List of `options` configuring an enum (`enum_name` its type) or a length, or a checkbox configuring a
             boolean.
+        shown_when: The combinations of earlier inputs' options which show it, as an option's are; always shown when
+            None. Never name an input which is itself hidden somewhere: Onshape and FRCDesign read a hidden input's
+            value differently.
     """
 
     id: str
@@ -61,6 +64,7 @@ class Input:
     kind: Literal["enum", "length", "boolean"] = "enum"
     enum_name: str | None = None
     default: str | None = None
+    shown_when: Combinations | None = None
 
     def __post_init__(self) -> None:
         if not _IDENTIFIER.match(self.id):
@@ -104,15 +108,18 @@ class ConfiguredStudio:
         defaults: dict[str, str] = {}
         earlier: dict[str, Input] = {}
         for input in self.inputs:
-            for option in input.options:
-                for combination in option.shown_when or ():
+            shown_by = [(input.id, input.shown_when)] + [(f"{input.id}'s {option.id}", option.shown_when) for option in input.options]
+            for what, shown_when in shown_by:
+                for combination in shown_when or ():
                     for id, value in combination.items():
                         parent = earlier.get(id)
                         if parent is None:
-                            raise ValueError(f"{self.name}: {input.id}'s {option.id} shows by {id}, which isn't before it")
+                            raise ValueError(f"{self.name}: {what} shows by {id}, which isn't before it")
+                        if parent.shown_when is not None:
+                            raise ValueError(f"{self.name}: {what} shows by {id}, which is hidden somewhere")
                         if parent.kind == "boolean" or value not in parent.option_ids():
-                            raise ValueError(f"{self.name}: {input.id}'s {option.id} shows with unknown {id}={value}")
-            if input.kind != "boolean":
+                            raise ValueError(f"{self.name}: {what} shows with unknown {id}={value}")
+            if input.kind != "boolean" and input_shows(input, defaults):
                 default = next(option for option in input.options if option.id == input.default_option)
                 if not shows(default, defaults):
                     raise ValueError(f"{self.name}: {input.id}'s default isn't shown with the other inputs' defaults")
@@ -121,20 +128,24 @@ class ConfiguredStudio:
 
     def combinations(self) -> list[dict[str, str]]:
         """Every combination of its inputs' options the configuration shows, earliest input first: each a choice
-        of every input, with each List's option one shown with the choices before it."""
+        of every input it shows, with each List's option one shown with the choices before it. A hidden input is
+        left out, as FRCDesign enumerates it."""
         combinations: list[dict[str, str]] = [{}]
         for input in self.inputs:
-            choices = (
-                ["false", "true"]
-                if input.kind == "boolean"
-                else [option.id for option in input.options]
-            )
-            combinations = [
-                {**combination, input.id: choice}
-                for combination in combinations
-                for choice in choices
-                if input.kind == "boolean" or shows(_option(input, choice), combination)
-            ]
+            choices = ["false", "true"] if input.kind == "boolean" else [option.id for option in input.options]
+            next: list[dict[str, str]] = []
+            for combination in combinations:
+                shown = [
+                    choice
+                    for choice in choices
+                    if input.kind == "boolean" or shows(_option(input, choice), combination)
+                ]
+                # Hidden, or with no option shown, it's left at its default
+                if not input_shows(input, combination) or not shown:
+                    next.append(combination)
+                    continue
+                next.extend({**combination, input.id: choice} for choice in shown)
+            combinations = next
         return combinations
 
     def defaults(self) -> dict[str, str]:
@@ -165,18 +176,29 @@ def _option(input: Input, id: str) -> Option:
 
 def shows(option: Option, selection: Mapping[str, str]) -> bool:
     """Whether an option is shown while earlier inputs are set to `selection`."""
-    if option.shown_when is None:
+    return _matches(option.shown_when, selection)
+
+
+def input_shows(input: Input, selection: Mapping[str, str]) -> bool:
+    """Whether an input is shown while earlier inputs are set to `selection`."""
+    return _matches(input.shown_when, selection)
+
+
+def _matches(shown_when: Combinations | None, selection: Mapping[str, str]) -> bool:
+    if shown_when is None:
         return True
-    return any(all(selection.get(id) == value for id, value in combination.items()) for combination in option.shown_when)
+    return any(all(selection.get(id) == value for id, value in combination.items()) for combination in shown_when)
 
 
 def _configuration_parameter(input: Input, order: Sequence[str]) -> dict:
+    visibility = {} if input.shown_when is None else {"visibilityCondition": _condition(input.shown_when, order)}
     if input.kind == "boolean":
         return {
             "btType": "BTMConfigurationParameterBoolean-2550",
             "parameterId": input.id,
             "parameterName": input.name,
             "defaultValue": input.default_option == "true",
+            **visibility,
         }
     parameter = {
         "btType": "BTMConfigurationParameterEnum-105",
@@ -189,6 +211,7 @@ def _configuration_parameter(input: Input, order: Sequence[str]) -> dict:
             {"btType": "BTMEnumOption-592", "option": option.id, "optionName": option.name}
             for option in input.options
         ],
+        **visibility,
     }
     conditions = _option_visibility(input, order)
     if conditions:

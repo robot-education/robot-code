@@ -2,7 +2,6 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "core/robotFeature.fs", version : "");
-import(path : "core/robotProperties.fs", version : "");
 import(path : "core/coreUtils.fs", version : "");
 // Also exports the enums used as parameter types
 export import(path : "fasteners/fastenerTables.gen.fs", version : "");
@@ -33,12 +32,20 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
 
         annotation { "Name" : "Length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.length is ScrewLength;
+
+        annotation { "Name" : "Variant", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.variant is ScrewVariant;
     }
     {
-        const stock = SCREWS[definition.vendor][definition.size][definition.head][definition.length];
-        if (stock == undefined)
+        const variants = SCREWS[definition.vendor][definition.size][definition.head][definition.length];
+        if (variants == undefined)
         {
             throw regenError("Selected vendor does not make this screw, change the length.", ["length"]);
+        }
+        const stock = made(variants, definition.variant, ScrewVariant.STANDARD);
+        if (stock == undefined)
+        {
+            throw regenError("Selected vendor does not make this screw in this variant, change the variant.", ["variant"]);
         }
         const size = FASTENER_SIZES[definition.size];
         const head = SCREW_HEADS[definition.size][definition.head];
@@ -106,12 +113,20 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
 
         annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.washerType is WasherType;
+
+        annotation { "Name" : "Finish", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.finish is FastenerFinish;
     }
     {
-        const washer = WASHERS[definition.vendor][definition.size][definition.washerType];
-        if (washer == undefined)
+        const finishes = WASHERS[definition.vendor][definition.size][definition.washerType];
+        if (finishes == undefined)
         {
             throw regenError("Selected vendor does not make this washer, change the type.", ["washerType"]);
+        }
+        const washer = made(finishes, definition.finish, FastenerFinish.BLACK);
+        if (washer == undefined)
+        {
+            throw regenError("Selected vendor does not make this washer in this finish, change the finish.", ["finish"]);
         }
 
         const sketchId = id + "sketch";
@@ -204,6 +219,16 @@ predicate sizePredicate(definition is map)
     definition.size is FastenerSize;
 }
 
+/**
+ * What's made in the value chosen, or else in the standard one. The configuration hides an input where only the
+ * standard is made, and a hidden input keeps whatever it was last set to.
+ */
+function made(entries is map, value, standard)
+{
+    const entry = entries[value];
+    return entry != undefined ? entry : entries[standard];
+}
+
 // The XZ plane, with the sketch's X along the radius and its Y along the axis
 const PROFILE_PLANE = plane(WORLD_ORIGIN, -Y_DIRECTION, X_DIRECTION);
 
@@ -278,8 +303,8 @@ export function buttonDome(head is map) returns map
 
 /**
  * Sets a part's properties from its table entry (see fastenerTables.py's `Record`): its name, its vendor and part
- * number, and a link to buy it where it has them, and its material and appearance. FRCDesignApp indexes the same
- * records, so these are the only properties set.
+ * number, and a link to buy it where it has them, and its material and its finish's appearance. FRCDesignApp indexes
+ * the same records, so these are the only properties set.
  */
 function setFastenerProperties(context is Context, body is Query, entry is map)
 {
@@ -296,6 +321,6 @@ function setFastenerProperties(context is Context, body is Query, entry is map)
     {
         setProperty(context, { "entities" : body, "propertyType" : PropertyType.DESCRIPTION, "value" : entry.url });
     }
-    setProperty(context, { "entities" : body, "propertyType" : PropertyType.MATERIAL, "value" : STEEL });
-    setProperty(context, { "entities" : body, "propertyType" : PropertyType.APPEARANCE, "value" : BLACK });
+    setProperty(context, { "entities" : body, "propertyType" : PropertyType.MATERIAL, "value" : entry.material });
+    setProperty(context, { "entities" : body, "propertyType" : PropertyType.APPEARANCE, "value" : entry.appearance });
 }

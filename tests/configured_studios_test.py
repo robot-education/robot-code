@@ -174,6 +174,45 @@ def test_combinations_are_what_the_configuration_shows():
     ]
 
 
+def finished() -> ConfiguredStudio:
+    return ConfiguredStudio(
+        "screw",
+        "f",
+        [
+            Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size"),
+            Input(
+                "finish",
+                "Finish",
+                "finish",
+                [Option("BLACK", "Black", "BLACK"), Option("ZINC", "Zinc", "ZINC", [{"size": "B"}])],
+                enum_name="Finish",
+                shown_when=[{"size": "B"}],
+            ),
+        ],
+    )
+
+
+def test_a_hidden_input_is_left_out_of_combinations():
+    assert finished().combinations() == [{"size": "A"}, {"size": "B", "finish": "BLACK"}, {"size": "B", "finish": "ZINC"}]
+
+
+def test_a_hidden_input_has_a_visibility_condition():
+    finish = finished().configuration_body()["configurationParameters"][1]
+    assert finish["visibilityCondition"] == {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "size", "value": "B"}
+
+
+def test_nothing_shows_by_an_input_hidden_somewhere():
+    with pytest.raises(ValueError, match="hidden somewhere"):
+        ConfiguredStudio(
+            "s",
+            "f",
+            [
+                *finished().inputs,
+                Input("length", "Length", "length", [Option("L", "L", "1 in", [{"finish": "BLACK"}])], kind="length"),
+            ],
+        )
+
+
 def test_manifest_holds_the_configuration_onshape_answers():
     manifest = studio().manifest()
     assert manifest["configuration"] == studio().configuration_body()

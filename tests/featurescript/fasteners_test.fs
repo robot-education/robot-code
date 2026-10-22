@@ -1,6 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "fasteners/fasteners.fs", version : "");
+import(path : "core/robotProperties.fs", version : "");
 import(path : "testing.fs", version : "");
 
 export function testFlatHeadMeetsShankAtCountersinkAngle()
@@ -69,8 +70,16 @@ export function testEveryFlatHeadIsShorterThanItsScrews()
 
 export function testWasherNames()
 {
-    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.NO_10_32][WasherType.OD_1_2_X_0_049].name, "#10 Washer (1/2 in. OD x 0.049 in.)");
-    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.QUARTER_20][WasherType.OD_5_8_X_0_065].name, "1/4 in. Washer (5/8 in. OD x 0.065 in.)");
+    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.NO_10_32][WasherType.OD_1_2_X_0_049][FastenerFinish.BLACK].name, "#10 Washer (1/2 in. OD x 0.049 in.)");
+    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.QUARTER_20][WasherType.OD_5_8_X_0_065][FastenerFinish.BLACK].name, "1/4 in. Washer (5/8 in. OD x 0.065 in.)");
+}
+
+export function testVariantsSetTheirMaterialAndAppearance()
+{
+    const variants = SCREWS[FastenerVendor.WCP][FastenerSize.NO_10_32][ScrewHead.BUTTON][ScrewLength.IN_0_25];
+    expectEqual(variants[ScrewVariant.STANDARD].material, STEEL);
+    expectEqual(variants[ScrewVariant.STANDARD].appearance, BLACK);
+    expectEqual(variants[ScrewVariant.ALUMINUM].material, ALUMINUM);
 }
 
 function expectSamePoint(actual is Vector, expected is Vector)
