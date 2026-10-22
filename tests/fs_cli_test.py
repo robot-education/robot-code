@@ -2153,3 +2153,51 @@ def test_sync_main_runs_only_on_main(repo, onshape, capsys):
     branched(repo, onshape)
     assert run(onshape, "sync-main") == 2
     assert "runs only on main" in capsys.readouterr().err
+
+
+# Release files
+
+
+def test_releases_lists_and_checks_release_files(repo, onshape, capsys):
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    assert run(onshape, "releases") == 0
+    assert "releases/frame.toml: FeatureScript robotFrame, minor release" in capsys.readouterr().out
+    for contents, problem in [
+        ('script = "robotFrame"\npart_set = "fasteners"\n', "one script"),
+        ('script = "robotFrame"\nbump = "huge"\n', "major, minor, or patch"),
+        ('script = "robotFrame"\nversion = "1"\n', "unknown keys: version"),
+        ('part_set = "fasteners"\n', "no part set named fasteners"),
+    ]:
+        (repo / "releases" / "frame.toml").write_text(contents)
+        assert run(onshape, "releases") == 2
+        assert problem in capsys.readouterr().err
+
+
+def test_run_releases_makes_each_release_once(repo, onshape, capsys):
+    element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
+    branched(repo, onshape, "main")
+    (repo / "pyproject.toml").write_text(
+        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nmain_branch = "main"\n'
+    )
+    run(onshape, "pull")
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text(
+        'script = "robotFrame"\nbump = "minor"\ndescription = "First"\npublish = false\n'
+    )
+    commit_all(repo, "Ask for a release")
+
+    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    released = onshape.versions_by_document["back"][-1]
+    assert (released.name, released.description) == ("Robot frame - v0.1.0", "First [releases/frame.toml]")
+    assert element_id in onshape.studios("back", released.id)
+    assert not (repo / "releases" / "frame.toml").exists()
+    assert git_output(repo, "log", "-1", "--format=%s") == "Release robotFrame (releases/frame.toml)\n"
+    assert git_output(repo, "status", "--porcelain") == ""
+
+    # Asked for again, it's found made rather than made twice
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    commit_all(repo, "Ask again")
+    capsys.readouterr()
+    assert run(onshape, "run-releases", "--no-push-tags") == 2
+    assert "already made Robot frame - v0.1.0" in capsys.readouterr().err

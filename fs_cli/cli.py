@@ -24,8 +24,9 @@ from fs_lsp.project import Module, Project
 from fs_cli.branches import Access, BranchError, branch_name, create_workspace, find_workspace, merge, start_state
 from fs_cli.branches import resolve as resolve_backend
 from fs_cli.config import Config, ConfigError, load_config
+from fs_cli.release_files import RELEASES_FOLDER, ReleaseFileError, pending
 from fs_cli.gen import GenerateError, generate
-from fs_cli.git import commit_paths, file_at, has_tag, head_commit, is_clean, is_repository
+from fs_cli.git import commit_all, commit_paths, file_at, has_tag, head_commit, is_clean, is_repository
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
@@ -528,6 +529,21 @@ def make_parser() -> argparse.ArgumentParser:
     no_push_tags(parts_release)
     dry_run(parts_release)
 
+    command(
+        "releases",
+        "list the releases pending in releases/, which `fs run-releases` makes once they're merged into main, and "
+        "check their files (no API calls)",
+        targets=False,
+    )
+    run_releases_command = command(
+        "run-releases",
+        "make each release pending in releases/, on main after `fs sync-main`: run it as `fs release` or `fs parts "
+        "release` would, delete its file, and commit what it recorded",
+        targets=False,
+    )
+    no_push_tags(run_releases_command)
+    dry_run(run_releases_command)
+
     sync_main_command = command(
         "sync-main",
         "land the main branch in the backend's main workspace by merging, as Onshape protects it: merge the main "
@@ -585,7 +601,7 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
 
 
 # Commands which release, or land main, so run only on the main branch (see fs_cli/branches.py)
-MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "release-tags", "sync-main"}
+MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "release-tags", "sync-main", "run-releases"}
 # Commands which write the backend workspace, so make their branch's
 WRITE_COMMANDS = {"push", "sync", "tabs"}
 
@@ -615,6 +631,54 @@ def _onshape_remote(log: bool) -> OnshapeRemote:
 
 
 # Syncing
+
+
+def releases(config: Config, args: argparse.Namespace) -> int:
+    try:
+        files = pending(config)
+    except ReleaseFileError as error:
+        raise UsageError(str(error)) from error
+    if not files:
+        print("No releases pending.")
+    for file in files:
+        kind = "part set" if file.part_set else "FeatureScript"
+        bump = file.bump or "first"
+        print(f"{file.path.relative_to(config.root).as_posix()}: {kind} {file.target}, {bump} release")
+    return 0
+
+
+def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
+    config = workspace.config
+    try:
+        files = pending(config)
+    except ReleaseFileError as error:
+        raise UsageError(str(error)) from error
+    if not files:
+        print("No releases pending.")
+        return 0
+    if not args.dry_run and not is_clean(config.root):
+        raise UsageError("Commit or stash your changes first: each release is committed as it's made.")
+    versions = workspace.remote.versions(workspace.instance)
+    for file in files:
+        made = [version.name for version in versions if version.description.endswith(file.marker)]
+        if made:
+            raise UsageError(
+                f"{file.path.name} already made {', '.join(made)}, so it ran, whole or partway: check what it made in "
+                "Onshape, finish it by hand if need be, then delete the file."
+            )
+    for file in files:
+        print(f"Running {RELEASES_FOLDER}/{file.path.name}:")
+        common = {"bump": file.bump, "description": file.described, "yes": True, "dry_run": args.dry_run, "no_push_tags": args.no_push_tags}
+        if file.script:
+            release(workspace, argparse.Namespace(script=file.script, beta=file.beta, publish=file.publish, **common))
+        else:
+            parts(workspace, argparse.Namespace(parts_command="release", part_set=file.part_set, **common))
+        if not args.dry_run:
+            file.path.unlink()
+            # A release marks what it released in fs-studios.json
+            workspace.state.save()
+            commit_all(config.root, f"Release {file.target} ({RELEASES_FOLDER}/{file.path.name})")
+    return 0
 
 
 def sync_main(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -1889,6 +1953,7 @@ STATE_COMMANDS = {"mv", "unlink", "released"}
 
 OFFLINE_COMMANDS = {
     "check": check,
+    "releases": releases,
     "format": format_files,
     "mv": mv,
     "ui": ui,
@@ -1925,6 +1990,7 @@ COMMANDS = {
     "sync-versions": sync_versions,
     "release-tags": release_tags,
     "sync-main": sync_main,
+    "run-releases": run_releases,
     "tabs": tabs,
     "link": link,
     "released": detect_released,

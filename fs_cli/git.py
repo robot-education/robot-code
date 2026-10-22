@@ -87,6 +87,18 @@ def is_repository(root: pathlib.Path) -> bool:
     return _git(root, "rev-parse", "--is-inside-work-tree") is not None
 
 
+def commit_all(root: pathlib.Path, message: str) -> str | None:
+    """Commits every change to the working tree, new files included; the short commit, or None if nothing changed."""
+    if _git(root, "add", "--all") is None:
+        raise RuntimeError("git add failed")
+    if not (_git(root, "diff", "--cached", "--name-only") or "").strip():
+        return None
+    if _git(root, "commit", "--quiet", "--message", message) is None:
+        raise RuntimeError("git commit failed")
+    commit = _git(root, "rev-parse", "--short", "HEAD")
+    return commit.strip() if commit else None
+
+
 def current_branch(root: pathlib.Path) -> str | None:
     """The branch checked out; None outside a repository or on a detached HEAD."""
     branch = _git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
