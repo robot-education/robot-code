@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "core/robotProperties.fs", version : ""); // core/robotProperties.fs
+import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1"); // core/robotProperties.fs
 
 /* Generated from fastenerTables.py by `fs gen` -- DO NOT EDIT */
 
