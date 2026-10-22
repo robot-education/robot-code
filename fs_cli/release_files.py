@@ -4,13 +4,13 @@ A branch asks for a release by adding a file to `releases/` (see docs/fs-cli.md#
 
     # releases/frame-hubs.toml
     script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
-    part_set = "fasteners"      # a part set, as `fs parts release` takes it
+    part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
     bump = "minor"              # major, minor, or patch
     description = "Adds hubs"   # internal, as `--description`
     beta = false                # FeatureScripts: release to the beta document
     publish = true              # FeatureScripts: finalize it at once, and tag it
 
-`fs releases run`, on main, runs each, deletes its file, and commits what the releases recorded.
+`fs run-releases`, on main, runs each, deletes its file, and commits what the releases recorded.
 """
 
 from __future__ import annotations

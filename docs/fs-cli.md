@@ -188,7 +188,7 @@ With `main_branch` set in `[tool.fs]` (robot-code's is `main`), each git branch 
 backend document, and the main workspace holds only the main branch, changed by merging. So branches can't overwrite
 each other's Feature Studios, and Onshape can protect the main workspace (a workspace protection rule of Merge).
 
-- On any other branch, `fs push` (and `sync`, `tabs`, `parts test`, `parts diagnose`, `update-std --push`) works in a
+- On any other branch, `fs push` (and `sync`, `tabs`, `parts --test`, `parts --diagnose`, `update-std --push`) works in a
   workspace named after the branch, which the first of them creates, branched from the main workspace's latest
   version (Onshape branches only from versions). Commands which only read (`status`, `pull`, `diff`, ...) read the
   main workspace until the branch has one. Its state, what each studio looked like when last synced, is
@@ -201,8 +201,9 @@ each other's Feature Studios, and Onshape can protect the main workspace (a work
   (or into a new `sync <commit>` one, for a branch without one), pushes main's files there over whatever it has
   (git is what main holds), merges that into the main workspace, taking its tabs where both changed, and deletes it.
   Run again after a failure, it finishes.
-- Releasing (`release`, `parts release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`) runs only on
-  the main branch, so what's released is what was merged.
+- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`) runs only on
+  the main branch, so what's released is what was merged. A part set's release to a target (`parts --release
+  --target`), to try it out, runs from any branch, versioning its workspace (see [docs/parts.md](parts.md)).
 - `fs branches` lists the workspaces fs made (marked by their description), and `fs branches --prune` deletes those
   whose branch is gone from origin. Workspaces made by hand are never deleted.
 
@@ -222,14 +223,14 @@ the branch is merged into main, after `fs sync-main`:
 ```toml
 # releases/frame-hubs.toml
 script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
-part_set = "fasteners"      # a part set, as `fs parts release` takes it
+part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
 bump = "minor"              # major, minor, or patch
 description = "Adds hubs"   # internal, as --description
 beta = false                # FeatureScripts: to the beta document
 publish = true              # FeatureScripts: finalize it at once, and tag it (the default)
 ```
 
-They run in name order. Each runs as `fs release` or `fs parts release` would, then its file is deleted and what the
+They run in name order. Each runs as `fs release` or `fs parts SET --release` would, then its file is deleted and what the
 release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release makes
 ends its description with the file's name (`[releases/frame-hubs.toml]`), so a file whose release Onshape already has,
 whole or partway, stops `fs run-releases` rather than releasing twice: check what it made, finish it by hand, and
@@ -384,7 +385,7 @@ the options it shows: an option shows while a rule controlling it holds. As Onsh
 rest always, since Onshape hides an option no rule controls. Onshape also refuses a List whose default is hidden while
 the inputs before it are at theirs, as the studio checks. A List with none of its options shown is
 hidden, so a List's own visibility is folded into its options'. A checkbox has no options, and shows by a single
-condition, which the studio checks; one needing more is a `switch`. `fs parts diagnose` finds a part of a
+condition, which the studio checks; one needing more is a `switch`. `fs parts SET --diagnose` finds a part of a
 configuration Onshape refuses (see [docs/parts.md](parts.md)). `ConfiguredStudio.manifest()` gives the
 configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
 any configuration).
@@ -424,7 +425,7 @@ uv run fs release robotFrame --minor --dry-run            # show the plan withou
 A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
 frontend studio of the same name at it (creating the studio if needed). Beta releases go to the separate
 `frontend_beta` document instead, and the feature's name must contain "beta". A part set's FeatureScript
-(`[tool.fs.parts]`) isn't released here but by `fs parts release`, into its FRCDesignLib document with its Part
+(`[tool.fs.parts]`) isn't released here but by `fs parts SET --release`, into its FRCDesignLib document with its Part
 Studios; see [docs/parts.md](parts.md). The studio must be pushed and in sync before it can be released, and
 `fs release` asks for confirmation since versions can't be deleted (`-y` skips the prompt).
 

@@ -15,6 +15,17 @@ evaluator, and imports of `core/` all work as usual.
 title = "Fasteners"        # its versions' names: "Fasteners - v1.2.0"
 folder = "fasteners"       # in featurescripts/: its FeatureScript and definition
 main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"   # the FRCDesignLib document it's released into
+
+[tool.fs.parts.fasteners.targets]   # other documents to release it to, to try it out (optional)
+local = "https://cad.onshape.com/documents/..."
+```
+
+```
+uv run fs parts fasteners --test                  # build its Part Studios in your branch's workspace
+uv run fs parts fasteners --diagnose              # find what Onshape refuses in a configuration
+uv run fs parts fasteners --release --minor       # release it to its main document (on main)
+uv run fs parts fasteners --release --target local   # release it to a target, to try it out (any branch)
+uv run fs configuration <url>                     # print a Part Studio's configuration as Onshape stores it
 ```
 
 The folder holds:
@@ -32,7 +43,7 @@ Push it, then build the set's test Part Studios in the backend document:
 
 ```
 uv run fs push featurescripts/fasteners
-uv run fs parts test fasteners
+uv run fs parts fasteners --test
 ```
 
 They're built in the branch's own workspace (see [Branches](fs-cli.md#branches)), so branches don't build over each
@@ -41,7 +52,7 @@ name or created, its configuration written, and its feature inserted (or pointed
 and configured. It prints each one's url, to check in Onshape. A feature that fails to regenerate in its default
 configuration stops the build. Nothing is versioned or recorded, so try as often as needed.
 
-When Onshape refuses a configuration, `uv run fs parts diagnose fasteners` finds which part. It writes each studio's
+When Onshape refuses a configuration, `uv run fs parts fasteners --diagnose` finds which part. It writes each studio's
 configuration in stages to a scratch `<tab> (DIAGNOSE)` Part Studio: none, the inputs with no conditions, then each
 input's conditions in turn, all its option rules together, since one alone could hide its default, which Onshape
 refuses. It prints each stage Onshape accepted,
@@ -51,8 +62,8 @@ a call per stage, about ten for the screw. Delete the scratch tabs after.
 ## Releasing
 
 ```
-uv run fs parts release fasteners --minor --dry-run    # the plan; a few read calls
-uv run fs parts release fasteners --minor -d "Added zinc screws"
+uv run fs parts fasteners --release --minor --dry-run    # the plan; a few read calls
+uv run fs parts fasteners --release --minor -d "Added zinc screws"
 ```
 
 A release:
@@ -60,7 +71,10 @@ A release:
 1. Creates a version named e.g. `Fasteners - v1.2.0` in the backend document.
 2. Points the main document's Feature Studio of the same name (`fasteners.fs`) at that version, creating it if needed:
    a small generated studio re-exporting the backend's, as the frontend's are.
-3. Builds each Part Studio in the main document, by its tab's name (`Screw`), from that studio as just pushed.
+3. Builds each Part Studio in the main document, by its tab's name (`Screw`), from that studio as just pushed, and
+   writes the set's manifest beside them as a file tab, `fasteners.parts.json`: the definition's manifest export with
+   each studio's tab there (`elementId`) in place of where it was last released. FRCDesignApp reads it when it loads
+   the document's version, so the records it indexes are always those of the version it loads.
 4. Creates the same version in the main document.
 5. Records where the Part Studios are in `<definition>.studios.json` beside the definition (the main document, that
    version, and each tab), writes the definition's `EXPORTS` again, and tags the release in git (`fasteners/v1.2.0`).
@@ -71,8 +85,17 @@ versioned; the backend version stays, so the next try takes the next version num
 
 A release runs on the main branch only. Ask for one in a release file (`part_set = "fasteners"`; see
 [Release files](fs-cli.md#release-files)), which the Onshape workflow makes once its branch is merged, committing the
-recorded locations and exports; run by hand, commit them yourself. Then sync them where they're read (FRCDesignApp:
-`npm run sync:generated-parts -- <commit>`).
+recorded locations and exports; run by hand, commit them yourself. FRCDesignApp's library reads the released manifest
+itself; Quick fastener still reads the synced one (`npm run sync:generated-parts -- <commit>`).
+
+### Releasing to a target
+
+`--target` releases to another document, one named in `[tool.fs.parts.<set>.targets]` or any document's url, from any
+branch: to load a set into a local FRCDesignApp, say, before releasing it. It does steps 1 to 4 to that document, but
+the versions are named for the branch and commit (`Fasteners test - my-branch 1a2b3c4`), not numbered, and nothing
+is recorded, marked released, or tagged: the main document and the next release's number are untouched. Its backend
+version is made from the branch's workspace. Versions can't be deleted, so each try leaves one in the backend
+document and one in the target.
 
 `fs release` refuses a part set's FeatureScript, and `fs sync-versions` leaves its backend versions out: they're never
 the frontend's.

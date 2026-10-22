@@ -48,6 +48,8 @@ class FakeOnshape:
         # (document id, workspace id) -> name, for every workspace but the backend's main one
         self.workspace_names: dict[tuple[str, str], str] = {}
         self.workspace_descriptions: dict[str, str] = {}
+        # (document id, instance id) -> element id -> (name, data), of file tabs put_file wrote
+        self.files: dict[tuple[str, str], dict[str, tuple[str, bytes]]] = {}
         # (target workspace id, source workspace id, strategy) of each merge
         self.merges: list[tuple[str, str, str]] = []
 
@@ -210,6 +212,13 @@ class FakeOnshape:
         element_id = tabs.setdefault(studio.tab_name, self._id("p"))
         self.builds.append((instance.document_id, studio.name, feature_studio_id, microversion_id))
         return Built(element_id, created, self.build_status)
+
+    def put_file(self, instance, name, data, content_type):
+        self.calls["put_file"] += 1
+        files = self.files.setdefault((instance.document_id, instance.instance_id), {})
+        element_id = next((id for id, (each, _) in files.items() if each == name), None) or self._id("f")
+        files[element_id] = (name, data)
+        return element_id
 
     def element_ids(self, instance):
         key = (instance.document_id, instance.instance_id)
@@ -1037,6 +1046,8 @@ def test_a_part_set_needs_a_main_document_folder_and_title(tmp_path):
     assert config.part_set_for("Parts/partMaker.fs").main_document_id == MAIN
     assert config.part_set_for("PartsBin/x.fs") is None
     assert config.find_part_set("parts").folder == "Parts"
+    with pytest.raises(ConfigError, match="targets must map names to documents' urls"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "P", "title": "P", "targets": {"local": "nope"}}}})
     with pytest.raises(ConfigError, match="No part set named bolts"):
         config.find_part_set("bolts")
 
@@ -1251,7 +1262,7 @@ STUDIOS = {
         "screw", "partScrew", [Input("size", "Size", "size", [Option("A", "A", "A")], enum_name="Size")]
     )
 }
-EXPORTS = {"parts.gen.json": "{}\\n"}
+EXPORTS = {"parts.gen.json": '{"studios": {"screw": {"feature": "partScrew", "location": null}}}\\n'}
 """
 PART_MAKER = "FeatureScript 1;\nexport const partScrew = defineFeature(function(context, id, definition) {});\n"
 
@@ -1267,7 +1278,7 @@ def part_set(repo: pathlib.Path, onshape: FakeOnshape) -> str:
 def test_a_part_set_is_tried_in_the_backend_as_test_part_studios(repo, onshape, capsys):
     element_id = part_set(repo, onshape)
 
-    assert run(onshape, "parts", "test", "parts", "-y") == 0
+    assert run(onshape, "parts", "parts", "--test", "-y") == 0
     assert onshape.builds == [("back", "screw", element_id, onshape.studios()[element_id]["mv"])]
     assert list(onshape.part_studios[("back", "bw")]) == ["Screw (TEST)"]
     assert "Screw (TEST) (created, OK): https://cad.onshape.com/documents/back/w/bw/e/" in capsys.readouterr().out
@@ -1280,7 +1291,7 @@ def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
     part_set(repo, onshape)
     write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
 
-    assert run(onshape, "parts", "test", "parts", "-y") != 0
+    assert run(onshape, "parts", "parts", "--test", "-y") != 0
     assert "Parts/partMaker.fs isn't in sync with the backend document" in capsys.readouterr().err
     assert onshape.builds == []
 
@@ -1288,7 +1299,7 @@ def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
 def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
     element_id = part_set(repo, onshape)
 
-    assert run(onshape, "parts", "release", "parts", "--minor", "-y") == 0
+    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
 
     [backend_version] = onshape.versions_by_document["back"]
     assert backend_version.name == "Parts - v0.1.0"
@@ -1303,15 +1314,51 @@ def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
         "versionId": version.id,
         "elements": {"screw": onshape.part_studios[(MAIN, "lw")]["Screw"]},
     }
-    assert "  3. Build Screw in the main document" in capsys.readouterr().out
+    assert "  3. Build Screw in the main document, and write its manifest there" in capsys.readouterr().out
     assert "front" not in onshape.versions_by_document
+    # Its manifest beside its Part Studios, naming each by its tab there
+    [(name, data)] = onshape.files[(MAIN, "lw")].values()
+    assert name == "parts.parts.json"
+    assert json.loads(data) == {"studios": {"screw": {"feature": "partScrew", "elementId": onshape.part_studios[(MAIN, "lw")]["Screw"]}}}
+
+
+TARGET = "fedcba9876543210fedcba98"
+
+
+def test_a_part_set_is_released_to_a_target_to_try_it(repo, onshape, capsys):
+    part_set(repo, onshape)
+    (repo / "pyproject.toml").write_text(
+        (repo / "pyproject.toml").read_text()
+        + f'[tool.fs.parts.parts.targets]\nlocal = "https://cad.onshape.com/documents/{TARGET}"\n'
+    )
+
+    assert run(onshape, "parts", "parts", "--release", "--target", "local", "-y") == 0
+    # Versioned, but not as a release
+    [backend_version] = onshape.versions_by_document["back"]
+    assert backend_version.name == "Parts test - no branch"
+    [version] = onshape.versions_by_document[TARGET]
+    assert version.name == "Parts test - no branch"
+    assert list(onshape.part_studios[(TARGET, "lw")]) == ["Screw"]
+    [(name, _)] = onshape.files[(TARGET, "lw")].values()
+    assert name == "parts.parts.json"
+    # Nothing recorded, released, or in the main document
+    assert not local(repo, "Parts/partTables.studios.json").exists()
+    assert MAIN not in onshape.versions_by_document
+    assert "Record where" not in capsys.readouterr().out
+
+    assert run(onshape, "parts", "parts", "--release", "--target", "local", "--minor", "-y") == 2
+    assert "takes no --major, --minor, or --patch" in capsys.readouterr().err
+    assert run(onshape, "parts", "parts", "--release", "--target", f"https://cad.onshape.com/documents/{MAIN}", "-y") == 2
+    assert "main document" in capsys.readouterr().err
+    assert run(onshape, "parts", "parts", "--test", "--target", "local", "-y") == 2
+    assert "go with --release" in capsys.readouterr().err
 
 
 def test_a_part_set_release_stops_at_a_part_studio_that_fails_to_regenerate(repo, onshape, capsys):
     part_set(repo, onshape)
     onshape.build_status = "ERROR"
 
-    assert run(onshape, "parts", "release", "parts", "--minor", "-y") != 0
+    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") != 0
     assert "Screw's partScrew fails to regenerate in its default configuration" in capsys.readouterr().err
     assert MAIN not in onshape.versions_by_document
     assert not local(repo, "Parts/partTables.studios.json").exists()
@@ -1320,7 +1367,7 @@ def test_a_part_set_release_stops_at_a_part_studio_that_fails_to_regenerate(repo
 def test_a_part_sets_featurescript_isnt_released_by_fs_release(repo, onshape, capsys):
     part_set(repo, onshape)
     assert run(onshape, "release", "partMaker", "--minor", "-y") != 0
-    assert "release it with `fs parts release parts`" in capsys.readouterr().err
+    assert "release it with `fs parts parts --release`" in capsys.readouterr().err
     assert onshape.versions_by_document == {}
 
 

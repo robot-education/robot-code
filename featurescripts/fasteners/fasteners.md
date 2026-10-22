@@ -11,9 +11,9 @@ configurations, and FRCDesign's manifest `fasteners.gen.json`), and `fastenerHol
 evaluates in the Part Studios of the parts it fastens).
 
 Unreleased. It's a part set (`[tool.fs.parts.fasteners]`, see docs/parts.md), not released to the frontend document:
-its Part Studios (Screw, Washer, and Nut) are built from `fastenerTables.py`'s `STUDIOS`, never by hand. `fs parts test
-fasteners` builds them in the backend document as `Screw (TEST)` and so on, to try a change, and `fs parts release
-fasteners` releases them into FRCDesignLib's Fasteners document, recording where they are in
+its Part Studios (Screw, Washer, and Nut) are built from `fastenerTables.py`'s `STUDIOS`, never by hand. `fs parts
+fasteners --test` builds them in the backend document as `Screw (TEST)` and so on, to try a change, and `fs parts
+fasteners --release` releases them into FRCDesignLib's Fasteners document, recording where they are in
 `fastenerTables.studios.json`, which the manifest's locations come from.
 
 ## Strings

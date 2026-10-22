@@ -152,6 +152,11 @@ class Remote(Protocol):
         """Replaces an image tab's file, returning its new microversion."""
         ...
 
+    def put_file(self, instance: InstancePath, name: str, data: bytes, content_type: str) -> str:
+        """Writes a file to the tab of that name, which it creates if there's none (2 calls, 1 anonymous); its element
+        id."""
+        ...
+
     def element_ids(self, instance: InstancePath) -> set[str]:
         """Every tab's element id (anonymous for public documents)."""
         ...
@@ -265,6 +270,19 @@ class OnshapeRemote:
         content_type = _image_type(name)
         response = blob_elements.upload_file_update_element(self.api, path, name, data, content_type)
         return RemoteImage(response["id"], response["name"], response["microversionId"], content_type)
+
+    def put_file(self, instance: InstancePath, name: str, data: bytes, content_type: str) -> str:
+        tabs = [
+            element["id"]
+            for element in documents.get_document_elements(self.api, instance, ElementType.BLOB)
+            if element["name"] == name
+        ]
+        if len(tabs) > 1:
+            raise ValueError(f"The document has {len(tabs)} tabs named {name}; delete all but one.")
+        if tabs:
+            path = ElementPath.from_path(instance, tabs[0])
+            return blob_elements.upload_file_update_element(self.api, path, name, data, content_type)["id"]
+        return blob_elements.upload_file_create_element(self.api, instance, name, data, content_type)["id"]
 
     def element_ids(self, instance: InstancePath) -> set[str]:
         return {element["id"] for element in documents.get_document_elements(self.api, instance)}

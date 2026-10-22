@@ -421,7 +421,7 @@ def make_parser() -> argparse.ArgumentParser:
     dry_run(gen_command)
 
     release = command(
-        "release", "release a FeatureScript to the frontend document (a part set's is released by `fs parts release`)", targets=False
+        "release", "release a FeatureScript to the frontend document (a part set's is released by `fs parts SET --release`)", targets=False
     )
     release.add_argument(
         "script", help="the .fs file or Feature Studio name, e.g. robotFrame"
@@ -495,48 +495,56 @@ def make_parser() -> argparse.ArgumentParser:
         "in the backend document",
         targets=False,
     )
-    parts_commands = parts_command.add_subparsers(dest="parts_command", metavar="action", required=True)
-    parts_test = parts_commands.add_parser(
-        "test",
-        help="build the set's Part Studios in the backend document as `<Part> (TEST)`, from its FeatureScript as "
-        "pushed (4-5 API calls each)",
+    parts_command.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
+    action = parts_command.add_mutually_exclusive_group(required=True)
+    action.add_argument(
+        "--test",
+        action="store_true",
+        help="build the set's Part Studios as `<Part> (TEST)` in your branch's backend workspace, from its FeatureScript "
+        "as pushed (4-5 API calls each)",
     )
-    parts_test.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
-    parts_test.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
-    parts_diagnose = parts_commands.add_parser(
-        "diagnose",
+    action.add_argument(
+        "--diagnose",
+        action="store_true",
         help="find which part of the set's configurations Onshape refuses, writing each in stages to a scratch "
-        "`<Part> (DIAGNOSE)` Part Studio in the backend document (a call per stage, about 10 for a screw)",
+        "`<Part> (DIAGNOSE)` Part Studio in your branch's backend workspace (a call per stage, about 10 for a screw)",
     )
-    parts_diagnose.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
-    parts_diagnose.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
-    parts_configuration = parts_commands.add_parser(
-        "configuration",
-        help="print a Part Studio's configuration as Onshape stores it, as JSON (1 API call): one made in Onshape shows "
-        "what a build should write",
+    action.add_argument(
+        "--release",
+        action="store_true",
+        help="release the set: version the backend, point the document released to at it, build its Part Studios and "
+        "write its manifest there, and version it; to its main document (on main only), numbered, recorded, and tagged "
+        "in git",
     )
-    parts_configuration.add_argument("url", help="the Part Studio's url")
-    parts_release = parts_commands.add_parser(
-        "release",
-        help="release the set into its main document: version the backend, point the main document at it, build its "
-        "Part Studios there, version it, record where they are, and tag it in git",
+    parts_command.add_argument(
+        "--target",
+        metavar="NAME_OR_URL",
+        help="with --release, release to another document (one of the set's targets, or a document's url), from any "
+        "branch, to try it out: not numbered, recorded, or tagged",
     )
-    parts_release.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
-    parts_bump = parts_release.add_mutually_exclusive_group()
+    parts_bump = parts_command.add_mutually_exclusive_group()
     for version_type in VersionType:
         parts_bump.add_argument(
             f"--{version_type}",
             dest="bump",
             action="store_const",
             const=version_type,
-            help=f"release a new {version_type} version",
+            help=f"with --release, release a new {version_type} version",
         )
-    parts_release.add_argument(
-        "-d", "--description", default="", help="a brief, internal-only description of the changes"
+    parts_command.add_argument(
+        "-d", "--description", default="", help="with --release, a brief, internal-only description of the changes"
     )
-    parts_release.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
-    no_push_tags(parts_release)
-    dry_run(parts_release)
+    parts_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    no_push_tags(parts_command)
+    dry_run(parts_command)
+
+    configuration_command = command(
+        "configuration",
+        "print a Part Studio's configuration as Onshape stores it, as JSON (1 API call): one made in Onshape shows what "
+        "a build should write",
+        targets=False,
+    )
+    configuration_command.add_argument("url", help="the Part Studio's url")
 
     command(
         "releases",
@@ -625,11 +633,14 @@ WRITE_COMMANDS = {"push", "sync", "tabs"}
 
 
 def command_access(args: argparse.Namespace) -> Access:
-    if args.command in MAIN_COMMANDS or (args.command == "parts" and args.parts_command == "release"):
+    if args.command == "parts" and args.release:
+        # A target's release is tried from any branch, from its workspace
+        return Access.READ if args.target else Access.MAIN
+    if args.command in MAIN_COMMANDS:
         return Access.MAIN
     if (
         args.command in WRITE_COMMANDS
-        or (args.command == "parts" and args.parts_command in ("test", "diagnose"))
+        or (args.command == "parts" and (args.test or args.diagnose))
         or (args.command == "update-std" and getattr(args, "push", False))
     ):
         return Access.WRITE
@@ -690,7 +701,12 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
         if file.script:
             release(workspace, argparse.Namespace(script=file.script, beta=file.beta, publish=file.publish, **common))
         else:
-            parts(workspace, argparse.Namespace(parts_command="release", part_set=file.part_set, **common))
+            parts(
+                workspace,
+                argparse.Namespace(
+                    part_set=file.part_set, test=False, diagnose=False, release=True, target=None, **common
+                ),
+            )
         if not args.dry_run:
             file.path.unlink()
             # A release marks what it released in fs-studios.json
@@ -1923,19 +1939,22 @@ def _display_path(path: pathlib.Path) -> str:
 
 # Commands which don't need Onshape
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
+def configuration(workspace: Workspace, args: argparse.Namespace) -> int:
+    from onshape_api.endpoints.elements import get_configuration
+    from onshape_api.paths.paths import url_to_element_path
+
+    assert isinstance(workspace.remote, OnshapeRemote)
+    print(json.dumps(get_configuration(workspace.remote.api, url_to_element_path(args.url)), indent=1))
+    return 0
+
+
 def parts(workspace: Workspace, args: argparse.Namespace) -> int:
     from fs_cli.parts import plan_part_release, run_diagnose, run_part_release, run_test
 
-    if args.parts_command == "configuration":
-        from onshape_api.endpoints.elements import get_configuration
-        from onshape_api.paths.paths import url_to_element_path
-
-        assert isinstance(workspace.remote, OnshapeRemote)
-        print(json.dumps(get_configuration(workspace.remote.api, url_to_element_path(args.url)), indent=1))
-        return 0
-
     part_set = workspace.config.find_part_set(args.part_set)
-    if args.parts_command == "test":
+    if not args.release and (args.target or args.bump or args.description):
+        raise UsageError("--target, --major, --minor, --patch, and --description go with --release.")
+    if args.test:
         if not args.yes:
             confirm(
                 f"This builds the {part_set.name} Part Studios in the backend document, named `<Part> (TEST)`, "
@@ -1946,7 +1965,7 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
             print(f"{studio.tab_name} ({'created' if built.created else 'updated'}, {built.status}): {url}")
         return 0
 
-    if args.parts_command == "diagnose":
+    if args.diagnose:
         if not args.yes:
             confirm(
                 f"This writes the {part_set.name} configurations in stages to `<Part> (DIAGNOSE)` Part Studios in the "
@@ -1964,19 +1983,26 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
                 print(f"  refused {stage}: {error}")
         return 0
 
-    plan = plan_part_release(workspace, part_set, args.bump)
-    previous = plan.previous.name if plan.previous else "none"
-    print(f"Releasing the {part_set.name} part set as {plan.version_name} (previous release: {previous})")
+    plan = plan_part_release(workspace, part_set, args.bump, args.target)
+    label = plan.label
+    if plan.released:
+        previous = plan.previous.name if plan.previous else "none"
+        print(f"Releasing the {part_set.name} part set as {plan.version_name} (previous release: {previous})")
+    else:
+        print(f"Releasing the {part_set.name} part set to {args.target} as {plan.version_name}")
     tabs = ", ".join(studio.tab_name for _, studios in plan.definitions for studio in studios)
     steps = [
         f"Create version {plan.version_name} in the backend document",
-        f"Point {plan.studio.name} in its main document at that version",
-        f"Build {tabs} in the main document",
-        f"Create version {plan.version_name} in the main document",
-        "Record where its Part Studios are beside "
-        + ", ".join(definition.name for definition, _ in plan.definitions)
-        + ", and write their exports again",
+        f"Point {plan.studio.name} in the {label} at that version",
+        f"Build {tabs} in the {label}, and write its manifest there",
+        f"Create version {plan.version_name} in the {label}",
     ]
+    if plan.released:
+        steps.append(
+            "Record where its Part Studios are beside "
+            + ", ".join(definition.name for definition, _ in plan.definitions)
+            + ", write their exports again, and tag the release"
+        )
     for number, step in enumerate(steps, 1):
         print(f"  {number}. {step}")
     if args.dry_run:
@@ -1985,7 +2011,9 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
         confirm("Versions can't be deleted.")
     run_part_release(workspace, plan, args.description)
     print(f"Released {plan.version_name}.")
-    print("Commit the recorded locations and exports, then sync them into FRCDesignApp.")
+    if plan.released is None:
+        return 0
+    print("Commit the recorded locations and exports.")
     if is_repository(workspace.config.root):
         assert plan.studio.local_code is not None
         tag_release(workspace, plan.studio.path, plan.released, plan.studio.local_code, not args.no_push_tags)
@@ -2039,6 +2067,7 @@ COMMANDS = {
     "link": link,
     "released": detect_released,
     "parts": parts,
+    "configuration": configuration,
 }
 
 

@@ -2,11 +2,13 @@
 whose FeatureScript only they use. Their FeatureScript is in the backend document like any other, and its imports work
 the same, but it's tried and released here rather than by `fs release`:
 
-- `fs parts test <set>` builds each Part Studio in the backend document, named `<tab> (TEST)`, from the FeatureScript as
-  pushed, to try a change. Nothing else is written.
-- `fs parts release <set>` versions the backend document, points the set's main document (an FRCDesignLib document) at
-  that version, builds each Part Studio there, versions the main document, records where they are beside their
-  definition (`<definition>.studios.json`), writes the definition's exports again, and tags the release in git.
+- `fs parts <set> --test` builds each Part Studio in the branch's backend workspace, named `<tab> (TEST)`, from the
+  FeatureScript as pushed, to try a change. Nothing else is written.
+- `fs parts <set> --release` versions the backend document, points the set's main document (an FRCDesignLib document)
+  at that version, builds each Part Studio there and writes the set's manifest beside them (`<set>.parts.json`),
+  versions the main document, records where they are beside their definition (`<definition>.studios.json`), writes the
+  definition's exports again, and tags the release in git. With `--target`, it does the same to another document, to
+  try it out, but numbers, records, and tags nothing.
 
 See docs/parts.md.
 """
@@ -14,12 +16,14 @@ See docs/parts.md.
 from __future__ import annotations
 
 import dataclasses
+import json
 import pathlib
 import re
 import runpy
 from collections.abc import Callable
 
-from fs_cli.config import PartSet
+from fs_cli.branches import branch_name
+from fs_cli.config import ConfigError, PartSet
 from fs_cli.configured_studios import (
     Built,
     ConfiguredStudio,
@@ -28,6 +32,7 @@ from fs_cli.configured_studios import (
     configured_studios,
     write_locations,
 )
+from fs_cli.git import head_commit
 from fs_cli.release import find_frontend_studio, version_backend
 from fs_cli.remote import Remote, RemoteStudio, Version
 from fs_cli.versions import (
@@ -155,31 +160,74 @@ def run_diagnose(
 
 # Releasing
 
+# What a part set's manifest is called in a document it's released to, beside its Part Studios: its definition's
+# manifest export (`fasteners.gen.json`) as `fasteners.parts.json`
+MANIFEST_SUFFIX = ".gen.json"
+RELEASED_MANIFEST_SUFFIX = ".parts.json"
+
 
 @dataclasses.dataclass
 class PartReleasePlan:
+    """A release of a part set: to its main document, numbered (`released`), or to a target, to try it out.
+
+    Attributes:
+        main: The workspace of the document it's released to.
+        released: Its version number; None for a target's, which isn't numbered, recorded, or tagged.
+    """
+
     part_set: PartSet
     studio: Studio
     definitions: list[tuple[pathlib.Path, list[ConfiguredStudio]]]
     previous: ReleasedVersion | None
-    released: ReleasedVersion
+    released: ReleasedVersion | None
     main: InstancePath
+    version_name: str
 
     @property
-    def version_name(self) -> str:
-        return self.released.name
+    def label(self) -> str:
+        return "main document" if self.released else "target document"
 
 
-def plan_part_release(workspace: Workspace, part_set: PartSet, bump: VersionType | None) -> PartReleasePlan:
+def plan_part_release(
+    workspace: Workspace, part_set: PartSet, bump: VersionType | None, target: str | None = None
+) -> PartReleasePlan:
     definitions = part_set_definitions(workspace, part_set)
     studio = feature_studio(workspace, part_set, [each for _, studios in definitions for each in studios])
+    if target is not None:
+        if bump is not None:
+            raise UsageError("A release to a target isn't numbered, so it takes no --major, --minor, or --patch.")
+        try:
+            document_id = part_set.target_document_id(target)
+        except ConfigError as error:
+            raise UsageError(str(error)) from error
+        main = workspace.remote.default_workspace(document_id)
+        commit = (head_commit(workspace.config.root) or "")[:7]
+        name = f"{part_set.title} test - {branch_name(workspace.config) or 'no branch'} {commit}".rstrip()
+        return PartReleasePlan(part_set, studio, definitions, None, None, main, name)
     main = workspace.remote.default_workspace(part_set.main_document_id)
     previous = latest_release(part_set.title, workspace.remote.versions(main))
     try:
         version = next_version(previous, bump, beta=False)
     except ValueError as error:
         raise UsageError(str(error)) from error
-    return PartReleasePlan(part_set, studio, definitions, previous, ReleasedVersion(part_set.title, version), main)
+    released = ReleasedVersion(part_set.title, version)
+    return PartReleasePlan(part_set, studio, definitions, previous, released, main, released.name)
+
+
+def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dict[str, bytes]:
+    """A definition's manifests as released beside its Part Studios: each studio with its tab in that document
+    (`elementId`), in place of where it was last released (`location`). By the name of the tab each is uploaded to."""
+    exports = runpy.run_path(str(definition)).get("EXPORTS", {})
+    manifests = {}
+    for name, text in exports.items():
+        if not name.endswith(MANIFEST_SUFFIX):
+            continue
+        manifest = json.loads(text)
+        for key, studio in manifest.get("studios", {}).items():
+            studio.pop("location", None)
+            studio["elementId"] = built[key].element_id
+        manifests[name.removesuffix(MANIFEST_SUFFIX) + RELEASED_MANIFEST_SUFFIX] = json.dumps(manifest).encode()
+    return manifests
 
 
 def run_part_release(
@@ -191,18 +239,24 @@ def run_part_release(
     code = version_backend(workspace, plan.studio, plan.version_name, description, log)
     main_studio = find_frontend_studio(workspace, plan.main, name)
     if main_studio is None:
-        log(f"Creating {name} in the main document...")
+        log(f"Creating {name} in the {plan.label}...")
         main_studio = remote.create(plan.main, name)
-    log(f"Updating {name} in the main document...")
+    log(f"Updating {name} in the {plan.label}...")
     remote.push(plan.main, main_studio.element_id, code)
     # Its microversion as pushed, which the Part Studios insert its features at
     pushed = next(each for each in remote.list_studios(plan.main) if each.element_id == main_studio.element_id)
     built = {
         definition: build_studios(remote, plan.main, studios, pushed, log) for definition, studios in plan.definitions
     }
+    for definition, studios in built.items():
+        for tab, manifest in released_manifests(definition, studios).items():
+            log(f"Writing {tab} in the {plan.label}...")
+            remote.put_file(plan.main, tab, manifest, "application/json")
 
-    log(f"Creating version {plan.version_name} in the main document...")
+    log(f"Creating version {plan.version_name} in the {plan.label}...")
     version = remote.create_version(plan.main, plan.version_name, description)
+    if plan.released is None:
+        return version
     for definition, studios in built.items():
         write_locations(
             definition, plan.main.document_id, version.id, {name: each.element_id for name, each in studios.items()}

@@ -8,7 +8,7 @@ A release:
        there (with `--publish`, or later by `fs sync-versions`), and then it's tagged in git (see `tag_release`).
 
 Beta releases go to the separate frontend_beta document instead. A part set's FeatureScript (`[tool.fs.parts]`) isn't
-released here: `fs parts release` releases it into its FRCDesignLib document, with its Part Studios (see parts.py).
+released here: `fs parts <set> --release` releases it into its FRCDesignLib document, with its Part Studios (see parts.py).
 
 Deprecating a released FeatureScript retires it without breaking Part Studios using it: they keep working, and
 still update to newer versions of the frontend document, since its frontend studio is kept (with the same element
@@ -93,7 +93,7 @@ def plan_release(
     assert studio.remote
     part_set = workspace.config.part_set_for(studio.path)
     if part_set:
-        raise UsageError(f"{studio.path} is the {part_set.name} part set's; release it with `fs parts release {part_set.name}`.")
+        raise UsageError(f"{studio.path} is the {part_set.name} part set's; release it with `fs parts {part_set.name} --release`.")
     is_beta_feature = _is_beta(workspace, studio)
     if beta and not is_beta_feature:
         raise UsageError(

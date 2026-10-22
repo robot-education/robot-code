@@ -30,12 +30,26 @@ class PartSet:
         title: What its versions are named by, like `Fasteners` (`Fasteners - v1.2.0`).
         folder: The folder in the code folder holding its FeatureScript and definition.
         main_document_id: The FRCDesignLib document its releases go to.
+        targets: Other documents it can be released to by name, to try a release out, like a library loaded locally:
+            `[tool.fs.parts.<name>.targets]`, each name a document's url.
     """
 
     name: str
     title: str
     folder: str
     main_document_id: str
+    targets: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    def target_document_id(self, target: str) -> str:
+        """The document a target names: one of `targets`, or a document's url."""
+        url = self.targets.get(target, target)
+        found = _DOCUMENT_URL.search(url)
+        if found is None:
+            names = ", ".join(self.targets) or "none"
+            raise ConfigError(f"{target} is neither a target of {self.name} ({names}) nor a document's url.")
+        if found.group(1) == self.main_document_id:
+            raise ConfigError(f"{target} is {self.name}'s main document, which only its releases go to.")
+        return found.group(1)
 
     def holds(self, path: str) -> bool:
         """Whether the file at `path` (relative to the code folder) is the set's."""
@@ -145,7 +159,10 @@ def _part_set(name: str, entry: dict) -> PartSet:
     title = entry.get("title")
     if not isinstance(title, str) or not title:
         raise ConfigError(f"{where} title must name its versions, like Fasteners.")
-    return PartSet(name, title, folder.strip("/"), main.group(1))
+    targets = entry.get("targets", {})
+    if not isinstance(targets, dict) or not all(_DOCUMENT_URL.search(str(url)) for url in targets.values()):
+        raise ConfigError(f"{where} targets must map names to documents' urls.")
+    return PartSet(name, title, folder.strip("/"), main.group(1), dict(targets))
 
 
 def _workspace(data: dict, key: str) -> InstancePath:
