@@ -35,7 +35,8 @@ uv run fs push featurescripts/fasteners
 uv run fs parts test fasteners
 ```
 
-Each Part Studio is built as `<tab> (TEST)`, e.g. `Screw (TEST)`, from the Feature Studio as pushed: its tab found by
+They're built in the branch's own workspace (see [Branches](fs-cli.md#branches)), so branches don't build over each
+other's. Each Part Studio is built as `<tab> (TEST)`, e.g. `Screw (TEST)`, from the Feature Studio as pushed: its tab found by
 name or created, its configuration written, and its feature inserted (or pointed at the Feature Studio as it is now)
 and configured. It prints each one's url, to check in Onshape. A feature that fails to regenerate in its default
 configuration stops the build. Nothing is versioned or recorded, so try as often as needed.
@@ -68,7 +69,9 @@ Every studio in the set's folder must be pushed and in sync first. Versions can'
 confirmation (`-y` skips it). A feature that fails to regenerate stops the release before the main document is
 versioned; the backend version stays, so the next try takes the next version number.
 
-Commit the recorded locations and exports, then sync them where they're read (FRCDesignApp:
+A release runs on the main branch only. Ask for one in a release file (`part_set = "fasteners"`; see
+[Release files](fs-cli.md#release-files)), which the Onshape workflow makes once its branch is merged, committing the
+recorded locations and exports; run by hand, commit them yourself. Then sync them where they're read (FRCDesignApp:
 `npm run sync:generated-parts -- <commit>`).
 
 `fs release` refuses a part set's FeatureScript, and `fs sync-versions` leaves its backend versions out: they're never

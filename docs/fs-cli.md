@@ -182,6 +182,71 @@ count:
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing: they only make the anonymous listings.
 Failed calls (like a 400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
 
+## Branches
+
+With `main_branch` set in `[tool.fs]` (robot-code's is `main`), each git branch works in a workspace of its own in the
+backend document, and the main workspace holds only the main branch, changed by merging. So branches can't overwrite
+each other's Feature Studios, and Onshape can protect the main workspace (a workspace protection rule of Merge).
+
+- On any other branch, `fs push` (and `sync`, `tabs`, `parts test`, `parts diagnose`, `update-std --push`) works in a
+  workspace named after the branch, which the first of them creates, branched from the main workspace's latest
+  version (Onshape branches only from versions). Commands which only read (`status`, `pull`, `diff`, ...) read the
+  main workspace until the branch has one. Its state, what each studio looked like when last synced, is
+  `.fs-state.<branch>.json`, which starts as the main workspace's.
+- A tab is the same tab, by element id, in every workspace. When a branch has a tab from git that its workspace lacks
+  (another branch added it, reached main, and this branch merged main in git), the next push first merges the main
+  workspace into the branch's, keeping the branch's code where both changed, so the tab keeps its id.
+- On the main branch, writing is refused: changes reach the main workspace through `fs sync-main`, which the Onshape
+  workflow runs when something is merged into main. It merges the main workspace into the merged branch's workspace
+  (or into a new `sync <commit>` one, for a branch without one), pushes main's files there over whatever it has
+  (git is what main holds), merges that into the main workspace, taking its tabs where both changed, and deletes it.
+  Run again after a failure, it finishes.
+- Releasing (`release`, `parts release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`) runs only on
+  the main branch, so what's released is what was merged.
+- `fs branches` lists the workspaces fs made (marked by their description), and `fs branches --prune` deletes those
+  whose branch is gone from origin. Workspaces made by hand are never deleted.
+
+A CI checkout may leave no branch checked out; `FS_BRANCH` names it.
+
+```
+uv run fs push                 # on a branch: its workspace, made on first use
+uv run fs sync-main            # on main: land it in the main workspace (the Onshape workflow runs this)
+uv run fs branches --prune     # delete the workspaces of branches gone from origin
+```
+
+### Release files
+
+A branch asks for a release by adding a file to `releases/`, reviewed with its code; `fs run-releases` makes it once
+the branch is merged into main, after `fs sync-main`:
+
+```toml
+# releases/frame-hubs.toml
+script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
+part_set = "fasteners"      # a part set, as `fs parts release` takes it
+bump = "minor"              # major, minor, or patch
+description = "Adds hubs"   # internal, as --description
+beta = false                # FeatureScripts: to the beta document
+publish = true              # FeatureScripts: finalize it at once, and tag it (the default)
+```
+
+They run in name order. Each runs as `fs release` or `fs parts release` would, then its file is deleted and what the
+release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release makes
+ends its description with the file's name (`[releases/frame-hubs.toml]`), so a file whose release Onshape already has,
+whole or partway, stops `fs run-releases` rather than releasing twice: check what it made, finish it by hand, and
+delete the file. `fs releases` lists and checks the pending files without calling Onshape.
+
+### The Onshape workflow
+
+`.github/workflows/checks.yml` runs the tests, `fs check`, and `fs releases` on every pull request.
+`.github/workflows/onshape.yml` runs on each push to main, one run at a time: the same checks, then `fs sync-main`
+(with the merged pull request's branch), `fs run-releases`, a push of what they committed to main, and
+`fs branches --prune`. It needs:
+
+- The secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY`: API keys of an account with edit access to the backend,
+  frontend, and part set documents, whose allocation every run spends (about five calls a sync, plus one a studio
+  pushed, and a release's).
+- Its commits pushed to main past branch protection: the workflow's `github-actions[bot]` allowed to bypass it.
+
 ## Checking and navigating
 
 Conventions for writing FeatureScripts (UI state predicates, where horizontal enums go, and so on) are in

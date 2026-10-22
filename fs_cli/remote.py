@@ -94,6 +94,7 @@ class RemoteWorkspace:
 
     id: str
     name: str
+    description: str = ""
 
 
 class Remote(Protocol):
@@ -157,7 +158,7 @@ class Remote(Protocol):
 
     def workspaces(self, document_id: str) -> list[RemoteWorkspace]: ...
 
-    def create_workspace(self, document_id: str, version_id: str, name: str) -> RemoteWorkspace:
+    def create_workspace(self, document_id: str, version_id: str, name: str, description: str) -> RemoteWorkspace:
         """Branches a workspace from a version (1 call)."""
         ...
 
@@ -270,13 +271,13 @@ class OnshapeRemote:
 
     def workspaces(self, document_id: str) -> list[RemoteWorkspace]:
         return [
-            RemoteWorkspace(workspace["id"], workspace["name"])
+            RemoteWorkspace(workspace["id"], workspace["name"], workspace.get("description") or "")
             for workspace in workspaces.get_workspaces(self.api, DocumentPath(document_id))
         ]
 
-    def create_workspace(self, document_id: str, version_id: str, name: str) -> RemoteWorkspace:
-        created = workspaces.create_workspace(self.api, DocumentPath(document_id), version_id, name)
-        return RemoteWorkspace(created["id"], created["name"])
+    def create_workspace(self, document_id: str, version_id: str, name: str, description: str) -> RemoteWorkspace:
+        created = workspaces.create_workspace(self.api, DocumentPath(document_id), version_id, name, description)
+        return RemoteWorkspace(created["id"], created["name"], description)
 
     def delete_workspace(self, instance: InstancePath) -> None:
         workspaces.delete_workspace(self.api, instance)

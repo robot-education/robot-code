@@ -22,6 +22,8 @@ from onshape_api.types import MergeStrategy
 
 # Names the branch where git can't, e.g. on the detached HEAD a CI checkout may leave
 BRANCH_VARIABLE = "FS_BRANCH"
+# Describes the workspaces fs makes, which are the only ones `fs branches --prune` deletes
+MADE_BY_FS = "Made by fs for a git branch"
 
 
 class BranchError(Exception):
@@ -99,7 +101,12 @@ def create_workspace(config: Config, remote: Remote, name: str, log: Callable[[s
     """Branches a workspace from the main workspace's latest version, as Onshape's UI branches only from versions."""
     latest = remote.versions(config.backend)[-1]
     log(f"Creating a workspace for {name}, from version {latest.name}...")
-    return remote.create_workspace(config.backend.document_id, latest.id, name)
+    return remote.create_workspace(config.backend.document_id, latest.id, name, MADE_BY_FS)
+
+
+def branch_workspaces(config: Config, remote: Remote) -> list[RemoteWorkspace]:
+    """The workspaces fs made for branches, a sync's included."""
+    return [workspace for workspace in remote.workspaces(config.backend.document_id) if workspace.description == MADE_BY_FS]
 
 
 def start_state(config: Config, branch: str, workspace_id: str) -> None:

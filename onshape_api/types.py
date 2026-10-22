@@ -91,6 +91,7 @@ class WorkspaceInfo(TypedDict):
 
     id: str
     name: str
+    description: NotRequired[str]
     # The document's microversion it is at
     microversion: str
     # Unset (None) for a workspace no rule protects

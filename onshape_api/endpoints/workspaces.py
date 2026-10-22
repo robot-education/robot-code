@@ -10,12 +10,12 @@ def get_workspaces(api: Api, document_path: DocumentPath) -> list[WorkspaceInfo]
 
 
 def create_workspace(
-    api: Api, document_path: DocumentPath, version_id: str, name: str
+    api: Api, document_path: DocumentPath, version_id: str, name: str, description: str = ""
 ) -> WorkspaceInfo:
     """Branches a new workspace from a version, as Onshape's UI branches only from versions."""
     return api.post(
         api_path("documents", document_path, DocumentPath, "workspaces"),
-        body={"name": name, "versionId": version_id},
+        body={"name": name, "versionId": version_id, "description": description},
     )
 
 

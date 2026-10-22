@@ -21,12 +21,21 @@ import sys
 from fs_lsp.formatter import format_source, is_generated
 from fs_lsp.project import Module, Project
 
-from fs_cli.branches import Access, BranchError, branch_name, create_workspace, find_workspace, merge, start_state
+from fs_cli.branches import (
+    Access,
+    BranchError,
+    branch_name,
+    branch_workspaces,
+    create_workspace,
+    find_workspace,
+    merge,
+    start_state,
+)
 from fs_cli.branches import resolve as resolve_backend
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release_files import RELEASES_FOLDER, ReleaseFileError, pending
 from fs_cli.gen import GenerateError, generate
-from fs_cli.git import commit_all, commit_paths, file_at, has_tag, head_commit, is_clean, is_repository
+from fs_cli.git import commit_all, commit_paths, file_at, has_tag, head_commit, is_clean, is_repository, remote_branches
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
@@ -544,6 +553,15 @@ def make_parser() -> argparse.ArgumentParser:
     no_push_tags(run_releases_command)
     dry_run(run_releases_command)
 
+    branches_command = command(
+        "branches",
+        "list the workspaces fs made for git branches in the backend document (1 API call), and with --prune delete "
+        "those whose branch is gone from origin (1 call each)",
+        targets=False,
+    )
+    branches_command.add_argument("--prune", action="store_true", help="delete the workspaces of branches gone from origin")
+    branches_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+
     sync_main_command = command(
         "sync-main",
         "land the main branch in the backend's main workspace by merging, as Onshape protects it: merge the main "
@@ -678,6 +696,31 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
             # A release marks what it released in fs-studios.json
             workspace.state.save()
             commit_all(config.root, f"Release {file.target} ({RELEASES_FOLDER}/{file.path.name})")
+    return 0
+
+
+def branches(workspace: Workspace, args: argparse.Namespace) -> int:
+    config = workspace.config
+    if config.main_branch is None:
+        raise UsageError("Branches get workspaces of their own only with main_branch set in [tool.fs].")
+    on_origin = remote_branches(config.root)
+    if on_origin is None:
+        raise UsageError("Can't reach origin to see which branches are gone.")
+    made = branch_workspaces(config, workspace.remote)
+    # A sync's is left by one which failed partway, and finished by running it again
+    gone = [each for each in made if each.name not in on_origin and not each.name.startswith("sync ")]
+    if not made:
+        print("No branch has a workspace.")
+    for each in made:
+        print(f"{each.name}{' (gone from origin)' if each in gone else ''}")
+    if not args.prune or not gone:
+        return 0
+    if not args.yes:
+        confirm(f"This deletes the workspaces of {len(gone)} branch(es) gone from origin, and their history.")
+    for each in gone:
+        workspace.remote.delete_workspace(InstancePath(config.backend.document_id, each.id))
+        config.state_path_for(each.name).unlink(missing_ok=True)
+        print(f"Deleted {each.name}'s workspace.")
     return 0
 
 
@@ -1990,6 +2033,7 @@ COMMANDS = {
     "sync-versions": sync_versions,
     "release-tags": release_tags,
     "sync-main": sync_main,
+    "branches": branches,
     "run-releases": run_releases,
     "tabs": tabs,
     "link": link,

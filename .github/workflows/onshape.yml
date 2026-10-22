@@ -1,0 +1,53 @@
+# Lands main in the backend's main workspace by merging, makes the releases it asks for in releases/, and deletes the
+# workspaces of branches gone from origin (see docs/fs-cli.md#branches). Spends the API allocation of the account whose
+# keys are in the ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY secrets.
+name: Onshape
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One at a time, so two merges can't both version a document
+concurrency:
+  group: onshape
+  cancel-in-progress: false
+
+permissions:
+  # To commit what releases record, and push their tags
+  contents: write
+  # To find the pull request a commit merged
+  pull-requests: read
+
+jobs:
+  onshape:
+    runs-on: ubuntu-latest
+    env:
+      API_ACCESS_KEY: ${{ secrets.ONSHAPE_ACCESS_KEY }}
+      API_SECRET_KEY: ${{ secrets.ONSHAPE_SECRET_KEY }}
+      FS_BRANCH: main
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # fs recognizes Onshape's code in git history
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run pytest -q
+      - run: uv run fs check
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Land main in Onshape
+        run: |
+          # The pull request this commit merged, whose branch's workspace is landed; none for a direct push
+          branch=$(gh pr list --state merged --search "${{ github.sha }}" --json headRefName --jq '.[0].headRefName // empty')
+          uv run fs sync-main ${branch:+--branch "$branch"}
+      - name: Make the releases asked for
+        run: uv run fs run-releases
+      - name: Push what landing and releasing committed
+        run: git push origin HEAD:main
+      - name: Delete the workspaces of branches gone from origin
+        run: uv run fs branches --prune --yes

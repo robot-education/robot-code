@@ -47,6 +47,7 @@ class FakeOnshape:
         self.build_status = "OK"
         # (document id, workspace id) -> name, for every workspace but the backend's main one
         self.workspace_names: dict[tuple[str, str], str] = {}
+        self.workspace_descriptions: dict[str, str] = {}
         # (target workspace id, source workspace id, strategy) of each merge
         self.merges: list[tuple[str, str, str]] = []
 
@@ -216,14 +217,19 @@ class FakeOnshape:
 
     def workspaces(self, document_id):
         self.calls["workspaces"] += 1
-        return [RemoteWorkspace(id, name) for (document, id), name in self.workspace_names.items() if document == document_id]
+        return [
+            RemoteWorkspace(id, name, self.workspace_descriptions.get(id, ""))
+            for (document, id), name in self.workspace_names.items()
+            if document == document_id
+        ]
 
-    def create_workspace(self, document_id, version_id, name):
+    def create_workspace(self, document_id, version_id, name, description):
         self.calls["create_workspace"] += 1
         workspace_id = self._id("w")
         self.workspace_names[(document_id, workspace_id)] = name
+        self.workspace_descriptions[workspace_id] = description
         self.instances[(document_id, workspace_id)] = copy.deepcopy(self.studios(document_id, version_id))
-        return RemoteWorkspace(workspace_id, name)
+        return RemoteWorkspace(workspace_id, name, description)
 
     def delete_workspace(self, instance):
         self.calls["delete_workspace"] += 1
@@ -2201,3 +2207,26 @@ def test_run_releases_makes_each_release_once(repo, onshape, capsys):
     capsys.readouterr()
     assert run(onshape, "run-releases", "--no-push-tags") == 2
     assert "already made Robot frame - v0.1.0" in capsys.readouterr().err
+
+
+def test_branches_prunes_only_its_workspaces_of_branches_gone_from_origin(repo, onshape, tmp_path_factory, capsys):
+    from fs_cli.branches import MADE_BY_FS
+
+    origin = tmp_path_factory.mktemp("origin")
+    git(origin, "init", "-q", "--bare")
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    git(repo, "remote", "add", "origin", str(origin))
+    run(onshape, "pull")
+    commit_all(repo, "Pull")
+    local(repo, "frame.fs").write_text("2")
+    run(onshape, "push")
+    git(repo, "push", "-q", "origin", "main", "feature")
+    start = onshape.versions_by_document["back"][0].id
+    onshape.create_workspace("back", start, "merged-and-deleted", MADE_BY_FS)
+    onshape.create_workspace("back", start, "someone's own", "")
+
+    assert run(onshape, "branches") == 0
+    assert "merged-and-deleted (gone from origin)" in capsys.readouterr().out
+    assert run(onshape, "branches", "--prune", "--yes") == 0
+    assert sorted(onshape.workspace_names.values()) == ["feature", "someone's own"]
