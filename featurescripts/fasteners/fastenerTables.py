@@ -43,7 +43,6 @@ from fs_cli.tables import Enum, inch, string
 FOLDER = pathlib.Path(__file__).parent
 SNAPSHOT = json.loads((FOLDER / "vendor" / "frcdesign-fasteners.json").read_text())
 STORES_SNAPSHOT = FOLDER / "vendor" / "stores.json"
-THREADS_SNAPSHOT = FOLDER / "vendor" / "frcdesign-threads.json"
 HOLE_SCAN = FOLDER / "fastenerHoleScan.fs"
 
 INCH = 0.0254
@@ -1094,36 +1093,9 @@ def fetch_stores() -> None:
     print(f"Wrote {len(products)} products to {STORES_SNAPSHOT}.")
 
 
-def fetch_threads() -> None:
-    """Writes the variables of FRCDesign's bolt Part Studios which give their threaded lengths (`BO_ThreadedLength` and
-    so on, configured by Length) to vendor/frcdesign-threads.json, as the versions the group snapshot names have them:
-    a call per Part Studio, anonymous since FRCDesignLib is public."""
-    from onshape_api.api.key_api import make_key_api
-    from onshape_api.endpoints.part_studios import get_features
-    from onshape_api.paths.instance_type import InstanceType
-    from onshape_api.paths.paths import ElementPath
-
-    api = make_key_api()
-    studios = {}
-    for part in SNAPSHOT["parts"]:
-        if " Bolt (" not in part["name"]:
-            continue
-        path = ElementPath(part["documentId"], part["versionId"], part["elementId"], InstanceType.VERSION)
-        features = get_features(api, path)["features"]
-        studios[part["elementId"]] = {
-            "name": part["name"],
-            "features": [feature for feature in features if "Thread" in json.dumps(feature)],
-        }
-        print(f"{part['name']}: {len(studios[part['elementId']]['features'])} threaded-length features")
-    snapshot = {"source": "Each bolt Part Studio's features, by fastenerTables.py fetch-threads", "studios": studios}
-    THREADS_SNAPSHOT.write_text(json.dumps(snapshot, indent=1) + "\n")
-    print(f"Wrote {THREADS_SNAPSHOT}.")
-
-
 if __name__ == "__main__":
     import sys
 
-    commands = {"fetch": fetch_stores, "fetch-threads": fetch_threads}
-    if len(sys.argv) != 2 or sys.argv[1] not in commands:
-        sys.exit(f"Usage: python fastenerTables.py {{{','.join(commands)}}}")
-    commands[sys.argv[1]]()
+    if sys.argv[1:] != ["fetch"]:
+        sys.exit("Usage: python fastenerTables.py fetch")
+    fetch_stores()
