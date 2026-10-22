@@ -14,6 +14,7 @@ List input an enum (`<input id>_conf`) whose values are its option ids.
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import json
 import pathlib
@@ -183,9 +184,10 @@ class ConfiguredStudio:
             ],
         }
 
-    def configured_parameters(self) -> list[dict]:
-        """The feature's parameters, each configured by its input."""
-        return [_configured_parameter(input) for input in self.inputs]
+    def configured_parameters(self, namespace: str = "") -> list[dict]:
+        """The feature's parameters, each configured by its input. `namespace` is the feature's (see
+        `feature_namespace`), which its enums' values are named in too, since they're defined in its FeatureScript."""
+        return [_configured_parameter(input, namespace) for input in self.inputs]
 
 
 def _option(input: Input, id: str) -> Option:
@@ -300,7 +302,7 @@ def _factor(combinations: Combinations, ids: Sequence[str]) -> dict | None:
     return _logical("OR", children)
 
 
-def _configured_parameter(input: Input) -> dict:
+def _configured_parameter(input: Input, namespace: str = "") -> dict:
     if input.kind == "boolean":
         values = [
             {
@@ -317,7 +319,7 @@ def _configured_parameter(input: Input) -> dict:
                 "enumName": f"{input.id}_conf",
                 "namespace": "",
                 "enumValue": option.id,
-                "value": _value(input, option),
+                "value": _value(input, option, namespace),
             }
             for option in input.options
         ]
@@ -329,11 +331,12 @@ def _configured_parameter(input: Input) -> dict:
     }
 
 
-def _value(input: Input, option: Option) -> dict:
+def _value(input: Input, option: Option, namespace: str = "") -> dict:
     if input.kind == "enum":
         return {
             "btType": "BTMParameterEnum-145",
             "parameterId": input.parameter,
+            "namespace": namespace,
             "enumName": input.enum_name,
             "value": option.value,
         }
@@ -417,8 +420,17 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
         feature_studio_microversion: The Feature Studio's microversion, which the feature is inserted at.
     """
     from onshape_api.endpoints import documents, elements, part_studios
+    from onshape_api.exceptions import ApiError
     from onshape_api.paths.paths import ElementPath
     from onshape_api.types import ElementType
+
+    @contextlib.contextmanager
+    def step(doing: str):
+        """Says which step Onshape refused, since its own messages don't."""
+        try:
+            yield
+        except ApiError as error:
+            raise ConfigureError(f"Onshape refused to {doing} in {studio.tab_name}: {error}") from error
 
     tabs = [
         element
@@ -428,7 +440,11 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
     if len(tabs) > 1:
         raise ConfigureError(f"The document has {len(tabs)} Part Studios named {studio.tab_name}; keep one.")
     created = not tabs
-    element_id = part_studios.create_part_studio(api, workspace, studio.tab_name)["id"] if created else tabs[0]["id"]
+    if created:
+        with step("create the tab"):
+            element_id = part_studios.create_part_studio(api, workspace, studio.tab_name)["id"]
+    else:
+        element_id = tabs[0]["id"]
     part_studio = ElementPath.from_path(workspace, element_id)
 
     feature_list = part_studios.get_features(api, part_studio)
@@ -436,31 +452,34 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
     if len(matches) > 1:
         raise ConfigureError(f"{studio.tab_name} has {len(matches)} {studio.feature} features; keep one.")
     # Configured parameters name the configuration's inputs, so it comes first
-    elements.update_configuration(api, part_studio, studio.configuration_body())
+    with step("write the configuration"):
+        elements.update_configuration(api, part_studio, studio.configuration_body())
     namespace = feature_namespace(feature_studio_id, feature_studio_microversion)
     if not matches:
-        response = part_studios.add_feature(
-            api,
-            part_studio,
-            {
-                "btType": "BTMFeature-134",
-                "featureType": studio.feature,
-                "name": studio.tab_name,
-                "namespace": namespace,
-                "parameters": studio.configured_parameters(),
-            },
-        )
+        with step(f"insert {studio.feature}"):
+            response = part_studios.add_feature(
+                api,
+                part_studio,
+                {
+                    "btType": "BTMFeature-134",
+                    "featureType": studio.feature,
+                    "name": studio.tab_name,
+                    "namespace": namespace,
+                    "parameters": studio.configured_parameters(namespace),
+                },
+            )
     else:
         # Its configuration changed its microversion
         feature_list = part_studios.get_features(api, part_studio)
         feature = next(feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature)
-        configured = {parameter["parameterId"]: parameter for parameter in studio.configured_parameters()}
+        configured = {parameter["parameterId"]: parameter for parameter in studio.configured_parameters(namespace)}
         parameters = [configured.pop(parameter["parameterId"], parameter) for parameter in feature.get("parameters", [])]
-        response = part_studios.update_feature(
-            api,
-            part_studio,
-            {**feature, "namespace": namespace, "parameters": [*parameters, *configured.values()]},
-            feature_list["sourceMicroversion"],
-        )
+        with step(f"update {studio.feature}"):
+            response = part_studios.update_feature(
+                api,
+                part_studio,
+                {**feature, "namespace": namespace, "parameters": [*parameters, *configured.values()]},
+                feature_list["sourceMicroversion"],
+            )
     status = response.get("featureState", {}).get("featureStatus", "OK")
     return Built(element_id, created, status)

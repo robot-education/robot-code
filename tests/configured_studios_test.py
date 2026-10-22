@@ -157,6 +157,7 @@ def test_configured_parameters_set_each_option():
     assert size["values"][1]["value"] == {
         "btType": "BTMParameterEnum-145",
         "parameterId": "size",
+        "namespace": "",
         "enumName": "Size",
         "value": "B",
     }
@@ -298,6 +299,9 @@ def test_build_creates_the_tab_then_its_configuration_then_its_feature():
     assert feature["featureType"] == "fastenerScrew"
     assert feature["namespace"] == "efs::mfsmv"
     assert [parameter["btType"] for parameter in feature["parameters"]] == ["BTMParameterConfigured-2222"] * 3
+    # Its enums are defined in its FeatureScript, so their values name its namespace too
+    size = feature["parameters"][0]["values"][0]["value"]
+    assert (size["enumName"], size["namespace"]) == ("Size", "efs::mfsmv")
 
 
 def test_build_points_a_tabs_feature_at_the_feature_studio_and_configures_it():
@@ -336,3 +340,16 @@ def test_build_refuses_two_tabs_or_features_of_its_kind():
     twice = [{"featureId": id, "featureType": "fastenerScrew", "parameters": []} for id in ("F1", "F2")]
     with pytest.raises(ConfigureError, match="2 fastenerScrew features"):
         build(FakeApi({"Screw": twice}), WORKSPACE, studio(), "fs", "fsmv")
+
+
+def test_build_says_which_step_onshape_refused():
+    from onshape_api.exceptions import ApiError
+
+    class Refusing(FakeApi):
+        def post(self, path, body="", **kwargs):
+            if path.endswith("/features"):
+                raise ApiError("The change would result in the feature list becoming invalid", 409)
+            return super().post(path, body, **kwargs)
+
+    with pytest.raises(ConfigureError, match="Onshape refused to insert fastenerScrew in Screw: .*feature list"):
+        build(Refusing({}), WORKSPACE, studio(), "fs", "fsmv")

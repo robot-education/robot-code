@@ -23,6 +23,7 @@ from fs_cli.config import PartSet
 from fs_cli.configured_studios import (
     Built,
     ConfiguredStudio,
+    ConfigureError,
     configured_studios,
     write_locations,
 )
@@ -33,7 +34,6 @@ from fs_cli.versions import (
     VersionType,
     latest_release,
     next_version,
-    version_name,
 )
 from fs_cli.workspace import Status, Studio, UsageError, Workspace
 from onshape_api.paths.paths import InstancePath
@@ -92,7 +92,10 @@ def build_studios(
     built: dict[str, Built] = {}
     for studio in studios:
         log(f"Building {studio.tab_name}...")
-        result = remote.build_studio(instance, studio, feature.element_id, feature.microversion_id)
+        try:
+            result = remote.build_studio(instance, studio, feature.element_id, feature.microversion_id)
+        except ConfigureError as error:
+            raise UsageError(str(error)) from error
         if result.status == "ERROR":
             raise UsageError(
                 f"{studio.tab_name}'s {studio.feature} fails to regenerate in its default configuration; "
