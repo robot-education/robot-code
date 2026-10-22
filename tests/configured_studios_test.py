@@ -275,13 +275,18 @@ class FakeApi:
         if path == "/partstudios/d/d/w/w":
             self.tabs["new"] = (body["name"], [])
             return {"id": "new"}
+        if path.endswith("/configuration"):
+            return body
+        if path.endswith("/features"):
+            element_id = path.split("/e/")[1].split("/")[0]
+            self.tabs[element_id][1].append({**body["feature"], "featureId": "F"})
         return {"featureState": {"featureStatus": self.status}}
 
 
 WORKSPACE = InstancePath("d", "w")
 
 
-def test_build_creates_the_tab_then_its_configuration_then_its_feature():
+def test_build_creates_the_tab_then_its_configuration_then_inserts_its_feature_and_configures_it():
     api = FakeApi({"Other": []})
     built = build(api, WORKSPACE, studio(), "fs", "fsmv")
 
@@ -291,17 +296,36 @@ def test_build_creates_the_tab_then_its_configuration_then_its_feature():
         "/partstudios/d/d/w/w",
         "/elements/d/d/w/w/e/new/configuration",
         "/partstudios/d/d/w/w/e/new/features",
+        "/partstudios/d/d/w/w/e/new/features/featureid/F",
     ]
     assert posts[0][1] == {"name": "Screw"}
     configuration = posts[1][1]
     assert [parameter["parameterId"] for parameter in configuration["configurationParameters"]] == ["size", "length", "washer"]
-    feature = posts[2][1]["feature"]
-    assert feature["featureType"] == "fastenerScrew"
-    assert feature["namespace"] == "efs::mfsmv"
-    assert [parameter["btType"] for parameter in feature["parameters"]] == ["BTMParameterConfigured-2222"] * 3
+    inserted = posts[2][1]["feature"]
+    assert inserted["featureType"] == "fastenerScrew"
+    assert inserted["namespace"] == "efs::mfsmv"
+    assert [parameter["btType"] for parameter in inserted["parameters"]] == [
+        "BTMParameterEnum-145",
+        "BTMParameterQuantity-147",
+        "BTMParameterBoolean-144",
+    ]
     # Its enums are defined in its FeatureScript, so their values name its namespace too
-    size = feature["parameters"][0]["values"][0]["value"]
+    assert (inserted["parameters"][0]["enumName"], inserted["parameters"][0]["namespace"]) == ("Size", "efs::mfsmv")
+    configured = posts[3][1]["feature"]
+    assert [parameter["btType"] for parameter in configured["parameters"]] == ["BTMParameterConfigured-2222"] * 3
+    size = configured["parameters"][0]["values"][0]["value"]
     assert (size["enumName"], size["namespace"]) == ("Size", "efs::mfsmv")
+
+
+def test_build_refuses_a_configuration_onshape_renamed():
+    class Renaming(FakeApi):
+        def post(self, path, body="", **kwargs):
+            if path.endswith("/configuration"):
+                return {"configurationParameters": [{"parameterId": "List_abc", "enumName": "List_abc_conf"}]}
+            return super().post(path, body, **kwargs)
+
+    with pytest.raises(ConfigureError, match="Onshape stored Screw's configuration inputs as"):
+        build(Renaming({}), WORKSPACE, studio(), "fs", "fsmv")
 
 
 def test_build_points_a_tabs_feature_at_the_feature_studio_and_configures_it():

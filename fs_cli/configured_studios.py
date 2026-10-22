@@ -184,6 +184,10 @@ class ConfiguredStudio:
             ],
         }
 
+    def default_parameters(self, namespace: str = "") -> list[dict]:
+        """The feature's parameters, each set to its input's default; `namespace` as for `configured_parameters`."""
+        return [_default_parameter(input, namespace) for input in self.inputs]
+
     def configured_parameters(self, namespace: str = "") -> list[dict]:
         """The feature's parameters, each configured by its input. `namespace` is the feature's (see
         `feature_namespace`), which its enums' values are named in too, since they're defined in its FeatureScript."""
@@ -331,6 +335,12 @@ def _configured_parameter(input: Input, namespace: str = "") -> dict:
     }
 
 
+def _default_parameter(input: Input, namespace: str) -> dict:
+    if input.kind == "boolean":
+        return {"btType": "BTMParameterBoolean-144", "parameterId": input.parameter, "value": input.default_option == "true"}
+    return _value(input, _option(input, input.default_option), namespace)
+
+
 def _value(input: Input, option: Option, namespace: str = "") -> dict:
     if input.kind == "enum":
         return {
@@ -409,10 +419,25 @@ class Built:
     status: str
 
 
+def _check_configuration(studio: ConfiguredStudio, written: dict) -> None:
+    """Fails unless Onshape kept the inputs' ids and enum names, which the feature's configured parameters and
+    FRCDesign's configurations name."""
+    sent = [
+        (parameter["parameterId"], parameter.get("enumName"))
+        for parameter in studio.configuration_body()["configurationParameters"]
+    ]
+    kept = [
+        (parameter.get("parameterId"), parameter.get("enumName"))
+        for parameter in written.get("configurationParameters", [])
+    ]
+    if kept != sent:
+        raise ConfigureError(f"Onshape stored {studio.tab_name}'s configuration inputs as {kept}, not as sent: {sent}.")
+
+
 def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feature_studio_microversion: str) -> Built:
     """Makes a Part Studio exactly `studio`: finds its tab by name in a workspace, or creates it; writes its
-    configuration; then inserts its feature, from the Feature Studio in the same workspace, configured by it, or
-    points the one it has at that Feature Studio as it is now and configures it.
+    configuration; then inserts its feature, from the Feature Studio in the same workspace, if it has none, and points
+    it at that Feature Studio as it is now, configured.
 
     Args:
         api: An onshape_api Api.
@@ -453,11 +478,13 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
         raise ConfigureError(f"{studio.tab_name} has {len(matches)} {studio.feature} features; keep one.")
     # Configured parameters name the configuration's inputs, so it comes first
     with step("write the configuration"):
-        elements.update_configuration(api, part_studio, studio.configuration_body())
+        written = elements.update_configuration(api, part_studio, studio.configuration_body())
+    _check_configuration(studio, written)
     namespace = feature_namespace(feature_studio_id, feature_studio_microversion)
     if not matches:
+        # Inserted plain and configured after, so a refusal names which of the two Onshape objects to
         with step(f"insert {studio.feature}"):
-            response = part_studios.add_feature(
+            part_studios.add_feature(
                 api,
                 part_studio,
                 {
@@ -465,21 +492,20 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
                     "featureType": studio.feature,
                     "name": studio.tab_name,
                     "namespace": namespace,
-                    "parameters": studio.configured_parameters(namespace),
+                    "parameters": studio.default_parameters(namespace),
                 },
             )
-    else:
-        # Its configuration changed its microversion
-        feature_list = part_studios.get_features(api, part_studio)
-        feature = next(feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature)
-        configured = {parameter["parameterId"]: parameter for parameter in studio.configured_parameters(namespace)}
-        parameters = [configured.pop(parameter["parameterId"], parameter) for parameter in feature.get("parameters", [])]
-        with step(f"update {studio.feature}"):
-            response = part_studios.update_feature(
-                api,
-                part_studio,
-                {**feature, "namespace": namespace, "parameters": [*parameters, *configured.values()]},
-                feature_list["sourceMicroversion"],
-            )
+    # Its configuration, or its insert, changed its microversion
+    feature_list = part_studios.get_features(api, part_studio)
+    feature = next(feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature)
+    configured = {parameter["parameterId"]: parameter for parameter in studio.configured_parameters(namespace)}
+    parameters = [configured.pop(parameter["parameterId"], parameter) for parameter in feature.get("parameters", [])]
+    with step(f"configure {studio.feature}"):
+        response = part_studios.update_feature(
+            api,
+            part_studio,
+            {**feature, "namespace": namespace, "parameters": [*parameters, *configured.values()]},
+            feature_list["sourceMicroversion"],
+        )
     status = response.get("featureState", {}).get("featureStatus", "OK")
     return Built(element_id, created, status)

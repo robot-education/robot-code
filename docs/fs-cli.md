@@ -307,9 +307,10 @@ it.
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
-default), creating it if it's missing, replaces its configuration with the definition's, then inserts its feature
-from the Feature Studio in the same document (or points the one it has at that Feature Studio as it is now),
-configured by it. A feature that fails to regenerate in its default configuration stops the build. `fs parts` builds
+default), creating it if it's missing, and replaces its configuration with the definition's, which must keep the
+inputs' ids. It then inserts its feature from the Feature Studio in the same document, with each input's default,
+if it has none, and points the feature at that Feature Studio as it is now, configured by it. A refusal names the
+step Onshape refused, and a feature that fails to regenerate in its default configuration stops the build. `fs parts` builds
 them, for part sets (see [docs/parts.md](parts.md)).
 A List's visibility conditions are factored by input, earliest first (or by `factor_first`), so a lookup table's
 conditions don't repeat themselves. `ConfiguredStudio.manifest()` gives the
