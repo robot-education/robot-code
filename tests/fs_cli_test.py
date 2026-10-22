@@ -983,21 +983,23 @@ def test_missing_config(tmp_path, monkeypatch, onshape, capsys):
     assert "[tool.fs]" in capsys.readouterr().err
 
 
-def test_a_library_needs_a_document_and_its_folders(tmp_path):
+def test_a_part_set_needs_a_main_document_folder_and_title(tmp_path):
     from fs_cli.config import ConfigError, parse_config
 
     base = {"backend": BACKEND}
-    with pytest.raises(ConfigError, match="document must be"):
-        parse_config(tmp_path, {**base, "libraries": {"parts": {"document": "nope", "folders": ["Parts"]}}})
-    with pytest.raises(ConfigError, match="folders must"):
-        parse_config(tmp_path, {**base, "libraries": {"parts": {"document": f"https://cad.onshape.com/documents/{LIBRARY}"}}})
-    config = parse_config(
-        tmp_path,
-        {**base, "libraries": {"parts": {"document": f"https://cad.onshape.com/documents/{LIBRARY}/w/x", "folders": ["Parts/"]}}},
-    )
-    assert config.library_for("Parts/partMaker.fs").document_id == LIBRARY
-    assert config.library_for("PartsBin/x.fs") is None
-    assert config.library_for("robotFrame.fs") is None
+    main = f"https://cad.onshape.com/documents/{MAIN}"
+    with pytest.raises(ConfigError, match="main must be"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": "nope", "folder": "Parts", "title": "Parts"}}})
+    with pytest.raises(ConfigError, match="folder must"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "title": "Parts"}}})
+    with pytest.raises(ConfigError, match="title must"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "Parts"}}})
+    config = parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "Parts/", "title": "Parts"}}})
+    assert config.part_set_for("Parts/partMaker.fs").main_document_id == MAIN
+    assert config.part_set_for("PartsBin/x.fs") is None
+    assert config.find_part_set("parts").folder == "Parts"
+    with pytest.raises(ConfigError, match="No part set named bolts"):
+        config.find_part_set("bolts")
 
 
 # Updating the std
@@ -1189,32 +1191,18 @@ def test_release_requires_confirmation_when_not_interactive(repo, onshape, capsy
     assert "--yes" in capsys.readouterr().err
 
 
-LIBRARY = "abcdef0123456789abcdef01"
+MAIN = "abcdef0123456789abcdef01"
 
 
-def with_library(repo: pathlib.Path) -> None:
+def with_part_set(repo: pathlib.Path) -> None:
     pyproject = repo / "pyproject.toml"
     pyproject.write_text(
         pyproject.read_text()
-        + f'\n[tool.fs.libraries.parts]\ndocument = "https://cad.onshape.com/documents/{LIBRARY}"\nfolders = ["Parts"]\n'
+        + f'\n[tool.fs.parts.parts]\ntitle = "Parts"\nfolder = "Parts"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
     )
 
 
-def test_a_librarys_featurescript_is_released_to_its_library(repo, onshape):
-    with_library(repo)
-    # Its parts' features, released together
-    element_id = onshape.add("partMaker.fs", "parts", folders=("Parts",), features=["Screw", "Nut"])
-    run(onshape, "pull")
-    assert run(onshape, "release", "partMaker", "--minor", "-y", "--publish") == 0
-
-    [version] = onshape.versions_by_document["back"]
-    assert version.name == "Part maker - v0.1.0"
-    assert f'"back/{version.id}/{element_id}"' in onshape.code("partMaker.fs", LIBRARY, "lw")
-    assert [v.name for v in onshape.versions_by_document[LIBRARY]] == ["Part maker - v0.1.0"]
-    assert "front" not in onshape.versions_by_document
-
-
-# A definition configuring a Part Studio of a library's feature, as fastenerTables.py does
+# A definition configuring a Part Studio of a part set's feature, as fastenerTables.py does
 PART_TABLES = """
 from fs_cli.configured_studios import ConfiguredStudio, Input, Option
 
@@ -1229,58 +1217,79 @@ EXPORTS = {"parts.gen.json": "{}\\n"}
 PART_MAKER = "FeatureScript 1;\nexport const partScrew = defineFeature(function(context, id, definition) {});\n"
 
 
-def test_a_library_release_builds_its_part_studios_then_versions_and_records_them(repo, onshape, capsys):
-    with_library(repo)
+def part_set(repo: pathlib.Path, onshape: FakeOnshape) -> str:
+    with_part_set(repo)
     element_id = onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",), features=["Screw"])
     run(onshape, "pull")
     write(repo, "Parts/partTables.py", PART_TABLES)
+    return element_id
 
-    # A library release is always versioned, so its Part Studios' locations are final
-    assert run(onshape, "release", "partMaker", "--minor", "-y") == 0
 
-    library_studio = next(id for id, s in onshape.studios(LIBRARY, "lw").items() if s["name"] == "partMaker.fs")
-    pushed = onshape.studios(LIBRARY, "lw")[library_studio]["mv"]
-    # Built from the library's own studio as pushed, not the backend's
-    assert onshape.builds == [(LIBRARY, "screw", library_studio, pushed)]
-    assert library_studio != element_id
-    [version] = onshape.versions_by_document[LIBRARY]
-    locations = json.loads(local(repo, "Parts/partTables.studios.json").read_text())
-    assert locations == {
-        "documentId": LIBRARY,
+def test_a_part_set_is_tried_in_the_backend_as_test_part_studios(repo, onshape, capsys):
+    element_id = part_set(repo, onshape)
+
+    assert run(onshape, "parts", "test", "parts", "-y") == 0
+    assert onshape.builds == [("back", "screw", element_id, onshape.studios()[element_id]["mv"])]
+    assert list(onshape.part_studios[("back", "bw")]) == ["Screw (TEST)"]
+    assert "Screw (TEST) (created, OK): https://cad.onshape.com/documents/back/w/bw/e/" in capsys.readouterr().out
+    # Nothing recorded, and nothing versioned
+    assert not local(repo, "Parts/partTables.studios.json").exists()
+    assert onshape.versions_by_document == {}
+
+
+def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
+    part_set(repo, onshape)
+    write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
+
+    assert run(onshape, "parts", "test", "parts", "-y") != 0
+    assert "Parts/partMaker.fs isn't in sync with the backend document" in capsys.readouterr().err
+    assert onshape.builds == []
+
+
+def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
+    element_id = part_set(repo, onshape)
+
+    assert run(onshape, "parts", "release", "parts", "--minor", "-y") == 0
+
+    [backend_version] = onshape.versions_by_document["back"]
+    assert backend_version.name == "Parts - v0.1.0"
+    main_studio = next(id for id, s in onshape.studios(MAIN, "lw").items() if s["name"] == "partMaker.fs")
+    assert f'"back/{backend_version.id}/{element_id}"' in onshape.code("partMaker.fs", MAIN, "lw")
+    # Built from the main document's own studio as pushed, not the backend's
+    assert onshape.builds == [(MAIN, "screw", main_studio, onshape.studios(MAIN, "lw")[main_studio]["mv"])]
+    [version] = onshape.versions_by_document[MAIN]
+    assert version.name == "Parts - v0.1.0"
+    assert json.loads(local(repo, "Parts/partTables.studios.json").read_text()) == {
+        "documentId": MAIN,
         "versionId": version.id,
-        "elements": {"screw": onshape.part_studios[(LIBRARY, "lw")]["Screw"]},
+        "elements": {"screw": onshape.part_studios[(MAIN, "lw")]["Screw"]},
     }
-    assert "Build Screw in the parts library document, from partTables.py" in capsys.readouterr().out
+    assert "  3. Build Screw in the main document" in capsys.readouterr().out
+    assert "front" not in onshape.versions_by_document
 
 
-def test_a_library_release_stops_at_a_part_studio_that_fails_to_regenerate(repo, onshape, capsys):
-    with_library(repo)
-    onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",), features=["Screw"])
-    run(onshape, "pull")
-    write(repo, "Parts/partTables.py", PART_TABLES)
+def test_a_part_set_release_stops_at_a_part_studio_that_fails_to_regenerate(repo, onshape, capsys):
+    part_set(repo, onshape)
     onshape.build_status = "ERROR"
 
-    assert run(onshape, "release", "partMaker", "--minor", "-y") != 0
+    assert run(onshape, "parts", "release", "parts", "--minor", "-y") != 0
     assert "Screw's partScrew fails to regenerate in its default configuration" in capsys.readouterr().err
-    assert LIBRARY not in onshape.versions_by_document
+    assert MAIN not in onshape.versions_by_document
     assert not local(repo, "Parts/partTables.studios.json").exists()
 
 
-def test_a_librarys_featurescript_has_no_beta(repo, onshape, capsys):
-    with_library(repo)
-    onshape.add("partMaker.fs", "parts", folders=("Parts",), features=["Screw beta"])
-    run(onshape, "pull")
-    assert run(onshape, "release", "partMaker", "--beta", "-y") != 0
-    assert "parts library, which has no beta releases" in capsys.readouterr().err
+def test_a_part_sets_featurescript_isnt_released_by_fs_release(repo, onshape, capsys):
+    part_set(repo, onshape)
+    assert run(onshape, "release", "partMaker", "--minor", "-y") != 0
+    assert "release it with `fs parts release parts`" in capsys.readouterr().err
+    assert onshape.versions_by_document == {}
 
 
-def test_sync_versions_leaves_out_library_releases(repo, onshape):
-    with_library(repo)
-    onshape.add("partMaker.fs", "parts", folders=("Parts",), features=["Screw"])
-    run(onshape, "pull")
+def test_sync_versions_leaves_out_part_set_releases(repo, onshape):
+    with_part_set(repo)
     onshape.versions_by_document["back"] = [
         Version("1", "Robot frame - v1.0.0"),
-        Version("2", "Part maker - v0.1.0"),
+        Version("2", "Parts - v0.1.0"),
         Version("3", "Robot frame - v1.1.0"),
     ]
     onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]

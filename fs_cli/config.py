@@ -20,22 +20,26 @@ class ConfigError(Exception):
 
 
 @dataclasses.dataclass
-class Library:
-    """A library document, which the FeatureScripts only its parts use are released to instead of the frontend document.
+class PartSet:
+    """A set of FeatureScript-backed parts, like FRCDesign's fasteners: Part Studios built from a definition, whose
+    FeatureScript only they use (see docs/parts.md). Its FeatureScript is in the backend document like any other, but it's
+    tried and released by `fs parts`, not `fs release`: into its main document, as Part Studios people insert.
 
     Attributes:
-        name: Its key in [tool.fs.libraries], which messages name it by.
-        document_id: The library document; releases go to its default workspace.
-        folders: The folders in the code folder whose FeatureScripts it holds.
+        name: Its key in [tool.fs.parts], which commands name it by, like `fasteners`.
+        title: What its versions are named by, like `Fasteners` (`Fasteners - v1.2.0`).
+        folder: The folder in the code folder holding its FeatureScript and definition.
+        main_document_id: The FRCDesignLib document its releases go to.
     """
 
     name: str
-    document_id: str
-    folders: tuple[str, ...]
+    title: str
+    folder: str
+    main_document_id: str
 
     def holds(self, path: str) -> bool:
-        """Whether the FeatureScript at `path` (relative to the code folder) is released to it."""
-        return any(path.startswith(folder + "/") for folder in self.folders)
+        """Whether the file at `path` (relative to the code folder) is the set's."""
+        return path.startswith(self.folder + "/")
 
 
 @dataclasses.dataclass
@@ -48,7 +52,7 @@ class Config:
         backend: The workspace holding the source of every FeatureScript.
         frontend: The public workspace released FeatureScripts are published to.
         frontend_beta: The workspace beta releases are published to.
-        libraries: Library documents, which their own FeatureScripts are released to instead.
+        parts: Part sets, released by `fs parts` rather than `fs release`.
         github: The repo's GitHub url, which released FeatureScripts link to as their source.
     """
 
@@ -58,12 +62,19 @@ class Config:
     backend: InstancePath
     frontend: InstancePath | None = None
     frontend_beta: InstancePath | None = None
-    libraries: tuple[Library, ...] = ()
+    parts: tuple[PartSet, ...] = ()
     github: str | None = None
 
-    def library_for(self, path: str) -> Library | None:
-        """The library a FeatureScript is released to; None for the frontend document."""
-        return next((library for library in self.libraries if library.holds(path)), None)
+    def find_part_set(self, name: str) -> PartSet:
+        found = next((part_set for part_set in self.parts if part_set.name == name), None)
+        if found is None:
+            names = ", ".join(part_set.name for part_set in self.parts) or "none"
+            raise ConfigError(f"No part set named {name} in [tool.fs.parts] (there's {names}).")
+        return found
+
+    def part_set_for(self, path: str) -> PartSet | None:
+        """The part set holding a file (relative to the code folder); None for user-facing FeatureScript."""
+        return next((part_set for part_set in self.parts if part_set.holds(path)), None)
 
     @property
     def state_path(self) -> pathlib.Path:
@@ -105,7 +116,7 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
         frontend_beta=(
             _workspace(data, "frontend_beta") if "frontend_beta" in data else None
         ),
-        libraries=tuple(_library(name, entry) for name, entry in data.get("libraries", {}).items()),
+        parts=tuple(_part_set(name, entry) for name, entry in data.get("parts", {}).items()),
         github=data["github"].rstrip("/") if "github" in data else None,
     )
 
@@ -113,14 +124,18 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
 _DOCUMENT_URL = re.compile(r"/documents/([0-9a-f]{24})(?:/|$)")
 
 
-def _library(name: str, entry: dict) -> Library:
-    match = _DOCUMENT_URL.search(str(entry.get("document", "")))
-    if match is None:
-        raise ConfigError(f"[tool.fs.libraries.{name}] document must be an Onshape document's url.")
-    folders = entry.get("folders")
-    if not folders or not all(isinstance(folder, str) and folder for folder in folders):
-        raise ConfigError(f"[tool.fs.libraries.{name}] folders must list the folders it holds.")
-    return Library(name, match.group(1), tuple(folder.strip("/") for folder in folders))
+def _part_set(name: str, entry: dict) -> PartSet:
+    where = f"[tool.fs.parts.{name}]"
+    main = _DOCUMENT_URL.search(str(entry.get("main", "")))
+    if main is None:
+        raise ConfigError(f"{where} main must be its main document's url.")
+    folder = entry.get("folder")
+    if not isinstance(folder, str) or not folder.strip("/"):
+        raise ConfigError(f"{where} folder must name the folder holding its FeatureScript.")
+    title = entry.get("title")
+    if not isinstance(title, str) or not title:
+        raise ConfigError(f"{where} title must name its versions, like Fasteners.")
+    return PartSet(name, title, folder.strip("/"), main.group(1))
 
 
 def _workspace(data: dict, key: str) -> InstancePath:

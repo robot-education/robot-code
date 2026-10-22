@@ -35,12 +35,13 @@ github = "https://github.com/robot-education/robot-code"
 # The document `fs release --beta` publishes beta releases to.
 frontend_beta = "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/7517d9bc30a444e88795c529"
 
-# Library documents: the FeatureScripts in `folders` are only for that library's parts, so `fs release` releases them to
-# the library document's default workspace instead of the frontend document.
-[tool.fs.libraries.fasteners]
-# FRCDesign's Fasteners library, which holds its fasteners' Part Studios
-document = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
-folders = ["fasteners"]
+# Part sets: Part Studios built from a definition in `folder`, whose FeatureScript is in the backend document but only
+# they use. `fs parts test` builds them there as `<Part> (TEST)`; `fs parts release` releases them into `main`, the
+# FRCDesignLib document people insert them from (see docs/parts.md)
+[tool.fs.parts.fasteners]
+title = "Fasteners"
+folder = "fasteners"
+main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]

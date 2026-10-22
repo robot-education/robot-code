@@ -5,7 +5,8 @@ This is the source of three things, which must agree:
 
 - fastenerTables.gen.fs: the enums and data the screw, washer, and nut features build from.
 - The configurations of the Part Studios exposing those features, one per kind (`STUDIOS`), which
-  `fs release` builds in the library: an input per feature parameter, each List's options shown only where they're made
+  `fs parts test` (in the backend, as `<Part> (TEST)`) and `fs parts release` (in FRCDesignLib's Fasteners document)
+  build: an input per feature parameter, each List's options shown only where they're made
   (Length shows only the lengths the chosen vendor makes in the chosen size and head).
 - fasteners.gen.json: the same catalog for FRCDesign, with each studio's configuration as Onshape answers it, which
   picks a fastener for each hole and inserts its studio with a configuration of these option ids. FRCDesign stores those configurations in documents, so never rename or

@@ -69,7 +69,7 @@ from fs_cli.workspace import (
 )
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
-from onshape_api.paths.paths import InstancePath, path_to_url
+from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
 
 # Released tabs are never deleted or recreated (see `load_released`)
 RELEASED_HINTS = {
@@ -407,7 +407,7 @@ def make_parser() -> argparse.ArgumentParser:
     dry_run(gen_command)
 
     release = command(
-        "release", "release a FeatureScript to the frontend document, or to its library's (see [tool.fs.libraries])", targets=False
+        "release", "release a FeatureScript to the frontend document (a part set's is released by `fs parts release`)", targets=False
     )
     release.add_argument(
         "script", help="the .fs file or Feature Studio name, e.g. robotFrame"
@@ -474,6 +474,42 @@ def make_parser() -> argparse.ArgumentParser:
     )
     no_push_tags(sync_versions)
     dry_run(sync_versions)
+
+    parts_command = command(
+        "parts",
+        "try or release a part set (see [tool.fs.parts]): Part Studios built from a definition, whose FeatureScript is "
+        "in the backend document",
+        targets=False,
+    )
+    parts_commands = parts_command.add_subparsers(dest="parts_command", metavar="action", required=True)
+    parts_test = parts_commands.add_parser(
+        "test",
+        help="build the set's Part Studios in the backend document as `<Part> (TEST)`, from its FeatureScript as "
+        "pushed (4-5 API calls each)",
+    )
+    parts_test.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
+    parts_test.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    parts_release = parts_commands.add_parser(
+        "release",
+        help="release the set into its main document: version the backend, point the main document at it, build its "
+        "Part Studios there, version it, record where they are, and tag it in git",
+    )
+    parts_release.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
+    parts_bump = parts_release.add_mutually_exclusive_group()
+    for version_type in VersionType:
+        parts_bump.add_argument(
+            f"--{version_type}",
+            dest="bump",
+            action="store_const",
+            const=version_type,
+            help=f"release a new {version_type} version",
+        )
+    parts_release.add_argument(
+        "-d", "--description", default="", help="a brief, internal-only description of the changes"
+    )
+    parts_release.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    no_push_tags(parts_release)
+    dry_run(parts_release)
 
     release_tags = command(
         "release-tags",
@@ -1102,34 +1138,23 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
     print(
         f"Releasing {plan.studio.path} as {plan.version_name} (previous release: {previous})"
     )
-    steps = [
-        f"Create version {plan.version_name} in the backend document",
-        f"Point {plan.studio.name} in the {plan.target_label} document at that version",
-    ]
-    for definition, studios in plan.part_studios:
-        steps.append(
-            f"Build {', '.join(studio.tab_name for studio in studios)} in the {plan.target_label} document, "
-            f"from {definition.name}"
+    print(f"  1. Create version {plan.version_name} in the backend document")
+    print(
+        f"  2. Point {plan.studio.name} in the {plan.target_label} document at that version"
+    )
+    if args.publish:
+        print(
+            f"  3. Create version {plan.version_name} in the {plan.target_label} document"
         )
-    # A library's Part Studios are only where they're recorded once they're in a version
-    publish = args.publish or bool(plan.part_studios)
-    if publish:
-        steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
-    for definition, _ in plan.part_studios:
-        steps.append(f"Record where they are in {definition.stem}.studios.json, and write its exports again")
-    for number, step in enumerate(steps, 1):
-        print(f"  {number}. {step}")
     if args.dry_run:
         return 0
     if not args.yes:
         confirm("Backend versions can't be deleted.")
-    run_release(workspace, plan, args.description, publish)
+    run_release(workspace, plan, args.description, args.publish)
     print(f"Released {plan.version_name}.")
-    if plan.part_studios:
-        print("Commit the recorded locations and exports, then sync them into FRCDesignApp.")
     released = parse_version_name(plan.version_name)
     assert released and plan.studio.local_code is not None
-    if not publish:
+    if not args.publish:
         print("It's final once its version is in the frontend document: `fs sync-versions` creates it, and tags it in git.")
     elif is_repository(workspace.config.root):
         # In sync, so its code is what was released
@@ -1699,6 +1724,49 @@ def _display_path(path: pathlib.Path) -> str:
 
 # Commands which don't need Onshape
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
+def parts(workspace: Workspace, args: argparse.Namespace) -> int:
+    from fs_cli.parts import plan_part_release, run_part_release, run_test
+
+    part_set = workspace.config.find_part_set(args.part_set)
+    if args.parts_command == "test":
+        if not args.yes:
+            confirm(
+                f"This builds the {part_set.name} Part Studios in the backend document, named `<Part> (TEST)`, "
+                "replacing any configuration they have."
+            )
+        for studio, built in run_test(workspace, part_set):
+            url = path_to_url(ElementPath.from_path(workspace.instance, built.element_id))
+            print(f"{studio.tab_name} ({'created' if built.created else 'updated'}, {built.status}): {url}")
+        return 0
+
+    plan = plan_part_release(workspace, part_set, args.bump)
+    previous = plan.previous.name if plan.previous else "none"
+    print(f"Releasing the {part_set.name} part set as {plan.version_name} (previous release: {previous})")
+    tabs = ", ".join(studio.tab_name for _, studios in plan.definitions for studio in studios)
+    steps = [
+        f"Create version {plan.version_name} in the backend document",
+        f"Point {plan.studio.name} in its main document at that version",
+        f"Build {tabs} in the main document",
+        f"Create version {plan.version_name} in the main document",
+        "Record where its Part Studios are beside "
+        + ", ".join(definition.name for definition, _ in plan.definitions)
+        + ", and write their exports again",
+    ]
+    for number, step in enumerate(steps, 1):
+        print(f"  {number}. {step}")
+    if args.dry_run:
+        return 0
+    if not args.yes:
+        confirm("Versions can't be deleted.")
+    run_part_release(workspace, plan, args.description)
+    print(f"Released {plan.version_name}.")
+    print("Commit the recorded locations and exports, then sync them into FRCDesignApp.")
+    if is_repository(workspace.config.root):
+        assert plan.studio.local_code is not None
+        tag_release(workspace, plan.studio.path, plan.released, plan.studio.local_code, not args.no_push_tags)
+    return 0
+
+
 STATE_COMMANDS = {"mv", "unlink", "released"}
 
 OFFLINE_COMMANDS = {
@@ -1741,6 +1809,7 @@ COMMANDS = {
     "tabs": tabs,
     "link": link,
     "released": detect_released,
+    "parts": parts,
 }
 
 

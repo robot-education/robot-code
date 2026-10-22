@@ -6,8 +6,9 @@ FeatureScript here (including selections, editing logic, and manipulator change 
 ## Onshape API calls
 
 Ask before anything that calls Onshape, and run it only once the user says yes, every time: the Onshape FeatureScript
-MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `deprecate`,
-`sync-versions`, `release-tags`, `pull-std`, `update-std`, `released --detect`, and the rest). Each call spends the
+MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `parts test`,
+`parts release`, `deprecate`, `sync-versions`, `release-tags`, `pull-std`, `update-std`, `released --detect`, and the
+rest). Each call spends the
 user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
 asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, and `pytest`, which run against fakes. When the
 user runs a command themselves, say exactly what to run.
@@ -38,6 +39,9 @@ before stating how FeatureScript or Onshape behaves, or adding a rule here or to
 
 For FeatureScript names, `fs doc NAME` shows a std or project symbol's signature and documentation, `fs refs NAME`
 where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix` fixes problems with one right answer.
+
+FeatureScript-backed parts (FRCDesign's fasteners) are part sets, tried and released by `fs parts`, never `fs release`;
+see `docs/parts.md`.
 
 A "top level option" means a horizontal enum at the top of the feature (see `docs/featurescript-style.md`'s
 "Horizontal enums go at the top").

@@ -10,10 +10,11 @@ refreshed by `uv run python featurescripts/fasteners/fastenerTables.py fetch`: t
 configurations, and FRCDesign's manifest `fasteners.gen.json`), and `fastenerHoleScan.fs` (what FRCDesign
 evaluates in the Part Studios of the parts it fastens).
 
-Unreleased. It's released to FRCDesign's Fasteners library document (`[tool.fs.libraries.fasteners]`), whose Part
-Studios use it, rather than the frontend document. Those Part Studios (Screw, Washer, and Nut) are built from
-`fastenerTables.py`'s `STUDIOS`, never by hand: `fs release fasteners` builds them in the library, versions it, and
-records where they are in `fastenerTables.studios.json`, which the manifest's locations come from.
+Unreleased. It's a part set (`[tool.fs.parts.fasteners]`, see docs/parts.md), not released to the frontend document:
+its Part Studios (Screw, Washer, and Nut) are built from `fastenerTables.py`'s `STUDIOS`, never by hand. `fs parts test
+fasteners` builds them in the backend document as `Screw (TEST)` and so on, to try a change, and `fs parts release
+fasteners` releases them into FRCDesignLib's Fasteners document, recording where they are in
+`fastenerTables.studios.json`, which the manifest's locations come from.
 
 ## Strings
 

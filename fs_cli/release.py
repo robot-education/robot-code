@@ -7,10 +7,8 @@ A release:
     3. Optionally creates a version in the frontend document too, which publishes the release: it's final once it's
        there (with `--publish`, or later by `fs sync-versions`), and then it's tagged in git (see `tag_release`).
 
-Beta releases go to the separate frontend_beta document instead, and a library's FeatureScripts (`[tool.fs.libraries]`)
-to its library document: they're only for that library's parts, not for everyone. A library release also builds the
-Part Studios its definitions configure (see studio_builds.py) from the released studio, then always versions the
-library, and records where each Part Studio is beside its definition.
+Beta releases go to the separate frontend_beta document instead. A part set's FeatureScript (`[tool.fs.parts]`) isn't
+released here: `fs parts release` releases it into its FRCDesignLib document, with its Part Studios (see parts.py).
 
 Deprecating a released FeatureScript retires it without breaking Part Studios using it: they keep working, and
 still update to newer versions of the frontend document, since its frontend studio is kept (with the same element
@@ -26,10 +24,8 @@ import pathlib
 import re
 from typing import Callable
 
-from fs_cli.configured_studios import ConfiguredStudio, write_locations
 from fs_cli.git import commit_with_contents, create_tag, has_tag, is_repository, push_tag
 from fs_cli.remote import RemoteStudio, Version
-from fs_cli.studio_builds import build_studios, library_definitions, write_exports
 from fs_cli.versions import (
     ReleasedVersion,
     SemVersion,
@@ -86,8 +82,6 @@ class ReleasePlan:
     version_name: str
     target: InstancePath
     target_label: str
-    # A library's definitions configuring Part Studios from the studio, each with its studios
-    part_studios: list[tuple[pathlib.Path, list[ConfiguredStudio]]] = dataclasses.field(default_factory=list)
 
 
 def plan_release(
@@ -97,9 +91,9 @@ def plan_release(
     studio = find_studio(workspace, script)
     _check_in_sync(studio, "releasing")
     assert studio.remote
-    library = workspace.config.library_for(studio.path)
-    if beta and library:
-        raise UsageError(f"{studio.path} is released to the {library.name} library, which has no beta releases.")
+    part_set = workspace.config.part_set_for(studio.path)
+    if part_set:
+        raise UsageError(f"{studio.path} is the {part_set.name} part set's; release it with `fs parts release {part_set.name}`.")
     is_beta_feature = _is_beta(workspace, studio)
     if beta and not is_beta_feature:
         raise UsageError(
@@ -117,9 +111,6 @@ def plan_release(
         version = next_version(previous, bump, beta)
     except ValueError as error:
         raise UsageError(str(error)) from error
-    part_studios = (
-        library_definitions(workspace.config, library, studio.local_code or "") if library else []
-    )
     return ReleasePlan(
         studio,
         feature_name,
@@ -127,7 +118,6 @@ def plan_release(
         version_name(feature_name, version),
         target,
         target_label,
-        part_studios,
     )
 
 
@@ -141,35 +131,19 @@ def run_release(
     remote = workspace.remote
     assert plan.studio.remote
     studio_name = plan.studio.remote.name
-    code = _version_backend(workspace, plan.studio, plan.version_name, description, log)
-    target_studio = _frontend_studio(workspace, plan.target, studio_name)
+    code = version_backend(workspace, plan.studio, plan.version_name, description, log)
+    target_studio = find_frontend_studio(workspace, plan.target, studio_name)
     if target_studio is None:
         log(f"Creating {studio_name} in the {plan.target_label} document...")
         target_studio = remote.create(plan.target, studio_name)
     log(f"Updating {studio_name} in the {plan.target_label} document...")
     remote.push(plan.target, target_studio.element_id, code)
 
-    built = {}
-    if plan.part_studios:
-        # Its microversion as pushed, which the Part Studios insert its features at
-        pushed = next(each for each in remote.list_studios(plan.target) if each.element_id == target_studio.element_id)
-        for definition, studios in plan.part_studios:
-            built[definition] = build_studios(remote, plan.target, studios, pushed, log)
-
     if make_version:
         log(
             f"Creating version {plan.version_name} in the {plan.target_label} document..."
         )
-        version = remote.create_version(plan.target, plan.version_name, description)
-        for definition, studios in built.items():
-            write_locations(
-                definition,
-                plan.target.document_id,
-                version.id,
-                {name: each.element_id for name, each in studios.items()},
-            )
-            for exported in write_exports(definition):
-                log(f"Updated {exported.name}")
+        remote.create_version(plan.target, plan.version_name, description)
     # Its tab has to stay put from now on (see `load_released`)
     workspace.state.released.add(plan.studio.remote.element_id)
 
@@ -228,7 +202,7 @@ def plan_deprecate(workspace: Workspace, script: str, keep_backend: bool) -> Dep
     if code is None:
         raise UsageError(f'{studio.path} has no "Feature Type Name" to mark deprecated.')
     target, target_label = _target(workspace, studio, _is_beta(workspace, studio))
-    frontend_studio = _frontend_studio(workspace, target, studio.remote.name)
+    frontend_studio = find_frontend_studio(workspace, target, studio.remote.name)
     if frontend_studio is None:
         raise UsageError(
             f"The {target_label} document has no {studio.remote.name}, so there's nothing to deprecate; delete the "
@@ -259,7 +233,7 @@ def run_deprecate(
         studio.file.write_text(plan.code, newline="")
         studio.local_code = plan.code
         workspace.push_studios([studio])
-    code = _version_backend(workspace, studio, plan.version_name, description, log)
+    code = version_backend(workspace, studio, plan.version_name, description, log)
     log(f"Updating {plan.frontend_studio.name} in the {plan.target_label} document...")
     remote.push(plan.target, plan.frontend_studio.element_id, code)
     log(f"Renaming it {plan.frontend_name}...")
@@ -290,11 +264,8 @@ def _check_in_sync(studio: Studio, doing: str) -> None:
 
 
 def _is_beta(workspace: Workspace, studio: Studio) -> bool:
-    """Whether the one feature studio defines is a beta (released to the frontend_beta document). A library's studio
-    is never a beta, and may define several features: they're its parts' features, released together."""
+    """Whether the one feature studio defines is a beta (released to the frontend_beta document)."""
     assert studio.remote
-    if workspace.config.library_for(studio.path):
-        return False
     feature_names = workspace.remote.feature_names(workspace.instance, studio.remote.element_id)
     if len(feature_names) != 1:
         found = ", ".join(feature_names) or "none"
@@ -306,9 +277,6 @@ def _is_beta(workspace: Workspace, studio: Studio) -> bool:
 
 def _target(workspace: Workspace, studio: Studio, beta: bool) -> tuple[InstancePath, str]:
     config = workspace.config
-    library = config.library_for(studio.path)
-    if library is not None:
-        return workspace.remote.default_workspace(library.document_id), f"{library.name} library"
     target = config.frontend_beta if beta else config.frontend
     target_label = "frontend_beta" if beta else "frontend"
     if target is None:
@@ -316,16 +284,16 @@ def _target(workspace: Workspace, studio: Studio, beta: bool) -> tuple[InstanceP
     return target, target_label
 
 
-def _frontend_studio(workspace: Workspace, target: InstancePath, name: str) -> RemoteStudio | None:
+def find_frontend_studio(workspace: Workspace, target: InstancePath, name: str) -> RemoteStudio | None:
     """The frontend studio re-exporting the backend studio named `name`, which has the same name."""
     return next((studio for studio in workspace.remote.list_studios(target) if studio.name == name), None)
 
 
-def _version_backend(
+def version_backend(
     workspace: Workspace, studio: Studio, name: str, description: str, log: Callable[[str], None]
 ) -> str:
-    """Creates a version of the backend document. Returns the code of a frontend studio re-exporting studio
-    from it."""
+    """Creates a version of the backend document. Returns the code of a studio re-exporting studio from it, for a
+    frontend (or main) document."""
     remote, backend = workspace.remote, workspace.instance
     assert studio.remote
     log(f"Creating version {name} in the backend document...")
@@ -352,17 +320,8 @@ def _version_backend(
     )
 
 
-def _library_features(workspace: Workspace) -> set[str]:
-    """The feature names of the FeatureScripts released to libraries, which their release versions are named by."""
-    return {
-        feature_name_for(studio.remote.name)
-        for studio in workspace.match()
-        if studio.remote and workspace.config.library_for(studio.path)
-    }
-
-
 def unsynced_versions(workspace: Workspace) -> list[Version]:
-    """Returns the release versions in the backend which are missing from the frontend, oldest first. A library's
+    """Returns the release versions in the backend which are missing from the frontend, oldest first. A part set's
     releases aren't the frontend's, so they're left out."""
     config, remote = workspace.config, workspace.remote
     if config.frontend is None:
@@ -372,12 +331,12 @@ def unsynced_versions(workspace: Workspace) -> list[Version]:
         for version in remote.versions(config.frontend)
         if parse_version_name(version.name)
     }
-    library_features = _library_features(workspace) if config.libraries else set()
+    part_sets = {part_set.title for part_set in config.parts}
     missing = []
     # Walk back from the newest backend version until reaching one already in the frontend
     for version in reversed(remote.versions(workspace.instance)):
         released = parse_version_name(version.name)
-        if not released or released.feature_name in library_features:
+        if not released or released.feature_name in part_sets:
             continue
         if version.name in frontend_names:
             break
@@ -431,12 +390,10 @@ def tag_release(
 
 def finalized_versions(workspace: Workspace) -> list[Version]:
     """The backend document's release versions which are in the frontend (or frontend_beta) document too, so final,
-    oldest first."""
+    oldest first. A part set's are tagged as they're released (see parts.py)."""
     config, remote = workspace.config, workspace.remote
     published = set()
-    targets = [config.frontend, config.frontend_beta] + [
-        remote.default_workspace(library.document_id) for library in config.libraries
-    ]
+    targets = [config.frontend, config.frontend_beta]
     for target in targets:
         if target is not None:
             published.update(version.name for version in remote.versions(target))

@@ -302,16 +302,17 @@ FRCDesignApp reads for its library fasteners).
 A Part Studio can expose a feature through its configuration: an input per parameter (a List, or a checkbox for a
 boolean), each configuring that parameter, with a List's options shown only for some combinations of the inputs before
 it (a lookup table, laid out as a configuration). A whole input can be shown only for some combinations too, as the
-fasteners' Variant and Finish are; hidden, it's left out of `combinations()`, and nothing may show by it.
+screw's Fully threaded and the washer's Finish are; hidden, it's left out of `combinations()`, and nothing may show by
+it.
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
 default), creating it if it's missing, replaces its configuration with the definition's, then inserts its feature
 from the Feature Studio in the same document (or points the one it has at that Feature Studio as it is now),
-configured by it. A feature that fails to regenerate in its default configuration stops the build. A library's Part
-Studios are built by `fs release`, from the studio it just pushed to the library (see [Releasing](#releasing)).
-A List's visibility conditions are factored by input, earliest first, so a lookup table's conditions don't repeat
-themselves (the screw studio's Length is 61 KB rather than 192 KB). `ConfiguredStudio.manifest()` gives the
+configured by it. A feature that fails to regenerate in its default configuration stops the build. `fs parts` builds
+them, for part sets (see [docs/parts.md](parts.md)).
+A List's visibility conditions are factored by input, earliest first (or by `factor_first`), so a lookup table's
+conditions don't repeat themselves. `ConfiguredStudio.manifest()` gives the
 configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
 any configuration).
 
@@ -349,27 +350,12 @@ uv run fs release robotFrame --minor --dry-run            # show the plan withou
 
 A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
 frontend studio of the same name at it (creating the studio if needed). Beta releases go to the separate
-`frontend_beta` document instead, and the feature's name must contain "beta". A library's FeatureScripts, those in a
-folder `[tool.fs.libraries]` lists, are only for its parts, so they're released to that library's document (its default
-workspace) instead, never as betas, and a studio there may define several features, released together:
+`frontend_beta` document instead, and the feature's name must contain "beta". A part set's FeatureScript
+(`[tool.fs.parts]`) isn't released here but by `fs parts release`, into its FRCDesignLib document with its Part
+Studios; see [docs/parts.md](parts.md). The studio must be pushed and in sync before it can be released, and
+`fs release` asks for confirmation since versions can't be deleted (`-y` skips the prompt).
 
-```toml
-[tool.fs.libraries.fasteners]
-document = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
-folders = ["fasteners"]
-```
-
-`fs sync-versions` leaves their releases out, since they aren't the frontend's. The studio must be pushed and in
-sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
-skips the prompt).
-
-When a definition in the library's folders configures Part Studios of the released studio's features, the release
-builds them in the library document, then always creates the library's
-version, and records where they are in `<definition>.studios.json` beside it (the document, that version, and each
-tab), writing the definition's `EXPORTS` again. Commit those, and sync what reads them (FRCDesignApp's
-`npm run sync:generated-parts`).
-
-A release is final once its version is in the frontend document (or its library's): with `--publish` (a quick release: the backend
+A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend
 versions the backend has that it doesn't. Then it's tagged in git, e.g. `robotFrame/v1.3.0`, on the newest commit
 whose file is as released (`fs push` commits what it pushes, so that's usually the last one), and the tag is pushed to
