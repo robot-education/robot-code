@@ -496,6 +496,12 @@ def make_parser() -> argparse.ArgumentParser:
     )
     parts_diagnose.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
     parts_diagnose.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    parts_configuration = parts_commands.add_parser(
+        "configuration",
+        help="print a Part Studio's configuration as Onshape stores it, as JSON (1 API call): one made in Onshape shows "
+        "what a build should write",
+    )
+    parts_configuration.add_argument("url", help="the Part Studio's url")
     parts_release = parts_commands.add_parser(
         "release",
         help="release the set into its main document: version the backend, point the main document at it, build its "
@@ -1733,6 +1739,14 @@ def _display_path(path: pathlib.Path) -> str:
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
 def parts(workspace: Workspace, args: argparse.Namespace) -> int:
     from fs_cli.parts import plan_part_release, run_diagnose, run_part_release, run_test
+
+    if args.parts_command == "configuration":
+        from onshape_api.endpoints.elements import get_configuration
+        from onshape_api.paths.paths import url_to_element_path
+
+        assert isinstance(workspace.remote, OnshapeRemote)
+        print(json.dumps(get_configuration(workspace.remote.api, url_to_element_path(args.url)), indent=1))
+        return 0
 
     part_set = workspace.config.find_part_set(args.part_set)
     if args.parts_command == "test":

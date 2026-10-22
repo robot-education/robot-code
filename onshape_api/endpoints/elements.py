@@ -10,6 +10,11 @@ def delete_element(api: Api, element_path: ElementPath) -> None:
     api.delete(api_path("elements", element_path, ElementPath))
 
 
+def get_configuration(api: Api, element_path: ElementPath) -> dict:
+    """Fetches an element's (a Part Studio's or an assembly's) configuration inputs, as Onshape stores them."""
+    return api.get(api_path("elements", element_path, ElementPath, "configuration"))
+
+
 def update_configuration(api: Api, element_path: ElementPath, configuration: dict) -> dict:
     """Replaces an element's (a Part Studio's or an assembly's) configuration inputs.
 
