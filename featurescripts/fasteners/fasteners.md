@@ -38,8 +38,8 @@ The configurations only offer what's made, so these show only in the features' o
 
 | Part | Name |
 | --- | --- |
-| Screw | `<size> x <length> <head> Screw`, e.g. `#10-32 x 1/2 in. Button Head Screw`, with any finish but black, and fully threaded, after it: `... Socket Head Screw (Zinc plated)`, `... (Fully threaded)` |
-| Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in. OD x 0.049 in.)`, with any finish but black after the type: `(7/16 in. OD x 0.03 in., Stainless steel)` |
+| Screw | `<size> x <length> <head> Screw`, e.g. `#10-32 x 1/2 in Button Head Screw`, with any finish but black, and fully threaded, after it: `... Socket Head Screw (Zinc plated)`, `... (Fully threaded)` |
+| Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in OD x 0.049 in)`, with any finish but black after the type: `(7/16 in OD x 0.03 in, Stainless steel)` |
 | Nut | `<size> <type> Nut`, e.g. `#10-32 Thin Nylock Nut` |
 
 Each has its material (steel, stainless steel, or aluminum, as its vendor sells it) and its finish's appearance (black,
@@ -58,6 +58,8 @@ the hole's edge. So any washer goes under any screw or nut, and none has a washe
 Each dialog is a flat list, with no conditions: Vendor, Size, Head, Finish, one `ScrewLength` of every length any vendor
 makes, and a Fully threaded checkbox, for a screw; Vendor, Size, Type, and Finish for a washer; Vendor, Size, and Type
 for a nut.
+Screws and washers have their own finish enums (`ScrewFinish`, `WasherFinish`), so neither dialog offers a finish its
+kind never comes in.
 So each Part Studio wires every parameter to a configuration input of the same options one for one, and the
 configuration's visibility conditions, not the dialog, show only what's made (Length shows the lengths the chosen vendor
 makes in the chosen size, head, and finish). Every part is one its vendor makes (`SCREWS`, `WASHERS`, `NUTS`); anything else is

@@ -129,11 +129,11 @@ MATERIALS = {
     "Aluminum": Material("Aluminum - 6061", "ALUMINUM"),
 }
 
-FastenerFinish = Enum(
-    "FastenerFinish",
-    ["BLACK", "ZINC_PLATED", "STAINLESS", "ALUMINUM"],
-    {"BLACK": "Black", "ZINC_PLATED": "Zinc plated", "STAINLESS": "Stainless steel", "ALUMINUM": "Aluminum"},
-)
+FINISH_NAMES = {"BLACK": "Black", "ZINC_PLATED": "Zinc plated", "STAINLESS": "Stainless steel", "ALUMINUM": "Aluminum"}
+FINISH_ORDER = list(FINISH_NAMES)
+# Each kind its own, so a feature's dialog offers no finish its kind never comes in
+ScrewFinish = Enum("ScrewFinish", ["BLACK", "ZINC_PLATED", "ALUMINUM"], FINISH_NAMES)
+WasherFinish = Enum("WasherFinish", ["BLACK", "STAINLESS"], FINISH_NAMES)
 # Each finish's appearance, as robotProperties.fs's constant; WCP's anodized aluminum screws' color is unpublished
 APPEARANCES = {"BLACK": "BLACK", "ZINC_PLATED": "UNCOATED_STEEL_GRAY", "STAINLESS": "STEEL_GRAY", "ALUMINUM": "MEDIUM_GRAY"}
 STANDARD_FINISH = "BLACK"
@@ -159,7 +159,7 @@ class Variant:
 
     @property
     def name(self) -> str:
-        words = ([] if self.finish == STANDARD_FINISH else [FastenerFinish.names[self.finish]]) + (  # type: ignore[index]
+        words = ([] if self.finish == STANDARD_FINISH else [FINISH_NAMES[self.finish]]) + (  # type: ignore[index]
             ["Fully threaded"] if self.full_thread else []
         )
         return ", ".join(words[:1] + [word.lower() for word in words[1:]]) or "Standard"
@@ -169,7 +169,7 @@ STANDARD = Variant()
 
 
 def _variant_order(variant: Variant) -> tuple:
-    return (FastenerFinish.values.index(variant.finish), variant.full_thread)
+    return (FINISH_ORDER.index(variant.finish), variant.full_thread)
 
 
 # Screws: what each vendor makes, from FRCDesign's records, like `#10-32 x 1-1/4" L BHCS (Steel, Black Oxide)`
@@ -345,18 +345,18 @@ def has_full_thread_choice(variants: dict[Variant, Stock], finish: str) -> bool:
 
 
 def length_id(length: Fraction) -> str:
-    """e.g. IN_0_375 for 3/8 in., IN_1_25 for 1-1/4 in."""
+    """e.g. IN_0_375 for 3/8 in, IN_1_25 for 1-1/4 in"""
     return "IN_" + f"{float(length):g}".replace(".", "_")
 
 
 def length_name(length: Fraction) -> str:
-    """e.g. 3/8 in., or 1-1/4 in."""
+    """e.g. 3/8 in, or 1-1/4 in"""
     whole, part = divmod(length, 1)
     if part == 0:
-        return f"{whole} in."
+        return f"{whole} in"
     if whole == 0:
-        return f"{part} in."
-    return f"{whole}-{part} in."
+        return f"{part} in"
+    return f"{whole}-{part} in"
 
 
 ScrewLength = Enum(
@@ -456,13 +456,13 @@ _WASHER_SIZES = {"#4": "NO_4_40", "#6": "NO_6_32", "#8": "NO_8_32", "#10": "NO_1
 
 
 def washer_type(outer_diameter: Fraction, thickness: str) -> str:
-    """e.g. OD_7_16_X_0_03, for 7/16 in. OD and 0.03 in. thick."""
+    """e.g. OD_7_16_X_0_03, for 7/16 in OD and 0.03 in thick."""
     return f"OD_{outer_diameter}_X_{thickness}".replace("/", "_").replace(".", "_")
 
 
 def washer_type_name(outer_diameter: Fraction, thickness: str) -> str:
-    """e.g. 7/16 in. OD x 0.03 in."""
-    return f"{length_name(outer_diameter)} OD x {thickness} in."
+    """e.g. 7/16 in OD x 0.03 in"""
+    return f"{length_name(outer_diameter)} OD x {thickness} in"
 
 
 def _washers() -> dict[tuple[str, str, str, str], Washer]:
@@ -497,7 +497,7 @@ def _washers() -> dict[tuple[str, str, str, str], Washer]:
                 FastenerSize.values.index(item[0][1]),
                 item[1].outer_diameter,
                 float(item[1].thickness),
-                FastenerFinish.values.index(item[0][3]),
+                FINISH_ORDER.index(item[0][3]),
             ),
         )
     )
@@ -530,7 +530,7 @@ NUT_NAMES = {"NYLOCK": "Nylock", "THIN_NYLOCK": "Thin Nylock", "HEX": "Hex", "TH
 
 
 def screw_name(size: str, head: str, length: Fraction, variant: Variant = STANDARD) -> str:
-    """e.g. `#10-32 x 1/2 in. Button Head Screw`, or `... Socket Head Screw (Fully threaded)` beyond the standard."""
+    """e.g. `#10-32 x 1/2 in Button Head Screw`, or `... Socket Head Screw (Fully threaded)` beyond the standard."""
     name = f"{SIZES_BY_ID[size].name} x {length_name(length)} {HEAD_NAMES[head]} Screw"
     return name if variant == STANDARD else f"{name} ({variant.name})"
 
@@ -541,10 +541,10 @@ def nut_name(size: str, type: str) -> str:
 
 
 def washer_name(size: str, type: str, finish: str = STANDARD_FINISH) -> str:
-    """e.g. `#10 Washer (1/2 in. OD x 0.049 in.)`, `1/4 in. Washer (...)`, or `#10 Washer (..., Stainless steel)`."""
+    """e.g. `#10 Washer (1/2 in OD x 0.049 in)`, `1/4 in Washer (...)`, or `#10 Washer (..., Stainless steel)`."""
     hole = SIZES_BY_ID[size].hole_table_size
-    described = [WasherType.names[type]] + ([] if finish == STANDARD_FINISH else [FastenerFinish.names[finish]])  # type: ignore[index]
-    return f"{hole}{' in.' if hole == '1/4' else ''} Washer ({', '.join(described)})"
+    described = [WasherType.names[type]] + ([] if finish == STANDARD_FINISH else [FINISH_NAMES[finish]])  # type: ignore[index]
+    return f"{hole}{' in' if hole == '1/4' else ''} Washer ({', '.join(described)})"
 
 
 def vendor_name(vendor: str) -> str | None:
@@ -719,9 +719,9 @@ def _screw_inputs() -> list[Input]:
         _list(
             "finish",
             "Finish",
-            FastenerFinish,
+            ScrewFinish,
             "finish",
-            _used(FastenerFinish, finishes, 3),
+            _used(ScrewFinish, finishes, 3),
             _shown(finishes, ("vendor", "size", "head"), 3),
             STANDARD_FINISH,
         ),
@@ -772,7 +772,7 @@ def _washer_inputs() -> list[Input]:
         _variants(
             "finish",
             "Finish",
-            FastenerFinish,
+            WasherFinish,
             "finish",
             {key[:3]: _washer_finishes(*key[:3]) for key in WASHERS},
             ("vendor", "size", "type"),
@@ -890,7 +890,8 @@ CONTENTS = [
     FastenerSize,
     ScrewHead,
     ScrewLength,
-    FastenerFinish,
+    ScrewFinish,
+    WasherFinish,
     NutType,
     WasherType,
     Constant("FASTENER_SIZES", _map([(FastenerSize[size.id], _size_fields(size)) for size in SIZES], 8)),
@@ -918,7 +919,7 @@ CONTENTS = [
         "SCREWS",
         _nested(
             _screw_table(),
-            [FastenerVendor, FastenerSize, ScrewHead, FastenerFinish, ScrewLength],
+            [FastenerVendor, FastenerSize, ScrewHead, ScrewFinish, ScrewLength],
             _screw_fields,
             4,
         ),
@@ -935,7 +936,7 @@ CONTENTS = [
         "WASHERS",
         _nested(
             {key: (WASHERS[key], record) for key, record in WASHER_RECORDS.items()},
-            [FastenerVendor, FastenerSize, WasherType, FastenerFinish],
+            [FastenerVendor, FastenerSize, WasherType, WasherFinish],
             _washer_fields,
         ),
     ),
@@ -1023,7 +1024,7 @@ def manifest() -> dict:
                 ],
             }
             for (vendor, size, head), lengths in SCREWS.items()
-            for finish in FastenerFinish.values
+            for finish in ScrewFinish.values
             if any(Variant(finish) in variants for variants in lengths.values())
         ],
         "nutTypes": [{"id": id, "name": NutType.names[id]} for id in NutType.values],  # type: ignore[index]

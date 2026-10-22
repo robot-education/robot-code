@@ -104,21 +104,21 @@ export function testEveryFlatHeadIsShorterThanItsScrews()
 
 export function testWasherNames()
 {
-    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.NO_10_32][WasherType.OD_1_2_X_0_049][FastenerFinish.BLACK].name, "#10 Washer (1/2 in. OD x 0.049 in.)");
-    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.QUARTER_20][WasherType.OD_5_8_X_0_065][FastenerFinish.BLACK].name, "1/4 in. Washer (5/8 in. OD x 0.065 in.)");
+    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.NO_10_32][WasherType.OD_1_2_X_0_049][WasherFinish.BLACK].name, "#10 Washer (1/2 in OD x 0.049 in)");
+    expectEqual(WASHERS[FastenerVendor.GENERIC][FastenerSize.QUARTER_20][WasherType.OD_5_8_X_0_065][WasherFinish.BLACK].name, "1/4 in Washer (5/8 in OD x 0.065 in)");
 }
 
 export function testFinishesSetTheirMaterialAndAppearance()
 {
     const finishes = SCREWS[FastenerVendor.WCP][FastenerSize.NO_10_32][ScrewHead.BUTTON];
-    expectEqual(finishes[FastenerFinish.BLACK][ScrewLength.IN_0_25].standard.material, STEEL);
-    expectEqual(finishes[FastenerFinish.BLACK][ScrewLength.IN_0_25].standard.appearance, BLACK);
-    expectEqual(finishes[FastenerFinish.ALUMINUM][ScrewLength.IN_0_25].standard.material, ALUMINUM);
+    expectEqual(finishes[ScrewFinish.BLACK][ScrewLength.IN_0_25].standard.material, STEEL);
+    expectEqual(finishes[ScrewFinish.BLACK][ScrewLength.IN_0_25].standard.appearance, BLACK);
+    expectEqual(finishes[ScrewFinish.ALUMINUM][ScrewLength.IN_0_25].standard.material, ALUMINUM);
 }
 
 export function testLongSocketHeadsComeFullyThreadedToo()
 {
-    const threads = SCREWS[FastenerVendor.MCMASTER][FastenerSize.NO_8_32][ScrewHead.SOCKET][FastenerFinish.BLACK][ScrewLength.IN_2];
+    const threads = SCREWS[FastenerVendor.MCMASTER][FastenerSize.NO_8_32][ScrewHead.SOCKET][ScrewFinish.BLACK][ScrewLength.IN_2];
     expectEqual(threads.standard.partNumber, "91251A205");
     expectEqual(threads.fullThread.partNumber, "90044A113");
 }

@@ -41,7 +41,7 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
         definition.head is ScrewHead;
 
         annotation { "Name" : "Finish", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.finish is FastenerFinish;
+        definition.finish is ScrewFinish;
 
         annotation { "Name" : "Length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.length is ScrewLength;
@@ -135,7 +135,7 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
         definition.washerType is WasherType;
 
         annotation { "Name" : "Finish", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.finish is FastenerFinish;
+        definition.finish is WasherFinish;
     }
     {
         const finishes = WASHERS[definition.vendor][definition.size][definition.washerType];
@@ -143,7 +143,7 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
         {
             throw regenError("Selected vendor does not make this washer, change the type.", ["washerType"]);
         }
-        const washer = made(finishes, definition.finish, FastenerFinish.BLACK);
+        const washer = made(finishes, definition.finish, WasherFinish.BLACK);
         if (washer == undefined)
         {
             throw regenError("Selected vendor does not make this washer in this finish, change the finish.", ["finish"]);

@@ -150,7 +150,7 @@ def test_washer_finishes():
     assert ("WCP", "NO_10_32", "OD_3_8_X_0_031", "BLACK") in washers
     records = {tuple(record["values"].values()): record for record in MANIFEST["studios"]["washer"]["records"]}
     assert records[("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS")]["name"] == (
-        "#10 Washer (7/16 in. OD x 0.03 in., Stainless steel)"
+        "#10 Washer (7/16 in OD x 0.03 in, Stainless steel)"
     )
     # Hidden where only black is made
     assert ("GENERIC", "NO_10_32", "OD_1_2_X_0_049") in records
@@ -169,9 +169,9 @@ def test_lengths_show_only_where_theyre_made():
 
 def test_length_names_and_ids():
     assert DEFINITION["length_id"](Fraction(3, 8)) == "IN_0_375"
-    assert DEFINITION["length_name"](Fraction(3, 8)) == "3/8 in."
-    assert DEFINITION["length_name"](Fraction(5, 4)) == "1-1/4 in."
-    assert DEFINITION["length_name"](Fraction(2)) == "2 in."
+    assert DEFINITION["length_name"](Fraction(3, 8)) == "3/8 in"
+    assert DEFINITION["length_name"](Fraction(5, 4)) == "1-1/4 in"
+    assert DEFINITION["length_name"](Fraction(2)) == "2 in"
     assert DEFINITION["parse_inches"]("1-1/4") == Fraction(5, 4)
     assert DEFINITION["parse_inches"]("0.031") == Fraction("0.031")
 
@@ -198,14 +198,14 @@ def test_each_configuration_has_one_record(kind):
 def test_records_name_and_sell_each_part():
     records = {tuple(record["values"].values()): record for record in MANIFEST["studios"]["screw"]["records"]}
     mcmaster = records[("MCMASTER", "NO_10_32", "BUTTON", "BLACK", "IN_0_5")]
-    assert mcmaster["name"] == "#10-32 x 1/2 in. Button Head Screw"
+    assert mcmaster["name"] == "#10-32 x 1/2 in Button Head Screw"
     assert mcmaster["vendor"] == "McMaster-Carr"
     assert mcmaster["partNumber"] == "91255A265"
     assert mcmaster["material"] == "Steel"
     zinc = records[("MCMASTER", "NO_10_32", "BUTTON", "ZINC_PLATED", "IN_0_5")]
-    assert zinc["name"] == "#10-32 x 1/2 in. Button Head Screw (Zinc plated)"
+    assert zinc["name"] == "#10-32 x 1/2 in Button Head Screw (Zinc plated)"
     full = records[("MCMASTER", "NO_8_32", "SOCKET", "BLACK", "IN_2", "true")]
-    assert (full["name"], full["partNumber"]) == ("#8-32 x 2 in. Socket Head Screw (Fully threaded)", "90044A113")
+    assert (full["name"], full["partNumber"]) == ("#8-32 x 2 in Socket Head Screw (Fully threaded)", "90044A113")
     assert records[("MCMASTER", "NO_8_32", "SOCKET", "BLACK", "IN_2", "false")]["partNumber"] == "91251A205"
     # Generic parts have no vendor or part number
     generic = records[("GENERIC", "NO_10_32", "BUTTON", "BLACK", "IN_0_5")]
