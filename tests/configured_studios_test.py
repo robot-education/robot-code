@@ -1,7 +1,16 @@
 import pytest
 
-from fs_cli.configured_studios import ConfigureError, ConfiguredStudio, Input, Option, configure, find_studio
-from onshape_api.paths.paths import ElementPath
+from fs_cli.configured_studios import (
+    ConfigureError,
+    ConfiguredStudio,
+    Input,
+    Option,
+    build,
+    configured_studios,
+    read_locations,
+    write_locations,
+)
+from onshape_api.paths.paths import InstancePath
 
 
 def studio() -> ConfiguredStudio:
@@ -219,57 +228,99 @@ def test_manifest_holds_the_configuration_onshape_answers():
     assert "inputs" not in manifest
 
 
-def test_find_studio_searches_nested_maps():
+def test_configured_studios_searches_nested_maps():
     found = studio()
-    assert find_studio({"STUDIOS": {"frc": {"screw": found}}}, "screw") is found
-    with pytest.raises(ConfigureError):
-        find_studio({"STUDIOS": {}}, "screw")
+    assert configured_studios({"STUDIOS": {"frc": {"screw": found}}}) == [found]
+    assert configured_studios({}) == []
+
+
+def test_locations_are_recorded_beside_the_definition(tmp_path):
+    definition = tmp_path / "partTables.py"
+    assert read_locations(definition) == {}
+    write_locations(definition, "doc", "ver", {"screw": "e1"})
+    assert (tmp_path / "partTables.studios.json").is_file()
+    assert read_locations(definition) == {"screw": {"documentId": "doc", "versionId": "ver", "elementId": "e1"}}
 
 
 class FakeApi:
-    def __init__(self, features):
-        self.features = features
+    """A workspace's Part Studios, by name, each with its features."""
+
+    def __init__(self, tabs: dict[str, list[dict]], status: str = "OK"):
+        self.tabs = {f"e{index}": (name, features) for index, (name, features) in enumerate(tabs.items())}
+        self.status = status
         self.requests = []
 
     def get(self, path, **kwargs):
         self.requests.append(("GET", path, None))
-        return {"features": self.features, "sourceMicroversion": f"mv{len(self.requests)}"}
+        if path.endswith("/elements"):
+            return [{"id": id, "name": name} for id, (name, _) in self.tabs.items()]
+        element_id = path.split("/e/")[1].split("/")[0]
+        return {"features": self.tabs[element_id][1], "sourceMicroversion": f"mv{len(self.requests)}"}
 
     def post(self, path, body="", **kwargs):
         self.requests.append(("POST", path, body))
-        return {}
+        if path == "/partstudios/d/d/w/w":
+            self.tabs["new"] = (body["name"], [])
+            return {"id": "new"}
+        return {"featureState": {"featureStatus": self.status}}
 
 
-def part_studio() -> ElementPath:
-    return ElementPath("d", "w", "e")
+WORKSPACE = InstancePath("d", "w")
 
 
-def test_configure_writes_the_configuration_then_the_feature():
+def test_build_creates_the_tab_then_its_configuration_then_its_feature():
+    api = FakeApi({"Other": []})
+    built = build(api, WORKSPACE, studio(), "fs", "fsmv")
+
+    assert (built.element_id, built.created, built.status) == ("new", True, "OK")
+    posts = [(path, body) for method, path, body in api.requests if method == "POST"]
+    assert [path for path, _ in posts] == [
+        "/partstudios/d/d/w/w",
+        "/elements/d/d/w/w/e/new/configuration",
+        "/partstudios/d/d/w/w/e/new/features",
+    ]
+    assert posts[0][1] == {"name": "Screw"}
+    configuration = posts[1][1]
+    assert [parameter["parameterId"] for parameter in configuration["configurationParameters"]] == ["size", "length", "washer"]
+    feature = posts[2][1]["feature"]
+    assert feature["featureType"] == "fastenerScrew"
+    assert feature["namespace"] == "efs::mfsmv"
+    assert [parameter["btType"] for parameter in feature["parameters"]] == ["BTMParameterConfigured-2222"] * 3
+
+
+def test_build_points_a_tabs_feature_at_the_feature_studio_and_configures_it():
     feature = {
         "featureId": "F1",
         "featureType": "fastenerScrew",
+        "namespace": "efs::mold",
         "parameters": [
             {"btType": "BTMParameterEnum-145", "parameterId": "size", "value": "A"},
             {"btType": "BTMParameterBoolean-144", "parameterId": "other", "value": True},
         ],
     }
-    api = FakeApi([{"featureId": "S", "featureType": "newSketch"}, feature])
-    configure(api, part_studio(), studio())
+    api = FakeApi({"Screw": [{"featureId": "S", "featureType": "newSketch"}, feature]})
+    built = build(api, WORKSPACE, studio(), "fs", "fsmv")
 
-    [_, (method, path, configuration), _, (_, feature_path, update)] = api.requests
-    assert (method, path) == ("POST", "/elements/d/d/w/w/e/e/configuration")
-    assert [parameter["parameterId"] for parameter in configuration["configurationParameters"]] == ["size", "length", "washer"]
-    assert feature_path == "/partstudios/d/d/w/w/e/e/features/featureid/F1"
+    assert (built.element_id, built.created) == ("e0", False)
+    [(_, path, update)] = [request for request in api.requests if request[1].endswith("/featureid/F1")]
     # The microversion after the configuration changed
-    assert update["sourceMicroversion"] == "mv3"
+    assert update["sourceMicroversion"] == "mv4"
+    assert update["feature"]["namespace"] == "efs::mfsmv"
     parameters = update["feature"]["parameters"]
     assert [parameter["parameterId"] for parameter in parameters] == ["size", "other", "length", "washer"]
     assert parameters[0]["btType"] == "BTMParameterConfigured-2222"
     assert parameters[1] == feature["parameters"][1]
 
 
-def test_configure_needs_exactly_one_feature():
-    api = FakeApi([])
-    with pytest.raises(ConfigureError, match="0 fastenerScrew"):
-        configure(api, part_studio(), studio())
-    assert [method for method, _, _ in api.requests] == ["GET"]
+def test_build_reports_a_feature_that_fails_to_regenerate():
+    assert build(FakeApi({}, status="ERROR"), WORKSPACE, studio(), "fs", "fsmv").status == "ERROR"
+
+
+def test_build_refuses_two_tabs_or_features_of_its_kind():
+    with pytest.raises(ConfigureError, match="2 Part Studios named Screw"):
+        api = FakeApi({})
+        api.tabs = {"a": ("Screw", []), "b": ("Screw", [])}
+        build(api, WORKSPACE, studio(), "fs", "fsmv")
+    twice = [{"featureId": id, "featureType": "fastenerScrew", "parameters": []} for id in ("F1", "F2")]
+    with pytest.raises(ConfigureError, match="2 fastenerScrew features"):
+        build(FakeApi({"Screw": twice}), WORKSPACE, studio(), "fs", "fsmv")

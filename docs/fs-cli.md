@@ -304,14 +304,19 @@ boolean), each configuring that parameter, with a List's options shown only for 
 it (a lookup table, laid out as a configuration). A whole input can be shown only for some combinations too, as the
 fasteners' Variant and Finish are; hidden, it's left out of `combinations()`, and nothing may show by it.
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
-in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. Insert the
-feature into the Part Studio once, from the version it should use, then:
+in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
+Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
+default), creating it if it's missing, replaces its configuration with the definition's, then inserts its feature
+from the Feature Studio in the same document (or points the one it has at that Feature Studio as it is now),
+configured by it. A feature that fails to regenerate in its default configuration stops the build. To try a change,
+push it, then build the studios in the backend document:
 
 ```
-uv run fs configure-studio featurescripts/fasteners/fastenerTables.py screw <Part Studio url>
+uv run fs build-studios featurescripts/fasteners/fastenerTables.py
 ```
 
-which replaces the Part Studio's configuration with the definition's, and configures the feature's parameters by it.
+which prints each Part Studio's url, to check there. A library's Part Studios are only built by `fs release`, from
+the studio it just pushed to the library (see [Releasing](#releasing)).
 A List's visibility conditions are factored by input, earliest first, so a lookup table's conditions don't repeat
 themselves (the screw studio's Length is 61 KB rather than 192 KB). `ConfiguredStudio.manifest()` gives the
 configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
@@ -364,6 +369,13 @@ folders = ["fasteners"]
 `fs sync-versions` leaves their releases out, since they aren't the frontend's. The studio must be pushed and in
 sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
 skips the prompt).
+
+When a definition in the library's folders configures Part Studios of the released studio's features, the release
+builds them in the library document (as `fs build-studios` does in the backend), then always creates the library's
+version, and records where they are in `<definition>.studios.json` beside it (the document, that version, and each
+tab), writing the definition's `EXPORTS` again. Commit those, and sync what reads them (FRCDesignApp's
+`npm run sync:generated-parts`). Try the build in the backend document first: nothing in the library document is
+written until the release.
 
 A release is final once its version is in the frontend document (or its library's): with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend

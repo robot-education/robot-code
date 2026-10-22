@@ -8,13 +8,15 @@ lookup table is laid out as a configuration: Length shows only the lengths the c
 and head. A whole input can be shown only for some, too; hidden, it takes its default.
 
 The definition is the source of both sides: the feature's enums and data (`fs gen`), and the configuration
-(`fs configure-studio`), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
+(`fs build-studios`, and `fs release` for a library), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
 List input an enum (`<input id>_conf`) whose values are its option ids.
 """
 
 from __future__ import annotations
 
 import dataclasses
+import json
+import pathlib
 import re
 from typing import Literal, Mapping, Sequence
 
@@ -98,11 +100,21 @@ class Input:
 
 @dataclasses.dataclass
 class ConfiguredStudio:
-    """A Part Studio exposing `feature` (the constant `defineFeature` is exported as) through `inputs`."""
+    """A Part Studio exposing `feature` (the constant `defineFeature` is exported as) through `inputs`.
+
+    Attributes:
+        name: Its key in the definition, like `screw`.
+        tab: Its tab's name, which `build` finds it by; `name` capitalized when None.
+    """
 
     name: str
     feature: str
     inputs: Sequence[Input]
+    tab: str | None = None
+
+    @property
+    def tab_name(self) -> str:
+        return self.tab or self.name.capitalize()
 
     def __post_init__(self) -> None:
         defaults: dict[str, str] = {}
@@ -326,50 +338,123 @@ class ConfigureError(Exception):
     pass
 
 
-def find_studio(definition: dict, name: str) -> ConfiguredStudio:
-    """The ConfiguredStudio named name in a definition's STUDIOS (nested in maps as deep as it likes)."""
+def configured_studios(definition: dict) -> list[ConfiguredStudio]:
+    """A definition's ConfiguredStudios, from its STUDIOS (nested in maps as deep as it likes)."""
     found: list[ConfiguredStudio] = []
 
     def search(value: object) -> None:
-        if isinstance(value, ConfiguredStudio) and value.name == name:
+        if isinstance(value, ConfiguredStudio):
             found.append(value)
         elif isinstance(value, dict):
             for item in value.values():
                 search(item)
 
     search(definition.get("STUDIOS", {}))
-    if not found:
-        raise ConfigureError(f"The definition has no configured studio named {name}.")
-    return found[0]
+    return found
 
 
-def configure(api, part_studio, studio: ConfiguredStudio) -> None:
-    """Writes studio's configuration inputs to a Part Studio, then configures its feature's parameters by them.
+# Where a definition's studios were last released, beside it: written by `fs release`, read by the definition
+LOCATIONS_SUFFIX = ".studios.json"
 
-    The Part Studio must hold one instance of the feature (inserted by hand, from the released version it should use):
-    which version of a custom feature a Part Studio uses is chosen when it's inserted.
+
+def locations_path(definition: pathlib.Path) -> pathlib.Path:
+    return definition.with_name(definition.stem + LOCATIONS_SUFFIX)
+
+
+def read_locations(definition: pathlib.Path) -> dict[str, dict[str, str]]:
+    """Each of a definition's released studios, by name, as `{documentId, versionId, elementId}`; none before its
+    first release."""
+    path = locations_path(definition)
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text())
+    return {
+        name: {"documentId": data["documentId"], "versionId": data["versionId"], "elementId": element_id}
+        for name, element_id in data["elements"].items()
+    }
+
+
+def write_locations(definition: pathlib.Path, document_id: str, version_id: str, elements: Mapping[str, str]) -> None:
+    """Records where a definition's studios were released: the library's document and version, and each one's tab."""
+    data = {"documentId": document_id, "versionId": version_id, "elements": dict(elements)}
+    locations_path(definition).write_text(json.dumps(data, indent=2) + "\n", newline="")
+
+
+def feature_namespace(element_id: str, microversion_id: str) -> str:
+    """How a feature names the Feature Studio defining it, when the Part Studio is in the same workspace."""
+    return f"e{element_id}::m{microversion_id}"
+
+
+@dataclasses.dataclass
+class Built:
+    """A Part Studio `build` made or updated.
+
+    Attributes:
+        element_id: Its tab, which keeps its id from build to build.
+        created: Whether `build` made the tab.
+        status: Its feature's state in the default configuration, as Onshape reports it: OK, INFO, WARNING or ERROR.
+    """
+
+    element_id: str
+    created: bool
+    status: str
+
+
+def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feature_studio_microversion: str) -> Built:
+    """Makes a Part Studio exactly `studio`: finds its tab by name in a workspace, or creates it; writes its
+    configuration; then inserts its feature, from the Feature Studio in the same workspace, configured by it, or
+    points the one it has at that Feature Studio as it is now and configures it.
 
     Args:
         api: An onshape_api Api.
-        part_studio: The Part Studio's ElementPath, in a workspace.
+        workspace: The document's InstancePath, a workspace.
+        feature_studio_microversion: The Feature Studio's microversion, which the feature is inserted at.
     """
-    from onshape_api.endpoints import elements, part_studios
+    from onshape_api.endpoints import documents, elements, part_studios
+    from onshape_api.paths.paths import ElementPath
+    from onshape_api.types import ElementType
+
+    tabs = [
+        element
+        for element in documents.get_document_elements(api, workspace, ElementType.PART_STUDIO)
+        if element["name"] == studio.tab_name
+    ]
+    if len(tabs) > 1:
+        raise ConfigureError(f"The document has {len(tabs)} Part Studios named {studio.tab_name}; keep one.")
+    created = not tabs
+    element_id = part_studios.create_part_studio(api, workspace, studio.tab_name)["id"] if created else tabs[0]["id"]
+    part_studio = ElementPath.from_path(workspace, element_id)
 
     feature_list = part_studios.get_features(api, part_studio)
     matches = [feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature]
-    if len(matches) != 1:
-        raise ConfigureError(
-            f"The Part Studio has {len(matches)} {studio.feature} features; insert exactly one, then run this again."
-        )
+    if len(matches) > 1:
+        raise ConfigureError(f"{studio.tab_name} has {len(matches)} {studio.feature} features; keep one.")
+    # Configured parameters name the configuration's inputs, so it comes first
     elements.update_configuration(api, part_studio, studio.configuration_body())
-    # Its configuration changed its microversion
-    feature_list = part_studios.get_features(api, part_studio)
-    feature = next(feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature)
-    configured = {parameter["parameterId"]: parameter for parameter in studio.configured_parameters()}
-    parameters = [configured.pop(parameter["parameterId"], parameter) for parameter in feature.get("parameters", [])]
-    part_studios.update_feature(
-        api,
-        part_studio,
-        {**feature, "parameters": [*parameters, *configured.values()]},
-        feature_list["sourceMicroversion"],
-    )
+    namespace = feature_namespace(feature_studio_id, feature_studio_microversion)
+    if not matches:
+        response = part_studios.add_feature(
+            api,
+            part_studio,
+            {
+                "btType": "BTMFeature-134",
+                "featureType": studio.feature,
+                "name": studio.tab_name,
+                "namespace": namespace,
+                "parameters": studio.configured_parameters(),
+            },
+        )
+    else:
+        # Its configuration changed its microversion
+        feature_list = part_studios.get_features(api, part_studio)
+        feature = next(feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature)
+        configured = {parameter["parameterId"]: parameter for parameter in studio.configured_parameters()}
+        parameters = [configured.pop(parameter["parameterId"], parameter) for parameter in feature.get("parameters", [])]
+        response = part_studios.update_feature(
+            api,
+            part_studio,
+            {**feature, "namespace": namespace, "parameters": [*parameters, *configured.values()]},
+            feature_list["sourceMicroversion"],
+        )
+    status = response.get("featureState", {}).get("featureStatus", "OK")
+    return Built(element_id, created, status)

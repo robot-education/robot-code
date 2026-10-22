@@ -6,6 +6,7 @@ import dataclasses
 import pathlib
 from typing import Protocol
 
+from fs_cli.configured_studios import Built, ConfiguredStudio, build
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
@@ -142,6 +143,13 @@ class Remote(Protocol):
         """Replaces an image tab's file, returning its new microversion."""
         ...
 
+    def build_studio(
+        self, instance: InstancePath, studio: ConfiguredStudio, feature_studio_id: str, microversion_id: str
+    ) -> Built:
+        """Makes a configured Part Studio in a workspace, from a Feature Studio there (see `configured_studios.build`;
+        4 or 5 calls)."""
+        ...
+
 
 class OnshapeRemote:
     def __init__(self, api: Api) -> None:
@@ -227,6 +235,11 @@ class OnshapeRemote:
         content_type = _image_type(name)
         response = blob_elements.upload_file_update_element(self.api, path, name, data, content_type)
         return RemoteImage(response["id"], response["name"], response["microversionId"], content_type)
+
+    def build_studio(
+        self, instance: InstancePath, studio: ConfiguredStudio, feature_studio_id: str, microversion_id: str
+    ) -> Built:
+        return build(self.api, instance, studio, feature_studio_id, microversion_id)
 
 
 def _image_type(name: str) -> str:

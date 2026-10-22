@@ -11,7 +11,10 @@ configurations, and FRCDesign's manifest `fasteners.gen.json`), and `fastenerHol
 evaluates in the Part Studios of the parts it fastens).
 
 Unreleased. It's released to FRCDesign's Fasteners library document (`[tool.fs.libraries.fasteners]`), whose Part
-Studios use it, rather than the frontend document.
+Studios use it, rather than the frontend document. Those Part Studios (Screw, Washer, and Nut) are built from
+`fastenerTables.py`'s `STUDIOS`, never by hand: `fs build-studios featurescripts/fasteners/fastenerTables.py` builds
+them in the backend document to try a change, and `fs release fasteners` builds them in the library, versions it, and
+records where they are in `fastenerTables.studios.json`, which the manifest's locations come from.
 
 ## Strings
 

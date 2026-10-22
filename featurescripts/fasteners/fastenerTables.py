@@ -5,7 +5,7 @@ This is the source of three things, which must agree:
 
 - fastenerTables.gen.fs: the enums and data the screw, washer, and nut features build from.
 - The configurations of the Part Studios exposing those features, one per kind (`STUDIOS`), which
-  `fs configure-studio` writes: an input per feature parameter, each List's options shown only where they're made
+  `fs build-studios` (in the backend, to try them) and `fs release` (in the library) build: an input per feature parameter, each List's options shown only where they're made
   (Length shows only the lengths the chosen vendor makes in the chosen size and head).
 - fasteners.gen.json: the same catalog for FRCDesign, with each studio's configuration as Onshape answers it, which
   picks a fastener for each hole and inserts its studio with a configuration of these option ids. FRCDesign stores those configurations in documents, so never rename or
@@ -36,7 +36,7 @@ import pathlib
 import re
 from fractions import Fraction
 
-from fs_cli.configured_studios import ConfiguredStudio, Input, Option
+from fs_cli.configured_studios import ConfiguredStudio, Input, Option, read_locations
 from fs_cli.gen import Code, Constant, Import
 from fs_cli.tables import Enum, inch, string
 
@@ -739,9 +739,8 @@ STUDIOS = {
     "washer": ConfiguredStudio("washer", "fastenerWasher", _washer_inputs()),
 }
 
-# Where each studio is: its document and tab, and the version FRCDesign inserts (`documentId`, `versionId`,
-# `elementId`). Fill one in once its Part Studio is made and configured (`fs configure-studio`).
-LOCATIONS: dict[str, dict[str, str] | None] = {"screw": None, "washer": None, "nut": None}
+# Where each studio was last released: `fs release` records it beside this file
+LOCATIONS = read_locations(pathlib.Path(__file__))
 
 
 # FeatureScript
@@ -908,7 +907,7 @@ def manifest() -> dict:
         "studios": {
             kind: {
                 **studio.manifest(),
-                "location": LOCATIONS[kind],
+                "location": LOCATIONS.get(kind),
                 "records": [record.manifest() for record in RECORDS[kind].values()],
             }
             for kind, studio in STUDIOS.items()

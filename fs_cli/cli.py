@@ -69,7 +69,7 @@ from fs_cli.workspace import (
 )
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
-from onshape_api.paths.paths import InstancePath, path_to_url
+from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
 
 # Released tabs are never deleted or recreated (see `load_released`)
 RELEASED_HINTS = {
@@ -475,16 +475,15 @@ def make_parser() -> argparse.ArgumentParser:
     no_push_tags(sync_versions)
     dry_run(sync_versions)
 
-    configure_command = command(
-        "configure-studio",
-        "write a Part Studio's configuration from its definition, and configure its feature's parameters by it "
-        "(2 API calls, and 2 more unless the document is public)",
+    build_command = command(
+        "build-studios",
+        "build a definition's configured Part Studios in the backend document, to try them: each tab is created if "
+        "it's missing, given its configuration, and its feature inserted from the pushed Feature Studio "
+        "(4-5 API calls each); `fs release` builds a library's own",
         targets=False,
     )
-    configure_command.add_argument("definition", help="the definition, e.g. featurescripts/fasteners/fastenerTables.py")
-    configure_command.add_argument("studio", help="the configured studio's name in it, e.g. screw")
-    configure_command.add_argument("url", help="the Part Studio's url, in a workspace")
-    configure_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    build_command.add_argument("definition", help="the definition, e.g. featurescripts/fasteners/fastenerTables.py")
+    build_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
 
     release_tags = command(
         "release-tags",
@@ -1113,23 +1112,34 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
     print(
         f"Releasing {plan.studio.path} as {plan.version_name} (previous release: {previous})"
     )
-    print(f"  1. Create version {plan.version_name} in the backend document")
-    print(
-        f"  2. Point {plan.studio.name} in the {plan.target_label} document at that version"
-    )
-    if args.publish:
-        print(
-            f"  3. Create version {plan.version_name} in the {plan.target_label} document"
+    steps = [
+        f"Create version {plan.version_name} in the backend document",
+        f"Point {plan.studio.name} in the {plan.target_label} document at that version",
+    ]
+    for definition, studios in plan.part_studios:
+        steps.append(
+            f"Build {', '.join(studio.tab_name for studio in studios)} in the {plan.target_label} document, "
+            f"from {definition.name}"
         )
+    # A library's Part Studios are only where they're recorded once they're in a version
+    publish = args.publish or bool(plan.part_studios)
+    if publish:
+        steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
+    for definition, _ in plan.part_studios:
+        steps.append(f"Record where they are in {definition.stem}.studios.json, and write its exports again")
+    for number, step in enumerate(steps, 1):
+        print(f"  {number}. {step}")
     if args.dry_run:
         return 0
     if not args.yes:
         confirm("Backend versions can't be deleted.")
-    run_release(workspace, plan, args.description, args.publish)
+    run_release(workspace, plan, args.description, publish)
     print(f"Released {plan.version_name}.")
+    if plan.part_studios:
+        print("Commit the recorded locations and exports, then sync them into FRCDesignApp.")
     released = parse_version_name(plan.version_name)
     assert released and plan.studio.local_code is not None
-    if not args.publish:
+    if not publish:
         print("It's final once its version is in the frontend document: `fs sync-versions` creates it, and tags it in git.")
     elif is_repository(workspace.config.root):
         # In sync, so its code is what was released
@@ -1699,26 +1709,35 @@ def _display_path(path: pathlib.Path) -> str:
 
 # Commands which don't need Onshape
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
-def configure_studio(workspace: Workspace, args: argparse.Namespace) -> int:
-    from fs_cli.configured_studios import ConfigureError, configure, find_studio
-    from onshape_api.paths.paths import url_to_element_path
+def build_studios_command(workspace: Workspace, args: argparse.Namespace) -> int:
+    from fs_cli.studio_builds import build_studios, defines, definition_studios
 
-    definition = runpy.run_path(args.definition)
-    try:
-        studio = find_studio(definition, args.studio)
-    except ConfigureError as error:
-        raise UsageError(str(error)) from error
-    part_studio = url_to_element_path(args.url)
+    definition = pathlib.Path(args.definition)
+    studios = definition_studios(definition)
+    if not studios:
+        raise UsageError(f"{args.definition} configures no Part Studios (its STUDIOS).")
+    # The backend studio defining every studio's feature, from the definition's folder
+    candidates = [
+        studio
+        for studio in workspace.scan(workspace.resolve_targets([str(definition.parent)]))
+        if studio.local_code is not None and all(defines(studio.local_code, each.feature) for each in studios)
+    ]
+    if len(candidates) != 1:
+        features = ", ".join(each.feature for each in studios)
+        raise UsageError(f"Expected one FeatureScript beside {args.definition} defining {features}; found {len(candidates)}.")
+    [feature_studio] = candidates
+    if feature_studio.remote is None or feature_studio.status != Status.IN_SYNC:
+        raise UsageError(f"Push {feature_studio.path} first: its Part Studios are built from it as it is in Onshape.")
     if not args.yes:
         confirm(
-            f"This replaces the Part Studio's configuration with {studio.name}'s "
-            f"({', '.join(input.name for input in studio.inputs)}), and configures its {studio.feature} feature by it."
+            f"This builds {', '.join(each.tab_name for each in studios)} in the backend document from "
+            f"{feature_studio.path}, replacing any configuration they have."
         )
-    try:
-        configure(workspace.remote.api, part_studio, studio)
-    except ConfigureError as error:
-        raise UsageError(str(error)) from error
-    print(f"Configured {studio.name}.")
+    built = build_studios(workspace.remote, workspace.instance, studios, feature_studio.remote)
+    for studio in studios:
+        each = built[studio.name]
+        url = path_to_url(ElementPath.from_path(workspace.instance, each.element_id))
+        print(f"{studio.tab_name} ({'created' if each.created else 'updated'}, {each.status}): {url}")
     return 0
 
 
@@ -1761,7 +1780,7 @@ COMMANDS = {
     "deprecate": deprecate,
     "sync-versions": sync_versions,
     "release-tags": release_tags,
-    "configure-studio": configure_studio,
+    "build-studios": build_studios_command,
     "tabs": tabs,
     "link": link,
     "released": detect_released,

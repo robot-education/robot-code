@@ -8,7 +8,9 @@ A release:
        there (with `--publish`, or later by `fs sync-versions`), and then it's tagged in git (see `tag_release`).
 
 Beta releases go to the separate frontend_beta document instead, and a library's FeatureScripts (`[tool.fs.libraries]`)
-to its library document: they're only for that library's parts, not for everyone.
+to its library document: they're only for that library's parts, not for everyone. A library release also builds the
+Part Studios its definitions configure (see studio_builds.py) from the released studio, then always versions the
+library, and records where each Part Studio is beside its definition.
 
 Deprecating a released FeatureScript retires it without breaking Part Studios using it: they keep working, and
 still update to newer versions of the frontend document, since its frontend studio is kept (with the same element
@@ -24,8 +26,10 @@ import pathlib
 import re
 from typing import Callable
 
+from fs_cli.configured_studios import ConfiguredStudio, write_locations
 from fs_cli.git import commit_with_contents, create_tag, has_tag, is_repository, push_tag
 from fs_cli.remote import RemoteStudio, Version
+from fs_cli.studio_builds import build_studios, library_definitions, write_exports
 from fs_cli.versions import (
     ReleasedVersion,
     SemVersion,
@@ -82,6 +86,8 @@ class ReleasePlan:
     version_name: str
     target: InstancePath
     target_label: str
+    # A library's definitions configuring Part Studios from the studio, each with its studios
+    part_studios: list[tuple[pathlib.Path, list[ConfiguredStudio]]] = dataclasses.field(default_factory=list)
 
 
 def plan_release(
@@ -111,6 +117,9 @@ def plan_release(
         version = next_version(previous, bump, beta)
     except ValueError as error:
         raise UsageError(str(error)) from error
+    part_studios = (
+        library_definitions(workspace.config, library, studio.local_code or "") if library else []
+    )
     return ReleasePlan(
         studio,
         feature_name,
@@ -118,6 +127,7 @@ def plan_release(
         version_name(feature_name, version),
         target,
         target_label,
+        part_studios,
     )
 
 
@@ -139,11 +149,27 @@ def run_release(
     log(f"Updating {studio_name} in the {plan.target_label} document...")
     remote.push(plan.target, target_studio.element_id, code)
 
+    built = {}
+    if plan.part_studios:
+        # Its microversion as pushed, which the Part Studios insert its features at
+        pushed = next(each for each in remote.list_studios(plan.target) if each.element_id == target_studio.element_id)
+        for definition, studios in plan.part_studios:
+            built[definition] = build_studios(remote, plan.target, studios, pushed, log)
+
     if make_version:
         log(
             f"Creating version {plan.version_name} in the {plan.target_label} document..."
         )
-        remote.create_version(plan.target, plan.version_name, description)
+        version = remote.create_version(plan.target, plan.version_name, description)
+        for definition, studios in built.items():
+            write_locations(
+                definition,
+                plan.target.document_id,
+                version.id,
+                {name: each.element_id for name, each in studios.items()},
+            )
+            for exported in write_exports(definition):
+                log(f"Updated {exported.name}")
     # Its tab has to stay put from now on (see `load_released`)
     workspace.state.released.add(plan.studio.remote.element_id)
 

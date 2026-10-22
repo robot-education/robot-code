@@ -12,6 +12,7 @@ import subprocess
 import pytest
 
 from fs_cli import cli, workspace
+from fs_cli.configured_studios import Built
 from fs_cli.remote import RemoteImage, RemoteStudio, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
@@ -39,6 +40,11 @@ class FakeOnshape:
         self.folders_error: Exception | None = None
         # (document id, instance id) -> element id -> image tab
         self.image_tabs: dict[tuple[str, str], dict[str, dict]] = {}
+        # (document id, instance id) -> Part Studio tab name -> element id
+        self.part_studios: dict[tuple[str, str], dict[str, str]] = {}
+        # (document id, studio name, Feature Studio element id, its microversion) of each build
+        self.builds: list[tuple[str, str, str, str]] = []
+        self.build_status = "OK"
 
     def _id(self, prefix: str) -> str:
         # Like Onshape's: 24 hex digits
@@ -191,6 +197,14 @@ class FakeOnshape:
         image = self.images(instance.document_id, instance.instance_id)[element_id]
         image.update(data=data, mv=self._id("m"))
         return RemoteImage(element_id, name, image["mv"])
+
+    def build_studio(self, instance, studio, feature_studio_id, microversion_id):
+        self.calls["build_studio"] += 1
+        tabs = self.part_studios.setdefault((instance.document_id, instance.instance_id), {})
+        created = studio.tab_name not in tabs
+        element_id = tabs.setdefault(studio.tab_name, self._id("p"))
+        self.builds.append((instance.document_id, studio.name, feature_studio_id, microversion_id))
+        return Built(element_id, created, self.build_status)
 
 
 @pytest.fixture
@@ -1198,6 +1212,82 @@ def test_a_librarys_featurescript_is_released_to_its_library(repo, onshape):
     assert f'"back/{version.id}/{element_id}"' in onshape.code("partMaker.fs", LIBRARY, "lw")
     assert [v.name for v in onshape.versions_by_document[LIBRARY]] == ["Part maker - v0.1.0"]
     assert "front" not in onshape.versions_by_document
+
+
+# A definition configuring a Part Studio of a library's feature, as fastenerTables.py does
+PART_TABLES = """
+from fs_cli.configured_studios import ConfiguredStudio, Input, Option
+
+CONTENTS = []
+STUDIOS = {
+    "screw": ConfiguredStudio(
+        "screw", "partScrew", [Input("size", "Size", "size", [Option("A", "A", "A")], enum_name="Size")]
+    )
+}
+EXPORTS = {"parts.gen.json": "{}\\n"}
+"""
+PART_MAKER = "FeatureScript 1;\nexport const partScrew = defineFeature(function(context, id, definition) {});\n"
+
+
+def test_a_library_release_builds_its_part_studios_then_versions_and_records_them(repo, onshape, capsys):
+    with_library(repo)
+    element_id = onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",), features=["Screw"])
+    run(onshape, "pull")
+    write(repo, "Parts/partTables.py", PART_TABLES)
+
+    # A library release is always versioned, so its Part Studios' locations are final
+    assert run(onshape, "release", "partMaker", "--minor", "-y") == 0
+
+    library_studio = next(id for id, s in onshape.studios(LIBRARY, "lw").items() if s["name"] == "partMaker.fs")
+    pushed = onshape.studios(LIBRARY, "lw")[library_studio]["mv"]
+    # Built from the library's own studio as pushed, not the backend's
+    assert onshape.builds == [(LIBRARY, "screw", library_studio, pushed)]
+    assert library_studio != element_id
+    [version] = onshape.versions_by_document[LIBRARY]
+    locations = json.loads(local(repo, "Parts/partTables.studios.json").read_text())
+    assert locations == {
+        "documentId": LIBRARY,
+        "versionId": version.id,
+        "elements": {"screw": onshape.part_studios[(LIBRARY, "lw")]["Screw"]},
+    }
+    assert "Build Screw in the parts library document, from partTables.py" in capsys.readouterr().out
+
+
+def test_a_library_release_stops_at_a_part_studio_that_fails_to_regenerate(repo, onshape, capsys):
+    with_library(repo)
+    onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",), features=["Screw"])
+    run(onshape, "pull")
+    write(repo, "Parts/partTables.py", PART_TABLES)
+    onshape.build_status = "ERROR"
+
+    assert run(onshape, "release", "partMaker", "--minor", "-y") != 0
+    assert "Screw's partScrew fails to regenerate in its default configuration" in capsys.readouterr().err
+    assert LIBRARY not in onshape.versions_by_document
+    assert not local(repo, "Parts/partTables.studios.json").exists()
+
+
+def test_build_studios_builds_in_the_backend_from_the_pushed_studio(repo, onshape, capsys):
+    element_id = onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",))
+    run(onshape, "pull")
+    write(repo, "Parts/partTables.py", PART_TABLES)
+
+    assert run(onshape, "build-studios", "featurescripts/Parts/partTables.py", "-y") == 0
+    mv = onshape.studios()[element_id]["mv"]
+    assert onshape.builds == [("back", "screw", element_id, mv)]
+    assert "Screw (created, OK): https://cad.onshape.com/documents/back/w/bw/e/" in capsys.readouterr().out
+    # Nothing recorded: the backend's Part Studios are for trying
+    assert not local(repo, "Parts/partTables.studios.json").exists()
+
+
+def test_build_studios_needs_the_feature_studio_pushed(repo, onshape, capsys):
+    onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",))
+    run(onshape, "pull")
+    write(repo, "Parts/partTables.py", PART_TABLES)
+    write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
+
+    assert run(onshape, "build-studios", "featurescripts/Parts/partTables.py", "-y") != 0
+    assert "Push Parts/partMaker.fs first" in capsys.readouterr().err
+    assert onshape.builds == []
 
 
 def test_a_librarys_featurescript_has_no_beta(repo, onshape, capsys):
