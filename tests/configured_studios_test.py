@@ -6,6 +6,8 @@ from fs_cli.configured_studios import (
     Input,
     Option,
     build,
+    configuration_stages,
+    diagnose,
     configured_studios,
     read_locations,
     write_locations,
@@ -377,3 +379,33 @@ def test_build_says_which_step_onshape_refused():
 
     with pytest.raises(ConfigureError, match="Onshape refused to insert fastenerScrew in Screw: .*feature list"):
         build(Refusing({}), WORKSPACE, studio(), "fs", "fsmv")
+
+
+def test_configuration_stages_add_each_inputs_conditions_in_turn():
+    stages = configuration_stages(studio())
+    full = studio().configuration_body()
+    assert stages[0][1]["configurationParameters"] == []
+    assert all("visibilityCondition" not in parameter and "enumOptionVisibilityConditions" not in parameter
+               for parameter in stages[1][1]["configurationParameters"])
+    assert stages[-1][1] == full
+    assert [len(body["configurationParameters"]) for _, body in stages[1:]] == [3] * (len(stages) - 1)
+
+
+def test_diagnose_names_the_first_stage_onshape_refuses():
+    from onshape_api.exceptions import ApiError
+
+    class Refusing(FakeApi):
+        def post(self, path, body="", **kwargs):
+            if path.endswith("/configuration") and any(
+                "enumOptionVisibilityConditions" in parameter or "visibilityCondition" in parameter
+                for parameter in body["configurationParameters"]
+            ):
+                raise ApiError("The change would result in the feature list becoming invalid", 409)
+            return super().post(path, body, **kwargs)
+
+    api = Refusing({"Screw (TEST)": [{"featureType": "fastenerScrew"}]})
+    diagnosis = diagnose(api, WORKSPACE, studio(), "Screw (TEST)")
+    assert diagnosis.features == ["fastenerScrew"]
+    assert diagnosis.accepted == ["an empty configuration", "the inputs, with no conditions"]
+    assert diagnosis.refused is not None and "feature list becoming invalid" in diagnosis.refused[1]
+    assert diagnosis.element_id == "new"

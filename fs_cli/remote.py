@@ -6,7 +6,7 @@ import dataclasses
 import pathlib
 from typing import Protocol
 
-from fs_cli.configured_studios import Built, ConfiguredStudio, build
+from fs_cli.configured_studios import Built, ConfiguredStudio, Diagnosis, build, diagnose
 from onshape_api.api.api_base import Api
 from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
@@ -150,6 +150,11 @@ class Remote(Protocol):
         4 or 5 calls)."""
         ...
 
+    def diagnose_studio(self, instance: InstancePath, studio: ConfiguredStudio, built_tab: str) -> Diagnosis:
+        """Which part of a studio's configuration Onshape refuses (see `configured_studios.diagnose`; a call per stage,
+        and 2 or 3 more)."""
+        ...
+
 
 class OnshapeRemote:
     def __init__(self, api: Api) -> None:
@@ -240,6 +245,9 @@ class OnshapeRemote:
         self, instance: InstancePath, studio: ConfiguredStudio, feature_studio_id: str, microversion_id: str
     ) -> Built:
         return build(self.api, instance, studio, feature_studio_id, microversion_id)
+
+    def diagnose_studio(self, instance: InstancePath, studio: ConfiguredStudio, built_tab: str) -> Diagnosis:
+        return diagnose(self.api, instance, studio, built_tab)
 
 
 def _image_type(name: str) -> str:

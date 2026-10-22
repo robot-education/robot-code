@@ -489,6 +489,13 @@ def make_parser() -> argparse.ArgumentParser:
     )
     parts_test.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
     parts_test.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    parts_diagnose = parts_commands.add_parser(
+        "diagnose",
+        help="find which part of the set's configurations Onshape refuses, writing each in stages to a scratch "
+        "`<Part> (DIAGNOSE)` Part Studio in the backend document (a call per stage, about 10 for a screw)",
+    )
+    parts_diagnose.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
+    parts_diagnose.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
     parts_release = parts_commands.add_parser(
         "release",
         help="release the set into its main document: version the backend, point the main document at it, build its "
@@ -1725,7 +1732,7 @@ def _display_path(path: pathlib.Path) -> str:
 # Commands which don't need Onshape
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
 def parts(workspace: Workspace, args: argparse.Namespace) -> int:
-    from fs_cli.parts import plan_part_release, run_part_release, run_test
+    from fs_cli.parts import plan_part_release, run_diagnose, run_part_release, run_test
 
     part_set = workspace.config.find_part_set(args.part_set)
     if args.parts_command == "test":
@@ -1737,6 +1744,24 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
         for studio, built in run_test(workspace, part_set):
             url = path_to_url(ElementPath.from_path(workspace.instance, built.element_id))
             print(f"{studio.tab_name} ({'created' if built.created else 'updated'}, {built.status}): {url}")
+        return 0
+
+    if args.parts_command == "diagnose":
+        if not args.yes:
+            confirm(
+                f"This writes the {part_set.name} configurations in stages to `<Part> (DIAGNOSE)` Part Studios in the "
+                "backend document, stopping at the first stage Onshape refuses."
+            )
+        for studio, diagnosis in run_diagnose(workspace, part_set):
+            url = path_to_url(ElementPath.from_path(workspace.instance, diagnosis.element_id))
+            print(f"{studio.tab_name}: {url}")
+            if diagnosis.features is not None:
+                print(f"  Its (TEST) tab's features: {', '.join(diagnosis.features) or 'none'}")
+            for stage in diagnosis.accepted:
+                print(f"  accepted {stage}")
+            if diagnosis.refused is not None:
+                stage, error = diagnosis.refused
+                print(f"  refused {stage}: {error}")
         return 0
 
     plan = plan_part_release(workspace, part_set, args.bump)

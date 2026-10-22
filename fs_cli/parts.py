@@ -24,6 +24,7 @@ from fs_cli.configured_studios import (
     Built,
     ConfiguredStudio,
     ConfigureError,
+    Diagnosis,
     configured_studios,
     write_locations,
 )
@@ -135,6 +136,21 @@ def run_test(
     assert feature.remote
     built = build_studios(workspace.remote, workspace.instance, every, feature.remote, log)
     return [(studio, built[studio.name]) for studio in every]
+
+
+def run_diagnose(
+    workspace: Workspace, part_set: PartSet, log: Callable[[str], None] = print
+) -> list[tuple[ConfiguredStudio, Diagnosis]]:
+    """Diagnoses each of a part set's configurations in the backend document, stopping at the first Onshape refuses."""
+    diagnosed = []
+    for _, studios in part_set_definitions(workspace, part_set):
+        for studio in studios:
+            log(f"Diagnosing {studio.tab_name}...")
+            diagnosis = workspace.remote.diagnose_studio(workspace.instance, studio, studio.tab_name + TEST_SUFFIX)
+            diagnosed.append((studio, diagnosis))
+            if diagnosis.refused is not None:
+                return diagnosed
+    return diagnosed
 
 
 # Releasing

@@ -509,3 +509,73 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
         )
     status = response.get("featureState", {}).get("featureStatus", "OK")
     return Built(element_id, created, status)
+
+
+def configuration_stages(studio: ConfiguredStudio) -> list[tuple[str, dict]]:
+    """Ever larger configurations, ending with the studio's own: none, its inputs with no conditions, then each input's
+    conditions added in turn (an input with option rules first with only its first), each with what it adds."""
+    full = studio.configuration_body()["configurationParameters"]
+    conditions = ("visibilityCondition", "enumOptionVisibilityConditions")
+    bare = [{key: value for key, value in parameter.items() if key not in conditions} for parameter in full]
+    stages: list[tuple[str, list[dict]]] = [("an empty configuration", []), ("the inputs, with no conditions", bare)]
+    for index, parameter in enumerate(full):
+        rules = parameter.get("enumOptionVisibilityConditions", {}).get("visibilityConditions", [])
+        if len(rules) > 1:
+            first = {**parameter, "enumOptionVisibilityConditions": {**parameter["enumOptionVisibilityConditions"], "visibilityConditions": rules[:1]}}
+            stages.append((f"{parameter['parameterId']}'s first option rule", [*full[:index], first, *bare[index + 1 :]]))
+        if parameter != bare[index]:
+            described = f"{len(rules)} option rules" if len(rules) > 1 else "option rule" if rules else "visibility condition"
+            stages.append((f"{parameter['parameterId']}'s {described}", [*full[: index + 1], *bare[index + 1 :]]))
+    return [
+        (what, {"btType": "BTConfigurationUpdateCall-2933", "configurationParameters": parameters})
+        for what, parameters in stages
+    ]
+
+
+@dataclasses.dataclass
+class Diagnosis:
+    """What `diagnose` found.
+
+    Attributes:
+        element_id: The scratch tab it wrote to.
+        accepted: The stages Onshape accepted, in order.
+        refused: The first stage Onshape refused, and its error; None when it accepted them all.
+        features: The feature types in the tab the studio is built in, if there is one.
+    """
+
+    element_id: str
+    accepted: list[str]
+    refused: tuple[str, str] | None
+    features: list[str] | None
+
+
+DIAGNOSE_SUFFIX = " (DIAGNOSE)"
+
+
+def diagnose(api, workspace, studio: ConfiguredStudio, built_tab: str) -> Diagnosis:
+    """Writes `configuration_stages` in turn to a scratch Part Studio, `<tab> (DIAGNOSE)`, found or created in a
+    workspace, until Onshape refuses one: which part of the configuration it refuses. Also lists the features in
+    `built_tab`, the tab the studio is built in."""
+    from onshape_api.endpoints import documents, elements, part_studios
+    from onshape_api.exceptions import ApiError
+    from onshape_api.paths.paths import ElementPath
+    from onshape_api.types import ElementType
+
+    tabs = documents.get_document_elements(api, workspace, ElementType.PART_STUDIO)
+    built = next((element for element in tabs if element["name"] == built_tab), None)
+    features = None
+    if built is not None:
+        listed = part_studios.get_features(api, ElementPath.from_path(workspace, built["id"]))["features"]
+        features = [feature.get("featureType", feature.get("btType", "?")) for feature in listed]
+    name = studio.tab_name + DIAGNOSE_SUFFIX
+    scratch = next((element for element in tabs if element["name"] == name), None)
+    element_id = scratch["id"] if scratch else part_studios.create_part_studio(api, workspace, name)["id"]
+    part_studio = ElementPath.from_path(workspace, element_id)
+    accepted: list[str] = []
+    for what, body in configuration_stages(studio):
+        try:
+            elements.update_configuration(api, part_studio, body)
+        except ApiError as error:
+            return Diagnosis(element_id, accepted, (what, str(error)), features)
+        accepted.append(what)
+    return Diagnosis(element_id, accepted, None, features)

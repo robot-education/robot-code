@@ -40,6 +40,12 @@ name or created, its configuration written, and its feature inserted (or pointed
 and configured. It prints each one's url, to check in Onshape. A feature that fails to regenerate in its default
 configuration stops the build. Nothing is versioned or recorded, so try as often as needed.
 
+When Onshape refuses a configuration, `uv run fs parts diagnose fasteners` finds which part. It writes each studio's
+configuration in stages to a scratch `<tab> (DIAGNOSE)` Part Studio: none, the inputs with no conditions, then each
+input's conditions in turn (an input's first option rule alone, then all of them). It prints each stage Onshape accepted,
+the first it refused with Onshape's error, and the features in the studio's `(TEST)` tab, stopping at the first refusal:
+a call per stage, about ten for the screw. Delete the scratch tabs after.
+
 ## Releasing
 
 ```
