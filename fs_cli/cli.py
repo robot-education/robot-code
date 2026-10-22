@@ -9,6 +9,7 @@ image tabs the same way (see fs_cli/images.py).
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import collections
 import difflib
 import json
@@ -20,9 +21,11 @@ import sys
 from fs_lsp.formatter import format_source, is_generated
 from fs_lsp.project import Module, Project
 
+from fs_cli.branches import Access, BranchError, branch_name, create_workspace, find_workspace, merge, start_state
+from fs_cli.branches import resolve as resolve_backend
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.gen import GenerateError, generate
-from fs_cli.git import commit_paths, file_at, has_tag, is_repository
+from fs_cli.git import commit_paths, file_at, has_tag, head_commit, is_clean, is_repository
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
@@ -70,6 +73,7 @@ from fs_cli.workspace import (
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
+from onshape_api.types import MergeStrategy
 
 # Released tabs are never deleted or recreated (see `load_released`)
 RELEASED_HINTS = {
@@ -524,6 +528,17 @@ def make_parser() -> argparse.ArgumentParser:
     no_push_tags(parts_release)
     dry_run(parts_release)
 
+    sync_main_command = command(
+        "sync-main",
+        "land the main branch in the backend's main workspace by merging, as Onshape protects it: merge the main "
+        "workspace into the merged branch's (or a new one), push the files there, merge it back, and delete it "
+        "(about 5 API calls, and 1 per studio pushed)",
+        targets=False,
+    )
+    sync_main_command.add_argument(
+        "--branch", help="the branch just merged, whose workspace to land; a workspace made for it when it has none"
+    )
+
     release_tags = command(
         "release-tags",
         "tag final releases (those whose version is in the frontend document) in git which aren't tagged yet, e.g. robotFrame/v1.3.0",
@@ -552,12 +567,13 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
                 return OFFLINE_COMMANDS[args.command](config, args)
             if remote is None:
                 remote = _onshape_remote(args.log)
-            state = State.load(config.state_path, config.studios_path)
+            backend = resolve_backend(config, remote, command_access(args))
+            state = State.load(backend.state_path, config.studios_path, backend.workspace_id)
             try:
-                return COMMANDS[args.command](Workspace(config, state, remote), args)
+                return COMMANDS[args.command](Workspace(config, state, remote, instance=backend.instance), args)
             finally:
                 state.save()
-    except (ConfigError, UsageError, GenerateError, UiError) as error:
+    except (ConfigError, UsageError, GenerateError, UiError, BranchError) as error:
         print(f"fs: {error}", file=sys.stderr)
         return 2
     except ApiError as error:
@@ -566,6 +582,24 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
     except KeyboardInterrupt:
         print("fs: interrupted", file=sys.stderr)
         return 130
+
+
+# Commands which release, or land main, so run only on the main branch (see fs_cli/branches.py)
+MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "release-tags", "sync-main"}
+# Commands which write the backend workspace, so make their branch's
+WRITE_COMMANDS = {"push", "sync", "tabs"}
+
+
+def command_access(args: argparse.Namespace) -> Access:
+    if args.command in MAIN_COMMANDS or (args.command == "parts" and args.parts_command == "release"):
+        return Access.MAIN
+    if (
+        args.command in WRITE_COMMANDS
+        or (args.command == "parts" and args.parts_command in ("test", "diagnose"))
+        or (args.command == "update-std" and getattr(args, "push", False))
+    ):
+        return Access.WRITE
+    return Access.READ
 
 
 def _onshape_remote(log: bool) -> OnshapeRemote:
@@ -581,6 +615,51 @@ def _onshape_remote(log: bool) -> OnshapeRemote:
 
 
 # Syncing
+
+
+def sync_main(workspace: Workspace, args: argparse.Namespace) -> int:
+    config = workspace.config
+    if config.main_branch is None:
+        raise UsageError("`fs sync-main` lands the main branch by merging, which needs main_branch in [tool.fs].")
+    if not is_clean(config.root):
+        raise UsageError(f"Commit or stash your changes first: this lands {config.main_branch} as committed.")
+    remote = workspace.remote
+    main = config.backend
+    source = find_workspace(config, remote, args.branch) if args.branch else None
+    if source is None:
+        name = f"sync {(head_commit(config.root) or '')[:7]}"
+        # Left by a sync that failed partway, which this finishes
+        source = find_workspace(config, remote, name) or create_workspace(config, remote, name)
+    instance = InstancePath(main.document_id, source.id)
+    print(f"Merging the main workspace into {source.name}...")
+    merge(remote, instance, main.instance_id, MergeStrategy.KEEP)
+    start_state(config, source.name, source.id)
+    state = State.load(config.state_path_for(source.name), config.studios_path, source.id)
+    try:
+        # Git is what main holds, so its files go over whatever the workspace has
+        pushed = push(
+            Workspace(config, state, remote, instance=instance),
+            argparse.Namespace(targets=[], force=True, yes=True, dry_run=False, no_commit=False),
+        )
+    finally:
+        state.save()
+        # The main workspace's state, saved last, holds which file each tab is: the push may have made tabs
+        workspace.state.studios = {
+            element_id: dataclasses.replace(workspace.state.studios.get(element_id, studio), file=studio.file)
+            for element_id, studio in state.studios.items()
+        }
+        workspace.state.images = {
+            element_id: dataclasses.replace(workspace.state.images.get(element_id, image), file=image.file)
+            for element_id, image in state.images.items()
+        }
+    if pushed != 0:
+        raise UsageError(f"Pushing to {source.name} failed, so the main workspace is unchanged; run this again.")
+    print(f"Merging {source.name} into the main workspace...")
+    merge(remote, main, source.id, MergeStrategy.REPLACE)
+    remote.delete_workspace(instance)
+    state.path.unlink(missing_ok=True)
+    print(f"Landed {config.main_branch} in the main workspace, and deleted {source.name}.")
+    return 0
 
 
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -1289,7 +1368,7 @@ def gen(config: Config, args: argparse.Namespace) -> int:
     # Imports need a version, which is only known for studios synced on this machine
     synced = {
         entry.file: (element_id, entry.microversion_id)
-        for element_id, entry in State.load(config.state_path, config.studios_path).studios.items()
+        for element_id, entry in State.load(config.state_path_for(branch_name(config)), config.studios_path).studios.items()
         if entry.microversion_id
     }
     generated = generate(config.code_dir, StdMetadata.load(config.std_dir).number, synced)
@@ -1845,6 +1924,7 @@ COMMANDS = {
     "deprecate": deprecate,
     "sync-versions": sync_versions,
     "release-tags": release_tags,
+    "sync-main": sync_main,
     "tabs": tabs,
     "link": link,
     "released": detect_released,

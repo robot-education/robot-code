@@ -13,7 +13,7 @@ import pytest
 
 from fs_cli import cli, workspace
 from fs_cli.configured_studios import Built
-from fs_cli.remote import RemoteImage, RemoteStudio, Version, folder_paths
+from fs_cli.remote import RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
@@ -45,6 +45,10 @@ class FakeOnshape:
         # (document id, studio name, Feature Studio element id, its microversion) of each build
         self.builds: list[tuple[str, str, str, str]] = []
         self.build_status = "OK"
+        # (document id, workspace id) -> name, for every workspace but the backend's main one
+        self.workspace_names: dict[tuple[str, str], str] = {}
+        # (target workspace id, source workspace id, strategy) of each merge
+        self.merges: list[tuple[str, str, str]] = []
 
     def _id(self, prefix: str) -> str:
         # Like Onshape's: 24 hex digits
@@ -205,6 +209,35 @@ class FakeOnshape:
         element_id = tabs.setdefault(studio.tab_name, self._id("p"))
         self.builds.append((instance.document_id, studio.name, feature_studio_id, microversion_id))
         return Built(element_id, created, self.build_status)
+
+    def element_ids(self, instance):
+        key = (instance.document_id, instance.instance_id)
+        return set(self.instances.get(key, {})) | set(self.image_tabs.get(key, {}))
+
+    def workspaces(self, document_id):
+        self.calls["workspaces"] += 1
+        return [RemoteWorkspace(id, name) for (document, id), name in self.workspace_names.items() if document == document_id]
+
+    def create_workspace(self, document_id, version_id, name):
+        self.calls["create_workspace"] += 1
+        workspace_id = self._id("w")
+        self.workspace_names[(document_id, workspace_id)] = name
+        self.instances[(document_id, workspace_id)] = copy.deepcopy(self.studios(document_id, version_id))
+        return RemoteWorkspace(workspace_id, name)
+
+    def delete_workspace(self, instance):
+        self.calls["delete_workspace"] += 1
+        del self.workspace_names[(instance.document_id, instance.instance_id)]
+        self.instances.pop((instance.document_id, instance.instance_id), None)
+
+    def merge(self, target, source_workspace_id, strategy):
+        """Takes the source's tabs the target lacks, and with REPLACE (or MERGE) the source's version of the rest."""
+        self.calls["merge"] += 1
+        self.merges.append((target.instance_id, source_workspace_id, strategy))
+        studios = self.studios(target.document_id, target.instance_id)
+        for element_id, studio in self.studios(target.document_id, source_workspace_id).items():
+            if element_id not in studios or strategy != "KEEP":
+                studios[element_id] = copy.deepcopy(studio)
 
 
 @pytest.fixture
@@ -1997,3 +2030,126 @@ def test_onshape_remote_images():
     assert api.requests[1][1] == "/blobelements/d/back/w/bw/e/i3"
     with pytest.raises(ValueError, match="isn't an image"):
         OnshapeRemote(api).upload_image(instance, "part.step", b"")
+
+
+# Branches
+
+
+def branched(repo: pathlib.Path, onshape: FakeOnshape, branch: str = "feature") -> None:
+    """A repo whose branches each get a workspace, on `branch`, with a version of the main workspace to branch from."""
+    (repo / "pyproject.toml").write_text(f'[tool.fs]\nbackend = "{BACKEND}"\nmain_branch = "main"\n')
+    (repo / ".gitignore").write_text(".fs-state*.json\n")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "config", "user.name", "t")
+    git(repo, "config", "user.email", "t@t")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Start")
+    onshape.create_version(InstancePath("back", "bw"), "Start", "")
+    if branch != "main":
+        git(repo, "checkout", "-qb", branch)
+
+
+def workspace_of(onshape: FakeOnshape, name: str) -> str:
+    return next(id for (_, id), each in onshape.workspace_names.items() if each == name)
+
+
+def test_a_branch_reads_main_until_it_pushes_to_a_workspace_of_its_own(repo, onshape, capsys):
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    assert run(onshape, "pull") == 0
+    assert "feature has no workspace in Onshape yet" in capsys.readouterr().out
+    assert local(repo, "frame.fs").read_text() == "1"
+
+    local(repo, "frame.fs").write_text("2")
+    assert run(onshape, "push") == 0
+    feature = workspace_of(onshape, "feature")
+    assert onshape.code("frame.fs", instance=feature) == "2"
+    assert onshape.code("frame.fs") == "1"
+    assert (repo / ".fs-state.feature.json").is_file()
+
+    # Its workspace from now on, and the main workspace untouched
+    local(repo, "frame.fs").write_text("3")
+    assert run(onshape, "push") == 0
+    assert onshape.calls["create_workspace"] == 1
+    assert onshape.code("frame.fs", instance=feature) == "3"
+    assert onshape.code("frame.fs") == "1"
+
+
+def test_the_main_workspace_changes_only_by_merging(repo, onshape, capsys):
+    branched(repo, onshape, "main")
+    write(repo, "frame.fs", "1")
+    assert run(onshape, "push") == 2
+    assert "changes only by merging" in capsys.readouterr().err
+    assert onshape.names() == []
+
+
+def test_releasing_runs_only_on_main(repo, onshape, capsys):
+    branched(repo, onshape)
+    assert run(onshape, "release-tags") == 2
+    assert "runs only on main" in capsys.readouterr().err
+
+
+def test_a_branch_catches_up_with_a_tab_it_has_from_git(repo, onshape):
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    run(onshape, "pull")
+    local(repo, "frame.fs").write_text("2")
+    run(onshape, "push")
+    feature = workspace_of(onshape, "feature")
+    # Another branch added utils.fs, which reached main; this one merges it in git
+    utils = onshape.add("utils.fs", "u")
+    studios = json.loads((repo / "fs-studios.json").read_text())
+    studios["studios"][utils] = "utils.fs"
+    (repo / "fs-studios.json").write_text(json.dumps(studios))
+    write(repo, "utils.fs", "u")
+
+    assert run(onshape, "push") == 0
+    assert onshape.merges == [(feature, "bw", "KEEP")]
+    # Under the id main has, rather than a new tab
+    assert onshape.names(instance=feature) == ["frame.fs", "utils.fs"]
+    assert utils in onshape.studios("back", feature)
+    assert onshape.code("frame.fs", instance=feature) == "2"
+
+
+def commit_all(repo: pathlib.Path, message: str) -> None:
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", message, "--allow-empty")
+
+
+def test_sync_main_lands_a_merged_branch_by_merging(repo, onshape, capsys):
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    run(onshape, "pull")
+    commit_all(repo, "Pull")
+    local(repo, "frame.fs").write_text("2")
+    run(onshape, "push")
+    commit_all(repo, "Frame 2")
+    feature = workspace_of(onshape, "feature")
+    git(repo, "checkout", "-q", "main")
+    git(repo, "merge", "-q", "--ff-only", "feature")
+
+    assert run(onshape, "sync-main", "--branch", "feature") == 0
+    assert onshape.code("frame.fs") == "2"
+    assert onshape.merges == [(feature, "bw", "KEEP"), ("bw", feature, "REPLACE")]
+    assert onshape.workspace_names == {}
+    assert not (repo / ".fs-state.feature.json").exists()
+
+
+def test_sync_main_makes_a_workspace_for_a_branch_without_one(repo, onshape):
+    branched(repo, onshape, "main")
+    write(repo, "utils.fs", "u")
+    commit_all(repo, "Utils")
+
+    assert run(onshape, "sync-main") == 0
+    assert onshape.names() == ["utils.fs"]
+    assert onshape.calls["create_workspace"] == 1
+    assert onshape.workspace_names == {}
+    # The new tab's id, recorded by the push, is main's too
+    [utils] = json.loads((repo / "fs-studios.json").read_text())["studios"]
+    assert utils in onshape.studios()
+
+
+def test_sync_main_runs_only_on_main(repo, onshape, capsys):
+    branched(repo, onshape)
+    assert run(onshape, "sync-main") == 2
+    assert "runs only on main" in capsys.readouterr().err

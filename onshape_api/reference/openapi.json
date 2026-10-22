@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Onshape REST API",
-    "version": "1.221.89963-13d10d36cb23",
+    "version": "1.222.91487-5a29448ff2dd",
     "description": "Trimmed from https://cad.onshape.com/api/openapi by onshape_api/reference/generate.py. Do not edit."
   },
   "paths": {
@@ -48,6 +48,11 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/BTBTranslationRequestParams"
+              },
+              "encoding": {
+                "documentVersions": {
+                  "contentType": "application/json"
+                }
               }
             }
           }
@@ -137,6 +142,11 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/BTBTranslationRequestParams"
+              },
+              "encoding": {
+                "documentVersions": {
+                  "contentType": "application/json"
+                }
               }
             }
           }
@@ -377,6 +387,153 @@
         "x-BTVisibility": "PRODUCTION"
       }
     },
+    "/documents/d/{did}/workspaces": {
+      "get": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Retrieve workspaces by document ID.",
+        "operationId": "getDocumentWorkspaces",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BTWorkspaceInfo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      },
+      "post": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Create workspace by document ID.",
+        "operationId": "createWorkspace",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json;charset=UTF-8; qs=0.09": {
+              "schema": {
+                "$ref": "#/components/schemas/BTVersionOrWorkspaceParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTWorkspaceInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Write"
+            ],
+            "BasicAuth": [
+              "OAuth2Write"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/documents/d/{did}/workspaces/{wid}": {
+      "delete": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Delete workspace by document ID and workspace ID.",
+        "operationId": "deleteWorkspace",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Delete"
+            ],
+            "BasicAuth": [
+              "OAuth2Delete"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
     "/documents/d/{did}/{wvm}/{wvmid}/contents": {
       "get": {
         "tags": [
@@ -586,6 +743,67 @@
             ],
             "BasicAuth": [
               "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
+    "/documents/{did}/workspaces/{wid}/merge": {
+      "post": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Merge into workspace by document ID and workspace ID.",
+        "operationId": "mergeIntoWorkspace",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json;charset=UTF-8; qs=0.09": {
+              "schema": {
+                "$ref": "#/components/schemas/BTVersionOrWorkspaceMergeInfo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "default response",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTDocumentMergeInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Write"
+            ],
+            "BasicAuth": [
+              "OAuth2Write"
             ]
           }
         ],
@@ -1042,12 +1260,33 @@
           }
         },
         "x-BTVisibility-properties": {
-          "versionDescription": "INTERNAL",
-          "versionId": "INTERNAL",
           "upgradeFeatureScriptVersion": "INTERNAL",
+          "documentVersions": "INTERNAL",
           "documentId": "INTERNAL",
-          "versionName": "INTERNAL",
           "preserveSourceIds": "INTERNAL"
+        }
+      },
+      "BTBaseInfo": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string",
+            "description": "URI to fetch complete information of the resource.",
+            "format": "uri"
+          },
+          "id": {
+            "type": "string",
+            "description": "Id of the resource."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the resource."
+          },
+          "viewRef": {
+            "type": "string",
+            "description": "URI to visualize the resource in a webclient if applicable.",
+            "format": "uri"
+          }
         }
       },
       "BTDocumentContentsInfo": {
@@ -1288,6 +1527,29 @@
           }
         ]
       },
+      "BTDocumentMergeInfo": {
+        "type": "object",
+        "properties": {
+          "libraryVersionMismatch": {
+            "type": "boolean"
+          },
+          "overwrittenElements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BTDocumentElementInfo"
+            }
+          },
+          "parentDocumentMicroversionId": {
+            "type": "string"
+          },
+          "resultDocumentMicroversionId": {
+            "type": "string"
+          },
+          "sourceDocumentMicroversionId": {
+            "type": "string"
+          }
+        }
+      },
       "BTElementGroup-1458": {
         "type": "object",
         "properties": {
@@ -1447,6 +1709,14 @@
           }
         }
       },
+      "BTMergeStrategy": {
+        "type": "string",
+        "enum": [
+          "MERGE",
+          "KEEP",
+          "REPLACE"
+        ]
+      },
       "BTModelElementParams": {
         "type": "object",
         "properties": {
@@ -1454,6 +1724,15 @@
             "type": "string"
           }
         }
+      },
+      "BTObjectState": {
+        "type": "string",
+        "enum": [
+          "DELETED",
+          "TRASH",
+          "ACTIVE",
+          "INACTIVE"
+        ]
       },
       "BTThumbnailInfo": {
         "type": "object",
@@ -1508,6 +1787,62 @@
             "type": "string"
           }
         }
+      },
+      "BTUserBasicSummaryInfo": {
+        "required": [
+          "jsonType"
+        ],
+        "type": "object",
+        "properties": {
+          "jsonType": {
+            "type": "string"
+          }
+        },
+        "discriminator": {
+          "propertyName": "jsonType",
+          "mapping": {
+            "user-summary": "#/components/schemas/BTUserBasicSummaryInfo",
+            "user-detail-summary": "#/components/schemas/BTUserDetailSummaryInfo"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BTBaseInfo"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "href": {
+                "type": "string",
+                "description": "URI to fetch complete information of the resource.",
+                "format": "uri"
+              },
+              "id": {
+                "type": "string",
+                "description": "Id of the resource."
+              },
+              "image": {
+                "type": "string"
+              },
+              "isOnshapeSupport": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string",
+                "description": "Name of the resource."
+              },
+              "state": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "viewRef": {
+                "type": "string",
+                "description": "URI to visualize the resource in a webclient if applicable.",
+                "format": "uri"
+              }
+            }
+          }
+        ]
       },
       "BTVersionInfo": {
         "type": "object",
@@ -1566,6 +1901,26 @@
           }
         }
       },
+      "BTVersionOrWorkspaceMergeInfo": {
+        "type": "object",
+        "properties": {
+          "defaultMergeStrategy": {
+            "$ref": "#/components/schemas/BTMergeStrategy"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mergeStrategyElementOverrides": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BTMergeStrategy"
+            }
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
       "BTVersionOrWorkspaceParams": {
         "type": "object",
         "properties": {
@@ -1612,6 +1967,91 @@
             "type": "string"
           }
         }
+      },
+      "BTWorkspaceInfo": {
+        "type": "object",
+        "properties": {
+          "canDelete": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/BTUserBasicSummaryInfo"
+          },
+          "description": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "description": "URI to fetch complete information of the resource.",
+            "format": "uri"
+          },
+          "id": {
+            "type": "string",
+            "description": "Id of the resource."
+          },
+          "isReadOnly": {
+            "type": "boolean"
+          },
+          "lastModifier": {
+            "$ref": "#/components/schemas/BTUserBasicSummaryInfo"
+          },
+          "microversion": {
+            "type": "string"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the resource."
+          },
+          "overrideDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "parents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BTVersionInfo"
+            }
+          },
+          "protectionRule": {
+            "$ref": "#/components/schemas/BTWorkspaceProtectionRuleOptions"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BTObjectState"
+          },
+          "thumbnail": {
+            "$ref": "#/components/schemas/BTThumbnailInfo"
+          },
+          "type": {
+            "type": "string"
+          },
+          "viewRef": {
+            "type": "string",
+            "description": "URI to visualize the resource in a webclient if applicable.",
+            "format": "uri"
+          }
+        }
+      },
+      "BTWorkspaceProtectionRuleOptions": {
+        "type": "string",
+        "enum": [
+          "OPEN",
+          "MERGE",
+          "FAST_FORWARD_MERGE"
+        ]
       },
       "BTZipFileInfo": {
         "type": "object",

@@ -31,6 +31,7 @@ from fs_cli.config import Config
 from fs_cli.renames import most_similar
 from fs_cli.remote import Remote, RemoteStudio, file_name_for, image_type, is_local, relative_path_for
 from onshape_api.exceptions import ApiError
+from onshape_api.paths.paths import InstancePath
 from fs_cli.state import (
     State,
     StudioState,
@@ -136,13 +137,21 @@ class Targets:
 
 class Workspace:
     def __init__(
-        self, config: Config, state: State, remote: Remote, use_git: bool = True
+        self,
+        config: Config,
+        state: State,
+        remote: Remote,
+        use_git: bool = True,
+        instance: InstancePath | None = None,
     ) -> None:
+        """Args:
+        instance: The backend workspace it syncs with: the main one, or a git branch's (see fs_cli/branches.py).
+        """
         self.config = config
         self.state = state
         self.remote = remote
         self.use_git = use_git
-        self.instance = config.backend
+        self.instance = instance or config.backend
         self.listed_microversions: dict[str, str] = {}
         # Every tab, as of the last listing
         self.listed_studios: list[RemoteStudio] = []

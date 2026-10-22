@@ -54,6 +54,8 @@ class Config:
         frontend_beta: The workspace beta releases are published to.
         parts: Part sets, released by `fs parts` rather than `fs release`.
         github: The repo's GitHub url, which released FeatureScripts link to as their source.
+        main_branch: The git branch the backend's main workspace holds, when each other branch has a workspace of
+            its own (see docs/fs-cli.md#branches); None when every branch shares the main workspace.
     """
 
     root: pathlib.Path
@@ -64,6 +66,7 @@ class Config:
     frontend_beta: InstancePath | None = None
     parts: tuple[PartSet, ...] = ()
     github: str | None = None
+    main_branch: str | None = None
 
     def find_part_set(self, name: str) -> PartSet:
         found = next((part_set for part_set in self.parts if part_set.name == name), None)
@@ -80,6 +83,12 @@ class Config:
     def state_path(self) -> pathlib.Path:
         """The local (untracked) record of when each Feature Studio was last synced."""
         return self.root / STATE_FILE
+
+    def state_path_for(self, branch: str | None) -> pathlib.Path:
+        """The state of a git branch's workspace, which syncs apart from the main workspace's (see `main_branch`)."""
+        if self.main_branch is None or branch is None or branch == self.main_branch:
+            return self.state_path
+        return self.root / STATE_FILE.replace(".json", "." + re.sub(r"[^A-Za-z0-9._-]", "_", branch) + ".json")
 
     @property
     def studios_path(self) -> pathlib.Path:
@@ -118,6 +127,7 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
         ),
         parts=tuple(_part_set(name, entry) for name, entry in data.get("parts", {}).items()),
         github=data["github"].rstrip("/") if "github" in data else None,
+        main_branch=data.get("main_branch"),
     )
 
 

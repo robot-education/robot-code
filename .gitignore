@@ -197,7 +197,7 @@ poetry.toml
 creds.json
 
 # fs CLI sync state (per machine)
-.fs-state.json
+.fs-state*.json
 .fs.lock
 
 # VS Code extension build output

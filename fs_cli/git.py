@@ -87,6 +87,31 @@ def is_repository(root: pathlib.Path) -> bool:
     return _git(root, "rev-parse", "--is-inside-work-tree") is not None
 
 
+def current_branch(root: pathlib.Path) -> str | None:
+    """The branch checked out; None outside a repository or on a detached HEAD."""
+    branch = _git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    return branch.strip() if branch else None
+
+
+def head_commit(root: pathlib.Path) -> str | None:
+    commit = _git(root, "rev-parse", "HEAD")
+    return commit.strip() if commit else None
+
+
+def is_clean(root: pathlib.Path) -> bool:
+    """Whether nothing tracked differs from HEAD."""
+    status = _git(root, "status", "--porcelain", "--untracked-files=no")
+    return status is not None and not status.strip()
+
+
+def remote_branches(root: pathlib.Path) -> set[str] | None:
+    """The branches on origin; None if it can't be reached."""
+    heads = _git(root, "ls-remote", "--heads", "origin")
+    if heads is None:
+        return None
+    return {line.split("refs/heads/", 1)[1] for line in heads.splitlines() if "refs/heads/" in line}
+
+
 def commit_with_contents(root: pathlib.Path, file: pathlib.Path, contents: str) -> str | None:
     """The newest commit in which file (following it through renames) has contents, as `content_hash` compares them
     (so not counting the versions of same-document imports, which Onshape manages). None if there's none, or root isn't

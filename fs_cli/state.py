@@ -128,11 +128,18 @@ class State:
         self.released = released if released is not None else set()
         # element id -> state, for image tabs; their hashes are of their bytes (see `image_hash`)
         self.images = images if images is not None else {}
+        self.workspace: str | None = None
 
     @classmethod
-    def load(cls, path: pathlib.Path, studios_path: pathlib.Path) -> State:
+    def load(cls, path: pathlib.Path, studios_path: pathlib.Path, workspace: str | None = None) -> State:
+        """Args:
+        workspace: The workspace the state is of, when it's a branch's: a state of another, which the branch had
+            before its workspace was made again, is dropped. None reads it whichever it is.
+        """
         files = load_studio_files(studios_path)
         synced = _read_json(path)
+        if workspace is not None and synced.get("workspace") != workspace:
+            synced = {}
         if synced.get("version") == _STATE_VERSION_WITH_FILES:
             for element_id, studio in synced.get("studios", {}).items():
                 if isinstance(studio, dict) and "file" in studio:
@@ -147,13 +154,15 @@ class State:
                 result[element_id] = StudioState(file, entry.get("hash", ""), entry.get("microversion_id", ""))
             return result
 
-        return cls(
+        state = cls(
             path,
             studios_path,
             states(files, "studios"),
             load_released(studios_path),
             states(load_image_files(studios_path), "images"),
         )
+        state.workspace = workspace
+        return state
 
     def save(self) -> None:
         studios = sorted(self.studios.items())
@@ -172,7 +181,9 @@ class State:
                 if entry.hash or entry.microversion_id
             }
 
-        data = {"version": STATE_VERSION, "studios": synced(studios)}
+        data: dict = {"version": STATE_VERSION, "studios": synced(studios)}
+        if self.workspace is not None:
+            data["workspace"] = self.workspace
         if images:
             data["images"] = synced(images)
         _write_json(self.path, data)

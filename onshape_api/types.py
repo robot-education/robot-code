@@ -71,6 +71,46 @@ class VersionInfo(TypedDict):
     id: str
     name: str
     description: NotRequired[str]
+    # The document's microversion it holds, which is its workspace's while nothing changed since
+    microversion: NotRequired[str]
+
+
+# === workspaces ===
+
+
+class WorkspaceProtection(enum.StrEnum):
+    """Who may change a workspace. BTWorkspaceProtectionRuleOptions."""
+
+    OPEN = "OPEN"
+    MERGE = "MERGE"
+    FAST_FORWARD_MERGE = "FAST_FORWARD_MERGE"
+
+
+class WorkspaceInfo(TypedDict):
+    """A workspace (a branch) of a document. BTWorkspaceInfo."""
+
+    id: str
+    name: str
+    # The document's microversion it is at
+    microversion: str
+    # Unset (None) for a workspace no rule protects
+    protectionRule: NotRequired[str | None]
+
+
+class MergeStrategy(enum.StrEnum):
+    """How a merge treats a tab changed in both workspaces. BTMergeStrategy."""
+
+    MERGE = "MERGE"
+    KEEP = "KEEP"
+    REPLACE = "REPLACE"
+
+
+class MergeInfo(TypedDict):
+    """The result of a merge. BTDocumentMergeInfo."""
+
+    resultDocumentMicroversionId: str
+    # Set when the two workspaces are at different FeatureScript versions, which Onshape won't merge
+    libraryVersionMismatch: NotRequired[bool]
 
 
 # === feature studios ===

@@ -8,10 +8,10 @@ from typing import Protocol
 
 from fs_cli.configured_studios import Built, ConfiguredStudio, Diagnosis, build, diagnose
 from onshape_api.api.api_base import Api
-from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions
+from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions, workspaces
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
-from onshape_api.types import ElementGroup, ElementType
+from onshape_api.types import ElementGroup, ElementType, MergeStrategy
 
 
 @dataclasses.dataclass
@@ -88,6 +88,14 @@ class Version:
     description: str = ""
 
 
+@dataclasses.dataclass
+class RemoteWorkspace:
+    """A workspace (a branch) of a document."""
+
+    id: str
+    name: str
+
+
 class Remote(Protocol):
     def list_studios(self, instance: InstancePath) -> list[RemoteStudio]:
         """Lists the Feature Studios in a document, with their microversions (but not folders)."""
@@ -141,6 +149,22 @@ class Remote(Protocol):
 
     def update_image(self, instance: InstancePath, element_id: str, name: str, data: bytes) -> RemoteImage:
         """Replaces an image tab's file, returning its new microversion."""
+        ...
+
+    def element_ids(self, instance: InstancePath) -> set[str]:
+        """Every tab's element id (anonymous for public documents)."""
+        ...
+
+    def workspaces(self, document_id: str) -> list[RemoteWorkspace]: ...
+
+    def create_workspace(self, document_id: str, version_id: str, name: str) -> RemoteWorkspace:
+        """Branches a workspace from a version (1 call)."""
+        ...
+
+    def delete_workspace(self, instance: InstancePath) -> None: ...
+
+    def merge(self, target: InstancePath, source_workspace_id: str, strategy: MergeStrategy) -> None:
+        """Merges a workspace of the same document into target (1 call)."""
         ...
 
     def build_studio(
@@ -240,6 +264,27 @@ class OnshapeRemote:
         content_type = _image_type(name)
         response = blob_elements.upload_file_update_element(self.api, path, name, data, content_type)
         return RemoteImage(response["id"], response["name"], response["microversionId"], content_type)
+
+    def element_ids(self, instance: InstancePath) -> set[str]:
+        return {element["id"] for element in documents.get_document_elements(self.api, instance)}
+
+    def workspaces(self, document_id: str) -> list[RemoteWorkspace]:
+        return [
+            RemoteWorkspace(workspace["id"], workspace["name"])
+            for workspace in workspaces.get_workspaces(self.api, DocumentPath(document_id))
+        ]
+
+    def create_workspace(self, document_id: str, version_id: str, name: str) -> RemoteWorkspace:
+        created = workspaces.create_workspace(self.api, DocumentPath(document_id), version_id, name)
+        return RemoteWorkspace(created["id"], created["name"])
+
+    def delete_workspace(self, instance: InstancePath) -> None:
+        workspaces.delete_workspace(self.api, instance)
+
+    def merge(self, target: InstancePath, source_workspace_id: str, strategy: MergeStrategy) -> None:
+        merged = workspaces.merge_into_workspace(self.api, target, source_workspace_id, strategy)
+        if merged.get("libraryVersionMismatch"):
+            raise ValueError("Onshape won't merge workspaces at different FeatureScript versions.")
 
     def build_studio(
         self, instance: InstancePath, studio: ConfiguredStudio, feature_studio_id: str, microversion_id: str
