@@ -66,9 +66,11 @@ an error.
 Each part is its vendor's standard unless chosen otherwise. A screw's Finish always shows, offering only what's made in
 its size and head (Generic's only black), so Length can show by it: black, zinc plated, or aluminum. Fully threaded
 shows only where a length is sold both ways (McMaster-Carr's long socket heads, whose standard is partly threaded); a
-screw's table entry has its `standard` part and, there, its `fullThread` one. A washer's Finish (plain stainless steel)
-shows only where its vendor sells more than black. Hidden, an input keeps whatever it was last set to, so the features
-fall back to the standard: a washer's finish with `made`, and a screw's thread when it has no `fullThread`.
+screw's table entry has its `standard` part and, there, its `fullThread` one. In the configuration it's a List, No or
+Yes, not a checkbox: a checkbox shows by a single condition, and where it's sold both ways needs several. A washer's
+Finish (plain stainless steel) shows only where its vendor sells more than black. A hidden input keeps its default, and
+in a feature's own dialog whatever it was last set to, so the features fall back to the standard: a washer's finish
+with `made`, and a screw's thread when it has no `fullThread`.
 
 `fastenerScrew`:
 

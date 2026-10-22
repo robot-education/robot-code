@@ -53,8 +53,9 @@ class Input:
     Attributes:
         id: The input's id, which configurations are encoded with (`size=NO_10_32;washer=true`).
         parameter: The feature parameter it configures.
-        kind: A List of `options` configuring an enum (`enum_name` its type) or a length, or a checkbox configuring a
-            boolean.
+        kind: A List of `options` configuring an enum (`enum_name` its type), a length, or a boolean (`switch`: options
+            `false` and `true`, which unlike a checkbox's can show by any number of conditions), or a checkbox
+            configuring a boolean.
         shown_when: The combinations of earlier inputs' options which show it, as an option's are; always shown when
             None. Never name an input which is itself hidden somewhere: Onshape and FRCDesign read a hidden input's
             value differently.
@@ -64,7 +65,7 @@ class Input:
     name: str
     parameter: str
     options: Sequence[Option] = ()
-    kind: Literal["enum", "length", "boolean"] = "enum"
+    kind: Literal["enum", "length", "switch", "boolean"] = "enum"
     enum_name: str | None = None
     default: str | None = None
     shown_when: Combinations | None = None
@@ -84,6 +85,8 @@ class Input:
         for id in ids:
             if not _IDENTIFIER.match(id):
                 raise ValueError(f"Input {self.id}: {id!r} isn't a FeatureScript identifier")
+        if self.kind == "switch" and not set(ids) <= {"false", "true"}:
+            raise ValueError(f"Input {self.id} is a switch, so its options are false and true")
         if self.kind == "enum" and self.enum_name is None:
             raise ValueError(f"Input {self.id} configures an enum, so it needs its enum_name")
         if self.default is not None and self.default not in ids:
@@ -135,7 +138,16 @@ class ConfiguredStudio:
                             raise ValueError(f"{self.name}: {what} shows by {id}, which is hidden somewhere")
                         if parent.kind == "boolean" or value not in parent.option_ids():
                             raise ValueError(f"{self.name}: {what} shows with unknown {id}={value}")
-            if input.kind != "boolean" and input_shows(input, defaults):
+            if input.kind == "boolean" and input.shown_when is not None:
+                count = len(_products(input.shown_when, self._factor_order()))
+                if count > 1:
+                    raise ValueError(
+                        f"{self.name}: checkbox {input.id} needs {count} conditions to show where it does, and Onshape "
+                        "gives an input one (an AND of inputs); a List's options take any number"
+                    )
+            # With none of its options shown, a List is hidden
+            shown = input.kind != "boolean" and any(shows(option, defaults) for option in input.options)
+            if shown and input_shows(input, defaults):
                 default = next(option for option in input.options if option.id == input.default_option)
                 if not shows(default, defaults):
                     raise ValueError(f"{self.name}: {input.id}'s default isn't shown with the other inputs' defaults")
@@ -215,8 +227,11 @@ def _matches(shown_when: Combinations | None, selection: Mapping[str, str]) -> b
 
 
 def _configuration_parameter(input: Input, order: Sequence[str]) -> dict:
-    visibility = {} if input.shown_when is None else {"visibilityCondition": _condition(input.shown_when, order)}
     if input.kind == "boolean":
+        visibility = {}
+        if input.shown_when is not None:
+            [product] = _products(input.shown_when, order)
+            visibility = {"visibilityCondition": _product_condition(product)}
         return {
             "btType": "BTMConfigurationParameterBoolean-2550",
             "parameterId": input.id,
@@ -235,7 +250,6 @@ def _configuration_parameter(input: Input, order: Sequence[str]) -> dict:
             {"btType": "BTMEnumOption-592", "option": option.id, "optionName": option.name}
             for option in input.options
         ],
-        **visibility,
     }
     conditions = _option_visibility(input, order)
     if conditions:
@@ -246,64 +260,84 @@ def _configuration_parameter(input: Input, order: Sequence[str]) -> dict:
     return parameter
 
 
+# Onshape takes a condition only as its UI makes one: an AND of inputs, each one of some values
+Product = dict[str, list[str]]
+
+
 def _option_visibility(input: Input, order: Sequence[str]) -> list[dict]:
-    """One condition per distinct set of combinations, controlling the options shown with exactly that set: Onshape's
-    conditions each control a list of options, so no option is controlled twice."""
-    groups: dict[tuple, list[str]] = {}
+    """A rule per product, controlling the options it shows. An option several rules control shows while any holds, and
+    a List with none of its options shown is hidden, so a List's own visibility is folded into its options'."""
+    shown = [{}] if input.shown_when is None else _products(input.shown_when, order)
+    rules: dict[str, tuple[Product, list[str]]] = {}
     for option in input.options:
-        if option.shown_when is not None:
-            key = tuple(sorted(tuple(sorted(combination.items())) for combination in option.shown_when))
-            groups.setdefault(key, []).append(option.id)
+        own = [{}] if option.shown_when is None else _products(option.shown_when, order)
+        products = [product for a in own for b in shown if (product := _intersect(a, b)) is not None]
+        if not products:
+            raise ValueError(f"Input {input.id}'s {option.id} is never shown")
+        if any(not product for product in products):
+            continue
+        for product in products:
+            rules.setdefault(repr(product), (product, []))[1].append(option.id)
     return [
         {
             "btType": "BTEnumOptionVisibilityForList-1613",
             "controlledOptions": options,
-            "condition": _condition([dict(combination) for combination in key], order),
+            "condition": _product_condition(product),
         }
-        for key, options in groups.items()
+        for product, options in rules.values()
     ]
 
 
-def _equal(id: str, value: str) -> dict:
-    return {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
-
-
-def _logical(operation: str, children: list[dict]) -> dict:
-    if len(children) == 1:
-        return children[0]
-    return {"btType": "BTParameterVisibilityLogical-178", "operation": operation, "children": children}
-
-
-def _condition(combinations: Combinations, order: Sequence[str]) -> dict:
-    """Shown when any combination matches, factored by input in `order`: the combinations are grouped by their first
-    input's value, and values whose rest is the same share one branch. A lookup table's conditions are mostly
-    repetition, which this keeps out of the configuration."""
+def _products(combinations: Combinations, order: Sequence[str]) -> list[Product]:
+    """Products matching exactly the combinations, factored by input in `order`: grouped by their first input's
+    value, and values whose rest is the same share their products. `[{}]` when every combination is."""
     ids = [id for id in order if any(id in combination for combination in combinations)]
-    if not ids:
-        raise ValueError("A condition needs at least one input")
-    return _factor(combinations, ids) or _logical("OR", [])
+    return _factor(combinations, ids)
 
 
-def _factor(combinations: Combinations, ids: Sequence[str]) -> dict | None:
-    """The condition on `ids` matching any of `combinations`; None when every combination is empty (always shown)."""
-    if not ids or all(not combination for combination in combinations):
-        return None
+def _factor(combinations: Combinations, ids: Sequence[str]) -> list[Product]:
+    if not ids or any(not combination for combination in combinations):
+        return [{}]
     first, rest = ids[0], ids[1:]
     by_value: dict[str, list[dict[str, str]]] = {}
     for combination in combinations:
         remainder = {id: value for id, value in combination.items() if id != first}
         by_value.setdefault(combination[first], []).append(remainder)
-    # Values with the same rest share it
-    branches: dict[str, tuple[list[str], dict | None]] = {}
+    branches: dict[str, tuple[list[str], list[Product]]] = {}
     for value, remainders in by_value.items():
         sub = _factor(remainders, rest)
-        key = repr(sub)
-        branches.setdefault(key, ([], sub))[0].append(value)
-    children = []
-    for values, sub in branches.values():
-        equal = _logical("OR", [_equal(first, value) for value in values])
-        children.append(equal if sub is None else _logical("AND", [equal, sub]))
-    return _logical("OR", children)
+        branches.setdefault(repr(sub), ([], sub))[0].append(value)
+    return [{first: values, **product} for values, sub in branches.values() for product in sub]
+
+
+def _intersect(a: Product, b: Product) -> Product | None:
+    """What both products match; None when nothing does."""
+    both = dict(a)
+    for id, values in b.items():
+        if id in both:
+            values = [value for value in both[id] if value in values]
+            if not values:
+                return None
+        both[id] = values
+    return both
+
+
+def _product_condition(product: Product) -> dict:
+    return {
+        "btType": "BTParameterVisibilityLogical-178",
+        "operation": "AND",
+        "children": [
+            {
+                "btType": "BTParameterVisibilityLogical-178",
+                "operation": "OR",
+                "children": [
+                    {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
+                    for value in values
+                ],
+            }
+            for id, values in product.items()
+        ],
+    }
 
 
 def _configured_parameter(input: Input, namespace: str = "") -> dict:
@@ -350,6 +384,8 @@ def _value(input: Input, option: Option, namespace: str = "") -> dict:
             "enumName": input.enum_name,
             "value": option.value,
         }
+    if input.kind == "switch":
+        return {"btType": "BTMParameterBoolean-144", "parameterId": input.parameter, "value": option.id == "true"}
     return {"btType": "BTMParameterQuantity-147", "parameterId": input.parameter, "expression": option.value}
 
 

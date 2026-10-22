@@ -299,11 +299,11 @@ FRCDesignApp reads for its library fasteners).
 
 ### Configured Part Studios
 
-A Part Studio can expose a feature through its configuration: an input per parameter (a List, or a checkbox for a
-boolean), each configuring that parameter, with a List's options shown only for some combinations of the inputs before
-it (a lookup table, laid out as a configuration). A whole input can be shown only for some combinations too, as the
-screw's Fully threaded and the washer's Finish are; hidden, it's left out of `combinations()`, and nothing may show by
-it.
+A Part Studio can expose a feature through its configuration: an input per parameter (a List, or for a boolean a
+checkbox or a `switch`, a List of `false` and `true`), each configuring that parameter, with a List's options shown
+only for some combinations of the inputs before it (a lookup table, laid out as a configuration). A whole input can be
+shown only for some combinations too, as the screw's Fully threaded and the washer's Finish are; hidden, it's left
+out of `combinations()`, and nothing may show by it.
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
@@ -312,8 +312,13 @@ inputs' ids. It then inserts its feature from the Feature Studio in the same doc
 if it has none, and points the feature at that Feature Studio as it is now, configured by it. A refusal names the
 step Onshape refused, and a feature that fails to regenerate in its default configuration stops the build. `fs parts` builds
 them, for part sets (see [docs/parts.md](parts.md)).
-A List's visibility conditions are factored by input, earliest first (or by `factor_first`), so a lookup table's
-conditions don't repeat themselves. `ConfiguredStudio.manifest()` gives the
+Onshape takes a visibility condition only as its UI makes one, an AND of inputs each one of some values, and refuses
+any other with a 409 ("The change would result in the feature list becoming invalid"). So the combinations which show
+an option are factored by input, earliest first (or by `factor_first`), into such conditions, each a rule controlling
+the options it shows: an option several rules control shows while any holds. A List with none of its options shown is
+hidden, so a List's own visibility is folded into its options'. A checkbox has no options, and shows by a single
+condition, which the studio checks; one needing more is a `switch`. `fs parts diagnose` finds a part of a
+configuration Onshape refuses (see [docs/parts.md](parts.md)). `ConfiguredStudio.manifest()` gives the
 configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
 any configuration).
 

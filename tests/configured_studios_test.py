@@ -63,12 +63,39 @@ def test_a_default_must_show_with_its_parents_default():
             "f",
             [
                 Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size"),
-                Input("length", "Length", "length", [Option("L", "L", "1 in", [{"size": "B"}])], kind="length"),
+                Input(
+                    "length", "Length", "length", [Option("L", "L", "1 in", [{"size": "B"}]), Option("M", "M", "2 in")], kind="length"
+                ),
             ],
         )
 
 
-def test_each_option_is_controlled_by_one_condition():
+def test_a_list_with_no_option_shown_is_hidden_so_its_default_needs_no_showing():
+    hidden = ConfiguredStudio(
+        "screw",
+        "f",
+        [
+            Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size"),
+            Input("thread", "Thread", "thread", [Option("false", "No", "false", [{"size": "B"}]), Option("true", "Yes", "true", [{"size": "B"}])], kind="switch"),
+        ],
+    )
+    assert hidden.combinations() == [{"size": "A"}, {"size": "B", "thread": "false"}, {"size": "B", "thread": "true"}]
+    assert hidden.configured_parameters()[1]["values"][1]["value"] == {
+        "btType": "BTMParameterBoolean-144",
+        "parameterId": "thread",
+        "value": True,
+    }
+
+
+def equal(id, value):
+    return {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
+
+
+def logical(operation, *children):
+    return {"btType": "BTParameterVisibilityLogical-178", "operation": operation, "children": list(children)}
+
+
+def test_each_option_rule_is_an_and_of_inputs_each_one_of_some_values():
     length = studio().configuration_body()["configurationParameters"][1]
     assert studio().configuration_body()["configurationParameters"][2] == {
         "btType": "BTMConfigurationParameterBoolean-2550",
@@ -78,76 +105,65 @@ def test_each_option_is_controlled_by_one_condition():
     }
     assert length["enumName"] == "length_conf"
     assert [option["option"] for option in length["options"]] == ["L1", "L2", "L3"]
-    conditions = length["enumOptionVisibilityConditions"]["visibilityConditions"]
-    assert conditions == [
+    assert length["enumOptionVisibilityConditions"]["visibilityConditions"] == [
         {
             "btType": "BTEnumOptionVisibilityForList-1613",
             "controlledOptions": ["L2"],
-            "condition": {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "size", "value": "B"},
+            "condition": logical("AND", logical("OR", equal("size", "B"))),
         },
         {
             "btType": "BTEnumOptionVisibilityForList-1613",
             "controlledOptions": ["L3"],
-            "condition": {
-                "btType": "BTParameterVisibilityLogical-178",
-                "operation": "OR",
-                "children": [
-                    {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "size", "value": "A"},
-                    {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "size", "value": "B"},
-                ],
-            },
+            "condition": logical("AND", logical("OR", equal("size", "A"), equal("size", "B"))),
         },
     ]
 
 
-def test_combinations_of_several_inputs_are_ands_ored():
-    from fs_cli.configured_studios import _condition
+def test_products_are_factored_by_input_order():
+    from fs_cli.configured_studios import _products
 
-    condition = _condition([{"head": "X", "size": "A"}, {"head": "Y", "size": "B"}], ["size", "head"])
-    assert condition["operation"] == "OR"
-    assert [child["operation"] for child in condition["children"]] == ["AND", "AND"]
-    assert condition["children"][0]["children"] == [
-        {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "size", "value": "A"},
-        {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "head", "value": "X"},
-    ]
-
-
-def test_conditions_are_factored_by_input_order():
-    from fs_cli.configured_studios import _condition
-
-    # Sizes A and B both take heads X and Y, so they share one branch
+    # Sizes A and B both take heads X and Y, so they share a product
     combinations = [{"size": size, "head": head} for size in "AB" for head in "XY"] + [{"size": "C", "head": "X"}]
-    condition = _condition(combinations, ["size", "head"])
-
-    def equal(id, value):
-        return {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
-
-    def logical(operation, *children):
-        return {"btType": "BTParameterVisibilityLogical-178", "operation": operation, "children": list(children)}
-
-    assert condition == logical(
-        "OR",
-        logical("AND", logical("OR", equal("size", "A"), equal("size", "B")), logical("OR", equal("head", "X"), equal("head", "Y"))),
-        logical("AND", equal("size", "C"), equal("head", "X")),
-    )
+    assert _products(combinations, ["size", "head"]) == [
+        {"size": ["A", "B"], "head": ["X", "Y"]},
+        {"size": ["C"], "head": ["X"]},
+    ]
+    assert _products([{"size": "A"}, {}], ["size"]) == [{}]
 
 
-def test_factored_conditions_show_exactly_the_combinations():
-    from fs_cli.configured_studios import _condition
-
-    def holds(condition, selection):
-        if condition["btType"] == "BTParameterVisibilityOnEqual-180":
-            return selection[condition["parameterId"]] == condition["value"]
-        results = [holds(child, selection) for child in condition["children"]]
-        return all(results) if condition["operation"] == "AND" else any(results)
+def test_products_match_exactly_the_combinations():
+    from fs_cli.configured_studios import _products
 
     combinations = [{"v": "1", "s": "A", "h": "X"}, {"v": "1", "s": "B", "h": "X"}, {"v": "2", "s": "A", "h": "Y"}]
-    condition = _condition(combinations, ["v", "s", "h"])
+    products = _products(combinations, ["v", "s", "h"])
     for v in "12":
         for s in "AB":
             for h in "XY":
                 selection = {"v": v, "s": s, "h": h}
-                assert holds(condition, selection) == (selection in combinations)
+                matched = any(all(selection[id] in values for id, values in product.items()) for product in products)
+                assert matched == (selection in combinations)
+
+
+def test_products_can_be_factored_by_a_later_input_first():
+    from fs_cli.configured_studios import _products
+
+    order = ConfiguredStudio("s", "f", finished().inputs, factor_first=["finish"])._factor_order()
+    assert order == ["finish", "size"]
+    shown = [{"size": size, "finish": "BLACK"} for size in "AB"]
+    assert _products(shown, order) == [{"finish": ["BLACK"], "size": ["A", "B"]}]
+
+
+def test_a_checkbox_shows_by_one_condition():
+    size = Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size")
+    head = Input("head", "Head", "head", [Option("X", "X", "X"), Option("Y", "Y", "Y")], enum_name="Head")
+    one = Input("thread", "Thread", "thread", kind="boolean", shown_when=[{"size": "A", "head": head} for head in "XY"])
+    parameter = ConfiguredStudio("s", "f", [size, head, one]).configuration_body()["configurationParameters"][2]
+    assert parameter["visibilityCondition"] == logical(
+        "AND", logical("OR", equal("size", "A")), logical("OR", equal("head", "X"), equal("head", "Y"))
+    )
+    two = Input("thread", "Thread", "thread", kind="boolean", shown_when=[{"size": "A", "head": "X"}, {"size": "B", "head": "Y"}])
+    with pytest.raises(ValueError, match="checkbox thread needs 2 conditions"):
+        ConfiguredStudio("s", "f", [size, head, two])
 
 
 def test_configured_parameters_set_each_option():
@@ -204,25 +220,20 @@ def finished() -> ConfiguredStudio:
     )
 
 
-def test_conditions_can_be_factored_by_a_later_input_first():
-    shown = [{"size": size, "finish": "BLACK"} for size in "AB"]
-    order = ConfiguredStudio("s", "f", finished().inputs, factor_first=["finish"])._factor_order()
-    assert order == ["finish", "size"]
-    from fs_cli.configured_studios import _condition
-
-    condition = _condition(shown, order)
-    # One branch on the finish, holding both sizes
-    assert condition["operation"] == "AND"
-    assert condition["children"][0] == {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "finish", "value": "BLACK"}
-
-
 def test_a_hidden_input_is_left_out_of_combinations():
     assert finished().combinations() == [{"size": "A"}, {"size": "B", "finish": "BLACK"}, {"size": "B", "finish": "ZINC"}]
 
 
-def test_a_hidden_input_has_a_visibility_condition():
+def test_a_hidden_list_folds_its_visibility_into_its_options():
     finish = finished().configuration_body()["configurationParameters"][1]
-    assert finish["visibilityCondition"] == {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": "size", "value": "B"}
+    assert "visibilityCondition" not in finish
+    assert finish["enumOptionVisibilityConditions"]["visibilityConditions"] == [
+        {
+            "btType": "BTEnumOptionVisibilityForList-1613",
+            "controlledOptions": ["BLACK", "ZINC"],
+            "condition": logical("AND", logical("OR", equal("size", "B"))),
+        }
+    ]
 
 
 def test_nothing_shows_by_an_input_hidden_somewhere():

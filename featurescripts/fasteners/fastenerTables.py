@@ -735,8 +735,15 @@ def _screw_inputs() -> list[Input]:
             _shown(lengths, ("vendor", "size", "head", "finish"), 4),
             length_id(Fraction(1, 2)),
         ),
-        # Hidden, and so partly threaded, wherever a length is only sold one way
-        Input("fullyThreaded", "Fully threaded", "fullyThreaded", kind="boolean", shown_when=both),
+        # Hidden, and so partly threaded, wherever a length is only sold one way: a switch, since a checkbox shows by
+        # one condition, and this needs several
+        Input(
+            "fullyThreaded",
+            "Fully threaded",
+            "fullyThreaded",
+            [Option("false", "No", "false", both), Option("true", "Yes", "true", both)],
+            kind="switch",
+        ),
     ]
 
 

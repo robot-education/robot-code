@@ -8,7 +8,7 @@ from fractions import Fraction
 
 import pytest
 
-from fs_cli.configured_studios import input_shows, shows
+from fs_cli.configured_studios import shows
 
 FOLDER = pathlib.Path(__file__).parents[2] / "featurescripts" / "fasteners"
 DEFINITION = runpy.run_path(str(FOLDER / "fastenerTables.py"))
@@ -114,7 +114,7 @@ def test_mcmaster_carrs_long_socket_heads_come_fully_threaded_too():
 def test_fully_threaded_shows_only_where_a_length_is_sold_both_ways():
     screw = DEFINITION["STUDIOS"]["screw"]
     fully_threaded = next(input for input in screw.inputs if input.id == "fullyThreaded")
-    assert screw.inputs[-1] is fully_threaded and fully_threaded.kind == "boolean"
+    assert screw.inputs[-1] is fully_threaded and fully_threaded.kind == "switch"
     length_id = DEFINITION["length_id"]
     for (vendor, size, head), stocked in DEFINITION["SCREWS"].items():
         for length, variants in stocked.items():
@@ -127,7 +127,8 @@ def test_fully_threaded_shows_only_where_a_length_is_sold_both_ways():
                     "length": length_id(length),
                 }
                 both = Variant(variant.finish) in variants and Variant(variant.finish, True) in variants
-                assert input_shows(fully_threaded, selection) == both, selection
+                shown = [option.id for option in fully_threaded.options if shows(option, selection)]
+                assert shown == (["false", "true"] if both else []), selection
 
 
 def test_finish_comes_between_head_and_length_and_shows_everywhere():
