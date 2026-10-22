@@ -3,6 +3,15 @@
 See `docs/fs-cli.md` for how the `fs` CLI works, and `docs/featurescript-style.md` for how to write
 FeatureScript here (including selections, editing logic, and manipulator change functions).
 
+## Onshape API calls
+
+Ask before anything that calls Onshape, and run it only once the user says yes, every time: the Onshape FeatureScript
+MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `deprecate`,
+`sync-versions`, `release-tags`, `pull-std`, `update-std`, `released --detect`, and the rest). Each call spends the
+user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
+asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, and `pytest`, which run against fakes. When the
+user runs a command themselves, say exactly what to run.
+
 `README.md` is for users: an overview of the repo, setup, and links. How the tools work, and anything else written for
 agents, goes in `docs/`, a skill, or here.
 

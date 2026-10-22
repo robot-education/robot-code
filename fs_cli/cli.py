@@ -69,7 +69,7 @@ from fs_cli.workspace import (
 )
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
-from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
+from onshape_api.paths.paths import InstancePath, path_to_url
 
 # Released tabs are never deleted or recreated (see `load_released`)
 RELEASED_HINTS = {
@@ -474,16 +474,6 @@ def make_parser() -> argparse.ArgumentParser:
     )
     no_push_tags(sync_versions)
     dry_run(sync_versions)
-
-    build_command = command(
-        "build-studios",
-        "build a definition's configured Part Studios in the backend document, to try them: each tab is created if "
-        "it's missing, given its configuration, and its feature inserted from the pushed Feature Studio "
-        "(4-5 API calls each); `fs release` builds a library's own",
-        targets=False,
-    )
-    build_command.add_argument("definition", help="the definition, e.g. featurescripts/fasteners/fastenerTables.py")
-    build_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
 
     release_tags = command(
         "release-tags",
@@ -1709,38 +1699,6 @@ def _display_path(path: pathlib.Path) -> str:
 
 # Commands which don't need Onshape
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
-def build_studios_command(workspace: Workspace, args: argparse.Namespace) -> int:
-    from fs_cli.studio_builds import build_studios, defines, definition_studios
-
-    definition = pathlib.Path(args.definition)
-    studios = definition_studios(definition)
-    if not studios:
-        raise UsageError(f"{args.definition} configures no Part Studios (its STUDIOS).")
-    # The backend studio defining every studio's feature, from the definition's folder
-    candidates = [
-        studio
-        for studio in workspace.scan(workspace.resolve_targets([str(definition.parent)]))
-        if studio.local_code is not None and all(defines(studio.local_code, each.feature) for each in studios)
-    ]
-    if len(candidates) != 1:
-        features = ", ".join(each.feature for each in studios)
-        raise UsageError(f"Expected one FeatureScript beside {args.definition} defining {features}; found {len(candidates)}.")
-    [feature_studio] = candidates
-    if feature_studio.remote is None or feature_studio.status != Status.IN_SYNC:
-        raise UsageError(f"Push {feature_studio.path} first: its Part Studios are built from it as it is in Onshape.")
-    if not args.yes:
-        confirm(
-            f"This builds {', '.join(each.tab_name for each in studios)} in the backend document from "
-            f"{feature_studio.path}, replacing any configuration they have."
-        )
-    built = build_studios(workspace.remote, workspace.instance, studios, feature_studio.remote)
-    for studio in studios:
-        each = built[studio.name]
-        url = path_to_url(ElementPath.from_path(workspace.instance, each.element_id))
-        print(f"{studio.tab_name} ({'created' if each.created else 'updated'}, {each.status}): {url}")
-    return 0
-
-
 STATE_COMMANDS = {"mv", "unlink", "released"}
 
 OFFLINE_COMMANDS = {
@@ -1780,7 +1738,6 @@ COMMANDS = {
     "deprecate": deprecate,
     "sync-versions": sync_versions,
     "release-tags": release_tags,
-    "build-studios": build_studios_command,
     "tabs": tabs,
     "link": link,
     "released": detect_released,

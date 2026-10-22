@@ -8,7 +8,7 @@ lookup table is laid out as a configuration: Length shows only the lengths the c
 and head. A whole input can be shown only for some, too; hidden, it takes its default.
 
 The definition is the source of both sides: the feature's enums and data (`fs gen`), and the configuration
-(`fs build-studios`, and `fs release` for a library), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
+(`fs release`, for a library), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
 List input an enum (`<input id>_conf`) whose values are its option ids.
 """
 

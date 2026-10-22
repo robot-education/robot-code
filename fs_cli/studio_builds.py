@@ -1,5 +1,5 @@
-"""Building a definition's configured Part Studios (see configured_studios.py): in the backend document, to try them
-with the FeatureScript as pushed, and in a library's document as its FeatureScript is released there."""
+"""Building a library definition's configured Part Studios (see configured_studios.py) in the library's document, as
+`fs release` releases its FeatureScript there."""
 
 from __future__ import annotations
 
@@ -20,17 +20,13 @@ def defines(code: str, feature: str) -> bool:
     return re.search(rf"\bexport\s+const\s+{re.escape(feature)}\s*=\s*defineFeature\b", code) is not None
 
 
-def definition_studios(path: pathlib.Path) -> list[ConfiguredStudio]:
-    return configured_studios(runpy.run_path(str(path)))
-
-
 def library_definitions(config: Config, library: Library, code: str) -> list[tuple[pathlib.Path, list[ConfiguredStudio]]]:
     """The definitions in a library's folders whose studios' features a Feature Studio's code defines, each with its
     studios."""
     found = []
     for folder in library.folders:
         for path in sorted((config.code_dir / folder).rglob("*.py")):
-            studios = definition_studios(path)
+            studios = configured_studios(runpy.run_path(str(path)))
             if studios and all(defines(code, studio.feature) for studio in studios):
                 found.append((path, studios))
     return found

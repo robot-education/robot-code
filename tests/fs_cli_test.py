@@ -1266,30 +1266,6 @@ def test_a_library_release_stops_at_a_part_studio_that_fails_to_regenerate(repo,
     assert not local(repo, "Parts/partTables.studios.json").exists()
 
 
-def test_build_studios_builds_in_the_backend_from_the_pushed_studio(repo, onshape, capsys):
-    element_id = onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",))
-    run(onshape, "pull")
-    write(repo, "Parts/partTables.py", PART_TABLES)
-
-    assert run(onshape, "build-studios", "featurescripts/Parts/partTables.py", "-y") == 0
-    mv = onshape.studios()[element_id]["mv"]
-    assert onshape.builds == [("back", "screw", element_id, mv)]
-    assert "Screw (created, OK): https://cad.onshape.com/documents/back/w/bw/e/" in capsys.readouterr().out
-    # Nothing recorded: the backend's Part Studios are for trying
-    assert not local(repo, "Parts/partTables.studios.json").exists()
-
-
-def test_build_studios_needs_the_feature_studio_pushed(repo, onshape, capsys):
-    onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",))
-    run(onshape, "pull")
-    write(repo, "Parts/partTables.py", PART_TABLES)
-    write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
-
-    assert run(onshape, "build-studios", "featurescripts/Parts/partTables.py", "-y") != 0
-    assert "Push Parts/partMaker.fs first" in capsys.readouterr().err
-    assert onshape.builds == []
-
-
 def test_a_librarys_featurescript_has_no_beta(repo, onshape, capsys):
     with_library(repo)
     onshape.add("partMaker.fs", "parts", folders=("Parts",), features=["Screw beta"])

@@ -308,15 +308,8 @@ in its `STUDIOS`, and the feature's enums come from the same definition, so the 
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
 default), creating it if it's missing, replaces its configuration with the definition's, then inserts its feature
 from the Feature Studio in the same document (or points the one it has at that Feature Studio as it is now),
-configured by it. A feature that fails to regenerate in its default configuration stops the build. To try a change,
-push it, then build the studios in the backend document:
-
-```
-uv run fs build-studios featurescripts/fasteners/fastenerTables.py
-```
-
-which prints each Part Studio's url, to check there. A library's Part Studios are only built by `fs release`, from
-the studio it just pushed to the library (see [Releasing](#releasing)).
+configured by it. A feature that fails to regenerate in its default configuration stops the build. A library's Part
+Studios are built by `fs release`, from the studio it just pushed to the library (see [Releasing](#releasing)).
 A List's visibility conditions are factored by input, earliest first, so a lookup table's conditions don't repeat
 themselves (the screw studio's Length is 61 KB rather than 192 KB). `ConfiguredStudio.manifest()` gives the
 configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
@@ -371,11 +364,10 @@ sync before it can be released, and `fs release` asks for confirmation since ver
 skips the prompt).
 
 When a definition in the library's folders configures Part Studios of the released studio's features, the release
-builds them in the library document (as `fs build-studios` does in the backend), then always creates the library's
+builds them in the library document, then always creates the library's
 version, and records where they are in `<definition>.studios.json` beside it (the document, that version, and each
 tab), writing the definition's `EXPORTS` again. Commit those, and sync what reads them (FRCDesignApp's
-`npm run sync:generated-parts`). Try the build in the backend document first: nothing in the library document is
-written until the release.
+`npm run sync:generated-parts`).
 
 A release is final once its version is in the frontend document (or its library's): with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend
