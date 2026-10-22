@@ -12,16 +12,6 @@ export enum ColorScope
     ALL
 }
 
-export enum ColorSource
-{
-    annotation { "Name" : "Standard" }
-    STANDARD,
-    annotation { "Name" : "RGB" }
-    RGB,
-    annotation { "Name" : "Hex" }
-    HEX
-}
-
 /**
  * FRCDesign's standard appearances, as `core/robotProperties.fs` defines them (see `STANDARD_COLORS`).
  */
@@ -62,10 +52,8 @@ export const STANDARD_COLORS = {
         StandardColor.PRINTED_GREEN : PRINTED_GREEN
     };
 
-const CHANNEL_BOUNDS = { (unitless) : [0, 128, 255] } as IntegerBoundSpec;
-
 annotation { "Feature Type Name" : "Robot color",
-        "Feature Type Description" : "Give parts one of FRCDesign's standard appearances, or any color by RGB or hex code." ~ CREDIT,
+        "Feature Type Description" : "Give parts one of FRCDesign's standard appearances, or any color by hex code or RGB." ~ CREDIT,
         "Icon" : RobotIcon::BLOB_DATA }
 export const robotColor = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
@@ -73,35 +61,25 @@ export const robotColor = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Parts", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
         definition.scope is ColorScope;
 
-        annotation { "Name" : "Color", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
-        definition.colorSource is ColorSource;
-
         if (colorsSelectedParts(definition))
         {
             annotation { "Name" : "Parts to color", "Filter" : EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES }
             definition.parts is Query;
         }
 
-        if (definition.colorSource == ColorSource.STANDARD)
-        {
-            annotation { "Name" : "Standard color", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.standardColor is StandardColor;
-        }
-        else if (definition.colorSource == ColorSource.RGB)
-        {
-            annotation { "Name" : "Red", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isInteger(definition.red, CHANNEL_BOUNDS);
+        annotation { "Name" : "Custom color", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.customColor is boolean;
 
-            annotation { "Name" : "Green", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isInteger(definition.green, CHANNEL_BOUNDS);
-
-            annotation { "Name" : "Blue", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isInteger(definition.blue, CHANNEL_BOUNDS);
+        if (definition.customColor)
+        {
+            annotation { "Name" : "Color", "Default" : "#4D4D4D", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "A hex code, like #4D4D4D or #FFF, or RGB from 0 to 255, like 77, 77, 77." }
+            definition.color is string;
         }
         else
         {
-            annotation { "Name" : "Hex code", "Default" : "#4D4D4D", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.hex is string;
+            annotation { "Name" : "Standard color", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.standardColor is StandardColor;
         }
     }
     {
@@ -125,20 +103,54 @@ predicate colorsSelectedParts(definition is map)
 
 function chosenColor(definition is map) returns Color
 {
-    if (definition.colorSource == ColorSource.STANDARD)
+    if (!definition.customColor)
     {
         return STANDARD_COLORS[definition.standardColor];
     }
-    if (definition.colorSource == ColorSource.RGB)
-    {
-        return rgbColor(definition.red, definition.green, definition.blue);
-    }
-    const parsed = hexColor(definition.hex);
+    const parsed = parseColor(definition.color);
     if (parsed == undefined)
     {
-        throw regenError("Enter a hex code of 6 digits, like #4D4D4D, or 3, like #FFF.", ["hex"]);
+        throw regenError("Enter a hex code, like #4D4D4D, or RGB from 0 to 255, like 77, 77, 77.", ["color"]);
     }
     return parsed;
+}
+
+/**
+ * The color a string names: a hex code (see `hexColor`), or red, green, and blue from 0 to 255, apart by commas or
+ * spaces, and in `rgb(...)` or not (`77, 77, 77`, `77 77 77`, `rgb(77, 77, 77)`); undefined if it names none.
+ */
+export function parseColor(text is string)
+{
+    const hex = hexColor(text);
+    if (hex != undefined)
+    {
+        return hex;
+    }
+    for (var pattern in ["\\s*[rR][gG][bB]\\s*\\((.*)\\)\\s*", "(.*)"])
+    {
+        const found = match(text, pattern);
+        if (!found.hasMatch)
+        {
+            continue;
+        }
+        const channels = match(found.captures[1], "\\s*(\\d{1,3})\\s*[,\\s]\\s*(\\d{1,3})\\s*[,\\s]\\s*(\\d{1,3})\\s*");
+        if (!channels.hasMatch)
+        {
+            return undefined;
+        }
+        var values = [];
+        for (var channel in subArray(channels.captures, 1, 4))
+        {
+            const value = stringToNumber(channel);
+            if (value > 255)
+            {
+                return undefined;
+            }
+            values = append(values, value);
+        }
+        return rgbColor(values[0], values[1], values[2]);
+    }
+    return undefined;
 }
 
 /**

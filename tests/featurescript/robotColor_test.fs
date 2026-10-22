@@ -29,6 +29,26 @@ export function testRgbChannelsRunTo255()
     expectEqual(rgbColor(255, 0, 51), color(1, 0, 0.2));
 }
 
+export function testColorsByHexOrRgb()
+{
+    expectEqual(parseColor("#4D4D4D"), rgbColor(77, 77, 77));
+    expectEqual(parseColor("#FFF"), rgbColor(255, 255, 255));
+    for (var rgb in ["77, 77, 77", "77,77,77", "77 77 77", " rgb(77, 77, 77) ", "RGB(77 77 77)"])
+    {
+        expectEqual(parseColor(rgb), rgbColor(77, 77, 77));
+    }
+    // Three digits alone are a hex code, as CSS reads them
+    expectEqual(parseColor("777"), rgbColor(119, 119, 119));
+}
+
+export function testWhatIsNoColor()
+{
+    for (var text in ["", "77, 77", "77, 77, 77, 77", "256, 0, 0", "rgb(77, 77, 77", "red", "-1, 0, 0"])
+    {
+        expectEqual(parseColor(text), undefined);
+    }
+}
+
 // Each standard color's name gives its hex code
 export function testStandardColorsAreTheirNamedHexCodes()
 {
