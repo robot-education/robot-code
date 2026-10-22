@@ -198,11 +198,12 @@ def _vendor(part: dict) -> str:
 # Vendors' Shopify stores, whose screws replace the group's: each store's vendor, and how its screws are titled
 STORES = {"wcproducts.com": "WCP", "andymark.com": "ANDYMARK"}
 _STORE_SCREWS = {
-    # `#10-32 x .375" L BHCS (Steel, Black Oxide) (50-Pack)`, `#10-32 x .250" L BHCS (Aluminum, Anodized)`, or a Kraken's
-    # spares, `#4-40 x 1/4" BHCS (IP8, ...)`; not ultra low profile ones, whose heads aren't standard
+    # `#10-32 x .375" L BHCS (Steel, Black Oxide) (50-Pack)`, `#10-32 x .250" L BHCS (Aluminum, Anodized)`; not ultra
+    # low profile ones, whose heads aren't standard, or a Kraken's spares, `#4-40 x 1/4" BHCS (IP8, ...)`, whose drive
+    # isn't a hex socket
     "WCP": re.compile(
         r'^(?P<size>#\d+-\d+) x (?P<length>[\d./]+)"? (?:L )?(?P<head>BHCS|SHCS|FHCS) '
-        r"\((?:(?P<finish>Steel, Black Oxide|Aluminum, Anodized)|IP\d+, [^)]*)\)"
+        r"\((?P<finish>Steel, Black Oxide|Aluminum, Anodized)\)"
     ),
     # `10-32 x 0.5 in. Button Head Cap Screw`, `1/4-20 x 2 in. Flat Head Cap Screw with Nylon Patch`
     "ANDYMARK": re.compile(
@@ -225,30 +226,55 @@ _STORE_HEADS = {
 Screws = dict[tuple[str, str, str], dict[Fraction, dict[Variant, Stock]]]
 
 
+@dataclasses.dataclass(frozen=True)
+class StoreScrew:
+    key: tuple[str, str, str]
+    length: Fraction
+    variant: Variant
+    has_patch: bool
+    stock: Stock
+
+
+def _store_screw(product: dict) -> StoreScrew | None:
+    """A store's product as a catalog screw; None for anything else: another kind of part or size, or a listing
+    shipped from abroad (`Ships from Sydney - ...`) of a screw the store lists at home too."""
+    vendor = STORES[product["store"]]
+    match = _STORE_SCREWS[vendor].match(product["title"])
+    if match is None:
+        return None
+    size = match["size"]
+    size = size if size.startswith("#") or size == "1/4-20" else "#" + size
+    if size not in SIZES_BY_NAME:
+        return None
+    finish_text = match.groupdict().get("finish")
+    if finish_text is None:
+        # AndyMark names a zinc plated screw's finish only in its url, like `.../screw-bhcs-1-4-20-x-750-zinc`
+        zinc = "zinc" in product["title"].lower() or "zinc" in product["url"].lower()
+        finish_text = "Steel, Zinc Plated" if zinc else "Steel, Black Oxide"
+    material, finish = parse_finish(finish_text)
+    return StoreScrew(
+        (vendor, SIZES_BY_NAME[size].id, _STORE_HEADS[match["head"]]),
+        parse_inches(match["length"]),
+        Variant(finish),
+        bool(match.groupdict().get("patch")),
+        Stock(product["sku"], product["url"], material),
+    )
+
+
 def _store_screws() -> Screws:
     """The screws each store sells in a size and head the catalog has: one per length and variant, one without a
     thread lock patch where it sells both."""
-    stocked: dict[tuple[str, str, str], dict[tuple[Fraction, Variant], tuple[bool, Stock]]] = {}
+    chosen: dict[tuple, StoreScrew] = {}
     for product in json.loads(STORES_SNAPSHOT.read_text())["products"]:
-        vendor = STORES[product["store"]]
-        match = _STORE_SCREWS[vendor].match(product["title"])
-        if match is None:
+        screw = _store_screw(product)
+        if screw is None:
             continue
-        size = match["size"]
-        size = size if size.startswith("#") or size == "1/4-20" else "#" + size
-        if size not in SIZES_BY_NAME:
-            continue
-        material, finish = parse_finish(match.groupdict().get("finish") or "Steel, Black Oxide")
-        key = (vendor, SIZES_BY_NAME[size].id, _STORE_HEADS[match["head"]])
-        has_patch = bool(match.groupdict().get("patch"))
-        variants = stocked.setdefault(key, {})
-        length = (parse_inches(match["length"]), Variant(finish))
-        if length not in variants or variants[length][0] and not has_patch:
-            variants[length] = (has_patch, Stock(product["sku"], product["url"], material))
+        slot = (screw.key, screw.length, screw.variant)
+        if slot not in chosen or chosen[slot].has_patch and not screw.has_patch:
+            chosen[slot] = screw
     screws: Screws = {}
-    for key, variants in stocked.items():
-        for (length, variant), (_, stock) in variants.items():
-            screws.setdefault(key, {}).setdefault(length, {})[variant] = stock
+    for screw in chosen.values():
+        screws.setdefault(screw.key, {}).setdefault(screw.length, {})[screw.variant] = screw.stock
     return screws
 
 
@@ -1023,12 +1049,9 @@ EXPORTS = {"fasteners.gen.json": json.dumps(manifest(), indent=2) + "\n"}
 
 # Refreshing vendor/stores.json, which only `fetch` does: `fs gen` runs this file without it, and makes no requests
 
-# Words in a screw's title, which keep the snapshot to what might be one
-_SCREW_WORDS = re.compile(r"BHCS|SHCS|FHCS|Cap Screw")
-
-
 def fetch_stores() -> None:
-    """Writes each store's products whose titles might be screws to vendor/stores.json, from Shopify's product list."""
+    """Writes each store's products which are catalog screws (`_store_screw`) to vendor/stores.json, from Shopify's
+    product list."""
     import urllib.request
 
     products = []
@@ -1042,15 +1065,16 @@ def fetch_stores() -> None:
             if not listed:
                 break
             for product in listed:
-                if _SCREW_WORDS.search(product["title"]) and product["variants"]:
-                    products.append(
-                        {
-                            "store": store,
-                            "title": product["title"],
-                            "sku": product["variants"][0]["sku"],
-                            "url": f"https://{store}/products/{product['handle']}",
-                        }
-                    )
+                if not product["variants"]:
+                    continue
+                entry = {
+                    "store": store,
+                    "title": product["title"],
+                    "sku": product["variants"][0]["sku"],
+                    "url": f"https://{store}/products/{product['handle']}",
+                }
+                if _store_screw(entry) is not None:
+                    products.append(entry)
     products.sort(key=lambda product: (product["store"], product["sku"], product["title"]))
     snapshot = {"source": "Each store's /products.json, by fastenerTables.py fetch", "products": products}
     STORES_SNAPSHOT.write_text(json.dumps(snapshot, indent=1) + "\n")

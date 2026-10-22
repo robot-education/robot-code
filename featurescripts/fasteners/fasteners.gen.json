@@ -83,6 +83,33 @@
                   "controlledOptions": [
                     "NO_4_40",
                     "NO_6_32",
+                    "QUARTER_20"
+                  ],
+                  "condition": {
+                    "btType": "BTParameterVisibilityLogical-178",
+                    "operation": "OR",
+                    "children": [
+                      {
+                        "btType": "BTParameterVisibilityOnEqual-180",
+                        "parameterId": "vendor",
+                        "value": "ANDYMARK"
+                      },
+                      {
+                        "btType": "BTParameterVisibilityOnEqual-180",
+                        "parameterId": "vendor",
+                        "value": "GENERIC"
+                      },
+                      {
+                        "btType": "BTParameterVisibilityOnEqual-180",
+                        "parameterId": "vendor",
+                        "value": "MCMASTER"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "btType": "BTEnumOptionVisibilityForList-1613",
+                  "controlledOptions": [
                     "NO_8_32"
                   ],
                   "condition": {
@@ -108,33 +135,6 @@
                         "btType": "BTParameterVisibilityOnEqual-180",
                         "parameterId": "vendor",
                         "value": "WCP"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "btType": "BTEnumOptionVisibilityForList-1613",
-                  "controlledOptions": [
-                    "QUARTER_20"
-                  ],
-                  "condition": {
-                    "btType": "BTParameterVisibilityLogical-178",
-                    "operation": "OR",
-                    "children": [
-                      {
-                        "btType": "BTParameterVisibilityOnEqual-180",
-                        "parameterId": "vendor",
-                        "value": "ANDYMARK"
-                      },
-                      {
-                        "btType": "BTParameterVisibilityOnEqual-180",
-                        "parameterId": "vendor",
-                        "value": "GENERIC"
-                      },
-                      {
-                        "btType": "BTParameterVisibilityOnEqual-180",
-                        "parameterId": "vendor",
-                        "value": "MCMASTER"
                       }
                     ]
                   }
@@ -446,16 +446,6 @@
                                 "btType": "BTParameterVisibilityOnEqual-180",
                                 "parameterId": "size",
                                 "value": "NO_10_32"
-                              },
-                              {
-                                "btType": "BTParameterVisibilityOnEqual-180",
-                                "parameterId": "size",
-                                "value": "NO_4_40"
-                              },
-                              {
-                                "btType": "BTParameterVisibilityOnEqual-180",
-                                "parameterId": "size",
-                                "value": "NO_6_32"
                               },
                               {
                                 "btType": "BTParameterVisibilityOnEqual-180",
@@ -863,70 +853,37 @@
                           },
                           {
                             "btType": "BTParameterVisibilityLogical-178",
-                            "operation": "OR",
+                            "operation": "AND",
                             "children": [
                               {
                                 "btType": "BTParameterVisibilityLogical-178",
-                                "operation": "AND",
+                                "operation": "OR",
                                 "children": [
                                   {
-                                    "btType": "BTParameterVisibilityLogical-178",
-                                    "operation": "OR",
-                                    "children": [
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_10_32"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_8_32"
-                                      }
-                                    ]
+                                    "btType": "BTParameterVisibilityOnEqual-180",
+                                    "parameterId": "size",
+                                    "value": "NO_10_32"
                                   },
                                   {
-                                    "btType": "BTParameterVisibilityLogical-178",
-                                    "operation": "OR",
-                                    "children": [
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "head",
-                                        "value": "BUTTON"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "head",
-                                        "value": "SOCKET"
-                                      }
-                                    ]
+                                    "btType": "BTParameterVisibilityOnEqual-180",
+                                    "parameterId": "size",
+                                    "value": "NO_8_32"
                                   }
                                 ]
                               },
                               {
                                 "btType": "BTParameterVisibilityLogical-178",
-                                "operation": "AND",
+                                "operation": "OR",
                                 "children": [
-                                  {
-                                    "btType": "BTParameterVisibilityLogical-178",
-                                    "operation": "OR",
-                                    "children": [
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_4_40"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_6_32"
-                                      }
-                                    ]
-                                  },
                                   {
                                     "btType": "BTParameterVisibilityOnEqual-180",
                                     "parameterId": "head",
                                     "value": "BUTTON"
+                                  },
+                                  {
+                                    "btType": "BTParameterVisibilityOnEqual-180",
+                                    "parameterId": "head",
+                                    "value": "SOCKET"
                                   }
                                 ]
                               }
@@ -1048,6 +1005,33 @@
                                     "value": "FLAT"
                                   }
                                 ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "btType": "BTParameterVisibilityLogical-178",
+                        "operation": "AND",
+                        "children": [
+                          {
+                            "btType": "BTParameterVisibilityOnEqual-180",
+                            "parameterId": "vendor",
+                            "value": "ANDYMARK"
+                          },
+                          {
+                            "btType": "BTParameterVisibilityLogical-178",
+                            "operation": "AND",
+                            "children": [
+                              {
+                                "btType": "BTParameterVisibilityOnEqual-180",
+                                "parameterId": "size",
+                                "value": "QUARTER_20"
+                              },
+                              {
+                                "btType": "BTParameterVisibilityOnEqual-180",
+                                "parameterId": "head",
+                                "value": "BUTTON"
                               }
                             ]
                           }
@@ -2232,25 +2216,9 @@
                                         "operation": "AND",
                                         "children": [
                                           {
-                                            "btType": "BTParameterVisibilityLogical-178",
-                                            "operation": "OR",
-                                            "children": [
-                                              {
-                                                "btType": "BTParameterVisibilityOnEqual-180",
-                                                "parameterId": "size",
-                                                "value": "NO_4_40"
-                                              },
-                                              {
-                                                "btType": "BTParameterVisibilityOnEqual-180",
-                                                "parameterId": "size",
-                                                "value": "NO_6_32"
-                                              },
-                                              {
-                                                "btType": "BTParameterVisibilityOnEqual-180",
-                                                "parameterId": "size",
-                                                "value": "NO_8_32"
-                                              }
-                                            ]
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "size",
+                                            "value": "NO_8_32"
                                           },
                                           {
                                             "btType": "BTParameterVisibilityOnEqual-180",
@@ -2959,9 +2927,20 @@
                                 "operation": "AND",
                                 "children": [
                                   {
-                                    "btType": "BTParameterVisibilityOnEqual-180",
-                                    "parameterId": "vendor",
-                                    "value": "REV"
+                                    "btType": "BTParameterVisibilityLogical-178",
+                                    "operation": "OR",
+                                    "children": [
+                                      {
+                                        "btType": "BTParameterVisibilityOnEqual-180",
+                                        "parameterId": "vendor",
+                                        "value": "REV"
+                                      },
+                                      {
+                                        "btType": "BTParameterVisibilityOnEqual-180",
+                                        "parameterId": "vendor",
+                                        "value": "WCP"
+                                      }
+                                    ]
                                   },
                                   {
                                     "btType": "BTParameterVisibilityLogical-178",
@@ -2985,66 +2964,6 @@
                                             "btType": "BTParameterVisibilityOnEqual-180",
                                             "parameterId": "head",
                                             "value": "SOCKET"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              {
-                                "btType": "BTParameterVisibilityLogical-178",
-                                "operation": "AND",
-                                "children": [
-                                  {
-                                    "btType": "BTParameterVisibilityOnEqual-180",
-                                    "parameterId": "vendor",
-                                    "value": "WCP"
-                                  },
-                                  {
-                                    "btType": "BTParameterVisibilityLogical-178",
-                                    "operation": "OR",
-                                    "children": [
-                                      {
-                                        "btType": "BTParameterVisibilityLogical-178",
-                                        "operation": "AND",
-                                        "children": [
-                                          {
-                                            "btType": "BTParameterVisibilityOnEqual-180",
-                                            "parameterId": "size",
-                                            "value": "NO_10_32"
-                                          },
-                                          {
-                                            "btType": "BTParameterVisibilityLogical-178",
-                                            "operation": "OR",
-                                            "children": [
-                                              {
-                                                "btType": "BTParameterVisibilityOnEqual-180",
-                                                "parameterId": "head",
-                                                "value": "BUTTON"
-                                              },
-                                              {
-                                                "btType": "BTParameterVisibilityOnEqual-180",
-                                                "parameterId": "head",
-                                                "value": "SOCKET"
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityLogical-178",
-                                        "operation": "AND",
-                                        "children": [
-                                          {
-                                            "btType": "BTParameterVisibilityOnEqual-180",
-                                            "parameterId": "size",
-                                            "value": "NO_4_40"
-                                          },
-                                          {
-                                            "btType": "BTParameterVisibilityOnEqual-180",
-                                            "parameterId": "head",
-                                            "value": "BUTTON"
                                           }
                                         ]
                                       }
@@ -4452,20 +4371,9 @@
                                             "value": "QUARTER_20"
                                           },
                                           {
-                                            "btType": "BTParameterVisibilityLogical-178",
-                                            "operation": "OR",
-                                            "children": [
-                                              {
-                                                "btType": "BTParameterVisibilityOnEqual-180",
-                                                "parameterId": "head",
-                                                "value": "BUTTON"
-                                              },
-                                              {
-                                                "btType": "BTParameterVisibilityOnEqual-180",
-                                                "parameterId": "head",
-                                                "value": "FLAT"
-                                              }
-                                            ]
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "head",
+                                            "value": "FLAT"
                                           }
                                         ]
                                       }
@@ -4605,20 +4513,9 @@
                                     "operation": "AND",
                                     "children": [
                                       {
-                                        "btType": "BTParameterVisibilityLogical-178",
-                                        "operation": "OR",
-                                        "children": [
-                                          {
-                                            "btType": "BTParameterVisibilityOnEqual-180",
-                                            "parameterId": "size",
-                                            "value": "NO_10_32"
-                                          },
-                                          {
-                                            "btType": "BTParameterVisibilityOnEqual-180",
-                                            "parameterId": "size",
-                                            "value": "NO_4_40"
-                                          }
-                                        ]
+                                        "btType": "BTParameterVisibilityOnEqual-180",
+                                        "parameterId": "size",
+                                        "value": "NO_10_32"
                                       },
                                       {
                                         "btType": "BTParameterVisibilityOnEqual-180",
@@ -4644,66 +4541,99 @@
                           },
                           {
                             "btType": "BTParameterVisibilityLogical-178",
-                            "operation": "AND",
+                            "operation": "OR",
                             "children": [
                               {
-                                "btType": "BTParameterVisibilityOnEqual-180",
-                                "parameterId": "vendor",
-                                "value": "MCMASTER"
+                                "btType": "BTParameterVisibilityLogical-178",
+                                "operation": "AND",
+                                "children": [
+                                  {
+                                    "btType": "BTParameterVisibilityOnEqual-180",
+                                    "parameterId": "vendor",
+                                    "value": "MCMASTER"
+                                  },
+                                  {
+                                    "btType": "BTParameterVisibilityLogical-178",
+                                    "operation": "AND",
+                                    "children": [
+                                      {
+                                        "btType": "BTParameterVisibilityLogical-178",
+                                        "operation": "OR",
+                                        "children": [
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "size",
+                                            "value": "NO_10_32"
+                                          },
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "size",
+                                            "value": "NO_4_40"
+                                          },
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "size",
+                                            "value": "NO_6_32"
+                                          },
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "size",
+                                            "value": "NO_8_32"
+                                          },
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "size",
+                                            "value": "QUARTER_20"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "btType": "BTParameterVisibilityLogical-178",
+                                        "operation": "OR",
+                                        "children": [
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "head",
+                                            "value": "BUTTON"
+                                          },
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "head",
+                                            "value": "FLAT"
+                                          },
+                                          {
+                                            "btType": "BTParameterVisibilityOnEqual-180",
+                                            "parameterId": "head",
+                                            "value": "SOCKET"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
                               },
                               {
                                 "btType": "BTParameterVisibilityLogical-178",
                                 "operation": "AND",
                                 "children": [
                                   {
+                                    "btType": "BTParameterVisibilityOnEqual-180",
+                                    "parameterId": "vendor",
+                                    "value": "ANDYMARK"
+                                  },
+                                  {
                                     "btType": "BTParameterVisibilityLogical-178",
-                                    "operation": "OR",
+                                    "operation": "AND",
                                     "children": [
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_10_32"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_4_40"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_6_32"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "size",
-                                        "value": "NO_8_32"
-                                      },
                                       {
                                         "btType": "BTParameterVisibilityOnEqual-180",
                                         "parameterId": "size",
                                         "value": "QUARTER_20"
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "btType": "BTParameterVisibilityLogical-178",
-                                    "operation": "OR",
-                                    "children": [
+                                      },
                                       {
                                         "btType": "BTParameterVisibilityOnEqual-180",
                                         "parameterId": "head",
                                         "value": "BUTTON"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "head",
-                                        "value": "FLAT"
-                                      },
-                                      {
-                                        "btType": "BTParameterVisibilityOnEqual-180",
-                                        "parameterId": "head",
-                                        "value": "SOCKET"
                                       }
                                     ]
                                   }
@@ -23613,62 +23543,6 @@
         {
           "values": {
             "vendor": "WCP",
-            "size": "NO_4_40",
-            "head": "BUTTON",
-            "finish": "BLACK",
-            "length": "IN_0_25"
-          },
-          "name": "#4-40 x 1/4 in. Button Head Screw",
-          "vendor": "WCP",
-          "partNumber": "WCP-2354",
-          "url": "https://wcproducts.com/products/wcp-2354",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "size": "NO_4_40",
-            "head": "BUTTON",
-            "finish": "BLACK",
-            "length": "IN_0_375"
-          },
-          "name": "#4-40 x 3/8 in. Button Head Screw",
-          "vendor": "WCP",
-          "partNumber": "WCP-2355",
-          "url": "https://wcproducts.com/products/wcp-2355",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "size": "NO_4_40",
-            "head": "BUTTON",
-            "finish": "BLACK",
-            "length": "IN_0_75"
-          },
-          "name": "#4-40 x 3/4 in. Button Head Screw",
-          "vendor": "WCP",
-          "partNumber": "WCP-2356",
-          "url": "https://wcproducts.com/products/wcp-2356",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "size": "NO_6_32",
-            "head": "BUTTON",
-            "finish": "BLACK",
-            "length": "IN_0_25"
-          },
-          "name": "#6-32 x 1/4 in. Button Head Screw",
-          "vendor": "WCP",
-          "partNumber": "WCP-2353",
-          "url": "https://wcproducts.com/products/wcp-2353",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
             "size": "NO_8_32",
             "head": "SOCKET",
             "finish": "BLACK",
@@ -24861,10 +24735,10 @@
             "vendor": "ANDYMARK",
             "size": "QUARTER_20",
             "head": "BUTTON",
-            "finish": "BLACK",
+            "finish": "ZINC_PLATED",
             "length": "IN_0_75"
           },
-          "name": "1/4-20 x 3/4 in. Button Head Screw",
+          "name": "1/4-20 x 3/4 in. Button Head Screw (Zinc plated)",
           "vendor": "AndyMark",
           "partNumber": "am-1754",
           "url": "https://andymark.com/products/screw-bhcs-1-4-20-x-750-zinc",
@@ -32892,46 +32766,6 @@
     },
     {
       "vendor": "WCP",
-      "size": "NO_4_40",
-      "head": "BUTTON",
-      "finish": "BLACK",
-      "lengths": [
-        {
-          "id": "IN_0_25",
-          "name": "1/4 in.",
-          "length": 0.00635,
-          "fullThreadChoice": false
-        },
-        {
-          "id": "IN_0_375",
-          "name": "3/8 in.",
-          "length": 0.009525,
-          "fullThreadChoice": false
-        },
-        {
-          "id": "IN_0_75",
-          "name": "3/4 in.",
-          "length": 0.01905,
-          "fullThreadChoice": false
-        }
-      ]
-    },
-    {
-      "vendor": "WCP",
-      "size": "NO_6_32",
-      "head": "BUTTON",
-      "finish": "BLACK",
-      "lengths": [
-        {
-          "id": "IN_0_25",
-          "name": "1/4 in.",
-          "length": 0.00635,
-          "fullThreadChoice": false
-        }
-      ]
-    },
-    {
-      "vendor": "WCP",
       "size": "NO_8_32",
       "head": "SOCKET",
       "finish": "BLACK",
@@ -33567,12 +33401,6 @@
           "fullThreadChoice": false
         },
         {
-          "id": "IN_0_75",
-          "name": "3/4 in.",
-          "length": 0.01905,
-          "fullThreadChoice": false
-        },
-        {
           "id": "IN_1",
           "name": "1 in.",
           "length": 0.0254,
@@ -33606,6 +33434,20 @@
           "id": "IN_2_5",
           "name": "2-1/2 in.",
           "length": 0.0635,
+          "fullThreadChoice": false
+        }
+      ]
+    },
+    {
+      "vendor": "ANDYMARK",
+      "size": "QUARTER_20",
+      "head": "BUTTON",
+      "finish": "ZINC_PLATED",
+      "lengths": [
+        {
+          "id": "IN_0_75",
+          "name": "3/4 in.",
+          "length": 0.01905,
           "fullThreadChoice": false
         }
       ]

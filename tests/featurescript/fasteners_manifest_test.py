@@ -55,8 +55,8 @@ def test_store_titles_parse():
     wcp, andymark = DEFINITION["_STORE_SCREWS"]["WCP"], DEFINITION["_STORE_SCREWS"]["ANDYMARK"]
     steel = wcp.match('#10-32 x 4.750 L BHCS (Steel, Black Oxide) (25-Pack)')
     assert steel.groupdict() == {"size": "#10-32", "length": "4.750", "head": "BHCS", "finish": "Steel, Black Oxide"}
-    kraken = wcp.match('#4-40 x 1/4" BHCS (IP8, Kraken CAN Terminal) (25-Pack)')
-    assert kraken.groupdict() == {"size": "#4-40", "length": "1/4", "head": "BHCS", "finish": None}
+    # A Kraken's spares, whose drive isn't a hex socket
+    assert wcp.match('#4-40 x 1/4" BHCS (IP8, Kraken CAN Terminal) (25-Pack)') is None
     assert wcp.match('#10-32 x .250" L BHCS (Aluminum, Anodized) (25-Pack)')["finish"] == "Aluminum, Anodized"
     assert wcp.match('#10-32 x .375" L SHCS (Steel, Ultra Low Profile) (2-Pack)') is None
     patched = andymark.match("10-32 x 3/8 in. Button Head Cap Screw with Nylon Patch")
@@ -67,6 +67,27 @@ def test_store_titles_parse():
         "patch": " with Nylon Patch",
     }
     assert andymark.match("1/4-20 x 1 in. Pan Head Phillips Screw") is None
+
+
+def test_only_a_stores_catalog_screws_are_kept():
+    store_screw = DEFINITION["_store_screw"]
+
+    def product(title: str, sku: str = "am-1", url: str = "https://andymark.com/products/x") -> dict:
+        return {"store": "andymark.com", "title": title, "sku": sku, "url": url}
+
+    assert store_screw(product("10-32 x 0.5 in. Socket Head Cap Screw")) is not None
+    # Listed again to ship from abroad, metric, or not a cap screw
+    assert store_screw(product("Ships from Sydney - 10-32 x 0.5 in. Socket Head Cap Screw", "am-1AUS")) is None
+    assert store_screw(product("M3-0.5 x 10 mm Socket Head Cap Screw")) is None
+    assert store_screw(product("10-12 x 1.25 in. Self Piercing Hex Head Cap Screw")) is None
+    # A zinc plated one, named so only in its url
+    zinc = store_screw(product("1/4-20 x 0.75 in. Button Head Cap Screw", url="https://andymark.com/products/screw-bhcs-1-4-20-x-750-zinc"))
+    assert zinc.variant == Variant("ZINC_PLATED")
+
+
+def test_the_stores_snapshot_holds_only_catalog_screws():
+    snapshot = json.loads(DEFINITION["STORES_SNAPSHOT"].read_text())
+    assert all(DEFINITION["_store_screw"](product) is not None for product in snapshot["products"])
 
 
 def test_screws_come_from_the_snapshot():

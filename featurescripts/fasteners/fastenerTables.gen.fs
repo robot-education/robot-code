@@ -1457,22 +1457,6 @@ export const SCREWS = {
             }
         },
         FastenerVendor.WCP : {
-            FastenerSize.NO_4_40 : {
-                ScrewHead.BUTTON : {
-                    FastenerFinish.BLACK : {
-                        ScrewLength.IN_0_25 : { "standard" : { "name" : "#4-40 x 1/4 in. Button Head Screw", "vendor" : "WCP", "partNumber" : "WCP-2354", "url" : "https://wcproducts.com/products/wcp-2354", "material" : STEEL, "appearance" : BLACK } },
-                        ScrewLength.IN_0_375 : { "standard" : { "name" : "#4-40 x 3/8 in. Button Head Screw", "vendor" : "WCP", "partNumber" : "WCP-2355", "url" : "https://wcproducts.com/products/wcp-2355", "material" : STEEL, "appearance" : BLACK } },
-                        ScrewLength.IN_0_75 : { "standard" : { "name" : "#4-40 x 3/4 in. Button Head Screw", "vendor" : "WCP", "partNumber" : "WCP-2356", "url" : "https://wcproducts.com/products/wcp-2356", "material" : STEEL, "appearance" : BLACK } }
-                    }
-                }
-            },
-            FastenerSize.NO_6_32 : {
-                ScrewHead.BUTTON : {
-                    FastenerFinish.BLACK : {
-                        ScrewLength.IN_0_25 : { "standard" : { "name" : "#6-32 x 1/4 in. Button Head Screw", "vendor" : "WCP", "partNumber" : "WCP-2353", "url" : "https://wcproducts.com/products/wcp-2353", "material" : STEEL, "appearance" : BLACK } }
-                    }
-                }
-            },
             FastenerSize.NO_8_32 : {
                 ScrewHead.SOCKET : {
                     FastenerFinish.BLACK : {
@@ -1633,13 +1617,15 @@ export const SCREWS = {
                         ScrewLength.IN_0_375 : { "standard" : { "name" : "1/4-20 x 3/8 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1520", "url" : "https://andymark.com/products/1-4-20-x-0-375-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_0_5 : { "standard" : { "name" : "1/4-20 x 1/2 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1039", "url" : "https://andymark.com/products/1-4-20-x-0-5-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_0_625 : { "standard" : { "name" : "1/4-20 x 5/8 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1681", "url" : "https://andymark.com/products/1-4-20-x-0-625-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
-                        ScrewLength.IN_0_75 : { "standard" : { "name" : "1/4-20 x 3/4 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1754", "url" : "https://andymark.com/products/screw-bhcs-1-4-20-x-750-zinc", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_1 : { "standard" : { "name" : "1/4-20 x 1 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1525", "url" : "https://andymark.com/products/1-4-20-x-1-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_1_25 : { "standard" : { "name" : "1/4-20 x 1-1/4 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1183", "url" : "https://andymark.com/products/1-4-20-x-1-25-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_1_5 : { "standard" : { "name" : "1/4-20 x 1-1/2 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1118", "url" : "https://andymark.com/products/1-4-20-x-1-5-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_1_75 : { "standard" : { "name" : "1/4-20 x 1-3/4 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1420", "url" : "https://andymark.com/products/1-4-20-x-1-75-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_2 : { "standard" : { "name" : "1/4-20 x 2 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1655", "url" : "https://andymark.com/products/1-4-20-x-2-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_2_5 : { "standard" : { "name" : "1/4-20 x 2-1/2 in. Button Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1695", "url" : "https://andymark.com/products/1-4-20-x-2-5-in-button-head-cap-screw", "material" : STEEL, "appearance" : BLACK } }
+                    },
+                    FastenerFinish.ZINC_PLATED : {
+                        ScrewLength.IN_0_75 : { "standard" : { "name" : "1/4-20 x 3/4 in. Button Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1754", "url" : "https://andymark.com/products/screw-bhcs-1-4-20-x-750-zinc", "material" : STEEL, "appearance" : UNCOATED_STEEL_GRAY } }
                     }
                 },
                 ScrewHead.FLAT : {
