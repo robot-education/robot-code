@@ -88,7 +88,7 @@ def test_a_list_with_no_option_shown_is_hidden_so_its_default_needs_no_showing()
 
 
 def equal(id, value):
-    return {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
+    return {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value, "inArray": False}
 
 
 def logical(operation, *children):
@@ -115,6 +115,12 @@ def test_each_option_rule_is_an_and_of_inputs_each_one_of_some_values():
             "btType": "BTEnumOptionVisibilityForList-1613",
             "controlledOptions": ["L3"],
             "condition": logical("AND", logical("OR", equal("size", "A"), equal("size", "B"))),
+        },
+        # Onshape hides an option no rule controls, so the rest are shown always, as its UI ends its rules
+        {
+            "btType": "BTEnumOptionVisibilityForList-1613",
+            "controlledOptions": ["L1"],
+            "condition": logical("AND", {"btType": "BTParameterVisibilityAlwaysShown-5487"}),
         },
     ]
 

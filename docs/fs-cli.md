@@ -315,7 +315,8 @@ them, for part sets (see [docs/parts.md](parts.md)).
 Onshape takes a visibility condition only as its UI makes one, an AND of inputs each one of some values, and refuses
 any other with a 409 ("The change would result in the feature list becoming invalid"). So the combinations which show
 an option are factored by input, earliest first (or by `factor_first`), into such conditions, each a rule controlling
-the options it shows: an option several rules control shows while any holds. A List with none of its options shown is
+the options it shows: an option shows while a rule controlling it holds. As Onshape's UI does, a last rule shows the
+rest always, since Onshape hides an option no rule controls. A List with none of its options shown is
 hidden, so a List's own visibility is folded into its options'. A checkbox has no options, and shows by a single
 condition, which the studio checks; one needing more is a `switch`. `fs parts diagnose` finds a part of a
 configuration Onshape refuses (see [docs/parts.md](parts.md)). `ConfiguredStudio.manifest()` gives the

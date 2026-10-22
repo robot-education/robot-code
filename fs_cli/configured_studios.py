@@ -265,27 +265,39 @@ Product = dict[str, list[str]]
 
 
 def _option_visibility(input: Input, order: Sequence[str]) -> list[dict]:
-    """A rule per product, controlling the options it shows. An option several rules control shows while any holds, and
-    a List with none of its options shown is hidden, so a List's own visibility is folded into its options'."""
+    """A rule per product, controlling the options it shows, and one showing the rest always, as Onshape's UI ends its
+    rules: an option shows while a rule controlling it holds. A List with none of its options shown is hidden, so a
+    List's own visibility is folded into its options'."""
     shown = [{}] if input.shown_when is None else _products(input.shown_when, order)
     rules: dict[str, tuple[Product, list[str]]] = {}
+    always: list[str] = []
     for option in input.options:
         own = [{}] if option.shown_when is None else _products(option.shown_when, order)
         products = [product for a in own for b in shown if (product := _intersect(a, b)) is not None]
         if not products:
             raise ValueError(f"Input {input.id}'s {option.id} is never shown")
         if any(not product for product in products):
+            always.append(option.id)
             continue
         for product in products:
             rules.setdefault(repr(product), (product, []))[1].append(option.id)
+    if not rules:
+        return []
     return [
-        {
-            "btType": "BTEnumOptionVisibilityForList-1613",
-            "controlledOptions": options,
-            "condition": _product_condition(product),
-        }
-        for product, options in rules.values()
+        *(_option_rule(options, _product_condition(product)) for product, options in rules.values()),
+        *([_option_rule(always, ALWAYS_SHOWN)] if always else []),
     ]
+
+
+ALWAYS_SHOWN = {
+    "btType": "BTParameterVisibilityLogical-178",
+    "operation": "AND",
+    "children": [{"btType": "BTParameterVisibilityAlwaysShown-5487"}],
+}
+
+
+def _option_rule(options: list[str], condition: dict) -> dict:
+    return {"btType": "BTEnumOptionVisibilityForList-1613", "controlledOptions": options, "condition": condition}
 
 
 def _products(combinations: Combinations, order: Sequence[str]) -> list[Product]:
@@ -331,7 +343,7 @@ def _product_condition(product: Product) -> dict:
                 "btType": "BTParameterVisibilityLogical-178",
                 "operation": "OR",
                 "children": [
-                    {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value}
+                    {"btType": "BTParameterVisibilityOnEqual-180", "parameterId": id, "value": value, "inArray": False}
                     for value in values
                 ],
             }
@@ -549,15 +561,19 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
 
 def configuration_stages(studio: ConfiguredStudio) -> list[tuple[str, dict]]:
     """Ever larger configurations, ending with the studio's own: none, its inputs with no conditions, then each input's
-    conditions added in turn (an input with option rules first with only its first), each with what it adds."""
+    conditions added in turn (an input with option rules first with only its first, its other options always shown),
+    each with what it adds."""
     full = studio.configuration_body()["configurationParameters"]
     conditions = ("visibilityCondition", "enumOptionVisibilityConditions")
     bare = [{key: value for key, value in parameter.items() if key not in conditions} for parameter in full]
     stages: list[tuple[str, list[dict]]] = [("an empty configuration", []), ("the inputs, with no conditions", bare)]
     for index, parameter in enumerate(full):
         rules = parameter.get("enumOptionVisibilityConditions", {}).get("visibilityConditions", [])
-        if len(rules) > 1:
-            first = {**parameter, "enumOptionVisibilityConditions": {**parameter["enumOptionVisibilityConditions"], "visibilityConditions": rules[:1]}}
+        if len(rules) > 2:
+            ruled = set(rules[0]["controlledOptions"])
+            rest = [option["option"] for option in parameter["options"] if option["option"] not in ruled]
+            first_rules = [rules[0], _option_rule(rest, ALWAYS_SHOWN)] if rest else rules[:1]
+            first = {**parameter, "enumOptionVisibilityConditions": {**parameter["enumOptionVisibilityConditions"], "visibilityConditions": first_rules}}
             stages.append((f"{parameter['parameterId']}'s first option rule", [*full[:index], first, *bare[index + 1 :]]))
         if parameter != bare[index]:
             described = f"{len(rules)} option rules" if len(rules) > 1 else "option rule" if rules else "visibility condition"
