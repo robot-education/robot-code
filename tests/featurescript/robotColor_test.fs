@@ -1,6 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "color/robotColor.fs", version : "");
+import(path : "core/robotProperties.fs", version : "");
 import(path : "testing.fs", version : "");
 
 export function testHexCodesWithOrWithoutTheirHash()
@@ -49,24 +50,26 @@ export function testWhatIsNoColor()
     }
 }
 
-// Each standard color's name gives its hex code
+// Each standard color's name gives its hex code, and robotProperties' constants are the standards they're named for
 export function testStandardColorsAreTheirNamedHexCodes()
 {
-    const named = {
-            StandardColor.BLACK : "#4D4D4D",
-            StandardColor.WHITE : "#EAEAEA",
-            StandardColor.LIGHT_GRAY : "#E6E6E6",
-            StandardColor.MEDIUM_GRAY : "#A6A6A6",
-            StandardColor.STEEL_GRAY : "#B3B3B3",
-            StandardColor.UNCOATED_STEEL_GRAY : "#B8C0D4",
-            StandardColor.BRASS_YELLOW : "#F5D578",
-            StandardColor.COPPER : "#FCBC84",
-            StandardColor.REV_ORANGE : "#FE8B00",
-            StandardColor.PRINTED_GREEN : "#4DD188"
+    expectEqual(size(STANDARD_COLORS), 34);
+    expectEqual(STANDARD_COLORS[StandardColor.GENERAL_BLACK], hexColor("#373737"));
+    expectEqual(STANDARD_COLORS[StandardColor.ZINC_COATED_STEEL], hexColor("#E1E7EC"));
+    expectEqual(STANDARD_COLORS[StandardColor.CLEAR_POLYCARBONATE], color(230 / 255, 230 / 255, 230 / 255, 0.8));
+    const constants = {
+            StandardColor.GENERAL_WHITE : WHITE,
+            StandardColor.LIGHT_GREY : LIGHT_GRAY,
+            StandardColor.MEDIUM_GREY : MEDIUM_GRAY,
+            StandardColor.STEEL_GREY : STEEL_GRAY,
+            StandardColor.GENERAL_BLACK : BLACK,
+            StandardColor.MACHINED_BRASS_YELLOW : BRASS_YELLOW,
+            StandardColor.REV_ORANGE : REV_ORANGE,
+            StandardColor.COPPER : COPPER,
+            StandardColor.ZINC_COATED_STEEL : ZINC_COATED_STEEL
         };
-    expectEqual(size(named), size(STANDARD_COLORS));
-    for (var standard, hex in named)
+    for (var standard, constant in constants)
     {
-        expectEqual(STANDARD_COLORS[standard], hexColor(hex));
+        expectEqual(STANDARD_COLORS[standard], constant);
     }
 }

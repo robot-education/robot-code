@@ -42,8 +42,10 @@ The configurations only offer what's made, so these show only in the features' o
 | Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in OD x 0.049 in)`, with any finish but black after the type: `(7/16 in OD x 0.03 in, Stainless steel)` |
 | Nut | `<size> <type> Nut`, e.g. `#10-32 Thin Nylock Nut` |
 
-Each has its material (steel, stainless steel, or aluminum, as its vendor sells it) and its finish's appearance (black,
-zinc plated, stainless, or aluminum's gray: WCP doesn't publish its aluminum screws' color), and its vendor as its Vendor,
+Each has its material (steel, stainless steel, or aluminum, as its vendor sells it) and its finish's appearance, as
+FRCDesignLib's color standards give it (general black, medium grey for zinc plated and for aluminum, whose color WCP
+doesn't publish, and steel grey for stainless); nuts are the standards' zinc-coated steel (#E1E7EC), whatever their
+finish. Each has its vendor as its Vendor,
 its part number, and its link as its description, where the vendor has them (Generic has none). `fastenerTables.py` names every configuration's part (its
 `Record`s) and writes each into the tables, which the features set as they are, and into the manifest, which
 FRCDesignApp indexes in place of asking Onshape: one record per configuration the Part Studio offers, so the two

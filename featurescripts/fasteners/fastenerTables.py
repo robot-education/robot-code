@@ -135,8 +135,11 @@ FINISH_ORDER = list(FINISH_NAMES)
 # Each kind its own, so a feature's dialog offers no finish its kind never comes in
 ScrewFinish = Enum("ScrewFinish", ["BLACK", "ZINC_PLATED", "ALUMINUM"], FINISH_NAMES)
 WasherFinish = Enum("WasherFinish", ["BLACK", "STAINLESS"], FINISH_NAMES)
-# Each finish's appearance, as robotProperties.fs's constant; WCP's anodized aluminum screws' color is unpublished
-APPEARANCES = {"BLACK": "BLACK", "ZINC_PLATED": "UNCOATED_STEEL_GRAY", "STAINLESS": "STEEL_GRAY", "ALUMINUM": "MEDIUM_GRAY"}
+# Each finish's appearance, as robotProperties.fs's constant (FRCDesignLib's color standards); WCP's anodized aluminum
+# screws' color is unpublished
+APPEARANCES = {"BLACK": "BLACK", "ZINC_PLATED": "MEDIUM_GRAY", "STAINLESS": "STEEL_GRAY", "ALUMINUM": "MEDIUM_GRAY"}
+# The standards' color for nuts, whatever their finish
+NUT_APPEARANCE = "ZINC_COATED_STEEL"
 STANDARD_FINISH = "BLACK"
 
 # A vendor's own words for a finish, after the material: black oxide, or WCP's black zinc
@@ -597,6 +600,8 @@ class Record:
     vendor: str
     stock: Stock
     finish: str = STANDARD_FINISH
+    # robotProperties.fs's constant, when not its finish's
+    appearance: str | None = None
 
     def fields(self) -> dict[str, str]:
         """What the FeatureScript table holds for it, which the feature sets as the part's properties."""
@@ -606,7 +611,7 @@ class Record:
             **({"vendor": string(vendor)} if vendor else {}),
             **_stock_fields(self.stock),
             "material": self.stock.material.constant,
-            "appearance": APPEARANCES[self.finish],
+            "appearance": self.appearance or APPEARANCES[self.finish],
         }
 
     def manifest(self) -> dict:
@@ -650,7 +655,9 @@ def _screw_records() -> dict[tuple[str, str, str, str, str, bool], Record]:
 
 def _nut_records() -> dict[tuple[str, str, str], Record]:
     return {
-        (vendor, size, type): Record({"vendor": vendor, "size": size, "type": type}, nut_name(size, type), vendor, stock)
+        (vendor, size, type): Record(
+            {"vendor": vendor, "size": size, "type": type}, nut_name(size, type), vendor, stock, appearance=NUT_APPEARANCE
+        )
         for (vendor, size, type), stock in NUTS.items()
     }
 
