@@ -386,16 +386,51 @@ NUT_VENDORS = ["GENERIC", "MCMASTER"]
 @dataclasses.dataclass
 class Nut:
     # A square nut's width
-    across_flats: float
-    height: float
+    across_flats: float | Fraction
+    height: float | Fraction
+    # A nylock's: its hex's height, under the dome holding its nylon insert, and the insert's bore
+    hex_height: float | Fraction | None = None
+    insert_diameter: float | None = None
 
 
+def _nylock(across_flats: float, height: float) -> Nut:
+    """A nylock with no McMaster-Carr model measured, in the proportions of the measured ones: a dome a sixth of its
+    height, and an insert 0.61 of its width across."""
+    return Nut(across_flats, height, height * 5 / 6, 0.61 * across_flats)
+
+
+# Measured from McMaster-Carr's models where there's a Fraction; the rest are nominal
 NUT_DIMENSIONS = {
-    "NO_4_40": {"NYLOCK": Nut(0.25, 0.141), "THIN_NYLOCK": Nut(0.25, 0.109), "HEX": Nut(0.25, 0.094), "THIN_HEX": Nut(0.25, 0.063)},
-    "NO_6_32": {"NYLOCK": Nut(0.3125, 0.172), "THIN_NYLOCK": Nut(0.3125, 0.125), "HEX": Nut(0.3125, 0.109), "THIN_HEX": Nut(0.3125, 0.078)},
-    "NO_8_32": {"NYLOCK": Nut(0.34375, 0.203), "THIN_NYLOCK": Nut(0.34375, 0.141), "HEX": Nut(0.34375, 0.125), "SQUARE": Nut(0.34375, 0.125)},
-    "NO_10_32": {"NYLOCK": Nut(0.375, 0.236), "THIN_NYLOCK": Nut(0.375, 0.156), "HEX": Nut(0.375, 0.125), "SQUARE": Nut(0.375, 0.125)},
-    "QUARTER_20": {"NYLOCK": Nut(0.4375, 0.312), "THIN_NYLOCK": Nut(0.4375, 0.203), "HEX": Nut(0.4375, 0.219), "SQUARE": Nut(0.4375, 0.219)},
+    "NO_4_40": {
+        "NYLOCK": _nylock(0.25, 0.141),
+        "THIN_NYLOCK": _nylock(0.25, 0.109),
+        "HEX": Nut(0.25, 0.094),
+        "THIN_HEX": Nut(0.25, 0.063),
+    },
+    "NO_6_32": {
+        "NYLOCK": Nut(Fraction(5, 16), Fraction(11, 64), Fraction(55, 384), 0.183127),
+        "THIN_NYLOCK": Nut(Fraction(5, 16), Fraction(1, 8), Fraction(5, 48), 0.190939),
+        "HEX": Nut(Fraction(5, 16), Fraction(7, 64)),
+        "THIN_HEX": Nut(Fraction(1, 4), Fraction(3, 32)),
+    },
+    "NO_8_32": {
+        "NYLOCK": _nylock(0.34375, 0.203),
+        "THIN_NYLOCK": _nylock(0.34375, 0.141),
+        "HEX": Nut(0.34375, 0.125),
+        "SQUARE": Nut(0.34375, 0.125),
+    },
+    "NO_10_32": {
+        "NYLOCK": Nut(Fraction(3, 8), Fraction(15, 64), Fraction(25, 128), 0.228966),
+        "THIN_NYLOCK": Nut(Fraction(3, 8), Fraction(11, 64), Fraction(17, 128), 0.228966),
+        "HEX": Nut(Fraction(3, 8), Fraction(1, 8)),
+        "SQUARE": Nut(Fraction(3, 8), Fraction(1, 8)),
+    },
+    "QUARTER_20": {
+        "NYLOCK": _nylock(0.4375, 0.312),
+        "THIN_NYLOCK": _nylock(0.4375, 0.203),
+        "HEX": Nut(0.4375, 0.219),
+        "SQUARE": Nut(Fraction(7, 16), Fraction(7, 32)),
+    },
 }
 
 _NUT = re.compile(r"^(#\d+-\d+|1/4-20)\s+(.+)$")
@@ -866,7 +901,12 @@ def _screw_fields(threads: dict[bool, Record]) -> str:
 
 def _nut_fields(record: Record) -> str:
     nut = NUT_DIMENSIONS[record.values["size"]][record.values["type"]]
-    return _fields({"acrossFlats": _in(nut.across_flats), "height": _in(nut.height), **record.fields()})
+    nylock = (
+        {"hexHeight": _in(nut.hex_height), "insertDiameter": _in(nut.insert_diameter)}
+        if nut.hex_height is not None and nut.insert_diameter is not None
+        else {}
+    )
+    return _fields({"acrossFlats": _in(nut.across_flats), "height": _in(nut.height), **nylock, **record.fields()})
 
 
 def _washer_fields(item: tuple[Washer, Record]) -> str:

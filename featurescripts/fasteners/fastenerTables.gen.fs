@@ -1647,66 +1647,66 @@ export const SCREWS = {
 export const NUTS = {
             FastenerVendor.GENERIC : {
                 FastenerSize.NO_4_40 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "name" : "#4-40 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.109 * inch, "name" : "#4-40 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.109 * inch, "hexHeight" : 0.090833 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.094 * inch, "name" : "#4-40 Hex Nut", "material" : STEEL, "appearance" : BLACK },
                     NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.063 * inch, "name" : "#4-40 Thin Hex Nut", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.NO_6_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.172 * inch, "name" : "#6-32 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.125 * inch, "name" : "#6-32 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.109 * inch, "name" : "#6-32 Hex Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.078 * inch, "name" : "#6-32 Thin Hex Nut", "material" : STEEL, "appearance" : BLACK }
+                    NutType.NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.143229 * inch, "insertDiameter" : 0.183127 * inch, "name" : "#6-32 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.125 * inch, "hexHeight" : 0.104167 * inch, "insertDiameter" : 0.190939 * inch, "name" : "#6-32 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.109375 * inch, "name" : "#6-32 Hex Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.09375 * inch, "name" : "#6-32 Thin Hex Nut", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.NO_8_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.203 * inch, "name" : "#8-32 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.141 * inch, "name" : "#8-32 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Hex Nut", "material" : STEEL, "appearance" : BLACK },
                     NutType.SQUARE : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Square Nut", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.NO_10_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.236 * inch, "name" : "#10-32 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.156 * inch, "name" : "#10-32 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.234375 * inch, "hexHeight" : 0.195312 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.132812 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Hex Nut", "material" : STEEL, "appearance" : BLACK },
                     NutType.SQUARE : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Square Nut", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.QUARTER_20 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.312 * inch, "name" : "1/4-20 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.203 * inch, "name" : "1/4-20 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.312 * inch, "hexHeight" : 0.26 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Nylock Nut", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Thin Nylock Nut", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.4375 * inch, "height" : 0.219 * inch, "name" : "1/4-20 Hex Nut", "material" : STEEL, "appearance" : BLACK },
-                    NutType.SQUARE : { "acrossFlats" : 0.4375 * inch, "height" : 0.219 * inch, "name" : "1/4-20 Square Nut", "material" : STEEL, "appearance" : BLACK }
+                    NutType.SQUARE : { "acrossFlats" : 0.4375 * inch, "height" : 0.21875 * inch, "name" : "1/4-20 Square Nut", "material" : STEEL, "appearance" : BLACK }
                 }
             },
             FastenerVendor.MCMASTER : {
                 FastenerSize.NO_4_40 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "name" : "#4-40 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A005", "url" : "https://www.mcmaster.com/90631A005/", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.109 * inch, "name" : "#4-40 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A005", "url" : "https://www.mcmaster.com/90633A005/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A005", "url" : "https://www.mcmaster.com/90631A005/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.109 * inch, "hexHeight" : 0.090833 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A005", "url" : "https://www.mcmaster.com/90633A005/", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.094 * inch, "name" : "#4-40 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A005", "url" : "https://www.mcmaster.com/90480A005/", "material" : STEEL, "appearance" : BLACK },
                     NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.063 * inch, "name" : "#4-40 Thin Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90760A005", "url" : "https://www.mcmaster.com/90760A005/", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.NO_6_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.172 * inch, "name" : "#6-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A007", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.125 * inch, "name" : "#6-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A007", "material" : STEEL, "appearance" : BLACK },
-                    NutType.HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.109 * inch, "name" : "#6-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A007", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.078 * inch, "name" : "#6-32 Thin Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90760A007", "material" : STEEL, "appearance" : BLACK }
+                    NutType.NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.143229 * inch, "insertDiameter" : 0.183127 * inch, "name" : "#6-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A007", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.125 * inch, "hexHeight" : 0.104167 * inch, "insertDiameter" : 0.190939 * inch, "name" : "#6-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A007", "material" : STEEL, "appearance" : BLACK },
+                    NutType.HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.109375 * inch, "name" : "#6-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A007", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.09375 * inch, "name" : "#6-32 Thin Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90760A007", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.NO_8_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.203 * inch, "name" : "#8-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A009", "url" : "https://www.mcmaster.com/90631A009/", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.141 * inch, "name" : "#8-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A009", "url" : "https://www.mcmaster.com/90633A009/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A009", "url" : "https://www.mcmaster.com/90631A009/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A009", "url" : "https://www.mcmaster.com/90633A009/", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A009", "url" : "https://www.mcmaster.com/90480A009/", "material" : STEEL, "appearance" : BLACK },
                     NutType.SQUARE : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "94855A216", "url" : "https://www.mcmaster.com/94855A216/", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.NO_10_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.236 * inch, "name" : "#10-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A411", "url" : "https://www.mcmaster.com/90631A411/", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.156 * inch, "name" : "#10-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A411", "url" : "https://www.mcmaster.com/90633A411/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.234375 * inch, "hexHeight" : 0.195312 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A411", "url" : "https://www.mcmaster.com/90631A411/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.132812 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A411", "url" : "https://www.mcmaster.com/90633A411/", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A195", "url" : "https://www.mcmaster.com/90480A195/", "material" : STEEL, "appearance" : BLACK },
                     NutType.SQUARE : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "94855A283", "url" : "https://www.mcmaster.com/94855A283/", "material" : STEEL, "appearance" : BLACK }
                 },
                 FastenerSize.QUARTER_20 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.312 * inch, "name" : "1/4-20 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90640A129", "url" : "https://www.mcmaster.com/90640A129/", "material" : STEEL, "appearance" : BLACK },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.203 * inch, "name" : "1/4-20 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90566A029", "url" : "https://www.mcmaster.com/90566A029/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.312 * inch, "hexHeight" : 0.26 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90640A129", "url" : "https://www.mcmaster.com/90640A129/", "material" : STEEL, "appearance" : BLACK },
+                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90566A029", "url" : "https://www.mcmaster.com/90566A029/", "material" : STEEL, "appearance" : BLACK },
                     NutType.HEX : { "acrossFlats" : 0.4375 * inch, "height" : 0.219 * inch, "name" : "1/4-20 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90494A029", "url" : "https://www.mcmaster.com/90494A029/", "material" : STEEL, "appearance" : BLACK },
-                    NutType.SQUARE : { "acrossFlats" : 0.4375 * inch, "height" : 0.219 * inch, "name" : "1/4-20 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "90043A029", "url" : "https://www.mcmaster.com/90043A029/", "material" : STEEL, "appearance" : BLACK }
+                    NutType.SQUARE : { "acrossFlats" : 0.4375 * inch, "height" : 0.21875 * inch, "name" : "1/4-20 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "90043A029", "url" : "https://www.mcmaster.com/90043A029/", "material" : STEEL, "appearance" : BLACK }
                 }
             }
         };

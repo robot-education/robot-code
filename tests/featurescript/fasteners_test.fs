@@ -123,6 +123,60 @@ export function testLongSocketHeadsComeFullyThreadedToo()
     expectEqual(threads.fullThread.partNumber, "90044A113");
 }
 
+export function testNutProfilesClose()
+{
+    for (var vendor, sizes in NUTS)
+    {
+        for (var sizeId, types in sizes)
+        {
+            for (var nutType, nut in types)
+            {
+                const points = nutProfile(FASTENER_SIZES[sizeId], nut, nutType);
+                if (nutType == NutType.NYLOCK || nutType == NutType.THIN_NYLOCK)
+                {
+                    // The dome closes it, from the top of its hex to its flat top
+                    const dome = nylockDome(nut);
+                    expectSamePoint(dome.start, points[size(points) - 1]);
+                    expectSamePoint(dome.end, points[0]);
+                }
+                else
+                {
+                    expectSamePoint(points[0], points[size(points) - 1]);
+                }
+            }
+        }
+    }
+}
+
+export function testNylonInsertsFitInsideTheirDomes()
+{
+    for (var vendor, sizes in NUTS)
+    {
+        for (var sizeId, types in sizes)
+        {
+            for (var nutType, nut in types)
+            {
+                if (nut.insertDiameter == undefined)
+                {
+                    continue;
+                }
+                const dome = nylockDome(nut);
+                expectTrue(nut.hexHeight < nut.height, "a nylock's hex is shorter than it");
+                expectTrue(nut.insertDiameter / 2 < dome.end[0], "its insert is inside its flat top");
+                expectTrue(FASTENER_SIZES[sizeId].tapDrillDiameter < nut.insertDiameter, "its insert is wider than its bore");
+            }
+        }
+    }
+}
+
+export function testNutsMatchMcMasterCarrsModels()
+{
+    const nuts = NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_10_32];
+    expectNear(nuts[NutType.THIN_NYLOCK].height, 11 / 64 * inch, 1e-6 * inch);
+    expectNear(nuts[NutType.NYLOCK].height - nuts[NutType.NYLOCK].hexHeight, 5 / 128 * inch, 1e-6 * inch);
+    expectNear(NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_6_32][NutType.THIN_HEX].acrossFlats, 1 / 4 * inch, 1e-6 * inch);
+}
+
 function expectSamePoint(actual is Vector, expected is Vector)
 {
     expectNear(norm(actual - expected), 0 * meter, 1e-9 * meter);

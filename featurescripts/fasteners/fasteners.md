@@ -89,12 +89,18 @@ with `made`, and a screw's thread when it has no `fullThread`.
    A574) where it's longer.
 4. Adds the mate connector, then deletes the sketches and names the part.
 
-`fastenerWasher` extrudes a ring up from the origin, adds the mate connector, and names the part. `fastenerNut`
-extrudes a hexagon or square up from the origin, with a hole the size's tap drill, and taps it through as std's Hole
-does: a hole attribute on the bore (which `fastenerHoleScan` reads as threaded), and a cosmetic thread up from the
-origin. Then it adds the mate connector and names the part.
+`fastenerWasher` extrudes a ring up from the origin, adds the mate connector, and names the part. `fastenerNut`:
 
-Threads are cosmetic, and nylock nuts have no nylon insert: the parts are for fit and clearance.
+1. Extrudes a hexagon or square up from the origin, as tall as the nut.
+2. Revolves its profile (`nutProfile`) and keeps what's inside both. The profile is its bore, the size's tap drill,
+   and its chamfers from the circle across its flats: 30 degrees on both ends of a hex nut, on the top only of a
+   square nut, 25 degrees on both ends of a nylock's hex. A nylock rises from its hex in a quarter circle
+   (`nylockDome`) to a flat top, where its nylon insert sits 0.009 in down in a bore of its own.
+3. Taps the bore through as std's Hole does: a hole attribute on it (which `fastenerHoleScan` reads as threaded), and
+   a cosmetic thread up from the origin, to a nylock's insert.
+4. Adds the mate connector, deletes the sketches, names the part, and colors a nylock's insert white.
+
+Threads are cosmetic: the parts are for fit and clearance.
 
 `fastenerHoleScan` isn't a feature: FRCDesign evaluates its body as a lambda, so it uses only std's common.fs. It
 reports each solid part's cylindrical faces which face their axis (holes), with their extent along it, their circular
@@ -111,6 +117,9 @@ There are no `try`s.
   selected face, whose ids `qTransient` finds again. That found `qOwnerBody` passed to `transientQueriesToStrings`,
   which only names transient queries, so the scan failed whenever anything was selected; it now names the evaluated
   body.
-- Nut heights for thin nylock, thin hex, and #4-40 nuts are nominal guesses, not from McMaster-Carr's drawings.
+- Nuts are measured from McMaster-Carr's models in #6-32 and #10-32, and the 1/4-20 square nut. The rest are
+  nominal, and the other sizes' nylock domes and inserts take the measured nylocks' proportions: a dome a sixth of the
+  nut's height, and an insert 0.61 of its width across flats.
+- Not yet tried in Onshape: the nuts' chamfers, domes, and inserts.
 - Not yet tried in Onshape: the chamfers, button domes, and threads. Neither is whether Onshape's hole callouts and
   Fasten mates read the attributes as they read std's.

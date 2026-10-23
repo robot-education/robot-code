@@ -27,6 +27,12 @@ const FLAT_HEAD_BAND = 0.006;
 const BUTTON_HEAD_TOP = 1.4;
 // A standard socket head screw's threads run 2D + 1/2 in from its tip (ASTM A574)
 const SOCKET_HEAD_THREAD_ALLOWANCE = 0.5 * inch;
+// Nuts' chamfers, from the circle across their flats, as McMaster-Carr models them
+const NUT_CHAMFER_ANGLE = 30 * degree;
+const NYLOCK_CHAMFER_ANGLE = 25 * degree;
+// How far a nylock's nylon insert sits below the top of its dome
+const NYLON_RECESS = 0.009 * inch;
+const NYLON_COLOR = color(1, 1, 1);
 
 annotation { "Feature Type Name" : "Screw",
         "Feature Type Description" : "A standard screw from FRCDesign's library, seated at the origin." ~ CREDIT }
@@ -193,7 +199,9 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
             throw regenError("Selected vendor does not make this nut, change the type.", ["nutType"]);
         }
         const size = FASTENER_SIZES[definition.size];
+        const isNylock = isNylockType(definition.nutType);
 
+        // 1. Extrude its hex or square
         const sketchId = id + "sketch";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
         if (definition.nutType == NutType.SQUARE)
@@ -211,21 +219,46 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
                         "sides" : 6
                     });
         }
-        skCircle(sketch, "hole", { "center" : vector(0, 0) * meter, "radius" : size.tapDrillDiameter / 2 });
         skSolve(sketch);
         opExtrude(context, id + "extrude", {
-                    "entities" : qSketchRegion(sketchId, true),
+                    "entities" : qSketchRegion(sketchId),
                     "direction" : Z_DIRECTION,
                     "endBound" : BoundingType.BLIND,
                     "endDepth" : nut.height
                 });
-        const body = qCreatedBy(id + "extrude", EntityType.BODY);
 
-        addNutThread(context, id + "thread", body, size, nut.height);
+        // 2. Keep what's inside its profile, revolved: its bore, chamfers, and a nylock's dome and insert
+        const profileId = id + "profile";
+        const profileSketch = newSketchOnPlane(context, profileId, { "sketchPlane" : PROFILE_PLANE });
+        skPolyline(profileSketch, "profile", { "points" : nutProfile(size, nut, definition.nutType) });
+        if (isNylock)
+        {
+            skArc(profileSketch, "dome", nylockDome(nut));
+        }
+        skSolve(profileSketch);
+        opRevolve(context, id + "revolve", {
+                    "entities" : qSketchRegion(profileId),
+                    "axis" : line(WORLD_ORIGIN, Z_DIRECTION),
+                    "angleForward" : 2 * PI * radian
+                });
+        opBoolean(context, id + "intersect", {
+                    "tools" : qUnion([qCreatedBy(id + "extrude", EntityType.BODY), qCreatedBy(id + "revolve", EntityType.BODY)]),
+                    "operationType" : BooleanOperationType.INTERSECTION
+                });
+        const body = qUnion([qCreatedBy(id + "extrude", EntityType.BODY), qCreatedBy(id + "revolve", EntityType.BODY)]);
+
+        // 3. Tap its bore, up to a nylock's insert, and seat it
+        addNutThread(context, id + "thread", body, size, isNylock ? nut.height - NYLON_RECESS : nut.height);
         addSeatMateConnector(context, id + "mateConnector", body);
 
-        cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
+        cleanup(context, id + "deleteSketches", qUnion([qCreatedBy(sketchId, EntityType.BODY), qCreatedBy(profileId, EntityType.BODY)]));
         setFastenerProperties(context, body, nut);
+        if (isNylock)
+        {
+            const nylon = qOwnedByBody(body, EntityType.FACE)->qGeometry(GeometryType.PLANE)
+                ->qContainsPoint(vector((size.tapDrillDiameter + nut.insertDiameter) / 4, 0 * meter, nut.height - NYLON_RECESS));
+            setProperty(context, { "entities" : nylon, "propertyType" : PropertyType.APPEARANCE, "value" : NYLON_COLOR });
+        }
     });
 
 predicate vendorPredicate(definition is map)
@@ -253,6 +286,59 @@ function made(entries is map, value, standard)
 // The XZ plane, with the sketch's X along the radius and its Y along the axis
 const PROFILE_PLANE = plane(WORLD_ORIGIN, -Y_DIRECTION, X_DIRECTION);
 
+
+function isNylockType(nutType is NutType) returns boolean
+{
+    return nutType == NutType.NYLOCK || nutType == NutType.THIN_NYLOCK;
+}
+
+/**
+ * A nut's profile, which it's the revolve of within its hex or square: up its bore from its bearing face, and back down
+ * its chamfers, both of a hex's ends, a square's top only. A nylock's runs from its dome's top (see `nylockDome`) down
+ * into its insert's recess and back to the dome's start, which the dome closes; any other's closes on itself.
+ */
+export function nutProfile(size is map, nut is map, nutType is NutType) returns array
+{
+    const zero = 0 * meter;
+    const bore = size.tapDrillDiameter / 2;
+    const flat = nut.acrossFlats / 2;
+    const isSquare = nutType == NutType.SQUARE;
+    const isNylock = isNylockType(nutType);
+    // Past the corners, where a chamfer's line leaves the nut
+    const outer = 1.05 * flat * (isSquare ? sqrt(2) : 2 / sqrt(3));
+    const rise = (outer - flat) * tan(isNylock ? NYLOCK_CHAMFER_ANGLE : NUT_CHAMFER_ANGLE);
+    const bottom = isSquare ? [vector(bore, zero), vector(outer, zero)] : [vector(bore, zero), vector(flat, zero), vector(outer, rise)];
+    if (!isNylock)
+    {
+        return concatenateArrays([
+                    bottom,
+                    [vector(outer, nut.height - rise), vector(flat, nut.height), vector(bore, nut.height), vector(bore, zero)]
+                ]);
+    }
+    const top = nut.height - NYLON_RECESS;
+    return concatenateArrays([
+                [vector(flat - (nut.height - nut.hexHeight), nut.height), vector(nut.insertDiameter / 2, nut.height),
+                    vector(nut.insertDiameter / 2, top), vector(bore, top)],
+                bottom,
+                [vector(outer, nut.hexHeight - rise), vector(flat, nut.hexHeight)]
+            ]);
+}
+
+/**
+ * A nylock's dome, from the top of its hex across its flats up to its flat top: a quarter circle as tall as the nut is
+ * above its hex.
+ */
+export function nylockDome(nut is map) returns map
+{
+    const flat = nut.acrossFlats / 2;
+    const radius = nut.height - nut.hexHeight;
+    const center = vector(flat - radius, nut.hexHeight);
+    return {
+            "start" : vector(flat, nut.hexHeight),
+            "mid" : center + radius * vector(cos(45 * degree), sin(45 * degree)),
+            "end" : vector(flat - radius, nut.height)
+        };
+}
 
 /**
  * A mate connector at the origin, pointing up: fastened to an edge, the part sits on it.
