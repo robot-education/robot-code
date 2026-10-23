@@ -375,8 +375,11 @@ A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_stud
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
 default), creating it if it's missing, and replaces its configuration with the definition's, which must keep the
-inputs' ids. It then inserts its feature from the Feature Studio in the same document, with each input's default,
-if it has none, and points the feature at that Feature Studio as it is now, configured by it. A refusal names the
+inputs' ids. It then deletes the feature a build inserted before, inserts it from the Feature Studio in the same
+document as it is now, with each input's default, and configures it. The configured feature keeps the namespaces
+Onshape stored on insert, for it and each of its enums: a feature from a Feature Studio re-exporting another
+document's (as a release's is) is stored under another namespace than it's inserted with, and Onshape refuses an
+update naming any other, "Feature does not match". A refusal names the
 step Onshape refused, and a feature that fails to regenerate in its default configuration stops the build. `fs parts` builds
 them, for part sets (see [docs/parts.md](parts.md)).
 Onshape takes a visibility condition only as its UI makes one, an AND of inputs each one of some values, and refuses

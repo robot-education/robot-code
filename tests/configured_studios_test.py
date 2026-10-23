@@ -277,10 +277,19 @@ def test_locations_are_recorded_beside_the_definition(tmp_path):
 class FakeApi:
     """A workspace's Part Studios, by name, each with its features."""
 
-    def __init__(self, tabs: dict[str, list[dict]], status: str = "OK"):
+    def __init__(self, tabs: dict[str, list[dict]], status: str = "OK", stored_namespace: str | None = None):
         self.tabs = {f"e{index}": (name, features) for index, (name, features) in enumerate(tabs.items())}
         self.status = status
+        # What Onshape stores an inserted feature's namespace, and its enums', as; as sent when None
+        self.stored_namespace = stored_namespace
         self.requests = []
+
+    def delete(self, path, **kwargs):
+        self.requests.append(("DELETE", path, None))
+        element_id = path.split("/e/")[1].split("/")[0]
+        feature_id = path.rsplit("/", 1)[1]
+        features = self.tabs[element_id][1]
+        features[:] = [feature for feature in features if feature["featureId"] != feature_id]
 
     def get(self, path, **kwargs):
         self.requests.append(("GET", path, None))
@@ -298,7 +307,14 @@ class FakeApi:
             return body
         if path.endswith("/features"):
             element_id = path.split("/e/")[1].split("/")[0]
-            self.tabs[element_id][1].append({**body["feature"], "featureId": "F"})
+            feature = {**body["feature"], "featureId": "F"}
+            if self.stored_namespace is not None:
+                feature["namespace"] = self.stored_namespace
+                feature["parameters"] = [
+                    {**parameter, "namespace": self.stored_namespace} if "namespace" in parameter else parameter
+                    for parameter in feature["parameters"]
+                ]
+            self.tabs[element_id][1].append(feature)
         return {"featureState": {"featureStatus": self.status}}
 
 
@@ -347,28 +363,43 @@ def test_build_refuses_a_configuration_onshape_renamed():
         build(Renaming({}), WORKSPACE, studio(), "fs", "fsmv")
 
 
-def test_build_points_a_tabs_feature_at_the_feature_studio_and_configures_it():
+def test_build_replaces_the_feature_a_build_inserted_before():
     feature = {
         "featureId": "F1",
         "featureType": "fastenerScrew",
         "namespace": "efs::mold",
-        "parameters": [
-            {"btType": "BTMParameterEnum-145", "parameterId": "size", "value": "A"},
-            {"btType": "BTMParameterBoolean-144", "parameterId": "other", "value": True},
-        ],
+        "parameters": [{"btType": "BTMParameterEnum-145", "parameterId": "size", "value": "A"}],
     }
     api = FakeApi({"Screw": [{"featureId": "S", "featureType": "newSketch"}, feature]})
     built = build(api, WORKSPACE, studio(), "fs", "fsmv")
 
     assert (built.element_id, built.created) == ("e0", False)
-    [(_, path, update)] = [request for request in api.requests if request[1].endswith("/featureid/F1")]
-    # The microversion after the configuration changed
-    assert update["sourceMicroversion"] == "mv4"
+    writes = [(method, path) for method, path, _ in api.requests if method != "GET"]
+    assert writes == [
+        ("POST", "/elements/d/d/w/w/e/e0/configuration"),
+        ("DELETE", "/partstudios/d/d/w/w/e/e0/features/featureid/F1"),
+        ("POST", "/partstudios/d/d/w/w/e/e0/features"),
+        ("POST", "/partstudios/d/d/w/w/e/e0/features/featureid/F"),
+    ]
+    [update] = [body for _, path, body in api.requests if path.endswith("/featureid/F")]
+    # The feature list's, read after the insert
+    assert update["sourceMicroversion"] == "mv6"
     assert update["feature"]["namespace"] == "efs::mfsmv"
     parameters = update["feature"]["parameters"]
-    assert [parameter["parameterId"] for parameter in parameters] == ["size", "other", "length", "washer"]
-    assert parameters[0]["btType"] == "BTMParameterConfigured-2222"
-    assert parameters[1] == feature["parameters"][1]
+    assert [parameter["parameterId"] for parameter in parameters] == ["size", "length", "washer"]
+    assert all(parameter["btType"] == "BTMParameterConfigured-2222" for parameter in parameters)
+
+
+def test_build_configures_a_feature_in_the_namespaces_onshape_stored():
+    # As from a Feature Studio re-exporting another document's: Onshape stores where it's defined
+    stored = "dback::vver::eback::mbackmv"
+    api = FakeApi({}, stored_namespace=stored)
+    build(api, WORKSPACE, studio(), "fs", "fsmv")
+
+    [update] = [body for _, path, body in api.requests if path.endswith("/featureid/F")]
+    assert update["feature"]["namespace"] == stored
+    size = update["feature"]["parameters"][0]["values"][0]["value"]
+    assert (size["enumName"], size["namespace"]) == ("Size", stored)
 
 
 def test_build_reports_a_feature_that_fails_to_regenerate():

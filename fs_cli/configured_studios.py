@@ -485,8 +485,12 @@ def _check_configuration(studio: ConfiguredStudio, written: dict) -> None:
 
 def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feature_studio_microversion: str) -> Built:
     """Makes a Part Studio exactly `studio`: finds its tab by name in a workspace, or creates it; writes its
-    configuration; then inserts its feature, from the Feature Studio in the same workspace, if it has none, and points
-    it at that Feature Studio as it is now, configured.
+    configuration; then inserts its feature, from the Feature Studio in the same workspace as it is now, replacing the
+    one a build inserted before, and configures it.
+
+    The configured feature keeps the namespaces Onshape stored on insert, for the feature and each of its enums: a
+    feature from a Feature Studio which re-exports another document's is stored under another namespace than it was
+    inserted with, and Onshape refuses an update naming any other ("Feature does not match").
 
     Args:
         api: An onshape_api Api.
@@ -530,34 +534,63 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
         written = elements.update_configuration(api, part_studio, studio.configuration_body())
     _check_configuration(studio, written)
     namespace = feature_namespace(feature_studio_id, feature_studio_microversion)
-    if not matches:
-        # Inserted plain and configured after, so a refusal names which of the two Onshape objects to
-        with step(f"insert {studio.feature}"):
-            part_studios.add_feature(
-                api,
-                part_studio,
-                {
-                    "btType": "BTMFeature-134",
-                    "featureType": studio.feature,
-                    "name": studio.tab_name,
-                    "namespace": namespace,
-                    "parameters": studio.default_parameters(namespace),
-                },
-            )
+    if matches:
+        with step(f"delete the {studio.feature} a build inserted before"):
+            part_studios.delete_feature(api, part_studio, matches[0]["featureId"])
+    # Inserted plain and configured after, so a refusal names which of the two Onshape objects to
+    with step(f"insert {studio.feature}"):
+        part_studios.add_feature(
+            api,
+            part_studio,
+            {
+                "btType": "BTMFeature-134",
+                "featureType": studio.feature,
+                "name": studio.tab_name,
+                "namespace": namespace,
+                "parameters": studio.default_parameters(namespace),
+            },
+        )
     # Its configuration, or its insert, changed its microversion
     feature_list = part_studios.get_features(api, part_studio)
     feature = next(feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature)
-    configured = {parameter["parameterId"]: parameter for parameter in studio.configured_parameters(namespace)}
-    parameters = [configured.pop(parameter["parameterId"], parameter) for parameter in feature.get("parameters", [])]
+    stored = feature.get("parameters", [])
+    configured = {
+        parameter["parameterId"]: parameter
+        for parameter in stored_namespaces(studio.configured_parameters(feature.get("namespace", "")), stored)
+    }
+    parameters = [configured.pop(parameter["parameterId"], parameter) for parameter in stored]
     with step(f"configure {studio.feature}"):
         response = part_studios.update_feature(
             api,
             part_studio,
-            {**feature, "namespace": namespace, "parameters": [*parameters, *configured.values()]},
+            {**feature, "parameters": [*parameters, *configured.values()]},
             feature_list["sourceMicroversion"],
         )
     status = response.get("featureState", {}).get("featureStatus", "OK")
     return Built(element_id, created, status)
+
+
+def stored_namespaces(configured: list[dict], stored: list[dict]) -> list[dict]:
+    """Configured parameters with each enum value in the namespace Onshape stored its parameter's enum under."""
+    namespaces = {
+        parameter["parameterId"]: parameter.get("namespace", "")
+        for parameter in stored
+        if parameter.get("btType") == "BTMParameterEnum-145"
+    }
+
+    def renamed(parameter: dict) -> dict:
+        namespace = namespaces.get(parameter["parameterId"])
+        if namespace is None:
+            return parameter
+        values = [
+            {**value, "value": {**value["value"], "namespace": namespace}}
+            if value["value"].get("btType") == "BTMParameterEnum-145"
+            else value
+            for value in parameter["values"]
+        ]
+        return {**parameter, "values": values}
+
+    return [renamed(parameter) for parameter in configured]
 
 
 def configuration_stages(studio: ConfiguredStudio) -> list[tuple[str, dict]]:

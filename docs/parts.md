@@ -49,8 +49,8 @@ uv run fs parts fasteners --test
 
 They're built in the branch's own workspace (see [Branches](fs-cli.md#branches)), so branches don't build over each
 other's. Each Part Studio is built as `<tab> (TEST)`, e.g. `Screw (TEST)`, from the Feature Studio as pushed: its tab found by
-name or created, its configuration written, and its feature inserted (or pointed at the Feature Studio as it is now)
-and configured. It prints each one's url, to check in Onshape. A feature that fails to regenerate in its default
+name or created, its configuration written, and its feature inserted from the Feature Studio as it is now (replacing
+the one a build inserted before) and configured. It prints each one's url, to check in Onshape. A feature that fails to regenerate in its default
 configuration stops the build. Nothing is versioned or recorded, so try as often as needed.
 
 When Onshape refuses a configuration, `uv run fs parts fasteners --diagnose` finds which part. It writes each studio's

@@ -23,6 +23,12 @@ def update_feature(api: Api, part_studio_path: ElementPath, feature: dict, sourc
     )
 
 
+def delete_feature(api: Api, part_studio_path: ElementPath, feature_id: str) -> None:
+    """Deletes a feature from a Part Studio."""
+    assert_workspace(part_studio_path)
+    api.delete(api_path("partstudios", part_studio_path, ElementPath, f"features/featureid/{feature_id}"))
+
+
 def create_part_studio(api: Api, workspace_path: InstancePath, name: str) -> dict:
     """Creates an empty Part Studio at the top level of a document; answers its element, with its `id`."""
     assert_workspace(workspace_path)
