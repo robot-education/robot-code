@@ -6,7 +6,7 @@ import(path : "onshape/std/externalThread.fs", version : "2960.0");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 // Also exports the enums used as parameter types
-export import(path : "fasteners/fastenerTables.gen.fs", version : "");
+export import(path : "86033ffc9510cee8dd457b7f", version : "41e4e704429c4965ab6949e1");
 
 /**
  * FRCDesign's library fasteners: its screws, washers, and nuts, generated for FRCDesignApp. Each is made in a Part
