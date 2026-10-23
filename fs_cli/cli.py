@@ -2159,7 +2159,7 @@ def _exists_locally(item: Studio | Image) -> bool:
 
 
 def check_path_imports(workspace: Workspace, studios: list[Studio], images: list[str] = []) -> None:
-    problems = workspace.path_import_problems(studios, images)
+    problems = workspace.path_import_problems(studios, images) + workspace.stale_import_problems(studios)
     if problems:
         raise UsageError("Can't push:\n  " + "\n  ".join(problems))
 

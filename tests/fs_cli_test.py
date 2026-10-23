@@ -547,6 +547,35 @@ def test_deleted_in_onshape_is_recreated_by_push(repo, onshape, capsys):
     assert onshape.code("frame.fs") == "a"
 
 
+def test_recreating_a_tab_repoints_the_files_importing_its_old_one(repo, onshape, capsys):
+    utils = onshape.add("utils.fs", "u")
+    onshape.add("frame.fs", f'import(path : "{utils}", version : "{"a" * 24}");\n')
+    git(repo, "init", "-q")
+    (repo / ".gitignore").write_text(".fs-state.json\n")
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    run(onshape, "pull")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Start")
+    del onshape.studios()[utils]
+    capsys.readouterr()
+    # frame.fs would keep importing a tab that's gone
+    assert run(onshape, "push") == 2
+    assert (
+        f"frame.fs imports utils.fs by its old tab ({utils}), which this push makes again under a new id; "
+        "push frame.fs too."
+    ) in capsys.readouterr().err
+    assert onshape.names() == ["frame.fs"]
+
+    # The failed push saved fs-studios.json without the old tab; its last commit still names it
+    local(repo, "frame.fs").write_text(local(repo, "frame.fs").read_text() + "// frame\n")
+    assert run(onshape, "push") == 0
+    new_utils = next(id for id, s in onshape.studios().items() if s["name"] == "utils.fs")
+    # Its version is whichever microversion utils.fs had when frame.fs was pushed, which they race for
+    assert f'import(path : "{new_utils}", version : "' in onshape.code("frame.fs")
+    assert f'import(path : "{new_utils}", version : "' in local(repo, "frame.fs").read_text()
+
+
 def test_push_deletes_tabs_of_deleted_files(repo, onshape, capsys):
     onshape.add("frame.fs", "a")
     onshape.add("plate.fs", "b")

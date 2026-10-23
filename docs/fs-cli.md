@@ -145,7 +145,8 @@ Deleting a file and running `fs push` (or `fs sync`) deletes its tab in Onshape,
 (`--yes` skips it). If the tab changed in Onshape since it was last synced, `fs push` asks first, as for files changed on both sides
 (`fs push --force` deletes it anyway), or if another file still imports it. `fs pull --force` restores a deleted file instead. Only deletions
 `fs` has seen are tracked: on a fresh clone, a tab with no file is just pulled. A tab deleted in Onshape is
-recreated by `fs push` unless you delete the file. Onshape's list of tabs can lag behind a tab created seconds
+recreated by `fs push` unless you delete the file. A recreated tab has a new id, so files importing its old one
+must be pushed with it, and the push points them at the new tab; it refuses to make the tab while one isn't. Onshape's list of tabs can lag behind a tab created seconds
 before, so a tracked tab missing from it is listed again, then fetched to confirm it's gone (a 404, which doesn't
 count against the API limits); if it's still there, `fs` stops rather than recreating it. Released FeatureScripts are the exception: their tabs are never
 deleted or recreated (see [Releasing](#releasing)).

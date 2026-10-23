@@ -199,7 +199,11 @@ def migrate(path: pathlib.Path, studios_path: pathlib.Path) -> None:
 
 def load_studio_files(studios_path: pathlib.Path) -> dict[str, str]:
     """Maps element ids to files in the code folder, from fs-studios.json."""
-    data = _read_json(studios_path)
+    return studio_files(_read_json(studios_path))
+
+
+def studio_files(data: dict) -> dict[str, str]:
+    """Maps element ids to files in the code folder, from fs-studios.json's contents."""
     if data.get("version") != STUDIOS_VERSION:
         return {}
     return {

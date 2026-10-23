@@ -20,6 +20,7 @@ from __future__ import annotations
 import collections
 import dataclasses
 import enum
+import json
 import pathlib
 import re
 import time
@@ -38,8 +39,11 @@ from fs_cli.state import (
     apply_import_versions,
     content_hash,
     import_versions,
+    load_studio_files,
     path_imports,
     resolve_path_imports,
+    retarget_imports,
+    studio_files,
 )
 
 MAX_WORKERS = 8
@@ -499,13 +503,38 @@ class Workspace:
                     )
         return problems
 
+    def previous_tabs(self, studios: list[Studio]) -> dict[str, str]:
+        """The tabs fs-studios.json records for files about to get new ones: each old element id, and its file. Files
+        import tabs by id, so a file importing one of these must be pushed with the new tab. Any command saves the file
+        without a tab deleted in Onshape, so its last commit is read too. Makes no API calls."""
+        creating = {studio.path for studio in studios if studio.remote is None}
+        files = load_studio_files(self.config.studios_path)
+        committed = git.committed_contents(self.config.root, self.config.studios_path) if self.use_git else None
+        if committed:
+            files = {**studio_files(json.loads(committed)), **files}
+        return {element_id: path for element_id, path in files.items() if path in creating}
+
+    def stale_import_problems(self, studios: list[Studio]) -> list[str]:
+        """Files importing a tab about to be made again under a new id which aren't being pushed with it, so would keep
+        importing a tab that's gone. Makes no API calls."""
+        pushing = {studio.path for studio in studios}
+        return [
+            f"{importer} imports {path} by its old tab ({element_id}), which this push makes again under a new id; "
+            f"push {importer} too."
+            for element_id, path in self.previous_tabs(studios).items()
+            for importer in self.importers(element_id)
+            if importer not in pushing
+        ]
+
     def push_studios(self, studios: list[Studio]) -> None:
         """Pushes studios to Onshape, creating any which don't exist yet.
 
         New studios are created at the top level of the document, since the API can't place
         them in folders. Imports by path (see path_import_problems) are then replaced with
-        imports by element id, in the local files too.
+        imports by element id, in the local files too, as are imports of a studio's old tab when
+        it's made again (see stale_import_problems).
         """
+        previous = self.previous_tabs(studios)
 
         def create(studio: Studio) -> None:
             studio.remote = self.remote.create(self.instance, studio.name)
@@ -520,10 +549,11 @@ class Workspace:
         for studio in studios:
             assert studio.remote
             targets[studio.path] = (studio.remote.element_id, studio.remote.microversion_id)
+        recreated = {element_id: targets[path] for element_id, path in previous.items() if targets[path][0] != element_id}
 
         def push(studio: Studio) -> None:
             assert studio.local_code is not None and studio.remote
-            code = resolve_path_imports(studio.local_code, targets)
+            code = retarget_imports(resolve_path_imports(studio.local_code, targets), recreated)
             if studio.remote_code is not None:
                 # Never push import versions older than the ones Onshape has, except of tabs just pushed
                 versions = import_versions(studio.remote_code)
