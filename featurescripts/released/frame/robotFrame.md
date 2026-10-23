@@ -14,12 +14,12 @@ writeup doesn't repeat.
 
 ## Changelog
 
-Unreleased.
+Since v1.1.0 (`fs changes robotFrame`).
 
-- Hole start distance, for COTS and custom frames: where the first hole is (custom frames' Start distance, renamed).
-  Editing logic sets a COTS frame's to where its holes start as it's sold.
 - Custom frames' Custom size (tube or angle): Width, Height, Top rows, Side rows, and Top and Side row distances.
 - Custom frames whose walls are too thick for them are an error.
+- Which row distances a custom frame shows (2x1's faces', or Distance between rows) is worked out on every change,
+  not only when the frame changes.
 
 ## Strings
 
