@@ -1,8 +1,8 @@
 # Robot frame
 
 Adds tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so std's frame
-features work with it. Frames are COTS (from vendors' tables) or custom (a common size of tube or angle, with holes as
-the dialog says). The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md), which this
+features work with it. Frames are COTS (from vendors' tables) or custom (a common size of tube or angle, or any size,
+with holes as the dialog says). The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md), which this
 writeup doesn't repeat.
 
 | File | What it is |
@@ -18,6 +18,8 @@ Unreleased.
 
 - Hole start distance, for COTS and custom frames: where the first hole is (custom frames' Start distance, renamed).
   Editing logic sets a COTS frame's to where its holes start as it's sold.
+- Custom frames' Custom size (tube or angle): Width, Height, Top rows, Side rows, and Top and Side row distances.
+- Custom frames whose walls are too thick for them are an error.
 
 ## Strings
 
@@ -33,7 +35,9 @@ Unreleased.
 | Hole start distance (`holeStart`) | The distance from the start of the frame to its first hole. |
 
 `rectangularFrame` is hidden: editing logic sets it (its "Set By" function, `isRectangularFrame`) for custom frames
-whose faces differ in width (2x1), and it shows the 2 in. and 1 in. face row distances in place of Distance between rows. Hole diameter (FRC) is
+whose faces differ in width (2x1), and it shows the 2 in. and 1 in. face row distances in place of Distance between rows.
+`customSize` is too (`isCustomSizeFrame`), for the Custom size, and it shows Width, Height, Top rows, Side rows, and
+Top and Side row distances in place of either. Hole diameter (FRC) is
 shown, but editing logic sets it to the frame's when the frame changes, and likewise a COTS frame's Hole start distance
 to where its holes start as it's sold (unless it's been set).
 
@@ -42,7 +46,8 @@ to where its holes start as it's sold (unless it's been set).
 | Message | Kind | When | Highlights |
 | --- | --- | --- | --- |
 | This frame's holes are `<diameter>`, so holes can't be smaller. | error | FRC COTS: Hole diameter is smaller than the frame's holes | `holeDiameter` |
-| The rows of holes don't fit across the frame's faces. | error | Custom: a face's rows (and a hole's diameter) are wider than the face inside its walls | `customFrame`, `rowSpacing`, `wideRowSpacing`, `narrowRowSpacing`, `holeDiameter` |
+| The walls are too thick for the frame. | error | Custom: two walls are as thick as the frame is wide or high | `customFrame`, `width`, `height`, `wallThickness` |
+| The rows of holes don't fit across the frame's faces. | error | Custom: a face's rows (and a hole's diameter) are wider than the face inside its walls | `customFrame`, `width`, `height`, `topRows`, `sideRows`, `rowSpacing`, `wideRowSpacing`, `narrowRowSpacing`, `topRowSpacing`, `sideRowSpacing`, `holeDiameter` |
 
 And linear stock's, with `<name>` "frame".
 
@@ -57,14 +62,16 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 ### Execution order
 
 1. **Precondition**: Program; Source (FRC); the Frame group: FRC's, FTC's, or the custom table, and for custom frames
-   the row distances (by the hidden `rectangularFrame`), wall thickness, and hole spacing; Hole diameter (FRC); Hole start distance; linear
+   the Custom size's size, rows, and row distances (by the hidden `customSize`) or the row distances (by the hidden
+   `rectangularFrame`), wall thickness, and hole spacing; Hole diameter (FRC); Hole start distance; linear
    stock's groups.
 2. **Editing logic** (`robotFrameEditLogic`, then `frameChangeEditLogic`): sets `rectangularFrame` for a custom frame
-   (`isRectangularFrame`: whether its width and height differ). Then if the program, source, or any of the three frame
+   (`isRectangularFrame`: whether its width and height differ, but not for the Custom size), and `customSize`
+   (`isCustomSizeFrame`: whether it's the Custom size). Then if the program, source, or any of the three frame
    paths changed (or the feature is being created), sets a COTS frame's Hole start distance to where its holes start as it's sold (`tieStart`) unless
    it's been set, and Hole diameter to the frame's (`frameHoleDiameter`: the table's, or 0.196 in. for custom frames), unless it's
    been set larger. Then `stockEditLogic`, with no default offset.
-3. **Body**: `verifyHoles` checks the hole diameter or rows, then `getFrame` builds the `Stock`, and `placeStock`
+3. **Body**: `verifyFrame` checks the hole diameter, or the walls and rows, then `getFrame` builds the `Stock`, and `placeStock`
    places it.
 4. **Manipulator change**: `stockManipulatorChange` (linear stock's).
 
@@ -73,22 +80,24 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 | Function | What it does |
 | --- | --- |
 | `frameTableEntry` | The chosen entry: the custom table's for custom frames, else FRC's or FTC's. |
-| `getFrame` | The `Stock`. A COTS frame is its entry, with Hole diameter as its holes' (FTC frames keep the table's) and its rows as `HoleRow`s (`holeRows`). Each row's first hole, and the holes counted for tying (`tieStart`), move along it so the first which counts is Hole start distance from the start. A custom frame is built from its entry (width, height, angle, rows on each face) and the dialog: walls `wallThickness` thick, and a grid of holes on each face (`gridRows`), the first `holeStart` from the start, with `holeSpacing` between holes along it and the rows `rowSpacing` apart across it; holes count for tying every `holeSpacing` from `holeStart`. |
+| `getFrame` | The `Stock`. A COTS frame is its entry, with Hole diameter as its holes' (FTC frames keep the table's) and its rows as `HoleRow`s (`holeRows`). Each row's first hole, and the holes counted for tying (`tieStart`), move along it so the first which counts is Hole start distance from the start. A custom frame is built from its size (`customFrameSize`) and the dialog: walls `wallThickness` thick, and a grid of holes on each face (`gridRows`), the first `holeStart` from the start, with `holeSpacing` between holes along it and the face's row distance between rows across it; holes count for tying every `holeSpacing` from `holeStart`. |
+| `customFrameSize` | A custom frame's width, height, angle, rows on each face, and their distances: from its entry, with the distances from `rowSpacing`, or for the Custom size (`customSize` in its entry), all but the angle from the dialog (`width`, `height`, `topRows`, `sideRows`, `topRowSpacing`, `sideRowSpacing`). |
 | `holeRows` | A table entry's rows, as `HoleRow`s. |
 | `frameHoleDiameter` | The frame's own hole diameter: the table's, or `CUSTOM_HOLE_DIAMETER` (0.196 in.). |
 | `isRectangular` | Whether a custom frame's width and height differ (2x1). |
 | `rowSpacing` | The distance between rows across a face of a custom frame: `wideRowSpacing` on a rectangular frame's wider faces, `narrowRowSpacing` on its narrower ones, `rowSpacing` on a square one's. |
 | `gridRows` | A row of holes along a face: `count` across, centered, `spacing` apart; the first `start` from the start. |
-| `verifyHoles` | Above (FRC only). |
+| `verifyFrame` | Above (FRC only). |
 | `rowsFit` | Whether `count` rows fit across a face: `(count - 1) * spacing + holeDiameter` is at most its width. |
+| `isRectangularFrame`, `isCustomSizeFrame` | Set `rectangularFrame` and `customSize` (above). |
 | `robotFrameEditLogic` | Above. |
 
 ### Data flow
 
 A COTS frame's table entry (profile, walls, holes, stock lengths, appearance, part name) is used as is, but for the hole
-diameter. A custom frame's entry only has its size and how many rows each face has; everything else comes from the
-dialog. `sideRows` go through the walls facing X, which are `height` wide; `topRows` through those facing Y, `width`
-wide (for 2x1, the 2 in. faces).
+diameter. A custom frame's entry only has its size and how many rows each face has (the Custom size's, neither);
+everything else comes from the dialog. `sideRows` go through the walls facing X, which are `height` wide; `topRows` through those facing Y, `width`
+wide (for 2x1, the 2 in. faces). The Custom size's Top rows are `topRows`, and Side rows `sideRows`.
 
 ### Error handling
 
