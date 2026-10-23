@@ -54,7 +54,8 @@ def defines(code: str, feature: str) -> bool:
 
 
 def part_set_definitions(workspace: Workspace, part_set: PartSet) -> list[tuple[pathlib.Path, list[ConfiguredStudio]]]:
-    """The definitions in a part set's folder which configure Part Studios, each with its studios."""
+    """The definitions in a part set's folder which configure Part Studios, each with its studios, checked offline
+    against the configuration rules before anything is sent to Onshape."""
     folder = workspace.config.code_dir / part_set.folder
     found = []
     for path in sorted(folder.rglob("*.py")):
@@ -63,6 +64,9 @@ def part_set_definitions(workspace: Workspace, part_set: PartSet) -> list[tuple[
             found.append((path, studios))
     if not found:
         raise UsageError(f"Nothing in {part_set.folder}/ configures a Part Studio (a definition's STUDIOS).")
+    problems = [problem for _, studios in found for studio in studios for problem in studio.problems()]
+    if problems:
+        raise UsageError("The configurations break their rules (see docs/fs-cli.md's \"Configured Part Studios\"):\n  " + "\n  ".join(problems))
     return found
 
 

@@ -387,13 +387,18 @@ A `LookupTable` lays a table out by these rules, from what's made, each thing a 
 - Its default is shown wherever its input shows at the other inputs' defaults, and every option is controlled by a
   rule (below).
 
-`tests/featurescript/fasteners_manifest_test.py` checks each rule on the fasteners' studios as generated.
+`ConfiguredStudio.problems()` checks the configuration as it's written against these rules and the shape Onshape takes
+conditions in (below); `fs parts` refuses a set with any before it sends Onshape anything, and
+`tests/featurescript/fasteners_manifest_test.py` checks the fasteners' studios as generated. When Onshape refuses a
+configuration these allow, `fs parts SET --diagnose` finds which input's rules, and what it refused becomes a rule here.
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
-default), creating it if it's missing, and replaces its configuration with the definition's, which must keep the
-inputs' ids. It then deletes the feature a build inserted before, inserts it from the Feature Studio in the same
-document as it is now, with each input's default, and configures it. The configured feature keeps the namespaces
+default), creating it if it's missing, and deletes the feature a build inserted before: its configured parameters name
+the configuration's inputs and options, and Onshape refuses a configuration that leaves them naming ones it no longer
+has ("The change would result in the feature list becoming invalid"). It then replaces the configuration with the
+definition's, which must keep the inputs' ids, inserts the feature from the Feature Studio in the same document as it
+is now, with each input's default, and configures it. The configured feature keeps the namespaces
 Onshape stored on insert, for it and each of its enums: a feature from a Feature Studio re-exporting another
 document's (as a release's is) is stored under another namespace than it's inserted with, and Onshape refuses an
 update naming any other, "Feature does not match". A refusal names the

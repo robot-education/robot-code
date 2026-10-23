@@ -468,9 +468,10 @@ def test_build_replaces_the_feature_a_build_inserted_before():
 
     assert (built.element_id, built.created) == ("e0", False)
     writes = [(method, path) for method, path, _ in api.requests if method != "GET"]
+    # Deleted first: Onshape refuses a configuration which leaves its configured parameters naming options it lacks
     assert writes == [
-        ("POST", "/elements/d/d/w/w/e/e0/configuration"),
         ("DELETE", "/partstudios/d/d/w/w/e/e0/features/featureid/F1"),
+        ("POST", "/elements/d/d/w/w/e/e0/configuration"),
         ("POST", "/partstudios/d/d/w/w/e/e0/features"),
         ("POST", "/partstudios/d/d/w/w/e/e0/features/featureid/F"),
     ]
@@ -550,3 +551,39 @@ def test_diagnose_names_the_first_stage_onshape_refuses():
     assert diagnosis.accepted == ["an empty configuration", "the inputs, with no conditions"]
     assert diagnosis.refused is not None and "feature list becoming invalid" in diagnosis.refused[1]
     assert diagnosis.element_id == "new"
+
+
+def test_problems_are_none_for_a_studio_kept_to_the_rules():
+    assert studio().problems() == []
+    assert finished().problems() == []
+    assert ConfiguredStudio("s", "f", [TABLE.input(enum_input(id, values)) for id, values in [("vendor", "A B"), ("size", "S1 S2"), ("finish", "BLACK ZINC")]]).problems() == []
+
+
+def test_problems_name_an_input_shown_with_one_option():
+    one = ConfiguredStudio(
+        "s",
+        "f",
+        [
+            Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size"),
+            Input("finish", "Finish", "finish", [Option("X", "X", "X"), Option("Y", "Y", "Y", [{"size": "B"}])], enum_name="Finish"),
+        ],
+    )
+    assert one.problems() == ["s: finish shows one option, X, with {'size': 'A'}"]
+
+
+def test_problems_name_a_condition_onshape_refuses():
+    from fs_cli.configured_studios import _condition_problems
+
+    options = {"size": ["A", "B"]}
+    assert _condition_problems(logical("AND", logical("OR", equal("size", "A"))), {"size"}, options) == []
+    assert _condition_problems(logical("OR", equal("size", "A")), {"size"}, options) == ["a condition isn't an AND"]
+    assert _condition_problems(logical("AND", logical("OR", equal("size", "C"))), {"size"}, options) == [
+        "a condition names size's options ['C'], not each one of its options once"
+    ]
+    assert _condition_problems(logical("AND", logical("OR", equal("size", "A"))), set(), options) == [
+        "a condition names size, which isn't a configured input before it"
+    ]
+    assert _condition_problems(logical("AND", logical("OR", equal("size", "A"), equal("head", "X"))), {"size"}, options) == [
+        "an OR isn't of one input's options",
+        "a condition names no input",
+    ]

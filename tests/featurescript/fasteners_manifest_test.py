@@ -244,6 +244,12 @@ MADE = {
 
 
 @pytest.mark.parametrize("kind", KINDS)
+def test_each_studio_keeps_to_the_configuration_rules(kind):
+    """What `fs parts` checks before it sends anything to Onshape."""
+    assert DEFINITION["STUDIOS"][kind].problems() == []
+
+
+@pytest.mark.parametrize("kind", KINDS)
 def test_an_input_shows_only_with_a_choice_of_options(kind):
     studio = DEFINITION["STUDIOS"][kind]
     for combination in studio.combinations():

@@ -164,6 +164,40 @@ class ConfiguredStudio:
             defaults[input.id] = input.default_option
             earlier[input.id] = input
 
+    def problems(self) -> list[str]:
+        """What breaks a rule of docs/fs-cli.md's "Configured Part Studios" in the configuration as it's written,
+        beyond what constructing the studio checks: each rule an AND of earlier inputs each one of some of their
+        options, every option of an input with rules controlled by one, and no input shown with one option."""
+        found: list[str] = []
+        parameters = self.configuration_body()["configurationParameters"]
+        options = {parameter["parameterId"]: [option["option"] for option in parameter.get("options", [])] for parameter in parameters}
+        earlier: set[str] = set()
+        for parameter in parameters:
+            id = parameter["parameterId"]
+            rules = parameter.get("enumOptionVisibilityConditions", {}).get("visibilityConditions", [])
+            conditions = [rule["condition"] for rule in rules]
+            if "visibilityCondition" in parameter:
+                conditions.append(parameter["visibilityCondition"])
+            for condition in conditions:
+                found += [f"{self.name}: {id}: {problem}" for problem in _condition_problems(condition, earlier, options)]
+            controlled = [option for rule in rules for option in rule["controlledOptions"]]
+            if rules and set(controlled) != set(options[id]):
+                found.append(f"{self.name}: {id}: options no rule controls, which Onshape hides: {sorted(set(options[id]) - set(controlled))}")
+            earlier.add(id)
+        single: set[str] = set()
+        for combination in self.combinations():
+            for index, input in enumerate(self.configured_inputs()):
+                if input.kind == "boolean" or not input_shows(input, combination):
+                    continue
+                shown = [option.id for option in input.options if shows(option, combination)]
+                ids = [each.id for each in self.configured_inputs()[:index]]
+                before = {id: value for id, value in combination.items() if id in ids}
+                problem = f"{self.name}: {input.id} shows one option, {shown[0] if shown else ''}, with {before}"
+                if len(shown) == 1 and problem not in single:
+                    single.add(problem)
+                    found.append(problem)
+        return found
+
     def combinations(self) -> list[dict[str, str]]:
         """Every combination of its inputs' options the configuration shows, earliest input first: each a choice
         of every input it shows, with each List's option one shown with the choices before it. A hidden input is
@@ -357,6 +391,40 @@ def _option_visibility(input: Input, order: Sequence[str]) -> list[dict]:
         *(_option_rule(options, _product_condition(product)) for product, options in rules.values()),
         *([_option_rule(always, ALWAYS_SHOWN)] if always else []),
     ]
+
+
+def _condition_problems(condition: dict, earlier: set[str], options: Mapping[str, list[str]]) -> list[str]:
+    """Why Onshape would refuse a condition: it takes only an AND of inputs before the one it's on, each an OR of
+    some of their options, or the rule showing the rest always."""
+    if condition == ALWAYS_SHOWN:
+        return []
+    if condition.get("btType") != "BTParameterVisibilityLogical-178" or condition.get("operation") != "AND":
+        return ["a condition isn't an AND"]
+    found = []
+    named = []
+    for child in condition.get("children", []):
+        if child.get("btType") != "BTParameterVisibilityLogical-178" or child.get("operation") != "OR":
+            found.append("an AND holds something other than an OR")
+            continue
+        equals = child.get("children", [])
+        ids = {equal.get("parameterId") for equal in equals}
+        if not equals or len(ids) != 1 or any(equal.get("btType") != "BTParameterVisibilityOnEqual-180" for equal in equals):
+            found.append("an OR isn't of one input's options")
+            continue
+        [id] = ids
+        named.append(id)
+        if id not in earlier:
+            found.append(f"a condition names {id}, which isn't a configured input before it")
+            continue
+        values = [equal.get("value") for equal in equals]
+        unknown = [value for value in values if value not in options[id]]
+        if unknown or len(set(values)) != len(values):
+            found.append(f"a condition names {id}'s options {values}, not each one of its options once")
+    if not named:
+        found.append("a condition names no input")
+    if len(set(named)) != len(named):
+        found.append(f"a condition names an input twice: {named}")
+    return found
 
 
 ALWAYS_SHOWN = {
@@ -560,9 +628,11 @@ def _check_configuration(studio: ConfiguredStudio, written: dict) -> None:
 
 
 def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feature_studio_microversion: str) -> Built:
-    """Makes a Part Studio exactly `studio`: finds its tab by name in a workspace, or creates it; writes its
-    configuration; then inserts its feature, from the Feature Studio in the same workspace as it is now, replacing the
-    one a build inserted before, and configures it.
+    """Makes a Part Studio exactly `studio`: finds its tab by name in a workspace, or creates it; deletes the feature a
+    build inserted before, whose configured parameters name the configuration's inputs and options, and which Onshape
+    refuses a configuration to leave naming ones it no longer has ("the feature list becoming invalid"); writes its
+    configuration; then inserts its feature, from the Feature Studio in the same workspace as it is now, and configures
+    it.
 
     The configured feature keeps the namespaces Onshape stored on insert, for the feature and each of its enums: a
     feature from a Feature Studio which re-exports another document's is stored under another namespace than it was
@@ -605,14 +675,14 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
     matches = [feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature]
     if len(matches) > 1:
         raise ConfigureError(f"{studio.tab_name} has {len(matches)} {studio.feature} features; keep one.")
-    # Configured parameters name the configuration's inputs, so it comes first
+    if matches:
+        with step(f"delete the {studio.feature} a build inserted before"):
+            part_studios.delete_feature(api, part_studio, matches[0]["featureId"])
+    # Configured parameters name the configuration's inputs, so it comes before the feature
     with step("write the configuration"):
         written = elements.update_configuration(api, part_studio, studio.configuration_body())
     _check_configuration(studio, written)
     namespace = feature_namespace(feature_studio_id, feature_studio_microversion)
-    if matches:
-        with step(f"delete the {studio.feature} a build inserted before"):
-            part_studios.delete_feature(api, part_studio, matches[0]["featureId"])
     # Inserted plain and configured after, so a refusal names which of the two Onshape objects to
     with step(f"insert {studio.feature}"):
         part_studios.add_feature(
