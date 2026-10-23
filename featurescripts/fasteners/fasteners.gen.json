@@ -12,7 +12,7 @@
             "parameterName": "Vendor",
             "enumName": "vendor_conf",
             "namespace": "",
-            "defaultValue": "MCMASTER",
+            "defaultValue": "GENERIC",
             "options": [
               {
                 "btType": "BTMEnumOption-592",

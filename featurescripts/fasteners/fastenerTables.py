@@ -660,8 +660,8 @@ def _list(id: str, name: str, enum: Enum, parameter: str, default: str) -> Input
     return Input(id, name, parameter, options, enum_name=enum.name, default=default)
 
 
-# The defaults are what's inserted most from FRCDesign's library: McMaster-Carr's #10-32 x 3/8 in black button heads,
-# its #10 x 7/16 in OD stainless washers, and #10-32 nylocks
+# The defaults are what's inserted most from FRCDesign's library: #10-32 x 3/8 in black button heads (from Generic, which
+# names no vendor), McMaster-Carr's #10 x 7/16 in OD stainless washers, and #10-32 nylocks
 
 
 def _screw_inputs() -> list[Input]:
@@ -673,7 +673,7 @@ def _screw_inputs() -> list[Input]:
         if not variant.full_thread and has_full_thread_choice(variants, variant.finish)
     ]
     return [
-        SCREW_TABLE.input(_list("vendor", "Vendor", FastenerVendor, "vendor", "MCMASTER")),
+        SCREW_TABLE.input(_list("vendor", "Vendor", FastenerVendor, "vendor", "GENERIC")),
         SCREW_TABLE.input(_list("size", "Size", FastenerSize, "size", "NO_10_32")),
         SCREW_TABLE.input(_list("head", "Head", ScrewHead, "head", "BUTTON")),
         SCREW_TABLE.input(_list("finish", "Finish", ScrewFinish, "finish", STANDARD_FINISH)),

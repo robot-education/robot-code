@@ -289,7 +289,7 @@ def test_each_default_shows_with_the_others(kind):
 
 def test_defaults_are_whats_inserted_most():
     assert DEFINITION["STUDIOS"]["screw"].defaults() == {
-        "vendor": "MCMASTER",
+        "vendor": "GENERIC",
         "size": "NO_10_32",
         "head": "BUTTON",
         "finish": "BLACK",

@@ -72,8 +72,8 @@ there's a choice of finish. An input with one option anywhere is fixed and left 
 the nut's configuration has no Vendor. A hidden input keeps whatever it was last set to, so the features look each
 choice up with `made`, which takes the one thing made where only one is. Anything else not made is an error.
 
-The defaults are what's inserted most from FRCDesign's library, by its analytics: McMaster-Carr's #10-32 x 3/8 in black
-button heads, #10-32 nylocks, and McMaster-Carr's #10 x 7/16 in OD stainless washers.
+The defaults are what's inserted most from FRCDesign's library, by its analytics: #10-32 x 3/8 in black button heads
+(from Generic, which names no vendor), #10-32 nylocks, and McMaster-Carr's #10 x 7/16 in OD stainless washers.
 
 Fully threaded shows only where a length is sold both ways (McMaster-Carr's long socket heads, whose standard is partly
 threaded); a screw's table entry has its `standard` part and, there, its `fullThread` one, which the screw takes only
