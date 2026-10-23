@@ -6,7 +6,7 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 import(path : "ff444db0395e01aaa8c7e555", version : "87aa3665d5a93d91331dbe19");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "a3b7c0fc5d5929963a334a83");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "439d5a6da5926ffd182185cd");
 
 /**
  * Whether a frame is one someone sells, or custom: a common size of tube or angle, with holes as the feature says
