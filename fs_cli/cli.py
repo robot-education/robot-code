@@ -546,6 +546,14 @@ def make_parser() -> argparse.ArgumentParser:
     )
     configuration_command.add_argument("url", help="the Part Studio's url")
 
+    features_command = command(
+        "features",
+        "print a Part Studio's features as Onshape stores them, as JSON (1 API call): one inserted in Onshape shows the "
+        "namespaces a build should name its feature and enums by",
+        targets=False,
+    )
+    features_command.add_argument("url", help="the Part Studio's url")
+
     command(
         "releases",
         "list the releases pending in releases/, which `fs run-releases` makes once they're merged into main, and "
@@ -1948,6 +1956,15 @@ def configuration(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
+def features(workspace: Workspace, args: argparse.Namespace) -> int:
+    from onshape_api.endpoints.part_studios import get_features
+    from onshape_api.paths.paths import url_to_element_path
+
+    assert isinstance(workspace.remote, OnshapeRemote)
+    print(json.dumps(get_features(workspace.remote.api, url_to_element_path(args.url)), indent=1))
+    return 0
+
+
 def parts(workspace: Workspace, args: argparse.Namespace) -> int:
     from fs_cli.parts import plan_part_release, run_diagnose, run_part_release, run_test
 
@@ -2068,6 +2085,7 @@ COMMANDS = {
     "released": detect_released,
     "parts": parts,
     "configuration": configuration,
+    "features": features,
 }
 
 

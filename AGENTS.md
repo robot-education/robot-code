@@ -7,7 +7,7 @@ FeatureScript here (including selections, editing logic, and manipulator change 
 
 Ask before anything that calls Onshape, and run it only once the user says yes, every time: the Onshape FeatureScript
 MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `parts`, `configuration`,
-`deprecate`, `sync-versions`, `release-tags`, `sync-main`, `run-releases`, `branches`, `pull-std`,
+`deprecate`, `sync-versions`, `release-tags`, `sync-main`, `run-releases`, `branches`, `features`, `pull-std`,
 `update-std`, `released --detect`, and the
 rest). Each call spends the
 user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no

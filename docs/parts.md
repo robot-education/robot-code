@@ -26,6 +26,7 @@ uv run fs parts fasteners --diagnose              # find what Onshape refuses in
 uv run fs parts fasteners --release --minor       # release it to its main document (on main)
 uv run fs parts fasteners --release --target local   # release it to a target, to try it out (any branch)
 uv run fs configuration <url>                     # print a Part Studio's configuration as Onshape stores it
+uv run fs features <url>                          # print its features as Onshape stores them, namespaces and all
 ```
 
 The folder holds:
