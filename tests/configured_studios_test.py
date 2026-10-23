@@ -4,6 +4,7 @@ from fs_cli.configured_studios import (
     ConfigureError,
     ConfiguredStudio,
     Input,
+    LookupTable,
     Option,
     build,
     configuration_stages,
@@ -49,11 +50,15 @@ def test_inputs_are_checked():
 
 
 def test_options_show_only_with_earlier_inputs():
-    size = Input("size", "Size", "size", [Option("A", "A", "A")], enum_name="Size")
+    size = Input("size", "Size", "size", [Option("A", "A", "A"), Option("C", "C", "C")], enum_name="Size")
+
+    def length(shown_when):
+        return Input("length", "Length", "length", [Option("L", "L", "1 in"), Option("M", "M", "2 in", shown_when)], kind="length")
+
     with pytest.raises(ValueError, match="isn't before it"):
-        ConfiguredStudio("s", "f", [Input("length", "Length", "length", [Option("L", "L", "1 in", [{"size": "A"}])], kind="length"), size])
+        ConfiguredStudio("s", "f", [length([{"size": "A"}]), size])
     with pytest.raises(ValueError, match="unknown size=B"):
-        ConfiguredStudio("s", "f", [size, Input("length", "Length", "length", [Option("L", "L", "1 in", [{"size": "B"}])], kind="length")])
+        ConfiguredStudio("s", "f", [size, length([{"size": "B"}])])
 
 
 def test_a_default_must_show_with_its_parents_default():
@@ -135,6 +140,19 @@ def test_products_are_factored_by_input_order():
         {"size": ["C"], "head": ["X"]},
     ]
     assert _products([{"size": "A"}, {}], ["size"]) == [{}]
+
+
+def test_a_product_leaves_out_an_input_its_combination_doesnt_name():
+    from fs_cli.configured_studios import _products
+
+    assert _products([{"size": "A", "head": "X"}, {"size": "B"}], ["size", "head"]) == [
+        {"size": ["A"], "head": ["X"]},
+        {"size": ["B"]},
+    ]
+    assert _products([{"size": "A", "head": "X"}, {"head": "Y"}], ["size", "head"]) == [
+        {"size": ["A"], "head": ["X"]},
+        {"head": ["Y"]},
+    ]
 
 
 def test_products_match_exactly_the_combinations():
@@ -242,16 +260,91 @@ def test_a_hidden_list_folds_its_visibility_into_its_options():
     ]
 
 
-def test_nothing_shows_by_an_input_hidden_somewhere():
-    with pytest.raises(ValueError, match="hidden somewhere"):
-        ConfiguredStudio(
-            "s",
-            "f",
-            [
-                *finished().inputs,
-                Input("length", "Length", "length", [Option("L", "L", "1 in", [{"finish": "BLACK"}])], kind="length"),
-            ],
-        )
+def test_an_input_is_named_only_where_it_shows():
+    def length(shown_when):
+        options = [Option("L", "L", "1 in"), Option("M", "M", "2 in", shown_when)]
+        return Input("length", "Length", "length", options, kind="length")
+
+    # Finish shows only with size B
+    with pytest.raises(ValueError, match="finish=BLACK, which isn't shown there"):
+        ConfiguredStudio("s", "f", [*finished().inputs, length([{"finish": "BLACK"}])])
+    with pytest.raises(ValueError, match="finish=ZINC, which isn't shown there"):
+        ConfiguredStudio("s", "f", [*finished().inputs, length([{"size": "A", "finish": "ZINC"}])])
+    studio = ConfiguredStudio("s", "f", [*finished().inputs, length([{"size": "A"}, {"size": "B", "finish": "ZINC"}])])
+    assert {"size": "A", "length": "M"} in studio.combinations()
+    assert {"size": "B", "finish": "BLACK", "length": "M"} not in studio.combinations()
+
+
+def fixed() -> ConfiguredStudio:
+    return ConfiguredStudio(
+        "nut",
+        "f",
+        [
+            Input("vendor", "Vendor", "vendor", [Option("M", "M", "M")], enum_name="Vendor"),
+            Input("size", "Size", "size", [Option("A", "A", "A"), Option("B", "B", "B")], enum_name="Size"),
+        ],
+    )
+
+
+def test_an_input_of_one_option_is_fixed_and_left_out_of_the_configuration():
+    studio = fixed()
+    assert [input.id for input in studio.configured_inputs()] == ["size"]
+    assert [parameter["parameterId"] for parameter in studio.configuration_body()["configurationParameters"]] == ["size"]
+    assert [parameter["parameterId"] for parameter in studio.configured_parameters()] == ["size"]
+    # Set where the feature's inserted
+    assert studio.default_parameters()[0]["value"] == "M"
+    assert studio.combinations() == [{"size": "A"}, {"size": "B"}]
+    assert studio.defaults() == {"size": "A"}
+
+
+def test_nothing_shows_by_a_fixed_input():
+    with pytest.raises(ValueError, match="fixed, and shown nowhere"):
+        Input("vendor", "Vendor", "vendor", [Option("M", "M", "M", [{"size": "A"}])], enum_name="Vendor")
+    length = Input("length", "Length", "length", [Option("L", "L", "1 in"), Option("M", "M", "2 in", [{"vendor": "M"}])], kind="length")
+    with pytest.raises(ValueError, match="shows by vendor, which is fixed"):
+        ConfiguredStudio("s", "f", [*fixed().inputs, length])
+
+
+def enum_input(id: str, values: str, default: str | None = None) -> Input:
+    return Input(id, id.capitalize(), id, [Option(value, value, value) for value in values.split()], enum_name=id, default=default)
+
+
+TABLE = LookupTable(
+    ("vendor", "size", "finish"),
+    [("A", "S1", "BLACK"), ("A", "S1", "ZINC"), ("A", "S2", "BLACK"), ("B", "S1", "BLACK")],
+)
+
+
+def test_a_lookup_table_shows_an_input_only_where_more_than_one_option_is_made():
+    vendor = TABLE.input(enum_input("vendor", "A B C"))
+    size = TABLE.input(enum_input("size", "S1 S2"))
+    finish = TABLE.input(enum_input("finish", "BLACK ZINC"))
+    # C isn't made at all; B makes one size, and A one finish in S2
+    assert [(option.id, option.shown_when) for option in vendor.options] == [("A", None), ("B", None)]
+    assert [(option.id, option.shown_when) for option in size.options] == [("S1", [{"vendor": "A"}]), ("S2", [{"vendor": "A"}])]
+    assert [option.shown_when for option in finish.options] == [[{"vendor": "A", "size": "S1"}]] * 2
+    # A configuration is the choices shown, and so is each thing made
+    assert TABLE.shown(("B", "S1", "BLACK")) == {"vendor": "B"}
+    assert TABLE.shown(("A", "S2", "BLACK")) == {"vendor": "A", "size": "S2"}
+    assert TABLE.shown(("A", "S1", "ZINC")) == {"vendor": "A", "size": "S1", "finish": "ZINC"}
+    studio = ConfiguredStudio("s", "f", [vendor, size, finish])
+    assert sorted(map(str, studio.combinations())) == sorted(
+        str(TABLE.shown(key)) for key in [("A", "S1", "BLACK"), ("A", "S1", "ZINC"), ("A", "S2", "BLACK"), ("B", "S1", "BLACK")]
+    )
+
+
+def test_a_lookup_table_fixes_an_input_never_shown():
+    table = LookupTable(("vendor", "size"), [("M", "S1"), ("M", "S2")])
+    vendor = table.input(enum_input("vendor", "G M", default="G"))
+    assert vendor.fixed and vendor.options[0].id == "M"
+    assert table.shown(("M", "S2")) == {"size": "S2"}
+
+
+def test_a_lookup_table_needs_an_option_for_everything_made():
+    with pytest.raises(ValueError, match=r"no option for \['B'\]"):
+        TABLE.input(enum_input("vendor", "A"))
+    with pytest.raises(ValueError, match="default 'S3'"):
+        TABLE.input(enum_input("size", "S1 S2 S3", default="S3"))
 
 
 def test_manifest_holds_the_configuration_onshape_answers():

@@ -160,6 +160,8 @@ export enum WasherFinish
 {
     annotation { "Name" : "Black" }
     BLACK,
+    annotation { "Name" : "Zinc plated" }
+    ZINC_PLATED,
     annotation { "Name" : "Stainless steel" }
     STAINLESS
 }
@@ -204,8 +206,16 @@ export enum WasherType
     OD_5_8_X_0_031,
     annotation { "Name" : "5/8 in OD x 0.05 in" }
     OD_5_8_X_0_05,
+    annotation { "Name" : "5/8 in OD x 0.063 in" }
+    OD_5_8_X_0_063,
     annotation { "Name" : "5/8 in OD x 0.065 in" }
-    OD_5_8_X_0_065
+    OD_5_8_X_0_065,
+    annotation { "Name" : "3/4 in OD x 0.062 in" }
+    OD_3_4_X_0_062,
+    annotation { "Name" : "1 in OD x 0.062 in" }
+    OD_1_X_0_062,
+    annotation { "Name" : "3 in OD x 0.06 in" }
+    OD_3_X_0_06
 }
 
 export const FASTENER_SIZES = {
@@ -1645,38 +1655,6 @@ export const SCREWS = {
     };
 
 export const NUTS = {
-            FastenerVendor.GENERIC : {
-                FastenerSize.NO_4_40 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.109 * inch, "hexHeight" : 0.090833 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Thin Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.094 * inch, "name" : "#4-40 Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.063 * inch, "name" : "#4-40 Thin Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
-                },
-                FastenerSize.NO_6_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.143229 * inch, "insertDiameter" : 0.183127 * inch, "name" : "#6-32 Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.125 * inch, "hexHeight" : 0.104167 * inch, "insertDiameter" : 0.190939 * inch, "name" : "#6-32 Thin Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.109375 * inch, "name" : "#6-32 Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.09375 * inch, "name" : "#6-32 Thin Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
-                },
-                FastenerSize.NO_8_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Thin Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.SQUARE : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Square Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
-                },
-                FastenerSize.NO_10_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.234375 * inch, "hexHeight" : 0.195312 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.132812 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Thin Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.SQUARE : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Square Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
-                },
-                FastenerSize.QUARTER_20 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.312 * inch, "hexHeight" : 0.26 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Thin Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.4375 * inch, "height" : 0.219 * inch, "name" : "1/4-20 Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.SQUARE : { "acrossFlats" : 0.4375 * inch, "height" : 0.21875 * inch, "name" : "1/4-20 Square Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
-                }
-            },
             FastenerVendor.MCMASTER : {
                 FastenerSize.NO_4_40 : {
                     NutType.NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A005", "url" : "https://www.mcmaster.com/90631A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
@@ -1794,6 +1772,32 @@ export const WASHERS = {
                     },
                     WasherType.OD_3_8_X_0_031 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.031 * inch, "name" : "1/4 in Washer (3/8 in OD x 0.031 in)", "vendor" : "WCP", "partNumber" : "WCP-0198", "url" : "https://wcproducts.com/products/wcp-0198", "material" : STEEL, "appearance" : BLACK }
+                    }
+                }
+            },
+            FastenerVendor.ANDYMARK : {
+                FastenerSize.NO_6_32 : {
+                    WasherType.OD_5_8_X_0_031 : {
+                        WasherFinish.STAINLESS : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.031 * inch, "name" : "#6 Washer (5/8 in OD x 0.031 in, Stainless steel)", "vendor" : "AndyMark", "partNumber" : "am-1658", "url" : "https://andymark.com/products/6-x-0-625-in-od-fender-washer", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                FastenerSize.NO_10_32 : {
+                    WasherType.OD_3_4_X_0_062 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.75 * inch, "thickness" : 0.062 * inch, "name" : "#10 Washer (3/4 in OD x 0.062 in, Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1523", "url" : "https://andymark.com/products/10-x-0-75-in-fender-washer", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    },
+                    WasherType.OD_1_X_0_062 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 1 * inch, "thickness" : 0.062 * inch, "name" : "#10 Washer (1 in OD x 0.062 in, Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1575", "url" : "https://andymark.com/products/10-x-1-in-fender-washer", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    }
+                },
+                FastenerSize.QUARTER_20 : {
+                    WasherType.OD_5_8_X_0_063 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.063 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.063 in, Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1027", "url" : "https://andymark.com/products/1-4-in-flat-washer", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    },
+                    WasherType.OD_1_X_0_062 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 1 * inch, "thickness" : 0.062 * inch, "name" : "1/4 in Washer (1 in OD x 0.062 in, Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1421", "url" : "https://andymark.com/products/1-4-in-x-1-in-fender-washer", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    },
+                    WasherType.OD_3_X_0_06 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 0.252 * inch, "outerDiameter" : 3 * inch, "thickness" : 0.06 * inch, "name" : "1/4 in Washer (3 in OD x 0.06 in, Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1628", "url" : "https://andymark.com/products/1-4-in-id-3-in-od-fender-washer", "material" : STEEL, "appearance" : MEDIUM_GRAY }
                     }
                 }
             }

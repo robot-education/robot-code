@@ -181,3 +181,12 @@ function expectSamePoint(actual is Vector, expected is Vector)
 {
     expectNear(norm(actual - expected), 0 * meter, 1e-9 * meter);
 }
+
+export function testAHiddenInputResolvesToTheOneMade()
+{
+    // McMaster-Carr makes every nut, so any vendor resolves to it
+    expectEqual(made(NUTS, FastenerVendor.GENERIC), NUTS[FastenerVendor.MCMASTER]);
+    expectEqual(made({ "a" : 1, "b" : 2 }, "b"), 2);
+    expectEqual(made({ "a" : 1, "b" : 2 }, "c"), undefined);
+    expectEqual(made(undefined, "a"), undefined);
+}

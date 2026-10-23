@@ -56,12 +56,12 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
         definition.fullyThreaded is boolean;
     }
     {
-        const finishes = SCREWS[definition.vendor][definition.size][definition.head];
-        if (finishes == undefined || finishes[definition.finish] == undefined)
+        const lengths = made(made(made(made(SCREWS, definition.vendor), definition.size), definition.head), definition.finish);
+        if (lengths == undefined)
         {
             throw regenError("Selected vendor does not make this screw in this finish, change the finish.", ["finish"]);
         }
-        const threads = finishes[definition.finish][definition.length];
+        const threads = made(lengths, definition.length);
         if (threads == undefined)
         {
             throw regenError("Selected vendor does not make this screw, change the length.", ["length"]);
@@ -144,12 +144,12 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
         definition.finish is WasherFinish;
     }
     {
-        const finishes = WASHERS[definition.vendor][definition.size][definition.washerType];
+        const finishes = made(made(made(WASHERS, definition.vendor), definition.size), definition.washerType);
         if (finishes == undefined)
         {
             throw regenError("Selected vendor does not make this washer, change the type.", ["washerType"]);
         }
-        const washer = made(finishes, definition.finish, WasherFinish.BLACK);
+        const washer = made(finishes, definition.finish);
         if (washer == undefined)
         {
             throw regenError("Selected vendor does not make this washer in this finish, change the finish.", ["finish"]);
@@ -193,7 +193,7 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
         definition.nutType is NutType;
     }
     {
-        const nut = NUTS[definition.vendor][definition.size][definition.nutType];
+        const nut = made(made(made(NUTS, definition.vendor), definition.size), definition.nutType);
         if (nut == undefined)
         {
             throw regenError("Selected vendor does not make this nut, change the type.", ["nutType"]);
@@ -275,13 +275,23 @@ predicate sizePredicate(definition is map)
 }
 
 /**
- * What's made in the value chosen, or else in the standard one. The configuration hides an input where only the
- * standard is made, and a hidden input keeps whatever it was last set to.
+ * What's made in the value chosen, or the one thing made where there's only one: the configuration hides an input
+ * where only one of its options is made, and a hidden input keeps whatever it was last set to.
  */
-function made(entries is map, value, standard)
+export function made(entries, value)
 {
-    const entry = entries[value];
-    return entry != undefined ? entry : entries[standard];
+    if (entries == undefined)
+    {
+        return undefined;
+    }
+    if (entries[value] != undefined || size(entries) != 1)
+    {
+        return entries[value];
+    }
+    for (var only in entries)
+    {
+        return only.value;
+    }
 }
 
 // The XZ plane, with the sketch's X along the radius and its Y along the axis

@@ -5,10 +5,11 @@
 FRCDesign's library fasteners, generated for FRCDesignApp, which inserts them from the library and into assemblies: `fastenerScrew`,
 `fastenerWasher`, and `fastenerNut`, each built in a Part Studio of its own whose configuration sets every
 parameter. Files: `fasteners.fs` (the features), `fastenerTables.py` (the catalog, from FRCDesign's Fasteners
-group in `vendor/frcdesign-fasteners.json`, with WCP's and AndyMark's screws from their stores in `vendor/stores.json`,
-refreshed by `uv run python featurescripts/fasteners/fastenerTables.py fetch`: the enums and data in `fastenerTables.gen.fs`, the Part Studios'
-configurations, and FRCDesign's manifest `fasteners.gen.json`), and `fastenerHoleScan.fs` (what FRCDesign
-evaluates in the Part Studios of the parts it fastens).
+group in `vendor/frcdesign-fasteners.json`, read from FRCDesign's public API, with WCP's and AndyMark's screws from
+their stores in `vendor/stores.json`, both refreshed by `uv run python featurescripts/fasteners/fastenerTables.py
+fetch`: the enums and data in `fastenerTables.gen.fs`, the Part Studios' configurations, and FRCDesign's manifest
+`fasteners.gen.json`), and `fastenerHoleScan.fs` (what FRCDesign evaluates in the Part Studios of the parts it
+fastens).
 
 Unreleased. It's a part set (`[tool.fs.parts.fasteners]`, see docs/parts.md), not released to the frontend document:
 its Part Studios (Screw, Washer, and Nut) are built from `fastenerTables.py`'s `STUDIOS`, never by hand. `fs parts
@@ -31,7 +32,7 @@ Each description ends with the credit.
 | Selected vendor does not make this screw in this finish, change the finish. (error) | The vendor makes no screw of this size and head in this finish | Finish | none |
 | Selected vendor does not make this screw, change the length. (error) | The vendor makes no screw of this size, head, finish, and length | Length | none |
 | Selected vendor does not make this washer, change the type. (error) | The vendor makes no washer of this size and type | Type | none |
-| Selected vendor does not make this washer in this finish, change the finish. (error) | The type is made, but neither in this finish nor black | Finish | none |
+| Selected vendor does not make this washer in this finish, change the finish. (error) | The type is made in other finishes, but not this one | Finish | none |
 | Selected vendor does not make this nut, change the type. (error) | The vendor makes no nut of this size and type | Type | none |
 
 The configurations only offer what's made, so these show only in the features' own dialogs.
@@ -39,13 +40,14 @@ The configurations only offer what's made, so these show only in the features' o
 | Part | Name |
 | --- | --- |
 | Screw | `<size> x <length> <head> Screw`, e.g. `#10-32 x 1/2 in Button Head Screw`, with any finish but black, and fully threaded, after it: `... Socket Head Screw (Zinc plated)`, `... (Fully threaded)` |
-| Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in OD x 0.049 in)`, with any finish but black after the type: `(7/16 in OD x 0.03 in, Stainless steel)` |
+| Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in OD x 0.049 in)`, with any finish but black after the type: `(7/16 in OD x 0.03 in, Stainless steel)`, `(3/4 in OD x 0.062 in, Zinc plated)` |
 | Nut | `<size> <type> Nut`, e.g. `#10-32 Thin Nylock Nut` |
 
 Each has its material (steel, stainless steel, or aluminum, as its vendor sells it) and its finish's appearance, as
 FRCDesignLib's color standards give it (general black, medium grey for zinc plated and for aluminum, whose color WCP
 doesn't publish, and steel grey for stainless); nuts are the standards' zinc-coated steel (#E1E7EC), whatever their
-finish. Each has its vendor as its Vendor,
+finish. AndyMark's washer am-1027 is named for its outer diameter in FRCDesign's record; its configuration gives its
+bore, 0.281 in, which it's read with. Each has its vendor as its Vendor,
 its part number, and its link as its description, where the vendor has them (Generic has none). `fastenerTables.py` names every configuration's part (its
 `Record`s) and writes each into the tables, which the features set as they are, and into the manifest, which
 FRCDesignApp indexes in place of asking Onshape: one record per configuration the Part Studio offers, so the two
@@ -62,19 +64,21 @@ makes, and a Fully threaded checkbox, for a screw; Vendor, Size, Type, and Finis
 for a nut.
 Screws and washers have their own finish enums (`ScrewFinish`, `WasherFinish`), so neither dialog offers a finish its
 kind never comes in.
-So each Part Studio wires every parameter to a configuration input of the same options one for one, and the
-configuration's visibility conditions, not the dialog, show only what's made (Length shows the lengths the chosen vendor
-makes in the chosen size, head, and finish). Every part is one its vendor makes (`SCREWS`, `WASHERS`, `NUTS`); anything else is
-an error.
+So each Part Studio wires every parameter to a configuration input of the same options, and the configuration's
+visibility conditions, not the dialog, show only what's made, laid out by `LookupTable` (see docs/fs-cli.md's
+"Configured Part Studios"): an input shows only where more than one of its options is made with the choices before it,
+so Length shows the lengths the chosen vendor makes in the chosen size, head, and finish, and Finish shows only where
+there's a choice of finish. An input with one option anywhere is fixed and left out: McMaster-Carr makes every nut, so
+the nut's configuration has no Vendor. A hidden input keeps whatever it was last set to, so the features look each
+choice up with `made`, which takes the one thing made where only one is. Anything else not made is an error.
 
-Each part is its vendor's standard unless chosen otherwise. A screw's Finish always shows, offering only what's made in
-its size and head (Generic's only black), so Length can show by it: black, zinc plated, or aluminum. Fully threaded
-shows only where a length is sold both ways (McMaster-Carr's long socket heads, whose standard is partly threaded); a
-screw's table entry has its `standard` part and, there, its `fullThread` one. In the configuration it's a List, No or
-Yes, not a checkbox: a checkbox shows by a single condition, and where it's sold both ways needs several. A washer's
-Finish (plain stainless steel) shows only where its vendor sells more than black. A hidden input keeps its default, and
-in a feature's own dialog whatever it was last set to, so the features fall back to the standard: a washer's finish
-with `made`, and a screw's thread when it has no `fullThread`.
+The defaults are what's inserted most from FRCDesign's library, by its analytics: McMaster-Carr's #10-32 x 3/8 in black
+button heads, #10-32 nylocks, and McMaster-Carr's #10 x 7/16 in OD stainless washers.
+
+Fully threaded shows only where a length is sold both ways (McMaster-Carr's long socket heads, whose standard is partly
+threaded); a screw's table entry has its `standard` part and, there, its `fullThread` one, which the screw takes only
+when it's chosen. In the configuration it's a List, No or Yes, not a checkbox: a checkbox shows by a single condition,
+and where it's sold both ways needs several.
 
 `fastenerScrew`:
 
@@ -122,6 +126,6 @@ There are no `try`s.
 - Nuts are measured from McMaster-Carr's models in #6-32 and #10-32, and the 1/4-20 square nut. The rest are
   nominal, and the other sizes' nylock domes and inserts take the measured nylocks' proportions: a dome a sixth of the
   nut's height, and an insert 0.61 of its width across flats.
-- Not yet tried in Onshape: the nuts' chamfers, domes, and inserts.
+- Not yet tried in Onshape: the nuts' chamfers, domes, and inserts, and the configurations' hidden inputs.
 - Not yet tried in Onshape: the chamfers, button domes, and threads. Neither is whether Onshape's hole callouts and
   Fasten mates read the attributes as they read std's.

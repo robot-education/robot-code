@@ -8,7 +8,7 @@ from fractions import Fraction
 
 import pytest
 
-from fs_cli.configured_studios import shows
+from fs_cli.configured_studios import input_shows, shows
 
 FOLDER = pathlib.Path(__file__).parents[2] / "featurescripts" / "fasteners"
 DEFINITION = runpy.run_path(str(FOLDER / "fastenerTables.py"))
@@ -131,14 +131,15 @@ def test_fully_threaded_shows_only_where_a_length_is_sold_both_ways():
                 assert shown == (["false", "true"] if both else []), selection
 
 
-def test_finish_comes_between_head_and_length_and_shows_everywhere():
+def test_finish_comes_between_head_and_length_and_shows_where_theres_a_choice():
     screw = DEFINITION["STUDIOS"]["screw"]
     assert [input.id for input in screw.inputs] == ["vendor", "size", "head", "finish", "length", "fullyThreaded"]
     finish = screw.inputs[3]
-    assert finish.shown_when is None
-    # Generic's offers black alone
+    # Generic's are black alone
     generic = {"vendor": "GENERIC", "size": "NO_10_32", "head": "BUTTON"}
-    assert [option.id for option in finish.options if shows(option, generic)] == ["BLACK"]
+    assert [option.id for option in finish.options if shows(option, generic)] == []
+    mcmaster = {"vendor": "MCMASTER", "size": "NO_10_32", "head": "BUTTON"}
+    assert [option.id for option in finish.options if shows(option, mcmaster)] == ["BLACK", "ZINC_PLATED"]
 
 
 def test_washer_finishes():
@@ -146,14 +147,32 @@ def test_washer_finishes():
     assert washers[("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "BLACK")].stock.part_number == "96765A125"
     plain = washers[("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS")]
     assert (plain.stock.part_number, plain.stock.material.name) == ("92141A011", "Stainless Steel")
-    # WCP's black zinc washers are its standard black
+    # WCP's black zinc washers are its standard black, and AndyMark's zink finish is zinc plating
     assert ("WCP", "NO_10_32", "OD_3_8_X_0_031", "BLACK") in washers
+    assert washers[("ANDYMARK", "NO_10_32", "OD_3_4_X_0_062", "ZINC_PLATED")].stock.part_number == "am-1523"
     records = {tuple(record["values"].values()): record for record in MANIFEST["studios"]["washer"]["records"]}
     assert records[("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS")]["name"] == (
         "#10 Washer (7/16 in OD x 0.03 in, Stainless steel)"
     )
-    # Hidden where only black is made
-    assert ("GENERIC", "NO_10_32", "OD_1_2_X_0_049") in records
+    # Generic makes one washer in each size, so its type and finish are hidden
+    assert records[("GENERIC", "NO_10_32")]["name"] == "#10 Washer (1/2 in OD x 0.049 in)"
+
+
+def test_andymarks_washers_take_their_stated_bores():
+    washers = DEFINITION["WASHERS"]
+    quarter = washers[("ANDYMARK", "QUARTER_20", "OD_5_8_X_0_063", "ZINC_PLATED")]
+    # FRCDesign's record names it 0.625", its outer diameter
+    assert (quarter.stock.part_number, quarter.inner_diameter) == ("am-1027", 0.281)
+    assert washers[("ANDYMARK", "QUARTER_20", "OD_3_X_0_06", "ZINC_PLATED")].inner_diameter == 0.252
+    # Bores no screw here fits are left out
+    assert {washer.stock.part_number for key, washer in washers.items() if key[0] == "ANDYMARK"} == {
+        "am-1658",
+        "am-1523",
+        "am-1575",
+        "am-1628",
+        "am-1027",
+        "am-1421",
+    }
 
 
 def test_lengths_show_only_where_theyre_made():
@@ -164,7 +183,8 @@ def test_lengths_show_only_where_theyre_made():
             selection = {"vendor": vendor, "size": size, "head": head, "finish": finish}
             shown = {option.id for option in length.options if shows(option, selection)}
             made = {DEFINITION["length_id"](each) for each, variants in stocked.items() if Variant(finish) in variants}
-            assert shown == made, selection
+            # Hidden where there's one, like REV's zinc plated #10-32 flat heads
+            assert shown == (made if len(made) > 1 else set()), selection
 
 
 def test_length_names_and_ids():
@@ -207,6 +227,85 @@ def test_records_name_and_sell_each_part():
     full = records[("MCMASTER", "NO_8_32", "SOCKET", "BLACK", "IN_2", "true")]
     assert (full["name"], full["partNumber"]) == ("#8-32 x 2 in Socket Head Screw (Fully threaded)", "90044A113")
     assert records[("MCMASTER", "NO_8_32", "SOCKET", "BLACK", "IN_2", "false")]["partNumber"] == "91251A205"
-    # Generic parts have no vendor or part number
-    generic = records[("GENERIC", "NO_10_32", "BUTTON", "BLACK", "IN_0_5")]
+    # Generic parts have no vendor or part number, and only one finish, which is hidden
+    generic = records[("GENERIC", "NO_10_32", "BUTTON", "IN_0_5")]
     assert "vendor" not in generic and "partNumber" not in generic
+
+
+# The configuration rules (see docs/fs-cli.md's "Configured Part Studios"), checked on each studio as generated
+
+KINDS = ["screw", "nut", "washer"]
+TABLES = {"screw": DEFINITION["SCREW_TABLE"], "nut": DEFINITION["NUT_TABLE"], "washer": DEFINITION["WASHER_TABLE"]}
+MADE = {
+    "screw": [record[:5] for record in DEFINITION["SCREW_RECORDS"]],
+    "nut": list(DEFINITION["NUTS"]),
+    "washer": list(DEFINITION["WASHERS"]),
+}
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_an_input_shows_only_with_a_choice_of_options(kind):
+    studio = DEFINITION["STUDIOS"][kind]
+    for combination in studio.combinations():
+        for input in studio.configured_inputs():
+            shown = [option.id for option in input.options if input_shows(input, combination) and shows(option, combination)]
+            assert len(shown) != 1, (input.id, combination)
+            assert (input.id in combination) == bool(shown), (input.id, combination)
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_a_hidden_input_has_one_option_made_where_its_hidden(kind):
+    """So the feature resolves it to that one, whatever value Onshape's configuration holds."""
+    table, made = TABLES[kind], MADE[kind]
+    for key in made:
+        shown = table.shown(key)
+        for index, id in enumerate(table.ids):
+            if id not in shown:
+                assert {other[index] for other in made if other[:index] == key[:index]} == {key[index]}, (id, key)
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_every_option_is_controlled_by_a_rule(kind):
+    """Onshape hides every option no rule controls, once an input has any rule."""
+    for parameter in DEFINITION["STUDIOS"][kind].configuration_body()["configurationParameters"]:
+        rules = parameter.get("enumOptionVisibilityConditions", {}).get("visibilityConditions", [])
+        if rules:
+            controlled = {option for rule in rules for option in rule["controlledOptions"]}
+            assert controlled == {option["option"] for option in parameter["options"]}, parameter["parameterId"]
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_each_default_shows_with_the_others(kind):
+    """Onshape refuses a configuration whose default hides an input's default while it shows others."""
+    studio = DEFINITION["STUDIOS"][kind]
+    selection: dict[str, str] = {}
+    for input in studio.configured_inputs():
+        shown = [option.id for option in input.options if input_shows(input, selection) and shows(option, selection)]
+        if shown:
+            assert input.default_option in shown, input.id
+            selection[input.id] = input.default_option
+    assert selection in studio.combinations()
+
+
+def test_defaults_are_whats_inserted_most():
+    assert DEFINITION["STUDIOS"]["screw"].defaults() == {
+        "vendor": "MCMASTER",
+        "size": "NO_10_32",
+        "head": "BUTTON",
+        "finish": "BLACK",
+        "length": "IN_0_375",
+        "fullyThreaded": "false",
+    }
+    assert DEFINITION["STUDIOS"]["nut"].defaults() == {"size": "NO_10_32", "type": "NYLOCK"}
+    assert DEFINITION["STUDIOS"]["washer"].defaults() == {
+        "vendor": "MCMASTER",
+        "size": "NO_10_32",
+        "type": "OD_7_16_X_0_03",
+        "finish": "STAINLESS",
+    }
+
+
+def test_one_nut_vendor_is_fixed():
+    vendor = DEFINITION["STUDIOS"]["nut"].inputs[0]
+    assert vendor.fixed and vendor.options[0].id == "MCMASTER"
+    assert all("vendor" not in record["values"] for record in MANIFEST["studios"]["nut"]["records"])

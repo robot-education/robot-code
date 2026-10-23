@@ -369,8 +369,25 @@ FRCDesignApp reads for its library fasteners).
 A Part Studio can expose a feature through its configuration: an input per parameter (a List, or for a boolean a
 checkbox or a `switch`, a List of `false` and `true`), each configuring that parameter, with a List's options shown
 only for some combinations of the inputs before it (a lookup table, laid out as a configuration). A whole input can be
-shown only for some combinations too, as the screw's Fully threaded and the washer's Finish are; hidden, it's left
-out of `combinations()`, and nothing may show by it.
+shown only for some combinations too; hidden, it's left out of `combinations()`, and keeps whatever value it was last
+set to. A List of one option is fixed: it's left out of the configuration, and its parameter set to that option when
+the feature's inserted.
+
+A `LookupTable` lays a table out by these rules, from what's made, each thing a combination of its inputs' options
+(the fasteners' `SCREW_TABLE`, say, of vendor, size, head, finish, and length):
+
+- An input shows where more than one of its options is made with the choices shown before it, offering those, and is
+  hidden where only one is. An input never shown is fixed, as the nut's Vendor is (McMaster-Carr makes every nut).
+- A condition names an input only where it shows: where it's hidden, Onshape and FRCDesign read its value
+  differently, so the options after it show by the choices before it alone. The studio checks this.
+- The feature resolves a hidden input to the one option made there, whatever value its parameter holds (the
+  fasteners' `made`).
+- A configuration is the choices it shows (`LookupTable.shown`), and what reads the studio outside Onshape lists one
+  record per configuration, holding those choices alone.
+- Its default is shown wherever its input shows at the other inputs' defaults, and every option is controlled by a
+  rule (below).
+
+`tests/featurescript/fasteners_manifest_test.py` checks each rule on the fasteners' studios as generated.
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by

@@ -4,8 +4,9 @@ fasteners/fastenerTables.py).
 A configured studio holds one instance of a feature, and a configuration input for each of its parameters: each input
 configures its parameter (a configured parameter, `BTMParameterConfigured`), with one value per option, or per state
 of a checkbox. A List input's options can each be shown only for some combinations of earlier inputs, which is how a
-lookup table is laid out as a configuration: Length shows only the lengths the chosen vendor makes in the chosen size
-and head. A whole input can be shown only for some, too; hidden, it takes its default.
+lookup table is laid out as a configuration (`LookupTable`): Length shows only the lengths the chosen vendor makes in
+the chosen size and head. A whole input can be shown only for some, too; hidden, it takes its default. An input of one
+option is fixed: it's left out of the configuration, and its parameter set to that option when the feature's inserted.
 
 The definition is the source of both sides: the feature's enums and data (`fs gen`), and the configuration
 (`fs parts`, see docs/parts.md), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
@@ -57,8 +58,8 @@ class Input:
             `false` and `true`, which unlike a checkbox's can show by any number of conditions), or a checkbox
             configuring a boolean.
         shown_when: The combinations of earlier inputs' options which show it, as an option's are; always shown when
-            None. Never name an input which is itself hidden somewhere: Onshape and FRCDesign read a hidden input's
-            value differently.
+            None. A combination names an input only where that input and its option show: Onshape and FRCDesign read
+            a hidden input's value differently.
     """
 
     id: str
@@ -91,6 +92,8 @@ class Input:
             raise ValueError(f"Input {self.id} configures an enum, so it needs its enum_name")
         if self.default is not None and self.default not in ids:
             raise ValueError(f"Input {self.id} has default {self.default!r}, which isn't one of {ids}")
+        if self.fixed and (self.shown_when is not None or self.options[0].shown_when is not None):
+            raise ValueError(f"Input {self.id} has one option, so it's fixed, and shown nowhere")
 
     @property
     def default_option(self) -> str:
@@ -100,6 +103,11 @@ class Input:
 
     def option_ids(self) -> set[str]:
         return {option.id for option in self.options}
+
+    @property
+    def fixed(self) -> bool:
+        """Whether it's a List of one option, which the configuration leaves out."""
+        return self.kind != "boolean" and len(self.options) == 1
 
 
 @dataclasses.dataclass
@@ -134,10 +142,12 @@ class ConfiguredStudio:
                         parent = earlier.get(id)
                         if parent is None:
                             raise ValueError(f"{self.name}: {what} shows by {id}, which isn't before it")
-                        if parent.shown_when is not None:
-                            raise ValueError(f"{self.name}: {what} shows by {id}, which is hidden somewhere")
                         if parent.kind == "boolean" or value not in parent.option_ids():
                             raise ValueError(f"{self.name}: {what} shows with unknown {id}={value}")
+                        if parent.fixed:
+                            raise ValueError(f"{self.name}: {what} shows by {id}, which is fixed")
+                        if not input_shows(parent, combination) or not shows(_option(parent, value), combination):
+                            raise ValueError(f"{self.name}: {what} shows by {id}={value}, which isn't shown there")
             if input.kind == "boolean" and input.shown_when is not None:
                 count = len(_products(input.shown_when, self._factor_order()))
                 if count > 1:
@@ -159,7 +169,7 @@ class ConfiguredStudio:
         of every input it shows, with each List's option one shown with the choices before it. A hidden input is
         left out, as FRCDesign enumerates it."""
         combinations: list[dict[str, str]] = [{}]
-        for input in self.inputs:
+        for input in self.configured_inputs():
             choices = ["false", "true"] if input.kind == "boolean" else [option.id for option in input.options]
             next: list[dict[str, str]] = []
             for combination in combinations:
@@ -176,8 +186,12 @@ class ConfiguredStudio:
             combinations = next
         return combinations
 
+    def configured_inputs(self) -> list[Input]:
+        """Its inputs but the fixed ones, which the configuration leaves out."""
+        return [input for input in self.inputs if not input.fixed]
+
     def defaults(self) -> dict[str, str]:
-        return {input.id: input.default_option for input in self.inputs}
+        return {input.id: input.default_option for input in self.configured_inputs()}
 
     def manifest(self) -> dict:
         """The studio as FRCDesign reads it: its feature, and its configuration as Onshape answers it, which FRCDesign
@@ -192,18 +206,74 @@ class ConfiguredStudio:
         return {
             "btType": "BTConfigurationUpdateCall-2933",
             "configurationParameters": [
-                _configuration_parameter(input, self._factor_order()) for input in self.inputs
+                _configuration_parameter(input, self._factor_order()) for input in self.configured_inputs()
             ],
         }
 
     def default_parameters(self, namespace: str = "") -> list[dict]:
-        """The feature's parameters, each set to its input's default; `namespace` as for `configured_parameters`."""
+        """The feature's parameters, each set to its input's default, a fixed input's its one option; `namespace` as for
+        `configured_parameters`."""
         return [_default_parameter(input, namespace) for input in self.inputs]
 
     def configured_parameters(self, namespace: str = "") -> list[dict]:
         """The feature's parameters, each configured by its input. `namespace` is the feature's (see
         `feature_namespace`), which its enums' values are named in too, since they're defined in its FeatureScript."""
-        return [_configured_parameter(input, namespace) for input in self.inputs]
+        return [_configured_parameter(input, namespace) for input in self.configured_inputs()]
+
+
+class LookupTable:
+    """What's made, as a configuration offers it: each thing made a combination of its inputs' options (`made`), the
+    inputs `ids` in order.
+
+    An input shows where more than one of its options is made with the choices shown before it, offering those, and is
+    hidden where only one is: so nothing later shows by it there, and the feature resolves its parameter to the one
+    made. An input never shown is fixed. A configuration of the table is the choices it shows (`shown`).
+    """
+
+    def __init__(self, ids: Sequence[str], made: Sequence[Sequence[str]]) -> None:
+        self.ids = list(ids)
+        # For each input, the options made in each context: the choices shown before it
+        self._made_in: list[dict[tuple, list[str]]] = []
+        contexts: dict[tuple, tuple] = {tuple(key): () for key in made}
+        for index, id in enumerate(self.ids):
+            made_in: dict[tuple, list[str]] = {}
+            for key, context in contexts.items():
+                values = made_in.setdefault(context, [])
+                if key[index] not in values:
+                    values.append(key[index])
+            self._made_in.append(made_in)
+            contexts = {
+                key: context + ((id, key[index]),) if len(made_in[context]) > 1 else context
+                for key, context in contexts.items()
+            }
+        self._shown = contexts
+
+    def shown(self, key: Sequence[str]) -> dict[str, str]:
+        """The choices a configuration shows to make `key`."""
+        return dict(self._shown[tuple(key)])
+
+    def input(self, spec: Input) -> Input:
+        """`spec`, one of the table's inputs with every option it could offer, as the configuration offers what's
+        made: each option shown where it's made beside another, the rest dropped. Never shown, it's fixed to its
+        default, or the first option made where that isn't."""
+        made_in = self._made_in[self.ids.index(spec.id)]
+        made = {value for values in made_in.values() for value in values}
+        if not made <= spec.option_ids():
+            raise ValueError(f"Input {spec.id} has no option for {sorted(made - spec.option_ids())}")
+        shown_in: dict[str, list[dict[str, str]]] = {}
+        for context, values in made_in.items():
+            if len(values) > 1:
+                for value in values:
+                    shown_in.setdefault(value, []).append(dict(context))
+        options = [
+            dataclasses.replace(option, shown_when=None if len(shown_in[option.id]) == len(made_in) else shown_in[option.id])
+            for option in spec.options
+            if option.id in shown_in
+        ]
+        if options:
+            return dataclasses.replace(spec, options=options)
+        fixed = spec.default if spec.default in made else next(option.id for option in spec.options if option.id in made)
+        return dataclasses.replace(spec, options=[_option(spec, fixed)], default=None)
 
 
 def _option(input: Input, id: str) -> Option:
@@ -312,14 +382,20 @@ def _factor(combinations: Combinations, ids: Sequence[str]) -> list[Product]:
         return [{}]
     first, rest = ids[0], ids[1:]
     by_value: dict[str, list[dict[str, str]]] = {}
+    # Those not naming it match any of its values
+    unnamed: list[Mapping[str, str]] = []
     for combination in combinations:
+        if first not in combination:
+            unnamed.append(combination)
+            continue
         remainder = {id: value for id, value in combination.items() if id != first}
         by_value.setdefault(combination[first], []).append(remainder)
     branches: dict[str, tuple[list[str], list[Product]]] = {}
     for value, remainders in by_value.items():
         sub = _factor(remainders, rest)
         branches.setdefault(repr(sub), ([], sub))[0].append(value)
-    return [{first: values, **product} for values, sub in branches.values() for product in sub]
+    named = [{first: values, **product} for values, sub in branches.values() for product in sub]
+    return named + (_factor(unnamed, rest) if unnamed else [])
 
 
 def _intersect(a: Product, b: Product) -> Product | None:
