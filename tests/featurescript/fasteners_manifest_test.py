@@ -315,3 +315,15 @@ def test_one_nut_vendor_is_fixed():
     vendor = DEFINITION["STUDIOS"]["nut"].inputs[0]
     assert vendor.fixed and vendor.options[0].id == "MCMASTER"
     assert all("vendor" not in record["values"] for record in MANIFEST["studios"]["nut"]["records"])
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_each_feature_makes_one_mate_connector(kind):
+    """FRCDesignApp fastens to a generated studio's feature by its id, which names the one connector it makes."""
+    feature = DEFINITION["STUDIOS"][kind].feature
+    code = (FOLDER / "fasteners.fs").read_text()
+    start = code.index(f"export const {feature} = defineFeature(")
+    end = code.index("\n    });\n", start)
+    body = code[start:end]
+    assert body.count("opMateConnector(") + body.count("addSeatMateConnector(") == 1
+    assert "for (" not in body and "while (" not in body
