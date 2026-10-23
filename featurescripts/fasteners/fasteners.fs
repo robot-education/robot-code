@@ -245,7 +245,8 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
                     "tools" : qUnion([qCreatedBy(id + "extrude", EntityType.BODY), qCreatedBy(id + "revolve", EntityType.BODY)]),
                     "operationType" : BooleanOperationType.INTERSECTION
                 });
-        const body = qUnion([qCreatedBy(id + "extrude", EntityType.BODY), qCreatedBy(id + "revolve", EntityType.BODY)]);
+        // The intersection is a new body, as std's own intersections find it
+        const body = qCreatedBy(id + "intersect", EntityType.BODY);
 
         // 3. Tap its bore, up to a nylock's insert, and seat it
         addNutThread(context, id + "thread", body, size, isNylock ? nut.height - NYLON_RECESS : nut.height);
