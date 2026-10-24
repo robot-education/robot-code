@@ -105,7 +105,7 @@ it. `fs-studios.json` maps image tabs to files under `images`; `fs mv` and `fs s
 `fs tabs`, `fs link`, and `fs unlink` are for studios only.
 
 Generated STEP models (`*.gen.step`, like Robot frame's in `released/frame/models/`) are synced the same way,
-as tabs a studio imports and passes the `BLOB_DATA.dataId` of to `opImportForeign` (as `foreignId`). Only generated ones are, known by their
+as tabs a studio imports and passes the `BLOB_DATA` of to `opImportForeign`. Only generated ones are, known by their
 names, so vendors' STEP files kept for reference (`vendor/*.STEP`) aren't. `fs models` builds them (see Generated
 files).
 

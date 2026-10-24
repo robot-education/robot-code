@@ -31,7 +31,7 @@ class RemoteStudio:
 IMAGE_TYPES = {".svg": "image/svg+xml", ".png": "image/png"}
 
 # Generated STEP models (see fs_cli/stock_models.py) are synced like images: a Feature Studio imports a model's tab and
-# passes its `BLOB_DATA.dataId` to `opImportForeign`. Only generated ones are, so vendors' STEP files kept for reference
+# passes its `BLOB_DATA` to `opImportForeign`. Only generated ones are, so vendors' STEP files kept for reference
 # aren't.
 MODEL_SUFFIX = ".gen.step"
 MODEL_TYPE = "application/step"

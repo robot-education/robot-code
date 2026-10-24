@@ -583,9 +583,7 @@ function buildModeledStock(context is Context, id is Id, definition is map, stoc
     const tie = getTie(definition, stock.tieStart, stock.tieUnit);
     const hasHoles = stock.xRows != [] || stock.yRows != [];
     const modelId = id + "model";
-    // An imported tab's data is its geometry, which Onshape translates the STEP file into, by its id (`blobData` is for a
-    // CAD import parameter's value)
-    opImportForeign(context, modelId, { "foreignId" : model.data.dataId });
+    opImportForeign(context, modelId, { "blobData" : model.data });
     const body = qCreatedBy(modelId, EntityType.BODY)->qBodyType(BodyType.SOLID);
     const across = acrossSign(definition);
     // Mirrored when flipped, as `sketchProfile` mirrors the profile (see `acrossSign`)
