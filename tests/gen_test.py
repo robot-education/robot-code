@@ -161,6 +161,19 @@ def test_imports(tmp_path):
         generate(tmp_path, "2960", {})
 
 
+def test_namespaced_imports(tmp_path):
+    (tmp_path / "models.py").write_text(
+        "from fs_cli.gen import Import\nCONTENTS = [Import('frame/tube.gen.step', namespace='Tube')]\n"
+    )
+    synced = {"frame/tube.gen.step": (ID_A, VERSION_1)}
+    [result] = generate(tmp_path, "2960", synced)
+    assert result.code.splitlines()[2] == f'Tube::import(path : "{ID_A}", version : "{VERSION_1}"); // frame/tube.gen.step'
+    # The annotation resolves it without the sync state
+    result.output.write_text(result.code)
+    [result] = generate(tmp_path, "2960", {})
+    assert not result.changed
+
+
 # Sketches
 
 

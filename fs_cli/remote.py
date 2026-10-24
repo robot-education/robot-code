@@ -30,6 +30,12 @@ class RemoteStudio:
 # "Icon", or a "Description Image"
 IMAGE_TYPES = {".svg": "image/svg+xml", ".png": "image/png"}
 
+# Generated STEP models (see fs_cli/stock_models.py) are synced like images: a Feature Studio imports a model's tab and
+# passes its `BLOB_DATA` to `opImportForeign`. Only generated ones are, so vendors' STEP files kept for reference
+# aren't.
+MODEL_SUFFIX = ".gen.step"
+MODEL_TYPE = "application/step"
+
 
 @dataclasses.dataclass
 class RemoteImage:
@@ -43,6 +49,8 @@ class RemoteImage:
 
     @property
     def extension(self) -> str:
+        if self.data_type == MODEL_TYPE:
+            return MODEL_SUFFIX
         return next((extension for extension, type in IMAGE_TYPES.items() if type == self.data_type), ".svg")
 
 
@@ -56,9 +64,12 @@ def is_local(name: str) -> bool:
 
 
 def image_type(name: str) -> str | None:
-    """The MIME type of an image file name, if it's an image which can be synced (not a `.local.png` or `.local.svg`)."""
+    """The MIME type of an image or model file name, if it's one which can be synced (not a `.local.png` or
+    `.local.svg`)."""
     if is_local(name):
         return None
+    if name.lower().endswith(MODEL_SUFFIX):
+        return MODEL_TYPE
     return IMAGE_TYPES.get(pathlib.PurePosixPath(name).suffix.lower())
 
 
@@ -127,7 +138,8 @@ class Remote(Protocol):
     def latest_std_version(self) -> str: ...
 
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
-        """Lists the images (blob elements holding SVGs or PNGs) in a document, with their microversions."""
+        """Lists the images (blob elements holding SVGs or PNGs) and models (generated STEP files) in a document, with
+        their microversions."""
         ...
 
     def download_image(self, instance: InstancePath, element_id: str) -> bytes: ...
@@ -203,11 +215,16 @@ class OnshapeRemote:
 
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         elements = documents.get_document_elements(self.api, instance, ElementType.BLOB)
-        return [
-            RemoteImage(element["id"], element["name"], element["microversionId"], element.get("dataType", ""))
-            for element in elements
-            if element.get("dataType") in IMAGE_TYPES.values()
-        ]
+        images = []
+        for element in elements:
+            data_type = element.get("dataType", "")
+            # Models are known by their names (whatever type Onshape gives them), so other STEP tabs aren't synced
+            if element["name"].lower().endswith(MODEL_SUFFIX):
+                data_type = MODEL_TYPE
+            elif data_type not in IMAGE_TYPES.values():
+                continue
+            images.append(RemoteImage(element["id"], element["name"], element["microversionId"], data_type))
+        return images
 
     def download_image(self, instance: InstancePath, element_id: str) -> bytes:
         return blob_elements.download_file(self.api, ElementPath.from_path(instance, element_id))
@@ -227,7 +244,7 @@ class OnshapeRemote:
 def _image_type(name: str) -> str:
     content_type = image_type(name)
     if content_type is None:
-        raise ValueError(f"{name} isn't an image which can be synced ({', '.join(IMAGE_TYPES)}).")
+        raise ValueError(f"{name} isn't an image or model which can be synced ({', '.join([*IMAGE_TYPES, MODEL_SUFFIX])}).")
     return content_type
 
 

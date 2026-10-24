@@ -1694,6 +1694,21 @@ def test_local_featurescripts_are_not_synced(repo, onshape, capsys):
     assert "is a local file" in capsys.readouterr().err
 
 
+def test_push_uploads_generated_models_but_not_other_step_files(repo, onshape, capsys):
+    write(repo, "frame/models/tube.gen.step", "ISO-10303-21;")
+    write(repo, "frame/vendor/REV-21-2162.STEP", "ISO-10303-21;")
+    write(repo, "frame/frame.fs", 'Model::import(path : "frame/models/tube.gen.step", version : "");\n')
+    assert run(onshape, "push") == 0
+    [(model, image)] = onshape.images().items()
+    assert (image["name"], image["data"]) == ("tube.gen.step", b"ISO-10303-21;")
+    expected = f'Model::import(path : "{model}", version : "{image["mv"]}");\n'
+    assert onshape.code("frame.fs") == expected
+    assert local(repo, "frame/frame.fs").read_text() == expected
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "everything in sync" in capsys.readouterr().out
+
+
 def test_imported_images_must_exist(repo, onshape, capsys):
     write(repo, "grid.fs", 'Icon::import(path : "missing.svg", version : "");\n')
     assert run(onshape, "push") == 2
@@ -1834,9 +1849,14 @@ def test_onshape_remote_images():
     elements = [
         {"id": "i1", "name": "icon.svg", "elementType": "BLOB", "microversionId": "m1", "dataType": "image/svg+xml"},
         {"id": "i2", "name": "part.step", "elementType": "BLOB", "microversionId": "m2", "dataType": "application/step"},
+        # Generated models are known by their names, whatever type Onshape gives them
+        {"id": "i4", "name": "tube.gen.step", "elementType": "BLOB", "microversionId": "m4", "dataType": "application/octet-stream"},
     ]
     api = RecordingApi(elements)
-    assert OnshapeRemote(api).list_images(instance) == [RemoteImage("i1", "icon.svg", "m1", "image/svg+xml")]
+    assert OnshapeRemote(api).list_images(instance) == [
+        RemoteImage("i1", "icon.svg", "m1", "image/svg+xml"),
+        RemoteImage("i4", "tube.gen.step", "m4", "application/step"),
+    ]
     assert api.requests[0][2]["query"]["elementType"] == "BLOB"
 
     api = RecordingApi({"id": "i3", "name": "new.svg", "microversionId": "m3"})

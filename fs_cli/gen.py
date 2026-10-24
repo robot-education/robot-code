@@ -42,19 +42,22 @@ class Item(Protocol):
 
 @dataclasses.dataclass
 class Import:
-    """An import of another Feature Studio in the code folder, e.g. Import("core/sketchData.fs").
+    """An import of another Feature Studio in the code folder, e.g. Import("core/sketchData.fs"), or of an image or model
+    under a `namespace` (whose `BLOB_DATA` the code uses).
 
-    Studios are imported by element id. One which isn't synced on this machine (or in Onshape yet) is imported by
+    Tabs are imported by element id. One which isn't synced on this machine (or in Onshape yet) is imported by
     its path instead, which `fs push` resolves.
     """
 
     path: str
     export: bool = False
+    namespace: str | None = None
 
     def render_with(self, resolve: Resolver) -> str:
         element_id, version = resolve(self.path)
         export = "export " if self.export else ""
-        return f'{export}import(path : "{element_id}", version : "{version}"); // {self.path}\n'
+        namespace = f"{self.namespace}::" if self.namespace else ""
+        return f'{export}{namespace}import(path : "{element_id}", version : "{version}"); // {self.path}\n'
 
 
 @dataclasses.dataclass
