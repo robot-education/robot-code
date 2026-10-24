@@ -2,7 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "onshape/std/extrude.fs", version : "2960.0");
 export import(path : "onshape/std/extrudeCommon.fs", version : "2960.0");
-import(path : "21762d39019c8b2289e2fbb8", version : "7f7ad6a5f1bbd76302f920d1");
+import(path : "21762d39019c8b2289e2fbb8", version : "f6af82a6032c39fbab6ef618");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 

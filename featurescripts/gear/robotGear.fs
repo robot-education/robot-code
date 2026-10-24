@@ -12,7 +12,7 @@ import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports BoreShape, Fit, and SplineType, parameter types
 export import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
-import(path : "f9a7532fe0d68211bd3a8112", version : "88cdac249919d6e3b37ebf69");
+import(path : "f9a7532fe0d68211bd3a8112", version : "3eab840692316e1dc233f95f");
 import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
 // Where the gear is on its location: its bottom, middle, top, or a bevel gear's apex
 import(path : "554542fc345271814c4463b0", version : "5b47f8330c585dfb754b8a98");
