@@ -19,15 +19,17 @@ writeup doesn't repeat.
 
 Since v1.2.0 (`fs changes robotFrame`).
 
-- COTS frames with holes as they're sold are cut from a model of them (imported, then cut to length and trimmed),
+- COTS frames with holes as they're sold are cut from a model of them (instantiated, then cut to length and trimmed),
   rather than extruded with each row of holes cut and patterned, to regenerate faster. Their faces' and edges' ids
   change, so references to them in existing documents need fixing: a tied hole's faces and edges are named by their
-  count from the end, and the rest come from the import. Frames are still built hole by hole with bigger holes, holes
+  count from the end, and the rest come from the model. Frames are still built hole by hole with bigger holes, holes
   moved more than 2 in. further along than they're sold, or longer than their longest sold length (where they
   already warn), and switching between the two changes their ids.
 - A COTS frame cut from its model just short of a regular length is cut through the next hole, as it would be cut from
   longer stock, where it was left out.
 - WCP's 1x1 and 2x2 3/32 in. wall tubes' walls are 3/32 in. (0.09375 in.), as their 2x1's are, rather than 0.093 in.
+- Ends cut by trims (or miters) are tagged as frame caps, as an uncut end is, and shown (or colored) with the tied
+  holes; they weren't.
 
 ## Strings
 
