@@ -275,8 +275,8 @@ WCP = vendor(
                 "1x1",
                 [
                     wcp_tube("WCP-0924", "1/16 in.", 1, 1, 0.0625),
-                    # Sold as 0.093 in.
-                    wcp_tube("WCP-1586", "3/32 in.", 1, 1, 0.093),
+                    # Listed as 0.093 in.: 3/32 in., as WCP's 2x1 is
+                    wcp_tube("WCP-1586", "3/32 in.", 1, 1, 0.09375),
                     wcp_tube("WCP-1023", "1/8 in.", 1, 1, 0.125),
                 ],
             ),
@@ -306,8 +306,8 @@ WCP = vendor(
                 "2x2",
                 [
                     wcp_tube("WCP-0926", "1/16 in.", 2, 2, 0.0625),
-                    # Sold as 0.093 in.
-                    wcp_tube("WCP-1587", "3/32 in.", 2, 2, 0.093),
+                    # Listed as 0.093 in.: 3/32 in., as WCP's 2x1 is
+                    wcp_tube("WCP-1587", "3/32 in.", 2, 2, 0.09375),
                 ],
             ),
             # Bent from 2.5 mm sheet, as the angle is
