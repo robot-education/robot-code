@@ -533,33 +533,61 @@ def write_models(code_dir: pathlib.Path, models: list[Model], dry_run: bool = Fa
 # The module mapping frames to their models (see featurescripts/released/frame/frameModels.py)
 
 
-def generated_contents(start: pathlib.Path) -> list:
+def generated_contents(start: pathlib.Path, only: set[str] | None = None) -> list:
     """What `fs gen` writes to frameModels.gen.fs: an import of each model's tab, and `FRAME_MODELS`, each COTS
     frame's model by its part name. Models which haven't been built yet (by `fs models`) are left out, so the frame
-    tables can be generated first."""
+    tables can be generated first. With `only` (models' file names), the other models' imports and entries are
+    commented out, so frames without them are built from their profiles, and their tabs needn't be uploaded yet."""
     from fs_cli.gen import Code, Import
     from fs_cli.tables import string
 
     evaluator = Evaluator(start)
     folder = evaluator.config.code_dir / MODELS_FOLDER
     frame_models = [model for model in models(evaluator) if (folder / model.file_name).is_file()]
-    imports = [Import(f"{MODELS_FOLDER}/{model.file_name}", namespace=model.namespace) for model in frame_models]
-    entries = []
-    for model in frame_models:
-        for frame in sorted(model.frames, key=lambda frame: frame.part_name):
-            value = (
-                f'{{ "data" : {model.namespace}::BLOB_DATA, "length" : {_length(model.length)}, '
-                f'"lead" : {_length(LEAD)} }}'
-            )
-            entries.append(f"        {string(frame.part_name)} : {value}")
+    if only is not None:
+        unknown = sorted(only - {model.file_name for model in frame_models})
+        if unknown:
+            raise ModelError(f"No frame has these models: {', '.join(unknown)}")
+    used = [model for model in frame_models if only is None or model.file_name in only]
+    unused = [model for model in frame_models if model not in used]
+    imports = [Import(f"{MODELS_FOLDER}/{model.file_name}", namespace=model.namespace) for model in used]
+
+    def entries(models: list[Model]) -> list[str]:
+        result = []
+        for model in models:
+            for frame in sorted(model.frames, key=lambda frame: frame.part_name):
+                value = (
+                    f'{{ "data" : {model.namespace}::BLOB_DATA, "length" : {_length(model.length)}, '
+                    f'"lead" : {_length(LEAD)} }}'
+                )
+                result.append(f"{string(frame.part_name)} : {value}")
+        return result
+
+    commented = ""
+    if unused:
+        commented = (
+            "\n        // Not imported yet (see frameModels.py), so these frames are built from their profiles\n"
+            + "".join(f"        // {entry},\n" for entry in entries(unused))
+        )
     code = (
         "/**\n"
         " * The model Robot frame imports for each COTS frame, by its part name (see fs_cli/stock_models.py): its\n"
         " * tab's `data`, how far its holes go (`length`, from where they start as they're sold, as long as it's sold),\n"
         " * and how far it reaches back before its holes start (`lead`).\n"
         " */\n"
-        "export const FRAME_MODELS = {\n" + ",\n".join(entries) + "\n    };\n"
+        "export const FRAME_MODELS = {\n"
+        + ",\n".join(f"        {entry}" for entry in entries(used))
+        + ("\n" + commented if commented else "\n")
+        + "    };\n"
     )
+    if unused:
+        code = (
+            # Not written as imports, which `fs push` would look for
+            "// Models not imported yet (see frameModels.py's TRYING):\n"
+            + "".join(f"//     {MODELS_FOLDER}/{model.file_name}\n" for model in unused)
+            + "\n"
+            + code
+        )
     return [*imports, Code(code)]
 
 

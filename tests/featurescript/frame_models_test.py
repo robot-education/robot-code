@@ -2,10 +2,11 @@
 when it can be."""
 
 import pathlib
+import re
 
 import pytest
 
-from fs_cli.stock_models import MODELS_FOLDER, frames, model_file_name
+from fs_cli.stock_models import MODELS_FOLDER, ModelError, frames, generated_contents, model_file_name
 from fs_eval import to_python
 from fs_eval.pytest_plugin import shared_evaluator
 
@@ -30,17 +31,33 @@ def wcp_2x1(hole_start: float, hole_diameter: float = 0.196):
 def test_every_cots_frame_has_a_model():
     evaluator = shared_evaluator()
     names = set(to_python(evaluator.eval("keys(FRAME_MODELS)", MODULE)))
+    # Or one commented out, while only some are tried (see frameModels.py)
+    source = (CODE / MODULE).read_text()
     for frame in frames(evaluator):
-        assert frame.part_name in names, f"{frame.part_name} has no model; run `fs gen`"
+        commented = f'        // "{frame.part_name}" : ' in source
+        assert frame.part_name in names or commented, f"{frame.part_name} has no model; run `fs gen`"
 
 
 def test_every_model_exists():
     source = (CODE / MODULE).read_text()
-    for line in source.splitlines():
-        if "::import(" in line:
-            path = line.rsplit("// ", 1)[1]
-            assert (CODE / path).is_file(), f"{path} doesn't exist; run `fs models`"
-            assert path.startswith(MODELS_FOLDER + "/")
+    paths = re.findall(r'::import\(path : "[^"]*", version : "[^"]*"\); // (.+)', source)
+    paths += re.findall(r"^//     (\S+)$", source, re.MULTILINE)
+    assert paths
+    for path in paths:
+        assert (CODE / path).is_file(), f"{path} doesn't exist; run `fs models`"
+        assert path.startswith(MODELS_FOLDER + "/")
+
+
+def test_only_models_tried_are_imported():
+    from fs_cli.gen import Code, Import
+
+    contents = generated_contents(CODE / "released/frame/frameModels.py", only={"1in-extrusion-rev-black.gen.step"})
+    imports = [item for item in contents if isinstance(item, Import)]
+    assert [item.path for item in imports] == [f"{MODELS_FOLDER}/1in-extrusion-rev-black.gen.step"]
+    code = next(item for item in contents if isinstance(item, Code)).code
+    assert '        // "2x1 Tube (WCP, 1/16 in. wall)" : ' in code
+    with pytest.raises(ModelError):
+        generated_contents(CODE / "released/frame/frameModels.py", only={"nothing.gen.step"})
 
 
 def test_model_file_names_are_part_names_words():
