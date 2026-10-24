@@ -628,8 +628,12 @@ function buildModeledStock(context is Context, id is Id, definition is map, stoc
         };
 }
 
-/** How far a hole's region (see `nameTiedHoles`) reaches past it, so the hole's faces and edges are inside it. */
-const HOLE_REGION_MARGIN = 1e-5 * meter;
+/**
+ * How far a hole's region (see `nameTiedHoles`) reaches past it, so the hole's faces and edges are inside it, even when
+ * its model's holes are a little bigger than its own (frames whose holes differ by up to 0.05 mm share a model, see
+ * fs_cli/stock_models.py).
+ */
+const HOLE_REGION_MARGIN = 0.1 * millimeter;
 
 /**
  * Names the faces and edges of modeled stock's holes tied to the end (see `buildModeledStock`), by their count from the

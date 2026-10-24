@@ -36,6 +36,11 @@ LEAD = 2 * 0.0254
 # where they end
 MARGIN = 0.5 * 0.0254
 
+# Frames whose geometry differs by no more than this share a model (see `FrameGeometry.matches`), built from the first of
+# them: vendors give the same holes as 0.196 in. and 5 mm (0.1969 in.). Linear stock finds a modeled hole's faces in a
+# region a little bigger than the hole the frame says (see its `HOLE_REGION_MARGIN`), which covers this.
+TOLERANCE = 0.05e-3
+
 # Tools for holes reach this far past the frame, so they don't end on its faces
 _TOOL_MARGIN = 0.001
 
@@ -174,20 +179,27 @@ class FrameGeometry:
     profile: list[Loop]
     rows: list[HoleRow]
 
-    def key(self) -> str:
-        """The same for frames with the same geometry (like the clear and black anodized of an extrusion), which share
-        a model."""
+    def matches(self, other: FrameGeometry) -> bool:
+        """Whether frames with these geometries can share a model: they're the same, but for lengths at most
+        `TOLERANCE` apart (like the clear and black anodized of an extrusion, or a 2x1 tube with 0.196 in. holes and one
+        with 5 mm holes)."""
+        return _matches(self, other)
 
-        def rounded(value):
-            if isinstance(value, float):
-                return round(value, 9) + 0.0
-            if isinstance(value, (list, tuple)):
-                return [rounded(item) for item in value]
-            if dataclasses.is_dataclass(value):
-                return {field.name: rounded(getattr(value, field.name)) for field in dataclasses.fields(value) if field.name != "id"}
-            return value
 
-        return repr(rounded(self))
+def _matches(a, b) -> bool:
+    if isinstance(a, bool) or isinstance(b, bool):
+        return a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return abs(a - b) <= TOLERANCE
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        return len(a) == len(b) and all(_matches(x, y) for x, y in zip(a, b))
+    if dataclasses.is_dataclass(a) and dataclasses.is_dataclass(b):
+        return type(a) is type(b) and all(
+            _matches(getattr(a, field.name), getattr(b, field.name))
+            for field in dataclasses.fields(a)
+            if field.name != "id"
+        )
+    return a == b
 
 
 def geometry(evaluator: Evaluator, frame: Frame) -> FrameGeometry:
@@ -242,8 +254,8 @@ def geometry(evaluator: Evaluator, frame: Frame) -> FrameGeometry:
 
 @dataclasses.dataclass
 class Model:
-    """A model of the frames with the same geometry, named after the first of them (see `model_file_name`), as long as
-    the longest of them is sold."""
+    """A model of the frames with the same geometry (see `FrameGeometry.matches`), built from and named after the first of
+    them (see `model_file_name`), as long as the longest of them is sold."""
 
     file_name: str
     geometry: FrameGeometry
@@ -262,15 +274,15 @@ class Model:
 
 def models(evaluator: Evaluator) -> list[Model]:
     """The models of every COTS frame, one for each geometry, by file name."""
-    by_key: dict[str, Model] = {}
+    result: list[Model] = []
     for frame in sorted(frames(evaluator), key=lambda frame: frame.file_name):
         frame_geometry = geometry(evaluator, frame)
-        key = frame_geometry.key()
-        if key in by_key:
-            by_key[key].frames.append(frame)
+        model = next((model for model in result if model.geometry.matches(frame_geometry)), None)
+        if model is not None:
+            model.frames.append(frame)
         else:
-            by_key[key] = Model(frame.file_name, frame_geometry, [frame])
-    return sorted(by_key.values(), key=lambda model: model.file_name)
+            result.append(Model(frame.file_name, frame_geometry, [frame]))
+    return result
 
 
 # Modeling, with OpenCascade
@@ -491,7 +503,10 @@ def step_text(shape, name: str) -> str:
             raise ModelError(f"Can't write {name} as STEP")
         text = path.read_text()
     # The header's timestamp and the translator's name change between runs and versions; the model doesn't
-    return re.sub(r"FILE_NAME\(.*?\);", f"FILE_NAME('{_step_string(name)}','',(''),(''),'','','');", text, count=1, flags=re.S)
+    text = re.sub(r"FILE_NAME\(.*?\);", f"FILE_NAME('{_step_string(name)}','',(''),(''),'','','');", text, count=1, flags=re.S)
+    # Nor does the count OpenCascade adds to the product's name, of the files written so far
+    quoted = re.escape(_step_string(name))
+    return re.sub(rf"'{quoted} \d+'", f"'{_step_string(name)}'", text)
 
 
 def _step_string(text: str) -> str:

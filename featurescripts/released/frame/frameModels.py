@@ -13,7 +13,7 @@ from fs_cli.stock_models import generated_contents
 
 TRYING = {
     "2x1-tube-andymark-1-16-in-wall.gen.step",  # 2x1 1/16 in. wall tube with 0.5 in. holes, as WCP's and others'
-    "1x1-tube-rev-1-8-in-wall.gen.step",
+    "1x1-tube-andymark-1-8-in-wall.gen.step",  # 1x1 1/8 in. wall tube, as REV's, Swyft's, and WCP's
     "1in-extrusion-rev-black.gen.step",
     "2x2-tube-rev-max-pattern.gen.step",  # The biggest model
     "u-channel-gobilda-1120-series.gen.step",  # FTC, in millimeters

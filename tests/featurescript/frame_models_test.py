@@ -82,3 +82,13 @@ def test_frames_with_bigger_holes_are_built():
 def test_frames_are_built_from_their_model_when_they_fit_it(hole_start, length, fits):
     model = shared_evaluator().eval("stock.model", FRAME, stock=wcp_2x1(hole_start))
     assert shared_evaluator().eval(f"fitsModel(model, {length} * inch)", STOCK, model=model) is fits
+
+
+def test_frames_with_holes_as_good_as_the_same_share_a_model():
+    from fs_cli.stock_models import TOLERANCE, _matches
+
+    # 0.196 in. and 5 mm holes
+    assert _matches([0.196 * 0.0254, (1.0, 2.0)], [0.005, (1.0, 2.0)])
+    assert not _matches([0.0], [2 * TOLERANCE])
+    assert not _matches([0.0], [0.0, 0.0])
+    assert not _matches(True, False)

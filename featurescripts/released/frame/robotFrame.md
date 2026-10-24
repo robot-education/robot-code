@@ -115,8 +115,10 @@ A COTS frame's model is built from the frame as `getFrame` describes it (see `fs
 they're sold: its profile from linear stock's `sketchProfile` and its holes' shapes from `sketchShape`, run with the
 evaluator, then modeled with OpenCascade. It runs along +Z from where its holes start as sold (Z = 0), through the
 longest length it's sold in, with a 2 in. lead before Z = 0 with no holes, and half an inch more at both ends, so it's
-always cut inside it. Frames with the same geometry (like an extrusion's clear and black anodized) share a model, named
-after the first of them. `FRAME_MODELS` maps each frame's part name to its model's tab (`data`, its `BLOB_DATA`),
+always cut inside it. Frames with the same geometry, to within 0.05 mm, share a model, built from and named after the
+first of them: an extrusion's clear and black anodized, and tubes whose vendors give their holes as 0.196 in. or 5 mm
+(0.1969 in.), like WCP's, AndyMark's, and REV's 2x1 1/16 in. wall tube (61 frames, 44 models). A frame cut from a
+model built from another's holes has holes up to 0.05 mm off its own. `FRAME_MODELS` maps each frame's part name to its model's tab (`data`, its `BLOB_DATA`),
 `length`, and `lead`.
 
 ### Error handling
