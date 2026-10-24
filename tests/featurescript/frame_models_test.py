@@ -6,6 +6,7 @@ import re
 
 import pytest
 
+from fs_cli.state import model_of_studio
 from fs_cli.stock_models import MODELS_FOLDER, frames, model_file_name
 from fs_eval import to_python
 from fs_eval.pytest_plugin import shared_evaluator
@@ -40,7 +41,10 @@ def test_every_model_exists():
     paths = re.findall(r'::import\(path : "[^"]*", version : "[^"]*"\); // (.+)', source)
     assert paths
     for path in paths:
-        assert (CODE / path).is_file(), f"{path} doesn't exist; run `fs models`"
+        # Each model's Part Studio, which Onshape translates the model into
+        model = model_of_studio(path)
+        assert model is not None, f"{path} isn't a model's Part Studio"
+        assert (CODE / model).is_file(), f"{model} doesn't exist; run `fs models`"
         assert path.startswith(MODELS_FOLDER + "/")
 
 

@@ -6,8 +6,9 @@ import dataclasses
 import pathlib
 from typing import Protocol
 
+from fs_cli.state import MODEL_STUDIO_SUFFIX
 from onshape_api.api.api_base import Api
-from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions
+from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, parts, versions
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import ElementPath, InstancePath
 from onshape_api.types import ElementGroup, ElementType
@@ -30,9 +31,9 @@ class RemoteStudio:
 # "Icon", or a "Description Image"
 IMAGE_TYPES = {".svg": "image/svg+xml", ".png": "image/png"}
 
-# Generated STEP models (see fs_cli/stock_models.py) are synced like images: a Feature Studio imports a model's tab and
-# passes its `BLOB_DATA` to `opImportForeign`. Only generated ones are, so vendors' STEP files kept for reference
-# aren't.
+# Generated STEP models (see fs_cli/stock_models.py) are synced like images, and Onshape translates each into a Part
+# Studio, which a Feature Studio imports and instantiates (see fs_cli/state.py's `MODEL_STUDIO_SUFFIX`). Only generated
+# ones are, so vendors' STEP files kept for reference aren't.
 MODEL_SUFFIX = ".gen.step"
 MODEL_TYPE = "application/step"
 
@@ -52,6 +53,17 @@ class RemoteImage:
         if self.data_type == MODEL_TYPE:
             return MODEL_SUFFIX
         return next((extension for extension, type in IMAGE_TYPES.items() if type == self.data_type), ".svg")
+
+
+@dataclasses.dataclass
+class RemoteModelStudio:
+    """The Part Studio Onshape translated a model into (see fs_cli/state.py's `MODEL_STUDIO_SUFFIX`): named after the
+    model, less `.step`, and `translated` once its part is in it."""
+
+    element_id: str
+    name: str
+    microversion_id: str
+    translated: bool
 
 
 # Files named like `screenshot.local.png` or `example.local.fs` stay in the repo, and aren't synced with tabs
@@ -152,6 +164,10 @@ class Remote(Protocol):
         """Replaces an image tab's file, returning its new microversion."""
         ...
 
+    def list_model_studios(self, instance: InstancePath) -> list[RemoteModelStudio]:
+        """Lists the Part Studios Onshape translated models into, with their microversions (2 calls)."""
+        ...
+
 
 class OnshapeRemote:
     def __init__(self, api: Api) -> None:
@@ -239,6 +255,18 @@ class OnshapeRemote:
         content_type = _image_type(name)
         response = blob_elements.upload_file_update_element(self.api, path, name, data, content_type)
         return RemoteImage(response["id"], response["name"], response["microversionId"], content_type)
+
+
+    def list_model_studios(self, instance: InstancePath) -> list[RemoteModelStudio]:
+        elements = documents.get_document_elements(self.api, instance, ElementType.PART_STUDIO)
+        studios = [element for element in elements if element["name"].endswith(MODEL_STUDIO_SUFFIX)]
+        if not studios:
+            return []
+        with_parts = {part["elementId"] for part in parts.get_parts(self.api, instance)}
+        return [
+            RemoteModelStudio(element["id"], element["name"], element["microversionId"], element["id"] in with_parts)
+            for element in studios
+        ]
 
 
 def _image_type(name: str) -> str:

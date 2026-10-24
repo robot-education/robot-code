@@ -2,7 +2,7 @@
 
 Adds tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so std's frame
 features work with it. Frames are COTS (from vendors' tables) or custom (a common size of tube or angle, or any size,
-with holes as the dialog says). COTS frames are cut from a model of them (a STEP tab) where they can be, rather than
+with holes as the dialog says). COTS frames are cut from a model of them (a Part Studio) where they can be, rather than
 built hole by hole. The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md), which this
 writeup doesn't repeat.
 
@@ -10,8 +10,8 @@ writeup doesn't repeat.
 | --- | --- |
 | `robotFrame.fs` | The feature: its dialog, the chosen frame as a `Stock`, checking its holes, and its editing logic |
 | `frameTables.py` | The frame tables' source (and extrusion and MAXTube cross sections); `fs gen` writes `frameTables.gen.fs` |
-| `frameModels.py` | `fs gen`'s definition of `frameModels.gen.fs`: `FRAME_MODELS`, each COTS frame's model by its part name, and the imports of the models' tabs |
-| `models/` | The models, `*.gen.step`, which `fs models` builds (see `fs_cli/stock_models.py`) and `fs push` uploads to tabs |
+| `frameModels.py` | `fs gen`'s definition of `frameModels.gen.fs`: `FRAME_MODELS`, each COTS frame's model by its part name, and the imports of the models' Part Studios |
+| `models/` | The models, `*.gen.step`, which `fs models` builds (see `fs_cli/stock_models.py`) and `fs push` uploads to tabs, which Onshape translates into Part Studios |
 | `../core/linearStock.fs` | Placing and building stock (from its profile, or its model), and the Position and Tie holes to end groups |
 | `vendor/` | Vendors' drawings and STEP files the tables and cross sections come from |
 
@@ -115,7 +115,8 @@ longest length it's sold in, with a 2 in. lead before Z = 0 with no holes, and h
 always cut inside it. Frames with the same geometry, to within 0.05 mm, share a model, built from and named after the
 first of them: an extrusion's clear and black anodized, and tubes whose vendors give their holes as 0.196 in. or 5 mm
 (0.1969 in.), like WCP's, AndyMark's, and REV's 2x1 1/16 in. wall tube (61 frames, 44 models). A frame cut from a
-model built from another's holes has holes up to 0.05 mm off its own. `FRAME_MODELS` maps each frame's part name to its model's tab (`data`, its `BLOB_DATA`),
+model built from another's holes has holes up to 0.05 mm off its own. Onshape translates each model, once it's uploaded,
+into a Part Studio, which `FRAME_MODELS` imports: it maps each frame's part name to its model's Part Studio's `build`,
 `length`, and `lead`.
 
 ### Error handling

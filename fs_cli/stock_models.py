@@ -549,7 +549,7 @@ def write_models(code_dir: pathlib.Path, models: list[Model], dry_run: bool = Fa
 
 
 def generated_contents(start: pathlib.Path) -> list:
-    """What `fs gen` writes to frameModels.gen.fs: an import of each model's tab, and `FRAME_MODELS`, each COTS
+    """What `fs gen` writes to frameModels.gen.fs: an import of each model's Part Studio, and `FRAME_MODELS`, each COTS
     frame's model by its part name. Models which haven't been built yet (by `fs models`) are left out, so the frame
     tables can be generated first."""
     from fs_cli.gen import Code, Import
@@ -558,20 +558,24 @@ def generated_contents(start: pathlib.Path) -> list:
     evaluator = Evaluator(start)
     folder = evaluator.config.code_dir / MODELS_FOLDER
     frame_models = [model for model in models(evaluator) if (folder / model.file_name).is_file()]
-    imports = [Import(f"{MODELS_FOLDER}/{model.file_name}", namespace=model.namespace) for model in frame_models]
+    # The Part Studio Onshape translates each model into (FeatureScript can't import the model's tab itself)
+    imports = [
+        Import(f"{MODELS_FOLDER}/{model.file_name.removesuffix('.step')}", namespace=model.namespace)
+        for model in frame_models
+    ]
     entries = []
     for model in frame_models:
         for frame in sorted(model.frames, key=lambda frame: frame.part_name):
             value = (
-                f'{{ "data" : {model.namespace}::BLOB_DATA, "length" : {_length(model.length)}, '
+                f'{{ "build" : {model.namespace}::build, "length" : {_length(model.length)}, '
                 f'"lead" : {_length(LEAD)} }}'
             )
             entries.append(f"        {string(frame.part_name)} : {value}")
     code = (
         "/**\n"
-        " * The model Robot frame imports for each COTS frame, by its part name (see fs_cli/stock_models.py): its\n"
-        " * tab's `data`, how far its holes go (`length`, from where they start as they're sold, as long as it's sold),\n"
-        " * and how far it reaches back before its holes start (`lead`).\n"
+        " * The model Robot frame instantiates for each COTS frame, by its part name (see fs_cli/stock_models.py): the\n"
+        " * `build` of the Part Studio Onshape translates it into, how far its holes go (`length`, from where they start\n"
+        " * as they're sold, as long as it's sold), and how far it reaches back before its holes start (`lead`).\n"
         " */\n"
         "export const FRAME_MODELS = {\n" + ",\n".join(entries) + "\n    };\n"
     )

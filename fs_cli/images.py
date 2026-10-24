@@ -25,7 +25,7 @@ import re
 from concurrent import futures
 
 from fs_cli import git
-from fs_cli.remote import RemoteImage, image_type, safe_file_name
+from fs_cli.remote import MODEL_SUFFIX, RemoteImage, image_type, safe_file_name
 from fs_cli.state import StudioState, image_hash, retarget_imports
 from fs_cli.workspace import Status, Targets, UsageError, Workspace, list_until_found
 
@@ -294,14 +294,19 @@ class Images:
             self._record(image, image.remote_data, image.remote.microversion_id)
 
     def delete(self, images: list[Image]) -> None:
-        """Deletes the tabs of images whose files were deleted locally."""
-
-        def delete(image: Image) -> None:
-            assert image.remote
-            self.remote.delete(self.instance, image.remote.element_id)
+        """Deletes the tabs of images whose files were deleted locally, and of models' Part Studios (see
+        fs_cli/state.py's `MODEL_STUDIO_SUFFIX`)."""
+        tabs = [image.remote.element_id for image in images if image.remote]
+        models = {pathlib.PurePosixPath(image.path).name for image in images if image.path.endswith(MODEL_SUFFIX)}
+        if models:
+            tabs += [
+                studio.element_id
+                for studio in self.remote.list_model_studios(self.instance)
+                if studio.name + ".step" in models
+            ]
 
         with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
-            list(executor.map(delete, images))
+            list(executor.map(lambda element_id: self.remote.delete(self.instance, element_id), tabs))
         for image in images:
             assert image.remote
             self.state.images.pop(image.remote.element_id, None)

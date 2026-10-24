@@ -972,6 +972,9 @@ class Project:
                     or imported.element_id
                     or imported.other_document
                     or (self.code_dir / imported.path).is_file()
+                    # A model's Part Studio, which Onshape translates the model into (see fs_cli/state.py's
+                    # `MODEL_STUDIO_SUFFIX`)
+                    or (imported.path.endswith(".gen") and (self.code_dir / (imported.path + ".step")).is_file())
                 ):
                     # An image (or a studio) imported by path, which `fs push` uploads and resolves
                     problems.append(

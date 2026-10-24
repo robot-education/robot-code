@@ -132,13 +132,15 @@ away, is an error. Holes are laid out on the untrimmed length, so tied holes cou
 
 ### Building from a model (`buildModeledStock`)
 
-Stock with a `model` (a STEP tab, like Robot frame's COTS frames') is imported rather than built, by `buildStock`,
+Stock with a `model` (a Part Studio Onshape translated a STEP model into, like Robot frame's COTS frames') is
+instantiated rather than built, by `buildStock`,
 when it fits the model (`fitsModel`), which reaches `lead` back from where its holes start as sold, and `length`
 forward (and a little further each way, so it's always cut inside it): its holes are moved along no further than
 `lead`, and it's no longer than `length` plus that. Otherwise it's built from its profile, as above, which makes
 different ids; switching between them breaks references to it.
 
-1. The model is imported (`opImportForeign`) and moved to the stock's start (`toWorld(location)`), with its holes
+1. The model's Part Studio is instantiated (std's `addInstance` and `instantiate`, with its `build`), and moved to the
+   stock's start (`toWorld(location)`), with its holes
    `shift` along, and mirrored across its Y axis when flipped, as profiles are (see `acrossSign`).
 2. Frames are tagged as frames: their swept faces and edges are those which cross a plane in the model's lead, where it
    has no holes (`tagSweptAsFrame`, `core/frameTags.fs`).
@@ -175,9 +177,9 @@ There are no fallbacks.
 
 ## Issues found
 
-- Building from a model is untested in Onshape: whether `opImportForeign` takes an uploaded STEP tab's `BLOB_DATA` as
-  `blobData`, whether `opTransform` mirrors a body (when flipped), and whether `opNameEntity` (std marks it under
-  development) keeps references to tied holes as the length changes.
+- Building from a model is untested in Onshape past instantiating its Part Studio: whether `opTransform` mirrors a body
+  (when flipped), and whether `opNameEntity` (std marks it under development) keeps references to tied holes as the
+  length changes.
 
 - Every stock gets Aluminum - 6061 as its material, including Last Anvil's 7075 tube.
 - In Point placement, the extrude's opposite direction is labeled "Flip primary axis".

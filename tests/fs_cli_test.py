@@ -12,7 +12,7 @@ import subprocess
 import pytest
 
 from fs_cli import cli, workspace
-from fs_cli.remote import RemoteImage, RemoteStudio, Version, folder_paths
+from fs_cli.remote import RemoteImage, RemoteModelStudio, RemoteStudio, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
@@ -38,6 +38,10 @@ class FakeOnshape:
         self.folders_error: Exception | None = None
         # (document id, instance id) -> element id -> image tab
         self.image_tabs: dict[tuple[str, str], dict[str, dict]] = {}
+        # (document id, instance id) -> element id -> the Part Studio a model is translated into
+        self.model_studio_tabs: dict[tuple[str, str], dict[str, dict]] = {}
+        # Whether uploading a model translates it into its Part Studio at once
+        self.translates = True
 
     def _id(self, prefix: str) -> str:
         # Like Onshape's: 24 hex digits
@@ -72,6 +76,9 @@ class FakeOnshape:
         element_id = self._id("i")
         self.images(document, instance)[element_id] = {"name": name, "data": data, "mv": self._id("m")}
         return element_id
+
+    def model_studios(self, document: str = "back", instance: str = "bw") -> dict[str, dict]:
+        return self.model_studio_tabs.setdefault((document, instance), {})
 
     def edit(self, element_id: str, code: str, document="back", instance="bw") -> None:
         self.studios(document, instance)[element_id].update(code=code, mv=self._id("m"))
@@ -139,6 +146,7 @@ class FakeOnshape:
         self.calls["delete"] += 1
         self.studios(instance.document_id, instance.instance_id).pop(element_id, None)
         self.images(instance.document_id, instance.instance_id).pop(element_id, None)
+        self.model_studios(instance.document_id, instance.instance_id).pop(element_id, None)
 
     def rename(self, instance, element_id, name):
         self.calls["rename"] += 1
@@ -179,7 +187,19 @@ class FakeOnshape:
     def upload_image(self, instance, name, data):
         self.calls["upload_image"] += 1
         element_id = self.add_image(name, data, instance.document_id, instance.instance_id)
+        if name.endswith(".gen.step"):
+            # Like Onshape, which translates a STEP file into a Part Studio named after it
+            self.model_studios(instance.document_id, instance.instance_id)[self._id("p")] = {
+                "name": name.removesuffix(".step"),
+                "mv": self._id("m"),
+                "translated": self.translates,
+            }
         return RemoteImage(element_id, name, self.images(instance.document_id, instance.instance_id)[element_id]["mv"])
+
+    def list_model_studios(self, instance):
+        self.calls["list_model_studios"] += 1
+        studios = self.model_studios(instance.document_id, instance.instance_id)
+        return [RemoteModelStudio(id, s["name"], s["mv"], s["translated"]) for id, s in studios.items()]
 
     def update_image(self, instance, element_id, name, data):
         self.calls["update_image"] += 1
@@ -1707,6 +1727,55 @@ def test_push_uploads_generated_models_but_not_other_step_files(repo, onshape, c
     capsys.readouterr()
     run(onshape, "status")
     assert "everything in sync" in capsys.readouterr().out
+
+
+def test_push_resolves_imports_of_models_part_studios(repo, onshape, capsys):
+    write(repo, "frame/models/tube.gen.step", "ISO-10303-21;")
+    write(repo, "frame/frame.fs", 'Model::import(path : "frame/models/tube.gen", version : "");\n')
+    assert run(onshape, "push") == 0
+    [(studio, translated)] = onshape.model_studios().items()
+    assert translated["name"] == "tube.gen"
+    expected = f'Model::import(path : "{studio}", version : "{translated["mv"]}");\n'
+    assert onshape.code("frame.fs") == expected
+    assert local(repo, "frame/frame.fs").read_text() == expected
+
+
+def test_push_waits_for_models_to_be_translated(repo, onshape, capsys, monkeypatch):
+    monkeypatch.setattr(workspace, "TRANSLATION_DELAYS", (0, 0))
+    onshape.translates = False
+    write(repo, "frame/models/tube.gen.step", "ISO-10303-21;")
+    write(repo, "frame/frame.fs", 'Model::import(path : "frame/models/tube.gen", version : "");\n')
+    assert run(onshape, "push") == 2
+    out, err = capsys.readouterr()
+    assert "Waiting for Onshape to translate 1 model..." in out
+    assert "hasn't translated these models into Part Studios yet" in err and "frame/models/tube.gen.step" in err
+    assert onshape.calls["list_model_studios"] == 3
+
+    # Once it has, pushing again resolves the import
+    for studio in onshape.model_studios().values():
+        studio["translated"] = True
+    assert run(onshape, "push") == 0
+    assert '"frame/models/tube.gen"' not in onshape.code("frame.fs")
+
+
+def test_imports_of_models_part_studios_need_the_model(repo, onshape, capsys):
+    write(repo, "frame/frame.fs", 'Model::import(path : "frame/models/tube.gen", version : "");\n')
+    assert run(onshape, "push") == 2
+    assert (
+        "frame/frame.fs imports frame/models/tube.gen (the Part Studio of frame/models/tube.gen.step), which doesn't exist."
+        in capsys.readouterr().err
+    )
+
+
+def test_deleting_a_model_deletes_its_part_studio(repo, onshape, capsys):
+    write(repo, "frame/models/tube.gen.step", "ISO-10303-21;")
+    assert run(onshape, "push") == 0
+    assert len(onshape.model_studios()) == 1
+    local(repo, "frame/models/tube.gen.step").unlink()
+    capsys.readouterr()
+    assert run(onshape, "push", "-y") == 0
+    assert "Will delete the tube.gen.step tab and its Part Studio in Onshape" in capsys.readouterr().out
+    assert onshape.images() == {} and onshape.model_studios() == {}
 
 
 def test_imported_images_must_exist(repo, onshape, capsys):

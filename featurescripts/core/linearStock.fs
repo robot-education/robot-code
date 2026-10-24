@@ -201,10 +201,10 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field isFrame {boolean} : @optional Whether it's tagged as a frame, for the std frame features.
  *      @field tieStart {ValueWithUnits} : The position of the first hole which counts for tying holes. @seealso [getTie]
  *      @field tieUnit {ValueWithUnits} : How far apart the holes which count are.
- *      @field model {map} : @optional A model of it to import and cut to length, rather than build, when it fits
- *              (see `buildModeledStock` and `fitsModel`): its STEP tab's `data` (its `BLOB_DATA`), how far its holes go from where they
- *              start as they're sold (`length`), how far it reaches back before them (`lead`), and how much further
- *              along its holes are than they're sold (`shift`).
+ *      @field model {map} : @optional A model of it to instantiate and cut to length, rather than build, when it
+ *              fits (see `buildModeledStock` and `fitsModel`): its Part Studio's `build` function, how far its holes
+ *              go from where they start as they're sold (`length`), how far it reaches back before them (`lead`), and
+ *              how much further along its holes are than they're sold (`shift`).
  * }}
  */
 export type Stock typecheck canBeStock;
@@ -568,11 +568,11 @@ function fitsModel(model is map, length is ValueWithUnits) returns boolean
 }
 
 /**
- * Builds stock from its `model` (see `Stock`), as `buildStock` builds it from its profile: the model is imported, placed
+ * Builds stock from its `model` (see `Stock`), as `buildStock` builds it from its profile: the model is instantiated, placed
  * with its holes `shift` along from the start, and cut to the stock's ends and trims. Importing and cutting once is
  * faster than cutting every hole. The stock must fit the model (see `fitsModel`).
  *
- * The model is the same at any length, so its holes keep the identities the import gives them, which count from its
+ * The model is the same at any length, so its holes keep the identities instantiating gives them, which count from its
  * start. The holes tied to the end (see `getTie`) are named by their count from the end instead (see
  * `nameTiedHoles`), so they keep their identities as its length changes.
  */
@@ -582,9 +582,10 @@ function buildModeledStock(context is Context, id is Id, definition is map, stoc
     const model = stock.model;
     const tie = getTie(definition, stock.tieStart, stock.tieUnit);
     const hasHoles = stock.xRows != [] || stock.yRows != [];
-    const modelId = id + "model";
-    opImportForeign(context, modelId, { "blobData" : model.data });
-    const body = qCreatedBy(modelId, EntityType.BODY)->qBodyType(BodyType.SOLID);
+    // From the Part Studio Onshape translates the model's STEP tab into: FeatureScript can't import the tab itself
+    const instantiator = newInstantiator(id + "model");
+    const body = addInstance(instantiator, model.build, { "partQuery" : qEverything(EntityType.BODY)->qBodyType(BodyType.SOLID) });
+    instantiate(context, instantiator);
     const across = acrossSign(definition);
     // Mirrored when flipped, as `sketchProfile` mirrors the profile (see `acrossSign`)
     const mirror = across == 1 ? identityTransform() : mirrorAcross(YZ_PLANE);

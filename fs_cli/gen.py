@@ -17,7 +17,7 @@ import re
 import runpy
 from typing import Callable, Mapping, Protocol, Sequence
 
-from fs_cli.state import apply_import_versions, import_versions
+from fs_cli.state import apply_import_versions, import_versions, model_of_studio
 
 GENERATED_SUFFIX = ".gen.fs"
 
@@ -42,8 +42,9 @@ class Item(Protocol):
 
 @dataclasses.dataclass
 class Import:
-    """An import of another Feature Studio in the code folder, e.g. Import("core/sketchData.fs"), or of an image or model
-    under a `namespace` (whose `BLOB_DATA` the code uses).
+    """An import of another Feature Studio in the code folder, e.g. Import("core/sketchData.fs"), or under a `namespace`
+    of an image (whose `BLOB_DATA` the code uses) or a model's Part Studio (whose `build` it uses, see
+    fs_cli/state.py's `MODEL_STUDIO_SUFFIX`).
 
     Tabs are imported by element id. One which isn't synced on this machine (or in Onshape yet) is imported by
     its path instead, which `fs push` resolves.
@@ -159,7 +160,9 @@ def _resolver(
             return synced[path]
         if path in previous:
             return previous[path]
-        if not (source.parent / path).is_file() and not _code_dir_has(source, path):
+        # A model's Part Studio is in Onshape once the model is
+        file = model_of_studio(path) or path
+        if not (source.parent / file).is_file() and not _code_dir_has(source, file):
             raise GenerateError(f"{source.name} imports {path}, which doesn't exist.")
         # By path, which `fs push` resolves
         return path, ""

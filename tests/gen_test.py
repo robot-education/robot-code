@@ -174,6 +174,19 @@ def test_namespaced_imports(tmp_path):
     assert not result.changed
 
 
+def test_imports_of_models_part_studios(tmp_path):
+    (tmp_path / "models.py").write_text(
+        "from fs_cli.gen import Import\nCONTENTS = [Import('frame/tube.gen', namespace='Tube')]\n"
+    )
+    # A model's Part Studio can be imported once the model exists, by path, which `fs push` resolves
+    with pytest.raises(GenerateError, match="imports frame/tube.gen, which doesn't exist"):
+        generate(tmp_path, "2960", {})
+    (tmp_path / "frame").mkdir()
+    (tmp_path / "frame/tube.gen.step").write_text("ISO-10303-21;")
+    [result] = generate(tmp_path, "2960", {})
+    assert result.code.splitlines()[2] == 'Tube::import(path : "frame/tube.gen", version : ""); // frame/tube.gen'
+
+
 # Sketches
 
 

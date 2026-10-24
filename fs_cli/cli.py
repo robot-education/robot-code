@@ -37,7 +37,7 @@ from fs_cli.release import (
     tag_versions,
     unsynced_versions,
 )
-from fs_cli.remote import OnshapeRemote, Remote, file_name_for, is_local
+from fs_cli.remote import MODEL_SUFFIX, OnshapeRemote, Remote, file_name_for, is_local
 from fs_cli.renames import (
     relative_paths,
     rename_path_imports,
@@ -1872,7 +1872,9 @@ def plan_deletes(
     skipped = 1 if len(to_delete) < len(studios) else 0
     verb = "Would delete" if dry_run else "Will delete"
     for studio in to_delete:
-        print(f"{verb} the {studio.name} tab in Onshape ({studio.path} was deleted)")
+        # A model's Part Studio goes with it (see `Images.delete`)
+        extra = " and its Part Studio" if studio.path.endswith(MODEL_SUFFIX) else ""
+        print(f"{verb} the {studio.name} tab{extra} in Onshape ({studio.path} was deleted)")
     if to_delete and new:
         print(
             f"If {'it was' if len(to_delete) == 1 else 'any were'} renamed to "

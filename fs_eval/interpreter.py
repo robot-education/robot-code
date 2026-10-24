@@ -273,7 +273,8 @@ class ConstSymbol:
 
 
 class Namespace:
-    """`Name::import(...)`: a module's exports, or an image's (its `BLOB_DATA`)."""
+    """`Name::import(...)`: a module's exports, an image's (its `BLOB_DATA`), or a Part Studio's (its `build`, which
+    the evaluator can't run)."""
 
     def __init__(self, module: Module | None, path: str):
         self.module = module
@@ -287,7 +288,14 @@ class Namespace:
             return symbol_value(symbol)
         if name == "BLOB_DATA":
             return FSMap.of([("blob", self.path)])
-        raise error(f"{name} isn't defined by the image {self.path}", at)
+        if name == "build":
+            path = self.path
+
+            def build(*args):
+                raise error(f"The evaluator can't build the Part Studio {path}", at)
+
+            return PythonFunction("build", build)
+        raise error(f"{name} isn't defined by the image or Part Studio {self.path}", at)
 
 
 def symbol_value(symbol):
