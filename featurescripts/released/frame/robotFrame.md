@@ -17,7 +17,7 @@ writeup doesn't repeat.
 
 ## Changelog
 
-Since v1.1.0 (`fs changes robotFrame`).
+Since v1.2.0 (`fs changes robotFrame`).
 
 - COTS frames with holes as they're sold are cut from a model of them (imported, then cut to length and trimmed),
   rather than extruded with each row of holes cut and patterned, to regenerate faster. Their faces' and edges' ids
@@ -28,10 +28,6 @@ Since v1.1.0 (`fs changes robotFrame`).
 - A COTS frame cut from its model just short of a regular length is cut through the next hole, as it would be cut from
   longer stock, where it was left out.
 - WCP's 1x1 and 2x2 3/32 in. wall tubes' walls are 3/32 in. (0.09375 in.), as their 2x1's are, rather than 0.093 in.
-- Custom frames' Custom size (tube or angle): Width, Height, Top rows, Side rows, and Top and Side row distances.
-- Custom frames whose walls are too thick for them are an error.
-- Which row distances a custom frame shows (2x1's faces', or Distance between rows) is worked out on every change,
-  not only when the frame changes.
 
 ## Strings
 
