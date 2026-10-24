@@ -4,8 +4,8 @@ RobotFrameIcon::import(path : "94bcdc0a50ec32f81a3aa449", version : "0ee45036412
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
-import(path : "ff444db0395e01aaa8c7e555", version : "87aa3665d5a93d91331dbe19");
-import(path : "released/frame/frameModels.gen.fs", version : "");
+import(path : "ff444db0395e01aaa8c7e555", version : "244b4a3f1cb697119de1f1b5");
+import(path : "f64c513aa3a15a08ca440fb2", version : "756c83b92b31bd23930dc4c8");
 // Also exports the enums used as parameter types
 export import(path : "9fc889bb93a3c29feb4f9ae5", version : "439d5a6da5926ffd182185cd");
 

@@ -1,10 +1,10 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-Model1inExtrusionRevBlack::import(path : "released/frame/models/1in-extrusion-rev-black.gen.step", version : ""); // released/frame/models/1in-extrusion-rev-black.gen.step
-Model1x1TubeRev18InWall::import(path : "released/frame/models/1x1-tube-rev-1-8-in-wall.gen.step", version : ""); // released/frame/models/1x1-tube-rev-1-8-in-wall.gen.step
-Model2x1TubeAndymark116InWall::import(path : "released/frame/models/2x1-tube-andymark-1-16-in-wall.gen.step", version : ""); // released/frame/models/2x1-tube-andymark-1-16-in-wall.gen.step
-Model2x2TubeRevMaxPattern::import(path : "released/frame/models/2x2-tube-rev-max-pattern.gen.step", version : ""); // released/frame/models/2x2-tube-rev-max-pattern.gen.step
-ModelUChannelGobilda1120Series::import(path : "released/frame/models/u-channel-gobilda-1120-series.gen.step", version : ""); // released/frame/models/u-channel-gobilda-1120-series.gen.step
+Model1inExtrusionRevBlack::import(path : "9c9921210ddb6c3ed598f939", version : "eb6ba0c1761fe1968c5d9452"); // released/frame/models/1in-extrusion-rev-black.gen.step
+Model1x1TubeRev18InWall::import(path : "dd42087feaa29787df7da749", version : "9001074e24138e55799ff9ad"); // released/frame/models/1x1-tube-rev-1-8-in-wall.gen.step
+Model2x1TubeAndymark116InWall::import(path : "0f7091feddf254d24d9940cd", version : "376d453754263999137edb45"); // released/frame/models/2x1-tube-andymark-1-16-in-wall.gen.step
+Model2x2TubeRevMaxPattern::import(path : "3fd4b2324d0c70d013d87048", version : "a6c6b5a4e2e5e95f228d8a13"); // released/frame/models/2x2-tube-rev-max-pattern.gen.step
+ModelUChannelGobilda1120Series::import(path : "339869817a24bedd5e179520", version : "8950d6a4c6ebc7aa0f5cafb3"); // released/frame/models/u-channel-gobilda-1120-series.gen.step
 
 /* Generated from frameModels.py by `fs gen` -- DO NOT EDIT */
 
