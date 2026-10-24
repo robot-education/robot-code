@@ -718,14 +718,13 @@ function nameTiedHoles(context is Context, id is Id, body is Query, stock is Sto
                 });
             for (var i, entity in entities)
             {
-                opNameEntity(context, id + "nameTiedHoles" + ("name" ~ count), {
-                            "entity" : entity.entity,
-                            "entityName" : region.name ~ "." ~ (kind == EntityType.FACE ? "f" : "e") ~ i
-                        });
+                const name = region.name ~ "." ~ (kind == EntityType.FACE ? "f" : "e") ~ i;
+                opNameEntity(context, id + "nameTiedHoles" + ("name" ~ count), { "entity" : entity.entity, "entityName" : name });
                 count += 1;
                 if (kind == EntityType.FACE)
                 {
-                    faces = append(faces, entity.entity);
+                    // By its name: naming it leaves the query for it from before unresolvable
+                    faces = append(faces, qNamed(name));
                 }
             }
         }
