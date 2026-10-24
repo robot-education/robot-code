@@ -21,7 +21,7 @@ from fs_cli.state import load_image_files, load_studio_files, save_studio_files
 
 # An import by path in the code folder: group 2 is the path
 _PATH_IMPORT = re.compile(
-    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png))("\s*,\s*version\s*:\s*"[^"]*")'
+    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png|gen\.step))("\s*,\s*version\s*:\s*"[^"]*")'
 )
 
 # How alike a new file has to be to a missing one to be taken as it renamed, as in git

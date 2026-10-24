@@ -390,6 +390,13 @@ def make_parser() -> argparse.ArgumentParser:
         "--z", type=float, help="the height (in inches) of the face perpendicular to Z to keep (default: the highest)"
     )
 
+    models_command = command(
+        "models",
+        "build STEP models of every COTS frame, for Robot imported frame (see fs_cli/stock_models.py; no API calls)",
+        targets=False,
+    )
+    dry_run(models_command)
+
     icons_command = command(
         "icons",
         "save a picture of icons side by side, big and as Onshape shows them, on light and dark (no API calls)",
@@ -1236,10 +1243,11 @@ def icons(config: Config, args: argparse.Namespace) -> int:
 
 
 def gen(config: Config, args: argparse.Namespace) -> int:
-    # Imports need a version, which is only known for studios synced on this machine
+    # Imports need a version, which is only known for studios (and images and models) synced on this machine
+    state = State.load(config.state_path, config.studios_path)
     synced = {
         entry.file: (element_id, entry.microversion_id)
-        for element_id, entry in State.load(config.state_path, config.studios_path).studios.items()
+        for element_id, entry in [*state.studios.items(), *state.images.items()]
         if entry.microversion_id
     }
     generated = generate(config.code_dir, StdMetadata.load(config.std_dir).number, synced)
@@ -1449,6 +1457,31 @@ def step(config: Config, args: argparse.Namespace) -> int:
         raise UsageError(str(error)) from error
     pathlib.Path(args.output).write_text(trimmed)
     print(f"Saved {args.output} ({len(trimmed) // 1024} KB)")
+    return 0
+
+
+def models(config: Config, args: argparse.Namespace) -> int:
+    from fs_cli.stock_models import MODELS_FOLDER, ModelError, write_models
+    from fs_cli.stock_models import models as frame_models
+    from fs_eval import Evaluator
+
+    try:
+        import OCP  # noqa: F401
+    except ImportError:
+        raise UsageError("Building models needs OpenCascade: run `uv sync --group step` first.")
+    try:
+        written, deleted = write_models(config.code_dir, frame_models(Evaluator(config.root)), args.dry_run)
+    except ModelError as error:
+        raise UsageError(str(error)) from error
+    verb = "Would update" if args.dry_run else "Updated"
+    for path in written:
+        print(f"{verb} {path}")
+    for path in deleted:
+        print(f"{'Would delete' if args.dry_run else 'Deleted'} {path}")
+    if not written and not deleted:
+        print(f"Every model in {MODELS_FOLDER} is up to date.")
+    elif not args.dry_run:
+        print("Run `fs gen` (if frames were added or removed), then `fs push` to upload them.")
     return 0
 
 
@@ -1708,6 +1741,7 @@ OFFLINE_COMMANDS = {
     "cots": cots,
     "fsdoc": fsdoc,
     "step": step,
+    "models": models,
     "unlink": unlink,
     # Online with --detect
     "released": released,

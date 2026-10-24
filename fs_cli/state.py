@@ -51,7 +51,7 @@ def apply_import_versions(code: str, versions: dict[str, str]) -> str:
 # `import(path : "core/utils.fs", version : "");` or `Icon::import(path : "core/robotIcon.svg", version : "");`,
 # which `fs push` resolves to an element id
 _PATH_IMPORT = re.compile(
-    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png))("\s*,\s*version\s*:\s*")([^"]*)(")'
+    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png|gen\.step))("\s*,\s*version\s*:\s*")([^"]*)(")'
 )
 
 
