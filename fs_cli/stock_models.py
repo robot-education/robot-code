@@ -1,5 +1,5 @@
-"""Builds STEP models of COTS frames, for Robot imported frame (featurescripts/importedFrame) to import and cut down to
-size, rather than building each frame's tube and holes in Onshape.
+"""Builds STEP models of COTS frames, for Robot frame (featurescripts/released/frame) to import and cut down to size,
+rather than building each frame's tube and holes in Onshape.
 
 Each model is built from the frame as Robot frame describes it: the `Stock` its `getFrame` returns (with the holes
 starting as they're sold), its profile as linear stock's `sketchProfile` sketches it, and its holes' shapes as
@@ -25,9 +25,9 @@ from fs_eval import Evaluator, to_python
 from fs_eval.sketch import Curve, Loop, recorded_sketch
 from fs_eval.values import FSMap, untag
 
-# Where Robot imported frame's models go, in the code folder, and the module mapping frames to them
-MODELS_FOLDER = "importedFrame/models"
-MODELS_MODULE = "importedFrame/frameModels.gen.fs"
+# Where Robot frame's models go, in the code folder, and the module mapping frames to them
+MODELS_FOLDER = "released/frame/models"
+MODELS_MODULE = "released/frame/frameModels.gen.fs"
 
 # Before the start of a model's holes, so Hole start distance can move them this far along
 LEAD = 2 * 0.0254
@@ -530,7 +530,7 @@ def write_models(code_dir: pathlib.Path, models: list[Model], dry_run: bool = Fa
     return written, deleted
 
 
-# The module mapping frames to their models (see featurescripts/importedFrame/frameModels.py)
+# The module mapping frames to their models (see featurescripts/released/frame/frameModels.py)
 
 
 def generated_contents(start: pathlib.Path) -> list:
@@ -554,7 +554,7 @@ def generated_contents(start: pathlib.Path) -> list:
             entries.append(f"        {string(frame.part_name)} : {value}")
     code = (
         "/**\n"
-        " * The model Robot imported frame imports for each COTS frame, by its part name (see fs_cli/stock_models.py): its\n"
+        " * The model Robot frame imports for each COTS frame, by its part name (see fs_cli/stock_models.py): its\n"
         " * tab's `data`, how far its holes go (`length`, from where they start as they're sold, as long as it's sold),\n"
         " * and how far it reaches back before its holes start (`lead`).\n"
         " */\n"

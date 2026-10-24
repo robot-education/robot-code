@@ -392,7 +392,7 @@ def make_parser() -> argparse.ArgumentParser:
 
     models_command = command(
         "models",
-        "build STEP models of every COTS frame, for Robot imported frame (see fs_cli/stock_models.py; no API calls)",
+        "build STEP models of every COTS frame, for Robot frame (see fs_cli/stock_models.py; no API calls)",
         targets=False,
     )
     dry_run(models_command)

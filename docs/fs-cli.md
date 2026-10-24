@@ -104,7 +104,7 @@ When an image changes, `fs push` also points the imports of it at its new versio
 it. `fs-studios.json` maps image tabs to files under `images`; `fs mv` and `fs status` treat images like studios.
 `fs tabs`, `fs link`, and `fs unlink` are for studios only.
 
-Generated STEP models (`*.gen.step`, like Robot imported frame's in `importedFrame/models/`) are synced the same way,
+Generated STEP models (`*.gen.step`, like Robot frame's in `released/frame/models/`) are synced the same way,
 as tabs a studio imports and passes the `BLOB_DATA` of to `opImportForeign`. Only generated ones are, known by their
 names, so vendors' STEP files kept for reference (`vendor/*.STEP`) aren't. `fs models` builds them (see Generated
 files).
@@ -212,7 +212,7 @@ uv run fs table featurescripts/released/shaft -n frcShaft   # lookup tables as r
 uv run fs audit featurescripts/released/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
-uv run fs models             # build Robot imported frame's STEP models (see Generated files)
+uv run fs models             # build Robot frame's STEP models (see Generated files)
 ```
 
 `fs table` shows lookup tables as the evaluator builds them (generated or written by hand): a row per path through the
@@ -310,11 +310,11 @@ uv run fs gen                # rewrite every .gen.fs file whose definition chang
 uv run fs push               # push them
 ```
 
-Robot imported frame's models (`importedFrame/models/*.gen.step`) are built separately, since building them takes
+Robot frame's models (`released/frame/models/*.gen.step`) are built separately, since building them takes
 OpenCascade and a few minutes: `uv sync --group step` once, then `uv run fs models` writes those which changed (and
 deletes those no frame has any more), and `fs push` uploads them. Each is built from a COTS frame as Robot frame
 describes it, with the evaluator (see `fs_cli/stock_models.py`), and the same frame always writes the same file. After
-the frame tables change, run `fs gen`, `fs models`, then `fs gen` again: `importedFrame/frameModels.py` reads the
+the frame tables change, run `fs gen`, `fs models`, then `fs gen` again: `released/frame/frameModels.py` reads the
 generated `frameTables.gen.fs`, and leaves out frames whose models haven't been built.
 
 Every `.py` file in `featurescripts/` is a definition. Generated files keep their `FeatureScript` version

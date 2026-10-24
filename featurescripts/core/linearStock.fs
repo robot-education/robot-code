@@ -201,8 +201,8 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field isFrame {boolean} : @optional Whether it's tagged as a frame, for the std frame features.
  *      @field tieStart {ValueWithUnits} : The position of the first hole which counts for tying holes. @seealso [getTie]
  *      @field tieUnit {ValueWithUnits} : How far apart the holes which count are.
- *      @field model {map} : @optional A model of it to import and cut to length, rather than build (see
- *              `buildModeledStock`): its STEP tab's `data` (its `BLOB_DATA`), how far its holes go from where they
+ *      @field model {map} : @optional A model of it to import and cut to length, rather than build, when it fits
+ *              (see `buildModeledStock` and `fitsModel`): its STEP tab's `data` (its `BLOB_DATA`), how far its holes go from where they
  *              start as they're sold (`length`), how far it reaches back before them (`lead`), and how much further
  *              along its holes are than they're sold (`shift`).
  * }}
@@ -468,7 +468,7 @@ const MAX_SPLINE_RADIUS = 17.45 * millimeter;
 export function buildStock(context is Context, id is Id, definition is map, stock is Stock, location is CoordSystem,
     length is ValueWithUnits, ends is map) returns map
 {
-    if (stock.model != undefined)
+    if (stock.model != undefined && fitsModel(stock.model, length))
     {
         return buildModeledStock(context, id, definition, stock, location, length, ends);
     }
@@ -559,9 +559,18 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
 }
 
 /**
+ * Whether stock `length` long can be cut from its `model` (see `Stock`): its holes are moved no further along than the
+ * model reaches back before them, and the model reaches past its end. Otherwise it's built from its profile.
+ */
+function fitsModel(model is map, length is ValueWithUnits) returns boolean
+{
+    return tolerantLessThanOrEqual(model.shift, model.lead) && tolerantLessThanOrEqual(length, model.length + model.shift);
+}
+
+/**
  * Builds stock from its `model` (see `Stock`), as `buildStock` builds it from its profile: the model is imported, placed
  * with its holes `shift` along from the start, and cut to the stock's ends and trims. Importing and cutting once is
- * faster than cutting every hole.
+ * faster than cutting every hole. The stock must fit the model (see `fitsModel`).
  *
  * The model is the same at any length, so its holes keep the identities the import gives them, which count from its
  * start. The holes tied to the end (see `getTie`) are named by their count from the end instead (see
@@ -571,17 +580,6 @@ function buildModeledStock(context is Context, id is Id, definition is map, stoc
     length is ValueWithUnits, ends is map) returns map
 {
     const model = stock.model;
-    // The model's holes start as they're sold at its Z = 0, which is `shift` along from the start
-    if (tolerantLessThan(model.lead, model.shift))
-    {
-        throw regenError("Holes can't start more than " ~ lengthString(definition, model.lead) ~ " further along than they're sold.",
-            ["holeStart"]);
-    }
-    if (tolerantLessThan(model.length + model.shift, length))
-    {
-        throw regenError("It can be at most " ~ lengthString(definition, model.length + model.shift) ~ " long, as its model is.",
-            [isEdgePlacement(definition) ? "edge" : "depth"]);
-    }
     const tie = getTie(definition, stock.tieStart, stock.tieUnit);
     const hasHoles = stock.xRows != [] || stock.yRows != [];
     const modelId = id + "model";

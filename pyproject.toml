@@ -22,7 +22,7 @@ fs-lsp = "fs_lsp.server:main"
 dev = ["pytest>=8.0.0", "pytest-xdist>=3.6", "shapely>=2.0"]
 # For regenerating fs_cli/onshape_ui (see its extract.py)
 onshape-ui = ["beautifulsoup4>=4.12", "tinycss2>=1.3"]
-# OpenCascade, for building Robot imported frame's STEP models (`fs models`, see fs_cli/stock_models.py)
+# OpenCascade, for building Robot frame's STEP models (`fs models`, see fs_cli/stock_models.py)
 step = ["cadquery-ocp-novtk>=8.0"]
 
 [tool.fs]

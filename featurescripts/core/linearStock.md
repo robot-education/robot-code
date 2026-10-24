@@ -4,8 +4,7 @@ The shared module behind Robot frame and Robot nut strip: what a length of stock
 (`buildStock`), how it's placed along an edge or extruded from a point (`placeStock`), and the dialog for placing it
 (`stockLocationPredicate`, `tieHolesPredicate`). See `docs/feature-writeups.md` for what writeups cover.
 
-The features using it ([Robot frame](../frame/robotFrame.md), [Robot nut strip](../nutStrip/robotNutStrip.md), and
-[Robot imported frame](../importedFrame/robotImportedFrame.md)) only
+The features using it ([Robot frame](../frame/robotFrame.md), [Robot nut strip](../nutStrip/robotNutStrip.md)) only
 choose a part, describe it as a `Stock`, and call `placeStock`; everything below is the same for both. `<name>` in
 strings is what's placed: `frame` or `nut strip`.
 
@@ -31,8 +30,6 @@ hidden; the manipulator sets it.
 | std's `EXTRUDE_SELECT_DIRECTION`, `EXTRUDE_DIRECTION_INVALID_ENTITY` | error | Point, Direction on: no direction, or not a direction | `extrudeDirection` |
 | The `<name>` exceeds the max length sold by the vendor (`<longest>`). | warning | the stock is longer than its longest `stock` length | `edge` or `depth` |
 | The `<name>`'s length should be a multiple of `<unit>`. / ... should be `<extra>` more than a multiple of `<unit>`. | info | stock with holes isn't a regular length (see Tying holes) | |
-| Holes can't start more than `<lead>` further along than they're sold. | error | Stock with a model: its holes are moved further along than its model's lead | `holeStart` |
-| It can be at most `<length>` long, as its model is. | error | Stock with a model: it's longer than its model reaches from its start | `edge` or `depth` |
 
 Lengths in messages and part names are `lengthString`: inches to 3 places for FRC (`6 in.`), millimeters to 1 place
 for FTC (`136 mm`).
@@ -135,17 +132,19 @@ away, is an error. Holes are laid out on the untrimmed length, so tied holes cou
 
 ### Building from a model (`buildModeledStock`)
 
-Stock with a `model` (a STEP tab, like Robot imported frame's) is imported rather than built, by `buildStock`:
+Stock with a `model` (a STEP tab, like Robot frame's COTS frames') is imported rather than built, by `buildStock`,
+when it fits the model (`fitsModel`), which reaches `lead` back from where its holes start as sold, and `length`
+forward (and a little further each way, so it's always cut inside it): its holes are moved along no further than
+`lead`, and it's no longer than `length` plus that. Otherwise it's built from its profile, as above, which makes
+different ids; switching between them breaks references to it.
 
-1. Its length is checked against the model, which reaches `lead` back from where its holes start as sold, and
-   `length` forward (and a little further each way, so it's always cut inside it).
-2. The model is imported (`opImportForeign`), and moved to the stock's start (`toWorld(location)`), with its holes
+1. The model is imported (`opImportForeign`) and moved to the stock's start (`toWorld(location)`), with its holes
    `shift` along, and mirrored across its Y axis when flipped, as profiles are (see `acrossSign`).
-3. Frames are tagged as frames: their swept faces and edges are those which cross a plane in the model's lead, where it
+2. Frames are tagged as frames: their swept faces and edges are those which cross a plane in the model's lead, where it
    has no holes (`tagSweptAsFrame`, `core/frameTags.fs`).
-4. It's cut to its trims, end, and start (`trimBeyond`), always cutting its start and end from the model. Frames' cut
+3. It's cut to its trims, end, and start (`trimBeyond`), always cutting its start and end from the model. Frames' cut
    faces are tagged as their caps.
-5. Its holes tied to the end are named (`nameTiedHoles`, with std's `opNameEntity`): each face and edge of each tied
+4. Its holes tied to the end are named (`nameTiedHoles`, with std's `opNameEntity`): each face and edge of each tied
    hole is named `<feature id>.<face><row>.<count from end>.f<i>` (or `.e<i>`), its order in the hole by where it is,
    so references to it follow the end as the length changes. A hole's faces and edges are those wholly inside its
    region (a box around it, across the face and through the stock, found with `qInFrontOfPlane`), smaller regions
@@ -176,8 +175,9 @@ There are no fallbacks.
 
 ## Issues found
 
-- Building from a model is untested in Onshape (see [Robot imported frame](../importedFrame/robotImportedFrame.md)'s
-  issues).
+- Building from a model is untested in Onshape: whether `opImportForeign` takes an uploaded STEP tab's `BLOB_DATA` as
+  `blobData`, whether `opTransform` mirrors a body (when flipped), and whether `opNameEntity` (std marks it under
+  development) keeps references to tied holes as the length changes.
 
 - Every stock gets Aluminum - 6061 as its material, including Last Anvil's 7075 tube.
 - In Point placement, the extrude's opposite direction is labeled "Flip primary axis".
