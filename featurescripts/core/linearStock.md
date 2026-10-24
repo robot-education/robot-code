@@ -175,8 +175,8 @@ There are no fallbacks.
 
 ## Issues found
 
-- Building from a model is untested in Onshape: whether `opImportForeign` takes an uploaded STEP tab's `BLOB_DATA` as
-  `blobData`, whether `opTransform` mirrors a body (when flipped), and whether `opNameEntity` (std marks it under
+- Building from a model is untested in Onshape: whether `opImportForeign` imports an uploaded STEP tab by its
+  `BLOB_DATA`'s `dataId` (as `foreignId`; as `blobData`, it's an invalid import), whether `opTransform` mirrors a body (when flipped), and whether `opNameEntity` (std marks it under
   development) keeps references to tied holes as the length changes.
 
 - Every stock gets Aluminum - 6061 as its material, including Last Anvil's 7075 tube.
