@@ -39,8 +39,8 @@ Model2x2TubeRevGrid::import(path : "abf45d52ac8a18603b420f76", version : "c4c92e
 Model2x2TubeRevMaxPatternAndGrid::import(path : "3cfcf766af275771c13c9cf6", version : "ce4ce0250b10f0d5eb67adcf"); // released/frame/models/2x2-tube-rev-max-pattern-and-grid.gen.step
 Model2x2TubeRevMaxPattern::import(path : "3fd4b2324d0c70d013d87048", version : "e2859de5331856e8a240de54"); // released/frame/models/2x2-tube-rev-max-pattern.gen.step
 Model2x2TubeWcp116InWall::import(path : "f037e025a4331d84f973b6df", version : "8620b1e575f17c29fcbc8741"); // released/frame/models/2x2-tube-wcp-1-16-in-wall.gen.step
-Model2x2TubeWcp332InWall::import(path : "78d629e4854f01059d29ff70", version : "bc4e7ff2d470b17455ee335e"); // released/frame/models/2x2-tube-wcp-3-32-in-wall.gen.step
-ModelLowSideUChannelGobilda1121Series::import(path : "d893d307a53aa34c9ebbf071", version : "85df78489a0e64bc42e0535a"); // released/frame/models/low-side-u-channel-gobilda-1121-series.gen.step
+Model2x2TubeWcp332InWall::import(path : "78d629e4854f01059d29ff70", version : "7d56edc5b75e9c9b55354b6e"); // released/frame/models/2x2-tube-wcp-3-32-in-wall.gen.step
+ModelLowSideUChannelGobilda1121Series::import(path : "d893d307a53aa34c9ebbf071", version : "b341ddefc3809044c7576461"); // released/frame/models/low-side-u-channel-gobilda-1121-series.gen.step
 ModelMiniLowSideUChannelGobilda1143Series::import(path : "2f9e545b4e966309f5cf88e0", version : "682e5786c287cc26184bde33"); // released/frame/models/mini-low-side-u-channel-gobilda-1143-series.gen.step
 ModelSquareBeamGobilda1106Series::import(path : "4159beee2a6a388ce484ab2b", version : "f0dd6ed29ca8e2068b7ac3a1"); // released/frame/models/square-beam-gobilda-1106-series.gen.step
 ModelUChannelGobilda1120Series::import(path : "339869817a24bedd5e179520", version : "29bd808117a8103ba5c2ab1f"); // released/frame/models/u-channel-gobilda-1120-series.gen.step
