@@ -789,7 +789,8 @@ function trimBeyond(context is Context, id is Id, body is Query, cut is Plane, d
                 "targets" : body,
                 "operationType" : BooleanOperationType.SUBTRACTION
             });
-    return qCreatedBy(id + "tool", EntityType.FACE)->qOwnedByBody(body);
+    // The boolean makes the face the cut leaves, not the tool
+    return qCreatedBy(id + "cut", EntityType.FACE)->qOwnedByBody(body);
 }
 
 /**
