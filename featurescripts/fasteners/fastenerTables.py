@@ -45,7 +45,6 @@ from fs_cli.tables import Enum, inch, string
 FOLDER = pathlib.Path(__file__).parent
 SNAPSHOT = json.loads((FOLDER / "vendor" / "frcdesign-fasteners.json").read_text())
 STORES_SNAPSHOT = FOLDER / "vendor" / "stores.json"
-HOLE_SCAN = FOLDER / "fastenerHoleScan.fs"
 
 INCH = 0.0254
 
@@ -933,19 +932,6 @@ CONTENTS = [
 # FRCDesign's manifest
 
 
-def hole_scan_lambda(code: str) -> str:
-    """The body of `fastenerHoleScan` as the lambda Onshape's FeatureScript evaluation takes: only std's
-    common.fs is in scope there, so the function uses nothing else, and keeps its helpers inside it."""
-    match = re.search(
-        r"export function fastenerHoleScan\(context is Context, queries is map\) returns map\n\{\n(.*?)\n\}\n",
-        code,
-        re.DOTALL,
-    )
-    if match is None:
-        raise ValueError(f"{HOLE_SCAN.name} has no fastenerHoleScan(context is Context, queries is map)")
-    return "function(context is Context, queries is map)\n{\n" + match.group(1) + "\n}"
-
-
 def _meters(inches: float | Fraction | str) -> float:
     return round(float(inches) * INCH, 9)
 
@@ -1040,7 +1026,6 @@ def manifest() -> dict:
             for (vendor, size, type, finish), washer in WASHERS.items()
             if finish == _washer_finishes(vendor, size, type)[0]
         ],
-        "holeScan": hole_scan_lambda(HOLE_SCAN.read_text()),
     }
 
 

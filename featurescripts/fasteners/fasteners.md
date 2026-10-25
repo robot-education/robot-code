@@ -8,8 +8,8 @@ parameter. Files: `fasteners.fs` (the features), `fastenerTables.py` (the catalo
 group in `vendor/frcdesign-fasteners.json`, read from FRCDesign's public API, with WCP's and AndyMark's screws from
 their stores in `vendor/stores.json`, both refreshed by `uv run python featurescripts/fasteners/fastenerTables.py
 fetch`: the enums and data in `fastenerTables.gen.fs`, the Part Studios' configurations, and FRCDesign's manifest
-`fasteners.gen.json`), and `fastenerHoleScan.fs` (what FRCDesign evaluates in the Part Studios of the parts it
-fastens).
+`fasteners.gen.json`). The hole scan FRCDesignApp evaluates in the Part Studios of the parts it fastens lives in
+FRCDesignApp, beside the code that reads its answer.
 
 Unreleased. It's a part set (`[tool.fs.parts.fasteners]`, see docs/parts.md), not released to the frontend document:
 its Part Studios (Screw, Washer, and Nut) are built from `fastenerTables.py`'s `STUDIOS`, never by hand. `fs parts
@@ -102,16 +102,11 @@ and where it's sold both ways needs several.
    and its chamfers from the circle across its flats: 30 degrees on both ends of a hex nut, on the top only of a
    square nut, 25 degrees on both ends of a nylock's hex. A nylock rises from its hex in a quarter circle
    (`nylockDome`) to a flat top, where its nylon insert sits 0.009 in down in a bore of its own.
-3. Taps the bore through as std's Hole does: a hole attribute on it (which `fastenerHoleScan` reads as threaded), and
+3. Taps the bore through as std's Hole does: a hole attribute on it (which FRCDesignApp's hole scan reads as threaded), and
    a cosmetic thread up from the origin, to a nylock's insert.
 4. Adds the mate connector, deletes the sketches, names the part, and colors a nylock's insert white.
 
 Threads are cosmetic: the parts are for fit and clearance.
-
-`fastenerHoleScan` isn't a feature: FRCDesign evaluates its body as a lambda, so it uses only std's common.fs. It
-reports each solid part's cylindrical faces which face their axis (holes), with their extent along it, their circular
-edges, whether the part goes on past each end, and a Hole feature's thread; and each selected circular edge (or
-circular edge of a selected face), with the normal of the plane beside it.
 
 There are no `try`s.
 
@@ -119,10 +114,7 @@ There are no `try`s.
 
 - Tried in Onshape (FeatureScript 3095, in a scratch Part Studio, not yet in the released studios): each kind of
   screw, washer, and nut regenerates as one part with its mate connector at the origin pointing up, named, and with
-  its part number; and `fastenerHoleScan` reports a plate's through and blind holes, and the circles of a
-  selected face, whose ids `qTransient` finds again. That found `qOwnerBody` passed to `transientQueriesToStrings`,
-  which only names transient queries, so the scan failed whenever anything was selected; it now names the evaluated
-  body.
+  its part number.
 - Nuts are measured from McMaster-Carr's models in #6-32 and #10-32, and the 1/4-20 square nut. The rest are
   nominal, and the other sizes' nylock domes and inserts take the measured nylocks' proportions: a dome a sixth of the
   nut's height, and an insert 0.61 of its width across flats.

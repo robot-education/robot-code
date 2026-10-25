@@ -15,18 +15,6 @@ DEFINITION = runpy.run_path(str(FOLDER / "fastenerTables.py"))
 MANIFEST = json.loads((FOLDER / "fasteners.gen.json").read_text())
 
 
-def test_hole_scan_is_the_function_body_as_a_lambda():
-    scan = MANIFEST["holeScan"]
-    assert scan.startswith("function(context is Context, queries is map)\n{\n")
-    assert scan.endswith("\n}")
-    assert 'return { "parts" : parts, "circles" : circles };' in scan
-
-
-def test_hole_scan_needs_its_signature():
-    with pytest.raises(ValueError, match="fastenerHoleScan"):
-        DEFINITION["hole_scan_lambda"]("export function other() {}\n")
-
-
 STANDARD = DEFINITION["STANDARD"]
 Variant = DEFINITION["Variant"]
 

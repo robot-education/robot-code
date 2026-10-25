@@ -88,8 +88,7 @@ versioned; the backend version stays, so the next try takes the next version num
 A release runs on the main branch only. Ask for one in a release file (`part_set = "fasteners"`; see
 [Release files](fs-cli.md#release-files)), which the Onshape workflow makes once its branch is merged, committing the
 recorded locations and exports; run by hand, commit them yourself. FRCDesignApp's library reads the released manifest
-itself, and Quick fastener reads the catalog the library stored from it. Only a change to `fastenerHoleScan.fs`,
-whose answer FRCDesignApp parses, needs syncing there (`npm run sync:generated-parts -- <commit>`) and a deploy.
+itself, and Quick fastener reads the catalog the library stored from it, so a release needs no change there.
 
 ### Releasing to a target
 
