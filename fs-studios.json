@@ -32,6 +32,7 @@
     "58d66340f7b70cfc86606676": "core/mounting.fs",
     "5bee4cc7b6b0575cdb535750": "released/belt/robotBeltModel.fs",
     "603be214b7d30fd438966545": "released/shaft/robotShaftCommon.fs",
+    "636068ba8865e57628d38e34": "color/robotColor.fs",
     "6451a02d1f9f40630984864b": "released/printAdapter/printAdapterProfiles.gen.fs",
     "6c5704188560481068f46172": "released/multiRevolve/multiRevolve.fs",
     "6c65805103086c85362ee4b7": "core/robotFeature.fs",
