@@ -56,7 +56,7 @@ can't disagree.
 ## How it works
 
 Every part is built along the Z axis, and has one mate connector at the origin (`id + "mateConnector"`, which each
-studio names as its `mate_connector`, so a release writes the id a fasten mate takes), pointing out of the hole, where it
+studio names as its `mate_connector` in the manifest, since a fasten mate names it under the feature's id), pointing out of the hole, where it
 seats: FRCDesign fastens a screw or nut to the top edge of the washer under it, or to the hole's edge, and a washer to
 the hole's edge. So any washer goes under any screw or nut, and none has a washer input.
 

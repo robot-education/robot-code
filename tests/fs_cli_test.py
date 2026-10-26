@@ -211,7 +211,7 @@ class FakeOnshape:
         created = studio.tab_name not in tabs
         element_id = tabs.setdefault(studio.tab_name, self._id("p"))
         self.builds.append((instance.document_id, studio.name, feature_studio_id, microversion_id))
-        return Built(element_id, created, self.build_status, f"F{element_id}")
+        return Built(element_id, created, self.build_status)
 
     def put_file(self, instance, name, data, content_type):
         self.calls["put_file"] += 1
@@ -1349,10 +1349,7 @@ def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
     [(name, data)] = onshape.files[(MAIN, "lw")].values()
     assert name == "parts.parts.json"
     screw = onshape.part_studios[(MAIN, "lw")]["Screw"]
-    # Its mate connector as a fasten mate names it, under the feature the build inserted
-    assert json.loads(data) == {
-        "studios": {"screw": {"feature": "partScrew", "elementId": screw, "mateConnectorId": f"F{screw}.mc"}}
-    }
+    assert json.loads(data) == {"studios": {"screw": {"feature": "partScrew", "mateConnector": "mc", "elementId": screw}}}
 
 
 TARGET = "fedcba9876543210fedcba98"

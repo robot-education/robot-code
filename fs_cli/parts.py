@@ -220,9 +220,7 @@ def plan_part_release(
 
 def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dict[str, bytes]:
     """A definition's manifests as released beside its Part Studios: each studio with its tab in that document
-    (`elementId`), in place of where it was last released (`location`), and its feature's mate connector as a fasten
-    mate names it (`mateConnectorId`), in place of the id under the feature's (`mateConnector`). By the name of the
-    tab each is uploaded to."""
+    (`elementId`), in place of where it was last released (`location`). By the name of the tab each is uploaded to."""
     exports = runpy.run_path(str(definition)).get("EXPORTS", {})
     manifests = {}
     for name, text in exports.items():
@@ -232,9 +230,6 @@ def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dic
         for key, studio in manifest.get("studios", {}).items():
             studio.pop("location", None)
             studio["elementId"] = built[key].element_id
-            mate_connector = studio.pop("mateConnector", None)
-            if mate_connector:
-                studio["mateConnectorId"] = f"{built[key].feature_id}.{mate_connector}"
         manifests[name.removesuffix(MANIFEST_SUFFIX) + RELEASED_MANIFEST_SUFFIX] = json.dumps(manifest).encode()
     return manifests
 
