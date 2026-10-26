@@ -708,9 +708,11 @@ def _washer_inputs() -> list[Input]:
 
 STUDIOS = {
     # Nearly every length is black, so Length's conditions are smallest split by finish first
-    "screw": ConfiguredStudio("screw", "fastenerScrew", _screw_inputs(), factor_first=["finish"]),
-    "nut": ConfiguredStudio("nut", "fastenerNut", _nut_inputs()),
-    "washer": ConfiguredStudio("washer", "fastenerWasher", _washer_inputs()),
+    "screw": ConfiguredStudio(
+        "screw", "fastenerScrew", _screw_inputs(), factor_first=["finish"], mate_connector="mateConnector"
+    ),
+    "nut": ConfiguredStudio("nut", "fastenerNut", _nut_inputs(), mate_connector="mateConnector"),
+    "washer": ConfiguredStudio("washer", "fastenerWasher", _washer_inputs(), mate_connector="mateConnector"),
 }
 
 

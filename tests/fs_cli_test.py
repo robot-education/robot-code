@@ -211,7 +211,7 @@ class FakeOnshape:
         created = studio.tab_name not in tabs
         element_id = tabs.setdefault(studio.tab_name, self._id("p"))
         self.builds.append((instance.document_id, studio.name, feature_studio_id, microversion_id))
-        return Built(element_id, created, self.build_status)
+        return Built(element_id, created, self.build_status, f"F{element_id}")
 
     def put_file(self, instance, name, data, content_type):
         self.calls["put_file"] += 1
@@ -1291,7 +1291,7 @@ STUDIOS = {
         "screw", "partScrew", [Input("size", "Size", "size", [Option("A", "A", "A")], enum_name="Size")]
     )
 }
-EXPORTS = {"parts.gen.json": '{"studios": {"screw": {"feature": "partScrew", "location": null}}}\\n'}
+EXPORTS = {"parts.gen.json": '{"studios": {"screw": {"feature": "partScrew", "mateConnector": "mc", "location": null}}}\\n'}
 """
 PART_MAKER = "FeatureScript 1;\nexport const partScrew = defineFeature(function(context, id, definition) {});\n"
 
@@ -1348,7 +1348,11 @@ def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
     # Its manifest beside its Part Studios, naming each by its tab there
     [(name, data)] = onshape.files[(MAIN, "lw")].values()
     assert name == "parts.parts.json"
-    assert json.loads(data) == {"studios": {"screw": {"feature": "partScrew", "elementId": onshape.part_studios[(MAIN, "lw")]["Screw"]}}}
+    screw = onshape.part_studios[(MAIN, "lw")]["Screw"]
+    # Its mate connector as a fasten mate names it, under the feature the build inserted
+    assert json.loads(data) == {
+        "studios": {"screw": {"feature": "partScrew", "elementId": screw, "mateConnectorId": f"F{screw}.mc"}}
+    }
 
 
 TARGET = "fedcba9876543210fedcba98"

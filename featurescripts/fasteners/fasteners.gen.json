@@ -3,6 +3,7 @@
   "studios": {
     "screw": {
       "feature": "fastenerScrew",
+      "mateConnector": "mateConnector",
       "configuration": {
         "btType": "BTConfigurationUpdateCall-2933",
         "configurationParameters": [
@@ -22033,6 +22034,7 @@
     },
     "nut": {
       "feature": "fastenerNut",
+      "mateConnector": "mateConnector",
       "configuration": {
         "btType": "BTConfigurationUpdateCall-2933",
         "configurationParameters": [
@@ -22418,6 +22420,7 @@
     },
     "washer": {
       "feature": "fastenerWasher",
+      "mateConnector": "mateConnector",
       "configuration": {
         "btType": "BTConfigurationUpdateCall-2933",
         "configurationParameters": [

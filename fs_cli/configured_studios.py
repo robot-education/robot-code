@@ -119,6 +119,9 @@ class ConfiguredStudio:
         tab: Its tab's name, which `build` finds it by; `name` capitalized when None.
         factor_first: Inputs to factor visibility conditions by before the rest, which are in order: a lookup
             table's conditions can be far smaller factored by one with few values, like a finish.
+        mate_connector: The id its feature gives the mate connector it makes, under the feature's own: a fasten mate
+            names it `<featureId>.<mate_connector>`, which a release writes into the manifest, since Onshape's API
+            shows no mate connector a feature makes.
     """
 
     name: str
@@ -126,6 +129,7 @@ class ConfiguredStudio:
     inputs: Sequence[Input]
     tab: str | None = None
     factor_first: Sequence[str] = ()
+    mate_connector: str | None = None
 
     @property
     def tab_name(self) -> str:
@@ -230,7 +234,11 @@ class ConfiguredStudio:
     def manifest(self) -> dict:
         """The studio as FRCDesign reads it: its feature, and its configuration as Onshape answers it, which FRCDesign
         parses as it parses any configuration."""
-        return {"feature": self.feature, "configuration": self.configuration_body()}
+        return {
+            "feature": self.feature,
+            **({"mateConnector": self.mate_connector} if self.mate_connector else {}),
+            "configuration": self.configuration_body(),
+        }
 
     def _factor_order(self) -> list[str]:
         return [*self.factor_first, *(input.id for input in self.inputs if input.id not in self.factor_first)]
@@ -605,11 +613,13 @@ class Built:
         element_id: Its tab, which keeps its id from build to build.
         created: Whether `build` made the tab.
         status: Its feature's state in the default configuration, as Onshape reports it: OK, INFO, WARNING or ERROR.
+        feature_id: The id Onshape gave the feature `build` inserted, new each build.
     """
 
     element_id: str
     created: bool
     status: str
+    feature_id: str
 
 
 def _check_configuration(studio: ConfiguredStudio, written: dict) -> None:
@@ -713,7 +723,7 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
             feature_list["sourceMicroversion"],
         )
     status = response.get("featureState", {}).get("featureStatus", "OK")
-    return Built(element_id, created, status)
+    return Built(element_id, created, status, feature["featureId"])
 
 
 def stored_namespaces(configured: list[dict], stored: list[dict]) -> list[dict]:
