@@ -49,7 +49,6 @@
     "93af3f24abb0f9f345268c81": "chain/chainCommon.fs",
     "948c83c1b1ac83de4ccf921b": "core/unitSystem.fs",
     "962bbb367fd7d91fae71cd4c": "core/text.fs",
-    "9943cf5202f70bbc495ad5dc": "fasteners/fastenerHoleScan.fs",
     "9fc889bb93a3c29feb4f9ae5": "core/linearStock.fs",
     "a5f2644501a90a06b7602898": "released/bearingHat/robotBearingHat.fs",
     "a6eeed056b8f09ac4e8ae12e": "core/wallType.fs",
