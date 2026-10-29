@@ -34,6 +34,26 @@ export function tagExtrudeAsFrame(context is Context, extrudeId is Id, descripti
 }
 
 /**
+ * Tags a body built from more than one extrude (like a tube built from its walls) as a frame running along its
+ * `sweptFaces` and `sweptEdges`. Tag its caps with `tagFrameCaps`.
+ *
+ * @param description : The frame's description in cutlists, e.g. `"2x1 Tube (WCP, 1/16 in. wall)"`.
+ * @param standard : The frame's standard in cutlists, e.g. a vendor.
+ */
+export function tagSweptAsFrame(context is Context, body is Query, sweptFaces is Query, sweptEdges is Query, description is string, standard is string)
+{
+    setFrameProfileAttribute(context, body, frameProfileAttribute({
+                    (CUTLIST_STANDARD) : standard,
+                    (CUTLIST_DESCRIPTION) : description
+                }));
+    setFrameTopologyAttribute(context, sweptFaces, frameTopologyAttributeForSwept(FrameTopologyType.SWEPT_FACE));
+    if (!isQueryEmpty(context, sweptEdges))
+    {
+        setFrameTopologyAttribute(context, sweptEdges, frameTopologyAttributeForSwept(FrameTopologyType.SWEPT_EDGE));
+    }
+}
+
+/**
  * Tags faces which end a frame, like those left by trimming it, as its start (or end) cap faces.
  */
 export function tagFrameCaps(context is Context, faces is Query, isStart is boolean)
