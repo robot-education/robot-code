@@ -152,7 +152,10 @@ is there, with nothing behind them (frameTables.py's MAXTube walls, which a test
    for the copies, as the walls are) (`buildCore`).
 3. The walls (and core) are joined with one boolean.
 4. Frames are tagged as frames: their swept faces and edges are those crossing the stock where it has no holes
-   (`clearPosition`, `tagSweptAsFrame` in `core/frameTags.fs`), and its end faces are its caps.
+   (`clearPosition`, `tagSweptAsFrame` in `core/frameTags.fs`), and its end faces are its caps. Its end faces are found
+   by history, not geometry: they're tracked (`trackSketchEntity`, std's `startTracking`) from the lines at the ends
+   of the walls' sketches (`.start` and `.end`, see `sketchRectangle`), and a core's extrude's caps, including faces
+   they're merged into.
 5. It's cut to its slanted ends and trims, as above; it's built as long as it is, so its end needs no cut.
 
 Its tied holes are its walls' faces wholly between where the first tied hole starts and its end, which leaves out the

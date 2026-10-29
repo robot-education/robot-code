@@ -707,6 +707,9 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     const wallsId = id + "walls";
     var holeSpans = [];
     var tiedFrom = length;
+    // What the walls' (and core's) ends become, tracked from the lines (and caps) they're made from
+    var startTracks = [];
+    var endTracks = [];
     for (var wall in walls)
     {
         const wallId = wallsId + wall.name;
@@ -742,6 +745,8 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
             }
         }
         skSolve(sketch);
+        startTracks = append(startTracks, trackSketchEntity(context, wallId + "sketch", "wall.start"));
+        endTracks = append(endTracks, trackSketchEntity(context, wallId + "sketch", "wall.end"));
         // The wall itself, without its holes, or where holes cross its ends: the region along its side, which its holes
         // stay clear of (see `holesFitWalls`)
         opExtrude(context, wallId + "extrude", {
@@ -754,22 +759,31 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     }
     if (stock.profile != undefined)
     {
-        buildCore(context, wallsId + "core", stock, location, length, across, walls);
+        const coreId = wallsId + "core";
+        buildCore(context, coreId, stock, location, length, across, walls);
+        startTracks = append(startTracks, startTracking(context, {
+                        "subquery" : qCapEntity(coreId + "extrude", CapType.START, EntityType.FACE),
+                        "trackPartialDependency" : true
+                    }));
+        endTracks = append(endTracks, startTracking(context, {
+                        "subquery" : qCapEntity(coreId + "extrude", CapType.END, EntityType.FACE),
+                        "trackPartialDependency" : true
+                    }));
     }
     opDeleteBodies(context, id + "deleteSketches", { "entities" : qCreatedBy(wallsId, EntityType.BODY)->qSketchFilter(SketchObject.YES) });
     const body = qCreatedBy(wallsId, EntityType.BODY)->qBodyType(BodyType.SOLID);
     opBoolean(context, id + "join", { "tools" : body, "operationType" : BooleanOperationType.UNION });
 
-    const start = plane(location.origin, location.zAxis);
-    const end = plane(location.origin + location.zAxis * length, location.zAxis);
+    const startFaces = qEntityFilter(qUnion(startTracks), EntityType.FACE)->qOwnedByBody(body);
+    const endFaces = qEntityFilter(qUnion(endTracks), EntityType.FACE)->qOwnedByBody(body);
     if (stock.isFrame ?? false)
     {
         // Its profile's faces and edges are those which cross it where it has no holes
         const section = plane(location.origin + location.zAxis * clearPosition(holeSpans, length), location.zAxis);
         tagSweptAsFrame(context, body, qIntersectsPlane(qOwnedByBody(body, EntityType.FACE), section),
             qIntersectsPlane(qOwnedByBody(body, EntityType.EDGE), section), stock.partName, stock.vendor);
-        tagFrameCaps(context, qCoincidesWithPlane(qOwnedByBody(body, EntityType.FACE), start), true);
-        tagFrameCaps(context, qCoincidesWithPlane(qOwnedByBody(body, EntityType.FACE), end), false);
+        tagFrameCaps(context, startFaces, true);
+        tagFrameCaps(context, endFaces, false);
     }
 
     // Cut to its trims and slanted ends
@@ -782,7 +796,7 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     {
         cuts = append(cuts, { "plane" : ends.startPlane, "away" : -location.zAxis });
     }
-    var endFaces = [qCoincidesWithPlane(qOwnedByBody(body, EntityType.FACE), end)];
+    var ended = [endFaces];
     const reach = length + stock.width + stock.height;
     for (var i, cut in cuts)
     {
@@ -794,7 +808,7 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
         }
         if (isEnd)
         {
-            endFaces = append(endFaces, face);
+            ended = append(ended, face);
         }
     }
 
@@ -811,7 +825,7 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     }
     return {
             "body" : body,
-            "endFace" : qUnion(endFaces)->qOwnedByBody(body),
+            "endFace" : qUnion(ended)->qOwnedByBody(body),
             "tiedHoles" : tiedHoles,
             "tie" : tie
         };
@@ -859,6 +873,19 @@ function buildCore(context is Context, id is Id, stock is Stock, location is Coo
                 "tools" : qCreatedBy(id + "block", EntityType.BODY)->qBodyType(BodyType.SOLID),
                 "targets" : qCreatedBy(id + "extrude", EntityType.BODY),
                 "operationType" : BooleanOperationType.SUBTRACTION
+            });
+}
+
+/**
+ * A query for what operations from here on make from a solved sketch's entity, as `startTracking` makes it, but also
+ * what they make from it and other entities (like a face it's merged into).
+ */
+function trackSketchEntity(context is Context, sketchId is Id, sketchEntityId is string) returns Query
+{
+    const entity = sketchEntityQuery(sketchId, undefined, sketchEntityId);
+    return startTracking(context, {
+                "subquery" : qUnion([entity, makeQuery(sketchId, "IMPRINT", undefined, { "derivedFrom" : entity })]),
+                "trackPartialDependency" : true
             });
 }
 
