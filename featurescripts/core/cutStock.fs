@@ -204,19 +204,13 @@ function cutHoles(context is Context, groupId is Id, group is map, body is Query
                         {
                             return transform(group.step * k);
                         }),
-                    "instanceNames" : mapArray(instances, holeInstanceName)
+                    "instanceNames" : mapArray(instances, function(k)
+                        {
+                            return toString(k);
+                        })
                 });
     }
 }
-
-/**
- * The name of the pattern instance which is a group's `k`th hole after its seeds (see `cutHoles`). A const, so it can be
- * passed to `mapArray`.
- */
-const holeInstanceName = function(k is number) returns string
-    {
-        return "" ~ k;
-    };
 
 /**
  * The holes a group of seeds cut (see `cutHoles`), for `setTappedThroughHoles`: maps of each hole's `faces` and
@@ -231,7 +225,7 @@ function groupHoles(context is Context, groupId is Id, group is map, body is Que
     {
         const faces = k == 0 ?
             qSubtraction(qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body), qCreatedBy(pattern, EntityType.FACE)) :
-            qPatternInstances(pattern, holeInstanceName(k), EntityType.FACE);
+            qPatternInstances(pattern, toString(k), EntityType.FACE);
         for (var seed in group.seeds)
         {
             const plane = seed.face.plane;

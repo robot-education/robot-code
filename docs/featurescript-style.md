@@ -584,12 +584,12 @@ A function declared with `function name(...)` (or a predicate) can only be calle
 `mapArray` or `filter`, declare it as a const set to a function instead; it can still be called the same way:
 
 ```
-const holeInstanceName = function(k is number) returns string
+const holeTransform = function(k is number) returns Transform
     {
-        return "" ~ k;
+        return transform(step * k);
     };
 
-mapArray(instances, holeInstanceName);
+mapArray(instances, holeTransform);
 ```
 
 ## Unused variables
