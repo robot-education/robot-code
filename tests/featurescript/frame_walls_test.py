@@ -12,7 +12,7 @@ from fs_eval.sketch import recorded_sketch
 from fs_eval.values import untag
 
 FRAME = "released/frame/robotFrame.fs"
-STOCK = "core/linearStock.fs"
+STOCK = "core/wallStock.fs"
 INCH = 0.0254
 LOCATION = "coordSystem(vector(0, 0, 0) * meter, vector(1, 0, 0), vector(0, 0, 1))"
 MAX_SPLINE_RADIUS = 17.45e-3

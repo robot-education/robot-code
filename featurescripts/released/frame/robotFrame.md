@@ -9,7 +9,8 @@ writeup doesn't repeat.
 | --- | --- |
 | `robotFrame.fs` | The feature: its dialog, the chosen frame as a `Stock`, checking its holes, and its editing logic |
 | `frameTables.py` | The frame tables' source (and extrusion and MAXTube cross sections); `fs gen` writes `frameTables.gen.fs` |
-| `../core/linearStock.fs` | Placing and building stock, and the Position and Tie holes to end groups |
+| `../core/linearStock.fs` | Placing stock, and the Position and Tie holes to end groups |
+| `../core/wallStock.fs` | Building it from its walls (`buildWallStock`), or cutting it (`../core/cutStock.fs`) when it can't be |
 | `vendor/` | Vendors' drawings and STEP files the tables and cross sections come from |
 
 ## Changelog
@@ -17,7 +18,7 @@ writeup doesn't repeat.
 Since v1.2.0 (`fs changes robotFrame`).
 
 - Tubes, channels, and angles with holes are built from their walls, each sketched with its holes and extruded, rather
-  than extruded whole with their holes cut (see linear stock's Building from walls). Their faces' ids change, so
+  than extruded whole with their holes cut (see linear stock's Wall stock). Their faces' ids change, so
   references to them in existing documents need fixing: a hole is named by its count from the start, or from the end
   if it's tied to it. Square Beam is still cut.
 - MAXTube's walls are plain inside: the notches along them, 0.005 in. deep (on 2x1 light, and the 2 in. sides of 2x1

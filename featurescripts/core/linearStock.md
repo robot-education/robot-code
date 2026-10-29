@@ -1,12 +1,19 @@
-# Linear stock (`linearStock.fs`)
+# Linear stock (`linearStock.fs`, `cutStock.fs`, `wallStock.fs`)
 
-The shared module behind Robot frame and Robot nut strip: what a length of stock is (`Stock`), how it's built
-(`buildStock`), how it's placed along an edge or extruded from a point (`placeStock`), and the dialog for placing it
-(`stockLocationPredicate`, `tieHolesPredicate`). See `docs/feature-writeups.md` for what writeups cover.
+The shared modules behind Robot frame and Robot nut strip: what a length of stock is (`Stock`), how it's placed along
+an edge or extruded from a point (`placeStock`), the dialog for placing it (`stockLocationPredicate`,
+`tieHolesPredicate`), and the two ways it's built. See `docs/feature-writeups.md` for what writeups cover.
+
+| File | What it is |
+| --- | --- |
+| `linearStock.fs` | What stock is, tying its holes, placing it, its properties, editing logic, and what both builders use (sketching its profile and holes, `stockFaces`, trimming) |
+| `cutStock.fs` | Cut stock (`buildCutStock`): its profile extruded and its holes cut, as nut strips are built |
+| `wallStock.fs` | Wall stock (`buildWallStock`): built from its walls, each sketched with its holes, as frames are (or cut, when they can't be) |
 
 The features using it ([Robot frame](../frame/robotFrame.md), [Robot nut strip](../nutStrip/robotNutStrip.md)) only
-choose a part, describe it as a `Stock`, and call `placeStock`; everything below is the same for both. `<name>` in
-strings is what's placed: `frame` or `nut strip`.
+choose a part, describe it as a `Stock`, and call `placeStock` with it and their builder (`buildWallStock` for frames,
+`buildCutStock` for nut strips); everything else below is the same for both. `<name>` in strings is what's placed:
+`frame` or `nut strip`.
 
 ## Strings
 
@@ -70,7 +77,7 @@ their ends are cut to.
    2. The chosen nine point is moved onto the edge or point (`stockPointOffsets`), and `stockSpan` stretches the length
       to reach the farthest corner of each slanted end, as an extrude up to a slanted face reaches it.
    3. With Trim ends, `trimCuts` turns the selected faces into cuts (below).
-   4. `buildStock` builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
+   4. The feature's builder builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
    5. `setStockProperties` names it and sets its properties.
    6. The nine point and flip manipulators are added (and, by `edgePlacement`, the offset manipulators; by
       `extrudePlacement`, std's depth and flip manipulators, from the point moved by the starting offset).
@@ -115,9 +122,10 @@ of the part it's a face of, or along a mate connector's Z) and removing the rest
 it's built along the edge between its offsets, then cut. A face whose plane misses the stock, or would cut all of it
 away, is an error. Holes are laid out on the untrimmed length, so tied holes count from the untrimmed end.
 
-### Building (`buildStock`)
+### Cut stock (`cutStock.fs`, `buildCutStock`)
 
-Stock without holes, and stock which can't be built from its walls (below), is built this way:
+Nut strips are built this way, and so are frames without holes and frames which can't be built from their walls
+(below):
 
 1. The profile is sketched (`sketchProfile`: a rectangle, tube, angle, channel, bore, or a `profile` sketch) and
    extruded. Stock with holes is built as the shortest regular length at least as long (`regularLength`), so every
@@ -132,12 +140,12 @@ Stock without holes, and stock which can't be built from its walls (below), is b
 5. Tapped stock (nut strips) gets hole attributes and cosmetic threads on its remaining holes
    (`setTappedThroughHoles`, `core/tappedHole.fs`), after cutting so holes the cuts removed aren't threaded.
 
-### Building from walls (`buildFromWalls`)
+### Wall stock (`wallStock.fs`, `buildWallStock`)
 
-Tubes, channels, and angles with holes are built from their walls instead, which needs no boolean per hole:
-`buildStock` does so when the stock has walls (`stockWalls`: a tube's four, a channel's three, open facing +Y, or an
+Frames (tubes, channels, and angles) with holes are built from their walls (`buildFromWalls`), which needs no boolean
+per hole: `buildWallStock` does so when the stock has walls (`stockWalls`: a tube's four, a channel's three, open facing +Y, or an
 angle's two legs, mirrored with it; none for solid stock, stock around a bore, or tapped stock) and each hole fits
-inside the walls it goes through, clear of their sides (`holesFitWalls`). A sketched `profile`'s walls are those with
+inside the walls it goes through, clear of their sides (`holesFitWalls`), and cuts it otherwise. A sketched `profile`'s walls are those with
 holes, reaching across just past them (`holeSpan`, 0.25 mm past), and `wallX` and `wallY` thick: as thick as its sketch
 is there, with nothing behind them (frameTables.py's MAXTube walls, which a test checks against the sketches).
 
