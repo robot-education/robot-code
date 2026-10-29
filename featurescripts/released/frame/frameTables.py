@@ -935,6 +935,59 @@ GOBILDA = vendor(
     ],
 )
 
+SWYFT_CHANNEL_URL = "https://swyftrobotics.com/structure/swyft-channel"
+
+
+def swyft_channel_rows() -> list[str]:
+    """Swyft Channel's pattern on its 48 mm face (SR-CHANNEL-L48-17.step, and SR-CHANNEL-L48-2_Drawing.pdf), from
+    its end: a 14 mm bearing hole every 24 mm starting 20 mm from it, with 5 mm (10-32) holes 1/2 in. either side
+    across it; 5 mm slots between bearing holes, 1.4 mm long, whose ends are 1/2 in. from the bearing holes beside
+    them; and goBILDA's 4 mm holes on an 8 mm grid between bearing holes, each outer one with a 3 mm hole for REV
+    beside it, on a 16 mm circle around the nearest bearing hole. Those two make one keyhole, which this leaves as two
+    overlapping holes (without the vendor's lines joining them)."""
+    keyhole = round(8 * math.sqrt(3), 4)
+    grid = []
+    for side in (-1, 1):
+        grid += [shape(mm(side * 8)), shape(mm(side * 16)), shape(mm(side * keyhole), diameter=mm(3))]
+    return [
+        row(mm(20), mm(24), [shape(mm(0), diameter=mm(14)), shape(inch(-0.5), diameter=mm(5)),
+                             shape(inch(0.5), diameter=mm(5))]),
+        row(mm(8), mm(24), [shape(mm(0), diameter=mm(5), slot=mm(1.4))]),
+        row(mm(4), mm(24), grid),
+        row(mm(12), mm(24), grid),
+    ]
+
+
+# https://swyftrobotics.com/structure/swyft-channel: 6061, black anodized, sold 424 mm long (17 bearing holes)
+SWYFT_FTC = vendor(
+    "Swyft",
+    SWYFT_CHANNEL_URL,
+    BLACK,
+    [
+        only(
+            "Channel",
+            tube(
+                "Channel",
+                "Channel (Swyft)",
+                48,
+                12,
+                2,
+                2,
+                4,
+                # The sides have one row of 4 mm holes every 8 mm, starting 4 mm from the end, 8 mm from the base's
+                # outside
+                [row(mm(4), mm(8), [shape(mm(2))])],
+                swyft_channel_rows(),
+                mm(20),
+                mm(24),
+                stock((mm(424), "SR-CHANNEL-L48-424", SWYFT_CHANNEL_URL)),
+                unit=mm,
+                open=True,
+            ),
+        ),
+    ],
+)
+
 # https://andymark.com/products/pre-drilled-box-tube-extrusion (drawing: am-5001-4700): AndyMark's Robits FTC system
 ROBITS = vendor(
     "AndyMark",
@@ -1080,5 +1133,5 @@ CONTENTS = [
     *PROFILES,
     Table("frcFrameTable", Node("vendor", [WCP, REV, ANDYMARK, TTB, SWYFT, LAST_ANVIL])),
     Table("customFrameTable", CUSTOM),
-    Table("ftcFrameTable", Node("vendor", [GOBILDA, REV_FTC, ROBITS])),
+    Table("ftcFrameTable", Node("vendor", [GOBILDA, REV_FTC, SWYFT_FTC, ROBITS])),
 ]

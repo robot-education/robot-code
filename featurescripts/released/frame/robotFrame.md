@@ -23,6 +23,8 @@ Since v1.2.0 (`fs changes robotFrame`).
   if it's tied to it. Square Beam is still cut.
 - MAXTube's walls are plain inside: the notches along them, 0.005 in. deep (on 2x1 light, and the 2 in. sides of 2x1
   standard and MAX Pattern), are left out, as the grooves outside them are.
+- FTC frames include Swyft's Channel (48x12 mm, 424 mm long), with its bearing, 10-32, goBILDA, and REV holes; its
+  keyholes are two overlapping holes.
 - Custom tubes can have No holes (the first choice of their rows), which hides the hole and row parameters.
 - WCP's 1x1 and 2x2 3/32 in. wall tubes' walls are 3/32 in. (0.09375 in.), as their 2x1's are, rather than 0.093 in.
 - Ends cut by trims (or miters) are tagged as frame caps, as an uncut end is, and shown (or colored) with the tied

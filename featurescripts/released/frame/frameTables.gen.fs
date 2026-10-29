@@ -1347,6 +1347,13 @@ export const ftcFrameTable = {
                     },
                 },
             },
+            "Swyft" : {
+                "name" : "size",
+                "displayName" : "Size",
+                "entries" : {
+                    "Channel" : { "appearance" : BLACK, "height" : 12 * millimeter, "holeDiameter" : 4 * millimeter, "open" : true, "partName" : "Channel (Swyft)", "stock" : [{ "length" : 424 * millimeter, "partNumber" : "SR-CHANNEL-L48-424", "url" : "https://swyftrobotics.com/structure/swyft-channel" }], "tieStart" : 20 * millimeter, "tieUnit" : 24 * millimeter, "url" : "https://swyftrobotics.com/structure/swyft-channel", "vendor" : "Swyft", "wallX" : 2 * millimeter, "wallY" : 2 * millimeter, "width" : 48 * millimeter, "xRows" : [{ "start" : 4 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 2 * millimeter }] }], "yRows" : [{ "start" : 20 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : -0.5 * inch, "diameter" : 5 * millimeter }, { "along" : 0 * meter, "offset" : 0.5 * inch, "diameter" : 5 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 5 * millimeter, "slot" : 1.4 * millimeter }] }, { "start" : 4 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }] },
+                },
+            },
             "AndyMark" : {
                 "name" : "size",
                 "displayName" : "Size",
