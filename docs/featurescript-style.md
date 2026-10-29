@@ -196,6 +196,9 @@ A released feature's file keeps exporting an enum it used as a parameter's type,
 Onshape looks the enum up in the feature's file to load its stored value, and reports "enum ... not found" otherwise.
 Keep the `export import`, with `// fs check: ignore unused-import` on the line before it (Robot shaft's `Fit`).
 
+Moving an enum to another module is fine, with no restrictions: documents store its values, not where it's defined, so
+it only has to stay reachable from the feature's file (defined there, or imported with `export import`).
+
 ## Buttons
 
 A button is a parameter declared with std's `isButton` (`annotation { "Name" : "Clear invalid selections" }
