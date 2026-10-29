@@ -161,32 +161,6 @@ def test_imports(tmp_path):
         generate(tmp_path, "2960", {})
 
 
-def test_namespaced_imports(tmp_path):
-    (tmp_path / "models.py").write_text(
-        "from fs_cli.gen import Import\nCONTENTS = [Import('frame/tube.gen.step', namespace='Tube')]\n"
-    )
-    synced = {"frame/tube.gen.step": (ID_A, VERSION_1)}
-    [result] = generate(tmp_path, "2960", synced)
-    assert result.code.splitlines()[2] == f'Tube::import(path : "{ID_A}", version : "{VERSION_1}"); // frame/tube.gen.step'
-    # The annotation resolves it without the sync state
-    result.output.write_text(result.code)
-    [result] = generate(tmp_path, "2960", {})
-    assert not result.changed
-
-
-def test_imports_of_models_part_studios(tmp_path):
-    (tmp_path / "models.py").write_text(
-        "from fs_cli.gen import Import\nCONTENTS = [Import('frame/tube.gen', namespace='Tube')]\n"
-    )
-    # A model's Part Studio can be imported once the model exists, by path, which `fs push` resolves
-    with pytest.raises(GenerateError, match="imports frame/tube.gen, which doesn't exist"):
-        generate(tmp_path, "2960", {})
-    (tmp_path / "frame").mkdir()
-    (tmp_path / "frame/tube.gen.step").write_text("ISO-10303-21;")
-    [result] = generate(tmp_path, "2960", {})
-    assert result.code.splitlines()[2] == 'Tube::import(path : "frame/tube.gen", version : ""); // frame/tube.gen'
-
-
 # Sketches
 
 

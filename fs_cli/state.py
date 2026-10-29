@@ -47,23 +47,11 @@ def apply_import_versions(code: str, versions: dict[str, str]) -> str:
     )
 
 
-# Onshape translates each uploaded model (a `.gen.step` file, see fs_cli/remote.py) into a Part Studio named after it,
-# less `.step`, which Feature Studios import, since FeatureScript can't import the model's tab itself. It's imported by
-# the path it would have beside the model, e.g. `frame/models/tube.gen` for `frame/models/tube.gen.step`, which
-# `fs push` resolves to the Part Studio.
-MODEL_STUDIO_SUFFIX = ".gen"
-
-
-def model_of_studio(path: str) -> str | None:
-    """The model whose Part Studio `path` is (see `MODEL_STUDIO_SUFFIX`), if it's one."""
-    return path + ".step" if path.endswith(MODEL_STUDIO_SUFFIX) else None
-
-
-# An import of another studio, an image, or a model's Part Studio by its path in the code folder, e.g.
+# An import of another studio or an image by its path in the code folder, e.g.
 # `import(path : "core/utils.fs", version : "");` or `Icon::import(path : "core/robotIcon.svg", version : "");`,
 # which `fs push` resolves to an element id
 _PATH_IMPORT = re.compile(
-    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png|gen\.step|gen))("\s*,\s*version\s*:\s*")([^"]*)(")'
+    r'(\bimport\s*\(\s*path\s*:\s*")((?!onshape/)[^"]+\.(?:fs|svg|png))("\s*,\s*version\s*:\s*")([^"]*)(")'
 )
 
 

@@ -41,7 +41,6 @@ OPERATIONS = [
     ("post", "/blobelements/d/{did}/w/{wid}"),
     ("post", "/blobelements/d/{did}/w/{wid}/e/{eid}"),
     ("get", "/blobelements/d/{did}/w/{wid}/e/{eid}"),
-    ("get", "/parts/d/{did}/{wvm}/{wvmid}"),
 ]
 
 # Polymorphic base schemas whose subtypes (from their discriminator mapping) should be kept.

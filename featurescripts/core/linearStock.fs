@@ -16,16 +16,16 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
-import(path : "72b77780ed382be329401627", version : "dd495316343c0e3bd59c2d22");
+import(path : "72b77780ed382be329401627", version : "505d7b698065300de55ae4da");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
-import(path : "f58a965fe7005e2e3c9a67c7", version : "5794d15cbce3be3e963e93d5");
+import(path : "f58a965fe7005e2e3c9a67c7", version : "d96cdaac91eb8183e20e6de7");
 import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
 // Exported since features' preconditions use their predicates (and enums) through this module's
 export import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 export import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
 export import(path : "554542fc345271814c4463b0", version : "5b47f8330c585dfb754b8a98");
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
-export import(path : "21762d39019c8b2289e2fbb8", version : "f6af82a6032c39fbab6ef618");
+export import(path : "21762d39019c8b2289e2fbb8", version : "7f7ad6a5f1bbd76302f920d1");
 export import(path : "onshape/std/mateconnectoraxistype.gen.fs", version : "2960.0");
 
 /**
@@ -201,10 +201,6 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field isFrame {boolean} : @optional Whether it's tagged as a frame, for the std frame features.
  *      @field tieStart {ValueWithUnits} : The position of the first hole which counts for tying holes. @seealso [getTie]
  *      @field tieUnit {ValueWithUnits} : How far apart the holes which count are.
- *      @field model {map} : @optional A model of it to instantiate and cut to length, rather than build, when it
- *              fits (see `buildModeledStock` and `fitsModel`): its Part Studio's `build` function, how far its holes
- *              go from where they start as they're sold (`length`), how far it reaches back before them (`lead`), and
- *              how much further along its holes are than they're sold (`shift`).
  * }}
  */
 export type Stock typecheck canBeStock;
@@ -468,10 +464,6 @@ const MAX_SPLINE_RADIUS = 17.45 * millimeter;
 export function buildStock(context is Context, id is Id, definition is map, stock is Stock, location is CoordSystem,
     length is ValueWithUnits, ends is map) returns map
 {
-    if (stock.model != undefined && fitsModel(stock.model, length))
-    {
-        return buildModeledStock(context, id, definition, stock, location, length, ends);
-    }
     const tie = getTie(definition, stock.tieStart, stock.tieUnit);
     const hasHoles = stock.xRows != [] || stock.yRows != [];
     const built = hasHoles ? regularLength(length, tie) : length;
@@ -556,214 +548,6 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
             "tiedHoles" : qUnion(tiedHoles),
             "tie" : hasHoles ? tie : undefined
         };
-}
-
-/**
- * Whether stock `length` long can be cut from its `model` (see `Stock`): its holes are moved no further along than the
- * model reaches back before them, and the model reaches past its end. Otherwise it's built from its profile.
- */
-function fitsModel(model is map, length is ValueWithUnits) returns boolean
-{
-    return tolerantLessThanOrEqual(model.shift, model.lead) && tolerantLessThanOrEqual(length, model.length + model.shift);
-}
-
-/**
- * Builds stock from its `model` (see `Stock`), as `buildStock` builds it from its profile: the model is instantiated, placed
- * with its holes `shift` along from the start, and cut to the stock's ends and trims. Importing and cutting once is
- * faster than cutting every hole. The stock must fit the model (see `fitsModel`).
- *
- * The model is the same at any length, so its holes keep the identities instantiating gives them, which count from its
- * start. The holes tied to the end (see `getTie`) are named by their count from the end instead (see
- * `nameTiedHoles`), so they keep their identities as its length changes.
- */
-function buildModeledStock(context is Context, id is Id, definition is map, stock is Stock, location is CoordSystem,
-    length is ValueWithUnits, ends is map) returns map
-{
-    const model = stock.model;
-    const tie = getTie(definition, stock.tieStart, stock.tieUnit);
-    const hasHoles = stock.xRows != [] || stock.yRows != [];
-    // From the Part Studio Onshape translates the model's STEP tab into: FeatureScript can't import the tab itself
-    const instantiator = newInstantiator(id + "model");
-    const body = addInstance(instantiator, model.build, { "partQuery" : qEverything(EntityType.BODY)->qBodyType(BodyType.SOLID) });
-    instantiate(context, instantiator);
-    const across = acrossSign(definition);
-    // Mirrored when flipped, as `sketchProfile` mirrors the profile (see `acrossSign`)
-    const mirror = across == 1 ? identityTransform() : mirrorAcross(YZ_PLANE);
-    opTransform(context, id + "placeModel", {
-                "bodies" : body,
-                "transform" : toWorld(location) * mirror * transform(vector(0 * meter, 0 * meter, model.shift))
-            });
-    if (stock.isFrame ?? false)
-    {
-        // Its profile's faces and edges are those which reach back before its holes start, as an extrude's sweep does
-        const lead = plane(toWorld(location, vector(0 * meter, 0 * meter, model.shift - model.lead / 2)), location.zAxis);
-        tagSweptAsFrame(context, body, qIntersectsPlane(qOwnedByBody(body, EntityType.FACE), lead),
-            qIntersectsPlane(qOwnedByBody(body, EntityType.EDGE), lead), stock.partName, stock.vendor);
-    }
-
-    // Cut to its trims and ends, as `buildStock` cuts it, always cutting its start from the model
-    var cuts = ends.cuts;
-    cuts = append(cuts, { "plane" : ends.endPlane ?? plane(location.origin + location.zAxis * length, location.zAxis), "away" : location.zAxis });
-    cuts = append(cuts, { "plane" : ends.startPlane ?? plane(location.origin, location.zAxis), "away" : -location.zAxis });
-    var endFaces = [];
-    const reach = model.length + model.lead + abs(model.shift) + stock.width + stock.height;
-    for (var i, cut in cuts)
-    {
-        const isEnd = dot(cut.away, location.zAxis) > 0;
-        const face = trimBeyond(context, id + ("cut" ~ i), body, cut.plane, cut.away, reach);
-        if (stock.isFrame ?? false)
-        {
-            tagFrameCaps(context, face, !isEnd);
-        }
-        if (isEnd)
-        {
-            endFaces = append(endFaces, face);
-        }
-    }
-    const tiedHoles = hasHoles && tie.by != undefined ? nameTiedHoles(context, id, body, stock, location, length, tie, across) : qNothing();
-    return {
-            "body" : body,
-            "endFace" : qUnion(endFaces)->qOwnedByBody(body),
-            "tiedHoles" : tiedHoles,
-            "tie" : hasHoles ? tie : undefined
-        };
-}
-
-/**
- * How far a hole's region (see `nameTiedHoles`) reaches past it, so the hole's faces and edges are inside it, even when
- * its model's holes are a little bigger than its own (frames whose holes differ by up to 0.05 mm share a model, see
- * fs_cli/stock_models.py).
- */
-const HOLE_REGION_MARGIN = 0.1 * millimeter;
-
-/**
- * Names the faces and edges of modeled stock's holes tied to the end (see `buildModeledStock`), by their count from the
- * end, so references to them follow the end as its length changes: `<feature id>.<face><row>.<count from end>`, then
- * `.f` or `.e` and their order in the hole (by where they are in it), e.g. `FxYz.y1.0.f0`. Returns the faces.
- *
- * A hole's faces and edges are those of the body wholly inside its region: a box around it, across the face its row goes
- * in from and through the stock. Smaller regions are claimed first, so a hole's region takes nothing from smaller holes
- * beside it.
- */
-function nameTiedHoles(context is Context, id is Id, body is Query, stock is Stock, location is CoordSystem, length is ValueWithUnits,
-    tie is map, across is number) returns Query
-{
-    var prefix = "";
-    for (var component in id)
-    {
-        prefix ~= (prefix == "" ? "" : ".") ~ component;
-    }
-    var regions = [];
-    for (var face in stockFaces(stock, location, across))
-    {
-        for (var r, row in face.rows)
-        {
-            const extent = rowExtent(row, stock.holeDiameter);
-            var low = undefined;
-            var high = undefined;
-            for (var shape in row.shapes)
-            {
-                const radius = (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? stock.holeDiameter) / 2;
-                const offset = face.sign * shape.offset;
-                low = low == undefined ? offset - radius : min(low, offset - radius);
-                high = high == undefined ? offset + radius : max(high, offset + radius);
-            }
-            const tied = filter(holePositions(row, extent, length, tie), function(hole)
-                {
-                    return hole.tied;
-                });
-            for (var k, hole in tied)
-            {
-                regions = append(regions, {
-                            "name" : prefix ~ "." ~ face.name ~ r ~ "." ~ (size(tied) - 1 - k),
-                            "plane" : face.plane,
-                            "along" : [hole.position - extent, hole.position + extent],
-                            "across" : [low, high],
-                            "area" : (2 * extent * (high - low)) / meter ^ 2
-                        });
-            }
-        }
-    }
-    regions = sort(regions, function(a, b)
-        {
-            return a.area - b.area;
-        });
-    var claimed = {};
-    var faces = [];
-    var count = 0;
-    for (var region in regions)
-    {
-        const inside = holeRegion(qUnion([qOwnedByBody(body, EntityType.FACE), qOwnedByBody(body, EntityType.EDGE)]), region);
-        for (var kind in [EntityType.FACE, EntityType.EDGE])
-        {
-            var entities = [];
-            for (var entity in evaluateQuery(context, inside->qEntityFilter(kind)))
-            {
-                if (claimed[entity] == undefined)
-                {
-                    claimed[entity] = true;
-                    entities = append(entities, { "entity" : entity, "at" : holeEntityPoint(context, entity, kind, region.plane) });
-                }
-            }
-            entities = sort(entities, function(a, b)
-                {
-                    for (var i in [2, 0, 1])
-                    {
-                        if (!tolerantEquals(a.at[i], b.at[i]))
-                        {
-                            return (a.at[i] - b.at[i]) / meter;
-                        }
-                    }
-                    return 0;
-                });
-            for (var i, entity in entities)
-            {
-                const name = region.name ~ "." ~ (kind == EntityType.FACE ? "f" : "e") ~ i;
-                opNameEntity(context, id + "nameTiedHoles" + ("name" ~ count), { "entity" : entity.entity, "entityName" : name });
-                count += 1;
-                if (kind == EntityType.FACE)
-                {
-                    // By its name: naming it leaves the query for it from before unresolvable
-                    faces = append(faces, qNamed(name));
-                }
-            }
-        }
-    }
-    return qUnion(faces);
-}
-
-/**
- * What of `query` is wholly inside a hole's region (see `nameTiedHoles`): between its ends along the stock and its sides
- * across the face, at any depth.
- */
-function holeRegion(query is Query, region is map) returns Query
-{
-    const along = region.plane.x;
-    const across = yAxis(region.plane);
-    const at = function(a is ValueWithUnits, b is ValueWithUnits) returns Vector
-        {
-            return region.plane.origin + along * a + across * b;
-        };
-    const middle = (region.across[0] + region.across[1]) / 2;
-    const center = (region.along[0] + region.along[1]) / 2;
-    return query
-        ->qInFrontOfPlane(plane(at(region.along[0] - HOLE_REGION_MARGIN, middle), along))
-        ->qInFrontOfPlane(plane(at(region.along[1] + HOLE_REGION_MARGIN, middle), -along))
-        ->qInFrontOfPlane(plane(at(center, region.across[0] - HOLE_REGION_MARGIN), across))
-        ->qInFrontOfPlane(plane(at(center, region.across[1] + HOLE_REGION_MARGIN), -across));
-}
-
-/**
- * Where a hole's face or edge is (its middle, by its parameters), relative to the plane its row goes in from: along it,
- * across it, and in from it, to order the hole's faces and edges.
- */
-function holeEntityPoint(context is Context, entity is Query, kind is EntityType, holePlane is Plane) returns Vector
-{
-    const point = kind == EntityType.FACE ?
-        evFaceTangentPlane(context, { "face" : entity, "parameter" : vector(0.5, 0.5) }).origin :
-        evEdgeTangentLine(context, { "edge" : entity, "parameter" : 0.5 }).origin;
-    const offset = point - holePlane.origin;
-    return vector(dot(offset, holePlane.x), dot(offset, yAxis(holePlane)), dot(offset, holePlane.normal));
 }
 
 /**

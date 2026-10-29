@@ -130,29 +130,6 @@ away, is an error. Holes are laid out on the untrimmed length, so tied holes cou
 5. Tapped stock (nut strips) gets hole attributes and cosmetic threads on its remaining holes
    (`setTappedThroughHoles`, `core/tappedHole.fs`), after cutting so holes the cuts removed aren't threaded.
 
-### Building from a model (`buildModeledStock`)
-
-Stock with a `model` (a Part Studio Onshape translated a STEP model into, like Robot frame's COTS frames') is
-instantiated rather than built, by `buildStock`,
-when it fits the model (`fitsModel`), which reaches `lead` back from where its holes start as sold, and `length`
-forward (and a little further each way, so it's always cut inside it): its holes are moved along no further than
-`lead`, and it's no longer than `length` plus that. Otherwise it's built from its profile, as above, which makes
-different ids; switching between them breaks references to it.
-
-1. The model's Part Studio is instantiated (std's `addInstance` and `instantiate`, with its `build`), and moved to the
-   stock's start (`toWorld(location)`), with its holes
-   `shift` along, and mirrored across its Y axis when flipped, as profiles are (see `acrossSign`).
-2. Frames are tagged as frames: their swept faces and edges are those which cross a plane in the model's lead, where it
-   has no holes (`tagSweptAsFrame`, `core/frameTags.fs`).
-3. It's cut to its trims, end, and start (`trimBeyond`), always cutting its start and end from the model. Frames' cut
-   faces are tagged as their caps.
-4. Its holes tied to the end are named (`nameTiedHoles`, with std's `opNameEntity`): each face and edge of each tied
-   hole is named `<feature id>.<face><row>.<count from end>.f<i>` (or `.e<i>`), its order in the hole by where it is,
-   so references to it follow the end as the length changes. A hole's faces and edges are those wholly inside its
-   region (a box around it, across the face and through the stock, found with `qInFrontOfPlane`), smaller regions
-   claiming theirs first. Its other holes keep the identities the import gives them, which don't change with its
-   length since the model doesn't.
-
 ### Tying holes
 
 Holes are counted from the stock's start, so things attached to the holes near the end would move to other holes as
@@ -176,10 +153,6 @@ behind. Warnings and info don't stop the feature.
 There are no fallbacks.
 
 ## Issues found
-
-- Building from a model is untested in Onshape past instantiating its Part Studio: whether `opTransform` mirrors a body
-  (when flipped), and whether `opNameEntity` (std marks it under development) keeps references to tied holes as the
-  length changes.
 
 - Every stock gets Aluminum - 6061 as its material, including Last Anvil's 7075 tube.
 - In Point placement, the extrude's opposite direction is labeled "Flip primary axis".

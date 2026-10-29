@@ -2,31 +2,20 @@
 
 Adds tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so std's frame
 features work with it. Frames are COTS (from vendors' tables) or custom (a common size of tube or angle, or any size,
-with holes as the dialog says). COTS frames are cut from a model of them (a Part Studio) where they can be, rather than
-built hole by hole. The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md), which this
+with holes as the dialog says). The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md), which this
 writeup doesn't repeat.
 
 | File | What it is |
 | --- | --- |
 | `robotFrame.fs` | The feature: its dialog, the chosen frame as a `Stock`, checking its holes, and its editing logic |
 | `frameTables.py` | The frame tables' source (and extrusion and MAXTube cross sections); `fs gen` writes `frameTables.gen.fs` |
-| `frameModels.py` | `fs gen`'s definition of `frameModels.gen.fs`: `FRAME_MODELS`, each COTS frame's model by its part name, and the imports of the models' Part Studios |
-| `models/` | The models, `*.gen.step`, which `fs models` builds (see `fs_cli/stock_models.py`) and `fs push` uploads to tabs, which Onshape translates into Part Studios |
-| `../core/linearStock.fs` | Placing and building stock (from its profile, or its model), and the Position and Tie holes to end groups |
+| `../core/linearStock.fs` | Placing and building stock, and the Position and Tie holes to end groups |
 | `vendor/` | Vendors' drawings and STEP files the tables and cross sections come from |
 
 ## Changelog
 
 Since v1.2.0 (`fs changes robotFrame`).
 
-- COTS frames with holes as they're sold are cut from a model of them (instantiated, then cut to length and trimmed),
-  rather than extruded with each row of holes cut and patterned, to regenerate faster. Their faces' and edges' ids
-  change, so references to them in existing documents need fixing: a tied hole's faces and edges are named by their
-  count from the end, and the rest come from the model. Frames are still built hole by hole with bigger holes, holes
-  moved more than 2 in. further along than they're sold, or longer than their longest sold length (where they
-  already warn), and switching between the two changes their ids.
-- A COTS frame cut from its model just short of a regular length is cut through the next hole, as it would be cut from
-  longer stock, where it was left out.
 - WCP's 1x1 and 2x2 3/32 in. wall tubes' walls are 3/32 in. (0.09375 in.), as their 2x1's are, rather than 0.093 in.
 - Ends cut by trims (or miters) are tagged as frame caps, as an uncut end is, and shown (or colored) with the tied
   holes; they weren't.
@@ -82,8 +71,7 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
    it's been set, and Hole diameter to the frame's (`frameHoleDiameter`: the table's, or 0.196 in. for custom frames), unless it's
    been set larger. Then `stockEditLogic`, with no default offset.
 3. **Body**: `verifyFrame` checks the hole diameter, or the walls and rows, then `getFrame` builds the `Stock`, and `placeStock`
-   places it: linear stock cuts it from its `model` if it has one and it fits (`fitsModel`), and otherwise builds it
-   from its profile.
+   places it.
 4. **Manipulator change**: `stockManipulatorChange` (linear stock's).
 
 ### Functions
@@ -91,7 +79,7 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 | Function | What it does |
 | --- | --- |
 | `frameTableEntry` | The chosen entry: the custom table's for custom frames, else FRC's or FTC's. |
-| `getFrame` | The `Stock`. A COTS frame is its entry, with Hole diameter as its holes' (FTC frames keep the table's) and its rows as `HoleRow`s (`holeRows`). Each row's first hole, and the holes counted for tying (`tieStart`), move along it so the first which counts is Hole start distance from the start (`shift` further along than sold). If its holes are as sold, it has its `model`: its `FRAME_MODELS` entry and `shift`. A custom frame is built from its size (`customFrameSize`) and the dialog: walls `wallThickness` thick, and a grid of holes on each face (`gridRows`), the first `holeStart` from the start, with `holeSpacing` between holes along it and the face's row distance between rows across it; holes count for tying every `holeSpacing` from `holeStart`. |
+| `getFrame` | The `Stock`. A COTS frame is its entry, with Hole diameter as its holes' (FTC frames keep the table's) and its rows as `HoleRow`s (`holeRows`). Each row's first hole, and the holes counted for tying (`tieStart`), move along it so the first which counts is Hole start distance from the start. A custom frame is built from its size (`customFrameSize`) and the dialog: walls `wallThickness` thick, and a grid of holes on each face (`gridRows`), the first `holeStart` from the start, with `holeSpacing` between holes along it and the face's row distance between rows across it; holes count for tying every `holeSpacing` from `holeStart`. |
 | `customFrameSize` | A custom frame's width, height, angle, rows on each face, and their distances: from its entry, with the distances from `rowSpacing`, or for the Custom size (`customSize` in its entry), all but the angle from the dialog (`width`, `height`, `topRows`, `sideRows`, `topRowSpacing`, `sideRowSpacing`). |
 | `holeRows` | A table entry's rows, as `HoleRow`s. |
 | `frameHoleDiameter` | The frame's own hole diameter: the table's, or `CUSTOM_HOLE_DIAMETER` (0.196 in.). |
@@ -110,17 +98,6 @@ diameter. A custom frame's entry only has its size and how many rows each face h
 everything else comes from the dialog. `sideRows` go through the walls facing X, which are `height` wide; `topRows` through those facing Y, `width`
 wide (for 2x1, the 2 in. faces). The Custom size's Top rows are `topRows`, and Side rows `sideRows`.
 
-A COTS frame's model is built from the frame as `getFrame` describes it (see `fs_cli/stock_models.py`), with holes where
-they're sold: its profile from linear stock's `sketchProfile` and its holes' shapes from `sketchShape`, run with the
-evaluator, then modeled with OpenCascade. It runs along +Z from where its holes start as sold (Z = 0), through the
-longest length it's sold in, with a 2 in. lead before Z = 0 with no holes, and half an inch more at both ends, so it's
-always cut inside it. Frames with the same geometry, to within 0.05 mm, share a model, built from and named after the
-first of them: an extrusion's clear and black anodized, and tubes whose vendors give their holes as 0.196 in. or 5 mm
-(0.1969 in.), like WCP's, AndyMark's, and REV's 2x1 1/16 in. wall tube (61 frames, 44 models). A frame cut from a
-model built from another's holes has holes up to 0.05 mm off its own. Onshape translates each model, once it's uploaded,
-into a Part Studio, which `FRAME_MODELS` imports: it maps each frame's part name to its model's Part Studio's `build`,
-`length`, and `lead`.
-
 ### Error handling
 
 `verifyHoles` runs before anything is built, so its errors leave nothing behind. Then linear stock's.
@@ -131,7 +108,6 @@ None of its own, and no fallbacks.
 
 ## Issues found
 
-- Cutting frames from their models is untested in Onshape (see [linearStock.md](../core/linearStock.md)'s issues).
 - A custom frame's part name gives its wall to 3 places, e.g. `0.063 in. wall` for 1/16 in., where COTS frames say
   `1/16 in. wall`.
 - Every frame gets Aluminum - 6061 as its material, including Last Anvil's 7075 tube.

@@ -4,10 +4,9 @@ RobotFrameIcon::import(path : "94bcdc0a50ec32f81a3aa449", version : "0ee45036412
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
-import(path : "ff444db0395e01aaa8c7e555", version : "3f036ef981a0c3e4c7745dde");
-import(path : "f64c513aa3a15a08ca440fb2", version : "1bec3ff3db49acb0f975873f");
+import(path : "ff444db0395e01aaa8c7e555", version : "87aa3665d5a93d91331dbe19");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "cac8490aabf55d0144493644");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "439d5a6da5926ffd182185cd");
 
 /**
  * Whether a frame is one someone sells, or custom: a common size of tube or angle, with holes as the feature says
@@ -149,8 +148,7 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
 
 /**
  * The selected frame as stock: its entry in its lookup table (see frameTables.py), or a custom one, with holes as big
- * as `holeDiameter` (an FTC frame's are as it's sold). A COTS frame with holes as they're sold has its model (see
- * `FRAME_MODELS`), which linear stock imports and cuts to length rather than building it.
+ * as `holeDiameter` (an FTC frame's are as it's sold).
  */
 function getFrame(definition is map) returns Stock
 {
@@ -160,15 +158,12 @@ function getFrame(definition is map) returns Stock
         // Every row (and the holes counted for tying them to the end) moves along it, so the first hole which counts is
         // Hole start distance from the start
         const shift = definition.holeStart - entry.tieStart;
-        const holeDiameter = isFrc(definition) ? definition.holeDiameter : entry.holeDiameter;
-        const model = FRAME_MODELS[entry.partName];
         return mergeMaps(entry, {
-                    "holeDiameter" : holeDiameter,
+                    "holeDiameter" : isFrc(definition) ? definition.holeDiameter : entry.holeDiameter,
                     "xRows" : holeRows(entry.xRows, shift),
                     "yRows" : holeRows(entry.yRows, shift),
                     "isFrame" : true,
-                    "tieStart" : entry.tieStart + shift,
-                    "model" : model == undefined || !tolerantEquals(holeDiameter, entry.holeDiameter) ? undefined : mergeMaps(model, { "shift" : shift })
+                    "tieStart" : entry.tieStart + shift
                 }) as Stock;
     }
     const size = customFrameSize(definition);

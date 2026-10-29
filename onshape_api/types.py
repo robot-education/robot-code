@@ -36,15 +36,6 @@ class DocumentElement(TypedDict):
     dataType: NotRequired[str]
 
 
-class PartInfo(TypedDict):
-    """A part in a Part Studio. BTPartMetadataInfo."""
-
-    partId: str
-    name: str
-    # The Part Studio it's in
-    elementId: str
-
-
 class ElementReference(TypedDict):
     """A reference to an element in the folder tree. BTDocumentElementReference-2484."""
 

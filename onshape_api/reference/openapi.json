@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Onshape REST API",
-    "version": "1.222.91980-dcee49ea4d64",
+    "version": "1.221.89963-13d10d36cb23",
     "description": "Trimmed from https://cad.onshape.com/api/openapi by onshape_api/reference/generate.py. Do not edit."
   },
   "paths": {
@@ -48,11 +48,6 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/BTBTranslationRequestParams"
-              },
-              "encoding": {
-                "documentVersions": {
-                  "contentType": "application/json"
-                }
               }
             }
           }
@@ -142,11 +137,6 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/BTBTranslationRequestParams"
-              },
-              "encoding": {
-                "documentVersions": {
-                  "contentType": "application/json"
-                }
               }
             }
           }
@@ -931,127 +921,6 @@
         ],
         "x-BTVisibility": "PRODUCTION"
       }
-    },
-    "/parts/d/{did}/{wvm}/{wvmid}": {
-      "get": {
-        "tags": [
-          "Part"
-        ],
-        "summary": "Get all parts in a workspace, version, or microversion.",
-        "operationId": "getPartsWMV",
-        "parameters": [
-          {
-            "name": "did",
-            "in": "path",
-            "description": "The id of the document in which to perform the operation.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "linkDocumentId",
-            "in": "query",
-            "description": "The id of the document through which the above document should be accessed; only applicable when accessing a version of the document. This allows a user who has access to document a to see data from document b, as long as document b has been linked to document a by a user who has permission to both.",
-            "schema": {
-              "type": "string",
-              "default": ""
-            }
-          },
-          {
-            "name": "wvm",
-            "in": "path",
-            "description": "Indicates which of workspace (w), version (v), or document microversion (m) id is specified below.",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "w",
-                "v",
-                "m"
-              ]
-            }
-          },
-          {
-            "name": "wvmid",
-            "in": "path",
-            "description": "The id of the workspace, version or document microversion in which the operation should be performed.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "elementId",
-            "in": "query",
-            "description": "The id of the element in which to perform the operation.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "configuration",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": ""
-            }
-          },
-          {
-            "name": "withThumbnails",
-            "in": "query",
-            "description": "Whether or not to include thumbnails (not supported for microversion)",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          },
-          {
-            "name": "includePropertyDefaults",
-            "in": "query",
-            "description": "If true, include metadata schema property defaults in response",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          },
-          {
-            "name": "includeFlatParts",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": "default response",
-            "content": {
-              "application/json;charset=UTF-8; qs=0.09": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/BTPartMetadataInfo"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false,
-        "security": [
-          {
-            "OAuth2": [
-              "OAuth2Read"
-            ],
-            "BasicAuth": [
-              "OAuth2Read"
-            ]
-          }
-        ],
-        "x-BTVisibility": "PRODUCTION"
-      }
     }
   },
   "components": {
@@ -1173,27 +1042,12 @@
           }
         },
         "x-BTVisibility-properties": {
+          "versionDescription": "INTERNAL",
+          "versionId": "INTERNAL",
           "upgradeFeatureScriptVersion": "INTERNAL",
-          "documentVersions": "INTERNAL",
           "documentId": "INTERNAL",
+          "versionName": "INTERNAL",
           "preserveSourceIds": "INTERNAL"
-        }
-      },
-      "BTColorInfo": {
-        "type": "object",
-        "properties": {
-          "blue": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "green": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "red": {
-            "type": "integer",
-            "format": "int32"
-          }
         }
       },
       "BTDocumentContentsInfo": {
@@ -1458,23 +1312,6 @@
           }
         }
       },
-      "BTExternalElementReferenceInfo": {
-        "type": "object",
-        "properties": {
-          "documentId": {
-            "type": "string"
-          },
-          "elementId": {
-            "type": "string"
-          },
-          "elementMicroversionId": {
-            "type": "string"
-          },
-          "versionId": {
-            "type": "string"
-          }
-        }
-      },
       "BTFeatureApiBase-1430": {
         "type": "object",
         "properties": {
@@ -1610,210 +1447,10 @@
           }
         }
       },
-      "BTMetadataStateType": {
-        "type": "string",
-        "description": "The current state metadata values if applicable.",
-        "enum": [
-          "IN_PROGRESS",
-          "PENDING",
-          "RELEASED",
-          "OBSOLETE",
-          "REJECTED",
-          "DISCARDED"
-        ]
-      },
       "BTModelElementParams": {
         "type": "object",
         "properties": {
           "name": {
-            "type": "string"
-          }
-        }
-      },
-      "BTPartAppearanceInfo": {
-        "type": "object",
-        "properties": {
-          "color": {
-            "$ref": "#/components/schemas/BTColorInfo"
-          },
-          "isGenerated": {
-            "type": "boolean"
-          },
-          "opacity": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "BTPartMaterialInfo": {
-        "type": "object",
-        "properties": {
-          "displayName": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "libraryName": {
-            "type": "string"
-          },
-          "libraryReference": {
-            "$ref": "#/components/schemas/BTExternalElementReferenceInfo"
-          },
-          "properties": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BTPartMaterialPropertyInfo"
-            }
-          }
-        }
-      },
-      "BTPartMaterialPropertyInfo": {
-        "type": "object",
-        "properties": {
-          "category": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "units": {
-            "type": "string"
-          },
-          "value": {
-            "type": "string"
-          }
-        }
-      },
-      "BTPartMetadataInfo": {
-        "type": "object",
-        "properties": {
-          "appearance": {
-            "$ref": "#/components/schemas/BTPartAppearanceInfo"
-          },
-          "bodyType": {
-            "type": "string"
-          },
-          "configurationId": {
-            "type": "string"
-          },
-          "customProperties": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "defaultColorHash": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "elementId": {
-            "type": "string"
-          },
-          "href": {
-            "type": "string",
-            "format": "uri"
-          },
-          "id": {
-            "type": "string"
-          },
-          "isFlattenedBody": {
-            "type": "boolean"
-          },
-          "isHidden": {
-            "type": "boolean"
-          },
-          "isMesh": {
-            "type": "boolean"
-          },
-          "material": {
-            "$ref": "#/components/schemas/BTPartMaterialInfo"
-          },
-          "meshState": {
-            "$ref": "#/components/schemas/GBTMeshState"
-          },
-          "metadataMicroversion": {
-            "type": "string"
-          },
-          "microversionId": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "ordinal": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "partId": {
-            "type": "string"
-          },
-          "partIdentity": {
-            "type": "string"
-          },
-          "partNumber": {
-            "type": "string"
-          },
-          "partQuery": {
-            "type": "string"
-          },
-          "productLine": {
-            "type": "string"
-          },
-          "project": {
-            "type": "string"
-          },
-          "propertySourceTypes": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "description": "`0: AUTOMATIC` Set automatically, like a part name | \n`1: MERGED` Merged from another Part Studio | `2: FEATURE` Custom feature | `3: UNCONFIGURED` | `4: CONFIGURED` | \n`5: STANDARD_CONTENT` | `6: DEFAULT` Applied from metadata property configuration | `7: COMPUTED` Non-overridden, non-configured, computed property | \n`8: COMPUTED_CONFIGURED` Property is computed in this configuration; may also be configured in other configurations \n`9: IMPORT` Imported properties are handled separately",
-              "format": "int32"
-            },
-            "description": "`0: AUTOMATIC` Set automatically, like a part name | \n`1: MERGED` Merged from another Part Studio | `2: FEATURE` Custom feature | `3: UNCONFIGURED` | `4: CONFIGURED` | \n`5: STANDARD_CONTENT` | `6: DEFAULT` Applied from metadata property configuration | `7: COMPUTED` Non-overridden, non-configured, computed property | \n`8: COMPUTED_CONFIGURED` Property is computed in this configuration; may also be configured in other configurations \n`9: IMPORT` Imported properties are handled separately"
-          },
-          "referencingConfiguredPartNodeIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "revision": {
-            "type": "string"
-          },
-          "state": {
-            "$ref": "#/components/schemas/BTMetadataStateType"
-          },
-          "thumbnailConfigurationId": {
-            "type": "string"
-          },
-          "thumbnailInfo": {
-            "$ref": "#/components/schemas/BTThumbnailInfo"
-          },
-          "title1": {
-            "type": "string"
-          },
-          "title2": {
-            "type": "string"
-          },
-          "title3": {
-            "type": "string"
-          },
-          "unflattenedPartId": {
-            "type": "string"
-          },
-          "vendor": {
             "type": "string"
           }
         }
@@ -2000,15 +1637,6 @@
           "BILLOFMATERIALS",
           "VARIABLESTUDIO",
           "PUBLICATIONITEM",
-          "UNKNOWN"
-        ]
-      },
-      "GBTMeshState": {
-        "type": "string",
-        "enum": [
-          "NO_MESH",
-          "MIXED",
-          "ALL_MESH",
           "UNKNOWN"
         ]
       }

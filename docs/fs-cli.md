@@ -104,15 +104,6 @@ When an image changes, `fs push` also points the imports of it at its new versio
 it. `fs-studios.json` maps image tabs to files under `images`; `fs mv` and `fs status` treat images like studios.
 `fs tabs`, `fs link`, and `fs unlink` are for studios only.
 
-Generated STEP models (`*.gen.step`, like Robot frame's in `released/frame/models/`) are synced the same way. Only
-generated ones are, known by their names, so vendors' STEP files kept for reference (`vendor/*.STEP`) aren't.
-`fs models` builds them (see Generated files). Onshape translates each uploaded model into a Part Studio named after it,
-less `.step` (`tube.gen` for `tube.gen.step`), which is what a studio imports and instantiates: FeatureScript can't
-import the model's tab itself (`opImportForeign` only takes a CAD import parameter's value). A studio imports it by the
-path it would have beside the model (`Tube::import(path : "frame/models/tube.gen", version : "");`), which `fs push`
-resolves to the Part Studio, waiting (up to about 15 minutes) for Onshape to finish translating models it just
-uploaded. Deleting a model deletes its Part Studio too.
-
 For the occasional edit made directly in Onshape:
 
 ```
@@ -216,7 +207,6 @@ uv run fs table featurescripts/released/shaft -n frcShaft   # lookup tables as r
 uv run fs audit featurescripts/released/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
 uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
-uv run fs models             # build Robot frame's STEP models (see Generated files)
 ```
 
 `fs table` shows lookup tables as the evaluator builds them (generated or written by hand): a row per path through the
@@ -313,13 +303,6 @@ After editing one:
 uv run fs gen                # rewrite every .gen.fs file whose definition changed (no API calls)
 uv run fs push               # push them
 ```
-
-Robot frame's models (`released/frame/models/*.gen.step`) are built separately, since building them takes
-OpenCascade and a few minutes: `uv sync --group step` once, then `uv run fs models` writes those which changed (and
-deletes those no frame has any more), and `fs push` uploads them. Each is built from a COTS frame as Robot frame
-describes it, with the evaluator (see `fs_cli/stock_models.py`), and the same frame always writes the same file. After
-the frame tables change, run `fs gen`, `fs models`, then `fs gen` again: `released/frame/frameModels.py` reads the
-generated `frameTables.gen.fs`, and leaves out frames whose models haven't been built.
 
 Every `.py` file in `featurescripts/` is a definition. Generated files keep their `FeatureScript` version
 (`fs update-std` changes it); new ones use the std version in `std/`. Tests fail if a checked-in `.gen.fs` file is

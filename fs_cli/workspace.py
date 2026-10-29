@@ -37,7 +37,6 @@ from fs_cli.state import (
     apply_import_versions,
     content_hash,
     import_versions,
-    model_of_studio,
     path_imports,
     resolve_path_imports,
 )
@@ -475,7 +474,7 @@ class Workspace:
         """Checks that the imports by path in studios (about to be pushed) can be resolved.
 
         A path must be a file in the code folder which is in Onshape, or is being pushed too (like images, the
-        paths of the images being pushed), or a model's Part Studio, whose model is. Makes no API calls.
+        paths of the images being pushed). Makes no API calls.
         """
         synced = {entry.file for entry in self.state.studios.values()}
         synced.update(entry.file for entry in self.state.images.values())
@@ -483,43 +482,13 @@ class Workspace:
         problems = []
         for studio in studios:
             for path in path_imports(studio.local_code or ""):
-                model = model_of_studio(path)
-                file = model or path
-                imported = f"{path} (the Part Studio of {model})" if model else path
-                if not (self.config.code_dir / file).is_file():
-                    problems.append(f"{studio.path} imports {imported}, which doesn't exist.")
-                elif file not in synced and file not in pushing:
+                if not (self.config.code_dir / path).is_file():
+                    problems.append(f"{studio.path} imports {path}, which doesn't exist.")
+                elif path not in synced and path not in pushing:
                     problems.append(
-                        f"{studio.path} imports {imported}, which isn't in Onshape yet; push it too."
+                        f"{studio.path} imports {path}, which isn't in Onshape yet; push it too."
                     )
         return problems
-
-    def model_studio_targets(self, paths: Iterable[str]) -> dict[str, tuple[str, str]]:
-        """The (element id, version) of the Part Studios at `paths` (see fs_cli/state.py's `MODEL_STUDIO_SUFFIX`), by
-        path. Onshape translates models into them after they're uploaded, so this lists them again after each of
-        TRANSLATION_DELAYS until they're all translated (2 calls a listing)."""
-        names = {path: pathlib.PurePosixPath(path).name for path in paths}
-        waiting: list[str] = []
-        for listing, delay in enumerate((*TRANSLATION_DELAYS, None)):
-            by_name: dict[str, list] = {}
-            for studio in self.remote.list_model_studios(self.instance):
-                by_name.setdefault(studio.name, []).append(studio)
-            for name in sorted(set(names.values())):
-                if len(by_name.get(name, [])) > 1:
-                    raise UsageError(f'Onshape has more than one Part Studio named "{name}"; delete the extra ones.')
-            waiting = sorted(path for path, name in names.items() if not any(s.translated for s in by_name.get(name, [])))
-            if not waiting:
-                return {
-                    path: (by_name[name][0].element_id, by_name[name][0].microversion_id) for path, name in names.items()
-                }
-            if delay is not None:
-                if listing == 0:
-                    print(f"Waiting for Onshape to translate {len(waiting)} model{'' if len(waiting) == 1 else 's'}...")
-                time.sleep(delay)
-        raise UsageError(
-            "Onshape hasn't translated these models into Part Studios yet; run `fs push` again once it has:\n  "
-            + "\n  ".join(model_of_studio(path) or path for path in waiting)
-        )
 
     def push_studios(self, studios: list[Studio]) -> None:
         """Pushes studios to Onshape, creating any which don't exist yet.
@@ -528,12 +497,6 @@ class Workspace:
         them in folders. Imports by path (see path_import_problems) are then replaced with
         imports by element id, in the local files too.
         """
-
-        # First, so a model which isn't translated yet stops the push before anything changes
-        model_studios = {
-            path for studio in studios for path in path_imports(studio.local_code or "") if model_of_studio(path)
-        }
-        model_targets = self.model_studio_targets(model_studios) if model_studios else {}
 
         def create(studio: Studio) -> None:
             studio.remote = self.remote.create(self.instance, studio.name)
@@ -548,7 +511,6 @@ class Workspace:
         for studio in studios:
             assert studio.remote
             targets[studio.path] = (studio.remote.element_id, studio.remote.microversion_id)
-        targets.update(model_targets)
 
         def push(studio: Studio) -> None:
             assert studio.local_code is not None and studio.remote
@@ -657,10 +619,6 @@ class Workspace:
 
 
 RELIST_DELAYS = (2.0, 5.0)
-
-# Between listings of the Part Studios Onshape translates models into, while waiting for them (see
-# `Workspace.model_studio_targets`): about 15 minutes in all
-TRANSLATION_DELAYS = (5.0, 10.0, 15.0, 30.0) + (60.0,) * 14
 
 
 def list_until_found(list_tabs: Callable[[], list[T]], tracked: set[str]) -> list[T]:
