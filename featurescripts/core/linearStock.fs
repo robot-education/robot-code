@@ -191,8 +191,8 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field height {ValueWithUnits} : The height of its profile, along Y.
  *      @field profile {array} : @optional A sketch of its profile (a SketchDataArray). Otherwise it's a rectangle:
  *              `solid`, or with walls `wallX` and `wallY` thick, and possibly `open` (a channel), an `angle`, or solid
- *              around a `bore`. A profile's `wallX` and `wallY` are as thick as its walls are where its holes go, at
- *              most (see `stockWalls`).
+ *              around a `bore`. A profile's `wallX` and `wallY` are as thick as its walls are where its holes go (see
+ *              `stockWalls`).
  *      @field holeDiameter {ValueWithUnits} : The diameter of its holes, unless a shape has its own.
  *      @field xRows {array} : Rows of holes through its walls facing X. @seealso [HoleRow]
  *      @field yRows {array} : Rows of holes through its walls facing Y.
@@ -570,9 +570,8 @@ const PROFILE_WALL_MARGIN = 0.25 * millimeter;
  * The walls of stock (see `buildFromWalls`): a tube's four, a channel's three (it's open facing +Y), or an angle's
  * two (its legs face -X and -Y, mirrored with it; see `acrossSign`), or none for other stock (solid, around a bore, or
  * tapped). The walls facing Y run its whole width, and those facing X between them. A sketched `profile`'s walls are
- * those with holes, reaching across just past its holes (`PROFILE_WALL_MARGIN`), as thick as its walls are there at
- * most (`wallX` and `wallY`, so they fill any grooves inside them), and the rest of it is its core (see
- * `buildCore`).
+ * those with holes, reaching across just past its holes (`PROFILE_WALL_MARGIN`), as thick as its walls are there
+ * (`wallX` and `wallY`), and the rest of it is its core (see `buildCore`).
  *
  * @returns {array} : Maps of each wall's `name`, its `face` (see `stockFaces`: its rows, and which way its holes'
  *          offsets go), the `plane` it's sketched on (its outside, or its inside for the walls facing +X and +Y, with X

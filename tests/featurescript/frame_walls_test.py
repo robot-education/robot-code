@@ -1,6 +1,6 @@
 """Building frames from their walls (see linear stock's `stockWalls` and `buildFromWalls`): which frames are, that a
-sketched profile's walls are as thick as its sketch's where its holes go, with nothing behind them, and custom tubes
-with no holes."""
+sketched profile's walls are as thick as its sketch's where its holes go, plain inside, with nothing behind them, and
+custom tubes with no holes."""
 
 import math
 
@@ -100,10 +100,10 @@ def inside(point, polygon) -> bool:
     return crossed
 
 
-def profile_walls(stock) -> list[tuple[float, float, bool]]:
+def profile_walls(stock) -> list[tuple[float, float, float, bool]]:
     """A sketched profile's walls with holes (facing X, then Y): how thick it is through them (its first void, walking in
-    from its side) at most, across its holes (as `holeSpan` reaches), the thickness of its wall, and whether it's clear
-    of material behind its walls there (sampled), as the holes go through it."""
+    from its side) at least and at most, across its holes (as `holeSpan` reaches), the thickness of its wall, and
+    whether it's clear of material behind its walls there (sampled), as the holes go through it."""
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     sketch = evaluator.eval('newSketchOnPlane(context, newId() + "profile", { "sketchPlane" : XY_PLANE })', context=context)
@@ -128,7 +128,7 @@ def profile_walls(stock) -> list[tuple[float, float, bool]]:
                 spans.append((shape["offset"] - radius, shape["offset"] + radius))
         low = min(a for a, _ in spans) - PROFILE_WALL_MARGIN
         high = max(b for _, b in spans) + PROFILE_WALL_MARGIN
-        deepest = 0
+        depths = []
         clear = True
         for i in range(41):
             across = low + (high - low) * i / 40
@@ -142,10 +142,10 @@ def profile_walls(stock) -> list[tuple[float, float, bool]]:
             for _ in range(30):
                 middle = (inner + outer) / 2
                 inner, outer = (middle, outer) if material(at(middle)) else (inner, middle)
-            deepest = max(deepest, outer)
+            depths.append(outer)
             # Through it, between its walls
             clear = clear and not any(material(at(wall + (2 * half - 2 * wall) * j / 60)) for j in range(1, 60))
-        walls.append((deepest, wall, clear))
+        walls.append((min(depths), max(depths), wall, clear))
     return walls
 
 
@@ -153,8 +153,9 @@ def profile_walls(stock) -> list[tuple[float, float, bool]]:
     "stock", [s for s in cots_frames() if to_python(untag(s)).get("profile") is not None], ids=lambda s: to_python(untag(s))["partName"]
 )
 def test_sketched_profiles_walls_are_as_thick_as_their_sketches_where_their_holes_go(stock):
-    for deepest, wall, clear in profile_walls(stock):
-        assert wall == pytest.approx(deepest, abs=1e-6)
+    for shallowest, deepest, wall, clear in profile_walls(stock):
+        # Plain, without notches inside (see frameTables.py's `without_notches`)
+        assert (shallowest, deepest) == (pytest.approx(wall, abs=1e-6), pytest.approx(wall, abs=1e-6))
         assert clear
 
 
@@ -246,3 +247,25 @@ def test_sketched_profiles_walls_reach_just_past_their_holes():
     # Only walls with holes
     walls = to_python(evaluate(f"stockWalls(stock, {LOCATION}, 1)", STOCK, stock=frames["2x1 Tube (REV, standard, 1 in. sides only)"]))
     assert [wall["name"] for wall in walls] == ["x0", "x1"]
+
+
+def test_notches_are_left_out():
+    import importlib.util
+    import pathlib
+
+    from fs_cli.sketches import Line, Point
+
+    spec = importlib.util.spec_from_file_location(
+        "frameTables", pathlib.Path(__file__).parents[2] / "featurescripts/released/frame/frameTables.py"
+    )
+    tables = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tables)
+    # A wall's inside, with a notch 0.005 in. deep, then a corner
+    wall = [
+        Line(Point(-1, 0.46), Point(-0.005, 0.46)),
+        Line(Point(-0.005, 0.46), Point(0, 0.465)),
+        Line(Point(0, 0.465), Point(0.005, 0.46)),
+        Line(Point(0.005, 0.46), Point(1, 0.46)),
+        Line(Point(1, 0.46), Point(1, 0)),
+    ]
+    assert tables.without_notches(wall) == [Line(Point(-1, 0.46), Point(1, 0.46)), Line(Point(1, 0.46), Point(1, 0))]

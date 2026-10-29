@@ -139,8 +139,7 @@ Tubes, channels, and angles with holes are built from their walls instead, which
 angle's two legs, mirrored with it; none for solid stock, stock around a bore, or tapped stock) and each hole fits
 inside the walls it goes through, clear of their sides (`holesFitWalls`). A sketched `profile`'s walls are those with
 holes, reaching across just past them (`holeSpan`, 0.25 mm past), and `wallX` and `wallY` thick: as thick as its sketch
-is there at most, filling any grooves inside it, with nothing behind them (frameTables.py's MAXTube walls, which a
-test checks against the sketches).
+is there, with nothing behind them (frameTables.py's MAXTube walls, which a test checks against the sketches).
 
 1. Each wall is sketched on its outside (or inside, for the walls facing +X and +Y) as a rectangle `length` long,
    with its holes (`holePositions` and `sketchShape`, as cutting them would), and extruded as thick as the wall. The

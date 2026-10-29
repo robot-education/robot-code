@@ -25,7 +25,7 @@ far apart they are. `stock` lists the lengths each is sold in, shortest first (s
 import math
 import pathlib
 
-from fs_cli.sketches import Line, Point, Profile, Sketch, rotated, translated
+from fs_cli.sketches import Entity, Line, Point, Profile, Sketch, rotated, translated
 from fs_cli.step import StepFile
 from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
@@ -93,8 +93,8 @@ def tube(
     profile: str | None = None,
 ) -> Value:
     """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`. A sketched
-    `profile`'s walls (`wall_x` and `wall_y`) are as thick as its sketch's are where its holes go through them, at most
-    (see linear stock's `stockWalls`)."""
+    `profile`'s walls (`wall_x` and `wall_y`) are as thick as its sketch's are where its holes go through them (see
+    linear stock's `stockWalls`)."""
     return Value(
         name,
         {
@@ -339,7 +339,7 @@ REV_2X2_URL = "https://www.revrobotics.com/MAXTube-2x2/"
 REV_MM = 1 / 25.4
 
 # The thinner walls of MAXTube's sketched profiles (their STEP files'), between its hollow corners where its holes go:
-# 0.040 in., which REV gives as 1 mm. Light's have grooves inside them, 0.005 in. deep.
+# 0.040 in., which REV gives as 1 mm.
 REV_PROFILE_WALL = 0.04
 
 
@@ -432,10 +432,53 @@ def extrusion(
     return value
 
 
+# The longest a notch's sides are (see `without_notches`)
+NOTCH_SIDE = 0.01
+
+
+def same(a: Point, b: Point) -> bool:
+    return (a - b).length < 1e-9
+
+
+def without_notches(entities: list[Entity]) -> list[Entity]:
+    """Entities with each notch (two short lines, at most `NOTCH_SIDE` long, from one end of a line square to X or Y to
+    the other, meeting off it) replaced by a line, and lines which then carry on from each other in a straight line
+    merged."""
+    result = list(entities)
+
+    def joined(first: int, second: int) -> bool:
+        a, b = result[first], result[second]
+        return isinstance(a, Line) and isinstance(b, Line) and same(a.end, b.start)
+
+    def find(test) -> tuple[int, int] | None:
+        for i in range(len(result)):
+            for j in range(len(result)):
+                if i != j and joined(i, j) and test(result[i], result[j]):
+                    return i, j
+        return None
+
+    def notch(a: Line, b: Line) -> bool:
+        square = abs(a.start.x - b.end.x) < 1e-9 or abs(a.start.y - b.end.y) < 1e-9
+        short = (a.end - a.start).length <= NOTCH_SIDE and (b.end - b.start).length <= NOTCH_SIDE
+        return square and short and not straight(a, b)
+
+    def straight(a: Line, b: Line) -> bool:
+        first, second = a.end - a.start, b.end - b.start
+        return abs(first.x * second.y - first.y * second.x) < 1e-12 and first.x * second.x + first.y * second.y > 0
+
+    for test in (notch, straight):
+        while (pair := find(test)) is not None:
+            i, j = pair
+            result[min(i, j)] = Line(result[i].start, result[j].end)
+            del result[max(i, j)]
+    return result
+
+
 def step_profile(file: str, offset: Point = Point(0, 0), degrees: float = 0, plain_outside: bool = False) -> Profile:
     """The cross section of a vendor's extrusion, with its bores and pockets, from its STEP file (some trimmed to just
     that with `fs step`), rotated then moved to center it on the origin with its width along X. A `plain_outside` is
-    left a rectangle, as MAXTube's is but for the shallow grooves along it to drill on, which aren't worth modeling."""
+    left a rectangle, as MAXTube's is but for the shallow grooves along it to drill on, which aren't worth modeling, and
+    its walls plain inside too, without the notches along them (see `without_notches`)."""
     step = StepFile(VENDOR / file)
     entities = step.profile(holes=True)
     if plain_outside:
@@ -444,7 +487,7 @@ def step_profile(file: str, offset: Point = Point(0, 0), degrees: float = 0, pla
         low = Point(min(point.x for point in points), min(point.y for point in points))
         high = Point(max(point.x for point in points), max(point.y for point in points))
         corners = [low, Point(high.x, low.y), high, Point(low.x, high.y)]
-        entities = [Line(corners[i], corners[(i + 1) % 4]) for i in range(4)] + entities[outside:]
+        entities = [Line(corners[i], corners[(i + 1) % 4]) for i in range(4)] + without_notches(entities[outside:])
     return Profile(translated(rotated(entities, degrees), offset))
 
 
