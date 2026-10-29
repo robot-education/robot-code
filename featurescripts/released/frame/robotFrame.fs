@@ -74,6 +74,9 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 annotation { "Name" : "Custom size", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomSizeFrame" }
                 definition.customSize is boolean;
 
+                annotation { "Name" : "No holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoHolesFrame" }
+                definition.noHoles is boolean;
+
                 if (definition.customSize)
                 {
                     annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -94,25 +97,31 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                     annotation { "Name" : "Side row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     isLength(definition.sideRowSpacing, SPACING_BOUNDS);
                 }
-                else if (definition.rectangularFrame)
+                else if (!definition.noHoles)
                 {
-                    annotation { "Name" : "2 in. face row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(definition.wideRowSpacing, SPACING_BOUNDS);
+                    if (definition.rectangularFrame)
+                    {
+                        annotation { "Name" : "2 in. face row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.wideRowSpacing, SPACING_BOUNDS);
 
-                    annotation { "Name" : "1 in. face row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(definition.narrowRowSpacing, SPACING_BOUNDS);
-                }
-                else
-                {
-                    annotation { "Name" : "Distance between rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(definition.rowSpacing, SPACING_BOUNDS);
+                        annotation { "Name" : "1 in. face row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.narrowRowSpacing, SPACING_BOUNDS);
+                    }
+                    else
+                    {
+                        annotation { "Name" : "Distance between rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.rowSpacing, SPACING_BOUNDS);
+                    }
                 }
 
                 annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.wallThickness, WALL_BOUNDS);
 
-                annotation { "Name" : "Distance between holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(definition.holeSpacing, SPACING_BOUNDS);
+                if (!definition.noHoles)
+                {
+                    annotation { "Name" : "Distance between holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.holeSpacing, SPACING_BOUNDS);
+                }
             }
             else if (isFrc(definition))
             {
@@ -125,16 +134,19 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 definition.ftcFrame is LookupTablePath;
             }
 
-            // Set to the frame's by editing logic. FTC frames' holes are as they're sold
-            if (isFrc(definition))
+            if (!(isCustomFrame(definition) && definition.noHoles))
             {
-                annotation { "Name" : "Hole diameter" }
-                isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
-            }
+                // Set to the frame's by editing logic. FTC frames' holes are as they're sold
+                if (isFrc(definition))
+                {
+                    annotation { "Name" : "Hole diameter" }
+                    isLength(definition.holeDiameter, HOLE_DIAMETER_BOUNDS);
+                }
 
-            // Set to a COTS frame's (where its holes start as it's sold) by editing logic
-            annotation { "Name" : "Hole start distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The distance from the start of the frame to its first hole." }
-            isLength(definition.holeStart, START_BOUNDS);
+                // Set to a COTS frame's (where its holes start as it's sold) by editing logic
+                annotation { "Name" : "Hole start distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The distance from the start of the frame to its first hole." }
+                isLength(definition.holeStart, START_BOUNDS);
+            }
         }
 
         stockLocationPredicate(definition, "frame");
@@ -352,9 +364,23 @@ function isCustomSizeFrame(definition is map) returns boolean
 }
 
 /**
+ * No holes: whether a custom frame is a size from the table chosen with no rows of holes (which hides the hole and row
+ * parameters).
+ */
+function isNoHolesFrame(definition is map) returns boolean
+{
+    if (!isCustomFrame(definition) || isCustomSizeFrame(definition))
+    {
+        return false;
+    }
+    const entry = frameTableEntry(definition);
+    return entry.topRows == 0 && entry.sideRows == 0;
+}
+
+/**
  * @internal
- * The editing logic function for robot frame. Sets Rectangular frame (`isRectangularFrame`) and Custom size
- * (`isCustomSizeFrame`), and when the frame changes
+ * The editing logic function for robot frame. Sets Rectangular frame (`isRectangularFrame`), Custom size
+ * (`isCustomSizeFrame`), and No holes (`isNoHolesFrame`), and when the frame changes
  * (or the feature is created), its hole diameter to the frame's, unless it's been set larger.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
@@ -362,6 +388,7 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
 {
     definition.rectangularFrame = isRectangularFrame(definition);
     definition.customSize = isCustomSizeFrame(definition);
+    definition.noHoles = isNoHolesFrame(definition);
     definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);
     return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
 }

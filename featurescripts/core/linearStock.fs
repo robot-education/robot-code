@@ -192,6 +192,9 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field profile {array} : @optional A sketch of its profile (a SketchDataArray). Otherwise it's a rectangle:
  *              `solid`, or with walls `wallX` and `wallY` thick, and possibly `open` (a channel), an `angle`, or solid
  *              around a `bore`.
+ *      @field holesInWalls {boolean} : @optional Whether a sketched `profile`'s holes go only through its walls (which
+ *              are `wallX` and `wallY` thick, as its sketch's are), not the rest of it, so it can be built from them
+ *              (see `stockWalls`).
  *      @field holeDiameter {ValueWithUnits} : The diameter of its holes, unless a shape has its own.
  *      @field xRows {array} : Rows of holes through its walls facing X. @seealso [HoleRow]
  *      @field yRows {array} : Rows of holes through its walls facing Y.
@@ -440,7 +443,9 @@ const MAX_SPLINE_RADIUS = 17.45 * millimeter;
 
 /**
  * Builds stock `length` long from `location` (the middle of its start, with Z along its length and its width along
- * X): its profile is extruded along its length, then its holes are cut, then its ends are trimmed.
+ * X): its profile is extruded along its length, then its holes are cut, then its ends are trimmed. Tubes, channels,
+ * and angles whose holes each fit in a wall are built from their walls instead, which is faster (see
+ * `buildFromWalls`).
  *
  * Stock with holes is built as the regular length at least `length` long (see `regularLength`), so its holes are all
  * whole while they're cut, and is then cut to `length`, cutting through any holes the end crosses, as cutting it from
@@ -466,10 +471,15 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
 {
     const tie = getTie(definition, stock.tieStart, stock.tieUnit);
     const hasHoles = stock.xRows != [] || stock.yRows != [];
+    const across = acrossSign(definition);
+    const walls = hasHoles ? stockWalls(stock, location, across) : [];
+    if (walls != [] && holesFitWalls(stock, walls))
+    {
+        return buildFromWalls(context, id, stock, location, length, ends, tie, walls, across);
+    }
     const built = hasHoles ? regularLength(length, tie) : length;
     const profileId = id + "profile";
     const sketch = newSketchOnPlane(context, profileId, { "sketchPlane" : plane(location) });
-    const across = acrossSign(definition);
     sketchProfile(sketch, stock, across);
     skSolve(sketch);
     const stockId = id + "stock";
@@ -548,6 +558,275 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
             "tiedHoles" : qUnion(tiedHoles),
             "tie" : hasHoles ? tie : undefined
         };
+}
+
+/**
+ * How far a wall's holes must stay from its sides, along which it meets the next wall or ends (see `holesFitWalls`).
+ */
+const WALL_EDGE_MARGIN = 1e-5 * meter;
+
+/**
+ * The walls of stock (see `buildFromWalls`): a tube's four, a channel's three (it's open facing +Y), or an angle's
+ * two (its legs face -X and -Y, mirrored with it; see `acrossSign`), or none for other stock (solid, around a bore, or
+ * tapped). A sketched `profile` is a tube's, if its holes go only through its walls (`holesInWalls`), and the rest of
+ * it (inside them) is its core. The walls facing Y run its whole width, and those facing X between them.
+ *
+ * @returns {array} : Maps of each wall's `name`, its `face` (see `stockFaces`: its rows, and which way its holes'
+ *          offsets go), the `plane` it's sketched on (its outside, or its inside for the walls facing +X and +Y, with X
+ *          along the stock and the face's Y), how `deep` it is (its thickness, from the plane toward +X or +Y), and
+ *          how far across it reaches each way (`low` and `high`, in its plane).
+ */
+function stockWalls(stock is Stock, location is CoordSystem, across is number) returns array
+{
+    if ((stock.solid ?? false) || stock.bore != undefined || stock.thread != undefined || (stock.centerHole ?? false) ||
+        (stock.profile != undefined && !(stock.holesInWalls ?? false)) || tolerantEqualsZero(stock.wallX) ||
+        tolerantEqualsZero(stock.wallY))
+    {
+        return [];
+    }
+    const faces = stockFaces(stock, location, across);
+    const halfWidth = stock.width / 2;
+    const halfHeight = stock.height / 2;
+    const isAngle = stock.profile == undefined && (stock.angle ?? false);
+    const isOpen = stock.profile == undefined && (stock.open ?? false);
+    // Where the walls facing X go across the stock (from their -X sides), and how far they reach along its Y
+    const xWalls = isAngle ? [across == 1 ? -halfWidth : halfWidth - stock.wallX] : [-halfWidth, halfWidth - stock.wallX];
+    const top = isAngle || isOpen ? halfHeight : halfHeight - stock.wallY;
+    const yWalls = isAngle || isOpen ? [-halfHeight] : [-halfHeight, halfHeight - stock.wallY];
+    var walls = [];
+    for (var i, x in xWalls)
+    {
+        // The face's plane is at -X, and its Y is the stock's -Y
+        walls = append(walls, {
+                    "name" : "x" ~ i,
+                    "face" : faces[0],
+                    "plane" : movedPlane(faces[0].plane, x + halfWidth),
+                    "depth" : stock.wallX,
+                    "low" : -top,
+                    "high" : halfHeight - stock.wallY
+                });
+    }
+    for (var i, y in yWalls)
+    {
+        // The face's plane is at -Y, and its Y is the stock's X
+        walls = append(walls, {
+                    "name" : "y" ~ i,
+                    "face" : faces[1],
+                    "plane" : movedPlane(faces[1].plane, y + halfHeight),
+                    "depth" : stock.wallY,
+                    "low" : -halfWidth,
+                    "high" : halfWidth
+                });
+    }
+    return walls;
+}
+
+/**
+ * A plane moved `distance` along its normal.
+ */
+function movedPlane(original is Plane, distance is ValueWithUnits) returns Plane
+{
+    return plane(original.origin + original.normal * distance, original.normal, original.x);
+}
+
+/**
+ * Whether each of stock's holes fits in the walls it goes through (see `stockWalls`), clear of their sides, so it can be
+ * built from them.
+ */
+function holesFitWalls(stock is Stock, walls is array) returns boolean
+{
+    for (var wall in walls)
+    {
+        for (var row in wall.face.rows)
+        {
+            for (var shape in row.shapes)
+            {
+                const center = wall.face.sign * shape.offset;
+                const radius = (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? stock.holeDiameter) / 2;
+                if (!tolerantLessThan(wall.low + WALL_EDGE_MARGIN, center - radius) ||
+                    !tolerantLessThan(center + radius, wall.high - WALL_EDGE_MARGIN))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+/**
+ * Builds stock from its walls (see `stockWalls`), as `buildStock` builds it from its profile, but faster: each wall is
+ * sketched with its holes and extruded as thick as it is, so its holes need no booleans, then they're joined, with a
+ * sketched profile's core (see `buildCore`), and its ends are trimmed.
+ *
+ * Each wall is `length` long, with the holes `buildStock` would cut. A hole is named by its count from the start, or
+ * from the end if it's tied to it (see `getTie`), so its faces keep their identities as the stock's length changes.
+ * Holes crossing an end leave a notch, as they're cut through.
+ */
+function buildFromWalls(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits,
+    ends is map, tie is map, walls is array, across is number) returns map
+{
+    const wallsId = id + "walls";
+    var holeSpans = [];
+    var tiedFrom = length;
+    for (var wall in walls)
+    {
+        const wallId = wallsId + wall.name;
+        const sketch = newSketchOnPlane(context, wallId + "sketch", { "sketchPlane" : wall.plane });
+        skRectangle(sketch, "wall", { "firstCorner" : vector(0 * meter, wall.low), "secondCorner" : vector(length, wall.high) });
+        for (var r, row in wall.face.rows)
+        {
+            const extent = rowExtent(row, stock.holeDiameter);
+            const positions = holePositions(row, extent, length, tie);
+            for (var k, hole in positions)
+            {
+                const name = "r" ~ r ~ (hole.tied ? ".t" ~ (size(positions) - 1 - k) : ".h" ~ k);
+                for (var s, shape in row.shapes)
+                {
+                    sketchShape(sketch, name ~ ".s" ~ s, vector(hole.position + shape.along, wall.face.sign * shape.offset), shape,
+                        stock.holeDiameter);
+                }
+                holeSpans = append(holeSpans, [hole.position - extent, hole.position + extent]);
+                if (hole.tied)
+                {
+                    tiedFrom = min(tiedFrom, hole.position - extent);
+                }
+            }
+        }
+        skSolve(sketch);
+        // The wall itself, without its holes, or where holes cross its ends: the region along its side, which its holes
+        // stay clear of (see `holesFitWalls`)
+        opExtrude(context, wallId + "extrude", {
+                    "entities" : qContainsPoint(qSketchRegion(wallId + "sketch"),
+                        planeToWorld(wall.plane, vector(length / 2, wall.low + WALL_EDGE_MARGIN / 2))),
+                    "direction" : wall.plane.normal,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : wall.depth
+                });
+    }
+    if (stock.profile != undefined)
+    {
+        buildCore(context, wallsId + "core", stock, location, length, across);
+    }
+    opDeleteBodies(context, id + "deleteSketches", { "entities" : qCreatedBy(wallsId, EntityType.BODY)->qSketchFilter(SketchObject.YES) });
+    const body = qCreatedBy(wallsId, EntityType.BODY)->qBodyType(BodyType.SOLID);
+    opBoolean(context, id + "join", { "tools" : body, "operationType" : BooleanOperationType.UNION });
+
+    const start = plane(location.origin, location.zAxis);
+    const end = plane(location.origin + location.zAxis * length, location.zAxis);
+    if (stock.isFrame ?? false)
+    {
+        // Its profile's faces and edges are those which cross it where it has no holes
+        const section = plane(location.origin + location.zAxis * clearPosition(holeSpans, length), location.zAxis);
+        tagSweptAsFrame(context, body, qIntersectsPlane(qOwnedByBody(body, EntityType.FACE), section),
+            qIntersectsPlane(qOwnedByBody(body, EntityType.EDGE), section), stock.partName, stock.vendor);
+        tagFrameCaps(context, qCoincidesWithPlane(qOwnedByBody(body, EntityType.FACE), start), true);
+        tagFrameCaps(context, qCoincidesWithPlane(qOwnedByBody(body, EntityType.FACE), end), false);
+    }
+
+    // Cut to its trims and slanted ends
+    var cuts = ends.cuts;
+    if (ends.endPlane != undefined)
+    {
+        cuts = append(cuts, { "plane" : ends.endPlane, "away" : location.zAxis });
+    }
+    if (ends.startPlane != undefined)
+    {
+        cuts = append(cuts, { "plane" : ends.startPlane, "away" : -location.zAxis });
+    }
+    var endFaces = [qCoincidesWithPlane(qOwnedByBody(body, EntityType.FACE), end)];
+    const reach = length + stock.width + stock.height;
+    for (var i, cut in cuts)
+    {
+        const isEnd = dot(cut.away, location.zAxis) > 0;
+        const face = trimBeyond(context, id + ("cut" ~ i), body, cut.plane, cut.away, reach);
+        if (stock.isFrame ?? false)
+        {
+            tagFrameCaps(context, face, !isEnd);
+        }
+        if (isEnd)
+        {
+            endFaces = append(endFaces, face);
+        }
+    }
+
+    // The faces of the holes past where the first tied hole starts: the walls' faces but their sides and ends
+    var tiedHoles = [];
+    if (tiedFrom < length)
+    {
+        const faces = qOwnedByBody(body, EntityType.FACE);
+        const past = plane(location.origin + location.zAxis * (tiedFrom - WALL_EDGE_MARGIN), location.zAxis);
+        for (var wall in walls)
+        {
+            const side = function(offset is ValueWithUnits) returns Query
+                {
+                    return qCoincidesWithPlane(faces, plane(planeToWorld(wall.plane, vector(0 * meter, offset)), yAxis(wall.plane)));
+                };
+            const notHoles = qUnion([side(wall.low), side(wall.high), qCoincidesWithPlane(faces, start), qCoincidesWithPlane(faces, end)]);
+            tiedHoles = append(tiedHoles, qSubtraction(qNonCapEntity(wallsId + wall.name + "extrude", EntityType.FACE), notHoles)
+                        ->qOwnedByBody(body)
+                        ->qInFrontOfPlane(past));
+        }
+    }
+    return {
+            "body" : body,
+            "endFace" : qUnion(endFaces)->qOwnedByBody(body),
+            "tiedHoles" : qUnion(tiedHoles),
+            "tie" : tie
+        };
+}
+
+/**
+ * Builds a sketched profile's core: the part of it inside its walls (see `stockWalls`), `length` long, which joins
+ * them. Its profile is extruded, then intersected with the inside of its walls, all under `id`.
+ */
+function buildCore(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits, across is number)
+{
+    const profile = newSketchOnPlane(context, id + "profile", { "sketchPlane" : plane(location) });
+    sketchProfile(profile, stock, across);
+    skSolve(profile);
+    const inside = newSketchOnPlane(context, id + "inside", { "sketchPlane" : plane(location) });
+    skRectangle(inside, "inside", {
+                "firstCorner" : vector(-stock.width / 2 + stock.wallX, -stock.height / 2 + stock.wallY),
+                "secondCorner" : vector(stock.width / 2 - stock.wallX, stock.height / 2 - stock.wallY)
+            });
+    skSolve(inside);
+    for (var sketch in ["profile", "inside"])
+    {
+        opExtrude(context, id + (sketch ~ "Extrude"), {
+                    "entities" : qSketchRegion(id + sketch, true),
+                    "direction" : location.zAxis,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : length
+                });
+    }
+    opBoolean(context, id + "intersect", {
+                "tools" : qUnion([qCreatedBy(id + "profileExtrude", EntityType.BODY), qCreatedBy(id + "insideExtrude", EntityType.BODY)]),
+                "operationType" : BooleanOperationType.INTERSECTION
+            });
+}
+
+/**
+ * Where along stock `length` long it can be cut across without crossing a hole, given where its holes reach
+ * (`spans`, pairs of positions): the middle of the widest gap between them, or its middle if they leave none.
+ */
+function clearPosition(spans is array, length is ValueWithUnits) returns ValueWithUnits
+{
+    const sorted = sort(spans, function(a, b)
+        {
+            return a[0] - b[0];
+        });
+    var best = undefined;
+    var reached = 0 * meter;
+    for (var span in append(sorted, [length, length]))
+    {
+        if (best == undefined || span[0] - reached > best[1] - best[0])
+        {
+            best = [reached, span[0]];
+        }
+        reached = max(reached, span[1]);
+    }
+    return tolerantLessThan(best[0], best[1]) ? (best[0] + best[1]) / 2 : length / 2;
 }
 
 /**

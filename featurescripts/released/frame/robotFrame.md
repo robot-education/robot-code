@@ -16,6 +16,12 @@ writeup doesn't repeat.
 
 Since v1.2.0 (`fs changes robotFrame`).
 
+- Tubes, channels, and angles with holes are built from their walls, each sketched with its holes and extruded, rather
+  than extruded whole with their holes cut (see linear stock's Building from walls). Their faces' ids change, so
+  references to them in existing documents need fixing: a hole is named by its count from the start, or from the end
+  if it's tied to it. MAXTube with hollow corners behind its holes (2x1 light, MAX Pattern, and 2x2) and Square Beam
+  are still cut.
+- Custom tubes can have No holes (the first choice of their rows), which hides the hole and row parameters.
 - WCP's 1x1 and 2x2 3/32 in. wall tubes' walls are 3/32 in. (0.09375 in.), as their 2x1's are, rather than 0.093 in.
 - Ends cut by trims (or miters) are tagged as frame caps, as an uncut end is, and shown (or colored) with the tied
   holes; they weren't.
@@ -36,7 +42,9 @@ Since v1.2.0 (`fs changes robotFrame`).
 `rectangularFrame` is hidden: editing logic sets it (its "Set By" function, `isRectangularFrame`) for custom frames
 whose faces differ in width (2x1), and it shows the 2 in. and 1 in. face row distances in place of Distance between rows.
 `customSize` is too (`isCustomSizeFrame`), for the Custom size, and it shows Width, Height, Top rows, Side rows, and
-Top and Side row distances in place of either. Hole diameter (FRC) is
+Top and Side row distances in place of either. `noHoles` is too (`isNoHolesFrame`), for a custom size from the table
+with No holes, and it hides the row distances, Distance between holes, Hole diameter, and Hole start distance. Hole
+diameter (FRC) is
 shown, but editing logic sets it to the frame's when the frame changes, and likewise a COTS frame's Hole start distance
 to where its holes start as it's sold (unless it's been set).
 
@@ -66,7 +74,8 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
    stock's groups.
 2. **Editing logic** (`robotFrameEditLogic`, then `frameChangeEditLogic`): sets `rectangularFrame` for a custom frame
    (`isRectangularFrame`: whether its width and height differ, but not for the Custom size), and `customSize`
-   (`isCustomSizeFrame`: whether it's the Custom size). Then if the program, source, or any of the three frame
+   (`isCustomSizeFrame`: whether it's the Custom size), and `noHoles` (`isNoHolesFrame`: whether it's a size from the
+   table with no rows of holes). Then if the program, source, or any of the three frame
    paths changed (or the feature is being created), sets a COTS frame's Hole start distance to where its holes start as it's sold (`tieStart`) unless
    it's been set, and Hole diameter to the frame's (`frameHoleDiameter`: the table's, or 0.196 in. for custom frames), unless it's
    been set larger. Then `stockEditLogic`, with no default offset.
@@ -88,7 +97,7 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 | `gridRows` | A row of holes along a face: `count` across, centered, `spacing` apart; the first `start` from the start. |
 | `verifyFrame` | Above (FRC only). |
 | `rowsFit` | Whether `count` rows fit across a face: `(count - 1) * spacing + holeDiameter` is at most its width. |
-| `isRectangularFrame`, `isCustomSizeFrame` | Set `rectangularFrame` and `customSize` (above). |
+| `isRectangularFrame`, `isCustomSizeFrame`, `isNoHolesFrame` | Set `rectangularFrame`, `customSize`, and `noHoles` (above). |
 | `robotFrameEditLogic` | Above. |
 
 ### Data flow

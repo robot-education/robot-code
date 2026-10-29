@@ -91,8 +91,11 @@ def tube(
     bore: float | None = None,
     angle: bool = False,
     profile: str | None = None,
+    holes_in_walls: bool = False,
 ) -> Value:
-    """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`."""
+    """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`. A sketched
+    `profile` whose holes go only through its walls (`wall_x` and `wall_y` thick, as its sketch is), not the rest of it,
+    is `holes_in_walls`, so linear stock can build it from its walls (see `stockWalls`)."""
     return Value(
         name,
         {
@@ -105,6 +108,7 @@ def tube(
             **({"bore": unit(bore)} if bore is not None else {}),
             **({"angle": "true"} if angle else {}),
             **({"profile": profile} if profile is not None else {}),
+            **({"holesInWalls": "true"} if holes_in_walls else {}),
             "holeDiameter": unit(hole_diameter),
             "xRows": array(x_rows),
             "yRows": array(y_rows),
@@ -197,6 +201,7 @@ def frc_tube(
     tie_start: float = 0.5,
     tie_unit: float = 0.5,
     profile: str | None = None,
+    holes_in_walls: bool = False,
 ) -> Value:
     """A tube with FRC's usual grid of holes, through the walls facing X and/or Y (or `x_rows` and `y_rows`). It's
     `name` in the table, a wall thickness like "1/16 in.", and is described with `detail` (by default, its wall)."""
@@ -215,6 +220,7 @@ def frc_tube(
         inch(tie_unit),
         lengths,
         profile=profile,
+        holes_in_walls=holes_in_walls,
     )
 
 
@@ -335,6 +341,11 @@ REV_1X1_URL = "https://www.revrobotics.com/MAXTube-1x1/"
 REV_2X1_URL = "https://www.revrobotics.com/MAXTube-2x1/"
 REV_2X2_URL = "https://www.revrobotics.com/MAXTube-2x2/"
 REV_MM = 1 / 25.4
+
+# The walls of MAXTube's sketched profiles (their STEP files') between its hollow corners: 0.040 in., which REV gives as
+# 1 mm. Those whose holes go only through them are built from their walls (see `tube`'s `holes_in_walls`); the others'
+# hollow corners reach behind their holes.
+REV_PROFILE_WALL = 0.04
 
 
 def rev_tube(part_number: str, url: str, name: str, width: float, height: float, wall: float, **kwargs) -> Value:
@@ -493,8 +504,8 @@ REV = vendor(
             size(
                 "1x1",
                 [
-                    rev_tube("REV-21-2160", REV_1X1_URL, "Standard", 1, 1, REV_MM, detail="standard",
-                             profile="REV_MAXTUBE_1X1"),
+                    rev_tube("REV-21-2160", REV_1X1_URL, "Standard", 1, 1, REV_PROFILE_WALL, detail="standard",
+                             profile="REV_MAXTUBE_1X1", holes_in_walls=True),
                     rev_tube("REV-21-3540", REV_1X1_URL, "1/16 in.", 1, 1, 0.0625),
                     rev_tube("REV-21-3543", REV_1X1_URL, "1/8 in.", 1, 1, 0.125),
                 ],
@@ -516,10 +527,12 @@ REV = vendor(
                     pattern(
                         "1 in. sides only",
                         [
-                            rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light, 1 in. sides only",
-                                     y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT"),
-                            rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_MM,
-                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1"),
+                            rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_PROFILE_WALL,
+                                     detail="light, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT",
+                                     holes_in_walls=True),
+                            rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_PROFILE_WALL,
+                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1",
+                                     holes_in_walls=True),
                         ],
                     ),
                     pattern(
@@ -947,8 +960,8 @@ REV_FTC = vendor(
 )
 
 
-# Custom frames: a profile and size, and how many rows of holes go on each face, which robotFrame spaces and sizes as the feature
-# says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y. The
+# Custom frames: a profile and size, and how many rows of holes go on each face (a tube's sizes can have none), which
+# robotFrame spaces and sizes as the feature says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y. The
 # Custom size takes its size and rows from the feature too (`customSize`).
 
 
@@ -965,19 +978,33 @@ def any_size(angle: bool = False) -> Value:
     return Value("Custom", {"angle": "true" if angle else "false", "customSize": "true"})
 
 
-def rows(name: str, most: int, default: int, keys: tuple[str, ...], display_name: str = "Rows", next: Node | None = None) -> Node:
-    """A choice of 1 to `most` rows of holes, stored under each of `keys`."""
+# The choice of no rows of holes on any face of a custom tube
+NO_HOLES = "No holes"
+
+
+def rows(
+    name: str,
+    most: int,
+    default: int,
+    keys: tuple[str, ...],
+    display_name: str = "Rows",
+    next: Node | None = None,
+    no_holes: bool = False,
+) -> Node:
+    """A choice of 1 to `most` rows of holes, stored under each of `keys`, after `NO_HOLES` (none on any face) if
+    `no_holes`."""
+    none = [Value(NO_HOLES, {"sideRows": "0", "topRows": "0"})] if no_holes else []
     return Node(
         name,
-        [Value(str(count), {key: str(count) for key in keys}, next) for count in range(1, most + 1)],
+        none + [Value(str(count), {key: str(count) for key in keys}, next) for count in range(1, most + 1)],
         display_name=display_name,
         default=str(default),
     )
 
 
 def square(name: str, side: float, most: int, default: int, angle: bool = False) -> Value:
-    """A square profile, with the same number of rows of holes on each face."""
-    return custom_size(name, side, side, rows("rows", most, default, ("sideRows", "topRows")), angle)
+    """A square profile, with the same number of rows of holes on each face (or a tube with none)."""
+    return custom_size(name, side, side, rows("rows", most, default, ("sideRows", "topRows"), no_holes=not angle), angle)
 
 
 CUSTOM_TUBE = Node(
@@ -995,6 +1022,7 @@ CUSTOM_TUBE = Node(
                 ("topRows",),
                 "2 in. face rows",
                 rows("narrowRows", 2, 1, ("sideRows",), "1 in. face rows"),
+                no_holes=True,
             ),
         ),
         square("2x2", 2, 3, 3),

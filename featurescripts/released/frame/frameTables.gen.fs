@@ -1072,7 +1072,7 @@ export const frcFrameTable = {
                                 "displayName" : "Wall",
                                 "default" : "1/16 in.",
                                 "entries" : {
-                                    "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1x1 Tube (REV, standard)", "profile" : REV_MAXTUBE_1X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2160", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.03937007874015748 * inch, "wallY" : 0.03937007874015748 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
+                                    "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "holesInWalls" : true, "open" : false, "partName" : "1x1 Tube (REV, standard)", "profile" : REV_MAXTUBE_1X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2160", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "1/16 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1x1 Tube (REV, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3540", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1x1 Tube (REV, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3543", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                 },
@@ -1096,8 +1096,8 @@ export const frcFrameTable = {
                                         "name" : "wall",
                                         "displayName" : "Wall",
                                         "entries" : {
-                                            "Light" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, light, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1_LIGHT, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2161", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.03937007874015748 * inch, "wallY" : 0.03937007874015748 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
-                                            "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, standard, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2162", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.03937007874015748 * inch, "wallY" : 0.03937007874015748 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
+                                            "Light" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "holesInWalls" : true, "open" : false, "partName" : "2x1 Tube (REV, light, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1_LIGHT, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2161", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
+                                            "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "holesInWalls" : true, "open" : false, "partName" : "2x1 Tube (REV, standard, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2162", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
                                         },
                                     },
                                     "MAX Pattern" : {
@@ -1290,7 +1290,9 @@ export const customFrameTable = {
                     "1x1" : {
                         "name" : "rows",
                         "displayName" : "Rows",
+                        "default" : "1",
                         "entries" : {
+                            "No holes" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 1 * inch },
                             "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
                             "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
                         },
@@ -1300,6 +1302,7 @@ export const customFrameTable = {
                         "displayName" : "2 in. face rows",
                         "default" : "3",
                         "entries" : {
+                            "No holes" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
                             "1" : {
                                 "name" : "narrowRows",
                                 "displayName" : "1 in. face rows",
@@ -1331,6 +1334,7 @@ export const customFrameTable = {
                         "displayName" : "Rows",
                         "default" : "3",
                         "entries" : {
+                            "No holes" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
                             "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
                             "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
                             "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
