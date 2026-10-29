@@ -183,11 +183,16 @@ def rectangle(**fields) -> str:
 )
 def test_walls(fields, across, walls):
     found = to_python(evaluate(f"stockWalls({rectangle(**fields)}, {LOCATION}, {across})", STOCK))
+    starts = {}
     for wall, (name, at, low, high) in zip(found, walls):
         assert wall["name"] == name
         # Where it starts across the stock, along the way it faces
         assert sum(o * n for o, n in zip(wall["plane"]["origin"], wall["plane"]["normal"])) == pytest.approx(at * INCH)
         assert (wall["low"], wall["high"]) == (pytest.approx(low * INCH), pytest.approx(high * INCH))
+        # The second facing each way copies the first, as far along as it is from it
+        first = name[0] + "0"
+        assert wall.get("copies") == (None if name == first else first)
+        assert wall["along"] == pytest.approx((at - starts.setdefault(first, at)) * INCH)
     assert len(found) == len(walls)
 
 

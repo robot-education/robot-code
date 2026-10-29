@@ -576,7 +576,9 @@ const PROFILE_WALL_MARGIN = 0.25 * millimeter;
  * @returns {array} : Maps of each wall's `name`, its `face` (see `stockFaces`: its rows, and which way its holes'
  *          offsets go), the `plane` it's sketched on (its outside, or its inside for the walls facing +X and +Y, with X
  *          along the stock and the face's Y), how `deep` it is (its thickness, from the plane toward +X or +Y), and
- *          how far across it reaches each way (`low` and `high`, in its plane).
+ *          how far across it reaches each way (`low` and `high`, in its plane). The wall opposite another, with the
+ *          same holes, is a copy of it: it has the name of the wall it `copies`, and how far `along` its plane's
+ *          normal it is from it.
  */
 function stockWalls(stock is Stock, location is CoordSystem, across is number) returns array
 {
@@ -606,7 +608,9 @@ function stockWalls(stock is Stock, location is CoordSystem, across is number) r
                     "plane" : movedPlane(faces[0].plane, x + halfWidth),
                     "depth" : stock.wallX,
                     "low" : span[0],
-                    "high" : span[1]
+                    "high" : span[1],
+                    "copies" : i == 0 ? undefined : "x0",
+                    "along" : x - xWalls[0]
                 });
     }
     for (var i, y in (isProfile && faces[1].rows == [] ? [] : yWalls))
@@ -619,7 +623,9 @@ function stockWalls(stock is Stock, location is CoordSystem, across is number) r
                     "plane" : movedPlane(faces[1].plane, y + halfHeight),
                     "depth" : stock.wallY,
                     "low" : span[0],
-                    "high" : span[1]
+                    "high" : span[1],
+                    "copies" : i == 0 ? undefined : "y0",
+                    "along" : y - yWalls[0]
                 });
     }
     return walls;
@@ -704,8 +710,18 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     for (var wall in walls)
     {
         const wallId = wallsId + wall.name;
+        if (wall.copies != undefined)
+        {
+            // Opposite the wall it copies, with the same holes
+            opPattern(context, wallId + "pattern", {
+                        "entities" : qCreatedBy(wallsId + wall.copies + "extrude", EntityType.BODY),
+                        "transforms" : [transform(wall.plane.normal * wall.along)],
+                        "instanceNames" : [wall.name]
+                    });
+            continue;
+        }
         const sketch = newSketchOnPlane(context, wallId + "sketch", { "sketchPlane" : wall.plane });
-        skRectangle(sketch, "wall", { "firstCorner" : vector(0 * meter, wall.low), "secondCorner" : vector(length, wall.high) });
+        sketchRectangle(sketch, "wall", vector(0 * meter, wall.low), vector(length, wall.high));
         for (var r, row in wall.face.rows)
         {
             const extent = rowExtent(row, stock.holeDiameter);
@@ -782,35 +798,28 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
         }
     }
 
-    // The faces of the holes past where the first tied hole starts: the walls' faces but their sides and ends
-    var tiedHoles = [];
+    // The faces of the holes past where the first tied hole starts: the walls' faces wholly between there and the end,
+    // which leaves out the faces along the whole wall (and the end)
+    var tiedHoles = qNothing();
     if (tiedFrom < length)
     {
-        const faces = qOwnedByBody(body, EntityType.FACE);
-        const past = plane(location.origin + location.zAxis * (tiedFrom - WALL_EDGE_MARGIN), location.zAxis);
-        for (var wall in walls)
-        {
-            const side = function(offset is ValueWithUnits) returns Query
-                {
-                    return qCoincidesWithPlane(faces, plane(planeToWorld(wall.plane, vector(0 * meter, offset)), yAxis(wall.plane)));
-                };
-            const notHoles = qUnion([side(wall.low), side(wall.high), qCoincidesWithPlane(faces, start), qCoincidesWithPlane(faces, end)]);
-            tiedHoles = append(tiedHoles, qSubtraction(qNonCapEntity(wallsId + wall.name + "extrude", EntityType.FACE), notHoles)
-                        ->qOwnedByBody(body)
-                        ->qInFrontOfPlane(past));
-        }
+        const from = max(tiedFrom - WALL_EDGE_MARGIN, WALL_EDGE_MARGIN);
+        tiedHoles = qCreatedBy(wallsId, EntityType.FACE)
+            ->qOwnedByBody(body)
+            ->qInFrontOfPlane(plane(location.origin + location.zAxis * from, location.zAxis))
+            ->qInFrontOfPlane(plane(location.origin + location.zAxis * (length - WALL_EDGE_MARGIN), -location.zAxis));
     }
     return {
             "body" : body,
             "endFace" : qUnion(endFaces)->qOwnedByBody(body),
-            "tiedHoles" : qUnion(tiedHoles),
+            "tiedHoles" : tiedHoles,
             "tie" : tie
         };
 }
 
 /**
  * Builds a sketched profile's core (see `stockWalls`), `length` long: its profile extruded, less a block where each of
- * its `walls` goes, all under `id`.
+ * its `walls` goes (a copy of the opposite wall's block, for a wall which copies it), all under `id`.
  */
 function buildCore(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits, across is number,
     walls is array)
@@ -827,8 +836,17 @@ function buildCore(context is Context, id is Id, stock is Stock, location is Coo
     for (var wall in walls)
     {
         const blockId = id + "block" + wall.name;
+        if (wall.copies != undefined)
+        {
+            opPattern(context, blockId + "pattern", {
+                        "entities" : qCreatedBy(id + "block" + wall.copies + "extrude", EntityType.BODY),
+                        "transforms" : [transform(wall.plane.normal * wall.along)],
+                        "instanceNames" : [wall.name]
+                    });
+            continue;
+        }
         const sketch = newSketchOnPlane(context, blockId + "sketch", { "sketchPlane" : wall.plane });
-        skRectangle(sketch, "block", { "firstCorner" : vector(0 * meter, wall.low), "secondCorner" : vector(length, wall.high) });
+        sketchRectangle(sketch, "block", vector(0 * meter, wall.low), vector(length, wall.high));
         skSolve(sketch);
         opExtrude(context, blockId + "extrude", {
                     "entities" : qSketchRegion(blockId + "sketch"),
@@ -842,6 +860,18 @@ function buildCore(context is Context, id is Id, stock is Stock, location is Coo
                 "targets" : qCreatedBy(id + "extrude", EntityType.BODY),
                 "operationType" : BooleanOperationType.SUBTRACTION
             });
+}
+
+/**
+ * Sketches a rectangle with sides along the sketch's X and Y, between two corners, as four lines named `id` and `.low`,
+ * `.high`, `.start`, and `.end`: as `skRectangle` sketches it, but without its constraints, which take solving.
+ */
+function sketchRectangle(sketch is Sketch, id is string, low is Vector, high is Vector)
+{
+    skLineSegment(sketch, id ~ ".low", { "start" : low, "end" : vector(high[0], low[1]) });
+    skLineSegment(sketch, id ~ ".end", { "start" : vector(high[0], low[1]), "end" : high });
+    skLineSegment(sketch, id ~ ".high", { "start" : high, "end" : vector(low[0], high[1]) });
+    skLineSegment(sketch, id ~ ".start", { "start" : vector(low[0], high[1]), "end" : low });
 }
 
 /**
@@ -876,7 +906,7 @@ function trimBeyond(context is Context, id is Id, body is Query, cut is Plane, d
     const outward = dot(cut.normal, direction) > 0 ? cut.normal : -cut.normal;
     const sketchPlane = plane(cut.origin, outward);
     const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : sketchPlane });
-    skRectangle(sketch, "block", { "firstCorner" : vector(-reach, -reach), "secondCorner" : vector(reach, reach) });
+    sketchRectangle(sketch, "block", vector(-reach, -reach), vector(reach, reach));
     skSolve(sketch);
     opExtrude(context, id + "tool", {
                 "entities" : qSketchRegion(id + "sketch"),
