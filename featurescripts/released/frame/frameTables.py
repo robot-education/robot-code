@@ -91,11 +91,10 @@ def tube(
     bore: float | None = None,
     angle: bool = False,
     profile: str | None = None,
-    holes_in_walls: bool = False,
 ) -> Value:
     """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`. A sketched
-    `profile` whose holes go only through its walls (`wall_x` and `wall_y` thick, as its sketch is), not the rest of it,
-    is `holes_in_walls`, so linear stock can build it from its walls (see `stockWalls`)."""
+    `profile`'s walls (`wall_x` and `wall_y`) are as thick as its sketch's are where its holes go through them, at most
+    (see linear stock's `stockWalls`)."""
     return Value(
         name,
         {
@@ -108,7 +107,6 @@ def tube(
             **({"bore": unit(bore)} if bore is not None else {}),
             **({"angle": "true"} if angle else {}),
             **({"profile": profile} if profile is not None else {}),
-            **({"holesInWalls": "true"} if holes_in_walls else {}),
             "holeDiameter": unit(hole_diameter),
             "xRows": array(x_rows),
             "yRows": array(y_rows),
@@ -201,7 +199,6 @@ def frc_tube(
     tie_start: float = 0.5,
     tie_unit: float = 0.5,
     profile: str | None = None,
-    holes_in_walls: bool = False,
 ) -> Value:
     """A tube with FRC's usual grid of holes, through the walls facing X and/or Y (or `x_rows` and `y_rows`). It's
     `name` in the table, a wall thickness like "1/16 in.", and is described with `detail` (by default, its wall)."""
@@ -220,7 +217,6 @@ def frc_tube(
         inch(tie_unit),
         lengths,
         profile=profile,
-        holes_in_walls=holes_in_walls,
     )
 
 
@@ -342,9 +338,8 @@ REV_2X1_URL = "https://www.revrobotics.com/MAXTube-2x1/"
 REV_2X2_URL = "https://www.revrobotics.com/MAXTube-2x2/"
 REV_MM = 1 / 25.4
 
-# The walls of MAXTube's sketched profiles (their STEP files') between its hollow corners: 0.040 in., which REV gives as
-# 1 mm. Those whose holes go only through them are built from their walls (see `tube`'s `holes_in_walls`); the others'
-# hollow corners reach behind their holes.
+# The thinner walls of MAXTube's sketched profiles (their STEP files'), between its hollow corners where its holes go:
+# 0.040 in., which REV gives as 1 mm. Light's have grooves inside them, 0.005 in. deep.
 REV_PROFILE_WALL = 0.04
 
 
@@ -365,16 +360,17 @@ def max_pattern() -> list[str]:
     ]
 
 
-def max_pattern_tube(name: str, detail: str, numbers: list[int], **kwargs) -> Value:
-    """MAXTube 2x1 with MAX Pattern on its 2 in. sides, and the usual grid on its 1 in. sides. It's sold in odd
-    lengths (3, 5, 7, 15, 23, 31, and 47 in.: `numbers`' part numbers), so the pattern ends the way it starts."""
+def max_pattern_tube(name: str, detail: str, numbers: list[int], wall_x: float = 0.125, **kwargs) -> Value:
+    """MAXTube 2x1 with MAX Pattern on its 2 in. sides (1/8 in. walls), and the usual grid on its 1 in. sides (`wall_x`
+    thick). It's sold in odd lengths (3, 5, 7, 15, 23, 31, and 47 in.: `numbers`' part numbers), so the pattern ends the
+    way it starts."""
     lengths = (3, 5, 7, 15, 23, 31, 47)
     return frc_tube(
         "REV",
         name,
         2,
         1,
-        0.125,
+        wall_x,
         0.125,
         stock(*[(inch(length), f"REV-21-{number}", REV_2X1_URL) for length, number in zip(lengths, numbers)]),
         detail=detail,
@@ -505,7 +501,7 @@ REV = vendor(
                 "1x1",
                 [
                     rev_tube("REV-21-2160", REV_1X1_URL, "Standard", 1, 1, REV_PROFILE_WALL, detail="standard",
-                             profile="REV_MAXTUBE_1X1", holes_in_walls=True),
+                             profile="REV_MAXTUBE_1X1"),
                     rev_tube("REV-21-3540", REV_1X1_URL, "1/16 in.", 1, 1, 0.0625),
                     rev_tube("REV-21-3543", REV_1X1_URL, "1/8 in.", 1, 1, 0.125),
                 ],
@@ -517,7 +513,7 @@ REV = vendor(
                     pattern(
                         "Grid",
                         [
-                            rev_tube("REV-21-2289", REV_2X1_URL, "Light", 2, 1, REV_MM, detail="light",
+                            rev_tube("REV-21-2289", REV_2X1_URL, "Light", 2, 1, REV_PROFILE_WALL, detail="light",
                                      profile="REV_MAXTUBE_2X1_LIGHT_GRID"),
                             rev_tube("REV-21-3552", REV_2X1_URL, "1/16 in.", 2, 1, 0.0625),
                             rev_tube("REV-21-3555", REV_2X1_URL, "1/8 in.", 2, 1, 0.125),
@@ -528,18 +524,16 @@ REV = vendor(
                         "1 in. sides only",
                         [
                             rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_PROFILE_WALL,
-                                     detail="light, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT",
-                                     holes_in_walls=True),
+                                     detail="light, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT"),
                             rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_PROFILE_WALL,
-                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1",
-                                     holes_in_walls=True),
+                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1"),
                         ],
                     ),
                     pattern(
                         "MAX Pattern",
                         [
                             max_pattern_tube("Standard", "standard, MAX Pattern", [2163, 2164, 2165, 2169, 2173, 2177, 2185],
-                                             profile="REV_MAXTUBE_2X1_MAX"),
+                                             wall_x=REV_PROFILE_WALL, profile="REV_MAXTUBE_2X1_MAX"),
                             max_pattern_tube("1/8 in.", "1/8 in. wall, MAX Pattern", [3558, 3559, 3560, 3564, 3568, 3572, 3580]),
                         ],
                     ),

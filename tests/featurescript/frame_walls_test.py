@@ -1,5 +1,6 @@
 """Building frames from their walls (see linear stock's `stockWalls` and `buildFromWalls`): which frames are, that a
-sketched profile's holes go only through its walls when it says so, and custom tubes with no holes."""
+sketched profile's walls are as thick as its sketch's where its holes go, with nothing behind them, and custom tubes
+with no holes."""
 
 import math
 
@@ -16,16 +17,9 @@ INCH = 0.0254
 LOCATION = "coordSystem(vector(0, 0, 0) * meter, vector(1, 0, 0), vector(0, 0, 1))"
 MAX_SPLINE_RADIUS = 17.45e-3
 
-# Frames with holes built by cutting them, as they can't be built from their walls: solid around a bore, or with hollow
-# corners behind their holes
-CUT = {
-    "Square Beam (goBILDA 1106 Series)",
-    "2x1 Tube (REV, light)",
-    "2x1 Tube (REV, standard, MAX Pattern)",
-    "2x2 Tube (REV, grid)",
-    "2x2 Tube (REV, MAX Pattern)",
-    "2x2 Tube (REV, MAX Pattern and grid)",
-}
+# Frames with holes built by cutting them, as they have no walls: solid around a bore
+CUT = {"Square Beam (goBILDA 1106 Series)"}
+PROFILE_WALL_MARGIN = 0.25e-3
 
 
 def evaluate(expression: str, module: str, **variables):
@@ -106,9 +100,10 @@ def inside(point, polygon) -> bool:
     return crossed
 
 
-def profile_walls(stock):
-    """A sketched profile's walls: how close its inner loops come to its outside, facing X and Y, and whether the rest
-    of it is clear of its holes, which go through it (sampled)."""
+def profile_walls(stock) -> list[tuple[float, float, bool]]:
+    """A sketched profile's walls with holes (facing X, then Y): how thick it is through them (its first void, walking in
+    from its side) at most, across its holes (as `holeSpan` reaches), the thickness of its wall, and whether it's clear
+    of material behind its walls there (sampled), as the holes go through it."""
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     sketch = evaluator.eval('newSketchOnPlane(context, newId() + "profile", { "sketchPlane" : XY_PLANE })', context=context)
@@ -116,39 +111,51 @@ def profile_walls(stock):
     evaluator.eval("skSolve(sketch)", sketch=sketch)
     polygons = [polygon(loop) for loop in recorded_sketch(context, "profile").loops()]
     values = to_python(untag(stock))
-    width, height = values["width"], values["height"]
-    outside = max(polygons, key=lambda p: max(abs(x) for x, _ in p) + max(abs(y) for _, y in p))
-    inner = [p for p in polygons if p is not outside]
-    wall_x = min(width / 2 - abs(x) for p in inner for x, _ in p)
-    wall_y = min(height / 2 - abs(y) for p in inner for _, y in p)
-    clear = True
+
+    def material(point) -> bool:
+        return sum(inside(point, p) for p in polygons) % 2 == 1
+
+    walls = []
     for rows, faces_x in ((values["xRows"], True), (values["yRows"], False)):
+        if not rows:
+            continue
+        half = values["width" if faces_x else "height"] / 2
+        wall = values["wallX" if faces_x else "wallY"]
+        spans = []
         for row in rows:
             for shape in row["shapes"]:
                 radius = MAX_SPLINE_RADIUS if shape.get("maxSpline") else (shape.get("diameter") or values["holeDiameter"]) / 2
-                # Through the stock, inside the walls it goes through
-                reach = width / 2 - wall_x if faces_x else height / 2 - wall_y
-                for i in range(21):
-                    across = shape["offset"] - radius + 2 * radius * i / 20
-                    for j in range(1, 200):
-                        along = -reach + 2 * reach * j / 200
-                        point = (along, across) if faces_x else (across, along)
-                        if sum(inside(point, p) for p in polygons) % 2:
-                            clear = False
-    return wall_x, wall_y, clear
+                spans.append((shape["offset"] - radius, shape["offset"] + radius))
+        low = min(a for a, _ in spans) - PROFILE_WALL_MARGIN
+        high = max(b for _, b in spans) + PROFILE_WALL_MARGIN
+        deepest = 0
+        clear = True
+        for i in range(41):
+            across = low + (high - low) * i / 40
+            at = (lambda depth: (-half + depth, across)) if faces_x else (lambda depth: (across, -half + depth))
+            # Its first void: stepping in, then halving the step
+            step = half / 100
+            depth = step
+            while material(at(depth)) and depth < half:
+                depth += step
+            inner, outer = depth - step, depth
+            for _ in range(30):
+                middle = (inner + outer) / 2
+                inner, outer = (middle, outer) if material(at(middle)) else (inner, middle)
+            deepest = max(deepest, outer)
+            # Through it, between its walls
+            clear = clear and not any(material(at(wall + (2 * half - 2 * wall) * j / 60)) for j in range(1, 60))
+        walls.append((deepest, wall, clear))
+    return walls
 
 
 @pytest.mark.parametrize(
     "stock", [s for s in cots_frames() if to_python(untag(s)).get("profile") is not None], ids=lambda s: to_python(untag(s))["partName"]
 )
-def test_sketched_profiles_holes_go_only_through_their_walls_if_they_say_so(stock):
-    values = to_python(untag(stock))
-    wall_x, wall_y, clear = profile_walls(stock)
-    assert values.get("holesInWalls", False) == clear
-    if clear:
-        # Its walls are as thick as its sketch's
-        assert values["wallX"] == pytest.approx(wall_x, abs=1e-6)
-        assert values["wallY"] == pytest.approx(wall_y, abs=1e-6)
+def test_sketched_profiles_walls_are_as_thick_as_their_sketches_where_their_holes_go(stock):
+    for deepest, wall, clear in profile_walls(stock):
+        assert wall == pytest.approx(deepest, abs=1e-6)
+        assert clear
 
 
 def rectangle(**fields) -> str:
@@ -226,3 +233,16 @@ def test_custom_2x1_tubes_can_have_no_holes():
         FRAME,
     )
     assert evaluate("isNoHolesFrame(definition)", FRAME, definition=with_holes) is False
+
+
+def test_sketched_profiles_walls_reach_just_past_their_holes():
+    frames = {to_python(untag(stock))["partName"]: stock for stock in cots_frames()}
+    # 5 mm holes
+    reach = 2.5e-3 + PROFILE_WALL_MARGIN
+    walls = to_python(evaluate(f"stockWalls(stock, {LOCATION}, 1)", STOCK, stock=frames["1x1 Tube (REV, standard)"]))
+    assert [wall["name"] for wall in walls] == ["x0", "x1", "y0", "y1"]
+    for wall in walls:
+        assert (wall["low"], wall["high"]) == (pytest.approx(-reach, abs=1e-6), pytest.approx(reach, abs=1e-6))
+    # Only walls with holes
+    walls = to_python(evaluate(f"stockWalls(stock, {LOCATION}, 1)", STOCK, stock=frames["2x1 Tube (REV, standard, 1 in. sides only)"]))
+    assert [wall["name"] for wall in walls] == ["x0", "x1"]

@@ -191,10 +191,8 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field height {ValueWithUnits} : The height of its profile, along Y.
  *      @field profile {array} : @optional A sketch of its profile (a SketchDataArray). Otherwise it's a rectangle:
  *              `solid`, or with walls `wallX` and `wallY` thick, and possibly `open` (a channel), an `angle`, or solid
- *              around a `bore`.
- *      @field holesInWalls {boolean} : @optional Whether a sketched `profile`'s holes go only through its walls (which
- *              are `wallX` and `wallY` thick, as its sketch's are), not the rest of it, so it can be built from them
- *              (see `stockWalls`).
+ *              around a `bore`. A profile's `wallX` and `wallY` are as thick as its walls are where its holes go, at
+ *              most (see `stockWalls`).
  *      @field holeDiameter {ValueWithUnits} : The diameter of its holes, unless a shape has its own.
  *      @field xRows {array} : Rows of holes through its walls facing X. @seealso [HoleRow]
  *      @field yRows {array} : Rows of holes through its walls facing Y.
@@ -565,11 +563,16 @@ export function buildStock(context is Context, id is Id, definition is map, stoc
  */
 const WALL_EDGE_MARGIN = 1e-5 * meter;
 
+/** How far a sketched profile's walls reach past its holes (see `stockWalls`). */
+const PROFILE_WALL_MARGIN = 0.25 * millimeter;
+
 /**
  * The walls of stock (see `buildFromWalls`): a tube's four, a channel's three (it's open facing +Y), or an angle's
  * two (its legs face -X and -Y, mirrored with it; see `acrossSign`), or none for other stock (solid, around a bore, or
- * tapped). A sketched `profile` is a tube's, if its holes go only through its walls (`holesInWalls`), and the rest of
- * it (inside them) is its core. The walls facing Y run its whole width, and those facing X between them.
+ * tapped). The walls facing Y run its whole width, and those facing X between them. A sketched `profile`'s walls are
+ * those with holes, reaching across just past its holes (`PROFILE_WALL_MARGIN`), as thick as its walls are there at
+ * most (`wallX` and `wallY`, so they fill any grooves inside them), and the rest of it is its core (see
+ * `buildCore`).
  *
  * @returns {array} : Maps of each wall's `name`, its `face` (see `stockFaces`: its rows, and which way its holes'
  *          offsets go), the `plane` it's sketched on (its outside, or its inside for the walls facing +X and +Y, with X
@@ -579,8 +582,7 @@ const WALL_EDGE_MARGIN = 1e-5 * meter;
 function stockWalls(stock is Stock, location is CoordSystem, across is number) returns array
 {
     if ((stock.solid ?? false) || stock.bore != undefined || stock.thread != undefined || (stock.centerHole ?? false) ||
-        (stock.profile != undefined && !(stock.holesInWalls ?? false)) || tolerantEqualsZero(stock.wallX) ||
-        tolerantEqualsZero(stock.wallY))
+        tolerantEqualsZero(stock.wallX) || tolerantEqualsZero(stock.wallY))
     {
         return [];
     }
@@ -593,32 +595,63 @@ function stockWalls(stock is Stock, location is CoordSystem, across is number) r
     const xWalls = isAngle ? [across == 1 ? -halfWidth : halfWidth - stock.wallX] : [-halfWidth, halfWidth - stock.wallX];
     const top = isAngle || isOpen ? halfHeight : halfHeight - stock.wallY;
     const yWalls = isAngle || isOpen ? [-halfHeight] : [-halfHeight, halfHeight - stock.wallY];
+    const isProfile = stock.profile != undefined;
     var walls = [];
-    for (var i, x in xWalls)
+    for (var i, x in (isProfile && faces[0].rows == [] ? [] : xWalls))
     {
         // The face's plane is at -X, and its Y is the stock's -Y
+        const span = isProfile ? holeSpan(stock, faces[0]) : [-top, halfHeight - stock.wallY];
         walls = append(walls, {
                     "name" : "x" ~ i,
                     "face" : faces[0],
                     "plane" : movedPlane(faces[0].plane, x + halfWidth),
                     "depth" : stock.wallX,
-                    "low" : -top,
-                    "high" : halfHeight - stock.wallY
+                    "low" : span[0],
+                    "high" : span[1]
                 });
     }
-    for (var i, y in yWalls)
+    for (var i, y in (isProfile && faces[1].rows == [] ? [] : yWalls))
     {
         // The face's plane is at -Y, and its Y is the stock's X
+        const span = isProfile ? holeSpan(stock, faces[1]) : [-halfWidth, halfWidth];
         walls = append(walls, {
                     "name" : "y" ~ i,
                     "face" : faces[1],
                     "plane" : movedPlane(faces[1].plane, y + halfHeight),
                     "depth" : stock.wallY,
-                    "low" : -halfWidth,
-                    "high" : halfWidth
+                    "low" : span[0],
+                    "high" : span[1]
                 });
     }
     return walls;
+}
+
+/**
+ * How far a sketched profile's wall reaches across it (in its `face`'s plane): just past its holes.
+ */
+function holeSpan(stock is Stock, face is map) returns array
+{
+    var low = undefined;
+    var high = undefined;
+    for (var row in face.rows)
+    {
+        for (var shape in row.shapes)
+        {
+            const center = face.sign * shape.offset;
+            const radius = shapeRadius(shape, stock.holeDiameter);
+            low = low == undefined ? center - radius : min(low, center - radius);
+            high = high == undefined ? center + radius : max(high, center + radius);
+        }
+    }
+    return [low - PROFILE_WALL_MARGIN, high + PROFILE_WALL_MARGIN];
+}
+
+/**
+ * How far a row's shape (see `HoleRow`) reaches from its center across the stock: its radius.
+ */
+function shapeRadius(shape is map, holeDiameter is ValueWithUnits) returns ValueWithUnits
+{
+    return (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? holeDiameter) / 2;
 }
 
 /**
@@ -642,7 +675,7 @@ function holesFitWalls(stock is Stock, walls is array) returns boolean
             for (var shape in row.shapes)
             {
                 const center = wall.face.sign * shape.offset;
-                const radius = (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? stock.holeDiameter) / 2;
+                const radius = shapeRadius(shape, stock.holeDiameter);
                 if (!tolerantLessThan(wall.low + WALL_EDGE_MARGIN, center - radius) ||
                     !tolerantLessThan(center + radius, wall.high - WALL_EDGE_MARGIN))
                 {
@@ -706,7 +739,7 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     }
     if (stock.profile != undefined)
     {
-        buildCore(context, wallsId + "core", stock, location, length, across);
+        buildCore(context, wallsId + "core", stock, location, length, across, walls);
     }
     opDeleteBodies(context, id + "deleteSketches", { "entities" : qCreatedBy(wallsId, EntityType.BODY)->qSketchFilter(SketchObject.YES) });
     const body = qCreatedBy(wallsId, EntityType.BODY)->qBodyType(BodyType.SOLID);
@@ -777,32 +810,38 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
 }
 
 /**
- * Builds a sketched profile's core: the part of it inside its walls (see `stockWalls`), `length` long, which joins
- * them. Its profile is extruded, then intersected with the inside of its walls, all under `id`.
+ * Builds a sketched profile's core (see `stockWalls`), `length` long: its profile extruded, less a block where each of
+ * its `walls` goes, all under `id`.
  */
-function buildCore(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits, across is number)
+function buildCore(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits, across is number,
+    walls is array)
 {
     const profile = newSketchOnPlane(context, id + "profile", { "sketchPlane" : plane(location) });
     sketchProfile(profile, stock, across);
     skSolve(profile);
-    const inside = newSketchOnPlane(context, id + "inside", { "sketchPlane" : plane(location) });
-    skRectangle(inside, "inside", {
-                "firstCorner" : vector(-stock.width / 2 + stock.wallX, -stock.height / 2 + stock.wallY),
-                "secondCorner" : vector(stock.width / 2 - stock.wallX, stock.height / 2 - stock.wallY)
+    opExtrude(context, id + "extrude", {
+                "entities" : qSketchRegion(id + "profile", true),
+                "direction" : location.zAxis,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : length
             });
-    skSolve(inside);
-    for (var sketch in ["profile", "inside"])
+    for (var wall in walls)
     {
-        opExtrude(context, id + (sketch ~ "Extrude"), {
-                    "entities" : qSketchRegion(id + sketch, true),
-                    "direction" : location.zAxis,
+        const blockId = id + "block" + wall.name;
+        const sketch = newSketchOnPlane(context, blockId + "sketch", { "sketchPlane" : wall.plane });
+        skRectangle(sketch, "block", { "firstCorner" : vector(0 * meter, wall.low), "secondCorner" : vector(length, wall.high) });
+        skSolve(sketch);
+        opExtrude(context, blockId + "extrude", {
+                    "entities" : qSketchRegion(blockId + "sketch"),
+                    "direction" : wall.plane.normal,
                     "endBound" : BoundingType.BLIND,
-                    "endDepth" : length
+                    "endDepth" : wall.depth
                 });
     }
-    opBoolean(context, id + "intersect", {
-                "tools" : qUnion([qCreatedBy(id + "profileExtrude", EntityType.BODY), qCreatedBy(id + "insideExtrude", EntityType.BODY)]),
-                "operationType" : BooleanOperationType.INTERSECTION
+    opBoolean(context, id + "subtract", {
+                "tools" : qCreatedBy(id + "block", EntityType.BODY)->qBodyType(BodyType.SOLID),
+                "targets" : qCreatedBy(id + "extrude", EntityType.BODY),
+                "operationType" : BooleanOperationType.SUBTRACTION
             });
 }
 
@@ -1121,8 +1160,7 @@ function rowExtent(row is HoleRow, holeDiameter is ValueWithUnits) returns Value
     var extent = 0 * meter;
     for (var shape in row.shapes)
     {
-        const radius = (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? holeDiameter) / 2;
-        extent = max(extent, abs(shape.along) + (shape.slot ?? 0 * meter) / 2 + radius);
+        extent = max(extent, abs(shape.along) + (shape.slot ?? 0 * meter) / 2 + shapeRadius(shape, holeDiameter));
     }
     return extent;
 }

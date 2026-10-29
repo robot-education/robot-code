@@ -137,17 +137,18 @@ Stock without holes, and stock which can't be built from its walls (below), is b
 Tubes, channels, and angles with holes are built from their walls instead, which needs no boolean per hole:
 `buildStock` does so when the stock has walls (`stockWalls`: a tube's four, a channel's three, open facing +Y, or an
 angle's two legs, mirrored with it; none for solid stock, stock around a bore, or tapped stock) and each hole fits
-inside the walls it goes through, clear of their sides (`holesFitWalls`). A sketched `profile` has walls only if its
-holes go only through its walls (`holesInWalls`, which frameTables.py sets for the MAXTube profiles whose hollow corners
-are clear of their holes, and a test checks against the sketch).
+inside the walls it goes through, clear of their sides (`holesFitWalls`). A sketched `profile`'s walls are those with
+holes, reaching across just past them (`holeSpan`, 0.25 mm past), and `wallX` and `wallY` thick: as thick as its sketch
+is there at most, filling any grooves inside it, with nothing behind them (frameTables.py's MAXTube walls, which a
+test checks against the sketches).
 
 1. Each wall is sketched on its outside (or inside, for the walls facing +X and +Y) as a rectangle `length` long,
    with its holes (`holePositions` and `sketchShape`, as cutting them would), and extruded as thick as the wall. The
    walls facing Y run the stock's width, and those facing X between them. Each hole is named by its count from the
    start, or from the end if it's tied (`r<row>.h<k>` or `r<row>.t<k>`), so its faces keep their identities as the
    length changes. The extrude takes the region along the wall's side, so holes crossing an end leave a notch.
-2. A sketched profile's core (the part inside its walls) is its profile extruded and intersected with the inside of
-   its walls (`buildCore`).
+2. A sketched profile's core (the rest of it) is its profile extruded, less a block where each wall goes
+   (`buildCore`).
 3. The walls (and core) are joined with one boolean.
 4. Frames are tagged as frames: their swept faces and edges are those crossing the stock where it has no holes
    (`clearPosition`, `tagSweptAsFrame` in `core/frameTags.fs`), and its end faces are its caps.
