@@ -1258,7 +1258,7 @@ export const frcFrameTable = {
                         "name" : "wall",
                         "displayName" : "Wall",
                         "entries" : {
-                            "1/16 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (Last Anvil, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "240114", "url" : "https://lastanvil.com/products/patterned-tube?variant=42303483773134" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://lastanvil.com/products/patterned-tube", "vendor" : "Last Anvil", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                            "1/16 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "material" : ALUMINUM_7075, "open" : false, "partName" : "2x1 Tube (Last Anvil, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "240114", "url" : "https://lastanvil.com/products/patterned-tube?variant=42303483773134" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://lastanvil.com/products/patterned-tube", "vendor" : "Last Anvil", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                         },
                     },
                 },
@@ -1276,41 +1276,83 @@ export const customFrameTable = {
                 "default" : "2x1",
                 "entries" : {
                     "1x1" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "default" : "1",
                         "entries" : {
-                            "No holes" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 1 * inch },
-                            "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
-                            "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 1 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 0, "width" : 1 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 0, "width" : 1 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 1, "width" : 1 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 1 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 2, "width" : 1 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 1 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                                },
+                            },
                         },
                     },
                     "2x1" : {
-                        "name" : "wideRows",
-                        "displayName" : "2 in. face rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "default" : "3",
                         "entries" : {
-                            "No holes" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
-                            "1" : {
-                                "name" : "narrowRows",
-                                "displayName" : "1 in. face rows",
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
                                 "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 0, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 0, "width" : 2 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 1, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
                                 },
                             },
                             "2" : {
-                                "name" : "narrowRows",
-                                "displayName" : "1 in. face rows",
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
                                 "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 2, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
                                 },
                             },
                             "3" : {
-                                "name" : "narrowRows",
-                                "displayName" : "1 in. face rows",
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
                                 "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 3, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
                                 },
@@ -1318,14 +1360,54 @@ export const customFrameTable = {
                         },
                     },
                     "2x2" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "default" : "3",
                         "entries" : {
-                            "No holes" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
-                            "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
-                            "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
-                            "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 0, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 0, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 0, "width" : 2 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 1, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 1, "width" : 2 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 2, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 2, "width" : 2 * inch },
+                                },
+                            },
+                            "3" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 3, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                                },
+                            },
                         },
                     },
                     "Custom" : { "angle" : false, "customSize" : true },
@@ -1336,21 +1418,62 @@ export const customFrameTable = {
                 "displayName" : "Size",
                 "entries" : {
                     "1x1" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "entries" : {
-                            "1" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
-                            "2" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "entries" : {
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 1 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "entries" : {
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 1 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                                },
+                            },
                         },
                     },
                     "2x2" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "default" : "3",
                         "entries" : {
-                            "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
-                            "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
-                            "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
+                                    "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 1, "width" : 2 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
+                                    "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 2, "width" : 2 * inch },
+                                },
+                            },
+                            "3" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
+                                    "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                                },
+                            },
                         },
                     },
                     "Custom" : { "angle" : true, "customSize" : true },
@@ -1406,13 +1529,7 @@ export const ftcFrameTable = {
                 "name" : "size",
                 "displayName" : "Size",
                 "entries" : {
-                    "1/2x1/2 (Robits)" : {
-                        "name" : "wall",
-                        "displayName" : "Wall",
-                        "entries" : {
-                            "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.201 * inch, "open" : false, "partName" : "1/2x1/2 Tube (AndyMark Robits)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5001-4700", "url" : "https://andymark.com/am-5001-4700" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.063 * inch, "wallY" : 0.063 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
-                        },
-                    },
+                    "1/2x1/2 (Robits)" : { "appearance" : LIGHT_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.201 * inch, "open" : false, "partName" : "1/2x1/2 Tube (AndyMark Robits)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5001-4700", "url" : "https://andymark.com/am-5001-4700" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.063 * inch, "wallY" : 0.063 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                 },
             },
         },

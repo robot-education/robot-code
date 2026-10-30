@@ -32,6 +32,9 @@ from fs_cli.tables import Node, Table, Value, inch, mm, string
 
 VENDOR = pathlib.Path(__file__).parent / "vendor"
 
+# Materials: robotProperties.fs's (frames are Aluminum - 6061 unless their vendor says otherwise)
+ALUMINUM_7075 = "ALUMINUM_7075"
+
 # Appearances: robotProperties.fs's colors, for raw aluminum, other (like clear anodized) aluminum, and black anodized
 LIGHT_GRAY = "LIGHT_GRAY"
 MEDIUM_GRAY = "MEDIUM_GRAY"
@@ -140,12 +143,16 @@ def sizes_node(sizes: list[Value]) -> Node:
     return Node("size", sizes, default=default(sizes, DEFAULT_SIZE))
 
 
-def vendor(name: str, url: str, appearance: str | None, sizes: list[Value] | Node) -> Value:
+def vendor(
+    name: str, url: str, appearance: str | None, sizes: list[Value] | Node, material: str | None = None
+) -> Value:
     """A vendor's frames, by size (or by `profiles`), which all have `appearance`, unless it's None (as values closer
-    to the root win)."""
+    to the root win), and are `material` (robotProperties.fs's), unless it's None (Aluminum - 6061)."""
     values = {"vendor": string(name), "url": string(url)}
     if appearance is not None:
         values["appearance"] = appearance
+    if material is not None:
+        values["material"] = material
     return Value(name, values, sizes if isinstance(sizes, Node) else sizes_node(sizes))
 
 
@@ -817,6 +824,7 @@ LAST_ANVIL = vendor(
             ],
         )
     ],
+    material=ALUMINUM_7075,
 )
 
 
@@ -1024,24 +1032,22 @@ ROBITS = vendor(
     AM_URL,
     LIGHT_GRAY,
     [
-        size(
+        only(
             "1/2x1/2 (Robits)",
-            [
-                tube(
-                    "1/16 in.",
-                    "1/2x1/2 Tube (AndyMark Robits)",
-                    0.5,
-                    0.5,
-                    0.063,
-                    0.063,
-                    0.201,
-                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    inch(0.25),
-                    inch(0.5),
-                    stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
-                )
-            ],
+            tube(
+                "1/16 in.",
+                "1/2x1/2 Tube (AndyMark Robits)",
+                0.5,
+                0.5,
+                0.063,
+                0.063,
+                0.201,
+                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                inch(0.25),
+                inch(0.5),
+                stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
+            ),
         )
     ],
 )
@@ -1080,9 +1086,9 @@ REV_FTC = vendor(
 )
 
 
-# Custom frames: a profile and size, and how many rows of holes go on each face (a tube's sizes can have none), which
-# robotFrame spaces and sizes as the feature says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y. The
-# Custom size takes its size and rows from the feature too (`customSize`).
+# Custom frames: a profile and size, and how many rows of holes go on each face (a tube's faces can have none), which
+# robotFrame spaces and sizes as the feature says. `topRows` go through the walls facing Y (which are `width` wide), and
+# `sideRows` through those facing X. The Custom size takes its size and rows from the feature too (`customSize`).
 
 
 def custom_size(name: str, width: float, height: float, rows: Node, angle: bool = False) -> Value:
@@ -1098,61 +1104,40 @@ def any_size(angle: bool = False) -> Value:
     return Value("Custom", {"angle": "true" if angle else "false", "customSize": "true"})
 
 
-# The choice of no rows of holes on any face of a custom tube
-NO_HOLES = "No holes"
-
-
-def rows(
-    name: str,
-    most: int,
-    default: int,
-    keys: tuple[str, ...],
-    display_name: str = "Rows",
-    next: Node | None = None,
-    no_holes: bool = False,
-) -> Node:
-    """A choice of 1 to `most` rows of holes, stored under each of `keys`, after `NO_HOLES` (none on any face) if
-    `no_holes`."""
-    none = [Value(NO_HOLES, {"sideRows": "0", "topRows": "0"})] if no_holes else []
+def face_rows(key: str, display_name: str, most: int, default: int, none: bool, next: Node | None = None) -> Node:
+    """A choice of how many rows of holes go on a face, stored under `key`: 1 to `most`, or 0 to `most` if it can have
+    `none`."""
     return Node(
-        name,
-        none + [Value(str(count), {key: str(count) for key in keys}, next) for count in range(1, most + 1)],
+        key,
+        [Value(str(count), {key: str(count)}, next) for count in range(0 if none else 1, most + 1)],
         display_name=display_name,
         default=str(default),
     )
 
 
-def square(name: str, side: float, most: int, default: int, angle: bool = False) -> Value:
-    """A square profile, with the same number of rows of holes on each face (or a tube with none)."""
-    return custom_size(name, side, side, rows("rows", most, default, ("sideRows", "topRows"), no_holes=not angle), angle)
+def sized(
+    name: str, width: float, height: float, top: tuple[int, int], side: tuple[int, int], angle: bool = False
+) -> Value:
+    """A size, with a choice of its top rows (on the faces facing Y, `width` wide), then its side rows (facing X): each
+    `(most, default)`. A tube's faces can have none (with none on either, it has no holes); an angle's legs can't."""
+    sides = face_rows("sideRows", "Side rows", *side, none=not angle)
+    return custom_size(name, width, height, face_rows("topRows", "Top rows", *top, none=not angle, next=sides), angle)
 
 
 CUSTOM_TUBE = Node(
     "size",
     [
-        square("1x1", 1, 2, 1),
-        custom_size(
-            "2x1",
-            2,
-            1,
-            rows(
-                "wideRows",
-                3,
-                3,
-                ("topRows",),
-                "2 in. face rows",
-                rows("narrowRows", 2, 1, ("sideRows",), "1 in. face rows"),
-                no_holes=True,
-            ),
-        ),
-        square("2x2", 2, 3, 3),
+        sized("1x1", 1, 1, (2, 1), (2, 1)),
+        sized("2x1", 2, 1, (3, 3), (2, 1)),
+        sized("2x2", 2, 2, (3, 3), (3, 3)),
         any_size(),
     ],
     default=DEFAULT_SIZE,
 )
 
 CUSTOM_ANGLE = Node(
-    "size", [square("1x1", 1, 2, 1, angle=True), square("2x2", 2, 3, 3, angle=True), any_size(angle=True)]
+    "size",
+    [sized("1x1", 1, 1, (2, 1), (2, 1), angle=True), sized("2x2", 2, 2, (3, 3), (3, 3), angle=True), any_size(angle=True)],
 )
 
 CUSTOM = Node("profile", [Value("Tube", {}, CUSTOM_TUBE), Value("Angle", {}, CUSTOM_ANGLE)])

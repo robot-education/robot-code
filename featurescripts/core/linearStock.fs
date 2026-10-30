@@ -186,6 +186,7 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field vendor {string}
  *      @field url {string} : Where to buy it, if no `stock` length fits.
  *      @field appearance {Color}
+ *      @field material {Material} : @optional What it's made of; Aluminum - 6061 otherwise.
  *      @field stock {array} : The lengths it's sold in. @seealso [stockFor]
  *      @field width {ValueWithUnits} : The width of its profile, along X.
  *      @field height {ValueWithUnits} : The height of its profile, along Y.
@@ -1242,7 +1243,7 @@ export function setStockProperties(context is Context, body is Query, definition
     setProperty(context, {
                 "entities" : body,
                 "propertyType" : PropertyType.MATERIAL,
-                "value" : ALUMINUM
+                "value" : part.material ?? ALUMINUM
             });
     setProperty(context, {
                 "entities" : body,

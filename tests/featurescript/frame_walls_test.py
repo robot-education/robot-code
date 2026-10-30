@@ -217,28 +217,30 @@ def test_clear_position(spans, length, position):
     assert to_python(evaluate(f"clearPosition({spans_code}, {length} * inch)", STOCK)) == pytest.approx(position * INCH)
 
 
-@pytest.mark.parametrize("size", ["1x1", "2x2"])
-def test_custom_tubes_can_have_no_holes(size):
-    definition = evaluate(
-        f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {{ "profile" : "Tube", "size" : "{size}", "rows" : "No holes" }} as LookupTablePath, '
+def custom_tube(size: str, top: str, side: str):
+    return evaluate(
+        f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {{ "profile" : "Tube", "size" : "{size}", "topRows" : "{top}", "sideRows" : "{side}" }} as LookupTablePath, '
         '"wallThickness" : 0.0625 * inch, "holeSpacing" : 0.5 * inch, "holeStart" : 0.5 * inch, "holeDiameter" : 0.196 * inch, '
-        '"rowSpacing" : 0.5 * inch }',
+        '"topRowSpacing" : 0.5 * inch, "sideRowSpacing" : 0.5 * inch }',
         FRAME,
     )
+
+
+@pytest.mark.parametrize("size", ["1x1", "2x1", "2x2"])
+def test_custom_tubes_can_have_no_holes(size):
+    definition = custom_tube(size, "0", "0")
     assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is True
     stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
     assert (stock["xRows"], stock["yRows"]) == ([], [])
 
 
-def test_custom_2x1_tubes_can_have_no_holes():
-    path = '{ "profile" : "Tube", "size" : "2x1", "wideRows" : "No holes" } as LookupTablePath'
-    definition = evaluate(f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {path} }}', FRAME)
-    assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is True
-    with_holes = evaluate(
-        '{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : { "profile" : "Tube", "size" : "2x1", "wideRows" : "1", "narrowRows" : "1" } as LookupTablePath }',
-        FRAME,
-    )
-    assert evaluate("isNoHolesFrame(definition)", FRAME, definition=with_holes) is False
+@pytest.mark.parametrize("size", ["1x1", "2x1", "2x2"])
+def test_custom_tubes_can_have_holes_on_only_their_top_or_sides(size):
+    for top, side in (("0", "1"), ("1", "0")):
+        definition = custom_tube(size, top, side)
+        assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is False
+        stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
+        assert (len(stock["yRows"]), len(stock["xRows"])) == (int(top), int(side))
 
 
 def test_sketched_profiles_walls_reach_just_past_their_holes():
@@ -356,3 +358,12 @@ def test_grooves_are_cut_into_the_inside_of_walls(across):
             away = (middle[0] - center[0], middle[1] - center[1])
             scale = 0.002 * INCH / math.hypot(*away)
             assert not material((middle[0] + away[0] * scale, middle[1] + away[1] * scale))
+
+
+def test_frames_are_their_vendors_material():
+    """Last Anvil's tube is 7075; the rest are Aluminum - 6061 (`setStockProperties`'s default)."""
+    materials = {
+        to_python(untag(stock))["partName"]: to_python(untag(stock)).get("material") for stock in cots_frames()
+    }
+    assert materials.pop("2x1 Tube (Last Anvil, 1/16 in. wall)")["name"] == "Aluminum - 7075"
+    assert set(materials.values()) == {None}

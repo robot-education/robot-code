@@ -69,9 +69,6 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 definition.customFrame is LookupTablePath;
 
                 // Set by editing logic, as Onshape can't show parameters by a lookup table's value
-                annotation { "Name" : "Rectangular frame", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isRectangularFrame" }
-                definition.rectangularFrame is boolean;
-
                 annotation { "Name" : "Custom size", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomSizeFrame" }
                 definition.customSize is boolean;
 
@@ -91,28 +88,15 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
 
                     annotation { "Name" : "Side rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     isInteger(definition.sideRows, ROWS_BOUNDS);
+                }
 
+                if (!definition.noHoles)
+                {
                     annotation { "Name" : "Top row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     isLength(definition.topRowSpacing, SPACING_BOUNDS);
 
                     annotation { "Name" : "Side row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     isLength(definition.sideRowSpacing, SPACING_BOUNDS);
-                }
-                else if (!definition.noHoles)
-                {
-                    if (definition.rectangularFrame)
-                    {
-                        annotation { "Name" : "2 in. face row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        isLength(definition.wideRowSpacing, SPACING_BOUNDS);
-
-                        annotation { "Name" : "1 in. face row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        isLength(definition.narrowRowSpacing, SPACING_BOUNDS);
-                    }
-                    else
-                    {
-                        annotation { "Name" : "Distance between rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        isLength(definition.rowSpacing, SPACING_BOUNDS);
-                    }
                 }
 
                 annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -230,9 +214,8 @@ function frameTableEntry(definition is map) returns map
 
 /**
  * A custom frame's size and rows of holes: `width`, `height`, `angle`, and how many rows go on its faces facing Y
- * (`topRows`, `width` wide) and X (`sideRows`), and how far apart (`topRowSpacing`, `sideRowSpacing`). A size from the
- * table has its size and rows from there and its rows' distances from the dialog; a custom size has them all from the
- * dialog.
+ * (`topRows`, `width` wide) and X (`sideRows`), and how far apart (`topRowSpacing`, `sideRowSpacing`, from the dialog).
+ * A size from the table has its size and rows from there; a custom size has them from the dialog too.
  */
 export function customFrameSize(definition is map) returns map
 {
@@ -250,8 +233,8 @@ export function customFrameSize(definition is map) returns map
             };
     }
     return mergeMaps(entry, {
-                "topRowSpacing" : rowSpacing(definition, entry, entry.width),
-                "sideRowSpacing" : rowSpacing(definition, entry, entry.height)
+                "topRowSpacing" : definition.topRowSpacing,
+                "sideRowSpacing" : definition.sideRowSpacing
             });
 }
 
@@ -261,27 +244,6 @@ export function customFrameSize(definition is map) returns map
 function frameHoleDiameter(definition is map) returns ValueWithUnits
 {
     return isCustomFrame(definition) ? CUSTOM_HOLE_DIAMETER : frameTableEntry(definition).holeDiameter;
-}
-
-/**
- * Whether a custom frame's faces differ in width (like 2x1's), so their rows of holes are spaced separately.
- */
-function isRectangular(entry is map) returns boolean
-{
-    return !tolerantEquals(entry.width, entry.height);
-}
-
-/**
- * How far apart a custom frame's rows of holes are across a face `face` wide: on a rectangular frame's wider or
- * narrower faces, or on any face of a square one.
- */
-function rowSpacing(definition is map, entry is map, face is ValueWithUnits) returns ValueWithUnits
-{
-    if (!isRectangular(entry))
-    {
-        return definition.rowSpacing;
-    }
-    return tolerantEquals(face, max(entry.width, entry.height)) ? definition.wideRowSpacing : definition.narrowRowSpacing;
 }
 
 /**
@@ -334,8 +296,7 @@ function verifyFrame(definition is map)
         !rowsFit(size.topRows, size.topRowSpacing, definition.holeDiameter, size.width - inside))
     {
         throw regenError("The rows of holes don't fit across the frame's faces.",
-            ["customFrame", "width", "height", "topRows", "sideRows", "rowSpacing", "wideRowSpacing", "narrowRowSpacing",
-                    "topRowSpacing", "sideRowSpacing", "holeDiameter"]);
+            ["customFrame", "width", "height", "topRows", "sideRows", "topRowSpacing", "sideRowSpacing", "holeDiameter"]);
     }
 }
 
@@ -345,15 +306,6 @@ function verifyFrame(definition is map)
 function rowsFit(count is number, spacing is ValueWithUnits, holeDiameter is ValueWithUnits, width is ValueWithUnits) returns boolean
 {
     return count == 0 || tolerantLessThanOrEqual((count - 1) * spacing + holeDiameter, width);
-}
-
-/**
- * Rectangular frame: whether a custom frame's faces differ in width (2x1), so their rows are spaced separately (which
- * shows its faces' row distances).
- */
-function isRectangularFrame(definition is map) returns boolean
-{
-    return isCustomFrame(definition) && !isCustomSizeFrame(definition) && isRectangular(frameTableEntry(definition));
 }
 
 /**
@@ -380,14 +332,13 @@ function isNoHolesFrame(definition is map) returns boolean
 
 /**
  * @internal
- * The editing logic function for robot frame. Sets Rectangular frame (`isRectangularFrame`), Custom size
- * (`isCustomSizeFrame`), and No holes (`isNoHolesFrame`), and when the frame changes
+ * The editing logic function for robot frame. Sets Custom size (`isCustomSizeFrame`) and No holes (`isNoHolesFrame`),
+ * and when the frame changes
  * (or the feature is created), its hole diameter to the frame's, unless it's been set larger.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    definition.rectangularFrame = isRectangularFrame(definition);
     definition.customSize = isCustomSizeFrame(definition);
     definition.noHoles = isNoHolesFrame(definition);
     definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);

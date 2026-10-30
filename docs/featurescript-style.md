@@ -25,7 +25,7 @@ A feature's `definition` is a map, and each parameter its precondition declares 
   its type.
 - Conditions can't read a lookup table's value. To show parameters by what's chosen in one, set a hidden
   (`ALWAYS_HIDDEN`) parameter from it in editing logic, and use that, as std's hole does with `threadStandard` and
-  robotFrame does with `rectangularFrame` (see "Hidden parameters set by editing logic").
+  robotFrame does with `noHoles` (see "Hidden parameters set by editing logic").
 - So a parameter can't be declared twice, even in different branches of an `if`: both would be the same key. Declare
   it once where both branches can share it (as `stockLocationPredicate` does with the secondary axis), and `fs check`
   reports it if you don't.
@@ -99,26 +99,31 @@ from the selections (`mountingEditLogic`) or filling in a plane from selected ge
 ## Hidden parameters set by editing logic
 
 The one boomerang that's needed: what a precondition can't read, like a lookup table's value (whether the chosen frame
-is 2x1, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
+has no holes, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
 hidden parameter's annotation with `"Set By"` (a key of ours, for the tools: Onshape ignores keys it doesn't know, as
 `fs check`'s annotation key rule has it), and set the parameter from it first thing in editing logic, on every change:
 
 ```
 // Set by editing logic, as Onshape can't show parameters by a lookup table's value
-annotation { "Name" : "Rectangular frame", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isRectangularFrame" }
-definition.rectangularFrame is boolean;
+annotation { "Name" : "No holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoHolesFrame" }
+definition.noHoles is boolean;
 
 ...
 
-function isRectangularFrame(definition is map) returns boolean
+function isNoHolesFrame(definition is map) returns boolean
 {
-    return isCustomFrame(definition) && isRectangular(frameTableEntry(definition));
+    if (!isCustomFrame(definition) || isCustomSizeFrame(definition))
+    {
+        return false;
+    }
+    const entry = frameTableEntry(definition);
+    return entry.topRows == 0 && entry.sideRows == 0;
 }
 
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    definition.rectangularFrame = isRectangularFrame(definition);
+    definition.noHoles = isNoHolesFrame(definition);
     ...
 ```
 
@@ -128,8 +133,8 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
 - **The function takes just the definition**, `(definition is map)`, and returns the parameter's type. It doesn't need
   the part studio (that's for editing logic itself), so it can be worked out without Onshape.
 - **The tools follow it**: `fs ui`, `fs audit`'s page, and the VS Code preview don't run editing logic, but they run a
-  "Set By" function with the evaluator (`fs_cli/set_by.py`), so the dialog shows what Onshape would: choosing a 2x1
-  frame shows its faces' row distances. The audit page has its value for every combination of the choices it reads.
+  "Set By" function with the evaluator (`fs_cli/set_by.py`), so the dialog shows what Onshape would: choosing a
+  custom tube with no rows of holes hides the hole parameters. The audit page has its value for every combination of the choices it reads.
   The preview reads the files as they're saved.
 - **`fs check` checks it**: the function exists, takes the definition, and returns the parameter's type; the parameter
   is hidden; and the editing logic declares `isCreating` and sets it from the function directly in its body, before
