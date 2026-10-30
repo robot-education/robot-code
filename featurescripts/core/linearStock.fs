@@ -1,9 +1,8 @@
 FeatureScript 2960;
 /**
  * Linear stock, like nut strips and frames: what it is (see `Stock`), how it's placed, along an edge or extruded from a
- * point (see `placeStock`), and what building it takes. It's built by a builder: cut (`buildCutStock` in
- * `core/cutStock.fs`, extruding its profile and cutting its holes), or from its walls (`buildWallStock` in
- * `core/wallStock.fs`).
+ * point (see `placeStock`), and what building it takes. It's built by a builder: `buildCutStock` in `core/cutStock.fs`,
+ * which extrudes its profile and cuts its holes.
  *
  * A feature using this module:
  * - Adds `programPredicate` at the top, then its part's parameters, then `stockLocationPredicate` and
@@ -192,11 +191,7 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field height {ValueWithUnits} : The height of its profile, along Y.
  *      @field profile {array} : @optional A sketch of its profile (a SketchDataArray). Otherwise it's a rectangle:
  *              `solid`, or with walls `wallX` and `wallY` thick, and possibly `open` (a channel), an `angle`, or solid
- *              around a `bore`. A profile's `wallX` and `wallY` are as thick as its walls are where its holes go (see
- *              `stockWalls`).
- *      @field grooves {array} : @optional A sketch (a SketchDataArray) of grooves along a `profile`, such as those inside
- *              MAXTube's walls, cut along it once it's built from its walls (see `buildWallStock`): regions placed as
- *              its profile is.
+ *              around a `bore`.
  *      @field holeDiameter {ValueWithUnits} : The diameter of its holes, unless a shape has its own.
  *      @field xRows {array} : Rows of holes through its walls facing X. @seealso [HoleRow]
  *      @field yRows {array} : Rows of holes through its walls facing Y.
@@ -441,12 +436,12 @@ export function isRegularLength(length is ValueWithUnits, tie is map) returns bo
 // Building
 
 /** The radius of the MAXSpline cutouts of MAXTube with MAX Pattern: its teeth's tips (see splineProfiles.py). */
-export const MAX_SPLINE_RADIUS = 17.45 * millimeter;
+const MAX_SPLINE_RADIUS = 17.45 * millimeter;
 
 /**
  * How far a row's shape (see `HoleRow`) reaches from its center across the stock: its radius.
  */
-export function shapeRadius(shape is map, holeDiameter is ValueWithUnits) returns ValueWithUnits
+function shapeRadius(shape is map, holeDiameter is ValueWithUnits) returns ValueWithUnits
 {
     return (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? holeDiameter) / 2;
 }
@@ -455,7 +450,7 @@ export function shapeRadius(shape is map, holeDiameter is ValueWithUnits) return
  * Sketches a rectangle with sides along the sketch's X and Y, between two corners, as four lines named `id` and `.low`,
  * `.high`, `.start`, and `.end`: as `skRectangle` sketches it, but without its constraints, which take solving.
  */
-export function sketchRectangle(sketch is Sketch, id is string, low is Vector, high is Vector)
+function sketchRectangle(sketch is Sketch, id is string, low is Vector, high is Vector)
 {
     skLineSegment(sketch, id ~ ".low", { "start" : low, "end" : vector(high[0], low[1]) });
     skLineSegment(sketch, id ~ ".end", { "start" : vector(high[0], low[1]), "end" : high });
@@ -555,14 +550,6 @@ export function sketchProfile(sketch is Sketch, stock is Stock, across is number
 }
 
 /**
- * Sketches stock's `grooves`, placed as `sketchProfile` places its profile.
- */
-export function sketchGrooves(sketch is Sketch, stock is Stock, across is number)
-{
-    skDataArray(sketch, "grooves", { "sketchDataArray" : across == 1 ? stock.grooves : mirroredAcrossY(stock.grooves) });
-}
-
-/**
  * A profile sketch (a SketchDataArray) mirrored across its Y axis: every point's X negated.
  */
 function mirroredAcrossY(profile is array) returns array
@@ -627,21 +614,21 @@ export function rowExtent(row is HoleRow, holeDiameter is ValueWithUnits) return
 }
 
 /**
- * Sketches one shape of a row (see `HoleRow`) at `center`. Returns the ids of the sketch entities it adds.
+ * Sketches one shape of a row (see `HoleRow`) at `center`.
  */
-export function sketchShape(sketch is Sketch, name is string, center is Vector, shape is map, holeDiameter is ValueWithUnits) returns array
+export function sketchShape(sketch is Sketch, name is string, center is Vector, shape is map, holeDiameter is ValueWithUnits)
 {
     if (shape.maxSpline ?? false)
     {
         skDataArray(sketch, name, { "sketchDataArray" : MAX_SPLINE_HOLE, "location" : center });
-        return skDataArrayIds(name, MAX_SPLINE_HOLE);
+        return;
     }
     const radius = (shape.diameter ?? holeDiameter) / 2;
     const slot = shape.slot ?? 0 * meter;
     if (tolerantEqualsZero(slot))
     {
         skCircle(sketch, name, { "center" : center, "radius" : radius });
-        return [name];
+        return;
     }
     // A slot along the stock: two sides and two round ends
     const along = vector(slot / 2, 0 * meter);
@@ -658,7 +645,6 @@ export function sketchShape(sketch is Sketch, name is string, center is Vector, 
                 "mid" : center - along - vector(radius, 0 * meter),
                 "end" : center - along - across
             });
-    return [name ~ "side", name ~ "end", name ~ "otherSide", name ~ "otherEnd"];
 }
 
 // Placing
@@ -674,7 +660,7 @@ const FLIP_MANIPULATOR = "stockFlipManipulator";
  *
  * @param name : What's placed, e.g. `"nut strip"`, for messages.
  * @param build : Builds it, from (context, id, definition, stock, location, length, ends): `buildCutStock`
- *          (`core/cutStock.fs`) or `buildWallStock` (`core/wallStock.fs`). `location` is the middle of its start, with
+ *          (`core/cutStock.fs`). `location` is the middle of its start, with
  *          Z along it and its width along X, and `ends` has the `startPlane` and `endPlane` slanted ends are on (if
  *          they are), and other `cuts` to make (see `trimCuts`). It returns the stock's `body`, its `endFace`, the faces
  *          of its `tiedHoles`, and its holes' `tie` (see `getTie`; `undefined` if it has none).

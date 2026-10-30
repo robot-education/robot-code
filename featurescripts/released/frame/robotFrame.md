@@ -10,22 +10,13 @@ writeup doesn't repeat.
 | `robotFrame.fs` | The feature: its dialog, the chosen frame as a `Stock`, checking its holes, and its editing logic |
 | `frameTables.py` | The frame tables' source (and extrusion and MAXTube cross sections); `fs gen` writes `frameTables.gen.fs` |
 | `../core/linearStock.fs` | Placing stock, and the Position and Tie holes to end groups |
-| `../core/wallStock.fs` | Building it from its walls (`buildWallStock`), or cutting it (`../core/cutStock.fs`) when it can't be |
+| `../core/cutStock.fs` | Building it: its profile extruded and its holes cut (`buildCutStock`) |
 | `vendor/` | Vendors' drawings and STEP files the tables and cross sections come from |
 
 ## Changelog
 
 Since v1.2.0 (`fs changes robotFrame`).
 
-- Tubes, channels, and angles with holes are built from their walls, each sketched with its holes and extruded, rather
-  than extruded whole with their holes cut (see linear stock's Wall stock). Their faces' ids change, so
-  references to them in existing documents need fixing: a hole is named by its count from the start, or from the end
-  if it's tied to it. A hole reaching an end (crossing it, or tangent to it) is left out, rather than cut through.
-  Square Beam is still cut. Its swept faces and edges, caps, and tied holes are found by history
-  (tagged as its walls are made), not by where they are.
-- MAXTube's grooves inside its walls (0.005 in. deep and 0.01 in. wide, behind the rows of holes: inside 2x1 standard's
-  and MAX Pattern's 2 in. sides, and every side of 2x1 light with the grid pattern) are cut along it once its walls are
-  joined. The drilling grooves outside it are left out, as before.
 - FTC frames include Swyft's Channel (48x12 mm, 424 mm long), with its bearing, 10-32, goBILDA, and REV holes; its
   keyholes are two overlapping holes.
 - Custom sizes from the table choose their Top rows, then their Side rows (2x2's separately too), and each face's rows

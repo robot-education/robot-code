@@ -1,8 +1,7 @@
 FeatureScript 2960;
 /**
- * Cut stock: linear stock (see `core/linearStock.fs`) built the usual way, by extruding its profile and cutting its
- * holes (see `buildCutStock`), like nut strips, and frames which can't be built from their walls (see
- * `core/wallStock.fs`).
+ * Cut stock: linear stock (see `core/linearStock.fs`), like nut strips and frames, built by extruding its profile and
+ * cutting its holes (see `buildCutStock`).
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
 

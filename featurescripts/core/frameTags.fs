@@ -34,34 +34,6 @@ export function tagExtrudeAsFrame(context is Context, extrudeId is Id, descripti
 }
 
 /**
- * Tags a body built from more than one extrude (like a tube built from its walls) as a frame: its profile attribute.
- * Tag its swept faces and edges with `tagFrameSwept`, and its caps with `tagFrameCaps`.
- *
- * @param description : The frame's description in cutlists, e.g. `"2x1 Tube (WCP, 1/16 in. wall)"`.
- * @param standard : The frame's standard in cutlists, e.g. a vendor.
- */
-export function tagFrameProfile(context is Context, body is Query, description is string, standard is string)
-{
-    setFrameProfileAttribute(context, body, frameProfileAttribute({
-                    (CUTLIST_STANDARD) : standard,
-                    (CUTLIST_DESCRIPTION) : description
-                }));
-}
-
-/**
- * Tags a frame's faces and edges which run along it as swept. They can be tagged on the parts it's built from, before
- * they're copied or joined: their attributes go with them (see std's attributes.fs).
- */
-export function tagFrameSwept(context is Context, sweptFaces is Query, sweptEdges is Query)
-{
-    setFrameTopologyAttribute(context, sweptFaces, frameTopologyAttributeForSwept(FrameTopologyType.SWEPT_FACE));
-    if (!isQueryEmpty(context, sweptEdges))
-    {
-        setFrameTopologyAttribute(context, sweptEdges, frameTopologyAttributeForSwept(FrameTopologyType.SWEPT_EDGE));
-    }
-}
-
-/**
  * Tags faces which end a frame, like those left by trimming it, as its start (or end) cap faces.
  */
 export function tagFrameCaps(context is Context, faces is Query, isStart is boolean)

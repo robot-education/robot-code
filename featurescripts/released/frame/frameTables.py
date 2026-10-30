@@ -9,8 +9,8 @@ checked against the vendors' drawings and CAD (in vendor/).
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
 `wallY` thick on its sides facing Y; `open` channels have no wall on +Y, `angle` has only the walls facing -X and
 -Y, and beams with a `bore` are solid around a round hole that diameter instead. Anything else (like T-slot
-extrusion) has a `profile`: a SketchDataArray of its cross section, centered on the origin, and possibly `grooves`
-along it (another, of the regions to cut along it). `holeDiameter` is the diameter of its ordinary holes.
+extrusion) has a `profile`: a SketchDataArray of its cross section, centered on the origin. `holeDiameter` is the
+diameter of its ordinary holes.
 
 Its holes are rows along its length: `xRows` go through the walls facing X, and `yRows` through the walls facing Y. A
 row repeats a group of `shapes` every `pitch`, starting `start` from the end; each shape is `along` the frame and
@@ -25,7 +25,7 @@ far apart they are. `stock` lists the lengths each is sold in, shortest first (s
 import math
 import pathlib
 
-from fs_cli.sketches import Entity, Line, Point, Profile, Sketch, rotated, translated
+from fs_cli.sketches import Line, Point, Profile, Sketch, rotated, translated
 from fs_cli.step import StepFile
 from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
@@ -94,11 +94,9 @@ def tube(
     bore: float | None = None,
     angle: bool = False,
     profile: str | None = None,
-    grooves: str | None = None,
 ) -> Value:
     """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`. A sketched
-    `profile`'s walls (`wall_x` and `wall_y`) are as thick as its sketch's are where its holes go through them (see
-    linear stock's `stockWalls`), and it can have `grooves` cut along it (see `step_grooves`)."""
+    `profile`'s walls (`wall_x` and `wall_y`) are as thick as its sketch's are where its holes go through them."""
     return Value(
         name,
         {
@@ -111,7 +109,6 @@ def tube(
             **({"bore": unit(bore)} if bore is not None else {}),
             **({"angle": "true"} if angle else {}),
             **({"profile": profile} if profile is not None else {}),
-            **({"grooves": grooves} if grooves is not None else {}),
             "holeDiameter": unit(hole_diameter),
             "xRows": array(x_rows),
             "yRows": array(y_rows),
@@ -208,7 +205,6 @@ def frc_tube(
     tie_start: float = 0.5,
     tie_unit: float = 0.5,
     profile: str | None = None,
-    grooves: str | None = None,
 ) -> Value:
     """A tube with FRC's usual grid of holes, through the walls facing X and/or Y (or `x_rows` and `y_rows`). It's
     `name` in the table, a wall thickness like "1/16 in.", and is described with `detail` (by default, its wall)."""
@@ -227,7 +223,6 @@ def frc_tube(
         inch(tie_unit),
         lengths,
         profile=profile,
-        grooves=grooves,
     )
 
 
@@ -443,84 +438,21 @@ def extrusion(
     return value
 
 
-# The longest a notch's sides are (see `without_notches`)
-NOTCH_SIDE = 0.01
-
-
-def same(a: Point, b: Point) -> bool:
-    return (a - b).length < 1e-9
-
-
-def straight(a: Line, b: Line) -> bool:
-    """Whether line `b` carries on from `a` in a straight line."""
-    first, second = a.end - a.start, b.end - b.start
-    return abs(first.x * second.y - first.y * second.x) < 1e-12 and first.x * second.x + first.y * second.y > 0
-
-
-def is_notch(a: Line, b: Line) -> bool:
-    """Whether lines `a` then `b` are a notch: both at most `NOTCH_SIDE` long, from one end of a line square to X or Y
-    to the other, meeting off it."""
-    square = abs(a.start.x - b.end.x) < 1e-9 or abs(a.start.y - b.end.y) < 1e-9
-    short = (a.end - a.start).length <= NOTCH_SIDE and (b.end - b.start).length <= NOTCH_SIDE
-    return square and short and not straight(a, b)
-
-
-def joined_lines(entities: list[Entity]) -> list[tuple[Line, Line]]:
-    """Each pair of lines in `entities` where the first's end is the second's start."""
-    lines = [entity for entity in entities if isinstance(entity, Line)]
-    return [(a, b) for a in lines for b in lines if a is not b and same(a.end, b.start)]
-
-
-def without_notches(entities: list[Entity]) -> list[Entity]:
-    """Entities with each notch (see `is_notch`) replaced by a line, and lines which then carry on from each other in a
-    straight line merged."""
-    result = list(entities)
-    for test in (is_notch, straight):
-        while pair := next(((a, b) for a, b in joined_lines(result) if test(a, b)), None):
-            a, b = pair
-            i, j = result.index(a), result.index(b)
-            result[min(i, j)] = Line(a.start, b.end)
-            del result[max(i, j)]
-    return result
-
-
-def notches(entities: list[Entity]) -> list[Entity]:
-    """The notches in `entities` (see `is_notch`), each as a triangle: its two lines, closed by a line across it."""
-    return [entity for a, b in joined_lines(entities) if is_notch(a, b) for entity in (a, b, Line(b.end, a.start))]
-
-
-def step_entities(file: str, plain_outside: bool) -> tuple[list[Entity], list[Entity]]:
-    """A STEP file's cross section (see `step_profile`): its outside, as a plain rectangle if `plain_outside`, and its
-    inside, unmoved."""
-    step = StepFile(VENDOR / file)
-    entities = step.profile(holes=True)
-    outside = len(step.profile())
-    if not plain_outside:
-        return entities[:outside], entities[outside:]
-    points = [point for entity in entities[:outside] for point in (entity.start, entity.end)]
-    low = Point(min(point.x for point in points), min(point.y for point in points))
-    high = Point(max(point.x for point in points), max(point.y for point in points))
-    corners = [low, Point(high.x, low.y), high, Point(low.x, high.y)]
-    return [Line(corners[i], corners[(i + 1) % 4]) for i in range(4)], entities[outside:]
-
-
 def step_profile(file: str, offset: Point = Point(0, 0), degrees: float = 0, plain_outside: bool = False) -> Profile:
     """The cross section of a vendor's extrusion, with its bores and pockets, from its STEP file (some trimmed to just
     that with `fs step`), rotated then moved to center it on the origin with its width along X. A `plain_outside` is
-    left a rectangle, as MAXTube's is but for the shallow grooves along it to drill on, which aren't worth modeling, and
-    its walls plain inside too, without the notches along them (see `without_notches`): those are its `step_grooves`,
-    cut along it once it's built."""
-    outside, inside = step_entities(file, plain_outside)
+    left a rectangle, as MAXTube's is but for the shallow grooves along it to drill on, which aren't worth modeling (the
+    matching grooves inside its walls are kept)."""
+    step = StepFile(VENDOR / file)
+    entities = step.profile(holes=True)
     if plain_outside:
-        inside = without_notches(inside)
-    return Profile(translated(rotated(outside + inside, degrees), offset))
-
-
-def step_grooves(file: str, offset: Point = Point(0, 0), degrees: float = 0) -> Profile:
-    """The notches along the inside of a `plain_outside` `step_profile`'s walls, as triangles placed as it is: grooves to
-    cut along it."""
-    _, inside = step_entities(file, True)
-    return Profile(translated(rotated(notches(inside), degrees), offset))
+        outside = len(step.profile())
+        points = [point for entity in entities[:outside] for point in (entity.start, entity.end)]
+        low = Point(min(point.x for point in points), min(point.y for point in points))
+        high = Point(max(point.x for point in points), max(point.y for point in points))
+        corners = [low, Point(high.x, low.y), high, Point(low.x, high.y)]
+        entities = [Line(corners[i], corners[(i + 1) % 4]) for i in range(4)] + entities[outside:]
+    return Profile(translated(rotated(entities, degrees), offset))
 
 
 # Cross sections which aren't plain rectangles, centered on the origin
@@ -537,9 +469,6 @@ PROFILES = [
     Sketch("REV_MAXTUBE_2X1_MAX", step_profile("REV-21-2163.STEP", degrees=90, plain_outside=True)),
     Sketch("REV_MAXTUBE_2X1_LIGHT", step_profile("REV-21-2161.STEP", degrees=90, plain_outside=True)),
     Sketch("REV_MAXTUBE_2X1_LIGHT_GRID", step_profile("REV-21-2289.STEP", degrees=90, plain_outside=True)),
-    # The grooves inside their walls (2x1 standard's and MAX Pattern's are the same: three inside each 2 in. side)
-    Sketch("REV_MAXTUBE_2X1_GROOVES", step_grooves("REV-21-2162.STEP", degrees=90)),
-    Sketch("REV_MAXTUBE_2X1_LIGHT_GRID_GROOVES", step_grooves("REV-21-2289.STEP", degrees=90)),
     # REV-21-3287's is REV-21-3288's
     Sketch("REV_MAXTUBE_2X2", step_profile("REV-21-3288.STEP", plain_outside=True)),
     Sketch("REV_MAXTUBE_2X2_MAX", step_profile("REV-21-3286.STEP", plain_outside=True)),
@@ -592,7 +521,7 @@ REV = vendor(
                         "Grid",
                         [
                             rev_tube("REV-21-2289", REV_2X1_URL, "Light", 2, 1, REV_PROFILE_WALL, detail="light",
-                                     profile="REV_MAXTUBE_2X1_LIGHT_GRID", grooves="REV_MAXTUBE_2X1_LIGHT_GRID_GROOVES"),
+                                     profile="REV_MAXTUBE_2X1_LIGHT_GRID"),
                             rev_tube("REV-21-3552", REV_2X1_URL, "1/16 in.", 2, 1, 0.0625),
                             rev_tube("REV-21-3555", REV_2X1_URL, "1/8 in.", 2, 1, 0.125),
                             rev_tube("REV-21-3586", REV_2X1_URL, "3/16 in.", 2, 1, 0.1875),
@@ -604,16 +533,14 @@ REV = vendor(
                             rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_PROFILE_WALL,
                                      detail="light, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT"),
                             rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_PROFILE_WALL,
-                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1",
-                                     grooves="REV_MAXTUBE_2X1_GROOVES"),
+                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1"),
                         ],
                     ),
                     pattern(
                         "MAX Pattern",
                         [
                             max_pattern_tube("Standard", "standard, MAX Pattern", [2163, 2164, 2165, 2169, 2173, 2177, 2185],
-                                             wall_x=REV_PROFILE_WALL, profile="REV_MAXTUBE_2X1_MAX",
-                                             grooves="REV_MAXTUBE_2X1_GROOVES"),
+                                             wall_x=REV_PROFILE_WALL, profile="REV_MAXTUBE_2X1_MAX"),
                             max_pattern_tube("1/8 in.", "1/8 in. wall, MAX Pattern", [3558, 3559, 3560, 3564, 3568, 3572, 3580]),
                         ],
                     ),

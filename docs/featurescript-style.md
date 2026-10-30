@@ -540,7 +540,7 @@ Std's `query.fs` has the queries most code needs. The ones which come up most:
 - `qSketchRegion(sketchId, filterInnerLoops)`: a sketch's regions (with `true`, leaving out regions inside others, like
   a tube's hollow).
 - `sketchEntityQuery(sketchId, entityType, entityId)`: a sketch entity by the id it was sketched with (like a line's,
-  `"wall.low"`).
+  `"block.low"`).
 - Filters: `qGeometry(GeometryType.CYLINDER)`, `qBodyType(BodyType.SOLID)`, `qSketchFilter(SketchObject.YES)`,
   `qEntityFilter(EntityType.FACE)`.
 - Combining: `qUnion`, `qSubtraction`, `qIntersection`, and `qNthElement`.
@@ -555,7 +555,7 @@ To extrude a sketch, take its regions as other features do: `qSketchRegion(sketc
 `qSketchRegion(sketchId, true)` for a profile with holes (a tube's hollow), or `qCreatedBy(sketchId, EntityType.FACE)`,
 and at most one simple filter. `qSketchRegion(sketchId, true)` leaves out regions inside others (holes), but not one
 touching the outside boundary: a hole crossing (or tangent to) the sketch's edge is extruded with the rest. Rather than
-picking regions apart, don't sketch what would be wrong: wall stock leaves out holes reaching its ends.
+picking regions apart, don't sketch what would be wrong (like a hole reaching the sketch's edge).
 
 To tag faces (with attributes, like a frame's), tag them by history as they're made: attributes go with their
 entities through later operations (split pieces each keep them, patterned copies get them, and merged entities keep

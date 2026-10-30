@@ -1,18 +1,17 @@
-# Linear stock (`linearStock.fs`, `cutStock.fs`, `wallStock.fs`)
+# Linear stock (`linearStock.fs`, `cutStock.fs`)
 
 The shared modules behind Robot frame and Robot nut strip: what a length of stock is (`Stock`), how it's placed along
 an edge or extruded from a point (`placeStock`), the dialog for placing it (`stockLocationPredicate`,
-`tieHolesPredicate`), and the two ways it's built. See `docs/feature-writeups.md` for what writeups cover.
+`tieHolesPredicate`), and how it's built. See `docs/feature-writeups.md` for what writeups cover.
 
 | File | What it is |
 | --- | --- |
-| `linearStock.fs` | What stock is, tying its holes, placing it, its properties, editing logic, and what both builders use (sketching its profile and holes, `stockFaces`, trimming) |
-| `cutStock.fs` | Cut stock (`buildCutStock`): its profile extruded and its holes cut, as nut strips are built |
-| `wallStock.fs` | Wall stock (`buildWallStock`): built from its walls, each sketched with its holes, as frames are (or cut, when they can't be) |
+| `linearStock.fs` | What stock is, tying its holes, placing it, its properties, editing logic, and what building it uses (sketching its profile and holes, `stockFaces`, trimming) |
+| `cutStock.fs` | Cut stock (`buildCutStock`): its profile extruded and its holes cut, as frames and nut strips are built |
 
 The features using it ([Robot frame](../frame/robotFrame.md), [Robot nut strip](../nutStrip/robotNutStrip.md)) only
-choose a part, describe it as a `Stock`, and call `placeStock` with it and their builder (`buildWallStock` for frames,
-`buildCutStock` for nut strips); everything else below is the same for both. `<name>` in strings is what's placed:
+choose a part, describe it as a `Stock`, and call `placeStock` with it and its builder (`buildCutStock`); everything
+else below is the same for both. `<name>` in strings is what's placed:
 `frame` or `nut strip`.
 
 ## Strings
@@ -124,8 +123,7 @@ away, is an error. Holes are laid out on the untrimmed length, so tied holes cou
 
 ### Cut stock (`cutStock.fs`, `buildCutStock`)
 
-Nut strips are built this way, and so are frames without holes and frames which can't be built from their walls
-(below):
+Frames and nut strips are built this way:
 
 1. The profile is sketched (`sketchProfile`: a rectangle, tube, angle, channel, bore, or a `profile` sketch) and
    extruded. Stock with holes is built as the shortest regular length at least as long (`regularLength`), so every
@@ -139,42 +137,6 @@ Nut strips are built this way, and so are frames without holes and frames which 
    it was built longer for its holes), and each trim. Frames' cut faces are tagged as their caps.
 5. Tapped stock (nut strips) gets hole attributes and cosmetic threads on its remaining holes
    (`setTappedThroughHoles`, `core/tappedHole.fs`), after cutting so holes the cuts removed aren't threaded.
-
-### Wall stock (`wallStock.fs`, `buildWallStock`)
-
-Frames (tubes, channels, and angles) with holes are built from their walls (`buildFromWalls`), which needs no boolean
-per hole: `buildWallStock` does so when the stock has walls (`stockWalls`: a tube's four, a channel's three, open facing +Y, or an
-angle's two legs, mirrored with it; none for solid stock, stock around a bore, or tapped stock) and each hole fits
-inside the walls it goes through, clear of their sides (`holesFitWalls`), and cuts it otherwise. A sketched `profile`'s walls are those with
-holes, reaching across just past them (`holeSpan`, 0.25 mm past), and `wallX` and `wallY` thick: as thick as its sketch
-is there, with nothing behind them (frameTables.py's MAXTube walls, which a test checks against the sketches).
-
-1. The first wall facing each way is sketched on its outside as a rectangle `length` long (`sketchRectangle`: four
-   lines, without `skRectangle`'s constraints), with its holes (`holePositions` and `sketchShape`, as cutting them
-   would), and extruded as thick as the wall. The walls facing Y run the stock's width, and those facing X between
-   them. Each hole is named by its count from the start, or from the end if it's tied (`r<row>.h<k>` or `r<row>.t<k>`),
-   so its faces keep their identities as the length changes. The extrude takes its regions but those inside others
-   (`qSketchRegion(sketchId, true)`): not its holes. Holes reaching an end (crossing it, or tangent to it) are left out,
-   so the wall is whole there, unlike cut stock's, which are cut through: a hole touching the sketch's outside isn't
-   inside another region, so it would be extruded anyway, with what of it is past the end.
-2. A sketched profile's core (the rest of it) is its profile extruded (`extrudeCore`), and a profile's `grooves`
-   (MAXTube's, inside its walls, which neither the walls' sketches nor its plain profile have) are sketched
-   (`sketchGrooves`) and extruded 1 mm past each end.
-3. Frames are tagged as frames by history, not geometry, before anything is copied or joined: copies and booleans
-   carry attributes with the faces and edges they come from (std's attributes.fs). Its swept faces and edges
-   (`tagFrameSwept` in `core/frameTags.fs`) are each wall's faces on its two sides (its extrude's caps) and what its
-   rectangle's `.low` and `.high` lines became (`trackSketchEntity`, std's `startTracking`), the core's and grooves'
-   extrudes' sides; its caps (`tagFrameCaps`) are what the `.start` and `.end` lines became, and the core's extrude's
-   caps.
-4. The wall opposite each first one has the same holes, so it's a copy of it, patterned across the stock; the core has a
-   block cut where each wall goes (`cutCoreBlocks`, patterned for the copies too). The walls (and core) are joined with
-   one boolean, and the grooves cut with one more. The body is tagged with its profile (`tagFrameProfile`). Its end
-   faces are found by tracking, as its caps were.
-5. It's cut to its slanted ends and trims, as above; it's built as long as it is, so its end needs no cut.
-
-Its tied holes are found by history too: the faces what each wall's tied holes' sketch entities became (`sketchShape`
-returns their ids, and `skDataArrayIds` a MAX Pattern spline cutout's) are tagged with an attribute
-(`TIED_HOLE_ATTRIBUTE`) as the wall is made, so its copy's are too, and it returns the body's faces with it.
 
 ### Tying holes
 
