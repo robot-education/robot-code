@@ -9,8 +9,8 @@ checked against the vendors' drawings and CAD (in vendor/).
 Each entry is a profile `width` (along X) by `height` (along Y), with walls `wallX` thick on its sides facing X and
 `wallY` thick on its sides facing Y; `open` channels have no wall on +Y, `angle` has only the walls facing -X and
 -Y, and beams with a `bore` are solid around a round hole that diameter instead. Anything else (like T-slot
-extrusion) has a `profile`: a SketchDataArray of its cross section, centered on the origin. `holeDiameter` is the
-diameter of its ordinary holes.
+extrusion) has a `profile`: a SketchDataArray of its cross section, centered on the origin, and possibly `grooves`
+along it (another, of the regions to cut along it). `holeDiameter` is the diameter of its ordinary holes.
 
 Its holes are rows along its length: `xRows` go through the walls facing X, and `yRows` through the walls facing Y. A
 row repeats a group of `shapes` every `pitch`, starting `start` from the end; each shape is `along` the frame and
@@ -31,6 +31,9 @@ from fs_cli.gen import Import
 from fs_cli.tables import Node, Table, Value, inch, mm, string
 
 VENDOR = pathlib.Path(__file__).parent / "vendor"
+
+# Materials: robotProperties.fs's (frames are Aluminum - 6061 unless their vendor says otherwise)
+ALUMINUM_7075 = "ALUMINUM_7075"
 
 # Appearances: robotProperties.fs's colors, for raw aluminum, other (like clear anodized) aluminum, and black anodized
 LIGHT_GRAY = "LIGHT_GRAY"
@@ -91,10 +94,11 @@ def tube(
     bore: float | None = None,
     angle: bool = False,
     profile: str | None = None,
+    grooves: str | None = None,
 ) -> Value:
     """A tube (or channel), with `description` for its part name, e.g. `2x1 Tube (WCP, 1/16 in. wall)`. A sketched
     `profile`'s walls (`wall_x` and `wall_y`) are as thick as its sketch's are where its holes go through them (see
-    linear stock's `stockWalls`)."""
+    linear stock's `stockWalls`), and it can have `grooves` cut along it (see `step_grooves`)."""
     return Value(
         name,
         {
@@ -107,6 +111,7 @@ def tube(
             **({"bore": unit(bore)} if bore is not None else {}),
             **({"angle": "true"} if angle else {}),
             **({"profile": profile} if profile is not None else {}),
+            **({"grooves": grooves} if grooves is not None else {}),
             "holeDiameter": unit(hole_diameter),
             "xRows": array(x_rows),
             "yRows": array(y_rows),
@@ -138,12 +143,16 @@ def sizes_node(sizes: list[Value]) -> Node:
     return Node("size", sizes, default=default(sizes, DEFAULT_SIZE))
 
 
-def vendor(name: str, url: str, appearance: str | None, sizes: list[Value] | Node) -> Value:
+def vendor(
+    name: str, url: str, appearance: str | None, sizes: list[Value] | Node, material: str | None = None
+) -> Value:
     """A vendor's frames, by size (or by `profiles`), which all have `appearance`, unless it's None (as values closer
-    to the root win)."""
+    to the root win), and are `material` (robotProperties.fs's), unless it's None (Aluminum - 6061)."""
     values = {"vendor": string(name), "url": string(url)}
     if appearance is not None:
         values["appearance"] = appearance
+    if material is not None:
+        values["material"] = material
     return Value(name, values, sizes if isinstance(sizes, Node) else sizes_node(sizes))
 
 
@@ -199,6 +208,7 @@ def frc_tube(
     tie_start: float = 0.5,
     tie_unit: float = 0.5,
     profile: str | None = None,
+    grooves: str | None = None,
 ) -> Value:
     """A tube with FRC's usual grid of holes, through the walls facing X and/or Y (or `x_rows` and `y_rows`). It's
     `name` in the table, a wall thickness like "1/16 in.", and is described with `detail` (by default, its wall)."""
@@ -217,6 +227,7 @@ def frc_tube(
         inch(tie_unit),
         lengths,
         profile=profile,
+        grooves=grooves,
     )
 
 
@@ -440,55 +451,76 @@ def same(a: Point, b: Point) -> bool:
     return (a - b).length < 1e-9
 
 
+def straight(a: Line, b: Line) -> bool:
+    """Whether line `b` carries on from `a` in a straight line."""
+    first, second = a.end - a.start, b.end - b.start
+    return abs(first.x * second.y - first.y * second.x) < 1e-12 and first.x * second.x + first.y * second.y > 0
+
+
+def is_notch(a: Line, b: Line) -> bool:
+    """Whether lines `a` then `b` are a notch: both at most `NOTCH_SIDE` long, from one end of a line square to X or Y
+    to the other, meeting off it."""
+    square = abs(a.start.x - b.end.x) < 1e-9 or abs(a.start.y - b.end.y) < 1e-9
+    short = (a.end - a.start).length <= NOTCH_SIDE and (b.end - b.start).length <= NOTCH_SIDE
+    return square and short and not straight(a, b)
+
+
+def joined_lines(entities: list[Entity]) -> list[tuple[Line, Line]]:
+    """Each pair of lines in `entities` where the first's end is the second's start."""
+    lines = [entity for entity in entities if isinstance(entity, Line)]
+    return [(a, b) for a in lines for b in lines if a is not b and same(a.end, b.start)]
+
+
 def without_notches(entities: list[Entity]) -> list[Entity]:
-    """Entities with each notch (two short lines, at most `NOTCH_SIDE` long, from one end of a line square to X or Y to
-    the other, meeting off it) replaced by a line, and lines which then carry on from each other in a straight line
-    merged."""
+    """Entities with each notch (see `is_notch`) replaced by a line, and lines which then carry on from each other in a
+    straight line merged."""
     result = list(entities)
-
-    def joined(first: int, second: int) -> bool:
-        a, b = result[first], result[second]
-        return isinstance(a, Line) and isinstance(b, Line) and same(a.end, b.start)
-
-    def find(test) -> tuple[int, int] | None:
-        for i in range(len(result)):
-            for j in range(len(result)):
-                if i != j and joined(i, j) and test(result[i], result[j]):
-                    return i, j
-        return None
-
-    def notch(a: Line, b: Line) -> bool:
-        square = abs(a.start.x - b.end.x) < 1e-9 or abs(a.start.y - b.end.y) < 1e-9
-        short = (a.end - a.start).length <= NOTCH_SIDE and (b.end - b.start).length <= NOTCH_SIDE
-        return square and short and not straight(a, b)
-
-    def straight(a: Line, b: Line) -> bool:
-        first, second = a.end - a.start, b.end - b.start
-        return abs(first.x * second.y - first.y * second.x) < 1e-12 and first.x * second.x + first.y * second.y > 0
-
-    for test in (notch, straight):
-        while (pair := find(test)) is not None:
-            i, j = pair
-            result[min(i, j)] = Line(result[i].start, result[j].end)
+    for test in (is_notch, straight):
+        while pair := next(((a, b) for a, b in joined_lines(result) if test(a, b)), None):
+            a, b = pair
+            i, j = result.index(a), result.index(b)
+            result[min(i, j)] = Line(a.start, b.end)
             del result[max(i, j)]
     return result
+
+
+def notches(entities: list[Entity]) -> list[Entity]:
+    """The notches in `entities` (see `is_notch`), each as a triangle: its two lines, closed by a line across it."""
+    return [entity for a, b in joined_lines(entities) if is_notch(a, b) for entity in (a, b, Line(b.end, a.start))]
+
+
+def step_entities(file: str, plain_outside: bool) -> tuple[list[Entity], list[Entity]]:
+    """A STEP file's cross section (see `step_profile`): its outside, as a plain rectangle if `plain_outside`, and its
+    inside, unmoved."""
+    step = StepFile(VENDOR / file)
+    entities = step.profile(holes=True)
+    outside = len(step.profile())
+    if not plain_outside:
+        return entities[:outside], entities[outside:]
+    points = [point for entity in entities[:outside] for point in (entity.start, entity.end)]
+    low = Point(min(point.x for point in points), min(point.y for point in points))
+    high = Point(max(point.x for point in points), max(point.y for point in points))
+    corners = [low, Point(high.x, low.y), high, Point(low.x, high.y)]
+    return [Line(corners[i], corners[(i + 1) % 4]) for i in range(4)], entities[outside:]
 
 
 def step_profile(file: str, offset: Point = Point(0, 0), degrees: float = 0, plain_outside: bool = False) -> Profile:
     """The cross section of a vendor's extrusion, with its bores and pockets, from its STEP file (some trimmed to just
     that with `fs step`), rotated then moved to center it on the origin with its width along X. A `plain_outside` is
     left a rectangle, as MAXTube's is but for the shallow grooves along it to drill on, which aren't worth modeling, and
-    its walls plain inside too, without the notches along them (see `without_notches`)."""
-    step = StepFile(VENDOR / file)
-    entities = step.profile(holes=True)
+    its walls plain inside too, without the notches along them (see `without_notches`): those are its `step_grooves`,
+    cut along it once it's built."""
+    outside, inside = step_entities(file, plain_outside)
     if plain_outside:
-        outside = len(step.profile())
-        points = [point for entity in entities[:outside] for point in (entity.start, entity.end)]
-        low = Point(min(point.x for point in points), min(point.y for point in points))
-        high = Point(max(point.x for point in points), max(point.y for point in points))
-        corners = [low, Point(high.x, low.y), high, Point(low.x, high.y)]
-        entities = [Line(corners[i], corners[(i + 1) % 4]) for i in range(4)] + without_notches(entities[outside:])
-    return Profile(translated(rotated(entities, degrees), offset))
+        inside = without_notches(inside)
+    return Profile(translated(rotated(outside + inside, degrees), offset))
+
+
+def step_grooves(file: str, offset: Point = Point(0, 0), degrees: float = 0) -> Profile:
+    """The notches along the inside of a `plain_outside` `step_profile`'s walls, as triangles placed as it is: grooves to
+    cut along it."""
+    _, inside = step_entities(file, True)
+    return Profile(translated(rotated(notches(inside), degrees), offset))
 
 
 # Cross sections which aren't plain rectangles, centered on the origin
@@ -505,6 +537,9 @@ PROFILES = [
     Sketch("REV_MAXTUBE_2X1_MAX", step_profile("REV-21-2163.STEP", degrees=90, plain_outside=True)),
     Sketch("REV_MAXTUBE_2X1_LIGHT", step_profile("REV-21-2161.STEP", degrees=90, plain_outside=True)),
     Sketch("REV_MAXTUBE_2X1_LIGHT_GRID", step_profile("REV-21-2289.STEP", degrees=90, plain_outside=True)),
+    # The grooves inside their walls (2x1 standard's and MAX Pattern's are the same: three inside each 2 in. side)
+    Sketch("REV_MAXTUBE_2X1_GROOVES", step_grooves("REV-21-2162.STEP", degrees=90)),
+    Sketch("REV_MAXTUBE_2X1_LIGHT_GRID_GROOVES", step_grooves("REV-21-2289.STEP", degrees=90)),
     # REV-21-3287's is REV-21-3288's
     Sketch("REV_MAXTUBE_2X2", step_profile("REV-21-3288.STEP", plain_outside=True)),
     Sketch("REV_MAXTUBE_2X2_MAX", step_profile("REV-21-3286.STEP", plain_outside=True)),
@@ -557,7 +592,7 @@ REV = vendor(
                         "Grid",
                         [
                             rev_tube("REV-21-2289", REV_2X1_URL, "Light", 2, 1, REV_PROFILE_WALL, detail="light",
-                                     profile="REV_MAXTUBE_2X1_LIGHT_GRID"),
+                                     profile="REV_MAXTUBE_2X1_LIGHT_GRID", grooves="REV_MAXTUBE_2X1_LIGHT_GRID_GROOVES"),
                             rev_tube("REV-21-3552", REV_2X1_URL, "1/16 in.", 2, 1, 0.0625),
                             rev_tube("REV-21-3555", REV_2X1_URL, "1/8 in.", 2, 1, 0.125),
                             rev_tube("REV-21-3586", REV_2X1_URL, "3/16 in.", 2, 1, 0.1875),
@@ -569,14 +604,16 @@ REV = vendor(
                             rev_tube("REV-21-2161", REV_2X1_URL, "Light", 2, 1, REV_PROFILE_WALL,
                                      detail="light, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1_LIGHT"),
                             rev_tube("REV-21-2162", REV_2X1_URL, "Standard", 2, 1, REV_PROFILE_WALL,
-                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1"),
+                                     detail="standard, 1 in. sides only", y_holes=False, profile="REV_MAXTUBE_2X1",
+                                     grooves="REV_MAXTUBE_2X1_GROOVES"),
                         ],
                     ),
                     pattern(
                         "MAX Pattern",
                         [
                             max_pattern_tube("Standard", "standard, MAX Pattern", [2163, 2164, 2165, 2169, 2173, 2177, 2185],
-                                             wall_x=REV_PROFILE_WALL, profile="REV_MAXTUBE_2X1_MAX"),
+                                             wall_x=REV_PROFILE_WALL, profile="REV_MAXTUBE_2X1_MAX",
+                                             grooves="REV_MAXTUBE_2X1_GROOVES"),
                             max_pattern_tube("1/8 in.", "1/8 in. wall, MAX Pattern", [3558, 3559, 3560, 3564, 3568, 3572, 3580]),
                         ],
                     ),
@@ -787,6 +824,7 @@ LAST_ANVIL = vendor(
             ],
         )
     ],
+    material=ALUMINUM_7075,
 )
 
 
@@ -935,30 +973,81 @@ GOBILDA = vendor(
     ],
 )
 
+SWYFT_CHANNEL_URL = "https://swyftrobotics.com/structure/swyft-channel"
+
+
+def swyft_channel_rows() -> list[str]:
+    """Swyft Channel's pattern on its 48 mm face (SR-CHANNEL-L48-17.step, and SR-CHANNEL-L48-2_Drawing.pdf), from
+    its end: a 14 mm bearing hole every 24 mm starting 20 mm from it, with 5 mm (10-32) holes 1/2 in. either side
+    across it; 5 mm slots between bearing holes, 1.4 mm long, whose ends are 1/2 in. from the bearing holes beside
+    them; and goBILDA's 4 mm holes on an 8 mm grid between bearing holes, each outer one with a 3 mm hole for REV
+    beside it, on a 16 mm circle around the nearest bearing hole. Those two make one keyhole, which this leaves as two
+    overlapping holes (without the vendor's lines joining them)."""
+    keyhole = round(8 * math.sqrt(3), 4)
+    grid = []
+    for side in (-1, 1):
+        grid += [shape(mm(side * 8)), shape(mm(side * 16)), shape(mm(side * keyhole), diameter=mm(3))]
+    return [
+        row(mm(20), mm(24), [shape(mm(0), diameter=mm(14)), shape(inch(-0.5), diameter=mm(5)),
+                             shape(inch(0.5), diameter=mm(5))]),
+        row(mm(8), mm(24), [shape(mm(0), diameter=mm(5), slot=mm(1.4))]),
+        row(mm(4), mm(24), grid),
+        row(mm(12), mm(24), grid),
+    ]
+
+
+# https://swyftrobotics.com/structure/swyft-channel: 6061, black anodized, sold 424 mm long (17 bearing holes)
+SWYFT_FTC = vendor(
+    "Swyft",
+    SWYFT_CHANNEL_URL,
+    BLACK,
+    [
+        only(
+            "Channel",
+            tube(
+                "Channel",
+                "Channel (Swyft)",
+                48,
+                12,
+                2,
+                2,
+                4,
+                # The sides have one row of 4 mm holes every 8 mm, starting 4 mm from the end, 8 mm from the base's
+                # outside
+                [row(mm(4), mm(8), [shape(mm(2))])],
+                swyft_channel_rows(),
+                mm(20),
+                mm(24),
+                stock((mm(424), "SR-CHANNEL-L48-424", SWYFT_CHANNEL_URL)),
+                unit=mm,
+                open=True,
+            ),
+        ),
+    ],
+)
+
 # https://andymark.com/products/pre-drilled-box-tube-extrusion (drawing: am-5001-4700): AndyMark's Robits FTC system
 ROBITS = vendor(
     "AndyMark",
     AM_URL,
     LIGHT_GRAY,
     [
-        size(
+        only(
             "1/2x1/2 (Robits)",
-            [
-                tube(
-                    "1/16 in.",
-                    "1/2x1/2 Tube (AndyMark Robits)",
-                    0.5,
-                    0.5,
-                    0.063,
-                    0.063,
-                    0.201,
-                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    [row(inch(0.25), inch(0.5), [shape(inch(0))])],
-                    inch(0.25),
-                    inch(0.5),
-                    stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
-                )
-            ],
+            tube(
+                "1/16 in.",
+                "1/2x1/2 Tube (AndyMark Robits)",
+                0.5,
+                0.5,
+                0.063,
+                0.063,
+                0.201,
+                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                [row(inch(0.25), inch(0.5), [shape(inch(0))])],
+                inch(0.25),
+                inch(0.5),
+                stock((inch(47), "am-5001-4700", "https://andymark.com/am-5001-4700")),
+            ),
         )
     ],
 )
@@ -997,9 +1086,9 @@ REV_FTC = vendor(
 )
 
 
-# Custom frames: a profile and size, and how many rows of holes go on each face (a tube's sizes can have none), which
-# robotFrame spaces and sizes as the feature says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y. The
-# Custom size takes its size and rows from the feature too (`customSize`).
+# Custom frames: a profile and size, and how many rows of holes go on each face (a tube's faces can have none), which
+# robotFrame spaces and sizes as the feature says. `topRows` go through the walls facing Y (which are `width` wide), and
+# `sideRows` through those facing X. The Custom size takes its size and rows from the feature too (`customSize`).
 
 
 def custom_size(name: str, width: float, height: float, rows: Node, angle: bool = False) -> Value:
@@ -1015,61 +1104,40 @@ def any_size(angle: bool = False) -> Value:
     return Value("Custom", {"angle": "true" if angle else "false", "customSize": "true"})
 
 
-# The choice of no rows of holes on any face of a custom tube
-NO_HOLES = "No holes"
-
-
-def rows(
-    name: str,
-    most: int,
-    default: int,
-    keys: tuple[str, ...],
-    display_name: str = "Rows",
-    next: Node | None = None,
-    no_holes: bool = False,
-) -> Node:
-    """A choice of 1 to `most` rows of holes, stored under each of `keys`, after `NO_HOLES` (none on any face) if
-    `no_holes`."""
-    none = [Value(NO_HOLES, {"sideRows": "0", "topRows": "0"})] if no_holes else []
+def face_rows(key: str, display_name: str, most: int, default: int, none: bool, next: Node | None = None) -> Node:
+    """A choice of how many rows of holes go on a face, stored under `key`: 1 to `most`, or 0 to `most` if it can have
+    `none`."""
     return Node(
-        name,
-        none + [Value(str(count), {key: str(count) for key in keys}, next) for count in range(1, most + 1)],
+        key,
+        [Value(str(count), {key: str(count)}, next) for count in range(0 if none else 1, most + 1)],
         display_name=display_name,
         default=str(default),
     )
 
 
-def square(name: str, side: float, most: int, default: int, angle: bool = False) -> Value:
-    """A square profile, with the same number of rows of holes on each face (or a tube with none)."""
-    return custom_size(name, side, side, rows("rows", most, default, ("sideRows", "topRows"), no_holes=not angle), angle)
+def sized(
+    name: str, width: float, height: float, top: tuple[int, int], side: tuple[int, int], angle: bool = False
+) -> Value:
+    """A size, with a choice of its top rows (on the faces facing Y, `width` wide), then its side rows (facing X): each
+    `(most, default)`. A tube's faces can have none (with none on either, it has no holes); an angle's legs can't."""
+    sides = face_rows("sideRows", "Side rows", *side, none=not angle)
+    return custom_size(name, width, height, face_rows("topRows", "Top rows", *top, none=not angle, next=sides), angle)
 
 
 CUSTOM_TUBE = Node(
     "size",
     [
-        square("1x1", 1, 2, 1),
-        custom_size(
-            "2x1",
-            2,
-            1,
-            rows(
-                "wideRows",
-                3,
-                3,
-                ("topRows",),
-                "2 in. face rows",
-                rows("narrowRows", 2, 1, ("sideRows",), "1 in. face rows"),
-                no_holes=True,
-            ),
-        ),
-        square("2x2", 2, 3, 3),
+        sized("1x1", 1, 1, (2, 1), (2, 1)),
+        sized("2x1", 2, 1, (3, 3), (2, 1)),
+        sized("2x2", 2, 2, (3, 3), (3, 3)),
         any_size(),
     ],
     default=DEFAULT_SIZE,
 )
 
 CUSTOM_ANGLE = Node(
-    "size", [square("1x1", 1, 2, 1, angle=True), square("2x2", 2, 3, 3, angle=True), any_size(angle=True)]
+    "size",
+    [sized("1x1", 1, 1, (2, 1), (2, 1), angle=True), sized("2x2", 2, 2, (3, 3), (3, 3), angle=True), any_size(angle=True)],
 )
 
 CUSTOM = Node("profile", [Value("Tube", {}, CUSTOM_TUBE), Value("Angle", {}, CUSTOM_ANGLE)])
@@ -1080,5 +1148,5 @@ CONTENTS = [
     *PROFILES,
     Table("frcFrameTable", Node("vendor", [WCP, REV, ANDYMARK, TTB, SWYFT, LAST_ANVIL])),
     Table("customFrameTable", CUSTOM),
-    Table("ftcFrameTable", Node("vendor", [GOBILDA, REV_FTC, ROBITS])),
+    Table("ftcFrameTable", Node("vendor", [GOBILDA, REV_FTC, SWYFT_FTC, ROBITS])),
 ]

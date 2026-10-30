@@ -108,17 +108,17 @@ def test_typed_values_are_drawn(tmp_path):
 
 
 def test_set_by_parameters_follow_what_their_functions_read(tmp_path):
-    # Robot frame's hidden Rectangular frame is set by editing logic from its "Set By" function, isRectangularFrame:
-    # a 2x1 tube shows each face's row distance, and a 1x1 tube one row distance, in fs ui and on the page alike
+    # Robot frame's hidden No holes is set by editing logic from its "Set By" function, isNoHolesFrame: a tube with
+    # rows of holes shows their distances, and one without hides them, in fs ui and on the page alike
     config = load_config()
     project = _project(config)
     path = feature("robotFrame.fs")
     custom = {"program": "FRC", "source": "CUSTOM"}
-    cases = [{**custom, "customFrame": "Tube > 2x1"}, {**custom, "customFrame": "Tube > 1x1"}, {"program": "FTC"}]
+    cases = [{**custom, "customFrame": "Tube > 2x1"}, {**custom, "customFrame": "Tube > 1x1 > 0 > 0"}, {"program": "FTC"}]
     data, conditions = dialog_data(project, config.std_dir, path, None)
-    assert data["parameters"]["rectangularFrame"]["setBy"]["k"] == "program"
+    assert data["parameters"]["noHoles"]["setBy"]["k"] == "program"
     drawn = run_script(page_script(data, conditions), cases, tmp_path)
     rendered = [split_page(render_feature(project, config.std_dir, path, None, settings)[0])[1] for settings in cases]
     assert [same(result["html"]) for result in drawn] == [same(page) for page in rendered]
-    assert "2 in. face row distance" in rendered[0] and "Distance between rows" not in rendered[0]
-    assert "Distance between rows" in rendered[1] and "face row distance" not in rendered[1]
+    assert "Top row distance" in rendered[0] and "Distance between holes" in rendered[0]
+    assert "Top row distance" not in rendered[1] and "Distance between holes" not in rendered[1]

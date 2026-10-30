@@ -45,18 +45,17 @@ export function testCustomSizeTakesItsSizeAndRowsFromTheDialog()
     expectEqual(size.sideRowSpacing, 0.25 * inch);
 }
 
-export function testATableSizeSpacesItsFacesRowsByTheirWidths()
+export function testATableSizeTakesItsSizeAndRowsFromTheTable()
 {
     const size = customFrameSize({
                 "program" : Program.FRC,
                 "source" : FrameSource.CUSTOM,
-                "customFrame" : { "profile" : "Tube", "size" : "2x1", "wideRows" : "3", "narrowRows" : "1" } as LookupTablePath,
+                "customFrame" : { "profile" : "Tube", "size" : "2x1", "topRows" : "3", "sideRows" : "1" } as LookupTablePath,
                 // Ignored: they're the custom size's
                 "width" : 3 * inch,
-                "topRowSpacing" : 1 * inch,
-                "wideRowSpacing" : 0.5 * inch,
-                "narrowRowSpacing" : 0.375 * inch,
-                "rowSpacing" : 0.25 * inch
+                "topRows" : 1,
+                "topRowSpacing" : 0.5 * inch,
+                "sideRowSpacing" : 0.375 * inch
             });
     expectEqual(size.width, 2 * inch);
     expectEqual(size.topRows, 3);

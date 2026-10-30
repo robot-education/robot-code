@@ -12,7 +12,7 @@ from fs_eval.sketch import recorded_sketch
 from fs_eval.values import untag
 
 FRAME = "released/frame/robotFrame.fs"
-STOCK = "core/linearStock.fs"
+STOCK = "core/wallStock.fs"
 INCH = 0.0254
 LOCATION = "coordSystem(vector(0, 0, 0) * meter, vector(1, 0, 0), vector(0, 0, 1))"
 MAX_SPLINE_RADIUS = 17.45e-3
@@ -183,11 +183,16 @@ def rectangle(**fields) -> str:
 )
 def test_walls(fields, across, walls):
     found = to_python(evaluate(f"stockWalls({rectangle(**fields)}, {LOCATION}, {across})", STOCK))
+    starts = {}
     for wall, (name, at, low, high) in zip(found, walls):
         assert wall["name"] == name
         # Where it starts across the stock, along the way it faces
         assert sum(o * n for o, n in zip(wall["plane"]["origin"], wall["plane"]["normal"])) == pytest.approx(at * INCH)
         assert (wall["low"], wall["high"]) == (pytest.approx(low * INCH), pytest.approx(high * INCH))
+        # The second facing each way copies the first, as far along as it is from it
+        first = name[0] + "0"
+        assert wall.get("copies") == (None if name == first else first)
+        assert wall["along"] == pytest.approx((at - starts.setdefault(first, at)) * INCH)
     assert len(found) == len(walls)
 
 
@@ -212,28 +217,30 @@ def test_clear_position(spans, length, position):
     assert to_python(evaluate(f"clearPosition({spans_code}, {length} * inch)", STOCK)) == pytest.approx(position * INCH)
 
 
-@pytest.mark.parametrize("size", ["1x1", "2x2"])
-def test_custom_tubes_can_have_no_holes(size):
-    definition = evaluate(
-        f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {{ "profile" : "Tube", "size" : "{size}", "rows" : "No holes" }} as LookupTablePath, '
+def custom_tube(size: str, top: str, side: str):
+    return evaluate(
+        f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {{ "profile" : "Tube", "size" : "{size}", "topRows" : "{top}", "sideRows" : "{side}" }} as LookupTablePath, '
         '"wallThickness" : 0.0625 * inch, "holeSpacing" : 0.5 * inch, "holeStart" : 0.5 * inch, "holeDiameter" : 0.196 * inch, '
-        '"rowSpacing" : 0.5 * inch }',
+        '"topRowSpacing" : 0.5 * inch, "sideRowSpacing" : 0.5 * inch }',
         FRAME,
     )
+
+
+@pytest.mark.parametrize("size", ["1x1", "2x1", "2x2"])
+def test_custom_tubes_can_have_no_holes(size):
+    definition = custom_tube(size, "0", "0")
     assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is True
     stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
     assert (stock["xRows"], stock["yRows"]) == ([], [])
 
 
-def test_custom_2x1_tubes_can_have_no_holes():
-    path = '{ "profile" : "Tube", "size" : "2x1", "wideRows" : "No holes" } as LookupTablePath'
-    definition = evaluate(f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {path} }}', FRAME)
-    assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is True
-    with_holes = evaluate(
-        '{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : { "profile" : "Tube", "size" : "2x1", "wideRows" : "1", "narrowRows" : "1" } as LookupTablePath }',
-        FRAME,
-    )
-    assert evaluate("isNoHolesFrame(definition)", FRAME, definition=with_holes) is False
+@pytest.mark.parametrize("size", ["1x1", "2x1", "2x2"])
+def test_custom_tubes_can_have_holes_on_only_their_top_or_sides(size):
+    for top, side in (("0", "1"), ("1", "0")):
+        definition = custom_tube(size, top, side)
+        assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is False
+        stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
+        assert (len(stock["yRows"]), len(stock["xRows"])) == (int(top), int(side))
 
 
 def test_sketched_profiles_walls_reach_just_past_their_holes():
@@ -249,17 +256,22 @@ def test_sketched_profiles_walls_reach_just_past_their_holes():
     assert [wall["name"] for wall in walls] == ["x0", "x1"]
 
 
-def test_notches_are_left_out():
+def frame_tables():
     import importlib.util
     import pathlib
-
-    from fs_cli.sketches import Line, Point
 
     spec = importlib.util.spec_from_file_location(
         "frameTables", pathlib.Path(__file__).parents[2] / "featurescripts/released/frame/frameTables.py"
     )
     tables = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(tables)
+    return tables
+
+
+def test_notches_are_left_out_and_cut_as_grooves():
+    from fs_cli.sketches import Line, Point
+
+    tables = frame_tables()
     # A wall's inside, with a notch 0.005 in. deep, then a corner
     wall = [
         Line(Point(-1, 0.46), Point(-0.005, 0.46)),
@@ -269,3 +281,89 @@ def test_notches_are_left_out():
         Line(Point(1, 0.46), Point(1, 0)),
     ]
     assert tables.without_notches(wall) == [Line(Point(-1, 0.46), Point(1, 0.46)), Line(Point(1, 0.46), Point(1, 0))]
+    assert tables.notches(wall) == [
+        Line(Point(-0.005, 0.46), Point(0, 0.465)),
+        Line(Point(0, 0.465), Point(0.005, 0.46)),
+        Line(Point(0.005, 0.46), Point(-0.005, 0.46)),
+    ]
+
+
+@pytest.mark.parametrize(
+    "file, count", [("REV-21-2162.STEP", 6), ("REV-21-2163.STEP", 6), ("REV-21-2289.STEP", 8), ("REV-21-2161.STEP", 0)]
+)
+def test_maxtube_grooves_are_its_notches(file, count):
+    """Each of MAXTube's grooves is a notch its plain profile left out: 0.01 in. wide and 0.005 in. deep, across the
+    inside of one of its walls."""
+    tables = frame_tables()
+    grooves = tables.step_grooves(file, degrees=90).entities
+    assert len(grooves) == 3 * count
+    inside = [entity for entity in tables.step_profile(file, degrees=90, plain_outside=True).entities[4:]]
+    for k in range(0, len(grooves), 3):
+        across = grooves[k + 2]
+        assert (across.end - across.start).length == pytest.approx(0.01)
+        depth = grooves[k].end - grooves[k].start
+        assert abs(depth.x * (across.end - across.start).y - depth.y * (across.end - across.start).x) / 0.01 == pytest.approx(0.005)
+        assert any(tables.same(across.start, point) or line_holds(line, across.start) for line in inside for point in (line.start, line.end))
+
+
+def line_holds(line, point) -> bool:
+    """Whether `point` is on `line`."""
+    along, to = line.end - line.start, point - line.start
+    cross = along.x * to.y - along.y * to.x
+    dot = along.x * to.x + along.y * to.y
+    return abs(cross) < 1e-9 and 0 <= dot <= along.x**2 + along.y**2
+
+
+def test_frames_with_grooves_are_built_from_their_walls():
+    grooved = [stock for stock in cots_frames() if "grooves" in to_python(untag(stock))]
+    assert sorted(to_python(untag(stock))["partName"] for stock in grooved) == [
+        "2x1 Tube (REV, light)",
+        "2x1 Tube (REV, standard, 1 in. sides only)",
+        "2x1 Tube (REV, standard, MAX Pattern)",
+    ]
+    assert all(built_from_walls(stock) for stock in grooved)
+
+
+def sketched_loops(function: str, stock, across: int) -> list[list[tuple[float, float]]]:
+    """The loops linear stock's `function` (like `sketchProfile`) sketches for `stock`, as polygons."""
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    sketch = evaluator.eval('newSketchOnPlane(context, newId() + "profile", { "sketchPlane" : XY_PLANE })', context=context)
+    evaluate(f"{function}(sketch, stock, {across})", STOCK, sketch=sketch, stock=stock)
+    evaluator.eval("skSolve(sketch)", sketch=sketch)
+    return [polygon(loop) for loop in recorded_sketch(context, "profile").loops()]
+
+
+@pytest.mark.parametrize("across", [1, -1])
+def test_grooves_are_cut_into_the_inside_of_walls(across):
+    """Each groove is in the profile's material, against its inside: just past the groove's open side is a void."""
+    for stock in cots_frames():
+        if "grooves" not in to_python(untag(stock)):
+            continue
+        profile = sketched_loops("sketchProfile", stock, across)
+        grooves = sketched_loops("sketchGrooves", stock, across)
+        assert grooves
+
+        def material(point) -> bool:
+            return sum(inside(point, p) for p in profile) % 2 == 1
+
+        for groove in grooves:
+            center = (sum(x for x, _ in groove) / len(groove), sum(y for _, y in groove) / len(groove))
+            assert material(center)
+            # Its open side is its longest, across from its tip
+            a, b = max(
+                zip(groove, groove[1:] + groove[:1]), key=lambda side: math.dist(side[0], side[1])
+            )
+            middle = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+            away = (middle[0] - center[0], middle[1] - center[1])
+            scale = 0.002 * INCH / math.hypot(*away)
+            assert not material((middle[0] + away[0] * scale, middle[1] + away[1] * scale))
+
+
+def test_frames_are_their_vendors_material():
+    """Last Anvil's tube is 7075; the rest are Aluminum - 6061 (`setStockProperties`'s default)."""
+    materials = {
+        to_python(untag(stock))["partName"]: to_python(untag(stock)).get("material") for stock in cots_frames()
+    }
+    assert materials.pop("2x1 Tube (Last Anvil, 1/16 in. wall)")["name"] == "Aluminum - 7075"
+    assert set(materials.values()) == {None}
