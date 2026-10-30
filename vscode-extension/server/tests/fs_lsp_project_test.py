@@ -1196,3 +1196,48 @@ def test_rename_edits(project):
             project.rename_edits(feature, source.index("double(1)"), bad)
     with pytest.raises(RenameError, match="std's"):
         project.rename_edits(feature, source.index("println"), "say")
+
+
+def test_operations_under_an_id_must_be_contiguous(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'import(path : "onshape/std/common.fs", version : "2909.0");\n'
+        "function piece(context is Context, id is Id)\n"
+        "{\n"
+        '    opExtrude(context, id + "extrude", {});\n'
+        "}\n"
+        "function tag(context is Context, id is Id)\n"
+        "{\n"
+        "}\n"
+        "export function run(context is Context, id is Id, count is number)\n"
+        "{\n"
+        '    const cellId = id + "cell";\n'
+        "    piece(context, cellId);\n"
+        '    piece(context, id + "start");\n'
+        '    opBoolean(context, cellId + "join", {});\n'
+        "    for (var i = 0; i < count; i += 1)\n"
+        "    {\n"
+        '        opPattern(context, id + "copies" + ("c" ~ i), {});\n'
+        '        opBoolean(context, id + "joins" + ("j" ~ i), {});\n'
+        "    }\n"
+        '    tag(context, id + "start");\n'
+        "    reportFeatureInfo(context, id, \"\");\n"
+        "    if (count == 0)\n"
+        "    {\n"
+        '        opBoolean(context, id + "end", {});\n'
+        '        throw regenError("");\n'
+        "    }\n"
+        '    opBoolean(context, id + "other", {});\n'
+        '    opBoolean(context, id + "end", {});\n'
+        "}\n"
+    )
+    module = project.module(path)
+    found = [
+        (module.parsed.source[p.start:p.end], module.position(p.start)[0])
+        for p in project.check(module)
+        if p.code == "id-order"
+    ]
+    # "cell" resumes after "start", through its alias; a loop's body repeats, so "copies" and "joins" each resume after
+    # the other. Not `tag` (it makes no operations), the id alone, or "end" after a branch which throws
+    assert found == [("cellId", 14), ("id", 17), ("id", 18)]

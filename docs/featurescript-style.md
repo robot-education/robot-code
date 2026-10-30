@@ -641,6 +641,10 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - Std functions must be called with as many arguments as one of their overloads takes (`a->f(b)` passes `a` too):
   Onshape reports "Function f with 2 argument(s) not found".
 - A function's variables can't be named as its parameters ("Variable x already declared in this scope").
+- All of an id's operations come one after another ("Parent Id ... used at two non-contiguous points in operation
+  history"): within a function, operations under `id + "cell"` (through an alias like `const cellId = id + "cell";`, and
+  calls to this file's functions which make operations) can't resume after one under another id, counting a loop's body
+  twice and leaving out a branch which throws or returns. Build each id's operations together, or give them other ids.
 - Annotation strings (names, descriptions) must be printable ASCII: no degree signs or curly quotes.
 - No comparisons with `true` or `false`; use the value, or `!` it.
 - No parameters which can be toleranced, directly or through std's predicates (see "No field tolerancing").

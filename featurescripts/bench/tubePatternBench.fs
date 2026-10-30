@@ -81,16 +81,17 @@ function buildSections(context is Context, id is Id, length is ValueWithUnits, h
         throw regenError("The tube is shorter than a section.", ["length"]);
     }
     const middleEnd = SECTION_START + count * span;
-    // One section, whole, then the pieces before and after the sections
+    // One section, whole (joined before anything else is made, as an id's operations must be contiguous), then the
+    // pieces before and after the sections
     const cellId = id + "cell";
     const cellWalls = buildPiece(context, cellId, SECTION_START, SECTION_START + span, y);
+    opBoolean(context, cellId + "join", { "tools" : cellWalls, "operationType" : BooleanOperationType.UNION });
     buildPiece(context, id + "start", 0 * meter, SECTION_START, y);
     if (length - middleEnd > BENCH_TOLERANCE)
     {
         buildPiece(context, id + "end", middleEnd, length, y);
     }
     deleteSketches(context, id);
-    opBoolean(context, cellId + "join", { "tools" : cellWalls, "operationType" : BooleanOperationType.UNION });
     const cell = qCreatedBy(cellId, EntityType.BODY)->qBodyType(BodyType.SOLID);
 
     if (join == BenchJoin.DOUBLING)

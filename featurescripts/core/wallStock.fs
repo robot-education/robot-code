@@ -187,6 +187,25 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     var endTracks = [];
     // What the walls' holes tied to the end (see `getTie`) become, tracked from their sketch entities
     var tiedTracks = [];
+    const groovesId = id + "grooves";
+    if (stock.grooves != undefined)
+    {
+        // Cut once it's joined, as its walls' sketches can't run along it: a little longer, so they cut through its ends.
+        // Made before the walls, as each id's operations must be contiguous
+        const sketch = newSketchOnPlane(context, groovesId + "sketch", { "sketchPlane" : plane(location) });
+        sketchGrooves(sketch, stock, across);
+        skSolve(sketch);
+        opExtrude(context, groovesId + "extrude", {
+                    "entities" : qSketchRegion(groovesId + "sketch"),
+                    "direction" : location.zAxis,
+                    "startBound" : BoundingType.BLIND,
+                    "startDepth" : GROOVE_OVERRUN,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : length + GROOVE_OVERRUN
+                });
+        swept = append(swept, qNonCapEntity(groovesId + "extrude", EntityType.FACE));
+        swept = append(swept, qNonCapEntity(groovesId + "extrude", EntityType.EDGE));
+    }
     for (var wall in walls)
     {
         if (wall.copies != undefined)
@@ -249,24 +268,6 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
         starts = append(starts, qCapEntity(coreId + "extrude", CapType.START, EntityType.FACE));
         coreEnds = append(coreEnds, qCapEntity(coreId + "extrude", CapType.END, EntityType.FACE));
     }
-    const groovesId = id + "grooves";
-    if (stock.grooves != undefined)
-    {
-        // Cut once it's joined, as its walls' sketches can't run along it: a little longer, so they cut through its ends
-        const sketch = newSketchOnPlane(context, groovesId + "sketch", { "sketchPlane" : plane(location) });
-        sketchGrooves(sketch, stock, across);
-        skSolve(sketch);
-        opExtrude(context, groovesId + "extrude", {
-                    "entities" : qSketchRegion(groovesId + "sketch"),
-                    "direction" : location.zAxis,
-                    "startBound" : BoundingType.BLIND,
-                    "startDepth" : GROOVE_OVERRUN,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : length + GROOVE_OVERRUN
-                });
-        swept = append(swept, qNonCapEntity(groovesId + "extrude", EntityType.FACE));
-        swept = append(swept, qNonCapEntity(groovesId + "extrude", EntityType.EDGE));
-    }
     if (tiedTracks != [])
     {
         setAttribute(context, {
@@ -283,6 +284,16 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
         tagFrameCaps(context, qEntityFilter(qUnion(concatenateArrays([endTracks, coreEnds])), EntityType.FACE), false);
     }
 
+    if (stock.profile != undefined)
+    {
+        // Straight after its extrude, as each id's operations must be contiguous
+        const coreId = wallsId + "core";
+        cutCoreBlocks(context, coreId, length, walls);
+        endTracks = append(endTracks, startTracking(context, {
+                        "subquery" : qCapEntity(coreId + "extrude", CapType.END, EntityType.FACE),
+                        "trackPartialDependency" : true
+                    }));
+    }
     for (var wall in walls)
     {
         if (wall.copies != undefined)
@@ -295,15 +306,6 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
                     });
         }
     }
-    if (stock.profile != undefined)
-    {
-        const coreId = wallsId + "core";
-        cutCoreBlocks(context, coreId, length, walls);
-        endTracks = append(endTracks, startTracking(context, {
-                        "subquery" : qCapEntity(coreId + "extrude", CapType.END, EntityType.FACE),
-                        "trackPartialDependency" : true
-                    }));
-    }
     opDeleteBodies(context, id + "deleteSketches", {
                 "entities" : qUnion(qCreatedBy(wallsId, EntityType.BODY), qCreatedBy(groovesId, EntityType.BODY))->qSketchFilter(SketchObject.YES)
             });
@@ -311,7 +313,7 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     opBoolean(context, id + "join", { "tools" : body, "operationType" : BooleanOperationType.UNION });
     if (stock.grooves != undefined)
     {
-        opBoolean(context, groovesId + "cut", {
+        opBoolean(context, id + "cutGrooves", {
                     "tools" : qCreatedBy(groovesId + "extrude", EntityType.BODY),
                     "targets" : body,
                     "operationType" : BooleanOperationType.SUBTRACTION

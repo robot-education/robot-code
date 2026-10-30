@@ -924,6 +924,7 @@ class Project:
         problems.extend(_function_value_problems(module, providers))
         problems.extend(_std_arity_problems(module, providers))
         problems.extend(_redeclared_problems(module))
+        problems.extend(_id_order_problems(module))
         problems.extend(_annotation_ascii_problems(module))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
@@ -2577,6 +2578,187 @@ def _redeclared_problems(module: Module) -> list[Problem]:
             )
             break
     return problems
+
+
+def _id_order_problems(module: Module) -> list[Problem]:
+    """Operations under an id made at two points with another's between, which Onshape rejects ("Parent Id ... used at
+    two non-contiguous points in operation history"): every operation under an id must come one after another.
+
+    Within each function, it reads the ids operations are made with: the second argument of a call after `context`, to
+    a std operation (`op...`, `newSketch...`) or a function of this file which makes them (like
+    `buildPiece(context, id + "cell")`), as an `Id` parameter plus string literals, through aliases
+    (`const cellId = id + "cell";`); a part that isn't a literal (`id + ("x" ~ i)`) ends what can be read, and an id
+    alone doesn't count (everything is under it). A loop's body counts twice, as it repeats, and a branch which ends
+    in a `throw` or `return` is checked, but nothing after it follows it."""
+    tokens = module.index.tokens
+    offsets = [token.offset for token in tokens]
+    functions = [node for node in module.parsed.nodes if node.type in FUNCTION_NODE_TYPES]
+    ranges = {}
+    for node in functions:
+        first = bisect.bisect_left(offsets, node.start)
+        name = node.name
+        if name is None and first >= 3 and tokens[first - 1].value == "=" and tokens[first - 3].value == "const":
+            name = tokens[first - 2].value
+        ranges[node.start] = (first, bisect.bisect_left(offsets, node.end), name)
+    # The functions of this file which make operations, directly or through each other
+    makers = set()
+    changed = True
+    while changed:
+        changed = False
+        for first, last, name in ranges.values():
+            if name is None or name in makers:
+                continue
+            if any(_makes_operation(tokens, position, makers) for position in range(first, last)):
+                makers.add(name)
+                changed = True
+    problems = []
+    for function in functions:
+        first, last, _ = ranges[function.start]
+        nested = [
+            ranges[other.start][:2]
+            for other in functions
+            if other is not function and function.start <= other.start and other.end <= function.end
+        ]
+        body = next((position for position in range(first, last) if tokens[position].value == "{"), last)
+        # Its Id parameters: `id is Id`
+        ids: dict[str, tuple[str, tuple[str, ...], bool]] = {}
+        for position in range(first, body):
+            if tokens[position].kind == "identifier" and tokens[position + 1].value == "is" and tokens[position + 2].value == "Id":
+                ids[tokens[position].value] = (tokens[position].value, (), False)
+        if ids:
+            events = _id_events(tokens, body, last, nested, ids, makers)
+            problems.extend(_IdOrder(module).check(events))
+    return problems
+
+
+def _makes_operation(tokens: list[Token], position: int, makers: set[str]) -> bool:
+    """Whether a call at `position` makes an operation: `name(context, ...)` for a std operation (`op...`,
+    `newSketch...`), or one of `makers`."""
+    token = tokens[position]
+    if token.kind != "identifier" or tokens[position + 1].value != "(" or tokens[position + 2].value != "context":
+        return False
+    name = token.value
+    return (name.startswith("op") and name[2:3].isupper()) or name.startswith("newSketch") or name in makers
+
+
+def _id_expression(tokens: list[Token], position: int, ids: dict) -> tuple[tuple[str, tuple[str, ...], bool], int] | None:
+    """The id an expression starting at `position` makes from a known id (its root, literal parts, and whether a part
+    after them isn't a literal), and where it ends; None if it doesn't start with one."""
+    if tokens[position].kind != "identifier" or tokens[position].value not in ids:
+        return None
+    root, parts, dynamic = ids[tokens[position].value]
+    parts = list(parts)
+    position += 1
+    while tokens[position].value == "+":
+        operand = tokens[position + 1]
+        if operand.kind == "string" and tokens[position + 2].value != "~" and not dynamic:
+            parts.append(operand.value[1:-1])
+            position += 2
+            continue
+        dynamic = True
+        position += 1
+        # Past the operand: a bracketed expression, or a name (and whatever's called or indexed on it)
+        while tokens[position].kind != "eof" and tokens[position].value not in ("+", ",", ")", ";", "]", "}"):
+            end = _matching_index(tokens, position)
+            position = end + 1 if end is not None else position + 1
+    return (root, tuple(parts), dynamic), position
+
+
+def _id_events(tokens: list[Token], start: int, end: int, nested: list[tuple[int, int]], ids: dict, makers: set[str]) -> list:
+    """The ids operations are made under from `start` to `end`, in order (see `_id_order_problems`): each its root and
+    literal parts, and the token it starts at; or a branch which ends the function, as `("branch", its events)`."""
+    events = []
+    position = start
+    while position < end:
+        skipped = next((stop for begin, stop in nested if begin <= position < stop), None)
+        if skipped is not None:
+            position = skipped
+            continue
+        token = tokens[position]
+        if token.value in ("for", "while", "if") and tokens[position + 1].value == "(":
+            header_end = _matching_index(tokens, position + 1)
+            if header_end is not None and tokens[header_end + 1].value == "{":
+                body_end = _matching_index(tokens, header_end + 1)
+                if body_end is not None:
+                    inner = _id_events(tokens, header_end + 2, body_end, nested, ids, makers)
+                    if token.value != "if":
+                        events.extend(inner + inner)
+                    elif _ends_function(tokens, header_end + 2, body_end):
+                        events.append(("branch", inner))
+                    else:
+                        events.extend(inner)
+                    position = body_end + 1
+                    continue
+        if token.value in ("const", "var") and tokens[position + 1].kind == "identifier" and tokens[position + 2].value == "=":
+            found = _id_expression(tokens, position + 3, ids)
+            if found is not None and tokens[found[1]].value == ";":
+                ids[tokens[position + 1].value] = found[0]
+        if _makes_operation(tokens, position, makers) and tokens[position + 3].value == ",":
+            found = _id_expression(tokens, position + 4, ids)
+            if found is not None and (found[0][1] or found[0][2]):
+                events.append((found[0], tokens[position + 4]))
+        position += 1
+    return events
+
+
+def _ends_function(tokens: list[Token], start: int, end: int) -> bool:
+    """Whether a block's statements, from `start` to `end`, include a `throw` or `return` at its top level."""
+    depth = 0
+    for token in tokens[start:end]:
+        if token.kind != "string" and token.value in ("(", "[", "{"):
+            depth += 1
+        elif token.kind != "string" and token.value in (")", "]", "}"):
+            depth -= 1
+        elif depth == 0 and token.value in ("throw", "return"):
+            return True
+    return False
+
+
+class _IdOrder:
+    """Checks `_id_events`' ids are contiguous: for each id (and each id it's under), whether operations under it
+    resume after one which isn't."""
+
+    def __init__(self, module: Module) -> None:
+        self.module = module
+        self.seen: set[tuple] = set()
+        # Each id interrupted since its last operation, by the event which interrupted it
+        self.interrupted: dict[tuple, tuple] = {}
+        self.reported: set[tuple] = set()
+
+    def check(self, events: list) -> list[Problem]:
+        problems = []
+        for event in events:
+            if event[0] == "branch":
+                state = (set(self.seen), dict(self.interrupted))
+                problems.extend(self.check(event[1]))
+                self.seen, self.interrupted = state
+                continue
+            (root, parts, _), token = event
+            groups = [(root, parts[:length]) for length in range(1, len(parts) + 1)]
+            for group in self.seen:
+                if group not in groups and group not in self.interrupted:
+                    self.interrupted[group] = event
+            for group in groups:
+                if group in self.interrupted and group not in self.reported:
+                    self.reported.add(group)
+                    (between_root, between_parts, _), between = self.interrupted[group]
+                    name = " + ".join(f'"{part}"' for part in group[1])
+                    other = " + ".join(f'"{part}"' for part in between_parts) or between_root
+                    line = self.module.position(between.offset)[0] + 1
+                    problems.append(
+                        Problem(
+                            token.offset,
+                            token.end,
+                            "error",
+                            f"Operations under {name} resume after one under {other} (line {line}): Onshape needs all of "
+                            "an id's operations to come one after another. Move them together, or give this one another "
+                            "id.",
+                            "id-order",
+                        )
+                    )
+                self.seen.add(group)
+                self.interrupted.pop(group, None)
+        return problems
 
 
 def _annotation_ascii_problems(module: Module) -> list[Problem]:
