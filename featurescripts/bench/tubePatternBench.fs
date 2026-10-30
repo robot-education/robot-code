@@ -43,19 +43,66 @@ export const tubePatternBench = defineFeature(function(context is Context, id is
     }
     {
         const length = definition.length;
-        buildWalls(context, id + "walls", length, 0 * ROW);
-        // 1 hole (1/2 in.) per section
-        buildSections(context, id + "sections1Union", length, 1, BenchJoin.UNION_ALL, 1 * ROW);
-        buildSections(context, id + "sections1Doubling", length, 1, BenchJoin.DOUBLING, 2 * ROW);
-        buildSections(context, id + "sections1Unjoined", length, 1, BenchJoin.NONE, 3 * ROW);
-        // 4 holes (2 in.)
-        buildSections(context, id + "sections4Union", length, 4, BenchJoin.UNION_ALL, 4 * ROW);
-        buildSections(context, id + "sections4Doubling", length, 4, BenchJoin.DOUBLING, 5 * ROW);
-        // 8 holes (4 in.)
-        buildSections(context, id + "sections8Union", length, 8, BenchJoin.UNION_ALL, 6 * ROW);
-        // 16 holes (8 in.)
-        buildSections(context, id + "sections16Union", length, 16, BenchJoin.UNION_ALL, 7 * ROW);
+        walls(context, id + "walls", length);
+        sections1Union(context, id + "sections1Union", length);
+        sections1Doubling(context, id + "sections1Doubling", length);
+        // Its sections are left separate: copying them alone
+        sections1Unjoined(context, id + "sections1Unjoined", length);
+        sections4Union(context, id + "sections4Union", length);
+        sections4Doubling(context, id + "sections4Doubling", length);
+        sections8Union(context, id + "sections8Union", length);
+        sections16Union(context, id + "sections16Union", length);
     });
+
+// Each way has a function of its own, so the profiler's report has a row for each
+
+/** Whole walls, as wall stock builds them. */
+function walls(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildWalls(context, id, length, 0 * ROW);
+}
+
+/** 1 hole (1/2 in.) per section, joined with one union. */
+function sections1Union(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildSections(context, id, length, 1, BenchJoin.UNION_ALL, 1 * ROW);
+}
+
+/** 1 hole per section, joined by doubling. */
+function sections1Doubling(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildSections(context, id, length, 1, BenchJoin.DOUBLING, 2 * ROW);
+}
+
+/** 1 hole per section, left separate. */
+function sections1Unjoined(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildSections(context, id, length, 1, BenchJoin.NONE, 3 * ROW);
+}
+
+/** 4 holes (2 in.) per section, joined with one union. */
+function sections4Union(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildSections(context, id, length, 4, BenchJoin.UNION_ALL, 4 * ROW);
+}
+
+/** 4 holes per section, joined by doubling. */
+function sections4Doubling(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildSections(context, id, length, 4, BenchJoin.DOUBLING, 5 * ROW);
+}
+
+/** 8 holes (4 in.) per section, joined with one union. */
+function sections8Union(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildSections(context, id, length, 8, BenchJoin.UNION_ALL, 6 * ROW);
+}
+
+/** 16 holes (8 in.) per section, joined with one union. */
+function sections16Union(context is Context, id is Id, length is ValueWithUnits)
+{
+    buildSections(context, id, length, 16, BenchJoin.UNION_ALL, 7 * ROW);
+}
 
 /**
  * The tube `length` long at `y`, from whole walls: its top and one side sketched with all their holes, the others
