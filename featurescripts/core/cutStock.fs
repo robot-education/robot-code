@@ -6,8 +6,8 @@ FeatureScript 2960;
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "72b77780ed382be329401627", version : "505d7b698065300de55ae4da");
-import(path : "f58a965fe7005e2e3c9a67c7", version : "d96cdaac91eb8183e20e6de7");
+import(path : "72b77780ed382be329401627", version : "a0ad561c9e3a3bdae870026b");
+import(path : "f58a965fe7005e2e3c9a67c7", version : "5794d15cbce3be3e963e93d5");
 import(path : "core/linearStock.fs", version : "");
 
 /**
