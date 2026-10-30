@@ -223,8 +223,10 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
         const sides = trackSketchEntities(context, sketchId, ["wall.low", "wall.high"]);
         starts = append(starts, trackSketchEntities(context, sketchId, ["wall.start"]));
         endTracks = append(endTracks, trackSketchEntities(context, sketchId, ["wall.end"]));
-        // The wall itself: the region along its side, which its holes stay clear of (see `holesFitWalls`), so it leaves
-        // out the regions inside holes, and those holes crossing its ends cut off
+        // The wall itself: the region along its side, which its holes stay clear of (see `holesFitWalls`). Not
+        // `qSketchRegion(sketchId, true)`, which leaves out holes inside it, but not a hole its end crosses: that's split
+        // into regions on the end line, the outside boundary, which don't count as inside (one in the notch, and one
+        // past the end)
         const extrudeId = wallId + "extrude";
         opExtrude(context, extrudeId, {
                     "entities" : qAdjacent(sketchEntityQuery(sketchId, EntityType.EDGE, "wall.low"), AdjacencyType.EDGE, EntityType.FACE),

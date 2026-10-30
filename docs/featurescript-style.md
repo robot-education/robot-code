@@ -553,10 +553,11 @@ which entity it is, and say why beside it.
 
 To extrude a sketch, take its regions as other features do: `qSketchRegion(sketchId)`, or
 `qSketchRegion(sketchId, true)` for a profile with holes (a tube's hollow), or `qCreatedBy(sketchId, EntityType.FACE)`,
-and at most one simple filter. Where some of its regions mustn't be extruded, pick the one wanted by a sketch entity
-which bounds it: wall stock takes the region adjacent to its rectangle's `.low` line
-(`qAdjacent(sketchEntityQuery(sketchId, EntityType.EDGE, "wall.low"), AdjacencyType.EDGE, EntityType.FACE)`), which
-leaves out holes, and the parts of holes its ends cut off.
+and at most one simple filter. `qSketchRegion(sketchId, true)` leaves out regions inside others (holes), but not a
+region touching the outside boundary: a hole crossing a sketch's edge is split into regions on it, which it keeps.
+Where those mustn't be extruded, pick the region wanted by a sketch entity which bounds it: wall stock, whose last hole
+can cross its end, takes the region adjacent to its rectangle's `.low` line
+(`qAdjacent(sketchEntityQuery(sketchId, EntityType.EDGE, "wall.low"), AdjacencyType.EDGE, EntityType.FACE)`).
 
 To tag faces (with attributes, like a frame's), tag them by history as they're made: attributes go with their
 entities through later operations (split pieces each keep them, patterned copies get them, and merged entities keep
