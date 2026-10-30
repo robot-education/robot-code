@@ -31,6 +31,7 @@
     "53b4724e5ca49bd7fbc09e3e": "core/stdRevolve.fs",
     "554542fc345271814c4463b0": "core/pointManipulator.fs",
     "58d66340f7b70cfc86606676": "core/mounting.fs",
+    "5970ee59d81c7bb3b4103116": "bench/tubePatternBench.fs",
     "5bee4cc7b6b0575cdb535750": "released/belt/robotBeltModel.fs",
     "603be214b7d30fd438966545": "released/shaft/robotShaftCommon.fs",
     "6451a02d1f9f40630984864b": "released/printAdapter/printAdapterProfiles.gen.fs",
