@@ -171,7 +171,8 @@ function holesFitWalls(stock is Stock, walls is array) returns boolean
  *
  * Each wall is `length` long, with the holes `buildCutStock` would cut. A hole is named by its count from the start, or
  * from the end if it's tied to it (see `getTie`), so its faces keep their identities as the stock's length changes.
- * Holes crossing an end leave a notch, as they're cut through.
+ * Holes reaching an end (crossing it, or tangent to it) are left out, so the wall is whole there: a hole touching its
+ * sketch's outside isn't one of its inner loops, so it would be extruded anyway (with what of it is past the end).
  */
 function buildFromWalls(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits,
     ends is map, tie is map, walls is array, across is number) returns map
@@ -203,6 +204,10 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
             const positions = holePositions(row, extent, length, tie);
             for (var k, hole in positions)
             {
+                if (!tolerantLessThan(extent, hole.position) || !tolerantLessThan(hole.position + extent, length))
+                {
+                    continue;
+                }
                 const name = "r" ~ r ~ (hole.tied ? ".t" ~ (size(positions) - 1 - k) : ".h" ~ k);
                 for (var s, shape in row.shapes)
                 {
@@ -223,13 +228,10 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
         const sides = trackSketchEntities(context, sketchId, ["wall.low", "wall.high"]);
         starts = append(starts, trackSketchEntities(context, sketchId, ["wall.start"]));
         endTracks = append(endTracks, trackSketchEntities(context, sketchId, ["wall.end"]));
-        // The wall itself: the region along its side, which its holes stay clear of (see `holesFitWalls`). Not
-        // `qSketchRegion(sketchId, true)`, which leaves out holes inside it, but not a hole its end crosses: that's split
-        // into regions on the end line, the outside boundary, which don't count as inside (one in the notch, and one
-        // past the end)
+        // The wall itself, without the regions inside its holes
         const extrudeId = wallId + "extrude";
         opExtrude(context, extrudeId, {
-                    "entities" : qAdjacent(sketchEntityQuery(sketchId, EntityType.EDGE, "wall.low"), AdjacencyType.EDGE, EntityType.FACE),
+                    "entities" : qSketchRegion(sketchId, true),
                     "direction" : wall.plane.normal,
                     "endBound" : BoundingType.BLIND,
                     "endDepth" : wall.depth

@@ -153,9 +153,10 @@ is there, with nothing behind them (frameTables.py's MAXTube walls, which a test
    lines, without `skRectangle`'s constraints), with its holes (`holePositions` and `sketchShape`, as cutting them
    would), and extruded as thick as the wall. The walls facing Y run the stock's width, and those facing X between
    them. Each hole is named by its count from the start, or from the end if it's tied (`r<row>.h<k>` or `r<row>.t<k>`),
-   so its faces keep their identities as the length changes. The extrude takes the region adjacent to the rectangle's
-   `.low` line (`qAdjacent` of `sketchEntityQuery`), which its holes stay clear of: not the regions inside holes, or
-   those holes crossing an end cut off, which leave a notch.
+   so its faces keep their identities as the length changes. The extrude takes its regions but those inside others
+   (`qSketchRegion(sketchId, true)`): not its holes. Holes reaching an end (crossing it, or tangent to it) are left out,
+   so the wall is whole there, unlike cut stock's, which are cut through: a hole touching the sketch's outside isn't
+   inside another region, so it would be extruded anyway, with what of it is past the end.
 2. A sketched profile's core (the rest of it) is its profile extruded (`extrudeCore`), and a profile's `grooves`
    (MAXTube's, inside its walls, which neither the walls' sketches nor its plain profile have) are sketched
    (`sketchGrooves`) and extruded 1 mm past each end.
