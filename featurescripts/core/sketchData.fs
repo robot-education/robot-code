@@ -137,22 +137,23 @@ precondition
 {
     value = mergeMaps({ "location" : zeroVector(2) * meter }, value);
     const needOffset = !tolerantEquals(value.location, zeroVector(2) * meter);
+    const ids = skDataArrayIds(textId, value.sketchDataArray);
     for (var i, sketchData in value.sketchDataArray)
     {
         if (sketchData.operation == SketchOperation.LINE)
         {
             sketchData = addLocation(sketchData, value.location, ["start", "end"], needOffset);
-            skLineSegment(sketch, textId ~ "line" ~ i, sketchData);
+            skLineSegment(sketch, ids[i], sketchData);
         }
         else if (sketchData.operation == SketchOperation.CIRCLE)
         {
             sketchData = addLocation(sketchData, value.location, ["center"], needOffset);
-            skCircle(sketch, textId ~ "circle" ~ i, sketchData);
+            skCircle(sketch, ids[i], sketchData);
         }
         else if (sketchData.operation == SketchOperation.ARC)
         {
             sketchData = addLocation(sketchData, value.location, ["start", "mid", "end"], needOffset);
-            skArc(sketch, textId ~ "arc" ~ i, sketchData);
+            skArc(sketch, ids[i], sketchData);
         }
         else if (sketchData.operation == SketchOperation.SPLINE)
         {
@@ -163,9 +164,29 @@ precondition
                         return point + value.location;
                     });
             }
-            skFitSpline(sketch, textId ~ "spline" ~ i, { "points" : sketchData.points });
+            skFitSpline(sketch, ids[i], { "points" : sketchData.points });
         }
     }
+}
+
+/**
+ * The ids `skDataArray` gives the sketch entities it adds for `sketchDataArray`, named `textId`, in order: to query them
+ * (see std's `sketchEntityQuery`).
+ */
+export function skDataArrayIds(textId is string, sketchDataArray is array) returns array
+{
+    const names = {
+            SketchOperation.LINE : "line",
+            SketchOperation.CIRCLE : "circle",
+            SketchOperation.ARC : "arc",
+            SketchOperation.SPLINE : "spline"
+        };
+    var ids = [];
+    for (var i, sketchData in sketchDataArray)
+    {
+        ids = append(ids, textId ~ names[sketchData.operation] ~ i);
+    }
+    return ids;
 }
 
 function addLocation(sketchData is map, location is Vector, keys is array, needOffset is boolean)

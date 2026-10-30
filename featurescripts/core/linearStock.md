@@ -151,25 +151,29 @@ is there, with nothing behind them (frameTables.py's MAXTube walls, which a test
 
 1. The first wall facing each way is sketched on its outside as a rectangle `length` long (`sketchRectangle`: four
    lines, without `skRectangle`'s constraints), with its holes (`holePositions` and `sketchShape`, as cutting them
-   would), and extruded as thick as the wall. The wall opposite it has the same holes, so it's a copy of it, patterned
-   across the stock. The walls facing Y run the stock's width, and those facing X between them. Each hole is named by
-   its count from the start, or from the end if it's tied (`r<row>.h<k>` or `r<row>.t<k>`), so its faces keep their
-   identities as the length changes. The extrude takes the region along the wall's side, so holes crossing an end
-   leave a notch.
-2. A sketched profile's core (the rest of it) is its profile extruded, less a block where each wall goes (patterned
-   for the copies, as the walls are) (`buildCore`).
-3. The walls (and core) are joined with one boolean. A profile's `grooves` (MAXTube's, inside its walls, which neither
-   the walls' sketches nor its plain profile have) are then sketched (`sketchGrooves`), extruded 1 mm past each end,
-   and cut along it with one more.
-4. Frames are tagged as frames: their swept faces and edges are those crossing the stock where it has no holes
-   (`clearPosition`, `tagSweptAsFrame` in `core/frameTags.fs`), and its end faces are its caps. Its end faces are found
-   by history, not geometry: they're tracked (`trackSketchEntity`, std's `startTracking`) from the lines at the ends
-   of the walls' sketches (`.start` and `.end`, see `sketchRectangle`), and a core's extrude's caps, including faces
-   they're merged into.
+   would), and extruded as thick as the wall. The walls facing Y run the stock's width, and those facing X between
+   them. Each hole is named by its count from the start, or from the end if it's tied (`r<row>.h<k>` or `r<row>.t<k>`),
+   so its faces keep their identities as the length changes. The extrude takes the region adjacent to the rectangle's
+   `.low` line (`qAdjacent` of `sketchEntityQuery`), which its holes stay clear of: not the regions inside holes, or
+   those holes crossing an end cut off, which leave a notch.
+2. A sketched profile's core (the rest of it) is its profile extruded (`extrudeCore`), and a profile's `grooves`
+   (MAXTube's, inside its walls, which neither the walls' sketches nor its plain profile have) are sketched
+   (`sketchGrooves`) and extruded 1 mm past each end.
+3. Frames are tagged as frames by history, not geometry, before anything is copied or joined: copies and booleans
+   carry attributes with the faces and edges they come from (std's attributes.fs). Its swept faces and edges
+   (`tagFrameSwept` in `core/frameTags.fs`) are each wall's faces on its two sides (its extrude's caps) and what its
+   rectangle's `.low` and `.high` lines became (`trackSketchEntity`, std's `startTracking`), the core's and grooves'
+   extrudes' sides; its caps (`tagFrameCaps`) are what the `.start` and `.end` lines became, and the core's extrude's
+   caps.
+4. The wall opposite each first one has the same holes, so it's a copy of it, patterned across the stock; the core has a
+   block cut where each wall goes (`cutCoreBlocks`, patterned for the copies too). The walls (and core) are joined with
+   one boolean, and the grooves cut with one more. The body is tagged with its profile (`tagFrameProfile`). Its end
+   faces are found by tracking, as its caps were.
 5. It's cut to its slanted ends and trims, as above; it's built as long as it is, so its end needs no cut.
 
-Its tied holes are its walls' faces wholly between where the first tied hole starts and its end, which leaves out the
-faces running its whole length, and its end faces.
+Its tied holes are found by history too: the faces what each wall's tied holes' sketch entities became (`sketchShape`
+returns their ids, and `skDataArrayIds` a MAX Pattern spline cutout's) are tagged with an attribute
+(`TIED_HOLE_ATTRIBUTE`) as the wall is made, so its copy's are too, and it returns the body's faces with it.
 
 ### Tying holes
 

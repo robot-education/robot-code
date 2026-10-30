@@ -200,23 +200,6 @@ def test_solid_stock_has_no_walls():
     assert to_python(evaluate(f'stockWalls({rectangle(solid="true")}, {LOCATION}, 1)', STOCK)) == []
 
 
-@pytest.mark.parametrize(
-    "spans,length,position",
-    [
-        # The widest gap between holes
-        ([(0.4, 0.6), (0.9, 1.1)], 1.5, 0.2),
-        ([(0.1, 0.3), (0.9, 1.1)], 1.2, 0.6),
-        # Holes crossing each other
-        ([(0.1, 0.5), (0.4, 0.8)], 1.0, 0.9),
-        # None
-        ([], 2.0, 1.0),
-    ],
-)
-def test_clear_position(spans, length, position):
-    spans_code = "[" + ", ".join(f"[{a} * inch, {b} * inch]" for a, b in spans) + "]"
-    assert to_python(evaluate(f"clearPosition({spans_code}, {length} * inch)", STOCK)) == pytest.approx(position * INCH)
-
-
 def custom_tube(size: str, top: str, side: str, profile: str = "Tube"):
     return evaluate(
         f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {{ "profile" : "{profile}", "size" : "{size}", "topRows" : "{top}", "sideRows" : "{side}" }} as LookupTablePath, '

@@ -627,21 +627,21 @@ export function rowExtent(row is HoleRow, holeDiameter is ValueWithUnits) return
 }
 
 /**
- * Sketches one shape of a row (see `HoleRow`) at `center`.
+ * Sketches one shape of a row (see `HoleRow`) at `center`. Returns the ids of the sketch entities it adds.
  */
-export function sketchShape(sketch is Sketch, name is string, center is Vector, shape is map, holeDiameter is ValueWithUnits)
+export function sketchShape(sketch is Sketch, name is string, center is Vector, shape is map, holeDiameter is ValueWithUnits) returns array
 {
     if (shape.maxSpline ?? false)
     {
         skDataArray(sketch, name, { "sketchDataArray" : MAX_SPLINE_HOLE, "location" : center });
-        return;
+        return skDataArrayIds(name, MAX_SPLINE_HOLE);
     }
     const radius = (shape.diameter ?? holeDiameter) / 2;
     const slot = shape.slot ?? 0 * meter;
     if (tolerantEqualsZero(slot))
     {
         skCircle(sketch, name, { "center" : center, "radius" : radius });
-        return;
+        return [name];
     }
     // A slot along the stock: two sides and two round ends
     const along = vector(slot / 2, 0 * meter);
@@ -658,6 +658,7 @@ export function sketchShape(sketch is Sketch, name is string, center is Vector, 
                 "mid" : center - along - vector(radius, 0 * meter),
                 "end" : center - along - across
             });
+    return [name ~ "side", name ~ "end", name ~ "otherSide", name ~ "otherEnd"];
 }
 
 // Placing

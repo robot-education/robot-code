@@ -20,7 +20,8 @@ Since v1.2.0 (`fs changes robotFrame`).
 - Tubes, channels, and angles with holes are built from their walls, each sketched with its holes and extruded, rather
   than extruded whole with their holes cut (see linear stock's Wall stock). Their faces' ids change, so
   references to them in existing documents need fixing: a hole is named by its count from the start, or from the end
-  if it's tied to it. Square Beam is still cut.
+  if it's tied to it. Square Beam is still cut. Its swept faces and edges, caps, and tied holes are found by history
+  (tagged as its walls are made), not by where they are.
 - MAXTube's grooves inside its walls (0.005 in. deep and 0.01 in. wide, behind the rows of holes: inside 2x1 standard's
   and MAX Pattern's 2 in. sides, and every side of 2x1 light with the grid pattern) are cut along it once its walls are
   joined. The drilling grooves outside it are left out, as before.

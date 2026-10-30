@@ -539,9 +539,28 @@ Std's `query.fs` has the queries most code needs. The ones which come up most:
 - `qOwnedByBody(body, entityType)`: the faces, edges, or vertices of a body.
 - `qSketchRegion(sketchId, filterInnerLoops)`: a sketch's regions (with `true`, leaving out regions inside others, like
   a tube's hollow).
+- `sketchEntityQuery(sketchId, entityType, entityId)`: a sketch entity by the id it was sketched with (like a line's,
+  `"wall.low"`), and `qAdjacent(query, AdjacencyType.EDGE, entityType)`: what's next to it (like the region it bounds).
 - Filters: `qGeometry(GeometryType.CYLINDER)`, `qBodyType(BodyType.SOLID)`, `qSketchFilter(SketchObject.YES)`,
-  `qEntityFilter(EntityType.FACE)`, `qCoincidesWithPlane(plane)`, `qContainsPoint(point)`, `qParallelPlanes(plane)`.
+  `qEntityFilter(EntityType.FACE)`.
 - Combining: `qUnion`, `qSubtraction`, `qIntersection`, and `qNthElement`.
+
+Find entities by their history (what made them, and what from), not by where they are. Geometric queries
+(`qContainsPoint`, `qIntersectsPlane`, `qInFrontOfPlane`, `qCoincidesWithPlane`, `qParallelPlanes`, and the like)
+evaluate every candidate's geometry, so they're slow (Robot frame's swept faces, by `qIntersectsPlane`, took 56 ms
+of a frame's regen), and brittle: they find whatever happens to be there. Use one only where history can't say
+which entity it is, and say why beside it.
+
+To extrude a sketch, take its regions as other features do: `qSketchRegion(sketchId)`, or
+`qSketchRegion(sketchId, true)` for a profile with holes (a tube's hollow), or `qCreatedBy(sketchId, EntityType.FACE)`,
+and at most one simple filter. Where some of its regions mustn't be extruded, pick the one wanted by a sketch entity
+which bounds it: wall stock takes the region adjacent to its rectangle's `.low` line
+(`qAdjacent(sketchEntityQuery(sketchId, EntityType.EDGE, "wall.low"), AdjacencyType.EDGE, EntityType.FACE)`), which
+leaves out holes, and the parts of holes its ends cut off.
+
+To tag faces (with attributes, like a frame's), tag them by history as they're made: attributes go with their
+entities through later operations (split pieces each keep them, patterned copies get them, and merged entities keep
+both; std's attributes.fs), so they needn't be found again on the finished part.
 
 To follow entities through later operations which change them (an offset, a shell, a boolean), wrap the query in
 `startTracking` before those operations: `startTracking(context, qCreatedBy(id + "fillet", EntityType.FACE))` resolves,

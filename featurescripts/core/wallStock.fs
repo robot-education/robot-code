@@ -32,6 +32,12 @@ export const buildWallStock = function(context is Context, id is Id, definition 
  */
 const WALL_EDGE_MARGIN = 1e-5 * meter;
 
+/**
+ * Marks the faces of holes tied to the end (see `getTie`), tagged as the walls are made, which their copies and the join
+ * carry (see `buildFromWalls`).
+ */
+const TIED_HOLE_ATTRIBUTE = "robotStockTiedHoleAttribute";
+
 /** How far past each end a profile's `grooves` are extruded, so they cut cleanly through its ends. */
 const GROOVE_OVERRUN = 1 * millimeter;
 
@@ -159,7 +165,9 @@ function holesFitWalls(stock is Stock, walls is array) returns boolean
 /**
  * Builds stock from its walls (see `stockWalls`), as `buildCutStock` builds it from its profile, but faster: each wall is
  * sketched with its holes and extruded as thick as it is, so its holes need no booleans, then they're joined, with a
- * sketched profile's core (see `buildCore`), its `grooves` are cut along it, and its ends are trimmed.
+ * sketched profile's core (see `extrudeCore` and `cutCoreBlocks`), its `grooves` are cut along it, and its ends are
+ * trimmed. A frame's swept faces and edges, and its caps, are tagged by history as its walls, core, and grooves are
+ * made, before they're copied and joined, which carry their attributes.
  *
  * Each wall is `length` long, with the holes `buildCutStock` would cut. A hole is named by its count from the start, or
  * from the end if it's tied to it (see `getTie`), so its faces keep their identities as the stock's length changes.
@@ -169,26 +177,26 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     ends is map, tie is map, walls is array, across is number) returns map
 {
     const wallsId = id + "walls";
-    var holeSpans = [];
-    var tiedFrom = length;
+    const isFrame = stock.isFrame ?? false;
+    // Its faces and edges as a frame (see `core/frameTags.fs`), found by history as each part is made and tagged
+    // before they're copied or joined, which carry their attributes: not by where they are
+    var swept = [];
+    var starts = [];
     // What the walls' (and core's) ends become, tracked from the lines (and caps) they're made from
-    var startTracks = [];
     var endTracks = [];
+    // What the walls' holes tied to the end (see `getTie`) become, tracked from their sketch entities
+    var tiedTracks = [];
     for (var wall in walls)
     {
-        const wallId = wallsId + wall.name;
         if (wall.copies != undefined)
         {
-            // Opposite the wall it copies, with the same holes
-            opPattern(context, wallId + "pattern", {
-                        "entities" : qCreatedBy(wallsId + wall.copies + "extrude", EntityType.BODY),
-                        "transforms" : [transform(wall.plane.normal * wall.along)],
-                        "instanceNames" : [wall.name]
-                    });
             continue;
         }
-        const sketch = newSketchOnPlane(context, wallId + "sketch", { "sketchPlane" : wall.plane });
+        const wallId = wallsId + wall.name;
+        const sketchId = wallId + "sketch";
+        const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : wall.plane });
         sketchRectangle(sketch, "wall", vector(0 * meter, wall.low), vector(length, wall.high));
+        var tied = [];
         for (var r, row in wall.face.rows)
         {
             const extent = rowExtent(row, stock.holeDiameter);
@@ -198,41 +206,44 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
                 const name = "r" ~ r ~ (hole.tied ? ".t" ~ (size(positions) - 1 - k) : ".h" ~ k);
                 for (var s, shape in row.shapes)
                 {
-                    sketchShape(sketch, name ~ ".s" ~ s, vector(hole.position + shape.along, wall.face.sign * shape.offset), shape,
-                        stock.holeDiameter);
-                }
-                holeSpans = append(holeSpans, [hole.position - extent, hole.position + extent]);
-                if (hole.tied)
-                {
-                    tiedFrom = min(tiedFrom, hole.position - extent);
+                    const entities = sketchShape(sketch, name ~ ".s" ~ s, vector(hole.position + shape.along, wall.face.sign * shape.offset),
+                        shape, stock.holeDiameter);
+                    if (hole.tied)
+                    {
+                        tied = concatenateArrays([tied, entities]);
+                    }
                 }
             }
         }
         skSolve(sketch);
-        startTracks = append(startTracks, trackSketchEntity(context, wallId + "sketch", "wall.start"));
-        endTracks = append(endTracks, trackSketchEntity(context, wallId + "sketch", "wall.end"));
-        // The wall itself, without its holes, or where holes cross its ends: the region along its side, which its holes
-        // stay clear of (see `holesFitWalls`)
-        opExtrude(context, wallId + "extrude", {
-                    "entities" : qContainsPoint(qSketchRegion(wallId + "sketch"),
-                        planeToWorld(wall.plane, vector(length / 2, wall.low + WALL_EDGE_MARGIN / 2))),
+        if (tied != [])
+        {
+            tiedTracks = append(tiedTracks, trackSketchEntities(context, sketchId, tied));
+        }
+        const sides = trackSketchEntities(context, sketchId, ["wall.low", "wall.high"]);
+        starts = append(starts, trackSketchEntities(context, sketchId, ["wall.start"]));
+        endTracks = append(endTracks, trackSketchEntities(context, sketchId, ["wall.end"]));
+        // The wall itself: the region along its side, which its holes stay clear of (see `holesFitWalls`), so it leaves
+        // out the regions inside holes, and those holes crossing its ends cut off
+        const extrudeId = wallId + "extrude";
+        opExtrude(context, extrudeId, {
+                    "entities" : qAdjacent(sketchEntityQuery(sketchId, EntityType.EDGE, "wall.low"), AdjacencyType.EDGE, EntityType.FACE),
                     "direction" : wall.plane.normal,
                     "endBound" : BoundingType.BLIND,
                     "endDepth" : wall.depth
                 });
+        // Its faces on the wall's two sides, and those its own sides (and their edges) became
+        swept = concatenateArrays([swept, [qCapEntity(extrudeId, CapType.EITHER, EntityType.FACE), sides]]);
     }
+    var coreEnds = [];
     if (stock.profile != undefined)
     {
         const coreId = wallsId + "core";
-        buildCore(context, coreId, stock, location, length, across, walls);
-        startTracks = append(startTracks, startTracking(context, {
-                        "subquery" : qCapEntity(coreId + "extrude", CapType.START, EntityType.FACE),
-                        "trackPartialDependency" : true
-                    }));
-        endTracks = append(endTracks, startTracking(context, {
-                        "subquery" : qCapEntity(coreId + "extrude", CapType.END, EntityType.FACE),
-                        "trackPartialDependency" : true
-                    }));
+        extrudeCore(context, coreId, stock, location, length, across);
+        swept = append(swept, qNonCapEntity(coreId + "extrude", EntityType.FACE));
+        swept = append(swept, qNonCapEntity(coreId + "extrude", EntityType.EDGE));
+        starts = append(starts, qCapEntity(coreId + "extrude", CapType.START, EntityType.FACE));
+        coreEnds = append(coreEnds, qCapEntity(coreId + "extrude", CapType.END, EntityType.FACE));
     }
     const groovesId = id + "grooves";
     if (stock.grooves != undefined)
@@ -249,6 +260,45 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
                     "endBound" : BoundingType.BLIND,
                     "endDepth" : length + GROOVE_OVERRUN
                 });
+        swept = append(swept, qNonCapEntity(groovesId + "extrude", EntityType.FACE));
+        swept = append(swept, qNonCapEntity(groovesId + "extrude", EntityType.EDGE));
+    }
+    if (tiedTracks != [])
+    {
+        setAttribute(context, {
+                    "entities" : qEntityFilter(qUnion(tiedTracks), EntityType.FACE),
+                    "name" : TIED_HOLE_ATTRIBUTE,
+                    "attribute" : {}
+                });
+    }
+    if (isFrame)
+    {
+        const sweptEntities = qUnion(swept);
+        tagFrameSwept(context, qEntityFilter(sweptEntities, EntityType.FACE), qEntityFilter(sweptEntities, EntityType.EDGE));
+        tagFrameCaps(context, qEntityFilter(qUnion(starts), EntityType.FACE), true);
+        tagFrameCaps(context, qEntityFilter(qUnion(concatenateArrays([endTracks, coreEnds])), EntityType.FACE), false);
+    }
+
+    for (var wall in walls)
+    {
+        if (wall.copies != undefined)
+        {
+            // Opposite the wall it copies, with the same holes
+            opPattern(context, wallsId + wall.name + "pattern", {
+                        "entities" : qCreatedBy(wallsId + wall.copies + "extrude", EntityType.BODY),
+                        "transforms" : [transform(wall.plane.normal * wall.along)],
+                        "instanceNames" : [wall.name]
+                    });
+        }
+    }
+    if (stock.profile != undefined)
+    {
+        const coreId = wallsId + "core";
+        cutCoreBlocks(context, coreId, length, walls);
+        endTracks = append(endTracks, startTracking(context, {
+                        "subquery" : qCapEntity(coreId + "extrude", CapType.END, EntityType.FACE),
+                        "trackPartialDependency" : true
+                    }));
     }
     opDeleteBodies(context, id + "deleteSketches", {
                 "entities" : qUnion(qCreatedBy(wallsId, EntityType.BODY), qCreatedBy(groovesId, EntityType.BODY))->qSketchFilter(SketchObject.YES)
@@ -263,18 +313,11 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
     }
-
-    const startFaces = qEntityFilter(qUnion(startTracks), EntityType.FACE)->qOwnedByBody(body);
-    const endFaces = qEntityFilter(qUnion(endTracks), EntityType.FACE)->qOwnedByBody(body);
-    if (stock.isFrame ?? false)
+    if (isFrame)
     {
-        // Its profile's faces and edges are those which cross it where it has no holes
-        const section = plane(location.origin + location.zAxis * clearPosition(holeSpans, length), location.zAxis);
-        tagSweptAsFrame(context, body, qIntersectsPlane(qOwnedByBody(body, EntityType.FACE), section),
-            qIntersectsPlane(qOwnedByBody(body, EntityType.EDGE), section), stock.partName, stock.vendor);
-        tagFrameCaps(context, startFaces, true);
-        tagFrameCaps(context, endFaces, false);
+        tagFrameProfile(context, body, stock.partName, stock.vendor);
     }
+    const endFaces = qEntityFilter(qUnion(endTracks), EntityType.FACE)->qOwnedByBody(body);
 
     // Cut to its trims and slanted ends
     var cuts = ends.cuts;
@@ -292,7 +335,7 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
     {
         const isEnd = dot(cut.away, location.zAxis) > 0;
         const face = trimBeyond(context, id + ("cut" ~ i), body, cut.plane, cut.away, reach);
-        if (stock.isFrame ?? false)
+        if (isFrame)
         {
             tagFrameCaps(context, face, !isEnd);
         }
@@ -302,31 +345,19 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
         }
     }
 
-    // The faces of the holes past where the first tied hole starts: the walls' faces wholly between there and the end,
-    // which leaves out the faces along the whole wall (and the end)
-    var tiedHoles = qNothing();
-    if (tiedFrom < length)
-    {
-        const from = max(tiedFrom - WALL_EDGE_MARGIN, WALL_EDGE_MARGIN);
-        tiedHoles = qCreatedBy(wallsId, EntityType.FACE)
-            ->qOwnedByBody(body)
-            ->qInFrontOfPlane(plane(location.origin + location.zAxis * from, location.zAxis))
-            ->qInFrontOfPlane(plane(location.origin + location.zAxis * (length - WALL_EDGE_MARGIN), -location.zAxis));
-    }
     return {
             "body" : body,
             "endFace" : qUnion(ended)->qOwnedByBody(body),
-            "tiedHoles" : tiedHoles,
+            "tiedHoles" : qHasAttribute(qOwnedByBody(body, EntityType.FACE), TIED_HOLE_ATTRIBUTE),
             "tie" : tie
         };
 }
 
 /**
- * Builds a sketched profile's core (see `stockWalls`), `length` long: its profile extruded, less a block where each of
- * its `walls` goes (a copy of the opposite wall's block, for a wall which copies it), all under `id`.
+ * Extrudes a sketched profile's core (see `stockWalls`), `length` long, under `id`: its profile, which `cutCoreBlocks`
+ * then cuts where its walls go.
  */
-function buildCore(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits, across is number,
-    walls is array)
+function extrudeCore(context is Context, id is Id, stock is Stock, location is CoordSystem, length is ValueWithUnits, across is number)
 {
     const profile = newSketchOnPlane(context, id + "profile", { "sketchPlane" : plane(location) });
     sketchProfile(profile, stock, across);
@@ -337,6 +368,14 @@ function buildCore(context is Context, id is Id, stock is Stock, location is Coo
                 "endBound" : BoundingType.BLIND,
                 "endDepth" : length
             });
+}
+
+/**
+ * Cuts a block `length` long from the core `extrudeCore` made under `id` where each of its `walls` goes (a copy of the opposite
+ * wall's block, for a wall which copies it).
+ */
+function cutCoreBlocks(context is Context, id is Id, length is ValueWithUnits, walls is array)
+{
     for (var wall in walls)
     {
         const blockId = id + "block" + wall.name;
@@ -367,37 +406,16 @@ function buildCore(context is Context, id is Id, stock is Stock, location is Coo
 }
 
 /**
- * A query for what operations from here on make from a solved sketch's entity, as `startTracking` makes it, but also
- * what they make from it and other entities (like a face it's merged into).
+ * A query for what operations from here on make from a solved sketch's entities (by their ids), as `startTracking`
+ * makes it, but also what they make from them and other entities (like a face one's merged into).
  */
-function trackSketchEntity(context is Context, sketchId is Id, sketchEntityId is string) returns Query
+function trackSketchEntities(context is Context, sketchId is Id, sketchEntityIds is array) returns Query
 {
-    const entity = sketchEntityQuery(sketchId, undefined, sketchEntityId);
-    return startTracking(context, {
-                "subquery" : qUnion([entity, makeQuery(sketchId, "IMPRINT", undefined, { "derivedFrom" : entity })]),
-                "trackPartialDependency" : true
-            });
-}
-
-/**
- * Where along stock `length` long it can be cut across without crossing a hole, given where its holes reach
- * (`spans`, pairs of positions): the middle of the widest gap between them, or its middle if they leave none.
- */
-function clearPosition(spans is array, length is ValueWithUnits) returns ValueWithUnits
-{
-    const sorted = sort(spans, function(a, b)
-        {
-            return a[0] - b[0];
-        });
-    var best = undefined;
-    var reached = 0 * meter;
-    for (var span in append(sorted, [length, length]))
+    var entities = [];
+    for (var sketchEntityId in sketchEntityIds)
     {
-        if (best == undefined || span[0] - reached > best[1] - best[0])
-        {
-            best = [reached, span[0]];
-        }
-        reached = max(reached, span[1]);
+        const entity = sketchEntityQuery(sketchId, undefined, sketchEntityId);
+        entities = concatenateArrays([entities, [entity, makeQuery(sketchId, "IMPRINT", undefined, { "derivedFrom" : entity })]]);
     }
-    return tolerantLessThan(best[0], best[1]) ? (best[0] + best[1]) / 2 : length / 2;
+    return startTracking(context, { "subquery" : qUnion(entities), "trackPartialDependency" : true });
 }
