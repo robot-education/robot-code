@@ -6,8 +6,8 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "72b77780ed382be329401627", version : "a0ad561c9e3a3bdae870026b");
-import(path : "core/cutStock.fs", version : "");
-import(path : "core/linearStock.fs", version : "");
+import(path : "2e446fc39b56fd5bff8ff054", version : "67a499eda38c0e000182de1b");
+import(path : "9fc889bb93a3c29feb4f9ae5", version : "45d4504d059b748ebf938c51");
 
 /**
  * Builds stock `length` long from `location` (the middle of its start, with Z along its length and its width along
