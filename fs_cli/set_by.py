@@ -1,12 +1,12 @@
 """Hidden parameters editing logic sets from a function of the definition, which their annotations name (`"Set By" :
-"isNoHolesFrame"`; see `docs/featurescript-style.md`'s "Hidden parameters set by editing logic"). The dialog tools
+"isNoTopHolesFrame"`; see `docs/featurescript-style.md`'s "Hidden parameters set by editing logic"). The dialog tools
 don't run editing logic, so they work these out the way it would, running the function with `fs_eval`: `fs ui` for its
 settings (`apply`), and `fs audit`'s page (and the preview) for every combination of the choices the function reads
 (`tree`).
 
 A tree is found by running the function with nothing chosen: when it reads an enum, boolean, or lookup table parameter
 which isn't chosen yet, it's run again for each of that parameter's values. So it branches only on what's read, in the
-order it's read (`!isCustomFrame(definition) || ...` reads no frame when the frame isn't custom).
+order it's read (`isCustomFrame(definition) && ...` reads no frame when the frame isn't custom).
 """
 
 from __future__ import annotations

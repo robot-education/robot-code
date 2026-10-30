@@ -1342,7 +1342,7 @@ class Project:
 
     def _set_by_problems(self, module: Module) -> list[Problem]:
         """Hidden parameters set by editing logic from a function of the definition, which their annotations name
-        (`"Set By" : "isNoHolesFrame"`), so the tools (`fs ui`, `fs audit`, the preview) can work out their values
+        (`"Set By" : "isNoTopHolesFrame"`), so the tools (`fs ui`, `fs audit`, the preview) can work out their values
         as editing logic would. The function must take the definition (`(definition is map)`) and return the
         parameter's type; the parameter must be hidden (editing logic overwrites it); and the feature's editing logic
         must run on every change (declare `isCreating`) and set it from the function first thing, before anything

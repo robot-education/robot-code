@@ -1086,7 +1086,7 @@ REV_FTC = vendor(
 )
 
 
-# Custom frames: a profile and size, and how many rows of holes go on each face (a tube's faces can have none), which
+# Custom frames: a profile and size, and how many rows of holes go on each face (or none), which
 # robotFrame spaces and sizes as the feature says. `topRows` go through the walls facing Y (which are `width` wide), and
 # `sideRows` through those facing X. The Custom size takes its size and rows from the feature too (`customSize`).
 
@@ -1104,12 +1104,11 @@ def any_size(angle: bool = False) -> Value:
     return Value("Custom", {"angle": "true" if angle else "false", "customSize": "true"})
 
 
-def face_rows(key: str, display_name: str, most: int, default: int, none: bool, next: Node | None = None) -> Node:
-    """A choice of how many rows of holes go on a face, stored under `key`: 1 to `most`, or 0 to `most` if it can have
-    `none`."""
+def face_rows(key: str, display_name: str, most: int, default: int, next: Node | None = None) -> Node:
+    """A choice of how many rows of holes go on a face, stored under `key`: 0 to `most`."""
     return Node(
         key,
-        [Value(str(count), {key: str(count)}, next) for count in range(0 if none else 1, most + 1)],
+        [Value(str(count), {key: str(count)}, next) for count in range(most + 1)],
         display_name=display_name,
         default=str(default),
     )
@@ -1119,9 +1118,9 @@ def sized(
     name: str, width: float, height: float, top: tuple[int, int], side: tuple[int, int], angle: bool = False
 ) -> Value:
     """A size, with a choice of its top rows (on the faces facing Y, `width` wide), then its side rows (facing X): each
-    `(most, default)`. A tube's faces can have none (with none on either, it has no holes); an angle's legs can't."""
-    sides = face_rows("sideRows", "Side rows", *side, none=not angle)
-    return custom_size(name, width, height, face_rows("topRows", "Top rows", *top, none=not angle, next=sides), angle)
+    `(most, default)`. Either can be none; with none on both, it has no holes."""
+    sides = face_rows("sideRows", "Side rows", *side)
+    return custom_size(name, width, height, face_rows("topRows", "Top rows", *top, next=sides), angle)
 
 
 CUSTOM_TUBE = Node(

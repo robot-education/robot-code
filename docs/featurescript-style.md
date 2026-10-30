@@ -25,7 +25,7 @@ A feature's `definition` is a map, and each parameter its precondition declares 
   its type.
 - Conditions can't read a lookup table's value. To show parameters by what's chosen in one, set a hidden
   (`ALWAYS_HIDDEN`) parameter from it in editing logic, and use that, as std's hole does with `threadStandard` and
-  robotFrame does with `noHoles` (see "Hidden parameters set by editing logic").
+  robotFrame does with `noTopHoles` (see "Hidden parameters set by editing logic").
 - So a parameter can't be declared twice, even in different branches of an `if`: both would be the same key. Declare
   it once where both branches can share it (as `stockLocationPredicate` does with the secondary axis), and `fs check`
   reports it if you don't.
@@ -105,25 +105,20 @@ hidden parameter's annotation with `"Set By"` (a key of ours, for the tools: Ons
 
 ```
 // Set by editing logic, as Onshape can't show parameters by a lookup table's value
-annotation { "Name" : "No holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoHolesFrame" }
-definition.noHoles is boolean;
+annotation { "Name" : "No top holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoTopHolesFrame" }
+definition.noTopHoles is boolean;
 
 ...
 
-function isNoHolesFrame(definition is map) returns boolean
+function isNoTopHolesFrame(definition is map) returns boolean
 {
-    if (!isCustomFrame(definition) || isCustomSizeFrame(definition))
-    {
-        return false;
-    }
-    const entry = frameTableEntry(definition);
-    return entry.topRows == 0 && entry.sideRows == 0;
+    return isCustomFrame(definition) && noRows(definition, "topRows", "topHoles");
 }
 
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    definition.noHoles = isNoHolesFrame(definition);
+    definition.noTopHoles = isNoTopHolesFrame(definition);
     ...
 ```
 

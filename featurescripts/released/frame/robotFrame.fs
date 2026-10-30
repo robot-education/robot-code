@@ -38,7 +38,7 @@ const START_BOUNDS = { (meter) : [0, 0.0127, 500], (inch) : 0.5, (millimeter) : 
 const HOLE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.0049784, 500], (inch) : 0.196, (millimeter) : 4 } as LengthBoundSpec;
 const WIDTH_BOUNDS = { (meter) : [1e-5, 0.0508, 500], (inch) : 2, (millimeter) : 50 } as LengthBoundSpec;
 const HEIGHT_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
-const ROWS_BOUNDS = { (unitless) : [0, 1, 100] } as IntegerBoundSpec;
+const ROWS_BOUNDS = { (unitless) : [1, 1, 100] } as IntegerBoundSpec;
 
 /**
  * Places tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so the std
@@ -72,8 +72,11 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 annotation { "Name" : "Custom size", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomSizeFrame" }
                 definition.customSize is boolean;
 
-                annotation { "Name" : "No holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoHolesFrame" }
-                definition.noHoles is boolean;
+                annotation { "Name" : "No top holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoTopHolesFrame" }
+                definition.noTopHoles is boolean;
+
+                annotation { "Name" : "No side holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoSideHolesFrame" }
+                definition.noSideHoles is boolean;
 
                 if (definition.customSize)
                 {
@@ -83,26 +86,56 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                     annotation { "Name" : "Height", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     isLength(definition.height, HEIGHT_BOUNDS);
 
-                    annotation { "Name" : "Top rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isInteger(definition.topRows, ROWS_BOUNDS);
+                    annotation { "Name" : "Add top holes", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.topHoles is boolean;
 
-                    annotation { "Name" : "Side rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isInteger(definition.sideRows, ROWS_BOUNDS);
+                    if (definition.topHoles)
+                    {
+                        annotation { "Group Name" : "Add top holes", "Collapsed By Default" : false, "Driving Parameter" : "topHoles" }
+                        {
+                            annotation { "Name" : "Top rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                            isInteger(definition.topRows, ROWS_BOUNDS);
+
+                            annotation { "Name" : "Top row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                            isLength(definition.topRowSpacing, SPACING_BOUNDS);
+                        }
+                    }
+
+                    annotation { "Name" : "Add side holes", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.sideHoles is boolean;
+
+                    if (definition.sideHoles)
+                    {
+                        annotation { "Group Name" : "Add side holes", "Collapsed By Default" : false, "Driving Parameter" : "sideHoles" }
+                        {
+                            annotation { "Name" : "Side rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                            isInteger(definition.sideRows, ROWS_BOUNDS);
+
+                            annotation { "Name" : "Side row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                            isLength(definition.sideRowSpacing, SPACING_BOUNDS);
+                        }
+                    }
                 }
-
-                if (!definition.noHoles)
+                else
                 {
-                    annotation { "Name" : "Top row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(definition.topRowSpacing, SPACING_BOUNDS);
+                    // A size from the table: its rows are the table's
+                    if (!definition.noTopHoles)
+                    {
+                        annotation { "Name" : "Top row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.tableTopRowSpacing, SPACING_BOUNDS);
+                    }
 
-                    annotation { "Name" : "Side row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isLength(definition.sideRowSpacing, SPACING_BOUNDS);
+                    if (!definition.noSideHoles)
+                    {
+                        annotation { "Name" : "Side row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.tableSideRowSpacing, SPACING_BOUNDS);
+                    }
                 }
 
                 annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.wallThickness, WALL_BOUNDS);
 
-                if (!definition.noHoles)
+                if (!(definition.noTopHoles && definition.noSideHoles))
                 {
                     annotation { "Name" : "Distance between holes", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     isLength(definition.holeSpacing, SPACING_BOUNDS);
@@ -119,7 +152,7 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 definition.ftcFrame is LookupTablePath;
             }
 
-            if (!(isCustomFrame(definition) && definition.noHoles))
+            if (!(isCustomFrame(definition) && definition.noTopHoles && definition.noSideHoles))
             {
                 // Set to the frame's by editing logic. FTC frames' holes are as they're sold
                 if (isFrc(definition))
@@ -214,8 +247,9 @@ function frameTableEntry(definition is map) returns map
 
 /**
  * A custom frame's size and rows of holes: `width`, `height`, `angle`, and how many rows go on its faces facing Y
- * (`topRows`, `width` wide) and X (`sideRows`), and how far apart (`topRowSpacing`, `sideRowSpacing`, from the dialog).
- * A size from the table has its size and rows from there; a custom size has them from the dialog too.
+ * (`topRows`, `width` wide) and X (`sideRows`), and how far apart (`topRowSpacing`, `sideRowSpacing`). A size from the
+ * table has its size and rows from there, and their distances from the dialog; the custom size has them all from the
+ * dialog, with no rows on faces it doesn't add holes to.
  */
 export function customFrameSize(definition is map) returns map
 {
@@ -226,15 +260,15 @@ export function customFrameSize(definition is map) returns map
                 "width" : definition.width,
                 "height" : definition.height,
                 "angle" : entry.angle,
-                "topRows" : definition.topRows,
-                "sideRows" : definition.sideRows,
+                "topRows" : definition.topHoles ? definition.topRows : 0,
+                "sideRows" : definition.sideHoles ? definition.sideRows : 0,
                 "topRowSpacing" : definition.topRowSpacing,
                 "sideRowSpacing" : definition.sideRowSpacing
             };
     }
     return mergeMaps(entry, {
-                "topRowSpacing" : definition.topRowSpacing,
-                "sideRowSpacing" : definition.sideRowSpacing
+                "topRowSpacing" : definition.tableTopRowSpacing,
+                "sideRowSpacing" : definition.tableSideRowSpacing
             });
 }
 
@@ -296,7 +330,8 @@ function verifyFrame(definition is map)
         !rowsFit(size.topRows, size.topRowSpacing, definition.holeDiameter, size.width - inside))
     {
         throw regenError("The rows of holes don't fit across the frame's faces.",
-            ["customFrame", "width", "height", "topRows", "sideRows", "topRowSpacing", "sideRowSpacing", "holeDiameter"]);
+            ["customFrame", "width", "height", "topRows", "sideRows", "topRowSpacing", "sideRowSpacing", "tableTopRowSpacing",
+                    "tableSideRowSpacing", "holeDiameter"]);
     }
 }
 
@@ -317,30 +352,44 @@ function isCustomSizeFrame(definition is map) returns boolean
 }
 
 /**
- * No holes: whether a custom frame is a size from the table chosen with no rows of holes (which hides the hole and row
- * parameters).
+ * No top holes: whether a custom frame has no holes on its top: none from the table, or the custom size without Add top
+ * holes (which hides Top row distance, and with No side holes, the hole parameters).
  */
-function isNoHolesFrame(definition is map) returns boolean
+function isNoTopHolesFrame(definition is map) returns boolean
 {
-    if (!isCustomFrame(definition) || isCustomSizeFrame(definition))
-    {
-        return false;
-    }
+    return isCustomFrame(definition) && noRows(definition, "topRows", "topHoles");
+}
+
+/**
+ * No side holes: whether a custom frame has no holes on its sides (see `isNoTopHolesFrame`).
+ */
+function isNoSideHolesFrame(definition is map) returns boolean
+{
+    return isCustomFrame(definition) && noRows(definition, "sideRows", "sideHoles");
+}
+
+/**
+ * Whether a custom frame has no rows of holes on the faces whose rows its entry has under `rowsKey`: a size from the
+ * table with none, or the custom size without the dialog's `addKey` (like Add top holes).
+ */
+function noRows(definition is map, rowsKey is string, addKey is string) returns boolean
+{
     const entry = frameTableEntry(definition);
-    return entry.topRows == 0 && entry.sideRows == 0;
+    return entry.customSize ? !definition[addKey] : entry[rowsKey] == 0;
 }
 
 /**
  * @internal
- * The editing logic function for robot frame. Sets Custom size (`isCustomSizeFrame`) and No holes (`isNoHolesFrame`),
- * and when the frame changes
+ * The editing logic function for robot frame. Sets Custom size (`isCustomSizeFrame`), No top holes
+ * (`isNoTopHolesFrame`), and No side holes (`isNoSideHolesFrame`), and when the frame changes
  * (or the feature is created), its hole diameter to the frame's, unless it's been set larger.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition.customSize = isCustomSizeFrame(definition);
-    definition.noHoles = isNoHolesFrame(definition);
+    definition.noTopHoles = isNoTopHolesFrame(definition);
+    definition.noSideHoles = isNoSideHolesFrame(definition);
     definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);
     return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
 }

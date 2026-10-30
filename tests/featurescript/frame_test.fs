@@ -31,8 +31,10 @@ export function testCustomSizeTakesItsSizeAndRowsFromTheDialog()
                 "customFrame" : { "profile" : "Tube", "size" : "Custom" } as LookupTablePath,
                 "width" : 3 * inch,
                 "height" : 1.5 * inch,
+                "topHoles" : true,
+                "sideHoles" : false,
                 "topRows" : 2,
-                "sideRows" : 0,
+                "sideRows" : 3,
                 "topRowSpacing" : 1 * inch,
                 "sideRowSpacing" : 0.25 * inch
             });
@@ -54,8 +56,9 @@ export function testATableSizeTakesItsSizeAndRowsFromTheTable()
                 // Ignored: they're the custom size's
                 "width" : 3 * inch,
                 "topRows" : 1,
-                "topRowSpacing" : 0.5 * inch,
-                "sideRowSpacing" : 0.375 * inch
+                "topRowSpacing" : 1 * inch,
+                "tableTopRowSpacing" : 0.5 * inch,
+                "tableSideRowSpacing" : 0.375 * inch
             });
     expectEqual(size.width, 2 * inch);
     expectEqual(size.topRows, 3);

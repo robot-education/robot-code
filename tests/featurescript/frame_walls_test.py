@@ -217,30 +217,48 @@ def test_clear_position(spans, length, position):
     assert to_python(evaluate(f"clearPosition({spans_code}, {length} * inch)", STOCK)) == pytest.approx(position * INCH)
 
 
-def custom_tube(size: str, top: str, side: str):
+def custom_tube(size: str, top: str, side: str, profile: str = "Tube"):
     return evaluate(
-        f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {{ "profile" : "Tube", "size" : "{size}", "topRows" : "{top}", "sideRows" : "{side}" }} as LookupTablePath, '
+        f'{{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : {{ "profile" : "{profile}", "size" : "{size}", "topRows" : "{top}", "sideRows" : "{side}" }} as LookupTablePath, '
         '"wallThickness" : 0.0625 * inch, "holeSpacing" : 0.5 * inch, "holeStart" : 0.5 * inch, "holeDiameter" : 0.196 * inch, '
-        '"topRowSpacing" : 0.5 * inch, "sideRowSpacing" : 0.5 * inch }',
+        '"tableTopRowSpacing" : 0.5 * inch, "tableSideRowSpacing" : 0.5 * inch }',
         FRAME,
     )
 
 
-@pytest.mark.parametrize("size", ["1x1", "2x1", "2x2"])
-def test_custom_tubes_can_have_no_holes(size):
-    definition = custom_tube(size, "0", "0")
-    assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is True
-    stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
-    assert (stock["xRows"], stock["yRows"]) == ([], [])
+def no_holes(definition) -> tuple[bool, bool]:
+    """Its hidden No top holes and No side holes, as editing logic sets them."""
+    return (
+        evaluate("isNoTopHolesFrame(definition)", FRAME, definition=definition),
+        evaluate("isNoSideHolesFrame(definition)", FRAME, definition=definition),
+    )
 
 
-@pytest.mark.parametrize("size", ["1x1", "2x1", "2x2"])
-def test_custom_tubes_can_have_holes_on_only_their_top_or_sides(size):
-    for top, side in (("0", "1"), ("1", "0")):
-        definition = custom_tube(size, top, side)
-        assert evaluate("isNoHolesFrame(definition)", FRAME, definition=definition) is False
+@pytest.mark.parametrize("size", ["Tube > 1x1", "Tube > 2x1", "Tube > 2x2", "Angle > 1x1", "Angle > 2x2"])
+def test_custom_frames_can_have_holes_on_their_top_sides_both_or_neither(size):
+    profile, size = size.split(" > ")
+    for top, side in (("0", "0"), ("0", "1"), ("1", "0"), ("1", "1")):
+        definition = custom_tube(size, top, side, profile)
+        assert no_holes(definition) == (top == "0", side == "0")
         stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
         assert (len(stock["yRows"]), len(stock["xRows"])) == (int(top), int(side))
+
+
+def test_the_custom_size_adds_holes_on_its_top_and_sides():
+    for top, side in ((False, False), (False, True), (True, False), (True, True)):
+        definition = evaluate(
+            '{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : { "profile" : "Tube", "size" : "Custom" } as LookupTablePath, '
+            '"width" : 2 * inch, "height" : 1 * inch, "topHoles" : top, "sideHoles" : side, "topRows" : 2, "sideRows" : 1, '
+            '"topRowSpacing" : 0.5 * inch, "sideRowSpacing" : 0.5 * inch, "wallThickness" : 0.0625 * inch, '
+            '"holeSpacing" : 0.5 * inch, "holeStart" : 0.5 * inch, "holeDiameter" : 0.196 * inch }',
+            FRAME,
+            top=top,
+            side=side,
+        )
+        assert no_holes(definition) == (not top, not side)
+        stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
+        assert (len(stock["yRows"]), len(stock["xRows"])) == (1 if top else 0, 1 if side else 0)
+        assert [len(row["shapes"]) for row in stock["yRows"] + stock["xRows"]] == [2] * top + [1] * side
 
 
 def test_sketched_profiles_walls_reach_just_past_their_holes():
