@@ -193,6 +193,9 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *              `solid`, or with walls `wallX` and `wallY` thick, and possibly `open` (a channel), an `angle`, or solid
  *              around a `bore`. A profile's `wallX` and `wallY` are as thick as its walls are where its holes go (see
  *              `stockWalls`).
+ *      @field grooves {array} : @optional A sketch (a SketchDataArray) of grooves along a `profile`, such as those inside
+ *              MAXTube's walls, cut along it once it's built from its walls (see `buildWallStock`): regions placed as
+ *              its profile is.
  *      @field holeDiameter {ValueWithUnits} : The diameter of its holes, unless a shape has its own.
  *      @field xRows {array} : Rows of holes through its walls facing X. @seealso [HoleRow]
  *      @field yRows {array} : Rows of holes through its walls facing Y.
@@ -548,6 +551,14 @@ export function sketchProfile(sketch is Sketch, stock is Stock, across is number
                     "secondCorner" : at(halfWidth - stock.wallX, halfHeight - stock.wallY)
                 });
     }
+}
+
+/**
+ * Sketches stock's `grooves`, placed as `sketchProfile` places its profile.
+ */
+export function sketchGrooves(sketch is Sketch, stock is Stock, across is number)
+{
+    skDataArray(sketch, "grooves", { "sketchDataArray" : across == 1 ? stock.grooves : mirroredAcrossY(stock.grooves) });
 }
 
 /**

@@ -254,17 +254,22 @@ def test_sketched_profiles_walls_reach_just_past_their_holes():
     assert [wall["name"] for wall in walls] == ["x0", "x1"]
 
 
-def test_notches_are_left_out():
+def frame_tables():
     import importlib.util
     import pathlib
-
-    from fs_cli.sketches import Line, Point
 
     spec = importlib.util.spec_from_file_location(
         "frameTables", pathlib.Path(__file__).parents[2] / "featurescripts/released/frame/frameTables.py"
     )
     tables = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(tables)
+    return tables
+
+
+def test_notches_are_left_out_and_cut_as_grooves():
+    from fs_cli.sketches import Line, Point
+
+    tables = frame_tables()
     # A wall's inside, with a notch 0.005 in. deep, then a corner
     wall = [
         Line(Point(-1, 0.46), Point(-0.005, 0.46)),
@@ -274,3 +279,80 @@ def test_notches_are_left_out():
         Line(Point(1, 0.46), Point(1, 0)),
     ]
     assert tables.without_notches(wall) == [Line(Point(-1, 0.46), Point(1, 0.46)), Line(Point(1, 0.46), Point(1, 0))]
+    assert tables.notches(wall) == [
+        Line(Point(-0.005, 0.46), Point(0, 0.465)),
+        Line(Point(0, 0.465), Point(0.005, 0.46)),
+        Line(Point(0.005, 0.46), Point(-0.005, 0.46)),
+    ]
+
+
+@pytest.mark.parametrize(
+    "file, count", [("REV-21-2162.STEP", 6), ("REV-21-2163.STEP", 6), ("REV-21-2289.STEP", 8), ("REV-21-2161.STEP", 0)]
+)
+def test_maxtube_grooves_are_its_notches(file, count):
+    """Each of MAXTube's grooves is a notch its plain profile left out: 0.01 in. wide and 0.005 in. deep, across the
+    inside of one of its walls."""
+    tables = frame_tables()
+    grooves = tables.step_grooves(file, degrees=90).entities
+    assert len(grooves) == 3 * count
+    inside = [entity for entity in tables.step_profile(file, degrees=90, plain_outside=True).entities[4:]]
+    for k in range(0, len(grooves), 3):
+        across = grooves[k + 2]
+        assert (across.end - across.start).length == pytest.approx(0.01)
+        depth = grooves[k].end - grooves[k].start
+        assert abs(depth.x * (across.end - across.start).y - depth.y * (across.end - across.start).x) / 0.01 == pytest.approx(0.005)
+        assert any(tables.same(across.start, point) or line_holds(line, across.start) for line in inside for point in (line.start, line.end))
+
+
+def line_holds(line, point) -> bool:
+    """Whether `point` is on `line`."""
+    along, to = line.end - line.start, point - line.start
+    cross = along.x * to.y - along.y * to.x
+    dot = along.x * to.x + along.y * to.y
+    return abs(cross) < 1e-9 and 0 <= dot <= along.x**2 + along.y**2
+
+
+def test_frames_with_grooves_are_built_from_their_walls():
+    grooved = [stock for stock in cots_frames() if "grooves" in to_python(untag(stock))]
+    assert sorted(to_python(untag(stock))["partName"] for stock in grooved) == [
+        "2x1 Tube (REV, light)",
+        "2x1 Tube (REV, standard, 1 in. sides only)",
+        "2x1 Tube (REV, standard, MAX Pattern)",
+    ]
+    assert all(built_from_walls(stock) for stock in grooved)
+
+
+def sketched_loops(function: str, stock, across: int) -> list[list[tuple[float, float]]]:
+    """The loops linear stock's `function` (like `sketchProfile`) sketches for `stock`, as polygons."""
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    sketch = evaluator.eval('newSketchOnPlane(context, newId() + "profile", { "sketchPlane" : XY_PLANE })', context=context)
+    evaluate(f"{function}(sketch, stock, {across})", STOCK, sketch=sketch, stock=stock)
+    evaluator.eval("skSolve(sketch)", sketch=sketch)
+    return [polygon(loop) for loop in recorded_sketch(context, "profile").loops()]
+
+
+@pytest.mark.parametrize("across", [1, -1])
+def test_grooves_are_cut_into_the_inside_of_walls(across):
+    """Each groove is in the profile's material, against its inside: just past the groove's open side is a void."""
+    for stock in cots_frames():
+        if "grooves" not in to_python(untag(stock)):
+            continue
+        profile = sketched_loops("sketchProfile", stock, across)
+        grooves = sketched_loops("sketchGrooves", stock, across)
+        assert grooves
+
+        def material(point) -> bool:
+            return sum(inside(point, p) for p in profile) % 2 == 1
+
+        for groove in grooves:
+            center = (sum(x for x, _ in groove) / len(groove), sum(y for _, y in groove) / len(groove))
+            assert material(center)
+            # Its open side is its longest, across from its tip
+            a, b = max(
+                zip(groove, groove[1:] + groove[:1]), key=lambda side: math.dist(side[0], side[1])
+            )
+            middle = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+            away = (middle[0] - center[0], middle[1] - center[1])
+            scale = 0.002 * INCH / math.hypot(*away)
+            assert not material((middle[0] + away[0] * scale, middle[1] + away[1] * scale))

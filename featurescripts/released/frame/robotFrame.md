@@ -21,8 +21,9 @@ Since v1.2.0 (`fs changes robotFrame`).
   than extruded whole with their holes cut (see linear stock's Wall stock). Their faces' ids change, so
   references to them in existing documents need fixing: a hole is named by its count from the start, or from the end
   if it's tied to it. Square Beam is still cut.
-- MAXTube's walls are plain inside: the notches along them, 0.005 in. deep (on 2x1 light, and the 2 in. sides of 2x1
-  standard and MAX Pattern), are left out, as the grooves outside them are.
+- MAXTube's grooves inside its walls (0.005 in. deep and 0.01 in. wide, behind the rows of holes: inside 2x1 standard's
+  and MAX Pattern's 2 in. sides, and every side of 2x1 light with the grid pattern) are cut along it once its walls are
+  joined. The drilling grooves outside it are left out, as before.
 - FTC frames include Swyft's Channel (48x12 mm, 424 mm long), with its bearing, 10-32, goBILDA, and REV holes; its
   keyholes are two overlapping holes.
 - Custom tubes can have No holes (the first choice of their rows), which hides the hole and row parameters.

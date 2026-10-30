@@ -32,6 +32,9 @@ export const buildWallStock = function(context is Context, id is Id, definition 
  */
 const WALL_EDGE_MARGIN = 1e-5 * meter;
 
+/** How far past each end a profile's `grooves` are extruded, so they cut cleanly through its ends. */
+const GROOVE_OVERRUN = 1 * millimeter;
+
 /** How far a sketched profile's walls reach past its holes (see `stockWalls`). */
 const PROFILE_WALL_MARGIN = 0.25 * millimeter;
 
@@ -156,7 +159,7 @@ function holesFitWalls(stock is Stock, walls is array) returns boolean
 /**
  * Builds stock from its walls (see `stockWalls`), as `buildCutStock` builds it from its profile, but faster: each wall is
  * sketched with its holes and extruded as thick as it is, so its holes need no booleans, then they're joined, with a
- * sketched profile's core (see `buildCore`), and its ends are trimmed.
+ * sketched profile's core (see `buildCore`), its `grooves` are cut along it, and its ends are trimmed.
  *
  * Each wall is `length` long, with the holes `buildCutStock` would cut. A hole is named by its count from the start, or
  * from the end if it's tied to it (see `getTie`), so its faces keep their identities as the stock's length changes.
@@ -231,9 +234,35 @@ function buildFromWalls(context is Context, id is Id, stock is Stock, location i
                         "trackPartialDependency" : true
                     }));
     }
-    opDeleteBodies(context, id + "deleteSketches", { "entities" : qCreatedBy(wallsId, EntityType.BODY)->qSketchFilter(SketchObject.YES) });
+    const groovesId = id + "grooves";
+    if (stock.grooves != undefined)
+    {
+        // Cut once it's joined, as its walls' sketches can't run along it: a little longer, so they cut through its ends
+        const sketch = newSketchOnPlane(context, groovesId + "sketch", { "sketchPlane" : plane(location) });
+        sketchGrooves(sketch, stock, across);
+        skSolve(sketch);
+        opExtrude(context, groovesId + "extrude", {
+                    "entities" : qSketchRegion(groovesId + "sketch"),
+                    "direction" : location.zAxis,
+                    "startBound" : BoundingType.BLIND,
+                    "startDepth" : GROOVE_OVERRUN,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : length + GROOVE_OVERRUN
+                });
+    }
+    opDeleteBodies(context, id + "deleteSketches", {
+                "entities" : qUnion(qCreatedBy(wallsId, EntityType.BODY), qCreatedBy(groovesId, EntityType.BODY))->qSketchFilter(SketchObject.YES)
+            });
     const body = qCreatedBy(wallsId, EntityType.BODY)->qBodyType(BodyType.SOLID);
     opBoolean(context, id + "join", { "tools" : body, "operationType" : BooleanOperationType.UNION });
+    if (stock.grooves != undefined)
+    {
+        opBoolean(context, groovesId + "cut", {
+                    "tools" : qCreatedBy(groovesId + "extrude", EntityType.BODY),
+                    "targets" : body,
+                    "operationType" : BooleanOperationType.SUBTRACTION
+                });
+    }
 
     const startFaces = qEntityFilter(qUnion(startTracks), EntityType.FACE)->qOwnedByBody(body);
     const endFaces = qEntityFilter(qUnion(endTracks), EntityType.FACE)->qOwnedByBody(body);

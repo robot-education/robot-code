@@ -158,7 +158,9 @@ is there, with nothing behind them (frameTables.py's MAXTube walls, which a test
    leave a notch.
 2. A sketched profile's core (the rest of it) is its profile extruded, less a block where each wall goes (patterned
    for the copies, as the walls are) (`buildCore`).
-3. The walls (and core) are joined with one boolean.
+3. The walls (and core) are joined with one boolean. A profile's `grooves` (MAXTube's, inside its walls, which neither
+   the walls' sketches nor its plain profile have) are then sketched (`sketchGrooves`), extruded 1 mm past each end,
+   and cut along it with one more.
 4. Frames are tagged as frames: their swept faces and edges are those crossing the stock where it has no holes
    (`clearPosition`, `tagSweptAsFrame` in `core/frameTags.fs`), and its end faces are its caps. Its end faces are found
    by history, not geometry: they're tracked (`trackSketchEntity`, std's `startTracking`) from the lines at the ends
