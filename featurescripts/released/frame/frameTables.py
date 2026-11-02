@@ -948,7 +948,8 @@ REV_FTC = vendor(
 
 
 # Custom frames: a profile and size, and how many rows of holes go on each face, which robotFrame spaces and sizes as the feature
-# says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y.
+# says. X is up along an edge in a sketch, so `topRows` go through the walls facing X (which are `height` wide), and
+# `sideRows` through those facing Y (`width` wide): a 2x1 stands on a 1 in. face.
 
 
 def custom_size(name: str, width: float, height: float, rows: Node, angle: bool = False) -> Value:
@@ -976,11 +977,10 @@ CUSTOM_TUBE = Node(
     "size",
     [
         square("1x1", 1, 2, 1),
-        # Standing on a 1 in. face, so its top is 1 in. and its sides 2 in.
         custom_size(
             "2x1",
-            1,
             2,
+            1,
             rows(
                 "wideRows",
                 3,
