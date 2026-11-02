@@ -59,18 +59,21 @@ Since v2.2.0 (`fs changes robotShaft`).
   - Robits hex: tapped #10-32, 0.7 in. deep.
   - SplineXS stubs: tapped #10-32 1/2 in. deep.
 
-  Length's first option, Custom, is one cut from them: its end type, length, Symmetric, second end, Mirror shaft, and
-  Shaft ends are shown again, as for a shaft cut from stock, and it has none of the factory features (no Flip ends).
-  It keeps its name, material, and appearance, and gets the part number and link of the shortest length it fits in.
-  goBILDA's REX at a Custom length takes E-clip end operations, as a custom metric hex shaft does.
+  Length's first option, Custom, is the shortest length it's sold in that it fits in, cut down: its end type, length,
+  Symmetric, and second end are shown again, as for a shaft cut from stock. Its factory end (its first end, or its
+  second with Flip ends) keeps the factory features: its tapped hole, and its e-clip grooves. Its other end is cut, and
+  only it can be modified (Shaft ends shows only Modify second end), and it has no Mirror shaft (which would make
+  both ends factory ends). goBILDA's plain stainless 12mm REX has no factory features, so at a Custom length it's
+  like a shaft cut from stock: both ends can be modified, and it can be mirrored. A Custom length keeps its name,
+  material, and appearance, and gets the part number and link of the shortest length it fits in. goBILDA's REX takes
+  E-clip end operations, as a custom metric hex shaft does.
 
-  A shaft can also be custom (Source: Custom). A custom FTC shaft is
-  chosen by its Shaft (8 mm REX, 12 mm REX, or 3/8 in. Robits hex), rather than by its profile (an
-  FRC one's Shaft type, Hex type, and size), and is named for it (`56 mm REX Shaft`).
+  A shaft can also be custom (Source: Custom), chosen by its profile (Shaft type, Hex type, and size), for FRC and
+  FTC alike.
 - goBILDA's whole stainless steel REX catalog: 12mm REX without an e-clip (100, 140, and 180 mm, untapped) joins the
   8mm and 12mm with one.
-- E-clip, an end operation for metric hex (7 mm and 11 mm: custom 8 mm and 12 mm REX, FRC custom shafts at those
-  sizes, and goBILDA's REX at a Custom length), in place of Retaining ring (`MetricEndOperation`, `MetricSecondEndOperation`): goBILDA's groove, 6 mm across
+- E-clip, an end operation for metric hex (7 mm and 11 mm: custom shafts at those sizes, and goBILDA's REX at a
+  Custom length), in place of Retaining ring (`MetricEndOperation`, `MetricSecondEndOperation`): goBILDA's groove, 6 mm across
   0.8 mm wide on 7 mm hex and 9 mm across 1 mm wide on 11 mm, its far side 4 mm from the end, which is extended 4 mm
   for it, as for a retaining ring. E-clips go on from the side, so there's no Side mount ring, and the end isn't faced
   off. Override groove diameter works as for a retaining ring, starting at goBILDA's.
@@ -102,10 +105,12 @@ from the center to a tooth of the outside profiles, which didn't affect the shaf
 | Groove diameter (`firstEndGrooveDiameter`, `secondEndGrooveDiameter`) | The diameter of the groove the retaining ring or e-clip sits in. |
 | Extend shaft (`extendFirstEnd`, `extendSecondEnd`) | Whether to extend the shaft to accommodate hardware. |
 
-Two parameters are hidden, set by editing logic from a COTS shaft's table entry (their "Set By" functions,
+Three parameters are hidden, set by editing logic from a COTS shaft's table entry (their "Set By" functions,
 `isPresetShaft` and `isFactoryGrooved`), as a precondition can't read a lookup table's levels: Preset shaft
 (`presetShaft`: it's at a length it's sold in, not Custom, so its length and ends are as
-sold) and Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown). Editing logic also sets
+sold), Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown), and Factory end
+(`factoryEnd`, `isFactoryEnd`: it's at a Custom length, with factory features, so it has a factory end and a cut end,
+and Flip ends is shown). Editing logic also sets
 some shown ones: each end's tapped Hole diameter (from its hole table), and
 its captive shaft Diameter and Length (from the shaft's size), and its Groove diameter (the ring's usual groove, when
 Override groove diameter is turned on, or the hex size or Side mount ring changes with it on). A COTS shaft's profile (`shaftType`, `hexType`,
@@ -124,7 +129,7 @@ decides whether Shaft ends is.
 | Failed to extend the shaft's end. | error | extending an end for a retaining ring, e-clip, or captive shaft fails | a captive end's Length and Extend shaft, or a retaining ring's or e-clip's end operation; the end |
 | The captive shaft diameter is greater than the diameter of the shaft. | error | captive shaft Diameter is wider than the hex | the end's Diameter, a body showing the captive end |
 | Failed to cut the captive end. | error | cutting a captive end fails | the end's Diameter and Length, the tool |
-| Failed to cut the shaft's e-clip groove. | error | cutting a preset REX shaft's groove fails | `ftcShaft`; the shaft in blue, and the groove |
+| Failed to cut the shaft's e-clip groove. | error | cutting a REX shaft's factory groove fails | `ftcShaft`; the shaft in blue, and the groove |
 | Failed to cut the retaining ring's groove. | error | cutting a groove fails | the end's Side mount ring (and Groove diameter, if overridden), the tool |
 | Failed to cut the e-clip's groove. | error | cutting a metric hex shaft's groove fails | the end's End operation (and Groove diameter, if overridden), the tool |
 | The groove diameter is larger than the shaft. | error | an overridden Groove diameter is as wide as the shaft across its corners, or wider | the end's Groove diameter; the shaft in blue, and the groove as entered in red |
@@ -153,15 +158,16 @@ Holes get std's hole attributes (they're made by std's `hole`).
 
 1. **Precondition**: Program, Source, location; the COTS table or the custom Shaft group; the Extrude group (std's
    extrude options, with `StockBoundingType` end types, and Mirror shaft; only Opposite direction and Starting offset
-   for a preset length, `isPresetLength`); Shaft ends, for hex and SplineXS shafts not at a preset length, with
+   for a preset length, `isPresetLength`; no Mirror shaft for a factory end, `hasFactoryEnd`); Shaft ends, for hex and
+   SplineXS shafts not at a preset length (only the second end for a factory end, `cannotSpecifySecondEnd`), with
    metric hex's end operations (`isMetricHexShaft`) or the others.
    COTS shafts show Shaft ends by their profile, which editing logic copies into the definition (below).
 2. **Editing logic** (`robotShaftEditLogic`):
-   1. Sets Preset shaft and Factory grooved from a COTS shaft's table entry (`isPresetShaft`, `isFactoryGrooved`).
+   1. Sets Preset shaft, Factory grooved, and Factory end from a COTS shaft's table entry (`isPresetShaft`,
+      `isFactoryGrooved`, `isFactoryEnd`).
       `withShaft`: sets the unit system from the program, and copies a COTS shaft's profile (`shaftType`, `hexType`,
-      `hexSize`, `splineType`, `predrilledHoleDiameter`) into the definition, or a custom FTC shaft's (from its Shaft), so
-      the precondition shows what suits it.
-      A preset length sets the extrude: Blind, its length, one way, not mirrored.
+      `hexSize`, `splineType`, `predrilledHoleDiameter`) into the definition, so the precondition shows what suits it.
+      A preset length sets the extrude: Blind, its length, one way. A shaft with factory features isn't mirrored.
    2. When the feature is created: sketches the profile and runs std's extrude editing logic on it
       (`stdNewExtrudeEditLogic`), which points the extrude at what it's up to and sets the merge scope.
    3. For each end: if its hole table path changed (or the feature is new), sets its Hole diameter from
@@ -176,8 +182,10 @@ Holes get std's hole attributes (they're made by std's `hole`).
    2. Std's `extrude` runs as a subfeature on it, at the top level id, so its manipulators and merge scope work.
    3. `verifyFlatEnds` checks both caps are planar.
    4. With Mirror shaft, the mirror plane is taken from the chosen end (`getMirrorPlane`), before the ends change.
-   5. At a preset length: its factory features are cut (`cutFactoryFeatures`: its e-clip grooves from its first end,
-      or its second with Flip ends, then std's tapped hole in each end, if it has them). Otherwise, for hex and SplineXS shafts: the ends to modify are found (`getShaftEndDefinitions`), hex profile features are
+   5. At a preset length, or with a factory end: its factory features are cut (`cutFactoryFeatures`: its e-clip
+      grooves from its first end, or its second with Flip ends, then std's tapped hole in each end, or in the factory
+      end alone, if it has them). Then, if it's not at a preset length, for hex and SplineXS shafts: the ends to modify
+      are found (`getShaftEndDefinitions`; with a factory end, only its cut end, by the second end's parameters), hex profile features are
       cut (`cutHexShaftFeatures`), each end is checked square (`verifyPerpendicularShaftEnd`) and modified
       (`modifyShaftEnd`), and the shaft attribute is set.
    6. The shaft is mirrored, if mirroring (`mirrorShaftAcrossEnd`), and its length measured along its axis
@@ -196,9 +204,9 @@ Holes get std's hole attributes (they're made by std's `hole`).
 | `getMirrorPlane`, `mirrorShaftAcrossEnd` | The end's plane; pattern the shaft across it and union the two. |
 | `cutHexShaftFeatures` | Cuts what makes a hex shaft not stock hex, through its whole length: a predrilled hole (`hasPredrilledHole`, `getPredrilledHoleDiameter`, made slightly smaller than a tap drill the same size by `predrilledHoleRadius`), churro or Hex Lite flutes, UltraHex's inner hex, or a rounded hex's round (`getRoundedDiameter`). |
 | `splineTapDrills` | The tap drills of a SplineXS shaft's tapped ends, from the definition, for its predrilled hole. |
-| `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. A hole's diameter is the end's Hole diameter (from its hole table, or overridden). |
+| `getShaftEndDefinitions`, `getEndDefinition` | Which ends to modify, and how (`EndDefinition`): a factory end shaft's cut end (by the second end's parameters), the first end alone (clearance holes go through, so there's no second), both alike (Symmetric ends), each its own, or only the end not mirrored. A hole's diameter is the end's Hole diameter (from its hole table, or overridden). |
 | `modifyShaftEnd` | A hole: std's `hole` as a subfeature, tapped (blind) or clearance (through), at the end's center, with the definition's diameter and depth. A groove or captive end: `extendShaftEnd` (offsets the end face out by the hardware's length, if extending), then cuts a tool (`extrudeShaftGrooveTool`, `extrudeCaptiveShaftTool`) from the shaft (`cutShaft`). |
-| `cutFactoryFeatures` | A preset length's features as it's sold, from its table entry (`factoryGrooves`, `factoryHole`): grooves cut from its first end (or second, with Flip ends, `hasFactoryGrooves`), and a tapped hole in each end, from std's ISO or ANSI hole table. |
+| `cutFactoryFeatures` | A shaft's features as it's sold, from its table entry (`factoryGrooves`, `factoryHole`): grooves cut from its first end (or second, with Flip ends, `canFlipEnds`), and a tapped hole in each end (or in its factory end alone, `hasFactoryEnd`), from std's ISO or ANSI hole table. |
 | `getGrooveDefinition` | A groove's diameter and width, and how far from the end it is: a retaining ring's for 1/2 in. and 3/8 in. hex, side mount or not, or an e-clip's for 7 mm and 11 mm. `extrudeShaftGrooveTool` uses an end's Groove diameter instead, if it's overridden. |
 | `grooveOverrideStarted`, `updateGrooveDiameter` | Editing logic: an end's Groove diameter is set to `getGrooveDefinition`'s when Override groove diameter is turned on, or the hex size or Side mount ring changes with it on. |
 | `measureShaftLength` | How far the shaft goes along its axis: its tight bounding box in the shaft plane's coordinates. |
@@ -227,7 +235,7 @@ in blue, then rethrow (std's errors) or throw their own. COTS length problems ar
 | `modifyShaftEnd` | Std's `hole` subfeature | Shows the shaft in blue, and rethrows. |
 | `extendShaftEnd` | Offsetting the end face out | Shows the shaft in blue, and throws "Failed to extend the shaft's end." |
 | `extrudeCaptiveShaftTool` | Drawing a body showing the too-big captive end, for the error | Already throwing; the body is left out if it can't be drawn. |
-| `cutFactoryFeatures` | Std's `hole` subfeature for a preset's tapped ends | Shows the shaft in blue, and rethrows. |
+| `cutFactoryFeatures` | Std's `hole` subfeature for a factory tapped end | Shows the shaft in blue, and rethrows. |
 | `cutShaft` | Cutting a groove or captive tool | Shows the shaft in blue, and throws its end's error (above). |
 | `robotShaftEditLogic` | Sketching the profile for std's extrude editing logic | A guard: with no location yet, std's editing logic runs without a profile. |
 

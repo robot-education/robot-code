@@ -54,8 +54,8 @@ function ftcShaft(source is ShaftSource) returns map
             "shaftSource" : source,
             "ftcShaft" : { "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "48 mm" } as LookupTablePath,
             "shaftType" : ShaftType.HEX,
+            "hexType" : HexType.ROUNDED_HEX,
             "hexSize" : HexSize._7_MM,
-            "ftcCustomShaft" : FtcCustomShaft.REX_8_MM,
             "endBound" : StockBoundingType.UP_TO_SURFACE,
             "depth" : 1 * inch,
             "symmetric" : true,
@@ -75,7 +75,7 @@ function ftcShaft(source is ShaftSource) returns map
 function eClipShaft(overrideGroove is boolean) returns map
 {
     var definition = ftcShaft(ShaftSource.CUSTOM);
-    definition.ftcCustomShaft = FtcCustomShaft.REX_12_MM;
+    definition.hexSize = HexSize._11_MM;
     definition.firstEndMetricOperation = MetricEndOperation.E_CLIP;
     definition.firstEndSideMount = false;
     definition.secondEndSideMount = false;
@@ -125,7 +125,7 @@ export function testPresetsHaveTheirFactoryFeatures()
 }
 
 /**
- * goBILDA's 8mm REX with an e-clip, at a Custom length: cut from the lengths it's sold in.
+ * goBILDA's 8mm REX with an e-clip, at a Custom length: the shortest length it's sold in that it fits in, cut down.
  */
 function customLengthShaft() returns map
 {
@@ -134,19 +134,21 @@ function customLengthShaft() returns map
     return definition;
 }
 
-export function testCustomLengthIsCutFromStock()
+export function testCustomLengthIsCutDownWithItsFactoryEnd()
 {
     const definition = robotShaftEditLogic(newContext(), newId(), customLengthShaft(), customLengthShaft(), false, {}, qNothing());
     expectTrue(!definition.presetShaft, "a Custom length isn't a preset");
-    expectTrue(!definition.factoryGrooved, "a Custom length has no factory grooves");
-    // Its extrude is its own, and its profile is the shaft's
+    expectTrue(definition.factoryEnd, "a Custom length keeps its factory end");
+    expectTrue(definition.factoryGrooved, "its factory end has its grooves");
+    // Its length is its own, its profile is the shaft's, and it isn't mirrored (both ends would be factory ends)
     expectEqual(definition.endBound, StockBoundingType.UP_TO_SURFACE);
-    expectEqual(definition.mirrorShaft, true);
+    expectEqual(definition.mirrorShaft, false);
     expectEqual(definition.hexSize, HexSize._7_MM);
     expectEqual(definition.hexType, HexType.ROUNDED_HEX);
     const entry = getLookupTable(ftcShaftTable, customLengthShaft().ftcShaft);
     expectEqual(entry.presetLength, undefined);
-    expectEqual(entry.factoryHole, undefined);
+    expectEqual(entry.factoryHole.size, "M4");
+    expectEqual(size(entry.factoryGrooves), 1);
     expectEqual(entry.partName, "8mm REX Shaft with E-Clip (goBILDA)");
     // Every length it's sold in, shortest first
     expectEqual(size(entry.stock), 28);
@@ -154,14 +156,15 @@ export function testCustomLengthIsCutFromStock()
     expectEqual(entry.stock[27].partNumber, "2106-4008-6240");
 }
 
-export function testCustomFtcShaftIsItsProfile()
+export function testCustomLengthWithoutFactoryFeaturesIsCutFromStock()
 {
-    var custom = ftcShaft(ShaftSource.CUSTOM);
-    custom.ftcCustomShaft = FtcCustomShaft.ROBITS_HEX;
-    const definition = robotShaftEditLogic(newContext(), newId(), custom, custom, false, {}, qNothing());
-    expectEqual(definition.shaftType, ShaftType.HEX);
-    expectEqual(definition.hexType, HexType.STOCK);
-    expectEqual(definition.hexSize, HexSize._3_8_IN);
+    // goBILDA's plain stainless 12mm REX has no holes or grooves: both ends can be modified, and it can be mirrored
+    var plain = customLengthShaft();
+    plain.ftcShaft = { "vendor" : "goBILDA", "type" : "12 mm REX", "material" : "Stainless steel", "length" : "Custom" } as LookupTablePath;
+    const definition = robotShaftEditLogic(newContext(), newId(), plain, plain, false, {}, qNothing());
+    expectTrue(!definition.presetShaft, "a Custom length isn't a preset");
+    expectTrue(!definition.factoryEnd, "it has no factory features");
+    expectEqual(definition.mirrorShaft, true);
 }
 
 export function testEditingLogicSetsPresetAndGrooves()

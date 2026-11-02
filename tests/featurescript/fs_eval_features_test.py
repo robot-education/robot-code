@@ -95,11 +95,12 @@ def shaft_definition(**overrides: str) -> str:
         "program": "Program.FRC",
         "shaftSource": "ShaftSource.CUSTOM",
         "presetShaft": "false",
+        "factoryEnd": "false",
+        "factoryGrooved": "false",
         "shaftType": "ShaftType.HEX",
         "hexType": "HexType.STOCK",
         "hexSize": "HexSize._1_2_IN",
         "splineType": "SplineType.MAX_SPLINE",
-        "ftcCustomShaft": "FtcCustomShaft.REX_8_MM",
         "firstEndOperation": "EndOperation.TAPPED_HOLE",
         "secondEndOperation": "SecondEndOperation.TAPPED_HOLE",
         "firstEndMetricOperation": "MetricEndOperation.TAPPED_HOLE",
@@ -128,9 +129,7 @@ def test_cots_shafts_are_preset_lengths_when_editing_logic_says_so():
 @pytest.mark.parametrize(
     "overrides,metric",
     [
-        ({"program": "Program.FTC"}, True),
-        ({"program": "Program.FTC", "ftcCustomShaft": "FtcCustomShaft.REX_12_MM"}, True),
-        ({"program": "Program.FTC", "ftcCustomShaft": "FtcCustomShaft.ROBITS_HEX"}, False),
+        ({"program": "Program.FTC"}, False),
         ({"hexSize": "HexSize._7_MM"}, True),
         ({"hexSize": "HexSize._11_MM", "hexType": "HexType.ROUNDED_HEX"}, True),
         ({"hexSize": "HexSize._3_8_IN"}, False),
@@ -151,7 +150,6 @@ def test_metric_hex_shafts(overrides, metric):
 # SplineXS shafts: the predicates repeat isMetricHexShaft's condition, as Onshape needs
 SHAFTS = [
     {},
-    {"program": "Program.FTC"},
     {"hexSize": "HexSize._11_MM"},
     {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._7_MM"},
     {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._3_8_IN"},
@@ -190,6 +188,17 @@ def test_second_end_predicates_match_its_operation(shaft, index):
     assert shaft_is("isGrooveSecondEnd", **overrides) is (operation == "RETAINING_RING")
 
 
+def test_factory_end_shafts_specify_only_their_cut_end():
+    # A Custom length with factory features: its factory end is as sold, so only the second end (its cut end) is chosen,
+    # whatever the hidden first end, Symmetric ends, and Mirror shaft hold
+    cut = {"shaftSource": "ShaftSource.COTS", "factoryEnd": "true", "symmetricEnds": "true", "mirrorShaft": "true"}
+    assert shaft_is("hasFactoryEnd", **cut) is True
+    assert shaft_is("cannotSpecifySecondEnd", **cut) is False
+    assert shaft_is("cannotSpecifySecondEnd", **{**cut, "factoryEnd": "false"}) is True
+    assert shaft_is("hasFactoryEnd", **{**cut, "shaftSource": "ShaftSource.CUSTOM"}) is False
+    assert shaft_is("canFlipEnds", **cut) is True
+
+
 def test_metric_hex_e_clip_grooves():
     # goBILDA's REX with an e-clip: 8mm REX's groove 6 mm across, 3.2 to 4 mm from its end; 12mm's 9 mm, 3 to 4 mm
     for hex_size, diameter, width in [("_7_MM", 6, 0.8), ("_11_MM", 9, 1)]:
@@ -219,6 +228,8 @@ def precondition_parameters(module: str) -> set[str]:
         {"shaftSource": "ShaftSource.COTS", "frcShaft": '{ "vendor" : "ThriftyBot", "type" : "SplineXS stub", "length" : "2 in." } as LookupTablePath'},
         {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS",
          "ftcShaft": '{ "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "48 mm" } as LookupTablePath'},
+        {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS",
+         "ftcShaft": '{ "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "Custom" } as LookupTablePath'},
         {"program": "Program.FTC", "firstEndMetricOperation": "MetricEndOperation.E_CLIP", "firstEndOverrideGroove": "true"},
         {"firstEndOperation": "EndOperation.RETAINING_RING", "firstEndOverrideGroove": "true"},
     ],

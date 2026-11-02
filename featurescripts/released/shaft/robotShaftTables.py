@@ -143,10 +143,10 @@ class Preset:
 def presets(lengths: list[Preset], factory: dict[str, str]) -> Node:
     """A shaft's lengths as it's sold, to choose from, after Custom, the nearest to 56 mm by default. Each is built as
     it's sold: its `presetLength`, and its `factory` features (see `factory`), with nothing to choose about its ends.
-    Custom is cut from them (its `stock` is all of them, shortest first): its length and ends are chosen as a shaft cut
-    from stock's are, without its factory features."""
+    Custom is the shortest of them it fits in, cut down (its `stock` is all of them, shortest first): its length is
+    chosen, and it has its factory features at one end, and its cut end to modify."""
     default = min(lengths, key=lambda preset: abs(preset.millimeters - 56)).name
-    custom = Value("Custom", {"stock": stock(*[preset.entry for preset in sorted(lengths, key=lambda preset: preset.millimeters)])})
+    custom = Value("Custom", {"stock": stock(*[preset.entry for preset in sorted(lengths, key=lambda preset: preset.millimeters)]), **factory})
     return Node(
         "length",
         [custom]
@@ -462,7 +462,7 @@ REX_12_PLAIN_FACTORY = factory(None, [])
 # e-clip and its grooves, and the 12 mm without, untapped) and its aluminum 12 mm
 # (https://www.gobilda.com/stainless-steel-rex-shafting/, https://www.gobilda.com/aluminum-rex-shafting/). It only
 # sells REX, so its types are its sizes, with an e-clip or without, which the precondition shows Flip ends for. It
-# sells no 8mm REX shaft without one (only standoffs)
+# sells no 8mm REX shaft without one (only standoffs). A custom REX shaft is one of them cut down (Length's Custom)
 # TODO: goBILDA's D-shafts and round shafts; REV's 5mm hex. 8mm REX standoffs (aluminum) are left out: they're standoffs
 GOBILDA = vendor(
     "goBILDA",
