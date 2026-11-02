@@ -44,14 +44,13 @@ Since v2.2.0 (`fs changes robotShaft`).
 - COTS shafts: FRC shafts from WCP, REV, AndyMark, Swyft, VEX, and ThriftyBot, and FTC shafts from goBILDA and AndyMark
   (Robits), chosen by vendor, type (as the vendor names it: Hex, Rounded hex, Hex Lite, SplineXS, ...), size (for hex),
   and material (only where a vendor sells the type and size in several). They're named `<length> <part name>`, and get their material, appearance, vendor, and the part number and
-  link of the stock they're cut from; a warning says when one is longer than it's sold, or isn't one of the set
-  lengths it's only sold in.
+  link of the stock they're cut from; a warning says when one is longer than it's sold.
 - SplineXS shafts (custom and COTS), whose ends can only be tapped; COTS SplineXS shafts can have a hole through them.
 - Metric hex sizes for custom shafts: 7 mm (8mm REX) and 11 mm (12mm REX), with rounded hex diameters to match.
 - Mirror shaft, with Flip mirror end: mirrors the shaft across one of its ends.
 - Modify first end, Modify second end, End type, Symmetric, and the second end type remember their previous values.
 - COTS shafts sold in set lengths are chosen by Length, after the shaft: goBILDA's REX shafts, AndyMark's Robits hex,
-  and WCP's and ThriftyBot's SplineXS stubs. The default is the length nearest 56 mm. They're built as they're sold:
+  and WCP's and ThriftyBot's SplineXS stubs. The default is the length nearest 56 mm. At one of their lengths, they're built as they're sold:
   that long from their location (with Opposite direction and Starting offset, but no end type, Symmetric, second end,
   or Mirror shaft), with their ends as made, and no Shaft ends:
   - goBILDA's REX: tapped M4 (11 mm deep on 8mm REX, 12 mm on stainless 12mm, 14 mm on aluminum 12mm), and on the ones
@@ -60,13 +59,18 @@ Since v2.2.0 (`fs changes robotShaft`).
   - Robits hex: tapped #10-32, 0.7 in. deep.
   - SplineXS stubs: tapped #10-32 1/2 in. deep.
 
-  A shaft cut to another length, or with its ends modified, is a custom one (Source: Custom). A custom FTC shaft is
+  Length's first option, Custom, is one cut from them: its end type, length, Symmetric, second end, Mirror shaft, and
+  Shaft ends are shown again, as for a shaft cut from stock, and it has none of the factory features (no Flip ends).
+  It keeps its name, material, and appearance, and gets the part number and link of the shortest length it fits in.
+  goBILDA's REX at a Custom length takes E-clip end operations, as a custom metric hex shaft does.
+
+  A shaft can also be custom (Source: Custom). A custom FTC shaft is
   chosen by its Shaft (8 mm REX, 12 mm REX, or 3/8 in. Robits hex), rather than by its profile (an
   FRC one's Shaft type, Hex type, and size), and is named for it (`56 mm REX Shaft`).
 - goBILDA's whole stainless steel REX catalog: 12mm REX without an e-clip (100, 140, and 180 mm, untapped) joins the
   8mm and 12mm with one.
-- E-clip, an end operation for custom metric hex (7 mm and 11 mm: 8 mm and 12 mm REX, and FRC custom shafts at those
-  sizes), in place of Retaining ring (`MetricEndOperation`, `MetricSecondEndOperation`): goBILDA's groove, 6 mm across
+- E-clip, an end operation for metric hex (7 mm and 11 mm: custom 8 mm and 12 mm REX, FRC custom shafts at those
+  sizes, and goBILDA's REX at a Custom length), in place of Retaining ring (`MetricEndOperation`, `MetricSecondEndOperation`): goBILDA's groove, 6 mm across
   0.8 mm wide on 7 mm hex and 9 mm across 1 mm wide on 11 mm, its far side 4 mm from the end, which is extended 4 mm
   for it, as for a retaining ring. E-clips go on from the side, so there's no Side mount ring, and the end isn't faced
   off. Override groove diameter works as for a retaining ring, starting at goBILDA's.
@@ -100,8 +104,8 @@ from the center to a tooth of the outside profiles, which didn't affect the shaf
 
 Two parameters are hidden, set by editing logic from a COTS shaft's table entry (their "Set By" functions,
 `isPresetShaft` and `isFactoryGrooved`), as a precondition can't read a lookup table's levels: Preset shaft
-(`presetShaft`: it's sold in set lengths, so its length and ends are as
-sold; `isPresetLength` only reads it for FRC, as every FTC COTS shaft is) and Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown). Editing logic also sets
+(`presetShaft`: it's at a length it's sold in, not Custom, so its length and ends are as
+sold) and Factory grooved (`factoryGrooved`: it has e-clip grooves, so Flip ends is shown). Editing logic also sets
 some shown ones: each end's tapped Hole diameter (from its hole table), and
 its captive shaft Diameter and Length (from the shaft's size), and its Groove diameter (the ring's usual groove, when
 Override groove diameter is turned on, or the hex size or Side mount ring changes with it on). A COTS shaft's profile (`shaftType`, `hexType`,

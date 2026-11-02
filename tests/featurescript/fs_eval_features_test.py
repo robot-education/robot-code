@@ -116,9 +116,10 @@ def shaft_is(predicate: str, **overrides: str) -> bool:
     return evaluate(f"{predicate}({shaft_definition(**overrides)})", SHAFT)
 
 
-def test_ftc_cots_shafts_are_preset_lengths_without_editing_logic():
-    # Every FTC COTS shaft is sold in set lengths; an FRC one is only when editing logic says so (a SplineXS stub)
-    assert shaft_is("isPresetLength", program="Program.FTC", shaftSource="ShaftSource.COTS") is True
+def test_cots_shafts_are_preset_lengths_when_editing_logic_says_so():
+    # From its table entry: a length it's sold in, not Custom
+    assert shaft_is("isPresetLength", program="Program.FTC", shaftSource="ShaftSource.COTS") is False
+    assert shaft_is("isPresetLength", program="Program.FTC", shaftSource="ShaftSource.COTS", presetShaft="true") is True
     assert shaft_is("isPresetLength", shaftSource="ShaftSource.COTS") is False
     assert shaft_is("isPresetLength", shaftSource="ShaftSource.COTS", presetShaft="true") is True
     assert shaft_is("isPresetLength", program="Program.FTC", presetShaft="true") is False
@@ -135,7 +136,10 @@ def test_ftc_cots_shafts_are_preset_lengths_without_editing_logic():
         ({"hexSize": "HexSize._3_8_IN"}, False),
         # UltraHex is 1/2 in., whatever its hidden size
         ({"hexSize": "HexSize._7_MM", "hexType": "HexType.ULTRA_HEX"}, False),
-        ({"hexSize": "HexSize._7_MM", "shaftSource": "ShaftSource.COTS"}, False),
+        # goBILDA's REX at a Custom length, by its profile (from editing logic), FRC or FTC
+        ({"hexSize": "HexSize._7_MM", "shaftSource": "ShaftSource.COTS"}, True),
+        ({"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._11_MM"}, True),
+        ({"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._3_8_IN"}, False),
         ({"hexSize": "HexSize._7_MM", "shaftType": "ShaftType.SPLINE", "splineType": "SplineType.SPLINE_XS"}, False),
     ],
 )
@@ -149,6 +153,8 @@ SHAFTS = [
     {},
     {"program": "Program.FTC"},
     {"hexSize": "HexSize._11_MM"},
+    {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._7_MM"},
+    {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._3_8_IN"},
     {"shaftType": "ShaftType.SPLINE", "splineType": "SplineType.SPLINE_XS"},
 ]
 FIRST_OPERATIONS = ["TAPPED_HOLE", "CLEARANCE_HOLE", "RETAINING_RING", "CAPTIVE_SHAFT"]

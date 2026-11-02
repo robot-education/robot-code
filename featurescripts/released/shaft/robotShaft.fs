@@ -52,14 +52,14 @@ export enum FtcCustomShaft
 }
 
 /**
- * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
- * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
- * Every FTC COTS shaft is; of FRC's, editing logic sets `presetShaft` from its table entry (`isPresetShaft`).
+ * Whether a shaft is a COTS shaft sold in set lengths, at one of them, chosen by its table's Length: it's built as it's
+ * sold, its length and ends set, so only where it starts is chosen. Its Length's Custom is one cut to a length, or with
+ * its ends modified. Editing logic sets `presetShaft` from its table entry (`isPresetShaft`).
  */
 predicate isPresetLength(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
-    definition.program == Program.FTC || definition.presetShaft;
+    definition.presetShaft;
 }
 
 /**
@@ -138,14 +138,15 @@ predicate isSplineXsShaft(definition is map)
 }
 
 /**
- * Whether a custom shaft is metric hex (7 mm or 11 mm, goBILDA's REX), whose ends take e-clips rather than retaining
- * rings (`MetricEndOperation`). No COTS shaft whose ends can be modified is.
+ * Whether a shaft is metric hex (7 mm or 11 mm, goBILDA's REX), whose ends take e-clips rather than retaining rings
+ * (`MetricEndOperation`): a custom FTC shaft by its Shaft, and others by their profile (a COTS shaft's, from editing
+ * logic: goBILDA's REX at a Custom length).
  */
 predicate isMetricHexShaft(definition is map)
 {
-    definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-        ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-            (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+    definition.shaftType == ShaftType.HEX &&
+        ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+            ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                 (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)));
 }
 
@@ -161,14 +162,14 @@ predicate canModifyShaftEnds(definition is map)
 predicate isTappedFirstEnd(definition is map)
 {
     (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
-        ((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        ((definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndMetricOperation == MetricEndOperation.TAPPED_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (!(definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndOperation == EndOperation.TAPPED_HOLE);
 }
@@ -176,14 +177,14 @@ predicate isTappedFirstEnd(definition is map)
 predicate isTappedSecondEnd(definition is map)
 {
     (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
-        ((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        ((definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.secondEndMetricOperation == MetricSecondEndOperation.TAPPED_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (!(definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE);
 }
@@ -191,14 +192,14 @@ predicate isTappedSecondEnd(definition is map)
 predicate isClearanceFirstEnd(definition is map)
 {
     !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (((definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndMetricOperation == MetricEndOperation.CLEARANCE_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (!(definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndOperation == EndOperation.CLEARANCE_HOLE));
 }
@@ -209,14 +210,14 @@ predicate isClearanceFirstEnd(definition is map)
 predicate isGrooveFirstEnd(definition is map)
 {
     !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (((definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndMetricOperation == MetricEndOperation.E_CLIP) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (!(definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndOperation == EndOperation.RETAINING_RING));
 }
@@ -224,14 +225,14 @@ predicate isGrooveFirstEnd(definition is map)
 predicate isGrooveSecondEnd(definition is map)
 {
     !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (((definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.secondEndMetricOperation == MetricSecondEndOperation.E_CLIP) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (!(definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.secondEndOperation == SecondEndOperation.RETAINING_RING));
 }
@@ -279,14 +280,14 @@ predicate cannotSpecifySecondEnd(definition is map)
         (definition.modifyFirstEnd && (definition.symmetricEnds ||
             // isClearanceFirstEnd
             (!(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (((definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndMetricOperation == MetricEndOperation.CLEARANCE_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
+        (!(definition.shaftType == ShaftType.HEX &&
+            ((definition.shaftSource == ShaftSource.CUSTOM && definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
+                ((definition.shaftSource == ShaftSource.COTS || definition.program == Program.FRC) && definition.hexType != HexType.ULTRA_HEX &&
                     (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
             definition.firstEndOperation == EndOperation.CLEARANCE_HOLE)))));
 }

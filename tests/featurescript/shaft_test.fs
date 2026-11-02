@@ -124,6 +124,36 @@ export function testPresetsHaveTheirFactoryFeatures()
     expectEqual(robits.presetLength, 4 * inch);
 }
 
+/**
+ * goBILDA's 8mm REX with an e-clip, at a Custom length: cut from the lengths it's sold in.
+ */
+function customLengthShaft() returns map
+{
+    var definition = ftcShaft(ShaftSource.COTS);
+    definition.ftcShaft = { "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "Custom" } as LookupTablePath;
+    return definition;
+}
+
+export function testCustomLengthIsCutFromStock()
+{
+    const definition = robotShaftEditLogic(newContext(), newId(), customLengthShaft(), customLengthShaft(), false, {}, qNothing());
+    expectTrue(!definition.presetShaft, "a Custom length isn't a preset");
+    expectTrue(!definition.factoryGrooved, "a Custom length has no factory grooves");
+    // Its extrude is its own, and its profile is the shaft's
+    expectEqual(definition.endBound, StockBoundingType.UP_TO_SURFACE);
+    expectEqual(definition.mirrorShaft, true);
+    expectEqual(definition.hexSize, HexSize._7_MM);
+    expectEqual(definition.hexType, HexType.ROUNDED_HEX);
+    const entry = getLookupTable(ftcShaftTable, customLengthShaft().ftcShaft);
+    expectEqual(entry.presetLength, undefined);
+    expectEqual(entry.factoryHole, undefined);
+    expectEqual(entry.partName, "8mm REX Shaft with E-Clip (goBILDA)");
+    // Every length it's sold in, shortest first
+    expectEqual(size(entry.stock), 28);
+    expectEqual(entry.stock[0].length, 24 * millimeter);
+    expectEqual(entry.stock[27].partNumber, "2106-4008-6240");
+}
+
 export function testCustomFtcShaftIsItsProfile()
 {
     var custom = ftcShaft(ShaftSource.CUSTOM);

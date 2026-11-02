@@ -5,8 +5,8 @@ The shaft tables list the shafts teams buy, picked by how often they're used in 
 (`shaftType`, and `hexType` and `hexSize` or `splineType`), with its `partName` (after its length, e.g. "3 in.
 Rounded Hex Shaft (WCP 1/2 in.)"), `material`, `appearance`, and `stock`: the lengths it's sold in, shortest first
 (see nutStripTables.py). Most shafts are cut from stock, but some are only sold in set lengths, with machined ends
-(like goBILDA's REX shafts, with e-clip grooves): those are chosen by their Length, and built as they're sold (see
-`presets`).
+(like goBILDA's REX shafts, with e-clip grooves): those are chosen by their Length, and built as they're sold, or Custom,
+cut from them (see `presets`).
 """
 
 import dataclasses
@@ -126,22 +126,31 @@ class Shaft:
 @dataclasses.dataclass
 class Preset:
     """A length a shaft is sold in: its name (`48 mm`, `2 in.`), its length in millimeters, its length as a
-    FeatureScript expression, and its stock (one entry)."""
+    FeatureScript expression, and its part number and url."""
 
     name: str
     millimeters: float
     length: str
-    stock: str
+    part_number: str
+    url: str
+
+    @property
+    def entry(self) -> tuple[str, str, str]:
+        """Its stock entry (see `stock`)."""
+        return (self.length, self.part_number, self.url)
 
 
 def presets(lengths: list[Preset], factory: dict[str, str]) -> Node:
-    """A shaft's lengths as it's sold, to choose from, the nearest to 56 mm by default. Each is built as it's sold: its
-    `presetLength`, and its `factory` features (see `factory`), with nothing to choose about its ends; it's a custom
-    shaft that's cut to length, or has its ends modified."""
+    """A shaft's lengths as it's sold, to choose from, after Custom, the nearest to 56 mm by default. Each is built as
+    it's sold: its `presetLength`, and its `factory` features (see `factory`), with nothing to choose about its ends.
+    Custom is cut from them (its `stock` is all of them, shortest first): its length and ends are chosen as a shaft cut
+    from stock's are, without its factory features."""
     default = min(lengths, key=lambda preset: abs(preset.millimeters - 56)).name
+    custom = Value("Custom", {"stock": stock(*[preset.entry for preset in sorted(lengths, key=lambda preset: preset.millimeters)])})
     return Node(
         "length",
-        [Value(preset.name, {"presetLength": preset.length, "stock": preset.stock, **factory}) for preset in lengths],
+        [custom]
+        + [Value(preset.name, {"presetLength": preset.length, "stock": stock(preset.entry), **factory}) for preset in lengths],
         display_name="Length",
         default=default,
     )
@@ -149,7 +158,7 @@ def presets(lengths: list[Preset], factory: dict[str, str]) -> Node:
 
 def inch_presets(url: str, *sizes: tuple[float, str]) -> list[Preset]:
     """Lengths sold in inches, each (length, part number), all on one page."""
-    return [Preset(f"{length:g} in.", length * 25.4, inch(length), stock((inch(length), part_number, url))) for length, part_number in sizes]
+    return [Preset(f"{length:g} in.", length * 25.4, inch(length), part_number, url) for length, part_number in sizes]
 
 
 # Tapped #10-32 at each end (std's hole table's names), `depth` deep
@@ -411,24 +420,19 @@ TTB = vendor(
 )
 
 
-def gobilda(series: str, profile: str, name: str, lengths: list[float]) -> str:
-    """goBILDA sells each length: SKUs like 2106-4008-0560 for 56 mm, with a page each (2102 and 2104 are numbered by
-    the millimeter, not the tenth)."""
-    return stock(
-        *[
-            (
-                mm(length),
-                f"{series}-{profile}-{round(length * 10):04d}" if series not in ("2102", "2104") else f"{series}-{profile}-{round(length):04d}",
-                f"https://www.gobilda.com/{name}-{length:g}mm-length/",
-            )
-            for length in lengths
-        ]
-    )
-
-
 def gobilda_presets(series: str, profile: str, name: str, lengths: list[float]) -> list[Preset]:
-    """goBILDA's lengths (in millimeters), each its own SKU (see `gobilda`)."""
-    return [Preset(f"{length:g} mm", length, mm(length), gobilda(series, profile, name, [length])) for length in lengths]
+    """goBILDA's lengths (in millimeters), each its own SKU, like 2106-4008-0560 for 56 mm, with a page each (2102 and
+    2104 are numbered by the millimeter, not the tenth)."""
+    return [
+        Preset(
+            f"{length:g} mm",
+            length,
+            mm(length),
+            f"{series}-{profile}-{round(length * 10):04d}" if series not in ("2102", "2104") else f"{series}-{profile}-{round(length):04d}",
+            f"https://www.gobilda.com/{name}-{length:g}mm-length/",
+        )
+        for length in lengths
+    ]
 
 
 REX_8_LENGTHS = [24, 32, 40, 43, 48, 52, 54, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 168, 192, 216, 240, 264, 288,
