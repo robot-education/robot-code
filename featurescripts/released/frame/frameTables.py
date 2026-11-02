@@ -976,17 +976,18 @@ CUSTOM_TUBE = Node(
     "size",
     [
         square("1x1", 1, 2, 1),
+        # Standing on a 1 in. face, so its top is 1 in. and its sides 2 in.
         custom_size(
             "2x1",
-            2,
             1,
+            2,
             rows(
                 "wideRows",
                 3,
                 3,
-                ("topRows",),
+                ("sideRows",),
                 "2 in. face rows",
-                rows("narrowRows", 2, 1, ("sideRows",), "1 in. face rows"),
+                rows("narrowRows", 2, 1, ("topRows",), "1 in. face rows"),
             ),
         ),
         square("2x2", 2, 3, 3),
