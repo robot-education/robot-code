@@ -1280,14 +1280,15 @@ precondition
             holePath.fit = "None";
             holePath["type"] = "Straight tap";
 
-            // definition is source of truth for hole diameter, but major diameter is used for annotation
+            // definition is source of truth for hole diameter, but major diameter is used for annotation. Metric sizes
+            // are in std's ISO table
             const value = getLookupTable(tableAndPath.table, tableAndPath.path);
+            const metric = value.metric;
             holeDefinition = {
                     "isV2" : true,
-                    "unitsSystem" : UnitsSystem.INCH,
+                    "unitsSystem" : metric ? UnitsSystem.METRIC : UnitsSystem.INCH,
                     "endStyleV2" : HoleEndStyleV2.BLIND,
                     "locations" : locations,
-                    "ansiHoleTableEx" : holePath,
                     "holeDiameterV2" : endDefinition.holeDiameter,
                     "majorDiameter" : value.majorDiameter,
                     "holeDepth" : endDefinition.holeDepth,
@@ -1298,6 +1299,7 @@ precondition
                 // "showTappedDepth" : true,
                 // "tapClearance" : 0,
                 };
+            holeDefinition[metric ? "isoHoleTableEx" : "ansiHoleTableEx"] = holePath;
         }
         else
         {
@@ -1604,6 +1606,11 @@ export function robotShaftEditLogic(context is Context, id is Id, oldDefinition 
 
     for (var shaftEnd in values(ShaftEnd))
     {
+        if (shaftChanged(oldDefinition, definition))
+        {
+            definition = updateTappedHolePath(definition, shaftEnd);
+        }
+
         if (activePathChanged(oldDefinition, definition, shaftEnd))
         {
             definition = applyTableDefinition(definition, shaftEnd);
@@ -1666,6 +1673,21 @@ function updateGrooveDiameter(definition is map, shaftEnd is ShaftEnd) returns m
     const grooveDiameter = getGrooveDefinition(definition[endString ~ "SideMount"], hexSize, definition.unitSystem).grooveDiameter;
     definition[endString ~ "GrooveDiameter"] = isMetricHex(hexSize) ? toString(roundToPrecision(grooveDiameter / millimeter, 2)) ~ " mm" :
         toString(roundToPrecision(grooveDiameter / inch, 4)) ~ " in";
+    return definition;
+}
+
+/**
+ * Sets an end's tapped hole to its shaft's usual (M4 for metric hex, goBILDA's REX; #10-32 for the others), if it's
+ * the other system's: a choice in the shaft's own system is kept.
+ */
+function updateTappedHolePath(definition is map, shaftEnd is ShaftEnd) returns map
+{
+    const key = getShaftEndString(shaftEnd) ~ "TappedHolePath";
+    const metricShaft = definition.shaftType == ShaftType.HEX && isMetricHex(definition.hexSize);
+    if (getLookupTable(tappedHoleTable, definition[key]).metric != metricShaft)
+    {
+        definition[key] = (metricShaft ? { "size" : "M4", "pitch" : "0.70 mm (Coarse)" } : { "size" : "#10", "pitch" : "32 tpi (UNF)" }) as LookupTablePath;
+    }
     return definition;
 }
 

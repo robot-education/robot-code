@@ -108,6 +108,8 @@ def shaft_definition(**overrides: str) -> str:
         "mirrorShaft": "false",
         "modifyFirstEnd": "true",
         "symmetricEnds": "false",
+        "firstEndTappedHolePath": '{ "size" : "#10", "pitch" : "32 tpi (UNF)" } as LookupTablePath',
+        "secondEndTappedHolePath": '{ "size" : "#10", "pitch" : "32 tpi (UNF)" } as LookupTablePath',
         **overrides,
     }
     return "{ " + ", ".join(f'"{key}" : {value}' for key, value in values.items()) + " }"

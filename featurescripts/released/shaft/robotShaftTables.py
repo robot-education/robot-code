@@ -28,17 +28,29 @@ def pitch_node(pitches: dict[str, str | None], default: str | None = None) -> No
     )
 
 
+def metric_pitch_node(pitches: dict[str, str], default: str) -> Node:
+    """Maps each pitch (std's ISO hole table's names) to its tap drill diameter (std's)."""
+    return Node(
+        "pitch",
+        [Value(name, {"tapDrillDiameter": string(drill)}) for name, drill in pitches.items()],
+        display_name="Pitch",
+        default=default,
+    )
+
+
+# Tapped holes, by size and pitch, as std's hole tables name them (ANSI's, or ISO's for `metric` ones: goBILDA taps
+# REX M4)
 tapped_hole = Node(
     "size",
     [
         Value(
             "#8",
-            {"majorDiameter": inch(0.164), "tapDrillDiameter": string("0.1360 in")},
+            {"majorDiameter": inch(0.164), "tapDrillDiameter": string("0.1360 in"), "metric": "false"},
             pitch_node({"32 tpi (UNC)": None, "36 tpi (UNF)": None}),
         ),
         Value(
             "#10",
-            {"majorDiameter": inch(0.19)},
+            {"majorDiameter": inch(0.19), "metric": "false"},
             pitch_node(
                 {"24 tpi (UNC)": "0.1495 in", "32 tpi (UNF)": "0.1590 in"},
                 default="32 tpi (UNF)",
@@ -46,7 +58,7 @@ tapped_hole = Node(
         ),
         Value(
             "1/4",
-            {"majorDiameter": inch(0.25)},
+            {"majorDiameter": inch(0.25), "metric": "false"},
             pitch_node(
                 {
                     "20 tpi (UNC)": "0.2010 in",
@@ -57,7 +69,7 @@ tapped_hole = Node(
         ),
         Value(
             "5/16",
-            {"majorDiameter": inch(5 / 16)},
+            {"majorDiameter": inch(5 / 16), "metric": "false"},
             pitch_node(
                 {
                     "18 tpi (UNC)": "0.2570 in",
@@ -65,6 +77,16 @@ tapped_hole = Node(
                     "32 tpi (UNEF)": "0.2812 in",
                 }
             ),
+        ),
+        Value(
+            "M3",
+            {"majorDiameter": mm(3), "metric": "true"},
+            metric_pitch_node({"0.50 mm (Coarse)": "2.5 mm", "0.35 mm (Fine)": "2.65 mm"}, default="0.50 mm (Coarse)"),
+        ),
+        Value(
+            "M4",
+            {"majorDiameter": mm(4), "metric": "true"},
+            metric_pitch_node({"0.70 mm (Coarse)": "3.3 mm", "0.50 mm (Fine)": "3.5 mm"}, default="0.70 mm (Coarse)"),
         ),
     ],
     default="#10",

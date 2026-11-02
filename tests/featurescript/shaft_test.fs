@@ -65,7 +65,9 @@ function ftcShaft(source is ShaftSource) returns map
             "firstEndMetricOperation" : MetricEndOperation.TAPPED_HOLE,
             "secondEndMetricOperation" : MetricSecondEndOperation.TAPPED_HOLE,
             "firstEndOverrideGroove" : false,
-            "secondEndOverrideGroove" : false
+            "secondEndOverrideGroove" : false,
+            "firstEndTappedHolePath" : { "size" : "M4", "pitch" : "0.70 mm (Coarse)" } as LookupTablePath,
+            "secondEndTappedHolePath" : { "size" : "M4", "pitch" : "0.70 mm (Coarse)" } as LookupTablePath
         };
 }
 
@@ -178,4 +180,54 @@ export function testEditingLogicSetsPresetAndGrooves()
     const rex = robotShaftEditLogic(newContext(), newId(), plain, plain, false, {}, qNothing());
     expectTrue(rex.presetShaft, "a REX shaft is sold in set lengths");
     expectTrue(!rex.factoryGrooved, "without an e-clip, it has no grooves");
+}
+
+/**
+ * A custom hex shaft `hexSize` across, with tapped ends from the hole table's `path`.
+ */
+function tappedShaft(hexSize is HexSize, path is LookupTablePath) returns map
+{
+    var definition = ringShaft(false);
+    definition.hexType = HexType.ROUNDED_HEX;
+    definition.hexSize = hexSize;
+    definition.firstEndOperation = EndOperation.TAPPED_HOLE;
+    definition.firstEndMetricOperation = MetricEndOperation.TAPPED_HOLE;
+    definition.secondEndOperation = SecondEndOperation.TAPPED_HOLE;
+    definition.secondEndMetricOperation = MetricSecondEndOperation.TAPPED_HOLE;
+    definition.firstEndTappedHolePath = path;
+    definition.secondEndTappedHolePath = path;
+    return definition;
+}
+
+const TEN_32 = { "size" : "#10", "pitch" : "32 tpi (UNF)" } as LookupTablePath;
+const M3 = { "size" : "M3", "pitch" : "0.50 mm (Coarse)" } as LookupTablePath;
+const M4 = { "size" : "M4", "pitch" : "0.70 mm (Coarse)" } as LookupTablePath;
+
+export function testMetricTappedHolesAreStdsIsoSizes()
+{
+    expectEqual(getLookupTable(tappedHoleTable, M3).tapDrillDiameter, "2.5 mm");
+    expectEqual(getLookupTable(tappedHoleTable, M4).tapDrillDiameter, "3.3 mm");
+    expectEqual(getLookupTable(tappedHoleTable, M4).majorDiameter, 4 * millimeter);
+    expectTrue(getLookupTable(tappedHoleTable, M4).metric, "M4 is in std's ISO table");
+    expectTrue(!getLookupTable(tappedHoleTable, TEN_32).metric, "#10-32 is in std's ANSI table");
+}
+
+export function testMetricHexShaftsAreTappedM4()
+{
+    // A new 8mm REX shaft (from the inch default), and one changed from 1/2 in. hex
+    const created = robotShaftEditLogic(newContext(), newId(), {}, tappedShaft(HexSize._7_MM, TEN_32), false, {}, qNothing());
+    expectEqual(created.firstEndTappedHolePath, M4);
+    expectEqual(created.firstEndHoleDiameter, "3.3 mm");
+    const changed = robotShaftEditLogic(newContext(), newId(), tappedShaft(HexSize._1_2_IN, TEN_32), tappedShaft(HexSize._11_MM, TEN_32), false, {}, qNothing());
+    expectEqual(changed.secondEndTappedHolePath, M4);
+}
+
+export function testTappedHoleKeepsItsSystemsChoice()
+{
+    // M3 stays from 8mm to 12mm REX; back to inch hex, it's #10-32
+    const metric = robotShaftEditLogic(newContext(), newId(), tappedShaft(HexSize._7_MM, M3), tappedShaft(HexSize._11_MM, M3), false, {}, qNothing());
+    expectEqual(metric.firstEndTappedHolePath, M3);
+    const inch = robotShaftEditLogic(newContext(), newId(), tappedShaft(HexSize._11_MM, M3), tappedShaft(HexSize._1_2_IN, M3), false, {}, qNothing());
+    expectEqual(inch.firstEndTappedHolePath, TEN_32);
+    expectEqual(inch.firstEndHoleDiameter, "0.1590 in");
 }
