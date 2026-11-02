@@ -22,3 +22,45 @@ export function testChoosingACotsFrameSetsItsHoleStart()
                 }), {});
     expectNear(definition.holeStart, 0.5 * inch, 1e-12 * meter);
 }
+
+export function testCustomSizeTakesItsSizeAndRowsFromTheDialog()
+{
+    const size = customFrameSize({
+                "program" : Program.FRC,
+                "source" : FrameSource.CUSTOM,
+                "customFrame" : { "profile" : "Tube", "size" : "Custom" } as LookupTablePath,
+                "width" : 3 * inch,
+                "height" : 1.5 * inch,
+                "topRows" : 2,
+                "sideRows" : 0,
+                "topRowSpacing" : 1 * inch,
+                "sideRowSpacing" : 0.25 * inch
+            });
+    expectEqual(size.width, 3 * inch);
+    expectEqual(size.height, 1.5 * inch);
+    expectEqual(size.angle, false);
+    expectEqual(size.topRows, 2);
+    expectEqual(size.sideRows, 0);
+    expectEqual(size.topRowSpacing, 1 * inch);
+    expectEqual(size.sideRowSpacing, 0.25 * inch);
+}
+
+export function testATableSizeSpacesItsFacesRowsByTheirWidths()
+{
+    const size = customFrameSize({
+                "program" : Program.FRC,
+                "source" : FrameSource.CUSTOM,
+                "customFrame" : { "profile" : "Tube", "size" : "2x1", "wideRows" : "3", "narrowRows" : "1" } as LookupTablePath,
+                // Ignored: they're the custom size's
+                "width" : 3 * inch,
+                "topRowSpacing" : 1 * inch,
+                "wideRowSpacing" : 0.5 * inch,
+                "narrowRowSpacing" : 0.375 * inch,
+                "rowSpacing" : 0.25 * inch
+            });
+    expectEqual(size.width, 2 * inch);
+    expectEqual(size.topRows, 3);
+    expectEqual(size.sideRows, 1);
+    expectEqual(size.topRowSpacing, 0.5 * inch);
+    expectEqual(size.sideRowSpacing, 0.375 * inch);
+}

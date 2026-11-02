@@ -948,13 +948,21 @@ REV_FTC = vendor(
 
 
 # Custom frames: a profile and size, and how many rows of holes go on each face, which robotFrame spaces and sizes as the feature
-# says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y.
+# says. `sideRows` go through the walls facing X (which are `height` wide), and `topRows` through those facing Y. The
+# Custom size takes its size and rows from the feature too (`customSize`).
 
 
 def custom_size(name: str, width: float, height: float, rows: Node, angle: bool = False) -> Value:
     return Value(
-        name, {"width": inch(width), "height": inch(height), "angle": "true" if angle else "false"}, rows
+        name,
+        {"width": inch(width), "height": inch(height), "angle": "true" if angle else "false", "customSize": "false"},
+        rows,
     )
+
+
+def any_size(angle: bool = False) -> Value:
+    """A size the feature gives, with its rows of holes."""
+    return Value("Custom", {"angle": "true" if angle else "false", "customSize": "true"})
 
 
 def rows(name: str, most: int, default: int, keys: tuple[str, ...], display_name: str = "Rows", next: Node | None = None) -> Node:
@@ -990,11 +998,14 @@ CUSTOM_TUBE = Node(
             ),
         ),
         square("2x2", 2, 3, 3),
+        any_size(),
     ],
     default=DEFAULT_SIZE,
 )
 
-CUSTOM_ANGLE = Node("size", [square("1x1", 1, 2, 1, angle=True), square("2x2", 2, 3, 3, angle=True)])
+CUSTOM_ANGLE = Node(
+    "size", [square("1x1", 1, 2, 1, angle=True), square("2x2", 2, 3, 3, angle=True), any_size(angle=True)]
+)
 
 CUSTOM = Node("profile", [Value("Tube", {}, CUSTOM_TUBE), Value("Angle", {}, CUSTOM_ANGLE)])
 

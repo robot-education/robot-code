@@ -6,7 +6,7 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 import(path : "ff444db0395e01aaa8c7e555", version : "87aa3665d5a93d91331dbe19");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "a3b7c0fc5d5929963a334a83");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "439d5a6da5926ffd182185cd");
 
 /**
  * Whether a frame is one someone sells, or custom: a common size of tube or angle, with holes as the feature says
@@ -35,6 +35,9 @@ const WALL_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millim
 const SPACING_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
 const START_BOUNDS = { (meter) : [0, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
 const HOLE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.0049784, 500], (inch) : 0.196, (millimeter) : 4 } as LengthBoundSpec;
+const WIDTH_BOUNDS = { (meter) : [1e-5, 0.0508, 500], (inch) : 2, (millimeter) : 50 } as LengthBoundSpec;
+const HEIGHT_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
+const ROWS_BOUNDS = { (unitless) : [0, 1, 100] } as IntegerBoundSpec;
 
 /**
  * Places tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so the std
@@ -68,7 +71,30 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
                 annotation { "Name" : "Rectangular frame", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isRectangularFrame" }
                 definition.rectangularFrame is boolean;
 
-                if (definition.rectangularFrame)
+                annotation { "Name" : "Custom size", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomSizeFrame" }
+                definition.customSize is boolean;
+
+                if (definition.customSize)
+                {
+                    annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.width, WIDTH_BOUNDS);
+
+                    annotation { "Name" : "Height", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.height, HEIGHT_BOUNDS);
+
+                    annotation { "Name" : "Top rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isInteger(definition.topRows, ROWS_BOUNDS);
+
+                    annotation { "Name" : "Side rows", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isInteger(definition.sideRows, ROWS_BOUNDS);
+
+                    annotation { "Name" : "Top row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.topRowSpacing, SPACING_BOUNDS);
+
+                    annotation { "Name" : "Side row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.sideRowSpacing, SPACING_BOUNDS);
+                }
+                else if (definition.rectangularFrame)
                 {
                     annotation { "Name" : "2 in. face row distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     isLength(definition.wideRowSpacing, SPACING_BOUNDS);
@@ -116,7 +142,7 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
         tieHolesPredicate(definition);
     }
     {
-        verifyHoles(definition);
+        verifyFrame(definition);
         placeStock(context, id, definition, getFrame(definition), "frame");
     });
 
@@ -126,9 +152,9 @@ export const robotFrame = defineFeature(function(context is Context, id is Id, d
  */
 function getFrame(definition is map) returns Stock
 {
-    const entry = frameTableEntry(definition);
     if (!isCustomFrame(definition))
     {
+        const entry = frameTableEntry(definition);
         // Every row (and the holes counted for tying them to the end) moves along it, so the first hole which counts is
         // Hole start distance from the start
         const shift = definition.holeStart - entry.tieStart;
@@ -140,22 +166,23 @@ function getFrame(definition is map) returns Stock
                     "tieStart" : entry.tieStart + shift
                 }) as Stock;
     }
+    const size = customFrameSize(definition);
     return {
             // e.g. 2x1 Tube (Custom, 0.0625 in. wall)
-            "partName" : roundToPrecision(entry.width / inch, 3) ~ "x" ~ roundToPrecision(entry.height / inch, 3) ~
-                (entry.angle ? " Angle" : " Tube") ~ " (Custom, " ~ lengthString(definition, definition.wallThickness) ~ " wall)",
+            "partName" : roundToPrecision(size.width / inch, 3) ~ "x" ~ roundToPrecision(size.height / inch, 3) ~
+                (size.angle ? " Angle" : " Tube") ~ " (Custom, " ~ lengthString(definition, definition.wallThickness) ~ " wall)",
             "vendor" : "Custom",
             "url" : "",
             "appearance" : MEDIUM_GRAY,
             "stock" : [],
-            "width" : entry.width,
-            "height" : entry.height,
+            "width" : size.width,
+            "height" : size.height,
             "wallX" : definition.wallThickness,
             "wallY" : definition.wallThickness,
-            "angle" : entry.angle,
+            "angle" : size.angle,
             "holeDiameter" : definition.holeDiameter,
-            "xRows" : gridRows(entry.sideRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
-            "yRows" : gridRows(entry.topRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
+            "xRows" : gridRows(size.sideRows, definition.holeStart, definition.holeSpacing, size.sideRowSpacing),
+            "yRows" : gridRows(size.topRows, definition.holeStart, definition.holeSpacing, size.topRowSpacing),
             "isFrame" : true,
             "tieStart" : definition.holeStart,
             "tieUnit" : definition.holeSpacing
@@ -186,6 +213,33 @@ function frameTableEntry(definition is map) returns map
     return isFrc(definition) ?
         getLookupTable(frcFrameTable, definition.frcFrame) :
         getLookupTable(ftcFrameTable, definition.ftcFrame);
+}
+
+/**
+ * A custom frame's size and rows of holes: `width`, `height`, `angle`, and how many rows go on its faces facing Y
+ * (`topRows`, `width` wide) and X (`sideRows`), and how far apart (`topRowSpacing`, `sideRowSpacing`). A size from the
+ * table has its size and rows from there and its rows' distances from the dialog; a custom size has them all from the
+ * dialog.
+ */
+export function customFrameSize(definition is map) returns map
+{
+    const entry = frameTableEntry(definition);
+    if (entry.customSize)
+    {
+        return {
+                "width" : definition.width,
+                "height" : definition.height,
+                "angle" : entry.angle,
+                "topRows" : definition.topRows,
+                "sideRows" : definition.sideRows,
+                "topRowSpacing" : definition.topRowSpacing,
+                "sideRowSpacing" : definition.sideRowSpacing
+            };
+    }
+    return mergeMaps(entry, {
+                "topRowSpacing" : rowSpacing(definition, entry, entry.width),
+                "sideRowSpacing" : rowSpacing(definition, entry, entry.height)
+            });
 }
 
 /**
@@ -238,10 +292,10 @@ function gridRows(count is number, start is ValueWithUnits, pitch is ValueWithUn
 }
 
 /**
- * Throws if an FRC COTS frame's holes are set smaller than they come, or a custom frame's rows of holes don't fit across
- * its faces.
+ * Throws if an FRC COTS frame's holes are set smaller than they come, or a custom frame's walls don't fit inside it, or
+ * its rows of holes don't fit across its faces.
  */
-function verifyHoles(definition is map)
+function verifyFrame(definition is map)
 {
     if (!isFrc(definition))
     {
@@ -257,13 +311,18 @@ function verifyHoles(definition is map)
         return;
     }
     // The sides facing X are as wide as the frame is high, inside the walls facing Y, and the other way around
-    const entry = frameTableEntry(definition);
+    const size = customFrameSize(definition);
     const inside = 2 * definition.wallThickness;
-    if (!rowsFit(entry.sideRows, rowSpacing(definition, entry, entry.height), definition.holeDiameter, entry.height - inside) ||
-        !rowsFit(entry.topRows, rowSpacing(definition, entry, entry.width), definition.holeDiameter, entry.width - inside))
+    if (!tolerantLessThan(inside, min(size.width, size.height)))
+    {
+        throw regenError("The walls are too thick for the frame.", ["customFrame", "width", "height", "wallThickness"]);
+    }
+    if (!rowsFit(size.sideRows, size.sideRowSpacing, definition.holeDiameter, size.height - inside) ||
+        !rowsFit(size.topRows, size.topRowSpacing, definition.holeDiameter, size.width - inside))
     {
         throw regenError("The rows of holes don't fit across the frame's faces.",
-            ["customFrame", "rowSpacing", "wideRowSpacing", "narrowRowSpacing", "holeDiameter"]);
+            ["customFrame", "width", "height", "topRows", "sideRows", "rowSpacing", "wideRowSpacing", "narrowRowSpacing",
+                    "topRowSpacing", "sideRowSpacing", "holeDiameter"]);
     }
 }
 
@@ -281,18 +340,28 @@ function rowsFit(count is number, spacing is ValueWithUnits, holeDiameter is Val
  */
 function isRectangularFrame(definition is map) returns boolean
 {
-    return isCustomFrame(definition) && isRectangular(frameTableEntry(definition));
+    return isCustomFrame(definition) && !isCustomSizeFrame(definition) && isRectangular(frameTableEntry(definition));
+}
+
+/**
+ * Custom size: whether a custom frame's size is the Custom one (which shows its size, rows, and their distances).
+ */
+function isCustomSizeFrame(definition is map) returns boolean
+{
+    return isCustomFrame(definition) && frameTableEntry(definition).customSize;
 }
 
 /**
  * @internal
- * The editing logic function for robot frame. Sets Rectangular frame (`isRectangularFrame`), and when the frame changes
+ * The editing logic function for robot frame. Sets Rectangular frame (`isRectangularFrame`) and Custom size
+ * (`isCustomSizeFrame`), and when the frame changes
  * (or the feature is created), its hole diameter to the frame's, unless it's been set larger.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition.rectangularFrame = isRectangularFrame(definition);
+    definition.customSize = isCustomSizeFrame(definition);
     definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);
     return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
 }
