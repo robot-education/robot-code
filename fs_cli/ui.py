@@ -1174,6 +1174,9 @@ html[data-os-theme="light"] body { background: #e8e8e8; }
 #feature-dialog .os-select-choices-row { padding: 2px 10px; white-space: nowrap; color: var(--os-text-primary); }
 #feature-dialog .os-select-choices-row:hover, #feature-dialog .os-select-choices-row.active { background: var(--os-hover-secondary); }
 #feature-dialog .os-svg-icon.expanded { transform: rotate(90deg); }
+/* A label and its field (a number's, or a dropdown's) share a baseline, as in Onshape: Onshape's styles place the label
+   by padding and center the field, which only line up in its own font (Flama), and the page falls back to another */
+#feature-dialog .os-param-wrapper > .os-param-label, #feature-dialog .os-param-wrapper > .os-param-label + * { align-self: baseline; }
 .fs-tooltip { position: fixed; z-index: 2000; box-sizing: border-box; max-width: 278px; padding: var(--os-tooltip-padding-top) var(--os-padding-sm) var(--os-tooltip-padding-bottom); border-radius: var(--os-radius-xs); background: var(--os-tooltip-fill); color: var(--os-tooltip-text); font-size: 9pt; line-height: 1.4; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: none; }
 .fs-tooltip[hidden] { display: none; }
 .fs-tooltip-name { font-weight: 700; }
