@@ -79,7 +79,7 @@ def test_the_custom_size_adds_holes_on_its_top_and_sides():
     for top, side in ((False, False), (False, True), (True, False), (True, True)):
         definition = evaluate(
             '{ "program" : Program.FRC, "source" : FrameSource.CUSTOM, "customFrame" : { "profile" : "Tube", "size" : "Custom" } as LookupTablePath, '
-            '"width" : 2 * inch, "height" : 1 * inch, "topHoles" : top, "sideHoles" : side, "topRows" : 2, "sideRows" : 1, '
+            '"width" : 1 * inch, "height" : 2 * inch, "topHoles" : top, "sideHoles" : side, "topRows" : 2, "sideRows" : 1, '
             '"topRowSpacing" : 0.5 * inch, "sideRowSpacing" : 0.5 * inch, "wallThickness" : 0.0625 * inch, '
             '"holeSpacing" : 0.5 * inch, "holeStart" : 0.5 * inch, "holeDiameter" : 0.196 * inch }',
             FRAME,
