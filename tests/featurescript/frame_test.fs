@@ -38,8 +38,9 @@ export function testCustomSizeTakesItsSizeAndRowsFromTheDialog()
                 "topRowSpacing" : 1 * inch,
                 "sideRowSpacing" : 0.25 * inch
             });
-    expectEqual(size.width, 3 * inch);
-    expectEqual(size.height, 1.5 * inch);
+    // Its Height is up, along X: the stock's width
+    expectEqual(size.width, 1.5 * inch);
+    expectEqual(size.height, 3 * inch);
     expectEqual(size.angle, false);
     expectEqual(size.topRows, 2);
     expectEqual(size.sideRows, 0);

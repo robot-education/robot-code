@@ -17,6 +17,9 @@ writeup doesn't repeat.
 
 Since v1.2.0 (`fs changes robotFrame`).
 
+- The Custom size's Height is its size up (along X, the sketch's normal for a frame along a sketch's edge) and its Width
+  across, where they were the other way around: an existing Custom size frame turns onto its side. They default to
+  2 in. and 1 in., a 2x1 standing on a 1 in. face like the table's.
 - FTC frames include Swyft's Channel (48x12 mm, 424 mm long), with its bearing, 10-32, goBILDA, and REV holes; its
   keyholes are two overlapping holes.
 - Custom sizes from the table choose their Top rows, then their Side rows (2x2's separately too), and each face's rows
@@ -65,8 +68,8 @@ And linear stock's, with `<name>` "frame".
 ### Properties set
 
 Linear stock's, with the entry's `partName`, e.g. `24 in. 2x1 Tube (WCP, 1/16 in. wall)`; a custom frame's is
-`<width>x<height> Tube` or `Angle` `(Custom, <wall> wall)`, with the wall from `lengthString` (to 3 places), and it's
-Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as frames (profile, swept faces, caps).
+`<width>x<height> Tube` or `Angle` `(Custom, <wall> wall)` (for the Custom size, `<Height>x<Width>`), with the wall
+from `lengthString` (to 3 places), and it's Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as frames (profile, swept faces, caps).
 
 ## How it works
 
@@ -94,7 +97,7 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 | --- | --- |
 | `frameTableEntry` | The chosen entry: the custom table's for custom frames, else FRC's or FTC's. |
 | `getFrame` | The `Stock`. A COTS frame is its entry, with Hole diameter as its holes' (FTC frames keep the table's) and its rows as `HoleRow`s (`holeRows`). Each row's first hole, and the holes counted for tying (`tieStart`), move along it so the first which counts is Hole start distance from the start. A custom frame is built from its size (`customFrameSize`) and the dialog: walls `wallThickness` thick, and a grid of holes on each face (`gridRows`), the first `holeStart` from the start, with `holeSpacing` between holes along it and the face's row distance between rows across it; holes count for tying every `holeSpacing` from `holeStart`. |
-| `customFrameSize` | A custom frame's width, height, angle, rows on each face, and their distances: from its entry, with the distances from the dialog (`tableTopRowSpacing`, `tableSideRowSpacing`), or for the Custom size (`customSize` in its entry), all but the angle from the dialog (`width`, `height`, `topRows` and `topRowSpacing` if `topHoles`, else no rows, and likewise for its sides). |
+| `customFrameSize` | A custom frame's width, height, angle, rows on each face, and their distances: from its entry, with the distances from the dialog (`tableTopRowSpacing`, `tableSideRowSpacing`), or for the Custom size (`customSize` in its entry), all but the angle from the dialog (`height` as its width and `width` as its height, as Height is up, along X; `topRows` and `topRowSpacing` if `topHoles`, else no rows, and likewise for its sides). |
 | `holeRows` | A table entry's rows, as `HoleRow`s. |
 | `frameHoleDiameter` | The frame's own hole diameter: the table's, or `CUSTOM_HOLE_DIAMETER` (0.196 in.). |
 | `gridRows` | A row of holes along a face: `count` across, centered, `spacing` apart; the first `start` from the start. |
@@ -111,7 +114,9 @@ diameter. A custom frame's entry only has its size and how many rows each face h
 everything else comes from the dialog. Along an edge in a sketch, X is the sketch's normal, so up for a sketch on the
 Top plane: `topRows` go through the walls facing X, which are `height` wide (for 2x1, the 1 in. faces); `sideRows`
 through those facing Y, `width` wide (the 2 in. faces): its Top rows and Side rows, from the table or (for the Custom
-size) the dialog. Every 2x1, COTS or custom, is 2 in. along X, so it stands on a 1 in. face.
+size) the dialog. Every 2x1, COTS or custom, is 2 in. along X, so it stands on a 1 in. face. The Custom size's Height
+is up (along X) and its Width across (along Y), so its top is as wide as its Width; they're 2 in. and 1 in. by default,
+a 2x1 like the others.
 
 ### Error handling
 

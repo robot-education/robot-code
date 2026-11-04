@@ -36,8 +36,9 @@ const WALL_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625, (millim
 const SPACING_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
 const START_BOUNDS = { (meter) : [0, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
 const HOLE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.0049784, 500], (inch) : 0.196, (millimeter) : 4 } as LengthBoundSpec;
-const WIDTH_BOUNDS = { (meter) : [1e-5, 0.0508, 500], (inch) : 2, (millimeter) : 50 } as LengthBoundSpec;
-const HEIGHT_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
+// A 2x1 standing on a 1 in. face, like every other 2x1
+const WIDTH_BOUNDS = { (meter) : [1e-5, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
+const HEIGHT_BOUNDS = { (meter) : [1e-5, 0.0508, 500], (inch) : 2, (millimeter) : 50 } as LengthBoundSpec;
 const ROWS_BOUNDS = { (unitless) : [1, 1, 100] } as IntegerBoundSpec;
 
 /**
@@ -249,9 +250,9 @@ function frameTableEntry(definition is map) returns map
 /**
  * A custom frame's size and rows of holes: `width`, `height`, `angle`, and how many rows go on its faces facing X
  * (`topRows`, `height` wide; up along an edge in a sketch) and Y (`sideRows`), and how far apart (`topRowSpacing`,
- * `sideRowSpacing`). A size from the
- * table has its size and rows from there, and their distances from the dialog; the custom size has them all from the
- * dialog, with no rows on faces it doesn't add holes to.
+ * `sideRowSpacing`). `width` is along X and `height` along Y, as a stock's are. A size from the table has its size and
+ * rows from there, and their distances from the dialog; the custom size has them all from the dialog (its Height up,
+ * along X, and its Width across), with no rows on faces it doesn't add holes to.
  */
 export function customFrameSize(definition is map) returns map
 {
@@ -259,8 +260,9 @@ export function customFrameSize(definition is map) returns map
     if (entry.customSize)
     {
         return {
-                "width" : definition.width,
-                "height" : definition.height,
+                // X is up, so the dialog's Height is the stock's width, and its Width the stock's height
+                "width" : definition.height,
+                "height" : definition.width,
                 "angle" : entry.angle,
                 "topRows" : definition.topHoles ? definition.topRows : 0,
                 "sideRows" : definition.sideHoles ? definition.sideRows : 0,
