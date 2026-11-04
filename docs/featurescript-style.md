@@ -16,8 +16,12 @@ A feature's `definition` is a map, and each parameter its precondition declares 
 - The precondition isn't run like a function. Onshape reads it to learn the keys, their types, and their annotations,
   and to lay out the dialog, deciding its `if`s with the current values.
 - Every parameter declared anywhere in the precondition (in any branch of an `if`, or in a predicate it calls) is a key
-  with a value, its default until it's set, whether or not it's shown, and it keeps its value while it's hidden. A
-  condition can read a parameter declared after it or in another branch.
+  with a value, its default until it's set, whether or not it's shown, and it keeps its value while it's hidden.
+- A condition can only read parameters declared before it, earlier in the precondition (or in the predicates called
+  before it): FsDoc's conditions are comparisons of "prior boolean and enum parameters" (`docs/fsdoc/uispec.md`). So
+  what decides whether a parameter is shown comes above it in the dialog: to show something by a choice made lower
+  down, move the choice up (Robot gear's Root fillet is shown by Gear type, at the top, not by Simplified bevels, in
+  Other options). `fs check` reports a condition reading a parameter declared after it (`parameter-order`).
 - While a feature runs (its body, editing logic, and manipulator change functions), every parameter has a value of
   its type: don't guard parameters with `?? false`, `is boolean`, `isLength(...)`, and the like, even ones whose
   conditions say they aren't shown (`definition.tieLength` is a length whatever `definition.tieHolesBy` is). Where a
@@ -80,6 +84,16 @@ Don't implement the "editing logic boomerang", where editing logic computes a va
 
 The feature's body should use the same predicates, so the parameters it reads are exactly the ones shown.
 
+Treat a boomerang as a code smell, a symptom of bad UI design, and add one only when it's strictly necessary, which in
+practice means a lookup table's value (see "Hidden parameters set by editing logic"). In particular, never add one to
+get around the dialog's order: a hidden parameter high in the precondition, set by editing logic from parameters below
+it, so a condition up there can read what it can't (see "Definitions are maps"). Reorder the dialog instead, so what
+decides what's shown comes first.
+
+Editing logic which responds to a selection by changing the visible parameters is fine, and isn't a boomerang: Robot
+gear's switches Size by to Pitch circle (moving the selection there) when a circle that's a pitch circle at the gear's
+pitch is picked as its location.
+
 A precondition's conditions can only use parameters, enum values, literals, and predicates, because Onshape works
 out which parameters to show without running the feature. Constants and functions don't work (`fs check` warns about
 them). When a UI state depends on data, like whether the chosen part has some property, generate the predicate from
@@ -98,8 +112,8 @@ from the selections (`mountingEditLogic`) or filling in a plane from selected ge
 
 ## Hidden parameters set by editing logic
 
-The one boomerang that's needed: what a precondition can't read, like a lookup table's value (whether the chosen frame
-is 2x1, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
+The one boomerang that's needed, and the only common one: what a precondition can't read, like a lookup table's value
+(whether the chosen frame is 2x1, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
 hidden parameter's annotation with `"Set By"` (a key of ours, for the tools: Onshape ignores keys it doesn't know, as
 `fs check`'s annotation key rule has it), and set the parameter from it first thing in editing logic, on every change:
 
@@ -617,6 +631,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A feature's precondition can't declare a parameter more than once, even in different branches of an `if`, and array
   parameters' items' parameters count too: an item's parameter can't share a name with any other parameter.
 - Predicates in a precondition's `if` conditions can't call other predicates.
+- A precondition's conditions can only read parameters declared before them, directly or through the predicates the
+  precondition calls (see "Definitions are maps").
 - A feature's annotation (its `"Feature Type Name"`) must be right before its `defineFeature`: Onshape attaches an
   annotation to the declaration after it, so a const between them takes it ("Nonconforming feature function").
 - Annotation keys must be ones Onshape knows (std's, and `Icon`): it ignores others, so a misspelled one (`"Driving
