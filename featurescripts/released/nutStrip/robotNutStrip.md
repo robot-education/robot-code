@@ -8,7 +8,8 @@ which this writeup doesn't repeat.
 | --- | --- |
 | `robotNutStrip.fs` | The feature: its dialog, the chosen nut strip as a `Stock`, and its editing logic |
 | `nutStripTables.py` | The nut strip tables' source; `fs gen` writes `nutStripTables.gen.fs` |
-| `../core/linearStock.fs` | Placing and building stock, and the Position and Tie holes to end groups |
+| `../core/linearStock.fs` | Placing stock, and the Position and Tie holes to end groups |
+| `../core/cutStock.fs` | Building it: its profile extruded and its holes cut (`buildCutStock`) |
 | `vendor/` | Vendors' drawings and models the tables were checked against |
 
 ## Changelog

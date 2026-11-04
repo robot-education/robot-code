@@ -1,5 +1,5 @@
 """Hidden parameters editing logic sets from a function of the definition, which their annotations name (`"Set By" :
-"isRectangularFrame"`; see `docs/featurescript-style.md`'s "Hidden parameters set by editing logic"). The dialog tools
+"isNoTopHolesFrame"`; see `docs/featurescript-style.md`'s "Hidden parameters set by editing logic"). The dialog tools
 don't run editing logic, so they work these out the way it would, running the function with `fs_eval`: `fs ui` for its
 settings (`apply`), and `fs audit`'s page (and the preview) for every combination of the choices the function reads
 (`tree`).

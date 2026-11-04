@@ -995,7 +995,7 @@ export const frcFrameTable = {
                                 "displayName" : "Wall",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (WCP, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0924", "url" : "https://wcproducts.com/products/wcp-0924" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
-                                    "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (WCP, 3/32 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1586", "url" : "https://wcproducts.com/products/wcp-1586" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.093 * inch, "wallY" : 0.093 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
+                                    "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (WCP, 3/32 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1586", "url" : "https://wcproducts.com/products/wcp-1586" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.09375 * inch, "wallY" : 0.09375 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (WCP, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1023", "url" : "https://wcproducts.com/products/wcp-1023" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                 },
                             },
@@ -1028,7 +1028,7 @@ export const frcFrameTable = {
                                 "displayName" : "Wall",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 2 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x2 Tube (WCP, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0926", "url" : "https://wcproducts.com/products/wcp-0926" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                                    "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 2 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x2 Tube (WCP, 3/32 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1587", "url" : "https://wcproducts.com/products/wcp-1587" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.093 * inch, "wallY" : 0.093 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                                    "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 2 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x2 Tube (WCP, 3/32 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1587", "url" : "https://wcproducts.com/products/wcp-1587" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.09375 * inch, "wallY" : 0.09375 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                 },
                             },
                             "C-Channel" : {
@@ -1072,7 +1072,7 @@ export const frcFrameTable = {
                                 "displayName" : "Wall",
                                 "default" : "1/16 in.",
                                 "entries" : {
-                                    "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1x1 Tube (REV, standard)", "profile" : REV_MAXTUBE_1X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2160", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.03937007874015748 * inch, "wallY" : 0.03937007874015748 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
+                                    "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1x1 Tube (REV, standard)", "profile" : REV_MAXTUBE_1X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2160", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "1/16 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1x1 Tube (REV, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3540", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1x1 Tube (REV, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3543", "url" : "https://www.revrobotics.com/MAXTube-1x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                 },
@@ -1086,7 +1086,7 @@ export const frcFrameTable = {
                                         "displayName" : "Wall",
                                         "default" : "1/16 in.",
                                         "entries" : {
-                                            "Light" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, light)", "profile" : REV_MAXTUBE_2X1_LIGHT_GRID, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2289", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.03937007874015748 * inch, "wallY" : 0.03937007874015748 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                                            "Light" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, light)", "profile" : REV_MAXTUBE_2X1_LIGHT_GRID, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2289", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                             "1/16 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3552", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                             "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3555", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                             "3/16 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, 3/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3586", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.1875 * inch, "wallY" : 0.1875 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1096,15 +1096,15 @@ export const frcFrameTable = {
                                         "name" : "wall",
                                         "displayName" : "Wall",
                                         "entries" : {
-                                            "Light" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, light, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1_LIGHT, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2161", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.03937007874015748 * inch, "wallY" : 0.03937007874015748 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
-                                            "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, standard, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2162", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.03937007874015748 * inch, "wallY" : 0.03937007874015748 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
+                                            "Light" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, light, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1_LIGHT, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2161", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
+                                            "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, standard, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2162", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
                                         },
                                     },
                                     "MAX Pattern" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
                                         "entries" : {
-                                            "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, standard, MAX Pattern)", "profile" : REV_MAXTUBE_2X1_MAX, "stock" : [{ "length" : 3 * inch, "partNumber" : "REV-21-2163", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 5 * inch, "partNumber" : "REV-21-2164", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 7 * inch, "partNumber" : "REV-21-2165", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 15 * inch, "partNumber" : "REV-21-2169", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 23 * inch, "partNumber" : "REV-21-2173", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 31 * inch, "partNumber" : "REV-21-2177", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 47 * inch, "partNumber" : "REV-21-2185", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                                            "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, standard, MAX Pattern)", "profile" : REV_MAXTUBE_2X1_MAX, "stock" : [{ "length" : 3 * inch, "partNumber" : "REV-21-2163", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 5 * inch, "partNumber" : "REV-21-2164", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 7 * inch, "partNumber" : "REV-21-2165", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 15 * inch, "partNumber" : "REV-21-2169", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 23 * inch, "partNumber" : "REV-21-2173", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 31 * inch, "partNumber" : "REV-21-2177", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 47 * inch, "partNumber" : "REV-21-2185", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                             "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, 1/8 in. wall, MAX Pattern)", "stock" : [{ "length" : 3 * inch, "partNumber" : "REV-21-3558", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 5 * inch, "partNumber" : "REV-21-3559", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 7 * inch, "partNumber" : "REV-21-3560", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 15 * inch, "partNumber" : "REV-21-3564", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 23 * inch, "partNumber" : "REV-21-3568", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 31 * inch, "partNumber" : "REV-21-3572", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 47 * inch, "partNumber" : "REV-21-3580", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                         },
                                     },
@@ -1270,7 +1270,7 @@ export const frcFrameTable = {
                         "name" : "wall",
                         "displayName" : "Wall",
                         "entries" : {
-                            "1/16 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (Last Anvil, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "240114", "url" : "https://lastanvil.com/products/patterned-tube?variant=42303483773134" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://lastanvil.com/products/patterned-tube", "vendor" : "Last Anvil", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                            "1/16 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "material" : ALUMINUM_7075, "open" : false, "partName" : "2x1 Tube (Last Anvil, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "240114", "url" : "https://lastanvil.com/products/patterned-tube?variant=42303483773134" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://lastanvil.com/products/patterned-tube", "vendor" : "Last Anvil", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                         },
                     },
                 },
@@ -1288,38 +1288,83 @@ export const customFrameTable = {
                 "default" : "2x1",
                 "entries" : {
                     "1x1" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
+                        "default" : "1",
                         "entries" : {
-                            "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
-                            "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 1 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 0, "width" : 1 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 0, "width" : 1 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 1, "width" : 1 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 1 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 2, "width" : 1 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 1 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                                },
+                            },
                         },
                     },
                     "2x1" : {
-                        "name" : "wideRows",
-                        "displayName" : "2 in. face rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "default" : "3",
                         "entries" : {
-                            "1" : {
-                                "name" : "narrowRows",
-                                "displayName" : "1 in. face rows",
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
                                 "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 0, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 0, "width" : 2 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 1, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
                                 },
                             },
                             "2" : {
-                                "name" : "narrowRows",
-                                "displayName" : "1 in. face rows",
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
                                 "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 2, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
                                 },
                             },
                             "3" : {
-                                "name" : "narrowRows",
-                                "displayName" : "1 in. face rows",
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
                                 "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 3, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
                                 },
@@ -1327,13 +1372,54 @@ export const customFrameTable = {
                         },
                     },
                     "2x2" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "default" : "3",
                         "entries" : {
-                            "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
-                            "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
-                            "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 0, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 0, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 0, "width" : 2 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 1, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 1, "width" : 2 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 2, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 2, "width" : 2 * inch },
+                                },
+                            },
+                            "3" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 3, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                                },
+                            },
                         },
                     },
                     "Custom" : { "angle" : false, "customSize" : true },
@@ -1344,21 +1430,91 @@ export const customFrameTable = {
                 "displayName" : "Size",
                 "entries" : {
                     "1x1" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
+                        "default" : "1",
                         "entries" : {
-                            "1" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
-                            "2" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 1 * inch },
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 0, "width" : 1 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 0, "width" : 1 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 1, "width" : 1 * inch },
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 1 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 1 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "1",
+                                "entries" : {
+                                    "0" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 2, "width" : 1 * inch },
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 1 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 1 * inch },
+                                },
+                            },
                         },
                     },
                     "2x2" : {
-                        "name" : "rows",
-                        "displayName" : "Rows",
+                        "name" : "topRows",
+                        "displayName" : "Top rows",
                         "default" : "3",
                         "entries" : {
-                            "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
-                            "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
-                            "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                            "0" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 0, "width" : 2 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 0, "width" : 2 * inch },
+                                    "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 0, "width" : 2 * inch },
+                                },
+                            },
+                            "1" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 1, "width" : 2 * inch },
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
+                                    "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 1, "width" : 2 * inch },
+                                },
+                            },
+                            "2" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 2, "width" : 2 * inch },
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
+                                    "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 2, "width" : 2 * inch },
+                                },
+                            },
+                            "3" : {
+                                "name" : "sideRows",
+                                "displayName" : "Side rows",
+                                "default" : "3",
+                                "entries" : {
+                                    "0" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 0, "topRows" : 3, "width" : 2 * inch },
+                                    "1" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
+                                    "2" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
+                                    "3" : { "angle" : true, "customSize" : false, "height" : 2 * inch, "sideRows" : 3, "topRows" : 3, "width" : 2 * inch },
+                                },
+                            },
                         },
                     },
                     "Custom" : { "angle" : true, "customSize" : true },
@@ -1403,17 +1559,18 @@ export const ftcFrameTable = {
                     },
                 },
             },
+            "Swyft" : {
+                "name" : "size",
+                "displayName" : "Size",
+                "entries" : {
+                    "Channel" : { "appearance" : BLACK, "height" : 12 * millimeter, "holeDiameter" : 4 * millimeter, "open" : true, "partName" : "Channel (Swyft)", "stock" : [{ "length" : 424 * millimeter, "partNumber" : "SR-CHANNEL-L48-424", "url" : "https://swyftrobotics.com/structure/swyft-channel" }], "tieStart" : 20 * millimeter, "tieUnit" : 24 * millimeter, "url" : "https://swyftrobotics.com/structure/swyft-channel", "vendor" : "Swyft", "wallX" : 2 * millimeter, "wallY" : 2 * millimeter, "width" : 48 * millimeter, "xRows" : [{ "start" : 4 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 2 * millimeter }] }], "yRows" : [{ "start" : 20 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : -0.5 * inch, "diameter" : 5 * millimeter }, { "along" : 0 * meter, "offset" : 0.5 * inch, "diameter" : 5 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 5 * millimeter, "slot" : 1.4 * millimeter }] }, { "start" : 4 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }] },
+                },
+            },
             "AndyMark" : {
                 "name" : "size",
                 "displayName" : "Size",
                 "entries" : {
-                    "1/2x1/2 (Robits)" : {
-                        "name" : "wall",
-                        "displayName" : "Wall",
-                        "entries" : {
-                            "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.201 * inch, "open" : false, "partName" : "1/2x1/2 Tube (AndyMark Robits)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5001-4700", "url" : "https://andymark.com/am-5001-4700" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.063 * inch, "wallY" : 0.063 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
-                        },
-                    },
+                    "1/2x1/2 (Robits)" : { "appearance" : LIGHT_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.201 * inch, "open" : false, "partName" : "1/2x1/2 Tube (AndyMark Robits)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5001-4700", "url" : "https://andymark.com/am-5001-4700" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.063 * inch, "wallY" : 0.063 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                 },
             },
         },
