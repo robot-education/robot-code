@@ -242,6 +242,21 @@ field), and don't use std predicates which declare parameters that can be, like 
 `extrudeSecondBoundsPredicate`, and the `extrudePredicate` built from them). `fs check` warns about both
 (`tolerant-parameter`), reading std's predicates from its copy of std's source.
 
+## Length bounds
+
+Give a length parameter's bounds a default in inches and in millimeters, as teams' Part Studios use one or the other,
+each a round number in its own unit (what a team would type), not the other's converted: 1/2 in. and 12 mm, not
+12.7 mm. List the range first, in meters, then the defaults:
+
+```
+const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
+```
+
+The first unit's array is the minimum, default, and maximum, in it; each other unit is the default for a Part Studio
+in it. A unit without one gets the first unit's default, converted (`{ (inch) : [0, 1, 1e4] }` starts at 25.4 mm), so
+`fs check` warns about bounds without both (`bound-defaults`). Other units (centimeters, feet, yards) are optional:
+teams rarely use them. Std's bounds (`NONNEGATIVE_LENGTH_BOUNDS`, `BLEND_BOUNDS`, ...) already have both.
+
 ## Negative values
 
 Let lengths and angles be negative, as std does, unless a negative value truly makes no sense (a width, a diameter, a
@@ -638,6 +653,7 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A function's variables can't be named as its parameters ("Variable x already declared in this scope").
 - Annotation strings (names, descriptions) must be printable ASCII: no degree signs or curly quotes.
 - No comparisons with `true` or `false`; use the value, or `!` it.
+- `LengthBoundSpec`s have an `(inch)` and a `(millimeter)` default (see "Length bounds").
 - No parameters which can be toleranced, directly or through std's predicates (see "No field tolerancing").
 - Precondition conditions may only use parameters, enum values, literals, and predicates.
 - No unused or unknown imports, std's too: a std module (other than `common.fs`) whose names the file doesn't use, or
