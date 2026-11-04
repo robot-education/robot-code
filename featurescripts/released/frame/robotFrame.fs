@@ -211,8 +211,9 @@ function getFrame(definition is map) returns Stock
             "wallY" : definition.wallThickness,
             "angle" : size.angle,
             "holeDiameter" : definition.holeDiameter,
-            "xRows" : gridRows(size.sideRows, definition.holeStart, definition.holeSpacing, size.sideRowSpacing),
-            "yRows" : gridRows(size.topRows, definition.holeStart, definition.holeSpacing, size.topRowSpacing),
+            // X is up along an edge in a sketch (its sketch's normal), so the walls facing X are the top and bottom
+            "xRows" : gridRows(size.topRows, definition.holeStart, definition.holeSpacing, size.topRowSpacing),
+            "yRows" : gridRows(size.sideRows, definition.holeStart, definition.holeSpacing, size.sideRowSpacing),
             "isFrame" : true,
             "tieStart" : definition.holeStart,
             "tieUnit" : definition.holeSpacing
@@ -246,8 +247,9 @@ function frameTableEntry(definition is map) returns map
 }
 
 /**
- * A custom frame's size and rows of holes: `width`, `height`, `angle`, and how many rows go on its faces facing Y
- * (`topRows`, `width` wide) and X (`sideRows`), and how far apart (`topRowSpacing`, `sideRowSpacing`). A size from the
+ * A custom frame's size and rows of holes: `width`, `height`, `angle`, and how many rows go on its faces facing X
+ * (`topRows`, `height` wide; up along an edge in a sketch) and Y (`sideRows`), and how far apart (`topRowSpacing`,
+ * `sideRowSpacing`). A size from the
  * table has its size and rows from there, and their distances from the dialog; the custom size has them all from the
  * dialog, with no rows on faces it doesn't add holes to.
  */
@@ -326,8 +328,8 @@ function verifyFrame(definition is map)
     {
         throw regenError("The walls are too thick for the frame.", ["customFrame", "width", "height", "wallThickness"]);
     }
-    if (!rowsFit(size.sideRows, size.sideRowSpacing, definition.holeDiameter, size.height - inside) ||
-        !rowsFit(size.topRows, size.topRowSpacing, definition.holeDiameter, size.width - inside))
+    if (!rowsFit(size.topRows, size.topRowSpacing, definition.holeDiameter, size.height - inside) ||
+        !rowsFit(size.sideRows, size.sideRowSpacing, definition.holeDiameter, size.width - inside))
     {
         throw regenError("The rows of holes don't fit across the frame's faces.",
             ["customFrame", "width", "height", "topRows", "sideRows", "topRowSpacing", "sideRowSpacing", "tableTopRowSpacing",

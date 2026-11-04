@@ -1327,46 +1327,39 @@ export const customFrameTable = {
                     "2x1" : {
                         "name" : "topRows",
                         "displayName" : "Top rows",
-                        "default" : "3",
+                        "default" : "1",
                         "entries" : {
                             "0" : {
                                 "name" : "sideRows",
                                 "displayName" : "Side rows",
-                                "default" : "1",
+                                "default" : "3",
                                 "entries" : {
                                     "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 0, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 0, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 0, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 3, "topRows" : 0, "width" : 2 * inch },
                                 },
                             },
                             "1" : {
                                 "name" : "sideRows",
                                 "displayName" : "Side rows",
-                                "default" : "1",
+                                "default" : "3",
                                 "entries" : {
                                     "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 1, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 3, "topRows" : 1, "width" : 2 * inch },
                                 },
                             },
                             "2" : {
                                 "name" : "sideRows",
                                 "displayName" : "Side rows",
-                                "default" : "1",
+                                "default" : "3",
                                 "entries" : {
                                     "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 2, "width" : 2 * inch },
                                     "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
                                     "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
-                                },
-                            },
-                            "3" : {
-                                "name" : "sideRows",
-                                "displayName" : "Side rows",
-                                "default" : "1",
-                                "entries" : {
-                                    "0" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 0, "topRows" : 3, "width" : 2 * inch },
-                                    "1" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
-                                    "2" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
+                                    "3" : { "angle" : false, "customSize" : false, "height" : 1 * inch, "sideRows" : 3, "topRows" : 2, "width" : 2 * inch },
                                 },
                             },
                         },

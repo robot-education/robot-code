@@ -72,7 +72,7 @@ def test_custom_frames_can_have_holes_on_their_top_sides_both_or_neither(size):
         definition = custom_tube(size, top, side, profile)
         assert no_holes(definition) == (top == "0", side == "0")
         stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
-        assert (len(stock["yRows"]), len(stock["xRows"])) == (int(top), int(side))
+        assert (len(stock["xRows"]), len(stock["yRows"])) == (int(top), int(side))
 
 
 def test_the_custom_size_adds_holes_on_its_top_and_sides():
@@ -88,8 +88,8 @@ def test_the_custom_size_adds_holes_on_its_top_and_sides():
         )
         assert no_holes(definition) == (not top, not side)
         stock = to_python(untag(evaluate("getFrame(definition)", FRAME, definition=definition)))
-        assert (len(stock["yRows"]), len(stock["xRows"])) == (1 if top else 0, 1 if side else 0)
-        assert [len(row["shapes"]) for row in stock["yRows"] + stock["xRows"]] == [2] * top + [1] * side
+        assert (len(stock["xRows"]), len(stock["yRows"])) == (1 if top else 0, 1 if side else 0)
+        assert [len(row["shapes"]) for row in stock["xRows"] + stock["yRows"]] == [2] * top + [1] * side
 
 
 def test_frames_are_their_vendors_material():

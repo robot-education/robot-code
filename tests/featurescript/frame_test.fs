@@ -52,7 +52,7 @@ export function testATableSizeTakesItsSizeAndRowsFromTheTable()
     const size = customFrameSize({
                 "program" : Program.FRC,
                 "source" : FrameSource.CUSTOM,
-                "customFrame" : { "profile" : "Tube", "size" : "2x1", "topRows" : "3", "sideRows" : "1" } as LookupTablePath,
+                "customFrame" : { "profile" : "Tube", "size" : "2x1", "topRows" : "1", "sideRows" : "3" } as LookupTablePath,
                 // Ignored: they're the custom size's
                 "width" : 3 * inch,
                 "topRows" : 1,
@@ -61,8 +61,8 @@ export function testATableSizeTakesItsSizeAndRowsFromTheTable()
                 "tableSideRowSpacing" : 0.375 * inch
             });
     expectEqual(size.width, 2 * inch);
-    expectEqual(size.topRows, 3);
-    expectEqual(size.sideRows, 1);
+    expectEqual(size.topRows, 1);
+    expectEqual(size.sideRows, 3);
     expectEqual(size.topRowSpacing, 0.5 * inch);
     expectEqual(size.sideRowSpacing, 0.375 * inch);
 }

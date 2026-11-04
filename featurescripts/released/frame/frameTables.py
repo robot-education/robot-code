@@ -1014,8 +1014,8 @@ REV_FTC = vendor(
 
 
 # Custom frames: a profile and size, and how many rows of holes go on each face (or none), which
-# robotFrame spaces and sizes as the feature says. `topRows` go through the walls facing Y (which are `width` wide), and
-# `sideRows` through those facing X. The Custom size takes its size and rows from the feature too (`customSize`).
+# robotFrame spaces and sizes as the feature says. X is up along an edge in a sketch, so `topRows` go through the walls
+# facing X (which are `height` wide), and `sideRows` through those facing Y: a 2x1 stands on a 1 in. face. The Custom size takes its size and rows from the feature too (`customSize`).
 
 
 def custom_size(name: str, width: float, height: float, rows: Node, angle: bool = False) -> Value:
@@ -1044,7 +1044,7 @@ def face_rows(key: str, display_name: str, most: int, default: int, next: Node |
 def sized(
     name: str, width: float, height: float, top: tuple[int, int], side: tuple[int, int], angle: bool = False
 ) -> Value:
-    """A size, with a choice of its top rows (on the faces facing Y, `width` wide), then its side rows (facing X): each
+    """A size, with a choice of its top rows (on the faces facing X, `height` wide), then its side rows (facing Y): each
     `(most, default)`. Either can be none; with none on both, it has no holes."""
     sides = face_rows("sideRows", "Side rows", *side)
     return custom_size(name, width, height, face_rows("topRows", "Top rows", *top, next=sides), angle)
@@ -1054,7 +1054,7 @@ CUSTOM_TUBE = Node(
     "size",
     [
         sized("1x1", 1, 1, (2, 1), (2, 1)),
-        sized("2x1", 2, 1, (3, 3), (2, 1)),
+        sized("2x1", 2, 1, (2, 1), (3, 3)),
         sized("2x2", 2, 2, (3, 3), (3, 3)),
         any_size(),
     ],
