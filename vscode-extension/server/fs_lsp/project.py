@@ -918,6 +918,7 @@ class Project:
         problems.extend(_duplicate_symbol_problems(module, providers))
         problems.extend(_duplicate_overload_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
+        problems.extend(_bound_default_problems(module))
         problems.extend(_keyword_key_problems(module))
         problems.extend(_feature_annotation_problems(module))
         problems.extend(_unused_variable_problems(module))
@@ -3115,6 +3116,61 @@ def _boolean_comparison_problems(module: Module) -> list[Problem]:
                         "boolean-comparison",
                     )
                 )
+    return problems
+
+
+# The units a `LengthBoundSpec` gives a default for, as teams' Part Studios are in inches or millimeters. A unit it
+# doesn't list gets its first unit's default, converted (1 in. is 25.4 mm)
+BOUND_DEFAULT_UNITS = ("inch", "millimeter")
+
+
+def _bound_default_problems(module: Module) -> list[Problem]:
+    """`LengthBoundSpec` maps without an inch or millimeter default, which would be the other's converted (25.4 mm, or
+    0.472 in. for 12 mm), rather than a round number in that unit."""
+    problems = []
+    tokens = module.index.tokens
+    for index, token in enumerate(tokens):
+        if not (
+            token.value == "LengthBoundSpec"
+            and index >= 2
+            and tokens[index - 1].value == "as"
+            and tokens[index - 2].value == "}"
+        ):
+            continue
+        # Back to the map's opening brace, collecting its keys: `(unit) :` at its top level
+        depth, cursor, units = 0, index - 2, set()
+        while cursor >= 0:
+            value = tokens[cursor].value
+            if value in ("}", "]", ")"):
+                depth += 1
+            elif value in ("{", "[", "("):
+                depth -= 1
+                if depth == 0:
+                    break
+                if (
+                    value == "("
+                    and depth == 1
+                    and cursor + 3 < index
+                    and tokens[cursor + 2].value == ")"
+                    and tokens[cursor + 3].value == ":"
+                ):
+                    units.add(tokens[cursor + 1].value)
+            cursor -= 1
+        if cursor < 0:
+            continue
+        missing = [unit for unit in BOUND_DEFAULT_UNITS if unit not in units]
+        if missing:
+            problems.append(
+                Problem(
+                    tokens[cursor].offset,
+                    token.end,
+                    "warning",
+                    f"Give these bounds a default for {' and '.join(f'({unit})' for unit in missing)}, a round number "
+                    "in it: teams' Part Studios are in inches or millimeters, and a unit without one gets the first "
+                    "unit's default, converted.",
+                    "bound-defaults",
+                )
+            )
     return problems
 
 

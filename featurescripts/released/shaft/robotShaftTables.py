@@ -5,8 +5,8 @@ The shaft tables list the shafts teams buy, picked by how often they're used in 
 (`shaftType`, and `hexType` and `hexSize` or `splineType`), with its `partName` (after its length, e.g. "3 in.
 Rounded Hex Shaft (WCP 1/2 in.)"), `material`, `appearance`, and `stock`: the lengths it's sold in, shortest first
 (see nutStripTables.py). Most shafts are cut from stock, but some are only sold in set lengths, with machined ends
-(like goBILDA's REX shafts, with e-clip grooves): those are chosen by their Length, and built as they're sold (see
-`presets`).
+(like goBILDA's REX shafts, with e-clip grooves): those are chosen by their Length, and built as they're sold, or Custom,
+cut from them (see `presets`).
 """
 
 import dataclasses
@@ -28,17 +28,29 @@ def pitch_node(pitches: dict[str, str | None], default: str | None = None) -> No
     )
 
 
+def metric_pitch_node(pitches: dict[str, str], default: str) -> Node:
+    """Maps each pitch (std's ISO hole table's names) to its tap drill diameter (std's)."""
+    return Node(
+        "pitch",
+        [Value(name, {"tapDrillDiameter": string(drill)}) for name, drill in pitches.items()],
+        display_name="Pitch",
+        default=default,
+    )
+
+
+# Tapped holes, by size and pitch, as std's hole tables name them (ANSI's, or ISO's for `metric` ones: goBILDA taps
+# REX M4)
 tapped_hole = Node(
     "size",
     [
         Value(
             "#8",
-            {"majorDiameter": inch(0.164), "tapDrillDiameter": string("0.1360 in")},
+            {"majorDiameter": inch(0.164), "tapDrillDiameter": string("0.1360 in"), "metric": "false"},
             pitch_node({"32 tpi (UNC)": None, "36 tpi (UNF)": None}),
         ),
         Value(
             "#10",
-            {"majorDiameter": inch(0.19)},
+            {"majorDiameter": inch(0.19), "metric": "false"},
             pitch_node(
                 {"24 tpi (UNC)": "0.1495 in", "32 tpi (UNF)": "0.1590 in"},
                 default="32 tpi (UNF)",
@@ -46,7 +58,7 @@ tapped_hole = Node(
         ),
         Value(
             "1/4",
-            {"majorDiameter": inch(0.25)},
+            {"majorDiameter": inch(0.25), "metric": "false"},
             pitch_node(
                 {
                     "20 tpi (UNC)": "0.2010 in",
@@ -57,7 +69,7 @@ tapped_hole = Node(
         ),
         Value(
             "5/16",
-            {"majorDiameter": inch(5 / 16)},
+            {"majorDiameter": inch(5 / 16), "metric": "false"},
             pitch_node(
                 {
                     "18 tpi (UNC)": "0.2570 in",
@@ -65,6 +77,16 @@ tapped_hole = Node(
                     "32 tpi (UNEF)": "0.2812 in",
                 }
             ),
+        ),
+        Value(
+            "M3",
+            {"majorDiameter": mm(3), "metric": "true"},
+            metric_pitch_node({"0.50 mm (Coarse)": "2.5 mm", "0.35 mm (Fine)": "2.65 mm"}, default="0.50 mm (Coarse)"),
+        ),
+        Value(
+            "M4",
+            {"majorDiameter": mm(4), "metric": "true"},
+            metric_pitch_node({"0.70 mm (Coarse)": "3.3 mm", "0.50 mm (Fine)": "3.5 mm"}, default="0.70 mm (Coarse)"),
         ),
     ],
     default="#10",
@@ -126,22 +148,31 @@ class Shaft:
 @dataclasses.dataclass
 class Preset:
     """A length a shaft is sold in: its name (`48 mm`, `2 in.`), its length in millimeters, its length as a
-    FeatureScript expression, and its stock (one entry)."""
+    FeatureScript expression, and its part number and url."""
 
     name: str
     millimeters: float
     length: str
-    stock: str
+    part_number: str
+    url: str
+
+    @property
+    def entry(self) -> tuple[str, str, str]:
+        """Its stock entry (see `stock`)."""
+        return (self.length, self.part_number, self.url)
 
 
 def presets(lengths: list[Preset], factory: dict[str, str]) -> Node:
-    """A shaft's lengths as it's sold, to choose from, the nearest to 56 mm by default. Each is built as it's sold: its
-    `presetLength`, and its `factory` features (see `factory`), with nothing to choose about its ends; it's a custom
-    shaft that's cut to length, or has its ends modified."""
+    """A shaft's lengths as it's sold, to choose from, after Custom, the nearest to 56 mm by default. Each is built as
+    it's sold: its `presetLength`, and its `factory` features (see `factory`), with nothing to choose about its ends.
+    Custom is the shortest of them it fits in, cut down (its `stock` is all of them, shortest first): its length is
+    chosen, and it has its factory features at one end, and its cut end to modify."""
     default = min(lengths, key=lambda preset: abs(preset.millimeters - 56)).name
+    custom = Value("Custom", {"stock": stock(*[preset.entry for preset in sorted(lengths, key=lambda preset: preset.millimeters)]), **factory})
     return Node(
         "length",
-        [Value(preset.name, {"presetLength": preset.length, "stock": preset.stock, **factory}) for preset in lengths],
+        [custom]
+        + [Value(preset.name, {"presetLength": preset.length, "stock": stock(preset.entry), **factory}) for preset in lengths],
         display_name="Length",
         default=default,
     )
@@ -149,7 +180,7 @@ def presets(lengths: list[Preset], factory: dict[str, str]) -> Node:
 
 def inch_presets(url: str, *sizes: tuple[float, str]) -> list[Preset]:
     """Lengths sold in inches, each (length, part number), all on one page."""
-    return [Preset(f"{length:g} in.", length * 25.4, inch(length), stock((inch(length), part_number, url))) for length, part_number in sizes]
+    return [Preset(f"{length:g} in.", length * 25.4, inch(length), part_number, url) for length, part_number in sizes]
 
 
 # Tapped #10-32 at each end (std's hole table's names), `depth` deep
@@ -411,24 +442,19 @@ TTB = vendor(
 )
 
 
-def gobilda(series: str, profile: str, name: str, lengths: list[float]) -> str:
-    """goBILDA sells each length: SKUs like 2106-4008-0560 for 56 mm, with a page each (2102 and 2104 are numbered by
-    the millimeter, not the tenth)."""
-    return stock(
-        *[
-            (
-                mm(length),
-                f"{series}-{profile}-{round(length * 10):04d}" if series not in ("2102", "2104") else f"{series}-{profile}-{round(length):04d}",
-                f"https://www.gobilda.com/{name}-{length:g}mm-length/",
-            )
-            for length in lengths
-        ]
-    )
-
-
 def gobilda_presets(series: str, profile: str, name: str, lengths: list[float]) -> list[Preset]:
-    """goBILDA's lengths (in millimeters), each its own SKU (see `gobilda`)."""
-    return [Preset(f"{length:g} mm", length, mm(length), gobilda(series, profile, name, [length])) for length in lengths]
+    """goBILDA's lengths (in millimeters), each its own SKU, like 2106-4008-0560 for 56 mm, with a page each (2102 and
+    2104 are numbered by the millimeter, not the tenth)."""
+    return [
+        Preset(
+            f"{length:g} mm",
+            length,
+            mm(length),
+            f"{series}-{profile}-{round(length * 10):04d}" if series not in ("2102", "2104") else f"{series}-{profile}-{round(length):04d}",
+            f"https://www.gobilda.com/{name}-{length:g}mm-length/",
+        )
+        for length in lengths
+    ]
 
 
 REX_8_LENGTHS = [24, 32, 40, 43, 48, 52, 54, 56, 64, 72, 80, 88, 96, 104, 112, 120, 144, 168, 192, 216, 240, 264, 288,
@@ -458,7 +484,7 @@ REX_12_PLAIN_FACTORY = factory(None, [])
 # e-clip and its grooves, and the 12 mm without, untapped) and its aluminum 12 mm
 # (https://www.gobilda.com/stainless-steel-rex-shafting/, https://www.gobilda.com/aluminum-rex-shafting/). It only
 # sells REX, so its types are its sizes, with an e-clip or without, which the precondition shows Flip ends for. It
-# sells no 8mm REX shaft without one (only standoffs)
+# sells no 8mm REX shaft without one (only standoffs). A custom REX shaft is one of them cut down (Length's Custom)
 # TODO: goBILDA's D-shafts and round shafts; REV's 5mm hex. 8mm REX standoffs (aluminum) are left out: they're standoffs
 GOBILDA = vendor(
     "goBILDA",

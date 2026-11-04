@@ -300,6 +300,27 @@ def test_lints(project):
     assert ("boolean-comparison", "== true") in problems
 
 
+def test_length_bounds_have_inch_and_millimeter_defaults(project):
+    path = project.code_dir / "bounds.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "export const BOTH = { (meter) : [0, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;\n"
+        "export const INCH = { (inch) : [0, 1, 1e4] } as LengthBoundSpec;\n"
+        "export const METRIC = {\n    (meter) : [0, 0.001, 500],\n    (millimeter) : 1\n} as LengthBoundSpec;\n"
+        # Units inside the range don't count, and other bounds aren't lengths
+        "export const NESTED = { (meter) : [(inch) / meter, 1, 2] } as LengthBoundSpec;\n"
+        "export const ANGLE = { (degree) : [0, 1, 2] } as AngleBoundSpec;\n"
+    )
+    module = project.module(path)
+    problems = [(module.parsed.source[p.start:p.end].split()[0], p.message)
+                for p in project.check(module) if p.code == "bound-defaults"]
+    assert [text for text, _ in problems] == ["{", "{", "{"]
+    messages = [message for _, message in problems]
+    assert "(millimeter)" in messages[0] and "(inch)" not in messages[0]
+    assert "(inch)" in messages[1] and "(millimeter)" not in messages[1]
+    assert "(inch) and (millimeter)" in messages[2]
+
+
 def test_parameter_enums_must_be_exported(project):
     (project.code_dir / "core" / "shapes.fs").write_text(
         "FeatureScript 2909;\nexport enum Shape { CIRCLE }\n"

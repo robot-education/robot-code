@@ -49,8 +49,8 @@ export predicate isEdgePlacement(definition is map)
  */
 const OFFSET_BOUNDS = {
             (meter) : [-500, 0.00635, 500],
-            (centimeter) : 0.635,
-            (millimeter) : 6.35,
+            (centimeter) : 0.6,
+            (millimeter) : 6,
             (inch) : 0.25,
             (foot) : 0.25 / 12,
             (yard) : 0.25 / 36
