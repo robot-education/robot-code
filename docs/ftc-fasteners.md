@@ -84,6 +84,48 @@ Zinc-plated steel. A hex cap screw's length is measured under the head.
 REV's UltraPlanetary hardware pack (REV-41-1609) has M3 button heads, which REV doesn't sell on their own; they're
 left out.
 
+## AndyMark: M3 and M4
+
+From AndyMark's store (`andymark.com/products.json`, the list `fastenerTables.py fetch` already reads for its
+imperial screws). Zinc-plated steel unless a row says otherwise; lengths are under the head. AndyMark publishes no
+models for these, so they take the standard's nominal dimensions (ISO 4762, ISO 7380, ISO 10642).
+
+| Part | Lengths (mm), SKU |
+| --- | --- |
+| M4 socket head, 3 mm hex | 5 am-1343, 10 am-1264, 25 am-1532, 30 am-1533, 40 am-1422, 50 am-1401, 55 am-1251 (black oxide) |
+| M4 button head, 2.5 mm hex | 35 am-1441 (black oxide) |
+| M4 flat head | 8 am-1788, 12 am-1789: Phillips drive, so left out (ConfigLib's countersunk M4s are hex drive) |
+| M3 socket head, 2.5 mm hex | 6 am-1254, 10 am-1021, 14 am-1367, 30 am-1578, 35 am-1671, 45 am-1659 (stainless), 55 am-1379 (stainless) |
+| M3 socket head, thread lock patch | 5 am-1675, 8 am-1500, 12 am-1706 (14 am-1750 has a plain twin) |
+| M3 flat head, 2 mm hex | 8 am-1723, 12 am-1765; 5 am-1724 with a thread lock patch |
+
+| Part | SKU | Dimensions |
+| --- | --- | --- |
+| M4 nylock nut | am-1435 | 5.0 tall |
+| M3 nylock nut | am-1023 | Not stated |
+| M3 hex nut | am-1386 | 2.4 tall |
+| M3 jam nut | am-1405 | 1.8 tall |
+| M4 lock washer | am-1548 | 4.4 inner, 0.9 thick; outer not stated |
+| M3 lock washer | am-1551 | 3.4 inner, 6.2 outer, 0.8 thick |
+
+AndyMark sells no metric flat washer for M3 or M4.
+
+## McMaster-Carr
+
+McMaster-Carr's pages refuse automated reads, so its part numbers come from you (below), not a fetch. ConfigLib's
+default material, 18-8 stainless, is McMaster-Carr's too. The series to take them from, with the few numbers
+search results confirm:
+
+| Part | Series | Confirmed |
+| --- | --- | --- |
+| Socket head, 18-8 stainless | 91292A | M3 x 8 91292A112, M4 x 10 91292A116, M4 x 12 91292A117 |
+| Socket head, black-oxide alloy steel | 91290A | M4 x 10 91290A144, M4 x 12 91290A148 |
+| Button head, 18-8 stainless | 92095A | M3 x 6 92095A179 |
+| Low profile socket head, 18-8 stainless | 92855A | — |
+| Flat head, 18-8 stainless | 92125A | — |
+| Nylon-insert locknut, 18-8 stainless | 93625A | — |
+| Flat washer, 18-8 stainless | 93475A | — |
+
 ## What the features need
 
 - Metric sizes: `Size` holds threads per inch and inch diameters, and `std`'s ISO hole and thread tables
@@ -91,7 +133,9 @@ left out.
 - Heads: hex (REV's hex cap and goBILDA's hex head), low profile socket, and REV's T-slot.
 - Nuts: a square nut 7 mm wide, and the nylock's dome as measured above, in place of `_nylock`'s proportions.
 - Washers: lock washers, if they're offered at all.
-- Vendors: goBILDA, beside REV.
+- Vendors: goBILDA, beside REV, AndyMark, and McMaster-Carr. AndyMark's metric screws are titled
+  `M4-0.7 x 10 mm Socket Head Cap Screw`, which `_STORE_SCREWS` has to match too.
+- Heads: flat (countersunk) in metric, for AndyMark's and McMaster-Carr's.
 
 ## STEP files
 
@@ -108,3 +152,5 @@ Still needed:
 | REV M3 washer, REV-41-2886 | Nothing published | A STEP, or calipers: inner diameter, outer diameter, thickness |
 | goBILDA split lock washer, 2809-0004-0007 | Its model is freeform, so it gives only the outside | Its section's width and thickness, if lock washers are offered |
 | REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
+| McMaster-Carr's M3 and M4 parts | Its pages refuse automated reads | Each series' table above copied from its page (part numbers, lengths, thread lengths), and a STEP of one length per head, nut, and washer, from the part's CAD tab |
+| AndyMark M4 lock washer, am-1548 | Its outer diameter isn't stated | Calipers on one, or a STEP (optional) |
