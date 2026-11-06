@@ -380,7 +380,7 @@ def make_parser() -> argparse.ArgumentParser:
     )
     cots_command.add_argument("query", nargs="?", default="", help="a regular expression matching parts' names or groups, e.g. 'hex shaft'")
     cots_command.add_argument(
-        "-l", "--library", default="frc", help="frc, ftc, or mkcad (FRCDesign's FRC, FTC, and MKCad libraries)"
+        "-l", "--library", default="frc", help="frc, config, or mkcad (FRCDesign's FRC, ConfigLib, and MKCad libraries)"
     )
     cots_command.add_argument("--days", type=int, default=365, help="how many days of usage to count (default: 365)")
     cots_command.add_argument("-n", "--limit", type=int, default=40, help="how many parts to list (default: 40)")

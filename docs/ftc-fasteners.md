@@ -4,8 +4,23 @@ What the Screw, Nut, and Washer features need in order to offer FTC's hardware: 
 M3 hardware, with each part's dimensions measured from the vendor's own STEP model. The features generate
 imperial sizes only (`fastenerTables.py`'s `SIZES`), so this is the catalog the metric sizes are built from.
 
-FRCDesign has no FTC library, so there is no usage data to rank sizes or pick defaults (`fs cots -l ftc` names a
-library id FRCDesign doesn't have).
+## What teams insert
+
+From ConfigLib, FTC's library in FRCDesign, over the last year (`fs cots 'screw|nut|washer' -l config -d`):
+
+| Part | Inserts | Options chosen |
+| --- | --- | --- |
+| Custom Screw | 3210 | M4 2940, M3 200, M5 38, M6 15, M2 11, M2.5 6 |
+| — M4 head | 2799 | Socket 2109, button 561, countersunk 70, low profile 25 |
+| — M3 head | 183 | Socket 110, button 48, 5 mm hex 17, low profile 3, countersunk 3 |
+| — Material | 3210 | 18-8 stainless 3034 (its default), black oxide 176 |
+| S - Nut (GB) | 337 | M4 nylock 299, M4 hex 35, M4 square 3, M4 hook 0 |
+| Custom Nut | 333 | M4 241, M3 62, M6 13, M5 6; hex 329, square 4 |
+| Custom Washer | 217 | M4 193, custom 15, M3 5, M5 3 |
+
+So the defaults are an M4 socket head, an M4 nylock, and an M4 washer. FTC's countersunk M4s are bought
+elsewhere (ConfigLib's references are Amazon's), since neither goBILDA nor REV sells one. Screw lengths are typed,
+so FRCDesign doesn't count them.
 
 ## goBILDA: M4 x 0.7
 

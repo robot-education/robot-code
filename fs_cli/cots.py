@@ -23,7 +23,7 @@ from typing import Any
 import requests
 
 API = "https://app.frcdesign.org/api"
-LIBRARIES = {"frc": "frc-design-lib", "ftc": "ftc-design-lib", "mkcad": "mkcad"}
+LIBRARIES = {"frc": "frc-design-lib", "config": "config-lib", "mkcad": "mkcad"}
 
 
 class CotsError(Exception):

@@ -12,7 +12,7 @@ FRCDesign's public API (no sign-in, and no Onshape API calls):
 
 ```
 uv run fs cots 'hex shaft'                 # FRC parts matching a regular expression, most used first
-uv run fs cots 'channel|beam' -l ftc       # the FTC library (-l mkcad for MKCad's)
+uv run fs cots 'channel|beam' -l config    # ConfigLib, FTC's library (-l mkcad for MKCad's)
 uv run fs cots 'hex shaft' -d              # also each part's configuration usage, and part numbers with the options they're for
 uv run fs cots --days 90 -n 100            # the top 100 parts over the last 90 days
 ```
@@ -40,7 +40,7 @@ need. These work without signing in; `{date}`s are like `2026-01-31`:
 | `/search-db/library/{library}?v={version}` | The app's search index (a serialized MiniSearch index of part names, groups, and part numbers) |
 
 Others (`/build-status/library/{library}`, `/job-status/library/{library}`, and `/favorites/library/{library}`) need
-signing in to Onshape. Libraries are `frc-design-lib`, `ftc-design-lib`, and `mkcad`. A part's page in the app, like
+signing in to Onshape. Libraries are `frc-design-lib`, `config-lib`, and `mkcad`. A part's page in the app, like
 `https://app.frcdesign.org/app/library/frc-design-lib?part={insertable id}`, shows the options its configuration
 endpoint returns. It rejects Python's `urllib` (by its user agent), so use `requests` or `curl`.
 
