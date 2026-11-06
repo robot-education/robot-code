@@ -1305,14 +1305,14 @@ export const customFrameTable = {
                                 "displayName" : "1 in. face rows",
                                 "entries" : {
                                     "1" : { "angle" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 1, "width" : 2 * inch },
-                                    "2" : { "angle" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
                                 },
                             },
                             "2" : {
                                 "name" : "narrowRows",
                                 "displayName" : "1 in. face rows",
                                 "entries" : {
-                                    "1" : { "angle" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 1, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 2, "width" : 2 * inch },
                                     "2" : { "angle" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 2, "width" : 2 * inch },
                                 },
                             },
@@ -1320,8 +1320,8 @@ export const customFrameTable = {
                                 "name" : "narrowRows",
                                 "displayName" : "1 in. face rows",
                                 "entries" : {
-                                    "1" : { "angle" : false, "height" : 1 * inch, "sideRows" : 3, "topRows" : 1, "width" : 2 * inch },
-                                    "2" : { "angle" : false, "height" : 1 * inch, "sideRows" : 3, "topRows" : 2, "width" : 2 * inch },
+                                    "1" : { "angle" : false, "height" : 1 * inch, "sideRows" : 1, "topRows" : 3, "width" : 2 * inch },
+                                    "2" : { "angle" : false, "height" : 1 * inch, "sideRows" : 2, "topRows" : 3, "width" : 2 * inch },
                                 },
                             },
                         },

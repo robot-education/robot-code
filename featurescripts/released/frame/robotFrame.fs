@@ -154,9 +154,8 @@ function getFrame(definition is map) returns Stock
             "wallY" : definition.wallThickness,
             "angle" : entry.angle,
             "holeDiameter" : definition.holeDiameter,
-            // X is up along an edge in a sketch (its sketch's normal), so the walls facing X are the top and bottom
-            "xRows" : gridRows(entry.topRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
-            "yRows" : gridRows(entry.sideRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
+            "xRows" : gridRows(entry.sideRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.height)),
+            "yRows" : gridRows(entry.topRows, definition.holeStart, definition.holeSpacing, rowSpacing(definition, entry, entry.width)),
             "isFrame" : true,
             "tieStart" : definition.holeStart,
             "tieUnit" : definition.holeSpacing
@@ -260,8 +259,8 @@ function verifyHoles(definition is map)
     // The sides facing X are as wide as the frame is high, inside the walls facing Y, and the other way around
     const entry = frameTableEntry(definition);
     const inside = 2 * definition.wallThickness;
-    if (!rowsFit(entry.topRows, rowSpacing(definition, entry, entry.height), definition.holeDiameter, entry.height - inside) ||
-        !rowsFit(entry.sideRows, rowSpacing(definition, entry, entry.width), definition.holeDiameter, entry.width - inside))
+    if (!rowsFit(entry.sideRows, rowSpacing(definition, entry, entry.height), definition.holeDiameter, entry.height - inside) ||
+        !rowsFit(entry.topRows, rowSpacing(definition, entry, entry.width), definition.holeDiameter, entry.width - inside))
     {
         throw regenError("The rows of holes don't fit across the frame's faces.",
             ["customFrame", "rowSpacing", "wideRowSpacing", "narrowRowSpacing", "holeDiameter"]);

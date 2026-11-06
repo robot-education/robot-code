@@ -87,9 +87,8 @@ Medium Gray (`MEDIUM_GRAY`), with no part number or link. Frames are tagged as f
 
 A COTS frame's table entry (profile, walls, holes, stock lengths, appearance, part name) is used as is, but for the hole
 diameter. A custom frame's entry only has its size and how many rows each face has; everything else comes from the
-dialog. Along an edge in a sketch, X is the sketch's normal, so up for a sketch on the Top plane: `topRows` go through
-the walls facing X, which are `height` wide (for 2x1, the 1 in. faces); `sideRows` through those facing Y, `width`
-wide (the 2 in. faces). Every 2x1, COTS or custom, is 2 in. along X, so it stands on a 1 in. face.
+dialog. `sideRows` go through the walls facing X, which are `height` wide; `topRows` through those facing Y, `width`
+wide (for 2x1, the 2 in. faces).
 
 ### Error handling
 
