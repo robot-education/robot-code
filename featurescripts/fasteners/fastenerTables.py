@@ -1303,6 +1303,7 @@ def _size_fields(size: Size | MetricSize) -> str:
             "closeClearanceDiameter": _length(size.close_clearance_diameter, size.unit),
             "freeClearanceDiameter": _length(size.free_clearance_diameter, size.unit),
             "threadAllowance": _length(size.thread_allowance, size.unit),
+            "metric": str(isinstance(size, MetricSize)).lower(),
         }
     )
 

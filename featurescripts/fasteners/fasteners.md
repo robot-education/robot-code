@@ -80,8 +80,11 @@ visibility conditions, not the dialog, show only what's made, laid out by `Looku
 "Configured Part Studios"): an input shows only where more than one of its options is made with the choices before it,
 so Length shows the lengths the chosen vendor makes in the chosen size, head, and finish, and Finish shows only where
 there's a choice of finish. An input with one option anywhere is fixed and left out: McMaster-Carr makes every nut, so
-the nut's configuration has no Vendor. A hidden input keeps whatever it was last set to, so the features look each
-choice up with `made`, which takes the one thing made where only one is. Anything else not made is an error.
+the nut's configuration has no Vendor. A hidden input keeps whatever it was last set to, so the features resolve
+each choice with `resolveChoices` to the one option made where only one is, and build from those: a screw's size and
+head as well as its part. The tables hold both sets' parts, and REV makes a #10-32 screw for FRC and an M3 one for FTC,
+so a hidden size resolves within its own set (imperial or metric), the only sizes its studio offers. Anything else not
+made is an error.
 
 The defaults are what's inserted most from FRCDesign's library, by its analytics: #10-32 x 3/8 in black button heads
 (from Generic, which names no vendor), #10-32 nylocks, and McMaster-Carr's #10 x 7/16 in OD stainless washers. FTC's

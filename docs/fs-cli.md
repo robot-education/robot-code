@@ -380,8 +380,8 @@ A `LookupTable` lays a table out by these rules, from what's made, each thing a 
   hidden where only one is. An input never shown is fixed, as the nut's Vendor is (McMaster-Carr makes every nut).
 - A condition names an input only where it shows: where it's hidden, Onshape and FRCDesign read its value
   differently, so the options after it show by the choices before it alone. The studio checks this.
-- The feature resolves a hidden input to the one option made there, whatever value its parameter holds (the
-  fasteners' `made`).
+- The feature resolves a hidden input to the one option made there, whatever value its parameter holds, and builds
+  from what it resolved to (the fasteners' `resolveChoices`).
 - A configuration is the choices it shows (`LookupTable.shown`), and what reads the studio outside Onshape lists one
   record per configuration, holding those choices alone.
 - Its default is shown wherever its input shows at the other inputs' defaults, and every option is controlled by a

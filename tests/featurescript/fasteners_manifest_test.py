@@ -285,6 +285,46 @@ def test_a_hidden_input_has_one_option_made_where_its_hidden(part_set, kind):
                 assert {other[index] for other in made if other[:index] == key[:index]} == {key[index]}, (id, key)
 
 
+def _resolve(entries: dict, value: str) -> str | None:
+    """As fasteners.fs's `resolve`: `value` where it's made, or the one option made, a size of its own set's."""
+    if value in entries:
+        return value
+    sets = [DEFINITION["IMPERIAL"], DEFINITION["METRIC"]]
+    own = next((sizes for sizes in sets if value in sizes), None)
+    options = [option for option in entries if own is None or option in own]
+    return options[0] if len(options) == 1 else None
+
+
+def _feature_table(kind: str) -> dict:
+    """What the feature reads: both sets' parts, nested by the table's columns."""
+    table: dict = {}
+    for key in {record[:5] if kind == "screw" else record for record in DEFINITION["ALL_RECORDS"][kind]}:
+        level = table
+        for option in key:
+            level = level.setdefault(option, {})
+    return table
+
+
+@pytest.mark.parametrize("part_set,kind", STUDIOS)
+def test_the_feature_resolves_whatever_a_hidden_input_holds(part_set, kind):
+    """From the tables both sets share: a hidden input holds any option of its studio's, or a fixed one its default."""
+    studio, table = CATALOGS[part_set].studios[kind], _table(part_set, kind)
+    inputs = {input.id: input for input in studio.inputs}
+    tables = _feature_table(kind)
+    for key in _made(part_set, kind):
+        shown = table.shown(key)
+        for index, id in enumerate(table.ids):
+            if id in shown:
+                continue
+            held = [inputs[id].default_option] if inputs[id].fixed else [option.id for option in inputs[id].options]
+            for value in held:
+                level = tables
+                for column, option in enumerate(key):
+                    resolved = _resolve(level, value if column == index else option)
+                    assert resolved == option, (id, value, key)
+                    level = level[resolved]
+
+
 @pytest.mark.parametrize("part_set,kind", STUDIOS)
 def test_every_option_is_controlled_by_a_rule(part_set, kind):
     """Onshape hides every option no rule controls, once an input has any rule."""

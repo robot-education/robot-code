@@ -55,16 +55,17 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
         definition.fullyThreaded is boolean;
     }
     {
-        const lengths = made(made(made(made(SCREWS, definition.vendor), definition.size), definition.head), definition.finish);
-        if (lengths == undefined)
-        {
-            throw regenError("Selected vendor does not make this screw in this finish, change the finish.", ["finish"]);
-        }
-        const threads = made(lengths, definition.length);
-        if (threads == undefined)
+        const choices = resolveChoices(SCREWS, definition, ["vendor", "size", "head", "finish", "length"]);
+        if (choices.unmade == "length")
         {
             throw regenError("Selected vendor does not make this screw, change the length.", ["length"]);
         }
+        if (choices.unmade != undefined)
+        {
+            throw regenError("Selected vendor does not make this screw in this finish, change the finish.", ["finish"]);
+        }
+        definition = choices.definition;
+        const threads = choices.made;
         // The configuration hides Fully threaded where a length is sold one way, and a hidden input keeps its last value
         const chosen = definition.fullyThreaded && threads.fullThread != undefined;
         const stock = chosen ? threads.fullThread : threads.standard;
@@ -222,16 +223,16 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
         definition.finish is WasherFinish;
     }
     {
-        const finishes = made(made(made(WASHERS, definition.vendor), definition.size), definition.washerType);
-        if (finishes == undefined)
-        {
-            throw regenError("Selected vendor does not make this washer, change the type.", ["washerType"]);
-        }
-        const washer = made(finishes, definition.finish);
-        if (washer == undefined)
+        const choices = resolveChoices(WASHERS, definition, ["vendor", "size", "washerType", "finish"]);
+        if (choices.unmade == "finish")
         {
             throw regenError("Selected vendor does not make this washer in this finish, change the finish.", ["finish"]);
         }
+        if (choices.unmade != undefined)
+        {
+            throw regenError("Selected vendor does not make this washer, change the type.", ["washerType"]);
+        }
+        const washer = choices.made;
 
         const sketchId = id + "sketch";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
@@ -274,16 +275,17 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
         definition.finish is NutFinish;
     }
     {
-        const finishes = made(made(made(NUTS, definition.vendor), definition.size), definition.nutType);
-        if (finishes == undefined)
-        {
-            throw regenError("Selected vendor does not make this nut, change the type.", ["nutType"]);
-        }
-        const nut = made(finishes, definition.finish);
-        if (nut == undefined)
+        const choices = resolveChoices(NUTS, definition, ["vendor", "size", "nutType", "finish"]);
+        if (choices.unmade == "finish")
         {
             throw regenError("Selected vendor does not make this nut in this finish, change the finish.", ["finish"]);
         }
+        if (choices.unmade != undefined)
+        {
+            throw regenError("Selected vendor does not make this nut, change the type.", ["nutType"]);
+        }
+        definition = choices.definition;
+        const nut = choices.made;
         const size = FASTENER_SIZES[definition.size];
         const isNylock = isNylockType(definition.nutType);
 
@@ -361,23 +363,51 @@ predicate sizePredicate(definition is map)
 }
 
 /**
- * What's made in the value chosen, or the one thing made where there's only one: the configuration hides an input
- * where only one of its options is made, and a hidden input keeps whatever it was last set to.
+ * `definition` with each of `parameters`, a level of `entries` each, set to the option it stands for (see `resolve`),
+ * and what they make (`made`); or the first parameter nothing is made in (`unmade`).
  */
-export function made(entries, value)
+export function resolveChoices(entries is map, definition is map, parameters is array) returns map
 {
-    if (entries == undefined)
+    var level = entries;
+    for (var parameter in parameters)
     {
-        return undefined;
+        const option = resolve(level, definition[parameter]);
+        if (option == undefined)
+        {
+            return { "unmade" : parameter };
+        }
+        definition[parameter] = option;
+        level = level[option];
     }
-    if (entries[value] != undefined || size(entries) != 1)
+    return { "definition" : definition, "made" : level };
+}
+
+/**
+ * The option of `entries` an input holding `value` stands for: `value` where it's made, or else the one option made.
+ * The configuration hides an input where only one of its options is made, and a hidden input keeps whatever it was last
+ * set to. The tables hold both part sets, but a size holds one of its own set's, the only ones its studio offers, so it
+ * stands for one of those.
+ */
+export function resolve(entries is map, value)
+{
+    if (entries[value] != undefined)
     {
-        return entries[value];
+        return value;
     }
-    for (var only in entries)
+    var only;
+    for (var entry in entries)
     {
-        return only.value;
+        if (value is FastenerSize && FASTENER_SIZES[entry.key].metric != FASTENER_SIZES[value].metric)
+        {
+            continue;
+        }
+        if (only != undefined)
+        {
+            return undefined;
+        }
+        only = entry.key;
     }
+    return only;
 }
 
 // The XZ plane, with the sketch's X along the radius and its Y along the axis

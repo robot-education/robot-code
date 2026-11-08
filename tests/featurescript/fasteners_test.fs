@@ -171,18 +171,20 @@ export function testNutProfilesClose()
         {
             for (var nutType, finishes in types)
             {
-                const nut = made(finishes, NutFinish.ZINC_PLATED);
-                const points = nutProfile(FASTENER_SIZES[sizeId], nut, nutType);
-                if (nutType == NutType.NYLOCK || nutType == NutType.THIN_NYLOCK)
+                for (var finish, nut in finishes)
                 {
-                    // The dome closes it, from the top of its hex to its flat top
-                    const dome = nylockDome(nut);
-                    expectSamePoint(dome.start, points[size(points) - 1]);
-                    expectSamePoint(dome.end, points[0]);
-                }
-                else
-                {
-                    expectSamePoint(points[0], points[size(points) - 1]);
+                    const points = nutProfile(FASTENER_SIZES[sizeId], nut, nutType);
+                    if (nutType == NutType.NYLOCK || nutType == NutType.THIN_NYLOCK)
+                    {
+                        // The dome closes it, from the top of its hex to its flat top
+                        const dome = nylockDome(nut);
+                        expectSamePoint(dome.start, points[size(points) - 1]);
+                        expectSamePoint(dome.end, points[0]);
+                    }
+                    else
+                    {
+                        expectSamePoint(points[0], points[size(points) - 1]);
+                    }
                 }
             }
         }
@@ -197,15 +199,17 @@ export function testNylonInsertsFitInsideTheirDomes()
         {
             for (var nutType, finishes in types)
             {
-                const nut = made(finishes, NutFinish.ZINC_PLATED);
-                if (nut.insertDiameter == undefined)
+                for (var finish, nut in finishes)
                 {
-                    continue;
+                    if (nut.insertDiameter == undefined)
+                    {
+                        continue;
+                    }
+                    const dome = nylockDome(nut);
+                    expectTrue(nut.hexHeight < nut.height, "a nylock's hex is shorter than it");
+                    expectTrue(nut.insertDiameter / 2 < dome.end[0], "its insert is inside its flat top");
+                    expectTrue(FASTENER_SIZES[sizeId].tapDrillDiameter < nut.insertDiameter, "its insert is wider than its bore");
                 }
-                const dome = nylockDome(nut);
-                expectTrue(nut.hexHeight < nut.height, "a nylock's hex is shorter than it");
-                expectTrue(nut.insertDiameter / 2 < dome.end[0], "its insert is inside its flat top");
-                expectTrue(FASTENER_SIZES[sizeId].tapDrillDiameter < nut.insertDiameter, "its insert is wider than its bore");
             }
         }
     }
@@ -233,8 +237,25 @@ export function testAHiddenInputResolvesToTheOneMade()
 {
     // FRC's nuts come in zinc plating alone, so any finish resolves to it
     const nylocks = NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_10_32][NutType.NYLOCK];
-    expectEqual(made(nylocks, NutFinish.BLACK), nylocks[NutFinish.ZINC_PLATED]);
-    expectEqual(made({ "a" : 1, "b" : 2 }, "b"), 2);
-    expectEqual(made({ "a" : 1, "b" : 2 }, "c"), undefined);
-    expectEqual(made(undefined, "a"), undefined);
+    expectEqual(resolve(nylocks, NutFinish.BLACK), NutFinish.ZINC_PLATED);
+    expectEqual(resolve({ "a" : 1, "b" : 2 }, "b"), "b");
+    expectEqual(resolve({ "a" : 1, "b" : 2 }, "c"), undefined);
+}
+
+export function testAHiddenSizeResolvesWithinItsOwnPartSet()
+{
+    // REV makes #10-32 screws for FRC and M3 ones for FTC: each studio's hidden Size holds one of its own set's sizes
+    const parameters = ["vendor", "size", "head", "finish", "length"];
+    const ftc = resolveChoices(SCREWS, { "vendor" : FastenerVendor.REV, "size" : FastenerSize.M4, "head" : ScrewHead.SOCKET,
+                "finish" : ScrewFinish.STAINLESS, "length" : ScrewLength.MM_20 }, parameters);
+    expectEqual(ftc.definition.size, FastenerSize.M3);
+    expectEqual(ftc.definition.head, ScrewHead.HEX);
+    expectEqual(ftc.made, SCREWS[FastenerVendor.REV][FastenerSize.M3][ScrewHead.HEX][ftc.definition.finish][ScrewLength.MM_20]);
+    const frc = resolveChoices(SCREWS, { "vendor" : FastenerVendor.REV, "size" : FastenerSize.NO_8_32, "head" : ScrewHead.SOCKET,
+                "finish" : ScrewFinish.BLACK, "length" : ScrewLength.IN_0_5 }, parameters);
+    expectEqual(frc.definition.size, FastenerSize.NO_10_32);
+    // Nothing of goBILDA's comes in #10-32
+    const unmade = resolveChoices(NUTS, { "vendor" : FastenerVendor.GOBILDA, "size" : FastenerSize.NO_10_32,
+                "nutType" : NutType.NYLOCK, "finish" : NutFinish.ZINC_PLATED }, ["vendor", "size", "nutType", "finish"]);
+    expectEqual(unmade.unmade, "size");
 }
