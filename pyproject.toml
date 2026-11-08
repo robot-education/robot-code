@@ -50,6 +50,13 @@ main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
 [tool.fs.parts.fasteners.targets]
 test = "https://cad.onshape.com/documents/b82fec8aded5d7a705a3d658"   # FRCDesignLib Test Document, for a local FRCDesignApp
 
+# FTC's metric fasteners: the same Feature Studio and tables, configured by their own definition, released into ConfigLib
+[tool.fs.parts.ftcFasteners]
+title = "FTC Fasteners"
+folder = "fasteners"
+definition = "ftcFastenerTables.py"
+main = "https://cad.onshape.com/documents/d67349e2db0a99ac62c57a10"
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]
 python_files = ["*test*.py"]
