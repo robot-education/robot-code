@@ -405,10 +405,9 @@ def test_ftc_screws_name_their_finish_but_generics():
     full = records[("MCMASTER", "M4", "SOCKET", "BLACK", "MM_30", "true")]
     assert (full["name"], full["partNumber"]) == ("M4 x 30 mm Socket Head Screw (Black, fully threaded)", "91290A172")
     assert records[("GENERIC", "M4", "SOCKET", "MM_10")]["name"] == "M4 x 10 mm Socket Head Screw"
-    # REV makes M3 alone, so its size is fixed
-    rev = records[("REV", "HEX", "MM_8")]
+    # REV makes M3 hex heads alone, so its size and head are fixed
+    rev = records[("REV", "MM_8")]
     assert (rev["name"], rev["partNumber"]) == ("M3 x 8 mm Hex Head Screw (Zinc plated)", "REV-41-1359")
-    assert records[("REV", "T_SLOT")]["name"] == "M3 x 8 mm T-Slot Screw (Zinc plated)"
 
 
 def test_ftc_nuts_and_washers_come_in_finishes():

@@ -1884,8 +1884,8 @@ def test_cots_ranks_parts_and_shows_options():
                 },
             },
             "/analytics/parts/library/frc-design-lib": [
-                {"path": {"elementId": "ea"}, "insertCount": 800},
-                {"path": {"elementId": "eb"}, "insertCount": 300},
+                {"path": {"elementId": "ea"}, "useCount": 800},
+                {"path": {"elementId": "eb"}, "useCount": 300},
             ],
             "/analytics/insertable/library/frc-design-lib/element/ea": {
                 "parameters": [

@@ -137,11 +137,6 @@
                 "btType": "BTMEnumOption-592",
                 "option": "HEX",
                 "optionName": "Hex head"
-              },
-              {
-                "btType": "BTMEnumOption-592",
-                "option": "T_SLOT",
-                "optionName": "T-slot"
               }
             ],
             "enumOptionVisibilityConditions": {
@@ -400,67 +395,6 @@
                             "btType": "BTParameterVisibilityOnEqual-180",
                             "parameterId": "size",
                             "value": "M4",
-                            "inArray": false
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                {
-                  "btType": "BTEnumOptionVisibilityForList-1613",
-                  "controlledOptions": [
-                    "HEX",
-                    "T_SLOT"
-                  ],
-                  "condition": {
-                    "btType": "BTParameterVisibilityLogical-178",
-                    "operation": "AND",
-                    "children": [
-                      {
-                        "btType": "BTParameterVisibilityLogical-178",
-                        "operation": "OR",
-                        "children": [
-                          {
-                            "btType": "BTParameterVisibilityOnEqual-180",
-                            "parameterId": "vendor",
-                            "value": "REV",
-                            "inArray": false
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                {
-                  "btType": "BTEnumOptionVisibilityForList-1613",
-                  "controlledOptions": [
-                    "T_SLOT"
-                  ],
-                  "condition": {
-                    "btType": "BTParameterVisibilityLogical-178",
-                    "operation": "AND",
-                    "children": [
-                      {
-                        "btType": "BTParameterVisibilityLogical-178",
-                        "operation": "OR",
-                        "children": [
-                          {
-                            "btType": "BTParameterVisibilityOnEqual-180",
-                            "parameterId": "vendor",
-                            "value": "GENERIC",
-                            "inArray": false
-                          }
-                        ]
-                      },
-                      {
-                        "btType": "BTParameterVisibilityLogical-178",
-                        "operation": "OR",
-                        "children": [
-                          {
-                            "btType": "BTParameterVisibilityOnEqual-180",
-                            "parameterId": "size",
-                            "value": "M3",
                             "inArray": false
                           }
                         ]
@@ -2495,18 +2429,6 @@
                             "btType": "BTParameterVisibilityOnEqual-180",
                             "parameterId": "vendor",
                             "value": "REV",
-                            "inArray": false
-                          }
-                        ]
-                      },
-                      {
-                        "btType": "BTParameterVisibilityLogical-178",
-                        "operation": "OR",
-                        "children": [
-                          {
-                            "btType": "BTParameterVisibilityOnEqual-180",
-                            "parameterId": "head",
-                            "value": "HEX",
                             "inArray": false
                           }
                         ]
@@ -5405,15 +5327,6 @@
             "length": "MM_35"
           },
           "name": "M3 x 35 mm Hex Head Screw",
-          "material": "Stainless Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "size": "M3",
-            "head": "T_SLOT"
-          },
-          "name": "M3 x 8 mm T-Slot Screw",
           "material": "Stainless Steel"
         },
         {
@@ -11013,7 +10926,6 @@
         {
           "values": {
             "vendor": "REV",
-            "head": "HEX",
             "length": "MM_6"
           },
           "name": "M3 x 6 mm Hex Head Screw (Zinc plated)",
@@ -11025,7 +10937,6 @@
         {
           "values": {
             "vendor": "REV",
-            "head": "HEX",
             "length": "MM_8"
           },
           "name": "M3 x 8 mm Hex Head Screw (Zinc plated)",
@@ -11037,7 +10948,6 @@
         {
           "values": {
             "vendor": "REV",
-            "head": "HEX",
             "length": "MM_10"
           },
           "name": "M3 x 10 mm Hex Head Screw (Zinc plated)",
@@ -11049,7 +10959,6 @@
         {
           "values": {
             "vendor": "REV",
-            "head": "HEX",
             "length": "MM_16"
           },
           "name": "M3 x 16 mm Hex Head Screw (Zinc plated)",
@@ -11061,7 +10970,6 @@
         {
           "values": {
             "vendor": "REV",
-            "head": "HEX",
             "length": "MM_20"
           },
           "name": "M3 x 20 mm Hex Head Screw (Zinc plated)",
@@ -11073,7 +10981,6 @@
         {
           "values": {
             "vendor": "REV",
-            "head": "HEX",
             "length": "MM_25"
           },
           "name": "M3 x 25 mm Hex Head Screw (Zinc plated)",
@@ -11085,24 +10992,12 @@
         {
           "values": {
             "vendor": "REV",
-            "head": "HEX",
             "length": "MM_35"
           },
           "name": "M3 x 35 mm Hex Head Screw (Zinc plated)",
           "vendor": "REV",
           "partNumber": "REV-41-1125",
           "url": "https://www.revrobotics.com/M3-Hex-Cap-Screws/",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "REV",
-            "head": "T_SLOT"
-          },
-          "name": "M3 x 8 mm T-Slot Screw (Zinc plated)",
-          "vendor": "REV",
-          "partNumber": "REV-41-1907",
-          "url": "https://www.revrobotics.com/rev-41-1907-pk25/",
           "material": "Steel"
         },
         {
@@ -12463,17 +12358,6 @@
           "countersunk": false
         }
       }
-    },
-    {
-      "id": "T_SLOT",
-      "name": "T-slot",
-      "sizes": {
-        "M3": {
-          "diameter": 0.0063509,
-          "height": 0.00182,
-          "countersunk": false
-        }
-      }
     }
   ],
   "screws": [
@@ -12919,20 +12803,6 @@
     },
     {
       "vendor": "GENERIC",
-      "size": "M3",
-      "head": "T_SLOT",
-      "finish": "STAINLESS",
-      "lengths": [
-        {
-          "id": "MM_8",
-          "name": "8 mm",
-          "length": 0.008,
-          "fullThreadChoice": false
-        }
-      ]
-    },
-    {
-      "vendor": "GENERIC",
       "size": "M4",
       "head": "SOCKET",
       "finish": "STAINLESS",
@@ -15699,20 +15569,6 @@
           "id": "MM_35",
           "name": "35 mm",
           "length": 0.035,
-          "fullThreadChoice": false
-        }
-      ]
-    },
-    {
-      "vendor": "REV",
-      "size": "M3",
-      "head": "T_SLOT",
-      "finish": "ZINC_PLATED",
-      "lengths": [
-        {
-          "id": "MM_8",
-          "name": "8 mm",
-          "length": 0.008,
           "fullThreadChoice": false
         }
       ]

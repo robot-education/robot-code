@@ -144,12 +144,11 @@ function addSocket(context is Context, socketId is Id, screw is Query, size is m
 
 export function isHexHead(headType is ScrewHead) returns boolean
 {
-    return headType == ScrewHead.HEX || headType == ScrewHead.T_SLOT;
+    return headType == ScrewHead.HEX;
 }
 
 /**
- * A hex head on a screw's shank, from the origin up: its hex, chamfered on top as a nut is, and a T-slot's cut down to
- * its width to drop into an extrusion's slot.
+ * A hex head on a screw's shank, from the origin up: its hex, chamfered on top as a nut is.
  */
 function addHexHead(context is Context, id is Id, shank is Query, head is map)
 {
@@ -161,20 +160,9 @@ function addHexHead(context is Context, id is Id, shank is Query, head is map)
                 "firstVertex" : vector(flat * 2 / sqrt(3), 0 * meter),
                 "sides" : 6
             });
-    if (head.width != undefined)
-    {
-        // Across the flats parallel to the slot
-        skRectangle(sketch, "slot", {
-                    "firstCorner" : vector(-flat * 2, -head.width / 2),
-                    "secondCorner" : vector(flat * 2, head.width / 2)
-                });
-    }
     skSolve(sketch);
-    // A T-slot's hex is the region inside both
-    const region = head.width == undefined ? qSketchRegion(sketchId) :
-        qSketchRegion(sketchId)->qContainsPoint(vector(0, 0, 0) * meter);
     opExtrude(context, id + "extrude", {
-                "entities" : region,
+                "entities" : qSketchRegion(sketchId),
                 "direction" : Z_DIRECTION,
                 "endBound" : BoundingType.BLIND,
                 "endDepth" : head.headHeight

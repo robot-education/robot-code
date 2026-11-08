@@ -136,8 +136,8 @@ FastenerSize = Enum(
 
 ScrewHead = Enum(
     "ScrewHead",
-    ["SOCKET", "BUTTON", "FLAT", "HEX", "T_SLOT"],
-    {"SOCKET": "Socket head", "BUTTON": "Button head", "FLAT": "Flat head", "HEX": "Hex head", "T_SLOT": "T-slot"},
+    ["SOCKET", "BUTTON", "FLAT", "HEX"],
+    {"SOCKET": "Socket head", "BUTTON": "Button head", "FLAT": "Flat head", "HEX": "Hex head"},
 )
 HEAD_CODES = {"SHCS": "SOCKET", "BHCS": "BUTTON", "FHCS": "FLAT"}
 
@@ -153,13 +153,12 @@ class Head:
     countersunk: bool = False
     unit: str = "in"
     countersink_angle: int = 82
-    # A hex head's, or a T-slot's, which is a hex cut down to `width` to drop into an extrusion's slot
+    # A hex head's
     across_flats: float | None = None
-    width: float | None = None
 
 
-def _hex_head(across_flats: float, height: float, width: float | None = None) -> Head:
-    return Head(round(across_flats * 2 / 3**0.5, 4), height, None, unit="mm", across_flats=across_flats, width=width)
+def _hex_head(across_flats: float, height: float) -> Head:
+    return Head(round(across_flats * 2 / 3**0.5, 4), height, None, unit="mm", across_flats=across_flats)
 
 
 
@@ -170,13 +169,12 @@ HEADS = {
     "NO_10_32": {"SOCKET": Head(0.312, 0.19, 5 / 32), "BUTTON": Head(0.375, 0.102, 1 / 8), "FLAT": Head(0.411, 0.132, 1 / 8, True)},
     "QUARTER_20": {"SOCKET": Head(0.375, 0.25, 3 / 16), "BUTTON": Head(0.437, 0.132, 5 / 32), "FLAT": Head(0.531, 0.153, 5 / 32, True)},
     # ISO 4762, 7380 and 10642, which McMaster-Carr's and goBILDA's models measure to (docs/ftc-fasteners.md); a flat
-    # head sits in a 90 degree countersink. M3's hex heads are REV's hex caps and T-slots, M4's goBILDA's.
+    # head sits in a 90 degree countersink. M3's hex heads are REV's hex caps, M4's goBILDA's.
     "M3": {
         "SOCKET": Head(5.5, 3, 2.5, unit="mm"),
         "BUTTON": Head(5.7, 1.65, 2, unit="mm"),
         "FLAT": Head(6, 1.7, 2, True, "mm", 90),
         "HEX": _hex_head(5.5, 2),
-        "T_SLOT": _hex_head(5.5, 1.82, 3.2),
     },
     "M4": {
         "SOCKET": Head(7, 4, 3, unit="mm"),
@@ -499,9 +497,8 @@ _REV_SCREWS = {
         6: "REV-41-1713", 8: "REV-41-1359", 10: "REV-41-1123", 16: "REV-41-1360", 20: "REV-41-1124", 25: "REV-41-1715",
         35: "REV-41-1125",
     },
-    ("M3", "T_SLOT"): {8: "REV-41-1907"},
 }
-_REV_SCREW_PAGES = {"HEX": "/M3-Hex-Cap-Screws/", "T_SLOT": "/rev-41-1907-pk25/"}
+_REV_SCREW_PAGES = {"HEX": "/M3-Hex-Cap-Screws/"}
 
 
 def _gobilda_screws() -> Screws:
@@ -966,7 +963,7 @@ WasherType = Enum("WasherType", list(_WASHER_TYPES), _WASHER_TYPES)
 
 
 SIZES_BY_ID = {size.id: size for size in SIZES + METRIC_SIZES}
-HEAD_NAMES = {"SOCKET": "Socket Head", "BUTTON": "Button Head", "FLAT": "Flat Head", "HEX": "Hex Head", "T_SLOT": "T-Slot"}
+HEAD_NAMES = {"SOCKET": "Socket Head", "BUTTON": "Button Head", "FLAT": "Flat Head", "HEX": "Hex Head"}
 NUT_NAMES = {"NYLOCK": "Nylock", "THIN_NYLOCK": "Thin Nylock", "HEX": "Hex", "THIN_HEX": "Thin Hex", "SQUARE": "Square"}
 # The finish a metric nut's or washer's name leaves unsaid
 METRIC_PLAIN_FINISH = "ZINC_PLATED"
@@ -1318,8 +1315,6 @@ def _head_fields(head: Head) -> str:
         fields["countersinkAngle"] = f"{head.countersink_angle} * degree"
     if head.across_flats is not None:
         fields["acrossFlats"] = _length(head.across_flats, head.unit)
-    if head.width is not None:
-        fields["width"] = _length(head.width, head.unit)
     return _fields(fields)
 
 

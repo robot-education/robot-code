@@ -49,7 +49,7 @@ The configurations only offer what's made, so these show only in the features' o
 | Screw | `<size> x <length> <head> Screw`, e.g. `#10-32 x 1/2 in Button Head Screw`, with any finish but black, and fully threaded, after it: `... Socket Head Screw (Zinc plated)`, `... (Fully threaded)` |
 | Washer | `<size> Washer (<type>)`, e.g. `#10 Washer (1/2 in OD x 0.049 in)`, with any finish but black after the type: `(7/16 in OD x 0.03 in, Stainless steel)`, `(3/4 in OD x 0.062 in, Zinc plated)` |
 | Nut | `<size> <type> Nut`, e.g. `#10-32 Thin Nylock Nut` |
-| FTC screw | `<size> x <length> <head> Screw (<finish>)`, by its size alone, with its finish but for Generic's: `M4 x 10 mm Socket Head Screw (Stainless steel)`, `M4 x 30 mm Socket Head Screw (Black, fully threaded)`, `M3 x 8 mm T-Slot Screw (Zinc plated)` |
+| FTC screw | `<size> x <length> <head> Screw (<finish>)`, by its size alone, with its finish but for Generic's: `M4 x 10 mm Socket Head Screw (Stainless steel)`, `M4 x 30 mm Socket Head Screw (Black, fully threaded)`, `M3 x 8 mm Hex Head Screw (Zinc plated)` |
 | FTC washer | As FRC's, with any finish but zinc plated after the type: `M3 Washer (7 mm OD x 0.5 mm, Stainless steel)` |
 | FTC nut | `<size> <type> Nut`, with any finish but zinc plated after it: `M4 Nylock Nut (Stainless steel)` |
 
@@ -100,7 +100,7 @@ and where it's sold both ways needs several.
    origin, from its underside; a flat head is below it, its top flush with the origin, and its length includes it, in
    its size's countersink (82 degrees imperial, 90 metric). A hex head's profile is its shank alone, its head extruded
    onto it (`addHexHead`): a hexagon up from the origin, chamfered at 30 degrees around its top as a nut is
-   (`hexHeadProfile`), and a T-slot's cut down to its width across two flats, to drop into an extrusion's slot. The
+   (`hexHeadProfile`). The
    proportions are McMaster-Carr's models': every tip has a 45 degree chamfer (`tipChamfer`), a socket head a 45 degree
    chamfer around its top, a flat head a short band above its cone (`flatHeadDepth`), and a button head a short side
    below its dome, an arc (`buttonDome`) up to a flat top 1.4 times its socket's size across.
@@ -136,7 +136,7 @@ There are no `try`s.
   nominal, and the other sizes' nylock domes and inserts take the measured nylocks' proportions: a dome a sixth of the
   nut's height, and an insert 0.61 of its width across flats.
 - Not yet tried in Onshape: the nuts' chamfers, domes, and inserts, and the configurations' hidden inputs.
-- Not yet tried in Onshape: FTC's metric parts, hex and T-slot heads, and the nut's finish.
+- Not yet tried in Onshape: FTC's metric parts, hex heads, and the nut's finish.
 - Metric nuts are measured from McMaster-Carr's, goBILDA's, and REV's models; AndyMark's, which it publishes none of,
   take McMaster-Carr's and REV's of the same type.
 - Not yet tried in Onshape: the chamfers, button domes, and threads. Neither is whether Onshape's hole callouts and

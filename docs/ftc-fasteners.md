@@ -70,12 +70,10 @@ Zinc-plated steel. A hex cap screw's length is measured under the head.
 | Hex cap screw | REV-41-1124 | 20 |
 | Hex cap screw | REV-41-1715 | 25 |
 | Hex cap screw | REV-41-1125 | 35 |
-| T-slot screw | REV-41-1907 | 8 |
 
 | Part | Dimensions |
 | --- | --- |
 | Hex cap head | 5.5 across flats, 2.0 tall, a 120° chamfer on top |
-| T-slot head | The hex cap's, cut to 3.2 wide (REV's drawing; the model is 3.15) so it drops into the 15 mm extrusion's slot |
 | Nyloc nut, REV-41-1361 | 5.5 across flats, 4.0 tall: a 3.33 hex, then a 3.35 collar; nylon insert 3.35 across. REV's product page says 4.4, but its drawing and model say 4.0 |
 | Hex nut, REV-41-1126 | 5.5 across flats, 2.4 tall, from REV's drawing; it has no model |
 | Washer, REV-41-2886 | Stainless steel, $6.50 a 100. REV publishes no dimensions, model or drawing, so it's taken as a standard M3 washer (ISO 7089: 3.2 bore, 7 outside, 0.5 thick) |
@@ -207,7 +205,8 @@ released into ConfigLib's document (see docs/parts.md). Each set's studios offer
 catalog needed beside FRC's:
 
 - Metric sizes (`MetricSize`), from std's ISO hole and thread tables, and lengths in millimeters (`Millimeters`).
-- Hex heads (REV's hex caps, goBILDA's hex heads) and REV's T-slot, a hex cut down to 3.2 mm across. Low profile
+- Hex heads (REV's hex caps, goBILDA's hex heads). REV's T-slot screw (REV-41-1907) is left out: ConfigLib has none,
+  and its only hex head option, 5 mm hex on M3 (17 of 183 M3 inserts), is REV's hex cap. Low profile
   socket heads are left out: 25 of ConfigLib's 2,799 M4 inserts, a button head is lower anyway (2.2 mm to 2.8 at M4,
   on the same 2.5 mm hex), and goBILDA sells them in 10 lengths.
 - Flat heads in a 90° countersink (ISO 10642), where FRC's are 82°.
@@ -224,7 +223,7 @@ Downloaded from the vendors and measured above (goBILDA at `https://www.gobilda.
 REV at `https://www.revrobotics.com/content/cad/<SKU>.STEP`): goBILDA 2800-0003-0008, 2800-0004-0008/0040/0045/
 0050/0055/0060/0075, 2802-0004-0008/0040/0060, 2804-0004-0006/0030/0060, 2813-0004-0008, 2811-0004-0007,
 2812-0004-0007, 2803-0007-0007, 2801-0004-0008, 2801-0004-0011, 2809-0004-0007, 2810-0004-0008; REV
-REV-41-1713, 1359, 1123, 1360, 1124, 1715, 1125, 1907, and 1361.
+REV-41-1713, 1359, 1123, 1360, 1124, 1715, 1125, and 1361.
 
 From you, McMaster-Carr's 91290A119 (M3 x 14 socket head), 92095A196 (M4 x 20 button head), 92095A475 (M3 x 50
 button head), 92125A202 (M4 x 25 flat head), 90591A255 (M4 hex nut), 94645A101 (M4 nylock) and 91166A230 (M4

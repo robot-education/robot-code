@@ -47,9 +47,7 @@ export enum ScrewHead
     annotation { "Name" : "Flat head" }
     FLAT,
     annotation { "Name" : "Hex head" }
-    HEX,
-    annotation { "Name" : "T-slot" }
-    T_SLOT
+    HEX
 }
 
 export enum ScrewLength
@@ -354,8 +352,7 @@ export const SCREW_HEADS = {
                 ScrewHead.SOCKET : { "headDiameter" : 5.5 * millimeter, "headHeight" : 3 * millimeter, "socketSize" : 2.5 * millimeter },
                 ScrewHead.BUTTON : { "headDiameter" : 5.7 * millimeter, "headHeight" : 1.65 * millimeter, "socketSize" : 2 * millimeter },
                 ScrewHead.FLAT : { "headDiameter" : 6 * millimeter, "headHeight" : 1.7 * millimeter, "socketSize" : 2 * millimeter, "countersinkAngle" : 90 * degree },
-                ScrewHead.HEX : { "headDiameter" : 6.3509 * millimeter, "headHeight" : 2 * millimeter, "acrossFlats" : 5.5 * millimeter },
-                ScrewHead.T_SLOT : { "headDiameter" : 6.3509 * millimeter, "headHeight" : 1.82 * millimeter, "acrossFlats" : 5.5 * millimeter, "width" : 3.2 * millimeter }
+                ScrewHead.HEX : { "headDiameter" : 6.3509 * millimeter, "headHeight" : 2 * millimeter, "acrossFlats" : 5.5 * millimeter }
             },
             FastenerSize.M4 : {
                 ScrewHead.SOCKET : { "headDiameter" : 7 * millimeter, "headHeight" : 4 * millimeter, "socketSize" : 3 * millimeter },
@@ -975,11 +972,6 @@ export const SCREWS = {
                         ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
                         ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
                         ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
-                    }
-                },
-                ScrewHead.T_SLOT : {
-                    ScrewFinish.STAINLESS : {
-                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm T-Slot Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
                     }
                 }
             },
@@ -2156,11 +2148,6 @@ export const SCREWS = {
                         ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1124", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
                         ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1715", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
                         ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1125", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
-                    }
-                },
-                ScrewHead.T_SLOT : {
-                    ScrewFinish.ZINC_PLATED : {
-                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm T-Slot Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1907", "url" : "https://www.revrobotics.com/rev-41-1907-pk25/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
                     }
                 }
             }
