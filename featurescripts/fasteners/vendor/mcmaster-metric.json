@@ -4615,6 +4615,79 @@
   }
  },
  "washers": {
+  "M3": {
+   "dimensions": {
+    "innerDiameter": 3.2,
+    "outerDiameter": 7.0,
+    "thickness": 0.5
+   },
+   "ZINC_PLATED": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "91166A210",
+     "price": 2.97
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 50,
+     "partNumber": "91166A541",
+     "price": 4.46
+    },
+    {
+     "pack": "LARGE_IMPORTED",
+     "quantity": 4000,
+     "partNumber": "91166A200",
+     "price": 77.22
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 1000,
+     "partNumber": "91166A542",
+     "price": 57.92
+    }
+   ],
+   "BLACK": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "98269A420",
+     "price": 3.87
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98269A151",
+     "price": 7.74
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98269A152",
+     "price": 108.36
+    }
+   ],
+   "STAINLESS": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "93475A210",
+     "price": 2.89
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98689A268",
+     "price": 8.67
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98689A269",
+     "price": 124.27
+    }
+   ]
+  },
   "M4": {
    "dimensions": {
     "innerDiameter": 4.3,

@@ -148,6 +148,7 @@ rusts.
 | M4 socket head | Stainless (27 lengths), zinc plated (11), black (32) |
 | M3 button head | Stainless (20 lengths), black (10), zinc plated (9) |
 | M4 button head | Stainless (23 lengths), black (12), zinc plated (11) |
+| M3 flat washer | Stainless $0.029, zinc plated $0.030, black $0.039 (black-oxide 18-8) |
 | M4 flat washer | Zinc plated $0.031, black $0.036 (black-oxide steel), stainless $0.039 |
 | M3 flat head | Black (13 lengths), stainless (18), zinc plated (11) |
 | M4 flat head | Black (15 lengths), zinc plated (13), stainless (21) |
@@ -192,9 +193,9 @@ Its button heads are ISO 7380, an M3 5.7 across and 1.65 tall on a 2 mm hex, an 
 goBILDA's; its flat heads ISO 10642, an M3 6 across and 1.7 tall on a 2 mm hex, an M4 8 and 2.3 on a 2.5 mm hex, in
 a 90° countersink, their length including the head; its socket heads ISO 4762, with a knurled head. Measured from
 its models of 91290A119, 92095A196, 92095A475 and 92125A202, which agree with its tables; the M3 flat head's drive is
-ISO 10642's. Its washers are general purpose ones, an M4 4.3 across the bore, 9 outside and 0.9 thick (its table
-says 0.7 to 0.9), with the three finishes' supplies; a black washer is black-oxide steel, which costs less than
-black-oxide 18-8. Its M4 hex nut is 3.2 tall with a 30° chamfer each side, and its M4 nylock a 4.17 hex under a dome
+ISO 10642's. Its washers are general purpose ones, an M3 3.2 across the bore, 7 outside and ISO 7089's 0.5 thick
+(its table says 0.4 to 0.6), an M4 4.3, 9 and 0.9 (0.7 to 0.9), with the three finishes' supplies; a black washer is
+whichever black costs less, black-oxide 18-8 at M3 and black-oxide steel at M4. Its M4 hex nut is 3.2 tall with a 30° chamfer each side, and its M4 nylock a 4.17 hex under a dome
 to 5.0, on a 3.09 insert bore, measured from its models of 90591A255, 94645A101 and 91166A230; 94645A101 is the
 Class 10 nylock, which its table gives the Class 8's 7 by 5.
 
@@ -230,4 +231,3 @@ Still needed:
 | Part | Why | What would do |
 | --- | --- | --- |
 | REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
-| McMaster-Carr's M3 washers | Its pages refuse automated reads, and the washers' table came with M4 rows alone | The M3 rows of the general purpose washers' table, with each supply's price |
