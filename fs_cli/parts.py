@@ -80,10 +80,10 @@ def feature_studio(workspace: Workspace, part_set: PartSet, studios: list[Config
         raise UsageError(
             f"{', '.join(unsynced)} isn't in sync with the backend document; run `fs push` (or `fs status`) first."
         )
-    # Onshape has refused to configure a feature from a Feature Studio in this state ("Feature not found", observed)
-    updated = [studio.path for studio in scanned if studio.import_updates]
-    if updated:
-        raise UsageError(f"Onshape updated the import versions in {', '.join(updated)}; run `fs pull` first.")
+    # Onshape has refused to configure a feature from a Feature Studio whose import versions it changed since the last
+    # sync ("Feature not found", observed), until they were written locally and the studio recorded again
+    for updated in workspace.apply_import_updates(scanned):
+        print(f"Updated import versions in {updated.path} to match Onshape")
     candidates = [
         studio
         for studio in scanned

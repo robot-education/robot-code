@@ -1361,19 +1361,19 @@ def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
     assert onshape.builds == []
 
 
-def test_a_part_set_is_tried_only_once_onshapes_import_versions_are_pulled(repo, onshape, capsys):
+def test_a_part_set_takes_the_import_versions_onshape_gave_its_featurescript(repo, onshape, capsys):
     element_id = part_set(repo, onshape)
     utils = onshape.add("utils.fs", "utils", folders=("Parts",))
     onshape.edit(element_id, f'import(path : "{utils}", version : "{OLD}");\n' + PART_MAKER)
     run(onshape, "pull")
     onshape.edit(element_id, f'import(path : "{utils}", version : "{NEW}");\n' + PART_MAKER)
 
-    assert run(onshape, "parts", "parts", "--test", "-y") != 0
-    assert "Onshape updated the import versions in Parts/partMaker.fs; run `fs pull` first." in capsys.readouterr().err
-    assert onshape.builds == []
-
-    assert run(onshape, "pull") == 0
     assert run(onshape, "parts", "parts", "--test", "-y") == 0
+    assert "Updated import versions in Parts/partMaker.fs to match Onshape" in capsys.readouterr().out
+    assert local(repo, "Parts/partMaker.fs").read_text() == onshape.code("partMaker.fs")
+    onshape.calls.clear()
+    run(onshape, "status")
+    assert "pull" not in onshape.calls
 
 
 def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
