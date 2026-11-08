@@ -3,7 +3,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 RobotFrameIcon::import(path : "94bcdc0a50ec32f81a3aa449", version : "0ee450364120d3c453712009");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "2e446fc39b56fd5bff8ff054", version : "401fb9d1cb0ce9d3e4986767");
+import(path : "dd81a3971f6dacd7133eb42f", version : "2a82234fd5ed718ded9c856a");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 import(path : "ff444db0395e01aaa8c7e555", version : "10472a7480f06be298f0df62");
 // Also exports the enums used as parameter types
