@@ -1338,8 +1338,8 @@ def test_a_part_set_is_tried_in_the_backend_as_test_part_studios(repo, onshape, 
     assert onshape.versions_by_document == {}
 
 
-def test_part_sets_sharing_a_folder_each_build_their_own_definitions_studios(repo, onshape, capsys):
-    """As FRC's and FTC's fasteners share fasteners.fs, each configuring its own studios."""
+def shared_part_sets(repo: pathlib.Path, onshape: FakeOnshape) -> str:
+    """Two part sets sharing a folder and its FeatureScript, as FRC's and FTC's fasteners do."""
     element_id = part_set(repo, onshape)
     write(repo, "Parts/otherTables.py", PART_TABLES.replace('"screw"', '"bolt"').replace("CONTENTS = []\n", ""))
     pyproject = repo / "pyproject.toml"
@@ -1347,9 +1347,26 @@ def test_part_sets_sharing_a_folder_each_build_their_own_definitions_studios(rep
         pyproject.read_text().replace('folder = "Parts"\n', 'folder = "Parts"\ndefinition = "partTables.py"\n')
         + f'\n[tool.fs.parts.others]\ntitle = "Others"\nfolder = "Parts"\ndefinition = "otherTables.py"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
     )
+    return element_id
+
+
+def test_part_sets_sharing_a_folder_each_build_their_own_definitions_studios(repo, onshape, capsys):
+    """As FRC's and FTC's fasteners share fasteners.fs, each configuring its own studios."""
+    element_id = shared_part_sets(repo, onshape)
 
     assert run(onshape, "parts", "others", "--test", "-y") == 0
     assert onshape.builds == [("back", "bolt", element_id, onshape.studios()[element_id]["mv"])]
+
+
+def test_part_sets_sharing_a_featurescript_are_each_tagged_by_name(repo, onshape):
+    git_repo(repo)
+    shared_part_sets(repo, onshape)
+    commit_all(repo, "Part sets")
+
+    for each in ("parts", "others"):
+        assert run(onshape, "parts", each, "--release", "--minor", "-y", "--no-push-tags") == 0
+        commit_all(repo, f"Release {each}")
+    assert tags(repo) == ["others/v0.1.0", "parts/v0.1.0"]
 
 
 def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):

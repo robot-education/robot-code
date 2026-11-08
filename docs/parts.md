@@ -97,7 +97,8 @@ A release:
    FRCDesignApp fastens to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
    the document's version, so the records it indexes are always those of the version it loads.
 4. Records where the Part Studios are in `<definition>.studios.json` beside the definition (the main document and
-   each tab), writes the definition's `EXPORTS` again, and tags the release in git (`fasteners/v1.2.0`).
+   each tab), writes the definition's `EXPORTS` again, and tags the release in git, by the set's name
+   (`fasteners/v1.2.0`, `ftcFasteners/v1.0.0`).
 
 It leaves the main document unversioned: its owner versions it in Onshape once they've checked the Part Studios, and
 FRCDesignApp loads that version (or holds it for approval). Releases are numbered by the backend document's versions.

@@ -366,13 +366,23 @@ def release_tag(path: str, version: SemVersion) -> str:
 
 
 def tag_release(
-    workspace: Workspace, path: str, released: ReleasedVersion, contents: str, push: bool, log: Callable[[str], None] = print
+    workspace: Workspace,
+    path: str,
+    released: ReleasedVersion,
+    contents: str,
+    push: bool,
+    log: Callable[[str], None] = print,
+    tagged: str | None = None,
 ) -> str | None:
     """Tags the newest commit in which `path` (relative to the code folder) has `contents` (the released code) as the
     release, and pushes the tag to origin if `push`. Returns the tag, or None if no commit has it. Releases are tagged
-    once they're final: once their version is in the frontend document."""
+    once they're final: once their version is in the frontend document.
+
+    Args:
+        tagged: What the tag is named for, in place of `path`'s file: a part set, since sets share a FeatureScript.
+    """
     root = workspace.config.root
-    name = release_tag(path, released.version)
+    name = release_tag(tagged or path, released.version)
     if has_tag(root, name):
         return name
     commit = commit_with_contents(root, workspace.config.code_dir / path, contents)

@@ -2035,7 +2035,14 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
     print("Commit the recorded locations and exports.")
     if is_repository(workspace.config.root):
         assert plan.studio.local_code is not None
-        tag_release(workspace, plan.studio.path, plan.released, plan.studio.local_code, not args.no_push_tags)
+        tag_release(
+            workspace,
+            plan.studio.path,
+            plan.released,
+            plan.studio.local_code,
+            not args.no_push_tags,
+            tagged=part_set.name,
+        )
     return 0
 
 
