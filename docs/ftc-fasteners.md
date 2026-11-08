@@ -114,24 +114,26 @@ AndyMark sells no metric flat washer for M3 or M4.
 ## Defaults: the cheapest
 
 Where usage doesn't decide, a part defaults to its cheapest: the vendor, and so the finish, with the lowest price per
-piece in the pack sizes it sells. Prices from each vendor's store on 2026-11-08, each per piece in the largest pack
-offered, the smallest pack's in brackets. McMaster-Carr's join once its metric tables are in.
+piece in a pack of at most 250, the most a team buys at once. McMaster-Carr's 500 and 2,000 packs are left out: its
+2,000 pack of 18-8 M3 nylocks undercuts its 100 pack of zinc-plated ones by $0.0002 a nut, for $97. Prices from
+each vendor's store on 2026-11-08, per piece, the pack size in brackets.
 
-| Part | goBILDA | AndyMark | REV | Default |
-| --- | --- | --- | --- | --- |
-| M4 x 10 socket head | $0.068 (250); $0.136 (25) | $0.20 | — | goBILDA |
-| M4 x 10 button head | $0.136 (25) | — (35 mm only, $0.16) | — | goBILDA |
-| M4 nylock | $0.060 (250); $0.120 (25) | $0.13 | — | goBILDA |
-| M4 hex nut | $0.100 (25) | — | — | goBILDA |
-| M4 flat washer, 8 mm | $0.040 (250); $0.080 (25) | — | — | goBILDA |
-| M3 x 6 socket head | Not priced (6 pack) | $0.12 | — | AndyMark |
-| M3 x 6 to 35 hex cap | — | — | $0.105 to $0.18 (100) | Once REV prices each length |
-| M3 nylock | — | $0.06 | $0.06 to $0.0875 (100) | AndyMark, unless REV's nyloc is its $0.06 |
-| M3 hex nut | — | $0.04 | $0.06 to $0.0875 (100) | AndyMark |
+| Part | goBILDA | AndyMark | REV | McMaster-Carr | Default |
+| --- | --- | --- | --- | --- | --- |
+| M4 x 10 socket head | $0.068 (250) | $0.20 (1) | — | Not in yet | goBILDA, for now |
+| M4 x 10 button head | $0.136 (25) | — (35 mm only, $0.16) | — | Not in yet | goBILDA, for now |
+| M4 nylock | $0.060 (250) | $0.13 (1) | — | $0.049 (100), zinc plated | McMaster-Carr 90576A103 |
+| M4 hex nut | $0.100 (25) | — | — | Not in yet | goBILDA, for now |
+| M4 flat washer, 8 mm | $0.040 (250) | — | — | Not in yet | goBILDA, for now |
+| M3 x 6 socket head | Not priced (6) | $0.12 (1) | — | Not in yet | AndyMark, for now |
+| M3 x 6 to 35 hex cap | — | — | $0.105 to $0.18 (100) | — | Once REV prices each length |
+| M3 nylock | — | $0.06 (1) | $0.06 to $0.0875 (100) | $0.049 (100), zinc plated | McMaster-Carr 90576A102 |
+| M3 hex nut | — | $0.04 (1) | $0.06 to $0.0875 (100) | Not in yet | AndyMark, for now |
 
-goBILDA prices a screw by length, and a 250 pack halves its price per piece. REV quotes one price range per product,
-not per length, so its per-length prices have to be read off the product page's options. ConfigLib's default
-material, 18-8 stainless, isn't the cheapest anywhere these sell M4, so the default finish is goBILDA's zinc plating.
+goBILDA prices a screw by length, and its 250 pack halves its price per piece. REV quotes one price range per
+product, not per length, so its per-length prices have to be read off the product page's options. ConfigLib's
+default material, 18-8 stainless, isn't the cheapest for any part priced so far, so the default finish is zinc
+plating.
 
 ## McMaster-Carr
 
@@ -147,8 +149,27 @@ piece. The series to take them from, with the few numbers search results confirm
 | Button head, 18-8 stainless | 92095A | M3 x 6 92095A179 |
 | Low profile socket head, 18-8 stainless | 92855A | — |
 | Flat head, 18-8 stainless | 92125A | — |
-| Nylon-insert locknut, 18-8 stainless | 93625A | — |
+| Nylon-insert locknut, 18-8 stainless | 93625A | Below |
 | Flat washer, 18-8 stainless | 93475A | — |
+
+Nylon-insert locknuts, from its tables. An M4 is 7 wide and 5 tall, an M3 5.5 wide and 4 tall, every finish alike.
+Prices are a pack's, its size in brackets.
+
+| Size | Finish | Strength | Small pack | Large pack |
+| --- | --- | --- | --- | --- |
+| M4 x 0.7 | Zinc plated | Class 10 | 94645A101, $13.25 (100) | 94645A208, $185.50 (2,000) |
+| M4 x 0.7 | Black corrosion-resistant coated | Class 10 | 90237A110, $10.97 (5) | — |
+| M4 x 0.7 | Zinc-yellow chromate plated | Class 8 | 90576A812, $10.91 (100) | — |
+| M4 x 0.7 | Zinc plated | Class 8 | 90576A103, $4.92 (100) | — |
+| M4 x 0.7 | Black corrosion-resistant coated | Class 8 | 90819A111, $11.00 (5) | — |
+| M4 x 0.7 | Zinc plated | Class 6 | 90631A112, $5.03 (100) | — |
+| M3 x 0.5 | Zinc-yellow chromate plated | Class 8 | 90576A811, $10.70 (100) | 90576A111, $149.80 (2,000) |
+| M3 x 0.5 | Zinc plated | Class 8 | 90576A102, $4.88 (100) | — |
+| M3 x 0.5 | 18-8 stainless | — | 93625A100, $6.94 (100) | 93625A121, $97.16 (2,000) |
+| M3 x 0.5 | Black-oxide 18-8 stainless | — | 93625A223, $5.40 (10) | 93625A129, $189.00 (500) |
+| M3 x 0.5 | 316 stainless | — | 94205A220, $7.12 (50) | — |
+
+McMaster-Carr's M4 nylock is 5 mm tall to goBILDA's 4.85, and its M3 4 mm, as REV's is.
 
 ## What the features need
 
@@ -176,6 +197,6 @@ Still needed:
 | REV M3 washer, REV-41-2886 | Nothing published | A STEP, or calipers: inner diameter, outer diameter, thickness |
 | goBILDA split lock washer, 2809-0004-0007 | Its model is freeform, so it gives only the outside | Its section's width and thickness, if lock washers are offered |
 | REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
-| McMaster-Carr's M3 and M4 parts | Its pages refuse automated reads | Each series' metric table (System of Measurement: Metric, then Thread Size M3 x 0.5 and M4 x 0.7), every length and supply with its price, and a STEP of one length per head, nut, and washer, from the part's CAD tab |
+| McMaster-Carr's M3 and M4 parts, nylocks aside | Its pages refuse automated reads | Each series' metric table (System of Measurement: Metric, then Thread Size M3 x 0.5 and M4 x 0.7), every length and supply with its price, and a STEP of one length per head, nut, and washer, from the part's CAD tab |
 | REV's price per length | REV quotes one range per product | Each option's price on the hex cap screw and M3 nut pages |
 | AndyMark M4 lock washer, am-1548 | Its outer diameter isn't stated | Calipers on one, or a STEP (optional) |
