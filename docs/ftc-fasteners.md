@@ -122,8 +122,7 @@ screws and nuts cost less a piece, smallest pack to smallest pack.
 | M4 x 10 socket head | $0.103 (100) | $0.136 (25), $0.068 (250) |
 | M4 nylock | $0.049 (100) | $0.120 (25), $0.060 (250) |
 | M4 hex nut | $0.034 (100) | $0.100 (25) |
-
-Washers are compared once McMaster-Carr's are in.
+| M4 flat washer | $0.031 (100) | $0.080 (25), $0.040 (250) |
 
 Generic is a screw in every size, head and length any vendor sells, and a washer in each size, each in one finish,
 as the FRC fasteners have them; there's no generic nut, as there isn't for FRC.
@@ -147,6 +146,7 @@ rusts.
 | M4 socket head | Stainless (27 lengths), zinc plated (11), black (32) |
 | M3 button head | Stainless (20 lengths), black (10), zinc plated (9) |
 | M4 button head | Stainless (23 lengths), black (12), zinc plated (11) |
+| M4 flat washer | Zinc plated $0.031, black $0.036 (black-oxide steel), stainless $0.039 |
 | M3 flat head | Black (13 lengths), stainless (18), zinc plated (11) |
 | M4 flat head | Black (15 lengths), zinc plated (13), stainless (21) |
 
@@ -190,7 +190,11 @@ Its button heads are ISO 7380, an M3 5.7 across and 1.65 tall on a 2 mm hex, an 
 goBILDA's; its flat heads ISO 10642, an M3 6 across and 1.7 tall on a 2 mm hex, an M4 8 and 2.3 on a 2.5 mm hex, in
 a 90° countersink, their length including the head; its socket heads ISO 4762, with a knurled head. Measured from
 its models of 91290A119, 92095A196, 92095A475 and 92125A202, which agree with its tables; the M3 flat head's drive is
-ISO 10642's.
+ISO 10642's. Its washers are general purpose ones, an M4 4.3 across the bore, 9 outside and 0.9 thick (its table
+says 0.7 to 0.9), with the three finishes' supplies; a black washer is black-oxide steel, which costs less than
+black-oxide 18-8. Its M4 hex nut is 3.2 tall with a 30° chamfer each side, and its M4 nylock a 4.17 hex under a dome
+to 5.0, on a 3.09 insert bore, measured from its models of 90591A255, 94645A101 and 91166A230; 94645A101 is the
+Class 10 nylock, which its table gives the Class 8's 7 by 5.
 
 ## What the features need
 
@@ -217,7 +221,8 @@ REV at `https://www.revrobotics.com/content/cad/<SKU>.STEP`): goBILDA 2800-0003-
 REV-41-1713, 1359, 1123, 1360, 1124, 1715, 1125, 1907, and 1361.
 
 From you, McMaster-Carr's 91290A119 (M3 x 14 socket head), 92095A196 (M4 x 20 button head), 92095A475 (M3 x 50
-button head) and 92125A202 (M4 x 25 flat head).
+button head), 92125A202 (M4 x 25 flat head), 90591A255 (M4 hex nut), 94645A101 (M4 nylock) and 91166A230 (M4
+washer).
 
 Still needed:
 
@@ -226,6 +231,6 @@ Still needed:
 | REV M3 washer, REV-41-2886 | Nothing published | A STEP, or calipers: inner diameter, outer diameter, thickness |
 | goBILDA split lock washer, 2809-0004-0007 | Its model is freeform, so it gives only the outside | Its section's width and thickness, if lock washers are offered |
 | REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
-| McMaster-Carr's M3 and M4 washers, and its nuts' models | Its pages refuse automated reads | The flat washers' metric table, every size and supply with its price, and a STEP of a nylock, a hex nut and a washer, from each part's CAD tab |
+| McMaster-Carr's M3 washers | Its pages refuse automated reads, and the washers' table came with M4 rows alone | The M3 rows of the general purpose washers' table, with each supply's price |
 | REV's price per length | REV quotes one range per product | Each option's price on the hex cap screw and M3 nut pages |
 | AndyMark M4 lock washer, am-1548 | Its outer diameter isn't stated | Calipers on one, or a STEP (optional) |

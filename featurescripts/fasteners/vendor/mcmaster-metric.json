@@ -4485,7 +4485,9 @@
    "M4": {
     "dimensions": {
      "acrossFlats": 7,
-     "height": 5
+     "height": 5,
+     "hexHeight": 4.17,
+     "insertDiameter": 3.09
     },
     "ZINC_PLATED": [
      {
@@ -4610,6 +4612,87 @@
      }
     ]
    }
+  }
+ },
+ "washers": {
+  "M4": {
+   "dimensions": {
+    "innerDiameter": 4.3,
+    "outerDiameter": 9.0,
+    "thickness": 0.9
+   },
+   "ZINC_PLATED": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "91166A230",
+     "price": 3.13
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 50,
+     "partNumber": "91166A543",
+     "price": 4.7
+    },
+    {
+     "pack": "LARGE_IMPORTED",
+     "quantity": 4000,
+     "partNumber": "91166A350",
+     "price": 78.25
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 1000,
+     "partNumber": "91166A544",
+     "price": 56.34
+    }
+   ],
+   "BLACK": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "98687A141",
+     "price": 3.64
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98687A308",
+     "price": 10.92
+    },
+    {
+     "pack": "LARGE_IMPORTED",
+     "quantity": 2000,
+     "partNumber": "98687A142",
+     "price": 50.96
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98687A156",
+     "price": 152.88
+    }
+   ],
+   "STAINLESS": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "93475A230",
+     "price": 3.93
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98689A273",
+     "price": 10.61
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98689A274",
+     "price": 149.34
+    }
+   ]
   }
  }
 }
