@@ -94,8 +94,9 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
         {
             addHexHead(context, id + "head", qCreatedBy(id + "revolve", EntityType.BODY), head);
         }
-        // One solid, however it was made
-        const screw = qBodyType(qCreatedBy(id, EntityType.BODY), BodyType.SOLID);
+        // The revolve, or for a hex head the one solid it and the head were joined into; not the socket's cutter
+        const screw = qBodyType(qUnion([qCreatedBy(id + "revolve", EntityType.BODY), qCreatedBy(id + "head", EntityType.BODY)]),
+            BodyType.SOLID);
 
         // 2. Cut its hex socket down from the top of its head; a hex head has none
         if (!isHex)
