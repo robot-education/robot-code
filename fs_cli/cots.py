@@ -23,7 +23,7 @@ from typing import Any
 import requests
 
 API = "https://app.frcdesign.org/api"
-LIBRARIES = {"frc": "frc-design-lib", "ftc": "ftc-design-lib", "mkcad": "mkcad"}
+LIBRARIES = {"frc": "frc-design-lib", "config": "config-lib", "mkcad": "mkcad"}
 
 
 class CotsError(Exception):
@@ -64,7 +64,7 @@ class FrcDesign:
         """Every part in the library, most used first."""
         data = self.get(f"/library-data/library/{self.library}", v=self.version)
         uses = {
-            entry["path"]["elementId"]: entry["insertCount"]
+            entry["path"]["elementId"]: entry["useCount"]
             for entry in self.get(f"/analytics/parts/library/{self.library}", **self.period)
         }
         groups = {group_id: group["name"] for group_id, group in data["groups"].items()}

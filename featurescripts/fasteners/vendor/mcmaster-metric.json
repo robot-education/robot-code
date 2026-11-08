@@ -1,0 +1,4771 @@
+{
+ "source": "McMaster-Carr's metric tables, transcribed from its pages on 2026-11-08; prices are a pack's, in US dollars",
+ "screws": {
+  "SOCKET": {
+   "M3": {
+    "head": {
+     "diameter": 5.5,
+     "height": 3,
+     "drive": 2.5
+    },
+    "ZINC_PLATED": {
+     "material": "Zinc-plated alloy steel, class 12.9",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A187",
+         "price": 9.13
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A646",
+         "price": 127.82
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "95263A134",
+         "price": 8.55
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "90128A359",
+         "price": 119.7
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "95263A146",
+         "price": 8.93
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "90128A366",
+         "price": 125.02
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "90128A331",
+         "price": 14.62
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "95263A158",
+         "price": 5.31
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "90128A368",
+         "price": 74.34
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A204",
+         "price": 12.29
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A648",
+         "price": 172.06
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A205",
+         "price": 17.03
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A649",
+         "price": 238.42
+        }
+       ]
+      }
+     ]
+    },
+    "BLACK": {
+     "material": "Black-oxide alloy steel, class 12.9",
+     "lengths": [
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A109",
+         "price": 13.8
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A110",
+         "price": 11.91
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A111",
+         "price": 11.59
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A400",
+         "price": 6.48
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A113",
+         "price": 13.28
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "91290A700",
+         "price": 90.72
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A115",
+         "price": 13.23
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A500",
+         "price": 5.87
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A117",
+         "price": 12.03
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "91290A701",
+         "price": 82.18
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A600",
+         "price": 7.5
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A119",
+         "price": 15.37
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "91290A702",
+         "price": 105.0
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91290A572",
+         "price": 9.5
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A120",
+         "price": 12.22
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A121",
+         "price": 15.26
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A123",
+         "price": 14.47
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A124",
+         "price": 13.29
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A125",
+         "price": 17.78
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "91290A171",
+         "price": 5.74
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A130",
+         "price": 14.01
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A135",
+         "price": 13.74
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 25,
+         "partNumber": "91290A136",
+         "price": 4.86
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91290A079",
+         "price": 3.96
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91290A703",
+         "price": 55.44
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 25,
+         "partNumber": "91290A137",
+         "price": 6.69
+        }
+       ]
+      },
+      {
+       "length": 55,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 1,
+         "partNumber": "91290A573",
+         "price": 3.3
+        }
+       ]
+      },
+      {
+       "length": 60,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91290A181",
+         "price": 11.28
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91290A704",
+         "price": 157.92
+        }
+       ]
+      },
+      {
+       "length": 70,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 1,
+         "partNumber": "91290A297",
+         "price": 4.64
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91290A705",
+         "price": 162.4
+        }
+       ]
+      }
+     ]
+    },
+    "STAINLESS": {
+     "material": "18-8 stainless steel",
+     "lengths": [
+      {
+       "length": 3,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "90751A173",
+         "price": 6.31
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 25,
+         "partNumber": "91292A021",
+         "price": 6.63
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "90751A205",
+         "price": 88.34
+        }
+       ]
+      },
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A109",
+         "price": 4.2
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "90751A206",
+         "price": 58.8
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A110",
+         "price": 7.11
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A207",
+         "price": 99.54
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A111",
+         "price": 11.58
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A208",
+         "price": 162.12
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A112",
+         "price": 6.46
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A209",
+         "price": 90.44
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A113",
+         "price": 7.11
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A211",
+         "price": 99.54
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A114",
+         "price": 7.11
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A212",
+         "price": 99.54
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A027",
+         "price": 9.04
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A213",
+         "price": 126.56
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 5,
+         "partNumber": "91292A346",
+         "price": 15.04
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A115",
+         "price": 8.44
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A214",
+         "price": 118.16
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A029",
+         "price": 9.04
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A215",
+         "price": 126.56
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A123",
+         "price": 9.69
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A216",
+         "price": 135.66
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A801",
+         "price": 6.46
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91292A057",
+         "price": 90.44
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A020",
+         "price": 10.34
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "91292A059",
+         "price": 144.76
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A022",
+         "price": 6.14
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91292A061",
+         "price": 85.96
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A033",
+         "price": 5.39
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A062",
+         "price": 75.46
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A024",
+         "price": 4.68
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A063",
+         "price": 65.52
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A025",
+         "price": 14.25
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91292A064",
+         "price": 185.25
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A026",
+         "price": 5.65
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A065",
+         "price": 79.1
+        }
+       ]
+      },
+      {
+       "length": 55,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A314",
+         "price": 10.1
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A066",
+         "price": 141.4
+        }
+       ]
+      },
+      {
+       "length": 60,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A267",
+         "price": 19.01
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91292A067",
+         "price": 247.13
+        }
+       ]
+      },
+      {
+       "length": 65,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A315",
+         "price": 14.62
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A068",
+         "price": 204.68
+        }
+       ]
+      },
+      {
+       "length": 70,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A316",
+         "price": 15.56
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A069",
+         "price": 217.84
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "M4": {
+    "head": {
+     "diameter": 7,
+     "height": 4,
+     "drive": 3
+    },
+    "ZINC_PLATED": {
+     "material": "Zinc-plated alloy steel, class 12.9",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A207",
+         "price": 11.15
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A651",
+         "price": 156.1
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A208",
+         "price": 11.33
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A653",
+         "price": 158.62
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A211",
+         "price": 11.24
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A654",
+         "price": 157.36
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A212",
+         "price": 10.31
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A655",
+         "price": 144.34
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A214",
+         "price": 10.36
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A656",
+         "price": 145.04
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "90128A332",
+         "price": 10.38
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A215",
+         "price": 10.85
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A658",
+         "price": 151.9
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A216",
+         "price": 12.21
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A659",
+         "price": 170.94
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "90128A333",
+         "price": 11.11
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A217",
+         "price": 14.0
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90128A661",
+         "price": 196.0
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "90128A219",
+         "price": 15.35
+        }
+       ]
+      }
+     ]
+    },
+    "BLACK": {
+     "material": "Black-oxide alloy steel, class 12.9",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A138",
+         "price": 19.63
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A139",
+         "price": 11.71
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A140",
+         "price": 13.24
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A144",
+         "price": 13.55
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A148",
+         "price": 12.3
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A150",
+         "price": 14.23
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 5,
+         "partNumber": "91290A306",
+         "price": 12.6
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A154",
+         "price": 13.72
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A164",
+         "price": 16.36
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 100,
+         "partNumber": "91290A168",
+         "price": 14.47
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91290A631",
+         "price": 4.27
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A170",
+         "price": 15.37
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91290A707",
+         "price": 59.78
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A637",
+         "price": 9.64
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A176",
+         "price": 10.6
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 5,
+         "partNumber": "91290A172",
+         "price": 2.97
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A708",
+         "price": 41.58
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A639",
+         "price": 10.0
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A180",
+         "price": 10.5
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "91290A709",
+         "price": 140.0
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 5,
+         "partNumber": "91290A173",
+         "price": 3.1
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91290A641",
+         "price": 5.94
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A182",
+         "price": 12.18
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91290A713",
+         "price": 83.16
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 5,
+         "partNumber": "91290A174",
+         "price": 2.4
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A715",
+         "price": 33.6
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A184",
+         "price": 12.69
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 1,
+         "partNumber": "91290A175",
+         "price": 2.14
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91290A716",
+         "price": 149.8
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A145",
+         "price": 15.22
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 1,
+         "partNumber": "91290A193",
+         "price": 2.14
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 50,
+         "partNumber": "91290A186",
+         "price": 15.85
+        }
+       ]
+      },
+      {
+       "length": 55,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91290A645",
+         "price": 10.61
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 25,
+         "partNumber": "91290A187",
+         "price": 11.67
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91290A717",
+         "price": 77.7
+        }
+       ]
+      },
+      {
+       "length": 60,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91290A647",
+         "price": 5.55
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 25,
+         "partNumber": "91290A188",
+         "price": 14.99
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91290A718",
+         "price": 143.64
+        }
+       ]
+      },
+      {
+       "length": 65,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91290A083",
+         "price": 10.26
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91290A719",
+         "price": 174.3
+        }
+       ]
+      },
+      {
+       "length": 70,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91290A651",
+         "price": 12.45
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 10,
+         "partNumber": "91290A190",
+         "price": 9.96
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91290A721",
+         "price": 163.38
+        }
+       ]
+      },
+      {
+       "length": 75,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91290A085",
+         "price": 11.67
+        }
+       ]
+      },
+      {
+       "length": 80,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91290A653",
+         "price": 11.64
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 10,
+         "partNumber": "91290A192",
+         "price": 9.31
+        }
+       ]
+      },
+      {
+       "length": 85,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "91290A574",
+         "price": 17.96
+        }
+       ]
+      },
+      {
+       "length": 90,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "91290A183",
+         "price": 9.54
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 200,
+         "partNumber": "91290A723",
+         "price": 133.56
+        }
+       ]
+      },
+      {
+       "length": 100,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "91290A185",
+         "price": 11.23
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 200,
+         "partNumber": "91290A724",
+         "price": 157.22
+        }
+       ]
+      },
+      {
+       "length": 110,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 1,
+         "partNumber": "91290A575",
+         "price": 8.0
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91290A728",
+         "price": 280.0
+        }
+       ]
+      }
+     ]
+    },
+    "STAINLESS": {
+     "material": "18-8 stainless steel",
+     "lengths": [
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_US",
+         "quantity": 10,
+         "partNumber": "91292A023",
+         "price": 2.98
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A105",
+         "price": 9.69
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A217",
+         "price": 135.66
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A107",
+         "price": 9.09
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A218",
+         "price": 127.26
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A108",
+         "price": 9.69
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A219",
+         "price": 135.66
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A116",
+         "price": 10.34
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A221",
+         "price": 144.76
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A117",
+         "price": 10.39
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A222",
+         "price": 145.46
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A038",
+         "price": 13.57
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A223",
+         "price": 189.98
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 5,
+         "partNumber": "90751A177",
+         "price": 4.46
+        },
+        {
+         "pack": "SMALL_US",
+         "quantity": 5,
+         "partNumber": "91292A354",
+         "price": 22.3
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 200,
+         "partNumber": "90751A224",
+         "price": 124.88
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A118",
+         "price": 11.63
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A225",
+         "price": 162.82
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A043",
+         "price": 14.21
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A226",
+         "price": 198.94
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A121",
+         "price": 12.98
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A227",
+         "price": 181.72
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A806",
+         "price": 8.57
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "90751A228",
+         "price": 119.98
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A122",
+         "price": 14.28
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "90751A229",
+         "price": 199.92
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91292A130",
+         "price": 16.15
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "91292A071",
+         "price": 226.1
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A131",
+         "price": 10.66
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91292A072",
+         "price": 149.24
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A132",
+         "price": 10.0
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91292A074",
+         "price": 140.0
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91292A133",
+         "price": 13.14
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "91292A075",
+         "price": 183.96
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A140",
+         "price": 8.56
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A076",
+         "price": 119.84
+        }
+       ]
+      },
+      {
+       "length": 55,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A268",
+         "price": 11.46
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A077",
+         "price": 160.44
+        }
+       ]
+      },
+      {
+       "length": 60,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A048",
+         "price": 9.85
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A078",
+         "price": 137.9
+        }
+       ]
+      },
+      {
+       "length": 65,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A317",
+         "price": 13.03
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A079",
+         "price": 182.42
+        }
+       ]
+      },
+      {
+       "length": 70,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A269",
+         "price": 14.64
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A081",
+         "price": 204.96
+        }
+       ]
+      },
+      {
+       "length": 75,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A318",
+         "price": 15.41
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "91292A083",
+         "price": 215.74
+        }
+       ]
+      },
+      {
+       "length": 80,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A271",
+         "price": 19.14
+        }
+       ]
+      },
+      {
+       "length": 85,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A838",
+         "price": 12.32
+        }
+       ]
+      },
+      {
+       "length": 90,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91292A319",
+         "price": 20.87
+        }
+       ]
+      },
+      {
+       "length": 100,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 1,
+         "partNumber": "91292A039",
+         "price": 6.4
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "BUTTON": {
+   "M3": {
+    "head": {
+     "diameter": 5.7,
+     "height": 1.65,
+     "drive": 2
+    },
+    "ZINC_PLATED": {
+     "material": "Zinc-plated alloy steel",
+     "lengths": [
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91306A721",
+         "price": 9.64
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A655",
+         "price": 11.72
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A656",
+         "price": 10.97
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A657",
+         "price": 10.0
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A722",
+         "price": 15.35
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A658",
+         "price": 14.4
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91306A723",
+         "price": 11.29
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91306A724",
+         "price": 13.87
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91306A725",
+         "price": 8.58
+        }
+       ]
+      }
+     ]
+    },
+    "BLACK": {
+     "material": "Black-oxide alloy steel",
+     "lengths": [
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91239A109",
+         "price": 7.0
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91239A110",
+         "price": 16.01
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A117",
+         "price": 12.26
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A118",
+         "price": 18.39
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91239A811",
+         "price": 6.3
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A120",
+         "price": 14.07
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91239A121",
+         "price": 9.12
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91239A126",
+         "price": 10.34
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91239A127",
+         "price": 17.29
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "91239A128",
+         "price": 11.16
+        }
+       ]
+      }
+     ]
+    },
+    "STAINLESS": {
+     "material": "18-8 stainless steel",
+     "lengths": [
+      {
+       "length": 3,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A287",
+         "price": 12.48
+        }
+       ]
+      },
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A471",
+         "price": 5.5
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A177",
+         "price": 8.06
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A179",
+         "price": 6.98
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A181",
+         "price": 8.8
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A182",
+         "price": 8.64
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A183",
+         "price": 8.17
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A168",
+         "price": 8.61
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A119",
+         "price": 6.59
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A184",
+         "price": 11.15
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A472",
+         "price": 9.13
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A185",
+         "price": 5.83
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A473",
+         "price": 6.22
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A186",
+         "price": 6.98
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A187",
+         "price": 9.43
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A201",
+         "price": 4.83
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A203",
+         "price": 5.81
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A474",
+         "price": 4.08
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A475",
+         "price": 5.25
+        }
+       ]
+      },
+      {
+       "length": 55,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A120",
+         "price": 9.74
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "M4": {
+    "head": {
+     "diameter": 7.6,
+     "height": 2.2,
+     "drive": 2.5
+    },
+    "ZINC_PLATED": {
+     "material": "Zinc-plated alloy steel",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91306A726",
+         "price": 8.72
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A659",
+         "price": 10.73
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A660",
+         "price": 13.08
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91306A727",
+         "price": 8.88
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A661",
+         "price": 14.26
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91306A728",
+         "price": 9.82
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A662",
+         "price": 14.79
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91306A663",
+         "price": 18.26
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91306A729",
+         "price": 10.25
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91306A731",
+         "price": 13.18
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91306A732",
+         "price": 13.43
+        }
+       ]
+      }
+     ]
+    },
+    "BLACK": {
+     "material": "Black-oxide alloy steel",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91239A136",
+         "price": 4.81
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A140",
+         "price": 14.07
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A144",
+         "price": 14.07
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A148",
+         "price": 14.19
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A149",
+         "price": 19.07
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A150",
+         "price": 14.3
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A151",
+         "price": 17.24
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A152",
+         "price": 15.67
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A154",
+         "price": 19.25
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91239A156",
+         "price": 19.07
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91239A158",
+         "price": 18.39
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91239A160",
+         "price": 12.43
+        }
+       ]
+      }
+     ]
+    },
+    "STAINLESS": {
+     "material": "18-8 stainless steel",
+     "lengths": [
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A476",
+         "price": 11.55
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A477",
+         "price": 8.64
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A188",
+         "price": 13.2
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A189",
+         "price": 11.11
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A190",
+         "price": 9.44
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A192",
+         "price": 14.77
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A193",
+         "price": 11.77
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A125",
+         "price": 9.2
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A194",
+         "price": 15.5
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92095A478",
+         "price": 13.9
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A196",
+         "price": 9.47
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A479",
+         "price": 7.28
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A197",
+         "price": 10.91
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A198",
+         "price": 14.64
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A199",
+         "price": 8.39
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A200",
+         "price": 10.13
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92095A205",
+         "price": 8.91
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "92095A209",
+         "price": 6.85
+        }
+       ]
+      },
+      {
+       "length": 55,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "92095A330",
+         "price": 7.84
+        }
+       ]
+      },
+      {
+       "length": 60,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "92095A480",
+         "price": 3.39
+        }
+       ]
+      },
+      {
+       "length": 65,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A126",
+         "price": 14.49
+        }
+       ]
+      },
+      {
+       "length": 70,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A172",
+         "price": 18.54
+        }
+       ]
+      },
+      {
+       "length": 80,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92095A173",
+         "price": 15.62
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "FLAT": {
+   "M3": {
+    "head": {
+     "diameter": 6,
+     "height": 1.7,
+     "drive": 2,
+     "countersinkAngle": 90
+    },
+    "ZINC_PLATED": {
+     "material": "Zinc-plated alloy steel",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A821",
+         "price": 9.26
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A822",
+         "price": 9.57
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A823",
+         "price": 9.69
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A824",
+         "price": 9.92
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A825",
+         "price": 11.77
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A863",
+         "price": 13.79
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A864",
+         "price": 14.97
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A865",
+         "price": 15.88
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A866",
+         "price": 16.26
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91263A867",
+         "price": 11.12
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91263A868",
+         "price": 12.43
+        }
+       ]
+      }
+     ]
+    },
+    "BLACK": {
+     "material": "Black-oxide alloy steel",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A125",
+         "price": 5.57
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A126",
+         "price": 5.45
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A128",
+         "price": 5.82
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A130",
+         "price": 6.36
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A132",
+         "price": 7.34
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A133",
+         "price": 8.27
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A134",
+         "price": 10.84
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A135",
+         "price": 14.47
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A136",
+         "price": 11.03
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91294A137",
+         "price": 8.44
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91294A138",
+         "price": 9.32
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91294A141",
+         "price": 10.94
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91294A536",
+         "price": 6.78
+        }
+       ]
+      }
+     ]
+    },
+    "STAINLESS": {
+     "material": "18-8 stainless steel",
+     "lengths": [
+      {
+       "length": 4,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A127",
+         "price": 8.0
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "92125A851",
+         "price": 112.0
+        }
+       ]
+      },
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A125",
+         "price": 4.92
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A126",
+         "price": 7.46
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A652",
+         "price": 104.44
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A128",
+         "price": 7.08
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A701",
+         "price": 99.12
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A130",
+         "price": 8.77
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A702",
+         "price": 122.78
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A132",
+         "price": 7.42
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A703",
+         "price": 103.88
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A133",
+         "price": 10.65
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A704",
+         "price": 149.1
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A103",
+         "price": 7.64
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A134",
+         "price": 10.9
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A705",
+         "price": 152.6
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A135",
+         "price": 9.35
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A706",
+         "price": 130.9
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A136",
+         "price": 14.01
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A707",
+         "price": 196.14
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A371",
+         "price": 15.6
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "92125A708",
+         "price": 218.4
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A138",
+         "price": 12.54
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A709",
+         "price": 175.56
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92125A140",
+         "price": 7.52
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "92125A711",
+         "price": 105.28
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A141",
+         "price": 6.96
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92125A150",
+         "price": 5.39
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 5000,
+         "partNumber": "92125A734",
+         "price": 539.0
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92125A372",
+         "price": 16.1
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 500,
+         "partNumber": "92125A712",
+         "price": 225.4
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92125A151",
+         "price": 7.92
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "M4": {
+    "head": {
+     "diameter": 8,
+     "height": 2.3,
+     "drive": 2.5,
+     "countersinkAngle": 90
+    },
+    "ZINC_PLATED": {
+     "material": "Zinc-plated alloy steel",
+     "lengths": [
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A826",
+         "price": 8.68
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A827",
+         "price": 7.79
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A828",
+         "price": 8.31
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A829",
+         "price": 8.56
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A830",
+         "price": 9.38
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91263A869",
+         "price": 14.75
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A871",
+         "price": 12.84
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91263A872",
+         "price": 15.61
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91263A873",
+         "price": 9.57
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91263A874",
+         "price": 13.81
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91263A875",
+         "price": 13.93
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "91263A876",
+         "price": 7.67
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "91263A877",
+         "price": 13.01
+        }
+       ]
+      }
+     ]
+    },
+    "BLACK": {
+     "material": "Black-oxide alloy steel",
+     "lengths": [
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A186",
+         "price": 6.12
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A188",
+         "price": 6.25
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A190",
+         "price": 6.38
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A192",
+         "price": 6.38
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A193",
+         "price": 7.27
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A194",
+         "price": 7.57
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A195",
+         "price": 8.24
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A196",
+         "price": 8.93
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91294A197",
+         "price": 13.52
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A198",
+         "price": 10.91
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "91294A200",
+         "price": 17.91
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91294A202",
+         "price": 11.59
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91294A204",
+         "price": 12.85
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "91294A484",
+         "price": 16.75
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "91294A537",
+         "price": 9.54
+        }
+       ]
+      }
+     ]
+    },
+    "STAINLESS": {
+     "material": "18-8 stainless steel",
+     "lengths": [
+      {
+       "length": 5,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A185",
+         "price": 10.77
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 1000,
+         "partNumber": "92125A714",
+         "price": 150.78
+        }
+       ]
+      },
+      {
+       "length": 6,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A186",
+         "price": 11.04
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A715",
+         "price": 154.56
+        }
+       ]
+      },
+      {
+       "length": 8,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A188",
+         "price": 9.27
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A716",
+         "price": 129.78
+        }
+       ]
+      },
+      {
+       "length": 10,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A190",
+         "price": 10.46
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A717",
+         "price": 146.44
+        }
+       ]
+      },
+      {
+       "length": 12,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A192",
+         "price": 12.77
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A718",
+         "price": 178.78
+        }
+       ]
+      },
+      {
+       "length": 14,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A193",
+         "price": 13.81
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A719",
+         "price": 193.34
+        }
+       ]
+      },
+      {
+       "length": 15,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A104",
+         "price": 11.07
+        }
+       ]
+      },
+      {
+       "length": 16,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A194",
+         "price": 14.01
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A721",
+         "price": 196.14
+        }
+       ]
+      },
+      {
+       "length": 18,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A196",
+         "price": 14.92
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A722",
+         "price": 208.88
+        }
+       ]
+      },
+      {
+       "length": 20,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A198",
+         "price": 14.53
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A723",
+         "price": 203.42
+        }
+       ]
+      },
+      {
+       "length": 22,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A201",
+         "price": 14.46
+        }
+       ]
+      },
+      {
+       "length": 25,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A202",
+         "price": 19.12
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2000,
+         "partNumber": "92125A724",
+         "price": 267.68
+        }
+       ]
+      },
+      {
+       "length": 30,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 100,
+         "partNumber": "92125A203",
+         "price": 26.04
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 4500,
+         "partNumber": "92125A735",
+         "price": 585.9
+        }
+       ]
+      },
+      {
+       "length": 35,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A204",
+         "price": 17.33
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 3500,
+         "partNumber": "92125A736",
+         "price": 606.55
+        }
+       ]
+      },
+      {
+       "length": 40,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A205",
+         "price": 18.04
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 3000,
+         "partNumber": "92125A737",
+         "price": 541.2
+        }
+       ]
+      },
+      {
+       "length": 45,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92125A207",
+         "price": 11.11
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 3000,
+         "partNumber": "92125A738",
+         "price": 666.6
+        }
+       ]
+      },
+      {
+       "length": 50,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92125A209",
+         "price": 10.14
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 2500,
+         "partNumber": "92125A739",
+         "price": 507.0
+        }
+       ]
+      },
+      {
+       "length": 55,
+       "threading": "PARTIAL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 10,
+         "partNumber": "92125A373",
+         "price": 11.95
+        },
+        {
+         "pack": "LARGE_IMPORTED",
+         "quantity": 200,
+         "partNumber": "92125A725",
+         "price": 167.3
+        }
+       ]
+      },
+      {
+       "length": 60,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 25,
+         "partNumber": "92125A221",
+         "price": 9.71
+        }
+       ]
+      },
+      {
+       "length": 65,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A105",
+         "price": 14.13
+        }
+       ]
+      },
+      {
+       "length": 70,
+       "threading": "FULL",
+       "supplies": [
+        {
+         "pack": "SMALL_IMPORTED",
+         "quantity": 50,
+         "partNumber": "92125A106",
+         "price": 19.09
+        }
+       ]
+      }
+     ]
+    }
+   }
+  }
+ },
+ "nuts": {
+  "NYLOCK": {
+   "M3": {
+    "dimensions": {
+     "acrossFlats": 5.5,
+     "height": 4
+    },
+    "ZINC_PLATED": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "90576A102",
+      "price": 4.88
+     }
+    ],
+    "STAINLESS": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "93625A100",
+      "price": 6.94
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 2000,
+      "partNumber": "93625A121",
+      "price": 97.16
+     }
+    ],
+    "BLACK": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 10,
+      "partNumber": "93625A223",
+      "price": 5.4
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 500,
+      "partNumber": "93625A129",
+      "price": 189.0
+     }
+    ]
+   },
+   "M4": {
+    "dimensions": {
+     "acrossFlats": 7,
+     "height": 5,
+     "hexHeight": 4.17,
+     "insertDiameter": 5.05
+    },
+    "ZINC_PLATED": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "90576A103",
+      "price": 4.92
+     }
+    ],
+    "STAINLESS": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "93625A150",
+      "price": 7.03
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 2000,
+      "partNumber": "93625A122",
+      "price": 98.42
+     }
+    ],
+    "BLACK": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 10,
+      "partNumber": "93625A224",
+      "price": 6.0
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 500,
+      "partNumber": "93625A131",
+      "price": 210.0
+     }
+    ]
+   }
+  },
+  "HEX": {
+   "M3": {
+    "dimensions": {
+     "acrossFlats": 5.5,
+     "height": 2.4
+    },
+    "ZINC_PLATED": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "90591A250",
+      "price": 3.06
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 4000,
+      "partNumber": "90591A346",
+      "price": 85.68
+     }
+    ],
+    "STAINLESS": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "91828A211",
+      "price": 5.68
+     }
+    ],
+    "BLACK": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "98676A100",
+      "price": 8.08
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 5000,
+      "partNumber": "98676A610",
+      "price": 282.8
+     }
+    ]
+   },
+   "M4": {
+    "dimensions": {
+     "acrossFlats": 7,
+     "height": 3.2
+    },
+    "ZINC_PLATED": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "90591A255",
+      "price": 3.39
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 4000,
+      "partNumber": "90591A347",
+      "price": 94.92
+     }
+    ],
+    "STAINLESS": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "91828A231",
+      "price": 7.25
+     }
+    ],
+    "BLACK": [
+     {
+      "pack": "SMALL_IMPORTED",
+      "quantity": 100,
+      "partNumber": "98676A200",
+      "price": 12.12
+     },
+     {
+      "pack": "LARGE_IMPORTED",
+      "quantity": 3000,
+      "partNumber": "98676A620",
+      "price": 254.52
+     }
+    ]
+   }
+  }
+ },
+ "washers": {
+  "M3": {
+   "dimensions": {
+    "innerDiameter": 3.2,
+    "outerDiameter": 7.0,
+    "thickness": 0.5
+   },
+   "ZINC_PLATED": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "91166A210",
+     "price": 2.97
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 50,
+     "partNumber": "91166A541",
+     "price": 4.46
+    },
+    {
+     "pack": "LARGE_IMPORTED",
+     "quantity": 4000,
+     "partNumber": "91166A200",
+     "price": 77.22
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 1000,
+     "partNumber": "91166A542",
+     "price": 57.92
+    }
+   ],
+   "BLACK": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "98269A420",
+     "price": 3.87
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98269A151",
+     "price": 7.74
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98269A152",
+     "price": 108.36
+    }
+   ],
+   "STAINLESS": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "93475A210",
+     "price": 2.89
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98689A268",
+     "price": 8.67
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98689A269",
+     "price": 124.27
+    }
+   ]
+  },
+  "M4": {
+   "dimensions": {
+    "innerDiameter": 4.3,
+    "outerDiameter": 9.0,
+    "thickness": 0.9
+   },
+   "ZINC_PLATED": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "91166A230",
+     "price": 3.13
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 50,
+     "partNumber": "91166A543",
+     "price": 4.7
+    },
+    {
+     "pack": "LARGE_IMPORTED",
+     "quantity": 4000,
+     "partNumber": "91166A350",
+     "price": 78.25
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 1000,
+     "partNumber": "91166A544",
+     "price": 56.34
+    }
+   ],
+   "BLACK": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "98687A141",
+     "price": 3.64
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98687A308",
+     "price": 10.92
+    },
+    {
+     "pack": "LARGE_IMPORTED",
+     "quantity": 2000,
+     "partNumber": "98687A142",
+     "price": 50.96
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98687A156",
+     "price": 152.88
+    }
+   ],
+   "STAINLESS": [
+    {
+     "pack": "SMALL_IMPORTED",
+     "quantity": 100,
+     "partNumber": "93475A230",
+     "price": 3.93
+    },
+    {
+     "pack": "SMALL_US",
+     "quantity": 100,
+     "partNumber": "98689A273",
+     "price": 10.61
+    },
+    {
+     "pack": "LARGE_US",
+     "quantity": 2000,
+     "partNumber": "98689A274",
+     "price": 149.34
+    }
+   ]
+  }
+ }
+}

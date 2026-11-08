@@ -8,3 +8,17 @@ def delete_element(api: Api, element_path: ElementPath) -> None:
     """Deletes an element (tab) from a workspace."""
     assert_workspace(element_path)
     api.delete(api_path("elements", element_path, ElementPath))
+
+
+def get_configuration(api: Api, element_path: ElementPath) -> dict:
+    """Fetches an element's (a Part Studio's or an assembly's) configuration inputs, as Onshape stores them."""
+    return api.get(api_path("elements", element_path, ElementPath, "configuration"))
+
+
+def update_configuration(api: Api, element_path: ElementPath, configuration: dict) -> dict:
+    """Replaces an element's (a Part Studio's or an assembly's) configuration inputs.
+
+    See https://onshape-public.github.io/docs/api-adv/configs/.
+    """
+    assert_workspace(element_path)
+    return api.post(api_path("elements", element_path, ElementPath, "configuration"), body=configuration)

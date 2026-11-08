@@ -12,11 +12,13 @@ import subprocess
 import pytest
 
 from fs_cli import cli, workspace
-from fs_cli.remote import RemoteImage, RemoteStudio, Version, folder_paths
+from fs_cli.configured_studios import Built
+from fs_cli.remote import RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
 from onshape_api.exceptions import ApiError
+from onshape_api.paths.paths import InstancePath
 from semver import Version as SemVersion
 
 BACKEND = "https://cad.onshape.com/documents/back/w/bw"
@@ -38,6 +40,18 @@ class FakeOnshape:
         self.folders_error: Exception | None = None
         # (document id, instance id) -> element id -> image tab
         self.image_tabs: dict[tuple[str, str], dict[str, dict]] = {}
+        # (document id, instance id) -> Part Studio tab name -> element id
+        self.part_studios: dict[tuple[str, str], dict[str, str]] = {}
+        # (document id, studio name, Feature Studio element id, its microversion) of each build
+        self.builds: list[tuple[str, str, str, str]] = []
+        self.build_status = "OK"
+        # (document id, workspace id) -> name, for every workspace but the backend's main one
+        self.workspace_names: dict[tuple[str, str], str] = {}
+        self.workspace_descriptions: dict[str, str] = {}
+        # (document id, instance id) -> element id -> (name, data), of file tabs put_file wrote
+        self.files: dict[tuple[str, str], dict[str, tuple[str, bytes]]] = {}
+        # (target workspace id, source workspace id, strategy) of each merge
+        self.merges: list[tuple[str, str, str]] = []
 
     def _id(self, prefix: str) -> str:
         # Like Onshape's: 24 hex digits
@@ -167,6 +181,10 @@ class FakeOnshape:
         self.calls["latest_std_version"] += 1
         return "2909"
 
+    def default_workspace(self, document_id):
+        self.calls["default_workspace"] += 1
+        return InstancePath(document_id, "lw")
+
     def list_images(self, instance):
         self.calls["list_images"] += 1
         images = self.images(instance.document_id, instance.instance_id)
@@ -186,6 +204,55 @@ class FakeOnshape:
         image = self.images(instance.document_id, instance.instance_id)[element_id]
         image.update(data=data, mv=self._id("m"))
         return RemoteImage(element_id, name, image["mv"])
+
+    def build_studio(self, instance, studio, feature_studio_id, microversion_id):
+        self.calls["build_studio"] += 1
+        tabs = self.part_studios.setdefault((instance.document_id, instance.instance_id), {})
+        created = studio.tab_name not in tabs
+        element_id = tabs.setdefault(studio.tab_name, self._id("p"))
+        self.builds.append((instance.document_id, studio.name, feature_studio_id, microversion_id))
+        return Built(element_id, created, self.build_status)
+
+    def put_file(self, instance, name, data, content_type):
+        self.calls["put_file"] += 1
+        files = self.files.setdefault((instance.document_id, instance.instance_id), {})
+        element_id = next((id for id, (each, _) in files.items() if each == name), None) or self._id("f")
+        files[element_id] = (name, data)
+        return element_id
+
+    def element_ids(self, instance):
+        key = (instance.document_id, instance.instance_id)
+        return set(self.instances.get(key, {})) | set(self.image_tabs.get(key, {}))
+
+    def workspaces(self, document_id):
+        self.calls["workspaces"] += 1
+        return [
+            RemoteWorkspace(id, name, self.workspace_descriptions.get(id, ""))
+            for (document, id), name in self.workspace_names.items()
+            if document == document_id
+        ]
+
+    def create_workspace(self, document_id, version_id, name, description):
+        self.calls["create_workspace"] += 1
+        workspace_id = self._id("w")
+        self.workspace_names[(document_id, workspace_id)] = name
+        self.workspace_descriptions[workspace_id] = description
+        self.instances[(document_id, workspace_id)] = copy.deepcopy(self.studios(document_id, version_id))
+        return RemoteWorkspace(workspace_id, name, description)
+
+    def delete_workspace(self, instance):
+        self.calls["delete_workspace"] += 1
+        del self.workspace_names[(instance.document_id, instance.instance_id)]
+        self.instances.pop((instance.document_id, instance.instance_id), None)
+
+    def merge(self, target, source_workspace_id, strategy):
+        """Takes the source's tabs the target lacks, and with REPLACE (or MERGE) the source's version of the rest."""
+        self.calls["merge"] += 1
+        self.merges.append((target.instance_id, source_workspace_id, strategy))
+        studios = self.studios(target.document_id, target.instance_id)
+        for element_id, studio in self.studios(target.document_id, source_workspace_id).items():
+            if element_id not in studios or strategy != "KEEP":
+                studios[element_id] = copy.deepcopy(studio)
 
 
 @pytest.fixture
@@ -478,6 +545,35 @@ def test_deleted_in_onshape_is_recreated_by_push(repo, onshape, capsys):
     assert Status.DELETED_IN_ONSHAPE.value in capsys.readouterr().out
     assert run(onshape, "push") == 0
     assert onshape.code("frame.fs") == "a"
+
+
+def test_recreating_a_tab_repoints_the_files_importing_its_old_one(repo, onshape, capsys):
+    utils = onshape.add("utils.fs", "u")
+    onshape.add("frame.fs", f'import(path : "{utils}", version : "{"a" * 24}");\n')
+    git(repo, "init", "-q")
+    (repo / ".gitignore").write_text(".fs-state.json\n")
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    run(onshape, "pull")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Start")
+    del onshape.studios()[utils]
+    capsys.readouterr()
+    # frame.fs would keep importing a tab that's gone
+    assert run(onshape, "push") == 2
+    assert (
+        f"frame.fs imports utils.fs by its old tab ({utils}), which this push makes again under a new id; "
+        "push frame.fs too."
+    ) in capsys.readouterr().err
+    assert onshape.names() == ["frame.fs"]
+
+    # The failed push saved fs-studios.json without the old tab; its last commit still names it
+    local(repo, "frame.fs").write_text(local(repo, "frame.fs").read_text() + "// frame\n")
+    assert run(onshape, "push") == 0
+    new_utils = next(id for id, s in onshape.studios().items() if s["name"] == "utils.fs")
+    # Its version is whichever microversion utils.fs had when frame.fs was pushed, which they race for
+    assert f'import(path : "{new_utils}", version : "' in onshape.code("frame.fs")
+    assert f'import(path : "{new_utils}", version : "' in local(repo, "frame.fs").read_text()
 
 
 def test_push_deletes_tabs_of_deleted_files(repo, onshape, capsys):
@@ -886,6 +982,23 @@ def test_import_version_changes_are_not_conflicts(repo, onshape, capsys):
     assert onshape.calls == {"list_studios": 1, "list_images": 1}
 
 
+def test_pushing_a_tab_with_its_importer_keeps_the_version_onshape_gives_the_import(repo, onshape, capsys):
+    """Onshape updates the importer's import of a tab pushed with it, after the importer's own push."""
+    utils = onshape.add("utils.fs", "utils")
+    frame = onshape.add("frame.fs", f'import(path : "{utils}", version : "{OLD}");\nframe\n')
+    run(onshape, "pull")
+    local(repo, "utils.fs").write_text("utils2")
+    local(repo, "frame.fs").write_text(f'import(path : "{utils}", version : "{OLD}");\nframe2\n')
+
+    assert run(onshape, "push") == 0
+    assert local(repo, "frame.fs").read_text() == onshape.code("frame.fs")
+    assert OLD not in onshape.code("frame.fs")
+
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "import versions updated in Onshape" not in capsys.readouterr().out
+
+
 def test_pushing_keeps_onshapes_import_versions(repo, onshape):
     element_id = onshape.add("b.fs", importing(OLD))
     run(onshape, "pull")
@@ -962,6 +1075,32 @@ def test_missing_config(tmp_path, monkeypatch, onshape, capsys):
     monkeypatch.chdir(tmp_path)
     assert run(onshape, "status") == 2
     assert "[tool.fs]" in capsys.readouterr().err
+
+
+def test_a_part_set_needs_a_main_document_folder_and_title(tmp_path):
+    from fs_cli.config import ConfigError, parse_config
+
+    base = {"backend": BACKEND}
+    main = f"https://cad.onshape.com/documents/{MAIN}"
+    with pytest.raises(ConfigError, match="main must be"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": "nope", "folder": "Parts", "title": "Parts"}}})
+    with pytest.raises(ConfigError, match="folder must"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "title": "Parts"}}})
+    with pytest.raises(ConfigError, match="title must"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "Parts"}}})
+    config = parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "Parts/", "title": "Parts"}}})
+    assert config.part_set_for("Parts/partMaker.fs").main_document_id == MAIN
+    assert config.part_set_for("PartsBin/x.fs") is None
+    assert config.find_part_set("parts").folder == "Parts"
+    with pytest.raises(ConfigError, match="targets must map names to documents' urls"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "P", "title": "P", "targets": {"local": "nope"}}}})
+    with pytest.raises(ConfigError, match="No part set named bolts"):
+        config.find_part_set("bolts")
+    # A set may name its definition, where its folder holds another set's too
+    shared = {"main": main, "folder": "Parts", "title": "Parts", "definition": "otherTables.py"}
+    assert parse_config(tmp_path, {**base, "parts": {"parts": shared}}).find_part_set("parts").definition == "otherTables.py"
+    with pytest.raises(ConfigError, match="definition must name a .py file in its folder"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {**shared, "definition": "Parts/otherTables.py"}}})
 
 
 # Updating the std
@@ -1151,6 +1290,187 @@ def test_release_requires_confirmation_when_not_interactive(repo, onshape, capsy
     released_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--minor") == 2
     assert "--yes" in capsys.readouterr().err
+
+
+MAIN = "abcdef0123456789abcdef01"
+
+
+def with_part_set(repo: pathlib.Path) -> None:
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text()
+        + f'\n[tool.fs.parts.parts]\ntitle = "Parts"\nfolder = "Parts"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
+    )
+
+
+# A definition configuring a Part Studio of a part set's feature, as fastenerTables.py does
+PART_TABLES = """
+from fs_cli.configured_studios import ConfiguredStudio, Input, Option
+
+CONTENTS = []
+STUDIOS = {
+    "screw": ConfiguredStudio(
+        "screw", "partScrew", [Input("size", "Size", "size", [Option("A", "A", "A")], enum_name="Size")]
+    )
+}
+EXPORTS = {"parts.gen.json": '{"studios": {"screw": {"feature": "partScrew", "mateConnector": "mc", "location": null}}}\\n'}
+"""
+PART_MAKER = "FeatureScript 1;\nexport const partScrew = defineFeature(function(context, id, definition) {});\n"
+
+
+def part_set(repo: pathlib.Path, onshape: FakeOnshape) -> str:
+    with_part_set(repo)
+    element_id = onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",), features=["Screw"])
+    run(onshape, "pull")
+    write(repo, "Parts/partTables.py", PART_TABLES)
+    return element_id
+
+
+def test_a_part_set_is_tried_in_the_backend_as_test_part_studios(repo, onshape, capsys):
+    element_id = part_set(repo, onshape)
+
+    assert run(onshape, "parts", "parts", "--test", "-y") == 0
+    assert onshape.builds == [("back", "screw", element_id, onshape.studios()[element_id]["mv"])]
+    assert list(onshape.part_studios[("back", "bw")]) == ["Screw (TEST)"]
+    assert "Screw (TEST) (created, OK): https://cad.onshape.com/documents/back/w/bw/e/" in capsys.readouterr().out
+    # Nothing recorded, and nothing versioned
+    assert not local(repo, "Parts/partTables.studios.json").exists()
+    assert onshape.versions_by_document == {}
+
+
+def test_part_sets_sharing_a_folder_each_build_their_own_definitions_studios(repo, onshape, capsys):
+    """As FRC's and FTC's fasteners share fasteners.fs, each configuring its own studios."""
+    element_id = part_set(repo, onshape)
+    write(repo, "Parts/otherTables.py", PART_TABLES.replace('"screw"', '"bolt"').replace("CONTENTS = []\n", ""))
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text().replace('folder = "Parts"\n', 'folder = "Parts"\ndefinition = "partTables.py"\n')
+        + f'\n[tool.fs.parts.others]\ntitle = "Others"\nfolder = "Parts"\ndefinition = "otherTables.py"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
+    )
+
+    assert run(onshape, "parts", "others", "--test", "-y") == 0
+    assert onshape.builds == [("back", "bolt", element_id, onshape.studios()[element_id]["mv"])]
+
+
+def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
+    part_set(repo, onshape)
+    write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
+
+    assert run(onshape, "parts", "parts", "--test", "-y") != 0
+    assert "Parts/partMaker.fs isn't in sync with the backend document" in capsys.readouterr().err
+    assert onshape.builds == []
+
+
+def test_a_part_set_takes_the_import_versions_onshape_gave_its_featurescript(repo, onshape, capsys):
+    element_id = part_set(repo, onshape)
+    utils = onshape.add("utils.fs", "utils", folders=("Parts",))
+    onshape.edit(element_id, f'import(path : "{utils}", version : "{OLD}");\n' + PART_MAKER)
+    run(onshape, "pull")
+    onshape.edit(element_id, f'import(path : "{utils}", version : "{NEW}");\n' + PART_MAKER)
+
+    assert run(onshape, "parts", "parts", "--test", "-y") == 0
+    assert "Updated import versions in Parts/partMaker.fs to match Onshape" in capsys.readouterr().out
+    assert local(repo, "Parts/partMaker.fs").read_text() == onshape.code("partMaker.fs")
+    onshape.calls.clear()
+    run(onshape, "status")
+    assert "pull" not in onshape.calls
+
+
+def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
+    element_id = part_set(repo, onshape)
+
+    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
+
+    [backend_version] = onshape.versions_by_document["back"]
+    assert backend_version.name == "Parts - v0.1.0"
+    main_studio = next(id for id, s in onshape.studios(MAIN, "lw").items() if s["name"] == "partMaker.fs")
+    assert f'"back/{backend_version.id}/{element_id}"' in onshape.code("partMaker.fs", MAIN, "lw")
+    # Built from the main document's own studio as pushed, not the backend's
+    assert onshape.builds == [(MAIN, "screw", main_studio, onshape.studios(MAIN, "lw")[main_studio]["mv"])]
+    # The main document is left for its owner to version
+    assert MAIN not in onshape.versions_by_document
+    assert json.loads(local(repo, "Parts/partTables.studios.json").read_text()) == {
+        "documentId": MAIN,
+        "elements": {"screw": onshape.part_studios[(MAIN, "lw")]["Screw"]},
+    }
+    out = capsys.readouterr().out
+    assert "  3. Build Screw in the main document, and write its manifest there" in out
+    assert "Create version Parts - v0.1.0 in the main document" not in out
+    assert "front" not in onshape.versions_by_document
+    # Its manifest beside its Part Studios, naming each by its tab there
+    [(name, data)] = onshape.files[(MAIN, "lw")].values()
+    assert name == "parts.parts.json"
+    screw = onshape.part_studios[(MAIN, "lw")]["Screw"]
+    assert json.loads(data) == {"studios": {"screw": {"feature": "partScrew", "mateConnector": "mc", "elementId": screw}}}
+
+    # The next is numbered from the backend's versions
+    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
+    assert [version.name for version in onshape.versions_by_document["back"]] == ["Parts - v0.1.0", "Parts - v0.2.0"]
+    assert MAIN not in onshape.versions_by_document
+
+
+TARGET = "fedcba9876543210fedcba98"
+
+
+def test_a_part_set_is_released_to_a_target_to_try_it(repo, onshape, capsys):
+    part_set(repo, onshape)
+    (repo / "pyproject.toml").write_text(
+        (repo / "pyproject.toml").read_text()
+        + f'[tool.fs.parts.parts.targets]\nlocal = "https://cad.onshape.com/documents/{TARGET}"\n'
+    )
+
+    assert run(onshape, "parts", "parts", "--release", "--target", "local", "-y") == 0
+    # Versioned, but not as a release
+    [backend_version] = onshape.versions_by_document["back"]
+    assert backend_version.name == "Parts test - no branch"
+    [version] = onshape.versions_by_document[TARGET]
+    assert version.name == "Parts test - no branch"
+    assert list(onshape.part_studios[(TARGET, "lw")]) == ["Screw"]
+    [(name, _)] = onshape.files[(TARGET, "lw")].values()
+    assert name == "parts.parts.json"
+    # Nothing recorded, released, or in the main document
+    assert not local(repo, "Parts/partTables.studios.json").exists()
+    assert MAIN not in onshape.versions_by_document
+    assert "Record where" not in capsys.readouterr().out
+
+    assert run(onshape, "parts", "parts", "--release", "--target", "local", "--minor", "-y") == 2
+    assert "takes no --major, --minor, or --patch" in capsys.readouterr().err
+    assert run(onshape, "parts", "parts", "--release", "--target", f"https://cad.onshape.com/documents/{MAIN}", "-y") == 2
+    assert "main document" in capsys.readouterr().err
+    assert run(onshape, "parts", "parts", "--test", "--target", "local", "-y") == 2
+    assert "go with --release" in capsys.readouterr().err
+
+
+def test_a_part_set_release_stops_at_a_part_studio_that_fails_to_regenerate(repo, onshape, capsys):
+    part_set(repo, onshape)
+    onshape.build_status = "ERROR"
+
+    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") != 0
+    assert "Screw's partScrew fails to regenerate in its default configuration" in capsys.readouterr().err
+    assert MAIN not in onshape.versions_by_document
+    assert not local(repo, "Parts/partTables.studios.json").exists()
+
+
+def test_a_part_sets_featurescript_isnt_released_by_fs_release(repo, onshape, capsys):
+    part_set(repo, onshape)
+    assert run(onshape, "release", "partMaker", "--minor", "-y") != 0
+    assert "release it with `fs parts parts --release`" in capsys.readouterr().err
+    assert onshape.versions_by_document == {}
+
+
+def test_sync_versions_leaves_out_part_set_releases(repo, onshape):
+    with_part_set(repo)
+    onshape.versions_by_document["back"] = [
+        Version("1", "Robot frame - v1.0.0"),
+        Version("2", "Parts - v0.1.0"),
+        Version("3", "Robot frame - v1.1.0"),
+    ]
+    onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]
+    assert run(onshape, "sync-versions", "-y") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == [
+        "Robot frame - v1.0.0",
+        "Robot frame - v1.1.0",
+    ]
 
 
 def test_sync_versions(repo, onshape):
@@ -1602,8 +1922,8 @@ def test_cots_ranks_parts_and_shows_options():
                 },
             },
             "/analytics/parts/library/frc-design-lib": [
-                {"path": {"elementId": "ea"}, "insertCount": 800},
-                {"path": {"elementId": "eb"}, "insertCount": 300},
+                {"path": {"elementId": "ea"}, "useCount": 800},
+                {"path": {"elementId": "eb"}, "useCount": 300},
             ],
             "/analytics/insertable/library/frc-design-lib/element/ea": {
                 "parameters": [
@@ -1850,3 +2170,197 @@ def test_onshape_remote_images():
     assert api.requests[1][1] == "/blobelements/d/back/w/bw/e/i3"
     with pytest.raises(ValueError, match="isn't an image"):
         OnshapeRemote(api).upload_image(instance, "part.step", b"")
+
+
+# Branches
+
+
+def branched(repo: pathlib.Path, onshape: FakeOnshape, branch: str = "feature") -> None:
+    """A repo whose branches each get a workspace, on `branch`, with a version of the main workspace to branch from."""
+    (repo / "pyproject.toml").write_text(f'[tool.fs]\nbackend = "{BACKEND}"\nmain_branch = "main"\n')
+    (repo / ".gitignore").write_text(".fs-state*.json\n")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "config", "user.name", "t")
+    git(repo, "config", "user.email", "t@t")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Start")
+    onshape.create_version(InstancePath("back", "bw"), "Start", "")
+    if branch != "main":
+        git(repo, "checkout", "-qb", branch)
+
+
+def workspace_of(onshape: FakeOnshape, name: str) -> str:
+    return next(id for (_, id), each in onshape.workspace_names.items() if each == name)
+
+
+def test_a_branch_reads_main_until_it_pushes_to_a_workspace_of_its_own(repo, onshape, capsys):
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    assert run(onshape, "pull") == 0
+    assert "feature has no workspace in Onshape yet" in capsys.readouterr().out
+    assert local(repo, "frame.fs").read_text() == "1"
+
+    local(repo, "frame.fs").write_text("2")
+    assert run(onshape, "push") == 0
+    feature = workspace_of(onshape, "feature")
+    assert onshape.code("frame.fs", instance=feature) == "2"
+    assert onshape.code("frame.fs") == "1"
+    assert (repo / ".fs-state.feature.json").is_file()
+
+    # Its workspace from now on, and the main workspace untouched
+    local(repo, "frame.fs").write_text("3")
+    assert run(onshape, "push") == 0
+    assert onshape.calls["create_workspace"] == 1
+    assert onshape.code("frame.fs", instance=feature) == "3"
+    assert onshape.code("frame.fs") == "1"
+
+
+def test_the_main_workspace_changes_only_by_merging(repo, onshape, capsys):
+    branched(repo, onshape, "main")
+    write(repo, "frame.fs", "1")
+    assert run(onshape, "push") == 2
+    assert "changes only by merging" in capsys.readouterr().err
+    assert onshape.names() == []
+
+
+def test_releasing_runs_only_on_main(repo, onshape, capsys):
+    branched(repo, onshape)
+    assert run(onshape, "release-tags") == 2
+    assert "runs only on main" in capsys.readouterr().err
+
+
+def test_a_branch_catches_up_with_a_tab_it_has_from_git(repo, onshape):
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    run(onshape, "pull")
+    local(repo, "frame.fs").write_text("2")
+    run(onshape, "push")
+    feature = workspace_of(onshape, "feature")
+    # Another branch added utils.fs, which reached main; this one merges it in git
+    utils = onshape.add("utils.fs", "u")
+    studios = json.loads((repo / "fs-studios.json").read_text())
+    studios["studios"][utils] = "utils.fs"
+    (repo / "fs-studios.json").write_text(json.dumps(studios))
+    write(repo, "utils.fs", "u")
+
+    assert run(onshape, "push") == 0
+    assert onshape.merges == [(feature, "bw", "KEEP")]
+    # Under the id main has, rather than a new tab
+    assert onshape.names(instance=feature) == ["frame.fs", "utils.fs"]
+    assert utils in onshape.studios("back", feature)
+    assert onshape.code("frame.fs", instance=feature) == "2"
+
+
+def commit_all(repo: pathlib.Path, message: str) -> None:
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", message, "--allow-empty")
+
+
+def test_sync_main_lands_a_merged_branch_by_merging(repo, onshape, capsys):
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    run(onshape, "pull")
+    commit_all(repo, "Pull")
+    local(repo, "frame.fs").write_text("2")
+    run(onshape, "push")
+    commit_all(repo, "Frame 2")
+    feature = workspace_of(onshape, "feature")
+    git(repo, "checkout", "-q", "main")
+    git(repo, "merge", "-q", "--ff-only", "feature")
+
+    assert run(onshape, "sync-main", "--branch", "feature") == 0
+    assert onshape.code("frame.fs") == "2"
+    assert onshape.merges == [(feature, "bw", "KEEP"), ("bw", feature, "REPLACE")]
+    assert onshape.workspace_names == {}
+    assert not (repo / ".fs-state.feature.json").exists()
+
+
+def test_sync_main_makes_a_workspace_for_a_branch_without_one(repo, onshape):
+    branched(repo, onshape, "main")
+    write(repo, "utils.fs", "u")
+    commit_all(repo, "Utils")
+
+    assert run(onshape, "sync-main") == 0
+    assert onshape.names() == ["utils.fs"]
+    assert onshape.calls["create_workspace"] == 1
+    assert onshape.workspace_names == {}
+    # The new tab's id, recorded by the push, is main's too
+    [utils] = json.loads((repo / "fs-studios.json").read_text())["studios"]
+    assert utils in onshape.studios()
+
+
+def test_sync_main_runs_only_on_main(repo, onshape, capsys):
+    branched(repo, onshape)
+    assert run(onshape, "sync-main") == 2
+    assert "runs only on main" in capsys.readouterr().err
+
+
+# Release files
+
+
+def test_releases_lists_and_checks_release_files(repo, onshape, capsys):
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    assert run(onshape, "releases") == 0
+    assert "releases/frame.toml: FeatureScript robotFrame, minor release" in capsys.readouterr().out
+    for contents, problem in [
+        ('script = "robotFrame"\npart_set = "fasteners"\n', "one script"),
+        ('script = "robotFrame"\nbump = "huge"\n', "major, minor, or patch"),
+        ('script = "robotFrame"\nversion = "1"\n', "unknown keys: version"),
+        ('part_set = "fasteners"\n', "no part set named fasteners"),
+    ]:
+        (repo / "releases" / "frame.toml").write_text(contents)
+        assert run(onshape, "releases") == 2
+        assert problem in capsys.readouterr().err
+
+
+def test_run_releases_makes_each_release_once(repo, onshape, capsys):
+    element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
+    branched(repo, onshape, "main")
+    (repo / "pyproject.toml").write_text(
+        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nmain_branch = "main"\n'
+    )
+    run(onshape, "pull")
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text(
+        'script = "robotFrame"\nbump = "minor"\ndescription = "First"\npublish = false\n'
+    )
+    commit_all(repo, "Ask for a release")
+
+    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    released = onshape.versions_by_document["back"][-1]
+    assert (released.name, released.description) == ("Robot frame - v0.1.0", "First [releases/frame.toml]")
+    assert element_id in onshape.studios("back", released.id)
+    assert not (repo / "releases" / "frame.toml").exists()
+    assert git_output(repo, "log", "-1", "--format=%s") == "Release robotFrame (releases/frame.toml)\n"
+    assert git_output(repo, "status", "--porcelain") == ""
+
+    # Asked for again, it's found made rather than made twice
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    commit_all(repo, "Ask again")
+    capsys.readouterr()
+    assert run(onshape, "run-releases", "--no-push-tags") == 2
+    assert "already made Robot frame - v0.1.0" in capsys.readouterr().err
+
+
+def test_branches_prunes_only_its_workspaces_of_branches_gone_from_origin(repo, onshape, tmp_path_factory, capsys):
+    from fs_cli.branches import MADE_BY_FS
+
+    origin = tmp_path_factory.mktemp("origin")
+    git(origin, "init", "-q", "--bare")
+    onshape.add("frame.fs", "1")
+    branched(repo, onshape)
+    git(repo, "remote", "add", "origin", str(origin))
+    run(onshape, "pull")
+    commit_all(repo, "Pull")
+    local(repo, "frame.fs").write_text("2")
+    run(onshape, "push")
+    git(repo, "push", "-q", "origin", "main", "feature")
+    start = onshape.versions_by_document["back"][0].id
+    onshape.create_workspace("back", start, "merged-and-deleted", MADE_BY_FS)
+    onshape.create_workspace("back", start, "someone's own", "")
+
+    assert run(onshape, "branches") == 0
+    assert "merged-and-deleted (gone from origin)" in capsys.readouterr().out
+    assert run(onshape, "branches", "--prune", "--yes") == 0
+    assert sorted(onshape.workspace_names.values()) == ["feature", "someone's own"]

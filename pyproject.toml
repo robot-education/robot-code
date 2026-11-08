@@ -34,6 +34,28 @@ frontend = "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332c
 github = "https://github.com/robot-education/robot-code"
 # The document `fs release --beta` publishes beta releases to.
 frontend_beta = "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/7517d9bc30a444e88795c529"
+# The git branch the backend's main workspace holds, changed only by merging (`fs sync-main`, which the Onshape workflow
+# runs): every other branch pushes to a workspace of its own (see docs/fs-cli.md#branches).
+main_branch = "main"
+
+# Part sets: Part Studios built from a definition in `folder`, whose FeatureScript is in the backend document but only
+# they use. `fs parts <set> --test` builds them there as `<Part> (TEST)`; `fs parts <set> --release` releases them into `main`, the
+# FRCDesignLib document people insert them from (see docs/parts.md)
+[tool.fs.parts.fasteners]
+title = "Fasteners"
+folder = "fasteners"
+definition = "fastenerTables.py"
+main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
+
+[tool.fs.parts.fasteners.targets]
+test = "https://cad.onshape.com/documents/b82fec8aded5d7a705a3d658"   # FRCDesignLib Test Document, for a local FRCDesignApp
+
+# FTC's metric fasteners: the same Feature Studio and tables, configured by their own definition, released into ConfigLib
+[tool.fs.parts.ftcFasteners]
+title = "FTC Fasteners"
+folder = "fasteners"
+definition = "ftcFastenerTables.py"
+main = "https://cad.onshape.com/documents/d67349e2db0a99ac62c57a10"
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]

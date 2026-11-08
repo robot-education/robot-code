@@ -52,6 +52,9 @@ uv run fs push --dry-run     # show what would be pushed
 uv run fs push --no-commit   # push without committing
 ```
 
+A file is pushed after the files it imports that are pushed with it, naming the versions they were just given:
+Onshape rewrites the import in a tab pushed before the tab it imports, which would leave the local file behind.
+
 After pushing, `fs push` commits what it pushed (and the tabs it deleted) to git, as it now is in Onshape: imports by
 path resolved to element ids, import versions from Onshape, and `fs-studios.json` with any new tabs' ids. Nothing else
 is committed, even what's already staged, so the repo always has what each push sent.
@@ -145,7 +148,8 @@ Deleting a file and running `fs push` (or `fs sync`) deletes its tab in Onshape,
 (`--yes` skips it). If the tab changed in Onshape since it was last synced, `fs push` asks first, as for files changed on both sides
 (`fs push --force` deletes it anyway), or if another file still imports it. `fs pull --force` restores a deleted file instead. Only deletions
 `fs` has seen are tracked: on a fresh clone, a tab with no file is just pulled. A tab deleted in Onshape is
-recreated by `fs push` unless you delete the file. Onshape's list of tabs can lag behind a tab created seconds
+recreated by `fs push` unless you delete the file. A recreated tab has a new id, so files importing its old one
+must be pushed with it, and the push points them at the new tab; it refuses to make the tab while one isn't. Onshape's list of tabs can lag behind a tab created seconds
 before, so a tracked tab missing from it is listed again, then fetched to confirm it's gone (a 404, which doesn't
 count against the API limits); if it's still there, `fs` stops rather than recreating it. Released FeatureScripts are the exception: their tabs are never
 deleted or recreated (see [Releasing](#releasing)).
@@ -181,6 +185,72 @@ count:
 
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing: they only make the anonymous listings.
 Failed calls (like a 400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
+
+## Branches
+
+With `main_branch` set in `[tool.fs]` (robot-code's is `main`), each git branch works in a workspace of its own in the
+backend document, and the main workspace holds only the main branch, changed by merging. So branches can't overwrite
+each other's Feature Studios, and Onshape can protect the main workspace (a workspace protection rule of Merge).
+
+- On any other branch, `fs push` (and `sync`, `tabs`, `parts --test`, `parts --diagnose`, `update-std --push`) works in a
+  workspace named after the branch, which the first of them creates, branched from the main workspace's latest
+  version (Onshape branches only from versions). Commands which only read (`status`, `pull`, `diff`, ...) read the
+  main workspace until the branch has one. Its state, what each studio looked like when last synced, is
+  `.fs-state.<branch>.json`, which starts as the main workspace's.
+- A tab is the same tab, by element id, in every workspace. When a branch has a tab from git that its workspace lacks
+  (another branch added it, reached main, and this branch merged main in git), the next push first merges the main
+  workspace into the branch's, keeping the branch's code where both changed, so the tab keeps its id.
+- On the main branch, writing is refused: changes reach the main workspace through `fs sync-main`, which the Onshape
+  workflow runs when something is merged into main. It merges the main workspace into the merged branch's workspace
+  (or into a new `sync <commit>` one, for a branch without one), pushes main's files there over whatever it has
+  (git is what main holds), merges that into the main workspace, taking its tabs where both changed, and deletes it.
+  Run again after a failure, it finishes.
+- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`) runs only on
+  the main branch, so what's released is what was merged. A part set's release to a target (`parts --release
+  --target`), to try it out, runs from any branch, versioning its workspace (see [docs/parts.md](parts.md)).
+- `fs branches` lists the workspaces fs made (marked by their description), and `fs branches --prune` deletes those
+  whose branch is gone from origin. Workspaces made by hand are never deleted.
+
+A CI checkout may leave no branch checked out; `FS_BRANCH` names it.
+
+```
+uv run fs push                 # on a branch: its workspace, made on first use
+uv run fs sync-main            # on main: land it in the main workspace (the Onshape workflow runs this)
+uv run fs branches --prune     # delete the workspaces of branches gone from origin
+```
+
+### Release files
+
+A branch asks for a release by adding a file to `releases/`, reviewed with its code; `fs run-releases` makes it once
+the branch is merged into main, after `fs sync-main`:
+
+```toml
+# releases/frame-hubs.toml
+script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
+part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
+bump = "minor"              # major, minor, or patch
+description = "Adds hubs"   # internal, as --description
+beta = false                # FeatureScripts: to the beta document
+publish = true              # FeatureScripts: finalize it at once, and tag it (the default)
+```
+
+They run in name order. Each runs as `fs release` or `fs parts SET --release` would, then its file is deleted and what the
+release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release makes
+ends its description with the file's name (`[releases/frame-hubs.toml]`), so a file whose release Onshape already has,
+whole or partway, stops `fs run-releases` rather than releasing twice: check what it made, finish it by hand, and
+delete the file. `fs releases` lists and checks the pending files without calling Onshape.
+
+### The Onshape workflow
+
+`.github/workflows/checks.yml` runs the tests, `fs check`, and `fs releases` on every pull request.
+`.github/workflows/onshape.yml` runs on each push to main, one run at a time: the same checks, then `fs sync-main`
+(with the merged pull request's branch), `fs run-releases`, a push of what they committed to main, and
+`fs branches --prune`. It needs:
+
+- The secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY`: API keys of an account with edit access to the backend,
+  frontend, and part set documents, whose allocation every run spends (about five calls a sync, plus one a studio
+  pushed, and a release's).
+- Its commits pushed to main past branch protection: the workflow's `github-actions[bot]` allowed to bypass it.
 
 ## Checking and navigating
 
@@ -293,6 +363,62 @@ sets `CONTENTS` to a list of items:
   parameters based on it (see `released/printAdapter/printAdapterProfiles.py`)
 - `Import`s of the studios the generated code uses, by path, e.g. `Import("core/sketchData.fs")`
 
+A definition can also set `EXPORTS`, a map of file names to their text, for what reads its data outside Onshape;
+`fs gen` writes each beside it (`fasteners/fastenerTables.py` writes `fasteners.gen.json`, the catalog
+FRCDesignApp reads for its library fasteners).
+
+### Configured Part Studios
+
+A Part Studio can expose a feature through its configuration: an input per parameter (a List, or for a boolean a
+checkbox or a `switch`, a List of `false` and `true`), each configuring that parameter, with a List's options shown
+only for some combinations of the inputs before it (a lookup table, laid out as a configuration). A whole input can be
+shown only for some combinations too; hidden, it's left out of `combinations()`, and keeps whatever value it was last
+set to. A List of one option is fixed: it's left out of the configuration, and its parameter set to that option when
+the feature's inserted.
+
+A `LookupTable` lays a table out by these rules, from what's made, each thing a combination of its inputs' options
+(the fasteners' `SCREW_TABLE`, say, of vendor, size, head, finish, and length):
+
+- An input shows where more than one of its options is made with the choices shown before it, offering those, and is
+  hidden where only one is. An input never shown is fixed, as the nut's Vendor is (McMaster-Carr makes every nut).
+- A condition names an input only where it shows: where it's hidden, Onshape and FRCDesign read its value
+  differently, so the options after it show by the choices before it alone. The studio checks this.
+- The feature resolves a hidden input to the one option made there, whatever value its parameter holds, and builds
+  from what it resolved to (the fasteners' `resolveChoices`).
+- A configuration is the choices it shows (`LookupTable.shown`), and what reads the studio outside Onshape lists one
+  record per configuration, holding those choices alone.
+- Its default is shown wherever its input shows at the other inputs' defaults, and every option is controlled by a
+  rule (below).
+
+`ConfiguredStudio.problems()` checks the configuration as it's written against these rules and the shape Onshape takes
+conditions in (below); `fs parts` refuses a set with any before it sends Onshape anything, and
+`tests/featurescript/fasteners_manifest_test.py` checks the fasteners' studios as generated. When Onshape refuses a
+configuration these allow, `fs parts SET --diagnose` finds which input's rules, and what it refused becomes a rule here.
+A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
+in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
+Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
+default), creating it if it's missing, and deletes the feature a build inserted before: its configured parameters name
+the configuration's inputs and options, and Onshape refuses a configuration that leaves them naming ones it no longer
+has ("The change would result in the feature list becoming invalid"). It then replaces the configuration with the
+definition's, which must keep the inputs' ids, inserts the feature from the Feature Studio in the same document as it
+is now, with each input's default, and configures it. The configured feature keeps the namespaces
+Onshape stored on insert, for it and each of its enums: a feature from a Feature Studio re-exporting another
+document's (as a release's is) is stored under another namespace than it's inserted with, and Onshape refuses an
+update naming any other, "Feature does not match". A refusal names the
+step Onshape refused, and a feature that fails to regenerate in its default configuration stops the build. `fs parts` builds
+them, for part sets (see [docs/parts.md](parts.md)).
+Onshape takes a visibility condition only as its UI makes one, an AND of inputs each one of some values, and refuses
+any other with a 409 ("The change would result in the feature list becoming invalid"). So the combinations which show
+an option are factored by input, earliest first (or by `factor_first`), into such conditions, each a rule controlling
+the options it shows: an option shows while a rule controlling it holds. As Onshape's UI does, a last rule shows the
+rest always, since Onshape hides an option no rule controls. Onshape also refuses a List whose default is hidden while
+the inputs before it are at theirs, as the studio checks. A List with none of its options shown is
+hidden, so a List's own visibility is folded into its options'. A checkbox has no options, and shows by a single
+condition, which the studio checks; one needing more is a `switch`. `fs parts SET --diagnose` finds a part of a
+configuration Onshape refuses (see [docs/parts.md](parts.md)). `ConfiguredStudio.manifest()` gives the
+configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
+any configuration).
+
 Feature icons are generated the same way: a definition which sets `ICON` (an `fs_cli.icons.Icon`, drawn from shapely
 shapes) is written to the `.svg` of the same name, e.g. `released/lighten/robotLightenIcon.py` to `released/lighten/robotLightenIcon.svg`;
 `fs icons` saves a picture of icons side by side to compare them. See [docs/icons.md](icons.md).
@@ -304,7 +430,8 @@ uv run fs gen                # rewrite every .gen.fs file whose definition chang
 uv run fs push               # push them
 ```
 
-Every `.py` file in `featurescripts/` is a definition. Generated files keep their `FeatureScript` version
+Every `.py` file in `featurescripts/` is a definition. One configuring Part Studios from another definition's tables
+sets `STUDIOS` (and `EXPORTS`) without `CONTENTS`, and writes no `.gen.fs` file (`fasteners/ftcFastenerTables.py`). Generated files keep their `FeatureScript` version
 (`fs update-std` changes it); new ones use the std version in `std/`. Tests fail if a checked-in `.gen.fs` file is
 out of date, or a profile isn't a closed loop.
 
@@ -327,9 +454,10 @@ uv run fs release robotFrame --minor --dry-run            # show the plan withou
 
 A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
 frontend studio of the same name at it (creating the studio if needed). Beta releases go to the separate
-`frontend_beta` document instead, and the feature's name must contain "beta". The studio must be pushed and in
-sync before it can be released, and `fs release` asks for confirmation since versions can't be deleted (`-y`
-skips the prompt).
+`frontend_beta` document instead, and the feature's name must contain "beta". A part set's FeatureScript
+(`[tool.fs.parts]`) isn't released here but by `fs parts SET --release`, into its FRCDesignLib document with its Part
+Studios; see [docs/parts.md](parts.md). The studio must be pushed and in sync before it can be released, and
+`fs release` asks for confirmation since versions can't be deleted (`-y` skips the prompt).
 
 A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend

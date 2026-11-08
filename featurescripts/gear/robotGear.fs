@@ -7,11 +7,11 @@ import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfbc217");
 export import(path : "b82468283e5ec09720bad185", version : "142c41c73cc2f8336c28931e");
 import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
+import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports BoreShape, Fit, and SplineType, parameter types
-export import(path : "01f0c5634015659514b83da1", version : "f05c6c359e1294a2302929fa");
-import(path : "f9a7532fe0d68211bd3a8112", version : "3eab840692316e1dc233f95f");
+export import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
+import(path : "f9a7532fe0d68211bd3a8112", version : "ae9a69eec915470fa59843e7");
 import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
 // Where the gear is on its location: its bottom, middle, top, or a bevel gear's apex
 import(path : "554542fc345271814c4463b0", version : "5b47f8330c585dfb754b8a98");

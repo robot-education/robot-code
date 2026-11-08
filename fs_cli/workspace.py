@@ -20,6 +20,7 @@ from __future__ import annotations
 import collections
 import dataclasses
 import enum
+import json
 import pathlib
 import re
 import time
@@ -31,14 +32,18 @@ from fs_cli.config import Config
 from fs_cli.renames import most_similar
 from fs_cli.remote import Remote, RemoteStudio, file_name_for, image_type, is_local, relative_path_for
 from onshape_api.exceptions import ApiError
+from onshape_api.paths.paths import InstancePath
 from fs_cli.state import (
     State,
     StudioState,
     apply_import_versions,
     content_hash,
     import_versions,
+    load_studio_files,
     path_imports,
     resolve_path_imports,
+    retarget_imports,
+    studio_files,
 )
 
 MAX_WORKERS = 8
@@ -136,13 +141,21 @@ class Targets:
 
 class Workspace:
     def __init__(
-        self, config: Config, state: State, remote: Remote, use_git: bool = True
+        self,
+        config: Config,
+        state: State,
+        remote: Remote,
+        use_git: bool = True,
+        instance: InstancePath | None = None,
     ) -> None:
+        """Args:
+        instance: The backend workspace it syncs with: the main one, or a git branch's (see fs_cli/branches.py).
+        """
         self.config = config
         self.state = state
         self.remote = remote
         self.use_git = use_git
-        self.instance = config.backend
+        self.instance = instance or config.backend
         self.listed_microversions: dict[str, str] = {}
         # Every tab, as of the last listing
         self.listed_studios: list[RemoteStudio] = []
@@ -490,13 +503,38 @@ class Workspace:
                     )
         return problems
 
+    def previous_tabs(self, studios: list[Studio]) -> dict[str, str]:
+        """The tabs fs-studios.json records for files about to get new ones: each old element id, and its file. Files
+        import tabs by id, so a file importing one of these must be pushed with the new tab. Any command saves the file
+        without a tab deleted in Onshape, so its last commit is read too. Makes no API calls."""
+        creating = {studio.path for studio in studios if studio.remote is None}
+        files = load_studio_files(self.config.studios_path)
+        committed = git.committed_contents(self.config.root, self.config.studios_path) if self.use_git else None
+        if committed:
+            files = {**studio_files(json.loads(committed)), **files}
+        return {element_id: path for element_id, path in files.items() if path in creating}
+
+    def stale_import_problems(self, studios: list[Studio]) -> list[str]:
+        """Files importing a tab about to be made again under a new id which aren't being pushed with it, so would keep
+        importing a tab that's gone. Makes no API calls."""
+        pushing = {studio.path for studio in studios}
+        return [
+            f"{importer} imports {path} by its old tab ({element_id}), which this push makes again under a new id; "
+            f"push {importer} too."
+            for element_id, path in self.previous_tabs(studios).items()
+            for importer in self.importers(element_id)
+            if importer not in pushing
+        ]
+
     def push_studios(self, studios: list[Studio]) -> None:
         """Pushes studios to Onshape, creating any which don't exist yet.
 
         New studios are created at the top level of the document, since the API can't place
         them in folders. Imports by path (see path_import_problems) are then replaced with
-        imports by element id, in the local files too.
+        imports by element id, in the local files too, as are imports of a studio's old tab when
+        it's made again (see stale_import_problems).
         """
+        previous = self.previous_tabs(studios)
 
         def create(studio: Studio) -> None:
             studio.remote = self.remote.create(self.instance, studio.name)
@@ -511,23 +549,53 @@ class Workspace:
         for studio in studios:
             assert studio.remote
             targets[studio.path] = (studio.remote.element_id, studio.remote.microversion_id)
+        recreated = {element_id: targets[path] for element_id, path in previous.items() if targets[path][0] != element_id}
 
-        def push(studio: Studio) -> None:
-            assert studio.local_code is not None and studio.remote
-            code = resolve_path_imports(studio.local_code, targets)
+        def prepare(studio: Studio) -> str:
+            assert studio.local_code is not None
+            code = retarget_imports(
+                resolve_path_imports(studio.local_code, targets), recreated
+            )
             if studio.remote_code is not None:
                 # Never push import versions older than the ones Onshape has, except of tabs just pushed
                 versions = import_versions(studio.remote_code)
                 code = apply_import_versions(
-                    code, {id: version for id, version in versions.items() if id not in self.updated_imports}
+                    code,
+                    {
+                        id: version
+                        for id, version in versions.items()
+                        if id not in self.updated_imports
+                    },
                 )
+            return code
+
+        codes = {studio.path: prepare(studio) for studio in studios}
+        pushed_versions: dict[str, str] = {}
+
+        def push(studio: Studio) -> None:
+            assert studio.remote
+            code = apply_import_versions(codes[studio.path], pushed_versions)
             if code != studio.local_code:
                 studio.file.write_text(code, newline="")
                 studio.local_code = code
             self.remote.push(self.instance, studio.remote.element_id, code)
 
-        with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
-            list(executor.map(push, studios))
+        pushed: list[Studio] = []
+        for wave in import_order(studios, codes):
+            if pushed:
+                # The new microversions of the tabs pushed so far, which their importers' imports name
+                listed = {
+                    remote.element_id: remote.microversion_id
+                    for remote in self.remote.list_studios(self.instance)
+                }
+                pushed_versions.update(
+                    (studio.remote.element_id, listed[studio.remote.element_id])
+                    for studio in pushed
+                    if studio.remote
+                )
+            with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
+                list(executor.map(push, wave))
+            pushed.extend(wave)
 
         # Pushing changes each studio's microversion; fetch the new ones so the next
         # command knows Onshape hasn't been modified since
@@ -672,3 +740,31 @@ def apply_to_files(
             studio.local_code = new_code
             changed.append(studio)
     return changed
+
+
+def import_order(studios: list[Studio], codes: dict[str, str]) -> list[list[Studio]]:
+    """Studios to push in waves, each after the tabs it imports among them. Onshape rewrites an importer's import of a
+    tab pushed after it, so the local file falls behind; pushed after the tab, with its new version, it doesn't."""
+    waiting = list(studios)
+    waves: list[list[Studio]] = []
+    while waiting:
+        pending = {studio.remote.element_id for studio in waiting if studio.remote}
+        wave = [
+            studio
+            for studio in waiting
+            if not any(
+                element_id in pending
+                and element_id != (studio.remote and studio.remote.element_id)
+                for element_id in import_versions(codes[studio.path])
+            )
+        ]
+        if not wave:
+            raise UsageError(
+                "These FeatureScripts import each other: "
+                + ", ".join(studio.path for studio in waiting)
+            )
+        waves.append(wave)
+        waiting = [
+            studio for studio in waiting if all(studio is not each for each in wave)
+        ]
+    return waves

@@ -3,6 +3,17 @@
 See `docs/fs-cli.md` for how the `fs` CLI works, and `docs/featurescript-style.md` for how to write
 FeatureScript here (including selections, editing logic, and manipulator change functions).
 
+## Onshape API calls
+
+Ask before anything that calls Onshape, and run it only once the user says yes, every time: the Onshape FeatureScript
+MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `parts`, `configuration`,
+`deprecate`, `sync-versions`, `release-tags`, `sync-main`, `run-releases`, `branches`, `features`, `pull-std`,
+`update-std`, `released --detect`, and the
+rest). Each call spends the
+user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
+asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, and `pytest`, which run against fakes. When the
+user runs a command themselves, say exactly what to run.
+
 `README.md` is for users: an overview of the repo, setup, and links. How the tools work, and anything else written for
 agents, goes in `docs/`, a skill, or here.
 
@@ -30,6 +41,13 @@ before stating how FeatureScript or Onshape behaves, or adding a rule here or to
 For FeatureScript names, `fs doc NAME` shows a std or project symbol's signature and documentation, `fs refs NAME`
 where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix` fixes problems with one right answer.
 
+FeatureScript-backed parts (FRCDesign's fasteners) are part sets, tried and released by `fs parts`, never `fs release`;
+see `docs/parts.md`.
+
+Each git branch pushes to a backend workspace of its own; main reaches the main workspace only by `fs sync-main`, which
+the Onshape workflow runs on merge, and releases are asked for in `releases/` files rather than run from a branch (see
+`docs/fs-cli.md#branches`).
+
 A "top level option" means a horizontal enum at the top of the feature (see `docs/featurescript-style.md`'s
 "Horizontal enums go at the top").
 
@@ -49,6 +67,10 @@ values saved by an older version.
 Never rename a released feature's constant (the name `defineFeature` is exported as, like `frcBeltCalculator`):
 documents store it as the feature's type, and lose the feature if it changes. Rename its Feature Type Name and its file
 instead (see `docs/featurescript-style.md`'s "Released feature constants").
+
+FRCDesign's library fasteners' configured Part Studios are an exception too: FRCDesign inserts them with configurations of their
+option ids, and recognizes the fasteners already in assemblies by them, so never rename or remove a released option
+id (see `featurescripts/fasteners/fastenerTables.py`); add new ones.
 
 The other exception is attributes, which other features and documents read back. When an attribute's format changes, either
 handle old attributes or report them as an error; either is fine.
