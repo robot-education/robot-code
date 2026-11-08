@@ -147,6 +147,8 @@ rusts.
 | M4 socket head | Stainless (27 lengths), zinc plated (11), black (32) |
 | M3 button head | Stainless (20 lengths), black (10), zinc plated (9) |
 | M4 button head | Stainless (23 lengths), black (12), zinc plated (11) |
+| M3 flat head | Black (13 lengths), stainless (18), zinc plated (11) |
+| M4 flat head | Black (15 lengths), zinc plated (13), stainless (21) |
 
 McMaster-Carr's 18-8 socket heads cost no more than its zinc-plated ones at the lengths both sell: an M3 x 10 is
 $0.071 stainless to $0.171 zinc plated, and an M4 is within two cents from 5 to 20 mm (an M4 x 10 is $0.103
@@ -154,7 +156,9 @@ either way). Zinc
 plating comes in 7 M3 lengths and 11 M4, so stainless is the screws' default, as it is ConfigLib's. Black oxide is
 last at M4, one to ten cents dearer from 5 to 20 mm; beyond 25 mm it's often cheaper, but those are seldom used.
 Its 18-8 button heads are the cheapest at M3 and at the M4 lengths used most (an M4 x 10 is $0.094, to $0.141
-black and $0.178 zinc plated), and come in twice the lengths, so stainless goes first for them too.
+black and $0.178 zinc plated), and come in twice the lengths, so stainless goes first for them too. Its flat heads
+are the other way about: black oxide is the cheapest at every length from 6 to 20 mm, an M4 x 10 $0.064 to $0.083
+zinc plated and $0.105 stainless, so black goes first.
 A black nut is black-oxide 18-8 stainless, which McMaster-Carr sells for less than black-oxide steel.
 
 ## McMaster-Carr
@@ -176,15 +180,17 @@ imported or United States origin; a large pack only where there's no small one. 
 | Flat washer, 18-8 stainless | 93475A | — |
 
 The rows the catalog uses are in `featurescripts/fasteners/vendor/mcmaster-metric.json`: every length of the socket
-heads (zinc-plated and black-oxide alloy steel, class 12.9) and button heads (the same, 120,000 psi), each also in
-18-8 stainless, with each supply, and the nylocks
+heads (zinc-plated and black-oxide alloy steel, class 12.9) button heads and flat heads (the same, 120,000 psi;
+the zinc-plated flat heads' 170,000 psi rows are left out), each also in 18-8 stainless, with each supply, and the nylocks
 and hex nuts in the three finishes, Class 8 where steel. Its nylocks are DIN 985, an M3 5.5 wide and 4 tall, an M4
 7 wide and 5 tall (goBILDA's is 4.85); its hex nuts DIN 934, an M3 5.5 wide and 2.4 tall, an M4 7 wide and 3.2
 tall (goBILDA's is 2.75). Socket heads are fully threaded to 20 mm (M3) or 25 mm (M4), then partly; where a length
 comes both ways, partly threaded is the standard and fully threaded a variant, as McMaster-Carr's FRC screws are.
 Its button heads are ISO 7380, an M3 5.7 across and 1.65 tall on a 2 mm hex, an M4 7.6 and 2.2 on a 2.5 mm hex, as
-goBILDA's; its socket heads ISO 4762, with a knurled head. Measured from its models of 91290A119, 92095A196 and
-92095A475, which agree with its tables.
+goBILDA's; its flat heads ISO 10642, an M3 6 across and 1.7 tall on a 2 mm hex, an M4 8 and 2.3 on a 2.5 mm hex, in
+a 90° countersink, their length including the head; its socket heads ISO 4762, with a knurled head. Measured from
+its models of 91290A119, 92095A196, 92095A475 and 92125A202, which agree with its tables; the M3 flat head's drive is
+ISO 10642's.
 
 ## What the features need
 
@@ -199,7 +205,8 @@ goBILDA's; its socket heads ISO 4762, with a knurled head. Measured from its mod
   AndyMark's metric screws are titled `M4-0.7 x 10 mm Socket Head Cap Screw`, which `_STORE_SCREWS` has to match
   too.
 - Finishes: each part's in order of price per piece, where FRC's put the standard finish first.
-- Heads: flat (countersunk) in metric, for AndyMark's and McMaster-Carr's.
+- Heads: flat (countersunk) in metric, for AndyMark's and McMaster-Carr's, in a 90° countersink (ISO 10642), where
+  FRC's `COUNTERSINK_ANGLE` is 82°; its length includes the head.
 
 ## STEP files
 
@@ -209,8 +216,8 @@ REV at `https://www.revrobotics.com/content/cad/<SKU>.STEP`): goBILDA 2800-0003-
 2812-0004-0007, 2803-0007-0007, 2801-0004-0008, 2801-0004-0011, 2809-0004-0007, 2810-0004-0008; REV
 REV-41-1713, 1359, 1123, 1360, 1124, 1715, 1125, 1907, and 1361.
 
-From you, McMaster-Carr's 91290A119 (M3 x 14 socket head), 92095A196 (M4 x 20 button head) and 92095A475 (M3 x 50
-button head).
+From you, McMaster-Carr's 91290A119 (M3 x 14 socket head), 92095A196 (M4 x 20 button head), 92095A475 (M3 x 50
+button head) and 92125A202 (M4 x 25 flat head).
 
 Still needed:
 
@@ -219,6 +226,6 @@ Still needed:
 | REV M3 washer, REV-41-2886 | Nothing published | A STEP, or calipers: inner diameter, outer diameter, thickness |
 | goBILDA split lock washer, 2809-0004-0007 | Its model is freeform, so it gives only the outside | Its section's width and thickness, if lock washers are offered |
 | REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
-| McMaster-Carr's M3 and M4 flat heads and washers, and its nuts' models | Its pages refuse automated reads | The flat heads' (hex drive) and flat washers' metric tables, every length and supply with its price, and a STEP of a flat head, a nylock, a hex nut and a washer, from each part's CAD tab |
+| McMaster-Carr's M3 and M4 washers, and its nuts' models | Its pages refuse automated reads | The flat washers' metric table, every size and supply with its price, and a STEP of a nylock, a hex nut and a washer, from each part's CAD tab |
 | REV's price per length | REV quotes one range per product | Each option's price on the hex cap screw and M3 nut pages |
 | AndyMark M4 lock washer, am-1548 | Its outer diameter isn't stated | Calipers on one, or a STEP (optional) |
