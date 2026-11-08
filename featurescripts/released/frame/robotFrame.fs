@@ -3,11 +3,11 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 RobotFrameIcon::import(path : "94bcdc0a50ec32f81a3aa449", version : "0ee450364120d3c453712009");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "2e446fc39b56fd5bff8ff054", version : "57e603bdc95b6c1bbd6ac620");
+import(path : "2e446fc39b56fd5bff8ff054", version : "401fb9d1cb0ce9d3e4986767");
 import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
-import(path : "ff444db0395e01aaa8c7e555", version : "15d1433a3f01d52aa227485c");
+import(path : "ff444db0395e01aaa8c7e555", version : "10472a7480f06be298f0df62");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "6bfd930a388ea2f0d6e572d9");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "70e583e6ea0cc31968c55548");
 
 /**
  * Whether a frame is one someone sells, or custom: a common size of tube or angle, with holes as the feature says
