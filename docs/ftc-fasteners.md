@@ -226,8 +226,5 @@ From you, McMaster-Carr's 91290A119 (M3 x 14 socket head), 92095A196 (M4 x 20 bu
 button head), 92125A202 (M4 x 25 flat head), 90591A255 (M4 hex nut), 94645A101 (M4 nylock) and 91166A230 (M4
 washer).
 
-Still needed:
-
-| Part | Why | What would do |
-| --- | --- | --- |
-| REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
+REV's M3 hex nut, which it publishes a drawing of but no model, takes the shape of McMaster-Carr's: both are DIN 934,
+5.5 across the flats and 2.4 tall.
