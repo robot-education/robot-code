@@ -3,10 +3,10 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 RobotNutStripIcon::import(path : "70fa8905356b9bb43809037c", version : "12b10c2429507285a4d9cef1");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "dd81a3971f6dacd7133eb42f", version : "2a82234fd5ed718ded9c856a");
-import(path : "e316d3a31f8726cbc70fe081", version : "aa5706f481f463c73af69af8");
+import(path : "dd81a3971f6dacd7133eb42f", version : "8027bf5a3e373bde7d8453b0");
+import(path : "e316d3a31f8726cbc70fe081", version : "1ced5f9252d960ede6fe5632");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "45d4504d059b748ebf938c51");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "3eb159cc8a1f8aa01f9bed32");
 
 /**
  * Places a nut strip along an edge, or extrudes one from a point.

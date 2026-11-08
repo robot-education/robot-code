@@ -4,8 +4,8 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "onshape/std/holetables.gen.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
-export import(path : "603be214b7d30fd438966545", version : "6048f4d0de53918690ae60ad");
-import(path : "8fc3df84a88e74d27ad43d26", version : "9101663235e59b9dbecc10b3");
+export import(path : "603be214b7d30fd438966545", version : "81c3f377a07c755804b5c678");
+import(path : "8fc3df84a88e74d27ad43d26", version : "efcfb18198f57419a7a7ad43");
 
 
 export import(path : "21762d39019c8b2289e2fbb8", version : "f6af82a6032c39fbab6ef618");
@@ -14,7 +14,7 @@ export import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfb
 import(path : "b75434df23d86ba9542f761e", version : "410f29dc5fa8b0fe88f1e9c5");
 import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
+import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 // Also exports the enum used as a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 // Exports Fit: released shafts have a fit parameter, and Onshape looks up its enum in the feature's file to load them
