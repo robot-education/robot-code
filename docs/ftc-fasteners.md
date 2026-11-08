@@ -18,7 +18,8 @@ From ConfigLib, FTC's library in FRCDesign, over the last year (`fs cots 'screw|
 | Custom Nut | 333 | M4 241, M3 62, M6 13, M5 6; hex 329, square 4 |
 | Custom Washer | 217 | M4 193, custom 15, M3 5, M5 3 |
 
-So the defaults are an M4 socket head, an M4 nylock, and an M4 washer. FTC's countersunk M4s are bought
+So the size and head default to an M4 socket head, an M4 nylock, and an M4 washer; the vendor and finish default to
+the cheapest (below). FTC's countersunk M4s are bought
 elsewhere (ConfigLib's references are Amazon's), since neither goBILDA nor REV sells one. Screw lengths are typed,
 so FRCDesign doesn't count them.
 
@@ -110,11 +111,34 @@ models for these, so they take the standard's nominal dimensions (ISO 4762, ISO 
 
 AndyMark sells no metric flat washer for M3 or M4.
 
+## Defaults: the cheapest
+
+Where usage doesn't decide, a part defaults to its cheapest: the vendor, and so the finish, with the lowest price per
+piece in the pack sizes it sells. Prices from each vendor's store on 2026-11-08, each per piece in the largest pack
+offered, the smallest pack's in brackets. McMaster-Carr's join once its metric tables are in.
+
+| Part | goBILDA | AndyMark | REV | Default |
+| --- | --- | --- | --- | --- |
+| M4 x 10 socket head | $0.068 (250); $0.136 (25) | $0.20 | — | goBILDA |
+| M4 x 10 button head | $0.136 (25) | — (35 mm only, $0.16) | — | goBILDA |
+| M4 nylock | $0.060 (250); $0.120 (25) | $0.13 | — | goBILDA |
+| M4 hex nut | $0.100 (25) | — | — | goBILDA |
+| M4 flat washer, 8 mm | $0.040 (250); $0.080 (25) | — | — | goBILDA |
+| M3 x 6 socket head | Not priced (6 pack) | $0.12 | — | AndyMark |
+| M3 x 6 to 35 hex cap | — | — | $0.105 to $0.18 (100) | Once REV prices each length |
+| M3 nylock | — | $0.06 | $0.06 to $0.0875 (100) | AndyMark, unless REV's nyloc is its $0.06 |
+| M3 hex nut | — | $0.04 | $0.06 to $0.0875 (100) | AndyMark |
+
+goBILDA prices a screw by length, and a 250 pack halves its price per piece. REV quotes one price range per product,
+not per length, so its per-length prices have to be read off the product page's options. ConfigLib's default
+material, 18-8 stainless, isn't the cheapest anywhere these sell M4, so the default finish is goBILDA's zinc plating.
+
 ## McMaster-Carr
 
-McMaster-Carr's pages refuse automated reads, so its part numbers come from you (below), not a fetch. ConfigLib's
-default material, 18-8 stainless, is McMaster-Carr's too. The series to take them from, with the few numbers
-search results confirm:
+McMaster-Carr's pages refuse automated reads, so its part numbers come from you (below), not a fetch. Each table
+lists a size's lengths with up to four supplies, each its own part number and price: a small pack imported, a small
+pack of United States origin, and a large pack of each. The catalog takes, for each length, the supply cheapest per
+piece. The series to take them from, with the few numbers search results confirm:
 
 | Part | Series | Confirmed |
 | --- | --- | --- |
@@ -152,5 +176,6 @@ Still needed:
 | REV M3 washer, REV-41-2886 | Nothing published | A STEP, or calipers: inner diameter, outer diameter, thickness |
 | goBILDA split lock washer, 2809-0004-0007 | Its model is freeform, so it gives only the outside | Its section's width and thickness, if lock washers are offered |
 | REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
-| McMaster-Carr's M3 and M4 parts | Its pages refuse automated reads | Each series' table above copied from its page (part numbers, lengths, thread lengths), and a STEP of one length per head, nut, and washer, from the part's CAD tab |
+| McMaster-Carr's M3 and M4 parts | Its pages refuse automated reads | Each series' metric table (System of Measurement: Metric, then Thread Size M3 x 0.5 and M4 x 0.7), every length and supply with its price, and a STEP of one length per head, nut, and washer, from the part's CAD tab |
+| REV's price per length | REV quotes one range per product | Each option's price on the hex cap screw and M3 nut pages |
 | AndyMark M4 lock washer, am-1548 | Its outer diameter isn't stated | Calipers on one, or a STEP (optional) |
