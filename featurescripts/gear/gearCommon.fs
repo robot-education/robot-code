@@ -63,10 +63,15 @@ function involute(angle is ValueWithUnits) returns ValueWithUnits
 
 /**
  * Half of a gear's tooth's angular width at `radius` (at least its base radius): its flank's angle from its center
- * line. An involute offset along its normal is the same involute rotated, by the offset over the base radius.
+ * line. An involute offset along its normal is the same involute rotated, by the offset over the base radius. A form
+ * with a `flankAngle` function (a spherical involute bevel gear's, see `sphericalBevelForm`) gives it instead.
  */
 export function toothHalfAngle(form is map, radius is ValueWithUnits) returns ValueWithUnits
 {
+    if (form.flankAngle != undefined)
+    {
+        return form.flankAngle(radius);
+    }
     const atRadius = acos(min(form.baseRadius / radius, 1));
     return 90 * degree / form.teeth + involute(form.pressureAngle) - involute(atRadius) + form.offset / form.baseRadius * radian;
 }
@@ -252,10 +257,12 @@ const SLOT_STEPS = 50;
 /**
  * The root of a gear's gaps, on a tooth's clockwise side (for a tooth centered at angle 0): below its involute, a
  * radial line up to where the involute starts (its base circle, or above it, up to half the tooth's height, to make
- * room for the fillet), and a fillet between it and the root circle (`form.filletFraction` of the full round's radius,
+ * room for the fillet; with `form.contactRadius`, no higher than that, where its mate's tips touch it, see
+ * `lowestContactRadius`), and a fillet between it and the root circle (`form.filletFraction` of the full round's radius,
  * or a router bit's `form.filletRadius`); or a full round, tangent to both sides' lines (and, by fraction, the root
  * circle; a router bit's, where two of its fillets don't fit in the gap, but it reaches the root circle between the
- * lines); or without a fillet, a sharp corner.
+ * lines); or without a fillet, a sharp corner. With `form.contactRadius`, a full round which doesn't fit below the
+ * line's top is the largest fillet which does: tangent to the root circle, and the line at its top.
  *
  * A router bit too wide to reach the root circle between the lines cuts a slot instead (`gearSlot`), as robot gears
  * cut with a router are: the bit's path straight down the middle of the gap, square to the pitch circle, to the root
@@ -284,7 +291,8 @@ export function gearRoot(form is map) returns map
     // inside the involute, relieving it rather than interfering
     const lineTopFor = function(fillet is ValueWithUnits) returns ValueWithUnits
         {
-            return max(form.baseRadius, rootRadius + min(2 * fillet, (form.tipRadius - rootRadius) / 2));
+            const top = rootRadius + min(2 * fillet, (form.tipRadius - rootRadius) / 2);
+            return max(form.baseRadius, form.contactRadius == undefined ? top : min(top, form.contactRadius));
         };
     // Half the gap's angle, between the lines
     const halfGapAt = function(lineTop is ValueWithUnits) returns ValueWithUnits
@@ -299,6 +307,8 @@ export function gearRoot(form is map) returns map
 
     var fillet;
     var lineTop;
+    // A fillet, not a full round, though by fraction it'd be one
+    var partial = form.filletFraction != 1;
     if (form.filletFraction != undefined)
     {
         // The full round: tangent to the root circle and both sides' lines
@@ -311,7 +321,13 @@ export function gearRoot(form is map) returns map
         lineTop = lineTopFor(full);
         if (form.filletFraction > 0 && (rootRadius + full) * cos(halfGapAt(lineTop)) > lineTop + TOLERANCE.zeroLength * meter)
         {
-            throw regenError("Full root fillet does not fit below the flanks, select a smaller root fillet.", ["rootFillet"]);
+            if (form.contactRadius == undefined)
+            {
+                throw regenError("Full root fillet does not fit below the flanks, select a smaller root fillet.", ["rootFillet"]);
+            }
+            // The largest which does: its center the root radius and it out, its tangent on the line at the line's top
+            full = (lineTop ^ 2 - rootRadius ^ 2) / (2 * rootRadius) / form.filletFraction;
+            partial = true;
         }
         fillet = full * form.filletFraction;
     }
@@ -344,7 +360,7 @@ export function gearRoot(form is map) returns map
     // A fillet tangent to the root circle (outside it) and the line (on the gap's side)
     const centerRadius = rootRadius + fillet;
     const offAngle = asin(fillet / centerRadius);
-    if (form.filletFraction != 1 && offAngle < halfGap && centerRadius * cos(offAngle) <= lineTop)
+    if (partial && offAngle < halfGap && centerRadius * cos(offAngle) <= lineTop + TOLERANCE.zeroLength * meter)
     {
         const centerAngle = -lineAngle - offAngle;
         const center = polar(centerRadius, centerAngle);
@@ -481,6 +497,39 @@ export function rackToothCenters(form is map, length is ValueWithUnits, gap is V
 }
 
 /**
+ * A partial rack's teeth (or a partial round face's), of the whole teeth along it (`centers`, as far from its start
+ * as they're centered, in order, `pitch` apart, as `rackToothCenters` gives them): the first `count` (or all, if it's
+ * `undefined`), and none so far along that the gap after it runs past `stop` (as far from the start; or anywhere, if
+ * it's `undefined`), its far side being the next tooth's flank, which leaves its root `halfRoot` from its center. The
+ * next tooth after them (`stopCenter`, `undefined` if they're all of them) is left with the face past it: tooth shaped
+ * on its near side, as a stop, so there's no partial tooth.
+ *
+ * @returns {{
+ *      @field centers {array} :
+ *      @field stopCenter : @optional
+ * }}
+ */
+export function partialTeeth(centers is array, pitch is ValueWithUnits, halfRoot is ValueWithUnits, count, stop) returns map
+{
+    var kept = size(centers);
+    if (count != undefined)
+    {
+        kept = min(kept, count);
+    }
+    if (stop != undefined && centers != [])
+    {
+        // The next tooth's root mustn't be past it
+        kept = min(kept, floor((stop + halfRoot - centers[0]) / pitch + TOLERANCE.zeroLength));
+    }
+    kept = max(kept, 0);
+    if (kept >= size(centers))
+    {
+        return { "centers" : centers };
+    }
+    return { "centers" : subArray(centers, 0, kept), "stopCenter" : centers[kept] };
+}
+
+/**
  * A rack's root: `1.25 m` below its pitch line, less the profile offset.
  */
 export function rackRoot(form is map) returns ValueWithUnits
@@ -495,8 +544,11 @@ export function rackRoot(form is map) returns ValueWithUnits
  * `centers` (see `rackToothCenters`), cut off at the face if they'd reach past it; beyond the first and last, it's cut
  * to the root. The roots are rounded as the form says (see `rackRootFilletRadius` and `relieveRackRoots`), which puts
  * arcs in the regions: a map `{ "mid" : Vector }` between two points is an arc through it, rather than a line.
+ *
+ * A partial rack's `stop` (or `undefined`) is a tooth (its `center`) after its teeth (or before them, unless it's
+ * `after`), past which nothing's cut: the face past it is left as it is, shaped like a tooth on its near side.
  */
-export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array) returns array
+export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length is ValueWithUnits, centers is array, stop) returns array
 {
     const root = rackRoot(form);
     const tip = min(form.module + form.offset, faceHeight);
@@ -513,12 +565,15 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
         {
             return vector(x, y - faceHeight);
         };
+    // With a stop, its tooth too, at the end it's at
+    const stopAfter = stop != undefined && stop.after;
+    const teeth = stop == undefined ? centers : stopAfter ? append(centers, stop.center) : concatenateArrays([[stop.center], centers]);
     var regions = [];
     if (tip < faceHeight)
     {
         // The teeth stop short of the face: one region, over them
         var points = [at(0 * meter, faceHeight), at(0 * meter, root)];
-        for (var center in centers)
+        for (var center in teeth)
         {
             points = concatenateArrays([points, [
                             at(center - rackHalfWidth(form, root), root),
@@ -527,20 +582,41 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
                             at(center + rackHalfWidth(form, root), root)
                         ]]);
         }
-        regions = [concatenateArrays([points, [at(length, root), at(length, faceHeight)]])];
+        points = concatenateArrays([points, [at(length, root), at(length, faceHeight)]]);
+        if (stopAfter)
+        {
+            // Up from the stop's near flank's tip to the face, and nothing past it
+            const flank = teeth[size(teeth) - 1] - rackHalfWidth(form, tip);
+            points = append(subArray(points, 0, size(points) - 4), at(flank, faceHeight));
+        }
+        else if (stop != undefined)
+        {
+            const flank = teeth[0] + rackHalfWidth(form, tip);
+            points = concatenateArrays([[at(flank, faceHeight)], subArray(points, 4)]);
+        }
+        regions = [points];
     }
     else
     {
         // The teeth reach the face: a region for each gap, between the ends and the teeth's flanks
         var top = at(0 * meter, faceHeight);
         var bottom = at(0 * meter, root);
-        for (var center in centers)
+        for (var center in teeth)
         {
             regions = append(regions, [top, bottom, at(center - rackHalfWidth(form, root), root), at(center - rackHalfWidth(form, tip), tip)]);
             top = at(center + rackHalfWidth(form, tip), tip);
             bottom = at(center + rackHalfWidth(form, root), root);
         }
         regions = append(regions, [top, bottom, at(length, root), at(length, faceHeight)]);
+        // Nothing's cut past the stop
+        if (stopAfter)
+        {
+            regions = resize(regions, size(regions) - 1);
+        }
+        else if (stop != undefined)
+        {
+            regions = subArray(regions, 1);
+        }
     }
     // A tooth whole to an end (within tolerance) leaves points on top of each other there
     regions = filter(mapArray(regions, region => distinctPoints(region)), region => size(region) >= 3);
@@ -801,11 +877,11 @@ export function sketchRackCut(context is Context, id is Id, plane is Plane, regi
 }
 
 /**
- * A straight bevel gear's cones, by Tredgold's approximation, for `teeth` meshing with `mateTeeth` with their shafts
- * `shaftAngle` apart: its pitch cone's angle from its axis, its pitch circle's radius (at its back), the cone
- * distance (along its pitch cone, from its apex to that circle), and its virtual teeth. Its teeth are a spur gear's on
- * its back cone (the cone square to its pitch cone at its back), whose radius is the pitch radius over the pitch
- * angle's cosine: a spur gear with `teeth / cos(pitchAngle)` teeth, not a whole number.
+ * A straight bevel gear's cones, for `teeth` meshing with `mateTeeth` with their shafts `shaftAngle` apart: its pitch
+ * cone's angle from its axis, its pitch circle's radius (at its back), the cone distance (along its pitch cone, from
+ * its apex to that circle), and its virtual teeth, for Tredgold's approximation: its teeth as a spur gear's on its back
+ * cone (the cone square to its pitch cone at its back), whose radius is the pitch radius over the pitch angle's cosine:
+ * a spur gear with `teeth / cos(pitchAngle)` teeth, not a whole number.
  *
  * @returns {{
  *      @field pitchAngle {ValueWithUnits} :
@@ -827,12 +903,210 @@ export function bevelCones(module is ValueWithUnits, teeth is number, mateTeeth 
 }
 
 /**
- * Sketches the gap between two of a gear's teeth on `plane` (centered on the gear's center), and returns its face: from
- * its root (rounded as `halfGapCurves` rounds a gear's) to a module past the tip, between the tooth centered on the
- * plane's x axis and the next one around. For cutting a bevel gear's teeth (see `bevelCones`), whose `form` can have a
- * fractional number of teeth.
+ * Gleason's allowance on a straight bevel gear's whole depth (`2.188 m` and this), as the cutter's: its clearance is a
+ * little more than `0.188 m`.
  */
-export function sketchToothGap(context is Context, id is Id, plane is Plane, form is map) returns Query
+const GLEASON_DEPTH_ALLOWANCE = 0.002 * inch;
+
+/**
+ * A straight bevel gear's proportions at its back, by Gleason's system for straight bevel gears (as KHK's and Boston
+ * Gear's are), for `teeth` meshing with `mateTeeth`, with pitch cones `pitchAngle` and `matePitchAngle` from their axes:
+ *
+ * - A working depth of `2 m`, shared between them by their ratio, so a small pinion's teeth are long and thick, and
+ *   don't undercut: the gear with more teeth's addendum is `0.54 m + 0.46 m / m90²`, where `m90²` is
+ *   `z_gear cos(pitch angle_pinion) / (z_pinion cos(pitch angle_gear))` (their ratio, squared, at a right angle), and
+ *   the pinion's is the rest. A pair with the same teeth has `m` each.
+ * - A whole depth of `2.188 m` (and Gleason's allowance, `GLEASON_DEPTH_ALLOWANCE`): its dedendum is the rest.
+ * - Its circular thickness at its back's pitch circle: half the circular pitch, and the difference in their addenda
+ *   times the pressure angle's tangent (as a profile shift would), so the pair's add up to the circular pitch. Gleason
+ *   also takes a little more from the gear for the pinion (`K m`, from a chart, for strength): that's left out.
+ *
+ * @returns {{
+ *      @field addendum {ValueWithUnits} :
+ *      @field dedendum {ValueWithUnits} :
+ *      @field mateAddendum {ValueWithUnits} :
+ *      @field mateDedendum {ValueWithUnits} :
+ *      @field thickness {ValueWithUnits} :
+ * }}
+ */
+export function gleasonProportions(module is ValueWithUnits, teeth is number, mateTeeth is number, pitchAngle is ValueWithUnits,
+    matePitchAngle is ValueWithUnits, pressureAngle is ValueWithUnits) returns map
+{
+    const isGear = teeth >= mateTeeth;
+    const ratio = isGear ? teeth * cos(matePitchAngle) / (mateTeeth * cos(pitchAngle)) : mateTeeth * cos(pitchAngle) / (teeth * cos(matePitchAngle));
+    const gearAddendum = module * (0.54 + 0.46 / ratio);
+    const addendum = isGear ? gearAddendum : 2 * module - gearAddendum;
+    const mateAddendum = 2 * module - addendum;
+    const wholeDepth = 2.188 * module + GLEASON_DEPTH_ALLOWANCE;
+    return {
+            "addendum" : addendum,
+            "dedendum" : wholeDepth - addendum,
+            "mateAddendum" : mateAddendum,
+            "mateDedendum" : wholeDepth - mateAddendum,
+            "thickness" : PI * module / 2 + (addendum - mateAddendum) * tan(pressureAngle)
+        };
+}
+
+/**
+ * The least radius a gear's flanks (pitch radius `pitchRadius`: a bevel gear's virtual spur gear's, on its back cone)
+ * are touched at by its mate's tips (its pitch radius `matePitchRadius`, its tips `mateAddendum` past it), meshing at
+ * `pressureAngle`: where the mate's tip circle crosses their line of action. Below it, its flanks can be relieved. If the
+ * mate's tips reach past where the line of action touches its base circle, its base radius (they'd interfere there).
+ */
+export function lowestContactRadius(pitchRadius is ValueWithUnits, matePitchRadius is ValueWithUnits, mateAddendum is ValueWithUnits,
+    pressureAngle is ValueWithUnits) returns ValueWithUnits
+{
+    const base = pitchRadius * cos(pressureAngle);
+    const mateBase = matePitchRadius * cos(pressureAngle);
+    // Along the line of action, from where it touches the base circle to where the mate's tips cross it
+    const along = (pitchRadius + matePitchRadius) * sin(pressureAngle) - sqrt((matePitchRadius + mateAddendum) ^ 2 - mateBase ^ 2);
+    return along <= 0 * meter ? base : sqrt(base ^ 2 + along ^ 2);
+}
+
+/**
+ * The spherical involute function: how far around its base cone's axis a spherical involute is at `angle` from the
+ * axis, from where it leaves its base cone (`baseAngle` from the axis). A spherical involute is traced by a point on a
+ * plane through the cone's apex rolling around it; `roll` is how far the plane has turned about the line it touches the
+ * cone along.
+ */
+export function sphericalInvolute(baseAngle is ValueWithUnits, angle is ValueWithUnits) returns ValueWithUnits
+{
+    const roll = acos(min(cos(angle) / cos(baseAngle), 1));
+    return roll / sin(baseAngle) - atan(tan(roll) / sin(baseAngle));
+}
+
+/**
+ * How many times `sphericalBevelForm` halves the range of angles a point on its flank is in, to find it at a radius:
+ * from the base cone to the tip, to well within std's length tolerance.
+ */
+const BEVEL_FLANK_STEPS = 50;
+
+/**
+ * A straight bevel gear's tooth form with spherical involute flanks (exactly conjugate, unlike Tredgold's virtual spur
+ * gear), as `sketchToothGap` sketches a gap: its teeth's flanks are cones through its apex, through spherical
+ * involutes on the sphere of its cone distance, so they're sketched as seen from its apex, projected onto the plane
+ * square to its pitch cone at its back, through a gap's middle. There, lines through the axis's point on the plane (the
+ * back cone's apex, the sketch's center) are planes through the axis, and scaled about its apex, the gap's the same
+ * sketch scaled. So the form is a gear's (see `getGearForm`) in that plane, centered on that point, whose
+ * `flankAngle` (see `toothHalfAngle`) is the projected flank's, whose teeth's middles are as far around as the
+ * projected teeth's (`teeth`, not a whole number), and whose roots are full rounds:
+ *
+ * - Its base cone's angle from its axis is `asin(sin(pitch angle) cos(pressure angle))`: a spherical involute from it
+ *   crosses the pitch cone at the pressure angle.
+ * - A tooth is `thickness` thick on its back's pitch circle, and offset by `offset`, as an involute is (rotated about
+ *   the axis by the offset over the base cone's radius, at the back).
+ * - Its tips (`addendum` out along the back cone from its back's pitch circle) and roots (`dedendum` in) are as far
+ *   from that circle in the plane, through the gap's middle; its tips there are the highest its teeth reach (by Gleason's
+ *   proportions, the tips come down toward the apex, see `bevelDepths`).
+ * - Its root's radial lines stay below where its mate's tips touch it (`contactRadius`, see `gearRoot`): on its back
+ *   cone's virtual spur gear, meshing with its mate's (`matePitchAngle` from its axis), whose tips are `mateAddendum`
+ *   past its pitch circle.
+ *
+ * @param cones : Its, as `bevelCones` gives them.
+ */
+export function sphericalBevelForm(module is ValueWithUnits, teeth is number, cones is map, matePitchAngle is ValueWithUnits, pressureAngle is ValueWithUnits,
+    thickness is ValueWithUnits, addendum is ValueWithUnits, dedendum is ValueWithUnits, mateAddendum is ValueWithUnits, offset is ValueWithUnits) returns map
+{
+    const pitchAngle = cones.pitchAngle;
+    const coneDistance = cones.coneDistance;
+    // The back cone's, from its apex to the pitch circle
+    const backRadius = coneDistance * tan(pitchAngle);
+    const baseAngle = asin(sin(pitchAngle) * cos(pressureAngle));
+    // Half a tooth, around the axis, at the back's pitch circle
+    const pitchHalf = (thickness / 2 / cones.pitchRadius + offset / (coneDistance * sin(baseAngle))) * radian;
+    const halfPitch = 180 * degree / teeth;
+    // How far around from the gap's middle the next tooth's flank is, at `angle` from the axis (along a plane through the
+    // axis below the base cone)
+    const flankAround = function(angle is ValueWithUnits) returns ValueWithUnits
+        {
+            return halfPitch - pitchHalf - sphericalInvolute(baseAngle, pitchAngle) + sphericalInvolute(baseAngle, max(angle, baseAngle));
+        };
+    // A direction `angle` from the axis and `around` from the gap's middle, projected onto the plane: out along the back
+    // cone from its apex, and around
+    const projected = function(angle is ValueWithUnits, around is ValueWithUnits) returns Vector
+        {
+            const along = sin(angle) * cos(around) * sin(pitchAngle) + cos(angle) * cos(pitchAngle);
+            return vector(backRadius + coneDistance * (sin(angle) * cos(around) * cos(pitchAngle) - cos(angle) * sin(pitchAngle)) / along,
+                coneDistance * sin(angle) * sin(around) / along);
+        };
+    const flankPoint = function(angle is ValueWithUnits) returns Vector
+        {
+            return projected(angle, flankAround(angle));
+        };
+    const tipAngle = pitchAngle + atan(addendum / coneDistance);
+    const baseRadius = norm(flankPoint(baseAngle));
+    // The teeth's middles, around from the gap's middle (as Tredgold's teeth are about `180° cos(pitch angle) / teeth`)
+    const toothLine = atan(tan(halfPitch) * cos(pitchAngle));
+    return {
+            "module" : module,
+            "teeth" : 180 * degree / toothLine,
+            "pressureAngle" : pressureAngle,
+            "offset" : offset,
+            "filletFraction" : 1,
+            "pitchRadius" : backRadius,
+            "baseRadius" : baseRadius,
+            "tipRadius" : norm(flankPoint(tipAngle)),
+            "rootRadius" : backRadius - dedendum,
+            "contactRadius" : lowestContactRadius(backRadius, coneDistance * tan(matePitchAngle), mateAddendum, pressureAngle),
+            "flankAngle" : function(radius is ValueWithUnits) returns ValueWithUnits
+                {
+                    // Out along the flank from the base cone to its tip, as far as `radius`: below the base cone, it's
+                    // the plane through the axis there
+                    var low = baseAngle;
+                    var high = tipAngle;
+                    if (radius <= baseRadius)
+                    {
+                        high = baseAngle;
+                    }
+                    for (var i = 0; i < BEVEL_FLANK_STEPS && radius > baseRadius; i += 1)
+                    {
+                        const middle = (low + high) / 2;
+                        if (norm(flankPoint(middle)) < radius)
+                        {
+                            low = middle;
+                        }
+                        else
+                        {
+                            high = middle;
+                        }
+                    }
+                    const point = flankPoint(high);
+                    return toothLine - atan2(point[1], point[0]);
+                }
+        };
+}
+
+/**
+ * The root a router bit of `bitRadius` cuts in a bevel gear's gap (`form`, at its back, as `sketchToothGap` sketches
+ * it) where the gap is scaled by `scale` toward its apex: as `gearRoot` gives it, at the form's size (the bit's radius
+ * over the scale), less the profile offset. Its `slot` is there where the bit's too wide to reach the gap's full round:
+ * then it cuts a slot its width straight down the gap's middle to the root (see `gearSlot`), `tooLarge` if it meets the
+ * flanks above the pitch cone.
+ */
+export function bevelBitRoot(form is map, bitRadius is ValueWithUnits, scale is number) returns map
+{
+    var bitForm = form;
+    bitForm.filletFraction = undefined;
+    bitForm.filletRadius = bitRadius / scale - form.offset;
+    return gearRoot(bitForm);
+}
+
+/**
+ * `curves` (see `halfGapCurves`) scaled about the center by `scale`.
+ */
+function scaledCurves(curves is array, scale is number) returns array
+{
+    return mapArray(curves, curve => mergeMaps(curve, { "points" : mapArray(curve.points, point => point * scale) }));
+}
+
+/**
+ * Sketches the gap between two of a gear's teeth on `plane` (centered on the gear's center), scaled about its center by
+ * `scale`, and returns its face: from its root (rounded as `halfGapCurves` rounds a gear's) to a module past the tip,
+ * between the tooth centered on the plane's x axis and the next one around. For cutting a bevel gear's teeth, whose
+ * `form` (a Tredgold virtual spur gear's, see `bevelCones`, or `sphericalBevelForm`) can have a fractional number of
+ * teeth, at both ends of the gap.
+ */
+export function sketchToothGap(context is Context, id is Id, plane is Plane, form is map, scale is number) returns Query
 {
     const pitch = 360 * degree / form.teeth;
     // Down the first tooth's counterclockwise side (its clockwise side's, mirrored) and up the next's clockwise side
@@ -845,7 +1119,7 @@ export function sketchToothGap(context is Context, id is Id, plane is Plane, for
             { "shape" : "line", "points" : [polar(outside, tipAngle), polar(form.tipRadius, tipAngle)] }
         ];
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    sketchCurves(sketch, "gap", concatenateArrays([mirroredCurves(halfGap), rotatedCurves(halfGap, pitch), top]));
+    sketchCurves(sketch, "gap", scaledCurves(concatenateArrays([mirroredCurves(halfGap), rotatedCurves(halfGap, pitch), top]), scale));
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);
 }

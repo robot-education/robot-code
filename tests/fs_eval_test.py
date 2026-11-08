@@ -220,3 +220,10 @@ def test_enum_values_cast_to_enums_with_their_name():
 def test_unavailable_builtins_say_so():
     with pytest.raises(FSError, match="@evDistance isn't available"):
         run("", "evDistance(newContext(), { side0 : vector(0, 0, 0) * meter, side1 : vector(1, 0, 0) * meter })")
+
+
+def test_integer_ranges_are_whole_numbers():
+    # So their values index arrays and name things exactly, as std's examples have them
+    assert to_python(run("", "range(0, 49)")) == list(range(50))
+    assert to_python(run("", "range(0, 10, 6)")) == [0, 2, 4, 6, 8, 10]
+    assert to_python(run("", "range(0, 4.5, 4)")) == [0, 1.5, 3, 4.5]

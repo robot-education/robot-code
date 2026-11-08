@@ -16,8 +16,12 @@ A feature's `definition` is a map, and each parameter its precondition declares 
 - The precondition isn't run like a function. Onshape reads it to learn the keys, their types, and their annotations,
   and to lay out the dialog, deciding its `if`s with the current values.
 - Every parameter declared anywhere in the precondition (in any branch of an `if`, or in a predicate it calls) is a key
-  with a value, its default until it's set, whether or not it's shown, and it keeps its value while it's hidden. A
-  condition can read a parameter declared after it or in another branch.
+  with a value, its default until it's set, whether or not it's shown, and it keeps its value while it's hidden.
+- A condition can only read parameters declared before it, earlier in the precondition (or in the predicates called
+  before it): FsDoc's conditions are comparisons of "prior boolean and enum parameters" (`docs/fsdoc/uispec.md`). So
+  what decides whether a parameter is shown comes above it in the dialog: to show something by a choice made lower
+  down, move the choice up (Robot gear's Root fillet is shown by Gear type, at the top, not by Simplified bevels, in
+  Other options). `fs check` reports a condition reading a parameter declared after it (`parameter-order`).
 - While a feature runs (its body, editing logic, and manipulator change functions), every parameter has a value of
   its type: don't guard parameters with `?? false`, `is boolean`, `isLength(...)`, and the like, even ones whose
   conditions say they aren't shown (`definition.tieLength` is a length whatever `definition.tieHolesBy` is). Where a
@@ -25,7 +29,7 @@ A feature's `definition` is a map, and each parameter its precondition declares 
   its type.
 - Conditions can't read a lookup table's value. To show parameters by what's chosen in one, set a hidden
   (`ALWAYS_HIDDEN`) parameter from it in editing logic, and use that, as std's hole does with `threadStandard` and
-  robotFrame does with `rectangularFrame` (see "Hidden parameters set by editing logic").
+  robotFrame does with `noTopHoles` (see "Hidden parameters set by editing logic").
 - So a parameter can't be declared twice, even in different branches of an `if`: both would be the same key. Declare
   it once where both branches can share it (as `stockLocationPredicate` does with the secondary axis), and `fs check`
   reports it if you don't.
@@ -80,6 +84,16 @@ Don't implement the "editing logic boomerang", where editing logic computes a va
 
 The feature's body should use the same predicates, so the parameters it reads are exactly the ones shown.
 
+Treat a boomerang as a code smell, a symptom of bad UI design, and add one only when it's strictly necessary, which in
+practice means a lookup table's value (see "Hidden parameters set by editing logic"). In particular, never add one to
+get around the dialog's order: a hidden parameter high in the precondition, set by editing logic from parameters below
+it, so a condition up there can read what it can't (see "Definitions are maps"). Reorder the dialog instead, so what
+decides what's shown comes first.
+
+Editing logic which responds to a selection by changing the visible parameters is fine, and isn't a boomerang: Robot
+gear's switches Size by to Pitch circle (moving the selection there) when a circle that's a pitch circle at the gear's
+pitch is picked as its location.
+
 A precondition's conditions can only use parameters, enum values, literals, and predicates, because Onshape works
 out which parameters to show without running the feature. Constants and functions don't work (`fs check` warns about
 them). When a UI state depends on data, like whether the chosen part has some property, generate the predicate from
@@ -98,27 +112,27 @@ from the selections (`mountingEditLogic`) or filling in a plane from selected ge
 
 ## Hidden parameters set by editing logic
 
-The one boomerang that's needed: what a precondition can't read, like a lookup table's value (whether the chosen frame
-is 2x1, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
+The one boomerang that's needed, and the only common one: what a precondition can't read, like a lookup table's value
+(whether the chosen frame has no holes, or the chosen motor has a block model). Write a function of the definition which works it out, name it in the
 hidden parameter's annotation with `"Set By"` (a key of ours, for the tools: Onshape ignores keys it doesn't know, as
 `fs check`'s annotation key rule has it), and set the parameter from it first thing in editing logic, on every change:
 
 ```
 // Set by editing logic, as Onshape can't show parameters by a lookup table's value
-annotation { "Name" : "Rectangular frame", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isRectangularFrame" }
-definition.rectangularFrame is boolean;
+annotation { "Name" : "No top holes", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isNoTopHolesFrame" }
+definition.noTopHoles is boolean;
 
 ...
 
-function isRectangularFrame(definition is map) returns boolean
+function isNoTopHolesFrame(definition is map) returns boolean
 {
-    return isCustomFrame(definition) && isRectangular(frameTableEntry(definition));
+    return isCustomFrame(definition) && noRows(definition, "topRows", "topHoles");
 }
 
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    definition.rectangularFrame = isRectangularFrame(definition);
+    definition.noTopHoles = isNoTopHolesFrame(definition);
     ...
 ```
 
@@ -128,8 +142,8 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
 - **The function takes just the definition**, `(definition is map)`, and returns the parameter's type. It doesn't need
   the part studio (that's for editing logic itself), so it can be worked out without Onshape.
 - **The tools follow it**: `fs ui`, `fs audit`'s page, and the VS Code preview don't run editing logic, but they run a
-  "Set By" function with the evaluator (`fs_cli/set_by.py`), so the dialog shows what Onshape would: choosing a 2x1
-  frame shows its faces' row distances. The audit page has its value for every combination of the choices it reads.
+  "Set By" function with the evaluator (`fs_cli/set_by.py`), so the dialog shows what Onshape would: choosing a
+  custom tube with no rows of holes hides the hole parameters. The audit page has its value for every combination of the choices it reads.
   The preview reads the files as they're saved.
 - **`fs check` checks it**: the function exists, takes the definition, and returns the parameter's type; the parameter
   is hidden; and the editing logic declares `isCreating` and sets it from the function directly in its body, before
@@ -196,6 +210,9 @@ A released feature's file keeps exporting an enum it used as a parameter's type,
 Onshape looks the enum up in the feature's file to load its stored value, and reports "enum ... not found" otherwise.
 Keep the `export import`, with `// fs check: ignore unused-import` on the line before it (Robot shaft's `Fit`).
 
+Moving an enum to another module is fine, with no restrictions: documents store its values, not where it's defined, so
+it only has to stay reachable from the feature's file (defined there, or imported with `export import`).
+
 ## Buttons
 
 A button is a parameter declared with std's `isButton` (`annotation { "Name" : "Clear invalid selections" }
@@ -227,6 +244,21 @@ field), and don't use std predicates which declare parameters that can be, like 
 `extrudeBoundParametersPredicate`: use the copies without it in `core/stdExtrude.fs` (`extrudeBoundsPredicate`,
 `extrudeSecondBoundsPredicate`, and the `extrudePredicate` built from them). `fs check` warns about both
 (`tolerant-parameter`), reading std's predicates from its copy of std's source.
+
+## Length bounds
+
+Give a length parameter's bounds a default in inches and in millimeters, as teams' Part Studios use one or the other,
+each a round number in its own unit (what a team would type), not the other's converted: 1/2 in. and 12 mm, not
+12.7 mm. List the range first, in meters, then the defaults:
+
+```
+const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
+```
+
+The first unit's array is the minimum, default, and maximum, in it; each other unit is the default for a Part Studio
+in it. A unit without one gets the first unit's default, converted (`{ (inch) : [0, 1, 1e4] }` starts at 25.4 mm), so
+`fs check` warns about bounds without both (`bound-defaults`). Other units (centimeters, feet, yards) are optional:
+teams rarely use them. Std's bounds (`NONNEGATIVE_LENGTH_BOUNDS`, `BLEND_BOUNDS`, ...) already have both.
 
 ## Negative values
 
@@ -536,9 +568,27 @@ Std's `query.fs` has the queries most code needs. The ones which come up most:
 - `qOwnedByBody(body, entityType)`: the faces, edges, or vertices of a body.
 - `qSketchRegion(sketchId, filterInnerLoops)`: a sketch's regions (with `true`, leaving out regions inside others, like
   a tube's hollow).
+- `sketchEntityQuery(sketchId, entityType, entityId)`: a sketch entity by the id it was sketched with (like a line's,
+  `"block.low"`).
 - Filters: `qGeometry(GeometryType.CYLINDER)`, `qBodyType(BodyType.SOLID)`, `qSketchFilter(SketchObject.YES)`,
-  `qEntityFilter(EntityType.FACE)`, `qCoincidesWithPlane(plane)`, `qContainsPoint(point)`, `qParallelPlanes(plane)`.
+  `qEntityFilter(EntityType.FACE)`.
 - Combining: `qUnion`, `qSubtraction`, `qIntersection`, and `qNthElement`.
+
+Find entities by their history (what made them, and what from), not by where they are. Geometric queries
+(`qContainsPoint`, `qIntersectsPlane`, `qInFrontOfPlane`, `qCoincidesWithPlane`, `qParallelPlanes`, and the like)
+evaluate every candidate's geometry, so they're slow (Robot frame's swept faces, by `qIntersectsPlane`, took 56 ms
+of a frame's regen), and brittle: they find whatever happens to be there. Use one only where history can't say
+which entity it is, and say why beside it.
+
+To extrude a sketch, take its regions as other features do: `qSketchRegion(sketchId)`, or
+`qSketchRegion(sketchId, true)` for a profile with holes (a tube's hollow), or `qCreatedBy(sketchId, EntityType.FACE)`,
+and at most one simple filter. `qSketchRegion(sketchId, true)` leaves out regions inside others (holes), but not one
+touching the outside boundary: a hole crossing (or tangent to) the sketch's edge is extruded with the rest. Rather than
+picking regions apart, don't sketch what would be wrong (like a hole reaching the sketch's edge).
+
+To tag faces (with attributes, like a frame's), tag them by history as they're made: attributes go with their
+entities through later operations (split pieces each keep them, patterned copies get them, and merged entities keep
+both; std's attributes.fs), so they needn't be found again on the finished part.
 
 To follow entities through later operations which change them (an offset, a shell, a boolean), wrap the query in
 `startTracking` before those operations: `startTracking(context, qCreatedBy(id + "fillet", EntityType.FACE))` resolves,
@@ -581,12 +631,12 @@ A function declared with `function name(...)` (or a predicate) can only be calle
 `mapArray` or `filter`, declare it as a const set to a function instead; it can still be called the same way:
 
 ```
-const holeInstanceName = function(k is number) returns string
+const holeTransform = function(k is number) returns Transform
     {
-        return "" ~ k;
+        return transform(step * k);
     };
 
-mapArray(instances, holeInstanceName);
+mapArray(instances, holeTransform);
 ```
 
 ## Unused variables
@@ -602,6 +652,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A feature's precondition can't declare a parameter more than once, even in different branches of an `if`, and array
   parameters' items' parameters count too: an item's parameter can't share a name with any other parameter.
 - Predicates in a precondition's `if` conditions can't call other predicates.
+- A precondition's conditions can only read parameters declared before them, directly or through the predicates the
+  precondition calls (see "Definitions are maps").
 - A feature's annotation (its `"Feature Type Name"`) must be right before its `defineFeature`: Onshape attaches an
   annotation to the declaration after it, so a const between them takes it ("Nonconforming feature function").
 - Annotation keys must be ones Onshape knows (std's, and `Icon`): it ignores others, so a misspelled one (`"Driving
@@ -620,8 +672,13 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - Std functions must be called with as many arguments as one of their overloads takes (`a->f(b)` passes `a` too):
   Onshape reports "Function f with 2 argument(s) not found".
 - A function's variables can't be named as its parameters ("Variable x already declared in this scope").
+- All of an id's operations come one after another ("Parent Id ... used at two non-contiguous points in operation
+  history"): within a function, operations under `id + "cell"` (through an alias like `const cellId = id + "cell";`, and
+  calls to this file's functions which make operations) can't resume after one under another id, counting a loop's body
+  twice and leaving out a branch which throws or returns. Build each id's operations together, or give them other ids.
 - Annotation strings (names, descriptions) must be printable ASCII: no degree signs or curly quotes.
 - No comparisons with `true` or `false`; use the value, or `!` it.
+- `LengthBoundSpec`s have an `(inch)` and a `(millimeter)` default (see "Length bounds").
 - No parameters which can be toleranced, directly or through std's predicates (see "No field tolerancing").
 - Precondition conditions may only use parameters, enum values, literals, and predicates.
 - No unused or unknown imports, std's too: a std module (other than `common.fs`) whose names the file doesn't use, or

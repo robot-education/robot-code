@@ -21,6 +21,7 @@
     "1dbb81f94847cad5d242eb98": "released/grid/robotGrid.fs",
     "20659432897c109a97ad647f": "released/belt/robotBeltUiCommon.fs",
     "21762d39019c8b2289e2fbb8": "core/stdExtrude.fs",
+    "2e446fc39b56fd5bff8ff054": "core/cutStock.fs",
     "3651d7ff6d8577f322b85723": "core/program.fs",
     "452d43a015d17145ad7775e4": "core/boundary.fs",
     "45dff3bbc433a900eed1ccbc": "core/opPointTransform.fs",

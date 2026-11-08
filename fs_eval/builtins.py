@@ -179,7 +179,8 @@ def b_range(interp, args, at):
     span = interp.binary("-", end, start, at)
     items = []
     for i in range(count):
-        step = interp.binary("*", span, float(i) / (count - 1), at)
+        # Multiplied before it's divided, so an integer range's values are whole numbers (13, not 12.999999999999998)
+        step = interp.binary("/", interp.binary("*", span, float(i), at), float(count - 1), at)
         items.append(interp.binary("+", start, step, at))
     return FSArray(tuple(items))
 

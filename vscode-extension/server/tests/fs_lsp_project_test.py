@@ -300,6 +300,27 @@ def test_lints(project):
     assert ("boolean-comparison", "== true") in problems
 
 
+def test_length_bounds_have_inch_and_millimeter_defaults(project):
+    path = project.code_dir / "bounds.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "export const BOTH = { (meter) : [0, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;\n"
+        "export const INCH = { (inch) : [0, 1, 1e4] } as LengthBoundSpec;\n"
+        "export const METRIC = {\n    (meter) : [0, 0.001, 500],\n    (millimeter) : 1\n} as LengthBoundSpec;\n"
+        # Units inside the range don't count, and other bounds aren't lengths
+        "export const NESTED = { (meter) : [(inch) / meter, 1, 2] } as LengthBoundSpec;\n"
+        "export const ANGLE = { (degree) : [0, 1, 2] } as AngleBoundSpec;\n"
+    )
+    module = project.module(path)
+    problems = [(module.parsed.source[p.start:p.end].split()[0], p.message)
+                for p in project.check(module) if p.code == "bound-defaults"]
+    assert [text for text, _ in problems] == ["{", "{", "{"]
+    messages = [message for _, message in problems]
+    assert "(millimeter)" in messages[0] and "(inch)" not in messages[0]
+    assert "(inch)" in messages[1] and "(millimeter)" not in messages[1]
+    assert "(inch) and (millimeter)" in messages[2]
+
+
 def test_parameter_enums_must_be_exported(project):
     (project.code_dir / "core" / "shapes.fs").write_text(
         "FeatureScript 2909;\nexport enum Shape { CIRCLE }\n"
@@ -995,6 +1016,41 @@ def test_horizontal_enums_go_at_the_top(project):
     assert problems(shown + horizontal + "        modePredicate(definition);\n") == ["other", "modePredicate"]
 
 
+def test_conditions_read_only_parameters_declared_before_them(project):
+    (project.code_dir / "core" / "shapes.fs").write_text(
+        "FeatureScript 2909;\n"
+        "export predicate sizePredicate(definition is map)\n{\n"
+        "    definition.size is boolean;\n}\n"
+        "export predicate widthPredicate(definition is map)\n{\n"
+        "    if (definition.wide)\n    {\n        definition.width is boolean;\n    }\n}\n"
+    )
+    feature = (
+        f'FeatureScript 2909;\nexport import(path : "{SHAPES_ID}", version : "v");\n'
+        "predicate isBig(definition is map)\n{{\n    definition.big;\n}}\n"
+        "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+        "    precondition\n    {{\n{body}    }}\n    {{\n    }});\n"
+    )
+    path = project.code_dir / "feature2.fs"
+
+    def problems(body: str) -> list[str]:
+        path.write_text(feature.format(body=body))
+        source = project.module(path).parsed.source
+        return [source[p.start:p.end] for p in project.check(project.module(path)) if p.code == "parameter-order"]
+
+    big = "        definition.big is boolean;\n"
+    wide = "        definition.wide is boolean;\n"
+    shown_if = "        if ({condition})\n        {{\n            definition.shown is boolean;\n        }}\n"
+    # Declared before (directly, or by a predicate called before), they're fine
+    assert problems(big + shown_if.format(condition="definition.big")) == []
+    assert problems("        sizePredicate(definition);\n" + shown_if.format(condition="definition.size")) == []
+    assert problems(wide + "        widthPredicate(definition);\n") == []
+    # Declared after, they're reported: at the read, at a predicate in the condition, or at the call reaching another
+    # file's predicate whose condition reads it
+    assert problems(shown_if.format(condition="definition.big") + big) == ["big"]
+    assert problems(shown_if.format(condition="isBig(definition)") + big) == ["isBig"]
+    assert problems("        widthPredicate(definition);\n" + wide) == ["widthPredicate"]
+
+
 def test_horizontal_enums_go_in_no_groups_or_arrays(project):
     path = project.code_dir / "feature2.fs"
     path.write_text(
@@ -1196,3 +1252,48 @@ def test_rename_edits(project):
             project.rename_edits(feature, source.index("double(1)"), bad)
     with pytest.raises(RenameError, match="std's"):
         project.rename_edits(feature, source.index("println"), "say")
+
+
+def test_operations_under_an_id_must_be_contiguous(project):
+    path = project.code_dir / "feature2.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        'import(path : "onshape/std/common.fs", version : "2909.0");\n'
+        "function piece(context is Context, id is Id)\n"
+        "{\n"
+        '    opExtrude(context, id + "extrude", {});\n'
+        "}\n"
+        "function tag(context is Context, id is Id)\n"
+        "{\n"
+        "}\n"
+        "export function run(context is Context, id is Id, count is number)\n"
+        "{\n"
+        '    const cellId = id + "cell";\n'
+        "    piece(context, cellId);\n"
+        '    piece(context, id + "start");\n'
+        '    opBoolean(context, cellId + "join", {});\n'
+        "    for (var i = 0; i < count; i += 1)\n"
+        "    {\n"
+        '        opPattern(context, id + "copies" + ("c" ~ i), {});\n'
+        '        opBoolean(context, id + "joins" + ("j" ~ i), {});\n'
+        "    }\n"
+        '    tag(context, id + "start");\n'
+        "    reportFeatureInfo(context, id, \"\");\n"
+        "    if (count == 0)\n"
+        "    {\n"
+        '        opBoolean(context, id + "end", {});\n'
+        '        throw regenError("");\n'
+        "    }\n"
+        '    opBoolean(context, id + "other", {});\n'
+        '    opBoolean(context, id + "end", {});\n'
+        "}\n"
+    )
+    module = project.module(path)
+    found = [
+        (module.parsed.source[p.start:p.end], module.position(p.start)[0])
+        for p in project.check(module)
+        if p.code == "id-order"
+    ]
+    # "cell" resumes after "start", through its alias; a loop's body repeats, so "copies" and "joins" each resume after
+    # the other. Not `tag` (it makes no operations), the id alone, or "end" after a branch which throws
+    assert found == [("cellId", 14), ("id", 17), ("id", 18)]

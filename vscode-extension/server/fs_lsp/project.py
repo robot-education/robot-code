@@ -918,12 +918,14 @@ class Project:
         problems.extend(_duplicate_symbol_problems(module, providers))
         problems.extend(_duplicate_overload_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
+        problems.extend(_bound_default_problems(module))
         problems.extend(_keyword_key_problems(module))
         problems.extend(_feature_annotation_problems(module))
         problems.extend(_unused_variable_problems(module))
         problems.extend(_function_value_problems(module, providers))
         problems.extend(_std_arity_problems(module, providers))
         problems.extend(_redeclared_problems(module))
+        problems.extend(_id_order_problems(module))
         problems.extend(_annotation_ascii_problems(module))
         problems.extend(_precondition_problems(module, providers))
         problems.extend(self._parameter_enum_problems(module, providers))
@@ -934,6 +936,7 @@ class Project:
         problems.extend(self._button_problems(module))
         problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
+        problems.extend(self._parameter_order_problems(module))
         problems.extend(_annotation_key_problems(module))
         problems.extend(self._array_group_problems(module))
         problems.extend(self._tolerant_parameter_problems(module))
@@ -1342,7 +1345,7 @@ class Project:
 
     def _set_by_problems(self, module: Module) -> list[Problem]:
         """Hidden parameters set by editing logic from a function of the definition, which their annotations name
-        (`"Set By" : "isRectangularFrame"`), so the tools (`fs ui`, `fs audit`, the preview) can work out their values
+        (`"Set By" : "isNoTopHolesFrame"`), so the tools (`fs ui`, `fs audit`, the preview) can work out their values
         as editing logic would. The function must take the definition (`(definition is map)`) and return the
         parameter's type; the parameter must be hidden (editing logic overwrites it); and the feature's editing logic
         must run on every change (declare `isCreating`) and set it from the function first thing, before anything
@@ -2144,6 +2147,139 @@ class Project:
                         )
         return found
 
+    def _parameter_order_problems(self, module: Module) -> list[Problem]:
+        """Conditions in a feature's precondition which read a parameter it declares after them.
+
+        A precondition's if conditions can only read parameters declared before them (docs/fsdoc/uispec.md: "prior
+        boolean and enum parameters"). The precondition is followed in order through the predicates it calls, as
+        statements (declaring parameters, with conditions of their own) and in conditions (reading parameters). A read
+        is reported in its condition here: at the predicate a condition calls, or the call here which reaches another
+        file's predicate.
+        """
+        problems: list[Problem] = []
+        for node in module.parsed.nodes:
+            if node.type != "PreconditionBlock":
+                continue
+            if module.index.enclosing(node.token, frozenset(["FeatureDeclaration"])) is None:
+                continue
+            declarations = self._declared_parameters(module, node.start, node.end, "definition", frozenset())
+            lines = {}
+            for name, report_at, _ in declarations:
+                lines.setdefault(name, module.position(report_at.offset)[0] + 1)
+            self._walk_parameter_order(module, node.start, node.end, "definition", frozenset(), set(), lines, None, problems)
+        return _dedupe_problems(problems)
+
+    def _walk_parameter_order(
+        self,
+        module: Module,
+        start: int,
+        end: int,
+        map_name: str,
+        path: frozenset[tuple[pathlib.Path, int]],
+        declared: set[str],
+        lines: dict[str, int],
+        report_at: Token | None,
+        problems: list[Problem],
+    ) -> None:
+        """Walks a region of a precondition (or a predicate it calls, whose definition is `map_name`) in order, adding
+        the parameters it declares to `declared`, and reporting reads in its conditions of parameters in `lines` (the
+        precondition's, with the line each is first declared on) which aren't declared yet. `report_at` is the call in
+        the feature's file to report at, for a predicate in another file."""
+        tokens = module.index.tokens
+        providers, _ = self.providers(module)
+
+        def value(position: int) -> str | None:
+            return tokens[position].value if position < len(tokens) else None
+
+        def called(position: int, inner_map: str) -> tuple[Module, AstNode, str] | None:
+            """The predicate called at position with `inner_map` as an argument: its module, body, and its name for it."""
+            for owner, declaration in self._predicate_targets(module, tokens[position], providers)[:1]:
+                body = _predicate_node(owner, declaration)
+                if body is None or (owner.path, declaration.token.offset) in path:
+                    return None
+                names = _parameter_names(owner, body)
+                for index, argument in enumerate(_call_arguments(tokens, position + 1)):
+                    if index < len(names) and [t.value for t in argument] == [inner_map]:
+                        return owner, body, names[index]
+            return None
+
+        def reads(owner: Module, first: int, last: int, inner_map: str) -> list[tuple[Token, str]]:
+            """The parameters read in owner's tokens first..last (a condition, or a predicate's body)."""
+            owner_tokens = owner.index.tokens
+            found = []
+            for position in range(first, last):
+                token = owner_tokens[position]
+                if token.kind != "identifier" or token.value != inner_map:
+                    continue
+                if position and owner_tokens[position - 1].value in (".", "?."):
+                    continue
+                if position + 2 < len(owner_tokens) and owner_tokens[position + 1].value == "." and owner_tokens[position + 2].kind == "identifier":
+                    found.append((owner_tokens[position + 2], owner_tokens[position + 2].value))
+            return found
+
+        def report(token: Token, name: str) -> None:
+            if name in declared or name not in lines:
+                return
+            at = report_at or token
+            problems.append(
+                Problem(
+                    at.offset,
+                    at.end,
+                    "warning",
+                    f"This condition reads {name}, which the precondition declares after it (line {lines[name]}): "
+                    f"conditions can only read parameters declared before them. Declare {name} first.",
+                    "parameter-order",
+                )
+            )
+
+        position = 0
+        while position < len(tokens):
+            token = tokens[position]
+            if not start <= token.offset < end or token.kind == "string":
+                position += 1
+                continue
+            if token.value == "if" and value(position + 1) == "(":
+                close = _matching_index(tokens, position + 1)
+                close = close if close is not None else position + 1
+                for read, name in reads(module, position + 1, close, map_name):
+                    report(read, name)
+                for inner in range(position + 1, close):
+                    if tokens[inner].kind == "identifier" and value(inner + 1) == "(":
+                        target = called(inner, map_name)
+                        if target is not None:
+                            owner, body, inner_map = target
+                            first = next(i for i, t in enumerate(owner.index.tokens) if t.offset >= body.start)
+                            last = next((i for i, t in enumerate(owner.index.tokens) if t.offset >= body.end), len(owner.index.tokens))
+                            for read, name in reads(owner, first, last, inner_map):
+                                report(tokens[inner], name)
+                position = close + 1
+                continue
+            if token.kind == "identifier" and (not position or value(position - 1) in (";", "{", "}")):
+                if token.value == map_name and value(position + 1) == "." and value(position + 3) == "is":
+                    declared.add(tokens[position + 2].value)
+                elif value(position + 1) == "(" and token.value in PARAMETER_PREDICATES:
+                    if value(position + 2) == map_name and value(position + 3) == "." and value(position + 5) in (",", ")"):
+                        declared.add(tokens[position + 4].value)
+                elif value(position + 1) == "(":
+                    target = called(position, map_name)
+                    if target is not None:
+                        owner, body, inner_map = target
+                        declaration = next(
+                            d for d in owner.index.declarations if d.kind == "predicate" and body.start <= d.token.offset < body.end
+                        )
+                        self._walk_parameter_order(
+                            owner,
+                            body.start,
+                            body.end,
+                            inner_map,
+                            path | {(owner.path, declaration.token.offset)},
+                            declared,
+                            lines,
+                            report_at or (None if owner is module else token),
+                            problems,
+                        )
+            position += 1
+
     def _nested_predicate_problems(self, module: Module, providers: dict[str, list[Provider]]) -> list[Problem]:
         """Predicates in a precondition's if conditions which call other predicates.
 
@@ -2579,6 +2715,187 @@ def _redeclared_problems(module: Module) -> list[Problem]:
     return problems
 
 
+def _id_order_problems(module: Module) -> list[Problem]:
+    """Operations under an id made at two points with another's between, which Onshape rejects ("Parent Id ... used at
+    two non-contiguous points in operation history"): every operation under an id must come one after another.
+
+    Within each function, it reads the ids operations are made with: the second argument of a call after `context`, to
+    a std operation (`op...`, `newSketch...`) or a function of this file which makes them (like
+    `buildPiece(context, id + "cell")`), as an `Id` parameter plus string literals, through aliases
+    (`const cellId = id + "cell";`); a part that isn't a literal (`id + ("x" ~ i)`) ends what can be read, and an id
+    alone doesn't count (everything is under it). A loop's body counts twice, as it repeats, and a branch which ends
+    in a `throw` or `return` is checked, but nothing after it follows it."""
+    tokens = module.index.tokens
+    offsets = [token.offset for token in tokens]
+    functions = [node for node in module.parsed.nodes if node.type in FUNCTION_NODE_TYPES]
+    ranges = {}
+    for node in functions:
+        first = bisect.bisect_left(offsets, node.start)
+        name = node.name
+        if name is None and first >= 3 and tokens[first - 1].value == "=" and tokens[first - 3].value == "const":
+            name = tokens[first - 2].value
+        ranges[node.start] = (first, bisect.bisect_left(offsets, node.end), name)
+    # The functions of this file which make operations, directly or through each other
+    makers = set()
+    changed = True
+    while changed:
+        changed = False
+        for first, last, name in ranges.values():
+            if name is None or name in makers:
+                continue
+            if any(_makes_operation(tokens, position, makers) for position in range(first, last)):
+                makers.add(name)
+                changed = True
+    problems = []
+    for function in functions:
+        first, last, _ = ranges[function.start]
+        nested = [
+            ranges[other.start][:2]
+            for other in functions
+            if other is not function and function.start <= other.start and other.end <= function.end
+        ]
+        body = next((position for position in range(first, last) if tokens[position].value == "{"), last)
+        # Its Id parameters: `id is Id`
+        ids: dict[str, tuple[str, tuple[str, ...], bool]] = {}
+        for position in range(first, body):
+            if tokens[position].kind == "identifier" and tokens[position + 1].value == "is" and tokens[position + 2].value == "Id":
+                ids[tokens[position].value] = (tokens[position].value, (), False)
+        if ids:
+            events = _id_events(tokens, body, last, nested, ids, makers)
+            problems.extend(_IdOrder(module).check(events))
+    return problems
+
+
+def _makes_operation(tokens: list[Token], position: int, makers: set[str]) -> bool:
+    """Whether a call at `position` makes an operation: `name(context, ...)` for a std operation (`op...`,
+    `newSketch...`), or one of `makers`."""
+    token = tokens[position]
+    if token.kind != "identifier" or tokens[position + 1].value != "(" or tokens[position + 2].value != "context":
+        return False
+    name = token.value
+    return (name.startswith("op") and name[2:3].isupper()) or name.startswith("newSketch") or name in makers
+
+
+def _id_expression(tokens: list[Token], position: int, ids: dict) -> tuple[tuple[str, tuple[str, ...], bool], int] | None:
+    """The id an expression starting at `position` makes from a known id (its root, literal parts, and whether a part
+    after them isn't a literal), and where it ends; None if it doesn't start with one."""
+    if tokens[position].kind != "identifier" or tokens[position].value not in ids:
+        return None
+    root, parts, dynamic = ids[tokens[position].value]
+    parts = list(parts)
+    position += 1
+    while tokens[position].value == "+":
+        operand = tokens[position + 1]
+        if operand.kind == "string" and tokens[position + 2].value != "~" and not dynamic:
+            parts.append(operand.value[1:-1])
+            position += 2
+            continue
+        dynamic = True
+        position += 1
+        # Past the operand: a bracketed expression, or a name (and whatever's called or indexed on it)
+        while tokens[position].kind != "eof" and tokens[position].value not in ("+", ",", ")", ";", "]", "}"):
+            end = _matching_index(tokens, position)
+            position = end + 1 if end is not None else position + 1
+    return (root, tuple(parts), dynamic), position
+
+
+def _id_events(tokens: list[Token], start: int, end: int, nested: list[tuple[int, int]], ids: dict, makers: set[str]) -> list:
+    """The ids operations are made under from `start` to `end`, in order (see `_id_order_problems`): each its root and
+    literal parts, and the token it starts at; or a branch which ends the function, as `("branch", its events)`."""
+    events = []
+    position = start
+    while position < end:
+        skipped = next((stop for begin, stop in nested if begin <= position < stop), None)
+        if skipped is not None:
+            position = skipped
+            continue
+        token = tokens[position]
+        if token.value in ("for", "while", "if") and tokens[position + 1].value == "(":
+            header_end = _matching_index(tokens, position + 1)
+            if header_end is not None and tokens[header_end + 1].value == "{":
+                body_end = _matching_index(tokens, header_end + 1)
+                if body_end is not None:
+                    inner = _id_events(tokens, header_end + 2, body_end, nested, ids, makers)
+                    if token.value != "if":
+                        events.extend(inner + inner)
+                    elif _ends_function(tokens, header_end + 2, body_end):
+                        events.append(("branch", inner))
+                    else:
+                        events.extend(inner)
+                    position = body_end + 1
+                    continue
+        if token.value in ("const", "var") and tokens[position + 1].kind == "identifier" and tokens[position + 2].value == "=":
+            found = _id_expression(tokens, position + 3, ids)
+            if found is not None and tokens[found[1]].value == ";":
+                ids[tokens[position + 1].value] = found[0]
+        if _makes_operation(tokens, position, makers) and tokens[position + 3].value == ",":
+            found = _id_expression(tokens, position + 4, ids)
+            if found is not None and (found[0][1] or found[0][2]):
+                events.append((found[0], tokens[position + 4]))
+        position += 1
+    return events
+
+
+def _ends_function(tokens: list[Token], start: int, end: int) -> bool:
+    """Whether a block's statements, from `start` to `end`, include a `throw` or `return` at its top level."""
+    depth = 0
+    for token in tokens[start:end]:
+        if token.kind != "string" and token.value in ("(", "[", "{"):
+            depth += 1
+        elif token.kind != "string" and token.value in (")", "]", "}"):
+            depth -= 1
+        elif depth == 0 and token.value in ("throw", "return"):
+            return True
+    return False
+
+
+class _IdOrder:
+    """Checks `_id_events`' ids are contiguous: for each id (and each id it's under), whether operations under it
+    resume after one which isn't."""
+
+    def __init__(self, module: Module) -> None:
+        self.module = module
+        self.seen: set[tuple] = set()
+        # Each id interrupted since its last operation, by the event which interrupted it
+        self.interrupted: dict[tuple, tuple] = {}
+        self.reported: set[tuple] = set()
+
+    def check(self, events: list) -> list[Problem]:
+        problems = []
+        for event in events:
+            if event[0] == "branch":
+                state = (set(self.seen), dict(self.interrupted))
+                problems.extend(self.check(event[1]))
+                self.seen, self.interrupted = state
+                continue
+            (root, parts, _), token = event
+            groups = [(root, parts[:length]) for length in range(1, len(parts) + 1)]
+            for group in self.seen:
+                if group not in groups and group not in self.interrupted:
+                    self.interrupted[group] = event
+            for group in groups:
+                if group in self.interrupted and group not in self.reported:
+                    self.reported.add(group)
+                    (between_root, between_parts, _), between = self.interrupted[group]
+                    name = " + ".join(f'"{part}"' for part in group[1])
+                    other = " + ".join(f'"{part}"' for part in between_parts) or between_root
+                    line = self.module.position(between.offset)[0] + 1
+                    problems.append(
+                        Problem(
+                            token.offset,
+                            token.end,
+                            "error",
+                            f"Operations under {name} resume after one under {other} (line {line}): Onshape needs all of "
+                            "an id's operations to come one after another. Move them together, or give this one another "
+                            "id.",
+                            "id-order",
+                        )
+                    )
+                self.seen.add(group)
+                self.interrupted.pop(group, None)
+        return problems
+
+
 def _annotation_ascii_problems(module: Module) -> list[Problem]:
     """Annotation strings with characters other than printable ASCII (like a degree sign), which Onshape rejects
     ("Invalid character in 'Description' annotation: only printable ASCII allowed")."""
@@ -2799,6 +3116,61 @@ def _boolean_comparison_problems(module: Module) -> list[Problem]:
                         "boolean-comparison",
                     )
                 )
+    return problems
+
+
+# The units a `LengthBoundSpec` gives a default for, as teams' Part Studios are in inches or millimeters. A unit it
+# doesn't list gets its first unit's default, converted (1 in. is 25.4 mm)
+BOUND_DEFAULT_UNITS = ("inch", "millimeter")
+
+
+def _bound_default_problems(module: Module) -> list[Problem]:
+    """`LengthBoundSpec` maps without an inch or millimeter default, which would be the other's converted (25.4 mm, or
+    0.472 in. for 12 mm), rather than a round number in that unit."""
+    problems = []
+    tokens = module.index.tokens
+    for index, token in enumerate(tokens):
+        if not (
+            token.value == "LengthBoundSpec"
+            and index >= 2
+            and tokens[index - 1].value == "as"
+            and tokens[index - 2].value == "}"
+        ):
+            continue
+        # Back to the map's opening brace, collecting its keys: `(unit) :` at its top level
+        depth, cursor, units = 0, index - 2, set()
+        while cursor >= 0:
+            value = tokens[cursor].value
+            if value in ("}", "]", ")"):
+                depth += 1
+            elif value in ("{", "[", "("):
+                depth -= 1
+                if depth == 0:
+                    break
+                if (
+                    value == "("
+                    and depth == 1
+                    and cursor + 3 < index
+                    and tokens[cursor + 2].value == ")"
+                    and tokens[cursor + 3].value == ":"
+                ):
+                    units.add(tokens[cursor + 1].value)
+            cursor -= 1
+        if cursor < 0:
+            continue
+        missing = [unit for unit in BOUND_DEFAULT_UNITS if unit not in units]
+        if missing:
+            problems.append(
+                Problem(
+                    tokens[cursor].offset,
+                    token.end,
+                    "warning",
+                    f"Give these bounds a default for {' and '.join(f'({unit})' for unit in missing)}, a round number "
+                    "in it: teams' Part Studios are in inches or millimeters, and a unit without one gets the first "
+                    "unit's default, converted.",
+                    "bound-defaults",
+                )
+            )
     return problems
 
 

@@ -4,8 +4,8 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "onshape/std/holetables.gen.fs", version : "2960.0");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 
-export import(path : "603be214b7d30fd438966545", version : "81c3f377a07c755804b5c678");
-import(path : "8fc3df84a88e74d27ad43d26", version : "e86b51c08c2cd84288fa9669");
+export import(path : "603be214b7d30fd438966545", version : "6048f4d0de53918690ae60ad");
+import(path : "8fc3df84a88e74d27ad43d26", version : "9101663235e59b9dbecc10b3");
 
 
 export import(path : "21762d39019c8b2289e2fbb8", version : "f6af82a6032c39fbab6ef618");
@@ -14,7 +14,7 @@ export import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfb
 import(path : "b75434df23d86ba9542f761e", version : "410f29dc5fa8b0fe88f1e9c5");
 import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
+import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
 // Also exports the enum used as a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 // Exports Fit: released shafts have a fit parameter, and Onshape looks up its enum in the feature's file to load them
@@ -39,37 +39,37 @@ export predicate isCotsShaft(definition is map)
 }
 
 /**
- * The shafts an FTC team cuts to length or modifies (a custom shaft): goBILDA's and AndyMark's, by their profiles.
- */
-export enum FtcCustomShaft
-{
-    annotation { "Name" : "8 mm REX" }
-    REX_8_MM,
-    annotation { "Name" : "12 mm REX" }
-    REX_12_MM,
-    annotation { "Name" : "3/8 in. Robits hex" }
-    ROBITS_HEX
-}
-
-/**
- * Whether a shaft is a COTS shaft sold in set lengths, chosen by its table's Length: it's built as it's sold, its length
- * and ends set, so only where it starts is chosen. A custom shaft is one cut to a length, or with its ends modified.
- * Every FTC COTS shaft is; of FRC's, editing logic sets `presetShaft` from its table entry (`isPresetShaft`).
+ * Whether a shaft is a COTS shaft sold in set lengths, at one of them, chosen by its table's Length: it's built as it's
+ * sold, its length and ends set, so only where it starts is chosen. Editing logic sets `presetShaft` from its table
+ * entry (`isPresetShaft`).
  */
 predicate isPresetLength(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
-    definition.program == Program.FTC || definition.presetShaft;
+    definition.presetShaft;
 }
 
 /**
- * Whether a shaft has e-clip grooves at one end, as it's sold (goBILDA's REX with an e-clip), so Flip ends can put them
- * at the other. Editing logic sets `factoryGrooved` from its table entry (`isFactoryGrooved`).
+ * Whether a shaft is a COTS shaft sold in set lengths at its Length's Custom, with factory features: bought at the
+ * shortest length it fits in, and cut down, so its factory end (its first, or second with Flip ends) keeps its tapped
+ * hole and e-clip grooves, and only the other, its cut end, can be modified (by the second end's parameters). Editing
+ * logic sets `factoryEnd` from its table entry (`isFactoryEnd`).
  */
-predicate hasFactoryGrooves(definition is map)
+predicate hasFactoryEnd(definition is map)
 {
     definition.shaftSource == ShaftSource.COTS;
-    definition.factoryGrooved;
+    definition.factoryEnd;
+}
+
+/**
+ * Whether Flip ends is shown: a shaft with e-clip grooves at one end, as it's sold (goBILDA's REX with an e-clip), or
+ * with a factory end (`hasFactoryEnd`), which it puts at the other end. Editing logic sets `factoryGrooved` from its
+ * table entry (`isFactoryGrooved`).
+ */
+predicate canFlipEnds(definition is map)
+{
+    definition.shaftSource == ShaftSource.COTS;
+    definition.factoryGrooved || definition.factoryEnd;
 }
 
 export enum EndOperation
@@ -138,15 +138,13 @@ predicate isSplineXsShaft(definition is map)
 }
 
 /**
- * Whether a custom shaft is metric hex (7 mm or 11 mm, goBILDA's REX), whose ends take e-clips rather than retaining
- * rings (`MetricEndOperation`). No COTS shaft whose ends can be modified is.
+ * Whether a shaft is metric hex (7 mm or 11 mm, goBILDA's REX), whose ends take e-clips rather than retaining rings
+ * (`MetricEndOperation`), by its profile (a COTS shaft's, from editing logic: goBILDA's REX at a Custom length).
  */
 predicate isMetricHexShaft(definition is map)
 {
-    definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-        ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-            (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)));
+    definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+        (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM);
 }
 
 /**
@@ -161,45 +159,33 @@ predicate canModifyShaftEnds(definition is map)
 predicate isTappedFirstEnd(definition is map)
 {
     (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
-        ((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        ((definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.firstEndMetricOperation == MetricEndOperation.TAPPED_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (!(definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.firstEndOperation == EndOperation.TAPPED_HOLE);
 }
 
 predicate isTappedSecondEnd(definition is map)
 {
     (definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) ||
-        ((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        ((definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.secondEndMetricOperation == MetricSecondEndOperation.TAPPED_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (!(definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.secondEndOperation == SecondEndOperation.TAPPED_HOLE);
 }
 
 predicate isClearanceFirstEnd(definition is map)
 {
     !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (((definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.firstEndMetricOperation == MetricEndOperation.CLEARANCE_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (!(definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.firstEndOperation == EndOperation.CLEARANCE_HOLE));
 }
 
@@ -209,30 +195,22 @@ predicate isClearanceFirstEnd(definition is map)
 predicate isGrooveFirstEnd(definition is map)
 {
     !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (((definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.firstEndMetricOperation == MetricEndOperation.E_CLIP) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (!(definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.firstEndOperation == EndOperation.RETAINING_RING));
 }
 
 predicate isGrooveSecondEnd(definition is map)
 {
     !(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (((definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.secondEndMetricOperation == MetricSecondEndOperation.E_CLIP) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (!(definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.secondEndOperation == SecondEndOperation.RETAINING_RING));
 }
 
@@ -271,34 +249,35 @@ predicate hexShaftPredicate(definition is map)
 
 /**
  * `true` if the user cannot specify the second end of the shaft (because the end is inherited from the first,
- * or because the second end is consumed by the mirror).
+ * or because the second end is consumed by the mirror). A shaft with a factory end (`hasFactoryEnd`) has only its
+ * second end, its cut end, to specify.
  */
 predicate cannotSpecifySecondEnd(definition is map)
 {
-    definition.mirrorShaft ||
+    !(definition.shaftSource == ShaftSource.COTS && definition.factoryEnd) && (definition.mirrorShaft ||
         (definition.modifyFirstEnd && (definition.symmetricEnds ||
             // isClearanceFirstEnd
             (!(definition.shaftType == ShaftType.SPLINE && definition.splineType == SplineType.SPLINE_XS) &&
-        (((definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
+        (((definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
             definition.firstEndMetricOperation == MetricEndOperation.CLEARANCE_HOLE) ||
-        (!(definition.shaftSource == ShaftSource.CUSTOM && definition.shaftType == ShaftType.HEX &&
-            ((definition.program == Program.FTC && definition.ftcCustomShaft != FtcCustomShaft.ROBITS_HEX) ||
-                (definition.program == Program.FRC && definition.hexType != HexType.ULTRA_HEX &&
-                    (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)))) &&
-            definition.firstEndOperation == EndOperation.CLEARANCE_HOLE)))));
+        (!(definition.shaftType == ShaftType.HEX && definition.hexType != HexType.ULTRA_HEX &&
+            (definition.hexSize == HexSize._7_MM || definition.hexSize == HexSize._11_MM)) &&
+            definition.firstEndOperation == EndOperation.CLEARANCE_HOLE))))));
 }
 
 predicate shaftEndPredicate(definition is map)
 {
     annotation { "Group Name" : "Shaft ends", "Collapsed By Default" : false }
     {
-        annotation { "Name" : "Modify first end", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.modifyFirstEnd is boolean;
+        // A factory end is as it's sold: only the cut end, the second, is modified
+        if (!hasFactoryEnd(definition))
+        {
+            annotation { "Name" : "Modify first end", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.modifyFirstEnd is boolean;
+        }
 
-        if (definition.modifyFirstEnd)
+        if (!hasFactoryEnd(definition) && definition.modifyFirstEnd)
         {
             annotation { "Group Name" : "First end hardware", "Collapsed By Default" : false, "Driving Parameter" : "modifyFirstEnd" }
             {
@@ -475,6 +454,9 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         annotation { "Name" : "Factory grooved", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isFactoryGrooved" }
         definition.factoryGrooved is boolean;
 
+        annotation { "Name" : "Factory end", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isFactoryEnd" }
+        definition.factoryEnd is boolean;
+
         if (isCotsShaft(definition))
         {
             // Sets the shaft's profile parameters, through editing logic (see withShaft)
@@ -493,26 +475,17 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
         {
             annotation { "Group Name" : "Shaft", "Collapsed By Default" : false }
             {
-                if (isFrc(definition))
-                {
-                    annotation { "Name" : "Shaft type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                    definition.shaftType is ShaftType;
+                annotation { "Name" : "Shaft type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.shaftType is ShaftType;
 
-                    if (definition.shaftType == ShaftType.HEX)
-                    {
-                        hexShaftPredicate(definition);
-                    }
-                    else
-                    {
-                        annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                        definition.splineType is SplineType;
-                    }
+                if (definition.shaftType == ShaftType.HEX)
+                {
+                    hexShaftPredicate(definition);
                 }
                 else
                 {
-                    // Sets the shaft's profile parameters, through editing logic (see withShaft)
-                    annotation { "Name" : "Shaft", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                    definition.ftcCustomShaft is FtcCustomShaft;
+                    annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    definition.splineType is SplineType;
                 }
             }
         }
@@ -539,7 +512,7 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
 
             extrudeOffsetPredicate(definition);
 
-            if (hasFactoryGrooves(definition))
+            if (canFlipEnds(definition))
             {
                 annotation { "Name" : "Flip ends", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.flipEnds is boolean;
@@ -548,7 +521,11 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
             if (!isPresetLength(definition))
             {
                 newExtrudeSecondEndPredicate(definition);
+            }
 
+            // Mirroring a factory end would make both ends factory ends: a length it's sold in
+            if (!isPresetLength(definition) && !hasFactoryEnd(definition))
+            {
                 annotation { "Name" : "Mirror shaft", "Description" : "Mirror the shaft across one of its ends. Useful when the shaft is modeled up to a plane of symmetry." }
                 definition.mirrorShaft is boolean;
 
@@ -593,11 +570,11 @@ export const robotShaft = defineFeature(function(context is Context, id is Id, d
             mirrorPlane = getMirrorPlane(context, definition, extrudeId, shaft);
         }
 
-        if (preset)
+        if (preset || hasFactoryEnd(definition))
         {
             cutFactoryFeatures(context, id, id + "factory", definition, extrudeId, shaft);
         }
-        else if (canModifyShaftEnds(definition))
+        if (!preset && canModifyShaftEnds(definition))
         {
             const endDefinitions = getShaftEndDefinitions(context, definition, extrudeId, shaft);
             if (definition.shaftType == ShaftType.HEX)
@@ -708,6 +685,20 @@ function isPresetShaft(definition is map) returns boolean
 }
 
 /**
+ * Factory end: whether a COTS shaft's table entry has factory features, and no preset length (its Length's Custom).
+ */
+function isFactoryEnd(definition is map) returns boolean
+{
+    const shaft = getCotsShaft(definition);
+    return shaft != undefined && shaft.presetLength == undefined && hasFactoryFeatures(shaft);
+}
+
+function hasFactoryFeatures(shaft is map) returns boolean
+{
+    return shaft.factoryHole != undefined || (shaft.factoryGrooves != undefined && shaft.factoryGrooves != []);
+}
+
+/**
  * Factory grooved: whether a COTS shaft's table entry has factory grooves.
  */
 function isFactoryGrooved(definition is map) returns boolean
@@ -718,24 +709,14 @@ function isFactoryGrooved(definition is map) returns boolean
 
 /**
  * The definition with the unit system its program uses (inches for FRC, millimeters for FTC), and a COTS shaft's
- * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), or a custom FTC shaft's (from its Shaft), so the rest
- * of the feature can treat it as a custom FRC one. A
- * preset length's shaft is extruded that long (Blind, one way, not mirrored).
+ * profile (`shaftType`, `hexType`, `hexSize`, and `splineType`), so the rest of the feature can treat it as a custom
+ * one. A preset length's shaft is extruded that long (Blind, one way, not mirrored), and one with a factory end isn't
+ * mirrored.
  * A COTS spline shaft may also have a `predrilledHoleDiameter`: a hole through a solid spline (see `isTubeSpline`).
  */
 function withShaft(definition is map) returns map
 {
     definition.unitSystem = isFrc(definition) ? UnitSystem.IMPERIAL : UnitSystem.METRIC;
-    if (!isFrc(definition) && !isCotsShaft(definition))
-    {
-        definition.shaftType = ShaftType.HEX;
-        definition.hexType = definition.ftcCustomShaft == FtcCustomShaft.ROBITS_HEX ? HexType.STOCK : HexType.ROUNDED_HEX;
-        definition.hexSize = switch (definition.ftcCustomShaft) {
-                FtcCustomShaft.REX_8_MM : HexSize._7_MM,
-                FtcCustomShaft.REX_12_MM : HexSize._11_MM,
-                FtcCustomShaft.ROBITS_HEX : HexSize._3_8_IN
-            };
-    }
     const shaft = getCotsShaft(definition);
     if (shaft != undefined)
     {
@@ -754,6 +735,9 @@ function withShaft(definition is map) returns map
             definition.depth = shaft.presetLength;
             definition.symmetric = false;
             definition.hasSecondDirection = false;
+        }
+        if (hasFactoryFeatures(shaft))
+        {
             definition.mirrorShaft = false;
         }
     }
@@ -834,9 +818,10 @@ function mirrorShaftAcrossEnd(context is Context, id is Id, shaft is Query, mirr
  * Cuts non-standard hex shaft features like rounded edges and churro profiles.
  */
 /**
- * Cuts a preset shaft's features as it's sold (see robotShaftTables.py's `factory`), under `id`: its e-clip grooves,
- * measured from its first end (where it starts), or its second, with Flip ends, then a tapped hole in each end (std's
- * hole, as a subfeature of `topLevelId`). If one fails, the shaft is shown in blue.
+ * Cuts a shaft's features as it's sold (see robotShaftTables.py's `factory`), under `id`: its e-clip grooves, measured
+ * from its first end (where it starts), or its second, with Flip ends, then a tapped hole in each end (std's hole, as a
+ * subfeature of `topLevelId`), or with a factory end (`hasFactoryEnd`), in that end alone. If one fails, the shaft is
+ * shown in blue.
  */
 function cutFactoryFeatures(context is Context, topLevelId is Id, id is Id, definition is map, extrudeId is Id, shaft is Query)
 {
@@ -848,7 +833,8 @@ function cutFactoryFeatures(context is Context, topLevelId is Id, id is Id, defi
             addDebugEntities(context, shaft, DebugColor.BLUE);
         };
 
-    const groovedPlane = evPlane(context, { "face" : hasFactoryGrooves(definition) && definition.flipEnds ? secondEnd : firstEnd });
+    const factoryEnd = canFlipEnds(definition) && definition.flipEnds ? secondEnd : firstEnd;
+    const groovedPlane = evPlane(context, { "face" : factoryEnd });
     for (var i, groove in cots.factoryGrooves)
     {
         const grooveId = id + "groove" + unstableIdComponent(i);
@@ -875,7 +861,7 @@ function cutFactoryFeatures(context is Context, topLevelId is Id, id is Id, defi
     // fs check: ignore keyword-key
     const path = { "holeType" : "Tapped", "type" : "Straight tap", "size" : factoryHole.size, "pitch" : factoryHole.pitch, "fit" : "None" } as LookupTablePath;
     const tapped = getLookupTable(factoryHole.metric ? ISO_HoleTableEx : ANSI_HoleTableEx, path);
-    for (var i, end in [firstEnd, secondEnd])
+    for (var i, end in hasFactoryEnd(definition) ? [factoryEnd] : [firstEnd, secondEnd])
     {
         const holeId = id + "hole" + unstableIdComponent(i);
         const locations = sketchHoleLocation(context, holeId + "location", evPlane(context, { "face" : end }));
@@ -1188,6 +1174,12 @@ function getShaftEndDefinitions(context is Context, definition is map, extrudeId
     const firstEndFace = qCapEntity(extrudeId, CapType.START, EntityType.FACE)->qOwnedByBody(shaft);
     const secondEndFace = qCapEntity(extrudeId, CapType.END, EntityType.FACE)->qOwnedByBody(shaft);
 
+    if (hasFactoryEnd(definition))
+    {
+        // Only its cut end, the one Flip ends doesn't put its factory end at
+        return definition.modifySecondEnd ? [getEndDefinition(definition, ShaftEnd.SECOND, definition.flipEnds ? firstEndFace : secondEndFace)] : [];
+    }
+
     if (definition.mirrorShaft)
     {
         if (!definition.modifyFirstEnd)
@@ -1288,14 +1280,15 @@ precondition
             holePath.fit = "None";
             holePath["type"] = "Straight tap";
 
-            // definition is source of truth for hole diameter, but major diameter is used for annotation
+            // definition is source of truth for hole diameter, but major diameter is used for annotation. Metric sizes
+            // are in std's ISO table
             const value = getLookupTable(tableAndPath.table, tableAndPath.path);
+            const metric = value.metric;
             holeDefinition = {
                     "isV2" : true,
-                    "unitsSystem" : UnitsSystem.INCH,
+                    "unitsSystem" : metric ? UnitsSystem.METRIC : UnitsSystem.INCH,
                     "endStyleV2" : HoleEndStyleV2.BLIND,
                     "locations" : locations,
-                    "ansiHoleTableEx" : holePath,
                     "holeDiameterV2" : endDefinition.holeDiameter,
                     "majorDiameter" : value.majorDiameter,
                     "holeDepth" : endDefinition.holeDepth,
@@ -1306,6 +1299,7 @@ precondition
                 // "showTappedDepth" : true,
                 // "tapClearance" : 0,
                 };
+            holeDefinition[metric ? "isoHoleTableEx" : "ansiHoleTableEx"] = holePath;
         }
         else
         {
@@ -1592,6 +1586,7 @@ export function robotShaftEditLogic(context is Context, id is Id, oldDefinition 
 {
     definition.presetShaft = isPresetShaft(definition);
     definition.factoryGrooved = isFactoryGrooved(definition);
+    definition.factoryEnd = isFactoryEnd(definition);
     // So the precondition shows what suits a COTS shaft (e.g. no shaft ends on splines)
     definition = withShaft(definition);
     // Extrude edit logic only runs when we're creating
@@ -1611,6 +1606,11 @@ export function robotShaftEditLogic(context is Context, id is Id, oldDefinition 
 
     for (var shaftEnd in values(ShaftEnd))
     {
+        if (shaftChanged(oldDefinition, definition))
+        {
+            definition = updateTappedHolePath(definition, shaftEnd);
+        }
+
         if (activePathChanged(oldDefinition, definition, shaftEnd))
         {
             definition = applyTableDefinition(definition, shaftEnd);
@@ -1673,6 +1673,21 @@ function updateGrooveDiameter(definition is map, shaftEnd is ShaftEnd) returns m
     const grooveDiameter = getGrooveDefinition(definition[endString ~ "SideMount"], hexSize, definition.unitSystem).grooveDiameter;
     definition[endString ~ "GrooveDiameter"] = isMetricHex(hexSize) ? toString(roundToPrecision(grooveDiameter / millimeter, 2)) ~ " mm" :
         toString(roundToPrecision(grooveDiameter / inch, 4)) ~ " in";
+    return definition;
+}
+
+/**
+ * Sets an end's tapped hole to its shaft's usual (M4 for metric hex, goBILDA's REX; #10-32 for the others), if it's
+ * the other system's: a choice in the shaft's own system is kept.
+ */
+function updateTappedHolePath(definition is map, shaftEnd is ShaftEnd) returns map
+{
+    const key = getShaftEndString(shaftEnd) ~ "TappedHolePath";
+    const metricShaft = definition.shaftType == ShaftType.HEX && isMetricHex(definition.hexSize);
+    if (getLookupTable(tappedHoleTable, definition[key]).metric != metricShaft)
+    {
+        definition[key] = (metricShaft ? { "size" : "M4", "pitch" : "0.70 mm (Coarse)" } : { "size" : "#10", "pitch" : "32 tpi (UNF)" }) as LookupTablePath;
+    }
     return definition;
 }
 

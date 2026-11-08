@@ -95,11 +95,12 @@ def shaft_definition(**overrides: str) -> str:
         "program": "Program.FRC",
         "shaftSource": "ShaftSource.CUSTOM",
         "presetShaft": "false",
+        "factoryEnd": "false",
+        "factoryGrooved": "false",
         "shaftType": "ShaftType.HEX",
         "hexType": "HexType.STOCK",
         "hexSize": "HexSize._1_2_IN",
         "splineType": "SplineType.MAX_SPLINE",
-        "ftcCustomShaft": "FtcCustomShaft.REX_8_MM",
         "firstEndOperation": "EndOperation.TAPPED_HOLE",
         "secondEndOperation": "SecondEndOperation.TAPPED_HOLE",
         "firstEndMetricOperation": "MetricEndOperation.TAPPED_HOLE",
@@ -107,6 +108,8 @@ def shaft_definition(**overrides: str) -> str:
         "mirrorShaft": "false",
         "modifyFirstEnd": "true",
         "symmetricEnds": "false",
+        "firstEndTappedHolePath": '{ "size" : "#10", "pitch" : "32 tpi (UNF)" } as LookupTablePath',
+        "secondEndTappedHolePath": '{ "size" : "#10", "pitch" : "32 tpi (UNF)" } as LookupTablePath',
         **overrides,
     }
     return "{ " + ", ".join(f'"{key}" : {value}' for key, value in values.items()) + " }"
@@ -116,9 +119,10 @@ def shaft_is(predicate: str, **overrides: str) -> bool:
     return evaluate(f"{predicate}({shaft_definition(**overrides)})", SHAFT)
 
 
-def test_ftc_cots_shafts_are_preset_lengths_without_editing_logic():
-    # Every FTC COTS shaft is sold in set lengths; an FRC one is only when editing logic says so (a SplineXS stub)
-    assert shaft_is("isPresetLength", program="Program.FTC", shaftSource="ShaftSource.COTS") is True
+def test_cots_shafts_are_preset_lengths_when_editing_logic_says_so():
+    # From its table entry: a length it's sold in, not Custom
+    assert shaft_is("isPresetLength", program="Program.FTC", shaftSource="ShaftSource.COTS") is False
+    assert shaft_is("isPresetLength", program="Program.FTC", shaftSource="ShaftSource.COTS", presetShaft="true") is True
     assert shaft_is("isPresetLength", shaftSource="ShaftSource.COTS") is False
     assert shaft_is("isPresetLength", shaftSource="ShaftSource.COTS", presetShaft="true") is True
     assert shaft_is("isPresetLength", program="Program.FTC", presetShaft="true") is False
@@ -127,15 +131,16 @@ def test_ftc_cots_shafts_are_preset_lengths_without_editing_logic():
 @pytest.mark.parametrize(
     "overrides,metric",
     [
-        ({"program": "Program.FTC"}, True),
-        ({"program": "Program.FTC", "ftcCustomShaft": "FtcCustomShaft.REX_12_MM"}, True),
-        ({"program": "Program.FTC", "ftcCustomShaft": "FtcCustomShaft.ROBITS_HEX"}, False),
+        ({"program": "Program.FTC"}, False),
         ({"hexSize": "HexSize._7_MM"}, True),
         ({"hexSize": "HexSize._11_MM", "hexType": "HexType.ROUNDED_HEX"}, True),
         ({"hexSize": "HexSize._3_8_IN"}, False),
         # UltraHex is 1/2 in., whatever its hidden size
         ({"hexSize": "HexSize._7_MM", "hexType": "HexType.ULTRA_HEX"}, False),
-        ({"hexSize": "HexSize._7_MM", "shaftSource": "ShaftSource.COTS"}, False),
+        # goBILDA's REX at a Custom length, by its profile (from editing logic), FRC or FTC
+        ({"hexSize": "HexSize._7_MM", "shaftSource": "ShaftSource.COTS"}, True),
+        ({"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._11_MM"}, True),
+        ({"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._3_8_IN"}, False),
         ({"hexSize": "HexSize._7_MM", "shaftType": "ShaftType.SPLINE", "splineType": "SplineType.SPLINE_XS"}, False),
     ],
 )
@@ -147,8 +152,9 @@ def test_metric_hex_shafts(overrides, metric):
 # SplineXS shafts: the predicates repeat isMetricHexShaft's condition, as Onshape needs
 SHAFTS = [
     {},
-    {"program": "Program.FTC"},
     {"hexSize": "HexSize._11_MM"},
+    {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._7_MM"},
+    {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS", "hexSize": "HexSize._3_8_IN"},
     {"shaftType": "ShaftType.SPLINE", "splineType": "SplineType.SPLINE_XS"},
 ]
 FIRST_OPERATIONS = ["TAPPED_HOLE", "CLEARANCE_HOLE", "RETAINING_RING", "CAPTIVE_SHAFT"]
@@ -184,6 +190,17 @@ def test_second_end_predicates_match_its_operation(shaft, index):
     assert shaft_is("isGrooveSecondEnd", **overrides) is (operation == "RETAINING_RING")
 
 
+def test_factory_end_shafts_specify_only_their_cut_end():
+    # A Custom length with factory features: its factory end is as sold, so only the second end (its cut end) is chosen,
+    # whatever the hidden first end, Symmetric ends, and Mirror shaft hold
+    cut = {"shaftSource": "ShaftSource.COTS", "factoryEnd": "true", "symmetricEnds": "true", "mirrorShaft": "true"}
+    assert shaft_is("hasFactoryEnd", **cut) is True
+    assert shaft_is("cannotSpecifySecondEnd", **cut) is False
+    assert shaft_is("cannotSpecifySecondEnd", **{**cut, "factoryEnd": "false"}) is True
+    assert shaft_is("hasFactoryEnd", **{**cut, "shaftSource": "ShaftSource.CUSTOM"}) is False
+    assert shaft_is("canFlipEnds", **cut) is True
+
+
 def test_metric_hex_e_clip_grooves():
     # goBILDA's REX with an e-clip: 8mm REX's groove 6 mm across, 3.2 to 4 mm from its end; 12mm's 9 mm, 3 to 4 mm
     for hex_size, diameter, width in [("_7_MM", 6, 0.8), ("_11_MM", 9, 1)]:
@@ -213,6 +230,8 @@ def precondition_parameters(module: str) -> set[str]:
         {"shaftSource": "ShaftSource.COTS", "frcShaft": '{ "vendor" : "ThriftyBot", "type" : "SplineXS stub", "length" : "2 in." } as LookupTablePath'},
         {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS",
          "ftcShaft": '{ "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "48 mm" } as LookupTablePath'},
+        {"program": "Program.FTC", "shaftSource": "ShaftSource.COTS",
+         "ftcShaft": '{ "vendor" : "goBILDA", "type" : "8 mm REX (e-clip)", "length" : "Custom" } as LookupTablePath'},
         {"program": "Program.FTC", "firstEndMetricOperation": "MetricEndOperation.E_CLIP", "firstEndOverrideGroove": "true"},
         {"firstEndOperation": "EndOperation.RETAINING_RING", "firstEndOverrideGroove": "true"},
     ],

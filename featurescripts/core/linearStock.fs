@@ -1,12 +1,13 @@
 FeatureScript 2960;
 /**
- * Linear stock, like nut strips and frames: what it is (see `Stock`), how it's built (see `buildStock`), and how it's
- * placed, along an edge or extruded from a point (see `placeStock`).
+ * Linear stock, like nut strips and frames: what it is (see `Stock`), how it's placed, along an edge or extruded from a
+ * point (see `placeStock`), and what building it takes. It's built by a builder: `buildCutStock` in `core/cutStock.fs`,
+ * which extrudes its profile and cuts its holes.
  *
  * A feature using this module:
  * - Adds `programPredicate` at the top, then its part's parameters, then `stockLocationPredicate` and
  *   `tieHolesPredicate`.
- * - Describes its chosen part as a `Stock`, and calls `placeStock` with it.
+ * - Describes its chosen part as a `Stock`, and calls `placeStock` with it and its builder.
  * - Uses `stockManipulatorChange` as its manipulator change function, and calls `stockEditLogic` from its editing
  *   logic.
  *
@@ -15,11 +16,9 @@ FeatureScript 2960;
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
-import(path : "72b77780ed382be329401627", version : "505d7b698065300de55ae4da");
-import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
-import(path : "f58a965fe7005e2e3c9a67c7", version : "5794d15cbce3be3e963e93d5");
-import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
+import(path : "0794d10863d10d98a88c2ab4", version : "4f09b23b6e418ecb226e90c1");
+import(path : "eb11a2948f8123134339137f", version : "bb940e9476e24cb28de04307");
+import(path : "aa47f3d3eb754118903deeec", version : "bf10066c2f7af268441d58ce");
 // Exported since features' preconditions use their predicates (and enums) through this module's
 export import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 export import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
@@ -50,8 +49,8 @@ export predicate isEdgePlacement(definition is map)
  */
 const OFFSET_BOUNDS = {
             (meter) : [-500, 0.00635, 500],
-            (centimeter) : 0.635,
-            (millimeter) : 6.35,
+            (centimeter) : 0.6,
+            (millimeter) : 6,
             (inch) : 0.25,
             (foot) : 0.25 / 12,
             (yard) : 0.25 / 36
@@ -186,6 +185,7 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
  *      @field vendor {string}
  *      @field url {string} : Where to buy it, if no `stock` length fits.
  *      @field appearance {Color}
+ *      @field material {Material} : @optional What it's made of; Aluminum - 6061 otherwise.
  *      @field stock {array} : The lengths it's sold in. @seealso [stockFor]
  *      @field width {ValueWithUnits} : The width of its profile, along X.
  *      @field height {ValueWithUnits} : The height of its profile, along Y.
@@ -317,7 +317,7 @@ export predicate tieHolesPredicate(definition is map)
  * same margin at each end (see `isRegularLength`). Holes keep their identities as the stock's length changes, so things
  * attached to them stay attached; a hole's identity is usually its count from the start, so those near the end move
  * with it. Tying the holes near the end (and those around them) to it gives them identities counted from the end
- * instead (see `buildStock`).
+ * instead (see `buildCutStock`).
  *
  * @param start : The position of the first hole which counts.
  * @param unit : How far apart the holes which count are. Rows may have holes between them.
@@ -382,7 +382,7 @@ function regularSpacings(length is ValueWithUnits, tie is map) returns number
 
 /**
  * The shortest regular length (see `isRegularLength`) at least `length` long: what stock is built as before it's trimmed
- * to `length` (see `buildStock`), so a part which isn't a regular length has the holes it would have if it were cut from
+ * to `length` (see `buildCutStock`), so a part which isn't a regular length has the holes it would have if it were cut from
  * longer stock, the last of them cut through by its end.
  */
 export function regularLength(length is ValueWithUnits, tie is map) returns ValueWithUnits
@@ -439,127 +439,35 @@ export function isRegularLength(length is ValueWithUnits, tie is map) returns bo
 const MAX_SPLINE_RADIUS = 17.45 * millimeter;
 
 /**
- * Builds stock `length` long from `location` (the middle of its start, with Z along its length and its width along
- * X): its profile is extruded along its length, then its holes are cut, then its ends are trimmed.
- *
- * Stock with holes is built as the regular length at least `length` long (see `regularLength`), so its holes are all
- * whole while they're cut, and is then cut to `length`, cutting through any holes the end crosses, as cutting it from
- * longer stock would. Ends can be slanted (like miters): `ends` has the `startPlane` and `endPlane` they're on, which
- * are inside its length, and other `cuts` to make (see `trimCuts`); it's cut to each (see `trimBeyond`), and the face
- * each cut leaves is a frame's cap.
- *
- * Booleans are slow, so each row's holes are cut by one seed (a tool for its first hole), and the seed's faces are face
- * patterned along the stock. A row's holes tied to the end (see `getTie`) have a seed of their own at the last of them,
- * patterned back toward the start, so their identities are counted from the end. Seeds patterned the same way are cut
- * and patterned together (see `seedGroups`), each group under its own id, so the faces it made are
- * `qCreatedBy(groupId, EntityType.FACE)`.
- *
- * @returns {{
- *      @field body {Query}
- *      @field endFace {Query} : The face at its end.
- *      @field tiedHoles {Query} : The faces of the holes tied to the end.
- *      @field tie {map} : Its holes' tie (see `getTie`), or `undefined` if it has none.
- * }}
+ * How far a row's shape (see `HoleRow`) reaches from its center across the stock: its radius.
  */
-export function buildStock(context is Context, id is Id, definition is map, stock is Stock, location is CoordSystem,
-    length is ValueWithUnits, ends is map) returns map
+function shapeRadius(shape is map, holeDiameter is ValueWithUnits) returns ValueWithUnits
 {
-    const tie = getTie(definition, stock.tieStart, stock.tieUnit);
-    const hasHoles = stock.xRows != [] || stock.yRows != [];
-    const built = hasHoles ? regularLength(length, tie) : length;
-    const profileId = id + "profile";
-    const sketch = newSketchOnPlane(context, profileId, { "sketchPlane" : plane(location) });
-    const across = acrossSign(definition);
-    sketchProfile(sketch, stock, across);
-    skSolve(sketch);
-    const stockId = id + "stock";
-    opExtrude(context, stockId, {
-                "entities" : qSketchRegion(profileId, true),
-                "direction" : location.zAxis,
-                "endBound" : BoundingType.BLIND,
-                "endDepth" : built
-            });
-    opDeleteBodies(context, id + "deleteProfile", { "entities" : qCreatedBy(profileId, EntityType.BODY) });
-    const body = qCreatedBy(stockId, EntityType.BODY);
-    if (stock.isFrame ?? false)
-    {
-        // Before the holes are cut, so its faces are still the extrude's
-        tagExtrudeAsFrame(context, stockId, stock.partName, stock.vendor);
-    }
+    return (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? holeDiameter) / 2;
+}
 
-    var tiedHoles = [];
-    const groups = seedGroups(stock, location, length, tie, across);
-    for (var i, group in groups)
-    {
-        const groupId = id + ("holes" ~ i);
-        cutHoles(context, groupId, group, body, stock.holeDiameter);
-        if (group.tied)
-        {
-            tiedHoles = append(tiedHoles, qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body));
-        }
-    }
-
-    // Cut to its ends and trims (after its holes are cut, so they're cut through like the stock it's cut from)
-    var cuts = ends.cuts;
-    if (ends.endPlane != undefined || !tolerantEquals(built, length))
-    {
-        const endPlane = ends.endPlane ?? plane(location.origin + location.zAxis * length, location.zAxis);
-        cuts = append(cuts, { "plane" : endPlane, "away" : location.zAxis });
-    }
-    if (ends.startPlane != undefined)
-    {
-        cuts = append(cuts, { "plane" : ends.startPlane, "away" : -location.zAxis });
-    }
-    var endFaces = [qCapEntity(stockId, CapType.END, EntityType.FACE)];
-    const reach = built + stock.width + stock.height;
-    for (var i, cut in cuts)
-    {
-        const isEnd = dot(cut.away, location.zAxis) > 0;
-        const face = trimBeyond(context, id + ("cut" ~ i), body, cut.plane, cut.away, reach);
-        if (stock.isFrame ?? false)
-        {
-            tagFrameCaps(context, face, !isEnd);
-        }
-        if (isEnd)
-        {
-            endFaces = append(endFaces, face);
-        }
-    }
-    // The stock's end, or the faces the cuts at its end leave (those still on it)
-    const endFace = qUnion(endFaces)->qOwnedByBody(body);
-
-    // After trimming, so holes the trims removed aren't threaded
-    if (stock.thread != undefined)
-    {
-        var threadedHoles = [];
-        for (var i, group in groups)
-        {
-            threadedHoles = concatenateArrays([threadedHoles, groupHoles(context, id + ("holes" ~ i), group, body)]);
-        }
-        if (stock.centerHole ?? false)
-        {
-            threadedHoles = concatenateArrays([threadedHoles, centerHole(context, body, location)]);
-        }
-        setTappedThroughHoles(context, id, threadedHoles, stock.thread);
-    }
-    return {
-            "body" : body,
-            "endFace" : endFace,
-            "tiedHoles" : qUnion(tiedHoles),
-            "tie" : hasHoles ? tie : undefined
-        };
+/**
+ * Sketches a rectangle with sides along the sketch's X and Y, between two corners, as four lines named `id` and `.low`,
+ * `.high`, `.start`, and `.end`: as `skRectangle` sketches it, but without its constraints, which take solving.
+ */
+function sketchRectangle(sketch is Sketch, id is string, low is Vector, high is Vector)
+{
+    skLineSegment(sketch, id ~ ".low", { "start" : low, "end" : vector(high[0], low[1]) });
+    skLineSegment(sketch, id ~ ".end", { "start" : vector(high[0], low[1]), "end" : high });
+    skLineSegment(sketch, id ~ ".high", { "start" : high, "end" : vector(low[0], high[1]) });
+    skLineSegment(sketch, id ~ ".start", { "start" : vector(low[0], high[1]), "end" : low });
 }
 
 /**
  * Cuts away the part of `body` beyond `cut`, in `direction` (which way is out of the body, for either way the plane
  * faces), with a block `reach` across. Returns the face the cut leaves.
  */
-function trimBeyond(context is Context, id is Id, body is Query, cut is Plane, direction is Vector, reach is ValueWithUnits) returns Query
+export function trimBeyond(context is Context, id is Id, body is Query, cut is Plane, direction is Vector, reach is ValueWithUnits) returns Query
 {
     const outward = dot(cut.normal, direction) > 0 ? cut.normal : -cut.normal;
     const sketchPlane = plane(cut.origin, outward);
     const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : sketchPlane });
-    skRectangle(sketch, "block", { "firstCorner" : vector(-reach, -reach), "secondCorner" : vector(reach, reach) });
+    sketchRectangle(sketch, "block", vector(-reach, -reach), vector(reach, reach));
     skSolve(sketch);
     opExtrude(context, id + "tool", {
                 "entities" : qSketchRegion(id + "sketch"),
@@ -573,14 +481,15 @@ function trimBeyond(context is Context, id is Id, body is Query, cut is Plane, d
                 "targets" : body,
                 "operationType" : BooleanOperationType.SUBTRACTION
             });
-    return qCreatedBy(id + "tool", EntityType.FACE)->qOwnedByBody(body);
+    // The boolean makes the face the cut leaves, not the tool
+    return qCreatedBy(id + "cut", EntityType.FACE)->qOwnedByBody(body);
 }
 
 /**
  * Sketches stock's profile, centered on the origin with its width along X, mirrored across its Y axis if `across` is -1
  * (see `acrossSign`).
  */
-function sketchProfile(sketch is Sketch, stock is Stock, across is number)
+export function sketchProfile(sketch is Sketch, stock is Stock, across is number)
 {
     const halfWidth = stock.width / 2;
     const halfHeight = stock.height / 2;
@@ -671,7 +580,7 @@ function mirroredAcrossY(profile is array) returns array
  * are sketched on (with X along the stock, so its Y is the stock's -Y and X respectively, as `sign` says, which is
  * mirrored across the stock's Y axis with it; see `acrossSign`), and how `deep` its holes go to get through the stock.
  */
-function stockFaces(stock is Stock, location is CoordSystem, across is number) returns array
+export function stockFaces(stock is Stock, location is CoordSystem, across is number) returns array
 {
     return [
             {
@@ -692,185 +601,22 @@ function stockFaces(stock is Stock, location is CoordSystem, across is number) r
 }
 
 /**
- * The seeds which cut stock's holes (see `buildStock`), in groups patterned the same way (as many times, in the same
- * direction), which are cut and patterned together, in fewer operations. Holes which cross, like those of a solid nut
- * strip's rows which line up, have to be.
- *
- * @returns {array} : Maps of each group's `count` (how many holes its seeds are patterned into, including themselves),
- *          the `step` between them, whether they're `tied`, and its `seeds`: maps of the `face` (see `stockFaces`) and
- *          row `shapes` they cut, and their `position` along the stock.
- */
-function seedGroups(stock is Stock, location is CoordSystem, length is ValueWithUnits, tie is map, across is number) returns array
-{
-    var groups = [];
-    for (var face in stockFaces(stock, location, across))
-    {
-        for (var row in face.rows)
-        {
-            const positions = holePositions(row, rowExtent(row, stock.holeDiameter), length, tie);
-            for (var tied in [false, true])
-            {
-                const holes = filter(positions, function(hole)
-                    {
-                        return hole.tied == tied;
-                    });
-                if (holes == [])
-                {
-                    continue;
-                }
-                const seed = {
-                        "face" : face,
-                        "shapes" : row.shapes,
-                        "position" : tied ? holes[size(holes) - 1].position : holes[0].position
-                    };
-                const count = size(holes);
-                const step = location.zAxis * (tied ? -row.pitch : row.pitch);
-                var found = false;
-                for (var i, group in groups)
-                {
-                    if (group.count == count && group.tied == tied && tolerantEquals(group.step, step))
-                    {
-                        groups[i].seeds = append(group.seeds, seed);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found)
-                {
-                    groups = append(groups, { "count" : count, "step" : step, "tied" : tied, "seeds" : [seed] });
-                }
-            }
-        }
-    }
-    return groups;
-}
-
-/**
- * Cuts a group of seeds (see `seedGroups`) from the body with one boolean, then face patterns the holes they made along
- * it, all under `groupId`.
- */
-function cutHoles(context is Context, groupId is Id, group is map, body is Query, holeDiameter is ValueWithUnits)
-{
-    for (var i, seed in group.seeds)
-    {
-        sketchSeed(context, groupId + ("seed" ~ i), seed.face, seed.shapes, seed.position, holeDiameter);
-    }
-    opBoolean(context, groupId + "cut", {
-                "tools" : qCreatedBy(groupId, EntityType.BODY)->qBodyType(BodyType.SOLID),
-                "targets" : body,
-                "operationType" : BooleanOperationType.SUBTRACTION
-            });
-    opDeleteBodies(context, groupId + "deleteSketches", {
-                "entities" : qCreatedBy(groupId, EntityType.BODY)->qSketchFilter(SketchObject.YES)
-            });
-    if (group.count > 1)
-    {
-        const instances = range(1, group.count - 1);
-        opPattern(context, groupId + "pattern", {
-                    "entities" : qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body),
-                    "transforms" : mapArray(instances, function(k)
-                        {
-                            return transform(group.step * k);
-                        }),
-                    "instanceNames" : mapArray(instances, holeInstanceName)
-                });
-    }
-}
-
-/**
- * The name of the pattern instance which is a group's `k`th hole after its seeds (see `cutHoles`). A const, so it can be
- * passed to `mapArray`.
- */
-const holeInstanceName = function(k is number) returns string
-    {
-        return "" ~ k;
-    };
-
-/**
- * The holes a group of seeds cut (see `cutHoles`), for `setTappedThroughHoles`: maps of each hole's `faces` and
- * `coordSystem`. Each of the group's holes is its seeds' faces (its first) or a pattern instance's (see
- * `qPatternInstances`), split between its seeds by the direction they go through the stock.
- */
-function groupHoles(context is Context, groupId is Id, group is map, body is Query) returns array
-{
-    const pattern = groupId + "pattern";
-    var holes = [];
-    for (var k = 0; k < group.count; k += 1)
-    {
-        const faces = k == 0 ?
-            qSubtraction(qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body), qCreatedBy(pattern, EntityType.FACE)) :
-            qPatternInstances(pattern, holeInstanceName(k), EntityType.FACE);
-        for (var seed in group.seeds)
-        {
-            const plane = seed.face.plane;
-            const seedFaces = filter(evaluateQuery(context, faces->qGeometry(GeometryType.CYLINDER)), function(face)
-                {
-                    return parallelVectors(evSurfaceDefinition(context, { "face" : face }).coordSystem.zAxis, plane.normal);
-                });
-            if (seedFaces != [])
-            {
-                const position = seed.position + dot(group.step, plane.x) * k;
-                holes = append(holes, {
-                            "faces" : qUnion(seedFaces),
-                            "coordSystem" : coordSystem(plane.origin + plane.x * position, plane.x, plane.normal)
-                        });
-            }
-        }
-    }
-    return holes;
-}
-
-/**
- * A `solid` profile's center hole (see `Stock`), for `setTappedThroughHoles`: the body's cylindrical faces along it, if
- * it has any.
- */
-function centerHole(context is Context, body is Query, location is CoordSystem) returns array
-{
-    const faces = filter(evaluateQuery(context, qOwnedByBody(body, EntityType.FACE)->qGeometry(GeometryType.CYLINDER)), function(face)
-        {
-            return parallelVectors(evSurfaceDefinition(context, { "face" : face }).coordSystem.zAxis, location.zAxis);
-        });
-    return faces == [] ? [] : [{ "faces" : qUnion(faces), "coordSystem" : coordSystem(location.origin, location.xAxis, location.zAxis) }];
-}
-
-/**
  * How far a row's shapes reach along the stock from its position.
  */
-function rowExtent(row is HoleRow, holeDiameter is ValueWithUnits) returns ValueWithUnits
+export function rowExtent(row is HoleRow, holeDiameter is ValueWithUnits) returns ValueWithUnits
 {
     var extent = 0 * meter;
     for (var shape in row.shapes)
     {
-        const radius = (shape.maxSpline ?? false) ? MAX_SPLINE_RADIUS : (shape.diameter ?? holeDiameter) / 2;
-        extent = max(extent, abs(shape.along) + (shape.slot ?? 0 * meter) / 2 + radius);
+        extent = max(extent, abs(shape.along) + (shape.slot ?? 0 * meter) / 2 + shapeRadius(shape, holeDiameter));
     }
     return extent;
 }
 
 /**
- * Sketches a row's `shapes` at `position` along `face`, as `seedId + "sketch"`, and extrudes them through the stock as
- * a tool, `seedId + "tool"`.
- */
-function sketchSeed(context is Context, seedId is Id, face is map, shapes is array, position is ValueWithUnits, holeDiameter is ValueWithUnits)
-{
-    const sketch = newSketchOnPlane(context, seedId + "sketch", { "sketchPlane" : face.plane });
-    for (var i, shape in shapes)
-    {
-        sketchShape(sketch, "shape" ~ i, vector(position + shape.along, face.sign * shape.offset), shape, holeDiameter);
-    }
-    skSolve(sketch);
-    opExtrude(context, seedId + "tool", {
-                "entities" : qSketchRegion(seedId + "sketch"),
-                "direction" : face.plane.normal,
-                "endBound" : BoundingType.BLIND,
-                "endDepth" : face.depth
-            });
-}
-
-/**
  * Sketches one shape of a row (see `HoleRow`) at `center`.
  */
-function sketchShape(sketch is Sketch, name is string, center is Vector, shape is map, holeDiameter is ValueWithUnits)
+export function sketchShape(sketch is Sketch, name is string, center is Vector, shape is map, holeDiameter is ValueWithUnits)
 {
     if (shape.maxSpline ?? false)
     {
@@ -909,12 +655,17 @@ const END_OFFSET_MANIPULATOR = "endOffsetManipulator";
 const FLIP_MANIPULATOR = "stockFlipManipulator";
 
 /**
- * Builds stock (see `buildStock`) along the selected edge, or extrudes it from the selected point, and names it and
- * sets its properties (see `setStockProperties`).
+ * Builds stock along the selected edge, or extrudes it from the selected point, and names it and sets its properties
+ * (see `setStockProperties`).
  *
  * @param name : What's placed, e.g. `"nut strip"`, for messages.
+ * @param build : Builds it, from (context, id, definition, stock, location, length, ends): `buildCutStock`
+ *          (`core/cutStock.fs`). `location` is the middle of its start, with
+ *          Z along it and its width along X, and `ends` has the `startPlane` and `endPlane` slanted ends are on (if
+ *          they are), and other `cuts` to make (see `trimCuts`). It returns the stock's `body`, its `endFace`, the faces
+ *          of its `tiedHoles`, and its holes' `tie` (see `getTie`; `undefined` if it has none).
  */
-export function placeStock(context is Context, id is Id, definition is map, stock is Stock, name is string)
+export function placeStock(context is Context, id is Id, definition is map, stock is Stock, name is string, build is function)
 {
     const placement = isEdgePlacement(definition) ?
         edgePlacement(context, id, definition, name) :
@@ -934,7 +685,7 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
         throw regenError("The " ~ name ~ " has no length.", placement.errorParameters);
     }
     const cuts = definition.trimEnds && isEdgePlacement(definition) ? trimCuts(context, definition, stock, center, length, name) : [];
-    const built = buildStock(context, id, definition, stock, center, length,
+    const built = build(context, id, definition, stock, center, length,
         { "startPlane" : placement.startPlane, "endPlane" : placement.endPlane, "cuts" : cuts });
     if (cuts != [])
     {
@@ -1136,7 +887,7 @@ function stockPointOffsets(definition is map, stock is Stock) returns array
  * holes through its walls facing Y, and its nine points) is mirrored by this, so it's back where it was. So flipping
  * only changes which end the stock (and its holes) start from.
  */
-function acrossSign(definition is map) returns number
+export function acrossSign(definition is map) returns number
 {
     return isFlipped(definition) ? -1 : 1;
 }
@@ -1218,7 +969,7 @@ function addOffsetManipulators(context is Context, id is Id, definition is map, 
 /**
  * How far along `center`'s Z axis stock reaches: from where its start plane is farthest back across its profile (or 0,
  * for a square start) to where its end plane is farthest forward (or `length`, for a square end), as an extrude up to a
- * slanted face reaches it. Stock is built that long, then cut to the planes (see `buildStock`).
+ * slanted face reaches it. Stock is built that long, then cut to the planes (see `buildCutStock`).
  */
 function stockSpan(center is CoordSystem, stock is Stock, startPlane, endPlane, length is ValueWithUnits) returns map
 {
@@ -1479,7 +1230,7 @@ export function setStockProperties(context is Context, body is Query, definition
     setProperty(context, {
                 "entities" : body,
                 "propertyType" : PropertyType.MATERIAL,
-                "value" : ALUMINUM
+                "value" : part.material ?? ALUMINUM
             });
     setProperty(context, {
                 "entities" : body,

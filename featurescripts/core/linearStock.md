@@ -1,12 +1,18 @@
-# Linear stock (`linearStock.fs`)
+# Linear stock (`linearStock.fs`, `cutStock.fs`)
 
-The shared module behind Robot frame and Robot nut strip: what a length of stock is (`Stock`), how it's built
-(`buildStock`), how it's placed along an edge or extruded from a point (`placeStock`), and the dialog for placing it
-(`stockLocationPredicate`, `tieHolesPredicate`). See `docs/feature-writeups.md` for what writeups cover.
+The shared modules behind Robot frame and Robot nut strip: what a length of stock is (`Stock`), how it's placed along
+an edge or extruded from a point (`placeStock`), the dialog for placing it (`stockLocationPredicate`,
+`tieHolesPredicate`), and how it's built. See `docs/feature-writeups.md` for what writeups cover.
+
+| File | What it is |
+| --- | --- |
+| `linearStock.fs` | What stock is, tying its holes, placing it, its properties, editing logic, and what building it uses (sketching its profile and holes, `stockFaces`, trimming) |
+| `cutStock.fs` | Cut stock (`buildCutStock`): its profile extruded and its holes cut, as frames and nut strips are built |
 
 The features using it ([Robot frame](../frame/robotFrame.md), [Robot nut strip](../nutStrip/robotNutStrip.md)) only
-choose a part, describe it as a `Stock`, and call `placeStock`; everything below is the same for both. `<name>` in
-strings is what's placed: `frame` or `nut strip`.
+choose a part, describe it as a `Stock`, and call `placeStock` with it and its builder (`buildCutStock`); everything
+else below is the same for both. `<name>` in strings is what's placed:
+`frame` or `nut strip`.
 
 ## Strings
 
@@ -70,7 +76,7 @@ their ends are cut to.
    2. The chosen nine point is moved onto the edge or point (`stockPointOffsets`), and `stockSpan` stretches the length
       to reach the farthest corner of each slanted end, as an extrude up to a slanted face reaches it.
    3. With Trim ends, `trimCuts` turns the selected faces into cuts (below).
-   4. `buildStock` builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
+   4. The feature's builder builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
    5. `setStockProperties` names it and sets its properties.
    6. The nine point and flip manipulators are added (and, by `edgePlacement`, the offset manipulators; by
       `extrudePlacement`, std's depth and flip manipulators, from the point moved by the starting offset).
@@ -115,7 +121,9 @@ of the part it's a face of, or along a mate connector's Z) and removing the rest
 it's built along the edge between its offsets, then cut. A face whose plane misses the stock, or would cut all of it
 away, is an error. Holes are laid out on the untrimmed length, so tied holes count from the untrimmed end.
 
-### Building (`buildStock`)
+### Cut stock (`cutStock.fs`, `buildCutStock`)
+
+Frames and nut strips are built this way:
 
 1. The profile is sketched (`sketchProfile`: a rectangle, tube, angle, channel, bore, or a `profile` sketch) and
    extruded. Stock with holes is built as the shortest regular length at least as long (`regularLength`), so every
