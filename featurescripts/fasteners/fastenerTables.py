@@ -738,11 +738,15 @@ NUTS = _stocked_nuts()
 
 
 # FTC's metric nuts, in millimeters, by vendor, size, and type, since their vendors' differ: McMaster-Carr's from its
-# tables and its models of 90591A255 and 94645A101, goBILDA's and REV's from theirs, and AndyMark's as McMaster-Carr's
-# and REV's of the same type (it publishes no models). An M3 nylock is REV's REV-41-1361.
+# tables and its models of 90591A255 and 94645A101, goBILDA's and REV's from theirs, and Generic's and AndyMark's as
+# McMaster-Carr's and REV's of the same type (AndyMark publishes no models). An M3 nylock is REV's REV-41-1361.
 _M3_NYLOCK = Nut(5.5, 4, 3.33, 3.35, "mm")
 _M4_NYLOCK = Nut(7, 5, 4.17, 5.05, "mm")
 METRIC_NUT_DIMENSIONS = {
+    ("GENERIC", "M3", "NYLOCK"): _M3_NYLOCK,
+    ("GENERIC", "M4", "NYLOCK"): _M4_NYLOCK,
+    ("GENERIC", "M3", "HEX"): Nut(5.5, 2.4, unit="mm"),
+    ("GENERIC", "M4", "HEX"): Nut(7, 3.2, unit="mm"),
     ("MCMASTER", "M3", "NYLOCK"): _M3_NYLOCK,
     ("MCMASTER", "M4", "NYLOCK"): _M4_NYLOCK,
     ("MCMASTER", "M3", "HEX"): Nut(5.5, 2.4, unit="mm"),
@@ -773,6 +777,9 @@ def nut_dimensions(vendor: str, size: str, type: str) -> Nut:
 
 def _metric_nuts() -> dict[tuple[str, str, str, str], Stock]:
     stocked: dict[tuple[str, str, str, str], Stock] = {}
+    for vendor, size, type in METRIC_NUT_DIMENSIONS:
+        if vendor == "GENERIC":
+            stocked[(vendor, size, type, METRIC_FINISHES[0])] = Stock()
     for type, sizes in MCMASTER_METRIC["nuts"].items():
         for size, finishes in sizes.items():
             for finish in METRIC_FINISHES:
@@ -1229,7 +1236,7 @@ FTC = Catalog(
     METRIC,
     Defaults(
         ("GENERIC", "M4", "SOCKET", METRIC_SCREW_FINISHES[0], length_id(Millimeters(10))),
-        ("MCMASTER", "M4", "NYLOCK", METRIC_FINISHES[0]),
+        ("GENERIC", "M4", "NYLOCK", METRIC_FINISHES[0]),
         # Type shows only for goBILDA's, which makes two: its 8 mm one is its usual
         ("GENERIC", "M4", "MM_8_X_1", METRIC_FINISHES[0]),
     ),

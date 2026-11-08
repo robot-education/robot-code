@@ -124,8 +124,8 @@ screws and nuts cost less a piece, smallest pack to smallest pack.
 | M4 hex nut | $0.034 (100) | $0.100 (25) |
 | M4 flat washer | $0.031 (100) | $0.080 (25), $0.040 (250) |
 
-Generic is a screw in every size, head and length any vendor sells, and a washer in each size, each in one finish,
-as the FRC fasteners have them; there's no generic nut, as there isn't for FRC.
+Generic is a screw in every size, head and length any vendor sells, a washer in each size, and a hex nut and a nylock
+in each size, as McMaster-Carr's are, each in one finish. FRC's nuts have no Generic: McMaster-Carr makes every one.
 
 Each studio lists its finishes cheapest first, so the default is never a dearer finish for its own sake: by price per
 piece in the smallest pack, what a team orders first. A configuration lists an input's options once, not per part, so

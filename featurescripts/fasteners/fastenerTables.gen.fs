@@ -2546,6 +2546,24 @@ export const NUTS = {
                     }
                 }
             },
+            FastenerVendor.GENERIC : {
+                FastenerSize.M3 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 4 * millimeter, "hexHeight" : 3.33 * millimeter, "insertDiameter" : 3.35 * millimeter, "name" : "M3 Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 2.4 * millimeter, "name" : "M3 Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
+                },
+                FastenerSize.M4 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 5 * millimeter, "hexHeight" : 4.17 * millimeter, "insertDiameter" : 5.05 * millimeter, "name" : "M4 Nylock Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 3.2 * millimeter, "name" : "M4 Hex Nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
+                }
+            },
             FastenerVendor.GOBILDA : {
                 FastenerSize.M4 : {
                     NutType.NYLOCK : {

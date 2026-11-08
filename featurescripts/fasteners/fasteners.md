@@ -88,7 +88,7 @@ made is an error.
 
 The defaults are what's inserted most from FRCDesign's library, by its analytics: #10-32 x 3/8 in black button heads
 (from Generic, which names no vendor), #10-32 nylocks, and McMaster-Carr's #10 x 7/16 in OD stainless washers. FTC's
-are M4 x 10 mm socket heads from Generic, McMaster-Carr's M4 nylocks, and Generic M4 washers, ConfigLib's most
+are M4 x 10 mm socket heads, M4 nylocks, and M4 washers, all Generic, ConfigLib's most
 inserted; its studios list their finishes cheapest first (stainless for screws, zinc plating for nuts and washers).
 
 Fully threaded shows only where a length is sold both ways (McMaster-Carr's long socket heads, whose standard is partly

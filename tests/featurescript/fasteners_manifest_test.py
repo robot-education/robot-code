@@ -456,6 +456,11 @@ def test_ftc_nuts_and_washers_come_in_finishes():
     assert nuts[("MCMASTER", "M4", "NYLOCK", "STAINLESS")]["name"] == "M4 Nylock Nut (Stainless steel)"
     # goBILDA makes M4 alone
     assert nuts[("GOBILDA", "SQUARE")]["partNumber"] == "2803-0007-0007"
+    # Generic's nuts have no vendor or part number, and one finish, which is hidden
+    generic = nuts[("GENERIC", "M3", "HEX")]
+    assert generic["name"] == "M3 Hex Nut"
+    assert generic["values"] == {"vendor": "GENERIC", "size": "M3", "type": "HEX"}
+    assert "partNumber" not in generic and "vendor" not in generic
     washers = _ftc_records("washer")
     assert washers[("MCMASTER", "M3", "BLACK")]["partNumber"] == "98269A420"
     # REV makes one washer, so its size is fixed
@@ -474,7 +479,7 @@ def test_ftc_defaults_and_finishes_are_cheapest_first():
         "length": "MM_10",
         "fullyThreaded": "false",
     }
-    assert studios["nut"].defaults() == {"vendor": "MCMASTER", "size": "M4", "type": "NYLOCK", "finish": "ZINC_PLATED"}
+    assert studios["nut"].defaults() == {"vendor": "GENERIC", "size": "M4", "type": "NYLOCK", "finish": "ZINC_PLATED"}
     finish = next(input for input in studios["screw"].inputs if input.id == "finish")
     assert [option.id for option in finish.options] == ["STAINLESS", "ZINC_PLATED", "BLACK"]
     nut_finish = next(input for input in studios["nut"].inputs if input.id == "finish")

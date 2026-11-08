@@ -11302,8 +11302,13 @@
             "parameterName": "Vendor",
             "enumName": "vendor_conf",
             "namespace": "",
-            "defaultValue": "MCMASTER",
+            "defaultValue": "GENERIC",
             "options": [
+              {
+                "btType": "BTMEnumOption-592",
+                "option": "GENERIC",
+                "optionName": "Generic"
+              },
               {
                 "btType": "BTMEnumOption-592",
                 "option": "MCMASTER",
@@ -11362,6 +11367,12 @@
                         "btType": "BTParameterVisibilityLogical-178",
                         "operation": "OR",
                         "children": [
+                          {
+                            "btType": "BTParameterVisibilityOnEqual-180",
+                            "parameterId": "vendor",
+                            "value": "GENERIC",
+                            "inArray": false
+                          },
                           {
                             "btType": "BTParameterVisibilityOnEqual-180",
                             "parameterId": "vendor",
@@ -11428,6 +11439,12 @@
                         "btType": "BTParameterVisibilityLogical-178",
                         "operation": "OR",
                         "children": [
+                          {
+                            "btType": "BTParameterVisibilityOnEqual-180",
+                            "parameterId": "vendor",
+                            "value": "GENERIC",
+                            "inArray": false
+                          },
                           {
                             "btType": "BTParameterVisibilityOnEqual-180",
                             "parameterId": "vendor",
@@ -11649,6 +11666,42 @@
       },
       "location": null,
       "records": [
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "M3",
+            "type": "NYLOCK"
+          },
+          "name": "M3 Nylock Nut",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "M3",
+            "type": "HEX"
+          },
+          "name": "M3 Hex Nut",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "M4",
+            "type": "NYLOCK"
+          },
+          "name": "M4 Nylock Nut",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "M4",
+            "type": "HEX"
+          },
+          "name": "M4 Hex Nut",
+          "material": "Steel"
+        },
         {
           "values": {
             "vendor": "MCMASTER",
@@ -15771,6 +15824,46 @@
     }
   ],
   "nuts": [
+    {
+      "vendor": "GENERIC",
+      "size": "M3",
+      "type": "NYLOCK",
+      "acrossFlats": 0.0055,
+      "height": 0.004,
+      "finishes": [
+        "ZINC_PLATED"
+      ]
+    },
+    {
+      "vendor": "GENERIC",
+      "size": "M3",
+      "type": "HEX",
+      "acrossFlats": 0.0055,
+      "height": 0.0024,
+      "finishes": [
+        "ZINC_PLATED"
+      ]
+    },
+    {
+      "vendor": "GENERIC",
+      "size": "M4",
+      "type": "NYLOCK",
+      "acrossFlats": 0.007,
+      "height": 0.005,
+      "finishes": [
+        "ZINC_PLATED"
+      ]
+    },
+    {
+      "vendor": "GENERIC",
+      "size": "M4",
+      "type": "HEX",
+      "acrossFlats": 0.007,
+      "height": 0.0032,
+      "finishes": [
+        "ZINC_PLATED"
+      ]
+    },
     {
       "vendor": "MCMASTER",
       "size": "M3",
