@@ -52,6 +52,9 @@ uv run fs push --dry-run     # show what would be pushed
 uv run fs push --no-commit   # push without committing
 ```
 
+A file is pushed after the files it imports that are pushed with it, naming the versions they were just given:
+Onshape rewrites the import in a tab pushed before the tab it imports, which would leave the local file behind.
+
 After pushing, `fs push` commits what it pushed (and the tabs it deleted) to git, as it now is in Onshape: imports by
 path resolved to element ids, import versions from Onshape, and `fs-studios.json` with any new tabs' ids. Nothing else
 is committed, even what's already staged, so the repo always has what each push sent.

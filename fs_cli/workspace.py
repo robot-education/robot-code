@@ -551,22 +551,51 @@ class Workspace:
             targets[studio.path] = (studio.remote.element_id, studio.remote.microversion_id)
         recreated = {element_id: targets[path] for element_id, path in previous.items() if targets[path][0] != element_id}
 
-        def push(studio: Studio) -> None:
-            assert studio.local_code is not None and studio.remote
-            code = retarget_imports(resolve_path_imports(studio.local_code, targets), recreated)
+        def prepare(studio: Studio) -> str:
+            assert studio.local_code is not None
+            code = retarget_imports(
+                resolve_path_imports(studio.local_code, targets), recreated
+            )
             if studio.remote_code is not None:
                 # Never push import versions older than the ones Onshape has, except of tabs just pushed
                 versions = import_versions(studio.remote_code)
                 code = apply_import_versions(
-                    code, {id: version for id, version in versions.items() if id not in self.updated_imports}
+                    code,
+                    {
+                        id: version
+                        for id, version in versions.items()
+                        if id not in self.updated_imports
+                    },
                 )
+            return code
+
+        codes = {studio.path: prepare(studio) for studio in studios}
+        pushed_versions: dict[str, str] = {}
+
+        def push(studio: Studio) -> None:
+            assert studio.remote
+            code = apply_import_versions(codes[studio.path], pushed_versions)
             if code != studio.local_code:
                 studio.file.write_text(code, newline="")
                 studio.local_code = code
             self.remote.push(self.instance, studio.remote.element_id, code)
 
-        with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
-            list(executor.map(push, studios))
+        pushed: list[Studio] = []
+        for wave in import_order(studios, codes):
+            if pushed:
+                # The new microversions of the tabs pushed so far, which their importers' imports name
+                listed = {
+                    remote.element_id: remote.microversion_id
+                    for remote in self.remote.list_studios(self.instance)
+                }
+                pushed_versions.update(
+                    (studio.remote.element_id, listed[studio.remote.element_id])
+                    for studio in pushed
+                    if studio.remote
+                )
+            with futures.ThreadPoolExecutor(MAX_WORKERS) as executor:
+                list(executor.map(push, wave))
+            pushed.extend(wave)
 
         # Pushing changes each studio's microversion; fetch the new ones so the next
         # command knows Onshape hasn't been modified since
@@ -711,3 +740,31 @@ def apply_to_files(
             studio.local_code = new_code
             changed.append(studio)
     return changed
+
+
+def import_order(studios: list[Studio], codes: dict[str, str]) -> list[list[Studio]]:
+    """Studios to push in waves, each after the tabs it imports among them. Onshape rewrites an importer's import of a
+    tab pushed after it, so the local file falls behind; pushed after the tab, with its new version, it doesn't."""
+    waiting = list(studios)
+    waves: list[list[Studio]] = []
+    while waiting:
+        pending = {studio.remote.element_id for studio in waiting if studio.remote}
+        wave = [
+            studio
+            for studio in waiting
+            if not any(
+                element_id in pending
+                and element_id != (studio.remote and studio.remote.element_id)
+                for element_id in import_versions(codes[studio.path])
+            )
+        ]
+        if not wave:
+            raise UsageError(
+                "These FeatureScripts import each other: "
+                + ", ".join(studio.path for studio in waiting)
+            )
+        waves.append(wave)
+        waiting = [
+            studio for studio in waiting if all(studio is not each for each in wave)
+        ]
+    return waves

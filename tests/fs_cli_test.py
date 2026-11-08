@@ -982,6 +982,23 @@ def test_import_version_changes_are_not_conflicts(repo, onshape, capsys):
     assert onshape.calls == {"list_studios": 1, "list_images": 1}
 
 
+def test_pushing_a_tab_with_its_importer_keeps_the_version_onshape_gives_the_import(repo, onshape, capsys):
+    """Onshape updates the importer's import of a tab pushed with it, after the importer's own push."""
+    utils = onshape.add("utils.fs", "utils")
+    frame = onshape.add("frame.fs", f'import(path : "{utils}", version : "{OLD}");\nframe\n')
+    run(onshape, "pull")
+    local(repo, "utils.fs").write_text("utils2")
+    local(repo, "frame.fs").write_text(f'import(path : "{utils}", version : "{OLD}");\nframe2\n')
+
+    assert run(onshape, "push") == 0
+    assert local(repo, "frame.fs").read_text() == onshape.code("frame.fs")
+    assert OLD not in onshape.code("frame.fs")
+
+    capsys.readouterr()
+    run(onshape, "status")
+    assert "import versions updated in Onshape" not in capsys.readouterr().out
+
+
 def test_pushing_keeps_onshapes_import_versions(repo, onshape):
     element_id = onshape.add("b.fs", importing(OLD))
     run(onshape, "pull")
@@ -1342,6 +1359,21 @@ def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
     assert run(onshape, "parts", "parts", "--test", "-y") != 0
     assert "Parts/partMaker.fs isn't in sync with the backend document" in capsys.readouterr().err
     assert onshape.builds == []
+
+
+def test_a_part_set_is_tried_only_once_onshapes_import_versions_are_pulled(repo, onshape, capsys):
+    element_id = part_set(repo, onshape)
+    utils = onshape.add("utils.fs", "utils", folders=("Parts",))
+    onshape.edit(element_id, f'import(path : "{utils}", version : "{OLD}");\n' + PART_MAKER)
+    run(onshape, "pull")
+    onshape.edit(element_id, f'import(path : "{utils}", version : "{NEW}");\n' + PART_MAKER)
+
+    assert run(onshape, "parts", "parts", "--test", "-y") != 0
+    assert "Onshape updated the import versions in Parts/partMaker.fs; run `fs pull` first." in capsys.readouterr().err
+    assert onshape.builds == []
+
+    assert run(onshape, "pull") == 0
+    assert run(onshape, "parts", "parts", "--test", "-y") == 0
 
 
 def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):

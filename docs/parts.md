@@ -65,7 +65,9 @@ They're built in the branch's own workspace (see [Branches](fs-cli.md#branches))
 other's. Each Part Studio is built as `<tab> (TEST)`, e.g. `Screw (TEST)`, from the Feature Studio as pushed: its tab found by
 name or created, the feature a build inserted before deleted, its configuration written, and its feature inserted from
 the Feature Studio as it is now and configured. Before any of it, the set's configurations are checked offline against
-their rules (see [Configured Part Studios](fs-cli.md#configured-part-studios)). It prints each one's url, to check in Onshape. A feature that fails to regenerate in its default
+their rules (see [Configured Part Studios](fs-cli.md#configured-part-studios)). It refuses while the set's FeatureScripts
+aren't in sync with the backend document, or Onshape has changed their import versions since (`fs pull` brings those
+in): Onshape has refused to configure a feature from such a Feature Studio. It prints each one's url, to check in Onshape. A feature that fails to regenerate in its default
 configuration stops the build. Nothing is versioned or recorded, so try as often as needed.
 
 When Onshape refuses a configuration, `uv run fs parts fasteners --diagnose` finds which part. It writes each studio's
