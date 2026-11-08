@@ -34,7 +34,7 @@ from fs_cli.configured_studios import (
 )
 from fs_cli.git import head_commit
 from fs_cli.release import find_frontend_studio, version_backend
-from fs_cli.remote import Remote, RemoteStudio, Version
+from fs_cli.remote import Remote, RemoteStudio
 from fs_cli.versions import (
     ReleasedVersion,
     VersionType,
@@ -214,7 +214,8 @@ def plan_part_release(
         name = f"{part_set.title} test - {branch_name(workspace.config) or 'no branch'} {commit}".rstrip()
         return PartReleasePlan(part_set, studio, definitions, None, None, main, name)
     main = workspace.remote.default_workspace(part_set.main_document_id)
-    previous = latest_release(part_set.title, workspace.remote.versions(main))
+    # The main document is versioned by hand, so its releases are numbered by the backend's
+    previous = latest_release(part_set.title, workspace.remote.versions(workspace.instance))
     try:
         version = next_version(previous, bump, beta=False)
     except ValueError as error:
@@ -241,7 +242,7 @@ def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dic
 
 def run_part_release(
     workspace: Workspace, plan: PartReleasePlan, description: str, log: Callable[[str], None] = print
-) -> Version:
+) -> None:
     remote = workspace.remote
     assert plan.studio.remote
     name = plan.studio.remote.name
@@ -262,16 +263,14 @@ def run_part_release(
             log(f"Writing {tab} in the {plan.label}...")
             remote.put_file(plan.main, tab, manifest, "application/json")
 
-    log(f"Creating version {plan.version_name} in the {plan.label}...")
-    version = remote.create_version(plan.main, plan.version_name, description)
     if plan.released is None:
-        return version
+        # A target is versioned, for a local FRCDesignApp to load
+        log(f"Creating version {plan.version_name} in the {plan.label}...")
+        remote.create_version(plan.main, plan.version_name, description)
+        return
     for definition, studios in built.items():
-        write_locations(
-            definition, plan.main.document_id, version.id, {name: each.element_id for name, each in studios.items()}
-        )
+        write_locations(definition, plan.main.document_id, {name: each.element_id for name, each in studios.items()})
         for exported in write_exports(definition):
             log(f"Updated {exported.name}")
     # Its tab has to stay put from now on (see `load_released`)
     workspace.state.released.add(plan.studio.remote.element_id)
-    return version

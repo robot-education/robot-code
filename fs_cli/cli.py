@@ -2012,9 +2012,10 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
         f"Create version {plan.version_name} in the backend document",
         f"Point {plan.studio.name} in the {label} at that version",
         f"Build {tabs} in the {label}, and write its manifest there",
-        f"Create version {plan.version_name} in the {label}",
     ]
-    if plan.released:
+    if plan.released is None:
+        steps.append(f"Create version {plan.version_name} in the {label}")
+    else:
         steps.append(
             "Record where its Part Studios are beside "
             + ", ".join(definition.name for definition, _ in plan.definitions)
@@ -2030,6 +2031,7 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
     print(f"Released {plan.version_name}.")
     if plan.released is None:
         return 0
+    print("Version the main document in Onshape when you want FRCDesign to load it.")
     print("Commit the recorded locations and exports.")
     if is_repository(workspace.config.root):
         assert plan.studio.local_code is not None

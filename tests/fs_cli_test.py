@@ -1387,20 +1387,26 @@ def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
     assert f'"back/{backend_version.id}/{element_id}"' in onshape.code("partMaker.fs", MAIN, "lw")
     # Built from the main document's own studio as pushed, not the backend's
     assert onshape.builds == [(MAIN, "screw", main_studio, onshape.studios(MAIN, "lw")[main_studio]["mv"])]
-    [version] = onshape.versions_by_document[MAIN]
-    assert version.name == "Parts - v0.1.0"
+    # The main document is left for its owner to version
+    assert MAIN not in onshape.versions_by_document
     assert json.loads(local(repo, "Parts/partTables.studios.json").read_text()) == {
         "documentId": MAIN,
-        "versionId": version.id,
         "elements": {"screw": onshape.part_studios[(MAIN, "lw")]["Screw"]},
     }
-    assert "  3. Build Screw in the main document, and write its manifest there" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "  3. Build Screw in the main document, and write its manifest there" in out
+    assert "Create version Parts - v0.1.0 in the main document" not in out
     assert "front" not in onshape.versions_by_document
     # Its manifest beside its Part Studios, naming each by its tab there
     [(name, data)] = onshape.files[(MAIN, "lw")].values()
     assert name == "parts.parts.json"
     screw = onshape.part_studios[(MAIN, "lw")]["Screw"]
     assert json.loads(data) == {"studios": {"screw": {"feature": "partScrew", "mateConnector": "mc", "elementId": screw}}}
+
+    # The next is numbered from the backend's versions
+    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
+    assert [version.name for version in onshape.versions_by_document["back"]] == ["Parts - v0.1.0", "Parts - v0.2.0"]
+    assert MAIN not in onshape.versions_by_document
 
 
 TARGET = "fedcba9876543210fedcba98"

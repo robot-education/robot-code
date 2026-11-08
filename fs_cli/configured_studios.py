@@ -582,21 +582,21 @@ def locations_path(definition: pathlib.Path) -> pathlib.Path:
 
 
 def read_locations(definition: pathlib.Path) -> dict[str, dict[str, str]]:
-    """Each of a definition's released studios, by name, as `{documentId, versionId, elementId}`; none before its
-    first release."""
+    """Each of a definition's released studios, by name, as `{documentId, elementId}`; none before its first
+    release."""
     path = locations_path(definition)
     if not path.is_file():
         return {}
     data = json.loads(path.read_text())
     return {
-        name: {"documentId": data["documentId"], "versionId": data["versionId"], "elementId": element_id}
+        name: {"documentId": data["documentId"], "elementId": element_id}
         for name, element_id in data["elements"].items()
     }
 
 
-def write_locations(definition: pathlib.Path, document_id: str, version_id: str, elements: Mapping[str, str]) -> None:
-    """Records where a definition's studios were released: the library's document and version, and each one's tab."""
-    data = {"documentId": document_id, "versionId": version_id, "elements": dict(elements)}
+def write_locations(definition: pathlib.Path, document_id: str, elements: Mapping[str, str]) -> None:
+    """Records where a definition's studios were released: the library's document, and each one's tab."""
+    data = {"documentId": document_id, "elements": dict(elements)}
     locations_path(definition).write_text(json.dumps(data, indent=2) + "\n", newline="")
 
 

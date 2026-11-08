@@ -362,9 +362,9 @@ def test_configured_studios_searches_nested_maps():
 def test_locations_are_recorded_beside_the_definition(tmp_path):
     definition = tmp_path / "partTables.py"
     assert read_locations(definition) == {}
-    write_locations(definition, "doc", "ver", {"screw": "e1"})
+    write_locations(definition, "doc", {"screw": "e1"})
     assert (tmp_path / "partTables.studios.json").is_file()
-    assert read_locations(definition) == {"screw": {"documentId": "doc", "versionId": "ver", "elementId": "e1"}}
+    assert read_locations(definition) == {"screw": {"documentId": "doc", "elementId": "e1"}}
 
 
 class FakeApi:

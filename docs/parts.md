@@ -96,13 +96,15 @@ A release:
    the connector `<featureId>.mateConnector`, and Onshape's API shows no mate connector a feature makes, so this is how
    FRCDesignApp fastens to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
    the document's version, so the records it indexes are always those of the version it loads.
-4. Creates the same version in the main document.
-5. Records where the Part Studios are in `<definition>.studios.json` beside the definition (the main document, that
-   version, and each tab), writes the definition's `EXPORTS` again, and tags the release in git (`fasteners/v1.2.0`).
+4. Records where the Part Studios are in `<definition>.studios.json` beside the definition (the main document and
+   each tab), writes the definition's `EXPORTS` again, and tags the release in git (`fasteners/v1.2.0`).
+
+It leaves the main document unversioned: its owner versions it in Onshape once they've checked the Part Studios, and
+FRCDesignApp loads that version (or holds it for approval). Releases are numbered by the backend document's versions.
 
 Every studio in the set's folder must be pushed and in sync first. Versions can't be deleted, so it asks for
-confirmation (`-y` skips it). A feature that fails to regenerate stops the release before the main document is
-versioned; the backend version stays, so the next try takes the next version number.
+confirmation (`-y` skips it). A feature that fails to regenerate stops the release before anything is recorded; the
+backend version stays, so the next try takes the next version number.
 
 A release runs on the main branch only. Ask for one in a release file (`part_set = "fasteners"`; see
 [Release files](fs-cli.md#release-files)), which the Onshape workflow makes once its branch is merged, committing the
@@ -112,8 +114,8 @@ itself, and Auto Assembly reads the catalog the library stored from it, so a rel
 ### Releasing to a target
 
 `--target` releases to another document, one named in `[tool.fs.parts.<set>.targets]` or any document's url, from any
-branch: to load a set into a local FRCDesignApp, say, before releasing it. It does steps 1 to 4 to that document, but
-the versions are named for the branch and commit (`Fasteners test - my-branch 1a2b3c4`), not numbered, and nothing
+branch: to load a set into a local FRCDesignApp, say, before releasing it. It does steps 1 to 3 to that document, then
+versions it, so FRCDesignApp can load it; the versions are named for the branch and commit (`Fasteners test - my-branch 1a2b3c4`), not numbered, and nothing
 is recorded, marked released, or tagged: the main document and the next release's number are untouched. Its backend
 version is made from the branch's workspace. Versions can't be deleted, so each try leaves one in the backend
 document and one in the target.
