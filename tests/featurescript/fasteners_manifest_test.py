@@ -1,5 +1,5 @@
-"""Checks of fastenerTables.py: what it reads from FRCDesign's snapshot, the configurations it lays out, and the
-manifest it writes for FRCDesign."""
+"""Checks of fastenerTables.py: what it reads from FRCDesign's snapshot and FTC's vendors, the configurations it lays
+out for each part set, and the manifests it writes for FRCDesign (FRC's, and FTC's through ftcFastenerTables.py)."""
 
 import json
 import pathlib
@@ -13,6 +13,10 @@ from fs_cli.configured_studios import input_shows, shows
 FOLDER = pathlib.Path(__file__).parents[2] / "featurescripts" / "fasteners"
 DEFINITION = runpy.run_path(str(FOLDER / "fastenerTables.py"))
 MANIFEST = json.loads((FOLDER / "fasteners.gen.json").read_text())
+FTC_MANIFEST = json.loads((FOLDER / "ftcFasteners.gen.json").read_text())
+FTC_DEFINITION = runpy.run_path(str(FOLDER / "ftcFastenerTables.py"))
+CATALOGS = {"frc": DEFINITION["FRC"], "ftc": DEFINITION["FTC"]}
+MANIFESTS = {"frc": MANIFEST, "ftc": FTC_MANIFEST}
 
 
 STANDARD = DEFINITION["STANDARD"]
@@ -75,11 +79,14 @@ def test_only_a_stores_catalog_screws_are_kept():
 
 def test_the_stores_snapshot_holds_only_catalog_screws():
     snapshot = json.loads(DEFINITION["STORES_SNAPSHOT"].read_text())
-    assert all(DEFINITION["_store_screw"](product) is not None for product in snapshot["products"])
+    assert all(
+        DEFINITION["_store_screw"](product) is not None or DEFINITION["_metric_store_screw"](product) is not None
+        for product in snapshot["products"]
+    )
 
 
 def test_screws_come_from_the_snapshot():
-    screws = DEFINITION["SCREWS"]
+    screws = DEFINITION["FRC"].screws
     rev_button = screws[("REV", "NO_10_32", "BUTTON")]
     assert rev_button[Fraction(3, 8)][STANDARD].part_number == "REV-29-2941-PK50"
     assert rev_button[Fraction(3, 8)][Variant("ZINC_PLATED")].part_number == "REV-29-1221-PK100"
@@ -99,12 +106,13 @@ def test_mcmaster_carrs_long_socket_heads_come_fully_threaded_too():
     assert list(socket[Fraction(1, 2)]) == [STANDARD, Variant("ZINC_PLATED")]
 
 
-def test_fully_threaded_shows_only_where_a_length_is_sold_both_ways():
-    screw = DEFINITION["STUDIOS"]["screw"]
+@pytest.mark.parametrize("part_set", CATALOGS)
+def test_fully_threaded_shows_only_where_a_length_is_sold_both_ways(part_set):
+    screw = CATALOGS[part_set].studios["screw"]
     fully_threaded = next(input for input in screw.inputs if input.id == "fullyThreaded")
     assert screw.inputs[-1] is fully_threaded and fully_threaded.kind == "switch"
     length_id = DEFINITION["length_id"]
-    for (vendor, size, head), stocked in DEFINITION["SCREWS"].items():
+    for (vendor, size, head), stocked in CATALOGS[part_set].screws.items():
         for length, variants in stocked.items():
             for variant in variants:
                 selection = {
@@ -163,10 +171,11 @@ def test_andymarks_washers_take_their_stated_bores():
     }
 
 
-def test_lengths_show_only_where_theyre_made():
-    screw = DEFINITION["STUDIOS"]["screw"]
+@pytest.mark.parametrize("part_set", CATALOGS)
+def test_lengths_show_only_where_theyre_made(part_set):
+    screw = CATALOGS[part_set].studios["screw"]
     length = next(input for input in screw.inputs if input.id == "length")
-    for (vendor, size, head), stocked in DEFINITION["SCREWS"].items():
+    for (vendor, size, head), stocked in CATALOGS[part_set].screws.items():
         for finish in {variant.finish for variants in stocked.values() for variant in variants}:
             selection = {"vendor": vendor, "size": size, "head": head, "finish": finish}
             shown = {option.id for option in length.options if shows(option, selection)}
@@ -184,23 +193,27 @@ def test_length_names_and_ids():
     assert DEFINITION["parse_inches"]("0.031") == Fraction("0.031")
 
 
-def test_washers_and_nuts_fit_their_screws():
-    by_id = {size["id"]: size for size in MANIFEST["sizes"]}
-    for washer in MANIFEST["washers"]:
-        assert washer["innerDiameter"] > by_id[washer["size"]]["majorDiameter"]
+@pytest.mark.parametrize("part_set", MANIFESTS)
+def test_washers_and_nuts_fit_their_screws(part_set):
+    manifest = MANIFESTS[part_set]
+    by_id = {size["id"]: size for size in manifest["sizes"]}
+    for washer in manifest["washers"]:
+        # goBILDA's M4 washers have a 4 mm bore, a slip fit
+        assert washer["innerDiameter"] >= by_id[washer["size"]]["majorDiameter"]
         assert washer["outerDiameter"] > washer["innerDiameter"]
-    for nut in MANIFEST["nuts"]:
+    for nut in manifest["nuts"]:
         assert nut["acrossFlats"] > by_id[nut["size"]]["majorDiameter"]
-    for size in MANIFEST["sizes"]:
+    for size in manifest["sizes"]:
         assert size["tapDrillDiameter"] < size["majorDiameter"] < size["closeClearanceDiameter"]
         assert size["closeClearanceDiameter"] < size["freeClearanceDiameter"]
 
 
+@pytest.mark.parametrize("part_set", CATALOGS)
 @pytest.mark.parametrize("kind", ["screw", "nut", "washer"])
-def test_each_configuration_has_one_record(kind):
+def test_each_configuration_has_one_record(part_set, kind):
     """FRCDesignApp indexes these instead of asking Onshape, so they must be exactly what the configuration offers."""
-    records = [record["values"] for record in MANIFEST["studios"][kind]["records"]]
-    assert sorted(map(str, records)) == sorted(map(str, DEFINITION["STUDIOS"][kind].combinations()))
+    records = [record["values"] for record in MANIFESTS[part_set]["studios"][kind]["records"]]
+    assert sorted(map(str, records)) == sorted(map(str, CATALOGS[part_set].studios[kind].combinations()))
 
 
 def test_records_name_and_sell_each_part():
@@ -223,23 +236,37 @@ def test_records_name_and_sell_each_part():
 # The configuration rules (see docs/fs-cli.md's "Configured Part Studios"), checked on each studio as generated
 
 KINDS = ["screw", "nut", "washer"]
-TABLES = {"screw": DEFINITION["SCREW_TABLE"], "nut": DEFINITION["NUT_TABLE"], "washer": DEFINITION["WASHER_TABLE"]}
-MADE = {
-    "screw": [record[:5] for record in DEFINITION["SCREW_RECORDS"]],
-    "nut": list(DEFINITION["NUTS"]),
-    "washer": list(DEFINITION["WASHERS"]),
-}
+STUDIOS = [(part_set, kind) for part_set in CATALOGS for kind in KINDS]
 
 
-@pytest.mark.parametrize("kind", KINDS)
-def test_each_studio_keeps_to_the_configuration_rules(kind):
+def _table(part_set: str, kind: str):
+    catalog = CATALOGS[part_set]
+    return {"screw": catalog.screw_table, "nut": catalog.nut_table, "washer": catalog.washer_table}[kind]
+
+
+def _made(part_set: str, kind: str) -> list[tuple]:
+    catalog = CATALOGS[part_set]
+    if kind == "screw":
+        return [record[:5] for record in catalog.records["screw"]]
+    return list(catalog.nuts if kind == "nut" else catalog.washers)
+
+
+def test_each_set_offers_its_own_sizes():
+    assert {key[1] for key in DEFINITION["FRC"].screws} == DEFINITION["IMPERIAL"]
+    assert {key[1] for key in DEFINITION["FTC"].screws} == DEFINITION["METRIC"]
+    assert [size["id"] for size in FTC_MANIFEST["sizes"]] == ["M3", "M4"]
+    assert FTC_DEFINITION["STUDIOS"].keys() == {"screw", "nut", "washer"}
+
+
+@pytest.mark.parametrize("part_set,kind", STUDIOS)
+def test_each_studio_keeps_to_the_configuration_rules(part_set, kind):
     """What `fs parts` checks before it sends anything to Onshape."""
-    assert DEFINITION["STUDIOS"][kind].problems() == []
+    assert CATALOGS[part_set].studios[kind].problems() == []
 
 
-@pytest.mark.parametrize("kind", KINDS)
-def test_an_input_shows_only_with_a_choice_of_options(kind):
-    studio = DEFINITION["STUDIOS"][kind]
+@pytest.mark.parametrize("part_set,kind", STUDIOS)
+def test_an_input_shows_only_with_a_choice_of_options(part_set, kind):
+    studio = CATALOGS[part_set].studios[kind]
     for combination in studio.combinations():
         for input in studio.configured_inputs():
             shown = [option.id for option in input.options if input_shows(input, combination) and shows(option, combination)]
@@ -247,10 +274,10 @@ def test_an_input_shows_only_with_a_choice_of_options(kind):
             assert (input.id in combination) == bool(shown), (input.id, combination)
 
 
-@pytest.mark.parametrize("kind", KINDS)
-def test_a_hidden_input_has_one_option_made_where_its_hidden(kind):
+@pytest.mark.parametrize("part_set,kind", STUDIOS)
+def test_a_hidden_input_has_one_option_made_where_its_hidden(part_set, kind):
     """So the feature resolves it to that one, whatever value Onshape's configuration holds."""
-    table, made = TABLES[kind], MADE[kind]
+    table, made = _table(part_set, kind), _made(part_set, kind)
     for key in made:
         shown = table.shown(key)
         for index, id in enumerate(table.ids):
@@ -258,20 +285,20 @@ def test_a_hidden_input_has_one_option_made_where_its_hidden(kind):
                 assert {other[index] for other in made if other[:index] == key[:index]} == {key[index]}, (id, key)
 
 
-@pytest.mark.parametrize("kind", KINDS)
-def test_every_option_is_controlled_by_a_rule(kind):
+@pytest.mark.parametrize("part_set,kind", STUDIOS)
+def test_every_option_is_controlled_by_a_rule(part_set, kind):
     """Onshape hides every option no rule controls, once an input has any rule."""
-    for parameter in DEFINITION["STUDIOS"][kind].configuration_body()["configurationParameters"]:
+    for parameter in CATALOGS[part_set].studios[kind].configuration_body()["configurationParameters"]:
         rules = parameter.get("enumOptionVisibilityConditions", {}).get("visibilityConditions", [])
         if rules:
             controlled = {option for rule in rules for option in rule["controlledOptions"]}
             assert controlled == {option["option"] for option in parameter["options"]}, parameter["parameterId"]
 
 
-@pytest.mark.parametrize("kind", KINDS)
-def test_each_default_shows_with_the_others(kind):
+@pytest.mark.parametrize("part_set,kind", STUDIOS)
+def test_each_default_shows_with_the_others(part_set, kind):
     """Onshape refuses a configuration whose default hides an input's default while it shows others."""
-    studio = DEFINITION["STUDIOS"][kind]
+    studio = CATALOGS[part_set].studios[kind]
     selection: dict[str, str] = {}
     for input in studio.configured_inputs():
         shown = [option.id for option in input.options if input_shows(input, selection) and shows(option, selection)]
@@ -315,3 +342,109 @@ def test_each_feature_makes_one_mate_connector(kind):
     body = code[start:end]
     assert body.count("opMateConnector(") + body.count("addSeatMateConnector(") == 1
     assert "for (" not in body and "while (" not in body
+
+
+# FTC's metric catalog (docs/ftc-fasteners.md)
+
+Millimeters = DEFINITION["Millimeters"]
+
+
+def _ftc_records(kind: str) -> dict[tuple, dict]:
+    return {tuple(record["values"].values()): record for record in FTC_MANIFEST["studios"][kind]["records"]}
+
+
+def test_mcmaster_carrs_metric_screws_take_the_cheapest_small_pack():
+    socket = DEFINITION["FTC"].screws[("MCMASTER", "M4", "SOCKET")]
+    # 18-8 M4 x 10: its imported small pack, not its 2,000
+    assert socket[Millimeters(10)][Variant("STAINLESS")].part_number == "91292A116"
+    # Black oxide M4 x 10 is sold made in the United States alone
+    assert socket[Millimeters(10)][Variant("BLACK")].part_number == "91290A144"
+    # Its M3 x 8 black oxide imported pack costs less than its United States one
+    assert DEFINITION["FTC"].screws[("MCMASTER", "M3", "SOCKET")][Millimeters(8)][Variant("BLACK")].part_number == "91290A400"
+
+
+def test_mcmaster_carrs_lengths_sold_both_ways_offer_full_threading():
+    socket = DEFINITION["FTC"].screws[("MCMASTER", "M4", "SOCKET")]
+    both = socket[Millimeters(30)]
+    assert both[Variant("BLACK")].part_number == "91290A639"
+    assert both[Variant("BLACK", True)].part_number == "91290A172"
+    # Sold one way, it's the standard, and says whether it's threaded its whole length
+    assert socket[Millimeters(25)][Variant("STAINLESS")].full_thread
+    assert not socket[Millimeters(30)][Variant("STAINLESS")].full_thread
+
+
+def test_gobildas_screws_are_threaded_their_whole_length_but_its_longest():
+    socket = DEFINITION["FTC"].screws[("GOBILDA", "M4", "SOCKET")]
+    assert socket[Millimeters(60)][Variant("ZINC_PLATED")].full_thread
+    assert not socket[Millimeters(75)][Variant("ZINC_PLATED")].full_thread
+    assert socket[Millimeters(10)][Variant("ZINC_PLATED")].part_number == "2800-0004-0010"
+
+
+def test_andymarks_metric_screws_come_from_its_store():
+    metric = DEFINITION["_metric_store_screw"]
+
+    def product(title: str, sku: str) -> dict:
+        return {"store": "andymark.com", "title": title, "sku": sku, "url": "https://andymark.com/products/x"}
+
+    screw = metric(product("M4-0.7 x 10 mm Socket Head Cap Screw", "am-1264"))
+    assert (screw.key, screw.length, screw.variant) == (("ANDYMARK", "M4", "SOCKET"), Millimeters(10), Variant("ZINC_PLATED"))
+    # Its titles leave its black and stainless out, and its M4 flat heads take a Phillips driver
+    assert metric(product("M4-0.7 x 55 mm Socket Head Cap Screw", "am-1251")).variant == Variant("BLACK")
+    assert metric(product("M3-0.5 x 45 mm Socket Head Cap Screw", "am-1659")).stock.material.name == "Stainless Steel"
+    assert metric(product("M4-0.7 x 8 mm Flat Head Cap Screw", "am-1788")) is None
+    patched = metric(product("M3-0.5 x 5 mm Zinc Flat Head Cap Screw with Nylon Patch", "am-1724"))
+    assert patched.has_patch and patched.key == ("ANDYMARK", "M3", "FLAT")
+    assert metric(product("M3-0.5 x 12 mm Phillips Pan Head Screw", "am-1557")) is None
+
+
+def test_ftc_screws_name_their_finish_but_generics():
+    records = _ftc_records("screw")
+    assert records[("MCMASTER", "M4", "SOCKET", "STAINLESS", "MM_10")]["name"] == (
+        "M4 x 10 mm Socket Head Screw (Stainless steel)"
+    )
+    full = records[("MCMASTER", "M4", "SOCKET", "BLACK", "MM_30", "true")]
+    assert (full["name"], full["partNumber"]) == ("M4 x 30 mm Socket Head Screw (Black, fully threaded)", "91290A172")
+    assert records[("GENERIC", "M4", "SOCKET", "MM_10")]["name"] == "M4 x 10 mm Socket Head Screw"
+    # REV makes M3 alone, so its size is fixed
+    rev = records[("REV", "HEX", "MM_8")]
+    assert (rev["name"], rev["partNumber"]) == ("M3 x 8 mm Hex Head Screw (Zinc plated)", "REV-41-1359")
+    assert records[("REV", "T_SLOT")]["name"] == "M3 x 8 mm T-Slot Screw (Zinc plated)"
+
+
+def test_ftc_nuts_and_washers_come_in_finishes():
+    nuts = _ftc_records("nut")
+    assert nuts[("MCMASTER", "M4", "NYLOCK", "ZINC_PLATED")]["partNumber"] == "90576A103"
+    assert nuts[("MCMASTER", "M4", "NYLOCK", "STAINLESS")]["name"] == "M4 Nylock Nut (Stainless steel)"
+    # goBILDA makes M4 alone
+    assert nuts[("GOBILDA", "SQUARE")]["partNumber"] == "2803-0007-0007"
+    washers = _ftc_records("washer")
+    assert washers[("MCMASTER", "M3", "BLACK")]["partNumber"] == "98269A420"
+    # REV makes one washer, so its size is fixed
+    assert washers[("REV",)]["name"] == "M3 Washer (7 mm OD x 0.5 mm, Stainless steel)"
+    # FRC's nuts come in one finish, so their configuration doesn't ask
+    assert all("finish" not in record["values"] for record in MANIFEST["studios"]["nut"]["records"])
+
+
+def test_ftc_defaults_and_finishes_are_cheapest_first():
+    studios = DEFINITION["FTC"].studios
+    assert studios["screw"].defaults() == {
+        "vendor": "GENERIC",
+        "size": "M4",
+        "head": "SOCKET",
+        "finish": "STAINLESS",
+        "length": "MM_10",
+        "fullyThreaded": "false",
+    }
+    assert studios["nut"].defaults() == {"vendor": "MCMASTER", "size": "M4", "type": "NYLOCK", "finish": "ZINC_PLATED"}
+    finish = next(input for input in studios["screw"].inputs if input.id == "finish")
+    assert [option.id for option in finish.options] == ["STAINLESS", "ZINC_PLATED", "BLACK"]
+    nut_finish = next(input for input in studios["nut"].inputs if input.id == "finish")
+    assert [option.id for option in nut_finish.options] == ["ZINC_PLATED", "STAINLESS", "BLACK"]
+    assert [vendor["id"] for vendor in FTC_MANIFEST["vendors"]] == ["GENERIC", "MCMASTER", "GOBILDA", "REV", "ANDYMARK"]
+
+
+def test_metric_flat_heads_sit_in_90_degree_countersinks():
+    heads = {head["id"]: head for head in FTC_MANIFEST["heads"]}
+    assert heads["FLAT"]["sizes"]["M4"] == {"diameter": 0.008, "height": 0.0023, "countersunk": True}
+    assert DEFINITION["HEADS"]["M4"]["FLAT"].countersink_angle == 90
+    assert DEFINITION["HEADS"]["NO_10_32"]["FLAT"].countersink_angle == 82

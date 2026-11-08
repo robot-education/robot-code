@@ -1,4 +1,5 @@
-"""FRCDesign's library fasteners, generated for FRCDesignApp: screws, washers, and nuts for FRC. Run `uv run fs gen` after
+"""FRCDesign's library fasteners, generated for FRCDesignApp: screws, washers, and nuts for FRC, and FTC's metric ones
+(`FTC`, whose Part Studios ftcFastenerTables.py configures as a part set of their own). Run `uv run fs gen` after
 editing.
 
 This is the source of three things, which must agree:
@@ -25,8 +26,11 @@ and SAE washers, without part numbers.
 Each part has one mate connector, where it seats: FRCDesign fastens a screw or nut to the top edge of the washer it
 sits on, or to the hole's own edge, so any washer goes under any screw or nut of its size.
 
-Dimensions are nominal (ASME B18.3 screws, SAE washers, hex and nylon-insert lock nuts): close enough to check fit
-and clearance, not to make the parts. Clearance holes are std's (`ANSI_V2ClearanceHoleTable`), and tap drills std's
+FTC's metric parts come from McMaster-Carr's tables (vendor/mcmaster-metric.json), goBILDA's and REV's stores and
+models, and AndyMark's store; docs/ftc-fasteners.md has how each was measured and chosen.
+
+Dimensions are nominal (ASME B18.3 screws, SAE washers, hex and nylon-insert lock nuts; ISO 4762, 7380 and 10642 for
+FTC's): close enough to check fit and clearance, not to make the parts. Clearance holes are std's (`ANSI_V2ClearanceHoleTable`), and tap drills std's
 75% engagement ones.
 """
 
@@ -40,7 +44,7 @@ from fractions import Fraction
 
 from fs_cli.configured_studios import ConfiguredStudio, Input, LookupTable, Option, read_locations
 from fs_cli.gen import Code, Constant, Import
-from fs_cli.tables import Enum, inch, string
+from fs_cli.tables import Enum, inch, mm, string
 
 FOLDER = pathlib.Path(__file__).parent
 SNAPSHOT = json.loads((FOLDER / "vendor" / "frcdesign-fasteners.json").read_text())
@@ -54,8 +58,15 @@ INCH = 0.0254
 
 FastenerVendor = Enum(
     "FastenerVendor",
-    ["GENERIC", "MCMASTER", "REV", "WCP", "ANDYMARK"],
-    {"GENERIC": "Generic", "MCMASTER": "McMaster-Carr", "REV": "REV", "WCP": "WCP", "ANDYMARK": "AndyMark"},
+    ["GENERIC", "MCMASTER", "GOBILDA", "REV", "WCP", "ANDYMARK"],
+    {
+        "GENERIC": "Generic",
+        "MCMASTER": "McMaster-Carr",
+        "GOBILDA": "goBILDA",
+        "REV": "REV",
+        "WCP": "WCP",
+        "ANDYMARK": "AndyMark",
+    },
 )
 # FRCDesign's vendor codes
 VENDOR_CODES = {"MCM": "MCMASTER", "REV": "REV", "WCP": "WCP", "AM": "ANDYMARK"}
@@ -74,6 +85,33 @@ class Size:
     free_clearance_diameter: float
     # An external thread's, as std's ANSI_ExternalThreadTable has it
     minor_diameter: float
+    unit: str = "in"
+
+    @property
+    def pitch(self) -> float:
+        return 1 / self.threads_per_inch
+
+    # A standard socket head's threads run 2D plus this from its tip (ASTM A574)
+    thread_allowance: float = 0.5
+
+
+@dataclasses.dataclass
+class MetricSize:
+    """In millimeters, as std's ISO hole tables have it; FTC's."""
+
+    id: str
+    name: str
+    hole_table_size: str
+    pitch: float
+    major_diameter: float
+    tap_drill_diameter: float
+    close_clearance_diameter: float
+    # ISO 273's normal fit
+    free_clearance_diameter: float
+    minor_diameter: float
+    unit: str = "mm"
+    # A standard socket head's threads run 2D plus this from its tip (ISO 4762)
+    thread_allowance: float = 12
 
 
 SIZES = [
@@ -83,23 +121,46 @@ SIZES = [
     Size("NO_10_32", "#10-32", "#10", 32, 0.19, 0.159, 0.196, 0.201, 0.1528),
     Size("QUARTER_20", "1/4-20", "1/4", 20, 0.25, 0.201, 0.257, 0.266, 0.1894),
 ]
+# FTC's, from std's ISO_ExternalThreadTable, ISO_V2TappedHoleTable (coarse) and ISO_V2ClearanceHoleTable
+METRIC_SIZES = [
+    MetricSize("M3", "M3 x 0.5", "M3", 0.5, 3, 2.5, 3.2, 3.4, 2.459),
+    MetricSize("M4", "M4 x 0.7", "M4", 0.7, 4, 3.3, 4.3, 4.5, 3.242),
+]
+# Imperial sizes are FRC's, metric FTC's: each part set offers only its own
+IMPERIAL = {size.id for size in SIZES}
+METRIC = {size.id for size in METRIC_SIZES}
 SIZES_BY_NAME = {size.name: size for size in SIZES}
-FastenerSize = Enum("FastenerSize", [size.id for size in SIZES], {size.id: size.name for size in SIZES})
+FastenerSize = Enum(
+    "FastenerSize", [size.id for size in SIZES + METRIC_SIZES], {size.id: size.name for size in SIZES + METRIC_SIZES}
+)
 
 ScrewHead = Enum(
-    "ScrewHead", ["SOCKET", "BUTTON", "FLAT"], {"SOCKET": "Socket head", "BUTTON": "Button head", "FLAT": "Flat head"}
+    "ScrewHead",
+    ["SOCKET", "BUTTON", "FLAT", "HEX", "T_SLOT"],
+    {"SOCKET": "Socket head", "BUTTON": "Button head", "FLAT": "Flat head", "HEX": "Hex head", "T_SLOT": "T-slot"},
 )
 HEAD_CODES = {"SHCS": "SOCKET", "BHCS": "BUTTON", "FHCS": "FLAT"}
 
 
 @dataclasses.dataclass
 class Head:
+    # A hex head's across its corners
     diameter: float
     height: float
-    # Across the flats of its hex socket
-    socket: float
-    # A flat head's length includes its head, which sits in an 82 degree countersink
+    # Across the flats of its hex socket; a hex head has none
+    socket: float | None
+    # A flat head's length includes its head, which sits in a countersink of `countersink_angle`
     countersunk: bool = False
+    unit: str = "in"
+    countersink_angle: int = 82
+    # A hex head's, or a T-slot's, which is a hex cut down to `width` to drop into an extrusion's slot
+    across_flats: float | None = None
+    width: float | None = None
+
+
+def _hex_head(across_flats: float, height: float, width: float | None = None) -> Head:
+    return Head(round(across_flats * 2 / 3**0.5, 4), height, None, unit="mm", across_flats=across_flats, width=width)
+
 
 
 HEADS = {
@@ -108,8 +169,22 @@ HEADS = {
     "NO_8_32": {"SOCKET": Head(0.27, 0.164, 9 / 64), "BUTTON": Head(0.312, 0.087, 3 / 32), "FLAT": Head(0.359, 0.115, 3 / 32, True)},
     "NO_10_32": {"SOCKET": Head(0.312, 0.19, 5 / 32), "BUTTON": Head(0.375, 0.102, 1 / 8), "FLAT": Head(0.411, 0.132, 1 / 8, True)},
     "QUARTER_20": {"SOCKET": Head(0.375, 0.25, 3 / 16), "BUTTON": Head(0.437, 0.132, 5 / 32), "FLAT": Head(0.531, 0.153, 5 / 32, True)},
+    # ISO 4762, 7380 and 10642, which McMaster-Carr's and goBILDA's models measure to (docs/ftc-fasteners.md); a flat
+    # head sits in a 90 degree countersink. M3's hex heads are REV's hex caps and T-slots, M4's goBILDA's.
+    "M3": {
+        "SOCKET": Head(5.5, 3, 2.5, unit="mm"),
+        "BUTTON": Head(5.7, 1.65, 2, unit="mm"),
+        "FLAT": Head(6, 1.7, 2, True, "mm", 90),
+        "HEX": _hex_head(5.5, 2),
+        "T_SLOT": _hex_head(5.5, 1.82, 3.2),
+    },
+    "M4": {
+        "SOCKET": Head(7, 4, 3, unit="mm"),
+        "BUTTON": Head(7.6, 2.2, 2.5, unit="mm"),
+        "FLAT": Head(8, 2.3, 2.5, True, "mm", 90),
+        "HEX": _hex_head(7, 2.8),
+    },
 }
-COUNTERSINK_ANGLE = 82
 
 
 # Finishes and materials: each part is its vendor's standard, black, unless it sells others too
@@ -133,7 +208,7 @@ MATERIALS = {
 FINISH_NAMES = {"BLACK": "Black", "ZINC_PLATED": "Zinc plated", "STAINLESS": "Stainless steel", "ALUMINUM": "Aluminum"}
 FINISH_ORDER = list(FINISH_NAMES)
 # Each kind its own, so a feature's dialog offers no finish its kind never comes in
-ScrewFinish = Enum("ScrewFinish", ["BLACK", "ZINC_PLATED", "ALUMINUM"], FINISH_NAMES)
+ScrewFinish = Enum("ScrewFinish", ["BLACK", "ZINC_PLATED", "ALUMINUM", "STAINLESS"], FINISH_NAMES)
 WasherFinish = Enum("WasherFinish", ["BLACK", "ZINC_PLATED", "STAINLESS"], FINISH_NAMES)
 # Each finish's appearance, as robotProperties.fs's constant (FRCDesignLib's color standards); WCP's anodized aluminum
 # screws' color is unpublished
@@ -190,6 +265,8 @@ class Stock:
     part_number: str | None = None
     url: str | None = None
     material: Material = STEEL
+    # A screw threaded its whole length, where its vendor says so; otherwise its head's standard threading
+    full_thread: bool = False
 
 
 _SCREW = re.compile(r'^(#\d+-\d+|1/4-20)\s+x\s+([\d\-/\.]+)"\s*L\s+(SHCS|BHCS|FHCS)\s*\(([^)]*)\)')
@@ -346,7 +423,183 @@ def _screw_order(item) -> tuple:
 
 
 SCREWS = _stocked_screws()
-LENGTHS = sorted({length for lengths in SCREWS.values() for length in lengths})
+
+
+@dataclasses.dataclass(frozen=True, order=True)
+class Millimeters:
+    """A metric screw's length; an imperial one's is a Fraction of an inch."""
+
+    value: int
+
+
+Length = Fraction | Millimeters
+
+
+# FTC's metric screws: McMaster-Carr's (vendor/mcmaster-metric.json, transcribed from its tables), goBILDA's and REV's
+# (from their stores and models; see docs/ftc-fasteners.md), and AndyMark's (its store, as for FRC)
+
+MCMASTER_METRIC = json.loads((FOLDER / "vendor" / "mcmaster-metric.json").read_text())
+STAINLESS = MATERIALS["Stainless Steel"]
+# A finish's material, where a vendor's table names none
+_FINISH_MATERIALS = {"STAINLESS": STAINLESS}
+
+
+def mcmaster_url(part_number: str) -> str:
+    return f"https://www.mcmaster.com/{part_number}/"
+
+
+def _mcmaster_supply(supplies: list[dict]) -> dict:
+    """The supply a team orders: the small pack, imported or United States origin, cheapest by the piece; a large
+    pack only where there's no small one."""
+    small = [supply for supply in supplies if supply["pack"].startswith("SMALL")]
+    return min(small or supplies, key=lambda supply: supply["price"] / supply["quantity"])
+
+
+def _mcmaster_stock(supplies: list[dict], finish: str, full_thread: bool = False) -> Stock:
+    part_number = _mcmaster_supply(supplies)["partNumber"]
+    return Stock(part_number, mcmaster_url(part_number), _FINISH_MATERIALS.get(finish, STEEL), full_thread)
+
+
+def _mcmaster_screws() -> Screws:
+    """Where a length comes both ways, partly threaded is its standard and fully threaded a variant, as McMaster-Carr's
+    FRC screws are."""
+    screws: Screws = {}
+    for head, sizes in MCMASTER_METRIC["screws"].items():
+        for size, finishes in sizes.items():
+            for finish in ScrewFinish.values:
+                rows: dict[int, dict[str, list[dict]]] = {}
+                for row in finishes.get(finish, {"lengths": []})["lengths"]:
+                    rows.setdefault(row["length"], {})[row["threading"]] = row["supplies"]
+                for length, threadings in rows.items():
+                    variants = screws.setdefault(("MCMASTER", size, head), {}).setdefault(Millimeters(length), {})
+                    if len(threadings) == 2:
+                        variants[Variant(finish)] = _mcmaster_stock(threadings["PARTIAL"], finish)
+                        variants[Variant(finish, True)] = _mcmaster_stock(threadings["FULL"], finish, True)
+                    else:
+                        [(threading, supplies)] = threadings.items()
+                        variants[Variant(finish)] = _mcmaster_stock(supplies, finish, threading == "FULL")
+    return screws
+
+
+GOBILDA_STORE = "https://www.gobilda.com"
+# goBILDA's are zinc-plated steel, sold by the SKU of their series, size and length, like 2800-0004-0010; threaded their
+# whole length but for its 75 mm socket head
+_GOBILDA_SCREWS = {
+    ("M4", "SOCKET"): ("2800-0004", [5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 25, 30, 35, 40, 45, 50, 55, 60, 75],
+                       "/m4-socket-head-screws"),
+    ("M4", "BUTTON"): ("2802-0004", [5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 30, 35, 40, 45, 50, 55, 60],
+                       "/m4-button-head-screws"),
+    ("M4", "HEX"): ("2813-0004", [8, 10, 12, 16], "/m4-hex-head-screws"),
+    ("M3", "SOCKET"): ("2800-0003", [6, 8, 10, 12], "/m3-socket-head-screws"),
+}
+# REV's are zinc-plated steel, threaded their whole length
+REV_STORE = "https://www.revrobotics.com"
+_REV_SCREWS = {
+    ("M3", "HEX"): {
+        6: "REV-41-1713", 8: "REV-41-1359", 10: "REV-41-1123", 16: "REV-41-1360", 20: "REV-41-1124", 25: "REV-41-1715",
+        35: "REV-41-1125",
+    },
+    ("M3", "T_SLOT"): {8: "REV-41-1907"},
+}
+_REV_SCREW_PAGES = {"HEX": "/M3-Hex-Cap-Screws/", "T_SLOT": "/rev-41-1907-pk25/"}
+
+
+def _gobilda_screws() -> Screws:
+    return {
+        ("GOBILDA", size, head): {
+            Millimeters(length): {
+                Variant("ZINC_PLATED"): Stock(f"{series}-{length:04d}", GOBILDA_STORE + page, STEEL, length <= 60)
+            }
+            for length in lengths
+        }
+        for (size, head), (series, lengths, page) in _GOBILDA_SCREWS.items()
+    }
+
+
+def _rev_screws() -> Screws:
+    return {
+        ("REV", size, head): {
+            Millimeters(length): {Variant("ZINC_PLATED"): Stock(part, REV_STORE + _REV_SCREW_PAGES[head], STEEL, True)}
+            for length, part in parts.items()
+        }
+        for (size, head), parts in _REV_SCREWS.items()
+    }
+
+
+# `M4-0.7 x 10 mm Socket Head Cap Screw`, `M3-0.5 x 5 mm Zinc Flat Head Cap Screw with Nylon Patch`
+_METRIC_STORE_SCREW = re.compile(
+    r"^(?P<size>M[34])-0\.[57] x (?P<length>\d+) mm (?:Zinc |Black Oxide )?"
+    r"(?P<head>Button Head Cap Screw|Socket Head Cap Screw|Flat Head Cap Screw)"
+    r"(?: Black Oxide)?(?P<patch> with (?:Nylon )?(?:Thread (?:Lock )?)?Patch)?$"
+)
+# AndyMark's finish where it isn't zinc plating, which its titles leave out; its M4 flat heads take a Phillips driver
+_ANDYMARK_FINISHES = {"am-1251": "BLACK", "am-1441": "BLACK", "am-1379": "STAINLESS", "am-1659": "STAINLESS"}
+_ANDYMARK_PHILLIPS = {"am-1788", "am-1789"}
+
+
+def _metric_store_screw(product: dict) -> StoreScrew | None:
+    """AndyMark's metric screws, as `_store_screw` reads its imperial ones."""
+    if product["store"] != "andymark.com" or product["sku"] in _ANDYMARK_PHILLIPS:
+        return None
+    match = _METRIC_STORE_SCREW.match(product["title"])
+    if match is None:
+        return None
+    finish = _ANDYMARK_FINISHES.get(product["sku"], "ZINC_PLATED")
+    return StoreScrew(
+        ("ANDYMARK", match["size"], _STORE_HEADS[match["head"]]),
+        Millimeters(int(match["length"])),
+        Variant(finish),
+        bool(match["patch"]),
+        Stock(product["sku"], product["url"], _FINISH_MATERIALS.get(finish, STEEL)),
+    )
+
+
+def _andymark_metric_screws() -> Screws:
+    chosen: dict[tuple, StoreScrew] = {}
+    for product in json.loads(STORES_SNAPSHOT.read_text())["products"]:
+        screw = _metric_store_screw(product)
+        if screw is None:
+            continue
+        slot = (screw.key, screw.length, screw.variant)
+        if slot not in chosen or chosen[slot].has_patch and not screw.has_patch:
+            chosen[slot] = screw
+    screws: Screws = {}
+    for screw in chosen.values():
+        screws.setdefault(screw.key, {}).setdefault(screw.length, {})[screw.variant] = screw.stock
+    return screws
+
+
+# Finishes in the order FTC's studios list them, cheapest first (docs/ftc-fasteners.md): McMaster-Carr's stainless
+# socket and button heads cost no more than its others, and its zinc-plated nuts and washers least
+METRIC_SCREW_FINISHES = ["STAINLESS", "ZINC_PLATED", "BLACK"]
+METRIC_FINISHES = ["ZINC_PLATED", "STAINLESS", "BLACK"]
+
+
+def _metric_screws() -> Screws:
+    """Generic offers every length any vendor makes, in the first finish alone."""
+    stocked: Screws = {}
+    for screws in (_mcmaster_screws(), _gobilda_screws(), _rev_screws(), _andymark_metric_screws()):
+        stocked.update(screws)
+    for (_, size, head), lengths in list(stocked.items()):
+        generic = stocked.setdefault(("GENERIC", size, head), {})
+        for length in lengths:
+            generic[length] = {Variant(METRIC_SCREW_FINISHES[0]): Stock(material=STAINLESS)}
+    order = {finish: index for index, finish in enumerate(METRIC_SCREW_FINISHES)}
+    return {
+        key: {
+            length: dict(sorted(variants.items(), key=lambda item: (order[item[0].finish], item[0].full_thread)))
+            for length, variants in sorted(lengths.items())
+        }
+        for key, lengths in sorted(stocked.items(), key=_screw_order)
+    }
+
+
+METRIC_SCREWS = _metric_screws()
+SCREWS = {**SCREWS, **METRIC_SCREWS}
+# Imperial lengths first, as they were before FTC's
+LENGTHS = sorted({length for key, lengths in SCREWS.items() if key[1] in IMPERIAL for length in lengths}) + sorted(
+    {length for key, lengths in METRIC_SCREWS.items() for length in lengths}
+)
 
 
 def has_full_thread_choice(variants: dict[Variant, Stock], finish: str) -> bool:
@@ -354,13 +607,21 @@ def has_full_thread_choice(variants: dict[Variant, Stock], finish: str) -> bool:
     return Variant(finish) in variants and Variant(finish, True) in variants
 
 
-def length_id(length: Fraction) -> str:
-    """e.g. IN_0_375 for 3/8 in, IN_1_25 for 1-1/4 in"""
+def length_id(length: Length) -> str:
+    """e.g. IN_0_375 for 3/8 in, IN_1_25 for 1-1/4 in, MM_10 for 10 mm"""
+    if isinstance(length, Millimeters):
+        return f"MM_{length.value}"
     return "IN_" + f"{float(length):g}".replace(".", "_")
 
 
-def length_name(length: Fraction) -> str:
-    """e.g. 3/8 in, or 1-1/4 in"""
+def length_meters(length: Length) -> float:
+    return round(length.value / 1000 if isinstance(length, Millimeters) else float(length) * INCH, 9)
+
+
+def length_name(length: Length) -> str:
+    """e.g. 3/8 in, 1-1/4 in, or 10 mm"""
+    if isinstance(length, Millimeters):
+        return f"{length.value} mm"
     whole, part = divmod(length, 1)
     if part == 0:
         return f"{whole} in"
@@ -399,6 +660,7 @@ class Nut:
     # A nylock's: its hex's height, under the dome holding its nylon insert, and the insert's bore
     hex_height: float | Fraction | None = None
     insert_diameter: float | None = None
+    unit: str = "in"
 
 
 def _nylock(across_flats: float, height: float) -> Nut:
@@ -444,8 +706,13 @@ NUT_DIMENSIONS = {
 _NUT = re.compile(r"^(#\d+-\d+|1/4-20)\s+(.+)$")
 
 
-def _stocked_nuts() -> dict[tuple[str, str, str], Stock]:
-    stocked: dict[tuple[str, str, str], Stock] = {}
+# Nuts come in finishes, FRC's in McMaster-Carr's zinc plating alone
+NutFinish = Enum("NutFinish", ["ZINC_PLATED", "STAINLESS", "BLACK"], FINISH_NAMES)
+FRC_NUT_FINISH = "ZINC_PLATED"
+
+
+def _stocked_nuts() -> dict[tuple[str, str, str, str], Stock]:
+    stocked: dict[tuple[str, str, str, str], Stock] = {}
     for part in SNAPSHOT["parts"]:
         if not part["name"].endswith(" Nut"):
             continue
@@ -454,8 +721,8 @@ def _stocked_nuts() -> dict[tuple[str, str, str], Stock]:
             assert match, record["name"]
             size, kind = match.groups()
             key = (SIZES_BY_NAME[size].id, NUT_CODES[kind])
-            stocked[("MCMASTER", *key)] = Stock(record["partNumber"], record.get("url"))
-    assert {(size, type) for _, size, type in stocked} == {
+            stocked[("MCMASTER", *key, FRC_NUT_FINISH)] = Stock(record["partNumber"], record.get("url"))
+    assert {(size, type) for _, size, type, _ in stocked} == {
         (size, type) for size, types in NUT_DIMENSIONS.items() for type in types
     }, "Every nut needs its dimensions"
     return dict(
@@ -473,6 +740,70 @@ def _stocked_nuts() -> dict[tuple[str, str, str], Stock]:
 NUTS = _stocked_nuts()
 
 
+# FTC's metric nuts, in millimeters, by vendor, size, and type, since their vendors' differ: McMaster-Carr's from its
+# tables and its models of 90591A255 and 94645A101, goBILDA's and REV's from theirs, and AndyMark's as McMaster-Carr's
+# and REV's of the same type (it publishes no models). An M3 nylock is REV's REV-41-1361.
+_M3_NYLOCK = Nut(5.5, 4, 3.33, 3.35, "mm")
+_M4_NYLOCK = Nut(7, 5, 4.17, 5.05, "mm")
+METRIC_NUT_DIMENSIONS = {
+    ("MCMASTER", "M3", "NYLOCK"): _M3_NYLOCK,
+    ("MCMASTER", "M4", "NYLOCK"): _M4_NYLOCK,
+    ("MCMASTER", "M3", "HEX"): Nut(5.5, 2.4, unit="mm"),
+    ("MCMASTER", "M4", "HEX"): Nut(7, 3.2, unit="mm"),
+    ("GOBILDA", "M4", "NYLOCK"): Nut(7, 4.85, 4.04, 4.37, "mm"),
+    ("GOBILDA", "M4", "HEX"): Nut(7, 2.75, unit="mm"),
+    ("GOBILDA", "M4", "SQUARE"): Nut(7, 3, unit="mm"),
+    ("REV", "M3", "NYLOCK"): _M3_NYLOCK,
+    ("REV", "M3", "HEX"): Nut(5.5, 2.4, unit="mm"),
+    ("ANDYMARK", "M3", "NYLOCK"): _M3_NYLOCK,
+    ("ANDYMARK", "M3", "HEX"): Nut(5.5, 2.4, unit="mm"),
+    ("ANDYMARK", "M3", "THIN_HEX"): Nut(5.5, 1.8, unit="mm"),
+    ("ANDYMARK", "M4", "NYLOCK"): _M4_NYLOCK,
+}
+_GOBILDA_NUTS = {("M4", "NYLOCK"): "2812-0004-0007", ("M4", "HEX"): "2811-0004-0007", ("M4", "SQUARE"): "2803-0007-0007"}
+_REV_NUTS = {("M3", "NYLOCK"): "REV-41-1361", ("M3", "HEX"): "REV-41-1126"}
+_ANDYMARK_NUTS = {
+    ("M3", "NYLOCK"): ("am-1023", "m3-0-5-nylock-nut"),
+    ("M3", "HEX"): ("am-1386", "m3-nut"),
+    ("M3", "THIN_HEX"): ("am-1405", "m3-0-5-jam-nut"),
+    ("M4", "NYLOCK"): ("am-1435", "m4-0-7-nylock-nut"),
+}
+
+
+def nut_dimensions(vendor: str, size: str, type: str) -> Nut:
+    return METRIC_NUT_DIMENSIONS[(vendor, size, type)] if size in METRIC else NUT_DIMENSIONS[size][type]
+
+
+def _metric_nuts() -> dict[tuple[str, str, str, str], Stock]:
+    stocked: dict[tuple[str, str, str, str], Stock] = {}
+    for type, sizes in MCMASTER_METRIC["nuts"].items():
+        for size, finishes in sizes.items():
+            for finish in METRIC_FINISHES:
+                stocked[("MCMASTER", size, type, finish)] = _mcmaster_stock(finishes[finish], finish)
+    for (size, type), part in _GOBILDA_NUTS.items():
+        stocked[("GOBILDA", size, type, "ZINC_PLATED")] = Stock(part, GOBILDA_STORE + "/nuts/")
+    for (size, type), part in _REV_NUTS.items():
+        stocked[("REV", size, type, "ZINC_PLATED")] = Stock(part, REV_STORE + "/M3-Nuts/")
+    for (size, type), (part, handle) in _ANDYMARK_NUTS.items():
+        stocked[("ANDYMARK", size, type, "ZINC_PLATED")] = Stock(part, f"https://andymark.com/products/{handle}")
+    assert {key[:3] for key in stocked} == set(METRIC_NUT_DIMENSIONS), "Every nut needs its dimensions"
+    return dict(
+        sorted(
+            stocked.items(),
+            key=lambda item: (
+                FastenerVendor.values.index(item[0][0]),
+                FastenerSize.values.index(item[0][1]),
+                NutType.values.index(item[0][2]),
+                METRIC_FINISHES.index(item[0][3]),
+            ),
+        )
+    )
+
+
+METRIC_NUTS = _metric_nuts()
+NUTS = {**NUTS, **METRIC_NUTS}
+
+
 # Washers, like `#10 Washer (7/16" OD, 0.03" WD, Stainless Steel, Black Oxide)` or AndyMark's
 # `0.281" Washer (1" OD, 0.062" WD, Steel, Zink Finish)`; Generic's are SAE flat, and black
 
@@ -483,6 +814,21 @@ class Washer:
     outer_diameter: Fraction
     thickness: str
     stock: Stock = Stock()
+    unit: str = "in"
+
+    @property
+    def type(self) -> str:
+        """e.g. OD_7_16_X_0_03, for 7/16 in OD and 0.03 in thick, or MM_9_X_0_9"""
+        if self.unit == "mm":
+            return f"MM_{self.outer_diameter:g}_X_{self.thickness}".replace(".", "_")
+        return washer_type(self.outer_diameter, self.thickness)
+
+    @property
+    def type_name(self) -> str:
+        """e.g. 7/16 in OD x 0.03 in, or 9 mm OD x 0.9 mm"""
+        if self.unit == "mm":
+            return f"{self.outer_diameter:g} mm OD x {self.thickness} mm"
+        return washer_type_name(self.outer_diameter, self.thickness)
 
 
 # SAE flat washers' inner diameters, which FRCDesign's records leave out
@@ -560,39 +906,101 @@ def _washers() -> dict[tuple[str, str, str, str], Washer]:
 
 
 WASHERS = _washers()
-_WASHER_TYPES = sorted(
-    {(washer.outer_diameter, float(washer.thickness), washer.thickness) for washer in WASHERS.values()}
-)
-WasherType = Enum(
-    "WasherType",
-    [washer_type(od, thickness) for od, _, thickness in _WASHER_TYPES],
-    {washer_type(od, thickness): washer_type_name(od, thickness) for od, _, thickness in _WASHER_TYPES},
-)
+
+
+# FTC's metric washers, in millimeters: general purpose ones, Generic's ISO 7089 and in its first finish, McMaster-Carr's
+# from its tables, goBILDA's from its models, and REV's taken as standard (it publishes no dimensions)
+GENERIC_METRIC_WASHERS = {"M3": (3.2, 7, "0.5"), "M4": (4.3, 9, "0.8")}
+_GOBILDA_WASHERS = {"2801-0004-0008": (4, 8, "1"), "2801-0004-0011": (4.15, 10.9, "1.5")}
+
+
+def _metric_washer(size: tuple, stock: Stock = Stock()) -> Washer:
+    inner, outer, thickness = size
+    return Washer(inner, Fraction(str(outer)), thickness, stock, "mm")
+
+
+def _metric_washers() -> dict[tuple[str, str, str, str], Washer]:
+    washers: dict[tuple[str, str, str, str], Washer] = {}
+
+    def add(vendor: str, size: str, finish: str, washer: Washer) -> None:
+        washers[(vendor, size, washer.type, finish)] = washer
+
+    for size, dimensions in GENERIC_METRIC_WASHERS.items():
+        add("GENERIC", size, METRIC_FINISHES[0], _metric_washer(dimensions))
+    for size, washer in MCMASTER_METRIC["washers"].items():
+        dimensions = washer["dimensions"]
+        shape = (dimensions["innerDiameter"], dimensions["outerDiameter"], f"{dimensions['thickness']:g}")
+        for finish in METRIC_FINISHES:
+            add("MCMASTER", size, finish, _metric_washer(shape, _mcmaster_stock(washer[finish], finish)))
+    for part, shape in _GOBILDA_WASHERS.items():
+        add("GOBILDA", "M4", "ZINC_PLATED", _metric_washer(shape, Stock(part, GOBILDA_STORE + "/washers")))
+    add("REV", "M3", "STAINLESS", _metric_washer((3.2, 7, "0.5"), Stock("REV-41-2886", REV_STORE + "/rev-41-2886/", STAINLESS)))
+    return dict(
+        sorted(
+            washers.items(),
+            key=lambda item: (
+                FastenerVendor.values.index(item[0][0]),
+                FastenerSize.values.index(item[0][1]),
+                item[1].outer_diameter,
+                float(item[1].thickness),
+                METRIC_FINISHES.index(item[0][3]),
+            ),
+        )
+    )
+
+
+METRIC_WASHERS = _metric_washers()
+# Imperial types first, as they were before FTC's
+_WASHER_TYPES = {
+    washer.type: washer.type_name
+    for washer in sorted(
+        WASHERS.values(), key=lambda washer: (washer.outer_diameter, float(washer.thickness))
+    )
+    + sorted(METRIC_WASHERS.values(), key=lambda washer: (washer.outer_diameter, float(washer.thickness)))
+}
+WASHERS = {**WASHERS, **METRIC_WASHERS}
+WasherType = Enum("WasherType", list(_WASHER_TYPES), _WASHER_TYPES)
 
 
 # What each part is called and sold as: the features set these, and FRCDesignApp indexes the same records
 
 
-SIZES_BY_ID = {size.id: size for size in SIZES}
-HEAD_NAMES = {"SOCKET": "Socket Head", "BUTTON": "Button Head", "FLAT": "Flat Head"}
+SIZES_BY_ID = {size.id: size for size in SIZES + METRIC_SIZES}
+HEAD_NAMES = {"SOCKET": "Socket Head", "BUTTON": "Button Head", "FLAT": "Flat Head", "HEX": "Hex Head", "T_SLOT": "T-Slot"}
 NUT_NAMES = {"NYLOCK": "Nylock", "THIN_NYLOCK": "Thin Nylock", "HEX": "Hex", "THIN_HEX": "Thin Hex", "SQUARE": "Square"}
+# The finish a metric nut's or washer's name leaves unsaid
+METRIC_PLAIN_FINISH = "ZINC_PLATED"
 
 
-def screw_name(size: str, head: str, length: Fraction, variant: Variant = STANDARD) -> str:
-    """e.g. `#10-32 x 1/2 in Button Head Screw`, or `... Socket Head Screw (Fully threaded)` beyond the standard."""
-    name = f"{SIZES_BY_ID[size].name} x {length_name(length)} {HEAD_NAMES[head]} Screw"
-    return name if variant == STANDARD else f"{name} ({variant.name})"
+def screw_name(size: str, head: str, length: Length, variant: Variant = STANDARD, vendor: str = "GENERIC") -> str:
+    """e.g. `#10-32 x 1/2 in Button Head Screw`, or `... Socket Head Screw (Fully threaded)` beyond the standard. A
+    metric one is by its size alone, and says its finish but for Generic's, which comes in one: `M4 x 10 mm Socket Head
+    Screw (Stainless steel)`."""
+    if size in IMPERIAL:
+        name = f"{SIZES_BY_ID[size].name} x {length_name(length)} {HEAD_NAMES[head]} Screw"
+        return name if variant == STANDARD else f"{name} ({variant.name})"
+    name = f"{SIZES_BY_ID[size].hole_table_size} x {length_name(length)} {HEAD_NAMES[head]} Screw"
+    words = ([] if vendor == "GENERIC" else [FINISH_NAMES[variant.finish]]) + (
+        ["fully threaded"] if variant.full_thread else []
+    )
+    words = [word[:1].upper() + word[1:] if index == 0 else word for index, word in enumerate(words)]
+    return f"{name} ({', '.join(words)})" if words else name
 
 
-def nut_name(size: str, type: str) -> str:
-    """e.g. `#10-32 Thin Nylock Nut`."""
-    return f"{SIZES_BY_ID[size].name} {NUT_NAMES[type]} Nut"
+def nut_name(size: str, type: str, finish: str = FRC_NUT_FINISH) -> str:
+    """e.g. `#10-32 Thin Nylock Nut`, or `M4 Nylock Nut (Stainless steel)`."""
+    if size in IMPERIAL:
+        return f"{SIZES_BY_ID[size].name} {NUT_NAMES[type]} Nut"
+    name = f"{SIZES_BY_ID[size].hole_table_size} {NUT_NAMES[type]} Nut"
+    return name if finish == METRIC_PLAIN_FINISH else f"{name} ({FINISH_NAMES[finish]})"
 
 
 def washer_name(size: str, type: str, finish: str = STANDARD_FINISH) -> str:
-    """e.g. `#10 Washer (1/2 in OD x 0.049 in)`, `1/4 in Washer (...)`, or `#10 Washer (..., Stainless steel)`."""
+    """e.g. `#10 Washer (1/2 in OD x 0.049 in)`, `1/4 in Washer (...)`, `#10 Washer (..., Stainless steel)`, or `M4
+    Washer (9 mm OD x 0.9 mm)`."""
     hole = SIZES_BY_ID[size].hole_table_size
-    described = [WasherType.names[type]] + ([] if finish == STANDARD_FINISH else [FINISH_NAMES[finish]])  # type: ignore[index]
+    plain = STANDARD_FINISH if size in IMPERIAL else METRIC_PLAIN_FINISH
+    described = [WasherType.names[type]] + ([] if finish == plain else [FINISH_NAMES[finish]])  # type: ignore[index]
     return f"{hole}{' in' if hole == '1/4' else ''} Washer ({', '.join(described)})"
 
 
@@ -622,6 +1030,7 @@ class Record:
             **_stock_fields(self.stock),
             "material": self.stock.material.constant,
             "appearance": self.appearance or APPEARANCES[self.finish],
+            **({"fullyThreaded": "true"} if self.stock.full_thread else {}),
         }
 
     def manifest(self) -> dict:
@@ -636,142 +1045,210 @@ class Record:
 
 
 # The studios' configurations: each a lookup table of what's made (see `LookupTable`), whose inputs offer only what's
-# made with the choices before them, and are hidden where that's one thing
+# made with the choices before them, and are hidden where that's one thing. Each part set's studios offer its own sizes
+# (`Catalog`): FRC's imperial ones here, FTC's metric ones in ftcFastenerTables.py.
 
 
-SCREW_TABLE = LookupTable(
-    ("vendor", "size", "head", "finish", "length"),
-    [
-        key + (variant.finish, length_id(length))
-        for key, lengths in SCREWS.items()
-        for length, variants in lengths.items()
-        for variant in variants
-    ],
-)
-NUT_TABLE = LookupTable(("vendor", "size", "type"), list(NUTS))
-WASHER_TABLE = LookupTable(("vendor", "size", "type", "finish"), list(WASHERS))
-
-
-def _list(id: str, name: str, enum: Enum, parameter: str, default: str) -> Input:
-    """An input offering every value of `enum`, for its table to narrow to what's made."""
+def _list(id: str, name: str, enum: Enum, parameter: str, default: str, order: list[str] | None = None) -> Input:
+    """An input offering every value of `enum`, those in `order` first, for its table to narrow to what's made."""
     assert enum.names is not None
-    options = [Option(value, enum.names[value], value) for value in enum.values]
+    values = (order or []) + [value for value in enum.values if value not in (order or [])]
+    options = [Option(value, enum.names[value], value) for value in values]
     return Input(id, name, parameter, options, enum_name=enum.name, default=default)
+
+
+@dataclasses.dataclass(frozen=True)
+class Defaults:
+    """Each studio's inputs' defaults, by its table's columns."""
+
+    screw: tuple[str, str, str, str, str]
+    nut: tuple[str, str, str, str]
+    washer: tuple[str, str, str, str]
+
+
+class Catalog:
+    """One part set's studios, laid out from the parts made in its sizes, and their records: what FRCDesign indexes.
+
+    Args:
+        finishes: The finishes' order in each studio, cheapest first, where it isn't the enums' own.
+    """
+
+    def __init__(
+        self,
+        sizes: set[str],
+        defaults: Defaults,
+        screw_finishes: list[str] | None = None,
+        finishes: list[str] | None = None,
+    ):
+        self.sizes = [size for size in FastenerSize.values if size in sizes]
+        self.screws = {key: lengths for key, lengths in SCREWS.items() if key[1] in sizes}
+        self.nuts = {key: stock for key, stock in NUTS.items() if key[1] in sizes}
+        self.washers = {key: washer for key, washer in WASHERS.items() if key[1] in sizes}
+        self.screw_finishes = screw_finishes
+        self.finishes = finishes
+        self.screw_table = LookupTable(
+            ("vendor", "size", "head", "finish", "length"),
+            [
+                key + (variant.finish, length_id(length))
+                for key, lengths in self.screws.items()
+                for length, variants in lengths.items()
+                for variant in variants
+            ],
+        )
+        self.nut_table = LookupTable(("vendor", "size", "type", "finish"), list(self.nuts))
+        self.washer_table = LookupTable(("vendor", "size", "type", "finish"), list(self.washers))
+        self.studios = {
+            # Nearly every length is in one finish, so Length's conditions are smallest split by finish first
+            "screw": ConfiguredStudio(
+                "screw",
+                "fastenerScrew",
+                self._screw_inputs(defaults.screw),
+                factor_first=["finish"],
+                mate_connector="mateConnector",
+            ),
+            "nut": ConfiguredStudio("nut", "fastenerNut", self._nut_inputs(defaults.nut), mate_connector="mateConnector"),
+            "washer": ConfiguredStudio(
+                "washer", "fastenerWasher", self._washer_inputs(defaults.washer), mate_connector="mateConnector"
+            ),
+        }
+        self.records = {"screw": self._screw_records(), "nut": self._nut_records(), "washer": self._washer_records()}
+
+    def _screw_inputs(self, defaults: tuple[str, str, str, str, str]) -> list[Input]:
+        vendor, size, head, finish, length = defaults
+        both = [
+            self.screw_table.shown(key + (variant.finish, length_id(stocked_length)))
+            for key, stocked in self.screws.items()
+            for stocked_length, variants in stocked.items()
+            for variant in variants
+            if not variant.full_thread and has_full_thread_choice(variants, variant.finish)
+        ]
+        table = self.screw_table
+        return [
+            table.input(_list("vendor", "Vendor", FastenerVendor, "vendor", vendor)),
+            table.input(_list("size", "Size", FastenerSize, "size", size)),
+            table.input(_list("head", "Head", ScrewHead, "head", head)),
+            table.input(_list("finish", "Finish", ScrewFinish, "finish", finish, self.screw_finishes)),
+            table.input(_list("length", "Length", ScrewLength, "length", length)),
+            # Hidden, and so partly threaded, wherever a length is only sold one way: a switch, since a checkbox shows
+            # by one condition, and this needs several
+            Input(
+                "fullyThreaded",
+                "Fully threaded",
+                "fullyThreaded",
+                [Option("false", "No", "false", both), Option("true", "Yes", "true", both)],
+                kind="switch",
+            ),
+        ]
+
+    def _nut_inputs(self, defaults: tuple[str, str, str, str]) -> list[Input]:
+        vendor, size, type, finish = defaults
+        table = self.nut_table
+        return [
+            table.input(_list("vendor", "Vendor", FastenerVendor, "vendor", vendor)),
+            table.input(_list("size", "Size", FastenerSize, "size", size)),
+            table.input(_list("type", "Type", NutType, "nutType", type)),
+            table.input(_list("finish", "Finish", NutFinish, "finish", finish, self.finishes)),
+        ]
+
+    def _washer_inputs(self, defaults: tuple[str, str, str, str]) -> list[Input]:
+        vendor, size, type, finish = defaults
+        table = self.washer_table
+        return [
+            table.input(_list("vendor", "Vendor", FastenerVendor, "vendor", vendor)),
+            table.input(_list("size", "Size", FastenerSize, "size", size)),
+            table.input(_list("type", "Type", WasherType, "washerType", type)),
+            table.input(_list("finish", "Finish", WasherFinish, "finish", finish, self.finishes)),
+        ]
+
+    def _screw_records(self) -> dict[tuple[str, str, str, str, str, bool], Record]:
+        """By vendor, size, head, finish, length, and whether it's fully threaded. Fully threaded is only chosen where
+        a length is sold both ways in its finish, and is false where it's hidden."""
+        return {
+            (vendor, size, head, variant.finish, length_id(length), variant.full_thread): Record(
+                {
+                    **self.screw_table.shown((vendor, size, head, variant.finish, length_id(length))),
+                    **(
+                        {"fullyThreaded": str(variant.full_thread).lower()}
+                        if has_full_thread_choice(variants, variant.finish)
+                        else {}
+                    ),
+                },
+                screw_name(size, head, length, variant, vendor),
+                vendor,
+                stock,
+                variant.finish,
+            )
+            for (vendor, size, head), lengths in self.screws.items()
+            for length, variants in lengths.items()
+            for variant, stock in variants.items()
+        }
+
+    def _nut_records(self) -> dict[tuple[str, str, str, str], Record]:
+        """The standards' color is a nut's, whatever its finish, but a black or stainless one's own."""
+        return {
+            (vendor, size, type, finish): Record(
+                self.nut_table.shown((vendor, size, type, finish)),
+                nut_name(size, type, finish),
+                vendor,
+                stock,
+                finish,
+                appearance=NUT_APPEARANCE if finish == FRC_NUT_FINISH else None,
+            )
+            for (vendor, size, type, finish), stock in self.nuts.items()
+        }
+
+    def _washer_records(self) -> dict[tuple[str, str, str, str], Record]:
+        return {
+            (vendor, size, type, finish): Record(
+                self.washer_table.shown((vendor, size, type, finish)),
+                washer_name(size, type, finish),
+                vendor,
+                washer.stock,
+                finish,
+            )
+            for (vendor, size, type, finish), washer in self.washers.items()
+        }
+
+    def washer_finishes(self, vendor: str, size: str, type: str) -> list[str]:
+        return [finish for (v, s, t, finish) in self.washers if (v, s, t) == (vendor, size, type)]
+
+    def nut_finishes(self, vendor: str, size: str, type: str) -> list[str]:
+        return [finish for (v, s, t, finish) in self.nuts if (v, s, t) == (vendor, size, type)]
 
 
 # The defaults are what's inserted most from FRCDesign's library: #10-32 x 3/8 in black button heads (from Generic, which
 # names no vendor), McMaster-Carr's #10 x 7/16 in OD stainless washers, and #10-32 nylocks
-
-
-def _screw_inputs() -> list[Input]:
-    both = [
-        SCREW_TABLE.shown(key + (variant.finish, length_id(length)))
-        for key, stocked in SCREWS.items()
-        for length, variants in stocked.items()
-        for variant in variants
-        if not variant.full_thread and has_full_thread_choice(variants, variant.finish)
-    ]
-    return [
-        SCREW_TABLE.input(_list("vendor", "Vendor", FastenerVendor, "vendor", "GENERIC")),
-        SCREW_TABLE.input(_list("size", "Size", FastenerSize, "size", "NO_10_32")),
-        SCREW_TABLE.input(_list("head", "Head", ScrewHead, "head", "BUTTON")),
-        SCREW_TABLE.input(_list("finish", "Finish", ScrewFinish, "finish", STANDARD_FINISH)),
-        SCREW_TABLE.input(_list("length", "Length", ScrewLength, "length", length_id(Fraction(3, 8)))),
-        # Hidden, and so partly threaded, wherever a length is only sold one way: a switch, since a checkbox shows by
-        # one condition, and this needs several
-        Input(
-            "fullyThreaded",
-            "Fully threaded",
-            "fullyThreaded",
-            [Option("false", "No", "false", both), Option("true", "Yes", "true", both)],
-            kind="switch",
-        ),
-    ]
-
-
-def _nut_inputs() -> list[Input]:
-    return [
-        NUT_TABLE.input(_list("vendor", "Vendor", FastenerVendor, "vendor", "MCMASTER")),
-        NUT_TABLE.input(_list("size", "Size", FastenerSize, "size", "NO_10_32")),
-        NUT_TABLE.input(_list("type", "Type", NutType, "nutType", "NYLOCK")),
-    ]
-
-
-def _washer_inputs() -> list[Input]:
-    return [
-        WASHER_TABLE.input(_list("vendor", "Vendor", FastenerVendor, "vendor", "MCMASTER")),
-        WASHER_TABLE.input(_list("size", "Size", FastenerSize, "size", "NO_10_32")),
-        WASHER_TABLE.input(_list("type", "Type", WasherType, "washerType", "OD_7_16_X_0_03")),
-        WASHER_TABLE.input(_list("finish", "Finish", WasherFinish, "finish", "STAINLESS")),
-    ]
-
-
-STUDIOS = {
-    # Nearly every length is black, so Length's conditions are smallest split by finish first
-    "screw": ConfiguredStudio(
-        "screw", "fastenerScrew", _screw_inputs(), factor_first=["finish"], mate_connector="mateConnector"
+FRC = Catalog(
+    IMPERIAL,
+    Defaults(
+        ("GENERIC", "NO_10_32", "BUTTON", STANDARD_FINISH, length_id(Fraction(3, 8))),
+        ("MCMASTER", "NO_10_32", "NYLOCK", FRC_NUT_FINISH),
+        ("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS"),
     ),
-    "nut": ConfiguredStudio("nut", "fastenerNut", _nut_inputs(), mate_connector="mateConnector"),
-    "washer": ConfiguredStudio("washer", "fastenerWasher", _washer_inputs(), mate_connector="mateConnector"),
-}
+)
+# FTC's, from what's inserted most from ConfigLib (docs/ftc-fasteners.md): M4 socket heads, nylocks and washers, from the
+# first vendor making each, in its cheapest finish; ConfigLib doesn't count lengths
+FTC = Catalog(
+    METRIC,
+    Defaults(
+        ("GENERIC", "M4", "SOCKET", METRIC_SCREW_FINISHES[0], length_id(Millimeters(10))),
+        ("MCMASTER", "M4", "NYLOCK", METRIC_FINISHES[0]),
+        # Type shows only for goBILDA's, which makes two: its 8 mm one is its usual
+        ("GENERIC", "M4", "MM_8_X_1", METRIC_FINISHES[0]),
+    ),
+    METRIC_SCREW_FINISHES,
+    METRIC_FINISHES,
+)
 
+SCREW_TABLE, NUT_TABLE, WASHER_TABLE = FRC.screw_table, FRC.nut_table, FRC.washer_table
+STUDIOS = FRC.studios
+RECORDS = FRC.records
+SCREW_RECORDS, NUT_RECORDS, WASHER_RECORDS = RECORDS["screw"], RECORDS["nut"], RECORDS["washer"]
+# Every part either set makes, which the feature's tables hold
+ALL_RECORDS = {kind: {**FRC.records[kind], **FTC.records[kind]} for kind in RECORDS}
 
-def _screw_records() -> dict[tuple[str, str, str, str, str, bool], Record]:
-    """By vendor, size, head, finish, length, and whether it's fully threaded. Fully threaded is only chosen where a
-    length is sold both ways in its finish, and is false where it's hidden."""
-    return {
-        (vendor, size, head, variant.finish, length_id(length), variant.full_thread): Record(
-            {
-                **SCREW_TABLE.shown((vendor, size, head, variant.finish, length_id(length))),
-                **(
-                    {"fullyThreaded": str(variant.full_thread).lower()}
-                    if has_full_thread_choice(variants, variant.finish)
-                    else {}
-                ),
-            },
-            screw_name(size, head, length, variant),
-            vendor,
-            stock,
-            variant.finish,
-        )
-        for (vendor, size, head), lengths in SCREWS.items()
-        for length, variants in lengths.items()
-        for variant, stock in variants.items()
-    }
-
-
-def _nut_records() -> dict[tuple[str, str, str], Record]:
-    return {
-        (vendor, size, type): Record(
-            NUT_TABLE.shown((vendor, size, type)), nut_name(size, type), vendor, stock, appearance=NUT_APPEARANCE
-        )
-        for (vendor, size, type), stock in NUTS.items()
-    }
-
-
-def _washer_finishes(vendor: str, size: str, type: str) -> list[str]:
-    return [finish for (v, s, t, finish) in WASHERS if (v, s, t) == (vendor, size, type)]
-
-
-def _washer_records() -> dict[tuple[str, str, str, str], Record]:
-    return {
-        (vendor, size, type, finish): Record(
-            WASHER_TABLE.shown((vendor, size, type, finish)),
-            washer_name(size, type, finish),
-            vendor,
-            washer.stock,
-            finish,
-        )
-        for (vendor, size, type, finish), washer in WASHERS.items()
-    }
-
-
-SCREW_RECORDS = _screw_records()
-NUT_RECORDS = _nut_records()
-WASHER_RECORDS = _washer_records()
-RECORDS = {"screw": SCREW_RECORDS, "nut": NUT_RECORDS, "washer": WASHER_RECORDS}
-
-# Where each studio was last released: `fs release` records it beside this file
+# Where each studio was last released: `fs release` records it beside its definition, FTC's beside
+# ftcFastenerTables.py
 LOCATIONS = read_locations(pathlib.Path(__file__))
 
 
@@ -809,32 +1286,46 @@ def _nested(table: dict[tuple, object], enums: list[Enum], render, indent: int =
     return _map(entries, indent)
 
 
-def _size_fields(size: Size) -> str:
+def _length(value: float | Fraction | str, unit: str) -> str:
+    return _in(float(value)) if unit == "in" else mm(round(float(value), 6))
+
+
+def _size_fields(size: Size | MetricSize) -> str:
+    if isinstance(size, Size):
+        pitch = {"pitch": string(f"{size.threads_per_inch} tpi"), "threadPitch": f"inch / {size.threads_per_inch}"}
+    else:
+        pitch = {"pitch": string(f"{size.pitch:g} mm"), "threadPitch": mm(size.pitch)}
     return _fields(
         {
             "name": string(size.name),
             "size": string(size.hole_table_size),
-            "pitch": string(f"{size.threads_per_inch} tpi"),
-            "threadPitch": f"inch / {size.threads_per_inch}",
-            "majorDiameter": _in(size.major_diameter),
-            "minorDiameter": _in(size.minor_diameter),
-            "tapDrillDiameter": _in(size.tap_drill_diameter),
-            "closeClearanceDiameter": _in(size.close_clearance_diameter),
-            "freeClearanceDiameter": _in(size.free_clearance_diameter),
+            **pitch,
+            "majorDiameter": _length(size.major_diameter, size.unit),
+            "minorDiameter": _length(size.minor_diameter, size.unit),
+            "tapDrillDiameter": _length(size.tap_drill_diameter, size.unit),
+            "closeClearanceDiameter": _length(size.close_clearance_diameter, size.unit),
+            "freeClearanceDiameter": _length(size.free_clearance_diameter, size.unit),
+            "threadAllowance": _length(size.thread_allowance, size.unit),
         }
     )
 
 
 def _head_fields(head: Head) -> str:
-    fields = {"headDiameter": _in(head.diameter), "headHeight": _in(head.height), "socketSize": _in(head.socket)}
+    fields = {"headDiameter": _length(head.diameter, head.unit), "headHeight": _length(head.height, head.unit)}
+    if head.socket is not None:
+        fields["socketSize"] = _length(head.socket, head.unit)
     if head.countersunk:
-        fields["countersinkAngle"] = f"{COUNTERSINK_ANGLE} * degree"
+        fields["countersinkAngle"] = f"{head.countersink_angle} * degree"
+    if head.across_flats is not None:
+        fields["acrossFlats"] = _length(head.across_flats, head.unit)
+    if head.width is not None:
+        fields["width"] = _length(head.width, head.unit)
     return _fields(fields)
 
 
 def _screw_table() -> dict[tuple, dict[bool, Record]]:
     table: dict[tuple, dict[bool, Record]] = {}
-    for (*key, full_thread), record in SCREW_RECORDS.items():
+    for (*key, full_thread), record in ALL_RECORDS["screw"].items():
         table.setdefault(tuple(key), {})[full_thread] = record
     return table
 
@@ -846,23 +1337,31 @@ def _screw_fields(threads: dict[bool, Record]) -> str:
     return "{ " + ", ".join(f"{key} : {value}" for key, value in entries) + " }"
 
 
-def _nut_fields(record: Record) -> str:
-    nut = NUT_DIMENSIONS[record.values["size"]][record.values["type"]]
+def _nut_fields(item: tuple[tuple[str, str, str, str], Record]) -> str:
+    (vendor, size, type, _), record = item
+    nut = nut_dimensions(vendor, size, type)
     nylock = (
-        {"hexHeight": _in(nut.hex_height), "insertDiameter": _in(nut.insert_diameter)}
+        {"hexHeight": _length(nut.hex_height, nut.unit), "insertDiameter": _length(nut.insert_diameter, nut.unit)}
         if nut.hex_height is not None and nut.insert_diameter is not None
         else {}
     )
-    return _fields({"acrossFlats": _in(nut.across_flats), "height": _in(nut.height), **nylock, **record.fields()})
+    return _fields(
+        {
+            "acrossFlats": _length(nut.across_flats, nut.unit),
+            "height": _length(nut.height, nut.unit),
+            **nylock,
+            **record.fields(),
+        }
+    )
 
 
 def _washer_fields(item: tuple[Washer, Record]) -> str:
     washer, record = item
     return _fields(
         {
-            "innerDiameter": _in(washer.inner_diameter),
-            "outerDiameter": _in(washer.outer_diameter),
-            "thickness": _in(float(washer.thickness)),
+            "innerDiameter": _length(washer.inner_diameter, washer.unit),
+            "outerDiameter": _length(washer.outer_diameter, washer.unit),
+            "thickness": _length(washer.thickness, washer.unit),
             **record.fields(),
         }
     )
@@ -880,9 +1379,10 @@ CONTENTS = [
     ScrewLength,
     ScrewFinish,
     WasherFinish,
+    NutFinish,
     NutType,
     WasherType,
-    Constant("FASTENER_SIZES", _map([(FastenerSize[size.id], _size_fields(size)) for size in SIZES], 8)),
+    Constant("FASTENER_SIZES", _map([(FastenerSize[size.id], _size_fields(size)) for size in SIZES + METRIC_SIZES], 8)),
     Constant(
         "SCREW_HEADS",
         _nested(
@@ -895,7 +1395,15 @@ CONTENTS = [
         "SCREW_LENGTHS",
         _map(
             [
-                (ScrewLength[length_id(length)], _fields({"length": _in(length), "name": string(length_name(length))}))
+                (
+                    ScrewLength[length_id(length)],
+                    _fields(
+                        {
+                            "length": mm(length.value) if isinstance(length, Millimeters) else _in(length),
+                            "name": string(length_name(length)),
+                        }
+                    ),
+                )
                 for length in LENGTHS
             ],
             8,
@@ -915,15 +1423,15 @@ CONTENTS = [
     Constant(
         "NUTS",
         _nested(
-            NUT_RECORDS,
-            [FastenerVendor, FastenerSize, NutType],
+            {key: (key, record) for key, record in ALL_RECORDS["nut"].items()},
+            [FastenerVendor, FastenerSize, NutType, NutFinish],
             _nut_fields,
         ),
     ),
     Constant(
         "WASHERS",
         _nested(
-            {key: (WASHERS[key], record) for key, record in WASHER_RECORDS.items()},
+            {key: (WASHERS[key], record) for key, record in ALL_RECORDS["washer"].items()},
             [FastenerVendor, FastenerSize, WasherType, WasherFinish],
             _washer_fields,
         ),
@@ -934,52 +1442,65 @@ CONTENTS = [
 # FRCDesign's manifest
 
 
-def _meters(inches: float | Fraction | str) -> float:
-    return round(float(inches) * INCH, 9)
+def _meters(value: float | Fraction | str, unit: str = "in") -> float:
+    return round(float(value) * (INCH if unit == "in" else 0.001), 9)
 
 
 def _stock_json(stock: Stock) -> dict:
     return {key: value for key, value in (("partNumber", stock.part_number), ("url", stock.url)) if value}
 
 
-def manifest() -> dict:
+def manifest(catalog: Catalog = FRC, locations: dict = LOCATIONS, source: str = "fastenerTables.py") -> dict:
+    """A part set's manifest, for FRCDesign: its studios and records, and its catalog for Auto Assembly."""
+    vendors = {key[0] for parts in (catalog.screws, catalog.nuts, catalog.washers) for key in parts}
+    sizes = [SIZES_BY_ID[size] for size in catalog.sizes]
+    heads = [head for head in ScrewHead.values if any(head in HEADS[size.id] for size in sizes)]
+    metric = all(size.id in METRIC for size in sizes)
+    screw_finishes = (catalog.screw_finishes or []) + [
+        finish for finish in ScrewFinish.values if finish not in (catalog.screw_finishes or [])
+    ]
     return {
-        "source": "featurescripts/fasteners/fastenerTables.py",
+        "source": f"featurescripts/fasteners/{source}",
         "studios": {
             kind: {
                 **studio.manifest(),
-                "location": LOCATIONS.get(kind),
-                "records": [record.manifest() for record in RECORDS[kind].values()],
+                "location": locations.get(kind),
+                "records": [record.manifest() for record in catalog.records[kind].values()],
             }
-            for kind, studio in STUDIOS.items()
+            for kind, studio in catalog.studios.items()
         },
-        "vendors": [{"id": id, "name": FastenerVendor.names[id]} for id in FastenerVendor.values],  # type: ignore[index]
+        "vendors": [
+            {"id": id, "name": FastenerVendor.names[id]}  # type: ignore[index]
+            for id in FastenerVendor.values
+            if id in vendors
+        ],
         "sizes": [
             {
                 "id": size.id,
                 "name": size.name,
-                "majorDiameter": _meters(size.major_diameter),
-                "pitch": _meters(1 / size.threads_per_inch),
-                "tapDrillDiameter": _meters(size.tap_drill_diameter),
-                "closeClearanceDiameter": _meters(size.close_clearance_diameter),
-                "freeClearanceDiameter": _meters(size.free_clearance_diameter),
+                "majorDiameter": _meters(size.major_diameter, size.unit),
+                "pitch": _meters(size.pitch, size.unit),
+                "tapDrillDiameter": _meters(size.tap_drill_diameter, size.unit),
+                "closeClearanceDiameter": _meters(size.close_clearance_diameter, size.unit),
+                "freeClearanceDiameter": _meters(size.free_clearance_diameter, size.unit),
             }
-            for size in SIZES
+            for size in sizes
         ],
         "heads": [
             {
                 "id": head,
                 "name": ScrewHead.names[head],  # type: ignore[index]
                 "sizes": {
-                    size: {
-                        "diameter": _meters(heads[head].diameter),
-                        "height": _meters(heads[head].height),
-                        "countersunk": heads[head].countersunk,
+                    size.id: {
+                        "diameter": _meters(HEADS[size.id][head].diameter, HEADS[size.id][head].unit),
+                        "height": _meters(HEADS[size.id][head].height, HEADS[size.id][head].unit),
+                        "countersunk": HEADS[size.id][head].countersunk,
                     }
-                    for size, heads in HEADS.items()
+                    for size in sizes
+                    if head in HEADS[size.id]
                 },
             }
-            for head in ScrewHead.values
+            for head in heads
         ],
         "screws": [
             {
@@ -991,15 +1512,15 @@ def manifest() -> dict:
                     {
                         "id": length_id(length),
                         "name": length_name(length),
-                        "length": _meters(length),
+                        "length": length_meters(length),
                         "fullThreadChoice": has_full_thread_choice(variants, finish),
                     }
                     for length, variants in lengths.items()
                     if Variant(finish) in variants
                 ],
             }
-            for (vendor, size, head), lengths in SCREWS.items()
-            for finish in ScrewFinish.values
+            for (vendor, size, head), lengths in catalog.screws.items()
+            for finish in screw_finishes
             if any(Variant(finish) in variants for variants in lengths.values())
         ],
         "nutTypes": [{"id": id, "name": NutType.names[id]} for id in NutType.values],  # type: ignore[index]
@@ -1008,11 +1529,14 @@ def manifest() -> dict:
                 "vendor": vendor,
                 "size": size,
                 "type": type,
-                "acrossFlats": _meters(NUT_DIMENSIONS[size][type].across_flats),
-                "height": _meters(NUT_DIMENSIONS[size][type].height),
+                "acrossFlats": _meters(nut_dimensions(vendor, size, type).across_flats, nut_dimensions(vendor, size, type).unit),
+                "height": _meters(nut_dimensions(vendor, size, type).height, nut_dimensions(vendor, size, type).unit),
                 **_stock_json(stock),
+                # FRC's come in one finish
+                **({"finishes": catalog.nut_finishes(vendor, size, type)} if metric else {}),
             }
-            for (vendor, size, type), stock in NUTS.items()
+            for (vendor, size, type, finish), stock in catalog.nuts.items()
+            if finish == catalog.nut_finishes(vendor, size, type)[0]
         ],
         "washers": [
             {
@@ -1020,13 +1544,13 @@ def manifest() -> dict:
                 "size": size,
                 "type": type,
                 "name": WasherType.names[type],  # type: ignore[index]
-                "innerDiameter": _meters(washer.inner_diameter),
-                "outerDiameter": _meters(washer.outer_diameter),
-                "thickness": _meters(washer.thickness),
-                "finishes": _washer_finishes(vendor, size, type),
+                "innerDiameter": _meters(washer.inner_diameter, washer.unit),
+                "outerDiameter": _meters(washer.outer_diameter, washer.unit),
+                "thickness": _meters(washer.thickness, washer.unit),
+                "finishes": catalog.washer_finishes(vendor, size, type),
             }
-            for (vendor, size, type, finish), washer in WASHERS.items()
-            if finish == _washer_finishes(vendor, size, type)[0]
+            for (vendor, size, type, finish), washer in catalog.washers.items()
+            if finish == catalog.washer_finishes(vendor, size, type)[0]
         ],
     }
 
@@ -1085,8 +1609,8 @@ def fetch_library() -> None:
 
 
 def fetch_stores() -> None:
-    """Writes each store's products which are catalog screws (`_store_screw`) to vendor/stores.json, from Shopify's
-    product list."""
+    """Writes each store's products which are catalog screws (`_store_screw`, `_metric_store_screw`) to
+    vendor/stores.json, from Shopify's product list."""
     import urllib.request
 
     products = []
@@ -1108,7 +1632,7 @@ def fetch_stores() -> None:
                     "sku": product["variants"][0]["sku"],
                     "url": f"https://{store}/products/{product['handle']}",
                 }
-                if _store_screw(entry) is not None:
+                if _store_screw(entry) is not None or _metric_store_screw(entry) is not None:
                     products.append(entry)
     products.sort(key=lambda product: (product["store"], product["sku"], product["title"]))
     snapshot = {"source": "Each store's /products.json, by fastenerTables.py fetch", "products": products}

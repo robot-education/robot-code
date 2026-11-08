@@ -427,7 +427,8 @@ uv run fs gen                # rewrite every .gen.fs file whose definition chang
 uv run fs push               # push them
 ```
 
-Every `.py` file in `featurescripts/` is a definition. Generated files keep their `FeatureScript` version
+Every `.py` file in `featurescripts/` is a definition. One configuring Part Studios from another definition's tables
+sets `STUDIOS` (and `EXPORTS`) without `CONTENTS`, and writes no `.gen.fs` file (`fasteners/ftcFastenerTables.py`). Generated files keep their `FeatureScript` version
 (`fs update-std` changes it); new ones use the std version in `std/`. Tests fail if a checked-in `.gen.fs` file is
 out of date, or a profile isn't a closed loop.
 

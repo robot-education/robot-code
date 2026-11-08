@@ -1079,6 +1079,11 @@ def test_a_part_set_needs_a_main_document_folder_and_title(tmp_path):
         parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "P", "title": "P", "targets": {"local": "nope"}}}})
     with pytest.raises(ConfigError, match="No part set named bolts"):
         config.find_part_set("bolts")
+    # A set may name its definition, where its folder holds another set's too
+    shared = {"main": main, "folder": "Parts", "title": "Parts", "definition": "otherTables.py"}
+    assert parse_config(tmp_path, {**base, "parts": {"parts": shared}}).find_part_set("parts").definition == "otherTables.py"
+    with pytest.raises(ConfigError, match="definition must name a .py file in its folder"):
+        parse_config(tmp_path, {**base, "parts": {"parts": {**shared, "definition": "Parts/otherTables.py"}}})
 
 
 # Updating the std
@@ -1314,6 +1319,20 @@ def test_a_part_set_is_tried_in_the_backend_as_test_part_studios(repo, onshape, 
     # Nothing recorded, and nothing versioned
     assert not local(repo, "Parts/partTables.studios.json").exists()
     assert onshape.versions_by_document == {}
+
+
+def test_part_sets_sharing_a_folder_each_build_their_own_definitions_studios(repo, onshape, capsys):
+    """As FRC's and FTC's fasteners share fasteners.fs, each configuring its own studios."""
+    element_id = part_set(repo, onshape)
+    write(repo, "Parts/otherTables.py", PART_TABLES.replace('"screw"', '"bolt"').replace("CONTENTS = []\n", ""))
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text().replace('folder = "Parts"\n', 'folder = "Parts"\ndefinition = "partTables.py"\n')
+        + f'\n[tool.fs.parts.others]\ntitle = "Others"\nfolder = "Parts"\ndefinition = "otherTables.py"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
+    )
+
+    assert run(onshape, "parts", "others", "--test", "-y") == 0
+    assert onshape.builds == [("back", "bolt", element_id, onshape.studios()[element_id]["mv"])]
 
 
 def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):

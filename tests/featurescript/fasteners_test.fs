@@ -53,6 +53,46 @@ export function testButtonDomeIsAnArcCenteredOnTheAxis()
     expectSamePoint(dome.end, vector(1.4 * head.socketSize / 2, head.headHeight));
 }
 
+export function testMetricSocketHeadsAreThreaded2DPlus12Millimeters()
+{
+    const size = FASTENER_SIZES[FastenerSize.M4];
+    const socket = SCREW_HEADS[FastenerSize.M4][ScrewHead.SOCKET];
+    expectNear(threadLength(size, socket, ScrewHead.SOCKET, 40 * millimeter, false), 20 * millimeter, 1e-9 * meter);
+}
+
+export function testVendorsFullyThreadedLengthsSaySo()
+{
+    // goBILDA's are threaded their whole length but its 75 mm
+    const gobilda = SCREWS[FastenerVendor.GOBILDA][FastenerSize.M4][ScrewHead.SOCKET][ScrewFinish.ZINC_PLATED];
+    expectEqual(gobilda[ScrewLength.MM_60].standard.fullyThreaded, true);
+    expectEqual(gobilda[ScrewLength.MM_75].standard.fullyThreaded, undefined);
+}
+
+export function testHexHeadProfilesClose()
+{
+    for (var sizeId, heads in SCREW_HEADS)
+    {
+        for (var headType, head in heads)
+        {
+            if (!isHexHead(headType))
+            {
+                continue;
+            }
+            const points = hexHeadProfile(head);
+            expectSamePoint(points[0], points[size(points) - 1]);
+            // Chamfered inside its corners, out to its flats at its top
+            expectSamePoint(points[3], vector(head.acrossFlats / 2, head.headHeight));
+            expectTrue(points[1][0] > head.headDiameter / 2, "Its chamfer starts past its corners");
+        }
+    }
+}
+
+export function testFlatHeadsSitInTheirSizesCountersinks()
+{
+    expectEqual(SCREW_HEADS[FastenerSize.NO_10_32][ScrewHead.FLAT].countersinkAngle, 82 * degree);
+    expectEqual(SCREW_HEADS[FastenerSize.M4][ScrewHead.FLAT].countersinkAngle, 90 * degree);
+}
+
 export function testStandardSocketHeadsAreThreaded2DPlusHalfAnInch()
 {
     const size = FASTENER_SIZES[FastenerSize.QUARTER_20];
@@ -129,8 +169,9 @@ export function testNutProfilesClose()
     {
         for (var sizeId, types in sizes)
         {
-            for (var nutType, nut in types)
+            for (var nutType, finishes in types)
             {
+                const nut = made(finishes, NutFinish.ZINC_PLATED);
                 const points = nutProfile(FASTENER_SIZES[sizeId], nut, nutType);
                 if (nutType == NutType.NYLOCK || nutType == NutType.THIN_NYLOCK)
                 {
@@ -154,8 +195,9 @@ export function testNylonInsertsFitInsideTheirDomes()
     {
         for (var sizeId, types in sizes)
         {
-            for (var nutType, nut in types)
+            for (var nutType, finishes in types)
             {
+                const nut = made(finishes, NutFinish.ZINC_PLATED);
                 if (nut.insertDiameter == undefined)
                 {
                     continue;
@@ -172,9 +214,14 @@ export function testNylonInsertsFitInsideTheirDomes()
 export function testNutsMatchMcMasterCarrsModels()
 {
     const nuts = NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_10_32];
-    expectNear(nuts[NutType.THIN_NYLOCK].height, 11 / 64 * inch, 1e-6 * inch);
-    expectNear(nuts[NutType.NYLOCK].height - nuts[NutType.NYLOCK].hexHeight, 5 / 128 * inch, 1e-6 * inch);
-    expectNear(NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_6_32][NutType.THIN_HEX].acrossFlats, 1 / 4 * inch, 1e-6 * inch);
+    const zinc = NutFinish.ZINC_PLATED;
+    expectNear(nuts[NutType.THIN_NYLOCK][zinc].height, 11 / 64 * inch, 1e-6 * inch);
+    expectNear(nuts[NutType.NYLOCK][zinc].height - nuts[NutType.NYLOCK][zinc].hexHeight, 5 / 128 * inch, 1e-6 * inch);
+    expectNear(NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_6_32][NutType.THIN_HEX][zinc].acrossFlats, 1 / 4 * inch, 1e-6 * inch);
+    // And its metric ones (90591A255 and 94645A101)
+    const m4 = NUTS[FastenerVendor.MCMASTER][FastenerSize.M4];
+    expectNear(m4[NutType.HEX][zinc].height, 3.2 * millimeter, 1e-9 * meter);
+    expectNear(m4[NutType.NYLOCK][zinc].hexHeight, 4.17 * millimeter, 1e-9 * meter);
 }
 
 function expectSamePoint(actual is Vector, expected is Vector)
@@ -184,8 +231,9 @@ function expectSamePoint(actual is Vector, expected is Vector)
 
 export function testAHiddenInputResolvesToTheOneMade()
 {
-    // McMaster-Carr makes every nut, so any vendor resolves to it
-    expectEqual(made(NUTS, FastenerVendor.GENERIC), NUTS[FastenerVendor.MCMASTER]);
+    // FRC's nuts come in zinc plating alone, so any finish resolves to it
+    const nylocks = NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_10_32][NutType.NYLOCK];
+    expectEqual(made(nylocks, NutFinish.BLACK), nylocks[NutFinish.ZINC_PLATED]);
     expectEqual(made({ "a" : 1, "b" : 2 }, "b"), 2);
     expectEqual(made({ "a" : 1, "b" : 2 }, "c"), undefined);
     expectEqual(made(undefined, "a"), undefined);

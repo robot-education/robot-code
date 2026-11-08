@@ -10,6 +10,8 @@ export enum FastenerVendor
     GENERIC,
     annotation { "Name" : "McMaster-Carr" }
     MCMASTER,
+    annotation { "Name" : "goBILDA" }
+    GOBILDA,
     annotation { "Name" : "REV" }
     REV,
     annotation { "Name" : "WCP" }
@@ -29,7 +31,11 @@ export enum FastenerSize
     annotation { "Name" : "#10-32" }
     NO_10_32,
     annotation { "Name" : "1/4-20" }
-    QUARTER_20
+    QUARTER_20,
+    annotation { "Name" : "M3 x 0.5" }
+    M3,
+    annotation { "Name" : "M4 x 0.7" }
+    M4
 }
 
 export enum ScrewHead
@@ -39,7 +45,11 @@ export enum ScrewHead
     annotation { "Name" : "Button head" }
     BUTTON,
     annotation { "Name" : "Flat head" }
-    FLAT
+    FLAT,
+    annotation { "Name" : "Hex head" }
+    HEX,
+    annotation { "Name" : "T-slot" }
+    T_SLOT
 }
 
 export enum ScrewLength
@@ -143,7 +153,71 @@ export enum ScrewLength
     annotation { "Name" : "9 in" }
     IN_9,
     annotation { "Name" : "10 in" }
-    IN_10
+    IN_10,
+    annotation { "Name" : "3 mm" }
+    MM_3,
+    annotation { "Name" : "4 mm" }
+    MM_4,
+    annotation { "Name" : "5 mm" }
+    MM_5,
+    annotation { "Name" : "6 mm" }
+    MM_6,
+    annotation { "Name" : "7 mm" }
+    MM_7,
+    annotation { "Name" : "8 mm" }
+    MM_8,
+    annotation { "Name" : "9 mm" }
+    MM_9,
+    annotation { "Name" : "10 mm" }
+    MM_10,
+    annotation { "Name" : "11 mm" }
+    MM_11,
+    annotation { "Name" : "12 mm" }
+    MM_12,
+    annotation { "Name" : "14 mm" }
+    MM_14,
+    annotation { "Name" : "15 mm" }
+    MM_15,
+    annotation { "Name" : "16 mm" }
+    MM_16,
+    annotation { "Name" : "18 mm" }
+    MM_18,
+    annotation { "Name" : "20 mm" }
+    MM_20,
+    annotation { "Name" : "22 mm" }
+    MM_22,
+    annotation { "Name" : "25 mm" }
+    MM_25,
+    annotation { "Name" : "30 mm" }
+    MM_30,
+    annotation { "Name" : "35 mm" }
+    MM_35,
+    annotation { "Name" : "40 mm" }
+    MM_40,
+    annotation { "Name" : "45 mm" }
+    MM_45,
+    annotation { "Name" : "50 mm" }
+    MM_50,
+    annotation { "Name" : "55 mm" }
+    MM_55,
+    annotation { "Name" : "60 mm" }
+    MM_60,
+    annotation { "Name" : "65 mm" }
+    MM_65,
+    annotation { "Name" : "70 mm" }
+    MM_70,
+    annotation { "Name" : "75 mm" }
+    MM_75,
+    annotation { "Name" : "80 mm" }
+    MM_80,
+    annotation { "Name" : "85 mm" }
+    MM_85,
+    annotation { "Name" : "90 mm" }
+    MM_90,
+    annotation { "Name" : "100 mm" }
+    MM_100,
+    annotation { "Name" : "110 mm" }
+    MM_110
 }
 
 export enum ScrewFinish
@@ -153,7 +227,9 @@ export enum ScrewFinish
     annotation { "Name" : "Zinc plated" }
     ZINC_PLATED,
     annotation { "Name" : "Aluminum" }
-    ALUMINUM
+    ALUMINUM,
+    annotation { "Name" : "Stainless steel" }
+    STAINLESS
 }
 
 export enum WasherFinish
@@ -164,6 +240,16 @@ export enum WasherFinish
     ZINC_PLATED,
     annotation { "Name" : "Stainless steel" }
     STAINLESS
+}
+
+export enum NutFinish
+{
+    annotation { "Name" : "Zinc plated" }
+    ZINC_PLATED,
+    annotation { "Name" : "Stainless steel" }
+    STAINLESS,
+    annotation { "Name" : "Black" }
+    BLACK
 }
 
 export enum NutType
@@ -215,15 +301,27 @@ export enum WasherType
     annotation { "Name" : "1 in OD x 0.062 in" }
     OD_1_X_0_062,
     annotation { "Name" : "3 in OD x 0.06 in" }
-    OD_3_X_0_06
+    OD_3_X_0_06,
+    annotation { "Name" : "7 mm OD x 0.5 mm" }
+    MM_7_X_0_5,
+    annotation { "Name" : "8 mm OD x 1 mm" }
+    MM_8_X_1,
+    annotation { "Name" : "9 mm OD x 0.8 mm" }
+    MM_9_X_0_8,
+    annotation { "Name" : "9 mm OD x 0.9 mm" }
+    MM_9_X_0_9,
+    annotation { "Name" : "10.9 mm OD x 1.5 mm" }
+    MM_10_9_X_1_5
 }
 
 export const FASTENER_SIZES = {
-            FastenerSize.NO_4_40 : { "name" : "#4-40", "size" : "#4", "pitch" : "40 tpi", "threadPitch" : inch / 40, "majorDiameter" : 0.112 * inch, "minorDiameter" : 0.0814 * inch, "tapDrillDiameter" : 0.089 * inch, "closeClearanceDiameter" : 0.116 * inch, "freeClearanceDiameter" : 0.1285 * inch },
-            FastenerSize.NO_6_32 : { "name" : "#6-32", "size" : "#6", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.138 * inch, "minorDiameter" : 0.1 * inch, "tapDrillDiameter" : 0.1065 * inch, "closeClearanceDiameter" : 0.144 * inch, "freeClearanceDiameter" : 0.1495 * inch },
-            FastenerSize.NO_8_32 : { "name" : "#8-32", "size" : "#8", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.164 * inch, "minorDiameter" : 0.1259 * inch, "tapDrillDiameter" : 0.136 * inch, "closeClearanceDiameter" : 0.1695 * inch, "freeClearanceDiameter" : 0.177 * inch },
-            FastenerSize.NO_10_32 : { "name" : "#10-32", "size" : "#10", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.19 * inch, "minorDiameter" : 0.1528 * inch, "tapDrillDiameter" : 0.159 * inch, "closeClearanceDiameter" : 0.196 * inch, "freeClearanceDiameter" : 0.201 * inch },
-            FastenerSize.QUARTER_20 : { "name" : "1/4-20", "size" : "1/4", "pitch" : "20 tpi", "threadPitch" : inch / 20, "majorDiameter" : 0.25 * inch, "minorDiameter" : 0.1894 * inch, "tapDrillDiameter" : 0.201 * inch, "closeClearanceDiameter" : 0.257 * inch, "freeClearanceDiameter" : 0.266 * inch }
+            FastenerSize.NO_4_40 : { "name" : "#4-40", "size" : "#4", "pitch" : "40 tpi", "threadPitch" : inch / 40, "majorDiameter" : 0.112 * inch, "minorDiameter" : 0.0814 * inch, "tapDrillDiameter" : 0.089 * inch, "closeClearanceDiameter" : 0.116 * inch, "freeClearanceDiameter" : 0.1285 * inch, "threadAllowance" : 0.5 * inch },
+            FastenerSize.NO_6_32 : { "name" : "#6-32", "size" : "#6", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.138 * inch, "minorDiameter" : 0.1 * inch, "tapDrillDiameter" : 0.1065 * inch, "closeClearanceDiameter" : 0.144 * inch, "freeClearanceDiameter" : 0.1495 * inch, "threadAllowance" : 0.5 * inch },
+            FastenerSize.NO_8_32 : { "name" : "#8-32", "size" : "#8", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.164 * inch, "minorDiameter" : 0.1259 * inch, "tapDrillDiameter" : 0.136 * inch, "closeClearanceDiameter" : 0.1695 * inch, "freeClearanceDiameter" : 0.177 * inch, "threadAllowance" : 0.5 * inch },
+            FastenerSize.NO_10_32 : { "name" : "#10-32", "size" : "#10", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.19 * inch, "minorDiameter" : 0.1528 * inch, "tapDrillDiameter" : 0.159 * inch, "closeClearanceDiameter" : 0.196 * inch, "freeClearanceDiameter" : 0.201 * inch, "threadAllowance" : 0.5 * inch },
+            FastenerSize.QUARTER_20 : { "name" : "1/4-20", "size" : "1/4", "pitch" : "20 tpi", "threadPitch" : inch / 20, "majorDiameter" : 0.25 * inch, "minorDiameter" : 0.1894 * inch, "tapDrillDiameter" : 0.201 * inch, "closeClearanceDiameter" : 0.257 * inch, "freeClearanceDiameter" : 0.266 * inch, "threadAllowance" : 0.5 * inch },
+            FastenerSize.M3 : { "name" : "M3 x 0.5", "size" : "M3", "pitch" : "0.5 mm", "threadPitch" : 0.5 * millimeter, "majorDiameter" : 3 * millimeter, "minorDiameter" : 2.459 * millimeter, "tapDrillDiameter" : 2.5 * millimeter, "closeClearanceDiameter" : 3.2 * millimeter, "freeClearanceDiameter" : 3.4 * millimeter, "threadAllowance" : 12 * millimeter },
+            FastenerSize.M4 : { "name" : "M4 x 0.7", "size" : "M4", "pitch" : "0.7 mm", "threadPitch" : 0.7 * millimeter, "majorDiameter" : 4 * millimeter, "minorDiameter" : 3.242 * millimeter, "tapDrillDiameter" : 3.3 * millimeter, "closeClearanceDiameter" : 4.3 * millimeter, "freeClearanceDiameter" : 4.5 * millimeter, "threadAllowance" : 12 * millimeter }
         };
 
 export const SCREW_HEADS = {
@@ -251,6 +349,19 @@ export const SCREW_HEADS = {
                 ScrewHead.SOCKET : { "headDiameter" : 0.375 * inch, "headHeight" : 0.25 * inch, "socketSize" : 0.1875 * inch },
                 ScrewHead.BUTTON : { "headDiameter" : 0.437 * inch, "headHeight" : 0.132 * inch, "socketSize" : 0.15625 * inch },
                 ScrewHead.FLAT : { "headDiameter" : 0.531 * inch, "headHeight" : 0.153 * inch, "socketSize" : 0.15625 * inch, "countersinkAngle" : 82 * degree }
+            },
+            FastenerSize.M3 : {
+                ScrewHead.SOCKET : { "headDiameter" : 5.5 * millimeter, "headHeight" : 3 * millimeter, "socketSize" : 2.5 * millimeter },
+                ScrewHead.BUTTON : { "headDiameter" : 5.7 * millimeter, "headHeight" : 1.65 * millimeter, "socketSize" : 2 * millimeter },
+                ScrewHead.FLAT : { "headDiameter" : 6 * millimeter, "headHeight" : 1.7 * millimeter, "socketSize" : 2 * millimeter, "countersinkAngle" : 90 * degree },
+                ScrewHead.HEX : { "headDiameter" : 6.3509 * millimeter, "headHeight" : 2 * millimeter, "acrossFlats" : 5.5 * millimeter },
+                ScrewHead.T_SLOT : { "headDiameter" : 6.3509 * millimeter, "headHeight" : 1.82 * millimeter, "acrossFlats" : 5.5 * millimeter, "width" : 3.2 * millimeter }
+            },
+            FastenerSize.M4 : {
+                ScrewHead.SOCKET : { "headDiameter" : 7 * millimeter, "headHeight" : 4 * millimeter, "socketSize" : 3 * millimeter },
+                ScrewHead.BUTTON : { "headDiameter" : 7.6 * millimeter, "headHeight" : 2.2 * millimeter, "socketSize" : 2.5 * millimeter },
+                ScrewHead.FLAT : { "headDiameter" : 8 * millimeter, "headHeight" : 2.3 * millimeter, "socketSize" : 2.5 * millimeter, "countersinkAngle" : 90 * degree },
+                ScrewHead.HEX : { "headDiameter" : 8.0829 * millimeter, "headHeight" : 2.8 * millimeter, "acrossFlats" : 7 * millimeter }
             }
         };
 
@@ -304,7 +415,39 @@ export const SCREW_LENGTHS = {
             ScrewLength.IN_8 : { "length" : 8 * inch, "name" : "8 in" },
             ScrewLength.IN_8_5 : { "length" : 8.5 * inch, "name" : "8-1/2 in" },
             ScrewLength.IN_9 : { "length" : 9 * inch, "name" : "9 in" },
-            ScrewLength.IN_10 : { "length" : 10 * inch, "name" : "10 in" }
+            ScrewLength.IN_10 : { "length" : 10 * inch, "name" : "10 in" },
+            ScrewLength.MM_3 : { "length" : 3 * millimeter, "name" : "3 mm" },
+            ScrewLength.MM_4 : { "length" : 4 * millimeter, "name" : "4 mm" },
+            ScrewLength.MM_5 : { "length" : 5 * millimeter, "name" : "5 mm" },
+            ScrewLength.MM_6 : { "length" : 6 * millimeter, "name" : "6 mm" },
+            ScrewLength.MM_7 : { "length" : 7 * millimeter, "name" : "7 mm" },
+            ScrewLength.MM_8 : { "length" : 8 * millimeter, "name" : "8 mm" },
+            ScrewLength.MM_9 : { "length" : 9 * millimeter, "name" : "9 mm" },
+            ScrewLength.MM_10 : { "length" : 10 * millimeter, "name" : "10 mm" },
+            ScrewLength.MM_11 : { "length" : 11 * millimeter, "name" : "11 mm" },
+            ScrewLength.MM_12 : { "length" : 12 * millimeter, "name" : "12 mm" },
+            ScrewLength.MM_14 : { "length" : 14 * millimeter, "name" : "14 mm" },
+            ScrewLength.MM_15 : { "length" : 15 * millimeter, "name" : "15 mm" },
+            ScrewLength.MM_16 : { "length" : 16 * millimeter, "name" : "16 mm" },
+            ScrewLength.MM_18 : { "length" : 18 * millimeter, "name" : "18 mm" },
+            ScrewLength.MM_20 : { "length" : 20 * millimeter, "name" : "20 mm" },
+            ScrewLength.MM_22 : { "length" : 22 * millimeter, "name" : "22 mm" },
+            ScrewLength.MM_25 : { "length" : 25 * millimeter, "name" : "25 mm" },
+            ScrewLength.MM_30 : { "length" : 30 * millimeter, "name" : "30 mm" },
+            ScrewLength.MM_35 : { "length" : 35 * millimeter, "name" : "35 mm" },
+            ScrewLength.MM_40 : { "length" : 40 * millimeter, "name" : "40 mm" },
+            ScrewLength.MM_45 : { "length" : 45 * millimeter, "name" : "45 mm" },
+            ScrewLength.MM_50 : { "length" : 50 * millimeter, "name" : "50 mm" },
+            ScrewLength.MM_55 : { "length" : 55 * millimeter, "name" : "55 mm" },
+            ScrewLength.MM_60 : { "length" : 60 * millimeter, "name" : "60 mm" },
+            ScrewLength.MM_65 : { "length" : 65 * millimeter, "name" : "65 mm" },
+            ScrewLength.MM_70 : { "length" : 70 * millimeter, "name" : "70 mm" },
+            ScrewLength.MM_75 : { "length" : 75 * millimeter, "name" : "75 mm" },
+            ScrewLength.MM_80 : { "length" : 80 * millimeter, "name" : "80 mm" },
+            ScrewLength.MM_85 : { "length" : 85 * millimeter, "name" : "85 mm" },
+            ScrewLength.MM_90 : { "length" : 90 * millimeter, "name" : "90 mm" },
+            ScrewLength.MM_100 : { "length" : 100 * millimeter, "name" : "100 mm" },
+            ScrewLength.MM_110 : { "length" : 110 * millimeter, "name" : "110 mm" }
         };
 
 /** What each vendor makes, by vendor, size, head, finish, and length: each screw's properties, partly threaded (`standard`) and, where it's sold so too, fully threaded (`fullThread`). */
@@ -746,6 +889,194 @@ export const SCREWS = {
                         ScrewLength.IN_4 : { "standard" : { "name" : "1/4-20 x 4 in Flat Head Screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_5 : { "standard" : { "name" : "1/4-20 x 5 in Flat Head Screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_6 : { "standard" : { "name" : "1/4-20 x 6 in Flat Head Screw", "material" : STEEL, "appearance" : BLACK } }
+                    }
+                }
+            },
+            FastenerSize.M3 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_3 : { "standard" : { "name" : "M3 x 3 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M3 x 40 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M3 x 50 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M3 x 55 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M3 x 60 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M3 x 65 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M3 x 70 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_3 : { "standard" : { "name" : "M3 x 3 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M3 x 40 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M3 x 50 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M3 x 55 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.FLAT : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M3 x 40 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M3 x 50 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.HEX : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.T_SLOT : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm T-Slot Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                }
+            },
+            FastenerSize.M4 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M4 x 4 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_7 : { "standard" : { "name" : "M4 x 7 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_9 : { "standard" : { "name" : "M4 x 9 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_11 : { "standard" : { "name" : "M4 x 11 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M4 x 65 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M4 x 70 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_75 : { "standard" : { "name" : "M4 x 75 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_80 : { "standard" : { "name" : "M4 x 80 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_85 : { "standard" : { "name" : "M4 x 85 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_90 : { "standard" : { "name" : "M4 x 90 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_100 : { "standard" : { "name" : "M4 x 100 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_110 : { "standard" : { "name" : "M4 x 110 mm Socket Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M4 x 4 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M4 x 65 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M4 x 70 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_80 : { "standard" : { "name" : "M4 x 80 mm Button Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.FLAT : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M4 x 65 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M4 x 70 mm Flat Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.HEX : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Hex Head Screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
                     }
                 }
             }
@@ -1416,6 +1747,350 @@ export const SCREWS = {
                         ScrewLength.IN_4 : { "standard" : { "name" : "1/4-20 x 4 in Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A172", "url" : "https://www.mcmaster.com/91263A172/", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
                     }
                 }
+            },
+            FastenerSize.M3 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_3 : { "standard" : { "name" : "M3 x 3 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "90751A173", "url" : "https://www.mcmaster.com/90751A173/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A109", "url" : "https://www.mcmaster.com/91292A109/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A110", "url" : "https://www.mcmaster.com/91292A110/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A111", "url" : "https://www.mcmaster.com/91292A111/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A112", "url" : "https://www.mcmaster.com/91292A112/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A113", "url" : "https://www.mcmaster.com/91292A113/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A114", "url" : "https://www.mcmaster.com/91292A114/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A027", "url" : "https://www.mcmaster.com/91292A027/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A346", "url" : "https://www.mcmaster.com/91292A346/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A115", "url" : "https://www.mcmaster.com/91292A115/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A029", "url" : "https://www.mcmaster.com/91292A029/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A123", "url" : "https://www.mcmaster.com/91292A123/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A801", "url" : "https://www.mcmaster.com/91292A801/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A020", "url" : "https://www.mcmaster.com/91292A020/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A022", "url" : "https://www.mcmaster.com/91292A022/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A033", "url" : "https://www.mcmaster.com/91292A033/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M3 x 40 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A024", "url" : "https://www.mcmaster.com/91292A024/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A025", "url" : "https://www.mcmaster.com/91292A025/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M3 x 50 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A026", "url" : "https://www.mcmaster.com/91292A026/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M3 x 55 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A314", "url" : "https://www.mcmaster.com/91292A314/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M3 x 60 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A267", "url" : "https://www.mcmaster.com/91292A267/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M3 x 65 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A315", "url" : "https://www.mcmaster.com/91292A315/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M3 x 70 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A316", "url" : "https://www.mcmaster.com/91292A316/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    },
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A109", "url" : "https://www.mcmaster.com/91290A109/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A110", "url" : "https://www.mcmaster.com/91290A110/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A111", "url" : "https://www.mcmaster.com/91290A111/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A400", "url" : "https://www.mcmaster.com/91290A400/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A115", "url" : "https://www.mcmaster.com/91290A115/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A500", "url" : "https://www.mcmaster.com/91290A500/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A600", "url" : "https://www.mcmaster.com/91290A600/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A572", "url" : "https://www.mcmaster.com/91290A572/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A120", "url" : "https://www.mcmaster.com/91290A120/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A121", "url" : "https://www.mcmaster.com/91290A121/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A123", "url" : "https://www.mcmaster.com/91290A123/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A124", "url" : "https://www.mcmaster.com/91290A124/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A125", "url" : "https://www.mcmaster.com/91290A125/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A130", "url" : "https://www.mcmaster.com/91290A130/", "material" : STEEL, "appearance" : BLACK }, "fullThread" : { "name" : "M3 x 30 mm Socket Head Screw (Black, fully threaded)", "vendor" : "McMaster-Carr", "partNumber" : "91290A171", "url" : "https://www.mcmaster.com/91290A171/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A135", "url" : "https://www.mcmaster.com/91290A135/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M3 x 40 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A136", "url" : "https://www.mcmaster.com/91290A136/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A079", "url" : "https://www.mcmaster.com/91290A079/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M3 x 50 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A137", "url" : "https://www.mcmaster.com/91290A137/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M3 x 55 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A573", "url" : "https://www.mcmaster.com/91290A573/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M3 x 60 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A181", "url" : "https://www.mcmaster.com/91290A181/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M3 x 70 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A297", "url" : "https://www.mcmaster.com/91290A297/", "material" : STEEL, "appearance" : BLACK } }
+                    },
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A187", "url" : "https://www.mcmaster.com/90128A187/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "95263A134", "url" : "https://www.mcmaster.com/95263A134/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "95263A146", "url" : "https://www.mcmaster.com/95263A146/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A331", "url" : "https://www.mcmaster.com/90128A331/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "95263A158", "url" : "https://www.mcmaster.com/95263A158/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A204", "url" : "https://www.mcmaster.com/90128A204/", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A205", "url" : "https://www.mcmaster.com/90128A205/", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
+                    }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_3 : { "standard" : { "name" : "M3 x 3 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A287", "url" : "https://www.mcmaster.com/92095A287/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A471", "url" : "https://www.mcmaster.com/92095A471/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A177", "url" : "https://www.mcmaster.com/92095A177/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A179", "url" : "https://www.mcmaster.com/92095A179/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A181", "url" : "https://www.mcmaster.com/92095A181/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A182", "url" : "https://www.mcmaster.com/92095A182/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A183", "url" : "https://www.mcmaster.com/92095A183/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A168", "url" : "https://www.mcmaster.com/92095A168/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A119", "url" : "https://www.mcmaster.com/92095A119/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A184", "url" : "https://www.mcmaster.com/92095A184/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A472", "url" : "https://www.mcmaster.com/92095A472/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A185", "url" : "https://www.mcmaster.com/92095A185/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A473", "url" : "https://www.mcmaster.com/92095A473/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A186", "url" : "https://www.mcmaster.com/92095A186/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A187", "url" : "https://www.mcmaster.com/92095A187/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A201", "url" : "https://www.mcmaster.com/92095A201/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M3 x 40 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A203", "url" : "https://www.mcmaster.com/92095A203/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A474", "url" : "https://www.mcmaster.com/92095A474/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M3 x 50 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A475", "url" : "https://www.mcmaster.com/92095A475/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M3 x 55 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A120", "url" : "https://www.mcmaster.com/92095A120/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    },
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A721", "url" : "https://www.mcmaster.com/91306A721/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A655", "url" : "https://www.mcmaster.com/91306A655/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A656", "url" : "https://www.mcmaster.com/91306A656/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A657", "url" : "https://www.mcmaster.com/91306A657/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A722", "url" : "https://www.mcmaster.com/91306A722/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A658", "url" : "https://www.mcmaster.com/91306A658/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A723", "url" : "https://www.mcmaster.com/91306A723/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A724", "url" : "https://www.mcmaster.com/91306A724/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A725", "url" : "https://www.mcmaster.com/91306A725/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    },
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A109", "url" : "https://www.mcmaster.com/91239A109/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A110", "url" : "https://www.mcmaster.com/91239A110/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A117", "url" : "https://www.mcmaster.com/91239A117/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A118", "url" : "https://www.mcmaster.com/91239A118/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A811", "url" : "https://www.mcmaster.com/91239A811/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A120", "url" : "https://www.mcmaster.com/91239A120/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A121", "url" : "https://www.mcmaster.com/91239A121/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A126", "url" : "https://www.mcmaster.com/91239A126/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A127", "url" : "https://www.mcmaster.com/91239A127/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A128", "url" : "https://www.mcmaster.com/91239A128/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } }
+                    }
+                },
+                ScrewHead.FLAT : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M3 x 4 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A127", "url" : "https://www.mcmaster.com/92125A127/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A125", "url" : "https://www.mcmaster.com/92125A125/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A126", "url" : "https://www.mcmaster.com/92125A126/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A128", "url" : "https://www.mcmaster.com/92125A128/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A130", "url" : "https://www.mcmaster.com/92125A130/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A132", "url" : "https://www.mcmaster.com/92125A132/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A133", "url" : "https://www.mcmaster.com/92125A133/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M3 x 15 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A103", "url" : "https://www.mcmaster.com/92125A103/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A134", "url" : "https://www.mcmaster.com/92125A134/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A135", "url" : "https://www.mcmaster.com/92125A135/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A136", "url" : "https://www.mcmaster.com/92125A136/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A371", "url" : "https://www.mcmaster.com/92125A371/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A138", "url" : "https://www.mcmaster.com/92125A138/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A140", "url" : "https://www.mcmaster.com/92125A140/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A141", "url" : "https://www.mcmaster.com/92125A141/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M3 x 40 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A150", "url" : "https://www.mcmaster.com/92125A150/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A372", "url" : "https://www.mcmaster.com/92125A372/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M3 x 50 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A151", "url" : "https://www.mcmaster.com/92125A151/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } }
+                    },
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A821", "url" : "https://www.mcmaster.com/91263A821/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A822", "url" : "https://www.mcmaster.com/91263A822/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A823", "url" : "https://www.mcmaster.com/91263A823/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A824", "url" : "https://www.mcmaster.com/91263A824/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A825", "url" : "https://www.mcmaster.com/91263A825/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A863", "url" : "https://www.mcmaster.com/91263A863/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A864", "url" : "https://www.mcmaster.com/91263A864/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A865", "url" : "https://www.mcmaster.com/91263A865/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A866", "url" : "https://www.mcmaster.com/91263A866/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A867", "url" : "https://www.mcmaster.com/91263A867/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A868", "url" : "https://www.mcmaster.com/91263A868/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    },
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A125", "url" : "https://www.mcmaster.com/91294A125/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A126", "url" : "https://www.mcmaster.com/91294A126/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A128", "url" : "https://www.mcmaster.com/91294A128/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A130", "url" : "https://www.mcmaster.com/91294A130/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A132", "url" : "https://www.mcmaster.com/91294A132/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A133", "url" : "https://www.mcmaster.com/91294A133/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A134", "url" : "https://www.mcmaster.com/91294A134/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M3 x 18 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A135", "url" : "https://www.mcmaster.com/91294A135/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A136", "url" : "https://www.mcmaster.com/91294A136/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M3 x 22 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A137", "url" : "https://www.mcmaster.com/91294A137/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A138", "url" : "https://www.mcmaster.com/91294A138/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A141", "url" : "https://www.mcmaster.com/91294A141/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A536", "url" : "https://www.mcmaster.com/91294A536/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } }
+                    }
+                }
+            },
+            FastenerSize.M4 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M4 x 4 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A023", "url" : "https://www.mcmaster.com/91292A023/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A105", "url" : "https://www.mcmaster.com/91292A105/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A107", "url" : "https://www.mcmaster.com/91292A107/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A108", "url" : "https://www.mcmaster.com/91292A108/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A116", "url" : "https://www.mcmaster.com/91292A116/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A117", "url" : "https://www.mcmaster.com/91292A117/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A038", "url" : "https://www.mcmaster.com/91292A038/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "90751A177", "url" : "https://www.mcmaster.com/90751A177/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A118", "url" : "https://www.mcmaster.com/91292A118/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A043", "url" : "https://www.mcmaster.com/91292A043/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A121", "url" : "https://www.mcmaster.com/91292A121/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A806", "url" : "https://www.mcmaster.com/91292A806/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A122", "url" : "https://www.mcmaster.com/91292A122/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A130", "url" : "https://www.mcmaster.com/91292A130/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A131", "url" : "https://www.mcmaster.com/91292A131/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A132", "url" : "https://www.mcmaster.com/91292A132/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A133", "url" : "https://www.mcmaster.com/91292A133/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A140", "url" : "https://www.mcmaster.com/91292A140/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A268", "url" : "https://www.mcmaster.com/91292A268/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A048", "url" : "https://www.mcmaster.com/91292A048/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M4 x 65 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A317", "url" : "https://www.mcmaster.com/91292A317/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M4 x 70 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A269", "url" : "https://www.mcmaster.com/91292A269/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_75 : { "standard" : { "name" : "M4 x 75 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A318", "url" : "https://www.mcmaster.com/91292A318/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_80 : { "standard" : { "name" : "M4 x 80 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A271", "url" : "https://www.mcmaster.com/91292A271/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_85 : { "standard" : { "name" : "M4 x 85 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A838", "url" : "https://www.mcmaster.com/91292A838/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_90 : { "standard" : { "name" : "M4 x 90 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A319", "url" : "https://www.mcmaster.com/91292A319/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_100 : { "standard" : { "name" : "M4 x 100 mm Socket Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91292A039", "url" : "https://www.mcmaster.com/91292A039/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    },
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A207", "url" : "https://www.mcmaster.com/90128A207/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A208", "url" : "https://www.mcmaster.com/90128A208/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A211", "url" : "https://www.mcmaster.com/90128A211/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A212", "url" : "https://www.mcmaster.com/90128A212/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A214", "url" : "https://www.mcmaster.com/90128A214/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A332", "url" : "https://www.mcmaster.com/90128A332/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A215", "url" : "https://www.mcmaster.com/90128A215/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A216", "url" : "https://www.mcmaster.com/90128A216/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A333", "url" : "https://www.mcmaster.com/90128A333/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A217", "url" : "https://www.mcmaster.com/90128A217/", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Socket Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "90128A219", "url" : "https://www.mcmaster.com/90128A219/", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
+                    },
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A138", "url" : "https://www.mcmaster.com/91290A138/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A139", "url" : "https://www.mcmaster.com/91290A139/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A140", "url" : "https://www.mcmaster.com/91290A140/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A144", "url" : "https://www.mcmaster.com/91290A144/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A148", "url" : "https://www.mcmaster.com/91290A148/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A150", "url" : "https://www.mcmaster.com/91290A150/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A306", "url" : "https://www.mcmaster.com/91290A306/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A154", "url" : "https://www.mcmaster.com/91290A154/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A164", "url" : "https://www.mcmaster.com/91290A164/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A168", "url" : "https://www.mcmaster.com/91290A168/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A631", "url" : "https://www.mcmaster.com/91290A631/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A637", "url" : "https://www.mcmaster.com/91290A637/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A639", "url" : "https://www.mcmaster.com/91290A639/", "material" : STEEL, "appearance" : BLACK }, "fullThread" : { "name" : "M4 x 30 mm Socket Head Screw (Black, fully threaded)", "vendor" : "McMaster-Carr", "partNumber" : "91290A172", "url" : "https://www.mcmaster.com/91290A172/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A641", "url" : "https://www.mcmaster.com/91290A641/", "material" : STEEL, "appearance" : BLACK }, "fullThread" : { "name" : "M4 x 35 mm Socket Head Screw (Black, fully threaded)", "vendor" : "McMaster-Carr", "partNumber" : "91290A173", "url" : "https://www.mcmaster.com/91290A173/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A184", "url" : "https://www.mcmaster.com/91290A184/", "material" : STEEL, "appearance" : BLACK }, "fullThread" : { "name" : "M4 x 40 mm Socket Head Screw (Black, fully threaded)", "vendor" : "McMaster-Carr", "partNumber" : "91290A174", "url" : "https://www.mcmaster.com/91290A174/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A145", "url" : "https://www.mcmaster.com/91290A145/", "material" : STEEL, "appearance" : BLACK }, "fullThread" : { "name" : "M4 x 45 mm Socket Head Screw (Black, fully threaded)", "vendor" : "McMaster-Carr", "partNumber" : "91290A175", "url" : "https://www.mcmaster.com/91290A175/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A186", "url" : "https://www.mcmaster.com/91290A186/", "material" : STEEL, "appearance" : BLACK }, "fullThread" : { "name" : "M4 x 50 mm Socket Head Screw (Black, fully threaded)", "vendor" : "McMaster-Carr", "partNumber" : "91290A193", "url" : "https://www.mcmaster.com/91290A193/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A645", "url" : "https://www.mcmaster.com/91290A645/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A647", "url" : "https://www.mcmaster.com/91290A647/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M4 x 65 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A083", "url" : "https://www.mcmaster.com/91290A083/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M4 x 70 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A651", "url" : "https://www.mcmaster.com/91290A651/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_75 : { "standard" : { "name" : "M4 x 75 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A085", "url" : "https://www.mcmaster.com/91290A085/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_80 : { "standard" : { "name" : "M4 x 80 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A653", "url" : "https://www.mcmaster.com/91290A653/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_85 : { "standard" : { "name" : "M4 x 85 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A574", "url" : "https://www.mcmaster.com/91290A574/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_90 : { "standard" : { "name" : "M4 x 90 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A183", "url" : "https://www.mcmaster.com/91290A183/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_100 : { "standard" : { "name" : "M4 x 100 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A185", "url" : "https://www.mcmaster.com/91290A185/", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.MM_110 : { "standard" : { "name" : "M4 x 110 mm Socket Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91290A575", "url" : "https://www.mcmaster.com/91290A575/", "material" : STEEL, "appearance" : BLACK } }
+                    }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_4 : { "standard" : { "name" : "M4 x 4 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A476", "url" : "https://www.mcmaster.com/92095A476/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A477", "url" : "https://www.mcmaster.com/92095A477/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A188", "url" : "https://www.mcmaster.com/92095A188/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A189", "url" : "https://www.mcmaster.com/92095A189/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A190", "url" : "https://www.mcmaster.com/92095A190/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A192", "url" : "https://www.mcmaster.com/92095A192/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A193", "url" : "https://www.mcmaster.com/92095A193/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A125", "url" : "https://www.mcmaster.com/92095A125/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A194", "url" : "https://www.mcmaster.com/92095A194/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A478", "url" : "https://www.mcmaster.com/92095A478/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A196", "url" : "https://www.mcmaster.com/92095A196/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A479", "url" : "https://www.mcmaster.com/92095A479/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A197", "url" : "https://www.mcmaster.com/92095A197/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A198", "url" : "https://www.mcmaster.com/92095A198/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A199", "url" : "https://www.mcmaster.com/92095A199/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A200", "url" : "https://www.mcmaster.com/92095A200/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A205", "url" : "https://www.mcmaster.com/92095A205/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A209", "url" : "https://www.mcmaster.com/92095A209/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A330", "url" : "https://www.mcmaster.com/92095A330/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A480", "url" : "https://www.mcmaster.com/92095A480/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M4 x 65 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A126", "url" : "https://www.mcmaster.com/92095A126/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M4 x 70 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A172", "url" : "https://www.mcmaster.com/92095A172/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_80 : { "standard" : { "name" : "M4 x 80 mm Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92095A173", "url" : "https://www.mcmaster.com/92095A173/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    },
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A726", "url" : "https://www.mcmaster.com/91306A726/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A659", "url" : "https://www.mcmaster.com/91306A659/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A660", "url" : "https://www.mcmaster.com/91306A660/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A727", "url" : "https://www.mcmaster.com/91306A727/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A661", "url" : "https://www.mcmaster.com/91306A661/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A728", "url" : "https://www.mcmaster.com/91306A728/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A662", "url" : "https://www.mcmaster.com/91306A662/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A663", "url" : "https://www.mcmaster.com/91306A663/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A729", "url" : "https://www.mcmaster.com/91306A729/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A731", "url" : "https://www.mcmaster.com/91306A731/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A732", "url" : "https://www.mcmaster.com/91306A732/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    },
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A136", "url" : "https://www.mcmaster.com/91239A136/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A140", "url" : "https://www.mcmaster.com/91239A140/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A144", "url" : "https://www.mcmaster.com/91239A144/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A148", "url" : "https://www.mcmaster.com/91239A148/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A149", "url" : "https://www.mcmaster.com/91239A149/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A150", "url" : "https://www.mcmaster.com/91239A150/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A151", "url" : "https://www.mcmaster.com/91239A151/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A152", "url" : "https://www.mcmaster.com/91239A152/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A154", "url" : "https://www.mcmaster.com/91239A154/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A156", "url" : "https://www.mcmaster.com/91239A156/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A158", "url" : "https://www.mcmaster.com/91239A158/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Button Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91239A160", "url" : "https://www.mcmaster.com/91239A160/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } }
+                    }
+                },
+                ScrewHead.FLAT : {
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A185", "url" : "https://www.mcmaster.com/92125A185/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A186", "url" : "https://www.mcmaster.com/92125A186/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A188", "url" : "https://www.mcmaster.com/92125A188/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A190", "url" : "https://www.mcmaster.com/92125A190/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A192", "url" : "https://www.mcmaster.com/92125A192/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A193", "url" : "https://www.mcmaster.com/92125A193/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_15 : { "standard" : { "name" : "M4 x 15 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A104", "url" : "https://www.mcmaster.com/92125A104/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A194", "url" : "https://www.mcmaster.com/92125A194/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A196", "url" : "https://www.mcmaster.com/92125A196/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A198", "url" : "https://www.mcmaster.com/92125A198/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A201", "url" : "https://www.mcmaster.com/92125A201/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A202", "url" : "https://www.mcmaster.com/92125A202/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A203", "url" : "https://www.mcmaster.com/92125A203/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A204", "url" : "https://www.mcmaster.com/92125A204/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A205", "url" : "https://www.mcmaster.com/92125A205/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A207", "url" : "https://www.mcmaster.com/92125A207/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A209", "url" : "https://www.mcmaster.com/92125A209/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A373", "url" : "https://www.mcmaster.com/92125A373/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A221", "url" : "https://www.mcmaster.com/92125A221/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_65 : { "standard" : { "name" : "M4 x 65 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A105", "url" : "https://www.mcmaster.com/92125A105/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_70 : { "standard" : { "name" : "M4 x 70 mm Flat Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92125A106", "url" : "https://www.mcmaster.com/92125A106/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } }
+                    },
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A826", "url" : "https://www.mcmaster.com/91263A826/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A827", "url" : "https://www.mcmaster.com/91263A827/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A828", "url" : "https://www.mcmaster.com/91263A828/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A829", "url" : "https://www.mcmaster.com/91263A829/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A830", "url" : "https://www.mcmaster.com/91263A830/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A869", "url" : "https://www.mcmaster.com/91263A869/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A871", "url" : "https://www.mcmaster.com/91263A871/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A872", "url" : "https://www.mcmaster.com/91263A872/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A873", "url" : "https://www.mcmaster.com/91263A873/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A874", "url" : "https://www.mcmaster.com/91263A874/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A875", "url" : "https://www.mcmaster.com/91263A875/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A876", "url" : "https://www.mcmaster.com/91263A876/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Flat Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91263A877", "url" : "https://www.mcmaster.com/91263A877/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    },
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A186", "url" : "https://www.mcmaster.com/91294A186/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A188", "url" : "https://www.mcmaster.com/91294A188/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A190", "url" : "https://www.mcmaster.com/91294A190/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A192", "url" : "https://www.mcmaster.com/91294A192/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A193", "url" : "https://www.mcmaster.com/91294A193/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A194", "url" : "https://www.mcmaster.com/91294A194/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A195", "url" : "https://www.mcmaster.com/91294A195/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A196", "url" : "https://www.mcmaster.com/91294A196/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A197", "url" : "https://www.mcmaster.com/91294A197/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A198", "url" : "https://www.mcmaster.com/91294A198/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A200", "url" : "https://www.mcmaster.com/91294A200/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A202", "url" : "https://www.mcmaster.com/91294A202/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A204", "url" : "https://www.mcmaster.com/91294A204/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A484", "url" : "https://www.mcmaster.com/91294A484/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Flat Head Screw (Black)", "vendor" : "McMaster-Carr", "partNumber" : "91294A537", "url" : "https://www.mcmaster.com/91294A537/", "material" : STEEL, "appearance" : BLACK, "fullyThreaded" : true } }
+                    }
+                }
             }
         },
         FastenerVendor.REV : {
@@ -1468,6 +2143,24 @@ export const SCREWS = {
                 ScrewHead.FLAT : {
                     ScrewFinish.ZINC_PLATED : {
                         ScrewLength.IN_0_5 : { "standard" : { "name" : "#10-32 x 1/2 in Flat Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-29-1223-PK25", "url" : "https://www.revrobotics.com/search.php?search_query=REV-29-1223-PK25&section=product", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
+                    }
+                }
+            },
+            FastenerSize.M3 : {
+                ScrewHead.HEX : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1713", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1359", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1123", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M3 x 16 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1360", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M3 x 20 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1124", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M3 x 25 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1715", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Hex Head Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1125", "url" : "https://www.revrobotics.com/M3-Hex-Cap-Screws/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    }
+                },
+                ScrewHead.T_SLOT : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm T-Slot Screw (Zinc plated)", "vendor" : "REV", "partNumber" : "REV-41-1907", "url" : "https://www.revrobotics.com/rev-41-1907-pk25/", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
                     }
                 }
             }
@@ -1650,6 +2343,121 @@ export const SCREWS = {
                         ScrewLength.IN_2 : { "standard" : { "name" : "1/4-20 x 2 in Flat Head Screw", "vendor" : "AndyMark", "partNumber" : "am-1707", "url" : "https://andymark.com/products/1-4-20-x-2-in-flat-head-cap-screw", "material" : STEEL, "appearance" : BLACK } }
                     }
                 }
+            },
+            FastenerSize.M3 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1675", "url" : "https://andymark.com/products/m3-0-5-x-5-mm-socket-head-cap-screw-with-nylon-patch", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1254", "url" : "https://andymark.com/products/m3-0-5-x-6-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1500", "url" : "https://andymark.com/products/m3-0-5-x-8-mm-socket-head-cap-screw-with-thread-patch", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1021", "url" : "https://andymark.com/products/m3-0-5-x-10-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1706", "url" : "https://andymark.com/products/m3-0-5-x-12-mm-socket-head-cap-screw-with-nylon-patch", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M3 x 14 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1367", "url" : "https://andymark.com/products/m3-0-5-x-14-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M3 x 30 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1578", "url" : "https://andymark.com/products/m3-0-5-x-30-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M3 x 35 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1671", "url" : "https://andymark.com/products/m3-0-5-x-35-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
+                    },
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M3 x 45 mm Socket Head Screw (Stainless steel)", "vendor" : "AndyMark", "partNumber" : "am-1659", "url" : "https://andymark.com/products/m3-0-5-x-45-mm-socket-head-cap-screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M3 x 55 mm Socket Head Screw (Stainless steel)", "vendor" : "AndyMark", "partNumber" : "am-1379", "url" : "https://andymark.com/products/m3-0-5-x-55-mm-socket-head-cap-screw", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY } }
+                    }
+                },
+                ScrewHead.FLAT : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M3 x 5 mm Flat Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1724", "url" : "https://andymark.com/products/m3-0-5-x-5-mm-zinc-flat-head-cap-screw-with-nylon-patch", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Flat Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1723", "url" : "https://andymark.com/products/m3-0-5-x-8mm-flat-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Flat Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1765", "url" : "https://andymark.com/products/hardware-screw-fhsc-m3-0-5-x-12mm-steel-zinc-plated", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
+                    }
+                }
+            },
+            FastenerSize.M4 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1343", "url" : "https://andymark.com/products/m4-0-7-x-5-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1264", "url" : "https://andymark.com/products/m4-0-7-x-10-mm-socket-head-cap-screw-1", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1532", "url" : "https://andymark.com/products/m4-0-7-x-25-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1533", "url" : "https://andymark.com/products/m4-0-7-x-30-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1422", "url" : "https://andymark.com/products/m4-0-7-x-40-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Socket Head Screw (Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1401", "url" : "https://andymark.com/products/m4-0-7-x-50-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
+                    },
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Socket Head Screw (Black)", "vendor" : "AndyMark", "partNumber" : "am-1251", "url" : "https://andymark.com/products/m4-0-7-x-55-mm-socket-head-cap-screw", "material" : STEEL, "appearance" : BLACK } }
+                    }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewFinish.BLACK : {
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Button Head Screw (Black)", "vendor" : "AndyMark", "partNumber" : "am-1441", "url" : "https://andymark.com/products/m4-0-7-x-35-mm-black-oxide-button-head-cap-screw-1", "material" : STEEL, "appearance" : BLACK } }
+                    }
+                }
+            }
+        },
+        FastenerVendor.GOBILDA : {
+            FastenerSize.M3 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M3 x 6 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0003-0006", "url" : "https://www.gobilda.com/m3-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M3 x 8 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0003-0008", "url" : "https://www.gobilda.com/m3-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M3 x 10 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0003-0010", "url" : "https://www.gobilda.com/m3-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M3 x 12 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0003-0012", "url" : "https://www.gobilda.com/m3-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    }
+                }
+            },
+            FastenerSize.M4 : {
+                ScrewHead.SOCKET : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0005", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0006", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_7 : { "standard" : { "name" : "M4 x 7 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0007", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0008", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_9 : { "standard" : { "name" : "M4 x 9 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0009", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0010", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_11 : { "standard" : { "name" : "M4 x 11 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0011", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0012", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0014", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0016", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0018", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0020", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0022", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0025", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0030", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0035", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0040", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0045", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0050", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0055", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0060", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_75 : { "standard" : { "name" : "M4 x 75 mm Socket Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2800-0004-0075", "url" : "https://www.gobilda.com/m4-socket-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY } }
+                    }
+                },
+                ScrewHead.BUTTON : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_5 : { "standard" : { "name" : "M4 x 5 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0005", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_6 : { "standard" : { "name" : "M4 x 6 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0006", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0008", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0010", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0012", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_14 : { "standard" : { "name" : "M4 x 14 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0014", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0016", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_18 : { "standard" : { "name" : "M4 x 18 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0018", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_20 : { "standard" : { "name" : "M4 x 20 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0020", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_22 : { "standard" : { "name" : "M4 x 22 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0022", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_25 : { "standard" : { "name" : "M4 x 25 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0025", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_30 : { "standard" : { "name" : "M4 x 30 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0030", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_35 : { "standard" : { "name" : "M4 x 35 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0035", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_40 : { "standard" : { "name" : "M4 x 40 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0040", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_45 : { "standard" : { "name" : "M4 x 45 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0045", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_50 : { "standard" : { "name" : "M4 x 50 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0050", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_55 : { "standard" : { "name" : "M4 x 55 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0055", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_60 : { "standard" : { "name" : "M4 x 60 mm Button Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2802-0004-0060", "url" : "https://www.gobilda.com/m4-button-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    }
+                },
+                ScrewHead.HEX : {
+                    ScrewFinish.ZINC_PLATED : {
+                        ScrewLength.MM_8 : { "standard" : { "name" : "M4 x 8 mm Hex Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2813-0004-0008", "url" : "https://www.gobilda.com/m4-hex-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_10 : { "standard" : { "name" : "M4 x 10 mm Hex Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2813-0004-0010", "url" : "https://www.gobilda.com/m4-hex-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_12 : { "standard" : { "name" : "M4 x 12 mm Hex Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2813-0004-0012", "url" : "https://www.gobilda.com/m4-hex-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.MM_16 : { "standard" : { "name" : "M4 x 16 mm Hex Head Screw (Zinc plated)", "vendor" : "goBILDA", "partNumber" : "2813-0004-0016", "url" : "https://www.gobilda.com/m4-hex-head-screws", "material" : STEEL, "appearance" : MEDIUM_GRAY, "fullyThreaded" : true } }
+                    }
+                }
             }
         }
     };
@@ -1657,34 +2465,139 @@ export const SCREWS = {
 export const NUTS = {
             FastenerVendor.MCMASTER : {
                 FastenerSize.NO_4_40 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A005", "url" : "https://www.mcmaster.com/90631A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.25 * inch, "height" : 0.109 * inch, "hexHeight" : 0.090833 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A005", "url" : "https://www.mcmaster.com/90633A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.094 * inch, "name" : "#4-40 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A005", "url" : "https://www.mcmaster.com/90480A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.063 * inch, "name" : "#4-40 Thin Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90760A005", "url" : "https://www.mcmaster.com/90760A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.25 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A005", "url" : "https://www.mcmaster.com/90631A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.25 * inch, "height" : 0.109 * inch, "hexHeight" : 0.090833 * inch, "insertDiameter" : 0.1525 * inch, "name" : "#4-40 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A005", "url" : "https://www.mcmaster.com/90633A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.25 * inch, "height" : 0.094 * inch, "name" : "#4-40 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A005", "url" : "https://www.mcmaster.com/90480A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.25 * inch, "height" : 0.063 * inch, "name" : "#4-40 Thin Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90760A005", "url" : "https://www.mcmaster.com/90760A005/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
                 },
                 FastenerSize.NO_6_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.143229 * inch, "insertDiameter" : 0.183127 * inch, "name" : "#6-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.3125 * inch, "height" : 0.125 * inch, "hexHeight" : 0.104167 * inch, "insertDiameter" : 0.190939 * inch, "name" : "#6-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.3125 * inch, "height" : 0.109375 * inch, "name" : "#6-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_HEX : { "acrossFlats" : 0.25 * inch, "height" : 0.09375 * inch, "name" : "#6-32 Thin Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90760A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.3125 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.143229 * inch, "insertDiameter" : 0.183127 * inch, "name" : "#6-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.3125 * inch, "height" : 0.125 * inch, "hexHeight" : 0.104167 * inch, "insertDiameter" : 0.190939 * inch, "name" : "#6-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.3125 * inch, "height" : 0.109375 * inch, "name" : "#6-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.25 * inch, "height" : 0.09375 * inch, "name" : "#6-32 Thin Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90760A007", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
                 },
                 FastenerSize.NO_8_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A009", "url" : "https://www.mcmaster.com/90631A009/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.34375 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A009", "url" : "https://www.mcmaster.com/90633A009/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A009", "url" : "https://www.mcmaster.com/90480A009/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.SQUARE : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "94855A216", "url" : "https://www.mcmaster.com/94855A216/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.34375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A009", "url" : "https://www.mcmaster.com/90631A009/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.34375 * inch, "height" : 0.141 * inch, "hexHeight" : 0.1175 * inch, "insertDiameter" : 0.209687 * inch, "name" : "#8-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A009", "url" : "https://www.mcmaster.com/90633A009/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A009", "url" : "https://www.mcmaster.com/90480A009/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.SQUARE : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.34375 * inch, "height" : 0.125 * inch, "name" : "#8-32 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "94855A216", "url" : "https://www.mcmaster.com/94855A216/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
                 },
                 FastenerSize.NO_10_32 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.234375 * inch, "hexHeight" : 0.195312 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A411", "url" : "https://www.mcmaster.com/90631A411/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.375 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.132812 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A411", "url" : "https://www.mcmaster.com/90633A411/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A195", "url" : "https://www.mcmaster.com/90480A195/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.SQUARE : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "94855A283", "url" : "https://www.mcmaster.com/94855A283/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.375 * inch, "height" : 0.234375 * inch, "hexHeight" : 0.195312 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90631A411", "url" : "https://www.mcmaster.com/90631A411/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.375 * inch, "height" : 0.171875 * inch, "hexHeight" : 0.132812 * inch, "insertDiameter" : 0.228966 * inch, "name" : "#10-32 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90633A411", "url" : "https://www.mcmaster.com/90633A411/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90480A195", "url" : "https://www.mcmaster.com/90480A195/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.SQUARE : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.375 * inch, "height" : 0.125 * inch, "name" : "#10-32 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "94855A283", "url" : "https://www.mcmaster.com/94855A283/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
                 },
                 FastenerSize.QUARTER_20 : {
-                    NutType.NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.312 * inch, "hexHeight" : 0.26 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90640A129", "url" : "https://www.mcmaster.com/90640A129/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.THIN_NYLOCK : { "acrossFlats" : 0.4375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90566A029", "url" : "https://www.mcmaster.com/90566A029/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.HEX : { "acrossFlats" : 0.4375 * inch, "height" : 0.219 * inch, "name" : "1/4-20 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90494A029", "url" : "https://www.mcmaster.com/90494A029/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
-                    NutType.SQUARE : { "acrossFlats" : 0.4375 * inch, "height" : 0.21875 * inch, "name" : "1/4-20 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "90043A029", "url" : "https://www.mcmaster.com/90043A029/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.4375 * inch, "height" : 0.312 * inch, "hexHeight" : 0.26 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90640A129", "url" : "https://www.mcmaster.com/90640A129/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.4375 * inch, "height" : 0.203 * inch, "hexHeight" : 0.169167 * inch, "insertDiameter" : 0.266875 * inch, "name" : "1/4-20 Thin Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90566A029", "url" : "https://www.mcmaster.com/90566A029/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.4375 * inch, "height" : 0.219 * inch, "name" : "1/4-20 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90494A029", "url" : "https://www.mcmaster.com/90494A029/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.SQUARE : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 0.4375 * inch, "height" : 0.21875 * inch, "name" : "1/4-20 Square Nut", "vendor" : "McMaster-Carr", "partNumber" : "90043A029", "url" : "https://www.mcmaster.com/90043A029/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
+                },
+                FastenerSize.M3 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 4 * millimeter, "hexHeight" : 3.33 * millimeter, "insertDiameter" : 3.35 * millimeter, "name" : "M3 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90576A102", "url" : "https://www.mcmaster.com/90576A102/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
+                        NutFinish.STAINLESS : { "acrossFlats" : 5.5 * millimeter, "height" : 4 * millimeter, "hexHeight" : 3.33 * millimeter, "insertDiameter" : 3.35 * millimeter, "name" : "M3 Nylock Nut (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "93625A100", "url" : "https://www.mcmaster.com/93625A100/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY },
+                        NutFinish.BLACK : { "acrossFlats" : 5.5 * millimeter, "height" : 4 * millimeter, "hexHeight" : 3.33 * millimeter, "insertDiameter" : 3.35 * millimeter, "name" : "M3 Nylock Nut (Black)", "vendor" : "McMaster-Carr", "partNumber" : "93625A223", "url" : "https://www.mcmaster.com/93625A223/", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 2.4 * millimeter, "name" : "M3 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90591A250", "url" : "https://www.mcmaster.com/90591A250/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
+                        NutFinish.STAINLESS : { "acrossFlats" : 5.5 * millimeter, "height" : 2.4 * millimeter, "name" : "M3 Hex Nut (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91828A211", "url" : "https://www.mcmaster.com/91828A211/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY },
+                        NutFinish.BLACK : { "acrossFlats" : 5.5 * millimeter, "height" : 2.4 * millimeter, "name" : "M3 Hex Nut (Black)", "vendor" : "McMaster-Carr", "partNumber" : "98676A100", "url" : "https://www.mcmaster.com/98676A100/", "material" : STEEL, "appearance" : BLACK }
+                    }
+                },
+                FastenerSize.M4 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 5 * millimeter, "hexHeight" : 4.17 * millimeter, "insertDiameter" : 5.05 * millimeter, "name" : "M4 Nylock Nut", "vendor" : "McMaster-Carr", "partNumber" : "90576A103", "url" : "https://www.mcmaster.com/90576A103/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
+                        NutFinish.STAINLESS : { "acrossFlats" : 7 * millimeter, "height" : 5 * millimeter, "hexHeight" : 4.17 * millimeter, "insertDiameter" : 5.05 * millimeter, "name" : "M4 Nylock Nut (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "93625A150", "url" : "https://www.mcmaster.com/93625A150/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY },
+                        NutFinish.BLACK : { "acrossFlats" : 7 * millimeter, "height" : 5 * millimeter, "hexHeight" : 4.17 * millimeter, "insertDiameter" : 5.05 * millimeter, "name" : "M4 Nylock Nut (Black)", "vendor" : "McMaster-Carr", "partNumber" : "93625A224", "url" : "https://www.mcmaster.com/93625A224/", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 3.2 * millimeter, "name" : "M4 Hex Nut", "vendor" : "McMaster-Carr", "partNumber" : "90591A255", "url" : "https://www.mcmaster.com/90591A255/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL },
+                        NutFinish.STAINLESS : { "acrossFlats" : 7 * millimeter, "height" : 3.2 * millimeter, "name" : "M4 Hex Nut (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "91828A231", "url" : "https://www.mcmaster.com/91828A231/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY },
+                        NutFinish.BLACK : { "acrossFlats" : 7 * millimeter, "height" : 3.2 * millimeter, "name" : "M4 Hex Nut (Black)", "vendor" : "McMaster-Carr", "partNumber" : "98676A200", "url" : "https://www.mcmaster.com/98676A200/", "material" : STEEL, "appearance" : BLACK }
+                    }
+                }
+            },
+            FastenerVendor.GOBILDA : {
+                FastenerSize.M4 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 4.85 * millimeter, "hexHeight" : 4.04 * millimeter, "insertDiameter" : 4.37 * millimeter, "name" : "M4 Nylock Nut", "vendor" : "goBILDA", "partNumber" : "2812-0004-0007", "url" : "https://www.gobilda.com/nuts/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 2.75 * millimeter, "name" : "M4 Hex Nut", "vendor" : "goBILDA", "partNumber" : "2811-0004-0007", "url" : "https://www.gobilda.com/nuts/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.SQUARE : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 3 * millimeter, "name" : "M4 Square Nut", "vendor" : "goBILDA", "partNumber" : "2803-0007-0007", "url" : "https://www.gobilda.com/nuts/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
+                }
+            },
+            FastenerVendor.REV : {
+                FastenerSize.M3 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 4 * millimeter, "hexHeight" : 3.33 * millimeter, "insertDiameter" : 3.35 * millimeter, "name" : "M3 Nylock Nut", "vendor" : "REV", "partNumber" : "REV-41-1361", "url" : "https://www.revrobotics.com/M3-Nuts/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 2.4 * millimeter, "name" : "M3 Hex Nut", "vendor" : "REV", "partNumber" : "REV-41-1126", "url" : "https://www.revrobotics.com/M3-Nuts/", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
+                }
+            },
+            FastenerVendor.ANDYMARK : {
+                FastenerSize.M3 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 4 * millimeter, "hexHeight" : 3.33 * millimeter, "insertDiameter" : 3.35 * millimeter, "name" : "M3 Nylock Nut", "vendor" : "AndyMark", "partNumber" : "am-1023", "url" : "https://andymark.com/products/m3-0-5-nylock-nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 2.4 * millimeter, "name" : "M3 Hex Nut", "vendor" : "AndyMark", "partNumber" : "am-1386", "url" : "https://andymark.com/products/m3-nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    },
+                    NutType.THIN_HEX : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 5.5 * millimeter, "height" : 1.8 * millimeter, "name" : "M3 Thin Hex Nut", "vendor" : "AndyMark", "partNumber" : "am-1405", "url" : "https://andymark.com/products/m3-0-5-jam-nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
+                },
+                FastenerSize.M4 : {
+                    NutType.NYLOCK : {
+                        NutFinish.ZINC_PLATED : { "acrossFlats" : 7 * millimeter, "height" : 5 * millimeter, "hexHeight" : 4.17 * millimeter, "insertDiameter" : 5.05 * millimeter, "name" : "M4 Nylock Nut", "vendor" : "AndyMark", "partNumber" : "am-1435", "url" : "https://andymark.com/products/m4-0-7-nylock-nut", "material" : STEEL, "appearance" : ZINC_COATED_STEEL }
+                    }
                 }
             }
         };
@@ -1714,6 +2627,16 @@ export const WASHERS = {
                 FastenerSize.QUARTER_20 : {
                     WasherType.OD_5_8_X_0_065 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.065 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.065 in)", "material" : STEEL, "appearance" : BLACK }
+                    }
+                },
+                FastenerSize.M3 : {
+                    WasherType.MM_7_X_0_5 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 3.2 * millimeter, "outerDiameter" : 7 * millimeter, "thickness" : 0.5 * millimeter, "name" : "M3 Washer (7 mm OD x 0.5 mm)", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    }
+                },
+                FastenerSize.M4 : {
+                    WasherType.MM_9_X_0_8 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 4.3 * millimeter, "outerDiameter" : 9 * millimeter, "thickness" : 0.8 * millimeter, "name" : "M4 Washer (9 mm OD x 0.8 mm)", "material" : STEEL, "appearance" : MEDIUM_GRAY }
                     }
                 }
             },
@@ -1751,6 +2674,20 @@ export const WASHERS = {
                     WasherType.OD_5_8_X_0_05 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.05 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.05 in)", "vendor" : "McMaster-Carr", "partNumber" : "96765A140", "url" : "https://www.mcmaster.com/96765A140/", "material" : STAINLESS_STEEL, "appearance" : BLACK },
                         WasherFinish.STAINLESS : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.05 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.05 in, Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92141A029", "url" : "https://www.mcmaster.com/92141A029/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                FastenerSize.M3 : {
+                    WasherType.MM_7_X_0_5 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 3.2 * millimeter, "outerDiameter" : 7 * millimeter, "thickness" : 0.5 * millimeter, "name" : "M3 Washer (7 mm OD x 0.5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "91166A210", "url" : "https://www.mcmaster.com/91166A210/", "material" : STEEL, "appearance" : MEDIUM_GRAY },
+                        WasherFinish.STAINLESS : { "innerDiameter" : 3.2 * millimeter, "outerDiameter" : 7 * millimeter, "thickness" : 0.5 * millimeter, "name" : "M3 Washer (7 mm OD x 0.5 mm, Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "93475A210", "url" : "https://www.mcmaster.com/93475A210/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY },
+                        WasherFinish.BLACK : { "innerDiameter" : 3.2 * millimeter, "outerDiameter" : 7 * millimeter, "thickness" : 0.5 * millimeter, "name" : "M3 Washer (7 mm OD x 0.5 mm, Black)", "vendor" : "McMaster-Carr", "partNumber" : "98269A420", "url" : "https://www.mcmaster.com/98269A420/", "material" : STEEL, "appearance" : BLACK }
+                    }
+                },
+                FastenerSize.M4 : {
+                    WasherType.MM_9_X_0_9 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 4.3 * millimeter, "outerDiameter" : 9 * millimeter, "thickness" : 0.9 * millimeter, "name" : "M4 Washer (9 mm OD x 0.9 mm)", "vendor" : "McMaster-Carr", "partNumber" : "91166A230", "url" : "https://www.mcmaster.com/91166A230/", "material" : STEEL, "appearance" : MEDIUM_GRAY },
+                        WasherFinish.STAINLESS : { "innerDiameter" : 4.3 * millimeter, "outerDiameter" : 9 * millimeter, "thickness" : 0.9 * millimeter, "name" : "M4 Washer (9 mm OD x 0.9 mm, Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "93475A230", "url" : "https://www.mcmaster.com/93475A230/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY },
+                        WasherFinish.BLACK : { "innerDiameter" : 4.3 * millimeter, "outerDiameter" : 9 * millimeter, "thickness" : 0.9 * millimeter, "name" : "M4 Washer (9 mm OD x 0.9 mm, Black)", "vendor" : "McMaster-Carr", "partNumber" : "98687A141", "url" : "https://www.mcmaster.com/98687A141/", "material" : STEEL, "appearance" : BLACK }
                     }
                 }
             },
@@ -1798,6 +2735,23 @@ export const WASHERS = {
                     },
                     WasherType.OD_3_X_0_06 : {
                         WasherFinish.ZINC_PLATED : { "innerDiameter" : 0.252 * inch, "outerDiameter" : 3 * inch, "thickness" : 0.06 * inch, "name" : "1/4 in Washer (3 in OD x 0.06 in, Zinc plated)", "vendor" : "AndyMark", "partNumber" : "am-1628", "url" : "https://andymark.com/products/1-4-in-id-3-in-od-fender-washer", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    }
+                }
+            },
+            FastenerVendor.GOBILDA : {
+                FastenerSize.M4 : {
+                    WasherType.MM_8_X_1 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 4 * millimeter, "outerDiameter" : 8 * millimeter, "thickness" : 1 * millimeter, "name" : "M4 Washer (8 mm OD x 1 mm)", "vendor" : "goBILDA", "partNumber" : "2801-0004-0008", "url" : "https://www.gobilda.com/washers", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    },
+                    WasherType.MM_10_9_X_1_5 : {
+                        WasherFinish.ZINC_PLATED : { "innerDiameter" : 4.15 * millimeter, "outerDiameter" : 10.9 * millimeter, "thickness" : 1.5 * millimeter, "name" : "M4 Washer (10.9 mm OD x 1.5 mm)", "vendor" : "goBILDA", "partNumber" : "2801-0004-0011", "url" : "https://www.gobilda.com/washers", "material" : STEEL, "appearance" : MEDIUM_GRAY }
+                    }
+                }
+            },
+            FastenerVendor.REV : {
+                FastenerSize.M3 : {
+                    WasherType.MM_7_X_0_5 : {
+                        WasherFinish.STAINLESS : { "innerDiameter" : 3.2 * millimeter, "outerDiameter" : 7 * millimeter, "thickness" : 0.5 * millimeter, "name" : "M3 Washer (7 mm OD x 0.5 mm, Stainless steel)", "vendor" : "REV", "partNumber" : "REV-41-2886", "url" : "https://www.revrobotics.com/rev-41-2886/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
                     }
                 }
             }

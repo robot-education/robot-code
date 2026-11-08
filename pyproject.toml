@@ -44,6 +44,7 @@ main_branch = "main"
 [tool.fs.parts.fasteners]
 title = "Fasteners"
 folder = "fasteners"
+definition = "fastenerTables.py"
 main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
 
 [tool.fs.parts.fasteners.targets]

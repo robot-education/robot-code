@@ -57,8 +57,9 @@ def part_set_definitions(workspace: Workspace, part_set: PartSet) -> list[tuple[
     """The definitions in a part set's folder which configure Part Studios, each with its studios, checked offline
     against the configuration rules before anything is sent to Onshape."""
     folder = workspace.config.code_dir / part_set.folder
+    paths = [folder / part_set.definition] if part_set.definition else sorted(folder.rglob("*.py"))
     found = []
-    for path in sorted(folder.rglob("*.py")):
+    for path in paths:
         studios = configured_studios(runpy.run_path(str(path)))
         if studios:
             found.append((path, studios))

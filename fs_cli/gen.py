@@ -8,7 +8,8 @@ beside it (belt/robotBeltTables.gen.fs), which `fs push` then pushes like any ot
 An icon definition (see fs_cli.icons) sets ICON instead, which `fs gen` writes to the .svg file of the same name
 (released/lighten/robotLightenIcon.py writes released/lighten/robotLightenIcon.svg).
 
-A definition may also set EXPORTS, a map of file names to their text, for what reads its data outside Onshape (like
+A definition configuring Part Studios from another's tables sets STUDIOS (and EXPORTS) without CONTENTS, and writes no
+Feature Studio. A definition may also set EXPORTS, a map of file names to their text, for what reads its data outside Onshape (like
 fasteners/fastenerTables.py's manifest for FRCDesign); each is written beside it.
 """
 
@@ -132,20 +133,10 @@ def generate(
             results.append(Generated(source, output, code, code != old))
             continue
         contents = definition.get("CONTENTS")
-        if contents is None:
-            raise GenerateError(f"{source} doesn't define CONTENTS or ICON.")
-        output = source.with_name(source.stem + GENERATED_SUFFIX)
-        old = output.read_text() if output.is_file() else None
-        version = (_version(old) if old else None) or default_version
-        if version is None:
-            raise GenerateError(
-                f"Can't tell which FeatureScript version {output.name} should use; run `fs pull-std` first."
-            )
-        code = render(contents, version, source.name, _resolver(source, old, synced or {}))
-        if old:
-            # Onshape manages the versions of imports, so keep its
-            code = apply_import_versions(code, import_versions(old))
-        results.append(Generated(source, output, code, code != old))
+        if contents is None and "STUDIOS" not in definition:
+            raise GenerateError(f"{source} doesn't define CONTENTS, STUDIOS, or ICON.")
+        if contents is not None:
+            results.append(_feature_studio(source, contents, default_version, synced))
         for name, text in definition.get("EXPORTS", {}).items():
             exported = source.with_name(name)
             if exported.suffix == ".fs":
@@ -153,6 +144,23 @@ def generate(
             previous = exported.read_text() if exported.is_file() else None
             results.append(Generated(source, exported, text, text != previous))
     return results
+
+
+def _feature_studio(
+    source: pathlib.Path, contents: list, default_version: str | None, synced: Mapping[str, tuple[str, str]] | None
+) -> Generated:
+    output = source.with_name(source.stem + GENERATED_SUFFIX)
+    old = output.read_text() if output.is_file() else None
+    version = (_version(old) if old else None) or default_version
+    if version is None:
+        raise GenerateError(
+            f"Can't tell which FeatureScript version {output.name} should use; run `fs pull-std` first."
+        )
+    code = render(contents, version, source.name, _resolver(source, old, synced or {}))
+    if old:
+        # Onshape manages the versions of imports, so keep its
+        code = apply_import_versions(code, import_versions(old))
+    return Generated(source, output, code, code != old)
 
 
 def _resolver(

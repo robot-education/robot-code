@@ -20,6 +20,18 @@ main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"   # the FRCD
 local = "https://cad.onshape.com/documents/..."
 ```
 
+Two sets can share a folder, its Feature Studio and its tables, each configuring its own Part Studios for its own
+main document: FRC's fasteners and FTC's (`ftcFasteners`, released into ConfigLib's document) build the same features,
+each offering its own sizes. Each then names its definition, since a set otherwise takes every definition in its folder:
+
+```toml
+[tool.fs.parts.ftcFasteners]
+title = "FTC Fasteners"
+folder = "fasteners"
+definition = "ftcFastenerTables.py"   # the file in the folder configuring its Part Studios
+main = "https://cad.onshape.com/documents/..."
+```
+
 ```
 uv run fs parts fasteners --test                  # build its Part Studios in your branch's workspace
 uv run fs parts fasteners --diagnose              # find what Onshape refuses in a configuration
@@ -33,7 +45,9 @@ The folder holds:
 
 - One Feature Studio defining every feature the set's Part Studios use (`fasteners/fasteners.fs`), and whatever it
   imports.
-- A definition (`fasteners/fastenerTables.py`, see [fs-cli.md](fs-cli.md#generating-lookup-tables)) whose `STUDIOS`
+- A definition (`fasteners/fastenerTables.py`, see [fs-cli.md](fs-cli.md#generating-lookup-tables)), or one per set
+  sharing the folder (`fasteners/ftcFastenerTables.py`, which configures FTC's studios from `fastenerTables.py`'s
+  tables and writes no Feature Studio of its own), whose `STUDIOS`
   holds a `ConfiguredStudio` per Part Studio (see [Configured Part Studios](fs-cli.md#configured-part-studios)): its
   tab's name, its feature, and its configuration's inputs. Its `EXPORTS` write what reads the set outside Onshape
   (FRCDesignApp's manifest, `fasteners.gen.json`), including where each Part Studio was last released.

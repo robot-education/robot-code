@@ -48,7 +48,7 @@ goBILDA also sells thread-locking and thread-forming M4 socket heads, which are 
 
 | Nut | SKU | Across flats | Height |
 | --- | --- | --- | --- |
-| Nylock | 2812-0004-0007 | 7.0 | 4.85: a 4.04 hex under the dome; insert bore 3.36 |
+| Nylock | 2812-0004-0007 | 7.0 | 4.85: a 4.04 hex under the dome; nylon insert 4.37 across |
 | Hex | 2811-0004-0007 | 7.0 | 2.75 |
 | Square | 2803-0007-0007 | 7.0 | 3.0 |
 
@@ -76,7 +76,7 @@ Zinc-plated steel. A hex cap screw's length is measured under the head.
 | --- | --- |
 | Hex cap head | 5.5 across flats, 2.0 tall, a 120° chamfer on top |
 | T-slot head | The hex cap's, cut to 3.2 wide (REV's drawing; the model is 3.15) so it drops into the 15 mm extrusion's slot |
-| Nyloc nut, REV-41-1361 | 5.5 across flats, 4.0 tall: a 3.33 hex, then a 3.35 collar; insert bore 2.46. REV's product page says 4.4, but its drawing and model say 4.0 |
+| Nyloc nut, REV-41-1361 | 5.5 across flats, 4.0 tall: a 3.33 hex, then a 3.35 collar; nylon insert 3.35 across. REV's product page says 4.4, but its drawing and model say 4.0 |
 | Hex nut, REV-41-1126 | 5.5 across flats, 2.4 tall, from REV's drawing; it has no model |
 | Washer, REV-41-2886 | Stainless steel, $6.50 a 100. REV publishes no dimensions, model or drawing, so it's taken as a standard M3 washer (ISO 7089: 3.2 bore, 7 outside, 0.5 thick) |
 
@@ -129,14 +129,14 @@ screws and nuts cost less a piece, smallest pack to smallest pack.
 Generic is a screw in every size, head and length any vendor sells, and a washer in each size, each in one finish,
 as the FRC fasteners have them; there's no generic nut, as there isn't for FRC.
 
-Within a vendor, a part's finishes are listed cheapest first, so the default is never a dearer finish for its own
-sake: by price per piece in its smallest pack, since that's what a team orders first, over the lengths both finishes
-sell. Where two are within a cent, the one sold in more lengths goes first, so the default finish has a part at
-most lengths. The finishes are the
-catalog's own: zinc plated, black (black oxide), and stainless (18-8). Where a vendor sells a finish at several
-strengths, a steel nut is McMaster-Carr's Class 8, medium strength. McMaster-Carr's unfinished steel, zinc-yellow
-chromate, black coated and 316 stainless are left out, unfinished steel although it's the cheapest nut, since it
-rusts.
+Each studio lists its finishes cheapest first, so the default is never a dearer finish for its own sake: by price per
+piece in the smallest pack, what a team orders first. A configuration lists an input's options once, not per part, so
+it's one order per studio, from what's typical: stainless first for screws (McMaster-Carr's cheapest socket and
+button heads, and its widest range), then zinc plated, then black; zinc plated first for nuts and washers. The
+finishes are the catalog's own: zinc plated, black (black oxide), and stainless (18-8). Where a vendor sells a finish
+at several strengths, a steel nut is McMaster-Carr's Class 8, medium strength. McMaster-Carr's unfinished steel,
+zinc-yellow chromate, black coated and 316 stainless are left out, unfinished steel although it's the cheapest nut,
+since it rusts.
 
 | Part | McMaster-Carr, cheapest first |
 | --- | --- |
@@ -196,23 +196,27 @@ its models of 91290A119, 92095A196, 92095A475 and 92125A202, which agree with it
 ISO 10642's. Its washers are general purpose ones, an M3 3.2 across the bore, 7 outside and ISO 7089's 0.5 thick
 (its table says 0.4 to 0.6), an M4 4.3, 9 and 0.9 (0.7 to 0.9), with the three finishes' supplies; a black washer is
 whichever black costs less, black-oxide 18-8 at M3 and black-oxide steel at M4. Its M4 hex nut is 3.2 tall with a 30° chamfer each side, and its M4 nylock a 4.17 hex under a dome
-to 5.0, on a 3.09 insert bore, measured from its models of 90591A255, 94645A101 and 91166A230; 94645A101 is the
+to 5.0, with a nylon insert 5.05 across, measured from its models of 90591A255, 94645A101 and 91166A230; 94645A101 is the
 Class 10 nylock, which its table gives the Class 8's 7 by 5.
 
-## What the features need
+## How they're built
 
-- Metric sizes: `Size` holds threads per inch and inch diameters, and `std`'s ISO hole and thread tables
-  replace the ANSI ones for M3 and M4.
-- Heads: hex (REV's hex cap and goBILDA's hex head), and REV's T-slot. Low profile socket heads are left out: 25 of
-  ConfigLib's 2,799 M4 inserts, a button head is lower anyway (2.2 mm to 2.8 at M4, on the same 2.5 mm hex), and
-  goBILDA sells them in 10 lengths.
-- Nuts: a square nut 7 mm wide, and the nylock's dome as measured above, in place of `_nylock`'s proportions.
-- Vendors: Generic, McMaster-Carr, goBILDA, REV, and AndyMark, in that order; FRC's `FastenerVendor` has no goBILDA.
-  AndyMark's metric screws are titled `M4-0.7 x 10 mm Socket Head Cap Screw`, which `_STORE_SCREWS` has to match
-  too.
-- Finishes: each part's in order of price per piece, where FRC's put the standard finish first.
-- Heads: flat (countersunk) in metric, for AndyMark's and McMaster-Carr's, in a 90° countersink (ISO 10642), where
-  FRC's `COUNTERSINK_ANGLE` is 82°; its length includes the head.
+They're FRC's Screw, Nut, and Washer features and tables, in Part Studios of their own: the `ftcFasteners` part set,
+which `featurescripts/fasteners/ftcFastenerTables.py` configures from `fastenerTables.py`'s `FTC` catalog, and which is
+released into ConfigLib's document (see docs/parts.md). Each set's studios offer its own sizes alone. What the
+catalog needed beside FRC's:
+
+- Metric sizes (`MetricSize`), from std's ISO hole and thread tables, and lengths in millimeters (`Millimeters`).
+- Hex heads (REV's hex caps, goBILDA's hex heads) and REV's T-slot, a hex cut down to 3.2 mm across. Low profile
+  socket heads are left out: 25 of ConfigLib's 2,799 M4 inserts, a button head is lower anyway (2.2 mm to 2.8 at M4,
+  on the same 2.5 mm hex), and goBILDA sells them in 10 lengths.
+- Flat heads in a 90° countersink (ISO 10642), where FRC's are 82°.
+- A socket head's threads run 2D + 12 mm from its tip (ISO 4762), and a part its vendor sells threaded its whole
+  length is threaded so.
+- Nuts in finishes, by vendor, with each vendor's own dimensions; FRC's come in zinc plating alone, so their
+  configuration doesn't ask.
+- goBILDA as a vendor, and AndyMark's metric screws, whose titles (`M4-0.7 x 10 mm Socket Head Cap Screw`) leave out
+  their black and stainless finishes, from its store.
 
 ## STEP files
 

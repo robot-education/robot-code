@@ -100,6 +100,16 @@ def test_generate_keeps_the_existing_version(tmp_path):
     assert not result.changed
 
 
+def test_a_definition_configuring_studios_alone_writes_its_exports_alone(tmp_path):
+    """As ftcFastenerTables.py configures studios from fastenerTables.py's tables, and writes no Feature Studio."""
+    (tmp_path / "otherTables.py").write_text("STUDIOS = {}\nEXPORTS = {'other.gen.json': '{}\\n'}\n")
+    [result] = generate(tmp_path, "2960")
+    assert (result.output, result.code) == (tmp_path / "other.gen.json", "{}\n")
+    (tmp_path / "nothing.py").write_text("X = 1\n")
+    with pytest.raises(GenerateError, match="doesn't define CONTENTS, STUDIOS, or ICON"):
+        generate(tmp_path, "2960")
+
+
 def test_gen_tables_command(tmp_path, monkeypatch, capsys):
     (tmp_path / "pyproject.toml").write_text(
         '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'

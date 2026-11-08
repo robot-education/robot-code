@@ -30,6 +30,8 @@ class PartSet:
         title: What its versions are named by, like `Fasteners` (`Fasteners - v1.2.0`).
         folder: The folder in the code folder holding its FeatureScript and definition.
         main_document_id: The FRCDesignLib document its releases go to.
+        definition: The file in `folder` configuring its Part Studios, where the folder holds another set's too; every
+            definition in the folder otherwise.
         targets: Other documents it can be released to by name, to try a release out, like a library loaded locally:
             `[tool.fs.parts.<name>.targets]`, each name a document's url.
     """
@@ -39,6 +41,7 @@ class PartSet:
     folder: str
     main_document_id: str
     targets: dict[str, str] = dataclasses.field(default_factory=dict)
+    definition: str | None = None
 
     def target_document_id(self, target: str) -> str:
         """The document a target names: one of `targets`, or a document's url."""
@@ -162,7 +165,10 @@ def _part_set(name: str, entry: dict) -> PartSet:
     targets = entry.get("targets", {})
     if not isinstance(targets, dict) or not all(_DOCUMENT_URL.search(str(url)) for url in targets.values()):
         raise ConfigError(f"{where} targets must map names to documents' urls.")
-    return PartSet(name, title, folder.strip("/"), main.group(1), dict(targets))
+    definition = entry.get("definition")
+    if definition is not None and (not isinstance(definition, str) or not definition.endswith(".py") or "/" in definition):
+        raise ConfigError(f"{where} definition must name a .py file in its folder, like fastenerTables.py.")
+    return PartSet(name, title, folder.strip("/"), main.group(1), dict(targets), definition)
 
 
 def _workspace(data: dict, key: str) -> InstancePath:

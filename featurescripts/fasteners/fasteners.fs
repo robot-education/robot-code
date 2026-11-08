@@ -9,9 +9,10 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 export import(path : "86033ffc9510cee8dd457b7f", version : "41e4e704429c4965ab6949e1");
 
 /**
- * FRCDesign's library fasteners: its screws, washers, and nuts, generated for FRCDesignApp. Each is made in a Part
- * Studio of its own, whose configuration sets every parameter and offers only what's made (see fastenerTables.py),
- * so these dialogs are rarely seen: each is a flat list of enums, with no conditions, which the configuration filters.
+ * FRCDesign's library fasteners: its screws, washers, and nuts, generated for FRCDesignApp, FRC's imperial and FTC's
+ * metric. Each is made in a Part Studio of its own, whose configuration sets every parameter and offers only what's
+ * made (see fastenerTables.py), FRC's and FTC's studios each their own sizes, so these dialogs are rarely seen: each
+ * is a flat list of enums, with no conditions, which the configuration filters.
  *
  * Each part is built along the Z axis, with one mate connector at the origin pointing out of the hole: where it seats
  * against the part or washer it sits on. Screws and nuts are threaded as std's External thread and Hole features thread
@@ -25,9 +26,7 @@ const BUTTON_HEAD_SIDE = 0.041;
 const FLAT_HEAD_BAND = 0.006;
 // A button head's flat top, of its socket's size
 const BUTTON_HEAD_TOP = 1.4;
-// A standard socket head screw's threads run 2D + 1/2 in from its tip (ASTM A574)
-const SOCKET_HEAD_THREAD_ALLOWANCE = 0.5 * inch;
-// Nuts' chamfers, from the circle across their flats, as McMaster-Carr models them
+// Nuts' and hex heads' chamfers, from the circle across their flats, as McMaster-Carr and REV model them
 const NUT_CHAMFER_ANGLE = 30 * degree;
 const NYLOCK_CHAMFER_ANGLE = 25 * degree;
 // How far a nylock's nylon insert sits below the top of its dome
@@ -67,15 +66,17 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
             throw regenError("Selected vendor does not make this screw, change the length.", ["length"]);
         }
         // The configuration hides Fully threaded where a length is sold one way, and a hidden input keeps its last value
-        const fullThread = definition.fullyThreaded && threads.fullThread != undefined;
-        const stock = fullThread ? threads.fullThread : threads.standard;
+        const chosen = definition.fullyThreaded && threads.fullThread != undefined;
+        const stock = chosen ? threads.fullThread : threads.standard;
+        // Where a vendor says a length is threaded its whole length, it is, whatever its head's standard
+        const fullThread = chosen || stock.fullyThreaded != undefined;
         const size = FASTENER_SIZES[definition.size];
         const head = SCREW_HEADS[definition.size][definition.head];
         const length = SCREW_LENGTHS[definition.length];
-        const isFlat = definition.head == ScrewHead.FLAT;
+        const isHex = isHexHead(definition.head);
 
         // 1. Revolve the screw's profile: its head above the origin, or a flat head's below it, and its shank down to its
-        // chamfered tip
+        // chamfered tip; a hex head's shank alone, its head extruded on top
         const sketchId = id + "profile";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : PROFILE_PLANE });
         skPolyline(sketch, "profile", { "points" : screwProfile(size, head, definition.head, length.length) });
@@ -89,31 +90,18 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
                     "axis" : line(WORLD_ORIGIN, Z_DIRECTION),
                     "angleForward" : 2 * PI * radian
                 });
-        const screw = qCreatedBy(id + "revolve", EntityType.BODY);
+        if (isHex)
+        {
+            addHexHead(context, id + "head", qCreatedBy(id + "revolve", EntityType.BODY), head);
+        }
+        // One solid, however it was made
+        const screw = qBodyType(qCreatedBy(id, EntityType.BODY), BodyType.SOLID);
 
-        // 2. Cut its hex socket down from the top of its head
-        const top = isFlat ? 0 * meter : head.headHeight;
-        const socketId = id + "socket";
-        const socketSketch = newSketchOnPlane(context, socketId + "sketch", {
-                    "sketchPlane" : plane(vector(0 * meter, 0 * meter, top), Z_DIRECTION)
-                });
-        skRegularPolygon(socketSketch, "hex", {
-                    "center" : vector(0, 0) * meter,
-                    "firstVertex" : vector(head.socketSize / sqrt(3), 0 * meter),
-                    "sides" : 6
-                });
-        skSolve(socketSketch);
-        opExtrude(context, socketId + "extrude", {
-                    "entities" : qSketchRegion(socketId + "sketch"),
-                    "direction" : -Z_DIRECTION,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : socketDepth(size, head, definition.head)
-                });
-        opBoolean(context, socketId + "cut", {
-                    "tools" : qCreatedBy(socketId + "extrude", EntityType.BODY),
-                    "targets" : screw,
-                    "operationType" : BooleanOperationType.SUBTRACTION
-                });
+        // 2. Cut its hex socket down from the top of its head; a hex head has none
+        if (!isHex)
+        {
+            addSocket(context, id + "socket", screw, size, head, definition.head);
+        }
 
         // 3. Thread its shank up from its tip
         addScrewThread(context, id + "thread", screw, size, head, definition.head, length.length, fullThread);
@@ -124,6 +112,107 @@ export const fastenerScrew = defineFeature(function(context is Context, id is Id
         cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
         setFastenerProperties(context, screw, stock);
     });
+
+/**
+ * Cuts a screw's hex socket down from the top of its head.
+ */
+function addSocket(context is Context, socketId is Id, screw is Query, size is map, head is map, headType is ScrewHead)
+{
+    const isFlat = headType == ScrewHead.FLAT;
+    const top = isFlat ? 0 * meter : head.headHeight;
+    const socketSketch = newSketchOnPlane(context, socketId + "sketch", {
+                "sketchPlane" : plane(vector(0 * meter, 0 * meter, top), Z_DIRECTION)
+            });
+    skRegularPolygon(socketSketch, "hex", {
+                "center" : vector(0, 0) * meter,
+                "firstVertex" : vector(head.socketSize / sqrt(3), 0 * meter),
+                "sides" : 6
+            });
+    skSolve(socketSketch);
+    opExtrude(context, socketId + "extrude", {
+                "entities" : qSketchRegion(socketId + "sketch"),
+                "direction" : -Z_DIRECTION,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : socketDepth(size, head, headType)
+            });
+    opBoolean(context, socketId + "cut", {
+                "tools" : qCreatedBy(socketId + "extrude", EntityType.BODY),
+                "targets" : screw,
+                "operationType" : BooleanOperationType.SUBTRACTION
+            });
+}
+
+export function isHexHead(headType is ScrewHead) returns boolean
+{
+    return headType == ScrewHead.HEX || headType == ScrewHead.T_SLOT;
+}
+
+/**
+ * A hex head on a screw's shank, from the origin up: its hex, chamfered on top as a nut is, and a T-slot's cut down to
+ * its width to drop into an extrusion's slot.
+ */
+function addHexHead(context is Context, id is Id, shank is Query, head is map)
+{
+    const flat = head.acrossFlats / 2;
+    const sketchId = id + "hex";
+    const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
+    skRegularPolygon(sketch, "hex", {
+                "center" : vector(0, 0) * meter,
+                "firstVertex" : vector(flat * 2 / sqrt(3), 0 * meter),
+                "sides" : 6
+            });
+    if (head.width != undefined)
+    {
+        // Across the flats parallel to the slot
+        skRectangle(sketch, "slot", {
+                    "firstCorner" : vector(-flat * 2, -head.width / 2),
+                    "secondCorner" : vector(flat * 2, head.width / 2)
+                });
+    }
+    skSolve(sketch);
+    // A T-slot's hex is the region inside both
+    const region = head.width == undefined ? qSketchRegion(sketchId) :
+        qSketchRegion(sketchId)->qContainsPoint(vector(0, 0, 0) * meter);
+    opExtrude(context, id + "extrude", {
+                "entities" : region,
+                "direction" : Z_DIRECTION,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : head.headHeight
+            });
+
+    const profileId = id + "chamfer";
+    const profile = newSketchOnPlane(context, profileId, { "sketchPlane" : PROFILE_PLANE });
+    skPolyline(profile, "profile", { "points" : hexHeadProfile(head) });
+    skSolve(profile);
+    opRevolve(context, id + "revolve", {
+                "entities" : qSketchRegion(profileId),
+                "axis" : line(WORLD_ORIGIN, Z_DIRECTION),
+                "angleForward" : 2 * PI * radian
+            });
+    opBoolean(context, id + "intersect", {
+                "tools" : qUnion([qCreatedBy(id + "extrude", EntityType.BODY), qCreatedBy(id + "revolve", EntityType.BODY)]),
+                "operationType" : BooleanOperationType.INTERSECTION
+            });
+    opBoolean(context, id + "union", {
+                "tools" : qUnion([shank, qCreatedBy(id + "intersect", EntityType.BODY)]),
+                "operationType" : BooleanOperationType.UNION
+            });
+    cleanup(context, id + "deleteSketches", qUnion([qCreatedBy(sketchId, EntityType.BODY), qCreatedBy(profileId, EntityType.BODY)]));
+}
+
+/**
+ * The solid a hex head's chamfered within, revolved: up from the origin past its corners, in at its chamfer's angle to
+ * the circle across its flats at its top, and back down the axis.
+ */
+export function hexHeadProfile(head is map) returns array
+{
+    const zero = 0 * meter;
+    const flat = head.acrossFlats / 2;
+    const outer = 1.05 * flat * 2 / sqrt(3);
+    const rise = (outer - flat) * tan(NUT_CHAMFER_ANGLE);
+    return [vector(zero, zero), vector(outer, zero), vector(outer, head.headHeight - rise), vector(flat, head.headHeight),
+            vector(zero, head.headHeight), vector(zero, zero)];
+}
 
 /**
  * A washer, from its bottom face at the origin up.
@@ -191,12 +280,20 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
 
         annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.nutType is NutType;
+
+        annotation { "Name" : "Finish", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.finish is NutFinish;
     }
     {
-        const nut = made(made(made(NUTS, definition.vendor), definition.size), definition.nutType);
-        if (nut == undefined)
+        const finishes = made(made(made(NUTS, definition.vendor), definition.size), definition.nutType);
+        if (finishes == undefined)
         {
             throw regenError("Selected vendor does not make this nut, change the type.", ["nutType"]);
+        }
+        const nut = made(finishes, definition.finish);
+        if (nut == undefined)
+        {
+            throw regenError("Selected vendor does not make this nut in this finish, change the finish.", ["finish"]);
         }
         const size = FASTENER_SIZES[definition.size];
         const isNylock = isNylockType(definition.nutType);
@@ -393,8 +490,8 @@ export function socketDepth(size is map, head is map, headType is ScrewHead) ret
 }
 
 /**
- * How far a screw's threads run up from its tip: to its head, but for a standard socket head's, which stop 2D + 1/2 in
- * up.
+ * How far a screw's threads run up from its tip: to its head, but for a standard socket head's, which stop 2D plus its
+ * size's allowance up (1/2 in by ASTM A574, 12 mm by ISO 4762).
  */
 export function threadLength(size is map, head is map, headType is ScrewHead, length is ValueWithUnits, fullThread is boolean) returns ValueWithUnits
 {
@@ -403,7 +500,7 @@ export function threadLength(size is map, head is map, headType is ScrewHead, le
     {
         return shank;
     }
-    return min(shank, 2 * size.majorDiameter + SOCKET_HEAD_THREAD_ALLOWANCE);
+    return min(shank, 2 * size.majorDiameter + size.threadAllowance);
 }
 
 /**
@@ -418,6 +515,11 @@ export function screwProfile(size is map, head is map, headType is ScrewHead, le
     const tip = tipChamfer(size);
     const zero = 0 * meter;
     const shank = [vector(radius, -length + tip), vector(radius - tip, -length), vector(zero, -length)];
+    if (isHexHead(headType))
+    {
+        // Its head is extruded onto the top of its shank
+        return concatenateArrays([[vector(zero, zero), vector(radius, zero)], shank, [vector(zero, zero)]]);
+    }
     if (headType == ScrewHead.FLAT)
     {
         // A flat head's length is from its top, which sits flush with the part
