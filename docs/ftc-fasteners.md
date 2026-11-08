@@ -56,8 +56,6 @@ goBILDA also sells thread-locking and thread-forming M4 socket heads, which are 
 | --- | --- | --- | --- | --- |
 | Flat, 8 mm | 2801-0004-0008 | 4.0 | 8.0 | 1.0 |
 | Flat, 11 mm | 2801-0004-0011 | 4.15 | 10.9 | 1.5 |
-| Split lock | 2809-0004-0007 | 4 (nominal) | 6.8 | 1.69 overall, uncompressed |
-| External tooth lock | 2810-0004-0008 | 4.3 | 8.0 | 0.5, teeth twisted to 1.21 |
 
 ## REV: M3 x 0.5
 
@@ -80,7 +78,7 @@ Zinc-plated steel. A hex cap screw's length is measured under the head.
 | T-slot head | The hex cap's, cut to 3.2 wide (REV's drawing; the model is 3.15) so it drops into the 15 mm extrusion's slot |
 | Nyloc nut, REV-41-1361 | 5.5 across flats, 4.0 tall: a 3.33 hex, then a 3.35 collar; insert bore 2.46. REV's product page says 4.4, but its drawing and model say 4.0 |
 | Hex nut, REV-41-1126 | 5.5 across flats, 2.4 tall, from REV's drawing; it has no model |
-| Washer, REV-41-2886 | Stainless steel, for M3. REV publishes no dimensions, model, or drawing |
+| Washer, REV-41-2886 | Stainless steel, $6.50 a 100. REV publishes no dimensions, model or drawing, so it's taken as a standard M3 washer (ISO 7089: 3.2 bore, 7 outside, 0.5 thick) |
 
 REV's UltraPlanetary hardware pack (REV-41-1609) has M3 button heads, which REV doesn't sell on their own; they're
 left out.
@@ -106,12 +104,16 @@ models for these, so they take the standard's nominal dimensions (ISO 4762, ISO 
 | M3 nylock nut | am-1023 | Not stated |
 | M3 hex nut | am-1386 | 2.4 tall |
 | M3 jam nut | am-1405 | 1.8 tall |
-| M4 lock washer | am-1548 | 4.4 inner, 0.9 thick; outer not stated |
-| M3 lock washer | am-1551 | 3.4 inner, 6.2 outer, 0.8 thick |
 
 AndyMark sells no metric flat washer for M3 or M4.
 
+Lock washers are left out, goBILDA's split and tooth ones and AndyMark's split ones alike: a nylock or thread
+locker does the job on an FTC robot.
+
 ## Vendors and finishes
+
+Prices only order a vendor's finishes and pick which of McMaster-Carr's supplies a length's part number comes from;
+no price goes into a part's records, which carry its name, part number, vendor and link, as the FRC fasteners' do.
 
 Vendors are listed Generic, McMaster-Carr, goBILDA, REV, AndyMark, and a part defaults to the first that sells it.
 goBILDA would go ahead of McMaster-Carr only if it were cheaper across the board, and it isn't: McMaster-Carr's
@@ -204,7 +206,6 @@ Class 10 nylock, which its table gives the Class 8's 7 by 5.
   ConfigLib's 2,799 M4 inserts, a button head is lower anyway (2.2 mm to 2.8 at M4, on the same 2.5 mm hex), and
   goBILDA sells them in 10 lengths.
 - Nuts: a square nut 7 mm wide, and the nylock's dome as measured above, in place of `_nylock`'s proportions.
-- Washers: lock washers, if they're offered at all.
 - Vendors: Generic, McMaster-Carr, goBILDA, REV, and AndyMark, in that order; FRC's `FastenerVendor` has no goBILDA.
   AndyMark's metric screws are titled `M4-0.7 x 10 mm Socket Head Cap Screw`, which `_STORE_SCREWS` has to match
   too.
@@ -228,9 +229,5 @@ Still needed:
 
 | Part | Why | What would do |
 | --- | --- | --- |
-| REV M3 washer, REV-41-2886 | Nothing published | A STEP, or calipers: inner diameter, outer diameter, thickness |
-| goBILDA split lock washer, 2809-0004-0007 | Its model is freeform, so it gives only the outside | Its section's width and thickness, if lock washers are offered |
 | REV M3 hex nut, REV-41-1126 | Drawing only, so its chamfers are guessed | A STEP (optional) |
 | McMaster-Carr's M3 washers | Its pages refuse automated reads, and the washers' table came with M4 rows alone | The M3 rows of the general purpose washers' table, with each supply's price |
-| REV's price per length | REV quotes one range per product | Each option's price on the hex cap screw and M3 nut pages |
-| AndyMark M4 lock washer, am-1548 | Its outer diameter isn't stated | Calipers on one, or a STEP (optional) |
