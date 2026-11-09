@@ -408,6 +408,7 @@ class FakeApi:
                     for parameter in feature["parameters"]
                 ]
             self.tabs[element_id][1].append(feature)
+            return {"feature": feature, "featureState": {"featureStatus": self.status}}
         return {"featureState": {"featureStatus": self.status}}
 
 
@@ -482,6 +483,53 @@ def test_build_replaces_the_feature_a_build_inserted_before():
     parameters = update["feature"]["parameters"]
     assert [parameter["parameterId"] for parameter in parameters] == ["size", "length", "washer"]
     assert all(parameter["btType"] == "BTMParameterConfigured-2222" for parameter in parameters)
+
+
+def test_build_configures_the_feature_it_inserted_once_onshape_lists_it(monkeypatch):
+    """A feature list read just after the insert may still list the feature deleted before it."""
+    import fs_cli.configured_studios as configured_studios
+
+    monkeypatch.setattr(configured_studios, "FEATURE_LIST_WAIT", 0)
+    old = {"featureId": "F1", "featureType": "fastenerScrew", "namespace": "efs::mold", "parameters": []}
+
+    class Stale(FakeApi):
+        stale_reads = 2
+
+        def get(self, path, **kwargs):
+            if "/features" in path and self.stale_reads > 0:
+                self.stale_reads -= 1
+                self.requests.append(("GET", path, None))
+                return {"features": [old], "sourceMicroversion": "stale"}
+            return super().get(path, **kwargs)
+
+    api = Stale({"Screw": [dict(old)]})
+    api.stale_reads = 0
+    original_post = api.post
+
+    def post(path, body="", **kwargs):
+        response = original_post(path, body, **kwargs)
+        if path.endswith("/features"):
+            api.stale_reads = 2
+        return response
+
+    api.post = post
+    build(api, WORKSPACE, studio(), "fs", "fsmv")
+    updates = [path for _, path, _ in api.requests if "/featureid/" in path and not path.endswith("F1")]
+    assert updates == ["/partstudios/d/d/w/w/e/e0/features/featureid/F"]
+
+    # One that never shows is refused, rather than another feature configured
+    never = Stale({"Screw": []})
+    never.stale_reads = 0
+
+    def post_never(path, body="", **kwargs):
+        response = FakeApi.post(never, path, body, **kwargs)
+        if path.endswith("/features"):
+            never.stale_reads = configured_studios.FEATURE_LIST_READS
+        return response
+
+    never.post = post_never
+    with pytest.raises(ConfigureError, match="still doesn't show the fastenerScrew just inserted"):
+        build(never, WORKSPACE, studio(), "fs", "fsmv")
 
 
 def test_build_configures_a_feature_in_the_namespaces_onshape_stored():
