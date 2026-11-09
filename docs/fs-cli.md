@@ -417,9 +417,9 @@ rest always, since Onshape hides an option no rule controls. Onshape also refuse
 the inputs before it are at theirs, as the studio checks. A List with none of its options shown is
 hidden, so a List's own visibility is folded into its options'. A checkbox has no options, and shows by a single
 condition, which the studio checks; one needing more is a `switch`. `fs parts SET --diagnose` finds a part of a
-configuration Onshape refuses (see [docs/parts.md](parts.md)). `ConfiguredStudio.manifest()` gives the
-configuration as Onshape answers it, for what reads it outside Onshape (FRCDesign parses its library fasteners' as it parses
-any configuration).
+configuration Onshape refuses (see [docs/parts.md](parts.md)). `ConfiguredStudio.manifest()` gives what FRCDesign reads of
+a studio outside Onshape: its feature and the id the feature gives its mate connector. FRCDesign reads the configuration
+from the tab.
 
 Feature icons are generated the same way: a definition which sets `ICON` (an `fs_cli.icons.Icon`, drawn from shapely
 shapes) is written to the `.svg` of the same name, e.g. `released/lighten/robotLightenIcon.py` to `released/lighten/robotLightenIcon.svg`;

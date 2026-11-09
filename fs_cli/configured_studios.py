@@ -233,12 +233,11 @@ class ConfiguredStudio:
         return {input.id: input.default_option for input in self.configured_inputs()}
 
     def manifest(self) -> dict:
-        """The studio as FRCDesign reads it: its feature, and its configuration as Onshape answers it, which FRCDesign
-        parses as it parses any configuration."""
+        """The studio as FRCDesign reads it: its feature and the id the feature gives its mate connector. FRCDesign reads
+        its configuration from the tab itself."""
         return {
             "feature": self.feature,
             **({"mateConnector": self.mate_connector} if self.mate_connector else {}),
-            "configuration": self.configuration_body(),
         }
 
     def _factor_order(self) -> list[str]:
