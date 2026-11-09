@@ -1,5 +1,5 @@
 {
- "source": "Each store's /products.json, by quickFastenerTables.py fetch",
+ "source": "Each store's /products.json, by fastenerTables.py fetch",
  "products": [
   {
    "store": "andymark.com",
@@ -711,9 +711,21 @@
   },
   {
    "store": "wcproducts.com",
+   "title": "#10-32 x .625\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-1631",
+   "url": "https://wcproducts.com/products/wcp-1631"
+  },
+  {
+   "store": "wcproducts.com",
    "title": "#10-32 x 4.750 L BHCS (Steel, Black Oxide) (25-Pack)",
    "sku": "WCP-1656",
    "url": "https://wcproducts.com/products/wcp-1656"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.125\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2077",
+   "url": "https://wcproducts.com/products/wcp-2077"
   },
   {
    "store": "wcproducts.com",
@@ -732,6 +744,78 @@
    "title": "#10-32 x .500\" L BHCS (Aluminum, Anodized) (25-Pack)",
    "sku": "WCP-2112",
    "url": "https://wcproducts.com/products/wcp-2112"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.125\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2237",
+   "url": "https://wcproducts.com/products/wcp-2237"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.375\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2238",
+   "url": "https://wcproducts.com/products/wcp-2238"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.625\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2239",
+   "url": "https://wcproducts.com/products/wcp-2239"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.875\" L BHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2240",
+   "url": "https://wcproducts.com/products/wcp-2240"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .625\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2241",
+   "url": "https://wcproducts.com/products/wcp-2241"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x .875\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2242",
+   "url": "https://wcproducts.com/products/wcp-2242"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.250\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2243",
+   "url": "https://wcproducts.com/products/wcp-2243"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.375\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2244",
+   "url": "https://wcproducts.com/products/wcp-2244"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.625\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2245",
+   "url": "https://wcproducts.com/products/wcp-2245"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 1.875\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2246",
+   "url": "https://wcproducts.com/products/wcp-2246"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.250\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2247",
+   "url": "https://wcproducts.com/products/wcp-2247"
+  },
+  {
+   "store": "wcproducts.com",
+   "title": "#10-32 x 2.750\" L SHCS (Steel, Black Oxide) (50-Pack)",
+   "sku": "WCP-2248",
+   "url": "https://wcproducts.com/products/wcp-2248"
   },
   {
    "store": "wcproducts.com",
