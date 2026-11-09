@@ -236,9 +236,9 @@ publish = true              # FeatureScripts: finalize it at once, and tag it (t
 
 They run in name order. Each runs as `fs release` or `fs parts SET --release` would, then its file is deleted and what the
 release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release makes
-ends its description with the file's name (`[releases/frame-hubs.toml]`), so a file whose release Onshape already has,
-whole or partway, stops `fs run-releases` rather than releasing twice: check what it made, finish it by hand, and
-delete the file. `fs releases` lists and checks the pending files without calling Onshape.
+ends its description with the file's name and the commit that added it (`[releases/frame-hubs.toml 1a2b3c4d5e6f]`), so a
+file whose release Onshape already has, whole or partway, stops `fs run-releases` rather than releasing twice: check
+what it made, finish it by hand, and delete the file. A file added again later, under the same name, is a new release. `fs releases` lists and checks the pending files without calling Onshape.
 
 ### The Onshape workflow
 

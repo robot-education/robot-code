@@ -2343,21 +2343,30 @@ def test_run_releases_makes_each_release_once(repo, onshape, capsys):
         'script = "robotFrame"\nbump = "minor"\ndescription = "First"\npublish = false\n'
     )
     commit_all(repo, "Ask for a release")
+    asked = git_output(repo, "rev-parse", "HEAD").strip()[:12]
 
     assert run(onshape, "run-releases", "--no-push-tags") == 0
     released = onshape.versions_by_document["back"][-1]
-    assert (released.name, released.description) == ("Robot frame - v0.1.0", "First [releases/frame.toml]")
+    assert (released.name, released.description) == ("Robot frame - v0.1.0", f"First [releases/frame.toml {asked}]")
     assert element_id in onshape.studios("back", released.id)
     assert not (repo / "releases" / "frame.toml").exists()
     assert git_output(repo, "log", "-1", "--format=%s") == "Release robotFrame (releases/frame.toml)\n"
     assert git_output(repo, "status", "--porcelain") == ""
 
-    # Asked for again, it's found made rather than made twice
-    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
-    commit_all(repo, "Ask again")
+    # Run again before its file was deleted, as after a run that stopped partway, it's found made rather than made twice
+    git(repo, "reset", "-q", "--hard", "HEAD~1")
     capsys.readouterr()
     assert run(onshape, "run-releases", "--no-push-tags") == 2
     assert "already made Robot frame - v0.1.0" in capsys.readouterr().err
+
+    # A file of the same name asking for a later release makes it
+    git(repo, "rm", "-q", "releases/frame.toml")
+    commit_all(repo, "Released by hand")
+    (repo / "releases").mkdir(exist_ok=True)
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    commit_all(repo, "Ask again")
+    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.2.0"
 
 
 def test_branches_prunes_only_its_workspaces_of_branches_gone_from_origin(repo, onshape, tmp_path_factory, capsys):

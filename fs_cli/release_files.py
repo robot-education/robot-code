@@ -20,6 +20,7 @@ import pathlib
 import tomllib
 
 from fs_cli.config import Config
+from fs_cli.git import added_in
 from fs_cli.versions import VersionType
 
 RELEASES_FOLDER = "releases"
@@ -39,6 +40,8 @@ class ReleaseFile:
     part_set: str | None = None
     beta: bool = False
     publish: bool = True
+    # The commit that added it, so a file of the same name asking for a later release isn't taken for this one
+    added: str | None = None
 
     @property
     def target(self) -> str:
@@ -47,7 +50,8 @@ class ReleaseFile:
     @property
     def marker(self) -> str:
         """Ends the description of what it releases, so a release Onshape already has is found again."""
-        return f"[{RELEASES_FOLDER}/{self.path.name}]"
+        added = f" {self.added[:12]}" if self.added else ""
+        return f"[{RELEASES_FOLDER}/{self.path.name}{added}]"
 
     @property
     def described(self) -> str:
@@ -92,4 +96,5 @@ def load(config: Config, path: pathlib.Path) -> ReleaseFile:
         data.get("part_set"),
         bool(data.get("beta", False)),
         bool(data.get("publish", True)),
+        added_in(config.root, path),
     )
