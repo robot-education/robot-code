@@ -401,7 +401,9 @@ default), creating it if it's missing, and deletes the feature a build inserted 
 the configuration's inputs and options, and Onshape refuses a configuration that leaves them naming ones it no longer
 has ("The change would result in the feature list becoming invalid"). It then replaces the configuration with the
 definition's, which must keep the inputs' ids, inserts the feature from the Feature Studio in the same document as it
-is now, with each input's default, and configures it. The configured feature keeps the namespaces
+is now, with each input's default, and configures it, by the id the insert answered: a feature list read just after
+the insert has been seen to fail as though it named the feature deleted before it, so the build reads it again, a second
+apart, until it lists the new one, and stops after five reads. The configured feature keeps the namespaces
 Onshape stored on insert, for it and each of its enums: a feature from a Feature Studio re-exporting another
 document's (as a release's is) is stored under another namespace than it's inserted with, and Onshape refuses an
 update naming any other, "Feature does not match". A refusal names the

@@ -146,7 +146,8 @@ def commit_with_contents(root: pathlib.Path, file: pathlib.Path, contents: str) 
 
 def added_in(root: pathlib.Path, file: pathlib.Path) -> str | None:
     """The commit that last added a file, or None while it's uncommitted."""
-    output = _git(root, "log", "--diff-filter=A", "-1", "--format=%H", "--", str(file))
+    # A file renamed from another is added as far as its releases go
+    output = _git(root, "log", "--no-renames", "--diff-filter=A", "-1", "--format=%H", "--", str(file))
     return output.strip() if output and output.strip() else None
 
 

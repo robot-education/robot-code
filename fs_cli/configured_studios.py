@@ -20,6 +20,7 @@ import dataclasses
 import json
 import pathlib
 import re
+import time
 from typing import Literal, Mapping, Sequence
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -693,7 +694,7 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
     namespace = feature_namespace(feature_studio_id, feature_studio_microversion)
     # Inserted plain and configured after, so a refusal names which of the two Onshape objects to
     with step(f"insert {studio.feature}"):
-        part_studios.add_feature(
+        inserted = part_studios.add_feature(
             api,
             part_studio,
             {
@@ -705,8 +706,12 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
             },
         )
     # Its configuration, or its insert, changed its microversion
-    feature_list = part_studios.get_features(api, part_studio)
-    feature = next(feature for feature in feature_list["features"] if feature.get("featureType") == studio.feature)
+    feature_list, feature = _read_inserted(api, part_studio, inserted["feature"]["featureId"])
+    if feature is None:
+        raise ConfigureError(
+            f"Onshape's feature list for {studio.tab_name} still doesn't show the {studio.feature} just inserted; "
+            "run it again."
+        )
     stored = feature.get("parameters", [])
     configured = {
         parameter["parameterId"]: parameter
@@ -722,6 +727,26 @@ def build(api, workspace, studio: ConfiguredStudio, feature_studio_id: str, feat
         )
     status = response.get("featureState", {}).get("featureStatus", "OK")
     return Built(element_id, created, status)
+
+
+# Read again while a feature just inserted isn't listed yet (unverified Onshape behavior, inferred from a 404 naming the
+# feature deleted before it), a second apart
+FEATURE_LIST_READS = 5
+FEATURE_LIST_WAIT = 1.0
+
+
+def _read_inserted(api, part_studio, feature_id: str) -> tuple[dict, dict | None]:
+    """A Part Studio's feature list, and in it the feature just inserted, by its id; None when it never shows."""
+    from onshape_api.endpoints import part_studios
+
+    for attempt in range(FEATURE_LIST_READS):
+        if attempt:
+            time.sleep(FEATURE_LIST_WAIT)
+        feature_list = part_studios.get_features(api, part_studio)
+        feature = next((each for each in feature_list["features"] if each.get("featureId") == feature_id), None)
+        if feature is not None:
+            return feature_list, feature
+    return feature_list, None
 
 
 def stored_namespaces(configured: list[dict], stored: list[dict]) -> list[dict]:
