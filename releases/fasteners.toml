@@ -1,0 +1,3 @@
+part_set = "fasteners"
+bump = "minor"
+description = "WCP's new #10-32 socket and button head lengths"
