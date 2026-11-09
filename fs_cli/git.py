@@ -144,6 +144,12 @@ def commit_with_contents(root: pathlib.Path, file: pathlib.Path, contents: str) 
     return None
 
 
+def added_in(root: pathlib.Path, file: pathlib.Path) -> str | None:
+    """The commit that last added a file, or None while it's uncommitted."""
+    output = _git(root, "log", "--diff-filter=A", "-1", "--format=%H", "--", str(file))
+    return output.strip() if output and output.strip() else None
+
+
 def has_tag(root: pathlib.Path, name: str) -> bool:
     return _git(root, "rev-parse", "--verify", "--quiet", f"refs/tags/{name}") is not None
 
