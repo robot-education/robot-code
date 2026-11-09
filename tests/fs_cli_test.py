@@ -999,6 +999,20 @@ def test_pushing_a_tab_with_its_importer_keeps_the_version_onshape_gives_the_imp
     assert "import versions updated in Onshape" not in capsys.readouterr().out
 
 
+def test_a_push_with_nothing_to_push_commits_the_import_versions_it_took(repo, onshape, capsys):
+    """So the tree is clean after it, as `fs run-releases` needs after `fs sync-main`."""
+    git_repo(repo)
+    element_id = onshape.add("b.fs", importing(OLD))
+    run(onshape, "pull")
+    commit_all(repo, "Pull")
+    onshape.edit(element_id, importing(NEW))
+
+    assert run(onshape, "push", "--force") == 0
+    assert local(repo, "b.fs").read_text() == importing(NEW)
+    assert git_output(repo, "status", "--porcelain") == ""
+    assert git_output(repo, "log", "-1", "--format=%s") == "Take import versions from Onshape\n"
+
+
 def test_pushing_keeps_onshapes_import_versions(repo, onshape):
     element_id = onshape.add("b.fs", importing(OLD))
     run(onshape, "pull")

@@ -870,16 +870,25 @@ def commit_pushed(
     workspace: Workspace, pushed: list[Studio | Image], deleted: list[Studio | Image], updated: list[Studio]
 ) -> None:
     """Commits what `fs push` pushed and deleted, as it is in Onshape now (imports by path resolved to ids, and
-    import versions from Onshape), with fs-studios.json, so the repo matches Onshape. Nothing else is committed."""
-    if not pushed and not deleted:
+    import versions from Onshape), and the import versions it took from Onshape for files it didn't push, with
+    fs-studios.json, so the repo matches Onshape. Nothing else is committed."""
+    if not pushed and not deleted and not updated:
         return
     names = [pathlib.PurePosixPath(item.path).name for item in pushed]
     subject = (
         f"Push {', '.join(names)} to Onshape"
         if 0 < len(names) <= 3
-        else f"Push {_plural(len(names), 'file')} to Onshape" if names else "Delete tabs in Onshape"
+        else f"Push {_plural(len(names), 'file')} to Onshape"
+        if names
+        else "Delete tabs in Onshape"
+        if deleted
+        else "Take import versions from Onshape"
     )
-    lines = [f"Pushed {item.path}" for item in pushed] + [f"Deleted the tab of {item.path}" for item in deleted]
+    lines = (
+        [f"Pushed {item.path}" for item in pushed]
+        + [f"Deleted the tab of {item.path}" for item in deleted]
+        + [f"Took import versions in {item.path}" for item in updated if item not in pushed]
+    )
     paths = [item.file for item in [*pushed, *deleted, *updated]] + [workspace.config.studios_path]
     # fs-studios.json as the push left it (`main` saves it again after)
     workspace.state.save()
