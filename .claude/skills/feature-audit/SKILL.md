@@ -15,9 +15,14 @@ the user's say-so).
    tooling too, run every test (`uv run pytest -q`).
 3. The writeup (the `.md` beside the `.fs`) matches the change: strings, execution order, and `try`s (see
    `docs/feature-writeups.md`).
-4. `uv run fs audit <feature>.fs -o <scratchpad>/<feature>.html --open`. Run from VS Code, that shows it in VS Code's
-   feature preview (the same sections, with the language server drawing the dialog), and says so: then don't send the
-   page. Otherwise it says it isn't in VS Code: send the page with SendUserFile (`display: "render"`).
+4. `uv run fs audit <feature>.fs --artifact -o <scratchpad>/<feature>Audit.html --open`. Run from VS Code, that shows
+   it in VS Code's feature preview (the same sections, with the language server drawing the dialog), and says so: then
+   don't publish the page. Otherwise it says it isn't in VS Code: publish it as an Artifact (the Artifact tool, with
+   `icon` "gear" or whatever suits the feature on its first publish), so the user can comment on it, and give them its
+   link. Publish each later audit of the feature from the same file path, so it updates the same artifact (and its
+   comments) rather than making another; from another session, find its URL (`action: "list"`), read it, and publish
+   to it with `url`. Read the user's comments on it with ArtifactComments. Without the Artifact tool, send the page
+   with SendUserFile (`display: "render"`) instead.
    It has the dialog, which works: its dropdowns, checkboxes, tabs, lookup table levels, and typed values show what
    each choice shows (a long press shows a parameter's tooltip by touch), in any combination: the page compiles the
    precondition's conditions to JavaScript and draws the dialog itself. Setting a parameter back to its default unsets it. Array items can't be added there;

@@ -14,7 +14,7 @@ export import(path : "6451a02d1f9f40630984864b", version : "ef6cb5b6d8c95ab1a3e7
 import(path : "aa47f3d3eb754118903deeec", version : "812299f393e144ff2d6711d6");
 // Exports Fit, a parameter type
 export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
-import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
+import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 
 /**
  * The bores SplineXS adapters can cut.

@@ -92,7 +92,7 @@ export function halfGapCurves(form is map) returns array
 {
     if (toothHalfAngle(form, form.tipRadius) <= 0 * degree)
     {
-        throw regenError("Teeth come to points, increase teeth or change profile offset.", ["teeth", "profileOffsetDistance"]);
+        throw regenError("Profile offset is too small, increase the value.", ["profileOffsetDistance", "teeth"]);
     }
     const toothAngle = 360 * degree / form.teeth;
     const root = gearRoot(form);
@@ -300,7 +300,7 @@ export function gearRoot(form is map) returns map
             const halfGap = 180 * degree / form.teeth - toothHalfAngle(form, lineTop);
             if (halfGap <= 0 * degree)
             {
-                throw regenError("Teeth meet at their roots, change profile offset.", ["profileOffsetDistance"]);
+                throw regenError("Profile offset is too large, decrease the value.", ["profileOffsetDistance"]);
             }
             return halfGap;
         };
@@ -323,7 +323,7 @@ export function gearRoot(form is map) returns map
         {
             if (form.contactRadius == undefined)
             {
-                throw regenError("Full root fillet does not fit below the flanks, select a smaller root fillet.", ["rootFillet"]);
+                throw regenError("Could not create full root fillet.", ["rootFillet"]);
             }
             // The largest which does: its center the root radius and it out, its tangent on the line at the line's top
             full = (lineTop ^ 2 - rootRadius ^ 2) / (2 * rootRadius) / form.filletFraction;
@@ -554,11 +554,13 @@ export function rackCutRegions(form is map, faceHeight is ValueWithUnits, length
     const tip = min(form.module + form.offset, faceHeight);
     if (rackHalfWidth(form, tip) <= 0 * meter)
     {
-        throw regenError("Teeth come to points, change profile offset.", ["profileOffsetDistance"]);
+        // Its teeth come to points below the face
+        throw regenError("Profile offset is too small, increase the value.", ["profileOffsetDistance"]);
     }
     if (rackHalfWidth(form, root) >= PI * form.module / 2)
     {
-        throw regenError("Teeth meet at their roots, change profile offset.", ["profileOffsetDistance"]);
+        // Its teeth meet at their roots
+        throw regenError("Profile offset is too large, decrease the value.", ["profileOffsetDistance"]);
     }
     // In the face's coordinates: the face at y = 0
     const at = function(x is ValueWithUnits, y is ValueWithUnits) returns Vector

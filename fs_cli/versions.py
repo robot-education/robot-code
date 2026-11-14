@@ -6,10 +6,6 @@ the backend document whenever a FeatureScript is released.
 A major release is a major event, typically constituting major changes to documentation or
 significant changes to functionality. A minor release introduces minor new features, and a patch
 fixes bugs.
-
-Beta releases (prereleases) start a "beta campaign" by bumping the major, minor, or patch version
-and adding a beta tag, e.g. 1.2.3 -> 2.0.0-beta.1. Further beta releases just bump the beta number
-(2.0.0-beta.2), and the campaign ends with a regular release of the same version (2.0.0).
 """
 
 from __future__ import annotations
@@ -52,10 +48,6 @@ class ReleasedVersion:
     def name(self) -> str:
         return version_name(self.feature_name, self.version)
 
-    @property
-    def is_prerelease(self) -> bool:
-        return self.version.prerelease is not None
-
 
 _NUMBER = r"(?:0|[1-9]\d*)"
 _IDENTIFIER = r"(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)"
@@ -80,27 +72,9 @@ def latest_release(
     return None
 
 
-def next_version(
-    previous: ReleasedVersion | None, bump: VersionType | None, beta: bool
-) -> SemVersion:
+def next_version(previous: ReleasedVersion | None, bump: VersionType | None) -> SemVersion:
     """Computes the version of the next release."""
-    previous_is_beta = previous is not None and previous.is_prerelease
-    if beta:
-        if bump is None and not previous_is_beta:
-            raise ValueError(
-                "There is no beta in progress; start one by also passing --major, --minor, or --patch."
-            )
-        if bump is not None and previous_is_beta:
-            raise ValueError(
-                "A beta is already in progress; continue it by omitting --major/--minor/--patch."
-            )
-    elif bump is None:
-        raise ValueError("Pass --major, --minor, or --patch (or --beta).")
-
+    if bump is None:
+        raise ValueError("Pass --major, --minor, or --patch.")
     version = previous.version if previous else START_VERSION
-    if bump is not None:
-        version = version.next_version(bump)
-    if beta:
-        # Don't use next_version's behavior for prereleases
-        version = version.bump_prerelease("beta")
-    return version
+    return version.next_version(bump)

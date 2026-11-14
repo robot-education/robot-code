@@ -180,7 +180,8 @@ count:
   new microversions afterwards.
 - `fs tabs` and `fs link`: just the anonymous listing. `fs tabs --rename`: 1 more per tab renamed (plus an anonymous
   one to read its metadata).
-- `fs release`: at most 6 to 8 calls (fewer now that listings are anonymous). `fs released --detect`: 2.
+- `fs release`: at most 6 to 8 calls (fewer now that listings are anonymous), and up to 7 more for FRCDesignApp's side
+  (the frontend's tabs, an example, its icon, and `featurescripts.json`). `fs released --detect`: 2.
   `fs deprecate`: about 12.
 
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing: they only make the anonymous listings.
@@ -205,9 +206,10 @@ each other's Feature Studios, and Onshape can protect the main workspace (a work
   (or into a new `sync <commit>` one, for a branch without one), pushes main's files there over whatever it has
   (git is what main holds), merges that into the main workspace, taking its tabs where both changed, and deletes it.
   Run again after a failure, it finishes.
-- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`) runs only on
-  the main branch, so what's released is what was merged. A part set's release to a target (`parts --release
-  --target`), to try it out, runs from any branch, versioning its workspace (see [docs/parts.md](parts.md)).
+- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `run-releases`, `app-manifest`) runs only
+  on the main branch, so what's released is what was merged. A part set's release to a
+  target (`parts --release --target`), to try it out, runs from any branch, versioning its workspace (see
+  [docs/parts.md](parts.md)).
 - `fs branches` lists the workspaces fs made (marked by their description), and `fs branches --prune` deletes those
   whose branch is gone from origin. Workspaces made by hand are never deleted.
 
@@ -230,9 +232,14 @@ script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
 part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
 bump = "minor"              # major, minor, or patch
 description = "Adds hubs"   # internal, as --description
-beta = false                # FeatureScripts: to the beta document
-publish = true              # FeatureScripts: finalize it at once, and tag it (the default)
+publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
 ```
+
+A FeatureScript's release from a file isn't final by default: it makes the backend version and points the frontend
+studio at it, and `fs sync-versions` finalizes it (its frontend version, and its tag) once its frontend examples are
+updated for it. `publish = true` finalizes it at once, for a release which needs nothing in the frontend. A first
+release can't be published at once, from a file or with `fs release --publish`: a new feature needs its examples made
+first. `fs releases` (a pull request's check) reports a file asking to.
 
 They run in name order. Each runs as `fs release` or `fs parts SET --release` would, then its file is deleted and what the
 release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release makes
@@ -299,6 +306,10 @@ edits, and array items can be added): it has tabs for the lookup tables, writeup
 `fs_cli/audit.py`), and `fs_cli/dialog_page.js` makes both dialogs' controls and tooltips work. Run from VS Code (its
 terminal, or Claude Code in it), `fs audit --open` shows the feature's preview there: it writes `.fs-audit/open.json`,
 which the extension watches for.
+
+`fs audit --artifact` writes the page as a claude.ai Artifact's, to publish (Claude Code's Artifact tool) so people can
+comment on it: without the document around it (publishing adds one), its colors following the viewer's theme (`--theme`
+then sets only the dialog's), and its side gutter clearing a phone's system bars.
 
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
 values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic
@@ -448,37 +459,69 @@ small generated file re-exporting a version of the backend studio, and `fs relea
 
 ```
 uv run fs release robotFrame --minor -d "Added a thing"   # 1.2.3 -> 1.3.0
-uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend
-uv run fs release robotFrameBeta --major --beta           # start a beta: 1.3.0 -> 2.0.0-beta.1
-uv run fs release robotFrameBeta --beta                   # continue it: 2.0.0-beta.2
+uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend (not a first release)
 uv run fs release robotFrame --minor --dry-run            # show the plan without changing anything
 ```
 
 A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
-frontend studio of the same name at it (creating the studio if needed). Beta releases go to the separate
-`frontend_beta` document instead, and the feature's name must contain "beta". A part set's FeatureScript
+frontend studio of the same name at it (creating the studio if needed). A part set's FeatureScript
 (`[tool.fs.parts]`) isn't released here but by `fs parts SET --release`, into its FRCDesignLib document with its Part
 Studios; see [docs/parts.md](parts.md). The studio must be pushed and in sync before it can be released, and
 `fs release` asks for confirmation since versions can't be deleted (`-y` skips the prompt).
 
 A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend
-versions the backend has that it doesn't. Then it's tagged in git, e.g. `robotFrame/v1.3.0`, on the newest commit
-whose file is as released (`fs push` commits what it pushes, so that's usually the last one), and the tag is pushed to
-origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
+versions the backend has that it doesn't. Then the feature's newest release is tagged in git, e.g.
+`robotFrame/v1.3.0`, on the newest commit whose file is as released (`fs push` commits what it pushes, so that's
+usually the last one), and the tag is pushed to origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
 changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved) without
-any API calls, falling back to the backend version for releases without one. `fs release-tags` tags final releases
-which aren't tagged yet (`--dry-run` lists them), from their code in the backend versions: an API call each.
+any API calls, falling back to the backend version for releases without one. A release with no commit whose file is as
+released (older ones, mostly) goes untagged; tags only make finding releases in git easier.
 
 ```
 uv run fs sync-versions          # finalize releases: create their frontend versions, and tag them
-uv run fs release-tags           # tag final releases which aren't yet
 uv run fs changes robotFrame     # what's changed since robotFrame's last release
 ```
 
 The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, the
 repo on GitHub (the repo, not the file, so the link doesn't break when files move). It's written when the studio's
 released, so each FeatureScript gets the GitHub link at its next release.
+
+### FRCDesignApp
+
+FRCDesignApp's FeatureScripts tab lists what `featurescripts.json`, a file tab at the frontend document's top level,
+names, and takes the rest from the document's layout: a feature's category is the folder its frontend studio is in,
+and its example is a Part Studio. A release keeps that side of the frontend document, before the
+frontend version, so the version holds what describes it (`fs_cli/frontend.py`):
+
+- **The example**: a Part Studio named for the feature, its Feature Type Name in any case (`Multi extrude`), preferring
+  one after its studio in the same folder; otherwise the first Part Studio after its studio in its folder, so features
+  sharing an example sit before it in one folder. Deprecated tabs and folders are skipped, and the app finds examples
+  the same way. A feature with none gets an empty one, named for it, at the top level; `--publish` is refused until
+  it has one, so an empty example is never published: release without it, model the example, then `fs sync-versions`.
+- **The icon**: the `.svg` its `"Icon"` imports, itself or through a studio it imports (as `core/robotFeature.fs`
+  exports `RobotIcon`, the robot icon of features without their own), written to `<Feature Type Name> icon.svg`.
+  A feature with none gets `[tool.fs] default_icon` (robot-code's is `core/robotIcon.svg`, the robot icon); only with
+  neither is its entry's `iconElementId` null, which the app shows as a generic icon.
+- **Its entry in `featurescripts.json`**, replacing the one for the same frontend studio: the exported constant, the
+  name, the description (the `"Feature Type Description"` literal, so `~ CREDIT` is cut, with each `<br>` a line break),
+  the version, the icon tab, and with `github` set, the file on GitHub's main branch (the latest code, so it doesn't
+  depend on tags, which older releases lack). A studio exporting no `defineFeature` gets none.
+
+The API can't make or move folders, so a first release's studio and example land at the top level until they're filed
+by hand. `fs deprecate` takes a feature back out: its entry goes, and its icon and its example (unless another
+feature's example is it too) are renamed `DEPRECATED ...`.
+
+`fs app-manifest` writes the entries and icons of features released before releases wrote them, without releasing
+them: each feature in the frontend document with a release, as its latest release made it, from its code and
+icon in that backend version. It replaces those features' entries and keeps the rest, and creates no examples and no
+versions: FRCDesignApp reads the manifest from the frontend document's latest version, so it sees them once the next
+one is made. `--dry-run` lists the entries, noting those without an icon, a link, or an example. It costs 3 calls, and 5 per feature.
+
+```
+uv run fs app-manifest --dry-run   # the entries it would write
+uv run fs app-manifest             # write them
+```
 
 ### Released FeatureScripts
 

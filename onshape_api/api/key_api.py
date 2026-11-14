@@ -54,9 +54,7 @@ class KeyApi(Api):
         self._private_documents: set[str | None] = set()
 
         if self._logging:
-            logging.info(
-                "Onshape instance created: access key = {}".format(self._access_key)
-            )
+            logging.info("Onshape instance created")
 
     @override
     def _request(
@@ -67,11 +65,12 @@ class KeyApi(Api):
         body: dict | str | bytes = "",
         headers: dict[str, str] = {},
         anonymous: bool = False,
+        raw: bool = False,
     ):
         document_id = _document_id(path)
         if anonymous and document_id not in self._private_documents:
             try:
-                return self._send(method, path, query, body, headers, signed=False)
+                return self._send(method, path, query, body, headers, signed=False, raw=raw)
             except exceptions.ApiError as error:
                 if error.status_code not in ANONYMOUS_REFUSALS:
                     raise
@@ -79,7 +78,7 @@ class KeyApi(Api):
                 self._private_documents.add(document_id)
                 if self._logging:
                     logging.info("anonymous request refused; retrying with credentials")
-        return self._send(method, path, query, body, headers, signed=True)
+        return self._send(method, path, query, body, headers, signed=True, raw=raw)
 
     def _send(
         self,
@@ -89,6 +88,7 @@ class KeyApi(Api):
         body: dict | str | bytes,
         headers: dict[str, str],
         signed: bool,
+        raw: bool = False,
     ):
         query_str = query if isinstance(query, str) else parse.urlencode(query)
 
@@ -103,7 +103,7 @@ class KeyApi(Api):
 
         if self._logging:
             logging.info(("request url: " if signed else "anonymous request url: ") + url)
-            logging.info("request headers: " + str(headers))
+            logging.info("request headers: " + str(loggable_headers(headers)))
             if len(body) > 0:
                 logging.info(body)
 
@@ -151,6 +151,8 @@ class KeyApi(Api):
                 logging.error("request failed, details: " + res.text)
             raise exceptions.ApiError(res.text, status)
 
+        if raw:
+            return res.content
         try:
             return res.json()
         except:
@@ -164,6 +166,15 @@ ANONYMOUS_REFUSALS = (http.HTTPStatus.UNAUTHORIZED, http.HTTPStatus.FORBIDDEN, h
 def _document_id(path: str) -> str | None:
     match = re.search(r"/d/([0-9a-f]{24})", path)
     return match[1] if match else None
+
+
+# Headers which carry credentials, so are never logged
+SECRET_HEADERS = ("Authorization", "On-Nonce")
+
+
+def loggable_headers(headers: dict[str, str]) -> dict[str, str]:
+    """`headers` with those carrying credentials redacted."""
+    return {name: "<redacted>" if name in SECRET_HEADERS else value for name, value in headers.items()}
 
 
 def make_anonymous_headers(headers: dict[str, str]) -> dict[str, str]:

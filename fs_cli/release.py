@@ -4,10 +4,14 @@ A release:
     1. Creates a version named e.g. "Robot frame - v1.3.0" in the backend document.
     2. Points the frontend document's Feature Studio of the same name at that version, using a
        small generated studio that re-exports the backend studio.
-    3. Optionally creates a version in the frontend document too, which publishes the release: it's final once it's
+    3. Keeps the frontend document's side of FRCDesignApp's FeatureScripts tab (see fs_cli/frontend.py): creates an
+       empty example Part Studio named for the feature if it has none, writes its icon, and its entry in
+       featurescripts.json.
+    4. Optionally creates a version in the frontend document too, which publishes the release: it's final once it's
        there (with `--publish`, or later by `fs sync-versions`), and then it's tagged in git (see `tag_release`).
+       `--publish` is refused while the feature has no example, so an empty one is never published.
 
-Beta releases go to the separate frontend_beta document instead. A part set's FeatureScript (`[tool.fs.parts]`) isn't
+A part set's FeatureScript (`[tool.fs.parts]`) isn't
 released here: `fs parts <set> --release` releases it into its FRCDesignLib document, with its Part Studios (see parts.py).
 
 Deprecating a released FeatureScript retires it without breaking Part Studios using it: they keep working, and
@@ -24,6 +28,8 @@ import pathlib
 import re
 from typing import Callable
 
+from fs_cli import frontend
+from fs_cli.frontend import FrontendTab
 from fs_cli.git import commit_with_contents, create_tag, has_tag, is_repository, push_tag
 from fs_cli.remote import RemoteStudio, Version
 from fs_cli.versions import (
@@ -37,6 +43,7 @@ from fs_cli.versions import (
     version_name,
 )
 from fs_cli.workspace import Status, Studio, UsageError, Workspace
+from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
 
@@ -81,11 +88,13 @@ class ReleasePlan:
     previous: ReleasedVersion | None
     version_name: str
     target: InstancePath
-    target_label: str
+    # The name the app shows: its Feature Type Name, which its example is named for
+    display_name: str = ""
+    example: FrontendTab | None = None
 
 
 def plan_release(
-    workspace: Workspace, script: str, bump: VersionType | None, beta: bool
+    workspace: Workspace, script: str, bump: VersionType | None, publish: bool = False
 ) -> ReleasePlan:
     remote = workspace.remote
     studio = find_studio(workspace, script)
@@ -94,30 +103,42 @@ def plan_release(
     part_set = workspace.config.part_set_for(studio.path)
     if part_set:
         raise UsageError(f"{studio.path} is the {part_set.name} part set's; release it with `fs parts {part_set.name} --release`.")
-    is_beta_feature = _is_beta(workspace, studio)
-    if beta and not is_beta_feature:
-        raise UsageError(
-            "Beta releases must be of features whose name contains 'beta'."
-        )
-    if not beta and is_beta_feature:
-        raise UsageError(
-            "Features whose name contains 'beta' can only be released with --beta."
-        )
-    target, target_label = _target(workspace, studio, beta)
+    _check_one_feature(workspace, studio)
+    target = _frontend(workspace)
 
     feature_name = feature_name_for(studio.remote.name)
     previous = latest_release(feature_name, remote.versions(workspace.instance))
     try:
-        version = next_version(previous, bump, beta)
+        version = next_version(previous, bump)
     except ValueError as error:
         raise UsageError(str(error)) from error
+    if publish and previous is None:
+        # A new feature's frontend examples need making before it's final
+        raise UsageError(
+            f"{studio.path} has never been released, so its first release isn't published at once: release it "
+            "without --publish, and `fs sync-versions` publishes it once its frontend examples are ready."
+        )
+    display_name = frontend.feature_type_name(studio.local_code or "") or feature_name
+    tabs = remote.frontend_tabs(target)
+    studio_id = next(
+        (tab.element_id for tab in tabs if tab.name == studio.remote.name and tab.element_type == "FEATURESTUDIO"),
+        None,
+    )
+    example = frontend.find_example(tabs, studio_id, display_name)
+    if example is None and publish:
+        raise UsageError(
+            f"{display_name} has no example in the frontend document, so it can't be published yet: "
+            f"release it without --publish, which creates an empty Part Studio named {display_name}, model an "
+            "example in it, then `fs sync-versions` publishes it."
+        )
     return ReleasePlan(
         studio,
         feature_name,
         previous,
         version_name(feature_name, version),
         target,
-        target_label,
+        display_name,
+        example,
     )
 
 
@@ -134,18 +155,202 @@ def run_release(
     code = version_backend(workspace, plan.studio, plan.version_name, description, log)
     target_studio = find_frontend_studio(workspace, plan.target, studio_name)
     if target_studio is None:
-        log(f"Creating {studio_name} in the {plan.target_label} document...")
+        log(f"Creating {studio_name} in the frontend document...")
         target_studio = remote.create(plan.target, studio_name)
-    log(f"Updating {studio_name} in the {plan.target_label} document...")
+    log(f"Updating {studio_name} in the frontend document...")
     remote.push(plan.target, target_studio.element_id, code)
+    write_for_app(workspace, plan, target_studio.element_id, log)
 
     if make_version:
         log(
-            f"Creating version {plan.version_name} in the {plan.target_label} document..."
+            f"Creating version {plan.version_name} in the frontend document..."
         )
         remote.create_version(plan.target, plan.version_name, description)
     # Its tab has to stay put from now on (see `load_released`)
     workspace.state.released.add(plan.studio.remote.element_id)
+
+
+def source_url(workspace: Workspace, path: str) -> str | None:
+    """The file on GitHub as it is on the main branch: the latest code, not necessarily as released (its release's tag
+    has that, but older releases have none)."""
+    config = workspace.config
+    if config.github is None:
+        return None
+    file = (config.code_dir / path).relative_to(config.root).as_posix()
+    return f"{config.github}/blob/{config.main_branch or 'main'}/{file}"
+
+
+def write_for_app(
+    workspace: Workspace, plan: ReleasePlan, studio_element_id: str, log: Callable[[str], None] = print
+) -> None:
+    """The frontend document's side of FRCDesignApp's FeatureScripts tab: the example, the icon, and the manifest."""
+    remote, target, name = workspace.remote, plan.target, plan.display_name
+    code = plan.studio.local_code or ""
+    if plan.example is None:
+        log(f"Created {name}; model an example in it before publishing.")
+        remote.create_part_studio(target, name)
+    icon_id = None
+    images = {element_id: image.file for element_id, image in workspace.state.images.items()}
+    studios = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
+    icon = frontend.icon_file(code, workspace.config.code_dir, images, studios) or default_icon(workspace)
+    if icon is not None:
+        log(f"Writing {frontend.icon_tab_name(name)} in the frontend document...")
+        icon_id = remote.put_file(target, frontend.icon_tab_name(name), icon.read_bytes(), "image/svg+xml")
+    released = parse_version_name(plan.version_name)
+    assert released
+    entry = frontend.manifest_entry(
+        code=code,
+        studio_element_id=studio_element_id,
+        fallback_name=plan.feature_name,
+        version=str(released.version),
+        icon_element_id=icon_id,
+        source_url=source_url(workspace, plan.studio.path),
+    )
+    if entry is None:
+        log(f"{plan.studio.path} exports no defineFeature, so FRCDesignApp won't list it.")
+        return
+    log(f"Writing its entry in {frontend.MANIFEST_NAME}...")
+    manifest = frontend.with_entry(frontend.parse_manifest(remote.read_file(target, frontend.MANIFEST_NAME)), entry)
+    remote.put_file(target, frontend.MANIFEST_NAME, frontend.dump_manifest(manifest), "application/json")
+
+
+def default_icon(workspace: Workspace) -> pathlib.Path | None:
+    """The icon a feature with none of its own gets (`[tool.fs] default_icon`), if it's set and an `.svg`."""
+    icon = workspace.config.default_icon
+    return icon if icon is not None and icon.suffix.lower() == ".svg" and icon.is_file() else None
+
+
+@dataclasses.dataclass
+class AppFeature:
+    """A released feature's entry in the manifest, as of its latest release, for `plan_app_manifest`."""
+
+    version: Version
+    display_name: str
+    entry: dict
+    # The icon as released, else the default icon; None when it has neither
+    icon: bytes | None
+    has_example: bool
+    default_icon: bool = False
+
+
+def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) -> list[AppFeature]:
+    """Every released feature's entry in the manifest, as its latest release made it, for features released before
+    releases wrote them: each feature in the frontend document with a release, from its code and icon in the backend
+    version of that release (3 calls, and 3 per feature). Part sets, deprecated features, and studios exporting no `defineFeature` are left out."""
+    config, remote = workspace.config, workspace.remote
+    target = config.frontend
+    if target is None:
+        raise UsageError("Set [tool.fs] frontend in pyproject.toml to write the manifest.")
+    part_sets = {part_set.title for part_set in config.parts}
+    files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
+    tabs = remote.frontend_tabs(target)
+    backend_versions = remote.versions(workspace.instance)
+    features = []
+    for tab in tabs:
+        if tab.element_type != "FEATURESTUDIO" or frontend.is_deprecated(tab):
+            continue
+        feature_name = feature_name_for(tab.name)
+        if feature_name in part_sets:
+            continue
+        version = next(
+            (
+                each
+                for each in reversed(backend_versions)
+                if (released := parse_version_name(each.name))
+                and released.feature_name == feature_name
+            ),
+            None,
+        )
+        if version is None:
+            continue
+        released = parse_version_name(version.name)
+        assert released
+        at_version = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
+        studio = next((each for each in remote.list_studios(at_version) if each.name == tab.name), None)
+        if studio is None:
+            log(f"Skipping {tab.name}: it isn't in {version.name}.")
+            continue
+        code = remote.pull(at_version, studio.element_id)
+        path = files.get(studio.element_id)
+        url = source_url(workspace, path) if path is not None else None
+        entry = frontend.manifest_entry(
+            code=code,
+            studio_element_id=tab.element_id,
+            fallback_name=feature_name,
+            version=str(released.version),
+            icon_element_id=None,
+            source_url=url,
+        )
+        if entry is None:
+            continue
+        icon = None
+        # Imported studios are read from their files, as they're likely the same as released
+        imported = frontend.icon_import(code, frontend.local_studio_code(config.code_dir, files))
+        if imported is not None:
+            try:
+                data = remote.download_image(at_version, imported)
+            except ApiError:
+                log(f"Couldn't download {entry['name']}'s icon from {version.name}.")
+            else:
+                icon = data if frontend.is_svg(data) else None
+        default = default_icon(workspace) if icon is None else None
+        if default is not None:
+            icon = default.read_bytes()
+        display_name = entry["name"]
+        has_example = frontend.find_example(tabs, tab.element_id, display_name) is not None
+        features.append(AppFeature(version, display_name, entry, icon, has_example, default is not None))
+    return features
+
+
+def write_app_manifest(
+    workspace: Workspace, features: list[AppFeature], log: Callable[[str], None] = print
+) -> None:
+    """Writes each feature's icon and entry (see `plan_app_manifest`) in the frontend document, replacing the entries
+    for the same studios and keeping the rest. Creates no examples, and no versions."""
+    remote, target = workspace.remote, workspace.config.frontend
+    assert target is not None
+    manifest = frontend.parse_manifest(remote.read_file(target, frontend.MANIFEST_NAME))
+    for feature in features:
+        icon_id = None
+        if feature.icon is not None:
+            log(f"Writing {frontend.icon_tab_name(feature.display_name)}...")
+            icon_id = remote.put_file(
+                target, frontend.icon_tab_name(feature.display_name), feature.icon, "image/svg+xml"
+            )
+        manifest = frontend.with_entry(manifest, {**feature.entry, "iconElementId": icon_id})
+    log(f"Writing {frontend.MANIFEST_NAME}...")
+    remote.put_file(target, frontend.MANIFEST_NAME, frontend.dump_manifest(manifest), "application/json")
+
+
+def unwrite_for_app(workspace: Workspace, plan: DeprecatePlan, name: str, log: Callable[[str], None] = print) -> None:
+    """Takes a deprecated feature out of the app: its manifest entry goes, and its icon and example (unless another
+    feature's example is it too) are renamed DEPRECATED."""
+    remote, target = workspace.remote, plan.target
+    studio_id = plan.frontend_studio.element_id
+    manifest = frontend.parse_manifest(remote.read_file(target, frontend.MANIFEST_NAME))
+    others = [feature for feature in manifest["features"] if feature["studioElementId"] != studio_id]
+    if len(others) != len(manifest["features"]):
+        log(f"Removing its entry from {frontend.MANIFEST_NAME}...")
+        remote.put_file(
+            target,
+            frontend.MANIFEST_NAME,
+            frontend.dump_manifest(frontend.without_studio(manifest, studio_id)),
+            "application/json",
+        )
+    tabs = remote.frontend_tabs(target)
+    example = frontend.find_example(tabs, studio_id, name)
+    shared = example is not None and any(
+        frontend.find_example(tabs, other["studioElementId"], other["name"]) == example for other in others
+    )
+    if example is not None and example.name.strip().lower() == name.strip().lower() and not shared:
+        log(f"Renaming {example.name} {deprecated_name(example.name)}...")
+        remote.rename(target, example.element_id, deprecated_name(example.name))
+    icon = next(
+        (tab for tab in tabs if tab.element_type == "BLOB" and tab.name == frontend.icon_tab_name(name)), None
+    )
+    if icon is not None:
+        log(f"Renaming {icon.name} {deprecated_name(icon.name)}...")
+        remote.rename(target, icon.element_id, deprecated_name(icon.name))
 
 
 # Deprecating
@@ -173,7 +378,6 @@ class DeprecatePlan:
     studio: Studio
     version_name: str
     target: InstancePath
-    target_label: str
     frontend_studio: RemoteStudio
     code: str
     keep_backend: bool
@@ -201,18 +405,18 @@ def plan_deprecate(workspace: Workspace, script: str, keep_backend: bool) -> Dep
     code = deprecated_code(studio.local_code)
     if code is None:
         raise UsageError(f'{studio.path} has no "Feature Type Name" to mark deprecated.')
-    target, target_label = _target(workspace, studio, _is_beta(workspace, studio))
+    _check_one_feature(workspace, studio)
+    target = _frontend(workspace)
     frontend_studio = find_frontend_studio(workspace, target, studio.remote.name)
     if frontend_studio is None:
         raise UsageError(
-            f"The {target_label} document has no {studio.remote.name}, so there's nothing to deprecate; delete the "
+            f"The frontend document has no {studio.remote.name}, so there's nothing to deprecate; delete the "
             f"file and run `fs released --remove {studio.path}` instead."
         )
     return DeprecatePlan(
         studio,
         deprecated_name(feature_name_for(studio.remote.name)),
         target,
-        target_label,
         frontend_studio,
         code,
         keep_backend,
@@ -228,18 +432,21 @@ def run_deprecate(
 ) -> None:
     remote, studio = workspace.remote, plan.studio
     assert studio.remote
+    # Before its feature is renamed DEPRECATED, so its example is found by the name it had
+    name = frontend.feature_type_name(studio.local_code or "") or feature_name_for(studio.remote.name)
     if plan.code != studio.local_code:
         log(f"Marking the feature in {studio.path} deprecated and pushing it...")
         studio.file.write_text(plan.code, newline="")
         studio.local_code = plan.code
         workspace.push_studios([studio])
     code = version_backend(workspace, studio, plan.version_name, description, log)
-    log(f"Updating {plan.frontend_studio.name} in the {plan.target_label} document...")
+    log(f"Updating {plan.frontend_studio.name} in the frontend document...")
     remote.push(plan.target, plan.frontend_studio.element_id, code)
+    unwrite_for_app(workspace, plan, name, log)
     log(f"Renaming it {plan.frontend_name}...")
     remote.rename(plan.target, plan.frontend_studio.element_id, plan.frontend_name)
     if make_version:
-        log(f"Creating version {plan.version_name} in the {plan.target_label} document...")
+        log(f"Creating version {plan.version_name} in the frontend document...")
         remote.create_version(plan.target, plan.version_name, description)
 
     # The frontend studio imports a version, so the backend tab isn't needed anymore
@@ -263,8 +470,8 @@ def _check_in_sync(studio: Studio, doing: str) -> None:
         )
 
 
-def _is_beta(workspace: Workspace, studio: Studio) -> bool:
-    """Whether the one feature studio defines is a beta (released to the frontend_beta document)."""
+def _check_one_feature(workspace: Workspace, studio: Studio) -> None:
+    """Refuses a studio which doesn't define exactly one feature, which is what's released."""
     assert studio.remote
     feature_names = workspace.remote.feature_names(workspace.instance, studio.remote.element_id)
     if len(feature_names) != 1:
@@ -272,16 +479,13 @@ def _is_beta(workspace: Workspace, studio: Studio) -> bool:
         raise UsageError(
             f"{studio.path} must define exactly one custom feature to be released (found {found})."
         )
-    return "beta" in feature_names[0].lower()
 
 
-def _target(workspace: Workspace, studio: Studio, beta: bool) -> tuple[InstancePath, str]:
-    config = workspace.config
-    target = config.frontend_beta if beta else config.frontend
-    target_label = "frontend_beta" if beta else "frontend"
+def _frontend(workspace: Workspace) -> InstancePath:
+    target = workspace.config.frontend
     if target is None:
-        raise UsageError(f"Set [tool.fs] {target_label} in pyproject.toml to release.")
-    return target, target_label
+        raise UsageError("Set [tool.fs] frontend in pyproject.toml to release.")
+    return target
 
 
 def find_frontend_studio(workspace: Workspace, target: InstancePath, name: str) -> RemoteStudio | None:
@@ -387,7 +591,7 @@ def tag_release(
         return name
     commit = commit_with_contents(root, workspace.config.code_dir / path, contents)
     if commit is None:
-        log(f"Couldn't tag {name}: no commit has {path} as it was released. Commit it, then run `fs release-tags`.")
+        log(f"Couldn't tag {name}: no commit has {path} as it was released.")
         return None
     if not create_tag(root, name, commit, released.name):
         log(f"Couldn't tag {name}.")
@@ -398,28 +602,12 @@ def tag_release(
     return name
 
 
-def finalized_versions(workspace: Workspace) -> list[Version]:
-    """The backend document's release versions which are in the frontend (or frontend_beta) document too, so final,
-    oldest first. A part set's are tagged as they're released (see parts.py)."""
-    config, remote = workspace.config, workspace.remote
-    published = set()
-    targets = [config.frontend, config.frontend_beta]
-    for target in targets:
-        if target is not None:
-            published.update(version.name for version in remote.versions(target))
-    return [
-        version
-        for version in remote.versions(workspace.instance)
-        if parse_version_name(version.name) and version.name in published
-    ]
-
-
 def tag_versions(
-    workspace: Workspace, versions: list[Version], push: bool, dry_run: bool = False, log: Callable[[str], None] = print
+    workspace: Workspace, versions: list[Version], push: bool, log: Callable[[str], None] = print
 ) -> int:
-    """Tags final release versions (see `tag_release`) which aren't tagged yet, each from its studio's code in the
-    backend version (an API call each). Versions of studios which aren't synced with a file (like a deprecated one's)
-    are skipped. Returns how many were tagged (or would be, with `dry_run`)."""
+    """Tags the newest of each feature's final release versions (see `tag_release`; versions are oldest first), if it
+    isn't tagged yet, from its studio's code in the backend version (an API call). Versions of studios which aren't
+    synced with a file (like a deprecated one's) are skipped. Returns how many were tagged."""
     root = workspace.config.root
     if not is_repository(root):
         log("Not in a git repository, so releases aren't tagged.")
@@ -427,8 +615,13 @@ def tag_versions(
     remote = workspace.remote
     studios = {feature_name_for(studio.name): studio for studio in remote.list_studios(workspace.instance)}
     files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
-    tagged = 0
+    newest: dict[str, Version] = {}
     for version in versions:
+        released = parse_version_name(version.name)
+        assert released
+        newest[released.feature_name] = version
+    tagged = 0
+    for version in newest.values():
         released = parse_version_name(version.name)
         assert released
         studio = studios.get(released.feature_name)
@@ -439,11 +632,28 @@ def tag_versions(
         name = release_tag(path, released.version)
         if has_tag(root, name):
             continue
-        if dry_run:
-            log(f"Would tag {name}.")
-            tagged += 1
-            continue
         at_version = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
-        if tag_release(workspace, path, released, remote.pull(at_version, studio.element_id), push, log) is not None:
+        code = _released_code(workspace, at_version, studio.element_id, released.feature_name)
+        if code is None:
+            log(f"Skipping {version.name}: couldn't read its code in that version.")
+            continue
+        if tag_release(workspace, path, released, code, push, log) is not None:
             tagged += 1
     return tagged
+
+
+def _released_code(workspace: Workspace, at_version: InstancePath, element_id: str, feature_name: str) -> str | None:
+    """A feature's code in a backend version, by its studio's element id now; else (when its tab was recreated since,
+    so the version holds another) by its name in the version. None if neither can be read."""
+    remote = workspace.remote
+    try:
+        return remote.pull(at_version, element_id)
+    except ApiError:
+        pass
+    try:
+        studio = next(
+            (each for each in remote.list_studios(at_version) if feature_name_for(each.name) == feature_name), None
+        )
+        return remote.pull(at_version, studio.element_id) if studio is not None else None
+    except ApiError:
+        return None

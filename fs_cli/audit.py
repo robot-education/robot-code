@@ -109,9 +109,13 @@ def audit_sections(writeup: str | None, problems: list[tuple[int, int, str]], ta
 
 
 def audit_page(title: str, source: str, shell: str, script: str, writeup: str | None, problems: list[tuple[int, int, str]],
-               theme: str, tables: list[Table] | None = None) -> str:
+               theme: str, tables: list[Table] | None = None, artifact: bool = False) -> str:
     """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), drawn by `script` (see
-    `fs_cli.live_dialog.page_script`) in `shell` (a page `fs ui` renders, see `split_page`), and `audit_sections`."""
+    `fs_cli.live_dialog.page_script`) in `shell` (a page `fs ui` renders, see `split_page`), and `audit_sections`.
+
+    With `artifact`, it's a claude.ai Artifact's page, to publish (and comment on): without the document around it
+    (`<!doctype>`, `<html>`, `<head>`, and `<body>`, which publishing adds), so the viewer's theme, not `theme` (which
+    only the dialog, Onshape's, takes), sets its colors."""
     dialog = (
         shell.replace("\0", "")
         .replace("<body>", "<body>" + _DIALOG_TOOLBAR, 1)
@@ -119,16 +123,23 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
         .replace("<style>", "<style>" + _DIALOG_STYLE, 1)
     )
     sections = audit_sections(writeup, problems, tables or [])
-    return _PAGE.format(
+    head = _PAGE_HEAD.format(
+        title=html.escape(title),
+        # The page's side gutter clears a phone's side system bar (see the style's body)
+        artifact_meta='<meta name="claude:viewport-fit-sides" content="cover">\n' if artifact else "",
+        section_style=SECTION_STYLE,
+    )
+    body = _PAGE_BODY.format(
         title=html.escape(title),
         source=html.escape(source),
-        theme=theme,
         dialog=html.escape(dialog, quote=True),
         problems=sections["problems"],
         writeup=sections["writeup"],
         tables=sections["tables"],
-        section_style=SECTION_STYLE,
     )
+    if artifact:
+        return head + body
+    return _DOCUMENT_START.format(theme=theme) + head + "</head>\n<body>\n" + body + "</body>\n</html>\n"
 
 
 def _safe(script: str) -> str:
@@ -212,19 +223,22 @@ draw();
 window.addEventListener("load", reportHeight);
 """
 
-_PAGE = """<!doctype html>
+_DOCUMENT_START = """<!doctype html>
 <html lang="en" data-theme="{theme}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} audit</title>
-<style>
+"""
+
+_PAGE_HEAD = """<title>{title} audit</title>
+{artifact_meta}<style>
 :root {{ --bg: #ffffff; --fg: #1d2129; --muted: #6b7280; --line: #e5e7eb; --head: #f3f4f6; --code: #f3f4f6; --accent: #2563eb; --empty: #b45309; }}
 @media (prefers-color-scheme: dark) {{
   :root:not([data-theme="light"]) {{ --bg: #16181d; --fg: #e5e7eb; --muted: #9ca3af; --line: #2d3139; --head: #1f2229; --code: #23262d; --accent: #60a5fa; --empty: #f59e0b; }}
 }}
 :root[data-theme="dark"] {{ --bg: #16181d; --fg: #e5e7eb; --muted: #9ca3af; --line: #2d3139; --head: #1f2229; --code: #23262d; --accent: #60a5fa; --empty: #f59e0b; }}
-body {{ margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }}
+body {{ margin: 0; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }}
 main {{ max-width: 1100px; margin: 0 auto; }}
 h1 {{ font-size: 20px; margin: 0; }}
 .source {{ color: var(--muted); font: 12px ui-monospace, monospace; margin: 2px 0 16px; }}
@@ -235,9 +249,9 @@ section > h2 {{ font-size: 16px; border-bottom: 1px solid var(--line); padding-b
 iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--line); border-radius: 6px; display: block; }}
 {section_style}
 </style>
-</head>
-<body>
-<main>
+"""
+
+_PAGE_BODY = """<main>
 <h1>{title}</h1>
 <p class="source">{source}</p>
 <nav><a href="#dialog">Dialog</a><a href="#tables">Lookup tables</a><a href="#writeup">Writeup</a><a href="#problems">Problems</a></nav>
@@ -276,6 +290,4 @@ window.addEventListener("message", (event) => {{
   }}
 }});
 </script>
-</body>
-</html>
 """

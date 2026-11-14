@@ -13,6 +13,7 @@ import pytest
 
 from fs_cli import cli, workspace
 from fs_cli.configured_studios import Built
+from fs_cli.frontend import FrontendTab
 from fs_cli.remote import RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
@@ -23,7 +24,6 @@ from semver import Version as SemVersion
 
 BACKEND = "https://cad.onshape.com/documents/back/w/bw"
 FRONTEND = "https://cad.onshape.com/documents/front/w/fw"
-BETA = "https://cad.onshape.com/documents/beta/w/betaw"
 
 
 class FakeOnshape:
@@ -42,6 +42,8 @@ class FakeOnshape:
         self.image_tabs: dict[tuple[str, str], dict[str, dict]] = {}
         # (document id, instance id) -> Part Studio tab name -> element id
         self.part_studios: dict[tuple[str, str], dict[str, str]] = {}
+        # Part Studio element id -> the folders holding it
+        self.part_studio_folders: dict[str, tuple[str, ...]] = {}
         # (document id, studio name, Feature Studio element id, its microversion) of each build
         self.builds: list[tuple[str, str, str, str]] = []
         self.build_status = "OK"
@@ -156,7 +158,16 @@ class FakeOnshape:
 
     def rename(self, instance, element_id, name):
         self.calls["rename"] += 1
-        self.studios(instance.document_id, instance.instance_id)[element_id]["name"] = name
+        key = (instance.document_id, instance.instance_id)
+        if element_id in self.studios(*key):
+            self.studios(*key)[element_id]["name"] = name
+        parts = self.part_studios.get(key, {})
+        for old, each in list(parts.items()):
+            if each == element_id:
+                parts[name] = parts.pop(old)
+        files = self.files.get(key, {})
+        if element_id in files:
+            files[element_id] = (name, files[element_id][1])
 
     def feature_names(self, instance, element_id):
         self.calls["feature_names"] += 1
@@ -174,6 +185,9 @@ class FakeOnshape:
         self.versions_by_document.setdefault(instance.document_id, []).append(version)
         self.instances[(instance.document_id, version.id)] = copy.deepcopy(
             self.studios(instance.document_id, instance.instance_id)
+        )
+        self.image_tabs[(instance.document_id, version.id)] = copy.deepcopy(
+            self.images(instance.document_id, instance.instance_id)
         )
         return version
 
@@ -220,6 +234,35 @@ class FakeOnshape:
         files[element_id] = (name, data)
         return element_id
 
+    def add_part_studio(self, name, folders=(), document="front", instance="fw") -> str:
+        element_id = self._id("p")
+        self.part_studios.setdefault((document, instance), {})[name] = element_id
+        self.part_studio_folders[element_id] = folders
+        return element_id
+
+    def frontend_tabs(self, instance):
+        """Feature Studios, then Part Studios, then images and files: enough order for an example after its studios."""
+        self.calls["frontend_tabs"] += 1
+        key = (instance.document_id, instance.instance_id)
+        return [
+            *(FrontendTab(id, s["name"], "FEATURESTUDIO", s["folders"]) for id, s in self.studios(*key).items()),
+            *(
+                FrontendTab(id, name, "PARTSTUDIO", self.part_studio_folders.get(id, ()))
+                for name, id in self.part_studios.get(key, {}).items()
+            ),
+            *(FrontendTab(id, image["name"], "BLOB") for id, image in self.images(*key).items()),
+            *(FrontendTab(id, name, "BLOB") for id, (name, _) in self.files.get(key, {}).items()),
+        ]
+
+    def create_part_studio(self, instance, name):
+        self.calls["create_part_studio"] += 1
+        return self.add_part_studio(name, document=instance.document_id, instance=instance.instance_id)
+
+    def read_file(self, instance, name):
+        self.calls["read_file"] += 1
+        files = self.files.get((instance.document_id, instance.instance_id), {})
+        return next((data for each, data in files.values() if each == name), None)
+
     def element_ids(self, instance):
         key = (instance.document_id, instance.instance_id)
         return set(self.instances.get(key, {})) | set(self.image_tabs.get(key, {}))
@@ -260,7 +303,7 @@ def repo(tmp_path, monkeypatch) -> pathlib.Path:
     # Tabs deleted in the fake are gone at once, so don't wait to list them again
     monkeypatch.setattr(workspace, "RELIST_DELAYS", (0, 0))
     (tmp_path / "pyproject.toml").write_text(
-        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nfrontend_beta = "{BETA}"\n'
+        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\n'
     )
     (tmp_path / "featurescripts").mkdir()
     monkeypatch.chdir(tmp_path)
@@ -1199,18 +1242,11 @@ def test_feature_names():
 def test_next_version():
     v = SemVersion.parse
     previous = ReleasedVersion("Robot frame", v("1.2.3"))
-    assert next_version(None, VersionType.MINOR, False) == v("0.1.0")
-    assert next_version(previous, VersionType.PATCH, False) == v("1.2.4")
-    assert next_version(previous, VersionType.MAJOR, True) == v("2.0.0-beta.1")
-    beta = ReleasedVersion("Robot frame", v("2.0.0-beta.1"))
-    assert next_version(beta, None, True) == v("2.0.0-beta.2")
-    assert next_version(beta, VersionType.MAJOR, False) == v("2.0.0")
+    assert next_version(None, VersionType.MINOR) == v("0.1.0")
+    assert next_version(previous, VersionType.PATCH) == v("1.2.4")
+    assert next_version(previous, VersionType.MAJOR) == v("2.0.0")
     with pytest.raises(ValueError):
-        next_version(previous, None, False)
-    with pytest.raises(ValueError):
-        next_version(previous, None, True)
-    with pytest.raises(ValueError):
-        next_version(beta, VersionType.MINOR, True)
+        next_version(previous, None)
 
 
 def released_frame(repo, onshape) -> str:
@@ -1285,19 +1321,6 @@ def test_release_requires_pushed_code(repo, onshape, capsys):
     local(repo, "Robot/robotFrame.fs").write_text("unpushed")
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 2
     assert "run `fs push`" in capsys.readouterr().err
-
-
-def test_beta_release(repo, onshape, capsys):
-    onshape.add("robotFrameBeta.fs", "b", features=["robotFrameBeta"])
-    run(onshape, "pull")
-    assert run(onshape, "release", "robotFrameBeta", "--minor", "-y") == 2
-    assert "--beta" in capsys.readouterr().err
-    assert run(onshape, "release", "robotFrameBeta", "--minor", "--beta", "-y") == 0
-    assert onshape.names("beta", "betaw") == ["robotFrameBeta.fs"]
-    assert (
-        onshape.versions_by_document["back"][0].name
-        == "Robot frame beta - v0.1.0-beta.1"
-    )
 
 
 def test_release_requires_confirmation_when_not_interactive(repo, onshape, capsys):
@@ -1535,6 +1558,32 @@ def tags(repo: pathlib.Path) -> list[str]:
     return git_output(repo, "tag").split()
 
 
+def frame_released_in_a_recreated_tab(repo, onshape) -> Version:
+    """A release of Robot frame made when its tab was another element, as if it's been recreated since."""
+    git_repo(repo)
+    element_id = released_frame(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Frame")
+    version = onshape.create_version(InstancePath("back", "bw"), "Robot frame - v1.0.0", "")
+    released = onshape.instances[("back", version.id)]
+    released["old"] = released.pop(element_id)
+    return version
+
+
+def test_tagging_finds_a_release_in_a_recreated_tab(repo, onshape):
+    frame_released_in_a_recreated_tab(repo, onshape)
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert tags(repo) == ["robotFrame/v1.0.0"]
+
+
+def test_tagging_skips_a_release_it_cant_read(repo, onshape, capsys):
+    version = frame_released_in_a_recreated_tab(repo, onshape)
+    onshape.instances[("back", version.id)]["old"]["name"] = "renamed.fs"
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert "Skipping Robot frame - v1.0.0: couldn't read its code" in capsys.readouterr().out
+    assert tags(repo) == []
+
+
 def test_publishing_a_release_tags_it(repo, onshape, capsys):
     git_repo(repo)
     released_frame(repo, onshape)
@@ -1547,6 +1596,18 @@ def test_publishing_a_release_tags_it(repo, onshape, capsys):
     assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish", "--no-push-tags") == 0
     assert tags(repo) == ["robotFrame/v0.1.1"]
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.1") == git_output(repo, "rev-parse", "HEAD")
+
+
+def test_a_first_release_isnt_published_at_once(repo, onshape, capsys):
+    released_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert "never been released" in capsys.readouterr().err
+    # Nothing made
+    assert "back" not in onshape.versions_by_document
+    # Released, and then a later one can be
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert [version.name for version in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
 
 
 def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
@@ -1564,32 +1625,26 @@ def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.0") == released
 
 
-def test_release_tags_backfills_final_releases(repo, onshape, capsys):
+def test_syncing_versions_tags_only_each_features_newest_release(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
-    # Not final yet
-    assert tags(repo) == []
-    onshape.versions_by_document["front"] = [Version("f1", "Robot frame - v0.1.0")]
-    capsys.readouterr()
-    assert run(onshape, "release-tags", "--dry-run") == 0
-    assert "Would tag robotFrame/v0.1.0" in capsys.readouterr().out
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
-    assert tags(repo) == ["robotFrame/v0.1.0"]
-    capsys.readouterr()
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
-    assert "Every final release is tagged." in capsys.readouterr().out
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--no-push-tags") == 0
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0", "Robot frame - v0.1.1"]
+    assert tags(repo) == ["robotFrame/v0.1.1"]
 
 
 def test_changes_reads_the_release_tag(repo, onshape, capsys):
     git_repo(repo)
     released_frame(repo, onshape)
+    onshape.add_part_studio("Robot frame")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish", "--no-push-tags") == 0
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
     local(repo, "Robot/robotFrame.fs").write_text("frame 2\n")
     pulls = onshape.pulls
     capsys.readouterr()
@@ -1825,8 +1880,10 @@ FEATURE = 'annotation { "Feature Type Name" : "Robot frame" }\nexport const robo
 
 def deprecatable_frame(repo, onshape) -> str:
     element_id = onshape.add("robotFrame.fs", FEATURE, features=["Robot frame"])
+    onshape.add_part_studio("Robot frame")
     run(onshape, "pull")
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 0
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    assert run(onshape, "sync-versions", "-y") == 0
     return element_id
 
 
@@ -2256,7 +2313,7 @@ def test_the_main_workspace_changes_only_by_merging(repo, onshape, capsys):
 
 def test_releasing_runs_only_on_main(repo, onshape, capsys):
     branched(repo, onshape)
-    assert run(onshape, "release-tags") == 2
+    assert run(onshape, "sync-versions") == 2
     assert "runs only on main" in capsys.readouterr().err
 
 
@@ -2345,6 +2402,36 @@ def test_releases_lists_and_checks_release_files(repo, onshape, capsys):
         assert problem in capsys.readouterr().err
 
 
+def test_release_files_dont_publish_a_first_release(repo, onshape, capsys):
+    element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
+    run(onshape, "pull")
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\npublish = true\n')
+    assert run(onshape, "releases") == 2
+    assert "never been released" in capsys.readouterr().err
+    # Once it's been released, it can be
+    assert run(onshape, "released", "robotFrame") == 0
+    assert element_id in json.loads((repo / "fs-studios.json").read_text())["released"]
+    assert run(onshape, "releases") == 0
+
+
+def test_run_releases_doesnt_publish_unless_asked(repo, onshape):
+    onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
+    branched(repo, onshape, "main")
+    (repo / "pyproject.toml").write_text(
+        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nmain_branch = "main"\n'
+    )
+    run(onshape, "pull")
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    commit_all(repo, "Ask for a release")
+    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
+    # Its frontend studio points at it, but it's not final until `fs sync-versions`
+    assert "Robot frame - v0.1.0" in onshape.code("robotFrame.fs", "front", "fw")
+    assert "front" not in onshape.versions_by_document
+
+
 def test_run_releases_makes_each_release_once(repo, onshape, capsys):
     element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
     branched(repo, onshape, "main")
@@ -2404,3 +2491,191 @@ def test_branches_prunes_only_its_workspaces_of_branches_gone_from_origin(repo, 
     assert "merged-and-deleted (gone from origin)" in capsys.readouterr().out
     assert run(onshape, "branches", "--prune", "--yes") == 0
     assert sorted(onshape.workspace_names.values()) == ["feature", "someone's own"]
+
+
+# FRCDesignApp's side of a release (fs_cli/frontend.py)
+
+ICON_SVG = b"<svg/>"
+def app_frame(repo, onshape) -> str:
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + 'github = "https://github.com/robot-education/robot-code"\n')
+    icon = onshape.add_image("robotFrameIcon.svg", ICON_SVG)
+    code = (
+        f'Icon::import(path : "{icon}", version : "{onshape.images()[icon]["mv"]}");\n'
+        'annotation { "Feature Type Name" : "Robot frame", '
+        '"Feature Type Description" : "Add tube.<br>Or channel." ~ CREDIT, "Icon" : Icon::BLOB_DATA }\n'
+        "export const robotFrame = defineFeature();\n"
+    )
+    element_id = onshape.add("robotFrame.fs", code, folders=("released", "frame"), features=["Robot frame"])
+    run(onshape, "pull")
+    return element_id
+
+
+def manifest(onshape) -> dict:
+    data = onshape.read_file(InstancePath("front", "fw"), "featurescripts.json")
+    return json.loads(data) if data else {}
+
+
+def test_release_writes_the_app_its_entry_icon_and_an_empty_example(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+
+    assert "Create an empty example Part Studio, Robot frame, in the frontend document" in capsys.readouterr().out
+    assert list(onshape.part_studios[("front", "fw")]) == ["Robot frame"]
+    [studio_id] = onshape.studios("front", "fw")
+    files = onshape.files[("front", "fw")]
+    icon_id = next(id for id, (name, _) in files.items() if name == "Robot frame icon.svg")
+    assert files[icon_id][1] == ICON_SVG
+    assert manifest(onshape) == {
+        "schemaVersion": 1,
+        "features": [
+            {
+                "studioElementId": studio_id,
+                "featureType": "robotFrame",
+                "name": "Robot frame",
+                "description": "Add tube.\nOr channel.",
+                "version": "0.1.0",
+                "iconElementId": icon_id,
+                "sourceUrl": "https://github.com/robot-education/robot-code/blob/main/featurescripts/released/frame/robotFrame.fs",
+            }
+        ],
+    }
+
+    # The next release keeps the example it made, and replaces its entry
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert list(onshape.part_studios[("front", "fw")]) == ["Robot frame"]
+    assert [feature["version"] for feature in manifest(onshape)["features"]] == ["0.1.1"]
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
+
+
+def test_release_refuses_to_publish_a_feature_with_no_example(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    onshape.versions_by_document["back"] = [Version("1", "Robot frame - v0.1.0")]
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert "has no example in the frontend document" in capsys.readouterr().err
+    assert "front" not in onshape.versions_by_document
+    assert onshape.calls["create_version"] == 0
+
+
+def test_a_shared_example_after_its_features_is_kept(repo, onshape):
+    app_frame(repo, onshape)
+    # Filed by hand into a folder of the frontend document, before an example both features share
+    onshape.add("robotFrame.fs", "", folders=("Parts",), document="front", instance="fw")
+    onshape.add_part_studio("Tube examples", folders=("Parts",))
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert list(onshape.part_studios[("front", "fw")]) == ["Tube examples"]
+
+
+def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    written = manifest(onshape)
+    # Released before releases wrote the app's side, and changed since
+    del onshape.files[("front", "fw")]
+    code = local(repo, "released/frame/robotFrame.fs")
+    code.write_text(code.read_text().replace("Add tube.", "Add pipe."))
+    assert run(onshape, "push") == 0
+    capsys.readouterr()
+
+    assert run(onshape, "app-manifest", "--dry-run") == 0
+    assert "Robot frame - v0.1.0\n" in capsys.readouterr().out
+    assert ("front", "fw") not in onshape.files
+
+    assert run(onshape, "app-manifest", "-y") == 0
+    [entry] = written["features"]
+    icon_id = next(id for id, (name, _) in onshape.files[("front", "fw")].items() if name == "Robot frame icon.svg")
+    assert manifest(onshape) == {"schemaVersion": 1, "features": [{**entry, "iconElementId": icon_id}]}
+    assert onshape.files[("front", "fw")][icon_id][1] == ICON_SVG
+    assert onshape.calls["create_version"] == 1
+    assert onshape.calls["create_part_studio"] == 1
+
+
+def test_an_icon_another_studio_exports_is_found(repo, onshape):
+    """Like RobotIcon, which robotFeature.fs exports for features without an icon of their own."""
+    icon = onshape.add_image("robotIcon.svg", ICON_SVG)
+    core = onshape.add(
+        "robotFeature.fs", f'export RobotIcon::import(path : "{icon}", version : "{onshape.images()[icon]["mv"]}");\n'
+    )
+    code = (
+        f'export import(path : "{core}", version : "v");\n'
+        'annotation { "Feature Type Name" : "Robot grid", "Icon" : RobotIcon::BLOB_DATA }\n'
+        "export const robotGrid = defineFeature();\n"
+    )
+    onshape.add("robotGrid.fs", code, features=["Robot grid"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotGrid", "--minor", "-y") == 0
+    files = onshape.files[("front", "fw")]
+    [entry] = manifest(onshape)["features"]
+    assert files[entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+    del onshape.files[("front", "fw")]
+    assert run(onshape, "app-manifest", "-y") == 0
+    [entry] = manifest(onshape)["features"]
+    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+
+def test_a_feature_without_an_icon_gets_the_default_icon(repo, onshape, capsys):
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + 'default_icon = "core/robotIcon.svg"\n')
+    write(repo, "core/robotIcon.svg", ICON_SVG.decode())
+    onshape.add("robotGrid.fs", 'annotation { "Feature Type Name" : "Robot grid" }\nexport const robotGrid = defineFeature();\n', features=["Robot grid"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotGrid", "--minor", "-y") == 0
+    [entry] = manifest(onshape)["features"]
+    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+    del onshape.files[("front", "fw")]
+    capsys.readouterr()
+    assert run(onshape, "app-manifest", "-y") == 0
+    assert "Robot grid - v0.1.0 (the default icon" in capsys.readouterr().out
+    [entry] = manifest(onshape)["features"]
+    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+
+def test_app_manifest_keeps_other_entries(repo, onshape):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    front = InstancePath("front", "fw")
+    other = {"studioElementId": "other", "featureType": "other", "name": "Other", "description": "", "version": "1.0.0", "iconElementId": None}
+    onshape.put_file(front, "featurescripts.json", json.dumps({"schemaVersion": 1, "features": [other]}).encode(), "")
+
+    assert run(onshape, "app-manifest", "-y") == 0
+    [kept, frame] = manifest(onshape)["features"]
+    assert kept == other
+    assert frame["sourceUrl"] == "https://github.com/robot-education/robot-code/blob/main/featurescripts/released/frame/robotFrame.fs"
+
+
+def test_app_manifest_leaves_out_unreleased_and_deprecated_features(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    # In the frontend document, but never released
+    onshape.add("robotTube.fs", "export const robotTube = defineFeature();\n", document="front", instance="fw")
+    # Deprecated: its last release is named for it, and its frontend studio renamed
+    old = onshape.add("robotOld.fs", "export const robotOld = defineFeature();\n")
+    onshape.create_version(InstancePath("back", "bw"), "Robot old - v1.0.0", "")
+    onshape.add("DEPRECATED robotOld.fs", "export const robotOld = defineFeature();\n", document="front", instance="fw")
+    del onshape.studios()[old]
+    assert run(onshape, "app-manifest", "-y") == 0
+    assert "No released features to write." in capsys.readouterr().out
+    assert manifest(onshape) == {}
+
+
+def test_deprecate_takes_the_feature_out_of_the_app(repo, onshape):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    # In a folder of its own, so the frame's example isn't its too
+    other = onshape.add("robotTube.fs", "", folders=("Tubes",), document="front", instance="fw")
+    files = onshape.files[("front", "fw")]
+    entries = manifest(onshape)["features"]
+    entries.append({**entries[0], "studioElementId": other, "name": "Robot tube"})
+    files[next(id for id, (name, _) in files.items() if name == "featurescripts.json")] = (
+        "featurescripts.json",
+        json.dumps({"schemaVersion": 1, "features": entries}).encode(),
+    )
+
+    assert run(onshape, "deprecate", "robotFrame", "-y", "--keep-backend") == 0
+
+    assert [feature["name"] for feature in manifest(onshape)["features"]] == ["Robot tube"]
+    assert list(onshape.part_studios[("front", "fw")]) == ["DEPRECATED Robot frame"]
+    assert "DEPRECATED Robot frame icon.svg" in [name for name, _ in files.values()]
+

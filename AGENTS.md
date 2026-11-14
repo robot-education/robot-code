@@ -7,7 +7,7 @@ FeatureScript here (including selections, editing logic, and manipulator change 
 
 Ask before anything that calls Onshape, and run it only once the user says yes, every time: the Onshape FeatureScript
 MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `parts`, `configuration`,
-`deprecate`, `sync-versions`, `release-tags`, `sync-main`, `run-releases`, `branches`, `features`, `pull-std`,
+`deprecate`, `sync-versions`, `sync-main`, `run-releases`, `branches`, `features`, `pull-std`,
 `update-std`, `released --detect`, and the
 rest). Each call spends the
 user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
@@ -27,7 +27,8 @@ them; see `docs/testing.md`. `uv run pytest tests/featurescript` runs them, afte
 changing the tooling, `uv run pytest` runs every test.
 
 After changing a feature, check, test, and show it as `.claude/skills/feature-audit/SKILL.md` says: it ends with its
-`fs audit` page, shown to the user (in VS Code, in its feature preview).
+`fs audit` page, shown to the user (in VS Code, in its feature preview; elsewhere, published as an Artifact they can
+comment on).
 
 `docs/using-onshape.md` is for driving Onshape from Chrome: opening tabs, reading FeatureScript notices, monitoring and
 profiling, the logging variable, and trying changes without `fs push`.

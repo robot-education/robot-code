@@ -36,13 +36,14 @@ from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release_files import RELEASES_FOLDER, ReleaseFileError, pending
 from fs_cli.gen import GenerateError, generate
 from fs_cli.git import commit_all, commit_paths, file_at, has_tag, head_commit, is_clean, is_repository, remote_branches
+from fs_cli.frontend import MANIFEST_NAME
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
     deprecated_name,
     find_studio,
     plan_deprecate,
-    finalized_versions,
+    plan_app_manifest,
     plan_release,
     release_tag,
     run_deprecate,
@@ -50,6 +51,7 @@ from fs_cli.release import (
     tag_release,
     tag_versions,
     unsynced_versions,
+    write_app_manifest,
 )
 from fs_cli.remote import OnshapeRemote, Remote, file_name_for, is_local
 from fs_cli.renames import (
@@ -329,6 +331,10 @@ def make_parser() -> argparse.ArgumentParser:
     audit_command.add_argument(
         "--open", action="store_true", help="also show it in VS Code's feature preview, when run inside VS Code"
     )
+    audit_command.add_argument(
+        "--artifact", action="store_true",
+        help="write it as a claude.ai Artifact's page, to publish: without the document around it, in the viewer's theme",
+    )
 
     tabs_command = command(
         "tabs",
@@ -436,12 +442,6 @@ def make_parser() -> argparse.ArgumentParser:
             help=f"release a new {version_type} version",
         )
     release.add_argument(
-        "-b",
-        "--beta",
-        action="store_true",
-        help="make a beta release to the frontend_beta document",
-    )
-    release.add_argument(
         "-d",
         "--description",
         default="",
@@ -450,7 +450,7 @@ def make_parser() -> argparse.ArgumentParser:
     release.add_argument(
         "--publish",
         action="store_true",
-        help="also create the version in the frontend document, publishing (finalizing) the release immediately, and tag it in git",
+        help="also create the version in the frontend document, publishing (finalizing) the release immediately, and tag it in git (not for a first release)",
     )
     release.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
@@ -589,13 +589,14 @@ def make_parser() -> argparse.ArgumentParser:
         "--branch", help="the branch just merged, whose workspace to land; a workspace made for it when it has none"
     )
 
-    release_tags = command(
-        "release-tags",
-        "tag final releases (those whose version is in the frontend document) in git which aren't tagged yet, e.g. robotFrame/v1.3.0",
+    app_manifest_command = command(
+        "app-manifest",
+        "write every released feature's entry in featurescripts.json, and its icon, as its latest release made them, "
+        "without releasing it: for features released before releases wrote them (3 API calls, 5 per feature)",
         targets=False,
     )
-    no_push_tags(release_tags)
-    dry_run(release_tags)
+    app_manifest_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    dry_run(app_manifest_command)
     return parser
 
 
@@ -635,7 +636,7 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
 
 
 # Commands which release, or land main, so run only on the main branch (see fs_cli/branches.py)
-MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "release-tags", "sync-main", "run-releases"}
+MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "sync-main", "run-releases", "app-manifest"}
 # Commands which write the backend workspace, so make their branch's
 WRITE_COMMANDS = {"push", "sync", "tabs"}
 
@@ -707,7 +708,7 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
         print(f"Running {RELEASES_FOLDER}/{file.path.name}:")
         common = {"bump": file.bump, "description": file.described, "yes": True, "dry_run": args.dry_run, "no_push_tags": args.no_push_tags}
         if file.script:
-            release(workspace, argparse.Namespace(script=file.script, beta=file.beta, publish=file.publish, **common))
+            release(workspace, argparse.Namespace(script=file.script, publish=file.publish, **common))
         else:
             parts(
                 workspace,
@@ -1365,19 +1366,22 @@ def _synced_studios(config: Config, state: State, args: list[str]) -> list[tuple
 
 
 def release(workspace: Workspace, args: argparse.Namespace) -> int:
-    plan = plan_release(workspace, args.script, args.bump, args.beta)
+    plan = plan_release(workspace, args.script, args.bump, args.publish)
     previous = plan.previous.name if plan.previous else "none"
     print(
         f"Releasing {plan.studio.path} as {plan.version_name} (previous release: {previous})"
     )
     print(f"  1. Create version {plan.version_name} in the backend document")
-    print(
-        f"  2. Point {plan.studio.name} in the {plan.target_label} document at that version"
-    )
+    steps = [f"Point {plan.studio.name} in the frontend document at that version"]
+    if plan.example is None:
+        steps.append(f"Create an empty example Part Studio, {plan.display_name}, in the frontend document")
+    else:
+        steps.append(f"Keep {plan.example.name} as its example")
+    steps.append("Write its icon and its entry in featurescripts.json there, for FRCDesignApp")
     if args.publish:
-        print(
-            f"  3. Create version {plan.version_name} in the {plan.target_label} document"
-        )
+        steps.append(f"Create version {plan.version_name} in the frontend document")
+    for number, step in enumerate(steps, 2):
+        print(f"  {number}. {step}")
     if args.dry_run:
         return 0
     if not args.yes:
@@ -1403,11 +1407,13 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
         steps.append(f'Rename its feature "{DEPRECATED}...", and push it')
     steps += [
         f"Create version {plan.version_name} in the backend document",
-        f"Point {plan.frontend_studio.name} in the {plan.target_label} document at that version",
+        f"Point {plan.frontend_studio.name} in the frontend document at that version",
+        f"Take it out of FRCDesignApp: remove its entry from featurescripts.json, and rename its icon and its "
+        f"example (unless another feature's is it too) {DEPRECATED}...",
         f"Rename it {plan.frontend_name}",
     ]
     if args.publish:
-        steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
+        steps.append(f"Create version {plan.version_name} in the frontend document")
     if args.keep_backend:
         assert studio.remote
         steps.append(f"Rename its tab in the backend document {deprecated_name(studio.remote.name)}")
@@ -1450,10 +1456,30 @@ def sync_versions(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
-def release_tags(workspace: Workspace, args: argparse.Namespace) -> int:
-    tagged = tag_versions(workspace, finalized_versions(workspace), not args.no_push_tags, args.dry_run)
-    if tagged == 0:
-        print("Every final release is tagged.")
+def app_manifest(workspace: Workspace, args: argparse.Namespace) -> int:
+    features = plan_app_manifest(workspace)
+    if not features:
+        print("No released features to write.")
+        return 0
+    print(f"Entries for {MANIFEST_NAME}, each as of its latest release:")
+    for feature in features:
+        notes = [
+            note
+            for note, missing in (
+                ("no icon", feature.icon is None),
+                ("the default icon", feature.default_icon),
+                ("no GitHub link", "sourceUrl" not in feature.entry),
+                ("no example", not feature.has_example),
+            )
+            if missing
+        ]
+        print(f"  {feature.version.name}" + (f" ({'; '.join(notes)})" if notes else ""))
+    if args.dry_run:
+        return 0
+    if not args.yes:
+        confirm(f"This writes {MANIFEST_NAME} and the icons in the frontend document, and makes no version.")
+    write_app_manifest(workspace, features)
+    print(f"Wrote {len(features)} {'entry' if len(features) == 1 else 'entries'} in {MANIFEST_NAME}.")
     return 0
 
 
@@ -1752,7 +1778,7 @@ def audit(config: Config, args: argparse.Namespace) -> int:
     writeup_path = path.with_suffix(".md")
     writeup = writeup_path.read_text() if writeup_path.is_file() else None
     source = pathlib.Path(os.path.relpath(path.resolve(), config.root)).as_posix()
-    page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables)
+    page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables, args.artifact)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page)
@@ -2094,7 +2120,7 @@ COMMANDS = {
     "release": release,
     "deprecate": deprecate,
     "sync-versions": sync_versions,
-    "release-tags": release_tags,
+    "app-manifest": app_manifest,
     "sync-main": sync_main,
     "branches": branches,
     "run-releases": run_releases,

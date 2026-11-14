@@ -7,10 +7,11 @@ A branch asks for a release by adding a file to `releases/` (see docs/fs-cli.md#
     part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
     bump = "minor"              # major, minor, or patch
     description = "Adds hubs"   # internal, as `--description`
-    beta = false                # FeatureScripts: release to the beta document
-    publish = true              # FeatureScripts: finalize it at once, and tag it
+    publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
 
-`fs run-releases`, on main, runs each, deletes its file, and commits what the releases recorded.
+`fs run-releases`, on main, runs each, deletes its file, and commits what the releases recorded. A FeatureScript's
+release isn't final (its version in the frontend document) until `fs sync-versions`, unless it's `publish`ed, so its
+frontend examples can be updated first; a first release is never published at once.
 """
 
 from __future__ import annotations
@@ -21,10 +22,11 @@ import tomllib
 
 from fs_cli.config import Config
 from fs_cli.git import added_in
+from fs_cli.state import load_released, load_studio_files
 from fs_cli.versions import VersionType
 
 RELEASES_FOLDER = "releases"
-_KEYS = {"script", "part_set", "bump", "description", "beta", "publish"}
+_KEYS = {"script", "part_set", "bump", "description", "publish"}
 
 
 class ReleaseFileError(Exception):
@@ -38,8 +40,7 @@ class ReleaseFile:
     description: str
     script: str | None = None
     part_set: str | None = None
-    beta: bool = False
-    publish: bool = True
+    publish: bool = False
     # The commit that added it, so a file of the same name asking for a later release isn't taken for this one
     added: str | None = None
 
@@ -69,6 +70,18 @@ def pending(config: Config) -> list[ReleaseFile]:
     return [load(config, path) for path in sorted(folder(config).glob("*.toml"))]
 
 
+def is_first_release(config: Config, script: str) -> bool:
+    """Whether `script` (a FeatureScript, by its name or file, as `fs release` takes it) has never been released, by
+    fs-studios.json's released tabs (no API calls). A script it doesn't know isn't, here: releasing it says why."""
+    released = load_released(config.studios_path)
+    matches = [
+        element_id
+        for element_id, file in load_studio_files(config.studios_path).items()
+        if pathlib.PurePosixPath(file).stem == script or script.replace("\\", "/").endswith(file)
+    ]
+    return bool(matches) and not any(element_id in released for element_id in matches)
+
+
 def load(config: Config, path: pathlib.Path) -> ReleaseFile:
     where = path.relative_to(config.root).as_posix()
     try:
@@ -86,15 +99,19 @@ def load(config: Config, path: pathlib.Path) -> ReleaseFile:
     if "part_set" in data:
         if not any(part_set.name == data["part_set"] for part_set in config.parts):
             raise ReleaseFileError(f"{where}: no part set named {data['part_set']} in [tool.fs.parts].")
-        if "beta" in data or "publish" in data:
-            raise ReleaseFileError(f"{where}: a part set's release has no beta or publish.")
+        if "publish" in data:
+            raise ReleaseFileError(f"{where}: a part set's release has no publish.")
+    if data.get("publish", False) and is_first_release(config, data["script"]):
+        raise ReleaseFileError(
+            f"{where}: {data['script']} has never been released, so its first release isn't published at once: leave out "
+            "publish, and `fs sync-versions` publishes it once its frontend examples are ready."
+        )
     return ReleaseFile(
         path,
         VersionType(bump) if bump is not None else None,
         str(data.get("description", "")),
         data.get("script"),
         data.get("part_set"),
-        bool(data.get("beta", False)),
-        bool(data.get("publish", True)),
+        bool(data.get("publish", False)),
         added_in(config.root, path),
     )

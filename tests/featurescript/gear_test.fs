@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "gear/robotGear.fs", version : "");
-import(path : "gear/gearCommon.fs", version : "");
+import(path : "released/gear/robotGear.fs", version : "");
+import(path : "released/gear/gearCommon.fs", version : "");
 import(path : "core/stdRevolve.fs", version : "");
 import(path : "testing.fs", version : "");
 
@@ -206,7 +206,7 @@ export function testBevelGearTooThinForItsTeeth()
         expectContains(expectThrows(function()
                 {
                     bevel(20, 20, 90 * degree, 0.05 * inch, simplified);
-                }), "too small for the teeth");
+                }), "Thickness is too small");
     }
 }
 
@@ -217,7 +217,7 @@ export function testBevelGearTooThickReachesItsApex()
         expectContains(expectThrows(function()
                 {
                     bevel(20, 20, 90 * degree, 0.6 * inch, simplified);
-                }), "reaching the apex");
+                }), "thickness is too large");
     }
 }
 
@@ -227,13 +227,13 @@ export function testBevelGearTooThinForItsMatesTeeth()
     expectContains(expectThrows(function()
             {
                 bevel(10, 40, 90 * degree, 0.15 * inch, true);
-            }), "too small for the mating gear's teeth");
+            }), "Thickness is too small");
     bevel(10, 40, 90 * degree, 0.25 * inch, true);
     // By Gleason's proportions, the mate's teeth are shorter (and the pinion's longer)
     expectContains(expectThrows(function()
             {
                 bevel(10, 40, 90 * degree, 0.12 * inch, false);
-            }), "too small for the mating gear's teeth");
+            }), "Thickness is too small");
     bevel(10, 40, 90 * degree, 0.15 * inch, false);
 }
 
@@ -363,4 +363,12 @@ export function testPointManipulatorSetsTheIndex()
 {
     const changed = robotGearManipulatorChange(newContext(), { "index" : 0 }, { "pointManipulator" : { "index" : 3 } });
     expectEqual(changed.index, 3);
+}
+
+export function testRackStopManipulatorSetsTheDistance()
+{
+    // A flat face's: dragged along it (a round face's turns, and needs the face)
+    const changed = robotGearManipulatorChange(newContext(), { "rackStopDistance" : 1 * inch },
+        { "rackStop" : { "manipulatorType" : ManipulatorType.LINEAR_1D, "offset" : -0.5 * inch } });
+    expectEqual(changed.rackStopDistance, -0.5 * inch);
 }

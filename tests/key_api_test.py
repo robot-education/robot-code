@@ -5,7 +5,9 @@ import http
 import pytest
 
 from onshape_api.api import key_api
+from onshape_api.endpoints import blob_elements
 from onshape_api.exceptions import ApiError
+from onshape_api.paths.paths import ElementPath
 
 DOCUMENT = "/documents/d/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f/elements"
 OTHER = "/documents/d/111111111111111111111111/w/6c20cd994b174cc99668701f/elements"
@@ -15,6 +17,7 @@ class Response:
     def __init__(self, status: int, text: str = "[]") -> None:
         self.status_code = status
         self.text = text
+        self.content = text.encode()
 
     def json(self):
         return [] if self.status_code == 200 else {"message": self.text}
@@ -58,3 +61,20 @@ def test_other_errors_arent_retried(sent, monkeypatch):
     with pytest.raises(ApiError) as error:
         key_api.KeyApi("access", "secret").get(DOCUMENT, anonymous=True)
     assert error.value.status_code == http.HTTPStatus.BAD_REQUEST
+
+
+def test_logging_leaves_out_credentials(sent, caplog):
+    caplog.set_level("INFO")
+    api = key_api.KeyApi("the-access-key", "the-secret-key", logging=True)
+    api.get(DOCUMENT)
+    assert "request headers" in caplog.text
+    assert "the-access-key" not in caplog.text
+    assert "Authorization': '<redacted>'" in caplog.text
+
+
+def test_json_files_download_as_bytes(sent, monkeypatch):
+    # A blob element holding a .json file (like the frontend's featurescripts.json) comes back unparsed
+    stored = '{"schemaVersion": 1, "features": []}'
+    monkeypatch.setattr(key_api.requests, "request", lambda *args, **kwargs: Response(200, stored))
+    path = ElementPath("00dd11dabe44da2db458f898", "6c20cd994b174cc99668701f", "0123456789abcdef01234567")
+    assert blob_elements.download_file(key_api.KeyApi("access", "secret"), path) == stored.encode()

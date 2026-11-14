@@ -146,8 +146,8 @@ def gear_profile(teeth: int, module_mm: float = 1.27, pressure_degrees: float = 
     context = evaluator.eval("newContext()")
     form = f"getGearForm(m, {teeth}, {pressure_degrees} * degree, {fillet}, 0 * meter)"
     m = evaluator.eval(f"{module_mm} * millimeter")
-    evaluator.eval(f'sketchGearProfile(context, newId() + "profile", XY_PLANE, {form}, {sector})', "gear/gearCommon.fs", context=context, m=m)
-    return recorded_sketch(context, "profile"), to_python(evaluator.eval(form, "gear/gearCommon.fs", m=m))
+    evaluator.eval(f'sketchGearProfile(context, newId() + "profile", XY_PLANE, {form}, {sector})', "released/gear/gearCommon.fs", context=context, m=m)
+    return recorded_sketch(context, "profile"), to_python(evaluator.eval(form, "released/gear/gearCommon.fs", m=m))
 
 
 def involute(angle: float) -> float:
@@ -202,7 +202,7 @@ def test_router_relief_rounds_roots():
 
 def gear_slot(teeth: int, bit_radius: str) -> dict:
     form = f"getGearForm(1.27 * millimeter, {teeth}, 20 * degree, {bit_radius}, 0 * meter)"
-    return to_python(shared_evaluator().eval(f"gearRoot({form}).slot", "gear/gearCommon.fs"))
+    return to_python(shared_evaluator().eval(f"gearRoot({form}).slot", "released/gear/gearCommon.fs"))
 
 
 def test_router_bit_too_wide_for_the_root_cuts_a_slot():
@@ -293,7 +293,7 @@ RACK_FORM = "getGearForm(1 * millimeter, undefined, 20 * degree, {fillet}, {offs
 def rack_centers(length_mm: float, gap_mm: float, offset_mm: float = 0.0) -> list[float]:
     form = RACK_FORM.format(fillet=0, offset=offset_mm)
     return to_python(shared_evaluator().eval(
-        f"rackToothCenters({form}, {length_mm} * millimeter, {gap_mm} * millimeter)", "gear/gearCommon.fs"))
+        f"rackToothCenters({form}, {length_mm} * millimeter, {gap_mm} * millimeter)", "released/gear/gearCommon.fs"))
 
 
 def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0, fillet: str = "0"):
@@ -302,7 +302,7 @@ def rack_cut(face_height: str, length_mm: float, offset_mm: float = 0.0, fillet:
     form = RACK_FORM.format(fillet=fillet, offset=offset_mm)
     centers = f"rackToothCenters({form}, {length_mm} * millimeter, 0 * meter)"
     regions = f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers}, undefined)"
-    evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, {regions})', "gear/gearCommon.fs", context=context)
+    evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, {regions})', "released/gear/gearCommon.fs", context=context)
     return recorded_sketch(context, "profile")
 
 
@@ -326,7 +326,7 @@ def rack_regions(length_mm: float, gap_mm: float, face_height: str = "1 * millim
     centers = rack_centers(length_mm, gap_mm, offset_mm)
     centers_fs = "[" + ", ".join(f"{c} * meter" for c in centers) + "]"
     regions = to_python(shared_evaluator().eval(
-        f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers_fs}, {stop})", "gear/gearCommon.fs"))
+        f"rackCutRegions({form}, {face_height}, {length_mm} * millimeter, {centers_fs}, {stop})", "released/gear/gearCommon.fs"))
     return [[(x * 1000, y * 1000) for x, y in region] for region in regions], [c * 1000 for c in centers]
 
 
@@ -366,7 +366,7 @@ def test_partial_teeth_stop_at_a_count_or_a_point():
 
     def partial(count: str, stop: str) -> dict:
         return to_python(shared_evaluator().eval(
-            f"partialTeeth({centers}, {pitch} * meter, 1 * millimeter, {count}, {stop})", "gear/gearCommon.fs"))
+            f"partialTeeth({centers}, {pitch} * meter, 1 * millimeter, {count}, {stop})", "released/gear/gearCommon.fs"))
 
     # The first 3, and the 4th as the stop
     three = partial("3", "undefined")
@@ -392,7 +392,7 @@ def test_partial_rack_leaves_the_face_past_its_stop(face_height, offset_mm):
     form = RACK_FORM.format(fillet=0, offset=offset_mm)
     regions = to_python(shared_evaluator().eval(
         f'rackCutRegions({form}, {face_height}, {length} * millimeter, {kept}, {{ "center" : {stop_center} * meter, "after" : true }})',
-        "gear/gearCommon.fs"))
+        "released/gear/gearCommon.fs"))
     points = [(x * 1000, y * 1000) for region in regions for x, y in region]
     alpha = math.radians(20)
     tip = 1 + offset_mm
@@ -404,7 +404,7 @@ def test_partial_rack_leaves_the_face_past_its_stop(face_height, offset_mm):
     kept = "[" + ", ".join(f"{c} * meter" for c in centers[6:]) + "]"
     regions = to_python(shared_evaluator().eval(
         f'rackCutRegions({form}, {face_height}, {length} * millimeter, {kept}, {{ "center" : {centers[5]} * meter, "after" : false }})',
-        "gear/gearCommon.fs"))
+        "released/gear/gearCommon.fs"))
     points = [(x * 1000, y * 1000) for region in regions for x, y in region]
     assert min(x for x, _ in points) == pytest.approx(centers[5] * 1000 + (near_tip - centers[4] * 1000) * -1, abs=1e-9)
 
@@ -458,7 +458,7 @@ def test_rack_roots_are_rounded_for_a_router_bit():
 
 def rack_bit_too_large(radius_mm: float) -> bool:
     form = RACK_FORM.format(fillet=f"{radius_mm} * millimeter", offset=0)
-    return to_python(shared_evaluator().eval(f"rackBitTooLarge({form})", "gear/gearCommon.fs"))
+    return to_python(shared_evaluator().eval(f"rackBitTooLarge({form})", "released/gear/gearCommon.fs"))
 
 
 def test_rack_roots_are_a_slot_when_the_floor_is_too_narrow():
@@ -512,12 +512,12 @@ def test_rack_slot_too_big_for_its_gaps():
 
 
 def test_rack_teeth_too_thin():
-    with pytest.raises(FSError, match="come to points"):
+    with pytest.raises(FSError, match="Profile offset is too small"):
         rack_cut("1 * millimeter", 10 * math.pi, offset_mm=-1)
 
 
 def gear_eval(expression: str):
-    return to_python(shared_evaluator().eval(expression, "gear/robotGear.fs"))
+    return to_python(shared_evaluator().eval(expression, "released/gear/robotGear.fs"))
 
 
 @pytest.mark.parametrize("pitch,module_mm,pressure_degrees", [
@@ -564,7 +564,7 @@ def test_nearest_gear_teeth():
 
 def bevel_cones(teeth: int, mate_teeth: int, shaft_degrees: float = 90, module_mm: float = 1) -> dict:
     return to_python(shared_evaluator().eval(
-        f"bevelCones({module_mm} * millimeter, {teeth}, {mate_teeth}, {shaft_degrees} * degree)", "gear/gearCommon.fs"))
+        f"bevelCones({module_mm} * millimeter, {teeth}, {mate_teeth}, {shaft_degrees} * degree)", "released/gear/gearCommon.fs"))
 
 
 def test_bevel_cones():
@@ -591,11 +591,51 @@ def test_tooth_gap_is_one_closed_loop(virtual_teeth, fillet):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     form = f"getGearForm(1 * millimeter, {virtual_teeth}, 20 * degree, {fillet}, 0 * meter)"
-    evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form}, 1)', "gear/gearCommon.fs", context=context)
+    evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form}, 1)', "released/gear/gearCommon.fs", context=context)
     loops = recorded_sketch(context, "gap").loops()
     assert len(loops) == 1 and loops[0].closed
-    info = to_python(evaluator.eval(form, "gear/gearCommon.fs"))
+    info = to_python(evaluator.eval(form, "released/gear/gearCommon.fs"))
     curves = loops[0].curves
     # From the root circle to a module past the tip
     assert min(curve.nearest() for curve in curves) == pytest.approx(info["rootRadius"], abs=1e-9)
     assert max(curve.farthest() for curve in curves) == pytest.approx(info["tipRadius"] + 0.001, abs=1e-9)
+
+
+def spline_xs_bore(fit: str):
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    sketch = evaluator.eval('newSketchOnPlane(context, newId() + "bore", { "sketchPlane" : XY_PLANE })', context=context)
+    evaluator.eval(f'skDataArray(sketch, "spline", {{ "sketchDataArray" : SPLINE_XS_BORES[Fit.{fit}] }})',
+                   "core/boreProfiles.gen.fs", sketch=sketch)
+    evaluator.eval("skSolve(sketch)", sketch=sketch)
+    return recorded_sketch(context, "bore")
+
+
+@pytest.mark.parametrize("fit, clearance_in", [("NONE", 0), ("CLOSE", 0.323 - 5 / 16), ("FREE", 0.332 - 5 / 16)])
+def test_spline_xs_bores_are_the_shaft_offset_by_their_fit(fit, clearance_in):
+    loops = spline_xs_bore(fit).loops()
+    assert len(loops) == 1 and loops[0].closed
+    curves = loops[0].curves
+    offset = clearance_in * 0.0254 / 2
+    # The shaft's major and minor diameters (7.9 mm and 6.6 mm), each half the clearance bigger all round
+    assert max(curve.farthest() for curve in curves) == pytest.approx(0.0079 / 2 + offset, abs=1e-9)
+    assert min(curve.nearest() for curve in curves) == pytest.approx(0.0066 / 2 + offset, abs=1e-9)
+    # Every flank point is half the clearance from the shaft's flank: on the same base circle's involute, turned by
+    # that over the base radius
+    base = 0.0005 * 15 / 2 * math.cos(math.radians(30))
+    pitch_half = math.pi / 2 / 15
+    for curve in curves:
+        if curve.kind != "spline":
+            continue
+        for x, y in curve.points:
+            radius = math.hypot(x, y)
+            angle = abs((math.atan2(y, x) + math.pi / 15) % (2 * math.pi / 15) - math.pi / 15)
+            expected = pitch_half + involute(math.radians(30)) - involute(math.acos(base / radius)) + offset / base
+            assert angle == pytest.approx(expected, abs=1e-9)
+
+
+@pytest.mark.parametrize("face_at, modules", [("PITCH", 1), ("OUTSIDE", 0), ("BASE", 2.25)])
+def test_rack_face_is_moved_out_to_the_tips(face_at, modules):
+    # At the base (the root line), the teeth are added on the face: it's moved out their whole depth
+    depth = shared_evaluator().eval(f'rackFaceDepth({{ "rackFaceAt" : RackFaceAt.{face_at} }}, inch / 20)', "released/gear/robotGear.fs")
+    assert to_python(depth) == pytest.approx(modules * 0.0254 / 20, abs=1e-12)
