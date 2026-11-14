@@ -231,8 +231,14 @@ part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
 bump = "minor"              # major, minor, or patch
 description = "Adds hubs"   # internal, as --description
 beta = false                # FeatureScripts: to the beta document
-publish = true              # FeatureScripts: finalize it at once, and tag it (the default)
+publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
 ```
+
+A FeatureScript's release from a file isn't final by default: it makes the backend version and points the frontend
+studio at it, and `fs sync-versions` finalizes it (its frontend version, and its tag) once its frontend examples are
+updated for it. `publish = true` finalizes it at once, for a release which needs nothing in the frontend. A first
+release can't be published at once, from a file or with `fs release --publish`: a new feature needs its examples made
+first. `fs releases` (a pull request's check) reports a file asking to.
 
 They run in name order. Each runs as `fs release` or `fs parts SET --release` would, then its file is deleted and what the
 release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release makes
@@ -452,7 +458,7 @@ small generated file re-exporting a version of the backend studio, and `fs relea
 
 ```
 uv run fs release robotFrame --minor -d "Added a thing"   # 1.2.3 -> 1.3.0
-uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend
+uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend (not a first release)
 uv run fs release robotFrameBeta --major --beta           # start a beta: 1.3.0 -> 2.0.0-beta.1
 uv run fs release robotFrameBeta --beta                   # continue it: 2.0.0-beta.2
 uv run fs release robotFrame --minor --dry-run            # show the plan without changing anything

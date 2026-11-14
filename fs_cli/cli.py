@@ -454,7 +454,7 @@ def make_parser() -> argparse.ArgumentParser:
     release.add_argument(
         "--publish",
         action="store_true",
-        help="also create the version in the frontend document, publishing (finalizing) the release immediately, and tag it in git",
+        help="also create the version in the frontend document, publishing (finalizing) the release immediately, and tag it in git (not for a first release)",
     )
     release.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
@@ -1370,6 +1370,12 @@ def _synced_studios(config: Config, state: State, args: list[str]) -> list[tuple
 
 def release(workspace: Workspace, args: argparse.Namespace) -> int:
     plan = plan_release(workspace, args.script, args.bump, args.beta)
+    if args.publish and plan.previous is None:
+        # A new feature's frontend examples need making before it's final
+        raise UsageError(
+            f"{plan.studio.path} has never been released, so its first release isn't published at once: release it "
+            "without --publish, and `fs sync-versions` publishes it once its frontend examples are ready."
+        )
     previous = plan.previous.name if plan.previous else "none"
     print(
         f"Releasing {plan.studio.path} as {plan.version_name} (previous release: {previous})"
