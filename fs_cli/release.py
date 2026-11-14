@@ -43,6 +43,7 @@ from fs_cli.versions import (
     version_name,
 )
 from fs_cli.workspace import Status, Studio, UsageError, Workspace
+from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
 
@@ -224,6 +225,109 @@ def write_for_app(
         return
     log(f"Writing its entry in {frontend.MANIFEST_NAME}...")
     manifest = frontend.with_entry(frontend.parse_manifest(remote.read_file(target, frontend.MANIFEST_NAME)), entry)
+    remote.put_file(target, frontend.MANIFEST_NAME, frontend.dump_manifest(manifest), "application/json")
+
+
+@dataclasses.dataclass
+class AppFeature:
+    """A released feature's entry in the manifest, as of its latest release, for `plan_app_manifest`."""
+
+    version: Version
+    display_name: str
+    entry: dict
+    # The icon as released; None when it imports none, or not an `.svg`
+    icon: bytes | None
+    has_example: bool
+
+
+def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) -> list[AppFeature]:
+    """Every released feature's entry in the manifest, as its latest release made it, for features released before
+    releases wrote them: each feature in the frontend document with a release, from its code and icon in the backend
+    version of that release (3 calls, and 3 per feature). A feature's GitHub link is left out unless its release is
+    tagged here. Part sets, betas, deprecated features, and studios exporting no `defineFeature` are left out."""
+    config, remote = workspace.config, workspace.remote
+    target = config.frontend
+    if target is None:
+        raise UsageError("Set [tool.fs] frontend in pyproject.toml to write the manifest.")
+    root = config.root
+    tag_here = is_repository(root)
+    part_sets = {part_set.title for part_set in config.parts}
+    files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
+    tabs = remote.frontend_tabs(target)
+    backend_versions = remote.versions(workspace.instance)
+    features = []
+    for tab in tabs:
+        if tab.element_type != "FEATURESTUDIO" or frontend.is_deprecated(tab):
+            continue
+        feature_name = feature_name_for(tab.name)
+        if feature_name in part_sets or "beta" in feature_name.lower():
+            continue
+        version = next(
+            (
+                each
+                for each in reversed(backend_versions)
+                if (released := parse_version_name(each.name))
+                and released.feature_name == feature_name
+                and not released.is_prerelease
+            ),
+            None,
+        )
+        if version is None:
+            continue
+        released = parse_version_name(version.name)
+        assert released
+        at_version = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
+        studio = next((each for each in remote.list_studios(at_version) if each.name == tab.name), None)
+        if studio is None:
+            log(f"Skipping {tab.name}: it isn't in {version.name}.")
+            continue
+        code = remote.pull(at_version, studio.element_id)
+        path = files.get(studio.element_id)
+        url = None
+        if path is not None and tag_here and has_tag(root, release_tag(path, released.version)):
+            url = source_url(workspace, path, released.version)
+        entry = frontend.manifest_entry(
+            code=code,
+            studio_element_id=tab.element_id,
+            fallback_name=feature_name,
+            version=str(released.version),
+            icon_element_id=None,
+            source_url=url,
+        )
+        if entry is None:
+            continue
+        icon = None
+        imported = frontend.icon_import(code)
+        if imported is not None:
+            try:
+                data = remote.download_image(at_version, imported)
+            except ApiError:
+                log(f"Couldn't download {entry['name']}'s icon from {version.name}.")
+            else:
+                icon = data if frontend.is_svg(data) else None
+        display_name = entry["name"]
+        has_example = frontend.find_example(tabs, tab.element_id, display_name) is not None
+        features.append(AppFeature(version, display_name, entry, icon, has_example))
+    return features
+
+
+def write_app_manifest(
+    workspace: Workspace, features: list[AppFeature], log: Callable[[str], None] = print
+) -> None:
+    """Writes each feature's icon and entry (see `plan_app_manifest`) in the frontend document, replacing the entries
+    for the same studios and keeping the rest. Creates no examples, and no versions."""
+    remote, target = workspace.remote, workspace.config.frontend
+    assert target is not None
+    manifest = frontend.parse_manifest(remote.read_file(target, frontend.MANIFEST_NAME))
+    for feature in features:
+        icon_id = None
+        if feature.icon is not None:
+            log(f"Writing {frontend.icon_tab_name(feature.display_name)}...")
+            icon_id = remote.put_file(
+                target, frontend.icon_tab_name(feature.display_name), feature.icon, "image/svg+xml"
+            )
+        manifest = frontend.with_entry(manifest, {**feature.entry, "iconElementId": icon_id})
+    log(f"Writing {frontend.MANIFEST_NAME}...")
     remote.put_file(target, frontend.MANIFEST_NAME, frontend.dump_manifest(manifest), "application/json")
 
 

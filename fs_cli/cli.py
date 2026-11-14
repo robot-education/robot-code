@@ -36,6 +36,7 @@ from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release_files import RELEASES_FOLDER, ReleaseFileError, pending
 from fs_cli.gen import GenerateError, generate
 from fs_cli.git import commit_all, commit_paths, file_at, has_tag, head_commit, is_clean, is_repository, remote_branches
+from fs_cli.frontend import MANIFEST_NAME
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
@@ -43,6 +44,7 @@ from fs_cli.release import (
     find_studio,
     plan_deprecate,
     finalized_versions,
+    plan_app_manifest,
     plan_release,
     release_tag,
     run_deprecate,
@@ -50,6 +52,7 @@ from fs_cli.release import (
     tag_release,
     tag_versions,
     unsynced_versions,
+    write_app_manifest,
 )
 from fs_cli.remote import OnshapeRemote, Remote, file_name_for, is_local
 from fs_cli.renames import (
@@ -600,6 +603,15 @@ def make_parser() -> argparse.ArgumentParser:
     )
     no_push_tags(release_tags)
     dry_run(release_tags)
+
+    app_manifest_command = command(
+        "app-manifest",
+        "write every released feature's entry in featurescripts.json, and its icon, as its latest release made them, "
+        "without releasing it: for features released before releases wrote them (3 API calls, 5 per feature)",
+        targets=False,
+    )
+    app_manifest_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
+    dry_run(app_manifest_command)
     return parser
 
 
@@ -639,7 +651,7 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
 
 
 # Commands which release, or land main, so run only on the main branch (see fs_cli/branches.py)
-MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "release-tags", "sync-main", "run-releases"}
+MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "release-tags", "sync-main", "run-releases", "app-manifest"}
 # Commands which write the backend workspace, so make their branch's
 WRITE_COMMANDS = {"push", "sync", "tabs"}
 
@@ -1470,6 +1482,32 @@ def release_tags(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
+def app_manifest(workspace: Workspace, args: argparse.Namespace) -> int:
+    features = plan_app_manifest(workspace)
+    if not features:
+        print("No released features to write.")
+        return 0
+    print(f"Entries for {MANIFEST_NAME}, each as of its latest release:")
+    for feature in features:
+        notes = [
+            note
+            for note, missing in (
+                ("no icon", feature.icon is None),
+                ("no GitHub link: tag it with `fs release-tags`", "sourceUrl" not in feature.entry),
+                ("no example", not feature.has_example),
+            )
+            if missing
+        ]
+        print(f"  {feature.version.name}" + (f" ({'; '.join(notes)})" if notes else ""))
+    if args.dry_run:
+        return 0
+    if not args.yes:
+        confirm(f"This writes {MANIFEST_NAME} and the icons in the frontend document, and makes no version.")
+    write_app_manifest(workspace, features)
+    print(f"Wrote {len(features)} {'entry' if len(features) == 1 else 'entries'} in {MANIFEST_NAME}.")
+    return 0
+
+
 def pull_std(workspace: Workspace, args: argparse.Namespace) -> int:
     std_dir = workspace.config.std_dir
     before = StdMetadata.load(std_dir).version
@@ -2108,6 +2146,7 @@ COMMANDS = {
     "deprecate": deprecate,
     "sync-versions": sync_versions,
     "release-tags": release_tags,
+    "app-manifest": app_manifest,
     "sync-main": sync_main,
     "branches": branches,
     "run-releases": run_releases,

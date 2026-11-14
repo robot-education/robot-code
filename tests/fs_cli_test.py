@@ -187,6 +187,9 @@ class FakeOnshape:
         self.instances[(instance.document_id, version.id)] = copy.deepcopy(
             self.studios(instance.document_id, instance.instance_id)
         )
+        self.image_tabs[(instance.document_id, version.id)] = copy.deepcopy(
+            self.images(instance.document_id, instance.instance_id)
+        )
         return version
 
     def latest_std_version(self):
@@ -2565,6 +2568,65 @@ def test_a_shared_example_after_its_features_is_kept(repo, onshape):
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
     assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
     assert list(onshape.part_studios[("front", "fw")]) == ["Tube examples"]
+
+
+def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    written = manifest(onshape)
+    # Released before releases wrote the app's side, and changed since
+    del onshape.files[("front", "fw")]
+    code = local(repo, "released/frame/robotFrame.fs")
+    code.write_text(code.read_text().replace("Add tube.", "Add pipe."))
+    assert run(onshape, "push") == 0
+    capsys.readouterr()
+
+    assert run(onshape, "app-manifest", "--dry-run") == 0
+    assert "Robot frame - v0.1.0 (no GitHub link: tag it with `fs release-tags`)" in capsys.readouterr().out
+    assert ("front", "fw") not in onshape.files
+
+    assert run(onshape, "app-manifest", "-y") == 0
+    [entry] = written["features"]
+    del entry["sourceUrl"]
+    icon_id = next(id for id, (name, _) in onshape.files[("front", "fw")].items() if name == "Robot frame icon.svg")
+    assert manifest(onshape) == {"schemaVersion": 1, "features": [{**entry, "iconElementId": icon_id}]}
+    assert onshape.files[("front", "fw")][icon_id][1] == ICON_SVG
+    assert onshape.calls["create_version"] == 1
+    assert onshape.calls["create_part_studio"] == 1
+
+
+def test_app_manifest_links_tagged_releases_and_keeps_other_entries(repo, onshape):
+    git_repo(repo)
+    app_frame(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Frame")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
+    git(repo, "tag", "robotFrame/v0.1.0")
+    front = InstancePath("front", "fw")
+    other = {"studioElementId": "other", "featureType": "other", "name": "Other", "description": "", "version": "1.0.0", "iconElementId": None}
+    onshape.put_file(front, "featurescripts.json", json.dumps({"schemaVersion": 1, "features": [other]}).encode(), "")
+
+    assert run(onshape, "app-manifest", "-y") == 0
+    [kept, frame] = manifest(onshape)["features"]
+    assert kept == other
+    assert frame["sourceUrl"].endswith("/blob/robotFrame/v0.1.0/featurescripts/released/frame/robotFrame.fs")
+
+
+def test_app_manifest_leaves_out_unreleased_beta_and_deprecated_features(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    onshape.add("robotFrameBeta.fs", "export const robotFrameBeta = defineFeature();\n", features=["Robot frame beta"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotFrameBeta", "--minor", "-y", "--beta") == 0
+    # In the frontend document, but never released
+    onshape.add("robotTube.fs", "export const robotTube = defineFeature();\n", document="front", instance="fw")
+    # Deprecated: its last release is named for it, and its frontend studio renamed
+    old = onshape.add("robotOld.fs", "export const robotOld = defineFeature();\n")
+    onshape.create_version(InstancePath("back", "bw"), "Robot old - v1.0.0", "")
+    onshape.add("DEPRECATED robotOld.fs", "export const robotOld = defineFeature();\n", document="front", instance="fw")
+    del onshape.studios()[old]
+    assert run(onshape, "app-manifest", "-y") == 0
+    assert "No released features to write." in capsys.readouterr().out
+    assert manifest(onshape) == {}
 
 
 def test_beta_release_leaves_the_app_alone(repo, onshape):

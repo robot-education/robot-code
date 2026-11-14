@@ -206,9 +206,10 @@ each other's Feature Studios, and Onshape can protect the main workspace (a work
   (or into a new `sync <commit>` one, for a branch without one), pushes main's files there over whatever it has
   (git is what main holds), merges that into the main workspace, taking its tabs where both changed, and deletes it.
   Run again after a failure, it finishes.
-- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`) runs only on
-  the main branch, so what's released is what was merged. A part set's release to a target (`parts --release
-  --target`), to try it out, runs from any branch, versioning its workspace (see [docs/parts.md](parts.md)).
+- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`,
+  `app-manifest`) runs only on the main branch, so what's released is what was merged. A part set's release to a
+  target (`parts --release --target`), to try it out, runs from any branch, versioning its workspace (see
+  [docs/parts.md](parts.md)).
 - `fs branches` lists the workspaces fs made (marked by their description), and `fs branches --prune` deletes those
   whose branch is gone from origin. Workspaces made by hand are never deleted.
 
@@ -512,6 +513,18 @@ frontend version, so the version holds what describes it (`fs_cli/frontend.py`):
 The API can't make or move folders, so a first release's studio and example land at the top level until they're filed
 by hand. `fs deprecate` takes a feature back out: its entry goes, and its icon and its example (unless another
 feature's example is it too) are renamed `DEPRECATED ...`.
+
+`fs app-manifest` writes the entries and icons of features released before releases wrote them, without releasing
+them: each feature in the frontend document with a release, as its latest (non-beta) release made it, from its code and
+icon in that backend version. It replaces those features' entries and keeps the rest, and creates no examples and no
+versions: the next frontend version holds them. An entry gets its GitHub link only when
+its release is tagged in the checkout it runs from (`fs release-tags` tags them; fetch the tags first). `--dry-run`
+lists the entries, noting those without an icon, a link, or an example. It costs 3 calls, and 5 per feature.
+
+```
+uv run fs app-manifest --dry-run   # the entries it would write
+uv run fs app-manifest             # write them
+```
 
 ### Released FeatureScripts
 

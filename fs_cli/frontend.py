@@ -60,7 +60,7 @@ def tabs_in_order(elements: list[dict], root: dict | None) -> list[FrontendTab]:
     return ordered + unplaced
 
 
-def _is_deprecated(tab: FrontendTab) -> bool:
+def is_deprecated(tab: FrontendTab) -> bool:
     return any("deprecated" in name.lower() for name in (tab.name, *tab.folders))
 
 
@@ -68,7 +68,7 @@ def find_example(tabs: list[FrontendTab], studio_element_id: str | None, feature
     """A feature's example: the Part Studio named for it (in any case), preferring one after its studio in the same
     folder; else the first Part Studio after its studio in its folder, which features sharing an example sit before.
     Deprecated tabs, and tabs in deprecated folders, are skipped. `tabs` are in tab-bar order."""
-    tabs = [tab for tab in tabs if not _is_deprecated(tab)]
+    tabs = [tab for tab in tabs if not is_deprecated(tab)]
     studio_index = next(
         (index for index, tab in enumerate(tabs) if tab.element_id == studio_element_id and tab.placed), None
     )
@@ -90,6 +90,12 @@ def find_example(tabs: list[FrontendTab], studio_element_id: str | None, feature
         or next((tab for tab in tabs if is_named(tab)), None)
         or (after[0] if after else None)
     )
+
+
+def is_svg(data: bytes) -> bool:
+    """Whether an image tab's bytes are an SVG, which is all the app shows as an icon."""
+    head = data[:1024].lstrip().lower()
+    return head.startswith(b"<svg") or (head.startswith(b"<?xml") and b"<svg" in head)
 
 
 def icon_tab_name(feature_name: str) -> str:
