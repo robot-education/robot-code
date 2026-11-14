@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "core/sketchData.fs", version : ""); // core/sketchData.fs
-import(path : "core/fit.fs", version : ""); // core/fit.fs
+import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91"); // core/sketchData.fs
+import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9"); // core/fit.fs
 
 /* Generated from boreProfiles.py by `fs gen` -- DO NOT EDIT */
 
