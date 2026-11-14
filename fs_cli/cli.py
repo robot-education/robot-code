@@ -1369,25 +1369,23 @@ def _synced_studios(config: Config, state: State, args: list[str]) -> list[tuple
 
 
 def release(workspace: Workspace, args: argparse.Namespace) -> int:
-    plan = plan_release(workspace, args.script, args.bump, args.beta)
-    if args.publish and plan.previous is None:
-        # A new feature's frontend examples need making before it's final
-        raise UsageError(
-            f"{plan.studio.path} has never been released, so its first release isn't published at once: release it "
-            "without --publish, and `fs sync-versions` publishes it once its frontend examples are ready."
-        )
+    plan = plan_release(workspace, args.script, args.bump, args.beta, args.publish)
     previous = plan.previous.name if plan.previous else "none"
     print(
         f"Releasing {plan.studio.path} as {plan.version_name} (previous release: {previous})"
     )
     print(f"  1. Create version {plan.version_name} in the backend document")
-    print(
-        f"  2. Point {plan.studio.name} in the {plan.target_label} document at that version"
-    )
+    steps = [f"Point {plan.studio.name} in the {plan.target_label} document at that version"]
+    if plan.for_app:
+        if plan.example is None:
+            steps.append(f"Create an empty example Part Studio, {plan.display_name}, in the {plan.target_label} document")
+        else:
+            steps.append(f"Keep {plan.example.name} as its example")
+        steps.append("Write its icon and its entry in featurescripts.json there, for FRCDesignApp")
     if args.publish:
-        print(
-            f"  3. Create version {plan.version_name} in the {plan.target_label} document"
-        )
+        steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
+    for number, step in enumerate(steps, 2):
+        print(f"  {number}. {step}")
     if args.dry_run:
         return 0
     if not args.yes:
@@ -1414,8 +1412,13 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
     steps += [
         f"Create version {plan.version_name} in the backend document",
         f"Point {plan.frontend_studio.name} in the {plan.target_label} document at that version",
-        f"Rename it {plan.frontend_name}",
     ]
+    if plan.target_label == "frontend":
+        steps.append(
+            f"Take it out of FRCDesignApp: remove its entry from featurescripts.json, and rename its icon and its "
+            f"example (unless another feature's is it too) {DEPRECATED}..."
+        )
+    steps.append(f"Rename it {plan.frontend_name}")
     if args.publish:
         steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
     if args.keep_backend:

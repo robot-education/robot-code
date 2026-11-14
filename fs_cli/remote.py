@@ -8,7 +8,18 @@ from typing import Protocol
 
 from fs_cli.configured_studios import Built, ConfiguredStudio, Diagnosis, build, diagnose
 from onshape_api.api.api_base import Api
-from onshape_api.endpoints import blob_elements, documents, elements, feature_studios, metadata, versions, workspaces
+from fs_cli.frontend import FrontendTab, tabs_in_order
+from onshape_api.endpoints import (
+    blob_elements,
+    documents,
+    elements,
+    feature_studios,
+    metadata,
+    part_studios,
+    versions,
+    workspaces,
+)
+from onshape_api.exceptions import ApiError
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
 from onshape_api.types import ElementGroup, ElementType, MergeStrategy
@@ -157,6 +168,18 @@ class Remote(Protocol):
         id."""
         ...
 
+    def frontend_tabs(self, instance: InstancePath) -> list[FrontendTab]:
+        """Every tab in tab-bar order, with its folders (see fs_cli/frontend.py)."""
+        ...
+
+    def create_part_studio(self, instance: InstancePath, name: str) -> str:
+        """Creates an empty Part Studio at the top level; returns its element id."""
+        ...
+
+    def read_file(self, instance: InstancePath, name: str) -> bytes | None:
+        """The file in the blob tab named `name`, or None without one."""
+        ...
+
     def element_ids(self, instance: InstancePath) -> set[str]:
         """Every tab's element id (anonymous for public documents)."""
         ...
@@ -283,6 +306,30 @@ class OnshapeRemote:
             path = ElementPath.from_path(instance, tabs[0])
             return blob_elements.upload_file_update_element(self.api, path, name, data, content_type)["id"]
         return blob_elements.upload_file_create_element(self.api, instance, name, data, content_type)["id"]
+
+    def frontend_tabs(self, instance: InstancePath) -> list[FrontendTab]:
+        tabs = documents.get_document_elements(self.api, instance)
+        try:
+            root = documents.get_document_contents(self.api, instance).get("folders")
+        except ApiError:
+            # See `studio_folders`: without the tree, an example is found by its name alone
+            root = None
+        return tabs_in_order(tabs, root)
+
+    def create_part_studio(self, instance: InstancePath, name: str) -> str:
+        return part_studios.create_part_studio(self.api, instance, name)["id"]
+
+    def read_file(self, instance: InstancePath, name: str) -> bytes | None:
+        tabs = [
+            element["id"]
+            for element in documents.get_document_elements(self.api, instance, ElementType.BLOB)
+            if element["name"] == name
+        ]
+        if len(tabs) > 1:
+            raise ValueError(f"The document has {len(tabs)} tabs named {name}; delete all but one.")
+        if not tabs:
+            return None
+        return blob_elements.download_file(self.api, ElementPath.from_path(instance, tabs[0]))
 
     def element_ids(self, instance: InstancePath) -> set[str]:
         return {element["id"] for element in documents.get_document_elements(self.api, instance)}
