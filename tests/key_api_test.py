@@ -58,3 +58,12 @@ def test_other_errors_arent_retried(sent, monkeypatch):
     with pytest.raises(ApiError) as error:
         key_api.KeyApi("access", "secret").get(DOCUMENT, anonymous=True)
     assert error.value.status_code == http.HTTPStatus.BAD_REQUEST
+
+
+def test_logging_leaves_out_credentials(sent, caplog):
+    caplog.set_level("INFO")
+    api = key_api.KeyApi("the-access-key", "the-secret-key", logging=True)
+    api.get(DOCUMENT)
+    assert "request headers" in caplog.text
+    assert "the-access-key" not in caplog.text
+    assert "Authorization': '<redacted>'" in caplog.text

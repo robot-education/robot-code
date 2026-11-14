@@ -54,9 +54,7 @@ class KeyApi(Api):
         self._private_documents: set[str | None] = set()
 
         if self._logging:
-            logging.info(
-                "Onshape instance created: access key = {}".format(self._access_key)
-            )
+            logging.info("Onshape instance created")
 
     @override
     def _request(
@@ -103,7 +101,7 @@ class KeyApi(Api):
 
         if self._logging:
             logging.info(("request url: " if signed else "anonymous request url: ") + url)
-            logging.info("request headers: " + str(headers))
+            logging.info("request headers: " + str(loggable_headers(headers)))
             if len(body) > 0:
                 logging.info(body)
 
@@ -164,6 +162,15 @@ ANONYMOUS_REFUSALS = (http.HTTPStatus.UNAUTHORIZED, http.HTTPStatus.FORBIDDEN, h
 def _document_id(path: str) -> str | None:
     match = re.search(r"/d/([0-9a-f]{24})", path)
     return match[1] if match else None
+
+
+# Headers which carry credentials, so are never logged
+SECRET_HEADERS = ("Authorization", "On-Nonce")
+
+
+def loggable_headers(headers: dict[str, str]) -> dict[str, str]:
+    """`headers` with those carrying credentials redacted."""
+    return {name: "<redacted>" if name in SECRET_HEADERS else value for name, value in headers.items()}
 
 
 def make_anonymous_headers(headers: dict[str, str]) -> dict[str, str]:
