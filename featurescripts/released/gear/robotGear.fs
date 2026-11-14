@@ -10,11 +10,12 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports BoreShape, Fit, and SplineType, parameter types
-export import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
-import(path : "f9a7532fe0d68211bd3a8112", version : "db2a1a1481388c3984152c03");
+export import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
+import(path : "f9a7532fe0d68211bd3a8112", version : "10c16269b595ae14fc053a48");
 import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
 // Where the gear is on its location: its bottom, middle, top, or a bevel gear's apex
 import(path : "554542fc345271814c4463b0", version : "5b47f8330c585dfb754b8a98");
+RobotGearIcon::import(path : "c89ca5f8a32b1024a0c09f3b", version : "d11498f5f110c20347e63f32");
 
 export enum GearType
 {
@@ -40,15 +41,13 @@ export enum BevelProfile
 }
 
 /**
- * A bevel gear's roots: full rounds, sharp, or a router bit's (full rounds, and slots where it can't reach them, see
- * `bevelBitRoot`).
+ * A bevel gear's root fillet (with Root fillet; without, its roots are sharp): full rounds, or a router bit's (full
+ * rounds, and slots where it can't reach them, see `bevelBitRoot`).
  */
 export enum BevelRootFillet
 {
     annotation { "Name" : "Full" }
     FULL,
-    annotation { "Name" : "None" }
-    NONE,
     annotation { "Name" : "Router bit" }
     ROUTER_BIT
 }
@@ -107,14 +106,29 @@ export enum GearHand
 }
 
 /**
- * Where a cut rack's face is on its teeth.
+ * Where a cut rack's face is on its teeth: their pitch line, their tips, or their base (their root line: the teeth are
+ * added on the face, see `rackFaceDepth`).
  */
 export enum RackFaceAt
 {
     annotation { "Name" : "Pitch diameter" }
     PITCH,
     annotation { "Name" : "Outside diameter" }
-    OUTSIDE
+    OUTSIDE,
+    annotation { "Name" : "Base" }
+    BASE
+}
+
+/**
+ * Where a partial rack's teeth stop: after a number of teeth, or at a stop, a distance from the Stop reference (or
+ * without one, from the end they start at).
+ */
+export enum RackStopBy
+{
+    annotation { "Name" : "Teeth" }
+    TEETH,
+    annotation { "Name" : "Stop reference" }
+    REFERENCE
 }
 
 /**
@@ -129,9 +143,9 @@ export enum RackAlignment
 }
 
 /**
- * How the roots are rounded, as Onshape's Spur gear's Root fillet: a full round (tangent to the root and both flanks),
- * a fillet whose radius is a third or a quarter of the gap's width there (two thirds or half the full round's), none,
- * or a router bit's radius, so it can cut them.
+ * How the roots are rounded (with Root fillet; without, they're sharp), as Onshape's Spur gear's Root fillet: a full
+ * round (tangent to the root and both flanks), a fillet whose radius is a third or a quarter of the gap's width there
+ * (two thirds or half the full round's), or a router bit's radius, so it can cut them.
  */
 export enum RootFillet
 {
@@ -141,8 +155,6 @@ export enum RootFillet
     THIRD,
     annotation { "Name" : "1/4" }
     QUARTER,
-    annotation { "Name" : "None" }
-    NONE,
     annotation { "Name" : "Router bit" }
     ROUTER_BIT
 }
@@ -153,8 +165,7 @@ export enum RootFillet
 const ROOT_FILLET_FRACTIONS = {
         (RootFillet.FULL) : 1,
         (RootFillet.THIRD) : 2 / 3,
-        (RootFillet.QUARTER) : 1 / 2,
-        (RootFillet.NONE) : 0
+        (RootFillet.QUARTER) : 1 / 2
     };
 
 const DIAMETRAL_PITCH_BOUNDS = { (unitless) : [1, 20, 200] } as RealBoundSpec;
@@ -168,10 +179,14 @@ const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millime
 // A 1/8 in. router bit's
 const BIT_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 
+// How far a partial rack's stop is from the Stop reference (or the end its teeth start at), along it
+const RACK_STOP_DISTANCE_BOUNDS = { (meter) : [-500, 0.0254, 500], (inch) : 1, (millimeter) : 25 } as LengthBoundSpec;
+
 const HELIX_ANGLE_BOUNDS = { (degree) : [5, 15, 45] } as AngleBoundSpec;
 const SHAFT_ANGLE_BOUNDS = { (degree) : [10, 90, 170] } as AngleBoundSpec;
 
 const RACK_END_MANIPULATOR = "rackEnd";
+const RACK_STOP_MANIPULATOR = "rackStop";
 
 /**
  * The standard pitches' modules, pressure angles, and names (in part names). FRC's 20 DP gears (VEXpro, WCP, and
@@ -225,6 +240,7 @@ predicate isMateByTeeth(definition is map)
  */
 predicate isRouterBit(definition is map)
 {
+    definition.addRootFillet;
     (definition.gearType != GearType.BEVEL && definition.rootFillet == RootFillet.ROUTER_BIT) ||
         (definition.gearType == GearType.BEVEL && definition.bevelRootFillet == BevelRootFillet.ROUTER_BIT);
 }
@@ -245,10 +261,10 @@ predicate isSpur(definition is map)
  */
 annotation {
         "Feature Type Name" : "Robot gear",
-        "Feature Type Description" : "Create spur, helical, herringbone, and bevel gears, or cut racks and gear teeth into parts, at FRC and FTC gears' standard pitches." ~ CREDIT,
+        "Feature Type Description" : "Create spur and bevel gears and cut gear racks into parts." ~ CREDIT,
         "Manipulator Change Function" : "robotGearManipulatorChange",
         "Editing Logic Function" : "robotGearEditLogic",
-        "Icon" : RobotIcon::BLOB_DATA
+        "Icon" : RobotGearIcon::BLOB_DATA
     }
 export const robotGear = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
@@ -266,8 +282,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         {
             if (definition.gearType == GearType.BEVEL)
             {
-                annotation { "Name" : "Profile", "Default" : BevelProfile.EXACT, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                            "Description" : "Exact: spherical involute teeth, with Gleason's proportions, as bought bevel gears have. Approximate: Tredgold's approximation, a spur gear's teeth on its back cone, with its proportions." }
+                annotation { "Name" : "Profile", "Default" : BevelProfile.EXACT, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.bevelProfile is BevelProfile;
             }
 
@@ -284,8 +299,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 annotation { "Name" : "Mating gear teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isInteger(definition.bevelMateTeeth, GEAR_TEETH_BOUNDS);
 
-                annotation { "Name" : "Shaft angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                            "Description" : "Between its shaft and its mate's (90 degrees for a right angle): it sets the angle of its teeth's cone." }
+                annotation { "Name" : "Shaft angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isAngle(definition.shaftAngle, SHAFT_ANGLE_BOUNDS);
             }
 
@@ -323,22 +337,32 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
 
-            // A bevel gear's roots are full rounds, or a router bit's
-            if (definition.gearType != GearType.BEVEL)
-            {
-                annotation { "Name" : "Root fillet", "Default" : RootFillet.FULL, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                definition.rootFillet is RootFillet;
-            }
-            else
-            {
-                annotation { "Name" : "Root fillet", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                definition.bevelRootFillet is BevelRootFillet;
-            }
+            // Without it, the roots are sharp
+            annotation { "Name" : "Root fillet", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.addRootFillet is boolean;
 
-            if (isRouterBit(definition))
+            if (definition.addRootFillet)
             {
-                annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
+                annotation { "Group Name" : "Root fillet", "Collapsed By Default" : false, "Driving Parameter" : "addRootFillet" }
+                {
+                    // A bevel gear's roots are full rounds, or a router bit's
+                    if (definition.gearType != GearType.BEVEL)
+                    {
+                        annotation { "Name" : "Fillet type", "Default" : RootFillet.FULL, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                        definition.rootFillet is RootFillet;
+                    }
+                    else
+                    {
+                        annotation { "Name" : "Fillet type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                        definition.bevelRootFillet is BevelRootFillet;
+                    }
+
+                    if (isRouterBit(definition))
+                    {
+                        annotation { "Name" : "Bit diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.bitDiameter, BIT_DIAMETER_BOUNDS);
+                    }
+                }
             }
         }
 
@@ -362,8 +386,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                         "MaxNumberOfPicks" : 1 }
             definition.rackFace is Query;
 
-            annotation { "Name" : "Face at", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "Where the face is on the teeth: their pitch line (the face is moved out to their tips first), or their tips." }
+            annotation { "Name" : "Face at", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.rackFaceAt is RackFaceAt;
 
             annotation { "Name" : "Align teeth to" }
@@ -377,7 +400,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             else
             {
                 annotation { "Name" : "Angle reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.CIRCLE || GeometryType.ARC,
-                            "MaxNumberOfPicks" : 1, "Description" : "A point a gap is centered on, as on an end." }
+                            "MaxNumberOfPicks" : 1 }
                 definition.rackReference is Query;
             }
 
@@ -388,17 +411,22 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Group Name" : "Partial rack", "Collapsed By Default" : false, "Driving Parameter" : "partialRack" }
                 {
-                    annotation { "Name" : "Stop reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.CIRCLE || GeometryType.ARC,
-                                "MaxNumberOfPicks" : 1, "Description" : "A point the teeth stop at: past it, the face is left as it is, as a stop." }
-                    definition.rackStop is Query;
+                    annotation { "Name" : "Stop by", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    definition.rackStopBy is RackStopBy;
 
-                    annotation { "Name" : "Limit teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.limitRackTeeth is boolean;
-
-                    if (definition.limitRackTeeth)
+                    if (definition.rackStopBy == RackStopBy.TEETH)
                     {
                         annotation { "Name" : "Rack teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         isInteger(definition.rackTeeth, RACK_TEETH_BOUNDS);
+                    }
+                    else
+                    {
+                        annotation { "Name" : "Stop reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.CIRCLE || GeometryType.ARC,
+                                    "MaxNumberOfPicks" : 1 }
+                        definition.rackStop is Query;
+
+                        annotation { "Name" : "Stop distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isLength(definition.rackStopDistance, RACK_STOP_DISTANCE_BOUNDS);
                     }
                 }
             }
@@ -414,11 +442,11 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Group Name" : "Helical gear", "Collapsed By Default" : false, "Driving Parameter" : "helical" }
                 {
-                    annotation { "Name" : "Helix angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isAngle(definition.helixAngle, HELIX_ANGLE_BOUNDS);
-
                     annotation { "Name" : "Herringbone gear", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     definition.doubleHelical is boolean;
+
+                    annotation { "Name" : "Helix angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isAngle(definition.helixAngle, HELIX_ANGLE_BOUNDS);
 
                     // A herringbone turned over is the other hand
                     if (!definition.doubleHelical)
@@ -482,8 +510,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
             if (isSpurPair(definition))
             {
-                annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                            "Description" : "Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh." }
+                annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
             }
         }
@@ -559,7 +586,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                     warning = {
                             "message" : "Bore cuts into " ~ (i == 0 ? "gear" : "mating gear") ~ " teeth, decrease bore size" ~
                                 (definition.gearType == GearType.BEVEL ? " or thickness, or increase teeth." : " or increase teeth."),
-                            "parameters" : ["hexWidth", "boreDiameter", "splineType", "teeth", "thickness"]
+                            "parameters" : ["boreHexSize", "hexWidth", "boreDiameter", "splineType", "teeth", "thickness"]
                         };
                 }
             }
@@ -599,11 +626,16 @@ export function gearPointDistances(definition is map, module is ValueWithUnits, 
 }
 
 /**
- * The roots' fillet, for `getGearForm`: a fraction of the full round's radius, or a router bit's radius.
+ * The roots' fillet, for `getGearForm`: a fraction of the full round's radius (none, without Root fillet), or a router
+ * bit's radius.
  */
 function rootFilletSize(definition is map)
 {
-    return definition.rootFillet == RootFillet.ROUTER_BIT ? definition.bitDiameter / 2 : ROOT_FILLET_FRACTIONS[definition.rootFillet];
+    if (!definition.addRootFillet)
+    {
+        return 0;
+    }
+    return isRouterBit(definition) ? definition.bitDiameter / 2 : ROOT_FILLET_FRACTIONS[definition.rootFillet];
 }
 
 /**
@@ -664,7 +696,7 @@ function checkBitSlots(context is Context, id is Id, definition is map, gearPlan
                 "keepTools" : true
             });
     addDebugEntities(context, body, DebugColor.BLUE);
-    throw regenError("Bit diameter is too large, decrease the value. Highlighted slots cut into the teeth's flanks.", ["bitDiameter"], slots);
+    throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"], slots);
 }
 
 /**
@@ -883,10 +915,6 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
             return addendum * sin(angle);
         };
     const apex = cones.gear.coneDistance * cos(pitchAngle);
-    const thicknessString = function(thickness is ValueWithUnits) returns string
-        {
-            return makeValueString(pitchUnits(definition), thickness, true);
-        };
     var faceWidth = definition.faceWidth;
     if (faceWidth == undefined)
     {
@@ -902,19 +930,18 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
         const top = bottom + definition.thickness;
         if (top <= tipHeight(depths.addendum, pitchAngle) + TOLERANCE.zeroLength * meter)
         {
-            throw regenError("Thickness is too small for the teeth, increase it past " ~ thicknessString(tipHeight(depths.addendum, pitchAngle) - bottom) ~ ".", ["thickness"]);
+            throw regenError("Thickness is too small, increase the value.", ["thickness"]);
         }
         if (top >= apex - TOLERANCE.zeroLength * meter)
         {
-            throw regenError("Thickness is too large, reaching the apex. Decrease it below " ~ thicknessString(apex - bottom) ~ ".", ["thickness"]);
+            throw regenError("Selected thickness is too large, decrease the value.", ["thickness"]);
         }
         faceWidth = top / cos(pitchAngle);
         // Its mate's teeth run as far along its pitch cone
         const matePitchAngle = cones.mate.pitchAngle;
         if (faceWidth * cos(matePitchAngle) <= tipHeight(depths.mateAddendum, matePitchAngle) + TOLERANCE.zeroLength * meter)
         {
-            const least = tipHeight(depths.mateAddendum, matePitchAngle) / cos(matePitchAngle) * cos(pitchAngle) - bottom;
-            throw regenError("Thickness is too small for the mating gear's teeth, increase it past " ~ thicknessString(least) ~ ".", ["thickness"]);
+            throw regenError("Thickness is too small, increase the value.", ["thickness"]);
         }
     }
     return {
@@ -971,7 +998,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
             depths.mateAddendum, offset);
     }
     // Full rounds (a router bit's too, where it reaches them), or sharp
-    form.filletFraction = definition.bevelRootFillet == BevelRootFillet.NONE ? 0 : 1;
+    form.filletFraction = definition.addRootFillet ? 1 : 0;
 
     const axis = gearPlane.normal;
     const x = gearPlane.x;
@@ -1048,7 +1075,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
     {
         if (bitRoot.slot.tooLarge)
         {
-            throw regenError("Bit diameter is too large, decrease the value. Its slots cut into the teeth's flanks at their small end.", ["bitDiameter"]);
+            throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"]);
         }
         const radius = definition.bitDiameter / 2;
         const rootPoint = backApex + gapRadial * form.rootRadius;
@@ -1293,16 +1320,31 @@ function moveFacesOut(context is Context, featureId is Id, id is Id, faces is Qu
     catch
     {
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id, "propagateErrorDisplay" : true });
-        throw regenError("Could not offset face to tooth tips.", ["rackFace", "rackFaceAt"], faces);
+        throw regenError("Failed to offset face.", ["rackFace", "rackFaceAt"], faces);
     }
 }
 
 /**
+ * How far Face to cut is below the teeth's tips (`rackFaceAt`), which it's moved out by first: at their pitch line, a
+ * module; at their tips, nothing; at their base (their root line, without the profile offset), `2.25 m`, so the teeth
+ * are added on it.
+ */
+function rackFaceDepth(definition is map, module is ValueWithUnits) returns ValueWithUnits
+{
+    return switch (definition.rackFaceAt) {
+            RackFaceAt.PITCH : module,
+            RackFaceAt.OUTSIDE : 0 * meter,
+            RackFaceAt.BASE : 2.25 * module
+        };
+}
+
+/**
  * Cuts rack teeth into the part along Face to cut (and the flat faces in line with it, across tangent edges): along its
- * longest straight edge, from end to end, through its width. At the teeth's pitch line (`rackFaceAt`), the faces are
- * first moved out a module, to their tips. Whole teeth fill it, a pitch apart, lined up with an end (a gap centered on
+ * longest straight edge, from end to end, through its width. At the teeth's pitch line or base (`rackFaceAt`), the
+ * faces are first moved out to their tips (`rackFaceDepth`). Whole teeth fill it, a pitch apart, lined up with an end (a gap centered on
  * it) or the angle reference (likewise); past the first and last, it's cut to the root. A partial rack's stop at its
- * far end (`rackStop`): past it, the face is left as it is. A router bit's slots which cut the teeth's flanks where a
+ * far end (`rackStop`): past it, the face is left as it is; at the teeth's base, there's no stop, and past them it's
+ * cut to the root, the face where it was. A router bit's slots which cut the teeth's flanks where a
  * mating gear's teeth touch them are an error (`rackBitTooLarge`), showing the cut part in blue and what they cut from
  * its teeth in red.
  */
@@ -1315,13 +1357,14 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
     const direction = longestEdgeDirection(context, faces);
     if (direction == undefined)
     {
-        throw regenError("Face to cut must have a straight edge.", ["rackFace"], face);
+        throw regenError("Failed to find edge to cut along.", ["rackFace"], face);
     }
-    if (definition.rackFaceAt == RackFaceAt.PITCH)
+    const depth = rackFaceDepth(definition, form.module);
+    if (!tolerantEqualsZero(depth))
     {
-        moveFacesOut(context, id, id + "moveFace", faces, form.module);
+        moveFacesOut(context, id, id + "moveFace", faces, depth);
         // Moved, the faces beside them stretch to meet them, which can make them longer: measured where they are now
-        facePlane.origin += facePlane.normal * form.module;
+        facePlane.origin += facePlane.normal * depth;
         faces = qCoincidesWithPlane(qOwnedByBody(part, EntityType.FACE), facePlane);
     }
     // x along the teeth, y out of the part, and z across the face
@@ -1368,9 +1411,10 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
     var stop;
     if (definition.partialRack)
     {
-        const partial = rackStop(context, definition, form, sketchPlane.origin, direction, length, centers, gap);
+        const partial = rackStop(context, id, definition, form, sketchPlane.origin, direction, frame.zAxis * width / 2, length, centers, gap);
         centers = partial.centers;
-        stop = partial.stop;
+        // Teeth added on the face have no stop: past them, it's cut back to where the face was
+        stop = definition.rackFaceAt == RackFaceAt.BASE ? undefined : partial.stop;
     }
     const tools = rackTools(context, id, definition, form, sketchPlane, length, width, centers, stop);
     if (rackBitTooLarge(form))
@@ -1390,7 +1434,7 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
         addDebugEntities(context, part, DebugColor.BLUE);
-        throw regenError("Bit diameter is too large, decrease the value. Highlighted slots cut into the teeth's flanks.", ["bitDiameter"], tools);
+        throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"], tools);
     }
     opBoolean(context, id + "cut", {
                 "targets" : part,
@@ -1412,48 +1456,61 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
  * A partial rack's teeth (see `partialTeeth`), of its whole teeth (`centers`, along a face `length` long from `origin`,
  * in `direction`, lined up with a gap at `gap`), and its stop (for `rackCutRegions`), if they stop short of its far end.
  * They run from an end: End's (the start, or with Opposite end, the end), or by Angle reference, the end farther from
- * the Stop reference, or without one, the end nearer the angle reference. They stop where the gap after the last would
- * run past the Stop reference (projected onto the face), or after Rack teeth (with Limit teeth), whichever's first.
+ * the Stop reference, or without one, the end nearer the angle reference. By Teeth, they stop after Rack teeth; by
+ * Stop reference, where the gap after the last would run past the stop: Stop distance from the Stop reference
+ * (projected onto the face), or without one, from the end they start at, toward the far end. Its manipulator drags
+ * the stop along the face, `across` from `origin` (to the middle of the face's width).
  *
  * @returns {{
  *      @field centers {array} :
  *      @field stop {map} : @optional `center` and `after`, as `rackCutRegions` takes them.
  * }}
  */
-function rackStop(context is Context, definition is map, form is map, origin is Vector, direction is Vector, length is ValueWithUnits, centers is array,
-    gap is ValueWithUnits) returns map
+function rackStop(context is Context, id is Id, definition is map, form is map, origin is Vector, direction is Vector, across is Vector,
+    length is ValueWithUnits, centers is array, gap is ValueWithUnits) returns map
 {
-    var stop;
-    const reference = qNthElement(definition.rackStop, 0);
-    if (!isQueryEmpty(context, reference))
+    const byStop = definition.rackStopBy == RackStopBy.REFERENCE;
+    // Where the Stop reference is along the face, if there's one
+    var reference;
+    if (byStop && !isQueryEmpty(context, definition.rackStop))
     {
-        const point = angleReferencePoint(context, reference);
+        const point = angleReferencePoint(context, qNthElement(definition.rackStop, 0));
         if (point == undefined)
         {
-            throw regenError("Stop reference must be a point.", ["rackStop"], reference);
+            throw regenError("Stop reference must be a point.", ["rackStop"], definition.rackStop);
         }
-        stop = dot(point - origin, direction);
-    }
-    else if (!definition.limitRackTeeth)
-    {
-        throw regenError("Select a stop reference or limit rack teeth.", ["rackStop", "limitRackTeeth"]);
+        reference = dot(point - origin, direction);
     }
     var fromEnd = definition.oppositeEnd;
     if (definition.rackAlignment == RackAlignment.REFERENCE)
     {
-        fromEnd = stop != undefined ? stop < length / 2 : gap > length / 2;
+        fromEnd = reference != undefined ? reference < length / 2 : gap > length / 2;
     }
     // From the end it starts at
     const along = function(x is ValueWithUnits) returns ValueWithUnits
         {
             return fromEnd ? length - x : x;
         };
+    var stop;
+    if (byStop)
+    {
+        // The stop distance's start, along the face from the end the teeth start at
+        const base = reference == undefined ? 0 * meter : along(reference);
+        stop = base + definition.rackStopDistance;
+        addManipulators(context, id, {
+                    (RACK_STOP_MANIPULATOR) : linearManipulator({
+                            "base" : origin + across + direction * along(base),
+                            "direction" : fromEnd ? -direction : direction,
+                            "offset" : definition.rackStopDistance,
+                            "primaryParameterId" : "rackStopDistance"
+                        })
+                });
+    }
     const ordered = fromEnd ? reverse(mapArray(centers, along)) : centers;
-    const partial = partialTeeth(ordered, PI * form.module, rackHalfWidth(form, rackRoot(form)), definition.limitRackTeeth ? definition.rackTeeth : undefined,
-        stop == undefined ? undefined : along(stop));
+    const partial = partialTeeth(ordered, PI * form.module, rackHalfWidth(form, rackRoot(form)), byStop ? undefined : definition.rackTeeth, stop);
     if (partial.centers == [])
     {
-        throw regenError("Stop reference is too near the end for a tooth, select another.", ["rackStop"], reference);
+        throw regenError("Stop distance is too small for a tooth, increase the value.", ["rackStopDistance", "rackStop"], definition.rackStop);
     }
     var result = { "centers" : fromEnd ? reverse(mapArray(partial.centers, along)) : partial.centers };
     if (partial.stopCenter != undefined)
@@ -1504,7 +1561,8 @@ function rackTools(context is Context, id is Id, definition is map, form is map,
 /**
  * Cuts a gear's teeth into the part around Face to cut, a round face (and the faces on the same cylinder, across
  * tangent edges), across its width: a gear with the nearest whole number of teeth to its size (at
- * its pitch circle or tips, `rackFaceAt`), whose faces are first moved to its tips. Whole teeth fill it, a pitch apart,
+ * its pitch circle, tips, or base, `rackFaceAt`), whose faces are first moved to its tips. A partial rack's teeth at
+ * its base have no stops: past them, it's cut to the root, the face where it was. Whole teeth fill it, a pitch apart,
  * lined up with an end (a gap centered on it; all the way around, with the cylinder's x axis) or the angle reference
  * (likewise); past the first and last, it's cut to the root. The teeth are a gear's (or a sector's, see
  * `buildGearBody`; its router bit's slots checked as a gear's, `checkBitSlots`), and what's cut is what's around them:
@@ -1520,7 +1578,7 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
     const sample = evFaceTangentPlane(context, { "face" : face, "parameter" : vector(0.5, 0.5) });
     if (dot(sample.normal, sample.origin - project(axis, sample.origin)) < 0)
     {
-        throw regenError("Cannot cut teeth inside a hole, select a round face on the outside of a part.", ["rackFace"], face);
+        throw regenError("Cannot cut teeth on a concave face.", ["rackFace"], face);
     }
     // Faces on the same axis, of a radius
     const onCylinder = function(faces is Query, radius is ValueWithUnits) returns array
@@ -1537,7 +1595,7 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
     const part = qUnion(evaluateQuery(context, qOwnerBody(face)));
 
     // Its teeth
-    const pitchRadius = definition.rackFaceAt == RackFaceAt.PITCH ? cylinder.radius : cylinder.radius - module;
+    const pitchRadius = cylinder.radius + rackFaceDepth(definition, module) - module;
     const teeth = nearestGearTeeth(pitchRadius, module);
     if (teeth < 4)
     {
@@ -1589,7 +1647,8 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
         const local = fromWorld(frame, point);
         if (tolerantEquals(vector(local[0], local[1]), vector(0, 0) * meter))
         {
-            throw regenError("Angle reference must not be on the face's axis.", ["rackReference"], reference);
+            // On the axis, it has no angle around it
+            throw regenError("Angle reference could not be projected onto the face.", ["rackReference"], reference);
         }
         gap = atan2(local[1], local[0]);
     }
@@ -1629,12 +1688,17 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
             toothAngles = append(toothAngles, gap + (k + 0.5) * pitch);
         }
     }
+    // Teeth added on the face (at its base) have no stops: around them, it's cut back to where the face was
+    const addedOn = definition.rackFaceAt == RackFaceAt.BASE;
     if (definition.partialRack)
     {
-        const partial = roundRackStop(context, definition, form, frame, span, gap, pitch, toothAngles);
-        toothAngles = partial.toothAngles;
-        ringStart = partial.ringStart;
-        ringEnd = partial.ringEnd;
+        const partial = roundRackStop(context, id, definition, form, frame, middlePoint, span, gap, pitch, toothAngles);
+        toothAngles = addedOn ? partial.teethAngles : partial.toothAngles;
+        if (!addedOn)
+        {
+            ringStart = partial.ringStart;
+            ringEnd = partial.ringEnd;
+        }
     }
     if (toothAngles != [] && size(toothAngles) < teeth)
     {
@@ -1653,7 +1717,7 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
     // Around them: out past their tips, down to their root, across the face's angles
     const outside = tipRadius + module;
     const ring = newSketchOnPlane(context, id + "ring", { "sketchPlane" : gearPlane });
-    if (sectorTeeth == undefined && span.full)
+    if (span.full && (sectorTeeth == undefined || addedOn))
     {
         skCircle(ring, "inside", { "center" : vector(0, 0) * meter, "radius" : form.rootRadius });
         skCircle(ring, "outside", { "center" : vector(0, 0) * meter, "radius" : outside });
@@ -1709,64 +1773,102 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
  * before them going the other way; and the angles cut around them, from the end they start at to the stop's middle,
  * or the other end. They start at End's end (or with Opposite end, the other), or by Angle reference, the end farther
  * from the Stop reference, or without one, nearer the angle reference. All the way around, they start at the gap and
- * go counterclockwise, with a stop before them too.
+ * go counterclockwise, with a stop before them too; `teethAngles` are its teeth without the stops (for teeth added
+ * on the face). The stop distance (see `rackStop`) is along the pitch circle, its
+ * manipulator turning around the axis, through `middle` (on it, at the middle of the face's width).
  *
  * @returns {{
  *      @field toothAngles {array} : Counterclockwise.
+ *      @field teethAngles {array} : Counterclockwise: `toothAngles` without its stops.
  *      @field ringStart {ValueWithUnits} :
  *      @field ringEnd {ValueWithUnits} :
  * }}
  */
-function roundRackStop(context is Context, definition is map, form is map, frame is CoordSystem, span is map, gap is ValueWithUnits, pitch is ValueWithUnits,
-    toothAngles is array) returns map
+function roundRackStop(context is Context, id is Id, definition is map, form is map, frame is CoordSystem, middle is Vector, span is map, gap is ValueWithUnits,
+    pitch is ValueWithUnits, toothAngles is array) returns map
 {
-    var stop;
-    const reference = qNthElement(definition.rackStop, 0);
-    if (!isQueryEmpty(context, reference))
+    const byStop = definition.rackStopBy == RackStopBy.REFERENCE;
+    // The Stop reference's angle, if there's one
+    var reference;
+    if (byStop && !isQueryEmpty(context, definition.rackStop))
     {
-        const point = angleReferencePoint(context, reference);
-        const local = point == undefined ? undefined : fromWorld(frame, point);
-        if (local == undefined || tolerantEquals(vector(local[0], local[1]), vector(0, 0) * meter))
+        const point = angleReferencePoint(context, qNthElement(definition.rackStop, 0));
+        if (point == undefined)
         {
-            throw regenError("Stop reference must be a point off the face's axis.", ["rackStop"], reference);
+            throw regenError("Stop reference must be a point.", ["rackStop"], definition.rackStop);
         }
-        stop = atan2(local[1], local[0]);
+        // Projected onto the face: its angle around the axis, which a point on the axis hasn't
+        const local = fromWorld(frame, point);
+        if (tolerantEqualsZero(norm(vector(local[0], local[1]))))
+        {
+            throw regenError("Stop reference could not be projected onto the face.", ["rackStop"], definition.rackStop);
+        }
+        reference = atan2(local[1], local[0]);
     }
-    else if (!definition.limitRackTeeth)
-    {
-        throw regenError("Select a stop reference or limit rack teeth.", ["rackStop", "limitRackTeeth"]);
-    }
-    const count = definition.limitRackTeeth ? definition.rackTeeth : undefined;
+    const count = byStop ? undefined : definition.rackTeeth;
     // Half a tooth's width at its root, around the axis
     const halfRoot = gearRoot(form).lineAngle;
     const turn = 360 * degree;
+    // A whole number of turns on, from 0 to a turn
+    const wrapped = function(angle is ValueWithUnits) returns ValueWithUnits
+        {
+            return angle - floor(angle / turn) * turn;
+        };
+    const yAxis = cross(frame.zAxis, frame.xAxis);
+    // Its manipulator: turning about the axis from `base`, counterclockwise or (`clockwise`) not, by the stop distance
+    // as an angle on the pitch circle
+    const addStopManipulator = function(base is ValueWithUnits, clockwise is boolean)
+        {
+            addManipulators(context, id, {
+                        (RACK_STOP_MANIPULATOR) : angularManipulator({
+                                "axisOrigin" : middle,
+                                "axisDirection" : clockwise ? -frame.zAxis : frame.zAxis,
+                                "rotationOrigin" : middle + (frame.xAxis * cos(base) + yAxis * sin(base)) * (form.tipRadius + form.module),
+                                "angle" : definition.rackStopDistance / form.pitchRadius * radian,
+                                "primaryParameterId" : "rackStopDistance"
+                            })
+                    });
+        };
+    const tooNear = function()
+        {
+            return regenError("Stop distance is too small for a tooth, increase the value.", ["rackStopDistance", "rackStop"], definition.rackStop);
+        };
     if (span.full)
     {
-        // From the gap, counterclockwise: the stop's as far around as it is from it, less than a turn
+        // From the gap, counterclockwise: the stop's that far around from the Stop reference (or the gap), less than a
+        // turn from the gap
         const all = mapArray(range(0, round(turn / pitch) - 1), k => (k + 0.5) * pitch);
-        const partial = partialTeeth(all, pitch, halfRoot, count, stop == undefined ? undefined : stop - gap - floor((stop - gap) / turn) * turn);
+        var stop;
+        if (byStop)
+        {
+            const base = reference == undefined ? 0 * degree : wrapped(reference - gap);
+            stop = base + definition.rackStopDistance / form.pitchRadius * radian;
+            addStopManipulator(gap + base, false);
+        }
+        const partial = partialTeeth(all, pitch, halfRoot, count, stop);
         if (partial.centers == [])
         {
-            throw regenError("Stop reference is too near the end for a tooth, select another.", ["rackStop"], reference);
+            throw tooNear();
         }
         // With room for the stops either side of them, or else all of them
         if (partial.stopCenter == undefined || size(partial.centers) + 2 > size(all))
         {
-            return { "toothAngles" : [], "ringStart" : span.start, "ringEnd" : span.end };
+            return { "toothAngles" : [], "teethAngles" : [], "ringStart" : span.start, "ringEnd" : span.end };
         }
         const angles = concatenateArrays([[-pitch / 2], partial.centers, [partial.stopCenter]]);
-        return { "toothAngles" : mapArray(angles, angle => gap + angle), "ringStart" : gap - pitch / 2, "ringEnd" : gap + partial.stopCenter };
+        return { "toothAngles" : mapArray(angles, angle => gap + angle), "teethAngles" : mapArray(partial.centers, angle => gap + angle),
+                "ringStart" : gap - pitch / 2, "ringEnd" : gap + partial.stopCenter };
     }
+    // From the span's start, a whole number of turns around
+    const within = function(angle is ValueWithUnits) returns ValueWithUnits
+        {
+            return wrapped(angle - span.start);
+        };
     var fromEnd = definition.oppositeEnd;
     if (definition.rackAlignment == RackAlignment.REFERENCE)
     {
-        const within = function(angle is ValueWithUnits) returns ValueWithUnits
-            {
-                // From the span's start, a whole number of turns around
-                return angle - span.start - floor((angle - span.start) / turn) * turn;
-            };
-        const middle = (span.end - span.start) / 2;
-        fromEnd = stop != undefined ? within(stop) < middle : within(gap) > middle;
+        const half = (span.end - span.start) / 2;
+        fromEnd = reference != undefined ? within(reference) < half : within(gap) > half;
     }
     // From the end it starts at
     const along = function(angle is ValueWithUnits) returns ValueWithUnits
@@ -1778,25 +1880,27 @@ function roundRackStop(context is Context, definition is map, form is map, frame
             return fromEnd ? span.end - position : span.start + position;
         };
     const ordered = mapArray(fromEnd ? reverse(toothAngles) : toothAngles, along);
-    var stopAlong;
-    if (stop != undefined)
+    var stop;
+    if (byStop)
     {
-        stopAlong = along(stop);
-        stopAlong = stopAlong - floor(stopAlong / turn) * turn;
+        const base = reference == undefined ? 0 * degree : (fromEnd ? span.end - span.start - within(reference) : within(reference));
+        stop = base + definition.rackStopDistance / form.pitchRadius * radian;
+        addStopManipulator(back(base), fromEnd);
     }
-    const partial = partialTeeth(ordered, pitch, halfRoot, count, stopAlong);
+    const partial = partialTeeth(ordered, pitch, halfRoot, count, stop);
     if (partial.centers == [])
     {
-        throw regenError("Stop reference is too near the end for a tooth, select another.", ["rackStop"], reference);
+        throw tooNear();
     }
     if (partial.stopCenter == undefined)
     {
-        return { "toothAngles" : toothAngles, "ringStart" : span.start, "ringEnd" : span.end };
+        return { "toothAngles" : toothAngles, "teethAngles" : toothAngles, "ringStart" : span.start, "ringEnd" : span.end };
     }
     const angles = mapArray(append(partial.centers, partial.stopCenter), back);
+    const teeth = mapArray(partial.centers, back);
     return fromEnd ?
-        { "toothAngles" : reverse(angles), "ringStart" : back(partial.stopCenter), "ringEnd" : span.end } :
-        { "toothAngles" : angles, "ringStart" : span.start, "ringEnd" : back(partial.stopCenter) };
+        { "toothAngles" : reverse(angles), "teethAngles" : reverse(teeth), "ringStart" : back(partial.stopCenter), "ringEnd" : span.end } :
+        { "toothAngles" : angles, "teethAngles" : teeth, "ringStart" : span.start, "ringEnd" : back(partial.stopCenter) };
 }
 
 /**
@@ -2020,8 +2124,24 @@ function setGearProperties(context is Context, gear is Query, definition is map,
     setProperty(context, {
                 "entities" : gear,
                 "propertyType" : PropertyType.APPEARANCE,
-                "value" : PRINTED_GREEN
+                "value" : BLACK
             });
+}
+
+/**
+ * The pitch radius of the gear `cutRoundTeeth` cuts into Face to cut, if it's round (`undefined` if not): a whole
+ * number of teeth's, nearest its size.
+ */
+function roundFacePitchRadius(context is Context, definition is map)
+{
+    const face = qNthElement(definition.rackFace, 0)->qGeometry(GeometryType.CYLINDER);
+    if (isQueryEmpty(context, face))
+    {
+        return undefined;
+    }
+    const module = gearModule(definition);
+    const radius = evSurfaceDefinition(context, { "face" : face }).radius;
+    return nearestGearTeeth(radius + rackFaceDepth(definition, module) - module, module) * module / 2;
 }
 
 export function robotGearManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
@@ -2029,6 +2149,24 @@ export function robotGearManipulatorChange(context is Context, definition is map
     if (newManipulators[RACK_END_MANIPULATOR] != undefined)
     {
         definition.oppositeEnd = newManipulators[RACK_END_MANIPULATOR].flipped;
+        return definition;
+    }
+    const stop = newManipulators[RACK_STOP_MANIPULATOR];
+    if (stop != undefined)
+    {
+        if (stop.manipulatorType != ManipulatorType.ANGULAR)
+        {
+            definition.rackStopDistance = stop.offset;
+        }
+        else
+        {
+            // Along the pitch circle: its radius is the face's (or a module inside it), as `cutRoundTeeth` finds it
+            const radius = roundFacePitchRadius(context, definition);
+            if (radius != undefined)
+            {
+                definition.rackStopDistance = stop.angle / radian * radius;
+            }
+        }
         return definition;
     }
     definition = angleOffsetManipulatorChange(definition, newManipulators);

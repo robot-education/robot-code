@@ -58,6 +58,21 @@ def test_command_shows_lookup_tables(audit):
     assert tree["name"] == "vendor" and tree["entries"][0][0] == "WCP"
 
 
+def test_artifact_is_a_page_without_its_document(audit, tmp_path):
+    output = tmp_path / "bench.html"
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert cli.main(["audit", BENCH, "--artifact", "-o", str(output)]) == 0
+    page = output.read_text()
+    # Publishing wraps it in a document of its own, whose theme is the viewer's: its title first, with no theme forced
+    assert page.startswith("<title>UI test bench audit</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">")
+    for tag in ("<!doctype", "<html", "<head", "<body", "data-theme=\"dark\">"):
+        assert tag not in page.split("<iframe")[0] + page.split("</iframe>")[1]
+    # The same sections and dialog as the page
+    _, document = audit
+    assert dialog_data(page)["parameters"].keys() == dialog_data(document)["parameters"].keys()
+    assert document.startswith("<!doctype html>") and document.endswith("</html>\n")
+
+
 def test_open_asks_vs_code_for_the_preview(tmp_path, monkeypatch, capsys):
     request = tmp_path / "open.json"
     monkeypatch.setattr("fs_cli.audit.OPEN_REQUEST", str(request))

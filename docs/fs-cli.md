@@ -300,6 +300,10 @@ edits, and array items can be added): it has tabs for the lookup tables, writeup
 terminal, or Claude Code in it), `fs audit --open` shows the feature's preview there: it writes `.fs-audit/open.json`,
 which the extension watches for.
 
+`fs audit --artifact` writes the page as a claude.ai Artifact's, to publish (Claude Code's Artifact tool) so people can
+comment on it: without the document around it (publishing adds one), its colors following the viewer's theme (`--theme`
+then sets only the dialog's), and its side gutter clearing a phone's system bars.
+
 `fs ui` renders a feature's dialog as Onshape shows it, from its precondition: parameters take their defaults (or the
 values given with `--set`), predicates are inlined, and `if`s are decided the way Onshape decides them. Editing logic
 doesn't run, so values it would set (like Robot nut strip's end offsets) show their defaults, except hidden parameters

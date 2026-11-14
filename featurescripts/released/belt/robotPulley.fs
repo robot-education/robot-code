@@ -5,7 +5,7 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 export import(path : "484d2d590d4a2ab919981b0e", version : "d33fae6083ef468201c775de");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
-import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
+import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 
 annotation {
         "Feature Type Name" : "Robot pulley",
@@ -502,17 +502,29 @@ function setPulleyProperties(context is Context, definition is map, pulleyDefini
 }
 
 /**
- * The pulley's bore, as `cutBores` takes it: its Bore type, as `core/bore.fs`'s shapes.
+ * The pulley's bore, as `cutBores` takes it: its Bore type, as `core/bore.fs`'s shapes, each with its fit (unlike
+ * `definitionBore`'s, whose round and custom hex bores have none).
  */
 function pulleyBore(definition is map) returns Bore
 {
-    var boreDefinition = definition;
-    boreDefinition.boreShape = switch (definition.boreType) {
+    const shape = switch (definition.boreType) {
                 BoreType.HEX : BoreShape.HEX,
                 BoreType.HOLE : BoreShape.ROUND,
                 BoreType.SPLINE : BoreShape.SPLINE
             };
-    return definitionBore(boreDefinition);
+    const across = switch (shape) {
+                BoreShape.HEX : definition.hexWidth,
+                BoreShape.ROUND : definition.boreDiameter,
+                BoreShape.SPLINE : splineDiameter(definition.splineType)
+            };
+    return {
+                "shape" : shape,
+                "across" : across,
+                "splineType" : definition.splineType,
+                "clearance" : fitClearance(definition, across),
+                "fit" : definition.fit,
+                "chamfer" : definition.entranceChamfer ? definition.chamferDistance : undefined
+            } as Bore;
 }
 
 function addBores(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)

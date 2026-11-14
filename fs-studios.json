@@ -21,6 +21,7 @@
     "1dbb81f94847cad5d242eb98": "released/grid/robotGrid.fs",
     "20659432897c109a97ad647f": "released/belt/robotBeltUiCommon.fs",
     "21762d39019c8b2289e2fbb8": "core/stdExtrude.fs",
+    "35acc10879cd067431ae1122": "core/boreProfiles.gen.fs",
     "3651d7ff6d8577f322b85723": "core/program.fs",
     "452d43a015d17145ad7775e4": "core/boundary.fs",
     "45dff3bbc433a900eed1ccbc": "core/opPointTransform.fs",
@@ -52,7 +53,7 @@
     "9fc889bb93a3c29feb4f9ae5": "core/linearStock.fs",
     "a5f2644501a90a06b7602898": "released/bearingHat/robotBearingHat.fs",
     "a6eeed056b8f09ac4e8ae12e": "core/wallType.fs",
-    "a7d353838ad2f579c5694c83": "gear/robotGear.fs",
+    "a7d353838ad2f579c5694c83": "released/gear/robotGear.fs",
     "a913c42880a153abea65b43e": "component/robotComponent.fs",
     "aa47f3d3eb754118903deeec": "released/splineProfile/splineProfiles.gen.fs",
     "aea74aaed887198c6e06badf": "motor/motorTables.gen.fs",
@@ -78,7 +79,7 @@
     "f4b16cafee30b43d5a717afd": "core/logging.fs",
     "f58a965fe7005e2e3c9a67c7": "core/tappedHole.fs",
     "f9a57bf84c97524d1eb789d6": "released/multiExtrude/multiExtrude.fs",
-    "f9a7532fe0d68211bd3a8112": "gear/gearCommon.fs",
+    "f9a7532fe0d68211bd3a8112": "released/gear/gearCommon.fs",
     "ff444db0395e01aaa8c7e555": "released/frame/frameTables.gen.fs"
   },
   "released": [
@@ -112,6 +113,7 @@
     "bd6028cdede1b8e094b97d84": "core/wallThickness.svg",
     "bfffc466263212064267fd69": "released/lighten/robotLightenIcon.svg",
     "c0e2bec1df9e786c331121f2": "released/multiRevolve/revolve.svg",
+    "c89ca5f8a32b1024a0c09f3b": "released/gear/robotGearIcon.svg",
     "e4dd2771f6ee924d601486f7": "released/spacer/robotSpacerIcon.svg",
     "f4499b93a8838a7034e96418": "plate/Plate_v2.svg",
     "f7208b20c64f74041af4afa2": "released/belt/beltIcon.svg",
