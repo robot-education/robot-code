@@ -20,6 +20,8 @@ class ApiQueryArgs(TypedDict):
     headers: NotRequired[dict[str, str]]
     # Send the request without credentials (see `Api._request`)
     anonymous: NotRequired[bool]
+    # Return the response's bytes, unparsed, even when they're JSON (like a .json file in a blob element)
+    raw: NotRequired[bool]
 
 
 API_VERSION = 16
@@ -82,6 +84,7 @@ class Api(ABC):
         body: dict | str | bytes = "",
         headers: dict[str, str] = {},
         anonymous: bool = False,
+        raw: bool = False,
     ) -> Any:
         """
         Issues a request to Onshape.
@@ -97,9 +100,11 @@ class Api(ABC):
                 the API limits of the credentials' owner. If the document turns out not to be public, the
                 request is made again with credentials, and later anonymous requests about it skip straight to
                 that.
+            raw: Whether to return the response's bytes rather than parse them.
 
         Returns:
-            The response from Onshape parsed as json, or the Response itself.
+            The response's bytes when raw; otherwise the response parsed as json, or the Response itself when
+            it isn't json.
 
         Throws:
             ApiException: If Onshape returns an invalid response.

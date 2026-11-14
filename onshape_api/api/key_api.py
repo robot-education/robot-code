@@ -65,11 +65,12 @@ class KeyApi(Api):
         body: dict | str | bytes = "",
         headers: dict[str, str] = {},
         anonymous: bool = False,
+        raw: bool = False,
     ):
         document_id = _document_id(path)
         if anonymous and document_id not in self._private_documents:
             try:
-                return self._send(method, path, query, body, headers, signed=False)
+                return self._send(method, path, query, body, headers, signed=False, raw=raw)
             except exceptions.ApiError as error:
                 if error.status_code not in ANONYMOUS_REFUSALS:
                     raise
@@ -77,7 +78,7 @@ class KeyApi(Api):
                 self._private_documents.add(document_id)
                 if self._logging:
                     logging.info("anonymous request refused; retrying with credentials")
-        return self._send(method, path, query, body, headers, signed=True)
+        return self._send(method, path, query, body, headers, signed=True, raw=raw)
 
     def _send(
         self,
@@ -87,6 +88,7 @@ class KeyApi(Api):
         body: dict | str | bytes,
         headers: dict[str, str],
         signed: bool,
+        raw: bool = False,
     ):
         query_str = query if isinstance(query, str) else parse.urlencode(query)
 
@@ -149,6 +151,8 @@ class KeyApi(Api):
                 logging.error("request failed, details: " + res.text)
             raise exceptions.ApiError(res.text, status)
 
+        if raw:
+            return res.content
         try:
             return res.json()
         except:
