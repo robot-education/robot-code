@@ -9,7 +9,7 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports BoreShape, Fit, and SplineType, parameter types
-export import(path : "01f0c5634015659514b83da1", version : "2e33b7669ec63ae45dfedbfc");
+export import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 // Exports ChainType, a parameter type
 export import(path : "93af3f24abb0f9f345268c81", version : "96e431e9857c4c335cdb3eb1");
 
