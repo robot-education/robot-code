@@ -14,88 +14,21 @@ fillet, sharp, and it can have a bore.
 | --- | --- |
 | `robotGear.fs` | The feature: its dialog, the gear and its mate (`buildGear`, `gearMesh`, `gearMatePlane`, `bevelPairCones`), a bevel gear's depths and shape (`bevelDepths`, `bevelShape`), and cutting a rack (`cutRack`) |
 | `gearCommon.fs` | The tooth form (`getGearForm`), its roots (`gearRoot`, `halfGapCurves`, `lowestContactRadius`), a gear's profile (`sketchGearProfile`), a bevel gear's cones, proportions, spherical involute teeth, tooth gap, and router bit slots (`bevelCones`, `gleasonProportions`, `sphericalInvolute`, `sphericalBevelForm`, `sketchToothGap`, `bevelBitRoot`), and a cut rack's teeth and regions (`rackToothCenters`, `partialTeeth`, `rackCutRegions`, `rackRootFilletRadius`, `relieveRackRoots`, `sketchRackCut`) |
-| `../core/bore.fs` | The bore: its parameters, and cutting it |
-| `../core/boreProfiles.py` | SplineXS bores at each standard fit, sketched with their fit, generating `boreProfiles.gen.fs` |
-| `../../tests/featurescript/bore_test.fs` | Tests of bores' sizes and fits, and the SplineXS bores' clearances |
-| `../core/location.fs`, `../core/startOffset.fs`, `../core/profileOffset.fs` | The location, starting offset, and profile offset |
-| `../core/pointManipulator.fs` | Where the gear sits on its location, as Robot pulley's (`pointManipulatorPredicate`, `applyPointManipulator`) |
-| `../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
-| `../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), the standard and custom pitches, pitch circles' teeth, bevel gaps, the units values are shown in, where a rack's teeth go and what's cut (never a partial tooth at an end), a partial rack's teeth and stop, and the SplineXS bores' profiles |
-| `../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, with the center to center adjustment, and bevel), bevel gears' crown gear and thickness errors, their shape, points, and Gleason proportions, and joining round faces' angles |
-| `../../tests/featurescript/fs_eval_bevel_test.py` | Tests of spherical bevel gears' teeth: taken back onto the sphere (their roots' radial lines too), a pair meshes (touching on both sides, not overlapping) through a tooth; their thickness at the pitch cone; their gap's sketch; where a router bit cuts slots |
+| `../../core/bore.fs` | The bore: its parameters, and cutting it |
+| `../../core/boreProfiles.py` | SplineXS bores at each standard fit, sketched with their fit, generating `boreProfiles.gen.fs` |
+| `../../../tests/featurescript/bore_test.fs` | Tests of bores' sizes and fits, and the SplineXS bores' clearances |
+| `../../core/location.fs`, `../../core/startOffset.fs`, `../../core/profileOffset.fs` | The location, starting offset, and profile offset |
+| `../../core/pointManipulator.fs` | Where the gear sits on its location, as Robot pulley's (`pointManipulatorPredicate`, `applyPointManipulator`) |
+| `../../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
+| `../../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), the standard and custom pitches, pitch circles' teeth, bevel gaps, the units values are shown in, where a rack's teeth go and what's cut (never a partial tooth at an end), a partial rack's teeth and stop, and the SplineXS bores' profiles |
+| `../../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, with the center to center adjustment, and bevel), bevel gears' crown gear and thickness errors, their shape, points, and Gleason proportions, and joining round faces' angles |
+| `../../../tests/featurescript/fs_eval_bevel_test.py` | Tests of spherical bevel gears' teeth: taken back onto the sphere (their roots' radial lines too), a pair meshes (touching on both sides, not overlapping) through a tooth; their thickness at the pitch cone; their gap's sketch; where a router bit cuts slots |
 | `robotGearIcon.py` | Its icon, a thin spur gear with a hex bore through it, generating `robotGearIcon.svg` |
 | `spurGear.local.fs` | Onshape's Spur gear, for reference (see Compared with Spur gear): not synced |
 
 ## Changelog
 
-Unreleased.
-
-- Bevel gears have spherical involute teeth (exactly conjugate) and Gleason's proportions, as bought straight bevel
-  gears do: a small pinion's teeth are longer and thicker (and its mate's shorter and thinner), their roots `0.188 m`
-  (and 0.002 in.) below their mate's tips, rather than `0.25 m`, and their tips' cones parallel to their mate's root
-  cones, so they come down a little toward the apex.
-- Unit system (Inch or Metric) is gone: messages show values in the pitch's units (`pitchUnits`: a diametral pitch's
-  inches, a module's metric; a circular pitch's inches if it's a whole number of thousandths of an inch), as does a
-  circular pitch's part name.
-- Sector (a Gear type) is gone, for now.
-- Rack: Face at has Base, for adding teeth on a face: it's at their root line, moved out their whole depth (`2.25 m`)
-  to their tips before they're cut. A partial rack's teeth at their base have no stop: past them, it's cut back to
-  where the face was.
-- Root fillet is a checkbox (on by default) with a group, its Fillet type (Full, 1/3, 1/4, or Router bit; a bevel
-  gear's Full or Router bit) in it: unchecked, the roots are sharp (Fillet type's None, before).
-- The bore: Hex has a Hex size (1/2 in., 3/8 in., or Custom, with Width); a standard hex and a spline have a fit, and a
-  custom hex's width and a round bore's diameter are the hole's, with no fit. A SplineXS bore at a standard fit is
-  sketched with it (`SPLINE_XS_BORES`), rather than offset. A bore which fails to cut or chamfer shows the gear in blue.
-- Rack: Partial rack, with Stop by (Teeth, the default, with Rack teeth; or Stop reference, with an optional Stop
-  reference and a Stop distance from it, or from the end the teeth start at, dragged by a manipulator), to cut teeth
-  along part of the face: from an end, they stop after Rack teeth, or where the gap after the last would run past the
-  stop. Past them, the face is left as it is, its near side shaped like the next tooth's flank, as a stop.
-- Bevel gears have their own Root fillet's Fillet type: Full or Router bit (with Bit diameter), which cuts a slot of the bit's width
-  down each gap's middle where the bit can't reach the full round, toward the apex. Their roots' radial lines stop
-  where their mate's tips touch the flanks, rather than relieving the flanks above that (up to half the tooth's
-  height, above the pitch cone on a Gleason pinion); where a full round doesn't fit below that, it's the largest
-  fillet that does.
-- Profile (an unlabeled dropdown, first in a bevel gear's Gear group): Exact, or Approximate, as before, by Tredgold's
-  approximation with a spur gear's proportions, except that each gap is now sketched centered on its middle (it was
-  sketched at the tooth before it).
-- The Gear group (was Teeth) is at the top, under Gear type, with Teeth first in it, and a bevel gear's Mating gear
-  teeth and Shaft angle under that. Gear pair is at the bottom, under the bore.
-- Gear type's Bevel is last. Size by (Teeth or Pitch circle) is a top level option, under Gear type, rather than a
-  dropdown in the dialog; the starting offset is under the location or Pitch circle.
-- Gear pair: a spur pair has a Center to center adjustment (in Other options), as Robot belt's: added to the distance
-  between their centers, and to what a Mate pitch circle's checked against.
-- Gear pair: the gear it meshes with, placed by Mating gear teeth, Angle reference, and Angle, or by its pitch circle.
-  It's optional for a bevel gear too, whose cones take Mating gear teeth and Shaft angle either way.
-- Custom pitch takes a Pitch type (Module, Diametral pitch, or Circular pitch), as Onshape's Spur gear does, rather
-  than diametral pitch in inches and module in metric.
-- Helical gear (was Helical): Herringbone gear (was Double helical) is first in it, above Helix angle and Hand, which it
-  hides.
-- Racks can be helical or herringbone, and have router relief.
-- Rack: Tangent propagation is gone: the faces in line with Face to cut (or on its cylinder) are always cut too.
-- Router bit roots: a bit too wide to reach the root between the flanks cuts a slot of its width straight down the
-  gap's middle, square to the pitch circle (or a rack's pitch line), to the root, rather than a full round above it. A
-  bit too wide for the gap at the pitch circle is an error, showing the gear in blue and what its slots cut from its
-  teeth in red.
-- Most parameters' descriptions are gone (see the style guide's "Descriptions"; a bevel gear's Profile and Shaft angle
-  have none either), and the errors are reworded in std's form.
-- Choosing a circle that's a pitch circle at the gear's pitch (a whole number of teeth's) for the location switches
-  Size by to Pitch circle; for Gear pair's Angle reference, Mate selection.
-- Bevel gears check their mate's pitch cone too: a shaft angle where the mate would be a crown or internal gear is an
-  error.
-- Bevel gears take a Thickness (shared with Gear's) rather than Face width: flat back and top, their teeth as long as
-  the thickness reaches, and their mate's as long. Too thin for its (or its mate's) teeth, or so thick its top reaches
-  its apex, is an error. It reports no info.
-- A gear sits on its location by its bottom, rather than its middle; a point manipulator (hidden `index`) picks its
-  bottom, middle, or top, or a bevel gear's apex.
-- Root fillet (Full, 1/3, 1/4, or Router bit, with Bit diameter) replaces Router relief and the `0.38 m` fillet:
-  full rounds by default, for gears, racks, and bevel gears.
-- Rack: Face to cut can be round (a cylinder's), for a gear's teeth around it; a face inside a hole is an error. At
-  Pitch diameter, the face is moved out to the teeth's tips first, so they're whole, rather than cut off at it.
-- A bore that cuts into the teeth is a warning.
-- It has an icon of its own (a gear with a hex bore), rather than the robot icon.
-- Gears are black, rather than printed green.
-- Errors are shorter, in std's form ("Thickness is too small, increase the value."), and Face at, Angle reference, Stop
-  reference, and Center to center adjustment have no descriptions.
+v1.0.0 is its first release.
 
 ## Strings
 

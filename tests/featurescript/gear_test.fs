@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "gear/robotGear.fs", version : "");
-import(path : "gear/gearCommon.fs", version : "");
+import(path : "released/gear/robotGear.fs", version : "");
+import(path : "released/gear/gearCommon.fs", version : "");
 import(path : "core/stdRevolve.fs", version : "");
 import(path : "testing.fs", version : "");
 

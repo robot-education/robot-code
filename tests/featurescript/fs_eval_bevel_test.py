@@ -38,7 +38,7 @@ def bevel_form(teeth: int, mate_teeth: int, shaft_degrees: float, pressure_degre
         }}
         return {{ "cones" : cones.gear, "depths" : depths, "teeth" : form.teeth, "rootRadius" : form.rootRadius, "flank" : flank }};
     }})()"""
-    return to_python(shared_evaluator().eval(expression, "gear/robotGear.fs"))
+    return to_python(shared_evaluator().eval(expression, "released/gear/robotGear.fs"))
 
 
 class Teeth:
@@ -172,10 +172,10 @@ def test_spherical_bevel_gap_is_one_closed_loop(teeth, mate_teeth, shaft_degrees
         form.filletFraction = {fillet};
         return form;
     }})()"""
-    evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form}, 0.5)', "gear/robotGear.fs", context=context)
+    evaluator.eval(f'sketchToothGap(context, newId() + "gap", XY_PLANE, {form}, 0.5)', "released/gear/robotGear.fs", context=context)
     loops = recorded_sketch(context, "gap").loops()
     assert len(loops) == 1 and loops[0].closed
-    info = to_python(evaluator.eval(f"(function() {{ const form = {form}; return [form.rootRadius, form.tipRadius]; }})()", "gear/robotGear.fs"))
+    info = to_python(evaluator.eval(f"(function() {{ const form = {form}; return [form.rootRadius, form.tipRadius]; }})()", "released/gear/robotGear.fs"))
     curves = loops[0].curves
     # Scaled by half: from the root to a module past the tip
     assert min(curve.nearest() for curve in curves) == pytest.approx(info[0] / 2, abs=1e-9)
@@ -196,4 +196,4 @@ def test_router_bit_slots_where_it_cant_reach_the_root(bit_mm, expected):
         const root = bevelBitRoot(form, {bit_mm} * millimeter, 0.6);
         return root.slot == undefined ? "none" : root.slot.tooLarge ? "too large" : "slot";
     }})()"""
-    assert to_python(shared_evaluator().eval(expression, "gear/robotGear.fs")) == expected
+    assert to_python(shared_evaluator().eval(expression, "released/gear/robotGear.fs")) == expected
