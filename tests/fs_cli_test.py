@@ -13,6 +13,7 @@ import pytest
 
 from fs_cli import cli, workspace
 from fs_cli.configured_studios import Built
+from fs_cli.frontend import FrontendTab
 from fs_cli.remote import RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
 from fs_cli.std import StdMetadata
@@ -42,6 +43,8 @@ class FakeOnshape:
         self.image_tabs: dict[tuple[str, str], dict[str, dict]] = {}
         # (document id, instance id) -> Part Studio tab name -> element id
         self.part_studios: dict[tuple[str, str], dict[str, str]] = {}
+        # Part Studio element id -> the folders holding it
+        self.part_studio_folders: dict[str, tuple[str, ...]] = {}
         # (document id, studio name, Feature Studio element id, its microversion) of each build
         self.builds: list[tuple[str, str, str, str]] = []
         self.build_status = "OK"
@@ -156,7 +159,16 @@ class FakeOnshape:
 
     def rename(self, instance, element_id, name):
         self.calls["rename"] += 1
-        self.studios(instance.document_id, instance.instance_id)[element_id]["name"] = name
+        key = (instance.document_id, instance.instance_id)
+        if element_id in self.studios(*key):
+            self.studios(*key)[element_id]["name"] = name
+        parts = self.part_studios.get(key, {})
+        for old, each in list(parts.items()):
+            if each == element_id:
+                parts[name] = parts.pop(old)
+        files = self.files.get(key, {})
+        if element_id in files:
+            files[element_id] = (name, files[element_id][1])
 
     def feature_names(self, instance, element_id):
         self.calls["feature_names"] += 1
@@ -219,6 +231,35 @@ class FakeOnshape:
         element_id = next((id for id, (each, _) in files.items() if each == name), None) or self._id("f")
         files[element_id] = (name, data)
         return element_id
+
+    def add_part_studio(self, name, folders=(), document="front", instance="fw") -> str:
+        element_id = self._id("p")
+        self.part_studios.setdefault((document, instance), {})[name] = element_id
+        self.part_studio_folders[element_id] = folders
+        return element_id
+
+    def frontend_tabs(self, instance):
+        """Feature Studios, then Part Studios, then images and files: enough order for an example after its studios."""
+        self.calls["frontend_tabs"] += 1
+        key = (instance.document_id, instance.instance_id)
+        return [
+            *(FrontendTab(id, s["name"], "FEATURESTUDIO", s["folders"]) for id, s in self.studios(*key).items()),
+            *(
+                FrontendTab(id, name, "PARTSTUDIO", self.part_studio_folders.get(id, ()))
+                for name, id in self.part_studios.get(key, {}).items()
+            ),
+            *(FrontendTab(id, image["name"], "BLOB") for id, image in self.images(*key).items()),
+            *(FrontendTab(id, name, "BLOB") for id, (name, _) in self.files.get(key, {}).items()),
+        ]
+
+    def create_part_studio(self, instance, name):
+        self.calls["create_part_studio"] += 1
+        return self.add_part_studio(name, document=instance.document_id, instance=instance.instance_id)
+
+    def read_file(self, instance, name):
+        self.calls["read_file"] += 1
+        files = self.files.get((instance.document_id, instance.instance_id), {})
+        return next((data for each, data in files.values() if each == name), None)
 
     def element_ids(self, instance):
         key = (instance.document_id, instance.instance_id)
@@ -1587,6 +1628,7 @@ def test_release_tags_backfills_final_releases(repo, onshape, capsys):
 def test_changes_reads_the_release_tag(repo, onshape, capsys):
     git_repo(repo)
     released_frame(repo, onshape)
+    onshape.add_part_studio("Robot frame")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish", "--no-push-tags") == 0
@@ -1825,6 +1867,7 @@ FEATURE = 'annotation { "Feature Type Name" : "Robot frame" }\nexport const robo
 
 def deprecatable_frame(repo, onshape) -> str:
     element_id = onshape.add("robotFrame.fs", FEATURE, features=["Robot frame"])
+    onshape.add_part_studio("Robot frame")
     run(onshape, "pull")
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 0
     return element_id
@@ -2404,3 +2447,104 @@ def test_branches_prunes_only_its_workspaces_of_branches_gone_from_origin(repo, 
     assert "merged-and-deleted (gone from origin)" in capsys.readouterr().out
     assert run(onshape, "branches", "--prune", "--yes") == 0
     assert sorted(onshape.workspace_names.values()) == ["feature", "someone's own"]
+
+
+# FRCDesignApp's side of a release (fs_cli/frontend.py)
+
+ICON_SVG = b"<svg/>"
+def app_frame(repo, onshape) -> str:
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + 'github = "https://github.com/robot-education/robot-code"\n')
+    icon = onshape.add_image("robotFrameIcon.svg", ICON_SVG)
+    code = (
+        f'Icon::import(path : "{icon}", version : "{onshape.images()[icon]["mv"]}");\n'
+        'annotation { "Feature Type Name" : "Robot frame", '
+        '"Feature Type Description" : "Add tube.<br>Or channel." ~ CREDIT, "Icon" : Icon::BLOB_DATA }\n'
+        "export const robotFrame = defineFeature();\n"
+    )
+    element_id = onshape.add("robotFrame.fs", code, folders=("released", "frame"), features=["Robot frame"])
+    run(onshape, "pull")
+    return element_id
+
+
+def manifest(onshape) -> dict:
+    data = onshape.read_file(InstancePath("front", "fw"), "featurescripts.json")
+    return json.loads(data) if data else {}
+
+
+def test_release_writes_the_app_its_entry_icon_and_an_empty_example(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+
+    assert "Create an empty example Part Studio, Robot frame, in the frontend document" in capsys.readouterr().out
+    assert list(onshape.part_studios[("front", "fw")]) == ["Robot frame"]
+    [studio_id] = onshape.studios("front", "fw")
+    files = onshape.files[("front", "fw")]
+    icon_id = next(id for id, (name, _) in files.items() if name == "Robot frame icon.svg")
+    assert files[icon_id][1] == ICON_SVG
+    assert manifest(onshape) == {
+        "schemaVersion": 1,
+        "features": [
+            {
+                "studioElementId": studio_id,
+                "featureType": "robotFrame",
+                "name": "Robot frame",
+                "description": "Add tube.\nOr channel.",
+                "version": "0.1.0",
+                "iconElementId": icon_id,
+                "sourceUrl": "https://github.com/robot-education/robot-code/blob/robotFrame/v0.1.0/featurescripts/released/frame/robotFrame.fs",
+            }
+        ],
+    }
+
+    # The next release keeps the example it made, and replaces its entry
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert list(onshape.part_studios[("front", "fw")]) == ["Robot frame"]
+    assert [feature["version"] for feature in manifest(onshape)["features"]] == ["0.1.1"]
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
+
+
+def test_release_refuses_to_publish_a_feature_with_no_example(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert "has no example in the frontend document" in capsys.readouterr().err
+    assert "front" not in onshape.versions_by_document
+    assert onshape.calls["create_version"] == 0
+
+
+def test_a_shared_example_after_its_features_is_kept(repo, onshape):
+    app_frame(repo, onshape)
+    # Filed by hand into a folder of the frontend document, before an example both features share
+    onshape.add("robotFrame.fs", "", folders=("Parts",), document="front", instance="fw")
+    onshape.add_part_studio("Tube examples", folders=("Parts",))
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 0
+    assert list(onshape.part_studios[("front", "fw")]) == ["Tube examples"]
+
+
+def test_beta_release_leaves_the_app_alone(repo, onshape):
+    onshape.add("robotFrameBeta.fs", "beta", features=["Robot frame beta"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotFrameBeta", "--minor", "-y", "--beta") == 0
+    assert onshape.calls["frontend_tabs"] == 0
+    assert ("beta", "betaw") not in onshape.files
+
+
+def test_deprecate_takes_the_feature_out_of_the_app(repo, onshape):
+    app_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    # In a folder of its own, so the frame's example isn't its too
+    other = onshape.add("robotTube.fs", "", folders=("Tubes",), document="front", instance="fw")
+    files = onshape.files[("front", "fw")]
+    entries = manifest(onshape)["features"]
+    entries.append({**entries[0], "studioElementId": other, "name": "Robot tube"})
+    files[next(id for id, (name, _) in files.items() if name == "featurescripts.json")] = (
+        "featurescripts.json",
+        json.dumps({"schemaVersion": 1, "features": entries}).encode(),
+    )
+
+    assert run(onshape, "deprecate", "robotFrame", "-y", "--keep-backend") == 0
+
+    assert [feature["name"] for feature in manifest(onshape)["features"]] == ["Robot tube"]
+    assert list(onshape.part_studios[("front", "fw")]) == ["DEPRECATED Robot frame"]
+    assert "DEPRECATED Robot frame icon.svg" in [name for name, _ in files.values()]
+

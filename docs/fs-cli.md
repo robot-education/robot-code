@@ -180,7 +180,8 @@ count:
   new microversions afterwards.
 - `fs tabs` and `fs link`: just the anonymous listing. `fs tabs --rename`: 1 more per tab renamed (plus an anonymous
   one to read its metadata).
-- `fs release`: at most 6 to 8 calls (fewer now that listings are anonymous). `fs released --detect`: 2.
+- `fs release`: at most 6 to 8 calls (fewer now that listings are anonymous), and up to 7 more for FRCDesignApp's side
+  (the frontend's tabs, an example, its icon, and `featurescripts.json`). `fs released --detect`: 2.
   `fs deprecate`: about 12.
 
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing: they only make the anonymous listings.
@@ -479,6 +480,28 @@ uv run fs changes robotFrame     # what's changed since robotFrame's last releas
 The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, the
 repo on GitHub (the repo, not the file, so the link doesn't break when files move). It's written when the studio's
 released, so each FeatureScript gets the GitHub link at its next release.
+
+### FRCDesignApp
+
+FRCDesignApp's FeatureScripts tab lists what `featurescripts.json`, a file tab at the frontend document's top level,
+names, and takes the rest from the document's layout: a feature's category is the folder its frontend studio is in,
+and its example is a Part Studio. A release (never a beta's) keeps that side of the frontend document, before the
+frontend version, so the version holds what describes it (`fs_cli/frontend.py`):
+
+- **The example**: a Part Studio named for the feature, its Feature Type Name in any case (`Multi extrude`), preferring
+  one after its studio in the same folder; otherwise the first Part Studio after its studio in its folder, so features
+  sharing an example sit before it in one folder. Deprecated tabs and folders are skipped, and the app finds examples
+  the same way. A feature with none gets an empty one, named for it, at the top level; `--publish` is refused until
+  it has one, so an empty example is never published: release without it, model the example, then `fs sync-versions`.
+- **The icon**: the `.svg` its `"Icon"` imports, written to `<Feature Type Name> icon.svg`.
+- **Its entry in `featurescripts.json`**, replacing the one for the same frontend studio: the exported constant, the
+  name, the description (the `"Feature Type Description"` literal, so `~ CREDIT` is cut, with each `<br>` a line break),
+  the version, the icon tab, and with `github` set, the file at its release's tag. A studio exporting no `defineFeature`
+  gets none.
+
+The API can't make or move folders, so a first release's studio and example land at the top level until they're filed
+by hand. `fs deprecate` takes a feature back out: its entry goes, and its icon and its example (unless another
+feature's example is it too) are renamed `DEPRECATED ...`.
 
 ### Released FeatureScripts
 
