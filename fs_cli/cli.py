@@ -329,6 +329,10 @@ def make_parser() -> argparse.ArgumentParser:
     audit_command.add_argument(
         "--open", action="store_true", help="also show it in VS Code's feature preview, when run inside VS Code"
     )
+    audit_command.add_argument(
+        "--artifact", action="store_true",
+        help="write it as a claude.ai Artifact's page, to publish: without the document around it, in the viewer's theme",
+    )
 
     tabs_command = command(
         "tabs",
@@ -1752,7 +1756,7 @@ def audit(config: Config, args: argparse.Namespace) -> int:
     writeup_path = path.with_suffix(".md")
     writeup = writeup_path.read_text() if writeup_path.is_file() else None
     source = pathlib.Path(os.path.relpath(path.resolve(), config.root)).as_posix()
-    page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables)
+    page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables, args.artifact)
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page)
