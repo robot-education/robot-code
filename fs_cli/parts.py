@@ -217,7 +217,7 @@ def plan_part_release(
     # The main document is versioned by hand, so its releases are numbered by the backend's
     previous = latest_release(part_set.title, workspace.remote.versions(workspace.instance))
     try:
-        version = next_version(previous, bump, beta=False)
+        version = next_version(previous, bump)
     except ValueError as error:
         raise UsageError(str(error)) from error
     released = ReleasedVersion(part_set.title, version)

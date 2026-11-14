@@ -232,7 +232,6 @@ script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
 part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
 bump = "minor"              # major, minor, or patch
 description = "Adds hubs"   # internal, as --description
-beta = false                # FeatureScripts: to the beta document
 publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
 ```
 
@@ -461,14 +460,11 @@ small generated file re-exporting a version of the backend studio, and `fs relea
 ```
 uv run fs release robotFrame --minor -d "Added a thing"   # 1.2.3 -> 1.3.0
 uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend (not a first release)
-uv run fs release robotFrameBeta --major --beta           # start a beta: 1.3.0 -> 2.0.0-beta.1
-uv run fs release robotFrameBeta --beta                   # continue it: 2.0.0-beta.2
 uv run fs release robotFrame --minor --dry-run            # show the plan without changing anything
 ```
 
 A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
-frontend studio of the same name at it (creating the studio if needed). Beta releases go to the separate
-`frontend_beta` document instead, and the feature's name must contain "beta". A part set's FeatureScript
+frontend studio of the same name at it (creating the studio if needed). A part set's FeatureScript
 (`[tool.fs.parts]`) isn't released here but by `fs parts SET --release`, into its FRCDesignLib document with its Part
 Studios; see [docs/parts.md](parts.md). The studio must be pushed and in sync before it can be released, and
 `fs release` asks for confirmation since versions can't be deleted (`-y` skips the prompt).
@@ -497,7 +493,7 @@ released, so each FeatureScript gets the GitHub link at its next release.
 
 FRCDesignApp's FeatureScripts tab lists what `featurescripts.json`, a file tab at the frontend document's top level,
 names, and takes the rest from the document's layout: a feature's category is the folder its frontend studio is in,
-and its example is a Part Studio. A release (never a beta's) keeps that side of the frontend document, before the
+and its example is a Part Studio. A release keeps that side of the frontend document, before the
 frontend version, so the version holds what describes it (`fs_cli/frontend.py`):
 
 - **The example**: a Part Studio named for the feature, its Feature Type Name in any case (`Multi extrude`), preferring
@@ -516,7 +512,7 @@ by hand. `fs deprecate` takes a feature back out: its entry goes, and its icon a
 feature's example is it too) are renamed `DEPRECATED ...`.
 
 `fs app-manifest` writes the entries and icons of features released before releases wrote them, without releasing
-them: each feature in the frontend document with a release, as its latest (non-beta) release made it, from its code and
+them: each feature in the frontend document with a release, as its latest release made it, from its code and
 icon in that backend version. It replaces those features' entries and keeps the rest, and creates no examples and no
 versions: the next frontend version holds them. An entry gets its GitHub link only when
 its release is tagged in the checkout it runs from (`fs release-tags` tags them; fetch the tags first). `--dry-run`

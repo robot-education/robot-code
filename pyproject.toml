@@ -32,8 +32,6 @@ backend = "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd99
 frontend = "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88"
 # The repo on GitHub: released FeatureScripts link to it.
 github = "https://github.com/robot-education/robot-code"
-# The document `fs release --beta` publishes beta releases to.
-frontend_beta = "https://cad.onshape.com/documents/d6d83100b10be7a664fa2c84/w/7517d9bc30a444e88795c529"
 # The git branch the backend's main workspace holds, changed only by merging (`fs sync-main`, which the Onshape workflow
 # runs): every other branch pushes to a workspace of its own (see docs/fs-cli.md#branches).
 main_branch = "main"

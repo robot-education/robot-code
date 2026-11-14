@@ -443,12 +443,6 @@ def make_parser() -> argparse.ArgumentParser:
             help=f"release a new {version_type} version",
         )
     release.add_argument(
-        "-b",
-        "--beta",
-        action="store_true",
-        help="make a beta release to the frontend_beta document",
-    )
-    release.add_argument(
         "-d",
         "--description",
         default="",
@@ -723,7 +717,7 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
         print(f"Running {RELEASES_FOLDER}/{file.path.name}:")
         common = {"bump": file.bump, "description": file.described, "yes": True, "dry_run": args.dry_run, "no_push_tags": args.no_push_tags}
         if file.script:
-            release(workspace, argparse.Namespace(script=file.script, beta=file.beta, publish=file.publish, **common))
+            release(workspace, argparse.Namespace(script=file.script, publish=file.publish, **common))
         else:
             parts(
                 workspace,
@@ -1381,21 +1375,20 @@ def _synced_studios(config: Config, state: State, args: list[str]) -> list[tuple
 
 
 def release(workspace: Workspace, args: argparse.Namespace) -> int:
-    plan = plan_release(workspace, args.script, args.bump, args.beta, args.publish)
+    plan = plan_release(workspace, args.script, args.bump, args.publish)
     previous = plan.previous.name if plan.previous else "none"
     print(
         f"Releasing {plan.studio.path} as {plan.version_name} (previous release: {previous})"
     )
     print(f"  1. Create version {plan.version_name} in the backend document")
-    steps = [f"Point {plan.studio.name} in the {plan.target_label} document at that version"]
-    if plan.for_app:
-        if plan.example is None:
-            steps.append(f"Create an empty example Part Studio, {plan.display_name}, in the {plan.target_label} document")
-        else:
-            steps.append(f"Keep {plan.example.name} as its example")
-        steps.append("Write its icon and its entry in featurescripts.json there, for FRCDesignApp")
+    steps = [f"Point {plan.studio.name} in the frontend document at that version"]
+    if plan.example is None:
+        steps.append(f"Create an empty example Part Studio, {plan.display_name}, in the frontend document")
+    else:
+        steps.append(f"Keep {plan.example.name} as its example")
+    steps.append("Write its icon and its entry in featurescripts.json there, for FRCDesignApp")
     if args.publish:
-        steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
+        steps.append(f"Create version {plan.version_name} in the frontend document")
     for number, step in enumerate(steps, 2):
         print(f"  {number}. {step}")
     if args.dry_run:
@@ -1423,16 +1416,13 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
         steps.append(f'Rename its feature "{DEPRECATED}...", and push it')
     steps += [
         f"Create version {plan.version_name} in the backend document",
-        f"Point {plan.frontend_studio.name} in the {plan.target_label} document at that version",
+        f"Point {plan.frontend_studio.name} in the frontend document at that version",
+        f"Take it out of FRCDesignApp: remove its entry from featurescripts.json, and rename its icon and its "
+        f"example (unless another feature's is it too) {DEPRECATED}...",
+        f"Rename it {plan.frontend_name}",
     ]
-    if plan.target_label == "frontend":
-        steps.append(
-            f"Take it out of FRCDesignApp: remove its entry from featurescripts.json, and rename its icon and its "
-            f"example (unless another feature's is it too) {DEPRECATED}..."
-        )
-    steps.append(f"Rename it {plan.frontend_name}")
     if args.publish:
-        steps.append(f"Create version {plan.version_name} in the {plan.target_label} document")
+        steps.append(f"Create version {plan.version_name} in the frontend document")
     if args.keep_backend:
         assert studio.remote
         steps.append(f"Rename its tab in the backend document {deprecated_name(studio.remote.name)}")

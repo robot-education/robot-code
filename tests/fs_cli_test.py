@@ -24,7 +24,6 @@ from semver import Version as SemVersion
 
 BACKEND = "https://cad.onshape.com/documents/back/w/bw"
 FRONTEND = "https://cad.onshape.com/documents/front/w/fw"
-BETA = "https://cad.onshape.com/documents/beta/w/betaw"
 
 
 class FakeOnshape:
@@ -304,7 +303,7 @@ def repo(tmp_path, monkeypatch) -> pathlib.Path:
     # Tabs deleted in the fake are gone at once, so don't wait to list them again
     monkeypatch.setattr(workspace, "RELIST_DELAYS", (0, 0))
     (tmp_path / "pyproject.toml").write_text(
-        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nfrontend_beta = "{BETA}"\n'
+        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\n'
     )
     (tmp_path / "featurescripts").mkdir()
     monkeypatch.chdir(tmp_path)
@@ -1243,18 +1242,11 @@ def test_feature_names():
 def test_next_version():
     v = SemVersion.parse
     previous = ReleasedVersion("Robot frame", v("1.2.3"))
-    assert next_version(None, VersionType.MINOR, False) == v("0.1.0")
-    assert next_version(previous, VersionType.PATCH, False) == v("1.2.4")
-    assert next_version(previous, VersionType.MAJOR, True) == v("2.0.0-beta.1")
-    beta = ReleasedVersion("Robot frame", v("2.0.0-beta.1"))
-    assert next_version(beta, None, True) == v("2.0.0-beta.2")
-    assert next_version(beta, VersionType.MAJOR, False) == v("2.0.0")
+    assert next_version(None, VersionType.MINOR) == v("0.1.0")
+    assert next_version(previous, VersionType.PATCH) == v("1.2.4")
+    assert next_version(previous, VersionType.MAJOR) == v("2.0.0")
     with pytest.raises(ValueError):
-        next_version(previous, None, False)
-    with pytest.raises(ValueError):
-        next_version(previous, None, True)
-    with pytest.raises(ValueError):
-        next_version(beta, VersionType.MINOR, True)
+        next_version(previous, None)
 
 
 def released_frame(repo, onshape) -> str:
@@ -1329,19 +1321,6 @@ def test_release_requires_pushed_code(repo, onshape, capsys):
     local(repo, "Robot/robotFrame.fs").write_text("unpushed")
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 2
     assert "run `fs push`" in capsys.readouterr().err
-
-
-def test_beta_release(repo, onshape, capsys):
-    onshape.add("robotFrameBeta.fs", "b", features=["robotFrameBeta"])
-    run(onshape, "pull")
-    assert run(onshape, "release", "robotFrameBeta", "--minor", "-y") == 2
-    assert "--beta" in capsys.readouterr().err
-    assert run(onshape, "release", "robotFrameBeta", "--minor", "--beta", "-y") == 0
-    assert onshape.names("beta", "betaw") == ["robotFrameBeta.fs"]
-    assert (
-        onshape.versions_by_document["back"][0].name
-        == "Robot frame beta - v0.1.0-beta.1"
-    )
 
 
 def test_release_requires_confirmation_when_not_interactive(repo, onshape, capsys):
@@ -2639,11 +2618,8 @@ def test_app_manifest_links_tagged_releases_and_keeps_other_entries(repo, onshap
     assert frame["sourceUrl"].endswith("/blob/robotFrame/v0.1.0/featurescripts/released/frame/robotFrame.fs")
 
 
-def test_app_manifest_leaves_out_unreleased_beta_and_deprecated_features(repo, onshape, capsys):
+def test_app_manifest_leaves_out_unreleased_and_deprecated_features(repo, onshape, capsys):
     app_frame(repo, onshape)
-    onshape.add("robotFrameBeta.fs", "export const robotFrameBeta = defineFeature();\n", features=["Robot frame beta"])
-    run(onshape, "pull")
-    assert run(onshape, "release", "robotFrameBeta", "--minor", "-y", "--beta") == 0
     # In the frontend document, but never released
     onshape.add("robotTube.fs", "export const robotTube = defineFeature();\n", document="front", instance="fw")
     # Deprecated: its last release is named for it, and its frontend studio renamed
@@ -2654,14 +2630,6 @@ def test_app_manifest_leaves_out_unreleased_beta_and_deprecated_features(repo, o
     assert run(onshape, "app-manifest", "-y") == 0
     assert "No released features to write." in capsys.readouterr().out
     assert manifest(onshape) == {}
-
-
-def test_beta_release_leaves_the_app_alone(repo, onshape):
-    onshape.add("robotFrameBeta.fs", "beta", features=["Robot frame beta"])
-    run(onshape, "pull")
-    assert run(onshape, "release", "robotFrameBeta", "--minor", "-y", "--beta") == 0
-    assert onshape.calls["frontend_tabs"] == 0
-    assert ("beta", "betaw") not in onshape.files
 
 
 def test_deprecate_takes_the_feature_out_of_the_app(repo, onshape):

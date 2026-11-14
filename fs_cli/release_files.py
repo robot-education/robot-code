@@ -7,7 +7,6 @@ A branch asks for a release by adding a file to `releases/` (see docs/fs-cli.md#
     part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
     bump = "minor"              # major, minor, or patch
     description = "Adds hubs"   # internal, as `--description`
-    beta = false                # FeatureScripts: release to the beta document
     publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
 
 `fs run-releases`, on main, runs each, deletes its file, and commits what the releases recorded. A FeatureScript's
@@ -27,7 +26,7 @@ from fs_cli.state import load_released, load_studio_files
 from fs_cli.versions import VersionType
 
 RELEASES_FOLDER = "releases"
-_KEYS = {"script", "part_set", "bump", "description", "beta", "publish"}
+_KEYS = {"script", "part_set", "bump", "description", "publish"}
 
 
 class ReleaseFileError(Exception):
@@ -41,7 +40,6 @@ class ReleaseFile:
     description: str
     script: str | None = None
     part_set: str | None = None
-    beta: bool = False
     publish: bool = False
     # The commit that added it, so a file of the same name asking for a later release isn't taken for this one
     added: str | None = None
@@ -101,8 +99,8 @@ def load(config: Config, path: pathlib.Path) -> ReleaseFile:
     if "part_set" in data:
         if not any(part_set.name == data["part_set"] for part_set in config.parts):
             raise ReleaseFileError(f"{where}: no part set named {data['part_set']} in [tool.fs.parts].")
-        if "beta" in data or "publish" in data:
-            raise ReleaseFileError(f"{where}: a part set's release has no beta or publish.")
+        if "publish" in data:
+            raise ReleaseFileError(f"{where}: a part set's release has no publish.")
     if data.get("publish", False) and is_first_release(config, data["script"]):
         raise ReleaseFileError(
             f"{where}: {data['script']} has never been released, so its first release isn't published at once: leave out "
@@ -114,7 +112,6 @@ def load(config: Config, path: pathlib.Path) -> ReleaseFile:
         str(data.get("description", "")),
         data.get("script"),
         data.get("part_set"),
-        bool(data.get("beta", False)),
         bool(data.get("publish", False)),
         added_in(config.root, path),
     )

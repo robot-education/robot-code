@@ -68,7 +68,6 @@ class Config:
         std_dir: The folder holding a copy of the Onshape std library.
         backend: The workspace holding the source of every FeatureScript.
         frontend: The public workspace released FeatureScripts are published to.
-        frontend_beta: The workspace beta releases are published to.
         parts: Part sets, released by `fs parts` rather than `fs release`.
         github: The repo's GitHub url, which released FeatureScripts link to as their source.
         main_branch: The git branch the backend's main workspace holds, when each other branch has a workspace of
@@ -80,7 +79,6 @@ class Config:
     std_dir: pathlib.Path
     backend: InstancePath
     frontend: InstancePath | None = None
-    frontend_beta: InstancePath | None = None
     parts: tuple[PartSet, ...] = ()
     github: str | None = None
     main_branch: str | None = None
@@ -139,9 +137,6 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
         std_dir=root / data.get("std", "std"),
         backend=_workspace(data, "backend"),
         frontend=_workspace(data, "frontend") if "frontend" in data else None,
-        frontend_beta=(
-            _workspace(data, "frontend_beta") if "frontend_beta" in data else None
-        ),
         parts=tuple(_part_set(name, entry) for name, entry in data.get("parts", {}).items()),
         github=data["github"].rstrip("/") if "github" in data else None,
         main_branch=data.get("main_branch"),
