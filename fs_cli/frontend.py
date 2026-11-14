@@ -12,6 +12,7 @@ import dataclasses
 import json
 import pathlib
 import re
+from typing import Callable
 
 MANIFEST_NAME = "featurescripts.json"
 # Bumped when a field's meaning changes; the app refuses a manifest of a version it doesn't know
@@ -133,18 +134,50 @@ def feature_description(code: str) -> str:
     return re.sub(r"\s*<br\s*/?>\s*", "\n", _unescape(match.group(1))).strip()
 
 
-def icon_import(code: str) -> str | None:
-    """What the feature's `"Icon"` namespace imports: an image tab's element id, or a path in the code folder."""
+# A Feature Studio's import of another studio in the same document, by its element id
+_STUDIO_IMPORT = re.compile(r'\bimport\(\s*path\s*:\s*"([0-9a-f]{24})"')
+
+
+def icon_import(code: str, studio_code: Callable[[str], str | None] = lambda _: None) -> str | None:
+    """What the feature's `"Icon"` namespace imports: an image tab's element id, or a path in the code folder. Found in
+    `code`, or in the studios it imports, and theirs, which can export it (as robotFeature.fs exports `RobotIcon`):
+    `studio_code` gives a studio's code by its element id, or None."""
     icon = _ICON.search(code)
     if not icon:
         return None
-    imported = re.search(rf'\b{re.escape(icon.group(1))}::import\(\s*path\s*:\s*"([^"]+)"', code)
-    return imported.group(1) if imported else None
+    namespace_import = re.compile(rf'\b{re.escape(icon.group(1))}::import\(\s*path\s*:\s*"([^"]+)"')
+    seen: set[str] = set()
+    pending = [code]
+    while pending:
+        each = pending.pop(0)
+        imported = namespace_import.search(each)
+        if imported:
+            return imported.group(1)
+        for element_id in _STUDIO_IMPORT.findall(each):
+            if element_id not in seen:
+                seen.add(element_id)
+                found = studio_code(element_id)
+                if found is not None:
+                    pending.append(found)
+    return None
 
 
-def icon_file(code: str, code_dir: pathlib.Path, image_files: dict[str, str]) -> pathlib.Path | None:
-    """The local `.svg` a feature's `"Icon"` imports, given the synced images' files by element id."""
-    imported = icon_import(code)
+def local_studio_code(code_dir: pathlib.Path, studio_files: dict[str, str]) -> Callable[[str], str | None]:
+    """`icon_import`'s `studio_code` from the synced studios' files, given their files by element id."""
+
+    def studio_code(element_id: str) -> str | None:
+        file = studio_files.get(element_id)
+        path = code_dir / file if file else None
+        return path.read_text(encoding="utf-8") if path is not None and path.is_file() else None
+
+    return studio_code
+
+
+def icon_file(
+    code: str, code_dir: pathlib.Path, image_files: dict[str, str], studio_files: dict[str, str]
+) -> pathlib.Path | None:
+    """The local `.svg` a feature's `"Icon"` imports, given the synced images' and studios' files by element id."""
+    imported = icon_import(code, local_studio_code(code_dir, studio_files))
     if imported is None:
         return None
     relative = image_files.get(imported, imported)

@@ -2591,6 +2591,30 @@ def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, c
     assert onshape.calls["create_part_studio"] == 1
 
 
+def test_an_icon_another_studio_exports_is_found(repo, onshape):
+    """Like RobotIcon, which robotFeature.fs exports for features without an icon of their own."""
+    icon = onshape.add_image("robotIcon.svg", ICON_SVG)
+    core = onshape.add(
+        "robotFeature.fs", f'export RobotIcon::import(path : "{icon}", version : "{onshape.images()[icon]["mv"]}");\n'
+    )
+    code = (
+        f'export import(path : "{core}", version : "v");\n'
+        'annotation { "Feature Type Name" : "Robot grid", "Icon" : RobotIcon::BLOB_DATA }\n'
+        "export const robotGrid = defineFeature();\n"
+    )
+    onshape.add("robotGrid.fs", code, features=["Robot grid"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotGrid", "--minor", "-y") == 0
+    files = onshape.files[("front", "fw")]
+    [entry] = manifest(onshape)["features"]
+    assert files[entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+    del onshape.files[("front", "fw")]
+    assert run(onshape, "app-manifest", "-y") == 0
+    [entry] = manifest(onshape)["features"]
+    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+
 def test_app_manifest_keeps_other_entries(repo, onshape):
     app_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0

@@ -499,8 +499,10 @@ frontend version, so the version holds what describes it (`fs_cli/frontend.py`):
   sharing an example sit before it in one folder. Deprecated tabs and folders are skipped, and the app finds examples
   the same way. A feature with none gets an empty one, named for it, at the top level; `--publish` is refused until
   it has one, so an empty example is never published: release without it, model the example, then `fs sync-versions`.
-- **The icon**: the `.svg` its `"Icon"` imports, written to `<Feature Type Name> icon.svg`. Without one, its entry's
-  `iconElementId` is null, and the app shows its generic puzzle piece icon (and lists "no icon" among its problems).
+- **The icon**: the `.svg` its `"Icon"` imports, itself or through a studio it imports (as `core/robotFeature.fs`
+  exports `RobotIcon`, the robot icon of features without their own), written to `<Feature Type Name> icon.svg`.
+  Without one, its entry's `iconElementId` is null, and the app shows its default icon (and lists "no icon" among its
+  problems).
 - **Its entry in `featurescripts.json`**, replacing the one for the same frontend studio: the exported constant, the
   name, the description (the `"Feature Type Description"` literal, so `~ CREDIT` is cut, with each `<br>` a line break),
   the version, the icon tab, and with `github` set, the file on GitHub's main branch (the latest code, so it doesn't

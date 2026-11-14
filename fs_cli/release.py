@@ -191,7 +191,8 @@ def write_for_app(
         remote.create_part_studio(target, name)
     icon_id = None
     images = {element_id: image.file for element_id, image in workspace.state.images.items()}
-    icon = frontend.icon_file(code, workspace.config.code_dir, images)
+    studios = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
+    icon = frontend.icon_file(code, workspace.config.code_dir, images, studios)
     if icon is not None:
         log(f"Writing {frontend.icon_tab_name(name)} in the frontend document...")
         icon_id = remote.put_file(target, frontend.icon_tab_name(name), icon.read_bytes(), "image/svg+xml")
@@ -276,7 +277,8 @@ def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) 
         if entry is None:
             continue
         icon = None
-        imported = frontend.icon_import(code)
+        # Imported studios are read from their files, as they're likely the same as released
+        imported = frontend.icon_import(code, frontend.local_studio_code(config.code_dir, files))
         if imported is not None:
             try:
                 data = remote.download_image(at_version, imported)
