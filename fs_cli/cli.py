@@ -43,7 +43,6 @@ from fs_cli.release import (
     deprecated_name,
     find_studio,
     plan_deprecate,
-    finalized_versions,
     plan_app_manifest,
     plan_release,
     release_tag,
@@ -590,14 +589,6 @@ def make_parser() -> argparse.ArgumentParser:
         "--branch", help="the branch just merged, whose workspace to land; a workspace made for it when it has none"
     )
 
-    release_tags = command(
-        "release-tags",
-        "tag final releases (those whose version is in the frontend document) in git which aren't tagged yet, e.g. robotFrame/v1.3.0",
-        targets=False,
-    )
-    no_push_tags(release_tags)
-    dry_run(release_tags)
-
     app_manifest_command = command(
         "app-manifest",
         "write every released feature's entry in featurescripts.json, and its icon, as its latest release made them, "
@@ -645,7 +636,7 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
 
 
 # Commands which release, or land main, so run only on the main branch (see fs_cli/branches.py)
-MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "release-tags", "sync-main", "run-releases", "app-manifest"}
+MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "sync-main", "run-releases", "app-manifest"}
 # Commands which write the backend workspace, so make their branch's
 WRITE_COMMANDS = {"push", "sync", "tabs"}
 
@@ -1465,13 +1456,6 @@ def sync_versions(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
-def release_tags(workspace: Workspace, args: argparse.Namespace) -> int:
-    tagged = tag_versions(workspace, finalized_versions(workspace), not args.no_push_tags, args.dry_run)
-    if tagged == 0:
-        print("Every final release is tagged.")
-    return 0
-
-
 def app_manifest(workspace: Workspace, args: argparse.Namespace) -> int:
     features = plan_app_manifest(workspace)
     if not features:
@@ -1483,7 +1467,7 @@ def app_manifest(workspace: Workspace, args: argparse.Namespace) -> int:
             note
             for note, missing in (
                 ("no icon", feature.icon is None),
-                ("no GitHub link: tag it with `fs release-tags`", "sourceUrl" not in feature.entry),
+                ("no GitHub link: its release isn't tagged", "sourceUrl" not in feature.entry),
                 ("no example", not feature.has_example),
             )
             if missing
@@ -2135,7 +2119,6 @@ COMMANDS = {
     "release": release,
     "deprecate": deprecate,
     "sync-versions": sync_versions,
-    "release-tags": release_tags,
     "app-manifest": app_manifest,
     "sync-main": sync_main,
     "branches": branches,

@@ -583,7 +583,7 @@ def tag_release(
         return name
     commit = commit_with_contents(root, workspace.config.code_dir / path, contents)
     if commit is None:
-        log(f"Couldn't tag {name}: no commit has {path} as it was released. Commit it, then run `fs release-tags`.")
+        log(f"Couldn't tag {name}: no commit has {path} as it was released.")
         return None
     if not create_tag(root, name, commit, released.name):
         log(f"Couldn't tag {name}.")
@@ -594,26 +594,12 @@ def tag_release(
     return name
 
 
-def finalized_versions(workspace: Workspace) -> list[Version]:
-    """The backend document's release versions which are in the frontend document too, so final, oldest first. A part
-    set's are tagged as they're released (see parts.py)."""
-    config, remote = workspace.config, workspace.remote
-    published = set()
-    if config.frontend is not None:
-        published.update(version.name for version in remote.versions(config.frontend))
-    return [
-        version
-        for version in remote.versions(workspace.instance)
-        if parse_version_name(version.name) and version.name in published
-    ]
-
-
 def tag_versions(
-    workspace: Workspace, versions: list[Version], push: bool, dry_run: bool = False, log: Callable[[str], None] = print
+    workspace: Workspace, versions: list[Version], push: bool, log: Callable[[str], None] = print
 ) -> int:
-    """Tags final release versions (see `tag_release`) which aren't tagged yet, each from its studio's code in the
-    backend version (an API call each). Versions of studios which aren't synced with a file (like a deprecated one's)
-    are skipped. Returns how many were tagged (or would be, with `dry_run`)."""
+    """Tags the newest of each feature's final release versions (see `tag_release`; versions are oldest first), if it
+    isn't tagged yet, from its studio's code in the backend version (an API call). Versions of studios which aren't
+    synced with a file (like a deprecated one's) are skipped. Returns how many were tagged."""
     root = workspace.config.root
     if not is_repository(root):
         log("Not in a git repository, so releases aren't tagged.")
@@ -621,8 +607,13 @@ def tag_versions(
     remote = workspace.remote
     studios = {feature_name_for(studio.name): studio for studio in remote.list_studios(workspace.instance)}
     files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
-    tagged = 0
+    newest: dict[str, Version] = {}
     for version in versions:
+        released = parse_version_name(version.name)
+        assert released
+        newest[released.feature_name] = version
+    tagged = 0
+    for version in newest.values():
         released = parse_version_name(version.name)
         assert released
         studio = studios.get(released.feature_name)
@@ -632,10 +623,6 @@ def tag_versions(
         path = files[studio.element_id]
         name = release_tag(path, released.version)
         if has_tag(root, name):
-            continue
-        if dry_run:
-            log(f"Would tag {name}.")
-            tagged += 1
             continue
         at_version = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
         code = _released_code(workspace, at_version, studio.element_id, released.feature_name)

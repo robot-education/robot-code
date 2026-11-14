@@ -206,8 +206,8 @@ each other's Feature Studios, and Onshape can protect the main workspace (a work
   (or into a new `sync <commit>` one, for a branch without one), pushes main's files there over whatever it has
   (git is what main holds), merges that into the main workspace, taking its tabs where both changed, and deletes it.
   Run again after a failure, it finishes.
-- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `release-tags`, `run-releases`,
-  `app-manifest`) runs only on the main branch, so what's released is what was merged. A part set's release to a
+- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `run-releases`, `app-manifest`) runs only
+  on the main branch, so what's released is what was merged. A part set's release to a
   target (`parts --release --target`), to try it out, runs from any branch, versioning its workspace (see
   [docs/parts.md](parts.md)).
 - `fs branches` lists the workspaces fs made (marked by their description), and `fs branches --prune` deletes those
@@ -471,17 +471,15 @@ Studios; see [docs/parts.md](parts.md). The studio must be pushed and in sync be
 
 A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend
-versions the backend has that it doesn't. Then it's tagged in git, e.g. `robotFrame/v1.3.0`, on the newest commit
-whose file is as released (`fs push` commits what it pushes, so that's usually the last one), and the tag is pushed to
-origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
+versions the backend has that it doesn't. Then the feature's newest release is tagged in git, e.g.
+`robotFrame/v1.3.0`, on the newest commit whose file is as released (`fs push` commits what it pushes, so that's
+usually the last one), and the tag is pushed to origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
 changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved) without
-any API calls, falling back to the backend version for releases without one. `fs release-tags` tags final releases
-which aren't tagged yet (`--dry-run` lists them), from their code in the backend versions: an API call each, and 2
-more for a release made when its tab was another element (one recreated since). One it can't read is skipped.
+any API calls, falling back to the backend version for releases without one. A release with no commit whose file is as
+released (older ones, mostly) goes untagged; tags only make finding releases in git easier.
 
 ```
 uv run fs sync-versions          # finalize releases: create their frontend versions, and tag them
-uv run fs release-tags           # tag final releases which aren't yet
 uv run fs changes robotFrame     # what's changed since robotFrame's last release
 ```
 
@@ -515,7 +513,7 @@ feature's example is it too) are renamed `DEPRECATED ...`.
 them: each feature in the frontend document with a release, as its latest release made it, from its code and
 icon in that backend version. It replaces those features' entries and keeps the rest, and creates no examples and no
 versions: the next frontend version holds them. An entry gets its GitHub link only when
-its release is tagged in the checkout it runs from (`fs release-tags` tags them; fetch the tags first). `--dry-run`
+its release is tagged in the checkout it runs from (fetch the tags first). `--dry-run`
 lists the entries, noting those without an icon, a link, or an example. It costs 3 calls, and 5 per feature.
 
 ```

@@ -1559,28 +1559,27 @@ def tags(repo: pathlib.Path) -> list[str]:
 
 
 def frame_released_in_a_recreated_tab(repo, onshape) -> Version:
-    """A final release of Robot frame made when its tab was another element, as if it's been recreated since."""
+    """A release of Robot frame made when its tab was another element, as if it's been recreated since."""
     git_repo(repo)
     element_id = released_frame(repo, onshape)
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
     version = onshape.create_version(InstancePath("back", "bw"), "Robot frame - v1.0.0", "")
-    onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]
     released = onshape.instances[("back", version.id)]
     released["old"] = released.pop(element_id)
     return version
 
 
-def test_release_tags_finds_a_release_in_a_recreated_tab(repo, onshape):
+def test_tagging_finds_a_release_in_a_recreated_tab(repo, onshape):
     frame_released_in_a_recreated_tab(repo, onshape)
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
     assert tags(repo) == ["robotFrame/v1.0.0"]
 
 
-def test_release_tags_skips_a_release_it_cant_read(repo, onshape, capsys):
+def test_tagging_skips_a_release_it_cant_read(repo, onshape, capsys):
     version = frame_released_in_a_recreated_tab(repo, onshape)
     onshape.instances[("back", version.id)]["old"]["name"] = "renamed.fs"
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
     assert "Skipping Robot frame - v1.0.0: couldn't read its code" in capsys.readouterr().out
     assert tags(repo) == []
 
@@ -1626,24 +1625,16 @@ def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.0") == released
 
 
-def test_release_tags_backfills_final_releases(repo, onshape, capsys):
+def test_syncing_versions_tags_only_each_features_newest_release(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
-    # Not final yet
-    assert tags(repo) == []
-    onshape.versions_by_document["front"] = [Version("f1", "Robot frame - v0.1.0")]
-    capsys.readouterr()
-    assert run(onshape, "release-tags", "--dry-run") == 0
-    assert "Would tag robotFrame/v0.1.0" in capsys.readouterr().out
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
-    assert tags(repo) == ["robotFrame/v0.1.0"]
-    capsys.readouterr()
-    assert run(onshape, "release-tags", "--no-push-tags") == 0
-    assert "Every final release is tagged." in capsys.readouterr().out
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--no-push-tags") == 0
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0", "Robot frame - v0.1.1"]
+    assert tags(repo) == ["robotFrame/v0.1.1"]
 
 
 def test_changes_reads_the_release_tag(repo, onshape, capsys):
@@ -2322,7 +2313,7 @@ def test_the_main_workspace_changes_only_by_merging(repo, onshape, capsys):
 
 def test_releasing_runs_only_on_main(repo, onshape, capsys):
     branched(repo, onshape)
-    assert run(onshape, "release-tags") == 2
+    assert run(onshape, "sync-versions") == 2
     assert "runs only on main" in capsys.readouterr().err
 
 
@@ -2588,7 +2579,7 @@ def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, c
     capsys.readouterr()
 
     assert run(onshape, "app-manifest", "--dry-run") == 0
-    assert "Robot frame - v0.1.0 (no GitHub link: tag it with `fs release-tags`)" in capsys.readouterr().out
+    assert "Robot frame - v0.1.0 (no GitHub link: its release isn't tagged)" in capsys.readouterr().out
     assert ("front", "fw") not in onshape.files
 
     assert run(onshape, "app-manifest", "-y") == 0
