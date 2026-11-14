@@ -261,7 +261,7 @@ predicate isSpur(definition is map)
  */
 annotation {
         "Feature Type Name" : "Robot gear",
-        "Feature Type Description" : "Create spur, helical, herringbone, and bevel gears, or cut racks and gear teeth into parts, at FRC and FTC gears' standard pitches." ~ CREDIT,
+        "Feature Type Description" : "Create spur and bevel gears and cut gear racks into parts." ~ CREDIT,
         "Manipulator Change Function" : "robotGearManipulatorChange",
         "Editing Logic Function" : "robotGearEditLogic",
         "Icon" : RobotGearIcon::BLOB_DATA
@@ -386,8 +386,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                         "MaxNumberOfPicks" : 1 }
             definition.rackFace is Query;
 
-            annotation { "Name" : "Face at", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "Where the face is on the teeth: their pitch line or base (the face is moved out to their tips first: at their base, the teeth are added on it), or their tips." }
+            annotation { "Name" : "Face at", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.rackFaceAt is RackFaceAt;
 
             annotation { "Name" : "Align teeth to" }
@@ -401,7 +400,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             else
             {
                 annotation { "Name" : "Angle reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.CIRCLE || GeometryType.ARC,
-                            "MaxNumberOfPicks" : 1, "Description" : "A point a gap is centered on, as on an end." }
+                            "MaxNumberOfPicks" : 1 }
                 definition.rackReference is Query;
             }
 
@@ -423,7 +422,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                     else
                     {
                         annotation { "Name" : "Stop reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.CIRCLE || GeometryType.ARC,
-                                    "MaxNumberOfPicks" : 1, "Description" : "Optional: a point the stop distance is from. Without one, it's from the end the teeth start at." }
+                                    "MaxNumberOfPicks" : 1 }
                         definition.rackStop is Query;
 
                         annotation { "Name" : "Stop distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -511,8 +510,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
             if (isSpurPair(definition))
             {
-                annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                            "Description" : "Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh." }
+                annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
             }
         }
@@ -698,7 +696,7 @@ function checkBitSlots(context is Context, id is Id, definition is map, gearPlan
                 "keepTools" : true
             });
     addDebugEntities(context, body, DebugColor.BLUE);
-    throw regenError("Bit diameter is too large, decrease the value. Highlighted slots cut into the teeth's flanks.", ["bitDiameter"], slots);
+    throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"], slots);
 }
 
 /**
@@ -917,10 +915,6 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
             return addendum * sin(angle);
         };
     const apex = cones.gear.coneDistance * cos(pitchAngle);
-    const thicknessString = function(thickness is ValueWithUnits) returns string
-        {
-            return makeValueString(pitchUnits(definition), thickness, true);
-        };
     var faceWidth = definition.faceWidth;
     if (faceWidth == undefined)
     {
@@ -936,19 +930,18 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
         const top = bottom + definition.thickness;
         if (top <= tipHeight(depths.addendum, pitchAngle) + TOLERANCE.zeroLength * meter)
         {
-            throw regenError("Thickness is too small for the teeth, increase it past " ~ thicknessString(tipHeight(depths.addendum, pitchAngle) - bottom) ~ ".", ["thickness"]);
+            throw regenError("Thickness is too small, increase the value.", ["thickness"]);
         }
         if (top >= apex - TOLERANCE.zeroLength * meter)
         {
-            throw regenError("Thickness is too large, reaching the apex. Decrease it below " ~ thicknessString(apex - bottom) ~ ".", ["thickness"]);
+            throw regenError("Selected thickness is too large, decrease the value.", ["thickness"]);
         }
         faceWidth = top / cos(pitchAngle);
         // Its mate's teeth run as far along its pitch cone
         const matePitchAngle = cones.mate.pitchAngle;
         if (faceWidth * cos(matePitchAngle) <= tipHeight(depths.mateAddendum, matePitchAngle) + TOLERANCE.zeroLength * meter)
         {
-            const least = tipHeight(depths.mateAddendum, matePitchAngle) / cos(matePitchAngle) * cos(pitchAngle) - bottom;
-            throw regenError("Thickness is too small for the mating gear's teeth, increase it past " ~ thicknessString(least) ~ ".", ["thickness"]);
+            throw regenError("Thickness is too small, increase the value.", ["thickness"]);
         }
     }
     return {
@@ -1082,7 +1075,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
     {
         if (bitRoot.slot.tooLarge)
         {
-            throw regenError("Bit diameter is too large, decrease the value. Its slots cut into the teeth's flanks at their small end.", ["bitDiameter"]);
+            throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"]);
         }
         const radius = definition.bitDiameter / 2;
         const rootPoint = backApex + gapRadial * form.rootRadius;
@@ -1327,7 +1320,7 @@ function moveFacesOut(context is Context, featureId is Id, id is Id, faces is Qu
     catch
     {
         processSubfeatureStatus(context, featureId, { "subfeatureId" : id, "propagateErrorDisplay" : true });
-        throw regenError("Could not offset face to tooth tips.", ["rackFace", "rackFaceAt"], faces);
+        throw regenError("Failed to offset face.", ["rackFace", "rackFaceAt"], faces);
     }
 }
 
@@ -1364,7 +1357,7 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
     const direction = longestEdgeDirection(context, faces);
     if (direction == undefined)
     {
-        throw regenError("Face to cut must have a straight edge.", ["rackFace"], face);
+        throw regenError("Failed to find edge to cut along.", ["rackFace"], face);
     }
     const depth = rackFaceDepth(definition, form.module);
     if (!tolerantEqualsZero(depth))
@@ -1441,7 +1434,7 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
         addDebugEntities(context, part, DebugColor.BLUE);
-        throw regenError("Bit diameter is too large, decrease the value. Highlighted slots cut into the teeth's flanks.", ["bitDiameter"], tools);
+        throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"], tools);
     }
     opBoolean(context, id + "cut", {
                 "targets" : part,
@@ -1585,7 +1578,7 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
     const sample = evFaceTangentPlane(context, { "face" : face, "parameter" : vector(0.5, 0.5) });
     if (dot(sample.normal, sample.origin - project(axis, sample.origin)) < 0)
     {
-        throw regenError("Cannot cut teeth inside a hole, select a round face on the outside of a part.", ["rackFace"], face);
+        throw regenError("Cannot cut teeth on a concave face.", ["rackFace"], face);
     }
     // Faces on the same axis, of a radius
     const onCylinder = function(faces is Query, radius is ValueWithUnits) returns array
@@ -1654,7 +1647,8 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
         const local = fromWorld(frame, point);
         if (tolerantEquals(vector(local[0], local[1]), vector(0, 0) * meter))
         {
-            throw regenError("Angle reference must not be on the face's axis.", ["rackReference"], reference);
+            // On the axis, it has no angle around it
+            throw regenError("Angle reference could not be projected onto the face.", ["rackReference"], reference);
         }
         gap = atan2(local[1], local[0]);
     }
@@ -1799,10 +1793,15 @@ function roundRackStop(context is Context, id is Id, definition is map, form is 
     if (byStop && !isQueryEmpty(context, definition.rackStop))
     {
         const point = angleReferencePoint(context, qNthElement(definition.rackStop, 0));
-        const local = point == undefined ? undefined : fromWorld(frame, point);
-        if (local == undefined || tolerantEqualsZero(norm(vector(local[0], local[1]))))
+        if (point == undefined)
         {
-            throw regenError("Stop reference must be a point off the face's axis.", ["rackStop"], definition.rackStop);
+            throw regenError("Stop reference must be a point.", ["rackStop"], definition.rackStop);
+        }
+        // Projected onto the face: its angle around the axis, which a point on the axis hasn't
+        const local = fromWorld(frame, point);
+        if (tolerantEqualsZero(norm(vector(local[0], local[1]))))
+        {
+            throw regenError("Stop reference could not be projected onto the face.", ["rackStop"], definition.rackStop);
         }
         reference = atan2(local[1], local[0]);
     }
@@ -2125,7 +2124,7 @@ function setGearProperties(context is Context, gear is Query, definition is map,
     setProperty(context, {
                 "entities" : gear,
                 "propertyType" : PropertyType.APPEARANCE,
-                "value" : PRINTED_GREEN
+                "value" : BLACK
             });
 }
 

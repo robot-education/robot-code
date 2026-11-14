@@ -206,7 +206,7 @@ export function testBevelGearTooThinForItsTeeth()
         expectContains(expectThrows(function()
                 {
                     bevel(20, 20, 90 * degree, 0.05 * inch, simplified);
-                }), "too small for the teeth");
+                }), "Thickness is too small");
     }
 }
 
@@ -217,7 +217,7 @@ export function testBevelGearTooThickReachesItsApex()
         expectContains(expectThrows(function()
                 {
                     bevel(20, 20, 90 * degree, 0.6 * inch, simplified);
-                }), "reaching the apex");
+                }), "thickness is too large");
     }
 }
 
@@ -227,13 +227,13 @@ export function testBevelGearTooThinForItsMatesTeeth()
     expectContains(expectThrows(function()
             {
                 bevel(10, 40, 90 * degree, 0.15 * inch, true);
-            }), "too small for the mating gear's teeth");
+            }), "Thickness is too small");
     bevel(10, 40, 90 * degree, 0.25 * inch, true);
     // By Gleason's proportions, the mate's teeth are shorter (and the pinion's longer)
     expectContains(expectThrows(function()
             {
                 bevel(10, 40, 90 * degree, 0.12 * inch, false);
-            }), "too small for the mating gear's teeth");
+            }), "Thickness is too small");
     bevel(10, 40, 90 * degree, 0.15 * inch, false);
 }
 

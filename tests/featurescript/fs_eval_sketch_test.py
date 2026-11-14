@@ -512,7 +512,7 @@ def test_rack_slot_too_big_for_its_gaps():
 
 
 def test_rack_teeth_too_thin():
-    with pytest.raises(FSError, match="come to points"):
+    with pytest.raises(FSError, match="Profile offset is too small"):
         rack_cut("1 * millimeter", 10 * math.pi, offset_mm=-1)
 
 

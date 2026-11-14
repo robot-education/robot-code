@@ -93,26 +93,28 @@ Unreleased.
   Pitch diameter, the face is moved out to the teeth's tips first, so they're whole, rather than cut off at it.
 - A bore that cuts into the teeth is a warning.
 - It has an icon of its own (a gear with a hex bore), rather than the robot icon.
+- Gears are black, rather than printed green.
+- Errors are shorter, in std's form ("Thickness is too small, increase the value."), and Face at, Angle reference, Stop
+  reference, and Center to center adjustment have no descriptions.
 
 ## Strings
 
 | String | Where |
 | --- | --- |
 | Robot gear | feature name |
-| Create spur, helical, herringbone, and bevel gears, or cut racks and gear teeth into parts, at FRC and FTC gears' standard pitches. `<CREDIT>` | feature description |
+| Create spur and bevel gears and cut gear racks into parts. `<CREDIT>` | feature description |
 | `<teeth>`T `<pitch>` `<kind>`: the pitch is like 20DP, Module 0.8, or 0.25 in. CP (or mm, see `pitchUnits`), and the kind Gear or Bevel Gear, after Helical or Herringbone if it's helical | part name |
 
-A gear's material is Onyx, and its appearance printed green. A cut rack leaves its part's properties as they are.
+A gear's material is Onyx, and its appearance black. A cut rack leaves its part's properties as they are.
 
 ### Descriptions and hidden parameters
 
+Its own parameters have none. From `core/`:
+
 | Parameter | Description |
 | --- | --- |
-| Center to center adjustment (`centerToCenterAdjustment`) | Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh. |
-| Stop reference (`rackStop`) | Optional: a point the stop distance is from. Without one, it's from the end the teeth start at. |
-| Face at (`rackFaceAt`) | Where the face is on the teeth: their pitch line or base (the face is moved out to their tips first: at their base, the teeth are added on it), or their tips. |
-| Angle reference (`rackReference`) | A point a gap is centered on, as on an end. |
-| (the bore's, location's, and Gear pair's angle reference, from `core/`) | |
+| Width (`hexWidth`, a custom hex bore's) | Across the hex's flats. |
+| Start offset reference (`startOffsetReference`, the starting offset's) | A reference point, planar edge, or plane to measure the offset from. |
 
 | Hidden parameter | Set by |
 | --- | --- |
@@ -129,30 +131,29 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Shaft angle is too large for a bevel gear, decrease the value or increase mating gear teeth. | error | a bevel gear's pitch cone is 90° or more: a crown or internal gear; or its face cone (its tips') is | `shaftAngle`, `bevelMateTeeth` | Selected offset is too large, decrease the value. |
 | Shaft angle is too large for a bevel mating gear, decrease the value or decrease mating gear teeth. | error | its mate's pitch cone (or face cone) is 90° or more (with or without Gear pair: the pair is what it's made for) | `shaftAngle`, `bevelMateTeeth` | Selected offset is too large, decrease the value. |
 | The angle reference is on the axis, so it doesn't give an angle. / The angle reference must be parallel to the location's plane. / The angle reference must be a point, circle, or line. | error | Gear pair's Angle reference (`core/mounting.fs`, shared with Robot motor, so not reworded here) | the location or `pitchCircle`, the angle reference | Limit face must be parallel to face being moved. |
-| Thickness is too small for the teeth, increase it past `<thickness>`. | error | a bevel gear's top is below its teeth's tips at its back | `thickness` | Bend angle is too small. |
-| Thickness is too large, reaching the apex. Decrease it below `<thickness>`. | error | a bevel gear's top is at its apex or past it | `thickness` | Selected offset is too large, decrease the value. |
-| Thickness is too small for the mating gear's teeth, increase it past `<thickness>`. | error | a bevel gear's mate's teeth, as long as its, don't reach the mate's top | `thickness` | Bend angle is too small. |
-| Teeth come to points, increase teeth or change profile offset. / Teeth meet at their roots, change profile offset. | error | a gear's (or a bevel gear's virtual or projected) tooth's flanks meet below the tip circle, or above the root | `teeth`, `profileOffsetDistance` / `profileOffsetDistance` | none |
+| Thickness is too small, increase the value. | error | a bevel gear's top is below its teeth's tips at its back, or its mate's teeth, as long as its, don't reach the mate's top | `thickness` | Bend angle is too small. |
+| Selected thickness is too large, decrease the value. | error | a bevel gear's top is at its apex or past it | `thickness` | Selected offset is too large, decrease the value. |
+| Profile offset is too small, increase the value. / Profile offset is too large, decrease the value. | error | a gear's (or a bevel gear's virtual or projected) teeth come to points below the tip circle, or meet at their roots | `profileOffsetDistance`, `teeth` / `profileOffsetDistance` | Selected offset is too large, decrease the value. |
 | Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the gap's loft, or cutting the gaps from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the gap's sketches or the gaps | Failed to extrude selections, check input. |
 | Too few teeth for a gear, increase teeth. | error | the root circle's at or below the center | `teeth` | Cannot create hem, increase total length. |
 | Profile offset is larger than the bit's radius, decrease profile offset or increase bit diameter. | error | the profile offset leaves no root fillet | `profileOffsetDistance`, `bitDiameter` | Cannot create hem, decrease gap. |
 | Bit diameter is too large, decrease the value. | error | a router bit's full round, where it reaches the root but its fillets don't fit, meets the radial lines above where they meet the involutes (a bevel gear's, at its gap's small end); or a rack's corner fillet runs past its flank | `bitDiameter` | Selected offset is too large, decrease the value. |
-| Bit diameter is too large, decrease the value. Highlighted slots cut into the teeth's flanks. | error | a router bit's slots (`gearSlot`, `rackBitTooLarge`) meet the flanks above the pitch circle (or a rack's pitch line): the bit's wider than the gap there | `bitDiameter`; the gear (or the cut rack) in blue, and what the slots cut from its teeth in red | Selected offset is too large, decrease the value. |
-| Full root fillet does not fit below the flanks, select a smaller root fillet. | error | a spur gear's full round would meet the radial lines above where they meet the involutes (a bevel gear's is a smaller fillet instead) | `rootFillet` | Radius of fillet on face too large. |
-| Bit diameter is too large, decrease the value. Its slots cut into the teeth's flanks at their small end. | error | a bevel gear's router bit slot meets its flanks above the pitch cone at its gap's small end (at its pitch cone), where it's narrowest (`bevelBitRoot`) | `bitDiameter` | Selected offset is too large, decrease the value. |
+| Bit diameter is too large for the tooth profile. | error | a router bit's slots (`gearSlot`, `rackBitTooLarge`) meet the flanks above the pitch circle (or a rack's pitch line): the bit's wider than the gap there | `bitDiameter`; the gear (or the cut rack) in blue, and what the slots cut from its teeth in red | Selected offset is too large, decrease the value. |
+| Could not create full root fillet. | error | a spur gear's full round would meet the radial lines above where they meet the involutes (a bevel gear's is a smaller fillet instead) | `rootFillet` | Radius of fillet on face too large. |
+| Bit diameter is too large for the tooth profile. | error | a bevel gear's router bit slot meets its flanks above the pitch cone at its gap's small end (at its pitch cone), where it's narrowest (`bevelBitRoot`) | `bitDiameter` | Selected offset is too large, decrease the value. |
 | Failed to cut router bit slots. | error | joining a bevel gear's slot to its gap fails | `bitDiameter`, the gap and slot | Failed to extrude selections, check input. |
 | Select a face to cut teeth into. | error | Rack, no face | `rackFace` | Select a face to terminate the extrude. |
-| Could not offset face to tooth tips. | error | Face at Pitch diameter or Base (or a round face not at its tips), and moving the faces fails | `rackFace`, `rackFaceAt`, the faces | Could not offset selected faces as requested. |
-| Cannot cut teeth inside a hole, select a round face on the outside of a part. | error | a round face whose part is inside it | `rackFace`, the face | Cannot fillet parallel edges. |
+| Failed to offset face. | error | Face at Pitch diameter or Base (or a round face not at its tips), and moving the faces fails | `rackFace`, `rackFaceAt`, the faces | Could not offset selected faces as requested. |
+| Cannot cut teeth on a concave face. | error | a round face whose part is inside it (a hole's) | `rackFace`, the face | Cannot fillet parallel edges. |
 | Face to cut is too small for this pitch. | error | a round face under 4 teeth's | `rackFace`, the face | Bend angle is too small. |
 | Face to cut is not a whole number of teeth, cutting nearest (`<teeth>` teeth). | warning | a round face's pitch circle (its own; a module inside it at Outside diameter; `1.25 m` outside it at Base) isn't a whole number of teeth's | `rackFace` | none |
-| Angle reference must not be on the face's axis. | error | a round face's Angle reference, on its axis | `rackReference`, the reference | Reference must be to a face. |
-| Face to cut must have a straight edge. | error | none of the faces' edges is a line | `rackFace`, the face | Reference must be to a face. |
-| Stop reference must be a point. / Stop reference must be a point off the face's axis. | error | a flat (or round) face's Stop reference isn't a point (or is on its axis) | `rackStop`, the reference | Reference must be to a face. |
+| Angle reference could not be projected onto the face. | error | a round face's Angle reference, on its axis (which has no angle around it) | `rackReference`, the reference | Reference must be to a face. |
+| Failed to find edge to cut along. | error | none of the faces' edges is a line | `rackFace`, the face | Reference must be to a face. |
+| Stop reference must be a point. / Stop reference could not be projected onto the face. | error | the Stop reference isn't a point; or a round face's is on its axis (which has no angle around it). It's projected onto the face: a flat face's along it, a round face's around it | `rackStop`, the reference | Reference must be to a face. |
 | Stop distance is too small for a tooth, increase the value. | error | Stop by Stop reference: the gap after the first tooth would run past the stop | `rackStopDistance`, `rackStop`, the reference | Bend angle is too small. |
 | Select an angle reference. / Angle reference must be a point. | error | a rack's Angle reference, with none, or a selection that isn't a point | `rackReference` | Select a pattern axis. / Reference must be to a face. |
 | Face to cut is too short for a tooth. | error | no whole tooth fits along it | `rackFace`, the faces | Bend angle is too small. |
-| Teeth come to points, change profile offset. / Teeth meet at their roots, change profile offset. | error | a rack's profile offset's too far | `profileOffsetDistance` | none |
+| Profile offset is too small, increase the value. / Profile offset is too large, decrease the value. | error | a rack's teeth come to points below the face, or meet at their roots | `profileOffsetDistance` | Selected offset is too large, decrease the value. |
 | Pitch diameter is `<diameter>`. | info | a spur gear (not a bevel gear), without a warning | | none |
 | ... Gear centers are `<distance>` apart. | info | added to a spur pair's | | none |
 | Bore cuts into gear teeth, decrease bore size or increase teeth. / Bore cuts into mating gear teeth, ... (a bevel gear's: decrease bore size or thickness, or increase teeth.) | warning | the bore's corners (and entrance chamfer) reach its root, or a bevel gear's root cone at its top, without an earlier warning | `boreHexSize`, `hexWidth`, `boreDiameter`, `splineType`, `teeth`, `thickness` | Selected offset is too large, decrease the value. |
