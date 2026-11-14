@@ -106,14 +106,17 @@ export enum GearHand
 }
 
 /**
- * Where a cut rack's face is on its teeth.
+ * Where a cut rack's face is on its teeth: their pitch line, their tips, or their base (their root line: the teeth are
+ * added on the face, see `rackFaceDepth`).
  */
 export enum RackFaceAt
 {
     annotation { "Name" : "Pitch diameter" }
     PITCH,
     annotation { "Name" : "Outside diameter" }
-    OUTSIDE
+    OUTSIDE,
+    annotation { "Name" : "Base" }
+    BASE
 }
 
 /**
@@ -384,7 +387,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             definition.rackFace is Query;
 
             annotation { "Name" : "Face at", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "Where the face is on the teeth: their pitch line (the face is moved out to their tips first), or their tips." }
+                        "Description" : "Where the face is on the teeth: their pitch line or base (the face is moved out to their tips first: at their base, the teeth are added on it), or their tips." }
             definition.rackFaceAt is RackFaceAt;
 
             annotation { "Name" : "Align teeth to" }
@@ -1329,11 +1332,26 @@ function moveFacesOut(context is Context, featureId is Id, id is Id, faces is Qu
 }
 
 /**
+ * How far Face to cut is below the teeth's tips (`rackFaceAt`), which it's moved out by first: at their pitch line, a
+ * module; at their tips, nothing; at their base (their root line, without the profile offset), `2.25 m`, so the teeth
+ * are added on it.
+ */
+function rackFaceDepth(definition is map, module is ValueWithUnits) returns ValueWithUnits
+{
+    return switch (definition.rackFaceAt) {
+            RackFaceAt.PITCH : module,
+            RackFaceAt.OUTSIDE : 0 * meter,
+            RackFaceAt.BASE : 2.25 * module
+        };
+}
+
+/**
  * Cuts rack teeth into the part along Face to cut (and the flat faces in line with it, across tangent edges): along its
- * longest straight edge, from end to end, through its width. At the teeth's pitch line (`rackFaceAt`), the faces are
- * first moved out a module, to their tips. Whole teeth fill it, a pitch apart, lined up with an end (a gap centered on
+ * longest straight edge, from end to end, through its width. At the teeth's pitch line or base (`rackFaceAt`), the
+ * faces are first moved out to their tips (`rackFaceDepth`). Whole teeth fill it, a pitch apart, lined up with an end (a gap centered on
  * it) or the angle reference (likewise); past the first and last, it's cut to the root. A partial rack's stop at its
- * far end (`rackStop`): past it, the face is left as it is. A router bit's slots which cut the teeth's flanks where a
+ * far end (`rackStop`): past it, the face is left as it is; at the teeth's base, there's no stop, and past them it's
+ * cut to the root, the face where it was. A router bit's slots which cut the teeth's flanks where a
  * mating gear's teeth touch them are an error (`rackBitTooLarge`), showing the cut part in blue and what they cut from
  * its teeth in red.
  */
@@ -1348,11 +1366,12 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
     {
         throw regenError("Face to cut must have a straight edge.", ["rackFace"], face);
     }
-    if (definition.rackFaceAt == RackFaceAt.PITCH)
+    const depth = rackFaceDepth(definition, form.module);
+    if (!tolerantEqualsZero(depth))
     {
-        moveFacesOut(context, id, id + "moveFace", faces, form.module);
+        moveFacesOut(context, id, id + "moveFace", faces, depth);
         // Moved, the faces beside them stretch to meet them, which can make them longer: measured where they are now
-        facePlane.origin += facePlane.normal * form.module;
+        facePlane.origin += facePlane.normal * depth;
         faces = qCoincidesWithPlane(qOwnedByBody(part, EntityType.FACE), facePlane);
     }
     // x along the teeth, y out of the part, and z across the face
@@ -1401,7 +1420,8 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
     {
         const partial = rackStop(context, id, definition, form, sketchPlane.origin, direction, frame.zAxis * width / 2, length, centers, gap);
         centers = partial.centers;
-        stop = partial.stop;
+        // Teeth added on the face have no stop: past them, it's cut back to where the face was
+        stop = definition.rackFaceAt == RackFaceAt.BASE ? undefined : partial.stop;
     }
     const tools = rackTools(context, id, definition, form, sketchPlane, length, width, centers, stop);
     if (rackBitTooLarge(form))
@@ -1548,7 +1568,8 @@ function rackTools(context is Context, id is Id, definition is map, form is map,
 /**
  * Cuts a gear's teeth into the part around Face to cut, a round face (and the faces on the same cylinder, across
  * tangent edges), across its width: a gear with the nearest whole number of teeth to its size (at
- * its pitch circle or tips, `rackFaceAt`), whose faces are first moved to its tips. Whole teeth fill it, a pitch apart,
+ * its pitch circle, tips, or base, `rackFaceAt`), whose faces are first moved to its tips. A partial rack's teeth at
+ * its base have no stops: past them, it's cut to the root, the face where it was. Whole teeth fill it, a pitch apart,
  * lined up with an end (a gap centered on it; all the way around, with the cylinder's x axis) or the angle reference
  * (likewise); past the first and last, it's cut to the root. The teeth are a gear's (or a sector's, see
  * `buildGearBody`; its router bit's slots checked as a gear's, `checkBitSlots`), and what's cut is what's around them:
@@ -1581,7 +1602,7 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
     const part = qUnion(evaluateQuery(context, qOwnerBody(face)));
 
     // Its teeth
-    const pitchRadius = definition.rackFaceAt == RackFaceAt.PITCH ? cylinder.radius : cylinder.radius - module;
+    const pitchRadius = cylinder.radius + rackFaceDepth(definition, module) - module;
     const teeth = nearestGearTeeth(pitchRadius, module);
     if (teeth < 4)
     {
@@ -1673,12 +1694,17 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
             toothAngles = append(toothAngles, gap + (k + 0.5) * pitch);
         }
     }
+    // Teeth added on the face (at its base) have no stops: around them, it's cut back to where the face was
+    const addedOn = definition.rackFaceAt == RackFaceAt.BASE;
     if (definition.partialRack)
     {
         const partial = roundRackStop(context, id, definition, form, frame, middlePoint, span, gap, pitch, toothAngles);
-        toothAngles = partial.toothAngles;
-        ringStart = partial.ringStart;
-        ringEnd = partial.ringEnd;
+        toothAngles = addedOn ? partial.teethAngles : partial.toothAngles;
+        if (!addedOn)
+        {
+            ringStart = partial.ringStart;
+            ringEnd = partial.ringEnd;
+        }
     }
     if (toothAngles != [] && size(toothAngles) < teeth)
     {
@@ -1697,7 +1723,7 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
     // Around them: out past their tips, down to their root, across the face's angles
     const outside = tipRadius + module;
     const ring = newSketchOnPlane(context, id + "ring", { "sketchPlane" : gearPlane });
-    if (sectorTeeth == undefined && span.full)
+    if (span.full && (sectorTeeth == undefined || addedOn))
     {
         skCircle(ring, "inside", { "center" : vector(0, 0) * meter, "radius" : form.rootRadius });
         skCircle(ring, "outside", { "center" : vector(0, 0) * meter, "radius" : outside });
@@ -1753,11 +1779,13 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
  * before them going the other way; and the angles cut around them, from the end they start at to the stop's middle,
  * or the other end. They start at End's end (or with Opposite end, the other), or by Angle reference, the end farther
  * from the Stop reference, or without one, nearer the angle reference. All the way around, they start at the gap and
- * go counterclockwise, with a stop before them too. The stop distance (see `rackStop`) is along the pitch circle, its
+ * go counterclockwise, with a stop before them too; `teethAngles` are its teeth without the stops (for teeth added
+ * on the face). The stop distance (see `rackStop`) is along the pitch circle, its
  * manipulator turning around the axis, through `middle` (on it, at the middle of the face's width).
  *
  * @returns {{
  *      @field toothAngles {array} : Counterclockwise.
+ *      @field teethAngles {array} : Counterclockwise: `toothAngles` without its stops.
  *      @field ringStart {ValueWithUnits} :
  *      @field ringEnd {ValueWithUnits} :
  * }}
@@ -1826,10 +1854,11 @@ function roundRackStop(context is Context, id is Id, definition is map, form is 
         // With room for the stops either side of them, or else all of them
         if (partial.stopCenter == undefined || size(partial.centers) + 2 > size(all))
         {
-            return { "toothAngles" : [], "ringStart" : span.start, "ringEnd" : span.end };
+            return { "toothAngles" : [], "teethAngles" : [], "ringStart" : span.start, "ringEnd" : span.end };
         }
         const angles = concatenateArrays([[-pitch / 2], partial.centers, [partial.stopCenter]]);
-        return { "toothAngles" : mapArray(angles, angle => gap + angle), "ringStart" : gap - pitch / 2, "ringEnd" : gap + partial.stopCenter };
+        return { "toothAngles" : mapArray(angles, angle => gap + angle), "teethAngles" : mapArray(partial.centers, angle => gap + angle),
+                "ringStart" : gap - pitch / 2, "ringEnd" : gap + partial.stopCenter };
     }
     // From the span's start, a whole number of turns around
     const within = function(angle is ValueWithUnits) returns ValueWithUnits
@@ -1866,12 +1895,13 @@ function roundRackStop(context is Context, id is Id, definition is map, form is 
     }
     if (partial.stopCenter == undefined)
     {
-        return { "toothAngles" : toothAngles, "ringStart" : span.start, "ringEnd" : span.end };
+        return { "toothAngles" : toothAngles, "teethAngles" : toothAngles, "ringStart" : span.start, "ringEnd" : span.end };
     }
     const angles = mapArray(append(partial.centers, partial.stopCenter), back);
+    const teeth = mapArray(partial.centers, back);
     return fromEnd ?
-        { "toothAngles" : reverse(angles), "ringStart" : back(partial.stopCenter), "ringEnd" : span.end } :
-        { "toothAngles" : angles, "ringStart" : span.start, "ringEnd" : back(partial.stopCenter) };
+        { "toothAngles" : reverse(angles), "teethAngles" : reverse(teeth), "ringStart" : back(partial.stopCenter), "ringEnd" : span.end } :
+        { "toothAngles" : angles, "teethAngles" : teeth, "ringStart" : span.start, "ringEnd" : back(partial.stopCenter) };
 }
 
 /**
@@ -2112,7 +2142,7 @@ function roundFacePitchRadius(context is Context, definition is map)
     }
     const module = gearModule(definition);
     const radius = evSurfaceDefinition(context, { "face" : face }).radius;
-    return nearestGearTeeth(definition.rackFaceAt == RackFaceAt.PITCH ? radius : radius - module, module) * module / 2;
+    return nearestGearTeeth(radius + rackFaceDepth(definition, module) - module, module) * module / 2;
 }
 
 export function robotGearManipulatorChange(context is Context, definition is map, newManipulators is map) returns map

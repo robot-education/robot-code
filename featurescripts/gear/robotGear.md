@@ -38,6 +38,9 @@ Unreleased.
   inches, a module's metric; a circular pitch's inches if it's a whole number of thousandths of an inch), as does a
   circular pitch's part name.
 - Sector (a Gear type) is gone, for now.
+- Rack: Face at has Base, for adding teeth on a face: it's at their root line, moved out their whole depth (`2.25 m`)
+  to their tips before they're cut. A partial rack's teeth at their base have no stop: past them, it's cut back to
+  where the face was.
 - Root fillet is a checkbox (on by default) with a group, its Fillet type (Full, 1/3, 1/4, or Router bit; a bevel
   gear's Full or Router bit) in it: unchecked, the roots are sharp (Fillet type's None, before).
 - The bore: Hex has a Hex size (1/2 in., 3/8 in., or Custom, with Width); a standard hex and a spline have a fit, and a
@@ -107,7 +110,7 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | --- | --- |
 | Center to center adjustment (`centerToCenterAdjustment`) | Added to the distance between the gears' centers (their pitch radii), to loosen or tighten their mesh. |
 | Stop reference (`rackStop`) | Optional: a point the stop distance is from. Without one, it's from the end the teeth start at. |
-| Face at (`rackFaceAt`) | Where the face is on the teeth: their pitch line (the face is moved out to their tips first), or their tips. |
+| Face at (`rackFaceAt`) | Where the face is on the teeth: their pitch line or base (the face is moved out to their tips first: at their base, the teeth are added on it), or their tips. |
 | Angle reference (`rackReference`) | A point a gap is centered on, as on an end. |
 | (the bore's, location's, and Gear pair's angle reference, from `core/`) | |
 
@@ -139,10 +142,10 @@ A gear's material is Onyx, and its appearance printed green. A cut rack leaves i
 | Bit diameter is too large, decrease the value. Its slots cut into the teeth's flanks at their small end. | error | a bevel gear's router bit slot meets its flanks above the pitch cone at its gap's small end (at its pitch cone), where it's narrowest (`bevelBitRoot`) | `bitDiameter` | Selected offset is too large, decrease the value. |
 | Failed to cut router bit slots. | error | joining a bevel gear's slot to its gap fails | `bitDiameter`, the gap and slot | Failed to extrude selections, check input. |
 | Select a face to cut teeth into. | error | Rack, no face | `rackFace` | Select a face to terminate the extrude. |
-| Could not offset face to tooth tips. | error | Face at Pitch diameter (or a round face not at its tips), and moving the faces fails | `rackFace`, `rackFaceAt`, the faces | Could not offset selected faces as requested. |
+| Could not offset face to tooth tips. | error | Face at Pitch diameter or Base (or a round face not at its tips), and moving the faces fails | `rackFace`, `rackFaceAt`, the faces | Could not offset selected faces as requested. |
 | Cannot cut teeth inside a hole, select a round face on the outside of a part. | error | a round face whose part is inside it | `rackFace`, the face | Cannot fillet parallel edges. |
 | Face to cut is too small for this pitch. | error | a round face under 4 teeth's | `rackFace`, the face | Bend angle is too small. |
-| Face to cut is not a whole number of teeth, cutting nearest (`<teeth>` teeth). | warning | a round face's pitch circle (its own, or a module inside it at Outside diameter) isn't a whole number of teeth's | `rackFace` | none |
+| Face to cut is not a whole number of teeth, cutting nearest (`<teeth>` teeth). | warning | a round face's pitch circle (its own; a module inside it at Outside diameter; `1.25 m` outside it at Base) isn't a whole number of teeth's | `rackFace` | none |
 | Angle reference must not be on the face's axis. | error | a round face's Angle reference, on its axis | `rackReference`, the reference | Reference must be to a face. |
 | Face to cut must have a straight edge. | error | none of the faces' edges is a line | `rackFace`, the face | Reference must be to a face. |
 | Stop reference must be a point. / Stop reference must be a point off the face's axis. | error | a flat (or round) face's Stop reference isn't a point (or is on its axis) | `rackStop`, the reference | Reference must be to a face. |
@@ -346,7 +349,8 @@ around a round one (`cutRoundTeeth`, below). `cutRack`:
    (`qTangentConnectedFaces`, `qCoincidesWithPlane`). Its direction is along the faces' longest straight edge
    (`longestEdgeDirection`). The part is found now: moved faces are new faces, which the selection doesn't find.
 2. **Moved out**: at Pitch diameter, the faces are moved out a module, to the teeth's tips (`moveFacesOut`, as Move
-   face's Offset), so the teeth are whole. The faces beside them stretch to meet them, so they're found again (the
+   face's Offset), so the teeth are whole; at Base, their whole depth, `2.25 m` (`rackFaceDepth`), so they're added on
+   the face. The faces beside them stretch to meet them, so they're found again (the
    part's faces in the moved plane), and measured there: their length and width are their exact bounding box along
    the direction and across it.
 3. **Where the teeth go** (`rackToothCenters`): a pitch (`π m`) apart, with a gap centered on the start (End), the end
@@ -359,7 +363,8 @@ around a round one (`cutRoundTeeth`, below). `cutRack`:
    the stop (the next tooth's root, `halfRoot` from its center, its far side): Stop distance along the face from the
    Stop reference (projected onto the face), or without one, from the end they start at, toward the far end, with a
    linear manipulator there, across the middle of the face. The next tooth after them is the stop: the face is left as
-   it is from its near flank on.
+   it is from its near flank on. At Base, there's no stop: past them, it's cut to the root, which is where the face
+   was.
 4. **What's cut** (`rackCutRegions`): everything between the face and the teeth. The face is `m` above the pitch line,
    at the tips. Flanks are straight at the pressure angle (a rack's involute: a gear's of infinite radius), and the
    root is `1.25 m` below the pitch line, both offset by the profile offset. Teeth reaching the face leave a region per
@@ -388,8 +393,8 @@ around a round one (`cutRoundTeeth`, below). `cutRack`:
 cylinder: its axis, and its radius). A face inside a hole (its normal toward its
 axis) is an error: that would be an internal gear's teeth.
 
-1. **Its teeth**: the nearest whole number to its pitch circle's (the face, at Pitch diameter, or a module inside it,
-   at Outside diameter), with a warning if it isn't exactly that size.
+1. **Its teeth**: the nearest whole number to its pitch circle's (the face, at Pitch diameter; a module inside it, at
+   Outside diameter; `1.25 m` outside it, at Base), with a warning if it isn't exactly that size.
 2. **Moved out**: the faces are moved out to that gear's tip circle (`moveFacesOut`), unless they're there already,
    and found again (the part's faces on the same axis, at the tip radius): the faces beside them stretch to meet them,
    which can widen their angles.
@@ -402,7 +407,9 @@ axis) is an error: that would be an internal gear's teeth.
    (`roundRackStop`) are chosen as a flat face's (`partialTeeth`, with angles), with its stop's tooth among them; all
    the way around, they start at the gap and go counterclockwise, with a stop before them too. Its Stop distance is
    along the pitch circle (an angle of it over the pitch radius), from the Stop reference's angle (or the end they
-   start at, or all the way around, the gap), with an angular manipulator about the axis.
+   start at, or all the way around, the gap), with an angular manipulator about the axis. At Base, its stops are left
+   out (`teethAngles`), and the ring's across all its angles (all the way around, a whole ring), so past its teeth
+   it's cut to the root, where the face was.
 5. **What's cut**: the teeth (`sketchGearProfile`, `buildGearBody`: helical and herringbone too) on the plane through
    the middle of its width, centered on the sector's middle (or a tooth), its router bit's slots checked as a gear's
    (`checkBitSlots`), cut from a ring around them: from their root
