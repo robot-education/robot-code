@@ -2615,6 +2615,24 @@ def test_an_icon_another_studio_exports_is_found(repo, onshape):
     assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
 
 
+def test_a_feature_without_an_icon_gets_the_default_icon(repo, onshape, capsys):
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + 'default_icon = "core/robotIcon.svg"\n')
+    write(repo, "core/robotIcon.svg", ICON_SVG.decode())
+    onshape.add("robotGrid.fs", 'annotation { "Feature Type Name" : "Robot grid" }\nexport const robotGrid = defineFeature();\n', features=["Robot grid"])
+    run(onshape, "pull")
+    assert run(onshape, "release", "robotGrid", "--minor", "-y") == 0
+    [entry] = manifest(onshape)["features"]
+    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+    del onshape.files[("front", "fw")]
+    capsys.readouterr()
+    assert run(onshape, "app-manifest", "-y") == 0
+    assert "Robot grid - v0.1.0 (the default icon" in capsys.readouterr().out
+    [entry] = manifest(onshape)["features"]
+    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
+
+
 def test_app_manifest_keeps_other_entries(repo, onshape):
     app_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0

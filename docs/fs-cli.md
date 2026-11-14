@@ -501,8 +501,8 @@ frontend version, so the version holds what describes it (`fs_cli/frontend.py`):
   it has one, so an empty example is never published: release without it, model the example, then `fs sync-versions`.
 - **The icon**: the `.svg` its `"Icon"` imports, itself or through a studio it imports (as `core/robotFeature.fs`
   exports `RobotIcon`, the robot icon of features without their own), written to `<Feature Type Name> icon.svg`.
-  Without one, its entry's `iconElementId` is null, and the app shows its default icon (and lists "no icon" among its
-  problems).
+  A feature with none gets `[tool.fs] default_icon` (robot-code's is `core/robotIcon.svg`, the robot icon); only with
+  neither is its entry's `iconElementId` null, which the app shows as a generic icon.
 - **Its entry in `featurescripts.json`**, replacing the one for the same frontend studio: the exported constant, the
   name, the description (the `"Feature Type Description"` literal, so `~ CREDIT` is cut, with each `<br>` a line break),
   the version, the icon tab, and with `github` set, the file on GitHub's main branch (the latest code, so it doesn't

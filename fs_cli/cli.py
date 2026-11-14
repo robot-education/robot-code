@@ -1467,6 +1467,7 @@ def app_manifest(workspace: Workspace, args: argparse.Namespace) -> int:
             note
             for note, missing in (
                 ("no icon", feature.icon is None),
+                ("the default icon", feature.default_icon),
                 ("no GitHub link", "sourceUrl" not in feature.entry),
                 ("no example", not feature.has_example),
             )

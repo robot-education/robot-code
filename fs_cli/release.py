@@ -192,7 +192,7 @@ def write_for_app(
     icon_id = None
     images = {element_id: image.file for element_id, image in workspace.state.images.items()}
     studios = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
-    icon = frontend.icon_file(code, workspace.config.code_dir, images, studios)
+    icon = frontend.icon_file(code, workspace.config.code_dir, images, studios) or default_icon(workspace)
     if icon is not None:
         log(f"Writing {frontend.icon_tab_name(name)} in the frontend document...")
         icon_id = remote.put_file(target, frontend.icon_tab_name(name), icon.read_bytes(), "image/svg+xml")
@@ -214,6 +214,12 @@ def write_for_app(
     remote.put_file(target, frontend.MANIFEST_NAME, frontend.dump_manifest(manifest), "application/json")
 
 
+def default_icon(workspace: Workspace) -> pathlib.Path | None:
+    """The icon a feature with none of its own gets (`[tool.fs] default_icon`), if it's set and an `.svg`."""
+    icon = workspace.config.default_icon
+    return icon if icon is not None and icon.suffix.lower() == ".svg" and icon.is_file() else None
+
+
 @dataclasses.dataclass
 class AppFeature:
     """A released feature's entry in the manifest, as of its latest release, for `plan_app_manifest`."""
@@ -221,9 +227,10 @@ class AppFeature:
     version: Version
     display_name: str
     entry: dict
-    # The icon as released; None when it imports none, or not an `.svg`
+    # The icon as released, else the default icon; None when it has neither
     icon: bytes | None
     has_example: bool
+    default_icon: bool = False
 
 
 def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) -> list[AppFeature]:
@@ -286,9 +293,12 @@ def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) 
                 log(f"Couldn't download {entry['name']}'s icon from {version.name}.")
             else:
                 icon = data if frontend.is_svg(data) else None
+        default = default_icon(workspace) if icon is None else None
+        if default is not None:
+            icon = default.read_bytes()
         display_name = entry["name"]
         has_example = frontend.find_example(tabs, tab.element_id, display_name) is not None
-        features.append(AppFeature(version, display_name, entry, icon, has_example))
+        features.append(AppFeature(version, display_name, entry, icon, has_example, default is not None))
     return features
 
 

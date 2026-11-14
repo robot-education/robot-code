@@ -35,6 +35,8 @@ github = "https://github.com/robot-education/robot-code"
 # The git branch the backend's main workspace holds, changed only by merging (`fs sync-main`, which the Onshape workflow
 # runs): every other branch pushes to a workspace of its own (see docs/fs-cli.md#branches).
 main_branch = "main"
+# The icon (in `path`) FRCDesignApp shows for a released feature with no icon of its own: the robot icon.
+default_icon = "core/robotIcon.svg"
 
 # Part sets: Part Studios built from a definition in `folder`, whose FeatureScript is in the backend document but only
 # they use. `fs parts <set> --test` builds them there as `<Part> (TEST)`; `fs parts <set> --release` releases them into `main`, the
