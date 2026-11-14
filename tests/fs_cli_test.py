@@ -1549,6 +1549,18 @@ def test_publishing_a_release_tags_it(repo, onshape, capsys):
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.1") == git_output(repo, "rev-parse", "HEAD")
 
 
+def test_a_first_release_isnt_published_at_once(repo, onshape, capsys):
+    released_frame(repo, onshape)
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert "never been released" in capsys.readouterr().err
+    # Nothing made
+    assert "back" not in onshape.versions_by_document
+    # Released, and then a later one can be
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert [version.name for version in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
+
+
 def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
@@ -1589,7 +1601,8 @@ def test_changes_reads_the_release_tag(repo, onshape, capsys):
     released_frame(repo, onshape)
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish", "--no-push-tags") == 0
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
+    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
     local(repo, "Robot/robotFrame.fs").write_text("frame 2\n")
     pulls = onshape.pulls
     capsys.readouterr()
@@ -1826,7 +1839,8 @@ FEATURE = 'annotation { "Feature Type Name" : "Robot frame" }\nexport const robo
 def deprecatable_frame(repo, onshape) -> str:
     element_id = onshape.add("robotFrame.fs", FEATURE, features=["Robot frame"])
     run(onshape, "pull")
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 0
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    assert run(onshape, "sync-versions", "-y") == 0
     return element_id
 
 
@@ -2343,6 +2357,36 @@ def test_releases_lists_and_checks_release_files(repo, onshape, capsys):
         (repo / "releases" / "frame.toml").write_text(contents)
         assert run(onshape, "releases") == 2
         assert problem in capsys.readouterr().err
+
+
+def test_release_files_dont_publish_a_first_release(repo, onshape, capsys):
+    element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
+    run(onshape, "pull")
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\npublish = true\n')
+    assert run(onshape, "releases") == 2
+    assert "never been released" in capsys.readouterr().err
+    # Once it's been released, it can be
+    assert run(onshape, "released", "robotFrame") == 0
+    assert element_id in json.loads((repo / "fs-studios.json").read_text())["released"]
+    assert run(onshape, "releases") == 0
+
+
+def test_run_releases_doesnt_publish_unless_asked(repo, onshape):
+    onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
+    branched(repo, onshape, "main")
+    (repo / "pyproject.toml").write_text(
+        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nmain_branch = "main"\n'
+    )
+    run(onshape, "pull")
+    (repo / "releases").mkdir()
+    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    commit_all(repo, "Ask for a release")
+    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
+    # Its frontend studio points at it, but it's not final until `fs sync-versions`
+    assert "Robot frame - v0.1.0" in onshape.code("robotFrame.fs", "front", "fw")
+    assert "front" not in onshape.versions_by_document
 
 
 def test_run_releases_makes_each_release_once(repo, onshape, capsys):
