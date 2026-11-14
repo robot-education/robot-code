@@ -123,6 +123,8 @@ class ConfiguredStudio:
         mate_connector: The id its feature gives the mate connector it makes, under the feature's own. A fasten mate
             names it `<featureId>.<mate_connector>`, and Onshape's API shows no mate connector a feature makes, so the
             manifest says it.
+        top_mate_connector: The id its feature gives a second mate connector, on its top, where another part sits on
+            it, as a screw sits on a washer. Named as `mate_connector` is.
     """
 
     name: str
@@ -131,6 +133,7 @@ class ConfiguredStudio:
     tab: str | None = None
     factor_first: Sequence[str] = ()
     mate_connector: str | None = None
+    top_mate_connector: str | None = None
 
     @property
     def tab_name(self) -> str:
@@ -238,6 +241,7 @@ class ConfiguredStudio:
         return {
             "feature": self.feature,
             **({"mateConnector": self.mate_connector} if self.mate_connector else {}),
+            **({"topMateConnector": self.top_mate_connector} if self.top_mate_connector else {}),
         }
 
     def _factor_order(self) -> list[str]:

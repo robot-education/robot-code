@@ -65,10 +65,13 @@ can't disagree.
 
 ## How it works
 
-Every part is built along the Z axis, and has one mate connector at the origin (`id + "mateConnector"`, which each
-studio names as its `mate_connector` in the manifest, since a fasten mate names it under the feature's id), pointing out of the hole, where it
-seats: FRCDesign fastens a screw or nut to the top edge of the washer under it, or to the hole's edge, and a washer to
-the hole's edge. So any washer goes under any screw or nut, and none has a washer input.
+Every part is built along the Z axis, with a mate connector at the origin pointing out of the hole, where it seats
+(`id + "mateConnector"`). A washer has a second one on its top face, pointing the same way (`id + "topMateConnector"`).
+Each studio names its connectors in the manifest (`mate_connector`, `top_mate_connector`), since a fasten mate names a
+feature's connector under the feature's id.
+
+FRCDesign fastens a washer to the hole's edge, and a screw or nut to the top connector of the washer under it, or to
+the hole's edge without one. So any washer goes under any screw or nut, and none has a washer input.
 
 Each dialog is a flat list, with no conditions: Vendor, Size, Head, Finish, one `ScrewLength` of every length any vendor
 makes, and a Fully threaded checkbox, for a screw; Vendor, Size, Type, and Finish for a washer; Vendor, Size, Type, and

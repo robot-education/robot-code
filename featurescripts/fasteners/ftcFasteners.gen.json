@@ -6957,6 +6957,7 @@
     "washer": {
       "feature": "fastenerWasher",
       "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
       "location": {
         "documentId": "d67349e2db0a99ac62c57a10",
         "elementId": "5c93e3ec8ef0fbbc9b09551a"

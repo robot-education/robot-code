@@ -251,6 +251,11 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
                     "coordSystem" : coordSystem(WORLD_ORIGIN, X_DIRECTION, Z_DIRECTION),
                     "owner" : body
                 });
+        // What sits on the washer, a screw or nut, is fastened here
+        opMateConnector(context, id + "topMateConnector", {
+                    "coordSystem" : coordSystem(WORLD_ORIGIN + washer.thickness * Z_DIRECTION, X_DIRECTION, Z_DIRECTION),
+                    "owner" : body
+                });
 
         cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
         setFastenerProperties(context, body, washer);
