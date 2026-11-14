@@ -1,0 +1,3 @@
+script = "robotShaft"
+bump = "major"
+description = "COTS FRC and FTC shafts from vendors' tables, Program (FRC / FTC) replacing Unit system, SplineXS and metric hex, mirroring, and a new icon"
