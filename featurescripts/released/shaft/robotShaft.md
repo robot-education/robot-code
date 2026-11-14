@@ -11,12 +11,12 @@ captive shaft ends), and shafts can be mirrored across an end.
 | `robotShaftTables.py` | The COTS shaft tables and the tapped and clearance hole tables; `fs gen` writes `robotShaftTables.gen.fs` |
 | `../splineProfile/splineProfileCommon.fs` | Spline types and profiles (shared with Robot spline profile) |
 | `../../core/stdExtrude.fs` | The extrude's dialog and editing logic, based on std's |
-| `robotShaftIcon.py` | Its icon (`fs gen` writes `robotShaftIcon.svg`): a short rounded hex shaft with a tapped end |
+| `robotShaftIcon.py` | Its icon (`fs gen` writes `robotShaftIcon.svg`): a long rounded hex shaft with a tapped end |
 | `vendor/` | Vendors' drawings the tables were checked against |
 
 ## Changelog
 
-Since v2.2.0 (`fs changes robotShaft`).
+v3.0.0's, since v2.2.0 (`fs changes robotShaft`).
 
 ### Changes to existing shafts when their documents update
 
@@ -41,6 +41,7 @@ Since v2.2.0 (`fs changes robotShaft`).
 
 ### New
 
+- A new icon: a long rounded hex shaft with a tapped end (was a short one, which looked like a nut).
 - COTS shafts: FRC shafts from WCP, REV, AndyMark, Swyft, VEX, and ThriftyBot, and FTC shafts from goBILDA and AndyMark
   (Robits), chosen by vendor, type (as the vendor names it: Hex, Rounded hex, Hex Lite, SplineXS, ...), size (for hex),
   and material (only where a vendor sells the type and size in several). They're named `<length> <part name>`, and get their material, appearance, vendor, and the part number and
