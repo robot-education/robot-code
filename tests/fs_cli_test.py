@@ -2536,7 +2536,7 @@ def test_release_writes_the_app_its_entry_icon_and_an_empty_example(repo, onshap
                 "description": "Add tube.\nOr channel.",
                 "version": "0.1.0",
                 "iconElementId": icon_id,
-                "sourceUrl": "https://github.com/robot-education/robot-code/blob/robotFrame/v0.1.0/featurescripts/released/frame/robotFrame.fs",
+                "sourceUrl": "https://github.com/robot-education/robot-code/blob/main/featurescripts/released/frame/robotFrame.fs",
             }
         ],
     }
@@ -2579,12 +2579,11 @@ def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, c
     capsys.readouterr()
 
     assert run(onshape, "app-manifest", "--dry-run") == 0
-    assert "Robot frame - v0.1.0 (no GitHub link: its release isn't tagged)" in capsys.readouterr().out
+    assert "Robot frame - v0.1.0\n" in capsys.readouterr().out
     assert ("front", "fw") not in onshape.files
 
     assert run(onshape, "app-manifest", "-y") == 0
     [entry] = written["features"]
-    del entry["sourceUrl"]
     icon_id = next(id for id, (name, _) in onshape.files[("front", "fw")].items() if name == "Robot frame icon.svg")
     assert manifest(onshape) == {"schemaVersion": 1, "features": [{**entry, "iconElementId": icon_id}]}
     assert onshape.files[("front", "fw")][icon_id][1] == ICON_SVG
@@ -2592,13 +2591,9 @@ def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, c
     assert onshape.calls["create_part_studio"] == 1
 
 
-def test_app_manifest_links_tagged_releases_and_keeps_other_entries(repo, onshape):
-    git_repo(repo)
+def test_app_manifest_keeps_other_entries(repo, onshape):
     app_frame(repo, onshape)
-    git(repo, "add", "-A")
-    git(repo, "commit", "-qm", "Frame")
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
-    git(repo, "tag", "robotFrame/v0.1.0")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
     front = InstancePath("front", "fw")
     other = {"studioElementId": "other", "featureType": "other", "name": "Other", "description": "", "version": "1.0.0", "iconElementId": None}
     onshape.put_file(front, "featurescripts.json", json.dumps({"schemaVersion": 1, "features": [other]}).encode(), "")
@@ -2606,7 +2601,7 @@ def test_app_manifest_links_tagged_releases_and_keeps_other_entries(repo, onshap
     assert run(onshape, "app-manifest", "-y") == 0
     [kept, frame] = manifest(onshape)["features"]
     assert kept == other
-    assert frame["sourceUrl"].endswith("/blob/robotFrame/v0.1.0/featurescripts/released/frame/robotFrame.fs")
+    assert frame["sourceUrl"] == "https://github.com/robot-education/robot-code/blob/main/featurescripts/released/frame/robotFrame.fs"
 
 
 def test_app_manifest_leaves_out_unreleased_and_deprecated_features(repo, onshape, capsys):

@@ -170,13 +170,14 @@ def run_release(
     workspace.state.released.add(plan.studio.remote.element_id)
 
 
-def source_url(workspace: Workspace, path: str, version: SemVersion) -> str | None:
-    """The released file on GitHub at its release's tag, which exists once the release is final (see `tag_release`)."""
+def source_url(workspace: Workspace, path: str) -> str | None:
+    """The file on GitHub as it is on the main branch: the latest code, not necessarily as released (its release's tag
+    has that, but older releases have none)."""
     config = workspace.config
     if config.github is None:
         return None
     file = (config.code_dir / path).relative_to(config.root).as_posix()
-    return f"{config.github}/blob/{release_tag(path, version)}/{file}"
+    return f"{config.github}/blob/{config.main_branch or 'main'}/{file}"
 
 
 def write_for_app(
@@ -202,7 +203,7 @@ def write_for_app(
         fallback_name=plan.feature_name,
         version=str(released.version),
         icon_element_id=icon_id,
-        source_url=source_url(workspace, plan.studio.path, released.version),
+        source_url=source_url(workspace, plan.studio.path),
     )
     if entry is None:
         log(f"{plan.studio.path} exports no defineFeature, so FRCDesignApp won't list it.")
@@ -227,14 +228,11 @@ class AppFeature:
 def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) -> list[AppFeature]:
     """Every released feature's entry in the manifest, as its latest release made it, for features released before
     releases wrote them: each feature in the frontend document with a release, from its code and icon in the backend
-    version of that release (3 calls, and 3 per feature). A feature's GitHub link is left out unless its release is
-    tagged here. Part sets, deprecated features, and studios exporting no `defineFeature` are left out."""
+    version of that release (3 calls, and 3 per feature). Part sets, deprecated features, and studios exporting no `defineFeature` are left out."""
     config, remote = workspace.config, workspace.remote
     target = config.frontend
     if target is None:
         raise UsageError("Set [tool.fs] frontend in pyproject.toml to write the manifest.")
-    root = config.root
-    tag_here = is_repository(root)
     part_sets = {part_set.title for part_set in config.parts}
     files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
     tabs = remote.frontend_tabs(target)
@@ -266,9 +264,7 @@ def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) 
             continue
         code = remote.pull(at_version, studio.element_id)
         path = files.get(studio.element_id)
-        url = None
-        if path is not None and tag_here and has_tag(root, release_tag(path, released.version)):
-            url = source_url(workspace, path, released.version)
+        url = source_url(workspace, path) if path is not None else None
         entry = frontend.manifest_entry(
             code=code,
             studio_element_id=tab.element_id,
