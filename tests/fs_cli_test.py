@@ -1579,6 +1579,33 @@ def tags(repo: pathlib.Path) -> list[str]:
     return git_output(repo, "tag").split()
 
 
+def frame_released_in_a_recreated_tab(repo, onshape) -> Version:
+    """A final release of Robot frame made when its tab was another element, as if it's been recreated since."""
+    git_repo(repo)
+    element_id = released_frame(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Frame")
+    version = onshape.create_version(InstancePath("back", "bw"), "Robot frame - v1.0.0", "")
+    onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]
+    released = onshape.instances[("back", version.id)]
+    released["old"] = released.pop(element_id)
+    return version
+
+
+def test_release_tags_finds_a_release_in_a_recreated_tab(repo, onshape):
+    frame_released_in_a_recreated_tab(repo, onshape)
+    assert run(onshape, "release-tags", "--no-push-tags") == 0
+    assert tags(repo) == ["robotFrame/v1.0.0"]
+
+
+def test_release_tags_skips_a_release_it_cant_read(repo, onshape, capsys):
+    version = frame_released_in_a_recreated_tab(repo, onshape)
+    onshape.instances[("back", version.id)]["old"]["name"] = "renamed.fs"
+    assert run(onshape, "release-tags", "--no-push-tags") == 0
+    assert "Skipping Robot frame - v1.0.0: couldn't read its code" in capsys.readouterr().out
+    assert tags(repo) == []
+
+
 def test_publishing_a_release_tags_it(repo, onshape, capsys):
     git_repo(repo)
     released_frame(repo, onshape)

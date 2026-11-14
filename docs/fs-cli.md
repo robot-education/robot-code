@@ -480,7 +480,8 @@ whose file is as released (`fs push` commits what it pushes, so that's usually t
 origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
 changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved) without
 any API calls, falling back to the backend version for releases without one. `fs release-tags` tags final releases
-which aren't tagged yet (`--dry-run` lists them), from their code in the backend versions: an API call each.
+which aren't tagged yet (`--dry-run` lists them), from their code in the backend versions: an API call each, and 2
+more for a release made when its tab was another element (one recreated since). One it can't read is skipped.
 
 ```
 uv run fs sync-versions          # finalize releases: create their frontend versions, and tag them

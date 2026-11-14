@@ -662,6 +662,27 @@ def tag_versions(
             tagged += 1
             continue
         at_version = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
-        if tag_release(workspace, path, released, remote.pull(at_version, studio.element_id), push, log) is not None:
+        code = _released_code(workspace, at_version, studio.element_id, released.feature_name)
+        if code is None:
+            log(f"Skipping {version.name}: couldn't read its code in that version.")
+            continue
+        if tag_release(workspace, path, released, code, push, log) is not None:
             tagged += 1
     return tagged
+
+
+def _released_code(workspace: Workspace, at_version: InstancePath, element_id: str, feature_name: str) -> str | None:
+    """A feature's code in a backend version, by its studio's element id now; else (when its tab was recreated since,
+    so the version holds another) by its name in the version. None if neither can be read."""
+    remote = workspace.remote
+    try:
+        return remote.pull(at_version, element_id)
+    except ApiError:
+        pass
+    try:
+        studio = next(
+            (each for each in remote.list_studios(at_version) if feature_name_for(each.name) == feature_name), None
+        )
+        return remote.pull(at_version, studio.element_id) if studio is not None else None
+    except ApiError:
+        return None
