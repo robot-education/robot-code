@@ -502,17 +502,29 @@ function setPulleyProperties(context is Context, definition is map, pulleyDefini
 }
 
 /**
- * The pulley's bore, as `cutBores` takes it: its Bore type, as `core/bore.fs`'s shapes.
+ * The pulley's bore, as `cutBores` takes it: its Bore type, as `core/bore.fs`'s shapes, each with its fit (unlike
+ * `definitionBore`'s, whose round and custom hex bores have none).
  */
 function pulleyBore(definition is map) returns Bore
 {
-    var boreDefinition = definition;
-    boreDefinition.boreShape = switch (definition.boreType) {
+    const shape = switch (definition.boreType) {
                 BoreType.HEX : BoreShape.HEX,
                 BoreType.HOLE : BoreShape.ROUND,
                 BoreType.SPLINE : BoreShape.SPLINE
             };
-    return definitionBore(boreDefinition);
+    const across = switch (shape) {
+                BoreShape.HEX : definition.hexWidth,
+                BoreShape.ROUND : definition.boreDiameter,
+                BoreShape.SPLINE : splineDiameter(definition.splineType)
+            };
+    return {
+                "shape" : shape,
+                "across" : across,
+                "splineType" : definition.splineType,
+                "clearance" : fitClearance(definition, across),
+                "fit" : definition.fit,
+                "chamfer" : definition.entranceChamfer ? definition.chamferDistance : undefined
+            } as Bore;
 }
 
 function addBores(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)

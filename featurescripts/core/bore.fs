@@ -5,10 +5,14 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
 export import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
+import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
+// SplineXS bores at each standard fit
+import(path : "core/boreProfiles.gen.fs", version : "");
 
 /**
- * Bores through parts on a shaft (sprockets, gears, and the like): a hex, round, or spline bore, with a fit, and
- * optionally an entrance chamfer.
+ * Bores through parts on a shaft (sprockets, gears, and the like): a hex, round, or spline bore, and optionally an
+ * entrance chamfer. A standard hex's, or a spline's, has a fit on its shaft; a round bore (a hole) and a custom hex are
+ * the size given.
  */
 export enum BoreShape
 {
@@ -19,6 +23,21 @@ export enum BoreShape
     annotation { "Name" : "Spline" }
     SPLINE
 }
+
+/**
+ * A hex bore's size: a standard hex shaft's (1/2 in. or 3/8 in. across its flats), with a fit, or a custom width.
+ */
+export enum BoreHexSize
+{
+    annotation { "Name" : "1/2 in." }
+    _1_2_IN,
+    annotation { "Name" : "3/8 in." }
+    _3_8_IN,
+    annotation { "Name" : "Custom" }
+    CUSTOM
+}
+
+const BORE_HEX_WIDTHS = { (BoreHexSize._1_2_IN) : 0.5 * inch, (BoreHexSize._3_8_IN) : 0.375 * inch };
 
 const HEX_WIDTH_BOUNDS = { (meter) : [1e-4, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
 const ROUND_DIAMETER_BOUNDS = { (meter) : [1e-4, 0.00635, 500], (inch) : 0.25, (millimeter) : 8 } as LengthBoundSpec;
@@ -43,7 +62,17 @@ export predicate entranceChamferPredicate(definition is map)
 }
 
 /**
- * Add bore, and the bore's shape, size, fit, and entrance chamfer.
+ * Whether a bore has a fit on its shaft: a standard hex or a spline does; a round bore is a hole of its diameter, and a
+ * custom hex's width is the hole's.
+ */
+export predicate boreHasFit(definition is map)
+{
+    definition.boreShape != BoreShape.ROUND;
+    definition.boreShape != BoreShape.HEX || definition.boreHexSize != BoreHexSize.CUSTOM;
+}
+
+/**
+ * Add bore, and the bore's shape, size, fit (see `boreHasFit`), and entrance chamfer.
  */
 export predicate borePredicate(definition is map)
 {
@@ -59,12 +88,18 @@ export predicate borePredicate(definition is map)
 
             if (definition.boreShape == BoreShape.HEX)
             {
-                annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Across the hex's flats." }
-                isLength(definition.hexWidth, HEX_WIDTH_BOUNDS);
+                annotation { "Name" : "Hex size", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.boreHexSize is BoreHexSize;
+
+                if (definition.boreHexSize == BoreHexSize.CUSTOM)
+                {
+                    annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Across the hex's flats." }
+                    isLength(definition.hexWidth, HEX_WIDTH_BOUNDS);
+                }
             }
             else if (definition.boreShape == BoreShape.ROUND)
             {
-                annotation { "Name" : "Diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The diameter of the shaft it goes on." }
+                annotation { "Name" : "Diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isLength(definition.boreDiameter, ROUND_DIAMETER_BOUNDS);
             }
             else
@@ -74,7 +109,10 @@ export predicate borePredicate(definition is map)
             }
 
             // Of the bore on its shaft
-            fitPredicate(definition);
+            if (boreHasFit(definition))
+            {
+                fitPredicate(definition);
+            }
 
             entranceChamferPredicate(definition);
         }
@@ -90,6 +128,8 @@ export predicate borePredicate(definition is map)
  *              spline's diameter): what its fit is for.
  *      @field splineType {SplineType} : @optional A spline bore's.
  *      @field clearance {ValueWithUnits} : How much bigger than the shaft it is, across.
+ *      @field fit {Fit} : @optional The fit its clearance is for: a SplineXS bore at a standard fit is sketched with it
+ *              (`SPLINE_XS_BORES`), rather than offset.
  *      @field chamfer {ValueWithUnits} : @optional Its entrance chamfer's distance, if it has one.
  * }}
  */
@@ -102,11 +142,12 @@ export predicate canBeBore(value)
     isLength(value.across);
     value.shape != BoreShape.SPLINE || value.splineType is SplineType;
     isLength(value.clearance);
+    value.fit == undefined || value.fit is Fit;
     value.chamfer == undefined || isLength(value.chamfer);
 }
 
 /**
- * The bore `borePredicate` declares, or `undefined` without one.
+ * The bore `borePredicate` declares, or `undefined` without one: with its fit's clearance (see `boreHasFit`), or none.
  */
 export function definitionBore(definition is map)
 {
@@ -115,24 +156,27 @@ export function definitionBore(definition is map)
         return undefined;
     }
     const across = switch (definition.boreShape) {
-                BoreShape.HEX : definition.hexWidth,
+                BoreShape.HEX : definition.boreHexSize == BoreHexSize.CUSTOM ? definition.hexWidth : BORE_HEX_WIDTHS[definition.boreHexSize],
                 BoreShape.ROUND : definition.boreDiameter,
                 BoreShape.SPLINE : splineDiameter(definition.splineType)
             };
+    const hasFit = boreHasFit(definition);
     return {
                 "shape" : definition.boreShape,
                 "across" : across,
                 "splineType" : definition.splineType,
-                "clearance" : fitClearance(definition, across),
+                "clearance" : hasFit ? fitClearance(definition, across) : 0 * meter,
+                "fit" : hasFit ? definition.fit : Fit.NONE,
                 "chamfer" : definition.entranceChamfer ? definition.chamferDistance : undefined
             } as Bore;
 }
 
-const BORE_PARAMETERS = ["boreShape", "hexWidth", "boreDiameter", "splineType", "fit", "fitClearance"];
+export const BORE_PARAMETERS = ["boreShape", "boreHexSize", "hexWidth", "boreDiameter", "splineType", "fit", "fitClearance"];
 
 /**
  * Cuts `bore` through each of `targets` (the parts), centered on its plane in `planes` (along its normal), with
- * `identities` (queries, or undefined) to disambiguate them.
+ * `identities` (queries, or undefined) to disambiguate them. If the cut or its chamfer fails, the parts are shown in
+ * blue, with what failed in red.
  */
 export function cutBores(context is Context, id is Id, bore is Bore, planes is array, identities is array, targets is array)
 {
@@ -149,7 +193,8 @@ export function cutBores(context is Context, id is Id, bore is Bore, planes is a
     }
     catch
     {
-        // A failed boolean changes nothing, so the bores are still there to show
+        // A failed boolean changes nothing, so the bores and the parts are still there to show
+        addDebugEntities(context, qUnion(targets), DebugColor.BLUE);
         throw regenError("Failed to cut bore.", BORE_PARAMETERS, tools);
     }
     for (var target in targets)
@@ -174,6 +219,8 @@ export function cutBores(context is Context, id is Id, bore is Bore, planes is a
         }
         catch
         {
+            // The parts, bored
+            addDebugEntities(context, qUnion(targets), DebugColor.BLUE);
             throw regenError("Failed to chamfer bore.", ["chamferDistance"], entranceEdges);
         }
     }
@@ -220,6 +267,13 @@ function boreTool(context is Context, id is Id, bore is Bore, plane is Plane) re
                     "radius" : (bore.across + bore.clearance) / 2
                 });
     }
+    else if (isPresketchedSpline(bore))
+    {
+        skDataArray(sketch, "spline", {
+                    "sketchDataArray" : SPLINE_XS_BORES[bore.fit],
+                    "location" : vector(0, 0) * meter
+                });
+    }
     else
     {
         skSplineProfile(sketch, "spline", {
@@ -234,7 +288,7 @@ function boreTool(context is Context, id is Id, bore is Bore, plane is Plane) re
                 "endBound" : BoundingType.THROUGH_ALL,
                 "startBound" : BoundingType.THROUGH_ALL
             });
-    if (bore.shape == BoreShape.SPLINE && !tolerantEqualsZero(bore.clearance))
+    if (bore.shape == BoreShape.SPLINE && !isPresketchedSpline(bore) && !tolerantEqualsZero(bore.clearance))
     {
         // A spline's sketched at its nominal size, so its fit is added here (half on each side)
         opOffsetFace(context, id + "offsetFace", {
@@ -243,6 +297,15 @@ function boreTool(context is Context, id is Id, bore is Bore, plane is Plane) re
                 });
     }
     return qCreatedBy(id + "extrude", EntityType.BODY);
+}
+
+/**
+ * Whether `bore` is a SplineXS bore at a standard fit, whose profile is sketched with its fit (`SPLINE_XS_BORES`):
+ * offsetting its involute flanks' faces is slow.
+ */
+function isPresketchedSpline(bore is Bore) returns boolean
+{
+    return bore.shape == BoreShape.SPLINE && bore.splineType == SplineType.SPLINE_XS && bore.fit != undefined && SPLINE_XS_BORES[bore.fit] != undefined;
 }
 
 /**

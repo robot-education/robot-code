@@ -100,6 +100,7 @@ def internal_spline(
     major_diameter: float,
     minor_diameter: float,
     space_angle: float = 0,
+    offset: float = 0,
 ) -> list[Entity]:
     """The hole an involute spline shaft fits in (an ISO 4156 internal spline, with flat roots and sharp corners).
 
@@ -110,12 +111,15 @@ def internal_spline(
     Args:
         pressure_angle: In degrees.
         space_angle: The angle of the center of one of the spaces the shaft's teeth fit in.
+        offset: How far its sides are moved out (in millimeters), as Move face's Offset moves them: its arcs grow by
+            it, and its flanks, the involutes of the same base circle, turn by it over the base radius (an involute's
+            normals are tangent to its base circle), meeting the arcs in sharp corners as before.
     """
     pitch_radius = module * teeth / 2
     base_radius = pitch_radius * math.cos(math.radians(pressure_angle))
     # The basic space width at the pitch circle is half the circular pitch
     pitch_half_angle = (math.pi * module / 2) / (2 * pitch_radius)
-    inner, outer = minor_diameter / 2, major_diameter / 2
+    inner, outer = minor_diameter / 2 + offset, major_diameter / 2 + offset
 
     def half_angle(radius: float) -> float:
         """Half the angle a space spans at a radius, in degrees."""
@@ -123,6 +127,7 @@ def internal_spline(
             pitch_half_angle
             + involute(math.radians(pressure_angle))
             - involute(math.acos(base_radius / radius))
+            + offset / base_radius
         )
 
     def flank(center: float, side: int) -> FitSpline:
@@ -160,15 +165,16 @@ def spline_xs_hole() -> list[Entity]:
     return internal_spline(teeth, module, 30, module * (teeth + 1.5), module * (teeth - 1))
 
 
-def spline_xs_shaft() -> list[Entity]:
+def spline_xs_shaft(offset: float = 0) -> list[Entity]:
     """A SplineXS shaft: the ISO 4156 external spline `EXT 15z x 0.5m x 30R x 5e`, on REV-41-6457's drawing.
 
     Its major diameter is the drawing's 7.9 mm (a little under the basic m(z + 1) = 8 mm), and its minor diameter
     the fillet root's m(z - 1.8) = 6.6 mm, drawn flat. A tooth is centered on the x axis, so, like the hole, it's
-    symmetric about it.
+    symmetric about it. With `offset` (in millimeters), its sides are moved out by it (see `internal_spline`): a bore's
+    fit, for core/boreProfiles.py.
     """
     teeth, module = 15, 0.5
-    return internal_spline(teeth, module, 30, 7.9, module * (teeth - 1.8))
+    return internal_spline(teeth, module, 30, 7.9, module * (teeth - 1.8), offset=offset)
 
 
 # The order the profiles were originally captured in (see Profile)

@@ -599,3 +599,36 @@ def test_tooth_gap_is_one_closed_loop(virtual_teeth, fillet):
     # From the root circle to a module past the tip
     assert min(curve.nearest() for curve in curves) == pytest.approx(info["rootRadius"], abs=1e-9)
     assert max(curve.farthest() for curve in curves) == pytest.approx(info["tipRadius"] + 0.001, abs=1e-9)
+
+
+def spline_xs_bore(fit: str):
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    sketch = evaluator.eval('newSketchOnPlane(context, newId() + "bore", { "sketchPlane" : XY_PLANE })', context=context)
+    evaluator.eval(f'skDataArray(sketch, "spline", {{ "sketchDataArray" : SPLINE_XS_BORES[Fit.{fit}] }})',
+                   "core/boreProfiles.gen.fs", sketch=sketch)
+    evaluator.eval("skSolve(sketch)", sketch=sketch)
+    return recorded_sketch(context, "bore")
+
+
+@pytest.mark.parametrize("fit, clearance_in", [("NONE", 0), ("CLOSE", 0.323 - 5 / 16), ("FREE", 0.332 - 5 / 16)])
+def test_spline_xs_bores_are_the_shaft_offset_by_their_fit(fit, clearance_in):
+    loops = spline_xs_bore(fit).loops()
+    assert len(loops) == 1 and loops[0].closed
+    curves = loops[0].curves
+    offset = clearance_in * 0.0254 / 2
+    # The shaft's major and minor diameters (7.9 mm and 6.6 mm), each half the clearance bigger all round
+    assert max(curve.farthest() for curve in curves) == pytest.approx(0.0079 / 2 + offset, abs=1e-9)
+    assert min(curve.nearest() for curve in curves) == pytest.approx(0.0066 / 2 + offset, abs=1e-9)
+    # Every flank point is half the clearance from the shaft's flank: on the same base circle's involute, turned by
+    # that over the base radius
+    base = 0.0005 * 15 / 2 * math.cos(math.radians(30))
+    pitch_half = math.pi / 2 / 15
+    for curve in curves:
+        if curve.kind != "spline":
+            continue
+        for x, y in curve.points:
+            radius = math.hypot(x, y)
+            angle = abs((math.atan2(y, x) + math.pi / 15) % (2 * math.pi / 15) - math.pi / 15)
+            expected = pitch_half + involute(math.radians(30)) - involute(math.acos(base / radius)) + offset / base
+            assert angle == pytest.approx(expected, abs=1e-9)

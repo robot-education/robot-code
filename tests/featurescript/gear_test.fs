@@ -364,3 +364,11 @@ export function testPointManipulatorSetsTheIndex()
     const changed = robotGearManipulatorChange(newContext(), { "index" : 0 }, { "pointManipulator" : { "index" : 3 } });
     expectEqual(changed.index, 3);
 }
+
+export function testRackStopManipulatorSetsTheDistance()
+{
+    // A flat face's: dragged along it (a round face's turns, and needs the face)
+    const changed = robotGearManipulatorChange(newContext(), { "rackStopDistance" : 1 * inch },
+        { "rackStop" : { "manipulatorType" : ManipulatorType.LINEAR_1D, "offset" : -0.5 * inch } });
+    expectEqual(changed.rackStopDistance, -0.5 * inch);
+}
