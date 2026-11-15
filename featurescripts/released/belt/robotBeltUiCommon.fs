@@ -1,7 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
-import(path : "d82c5bf9082d0054f8f0b419", version : "85f89bc09b57a2add3d22385");
+import(path : "d82c5bf9082d0054f8f0b419", version : "512461979234ba53a425b7f4");
 
 /**
  * A custom belt width's bounds: a belt's width, when its table's Belt width is Custom.

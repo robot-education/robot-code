@@ -6,11 +6,11 @@ import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 import(path : "ea127c07807644fb48d3a1ae", version : "71504a904ad4d8a579c5b4da");
 export import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfbc217");
 export import(path : "b82468283e5ec09720bad185", version : "142c41c73cc2f8336c28931e");
-import(path : "70d403fe3ae377ef6f571c77", version : "37b69791ddfa580f964f8216");
+import(path : "70d403fe3ae377ef6f571c77", version : "588ecf559ee73bf1f4fd2494");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 // Exports ChainType and SprocketType, parameter types
-export import(path : "93af3f24abb0f9f345268c81", version : "96e431e9857c4c335cdb3eb1");
+export import(path : "93af3f24abb0f9f345268c81", version : "66e6f12bd269691031eca3e1");
 
 /**
  * Whether the chain goes around two sprockets, set as far apart as its links make them, or around any sprockets and

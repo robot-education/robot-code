@@ -11,7 +11,7 @@ import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 // Exports BoreShape, Fit, and SplineType, parameter types
 export import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 // Exports ChainType, a parameter type
-export import(path : "93af3f24abb0f9f345268c81", version : "96e431e9857c4c335cdb3eb1");
+export import(path : "93af3f24abb0f9f345268c81", version : "66e6f12bd269691031eca3e1");
 
 export enum SprocketCreationMethod
 {
