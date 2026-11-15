@@ -1,0 +1,4 @@
+script = "robotShaft"
+bump = "patch"
+description = "New description"
+publish = true
