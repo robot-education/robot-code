@@ -24,7 +24,7 @@ export function extrudeBelt(context is Context, id is Id, beltModel is BeltModel
     {
         // create the outer belt profile by thickening the surface of the belt profile
         const insideBeltThickness = getBeltModelInsideThickness(beltInfo, beltModel.modelBeltTeeth);
-        const outsideBeltThickness = beltModel.isDoubleSidedBelt ? insideBeltThickness : beltInfo.outsideThickness;
+        const outsideBeltThickness = beltModel.isDoubleSidedBelt ? insideBeltThickness : beltModel.outsideThickness;
         opOffsetWire(context, id + "beltSurface", {
                     "edges" : beltLoop,
                     "normal" : beltPlane.normal,

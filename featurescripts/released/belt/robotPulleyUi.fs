@@ -39,6 +39,14 @@ export predicate isManualIdler(definition is map)
     definition.creationMethod == CreationMethod.MANUAL && definition.pulleyKind == PulleyKind.IDLER;
 }
 
+/**
+ * Custom belt width: whether Manual's belt's width is Custom, so its Custom width shows.
+ */
+export function isCustomWidthPulley(definition is map) returns boolean
+{
+    return hasCustomWidth(definition.beltTypePath);
+}
+
 export predicate pulleyGeneralPredicate(definition is map)
 {
     annotation { "Group Name" : "Pulley", "Collapsed By Default" : false }
@@ -47,6 +55,15 @@ export predicate pulleyGeneralPredicate(definition is map)
         definition.pulleyKind is PulleyKind;
 
         beltTypePredicate(definition);
+
+        // Set by editing logic, as Onshape can't show parameters by a lookup table's value
+        annotation { "Name" : "Custom belt width", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomWidthPulley" }
+        definition.isCustomBeltWidth is boolean;
+
+        if (definition.isCustomBeltWidth)
+        {
+            customBeltWidthPredicate(definition);
+        }
 
         if (definition.pulleyKind == PulleyKind.PULLEY)
         {

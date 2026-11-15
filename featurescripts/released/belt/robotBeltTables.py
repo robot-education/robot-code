@@ -16,30 +16,64 @@ def supplier_node(suppliers: dict[str, list[int]]) -> Node:
     return Node("supplier", [*entries, Value("Custom")], display_name="Belt supplier")
 
 
-def width_node(widths_mm: list[int]) -> Node:
+# A belt of a width no supplier sells, or a custom one: its width is the feature's Custom width
+CUSTOM_WIDTH = "Custom"
+
+
+def width_node(widths: list[tuple[str, str]], extra: list[Value] = ()) -> Node:
+    """Each width, by its name and its expression, then `extra` widths, then Custom (which has no beltWidth)."""
     return Node(
         "width",
-        [Value(f"{width} mm", {"beltWidth": mm(width)}) for width in widths_mm],
+        [*(Value(name, {"beltWidth": width}) for name, width in widths), *extra, Value(CUSTOM_WIDTH)],
         display_name="Belt width",
     )
 
 
+def mm_widths(*widths_mm: int) -> list[tuple[str, str]]:
+    return [(f"{width} mm", mm(width)) for width in widths_mm]
+
+
+# WCP's rubber coated belts' backs are 4 mm outside their pitch line (their drawing,
+# Web-Rubber Coated HTD Timing Belts), where a 5mm HTD belt's is 1.16 mm
+RUBBER_COATED_15_MM = Value(
+    "15 mm rubber coated", {"beltWidth": mm(15), "backThickness": mm(4), "rubberCoated": "true"}
+)
+
+WIDTHS = {
+    "2mm GT2": mm_widths(6),
+    "3mm GT2": mm_widths(9),
+    "3mm HTD": mm_widths(15),
+    "5mm HTD": mm_widths(9, 15, 18),
+    "RT25": [("1/2 in.", inch(0.5))],
+}
+
 belt_type = Node(
     "beltType",
     [
-        Value("2mm GT2", {"beltType": BeltType["_2_MM_GT2"], "beltWidth": mm(6)}),
-        Value("3mm GT2", {"beltType": BeltType["_3_MM_GT2"], "beltWidth": mm(9)}),
-        Value("3mm HTD", {"beltType": BeltType["_3_MM_HTD"], "beltWidth": mm(15)}),
-        Value("5mm HTD", {"beltType": BeltType["_5_MM_HTD"]}, width_node([9, 15, 18])),
-        Value("RT25", {"beltType": BeltType["RT25"], "beltWidth": inch(0.5)}),
+        Value("2mm GT2", {"beltType": BeltType["_2_MM_GT2"]}, width_node(WIDTHS["2mm GT2"])),
+        Value("3mm GT2", {"beltType": BeltType["_3_MM_GT2"]}, width_node(WIDTHS["3mm GT2"])),
+        Value("3mm HTD", {"beltType": BeltType["_3_MM_HTD"]}, width_node(WIDTHS["3mm HTD"])),
+        Value("5mm HTD", {"beltType": BeltType["_5_MM_HTD"]}, width_node(WIDTHS["5mm HTD"])),
+        Value("RT25", {"beltType": BeltType["RT25"]}, width_node(WIDTHS["RT25"])),
     ],
     display_name="Belt type",
     default="5mm HTD",
 )
 
+# Any supplier's belts of a custom width are custom
+custom_width_suppliers = supplier_node({})
+
+
+def belt_widths(belt_type_name: str, suppliers: dict[str, Node], extra: list[Value] = ()) -> Node:
+    """A belt type's widths, each leading to its suppliers (`suppliers`, by width name), and Custom to Custom."""
+    return width_node(WIDTHS[belt_type_name], extra).with_next(
+        {**suppliers, CUSTOM_WIDTH: custom_width_suppliers}
+    )
+
+
 belt = belt_type.with_next(
     {
-        "2mm GT2": supplier_node(
+        "2mm GT2": belt_widths("2mm GT2", {"6 mm": supplier_node(
             # vendor/goBILDA-2mm-GT2-belts.md
             {
                 "goBILDA": [
@@ -47,8 +81,8 @@ belt = belt_type.with_next(
                     252, 257, 276, 300, 324,
                 ]
             }
-        ),
-        "3mm GT2": supplier_node(
+        )}),
+        "3mm GT2": belt_widths("3mm GT2", {"9 mm": supplier_node(
             {
                 "WCP": [
                     45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130,
@@ -56,16 +90,17 @@ belt = belt_type.with_next(
                 ],
                 "REV": [55, 85, 105, 120, 145, 184, 210, 270],
             }
-        ),
-        "3mm HTD": supplier_node(
+        )}),
+        "3mm HTD": belt_widths("3mm HTD", {"15 mm": supplier_node(
             {"goBILDA": [68, 84, 100, 116, 132, 148, 164, 180, 212, 228, 244, 260, 276, 292]}
-        ),
-        "5mm HTD": width_node([9, 15, 18]).with_next(
+        )}),
+        "5mm HTD": belt_widths(
+            "5mm HTD",
             {
                 "9 mm": supplier_node(
                     {
                         "WCP": [
-                            30, 35, 40, 43, 45, 50, 53, 55, 60, 64, 65, 70, 75, 80, 85, 90, 95, 100,
+                            30, 35, 40, 43, 44, 45, 50, 53, 55, 60, 64, 65, 70, 75, 80, 85, 90, 95, 100,
                             104, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170,
                             175, 180, 185, 190, 195, 200, 210, 220, 225, 230, 240, 250, 260, 270, 280,
                             290, 300,
@@ -89,8 +124,8 @@ belt = belt_type.with_next(
                 "15 mm": supplier_node(
                     {
                         "WCP": [
-                            30, 35, 40, 45, 50, 55, 60, 64, 65, 70, 75, 80, 85, 90, 95, 100, 104, 105,
-                            110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180,
+                            30, 35, 40, 44, 45, 50, 55, 60, 64, 65, 70, 75, 80, 85, 90, 95, 100, 104,
+                            105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180,
                             185, 190, 195, 200, 210, 220, 225, 230, 240, 250, 260, 270, 280, 290, 300,
                         ],
                         "AndyMark": [
@@ -106,16 +141,19 @@ belt = belt_type.with_next(
                     }
                 ),
                 "18 mm": supplier_node({}),
-            }
+                # WCP's (docs.wcproducts.com's belts and pulleys)
+                RUBBER_COATED_15_MM.name: supplier_node({"WCP": list(range(30, 301, 10))}),
+            },
+            [RUBBER_COATED_15_MM],
         ),
-        "RT25": supplier_node(
+        "RT25": belt_widths("RT25", {"1/2 in.": supplier_node(
             {
                 "REV": [
                     32, 36, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160,
                     168, 176, 184, 192, 200, 208, 216,
                 ]
             }
-        ),
+        )}),
     }
 )
 
@@ -131,7 +169,9 @@ double_belt = Node(
         Value(
             "5mm HTD",
             {"beltType": BeltType["_5_MM_HTD"], "pitch": mm(5)},
-            width_node([9, 15]).with_next(double_belt_suppliers),
+            width_node(mm_widths(9, 15)).with_next(
+                {"9 mm": double_belt_suppliers, "15 mm": double_belt_suppliers, CUSTOM_WIDTH: custom_width_suppliers}
+            ),
         )
     ],
     display_name="Belt type",

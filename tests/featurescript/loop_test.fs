@@ -64,3 +64,18 @@ export function testNearestRootNone()
                     return x * x / meter + 1 * meter;
                 }, 0.1 * millimeter, 1e-12 * meter), undefined);
 }
+
+export function testTwoCircleDistance()
+{
+    // Two 1 in. circles 4 in. apart: 8 in. of straight runs and 2 pi in. around
+    expectNear(twoCircleDistance([1 * inch, 1 * inch], (8 + 2 * PI) * inch, 0 * meter), 4 * inch, 1e-9 * meter);
+    // Unequal ones, from near a distance, come back to where the path's that long
+    const length = tryTwoCircleLength([2 * inch, 1 * inch], 5 * inch);
+    expectNear(twoCircleDistance([2 * inch, 1 * inch], length, 4.9 * inch), 5 * inch, 1e-9 * meter);
+}
+
+export function testTwoCircleDistanceTooShort()
+{
+    // Shorter than around the circles
+    expectEqual(twoCircleDistance([1 * inch, 1 * inch], 5 * inch, 0 * meter), undefined);
+}

@@ -18,7 +18,7 @@ def evaluate(expression: str, module: str, **variables):
 def test_simple_belt_center_distance_is_exact(teeth, pulleys):
     distance = evaluate(f"computeBeltCenterToCenter(BeltType._5_MM_HTD, {teeth}, [{pulleys[0]}, {pulleys[1]}], 0 * meter)", BELT)
     radii = [f"getPulleyRadius(5 * millimeter, {n})" for n in pulleys]
-    length = evaluate(f"tryTwoPulleyLength([{radii[0]}, {radii[1]}], distance)", BELT, distance=distance)
+    length = evaluate(f"tryTwoCircleLength([{radii[0]}, {radii[1]}], distance)", BELT, distance=distance)
     # To the solver's precision, std's zero length tolerance
     assert to_python(length) == pytest.approx(teeth * 0.005, abs=1e-8)
 

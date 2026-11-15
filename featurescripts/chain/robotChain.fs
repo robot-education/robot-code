@@ -12,6 +12,23 @@ import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 // Exports ChainType and SprocketType, parameter types
 export import(path : "93af3f24abb0f9f345268c81", version : "96e431e9857c4c335cdb3eb1");
 
+/**
+ * Whether the chain goes around two sprockets, set as far apart as its links make them, or around any sprockets and
+ * idlers, where they're selected.
+ */
+export enum ChainMode
+{
+    annotation { "Name" : "Simple" }
+    SIMPLE,
+    annotation { "Name" : "Complex" }
+    COMPLEX
+}
+
+export predicate isSimpleChain(definition is map)
+{
+    definition.chainMode == ChainMode.SIMPLE;
+}
+
 export enum ChainSide
 {
     annotation { "Name" : "Inside" }
@@ -40,7 +57,7 @@ const IDLER_DIAMETER_BOUNDS = { (meter) : [1e-4, 0.0254, 500], (inch) : 1, (mill
 
 annotation {
         "Feature Type Name" : "Robot chain",
-        "Feature Type Description" : "Create #25, #35, and 8mm roller chain around sprockets and idlers, and check its length." ~
+        "Feature Type Description" : "Create #25, #25H, #35, and 8mm roller chain around sprockets and idlers, and check its length." ~
         "<br>See also the Robot sprocket and Robot tensioner FeatureScripts, which work with this feature directly." ~ CREDIT,
         "Manipulator Change Function" : "robotChainManipulatorChange",
         "Editing Logic Function" : "robotChainEditLogic",
@@ -51,48 +68,94 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
     {
         unitSystemPredicate(definition);
 
-        annotation {
-                    "Name" : "Sprockets",
-                    "Item name" : "Sprocket",
-                    "Item label template" : "#chainSide #sprocketType",
-                    "UIHint" : [UIHint.FOCUS_INNER_QUERY],
-                    "Driven query" : "location"
-                }
-        definition.sprockets is array;
-        for (var sprocket in definition.sprockets)
+        annotation { "Name" : "Chain mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
+        definition.chainMode is ChainMode;
+
+        if (isSimpleChain(definition))
         {
             annotation {
-                        "Name" : "Location",
+                        "Name" : "Sprocket one location",
                         "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.EDGE && GeometryType.CIRCLE) ||
                             (EntityType.FACE && GeometryType.CYLINDER) || (EntityType.BODY && BodyType.SOLID),
                         "MaxNumberOfPicks" : 1,
                         "Description" : "Its center (a sketch point, mate connector, or a circle or cylinder around it, like a sprocket's bore), its pitch circle, or a Robot sprocket."
                     }
-            sprocket.location is Query;
+            definition.sprocketOneLocation is Query;
 
             annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"],
                         "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
-            sprocket.selectionType is SprocketSelectionType;
+            definition.sprocketOneSelectionType is SprocketSelectionType;
 
-            if (sprocket.selectionType != SprocketSelectionType.ROBOT_SPROCKET)
+            if (definition.sprocketOneSelectionType == SprocketSelectionType.CENTER)
             {
-                annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                sprocket.sprocketType is SprocketType;
-
-                if (sprocket.sprocketType == SprocketType.SPROCKET && sprocket.selectionType == SprocketSelectionType.CENTER)
-                {
-                    annotation { "Name" : "Teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    isInteger(sprocket.teeth, SPROCKET_TEETH_BOUNDS);
-                }
-                else if (sprocket.sprocketType == SprocketType.IDLER)
-                {
-                    annotation { "Name" : "Idler diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The diameter the chain's rollers run on." }
-                    isLength(sprocket.idlerDiameter, IDLER_DIAMETER_BOUNDS);
-                }
+                annotation { "Name" : "Sprocket one teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.sprocketOneTeeth, SPROCKET_TEETH_BOUNDS);
             }
 
-            annotation { "Name" : "Chain side", "UIHint" : ["SHOW_LABEL"], "Description" : "Which side of the chain it's on: inside its loop, or outside it." }
-            sprocket.chainSide is ChainSide;
+            annotation {
+                        "Name" : "Sprocket two location",
+                        "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.EDGE && GeometryType.CIRCLE) ||
+                            (EntityType.FACE && GeometryType.CYLINDER) || (EntityType.BODY && BodyType.SOLID),
+                        "MaxNumberOfPicks" : 1,
+                        "Description" : "Its center (a sketch point, mate connector, or a circle or cylinder around it, like a sprocket's bore), its pitch circle, or a Robot sprocket."
+                    }
+            definition.sprocketTwoLocation is Query;
+
+            annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"],
+                        "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+            definition.sprocketTwoSelectionType is SprocketSelectionType;
+
+            if (definition.sprocketTwoSelectionType == SprocketSelectionType.CENTER)
+            {
+                annotation { "Name" : "Sprocket two teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.sprocketTwoTeeth, SPROCKET_TEETH_BOUNDS);
+            }
+        }
+        else
+        {
+            annotation {
+                        "Name" : "Sprockets",
+                        "Item name" : "Sprocket",
+                        "Item label template" : "#chainSide #sprocketType",
+                        "UIHint" : [UIHint.FOCUS_INNER_QUERY],
+                        "Driven query" : "location"
+                    }
+            definition.sprockets is array;
+            for (var sprocket in definition.sprockets)
+            {
+                annotation {
+                            "Name" : "Location",
+                            "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR || (EntityType.EDGE && GeometryType.CIRCLE) ||
+                                (EntityType.FACE && GeometryType.CYLINDER) || (EntityType.BODY && BodyType.SOLID),
+                            "MaxNumberOfPicks" : 1,
+                            "Description" : "Its center (a sketch point, mate connector, or a circle or cylinder around it, like a sprocket's bore), its pitch circle, or a Robot sprocket."
+                        }
+                sprocket.location is Query;
+
+                annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"],
+                            "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+                sprocket.selectionType is SprocketSelectionType;
+
+                if (sprocket.selectionType != SprocketSelectionType.ROBOT_SPROCKET)
+                {
+                    annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    sprocket.sprocketType is SprocketType;
+
+                    if (sprocket.sprocketType == SprocketType.SPROCKET && sprocket.selectionType == SprocketSelectionType.CENTER)
+                    {
+                        annotation { "Name" : "Teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        isInteger(sprocket.teeth, SPROCKET_TEETH_BOUNDS);
+                    }
+                    else if (sprocket.sprocketType == SprocketType.IDLER)
+                    {
+                        annotation { "Name" : "Idler diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "The diameter the chain's rollers run on." }
+                        isLength(sprocket.idlerDiameter, IDLER_DIAMETER_BOUNDS);
+                    }
+                }
+
+                annotation { "Name" : "Chain side", "UIHint" : ["SHOW_LABEL"], "Description" : "Which side of the chain it's on: inside its loop, or outside it." }
+                sprocket.chainSide is ChainSide;
+            }
         }
 
         startOffsetPredicate(definition);
@@ -105,7 +168,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
             annotation { "Name" : "Links", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             isInteger(definition.links, LINKS_BOUNDS);
 
-            annotation { "Name" : "Select closest links", "Description" : "Sets Links to the even number of links nearest the length of the path around the sprockets." }
+            annotation { "Name" : "Select closest links", "Description" : "Sets Links to the even number of links nearest the length of the path around the sprockets, where they're selected." }
             isButton(definition.selectClosestLinks);
         }
 
@@ -114,14 +177,22 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
             annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.addMateConnectors is boolean;
 
-            annotation { "Name" : "Chain fit adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "How much longer the path around the sprockets should be than the chain: positive for a looser chain." }
-            isLength(definition.fitAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
+            if (isSimpleChain(definition))
+            {
+                annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
+            }
+            else
+            {
+                annotation { "Name" : "Chain fit adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                            "Description" : "How much longer the path around the sprockets should be than the chain: positive for a looser chain." }
+                isLength(definition.fitAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
+            }
         }
     }
     {
         const info = getChainInfo(definition.chainType);
-        const sprockets = getSprockets(context, definition, info);
+        const sprockets = isSimpleChain(definition) ? getSimpleSprockets(context, id, definition, info) : getSprockets(context, definition, info);
         reportSprocketWarnings(context, id, sprockets);
         const chainPlane = sprockets.plane;
         const circles = sprockets.circles;
@@ -129,8 +200,15 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
 
         const counterClockwise = loopCounterClockwise(circles);
         const sketch = sketchLoop(context, id + "sketch", chainPlane, circles, counterClockwise);
-        addSideFlipManipulators(context, id, chainPlane, sketch.arcs, counterClockwise);
-        reportLength(context, id, definition, info, loopLength(circles, counterClockwise));
+        if (isSimpleChain(definition))
+        {
+            reportSimpleFit(context, id, definition, sprockets);
+        }
+        else
+        {
+            addSideFlipManipulators(context, id, chainPlane, sketch.arcs, counterClockwise);
+            reportLength(context, id, definition, info, loopLength(circles, counterClockwise));
+        }
 
         const chain = createChain(context, id + "chain", definition, info, chainPlane, sketch, sprockets.faceAttributes);
         const name = definition.links ~ " link " ~ getChainTypeName(definition.chainType) ~ " chain";
@@ -143,7 +221,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
         setAttribute(context, {
                     "entities" : chain,
                     "name" : LOOP_ATTRIBUTE,
-                    "attribute" : loopAttribute(name, chainPlane, info.pitch * definition.links + definition.fitAdjustment, loopCircles, counterClockwise)
+                    "attribute" : loopAttribute(name, chainPlane, sprockets.length, loopCircles, counterClockwise)
                 });
         setChainProperties(context, chain, definition);
 
@@ -155,34 +233,57 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
     });
 
 /**
- * The chain's sprockets and idlers, as selected.
+ * What's chosen for each sprocket or idler: a complex chain's `sprockets`' items, or a simple chain's two sprockets, as
+ * maps of their `location`, `selectionType`, `sprocketType`, `teeth`, `idlerDiameter`, and `chainSide`, and the
+ * `parameterName` of the location, and the `identity` to disambiguate what's made around it (a simple chain's
+ * sprockets have none, so changing what's selected doesn't change what the chain's faces are).
+ */
+function sprocketChoices(definition is map) returns array
+{
+    if (isSimpleChain(definition))
+    {
+        return mapArray(["sprocketOne", "sprocketTwo"], function(name)
+            {
+                return {
+                        "location" : definition[name ~ "Location"],
+                        "selectionType" : definition[name ~ "SelectionType"],
+                        "sprocketType" : SprocketType.SPROCKET,
+                        "teeth" : definition[name ~ "Teeth"],
+                        "chainSide" : ChainSide.INSIDE,
+                        "parameterName" : name ~ "Location"
+                    };
+            });
+    }
+    var choices = [];
+    for (var i, sprocket in definition.sprockets)
+    {
+        sprocket.parameterName = arrayParameterId("sprockets", i, "location");
+        sprocket.identity = sprocket.location;
+        choices = append(choices, sprocket);
+    }
+    return choices;
+}
+
+/**
+ * Where each sprocket or idler is, and what it is (see `sprocketChoices`): a Robot sprocket's from its attribute, a
+ * center's with its teeth, or a pitch circle's, from its size.
  *
  * @returns {{
- *      @field plane {Plane} : The chain's plane: the first sprocket's, with the start offset.
- *      @field circles {array} : The `BoundaryCircle`s its path goes around: a sprocket's pitch circle, or an idler,
- *              with the chain's rollers on it (with its `idlerRadius`).
+ *      @field planes {array} : Each one's plane, at its center.
  *      @field faceAttributes {array} : Each one's `ChainFaceAttribute`.
  *      @field fractional {array} : The parameters of pitch circles which aren't a whole number of teeth.
  *      @field otherChain {array} : The parameters of Robot sprockets for another chain.
- *      @field misaligned {array} : The parameters of sprockets and idlers not in the first one's plane.
  * }}
  */
-function getSprockets(context is Context, definition is map, info is map) returns map
+function readSprockets(context is Context, definition is map, info is map, choices is array) returns map
 {
-    verifyNonemptyArray(context, definition, "sprockets", "Add the sprockets and idlers the chain goes around.");
-    if (size(definition.sprockets) < 2)
-    {
-        throw regenError("Add at least two sprockets.", ["sprockets"]);
-    }
-
     var planes = [];
     var faceAttributes = [];
     var fractional = [];
     var otherChain = [];
-    for (var i, sprocket in definition.sprockets)
+    for (var sprocket in choices)
     {
-        const parameterName = arrayParameterId("sprockets", i, "location");
-        verifyNonemptyArrayQuery(context, definition, parameterName, "Select the sprocket's or idler's center, pitch circle, or Robot sprocket.");
+        const parameterName = sprocket.parameterName;
         var faceAttribute = { "chainType" : definition.chainType, "sprocketType" : sprocket.sprocketType };
         if (sprocket.selectionType == SprocketSelectionType.ROBOT_SPROCKET)
         {
@@ -191,7 +292,7 @@ function getSprockets(context is Context, definition is map, info is map) return
             {
                 throw regenError("Select a sprocket made by Robot sprocket, or one of its mate connectors.", [parameterName], sprocket.location);
             }
-            if (attribute.chainType != definition.chainType)
+            if (!sameSprockets(attribute.chainType, definition.chainType))
             {
                 otherChain = append(otherChain, parameterName);
             }
@@ -231,46 +332,156 @@ function getSprockets(context is Context, definition is map, info is map) return
         }
         faceAttributes = append(faceAttributes, faceAttribute as ChainFaceAttribute);
     }
+    return {
+            "planes" : planes,
+            "faceAttributes" : faceAttributes,
+            "fractional" : fractional,
+            "otherChain" : otherChain
+        };
+}
+
+/**
+ * The circle the chain's path goes around for a sprocket or idler (see `readSprockets`), at `location` in the chain's
+ * plane: a sprocket's pitch circle, or an idler, with the chain's rollers on it (with its `idlerRadius`).
+ */
+function sprocketCircle(info is map, sprocket is map, faceAttribute is ChainFaceAttribute, location is Vector) returns BoundaryCircle
+{
+    var circle = {
+        "identity" : sprocket.identity,
+        "location" : location,
+        "flipped" : sprocket.chainSide == ChainSide.OUTSIDE
+    };
+    if (faceAttribute.sprocketType == SprocketType.SPROCKET)
+    {
+        circle.radius = getSprocketRadius(info.pitch, faceAttribute.teeth);
+    }
+    else
+    {
+        circle.idlerRadius = faceAttribute.idlerRadius;
+        circle.radius = circle.idlerRadius + info.rollerDiameter / 2;
+    }
+    return circle as BoundaryCircle;
+}
+
+/**
+ * A complex chain's sprockets and idlers, where they're selected.
+ *
+ * @returns {{
+ *      @field plane {Plane} : The chain's plane: the first sprocket's, with the start offset.
+ *      @field circles {array} : The `BoundaryCircle`s its path goes around (see `sprocketCircle`).
+ *      @field faceAttributes {array} : Each one's `ChainFaceAttribute`.
+ *      @field length {ValueWithUnits} : The length the path should be: the chain's, with the fit adjustment.
+ *      @field fractional {array} : The parameters of pitch circles which aren't a whole number of teeth.
+ *      @field otherChain {array} : The parameters of Robot sprockets for another chain.
+ *      @field misaligned {array} : The parameters of sprockets and idlers not in the first one's plane.
+ * }}
+ */
+function getSprockets(context is Context, definition is map, info is map) returns map
+{
+    verifyNonemptyArray(context, definition, "sprockets", "Add the sprockets and idlers the chain goes around.");
+    if (size(definition.sprockets) < 2)
+    {
+        throw regenError("Add at least two sprockets.", ["sprockets"]);
+    }
+    const choices = sprocketChoices(definition);
+    for (var sprocket in choices)
+    {
+        verifyNonemptyArrayQuery(context, definition, sprocket.parameterName, "Select the sprocket's or idler's center, pitch circle, or Robot sprocket.");
+    }
+    var result = readSprockets(context, definition, info, choices);
+    const planes = result.planes;
 
     // Each is projected onto the chain's plane: those which aren't in the first one's are warned about
-    var misaligned = [];
+    result.misaligned = [];
     for (var i, sprocketPlane in planes)
     {
         if (!coplanarPlanes(sprocketPlane, planes[0]))
         {
-            misaligned = append(misaligned, arrayParameterId("sprockets", i, "location"));
+            result.misaligned = append(result.misaligned, choices[i].parameterName);
         }
     }
-    const chainPlane = applyStartOffset(context, definition, planes[0]);
-    var circles = [];
-    for (var i, sprocket in definition.sprockets)
+    result.plane = applyStartOffset(context, definition, planes[0]);
+    result.circles = [];
+    for (var i, sprocket in choices)
     {
-        const faceAttribute = faceAttributes[i];
-        var circle = {
-            "identity" : sprocket.location,
-            // Projected onto the chain's plane
-            "location" : worldToPlane(chainPlane, planes[i].origin),
-            "flipped" : sprocket.chainSide == ChainSide.OUTSIDE
-        };
-        if (faceAttribute.sprocketType == SprocketType.SPROCKET)
-        {
-            circle.radius = getSprocketRadius(info.pitch, faceAttribute.teeth);
-        }
-        else
-        {
-            circle.idlerRadius = faceAttribute.idlerRadius;
-            circle.radius = circle.idlerRadius + info.rollerDiameter / 2;
-        }
-        circles = append(circles, circle as BoundaryCircle);
+        result.circles = append(result.circles, sprocketCircle(info, sprocket, result.faceAttributes[i], worldToPlane(result.plane, planes[i].origin)));
     }
-    return {
-            "plane" : chainPlane,
-            "circles" : circles,
-            "faceAttributes" : faceAttributes,
-            "fractional" : fractional,
-            "otherChain" : otherChain,
-            "misaligned" : misaligned
-        };
+    result.length = info.pitch * definition.links + definition.fitAdjustment;
+    return result;
+}
+
+/**
+ * A simple chain's two sprockets: sprocket one's where it's selected, and sprocket two toward its selection, as far
+ * as the chain's links make it (with the center to center adjustment), unless it's selected about that far already
+ * (to the display's precision), when it's where it's selected, so other parts line up with it.
+ *
+ * @returns {{
+ *      @field measured {ValueWithUnits} : How far apart the sprockets are selected.
+ *      @field ideal {ValueWithUnits} : How far apart the chain makes them, with the adjustment.
+ *      @field fits {boolean} : Whether they're selected that far apart (so they're where they're selected).
+ * }}
+ *      and the rest as `getSprockets` returns.
+ */
+function getSimpleSprockets(context is Context, id is Id, definition is map, info is map) returns map
+{
+    verifyNonemptyQuery(context, definition, "sprocketOneLocation", "Select sprocket one's center, pitch circle, or Robot sprocket.");
+    verifyNonemptyQuery(context, definition, "sprocketTwoLocation", "Select sprocket two's center, pitch circle, or Robot sprocket.");
+    const choices = sprocketChoices(definition);
+    var result = readSprockets(context, definition, info, choices);
+    const planes = result.planes;
+    const plane = applyStartOffset(context, definition, planes[0]);
+    const toSecond = project(plane, planes[1].origin) - plane.origin;
+    if (tolerantEqualsZero(norm(toSecond)))
+    {
+        throw regenError("The selected sprockets are on the same axis.", ["sprocketOneLocation", "sprocketTwoLocation"],
+            qUnion(definition.sprocketOneLocation, definition.sprocketTwoLocation));
+    }
+    result.misaligned = coplanarPlanes(planes[1], planes[0]) ? [] : ["sprocketTwoLocation"];
+
+    const radii = mapArray(result.faceAttributes, function(faceAttribute)
+        {
+            return getSprocketRadius(info.pitch, faceAttribute.teeth);
+        });
+    const measured = norm(toSecond);
+    const chainDistance = twoCircleDistance(radii, info.pitch * definition.links, measured);
+    if (chainDistance == undefined)
+    {
+        throw regenError("The " ~ definition.links ~ " link chain is too short for its sprockets.", ["links"]);
+    }
+    result.ideal = chainDistance + definition.centerToCenterAdjustment;
+    result.measured = measured;
+    result.fits = withinDisplayPrecision(definition, measured, result.ideal);
+    const distance = result.fits ? measured : result.ideal;
+
+    result.plane = plane;
+    result.circles = [
+            sprocketCircle(info, choices[0], result.faceAttributes[0], zeroVector(2) * meter),
+            sprocketCircle(info, choices[1], result.faceAttributes[1], worldToPlane(plane, plane.origin + normalize(toSecond) * distance))
+        ];
+    // The path at the chain's distance (with the adjustment) is what Robot tensioner tensions it to
+    result.length = tryTwoCircleLength(radii, result.ideal);
+    if (result.length == undefined)
+    {
+        throw regenError("Center to center adjustment is too large, decrease the value.", ["centerToCenterAdjustment"]);
+    }
+    return result;
+}
+
+/**
+ * Reports whether a simple chain's sprockets are selected as far apart as its links make them: info if they are, and
+ * if they aren't, a warning of how far apart they should be.
+ */
+function reportSimpleFit(context is Context, id is Id, definition is map, sprockets is map)
+{
+    const oddNote = definition.links % 2 == 1 ? " An odd number of links needs an offset link." : "";
+    if (sprockets.fits)
+    {
+        reportFeatureInfo(context, id, "The " ~ definition.links ~ " link chain fits the sprockets." ~ oddNote);
+        return;
+    }
+    // Doesn't end with a period, to make copying the distance easier, as Robot belt's
+    reportFeatureWarning(context, id, "To use this chain, update the part studio so the distance between the sprockets is " ~
+            makeValueString(definition.unitSystem, sprockets.ideal) ~ oddNote, ["sprocketTwoLocation"]);
 }
 
 /**
@@ -459,29 +670,59 @@ export function robotChainManipulatorChange(context is Context, definition is ma
 
 /**
  * Sets each sprocket's location type from what's selected, when its selection changes (see `locationKind`); and
- * Select closest links sets Links to the even number nearest the path's length (less the fit adjustment).
+ * Select closest links sets Links to the even number nearest the path's length, where the sprockets are selected
+ * (less the fit or center to center adjustment).
  */
 export function robotChainEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
     const pitch = getChainInfo(definition.chainType).pitch;
-    for (var i, sprocket in definition.sprockets)
-    {
-        if (!selectionChanged(context, oldDefinition.sprockets, i, "location", sprocket.location))
+    const kindOf = function(selection is Query)
         {
-            continue;
-        }
-        const kind = locationKind(context, sprocket.location, SPROCKET_ATTRIBUTE, function(radius)
+            const kind = locationKind(context, selection, SPROCKET_ATTRIBUTE, function(radius)
+                {
+                    return pitchCircleTeeth(pitch, radius);
+                });
+            if (kind == undefined)
             {
-                return pitchCircleTeeth(pitch, radius);
-            });
-        if (kind != undefined)
-        {
-            definition.sprockets[i].selectionType = switch (kind) {
+                return undefined;
+            }
+            return switch (kind) {
                         "part" : SprocketSelectionType.ROBOT_SPROCKET,
                         "pitchCircle" : SprocketSelectionType.PITCH_CIRCLE,
                         "center" : SprocketSelectionType.CENTER
                     };
+        };
+    if (isSimpleChain(definition))
+    {
+        for (var name in ["sprocketOne", "sprocketTwo"])
+        {
+            const selection = definition[name ~ "Location"];
+            const old = oldDefinition[name ~ "Location"];
+            if (old != undefined && areQueriesEquivalent(context, old, selection))
+            {
+                continue;
+            }
+            const selectionType = kindOf(selection);
+            if (selectionType != undefined)
+            {
+                definition[name ~ "SelectionType"] = selectionType;
+            }
+        }
+    }
+    else
+    {
+        for (var i, sprocket in definition.sprockets)
+        {
+            if (!selectionChanged(context, oldDefinition.sprockets, i, "location", sprocket.location))
+            {
+                continue;
+            }
+            const selectionType = kindOf(sprocket.location);
+            if (selectionType != undefined)
+            {
+                definition.sprockets[i].selectionType = selectionType;
+            }
         }
     }
 
@@ -490,11 +731,38 @@ export function robotChainEditLogic(context is Context, id is Id, oldDefinition 
         // A guard: if the sprockets aren't all selected (or are wrong), there's no closest chain
         try silent
         {
-            const info = getChainInfo(definition.chainType);
-            const circles = getSprockets(context, definition, info).circles;
-            const length = loopLength(circles, loopCounterClockwise(circles));
-            definition.links = closestLinks(info, length - definition.fitAdjustment);
+            definition.links = closestLinks(getChainInfo(definition.chainType), selectedPathLength(context, definition));
         }
     }
     return definition;
+}
+
+/**
+ * The length the chain should be for the sprockets where they're selected: the path's around them, less the fit
+ * adjustment, or a simple chain's, less the center to center adjustment.
+ */
+function selectedPathLength(context is Context, definition is map) returns ValueWithUnits
+{
+    const info = getChainInfo(definition.chainType);
+    if (!isSimpleChain(definition))
+    {
+        const circles = getSprockets(context, definition, info).circles;
+        return loopLength(circles, loopCounterClockwise(circles)) - definition.fitAdjustment;
+    }
+    verifyNonemptyQuery(context, definition, "sprocketOneLocation", "Select sprocket one's center, pitch circle, or Robot sprocket.");
+    verifyNonemptyQuery(context, definition, "sprocketTwoLocation", "Select sprocket two's center, pitch circle, or Robot sprocket.");
+    const sprockets = readSprockets(context, definition, info, sprocketChoices(definition));
+    const plane = sprockets.planes[0];
+    const radii = mapArray(sprockets.faceAttributes, function(faceAttribute)
+        {
+            return getSprocketRadius(info.pitch, faceAttribute.teeth);
+        });
+    // Its start offset moves the chain along the sprockets' axis, not their distance apart
+    const distance = norm(project(plane, sprockets.planes[1].origin) - plane.origin) - definition.centerToCenterAdjustment;
+    const length = tryTwoCircleLength(radii, distance);
+    if (length == undefined)
+    {
+        throw regenError("There's no path around the sprockets.");
+    }
+    return length;
 }

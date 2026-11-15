@@ -83,6 +83,9 @@ function doRobotBelt(context is Context, id is Id, definition is map)
  * A belt, and the pulleys and idlers it goes around.
  * @type {{
  *      @field beltPlane {Plane} : The plane of the belt's middle. Its `x` axis is arbitrary.
+ *      @field outsideThickness {ValueWithUnits} : Its back's thickness, outside its pitch line (see
+ *              `getBeltOutsideThickness`).
+ *      @field rubberCoated {boolean} : Its back's rubber coated.
  *      @field pulleyDefinitions {array} : Its `PulleyDefinition`s, in order around it.
  * }}
  */
@@ -95,6 +98,8 @@ predicate canBeBeltDefinition(value)
     value.beltType is BeltType;
     value.beltWidth is ValueWithUnits;
     value.beltTeeth is number;
+    value.outsideThickness is ValueWithUnits;
+    value.rubberCoated is boolean;
 
     value.pulleyDefinitions is array;
     for (var pulleyDefinition in value.pulleyDefinitions)
@@ -169,8 +174,8 @@ function doOpenBelt(context is Context, id is Id, definition is map)
     const path = openPath(start, circles, end);
     const beltInfo = getBeltModelInfo(beltDefinition.beltType);
     const teethSide = getBeltModelInsideThickness(beltInfo, false);
-    const profile = sketchOpenPathProfile(context, id + "sketch", plane, path, teethLeft ? teethSide : beltInfo.outsideThickness,
-        teethLeft ? beltInfo.outsideThickness : teethSide);
+    const profile = sketchOpenPathProfile(context, id + "sketch", plane, path, teethLeft ? teethSide : beltDefinition.outsideThickness,
+        teethLeft ? beltDefinition.outsideThickness : teethSide);
     const arcTracking = mapArray(profile.arcs, function(arc)
         {
             return startTracking(context, arc);
@@ -222,6 +227,8 @@ function getStandaloneBeltDefinition(context is Context, id is Id, definition is
                 "beltPlane" : YZ_PLANE,
                 "beltType" : beltValue.beltType,
                 "beltWidth" : beltValue.beltWidth,
+                "outsideThickness" : getBeltOutsideThickness(beltValue),
+                "rubberCoated" : beltValue.rubberCoated ?? false,
                 "beltTeeth" : definition.beltTeeth,
                 "pulleyDefinitions" : [
                         twoPulleyDefinition(zeroVector(2) * meter, pulleyTeeth[0]),
@@ -300,6 +307,8 @@ function getSimpleBeltDefinition(context is Context, id is Id, definition is map
                 "beltPlane" : pulleys.beltPlane,
                 "beltType" : beltValue.beltType,
                 "beltWidth" : beltValue.beltWidth,
+                "outsideThickness" : getBeltOutsideThickness(beltValue),
+                "rubberCoated" : beltValue.rubberCoated ?? false,
                 "beltTeeth" : definition.beltTeeth,
                 "pulleyDefinitions" : [
                         twoPulleyDefinition(zeroVector(2) * meter, pulleyTeeth[0]),
@@ -403,6 +412,8 @@ function getComplexBeltDefinition(context is Context, id is Id, definition is ma
                 "beltPlane" : beltPlane,
                 "beltType" : beltValue.beltType,
                 "beltWidth" : beltValue.beltWidth,
+                "outsideThickness" : getBeltOutsideThickness(beltValue),
+                "rubberCoated" : beltValue.rubberCoated ?? false,
                 "beltTeeth" : definition.beltTeeth,
                 "pulleyDefinitions" : pulleyDefinitions
             } as BeltDefinition;
@@ -583,40 +594,13 @@ function computeBeltCenterToCenter(beltType is BeltType, teeth is number, pulley
         {
             return getPulleyRadius(pitch, pulleyTeeth);
         });
-    const length = pitch * teeth;
-    var estimate = nearDistance;
-    if (tolerantEqualsZero(estimate))
+    const distance = twoCircleDistance(radii, pitch * teeth, nearDistance);
+    if (distance == undefined)
     {
-        const term = (length - PI * (radii[0] + radii[1])) / 4;
-        const discriminant = term ^ 2 - (2 * (radii[1] - radii[0])) ^ 2 / 8;
-        if (term <= 0 * meter || discriminant < 0 * meter ^ 2)
-        {
-            // The selected belt is way too small, e.g., it's smaller than the circumference of one of the pulleys
-            throw regenError("The selected belt is too small for its pulleys.", ["pulleyOneTeeth", "pulleyTwoTeeth", "beltTeeth"]);
-        }
-        estimate = term + sqrt(discriminant);
-    }
-    const offset = nearestRoot(function(x)
-        {
-            const pathLength = tryTwoPulleyLength(radii, estimate + x);
-            return pathLength == undefined ? undefined : pathLength - length;
-        }, 0.1 * millimeter, TOLERANCE.zeroLength * meter);
-    if (offset == undefined)
-    {
+        // The selected belt is way too small, e.g., it's smaller than the circumference of one of the pulleys
         throw regenError("The selected belt is too small for its pulleys.", ["pulleyOneTeeth", "pulleyTwoTeeth", "beltTeeth"]);
     }
-    return estimate + offset;
-}
-
-/**
- * The length of the path around two pulleys of `radii`, `distance` apart, or `undefined` if there's none.
- */
-function tryTwoPulleyLength(radii is array, distance is ValueWithUnits)
-{
-    return tryLoopLength([
-                { "location" : zeroVector(2) * meter, "radius" : radii[0], "flipped" : false } as BoundaryCircle,
-                { "location" : vector(distance, 0 * meter), "radius" : radii[1], "flipped" : false } as BoundaryCircle
-            ], true);
+    return distance;
 }
 
 /**
@@ -634,7 +618,8 @@ function createBelt(context is Context, id is Id, definition is map, beltDefinit
                 "isDoubleSidedBelt" : isDoubleSidedBelt(definition),
                 "beltType" : beltDefinition.beltType,
                 "beltTeeth" : beltDefinition.beltTeeth,
-                "beltWidth" : beltDefinition.beltWidth
+                "beltWidth" : beltDefinition.beltWidth,
+                "outsideThickness" : beltDefinition.outsideThickness
             } as BeltModel;
 
     const belt = extrudeBelt(context, id, beltModel, beltDefinition.beltPlane, sketch.path, counterClockwise).belt;
@@ -653,7 +638,7 @@ function createBelt(context is Context, id is Id, definition is map, beltDefinit
         }
     }
 
-    setBeltProperties(context, belt, getBeltName(beltModel.beltTeeth, beltModel.isDoubleSidedBelt, beltModel.beltType));
+    setBeltProperties(context, belt, getBeltName(beltDefinition, beltModel.isDoubleSidedBelt));
     return belt;
 }
 
@@ -701,7 +686,7 @@ function getBoundaryCircles(beltDefinition is BeltDefinition) returns array
             }
             else
             {
-                radius = pulleyDefinition.idlerRadius + getBeltOutsideThickness(beltDefinition.beltType);
+                radius = pulleyDefinition.idlerRadius + beltDefinition.outsideThickness;
             }
             return {
                         "location" : pulleyDefinition.location,
@@ -732,11 +717,12 @@ function setBeltProperties(context is Context, belt is Query, name is string)
 }
 
 /**
- * Like `100T Double Sided 5mm HTD Belt`.
+ * Like `100T Double Sided 5mm HTD Belt`, or `100T Rubber Coated 5mm HTD Belt`.
  */
-function getBeltName(beltTeeth is number, isDoubleSidedBelt is boolean, beltType is BeltType) returns string
+function getBeltName(beltDefinition is BeltDefinition, isDoubleSidedBelt is boolean) returns string
 {
-    return beltTeeth ~ "T " ~ (isDoubleSidedBelt ? "Double Sided " : "") ~ getBeltTypeName(beltType) ~ " Belt";
+    return beltDefinition.beltTeeth ~ "T " ~ (isDoubleSidedBelt ? "Double Sided " : "") ~ (beltDefinition.rubberCoated ? "Rubber Coated " : "") ~
+        getBeltTypeName(beltDefinition.beltType) ~ " Belt";
 }
 
 function createMateConnectors(context is Context, id is Id, beltDefinition is BeltDefinition, belt is Query)
@@ -781,7 +767,7 @@ function addBeltFlipManipulators(context is Context, id is Id, beltDefinition is
         if (pulleyDefinition.pulleyType == PulleyType.IDLER)
         {
             // On the idler, inside the belt's back
-            base += direction * getBeltOutsideThickness(beltDefinition.beltType);
+            base += direction * beltDefinition.outsideThickness;
         }
         manipulators[BELT_SIDE_FLIP_MANIPULATOR ~ "." ~ i] = flipManipulator({
                     "base" : base,
@@ -818,6 +804,7 @@ export function robotBeltManipulatorChange(context is Context, definition is map
 export function robotBeltEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
+    definition.isCustomBeltWidth = isCustomWidthBelt(definition);
     const selections = setSelectionTypes(context, oldDefinition, definition);
     definition = selections.definition;
 
@@ -934,7 +921,7 @@ function closestBeltTeeth(context is Context, definition is map) returns number
                 return getPulleyRadius(pitch, selection.pulleyTeeth);
             });
         const distance = norm(pulleys.secondPoint - pulleys.beltPlane.origin) - definition.centerToCenterAdjustment;
-        length = tryTwoPulleyLength(radii, distance);
+        length = tryTwoCircleLength(radii, distance);
     }
     else
     {
@@ -946,7 +933,7 @@ function closestBeltTeeth(context is Context, definition is map) returns number
             circles = append(circles, {
                             "location" : worldToPlane(pulleys.beltPlane, pulleys.selections[i].plane.origin),
                             "radius" : isPulley(pulleyType) ? getPulleyRadius(pitch, pulleys.selections[i].pulleyTeeth) :
-                                getIdlerRadius(pulley, pulleys.selections[i]) + getBeltOutsideThickness(beltValue.beltType),
+                                getIdlerRadius(pulley, pulleys.selections[i]) + getBeltOutsideThickness(beltValue),
                             "flipped" : isOutside(pulleyType)
                         } as BoundaryCircle);
         }

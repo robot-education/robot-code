@@ -17,6 +17,7 @@ export predicate canBeBeltModel(value)
     value.beltWidth is ValueWithUnits;
     value.modelBeltTeeth is boolean;
     value.isDoubleSidedBelt is boolean;
+    value.outsideThickness is ValueWithUnits;
 }
 
 /**
@@ -110,11 +111,12 @@ export function getBeltTypeName(beltType is BeltType) returns string
 }
 
 /**
- * The thickness of a belt's back, outside its pitch line: an idler's path is this much bigger than it.
+ * The thickness of a belt's back, outside its pitch line: an idler's path is this much bigger than it. A belt table's
+ * value's `backThickness` (a rubber coated belt's), or its type's.
  */
-export function getBeltOutsideThickness(beltType is BeltType) returns ValueWithUnits
+export function getBeltOutsideThickness(beltValue is map) returns ValueWithUnits
 {
-    return getBeltModelInfo(beltType).outsideThickness;
+    return beltValue.backThickness ?? getBeltModelInfo(beltValue.beltType).outsideThickness;
 }
 
 /**

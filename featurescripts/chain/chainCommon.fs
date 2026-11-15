@@ -14,6 +14,8 @@ export enum ChainType
 {
     annotation { "Name" : "#25" }
     ANSI_25,
+    annotation { "Name" : "#25H" }
+    ANSI_25H,
     annotation { "Name" : "#35" }
     ANSI_35,
     annotation { "Name" : "8mm (05B)" }
@@ -21,7 +23,8 @@ export enum ChainType
 }
 
 /**
- * A chain's dimensions (ANSI B29.1, and ISO 606 for 05B, which goBILDA's 8mm chain is).
+ * A chain's dimensions (ANSI B29.1, and ISO 606 for 05B, which goBILDA's 8mm chain is). #25H is #25 with thicker
+ * plates: its rollers, and so its sprockets, are #25's.
  *
  * @returns {{
  *      @field pitch {ValueWithUnits} : The distance between its pins.
@@ -40,6 +43,13 @@ export function getChainInfo(chainType is ChainType) returns map
                         "innerWidth" : 0.125 * inch,
                         "plateHeight" : 0.237 * inch,
                         "width" : 0.31 * inch
+                    },
+                ChainType.ANSI_25H : {
+                        "pitch" : 0.25 * inch,
+                        "rollerDiameter" : 0.13 * inch,
+                        "innerWidth" : 0.125 * inch,
+                        "plateHeight" : 0.237 * inch,
+                        "width" : 0.354 * inch
                     },
                 ChainType.ANSI_35 : {
                         "pitch" : 0.375 * inch,
@@ -62,9 +72,22 @@ export function getChainTypeName(chainType is ChainType) returns string
 {
     return switch (chainType) {
                 ChainType.ANSI_25 : "#25",
+                ChainType.ANSI_25H : "#25H",
                 ChainType.ANSI_35 : "#35",
                 ChainType.ISO_05B : "8mm"
             };
+}
+
+/**
+ * Whether a sprocket for one chain fits another: their pitches, rollers, and inner widths are the same (like #25's and
+ * #25H's).
+ */
+export function sameSprockets(chainType is ChainType, otherChainType is ChainType) returns boolean
+{
+    const info = getChainInfo(chainType);
+    const other = getChainInfo(otherChainType);
+    return tolerantEquals(info.pitch, other.pitch) && tolerantEquals(info.rollerDiameter, other.rollerDiameter) &&
+        tolerantEquals(info.innerWidth, other.innerWidth);
 }
 
 /**

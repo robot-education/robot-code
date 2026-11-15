@@ -29,7 +29,7 @@ const SPROCKET_TEETH_BOUNDS = { (unitless) : [5, 16, 500] } as IntegerBoundSpec;
  */
 annotation {
         "Feature Type Name" : "Robot sprocket",
-        "Feature Type Description" : "Create #25, #35, and 8mm sprockets." ~
+        "Feature Type Description" : "Create #25, #25H, #35, and 8mm sprockets." ~
         "<br>See also the Robot chain FeatureScript, which works with this feature directly." ~ CREDIT,
         "Manipulator Change Function" : "robotSprocketManipulatorChange",
         "Icon" : RobotIcon::BLOB_DATA

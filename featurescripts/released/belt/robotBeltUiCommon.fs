@@ -3,6 +3,17 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "d82c5bf9082d0054f8f0b419", version : "85f89bc09b57a2add3d22385");
 
+/**
+ * A custom belt width's bounds: a belt's width, when its table's Belt width is Custom.
+ */
+export const BELT_WIDTH_BOUNDS = { (meter) : [1e-4, 0.015, 500], (inch) : 0.5, (millimeter) : 15 } as LengthBoundSpec;
+
+/**
+ * A belt width level's option for a width of the feature's own (its Custom width), as `robotBeltTables.py`'s
+ * `CUSTOM_WIDTH`.
+ */
+export const CUSTOM_BELT_WIDTH = "Custom";
+
 export predicate beltTablePredicate(definition is map)
 {
     annotation { "Name" : "Belt table", "Lookup Table" : beltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -45,11 +56,17 @@ export function getCurrentBeltOptionsArray(tableAndPath is map)
 }
 
 /**
- * Extracts a belt value from a given tableAndPath.
+ * The belt chosen in a table (`tableAndPath`'s `table`, at its `path`), with its `customWidth` as its `beltWidth` if
+ * its width is Custom.
  */
 export function getBeltValue(tableAndPath is map)
 {
-    return getLookupTable(tableAndPath.table, tableAndPath.path);
+    var value = getLookupTable(tableAndPath.table, tableAndPath.path);
+    if (value.beltWidth == undefined)
+    {
+        value.beltWidth = tableAndPath.customWidth;
+    }
+    return value;
 }
 
 /**
@@ -64,5 +81,23 @@ export function getBeltValue(tableAndPath is map)
  */
 export function getBeltTypeValue(definition is map) returns map
 {
-    return getLookupTable(beltTypeTable, definition.beltTypePath);
+    return getBeltValue({ "table" : beltTypeTable, "path" : definition.beltTypePath, "customWidth" : definition.customBeltWidth });
+}
+
+/**
+ * Whether a belt table's path is to a belt of a custom width (the feature's Custom width).
+ */
+export function hasCustomWidth(path is LookupTablePath) returns boolean
+{
+    return path.width == CUSTOM_BELT_WIDTH;
+}
+
+/**
+ * A belt of a custom width's Custom width: shown by the feature when its table's width is Custom (`hasCustomWidth`, in a
+ * hidden parameter set by editing logic, as the precondition can't read the table).
+ */
+export predicate customBeltWidthPredicate(definition is map)
+{
+    annotation { "Name" : "Custom width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    isLength(definition.customBeltWidth, BELT_WIDTH_BOUNDS);
 }

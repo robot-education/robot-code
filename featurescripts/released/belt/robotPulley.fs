@@ -10,6 +10,7 @@ import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 annotation {
         "Feature Type Name" : "Robot pulley",
         "Manipulator Change Function" : "robotPulleyManipulatorChange",
+        "Editing Logic Function" : "robotPulleyEditLogic",
         "Feature Type Description" : "Create GT2, HTD, and RT25 pulleys and idlers." ~
         "<br>See also the Robot belt FeatureScript, which works directly with this feature." ~ CREDIT,
         "Icon" : RobotIcon::BLOB_DATA
@@ -22,6 +23,15 @@ export const robotPulley = defineFeature(function(context is Context, id is Id, 
     {
         doRobotPulley(context, id, definition);
     });
+
+/**
+ * Sets Custom belt width, which shows Custom width, from the belt chosen.
+ */
+export function robotPulleyEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean) returns map
+{
+    definition.isCustomBeltWidth = isCustomWidthPulley(definition);
+    return definition;
+}
 
 function doRobotPulley(context is Context, id is Id, definition is map)
 {

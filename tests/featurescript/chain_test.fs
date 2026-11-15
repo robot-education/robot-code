@@ -18,6 +18,17 @@ export function testChainInfo()
     expectEqual(getChainInfo(ChainType.ANSI_35).pitch, 0.375 * inch);
     expectEqual(getChainTypeName(ChainType.ANSI_35), "#35");
     expectEqual(getChainInfo(ChainType.ISO_05B).pitch, 8 * millimeter);
+    expectEqual(getChainTypeName(ChainType.ANSI_25H), "#25H");
+    // #25H is wider than #25, over its thicker plates
+    expectTrue(getChainInfo(ChainType.ANSI_25H).width > getChainInfo(ChainType.ANSI_25).width, "#25H should be wider than #25");
+}
+
+export function testSameSprockets()
+{
+    // #25H runs on #25's sprockets
+    expectTrue(sameSprockets(ChainType.ANSI_25, ChainType.ANSI_25H), "#25 sprockets should fit #25H chain");
+    expectTrue(sameSprockets(ChainType.ANSI_35, ChainType.ANSI_35), "a chain's sprockets should fit it");
+    expectTrue(!sameSprockets(ChainType.ANSI_25, ChainType.ANSI_35), "#25 sprockets shouldn't fit #35 chain");
 }
 
 export function testFlipManipulatorSwapsSide()

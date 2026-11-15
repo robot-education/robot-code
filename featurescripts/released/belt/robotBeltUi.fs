@@ -204,7 +204,19 @@ export predicate beltPredicate(definition is map)
             {
                 doubleBeltTablePredicate(definition);
             }
+        }
 
+        // Set by editing logic, as Onshape can't show parameters by a lookup table's value
+        annotation { "Name" : "Custom belt width", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomWidthBelt" }
+        definition.isCustomBeltWidth is boolean;
+
+        if (definition.isCustomBeltWidth)
+        {
+            customBeltWidthPredicate(definition);
+        }
+
+        if (!isOpenBelt(definition))
+        {
             annotation { "Name" : "Belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             isInteger(definition.beltTeeth, BELT_TEETH_BOUNDS);
 
@@ -286,17 +298,29 @@ export predicate robotBeltPredicate(definition is map)
 }
 
 /**
- * The lookup table the belt's chosen from, and its path in it: an open belt's is only its type and width.
+ * The lookup table the belt's chosen from, and its path in it (an open belt's is only its type and width), and its
+ * `customWidth`, its Custom width if its width is Custom (see `getBeltValue`).
  */
 export function getBeltTableAndPath(definition is map) returns map
 {
+    var result = { "table" : beltTable, "path" : definition.beltPath, "customWidth" : definition.customBeltWidth };
     if (isOpenBelt(definition))
     {
-        return { "table" : beltTypeTable, "path" : definition.beltTypePath };
+        result.table = beltTypeTable;
+        result.path = definition.beltTypePath;
     }
-    if (isDoubleSidedBelt(definition))
+    else if (isDoubleSidedBelt(definition))
     {
-        return { "table" : doubleBeltTable, "path" : definition.doubleBeltPath };
+        result.table = doubleBeltTable;
+        result.path = definition.doubleBeltPath;
     }
-    return { "table" : beltTable, "path" : definition.beltPath };
+    return result;
+}
+
+/**
+ * Custom belt width: whether the chosen belt's width is Custom, so its Custom width shows.
+ */
+export function isCustomWidthBelt(definition is map) returns boolean
+{
+    return hasCustomWidth(getBeltTableAndPath(definition).path);
 }

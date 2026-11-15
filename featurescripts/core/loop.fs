@@ -211,6 +211,44 @@ export function tryLoopLength(circles is array, counterClockwise is boolean)
 }
 
 /**
+ * The length of the path around two circles of `radii` (counter clockwise, around the outside of both), `distance`
+ * apart, or `undefined` if there's none.
+ */
+export function tryTwoCircleLength(radii is array, distance is ValueWithUnits)
+{
+    return tryLoopLength([
+                { "location" : zeroVector(2) * meter, "radius" : radii[0], "flipped" : false } as BoundaryCircle,
+                { "location" : vector(distance, 0 * meter), "radius" : radii[1], "flipped" : false } as BoundaryCircle
+            ], true);
+}
+
+/**
+ * How far apart two circles of `radii` are when the path around them (`tryTwoCircleLength`) is `length`: exactly, the
+ * distance nearest `nearDistance` (or, if it's zero, nearest the usual belt formula's, which only approximates the
+ * path). `undefined` if no distance makes it, as when `length` is too short to go around them.
+ */
+export function twoCircleDistance(radii is array, length is ValueWithUnits, nearDistance is ValueWithUnits)
+{
+    var estimate = nearDistance;
+    if (tolerantEqualsZero(estimate))
+    {
+        const term = (length - PI * (radii[0] + radii[1])) / 4;
+        const discriminant = term ^ 2 - (2 * (radii[1] - radii[0])) ^ 2 / 8;
+        if (term <= 0 * meter || discriminant < 0 * meter ^ 2)
+        {
+            return undefined;
+        }
+        estimate = term + sqrt(discriminant);
+    }
+    const offset = nearestRoot(function(x)
+        {
+            const pathLength = tryTwoCircleLength(radii, estimate + x);
+            return pathLength == undefined ? undefined : pathLength - length;
+        }, 0.1 * millimeter, TOLERANCE.zeroLength * meter);
+    return offset == undefined ? undefined : estimate + offset;
+}
+
+/**
  * What a pulley's or sprocket's selected location is, for editing logic to choose how to read it: "part" (a part or
  * mate connector with the attribute `attributeName`, like a Robot pulley's or sprocket's), "pitchCircle" (a circle
  * whose size is a pitch circle's with a whole number of teeth, as `teethFor(radius)` says), or "center" (anything
