@@ -258,31 +258,31 @@ def test_each_set_offers_its_own_sizes():
     assert FTC_DEFINITION["STUDIOS"].keys() == {"screw", "nut", "washer"}
 
 
-@pytest.mark.parametrize("part_set,kind", STUDIOS)
-def test_each_studio_keeps_to_the_configuration_rules(part_set, kind):
+def test_each_studio_keeps_to_the_configuration_rules():
     """What `fs parts` checks before it sends anything to Onshape."""
-    assert CATALOGS[part_set].studios[kind].problems() == []
+    for part_set, kind in STUDIOS:
+        assert CATALOGS[part_set].studios[kind].problems() == []
 
 
-@pytest.mark.parametrize("part_set,kind", STUDIOS)
-def test_an_input_shows_only_with_a_choice_of_options(part_set, kind):
-    studio = CATALOGS[part_set].studios[kind]
-    for combination in studio.combinations():
-        for input in studio.configured_inputs():
-            shown = [option.id for option in input.options if input_shows(input, combination) and shows(option, combination)]
-            assert len(shown) != 1, (input.id, combination)
-            assert (input.id in combination) == bool(shown), (input.id, combination)
+def test_an_input_shows_only_with_a_choice_of_options():
+    for part_set, kind in STUDIOS:
+        studio = CATALOGS[part_set].studios[kind]
+        for combination in studio.combinations():
+            for input in studio.configured_inputs():
+                shown = [option.id for option in input.options if input_shows(input, combination) and shows(option, combination)]
+                assert len(shown) != 1, (input.id, combination)
+                assert (input.id in combination) == bool(shown), (input.id, combination)
 
 
-@pytest.mark.parametrize("part_set,kind", STUDIOS)
-def test_a_hidden_input_has_one_option_made_where_its_hidden(part_set, kind):
+def test_a_hidden_input_has_one_option_made_where_its_hidden():
     """So the feature resolves it to that one, whatever value Onshape's configuration holds."""
-    table, made = _table(part_set, kind), _made(part_set, kind)
-    for key in made:
-        shown = table.shown(key)
-        for index, id in enumerate(table.ids):
-            if id not in shown:
-                assert {other[index] for other in made if other[:index] == key[:index]} == {key[index]}, (id, key)
+    for part_set, kind in STUDIOS:
+        table, made = _table(part_set, kind), _made(part_set, kind)
+        for key in made:
+            shown = table.shown(key)
+            for index, id in enumerate(table.ids):
+                if id not in shown:
+                    assert {other[index] for other in made if other[:index] == key[:index]} == {key[index]}, (id, key)
 
 
 def _resolve(entries: dict, value: str) -> str | None:
@@ -305,47 +305,47 @@ def _feature_table(kind: str) -> dict:
     return table
 
 
-@pytest.mark.parametrize("part_set,kind", STUDIOS)
-def test_the_feature_resolves_whatever_a_hidden_input_holds(part_set, kind):
+def test_the_feature_resolves_whatever_a_hidden_input_holds():
     """From the tables both sets share: a hidden input holds any option of its studio's, or a fixed one its default."""
-    studio, table = CATALOGS[part_set].studios[kind], _table(part_set, kind)
-    inputs = {input.id: input for input in studio.inputs}
-    tables = _feature_table(kind)
-    for key in _made(part_set, kind):
-        shown = table.shown(key)
-        for index, id in enumerate(table.ids):
-            if id in shown:
-                continue
-            held = [inputs[id].default_option] if inputs[id].fixed else [option.id for option in inputs[id].options]
-            for value in held:
-                level = tables
-                for column, option in enumerate(key):
-                    resolved = _resolve(level, value if column == index else option)
-                    assert resolved == option, (id, value, key)
-                    level = level[resolved]
+    for part_set, kind in STUDIOS:
+        studio, table = CATALOGS[part_set].studios[kind], _table(part_set, kind)
+        inputs = {input.id: input for input in studio.inputs}
+        tables = _feature_table(kind)
+        for key in _made(part_set, kind):
+            shown = table.shown(key)
+            for index, id in enumerate(table.ids):
+                if id in shown:
+                    continue
+                held = [inputs[id].default_option] if inputs[id].fixed else [option.id for option in inputs[id].options]
+                for value in held:
+                    level = tables
+                    for column, option in enumerate(key):
+                        resolved = _resolve(level, value if column == index else option)
+                        assert resolved == option, (id, value, key)
+                        level = level[resolved]
 
 
-@pytest.mark.parametrize("part_set,kind", STUDIOS)
-def test_every_option_is_controlled_by_a_rule(part_set, kind):
+def test_every_option_is_controlled_by_a_rule():
     """Onshape hides every option no rule controls, once an input has any rule."""
-    for parameter in CATALOGS[part_set].studios[kind].configuration_body()["configurationParameters"]:
-        rules = parameter.get("enumOptionVisibilityConditions", {}).get("visibilityConditions", [])
-        if rules:
-            controlled = {option for rule in rules for option in rule["controlledOptions"]}
-            assert controlled == {option["option"] for option in parameter["options"]}, parameter["parameterId"]
+    for part_set, kind in STUDIOS:
+        for parameter in CATALOGS[part_set].studios[kind].configuration_body()["configurationParameters"]:
+            rules = parameter.get("enumOptionVisibilityConditions", {}).get("visibilityConditions", [])
+            if rules:
+                controlled = {option for rule in rules for option in rule["controlledOptions"]}
+                assert controlled == {option["option"] for option in parameter["options"]}, parameter["parameterId"]
 
 
-@pytest.mark.parametrize("part_set,kind", STUDIOS)
-def test_each_default_shows_with_the_others(part_set, kind):
+def test_each_default_shows_with_the_others():
     """Onshape refuses a configuration whose default hides an input's default while it shows others."""
-    studio = CATALOGS[part_set].studios[kind]
-    selection: dict[str, str] = {}
-    for input in studio.configured_inputs():
-        shown = [option.id for option in input.options if input_shows(input, selection) and shows(option, selection)]
-        if shown:
-            assert input.default_option in shown, input.id
-            selection[input.id] = input.default_option
-    assert selection in studio.combinations()
+    for part_set, kind in STUDIOS:
+        studio = CATALOGS[part_set].studios[kind]
+        selection: dict[str, str] = {}
+        for input in studio.configured_inputs():
+            shown = [option.id for option in input.options if input_shows(input, selection) and shows(option, selection)]
+            if shown:
+                assert input.default_option in shown, input.id
+                selection[input.id] = input.default_option
+        assert selection in studio.combinations()
 
 
 def test_defaults_are_whats_inserted_most():

@@ -7,7 +7,7 @@ export import(path : "a6eeed056b8f09ac4e8ae12e", version : "06d365078b9d1d830beb
 
 annotation {
         "Feature Type Name" : "Robot grid",
-        "Feature Type Description" : "Create a grid of holes which automatically ignore any nearby points." ~ CREDIT,
+        "Feature Type Description" : "Create a pattern of holes which can be toggled on and off as needed." ~ CREDIT,
         "Editing Logic Function" : "robotGridEditLogic",
         "Manipulator Change Function" : "robotGridManipulatorChange",
         "Icon" : RobotIcon::BLOB_DATA

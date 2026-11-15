@@ -33,7 +33,7 @@ main = "https://cad.onshape.com/documents/..."
 ```
 
 ```
-uv run fs parts fasteners --test                  # build its Part Studios in your branch's workspace
+uv run fs parts fasteners --test                  # build its Part Studios in the backend workspace
 uv run fs parts fasteners --diagnose              # find what Onshape refuses in a configuration
 uv run fs parts fasteners --release --minor       # release it to its main document (on main)
 uv run fs parts fasteners --release --target local   # release it to a target, to try it out (any branch)
@@ -119,7 +119,7 @@ itself, and Auto Assembly reads the catalog the library stored from it, so a rel
 branch: to load a set into a local FRCDesignApp, say, before releasing it. It does steps 1 to 3 to that document, then
 versions it, so FRCDesignApp can load it; the versions are named for the branch and commit (`Fasteners test - my-branch 1a2b3c4`), not numbered, and nothing
 is recorded, marked released, or tagged: the main document and the next release's number are untouched. Its backend
-version is made from the branch's workspace. Versions can't be deleted, so each try leaves one in the backend
+version is made from the main workspace. Versions can't be deleted, so each try leaves one in the backend
 document and one in the target.
 
 `fs release` refuses a part set's FeatureScript, and `fs sync-versions` leaves its backend versions out: they're never

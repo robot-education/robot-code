@@ -14,7 +14,7 @@ import pytest
 from fs_cli import cli
 from fs_cli.ui import find_chromium
 
-BENCH = "featurescripts/uiTestBench/uiTestBench.fs"
+BENCH = "featurescripts/uiTestBench/uiTestBench.local.fs"
 
 
 def dialog_page(page: str) -> str:

@@ -20,7 +20,7 @@ export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8
 // Exports Fit: released shafts have a fit parameter, and Onshape looks up its enum in the feature's file to load them
 // fs check: ignore unused-import
 export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
-RobotShaftIcon::import(path : "41c2fc2cc7659b215feb01c8", version : "47af683e8c175dbcacb47bdf");
+RobotShaftIcon::import(path : "41c2fc2cc7659b215feb01c8", version : "1e53a2611b757f97410fd4ab");
 
 /**
  * Whether a shaft is one someone sells (see robotShaftTables.py), or custom.
@@ -434,7 +434,7 @@ predicate shaftEndPredicate(definition is map)
 const GROOVE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.009906, 500], (inch) : 0.39, (millimeter) : 10 } as LengthBoundSpec;
 
 annotation { "Feature Type Name" : "Robot shaft",
-        "Feature Type Description" : "Create the shafts FRC and FTC teams buy, or custom ones." ~ CREDIT,
+        "Feature Type Description" : "Create shafts used for both FRC and FTC." ~ CREDIT,
         "Manipulator Change Function" : "extrudeManipulatorChange",
         "Editing Logic Function" : "robotShaftEditLogic",
         "Icon" : RobotShaftIcon::BLOB_DATA

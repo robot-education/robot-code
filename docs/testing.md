@@ -21,7 +21,7 @@ on the evaluator.
 
 So that changing a feature never breaks the tooling's tests, they don't depend on what's in the features: they write
 the FeatureScript they need to a repo in `tmp_path` (with `std = "..."` in its `[tool.fs]` pointing at the checked-in
-std, rather than a copy), or use `featurescripts/uiTestBench/uiTestBench.fs`, a feature with every kind of parameter
+std, rather than a copy), or use `featurescripts/uiTestBench/uiTestBench.local.fs`, a feature with every kind of parameter
 which exists for comparing dialogs. The exceptions are corpora: std, which the parser and formatter are run over, and
 the shaft and frame features, whose dialogs `live_dialog_test.py` draws (found by name, wherever they are) without
 checking what's in them.

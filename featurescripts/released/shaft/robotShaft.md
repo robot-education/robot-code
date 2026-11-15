@@ -11,94 +11,22 @@ captive shaft ends), and shafts can be mirrored across an end.
 | `robotShaftTables.py` | The COTS shaft tables and the tapped and clearance hole tables; `fs gen` writes `robotShaftTables.gen.fs` |
 | `../splineProfile/splineProfileCommon.fs` | Spline types and profiles (shared with Robot spline profile) |
 | `../../core/stdExtrude.fs` | The extrude's dialog and editing logic, based on std's |
-| `robotShaftIcon.py` | Its icon (`fs gen` writes `robotShaftIcon.svg`): a short rounded hex shaft with a tapped end |
+| `robotShaftIcon.py` | Its icon (`fs gen` writes `robotShaftIcon.svg`): a long rounded hex shaft with a tapped end |
 | `vendor/` | Vendors' drawings the tables were checked against |
 
 ## Changelog
 
-Since v2.2.0 (`fs changes robotShaft`).
+Since v3.0.0 (`fs changes robotShaft`).
 
-### Changes to existing shafts when their documents update
-
-- **Unit system is gone; Program replaces it.** The Unit system tabs (Inch / Metric) are replaced by Program (FRC /
-  FTC), which defaults to FRC, so existing shafts use inches. FTC shafts are named in millimeters.
-- **Existing shafts become COTS shafts.** The new Source tabs default to COTS, so a shaft from v2.2.0 (all custom)
-  becomes WCP's 1/2 in. rounded hex, the first FRC shaft, until it's set back to Custom.
-- **End type no longer has Up to part**, and Up to face only takes planar faces (or mate connectors). Shafts extruded
-  up to a part lose their end.
-- **Field tolerancing is gone** from the extrude's lengths.
-- **Ends must be flat**: up to next onto a curved face is now an error (`The shaft's ends must be flat.`) rather than
-  a shaft with a curved end.
-- **Depth is now Length**, for the end and the second end.
-- **Clearance holes' hole table picks Free fits by default** (was Close): #8 0.177 in., #10 0.201 in., 1/4 0.266 in.
-  (Close: 0.1695, 0.196, and 0.257 in.). Hole diameter is still set from the table, and can be overridden.
-- **Custom shaft colors**: SplineXL and hex shafts other than UltraHex are black; UltraHex, MAXSpline, and SplineXS are
-  medium gray (were: hex black but UltraHex white; splines white).
-- **Custom shaft names** give their length as COTS shafts' do: inches to 3 places for FRC (`3 in. Hex Shaft`, as
-  before), and millimeters to 1 for FTC (`136 mm Hex Shaft`).
-- **Captive ends' Diameter and Length don't remember their previous values** (they never did: they're set from the
-  shaft's size when it's created), and no longer say they do.
-
-### New
-
-- COTS shafts: FRC shafts from WCP, REV, AndyMark, Swyft, VEX, and ThriftyBot, and FTC shafts from goBILDA and AndyMark
-  (Robits), chosen by vendor, type (as the vendor names it: Hex, Rounded hex, Hex Lite, SplineXS, ...), size (for hex),
-  and material (only where a vendor sells the type and size in several). They're named `<length> <part name>`, and get their material, appearance, vendor, and the part number and
-  link of the stock they're cut from; a warning says when one is longer than it's sold.
-- SplineXS shafts (custom and COTS), whose ends can only be tapped; COTS SplineXS shafts can have a hole through them.
-- Metric hex sizes for custom shafts: 7 mm (8mm REX) and 11 mm (12mm REX), with rounded hex diameters to match.
-- Mirror shaft, with Flip mirror end: mirrors the shaft across one of its ends.
-- Modify first end, Modify second end, End type, Symmetric, and the second end type remember their previous values.
-- COTS shafts sold in set lengths are chosen by Length, after the shaft: goBILDA's REX shafts, AndyMark's Robits hex,
-  and WCP's and ThriftyBot's SplineXS stubs. The default is the length nearest 56 mm. At one of their lengths, they're built as they're sold:
-  that long from their location (with Opposite direction and Starting offset, but no end type, Symmetric, second end,
-  or Mirror shaft), with their ends as made, and no Shaft ends:
-  - goBILDA's REX: tapped M4 (11 mm deep on 8mm REX, 12 mm on stainless 12mm, 14 mm on aluminum 12mm), and on the ones
-    with an e-clip (types of their own: 8 mm REX (e-clip) and 12 mm REX (e-clip), beside 12 mm REX), its grooves (8mm: one 6 mm across, 3.2 to 4 mm from its
-    first end; 12mm: two 9 mm across, 3 to 4 and 10 to 11 mm). Flip ends puts the grooves at its second end.
-  - Robits hex: tapped #10-32, 0.7 in. deep.
-  - SplineXS stubs: tapped #10-32 1/2 in. deep.
-
-  Length's first option, Custom, is the shortest length it's sold in that it fits in, cut down: its end type, length,
-  Symmetric, and second end are shown again, as for a shaft cut from stock. Its factory end (its first end, or its
-  second with Flip ends) keeps the factory features: its tapped hole, and its e-clip grooves. Its other end is cut, and
-  only it can be modified (Shaft ends shows only Modify second end), and it has no Mirror shaft (which would make
-  both ends factory ends). goBILDA's plain stainless 12mm REX has no factory features, so at a Custom length it's
-  like a shaft cut from stock: both ends can be modified, and it can be mirrored. A Custom length keeps its name,
-  material, and appearance, and gets the part number and link of the shortest length it fits in. goBILDA's REX takes
-  E-clip end operations, as a custom metric hex shaft does.
-
-  A shaft can also be custom (Source: Custom), chosen by its profile (Shaft type, Hex type, and size), for FRC and
-  FTC alike.
-- goBILDA's whole stainless steel REX catalog: 12mm REX without an e-clip (100, 140, and 180 mm, untapped) joins the
-  8mm and 12mm with one.
-- E-clip, an end operation for metric hex (7 mm and 11 mm: custom shafts at those sizes, and goBILDA's REX at a
-  Custom length), in place of Retaining ring (`MetricEndOperation`, `MetricSecondEndOperation`): goBILDA's groove, 6 mm across
-  0.8 mm wide on 7 mm hex and 9 mm across 1 mm wide on 11 mm, its far side 4 mm from the end, which is extended 4 mm
-  for it, as for a retaining ring. E-clips go on from the side, so there's no Side mount ring, and the end isn't faced
-  off. Override groove diameter works as for a retaining ring, starting at goBILDA's.
-- M3 and M4 tapped holes (coarse and fine, with std's ISO tap drills: M3 2.5 and 2.65 mm, M4 3.3 and 3.5 mm), made
-  with std's ISO hole table. A metric hex shaft's tapped ends start at M4 coarse, as goBILDA taps REX, and an inch
-  one's at #10-32: when the shaft changes between metric and inch hex, an end's tapped hole changes to its usual,
-  and a choice in its own system is kept.
-- Override groove diameter, for each end's retaining ring: a Groove diameter of its own, for rings other than the
-  usual ones. Turned on, it starts at the usual groove (0.39 in. for 1/2 in. hex, 0.396 in. side mount; 0.352 in. for
-  3/8 in. hex, 0.303 in. side mount), and is set back to it when the hex size or Side mount ring changes.
-- The description is now "Create the shafts FRC and FTC teams buy, or custom ones." (was "Create common robot shafts.").
-
-### Fixes
-
-- Captive shaft ends get default sizes for metric hex.
-
-The MAXSpline and SplineXL profiles are generated now (`splineProfiles.py`), with the same geometry: only a stray line
-from the center to a tooth of the outside profiles, which didn't affect the shaft, is gone.
+- The description is now "Create shafts used for both FRC and FTC." (was "Create the shafts FRC and FTC teams buy, or
+  custom ones.").
 
 ## Strings
 
 | String | Where |
 | --- | --- |
 | Robot shaft | feature name |
-| Create the shafts FRC and FTC teams buy, or custom ones. `<CREDIT>` | feature description |
+| Create shafts used for both FRC and FTC. `<CREDIT>` | feature description |
 
 ### Descriptions and hidden parameters
 
