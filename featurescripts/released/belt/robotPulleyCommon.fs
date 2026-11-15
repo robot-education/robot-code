@@ -133,11 +133,19 @@ export function getTwoBeltPulleyExtraWidth(beltType is BeltType, beltWidth is Va
 }
 
 /**
+ * How much bigger a printed pulley's grooves are than the belt's teeth, all around (their arcs' radii, around the same
+ * centers), so the belt fits once they print a little small: 0.2 mm wider and 0.1 mm deeper, as droftarts' Parametric
+ * Pulley's 0.2 mm additional tooth width. Its lands, which the belt's pitch line rides on, aren't moved.
+ */
+export const GROOVE_CLEARANCE = 0.1 * millimeter;
+
+/**
  * Sketches the toothed profile of a pulley for a belt of `beltType` with `teeth` teeth, centered on `plane`, and returns
  * its face. Each groove is the belt's tooth (see `getBeltModelInfo`): its tip, an arc of `toothRadius` around a center
  * `toothOffset` inside the pitch circle, and for a GT2 belt, its flanks, arcs of `flankRadius` around centers on the
  * lands' circle across the groove, which the tip's arc is inside, tangent. Between the grooves are lands at the belt's
- * inside (`insideThickness` inside the pitch circle), their corners rounded by the belt's tooth fillet.
+ * inside (`insideThickness` inside the pitch circle), their corners rounded by the belt's tooth fillet. The grooves
+ * are `GROOVE_CLEARANCE` bigger than the teeth.
  *
  * @param profileOffset : How far the profile is offset outward (inward, if negative): to make the pulley a little
  *          bigger or smaller, for a tighter or looser belt. Every arc keeps its center: convex arcs grow, and concave
@@ -156,7 +164,7 @@ export function sketchPulleyProfile(context is Context, id is Id, plane is Plane
     // found, and its clockwise side's are their mirror images.
     const landRadius = pitchRadius - belt.insideThickness;
     const tipCenter = vector(pitchRadius - belt.toothOffset, 0 * meter);
-    const tipRadius = belt.toothRadius - profileOffset;
+    const tipRadius = belt.toothRadius + GROOVE_CLEARANCE - profileOffset;
     const filletRadius = belt.toothFilletRadius + profileOffset;
     // The groove's side: a GT2 belt's flank, or the tip's arc itself
     var sideCenter = tipCenter;
@@ -171,14 +179,15 @@ export function sketchPulleyProfile(context is Context, id is Id, plane is Plane
             throw regenError(tooFew, ["pulleyTeeth"]);
         }
         sideCenter = centers[0][1] < centers[1][1] ? centers[0] : centers[1];
-        sideRadius = belt.flankRadius - profileOffset;
+        sideRadius = belt.flankRadius + GROOVE_CLEARANCE - profileOffset;
     }
     if (tipRadius <= 0 * meter || sideRadius <= 0 * meter || filletRadius <= 0 * meter)
     {
         throw regenError("The profile offset is too large for this belt's teeth.", ["profileOffsetDistance"]);
     }
 
-    // The fillet's center is inside the lands' circle and outside the side's, tangent to both (the same, offset or not)
+    // The fillet's center is inside the lands' circle and outside the side's, tangent to both (the same, offset or not,
+    // but further from the groove than its tooth's would be, with the clearance)
     const filletCenters = circleIntersections(origin, landRadius - belt.toothFilletRadius, sideCenter, sideRadius + filletRadius);
     if (filletCenters == [])
     {

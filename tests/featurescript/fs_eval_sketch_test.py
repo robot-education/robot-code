@@ -12,6 +12,10 @@ from fs_eval.sketch import recorded_sketch
 BELT_TYPES = ["_2_MM_GT2", "_3_MM_GT2", "_3_MM_HTD", "_5_MM_HTD", "RT25"]
 
 
+def groove_clearance() -> float:
+    return to_python(shared_evaluator().eval("GROOVE_CLEARANCE", "released/belt/robotPulleyCommon.fs"))
+
+
 def pulley_profile(belt_type: str, teeth: int, offset_mm: float = 0.0):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
@@ -56,7 +60,8 @@ def test_pulley_profile_stays_between_groove_and_land(belt_type):
     model = belt_model(belt_type)
     pitch = pitch_radius(belt_type, teeth)
     land = pitch - model["insideThickness"]
-    groove_bottom = pitch - model["toothOffset"] - model["toothRadius"]
+    # The grooves are the clearance bigger than the teeth, and the lands where the belt's inside is
+    groove_bottom = pitch - model["toothOffset"] - model["toothRadius"] - groove_clearance()
     curves = sketch.loops()[0].curves
     assert max(curve.farthest() for curve in curves) == pytest.approx(land, abs=1e-9)
     assert min(curve.nearest() for curve in curves) == pytest.approx(groove_bottom, abs=1e-9)
@@ -73,15 +78,18 @@ GT2_FORMS = {
 @pytest.mark.parametrize("teeth", [16, 60])
 def test_gt2_grooves_are_gates_profile(belt_type, teeth):
     form = {key: value / 1000 for key, value in GT2_FORMS[belt_type].items()}
+    clearance = groove_clearance()
+    assert clearance > 0
     sketch = pulley_profile(belt_type, teeth)
     land = pitch_radius(belt_type, teeth) - belt_model(belt_type)["insideThickness"]
     curves = {curve.id: curve for curve in sketch.loops()[0].curves}
     groove, flank = curves["groove0"], curves["flank0_2"]
-    assert groove.radius == pytest.approx(form["R3"], abs=1e-12)
-    assert flank.radius == pytest.approx(form["R2"], abs=1e-12)
-    # The groove's as deep as the tooth's tall, its flanks' centers are on the lands' circle, across the groove about
-    # b from its axis (exactly, on a straight belt), and its tip's arc is inside its flanks', tangent
-    assert land - groove.nearest() == pytest.approx(form["h"], abs=1e-9)
+    # Each arc the clearance bigger than the tooth's, around the same center
+    assert groove.radius == pytest.approx(form["R3"] + clearance, abs=1e-12)
+    assert flank.radius == pytest.approx(form["R2"] + clearance, abs=1e-12)
+    # The groove's the clearance deeper than the tooth's tall, its flanks' centers are on the lands' circle, across the
+    # groove about b from its axis (exactly, on a straight belt), and its tip's arc is inside its flanks', tangent
+    assert land - groove.nearest() == pytest.approx(form["h"] + clearance, abs=1e-9)
     assert math.dist(flank.center, (0, 0)) == pytest.approx(land, abs=1e-9)
     assert flank.center[1] < 0
     assert -flank.center[1] == pytest.approx(form["b"], abs=0.01)
