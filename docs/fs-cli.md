@@ -489,10 +489,11 @@ released, so each FeatureScript gets the GitHub link at its next release.
 
 ### FRCDesignApp
 
-FRCDesignApp's FeatureScripts tab lists what `featurescripts.json`, a file tab at the frontend document's top level,
-names, and takes the rest from the document's layout: a feature's category is the folder its frontend studio is in,
-and its example is a Part Studio. A release keeps that side of the frontend document, before the
-frontend version, so the version holds what describes it (`fs_cli/frontend.py`):
+FRCDesignApp's FeatureScripts tab lists what `featurescripts.json`, a file tab in the frontend document, names, and
+takes the rest from the document's layout: a feature's category is the folder its frontend studio is in, and its
+example is a Part Studio. It reads all of that from the frontend workspace, and adds each feature from the latest
+frontend version, so the manifest, examples, and icons can be edited by hand there without a version, and show on the
+app's next load. A release keeps that side of the frontend document (`fs_cli/frontend.py`):
 
 - **The example**: a Part Studio named for the feature, its Feature Type Name in any case (`Multi extrude`), preferring
   one after its studio in the same folder; otherwise the first Part Studio after its studio in its folder, so features
@@ -515,8 +516,8 @@ feature's example is it too) are renamed `DEPRECATED ...`.
 `fs app-manifest` writes the entries and icons of features released before releases wrote them, without releasing
 them: each feature in the frontend document with a release, as its latest release made it, from its code and
 icon in that backend version. It replaces those features' entries and keeps the rest, and creates no examples and no
-versions: FRCDesignApp reads the manifest from the frontend document's latest version, so it sees them once the next
-one is made. `--dry-run` lists the entries, noting those without an icon, a link, or an example. It costs 3 calls, and 5 per feature.
+versions: FRCDesignApp reads the manifest from the frontend workspace, so it sees them on its next load (the owner's
+Reload in its admin settings). `--dry-run` lists the entries, noting those without an icon, a link, or an example. It costs 3 calls, and 5 per feature.
 
 ```
 uv run fs app-manifest --dry-run   # the entries it would write

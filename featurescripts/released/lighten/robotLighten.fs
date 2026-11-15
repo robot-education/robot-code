@@ -46,7 +46,7 @@ predicate isBlind(definition is map)
  * corners rounded as a router bit leaves them. Ribs run along the selected sketch edges (a sketch's, or Quick rib's).
  */
 annotation { "Feature Type Name" : "Robot lighten",
-        "Feature Type Description" : "Lighten a part with pockets, leaving walls around its edges and holes, and ribs along a sketch." ~ CREDIT,
+        "Feature Type Description" : "Quickly and robustly cut lightening patterns into parts." ~ CREDIT,
         "Manipulator Change Function" : "robotLightenManipulatorChange",
         "Editing Logic Function" : "robotLightenEditLogic",
         "Icon" : RobotLightenIcon::BLOB_DATA
@@ -81,6 +81,19 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
             annotation { "Name" : "Exclude construction lines", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.excludeConstruction is boolean;
+
+            annotation { "Name" : "Cut additional bodies" }
+            definition.cutAdditionalBodies is boolean;
+
+            annotation { "Group Name" : "Cut additional bodies", "Driving Parameter" : "cutAdditionalBodies", "Collapsed By Default" : false }
+            {
+                if (definition.cutAdditionalBodies)
+                {
+                    annotation { "Name" : "Bodies to cut", "UIHint" : UIHint.INITIAL_FOCUS,
+                                "Filter" : EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES && AllowMeshGeometry.YES }
+                    definition.additionalBodies is Query;
+                }
+            }
         }
 
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -168,6 +181,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         // where the face is, and the pockets moved by this onto that part
         const patternTransform = getRemainderPatternTransform(context, { "references" : face });
         const ignoredFaces = getIgnoredFaces(context, definition);
+        const additionalBodies = getAdditionalBodies(context, definition, part);
         const wallOverrides = getWallOverrides(context, definition, face);
         var ribGroups = getRibGroups(context, definition);
         var regions = qSketchFilter(ignoredFaces, SketchObject.YES);
@@ -206,7 +220,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
         }
 
         // The pocket: the face's extrude into its part
-        const depth = pocketDepth(context, definition, part, facePlane);
+        const depth = pocketDepth(context, definition, qUnion([part, additionalBodies]), facePlane);
         if (isBlind(definition))
         {
             addDepthManipulator(context, id, face, facePlane, depth);
@@ -302,11 +316,15 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
                     });
         }
 
-        const volume = evVolume(context, { "entities" : target });
+        const targets = qUnion([target, additionalBodies]);
+        // A sheet metal part is rebuilt from its sheets by the cut, so it's found again by tracking
+        const cutTargets = qUnion([targets, startTracking(context, targets)]);
+        const volume = evVolume(context, { "entities" : targets });
         try silent
         {
-            opBoolean(context, id + "cut", {
-                        "targets" : target,
+            // Not `opBoolean`: `booleanBodies` cuts sheet metal parts through their sheets
+            booleanBodies(context, id + "cut", {
+                        "targets" : targets,
                         "tools" : pockets,
                         "operationType" : BooleanOperationType.SUBTRACTION
                     });
@@ -316,7 +334,7 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             processSubfeatureStatus(context, id, { "subfeatureId" : id + "cut", "propagateErrorDisplay" : true });
             throw regenError("Failed to cut pockets from part." ~ TRY_EXACT_POCKETS, ["face", "exactPockets"], pockets);
         }
-        const lightened = 1 - evVolume(context, { "entities" : target }) / volume;
+        const lightened = 1 - evVolume(context, { "entities" : cutTargets }) / volume;
         reportFeatureInfo(context, id, "Weight reduced by " ~ roundToPrecision(lightened * 100, 1) ~ "%.");
         // Pieces the cut left free (ribs which touch no wall or other rib) are parts of their own: shown, as info,
         // which the weight's gives way to
@@ -362,6 +380,23 @@ function getIgnoredFaces(context is Context, definition is map) returns Query
         throw regenError("Select faces to ignore.", ["ignoredFaces"]);
     }
     return faces;
+}
+
+/**
+ * The bodies to cut beside the face's part: none, unless Cut additional bodies is checked, when there must be some.
+ */
+function getAdditionalBodies(context is Context, definition is map, part is Query) returns Query
+{
+    if (!definition.cutAdditionalBodies)
+    {
+        return qNothing();
+    }
+    const bodies = qSubtraction(qEntityFilter(definition.additionalBodies, EntityType.BODY), part);
+    if (isQueryEmpty(context, bodies))
+    {
+        throw regenError("Select bodies to cut.", ["additionalBodies"]);
+    }
+    return bodies;
 }
 
 /**

@@ -434,7 +434,7 @@ predicate shaftEndPredicate(definition is map)
 const GROOVE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.009906, 500], (inch) : 0.39, (millimeter) : 10 } as LengthBoundSpec;
 
 annotation { "Feature Type Name" : "Robot shaft",
-        "Feature Type Description" : "Create the shafts FRC and FTC teams buy, or custom ones." ~ CREDIT,
+        "Feature Type Description" : "Create shafts used for both FRC and FTC." ~ CREDIT,
         "Manipulator Change Function" : "extrudeManipulatorChange",
         "Editing Logic Function" : "robotShaftEditLogic",
         "Icon" : RobotShaftIcon::BLOB_DATA

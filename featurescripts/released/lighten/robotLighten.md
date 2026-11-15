@@ -16,6 +16,12 @@ pockets' corners are rounded as a router bit leaves them.
 
 Unreleased.
 
+- Lightens sheet metal parts: the pockets are cut with std's Boolean (`booleanBodies`), which cuts a sheet metal part
+  through its sheets.
+- Cut additional bodies (under Selections): the pockets cut the Bodies to cut too, as a stack of plates under the
+  part. Through all goes to the far side of the part and every body to cut, and Weight reduced counts them all.
+- The description is now "Quickly and robustly cut lightening patterns into parts." (was "Lighten a part with
+  pockets, leaving walls around its edges and holes, and ribs along a sketch.").
 - Quick ribs are a feature of their own again (Quick rib): select its sketch's edges in Ribs to use.
 - Holes get their walls separately from the face's outline, so a hole near the outline (like one in a rounded corner)
   no longer fails the walls, or silently leaves out pieces of pockets.
@@ -41,7 +47,7 @@ Unreleased.
 | String | Where |
 | --- | --- |
 | Robot lighten | feature name |
-| Lighten a part with pockets, leaving walls around its edges and holes, and ribs along a sketch. `<CREDIT>` | feature description |
+| Quickly and robustly cut lightening patterns into parts. `<CREDIT>` | feature description |
 
 ### Descriptions and hidden parameters
 
@@ -61,6 +67,7 @@ where they come up, and show only once it's done; of several, the last of the mo
 | --- | --- | --- | --- | --- |
 | Select a face to lighten. | error | no face to lighten | `face` | Select faces to mirror. |
 | Select faces to ignore. | error | Ignore faces is on, with none selected | `ignoredFaces` | Select faces to remove. |
+| Select bodies to cut. | error | Cut additional bodies is on, with no body selected but the face's part | `additionalBodies` | Select parts to copy. |
 | Override faces must be adjacent to the face to lighten. | error | a wall override's faces share no edge with the face to lighten | its Faces, the faces | Reference face must be adjacent to ruled surface path. |
 | Face to lighten must be parallel to the ribs. | error | a rib's sketch (as it'll be relative to the face, in a mirror or pattern) isn't parallel to the face | `face`, the rib parameters, the face and those ribs | Limit face must be parallel to face being moved. |
 | Cannot find a part to lighten where the feature is mirrored or patterned. | error | mirrored or patterned onto another part, there's no part with a face where the face goes | `face`, the face | Cannot find a unique, planar wall to split. |
@@ -83,8 +90,8 @@ where they come up, and show only once it's done; of several, the last of the mo
 | Failed to fillet highlighted pocket corner. | warning | a corner's fillet fails, and neither side next to it has another corner to round across to: it's left sharp | `filletRadius`, and the corner | Failed to fillet selections. |
 | Failed to fillet highlighted pocket. | warning | a full round across a failed corner's narrow side fails: the corner's left sharp, and the fillet it deleted is put back | `filletRadius`, the corner and the side | Failed to fillet selections. |
 | Could not offset pockets to fillet radius. Try toggling the exact pockets option. | warning | growing the rounded pockets back fails (as for a sliver left where walls and ribs exactly meet): they're cut smaller, by the fillet radius (the growth's error is copied for its display, then cleared, so it doesn't fail the feature) | `filletRadius` and `exactPockets`, the pockets, and the growth's error display | Could not offset selected faces as requested. |
-| Failed to cut pockets from part. Try toggling the exact pockets option. | error | cutting them fails | `face` and `exactPockets`, and the pockets | Boolean operation failed to return a valid part. |
-| Weight reduced by `<percent>`%. | info | the pockets are cut (shown if nothing was reported before it, or after it) | | none |
+| Failed to cut pockets from part. Try toggling the exact pockets option. | error | cutting them from the part and the bodies to cut fails (with `booleanBodies`'s own message for sheet metal it can't cut) | `face` and `exactPockets`, and the pockets | Boolean operation failed to return a valid part. |
+| Weight reduced by `<percent>`%. | info | the pockets are cut, by the volume of the part and the bodies to cut (shown if nothing was reported before it, or after it) | | none |
 | Some parts are loose. | info | the cut leaves pieces free (ribs which touch no wall or other rib): reported after the weight's, so it shows instead | the loose parts, in blue (debug entities) | Hole operation split part into multiple parts. |
 
 ## UI
@@ -92,7 +99,7 @@ where they come up, and show only once it's done; of several, the last of the mo
 ### Dialog
 
 - **Selections** (at the top): Face to lighten, Ignore faces (with Faces to ignore, and Add walls around ignored
-  faces), Ribs to use (optional), and Exclude construction lines.
+  faces), Ribs to use (optional), Exclude construction lines, and Cut additional bodies (with Bodies to cut).
 - Wall thickness, Rib thickness, Fillet corners, and Fillet radius.
 - **Override rib thickness**: an array of ribs at other thicknesses (labeled like "0.25 in ribs"). Later overrides
   win over earlier ones, and all of them over Rib thickness.
@@ -117,7 +124,7 @@ where they come up, and show only once it's done; of several, the last of the mo
 ```
 robotLighten
 --> getRemainderPatternTransform                   // in a mirror or pattern: where the face goes
---> getFace, getIgnoredFaces, getWallOverrides     // selections, checked before anything's built
+--> getFace, getIgnoredFaces, getAdditionalBodies, getWallOverrides   // selections, checked before anything's built
 --> getRibGroups --> ribGroups                     // ribs by thickness (maybe none); later overrides win
 --> relativeTransform                              // how ribs and regions move relative to the face (in a pattern)
 --> verifyParallel                                 // the ribs' sketches, parallel to the face
@@ -144,7 +151,7 @@ robotLighten
     --> opOffsetFace "grow"                        // 3. the pockets, out by the radius less the hair
 --> excludeRegions                                 // without walls around ignored faces: regions cut from pockets
 --> patternedPart, opTransform "patterned"         // in a mirror or pattern onto another part: pockets moved there
---> opBoolean "cut"                                // pockets cut from the part
+--> booleanBodies "cut"                            // pockets cut from the part and the bodies to cut
 --> reportFeatureInfo                              // weight reduced, then loose parts (blue)
 --> opDeleteBodies "cleanup"                       // pockets, ribs, and the sketches' copies
 ```
@@ -264,6 +271,18 @@ neither is, they stay as they are; otherwise their sketches are copied (`byFace`
 relative to it, and the copies used, and deleted at the end. Their sketches' planes, checked against the face, are
 moved likewise first. Std asks for pattern transforms before any operation, so all three are found first.
 
+### Bodies to cut and sheet metal
+
+With Cut additional bodies, the finished pockets cut the Bodies to cut as well as the face's part (left out of them if
+it's selected), in one `booleanBodies`. The pockets are built from the face alone, so they go into the bodies only
+against the face's normal, where they're under it; Through all goes to the farthest far side of the part and the
+bodies (`pocketDepth`). In a mirror or pattern onto another part, the bodies are cut as their queries find them there.
+
+The cut is std's Boolean feature (`booleanBodies`), not `opBoolean`, so sheet metal parts, among the targets or the face's
+own, are cut through their sheets and rebuilt (std's `sheetMetalAwareBoolean`). A rebuilt part is found again for the
+weight by tracking the targets. Std's sheet metal booleans refuse feature patterns, so a sheet metal part can't be
+lightened in a mirror or pattern of the feature.
+
 ### Ribs
 
 Ribs are optional: with none (none selected, or only construction ones, excluded), there are just walls. Rib and wall
@@ -377,7 +396,7 @@ Robot lighten hollows it with its holes filled, and cuts the holes, grown, from 
 | Tight rounded part corners | Not handled | Not handled | Not handled |
 | Errors | Short messages modeled on std's, highlighting the parameters, with the operation's own display; warnings for pockets it can't fillet | Std errors; a warning if trimming fails | Generic messages |
 | Feature mirrors and patterns | Yes (`getRemainderPatternTransform`, `opTransform`) | Yes (`getRemainderPatternTransform`) | No |
-| Sheet metal | No | Yes (`booleanBodies`) | No |
+| Sheet metal | Yes (`booleanBodies`) | Yes (`booleanBodies`) | No |
 
 Taken from Vent: rounding the pockets' corners by a hair fillet, grown, and feature pattern support. Still worth
 taking: Up to face and Up to part end types.
@@ -407,5 +426,7 @@ taking: Up to face and Up to part end types.
 - A narrow side next to a concave corner (one side of it a rib's or wall's corner) has no other corner to round
   across to, so its corner's left sharp with a warning.
 - Filleting each corner on its own costs a fillet per corner, where one fillet of all of them did before.
+- Untested in Onshape: sheet metal parts (as the face's part or a body to cut), whether a sheet metal part's faces pass
+  Face to lighten's filter while the sheet metal model is active, and Cut additional bodies.
 - Untested in Onshape: deleting a hair fillet to heal it back to a corner (`opDeleteFace`), and rounding in a feature
   of its own inside the feature (`startFeature`, `endFeature`, `abortFeature`).
