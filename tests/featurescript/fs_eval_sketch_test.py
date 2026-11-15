@@ -16,11 +16,11 @@ def groove_clearance() -> float:
     return to_python(shared_evaluator().eval("GROOVE_CLEARANCE", "released/belt/robotPulleyCommon.fs"))
 
 
-def pulley_profile(belt_type: str, teeth: int, offset_mm: float = 0.0):
+def pulley_profile(belt_type: str, teeth: int, offset_mm: float = 0.0, clearance: str = "GROOVE_CLEARANCE"):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     evaluator.eval(
-        f'sketchPulleyProfile(context, newId() + "profile", XY_PLANE, BeltType.{belt_type}, {teeth}, {offset_mm} * millimeter)',
+        f'sketchPulleyGrooves(context, newId() + "profile", XY_PLANE, BeltType.{belt_type}, {teeth}, {offset_mm} * millimeter, {clearance})',
         "released/belt/robotPulleyCommon.fs",
         context=context,
     )
@@ -32,21 +32,28 @@ def belt_model(belt_type: str) -> dict:
     return to_python(info)
 
 
+def groove(belt_type: str) -> dict:
+    return to_python(shared_evaluator().eval(f"getPulleyGroove(BeltType.{belt_type})", "released/belt/robotPulleyCommon.fs"))
+
+
 def pitch_radius(belt_type: str, teeth: int) -> float:
     return to_python(shared_evaluator().eval(
         f"getPulleyRadius(getBeltPitch(BeltType.{belt_type}), {teeth})", "released/belt/robotPulleyCommon.fs"))
 
 
 @pytest.mark.parametrize("belt_type", BELT_TYPES)
-@pytest.mark.parametrize("teeth", [12, 24, 60])
+@pytest.mark.parametrize("teeth", [16, 24, 60])
 def test_pulley_profile_is_one_smooth_closed_loop(belt_type, teeth):
     sketch = pulley_profile(belt_type, teeth)
     loops = sketch.loops()
     assert len(loops) == 1
     loop = loops[0]
     assert loop.closed
-    # Per tooth: two fillets, a groove, and a land, and a GT2 groove's two flanks
-    assert len(loop.curves) == (6 if "GT2" in belt_type else 4) * teeth
+    # Per tooth: two fillets, the groove's bottom (an arc, or two and a line across), a land, and any flanks or walls
+    shape = groove(belt_type)
+    bottom = 3 if shape["tipSpread"] > 0 else 1
+    sides = 2 if "flankRadius" in shape or "wallAngle" in shape else 0
+    assert len(loop.curves) == (3 + bottom + sides) * teeth
     for before, after in loop.joints():
         out, into = before.tangent(True), after.tangent(False)
         assert abs(out[0] * into[1] - out[1] * into[0]) < 1e-6, f"{before.id} and {after.id} aren't tangent"
@@ -57,43 +64,64 @@ def test_pulley_profile_is_one_smooth_closed_loop(belt_type, teeth):
 def test_pulley_profile_stays_between_groove_and_land(belt_type):
     teeth = 24
     sketch = pulley_profile(belt_type, teeth)
-    model = belt_model(belt_type)
-    pitch = pitch_radius(belt_type, teeth)
-    land = pitch - model["insideThickness"]
-    # The grooves are the clearance bigger than the teeth, and the lands where the belt's inside is
-    groove_bottom = pitch - model["toothOffset"] - model["toothRadius"] - groove_clearance()
+    land = pitch_radius(belt_type, teeth) - belt_model(belt_type)["insideThickness"]
+    # The grooves are the clearance bigger than vendors', and the lands where the belt's inside is
+    shape = groove(belt_type)
     curves = sketch.loops()[0].curves
     assert max(curve.farthest() for curve in curves) == pytest.approx(land, abs=1e-9)
-    assert min(curve.nearest() for curve in curves) == pytest.approx(groove_bottom, abs=1e-9)
+    center = land - shape["tipDepth"]
+    assert min(curve.nearest() for curve in curves) == pytest.approx(
+        math.sqrt(center ** 2 - shape["tipSpread"] ** 2) - shape["tipRadius"] - groove_clearance(), abs=1e-9)
 
 
-GT2_FORMS = {
-    # Gates' GT2 profiles: tooth height h, flank R2, tip R3, and the flank's center's offset b across the tooth
-    "_2_MM_GT2": {"h": 0.75, "R2": 1.0, "R3": 0.555, "b": 0.4},
-    "_3_MM_GT2": {"h": 1.14, "R2": 1.52, "R3": 0.85, "b": 0.61},
+# Vendors' pulleys' grooves, measured from their STEP files (vendor/pulley-grooves.md), in mm: each arc's radius, and
+# its center's depth inside the lands' circle and distance across the groove's axis, on the counter clockwise side.
+# Fillets are tangent to the lands, so they're as deep as they're big.
+VENDOR_GROOVES = {
+    # goBILDA 3421-0014-0060
+    "_2_MM_GT2": {"teeth": 60, "tip": (0.63, 0.195, 0), "flank": (1.075, -0.0041, -0.4001), "fillet": (0.15, 0.15, 0.8134)},
+    # goBILDA 3402-0014-0036
+    "_3_MM_HTD": {"teeth": 36, "tip": (0.8636, 0.4572, 0.0305), "fillet": (0.2694, 0.2694, 1.1533)},
+    # goBILDA 3411-0014-0024, whose walls are 0.5158 mm long
+    "_5_MM_HTD": {"teeth": 24, "tip": (1.1938, 0.8097, 0.3302), "wall": 0.5158, "fillet": (0.4699, 0.4699, 2.0574)},
+    # REV-21-2206
+    "RT25": {"teeth": 16, "tip": (1.8017, 0.6113, 0), "flank": (3.2199, -0.0025, -1.3028), "fillet": (0.5266, 0.5266, 2.3847)},
 }
 
 
-@pytest.mark.parametrize("belt_type", GT2_FORMS)
-@pytest.mark.parametrize("teeth", [16, 60])
-def test_gt2_grooves_are_gates_profile(belt_type, teeth):
-    form = {key: value / 1000 for key, value in GT2_FORMS[belt_type].items()}
-    clearance = groove_clearance()
-    assert clearance > 0
-    sketch = pulley_profile(belt_type, teeth)
+def arc_in_groove(curve, land: float) -> tuple[float, float, float]:
+    """An arc of the first groove (on the x axis): its radius, and its center's depth and distance across, in mm."""
+    x, y = curve.center
+    distance = math.hypot(x, y)
+    return curve.radius * 1000, (land - distance) * 1000, distance * math.sin(math.atan2(y, x)) * 1000
+
+
+@pytest.mark.parametrize("belt_type", VENDOR_GROOVES)
+def test_grooves_without_clearance_are_vendors(belt_type):
+    vendor = VENDOR_GROOVES[belt_type]
+    teeth = vendor["teeth"]
+    sketch = pulley_profile(belt_type, teeth, clearance="0 * meter")
     land = pitch_radius(belt_type, teeth) - belt_model(belt_type)["insideThickness"]
     curves = {curve.id: curve for curve in sketch.loops()[0].curves}
-    groove, flank = curves["groove0"], curves["flank0_2"]
-    # Each arc the clearance bigger than the tooth's, around the same center
-    assert groove.radius == pytest.approx(form["R3"] + clearance, abs=1e-12)
-    assert flank.radius == pytest.approx(form["R2"] + clearance, abs=1e-12)
-    # The groove's the clearance deeper than the tooth's tall, its flanks' centers are on the lands' circle, across the
-    # groove about b from its axis (exactly, on a straight belt), and its tip's arc is inside its flanks', tangent
-    assert land - groove.nearest() == pytest.approx(form["h"] + clearance, abs=1e-9)
-    assert math.dist(flank.center, (0, 0)) == pytest.approx(land, abs=1e-9)
-    assert flank.center[1] < 0
-    assert -flank.center[1] == pytest.approx(form["b"], abs=0.01)
-    assert math.dist(flank.center, groove.center) == pytest.approx(form["R2"] - form["R3"], abs=1e-9)
+    # To a hundredth of a millimeter: our lands are at the belt's standard pitch line, and vendors' a few thousandths
+    # off it
+    tip = curves.get("groove0") or curves["groove0_2"]
+    assert arc_in_groove(tip, land) == pytest.approx(vendor["tip"], abs=0.01)
+    if "flank" in vendor:
+        assert arc_in_groove(curves["flank0_2"], land) == pytest.approx(vendor["flank"], abs=0.01)
+    if "wall" in vendor:
+        wall = curves["wall0_2"]
+        assert math.dist(wall.start, wall.end) * 1000 == pytest.approx(vendor["wall"], abs=0.01)
+    assert arc_in_groove(curves["fillet0_2"], land) == pytest.approx(vendor["fillet"], abs=0.01)
+
+
+def test_3mm_gt2_grooves_are_near_wcps():
+    # WCP-0663 (36T): its grooves' bottom is a 0.9703 mm arc 0.1981 mm inside the lands' circle, with straight sides;
+    # ours, Gates' tooth 0.075 mm bigger, are within 0.05 mm as deep
+    sketch = pulley_profile("_3_MM_GT2", 36, clearance="0 * meter")
+    land = pitch_radius("_3_MM_GT2", 36) - belt_model("_3_MM_GT2")["insideThickness"]
+    deepest = land - min(curve.nearest() for curve in sketch.loops()[0].curves)
+    assert deepest * 1000 == pytest.approx(0.9703 + 0.1981, abs=0.05)
 
 
 def test_profile_offset_grows_the_pulley():

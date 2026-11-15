@@ -128,7 +128,8 @@ export function getBeltModelInsideThickness(beltInfo is map, modelBeltTeeth is b
 }
 
 /**
- * Returns information used specifically for modeling a belt.
+ * Returns information used specifically for modeling a belt. Teeth are modeled as their tips' arcs (circles): a GT2
+ * tooth's flanks are left out. Robot pulley's grooves are its own (`getPulleyGroove`), which the modeled teeth fit in.
  *
  * @returns {{
  *      @field outsideThickness : The thickness of the back of the belt measured from the pitch circle.
@@ -137,36 +138,30 @@ export function getBeltModelInsideThickness(beltInfo is map, modelBeltTeeth is b
  *      @field toothOffset : The distance from the center of each tooth to the pitch circle.
  *      @field toothRadius : The radius of each tooth.
  *      @field toothFilletRadius : The radius of the fillet applied to the teeth.
- *      @field flankRadius : @optional A GT2 belt's teeth's flanks' radius: they're arcs around centers on the belt's
- *              inside, across the tooth, which its tip's arc is inside, tangent. Gates' GT2 profiles (R2, with the tip's
- *              R3, the fillet's R1, and the tooth's height h). Other belts' teeth are all one arc, their tip's.
- *              Robot belt models teeth as their tip's arc alone (a circle), which fits in the groove.
  * }}
  */
 export function getBeltModelInfo(beltType is BeltType)
 {
     if (beltType == BeltType._2_MM_GT2)
     {
-        // h 0.75, R1 0.15, R2 1.00, R3 0.555, and its pitch line 0.254 outside its inside
+        // Gates' 2mm GT2: 0.75 mm tall, R3 0.555 mm, R1 0.15 mm, and its pitch line 0.254 mm outside its inside
         return {
                 "outsideThickness" : (0.63 - 0.254) * millimeter,
                 "insideThickness" : 0.254 * millimeter,
                 "toothOffset" : (0.254 + 0.75 - 0.555) * millimeter,
                 "toothRadius" : 0.555 * millimeter,
-                "toothFilletRadius" : 0.15 * millimeter,
-                "flankRadius" : 1 * millimeter
+                "toothFilletRadius" : 0.15 * millimeter
             };
     }
     else if (beltType == BeltType._3_MM_GT2)
     {
-        // h 1.14, R1 0.25, R2 1.52, R3 0.85, and its pitch line 0.381 outside its inside
+        // Gates' 3mm GT2: 1.14 mm tall, R3 0.85 mm, R1 0.25 mm, and its pitch line 0.381 mm outside its inside
         return {
                 "outsideThickness" : 0.81 * millimeter,
                 "insideThickness" : 0.381 * millimeter,
                 "toothOffset" : (0.381 + 1.14 - 0.85) * millimeter,
                 "toothRadius" : 0.85 * millimeter,
-                "toothFilletRadius" : 0.25 * millimeter,
-                "flankRadius" : 1.52 * millimeter
+                "toothFilletRadius" : 0.25 * millimeter
             };
     }
     else if (beltType == BeltType._3_MM_HTD)

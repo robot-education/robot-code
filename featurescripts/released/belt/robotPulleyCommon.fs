@@ -133,19 +133,55 @@ export function getTwoBeltPulleyExtraWidth(beltType is BeltType, beltWidth is Va
 }
 
 /**
- * How much bigger a printed pulley's grooves are than the belt's teeth, all around (their arcs' radii, around the same
- * centers), so the belt fits once they print a little small: 0.2 mm wider and 0.1 mm deeper, as droftarts' Parametric
- * Pulley's 0.2 mm additional tooth width. Its lands, which the belt's pitch line rides on, aren't moved.
+ * A pulley's groove for a belt of `beltType`, as vendors' pulleys have it (`vendor/pulley-grooves.md`), before
+ * `GROOVE_CLEARANCE`. Its bottom is an arc on each side of its axis (one arc, if they're the same), joined by a line.
+ * Its sides are flanks (a GT2's or RT25's: arcs around centers on the lands' circle across the groove, which the
+ * bottom's arc on its side is inside, tangent), straight walls (5mm HTD's: lines tangent to the bottom's arcs), or the
+ * bottom's arcs going on (3mm HTD's); and the lands' corners are rounded.
+ *
+ * @returns {{
+ *      @field tipRadius {ValueWithUnits} : The bottom's arcs' radius.
+ *      @field tipDepth {ValueWithUnits} : How far inside the lands' circle their centers are.
+ *      @field tipSpread {ValueWithUnits} : How far across the groove's axis each one's center is (zero for one arc).
+ *      @field flankRadius {ValueWithUnits} : @optional The flanks' radius.
+ *      @field wallAngle {ValueWithUnits} : @optional The walls' angle to the groove's axis, opening out.
+ *      @field filletRadius {ValueWithUnits} : The lands' corners' radius.
+ * }}
+ */
+export function getPulleyGroove(beltType is BeltType) returns map
+{
+    return switch (beltType) {
+                // goBILDA's: Gates' GT2 tooth (R3 0.555 mm, 0.75 mm tall, R2 1 mm flanks, R1 0.15 mm), its arcs 0.075 mm bigger
+                BeltType._2_MM_GT2 : { "tipRadius" : 0.63 * millimeter, "tipDepth" : 0.195 * millimeter, "tipSpread" : 0 * meter,
+                        "flankRadius" : 1.075 * millimeter, "filletRadius" : 0.15 * millimeter },
+                // Gates' 3mm GT2 tooth (R3 0.85 mm, 1.14 mm tall, R2 1.52 mm flanks, R1 0.25 mm), its arcs 0.075 mm
+                // bigger, as goBILDA's 2mm grooves are: within 0.05 mm of WCP's grooves (which have straight sides)
+                BeltType._3_MM_GT2 : { "tipRadius" : 0.925 * millimeter, "tipDepth" : 0.29 * millimeter, "tipSpread" : 0 * meter,
+                        "flankRadius" : 1.595 * millimeter, "filletRadius" : 0.25 * millimeter },
+                // goBILDA's
+                BeltType._3_MM_HTD : { "tipRadius" : 0.8636 * millimeter, "tipDepth" : 0.4572 * millimeter, "tipSpread" : 0.0305 * millimeter,
+                        "filletRadius" : 0.2694 * millimeter },
+                // goBILDA's
+                BeltType._5_MM_HTD : { "tipRadius" : 1.1938 * millimeter, "tipDepth" : 0.8097 * millimeter, "tipSpread" : 0.3302 * millimeter,
+                        "wallAngle" : 9.794 * degree, "filletRadius" : 0.4699 * millimeter },
+                // REV's (its aluminum pulleys' fillets; its plastic ones' are 0.8865 mm)
+                BeltType.RT25 : { "tipRadius" : 1.8017 * millimeter, "tipDepth" : 0.6113 * millimeter, "tipSpread" : 0 * meter,
+                        "flankRadius" : 3.2199 * millimeter, "filletRadius" : 0.5266 * millimeter }
+            };
+}
+
+/**
+ * How much bigger a printed pulley's grooves are than vendors' (`getPulleyGroove`), all around (their bottoms' and
+ * flanks' radii, around the same centers), as printed grooves come out a little small: 0.2 mm wider and 0.1 mm deeper,
+ * as droftarts' Parametric Pulley's 0.2 mm additional tooth width. Its lands, which the belt's pitch line rides on,
+ * aren't moved.
  */
 export const GROOVE_CLEARANCE = 0.1 * millimeter;
 
 /**
  * Sketches the toothed profile of a pulley for a belt of `beltType` with `teeth` teeth, centered on `plane`, and returns
- * its face. Each groove is the belt's tooth (see `getBeltModelInfo`): its tip, an arc of `toothRadius` around a center
- * `toothOffset` inside the pitch circle, and for a GT2 belt, its flanks, arcs of `flankRadius` around centers on the
- * lands' circle across the groove, which the tip's arc is inside, tangent. Between the grooves are lands at the belt's
- * inside (`insideThickness` inside the pitch circle), their corners rounded by the belt's tooth fillet. The grooves
- * are `GROOVE_CLEARANCE` bigger than the teeth.
+ * its face: grooves as vendors' pulleys have them (`getPulleyGroove`), `GROOVE_CLEARANCE` bigger, between lands at the
+ * belt's inside (its `insideThickness` inside the pitch circle).
  *
  * @param profileOffset : How far the profile is offset outward (inward, if negative): to make the pulley a little
  *          bigger or smaller, for a tighter or looser belt. Every arc keeps its center: convex arcs grow, and concave
@@ -154,7 +190,16 @@ export const GROOVE_CLEARANCE = 0.1 * millimeter;
 export function sketchPulleyProfile(context is Context, id is Id, plane is Plane, beltType is BeltType, teeth is number,
     profileOffset is ValueWithUnits) returns Query
 {
-    const belt = getBeltModelInfo(beltType);
+    return sketchPulleyGrooves(context, id, plane, beltType, teeth, profileOffset, GROOVE_CLEARANCE);
+}
+
+/**
+ * `sketchPulleyProfile`, with grooves `clearance` bigger than vendors'.
+ */
+export function sketchPulleyGrooves(context is Context, id is Id, plane is Plane, beltType is BeltType, teeth is number,
+    profileOffset is ValueWithUnits, clearance is ValueWithUnits) returns Query
+{
+    const groove = getPulleyGroove(beltType);
     const pitchRadius = getPulleyRadius(getBeltPitch(beltType), teeth);
     const toothAngle = 360 * degree / teeth;
     const origin = zeroVector(2) * meter;
@@ -162,45 +207,78 @@ export function sketchPulleyProfile(context is Context, id is Id, plane is Plane
 
     // The first groove's, on the x axis: the rest are rotated copies. Its counter clockwise side's (+y) curves are
     // found, and its clockwise side's are their mirror images.
-    const landRadius = pitchRadius - belt.insideThickness;
-    const tipCenter = vector(pitchRadius - belt.toothOffset, 0 * meter);
-    const tipRadius = belt.toothRadius + GROOVE_CLEARANCE - profileOffset;
-    const filletRadius = belt.toothFilletRadius + profileOffset;
-    // The groove's side: a GT2 belt's flank, or the tip's arc itself
+    const landRadius = pitchRadius - getBeltModelInfo(beltType).insideThickness;
+    const tipCenterRadius = landRadius - groove.tipDepth;
+    const tipCenter = vector(sqrt(tipCenterRadius ^ 2 - groove.tipSpread ^ 2), groove.tipSpread);
+    const tipRadius = groove.tipRadius + clearance - profileOffset;
+    const filletRadius = groove.filletRadius + profileOffset;
+    // The groove's side: its flank, or the bottom's arc itself
     var sideCenter = tipCenter;
     var sideRadius = tipRadius;
-    const hasFlanks = belt.flankRadius != undefined;
+    const hasFlanks = groove.flankRadius != undefined;
     if (hasFlanks)
     {
-        // On the lands' circle, across the groove, as far from the tip's center as the tip's arc is inside the flank
-        const centers = circleIntersections(origin, landRadius, tipCenter, belt.flankRadius - belt.toothRadius);
+        // On the lands' circle, across the groove, as far from the bottom's arc's center as it's inside the flank
+        const centers = circleIntersections(origin, landRadius, tipCenter, groove.flankRadius - groove.tipRadius);
         if (centers == [])
         {
             throw regenError(tooFew, ["pulleyTeeth"]);
         }
         sideCenter = centers[0][1] < centers[1][1] ? centers[0] : centers[1];
-        sideRadius = belt.flankRadius + GROOVE_CLEARANCE - profileOffset;
+        sideRadius = groove.flankRadius + clearance - profileOffset;
     }
     if (tipRadius <= 0 * meter || sideRadius <= 0 * meter || filletRadius <= 0 * meter)
     {
         throw regenError("The profile offset is too large for this belt's teeth.", ["profileOffsetDistance"]);
     }
 
-    // The fillet's center is inside the lands' circle and outside the side's, tangent to both (the same, offset or not,
-    // but further from the groove than its tooth's would be, with the clearance)
-    const filletCenters = circleIntersections(origin, landRadius - belt.toothFilletRadius, sideCenter, sideRadius + filletRadius);
-    if (filletCenters == [])
+    // The fillet's center is inside the lands' circle (the same, offset or not), and outside the side, tangent to both
+    const filletCenterRadius = landRadius - groove.filletRadius;
+    const hasWalls = groove.wallAngle != undefined;
+    var filletCenter;
+    var onSide;
+    var onTip;
+    if (hasWalls)
     {
-        throw regenError(tooFew, ["pulleyTeeth"]);
+        // The wall's tangent to the bottom's arc where the arc's square to it, and goes out from there, so the fillet's
+        // center is a fillet's radius off the wall, out along it as far as the lands' circle less the fillet's radius
+        const along = vector(cos(groove.wallAngle), sin(groove.wallAngle));
+        const across = vector(-sin(groove.wallAngle), cos(groove.wallAngle));
+        onTip = tipCenter + across * tipRadius;
+        const offWall = onTip + across * filletRadius;
+        const toCenter = dot(offWall, along);
+        const discriminant = toCenter ^ 2 - squaredNorm(offWall) + filletCenterRadius ^ 2;
+        if (discriminant < 0 * meter ^ 2)
+        {
+            throw regenError(tooFew, ["pulleyTeeth"]);
+        }
+        const out = -toCenter + sqrt(discriminant);
+        if (out < 0 * meter)
+        {
+            throw regenError(tooFew, ["pulleyTeeth"]);
+        }
+        filletCenter = offWall + along * out;
+        onSide = onTip + along * out;
     }
-    const filletCenter = filletCenters[0][1] > filletCenters[1][1] ? filletCenters[0] : filletCenters[1];
+    else
+    {
+        const filletCenters = circleIntersections(origin, filletCenterRadius, sideCenter, sideRadius + filletRadius);
+        if (filletCenters == [])
+        {
+            throw regenError(tooFew, ["pulleyTeeth"]);
+        }
+        filletCenter = filletCenters[0][1] > filletCenters[1][1] ? filletCenters[0] : filletCenters[1];
+        onSide = sideCenter + normalize(filletCenter - sideCenter) * sideRadius;
+        // Where a flank meets the bottom's arc: on the line from the flank's center through the arc's
+        onTip = hasFlanks ? sideCenter + normalize(tipCenter - sideCenter) * sideRadius : onSide;
+    }
     const filletAngle = atan2(filletCenter[1], filletCenter[0]);
     const onLand = filletCenter / norm(filletCenter) * (landRadius + profileOffset);
-    const onSide = sideCenter + normalize(filletCenter - sideCenter) * sideRadius;
-    // Where a flank meets the tip: on the line from the flank's center through the tip's
-    const onTip = hasFlanks ? sideCenter + normalize(tipCenter - sideCenter) * sideRadius : onSide;
-    // A groove's fillets can't reach past the middle of its lands, and its flanks must go out from its tip
-    if (filletAngle >= toothAngle / 2 || onTip[1] <= 0 * meter || (hasFlanks && norm(onSide) <= norm(onTip)))
+    // The bottom's arc's innermost point, square to the groove's axis, where the line across the bottom meets it
+    const bottom = tipCenter - vector(tipRadius, 0 * meter);
+    const hasFlat = !tolerantEqualsZero(groove.tipSpread);
+    // A groove's fillets can't reach past the middle of its lands, and its sides must go out from its bottom
+    if (filletAngle >= toothAngle / 2 || onTip[1] <= bottom[1] || (hasFlanks && norm(onSide) <= norm(onTip)))
     {
         throw regenError(tooFew, ["pulleyTeeth"]);
     }
@@ -210,7 +288,7 @@ export function sketchPulleyProfile(context is Context, id is Id, plane is Plane
         };
     const filletMiddle = middle(filletCenter, filletRadius, onLand, onSide);
     const flankMiddle = middle(sideCenter, sideRadius, onTip, onSide);
-    const bottom = tipCenter - vector(tipRadius, 0 * meter);
+    const tipMiddle = middle(tipCenter, tipRadius, bottom, onTip);
     const mirror = function(point is Vector) returns Vector
         {
             return vector(point[0], -point[1]);
@@ -229,11 +307,28 @@ export function sketchPulleyProfile(context is Context, id is Id, plane is Plane
         {
             skArc(sketch, "flank" ~ tooth ~ "_0", { "start" : rotate(mirror(onSide)), "mid" : rotate(mirror(flankMiddle)), "end" : rotate(mirror(onTip)) });
         }
-        // The groove's bottom: the tooth's tip
-        skArc(sketch, "groove" ~ tooth, { "start" : rotate(mirror(onTip)), "mid" : rotate(bottom), "end" : rotate(onTip) });
+        else if (hasWalls)
+        {
+            skLineSegment(sketch, "wall" ~ tooth ~ "_0", { "start" : rotate(mirror(onSide)), "end" : rotate(mirror(onTip)) });
+        }
+        // The groove's bottom
+        if (hasFlat)
+        {
+            skArc(sketch, "groove" ~ tooth ~ "_0", { "start" : rotate(mirror(onTip)), "mid" : rotate(mirror(tipMiddle)), "end" : rotate(mirror(bottom)) });
+            skLineSegment(sketch, "groove" ~ tooth ~ "_1", { "start" : rotate(mirror(bottom)), "end" : rotate(bottom) });
+            skArc(sketch, "groove" ~ tooth ~ "_2", { "start" : rotate(bottom), "mid" : rotate(tipMiddle), "end" : rotate(onTip) });
+        }
+        else
+        {
+            skArc(sketch, "groove" ~ tooth, { "start" : rotate(mirror(onTip)), "mid" : rotate(bottom), "end" : rotate(onTip) });
+        }
         if (hasFlanks)
         {
             skArc(sketch, "flank" ~ tooth ~ "_2", { "start" : rotate(onTip), "mid" : rotate(flankMiddle), "end" : rotate(onSide) });
+        }
+        else if (hasWalls)
+        {
+            skLineSegment(sketch, "wall" ~ tooth ~ "_2", { "start" : rotate(onTip), "end" : rotate(onSide) });
         }
         skArc(sketch, "fillet" ~ tooth ~ "_2", { "start" : rotate(onSide), "mid" : rotate(filletMiddle), "end" : rotate(onLand) });
         // The land to the next groove
