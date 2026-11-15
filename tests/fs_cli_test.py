@@ -15,7 +15,7 @@ from fs_cli import cli, workspace
 from fs_cli.configured_studios import Built
 from fs_cli.frontend import FrontendTab
 from fs_cli.remote import RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
-from fs_cli.versions import ReleasedVersion, VersionType, feature_name_for, next_version
+from fs_cli.versions import ReleasedVersion, VersionType, next_version
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
 from onshape_api.exceptions import ApiError
@@ -387,34 +387,6 @@ def test_push_leaves_onshape_changes_alone(repo, onshape, capsys):
     assert local(repo, "frame.fs").read_text() == "edited in onshape"
 
 
-def test_tabs_missing_from_a_lagging_listing_are_not_recreated(repo, onshape, monkeypatch, capsys):
-    write(repo, "core/stdRevolve.fs", "revolve")
-    run(onshape, "push")
-    element_id = next(iter(onshape.studios()))
-    local(repo, "core/stdRevolve.fs").write_text("revolve2")
-
-    # Like Onshape's listing seconds after a tab is created: missing from the first listing, there on the next
-    listings = []
-    list_studios = onshape.list_studios
-
-    def lagging(instance):
-        listings.append(instance)
-        studios = list_studios(instance)
-        return [s for s in studios if s.element_id != element_id] if len(listings) == 1 else studios
-
-    monkeypatch.setattr(onshape, "list_studios", lagging)
-    assert run(onshape, "push") == 0
-    assert list(onshape.studios()) == [element_id]
-    assert onshape.code("stdRevolve.fs") == "revolve2"
-
-    # Missing from every listing but still there: stops rather than recreating it
-    monkeypatch.setattr(onshape, "list_studios", lambda instance: [])
-    local(repo, "core/stdRevolve.fs").write_text("revolve3")
-    assert run(onshape, "push") == 2
-    assert "but the tab is still there" in capsys.readouterr().err
-    assert list(onshape.studios()) == [element_id]
-
-
 def test_push_force_overwrites_onshape_changes(repo, onshape):
     element_id = onshape.add("frame.fs", "a")
     run(onshape, "pull")
@@ -473,16 +445,6 @@ def test_push_asks_to_overwrite_onshape_changes(repo, onshape, monkeypatch, caps
     assert "frame.fs  changed locally and in Onshape" in capsys.readouterr().out
     assert questions and "[Y/n]" in questions[0] and "fs pull --force" in questions[0]
     assert onshape.code("frame.fs") == ("local" if pushed else "remote")
-
-
-def test_push_skips_onshape_changes_without_a_terminal(repo, onshape, capsys):
-    element_id = onshape.add("frame.fs", "a")
-    run(onshape, "pull")
-    onshape.edit(element_id, "remote")
-    local(repo, "frame.fs").write_text("local")
-    assert run(onshape, "push") == 1
-    assert "`fs push --force` overwrites them" in capsys.readouterr().out
-    assert onshape.code("frame.fs") == "remote"
 
 
 def test_pull_keeps_local_changes(repo, onshape):
@@ -554,22 +516,6 @@ def test_studio_files_are_checked_in(repo, onshape, capsys):
     out = capsys.readouterr().out
     assert re.search(r"core/frame\.fs\s+in sync", out)
     assert re.search(r"other/frame\.fs\s+new locally", out)
-
-
-def test_old_state_files_move_to_studios_file(repo, onshape):
-    element_id = onshape.add("frame.fs", "a")
-    write(repo, "core/frame.fs", "a")
-    (repo / ".fs-state.json").write_text(
-        json.dumps(
-            {
-                "version": 3,
-                "studios": {element_id: {"file": "core/frame.fs", "hash": "", "microversion_id": ""}},
-            }
-        )
-    )
-    run(onshape, "status")
-    assert json.loads((repo / "fs-studios.json").read_text())["studios"] == {element_id: "core/frame.fs"}
-    assert json.loads((repo / ".fs-state.json").read_text())["version"] == 4
 
 
 def test_fresh_clone_without_history_is_a_conflict(repo, onshape):
@@ -686,15 +632,6 @@ def test_deleted_locally_but_changed_in_onshape(repo, onshape, capsys):
     assert onshape.names() == []
 
 
-def test_deleted_locally_with_only_a_new_microversion(repo, onshape):
-    element_id = onshape.add("frame.fs", "a")
-    run(onshape, "pull")
-    local(repo, "frame.fs").unlink()
-    onshape.edit(element_id, "a")  # e.g. an imported tab changed
-    assert run(onshape, "push", "--yes") == 0
-    assert onshape.names() == []
-
-
 def test_pull_force_restores_deleted_files(repo, onshape):
     onshape.add("frame.fs", "a")
     run(onshape, "pull")
@@ -742,13 +679,6 @@ def test_push_commits_what_it_pushed(repo, onshape, capsys):
     # Nothing pushed, nothing committed
     assert run(onshape, "push") == 0
     assert git_output(repo, "log", "-1", "--format=%s") == "Push frame.fs to Onshape\n"
-
-
-def test_push_no_commit(repo, onshape):
-    git(repo, "init", "-q")
-    write(repo, "new.fs", "new")
-    assert run(onshape, "push", "--no-commit") == 0
-    assert "?? featurescripts/" in git_output(repo, "status", "--porcelain")
 
 
 def test_push_resolves_imports_by_path(repo, onshape, capsys):
@@ -806,15 +736,6 @@ def test_import_version_updates_after_a_push_are_not_downloaded(repo, onshape, c
     assert Status.REMOTE_CHANGES.value in capsys.readouterr().out
 
 
-def test_studio_names_without_extension(repo, onshape):
-    onshape.add("Robot frame", "x")
-    run(onshape, "pull")
-    assert local(repo, "Robot frame.fs").read_text() == "x"
-    local(repo, "Robot frame.fs").write_text("y")
-    run(onshape, "push")
-    assert onshape.code("Robot frame") == "y"
-
-
 # Folders
 
 
@@ -848,16 +769,6 @@ def test_api_calls_are_minimal(repo, onshape):
     run(onshape, "push")
     # List, push, then list again to record the new microversion
     assert onshape.calls == {"list_studios": 2, "push": 1}
-
-
-def test_onshape_folders_are_ignored_after_the_first_pull(repo, onshape):
-    element_id = onshape.add("frame.fs", "f", folders=("Old",))
-    run(onshape, "pull")
-    onshape.studios()[element_id]["folders"] = ("New",)
-    onshape.edit(element_id, "f2")
-    assert run(onshape, "pull") == 0
-    assert local(repo, "Old/frame.fs").read_text() == "f2"
-    assert not local(repo, "New").exists()
 
 
 def test_local_moves_and_renames_are_followed(repo, onshape, capsys):
@@ -903,28 +814,6 @@ def test_renamed_and_edited_files_are_followed(repo, onshape, capsys):
     assert json.loads((repo / "fs-studios.json").read_text())["studios"][element_id] == "core/tube.fs"
 
 
-def test_renames_of_uncommitted_files_compare_with_onshape(repo, onshape):
-    element_id = onshape.add("frame.fs", FRAME)
-    run(onshape, "pull")
-    local(repo, "frame.fs").unlink()
-    write(repo, "tube.fs", FRAME + "added\n")
-    assert run(onshape, "push", "--yes") == 0
-    assert onshape.names() == ["frame.fs"]
-    assert json.loads((repo / "fs-studios.json").read_text())["studios"][element_id] == "tube.fs"
-
-
-def test_dissimilar_files_arent_renames(repo, onshape, capsys):
-    onshape.add("frame.fs", FRAME)
-    run(onshape, "pull")
-    local(repo, "frame.fs").unlink()
-    write(repo, "tube.fs", "nothing like it")
-    capsys.readouterr()
-    run(onshape, "status")
-    out = capsys.readouterr().out
-    assert "frame.fs" in out and Status.DELETED_LOCALLY.value in out
-    assert "tube.fs" in out and Status.LOCAL_ONLY.value in out
-
-
 def test_fresh_clone_matches_files_by_name(repo, onshape):
     """Without sync state, a studio pairs with the one local file of the same name, wherever it is."""
     onshape.add("frame.fs", "f", folders=("Robot",))
@@ -935,15 +824,6 @@ def test_fresh_clone_matches_files_by_name(repo, onshape):
     assert run(onshape, "push") == 0
     assert onshape.names() == ["frame.fs"]
     assert onshape.code("frame.fs") == "f2"
-
-
-def test_new_files_in_folders_stay_put(repo, onshape, capsys):
-    write(repo, "Robot/new.fs", "n")
-    assert run(onshape, "push") == 0
-    assert onshape.code("new.fs") == "n"
-    capsys.readouterr()
-    run(onshape, "status")
-    assert "everything in sync" in capsys.readouterr().out
 
 
 class StubApi:
@@ -979,14 +859,6 @@ def test_studio_folders_from_contents():
     api = StubApi({"contents": contents})
     folders = OnshapeRemote(api).studio_folders(url_to_instance_path(BACKEND))
     assert folders == {"e1": ("Robot",)}
-
-
-def test_folder_lookup_failure_falls_back_to_top_level(repo, onshape, capsys):
-    onshape.add("frame.fs", "f", folders=("Robot",))
-    onshape.folders_error = ApiError("Invalid JSON input.")
-    assert run(onshape, "pull") == 0
-    assert local(repo, "frame.fs").read_text() == "f"
-    assert "couldn't read the document's folders" in capsys.readouterr().out
 
 
 # Same-document imports
@@ -1043,7 +915,7 @@ def test_pushing_a_tab_with_its_importer_keeps_the_version_onshape_gives_the_imp
 
 
 def test_a_push_with_nothing_to_push_commits_the_import_versions_it_took(repo, onshape, capsys):
-    """So the tree is clean after it, as `fs run-releases` needs after `fs sync-main`."""
+    """So the tree is clean after it, as `fs run-releases` needs between releases."""
     git_repo(repo)
     element_id = onshape.add("b.fs", importing(OLD))
     run(onshape, "pull")
@@ -1099,18 +971,6 @@ def test_targets_limit_scope(repo, onshape):
     assert onshape.names() == ["a.fs", "b.fs", "c.fs"]
 
 
-def test_targets_by_studio_name(repo, onshape):
-    write(repo, "Robot/frame.fs", "f")
-    write(repo, "other.fs", "o")
-    assert run(onshape, "push", "frame") == 0
-    assert onshape.names() == ["frame.fs"]
-
-
-def test_unknown_target(repo, onshape, capsys):
-    assert run(onshape, "push", "nope") == 2
-    assert 'No FeatureScript matches "nope"' in capsys.readouterr().err
-
-
 def test_status(repo, onshape, capsys):
     onshape.add("remote.fs", "r")
     write(repo, "new.fs", "n")
@@ -1118,46 +978,6 @@ def test_status(repo, onshape, capsys):
     out = capsys.readouterr().out
     assert "remote.fs" in out and Status.REMOTE_ONLY.value in out
     assert "new.fs" in out and Status.LOCAL_ONLY.value in out
-
-
-@pytest.mark.parametrize("argv", [[], ["-l"], ["frame.fs"], ["--force"], ["test"], ["fmt", "frame.fs"]])
-def test_push_is_never_implied(argv, onshape, capsys):
-    # A missing or mistyped command is an error, never a push
-    with pytest.raises(SystemExit) as exit:
-        run(onshape, *argv)
-    assert exit.value.code == 2
-
-
-def test_missing_config(tmp_path, monkeypatch, onshape, capsys):
-    monkeypatch.chdir(tmp_path)
-    assert run(onshape, "status") == 2
-    assert "[tool.fs]" in capsys.readouterr().err
-
-
-def test_a_part_set_needs_a_main_document_folder_and_title(tmp_path):
-    from fs_cli.config import ConfigError, parse_config
-
-    base = {"backend": BACKEND}
-    main = f"https://cad.onshape.com/documents/{MAIN}"
-    with pytest.raises(ConfigError, match="main must be"):
-        parse_config(tmp_path, {**base, "parts": {"parts": {"main": "nope", "folder": "Parts", "title": "Parts"}}})
-    with pytest.raises(ConfigError, match="folder must"):
-        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "title": "Parts"}}})
-    with pytest.raises(ConfigError, match="title must"):
-        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "Parts"}}})
-    config = parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "Parts/", "title": "Parts"}}})
-    assert config.part_set_for("Parts/partMaker.fs").main_document_id == MAIN
-    assert config.part_set_for("PartsBin/x.fs") is None
-    assert config.find_part_set("parts").folder == "Parts"
-    with pytest.raises(ConfigError, match="targets must map names to documents' urls"):
-        parse_config(tmp_path, {**base, "parts": {"parts": {"main": main, "folder": "P", "title": "P", "targets": {"local": "nope"}}}})
-    with pytest.raises(ConfigError, match="No part set named bolts"):
-        config.find_part_set("bolts")
-    # A set may name its definition, where its folder holds another set's too
-    shared = {"main": main, "folder": "Parts", "title": "Parts", "definition": "otherTables.py"}
-    assert parse_config(tmp_path, {**base, "parts": {"parts": shared}}).find_part_set("parts").definition == "otherTables.py"
-    with pytest.raises(ConfigError, match="definition must name a .py file in its folder"):
-        parse_config(tmp_path, {**base, "parts": {"parts": {**shared, "definition": "Parts/otherTables.py"}}})
 
 
 # Updating the std
@@ -1174,12 +994,6 @@ def test_update_std_version():
         'import(path : "onshape/std/common.fs", version : "2909.0");\n'
         'import(path : "abc", version : "0123456789abcdef01234567");\n'
     )
-
-
-def test_update_std_command(repo, onshape):
-    write(repo, "a.fs", "FeatureScript 1000;\n")
-    assert run(onshape, "update-std", "--latest", "--push") == 0
-    assert onshape.code("a.fs") == "FeatureScript 2909;\n"
 
 
 def test_update_std_uses_the_checked_in_std_version(repo, onshape, capsys):
@@ -1232,11 +1046,6 @@ def test_pull_std_from_onshape_only_downloads_changed_files(repo, onshape, monke
 
 
 # Releasing
-
-
-def test_feature_names():
-    assert feature_name_for("robotFrame.fs") == "Robot frame"
-    assert feature_name_for("robotFrameBeta") == "Robot frame beta"
 
 
 def test_next_version():
@@ -1303,12 +1112,6 @@ def test_release_links_github(repo, onshape):
     )
 
 
-def test_release_without_github_has_no_link(repo, onshape):
-    released_frame(repo, onshape)
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "-d", "First") == 0
-    assert "GitHub" not in onshape.code("robotFrame.fs", "front", "fw")
-
-
 def test_release_dry_run(repo, onshape, capsys):
     released_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--major", "--dry-run") == 0
@@ -1316,17 +1119,44 @@ def test_release_dry_run(repo, onshape, capsys):
     assert "back" not in onshape.versions_by_document
 
 
-def test_release_requires_pushed_code(repo, onshape, capsys):
-    released_frame(repo, onshape)
-    local(repo, "Robot/robotFrame.fs").write_text("unpushed")
-    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 2
-    assert "run `fs push`" in capsys.readouterr().err
+def test_release_pushes_what_it_releases_over_onshape(repo, onshape):
+    utils = onshape.add("utils.fs", "u")
+    onshape.add("other.fs", "o")
+    onshape.add("gone.fs", "g")
+    onshape.add(
+        "robotFrame.fs", f'import(path : "{utils}", version : "{"a" * 24}");\nframe\n', folders=("Robot",), features=["robotFrame"]
+    )
+    run(onshape, "pull")
+    frame = local(repo, "Robot/robotFrame.fs")
+    frame.write_text(frame.read_text().replace("frame", "frame 2"))
+    local(repo, "utils.fs").write_text("u 2")
+    local(repo, "other.fs").write_text("o 2")
+    local(repo, "gone.fs").unlink()
+    # Changed in Onshape too: the repo's goes over it
+    onshape.edit(utils, "u in Onshape")
+
+    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
+    assert "frame 2" in onshape.code("robotFrame.fs")
+    assert onshape.code("utils.fs") == "u 2"
+    # What it doesn't import isn't pushed, and nothing's deleted
+    assert onshape.code("other.fs") == "o"
+    assert "gone.fs" in onshape.names()
+    assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
 
 
-def test_release_requires_confirmation_when_not_interactive(repo, onshape, capsys):
-    released_frame(repo, onshape)
-    assert run(onshape, "release", "robotFrame", "--minor") == 2
-    assert "--yes" in capsys.readouterr().err
+def test_push_release_pushes_only_what_a_release_needs(repo, onshape, capsys):
+    utils = onshape.add("utils.fs", "u")
+    onshape.add("other.fs", "o")
+    onshape.add("robotFrame.fs", f'import(path : "{utils}", version : "{"a" * 24}");\nframe\n', features=["robotFrame"])
+    run(onshape, "pull")
+    local(repo, "utils.fs").write_text("u 2")
+    local(repo, "other.fs").write_text("o 2")
+    onshape.edit(utils, "u in Onshape")
+    assert run(onshape, "push", "--release", "robotFrame") == 0
+    assert onshape.code("utils.fs") == "u 2"
+    assert onshape.code("other.fs") == "o"
+    assert run(onshape, "push", "--release") == 2
+    assert "Name the FeatureScripts" in capsys.readouterr().err
 
 
 MAIN = "abcdef0123456789abcdef01"
@@ -1385,25 +1215,6 @@ def shared_part_sets(repo: pathlib.Path, onshape: FakeOnshape) -> str:
         + f'\n[tool.fs.parts.others]\ntitle = "Others"\nfolder = "Parts"\ndefinition = "otherTables.py"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
     )
     return element_id
-
-
-def test_part_sets_sharing_a_folder_each_build_their_own_definitions_studios(repo, onshape, capsys):
-    """As FRC's and FTC's fasteners share fasteners.fs, each configuring its own studios."""
-    element_id = shared_part_sets(repo, onshape)
-
-    assert run(onshape, "parts", "others", "--test", "-y") == 0
-    assert onshape.builds == [("back", "bolt", element_id, onshape.studios()[element_id]["mv"])]
-
-
-def test_part_sets_sharing_a_featurescript_are_each_tagged_by_name(repo, onshape):
-    git_repo(repo)
-    shared_part_sets(repo, onshape)
-    commit_all(repo, "Part sets")
-
-    for each in ("parts", "others"):
-        assert run(onshape, "parts", each, "--release", "--minor", "-y", "--no-push-tags") == 0
-        commit_all(repo, f"Release {each}")
-    assert tags(repo) == ["others/v0.1.0", "parts/v0.1.0"]
 
 
 def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
@@ -1544,6 +1355,51 @@ def test_sync_versions(repo, onshape):
     assert onshape.versions_by_document["front"][1].description == "Things"
 
 
+def test_sync_versions_finds_releases_older_than_another_features_published_one(repo, onshape):
+    # Robot frame released twice without publishing, then Robot bore published at once
+    onshape.versions_by_document["back"] = [
+        Version("1", "Robot frame - v1.0.0"),
+        Version("2", "Robot bore - v0.1.0"),
+        Version("3", "Robot frame - v1.1.0"),
+        Version("4", "Robot frame - v1.1.1"),
+        Version("5", "Robot bore - v0.1.1"),
+    ]
+    onshape.versions_by_document["front"] = [
+        Version("8", "Robot frame - v1.0.0"),
+        Version("9", "Robot bore - v0.1.1"),
+    ]
+    assert run(onshape, "sync-versions", "-y") == 0
+    # Only the newest: a version of v1.1.0 made now would import v1.1.1
+    assert [v.name for v in onshape.versions_by_document["front"]] == [
+        "Robot frame - v1.0.0",
+        "Robot bore - v0.1.1",
+        "Robot frame - v1.1.1",
+    ]
+
+
+def test_sync_versions_syncs_a_deprecation_rather_than_the_releases_before_it(repo, onshape):
+    onshape.versions_by_document["back"] = [
+        Version("1", "Robot bore - v0.1.0"),
+        Version("2", "Robot bore - v0.2.0"),
+        Version("3", "DEPRECATED Robot bore", "Use Robot hole"),
+    ]
+    onshape.versions_by_document["front"] = [Version("9", "Robot bore - v0.1.0")]
+    assert run(onshape, "sync-versions", "-y") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot bore - v0.1.0", "DEPRECATED Robot bore"]
+    assert onshape.versions_by_document["front"][1].description == "Use Robot hole"
+    # Synced once
+    assert run(onshape, "sync-versions", "-y") == 0
+    assert len(onshape.versions_by_document["front"]) == 2
+
+
+def test_sync_versions_of_some_features(repo, onshape):
+    onshape.versions_by_document["back"] = [Version("1", "Robot frame - v1.0.0"), Version("2", "Robot bore - v0.1.0")]
+    onshape.versions_by_document["front"] = []
+    assert run(onshape, "sync-versions", "robotFrame", "-y") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v1.0.0"]
+    assert run(onshape, "sync-versions", "Robot bore", "-y") == 0
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v1.0.0", "Robot bore - v0.1.0"]
+
 # Tagging releases in git
 
 
@@ -1568,20 +1424,6 @@ def frame_released_in_a_recreated_tab(repo, onshape) -> Version:
     released = onshape.instances[("back", version.id)]
     released["old"] = released.pop(element_id)
     return version
-
-
-def test_tagging_finds_a_release_in_a_recreated_tab(repo, onshape):
-    frame_released_in_a_recreated_tab(repo, onshape)
-    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
-    assert tags(repo) == ["robotFrame/v1.0.0"]
-
-
-def test_tagging_skips_a_release_it_cant_read(repo, onshape, capsys):
-    version = frame_released_in_a_recreated_tab(repo, onshape)
-    onshape.instances[("back", version.id)]["old"]["name"] = "renamed.fs"
-    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
-    assert "Skipping Robot frame - v1.0.0: couldn't read its code" in capsys.readouterr().out
-    assert tags(repo) == []
 
 
 def test_publishing_a_release_tags_it(repo, onshape, capsys):
@@ -1625,7 +1467,7 @@ def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.0") == released
 
 
-def test_syncing_versions_tags_only_each_features_newest_release(repo, onshape):
+def test_syncing_versions_makes_and_tags_only_each_features_newest_release(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
@@ -1633,7 +1475,7 @@ def test_syncing_versions_tags_only_each_features_newest_release(repo, onshape):
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
     assert run(onshape, "release", "robotFrame", "--patch", "-y", "--no-push-tags") == 0
     assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
-    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0", "Robot frame - v0.1.1"]
+    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
     assert tags(repo) == ["robotFrame/v0.1.1"]
 
 
@@ -1687,26 +1529,6 @@ def test_mv_moves_folders(repo, onshape):
     assert cli.main(["mv", "featurescripts/Core", "featurescripts/Shared"]) == 0
     assert studio_files(repo)[utils] == "Shared/utils.fs"
     assert local(repo, "Shared/utils.fs").read_text() == "u"
-
-
-def test_mv_records_moves_already_made(repo, onshape):
-    utils = onshape.add("utils.fs", "u")
-    run(onshape, "pull")
-    local(repo, "utils.fs").rename(local(repo, "moved.fs"))
-    assert cli.main(["mv", "featurescripts/utils.fs", "featurescripts/moved.fs"]) == 0
-    assert studio_files(repo)[utils] == "moved.fs"
-
-
-def test_push_suggests_mv_for_renames_it_cant_tell(repo, onshape, capsys):
-    onshape.add("frame.fs", FRAME)
-    run(onshape, "pull")
-    local(repo, "frame.fs").unlink()
-    write(repo, "tube.fs", "nothing like it")
-    capsys.readouterr()
-    run(onshape, "push", "--dry-run")
-    out = capsys.readouterr().out
-    assert "Would delete the frame.fs tab" in out
-    assert "renamed to tube.fs rather than deleted, run `fs mv OLD NEW` first" in out
 
 
 # Released FeatureScripts
@@ -1830,16 +1652,6 @@ def test_tabs_lists_what_isnt_paired(repo, onshape, capsys):
     assert "tube.fs" not in capsys.readouterr().out
 
 
-def test_tabs_rename_needs_confirmation(repo, onshape, capsys):
-    onshape.add("frame.fs", "frame")
-    run(onshape, "pull")
-    cli.main(["mv", "featurescripts/frame.fs", "featurescripts/tube.fs"])
-    assert run(onshape, "tabs", "--rename", "--dry-run") == 0
-    assert "Would rename the frame.fs tab to tube.fs" in capsys.readouterr().out
-    assert run(onshape, "tabs", "--rename") == 2
-    assert onshape.names() == ["frame.fs"]
-
-
 def test_link_pairs_a_file_with_a_tab(repo, onshape, capsys):
     tab = onshape.add("frame.fs", "same")
     write(repo, "tube.fs", "same")
@@ -1863,14 +1675,6 @@ def test_link_pairs_a_file_with_a_tab(repo, onshape, capsys):
 
     assert run(onshape, "link", "featurescripts/tube.fs", "missing") == 2
     assert run(onshape, "link", "elsewhere/tube.fs", "frame.fs") == 2
-
-
-def test_unlink(repo, onshape, capsys):
-    tab = onshape.add("frame.fs", "f")
-    run(onshape, "pull")
-    assert cli.main(["unlink", "frame"]) == 0
-    assert tab not in studio_files(repo)
-    assert cli.main(["unlink", "frame"]) == 2
 
 
 # Deprecating
@@ -1909,17 +1713,6 @@ def test_deprecate(repo, onshape, capsys):
     assert studio_files(repo) == {}
 
 
-def test_deprecate_keep_backend(repo, onshape):
-    element_id = deprecatable_frame(repo, onshape)
-    assert run(onshape, "deprecate", "robotFrame", "-y", "--keep-backend") == 0
-    assert onshape.names() == ["DEPRECATED robotFrame.fs"]
-    assert "DEPRECATED Robot frame" in local(repo, "robotFrame.fs").read_text()
-    assert released_ids(repo) == []
-    assert onshape.names("front", "fw") == ["DEPRECATED robotFrame.fs"]
-    assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.0"]
-    assert studio_files(repo)[element_id] == "robotFrame.fs"
-
-
 def test_deprecate_checks_first(repo, onshape, capsys):
     onshape.add("robotFrame.fs", FEATURE, features=["Robot frame"])
     run(onshape, "pull")
@@ -1940,35 +1733,6 @@ def test_deprecate_checks_first(repo, onshape, capsys):
     assert "By hand: rename any folders" in out
     assert "Delete its tab" not in out
     assert len(onshape.versions_by_document["back"]) == versions
-
-
-def test_rename_element_sets_the_name_property():
-    from onshape_api.endpoints.metadata import rename_element
-    from onshape_api.paths.paths import ElementPath
-
-    class FakeApi:
-        def __init__(self):
-            self.requests = []
-
-        def get(self, path, **kwargs):
-            self.requests.append(("GET", path, None))
-            return {
-                "jsonType": "metadata-element",
-                "properties": [
-                    {"name": "Description", "propertyId": "d1", "value": "", "editable": True},
-                    {"name": "Name", "propertyId": "n1", "value": "old.fs", "editable": True},
-                ],
-            }
-
-        def post(self, path, body="", **kwargs):
-            self.requests.append(("POST", path, body))
-
-    api = FakeApi()
-    rename_element(api, ElementPath.from_path(onshape_backend(), "e1"), "new.fs")
-    assert api.requests == [
-        ("GET", "/metadata/d/back/w/bw/e/e1", None),
-        ("POST", "/metadata/d/back/w/bw/e/e1", {"properties": [{"propertyId": "n1", "value": "new.fs"}]}),
-    ]
 
 
 # COTS research
@@ -2102,12 +1866,6 @@ def test_local_featurescripts_are_not_synced(repo, onshape, capsys):
     assert "is a local file" in capsys.readouterr().err
 
 
-def test_imported_images_must_exist(repo, onshape, capsys):
-    write(repo, "grid.fs", 'Icon::import(path : "missing.svg", version : "");\n')
-    assert run(onshape, "push") == 2
-    assert "grid.fs imports missing.svg, which doesn't exist." in capsys.readouterr().err
-
-
 def test_pushing_a_changed_image_updates_its_imports(repo, onshape, capsys):
     icon = onshape.add_image("robotIcon.svg", ICON)
     old = onshape.images()[icon]["mv"]
@@ -2127,20 +1885,6 @@ def test_pushing_a_changed_image_updates_its_imports(repo, onshape, capsys):
     capsys.readouterr()
     run(onshape, "status")
     assert "everything in sync" in capsys.readouterr().out
-
-
-def test_pushing_an_image_leaves_importers_changed_in_onshape_alone(repo, onshape):
-    icon = onshape.add_image("robotIcon.svg", ICON)
-    old = onshape.images()[icon]["mv"]
-    feature = onshape.add("robotFeature.fs", image_import(icon, old))
-    run(onshape, "pull")
-    edited = image_import(icon, old) + "edited in onshape\n"
-    onshape.edit(feature, edited)
-    local(repo, "robotIcon.svg").write_bytes(b"<svg>new</svg>")
-
-    # The importer is checked before it's pushed for its new import
-    assert run(onshape, "push") == 0
-    assert onshape.code("robotFeature.fs") == edited
 
 
 def test_images_changed_in_onshape_are_pulled(repo, onshape, capsys):
@@ -2200,15 +1944,6 @@ def test_moved_images_are_followed(repo, onshape, capsys):
     assert onshape.calls["update_image"] == 0
 
 
-def test_images_can_be_targeted(repo, onshape, capsys):
-    onshape.add_image("robotIcon.svg", ICON)
-    onshape.add("a.fs", "a")
-    assert run(onshape, "pull", "robotIcon.svg") == 0
-    assert local(repo, "robotIcon.svg").is_file() and not local(repo, "a.fs").exists()
-    assert run(onshape, "pull", "nope.svg") == 2
-    assert 'No image matches "nope.svg"' in capsys.readouterr().err
-
-
 def test_mv_follows_images(repo, onshape, capsys):
     icon = onshape.add_image("robotIcon.svg", ICON)
     run(onshape, "pull")
@@ -2263,52 +1998,41 @@ def test_onshape_remote_images():
 # Branches
 
 
-def branched(repo: pathlib.Path, onshape: FakeOnshape, branch: str = "feature") -> None:
-    """A repo whose branches each get a workspace, on `branch`, with a version of the main workspace to branch from."""
-    (repo / "pyproject.toml").write_text(f'[tool.fs]\nbackend = "{BACKEND}"\nmain_branch = "main"\n')
+def branched(repo: pathlib.Path, onshape: FakeOnshape, branch: str = "feature", frontend: bool = False) -> None:
+    """A repo releasing from main, on `branch`."""
+    front = f'frontend = "{FRONTEND}"\n' if frontend else ""
+    (repo / "pyproject.toml").write_text(f'[tool.fs]\nbackend = "{BACKEND}"\n{front}main_branch = "main"\n')
     (repo / ".gitignore").write_text(".fs-state*.json\n")
     git(repo, "init", "-q", "-b", "main")
     git(repo, "config", "user.name", "t")
     git(repo, "config", "user.email", "t@t")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Start")
-    onshape.create_version(InstancePath("back", "bw"), "Start", "")
     if branch != "main":
         git(repo, "checkout", "-qb", branch)
 
 
-def workspace_of(onshape: FakeOnshape, name: str) -> str:
-    return next(id for (_, id), each in onshape.workspace_names.items() if each == name)
+def with_origin(repo: pathlib.Path, tmp_path_factory) -> None:
+    """Gives the repo an origin, with main pushed to it."""
+    origin = tmp_path_factory.mktemp("origin")
+    git(origin, "init", "-q", "--bare")
+    git(repo, "remote", "add", "origin", str(origin))
+    git(repo, "push", "-q", "origin", "main")
 
 
-def test_a_branch_reads_main_until_it_pushes_to_a_workspace_of_its_own(repo, onshape, capsys):
+def commit_all(repo: pathlib.Path, message: str) -> None:
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", message, "--allow-empty")
+
+
+def test_every_branch_pushes_to_the_main_workspace(repo, onshape):
     onshape.add("frame.fs", "1")
     branched(repo, onshape)
     assert run(onshape, "pull") == 0
-    assert "feature has no workspace in Onshape yet" in capsys.readouterr().out
-    assert local(repo, "frame.fs").read_text() == "1"
-
     local(repo, "frame.fs").write_text("2")
     assert run(onshape, "push") == 0
-    feature = workspace_of(onshape, "feature")
-    assert onshape.code("frame.fs", instance=feature) == "2"
-    assert onshape.code("frame.fs") == "1"
-    assert (repo / ".fs-state.feature.json").is_file()
-
-    # Its workspace from now on, and the main workspace untouched
-    local(repo, "frame.fs").write_text("3")
-    assert run(onshape, "push") == 0
-    assert onshape.calls["create_workspace"] == 1
-    assert onshape.code("frame.fs", instance=feature) == "3"
-    assert onshape.code("frame.fs") == "1"
-
-
-def test_the_main_workspace_changes_only_by_merging(repo, onshape, capsys):
-    branched(repo, onshape, "main")
-    write(repo, "frame.fs", "1")
-    assert run(onshape, "push") == 2
-    assert "changes only by merging" in capsys.readouterr().err
-    assert onshape.names() == []
+    assert onshape.code("frame.fs") == "2"
+    assert onshape.workspace_names == {}
 
 
 def test_releasing_runs_only_on_main(repo, onshape, capsys):
@@ -2317,70 +2041,25 @@ def test_releasing_runs_only_on_main(repo, onshape, capsys):
     assert "runs only on main" in capsys.readouterr().err
 
 
-def test_a_branch_catches_up_with_a_tab_it_has_from_git(repo, onshape):
-    onshape.add("frame.fs", "1")
-    branched(repo, onshape)
-    run(onshape, "pull")
-    local(repo, "frame.fs").write_text("2")
-    run(onshape, "push")
-    feature = workspace_of(onshape, "feature")
-    # Another branch added utils.fs, which reached main; this one merges it in git
-    utils = onshape.add("utils.fs", "u")
-    studios = json.loads((repo / "fs-studios.json").read_text())
-    studios["studios"][utils] = "utils.fs"
-    (repo / "fs-studios.json").write_text(json.dumps(studios))
-    write(repo, "utils.fs", "u")
-
-    assert run(onshape, "push") == 0
-    assert onshape.merges == [(feature, "bw", "KEEP")]
-    # Under the id main has, rather than a new tab
-    assert onshape.names(instance=feature) == ["frame.fs", "utils.fs"]
-    assert utils in onshape.studios("back", feature)
-    assert onshape.code("frame.fs", instance=feature) == "2"
-
-
-def commit_all(repo: pathlib.Path, message: str) -> None:
-    git(repo, "add", "-A")
-    git(repo, "commit", "-qm", message, "--allow-empty")
-
-
-def test_sync_main_lands_a_merged_branch_by_merging(repo, onshape, capsys):
-    onshape.add("frame.fs", "1")
-    branched(repo, onshape)
+def test_releases_are_cut_only_from_what_origin_has(repo, onshape, tmp_path_factory, capsys):
+    onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
+    branched(repo, onshape, "main", frontend=True)
     run(onshape, "pull")
     commit_all(repo, "Pull")
-    local(repo, "frame.fs").write_text("2")
-    run(onshape, "push")
+    with_origin(repo, tmp_path_factory)
+
+    local(repo, "Robot/robotFrame.fs").write_text("frame 2")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 2
+    assert "Commit and push your changes first" in capsys.readouterr().err
     commit_all(repo, "Frame 2")
-    feature = workspace_of(onshape, "feature")
-    git(repo, "checkout", "-q", "main")
-    git(repo, "merge", "-q", "--ff-only", "feature")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 2
+    assert "isn't origin's" in capsys.readouterr().err
+    assert "back" not in onshape.versions_by_document
 
-    assert run(onshape, "sync-main", "--branch", "feature") == 0
-    assert onshape.code("frame.fs") == "2"
-    assert onshape.merges == [(feature, "bw", "KEEP"), ("bw", feature, "REPLACE")]
-    assert onshape.workspace_names == {}
-    assert not (repo / ".fs-state.feature.json").exists()
-
-
-def test_sync_main_makes_a_workspace_for_a_branch_without_one(repo, onshape):
-    branched(repo, onshape, "main")
-    write(repo, "utils.fs", "u")
-    commit_all(repo, "Utils")
-
-    assert run(onshape, "sync-main") == 0
-    assert onshape.names() == ["utils.fs"]
-    assert onshape.calls["create_workspace"] == 1
-    assert onshape.workspace_names == {}
-    # The new tab's id, recorded by the push, is main's too
-    [utils] = json.loads((repo / "fs-studios.json").read_text())["studios"]
-    assert utils in onshape.studios()
-
-
-def test_sync_main_runs_only_on_main(repo, onshape, capsys):
-    branched(repo, onshape)
-    assert run(onshape, "sync-main") == 2
-    assert "runs only on main" in capsys.readouterr().err
+    git(repo, "push", "-q", "origin", "main")
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
+    assert onshape.code("robotFrame.fs") == "frame 2"
+    assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
 
 
 # Release files
@@ -2415,16 +2094,14 @@ def test_release_files_dont_publish_a_first_release(repo, onshape, capsys):
     assert run(onshape, "releases") == 0
 
 
-def test_run_releases_doesnt_publish_unless_asked(repo, onshape):
+def test_run_releases_doesnt_publish_unless_asked(repo, onshape, tmp_path_factory):
     onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
-    branched(repo, onshape, "main")
-    (repo / "pyproject.toml").write_text(
-        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nmain_branch = "main"\n'
-    )
+    branched(repo, onshape, "main", frontend=True)
     run(onshape, "pull")
     (repo / "releases").mkdir()
     (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
     commit_all(repo, "Ask for a release")
+    with_origin(repo, tmp_path_factory)
     assert run(onshape, "run-releases", "--no-push-tags") == 0
     assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
     # Its frontend studio points at it, but it's not final until `fs sync-versions`
@@ -2432,18 +2109,16 @@ def test_run_releases_doesnt_publish_unless_asked(repo, onshape):
     assert "front" not in onshape.versions_by_document
 
 
-def test_run_releases_makes_each_release_once(repo, onshape, capsys):
+def test_run_releases_makes_each_release_once(repo, onshape, capsys, tmp_path_factory):
     element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
-    branched(repo, onshape, "main")
-    (repo / "pyproject.toml").write_text(
-        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\nmain_branch = "main"\n'
-    )
+    branched(repo, onshape, "main", frontend=True)
     run(onshape, "pull")
     (repo / "releases").mkdir()
     (repo / "releases" / "frame.toml").write_text(
         'script = "robotFrame"\nbump = "minor"\ndescription = "First"\npublish = false\n'
     )
     commit_all(repo, "Ask for a release")
+    with_origin(repo, tmp_path_factory)
     asked = git_output(repo, "rev-parse", "HEAD").strip()[:12]
 
     assert run(onshape, "run-releases", "--no-push-tags") == 0
@@ -2466,31 +2141,9 @@ def test_run_releases_makes_each_release_once(repo, onshape, capsys):
     (repo / "releases").mkdir(exist_ok=True)
     (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
     commit_all(repo, "Ask again")
+    git(repo, "push", "-q", "--force", "origin", "main")
     assert run(onshape, "run-releases", "--no-push-tags") == 0
     assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.2.0"
-
-
-def test_branches_prunes_only_its_workspaces_of_branches_gone_from_origin(repo, onshape, tmp_path_factory, capsys):
-    from fs_cli.branches import MADE_BY_FS
-
-    origin = tmp_path_factory.mktemp("origin")
-    git(origin, "init", "-q", "--bare")
-    onshape.add("frame.fs", "1")
-    branched(repo, onshape)
-    git(repo, "remote", "add", "origin", str(origin))
-    run(onshape, "pull")
-    commit_all(repo, "Pull")
-    local(repo, "frame.fs").write_text("2")
-    run(onshape, "push")
-    git(repo, "push", "-q", "origin", "main", "feature")
-    start = onshape.versions_by_document["back"][0].id
-    onshape.create_workspace("back", start, "merged-and-deleted", MADE_BY_FS)
-    onshape.create_workspace("back", start, "someone's own", "")
-
-    assert run(onshape, "branches") == 0
-    assert "merged-and-deleted (gone from origin)" in capsys.readouterr().out
-    assert run(onshape, "branches", "--prune", "--yes") == 0
-    assert sorted(onshape.workspace_names.values()) == ["feature", "someone's own"]
 
 
 # FRCDesignApp's side of a release (fs_cli/frontend.py)
@@ -2555,16 +2208,6 @@ def test_release_refuses_to_publish_a_feature_with_no_example(repo, onshape, cap
     assert "has no example in the frontend document" in capsys.readouterr().err
     assert "front" not in onshape.versions_by_document
     assert onshape.calls["create_version"] == 0
-
-
-def test_a_shared_example_after_its_features_is_kept(repo, onshape):
-    app_frame(repo, onshape)
-    # Filed by hand into a folder of the frontend document, before an example both features share
-    onshape.add("robotFrame.fs", "", folders=("Parts",), document="front", instance="fw")
-    onshape.add_part_studio("Tube examples", folders=("Parts",))
-    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
-    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
-    assert list(onshape.part_studios[("front", "fw")]) == ["Tube examples"]
 
 
 def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, capsys):

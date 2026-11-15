@@ -9,7 +9,8 @@ A branch asks for a release by adding a file to `releases/` (see docs/fs-cli.md#
     description = "Adds hubs"   # internal, as `--description`
     publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
 
-`fs run-releases`, on main, runs each, deletes its file, and commits what the releases recorded. A FeatureScript's
+`fs run-releases`, on main once it's what origin has, runs each, deletes its file, and commits what the releases
+recorded. A FeatureScript's
 release isn't final (its version in the frontend document) until `fs sync-versions`, unless it's `publish`ed, so its
 frontend examples can be updated first; a first release is never published at once.
 """

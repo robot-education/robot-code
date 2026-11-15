@@ -9,7 +9,6 @@ image tabs the same way (see fs_cli/images.py).
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import collections
 import difflib
 import json
@@ -21,21 +20,12 @@ import sys
 from fs_lsp.formatter import format_source, is_generated
 from fs_lsp.project import Module, Project
 
-from fs_cli.branches import (
-    Access,
-    BranchError,
-    branch_name,
-    branch_workspaces,
-    create_workspace,
-    find_workspace,
-    merge,
-    start_state,
-)
+from fs_cli.branches import Access, BranchError, check_synced_with_origin
 from fs_cli.branches import resolve as resolve_backend
 from fs_cli.config import Config, ConfigError, load_config
 from fs_cli.release_files import RELEASES_FOLDER, ReleaseFileError, pending
 from fs_cli.gen import GenerateError, generate
-from fs_cli.git import commit_all, commit_paths, file_at, has_tag, head_commit, is_clean, is_repository, remote_branches
+from fs_cli.git import commit_all, commit_paths, file_at, has_tag, is_clean, is_repository
 from fs_cli.frontend import MANIFEST_NAME
 from fs_cli.images import Image, Images
 from fs_cli.release import (
@@ -60,7 +50,7 @@ from fs_cli.renames import (
     rename_studio_files,
     renamed,
 )
-from fs_cli.state import State, StudioState, migrate, state_lock
+from fs_cli.state import State, StudioState, load_image_files, migrate, state_lock
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
 from fs_cli.strings import user_strings
 from fs_cli.ui import UiError, render_feature, screenshot
@@ -85,7 +75,6 @@ from fs_cli.workspace import (
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
 from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
-from onshape_api.types import MergeStrategy
 
 # Released tabs are never deleted or recreated (see `load_released`)
 RELEASED_HINTS = {
@@ -153,6 +142,12 @@ def make_parser() -> argparse.ArgumentParser:
         "--no-commit",
         action="store_true",
         help="don't commit what was pushed (with its imports by id, from Onshape) to git",
+    )
+    push.add_argument(
+        "--release",
+        action="store_true",
+        help="the targets are FeatureScripts to release (robotFrame): push each, and every studio and image it imports, "
+        "over Onshape's (as --force), deleting nothing",
     )
     dry_run(push)
     yes_to_deletes(push)
@@ -484,6 +479,11 @@ def make_parser() -> argparse.ArgumentParser:
         targets=False,
     )
     sync_versions.add_argument(
+        "features",
+        nargs="*",
+        help="only these features' versions, by script (robotFrame) or feature name (\"Robot frame\"); default all",
+    )
+    sync_versions.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
     )
     no_push_tags(sync_versions)
@@ -500,14 +500,14 @@ def make_parser() -> argparse.ArgumentParser:
     action.add_argument(
         "--test",
         action="store_true",
-        help="build the set's Part Studios as `<Part> (TEST)` in your branch's backend workspace, from its FeatureScript "
+        help="build the set's Part Studios as `<Part> (TEST)` in the backend workspace, from its FeatureScript "
         "as pushed (4-5 API calls each)",
     )
     action.add_argument(
         "--diagnose",
         action="store_true",
         help="find which part of the set's configurations Onshape refuses, writing each in stages to a scratch "
-        "`<Part> (DIAGNOSE)` Part Studio in your branch's backend workspace (a call per stage, about 10 for a screw)",
+        "`<Part> (DIAGNOSE)` Part Studio in the backend workspace (a call per stage, about 10 for a screw)",
     )
     action.add_argument(
         "--release",
@@ -562,32 +562,12 @@ def make_parser() -> argparse.ArgumentParser:
     )
     run_releases_command = command(
         "run-releases",
-        "make each release pending in releases/, on main after `fs sync-main`: run it as `fs release` or `fs parts "
+        "make each release pending in releases/, on main once it's what origin has: run it as `fs release` or `fs parts "
         "release` would, delete its file, and commit what it recorded",
         targets=False,
     )
     no_push_tags(run_releases_command)
     dry_run(run_releases_command)
-
-    branches_command = command(
-        "branches",
-        "list the workspaces fs made for git branches in the backend document (1 API call), and with --prune delete "
-        "those whose branch is gone from origin (1 call each)",
-        targets=False,
-    )
-    branches_command.add_argument("--prune", action="store_true", help="delete the workspaces of branches gone from origin")
-    branches_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
-
-    sync_main_command = command(
-        "sync-main",
-        "land the main branch in the backend's main workspace by merging, as Onshape protects it: merge the main "
-        "workspace into the merged branch's (or a new one), push the files there, merge it back, and delete it "
-        "(about 5 API calls, and 1 per studio pushed)",
-        targets=False,
-    )
-    sync_main_command.add_argument(
-        "--branch", help="the branch just merged, whose workspace to land; a workspace made for it when it has none"
-    )
 
     app_manifest_command = command(
         "app-manifest",
@@ -618,8 +598,8 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
                 return OFFLINE_COMMANDS[args.command](config, args)
             if remote is None:
                 remote = _onshape_remote(args.log)
-            backend = resolve_backend(config, remote, command_access(args))
-            state = State.load(backend.state_path, config.studios_path, backend.workspace_id)
+            backend = resolve_backend(config, command_access(args))
+            state = State.load(backend.state_path, config.studios_path)
             try:
                 return COMMANDS[args.command](Workspace(config, state, remote, instance=backend.instance), args)
             finally:
@@ -635,25 +615,15 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
         return 130
 
 
-# Commands which release, or land main, so run only on the main branch (see fs_cli/branches.py)
-MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "sync-main", "run-releases", "app-manifest"}
-# Commands which write the backend workspace, so make their branch's
-WRITE_COMMANDS = {"push", "sync", "tabs"}
+# Commands which release, so run only on the main branch (see fs_cli/branches.py)
+MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "run-releases", "app-manifest"}
 
 
 def command_access(args: argparse.Namespace) -> Access:
     if args.command == "parts" and args.release:
-        # A target's release is tried from any branch, from its workspace
-        return Access.READ if args.target else Access.MAIN
-    if args.command in MAIN_COMMANDS:
-        return Access.MAIN
-    if (
-        args.command in WRITE_COMMANDS
-        or (args.command == "parts" and (args.test or args.diagnose))
-        or (args.command == "update-std" and getattr(args, "push", False))
-    ):
-        return Access.WRITE
-    return Access.READ
+        # A target's release is tried from any branch
+        return Access.ANY if args.target else Access.MAIN
+    return Access.MAIN if args.command in MAIN_COMMANDS else Access.ANY
 
 
 def _onshape_remote(log: bool) -> OnshapeRemote:
@@ -696,6 +666,7 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
         return 0
     if not args.dry_run and not is_clean(config.root):
         raise UsageError("Commit or stash your changes first: each release is committed as it's made.")
+    check_synced_with_origin(config, [])
     versions = workspace.remote.versions(workspace.instance)
     for file in files:
         made = [version.name for version in versions if version.description.endswith(file.marker)]
@@ -706,7 +677,14 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
             )
     for file in files:
         print(f"Running {RELEASES_FOLDER}/{file.path.name}:")
-        common = {"bump": file.bump, "description": file.described, "yes": True, "dry_run": args.dry_run, "no_push_tags": args.no_push_tags}
+        common = {
+            "bump": file.bump,
+            "description": file.described,
+            "yes": True,
+            "dry_run": args.dry_run,
+            "no_push_tags": args.no_push_tags,
+            "checked": True,
+        }
         if file.script:
             release(workspace, argparse.Namespace(script=file.script, publish=file.publish, **common))
         else:
@@ -724,77 +702,13 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
     return 0
 
 
-def branches(workspace: Workspace, args: argparse.Namespace) -> int:
-    config = workspace.config
-    if config.main_branch is None:
-        raise UsageError("Branches get workspaces of their own only with main_branch set in [tool.fs].")
-    on_origin = remote_branches(config.root)
-    if on_origin is None:
-        raise UsageError("Can't reach origin to see which branches are gone.")
-    made = branch_workspaces(config, workspace.remote)
-    # A sync's is left by one which failed partway, and finished by running it again
-    gone = [each for each in made if each.name not in on_origin and not each.name.startswith("sync ")]
-    if not made:
-        print("No branch has a workspace.")
-    for each in made:
-        print(f"{each.name}{' (gone from origin)' if each in gone else ''}")
-    if not args.prune or not gone:
-        return 0
-    if not args.yes:
-        confirm(f"This deletes the workspaces of {len(gone)} branch(es) gone from origin, and their history.")
-    for each in gone:
-        workspace.remote.delete_workspace(InstancePath(config.backend.document_id, each.id))
-        config.state_path_for(each.name).unlink(missing_ok=True)
-        print(f"Deleted {each.name}'s workspace.")
-    return 0
-
-
-def sync_main(workspace: Workspace, args: argparse.Namespace) -> int:
-    config = workspace.config
-    if config.main_branch is None:
-        raise UsageError("`fs sync-main` lands the main branch by merging, which needs main_branch in [tool.fs].")
-    if not is_clean(config.root):
-        raise UsageError(f"Commit or stash your changes first: this lands {config.main_branch} as committed.")
-    remote = workspace.remote
-    main = config.backend
-    source = find_workspace(config, remote, args.branch) if args.branch else None
-    if source is None:
-        name = f"sync {(head_commit(config.root) or '')[:7]}"
-        # Left by a sync that failed partway, which this finishes
-        source = find_workspace(config, remote, name) or create_workspace(config, remote, name)
-    instance = InstancePath(main.document_id, source.id)
-    print(f"Merging the main workspace into {source.name}...")
-    merge(remote, instance, main.instance_id, MergeStrategy.KEEP)
-    start_state(config, source.name, source.id)
-    state = State.load(config.state_path_for(source.name), config.studios_path, source.id)
-    try:
-        # Git is what main holds, so its files go over whatever the workspace has
-        pushed = push(
-            Workspace(config, state, remote, instance=instance),
-            argparse.Namespace(targets=[], force=True, yes=True, dry_run=False, no_commit=False),
-        )
-    finally:
-        state.save()
-        # The main workspace's state, saved last, holds which file each tab is: the push may have made tabs
-        workspace.state.studios = {
-            element_id: dataclasses.replace(workspace.state.studios.get(element_id, studio), file=studio.file)
-            for element_id, studio in state.studios.items()
-        }
-        workspace.state.images = {
-            element_id: dataclasses.replace(workspace.state.images.get(element_id, image), file=image.file)
-            for element_id, image in state.images.items()
-        }
-    if pushed != 0:
-        raise UsageError(f"Pushing to {source.name} failed, so the main workspace is unchanged; run this again.")
-    print(f"Merging {source.name} into the main workspace...")
-    merge(remote, main, source.id, MergeStrategy.REPLACE)
-    remote.delete_workspace(instance)
-    state.path.unlink(missing_ok=True)
-    print(f"Landed {config.main_branch} in the main workspace, and deleted {source.name}.")
-    return 0
-
-
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
+    releasing = getattr(args, "release", False)
+    if releasing:
+        if not args.targets:
+            raise UsageError("Name the FeatureScripts to push for release, e.g. `fs push --release robotFrame`.")
+        paths = sorted({path for script in args.targets for path in release_paths(workspace, script)})
+        args = argparse.Namespace(**{**vars(args), "targets": [str(path) for path in paths], "force": True})
     targets = workspace.resolve_targets(args.targets)
     # Studios unchanged locally aren't pushed (except with --force, over changes in Onshape), so they aren't
     # downloaded to see if they changed in Onshape
@@ -825,7 +739,8 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         [s for s in to_push if s.local_code is not None],
         [image.path for image in images_to_push if image.local_data is not None],
     )
-    to_delete, not_deleted = plan_deletes(
+    # A release's push deletes nothing: it only puts what's released in place
+    to_delete, not_deleted = ([], 0) if releasing else plan_deletes(
         workspace,
         [item for item in [*to_push, *images_to_push] if not _exists_locally(item)]
         + select(everything, Status.DELETED_LOCALLY),
@@ -837,6 +752,10 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
         [studio for studio in to_push if studio.local_code is not None]
     )
     images_to_push = [image for image in images_to_push if image.local_data is not None]
+    if releasing:
+        # Only what's released, not tabs whose files are gone
+        to_push = [studio for studio in to_push if _exists_locally(studio)]
+        images_to_push = [image for image in images_to_push if _exists_locally(image)]
     updated = apply_import_updates(workspace, studios, args.dry_run)
     to_push += do_push_images(images, images_to_push, studios, to_push, args.dry_run)
     pushed = (
@@ -1045,6 +964,31 @@ def imported_modules(project: Project, module: Module) -> list[Module]:
             if target is not None and target not in modules:
                 modules.append(target)
     return modules
+
+
+def release_paths(workspace: Workspace, script: str) -> list[pathlib.Path]:
+    """The files a release of a FeatureScript needs in Onshape as they are in the repo: its file, and every studio and
+    image it imports from the repo, directly or not (its imports name their versions)."""
+    config = workspace.config
+    studio = find_studio(workspace, script)
+    project = _project(config)
+    module = project.module(config.code_dir / studio.path)
+    if module is None:
+        raise UsageError(f"Couldn't read {studio.path}.")
+    images = load_image_files(config.studios_path)
+    modules = [module]
+    paths = []
+    for current in modules:
+        for imported in current.imports:
+            if imported.is_std:
+                continue
+            if imported.element_id in images:
+                paths.append(config.code_dir / images[imported.element_id])
+                continue
+            target = project.resolve(imported)
+            if target is not None and target not in modules:
+                modules.append(target)
+    return [each.path for each in modules] + paths
 
 
 def strings(config: Config, args: argparse.Namespace) -> int:
@@ -1366,6 +1310,19 @@ def _synced_studios(config: Config, state: State, args: list[str]) -> list[tuple
 
 
 def release(workspace: Workspace, args: argparse.Namespace) -> int:
+    paths = release_paths(workspace, args.script)
+    # `fs run-releases` checks once, before its first release commits
+    if not getattr(args, "checked", False):
+        check_synced_with_origin(workspace.config, paths)
+    # What's released, as it is on GitHub, over whatever Onshape has
+    pushed = push(
+        workspace,
+        argparse.Namespace(
+            targets=[args.script], release=True, force=True, yes=True, dry_run=args.dry_run, no_commit=False
+        ),
+    )
+    if pushed != 0:
+        raise UsageError(f"Couldn't push what {args.script} needs to be released; nothing was released.")
     plan = plan_release(workspace, args.script, args.bump, args.publish)
     previous = plan.previous.name if plan.previous else "none"
     print(
@@ -1433,7 +1390,7 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
 
 
 def sync_versions(workspace: Workspace, args: argparse.Namespace) -> int:
-    missing = unsynced_versions(workspace)
+    missing = unsynced_versions(workspace, {feature_name_for(name) for name in args.features} or None)
     if not missing:
         print("The frontend document already has every release version.")
         return 0
@@ -1534,7 +1491,7 @@ def gen(config: Config, args: argparse.Namespace) -> int:
     # Imports need a version, which is only known for studios synced on this machine
     synced = {
         entry.file: (element_id, entry.microversion_id)
-        for element_id, entry in State.load(config.state_path_for(branch_name(config)), config.studios_path).studios.items()
+        for element_id, entry in State.load(config.state_path, config.studios_path).studios.items()
         if entry.microversion_id
     }
     generated = generate(config.code_dir, StdMetadata.load(config.std_dir).number, synced)
@@ -2035,6 +1992,8 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
                 print(f"  refused {stage}: {error}")
         return 0
 
+    if args.target is None and not getattr(args, "checked", False):
+        check_synced_with_origin(workspace.config, [workspace.config.code_dir / part_set.folder])
     plan = plan_part_release(workspace, part_set, args.bump, args.target)
     label = plan.label
     if plan.released:
@@ -2121,8 +2080,6 @@ COMMANDS = {
     "deprecate": deprecate,
     "sync-versions": sync_versions,
     "app-manifest": app_manifest,
-    "sync-main": sync_main,
-    "branches": branches,
     "run-releases": run_releases,
     "tabs": tabs,
     "link": link,

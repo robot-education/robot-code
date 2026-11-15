@@ -524,28 +524,39 @@ def version_backend(
     )
 
 
-def unsynced_versions(workspace: Workspace) -> list[Version]:
-    """Returns the release versions in the backend which are missing from the frontend, oldest first. A part set's
-    releases aren't the frontend's, so they're left out."""
+def unsynced_versions(workspace: Workspace, features: set[str] | None = None) -> list[Version]:
+    """Returns the backend's release versions missing from the frontend, oldest first: each feature's newest, a release
+    or its deprecation (`DEPRECATED <Feature name>`), unless the frontend has it. Its older releases are left out, since
+    a frontend version made now holds the frontend as it is, importing the newest. A part set's releases aren't the
+    frontend's, so they're left out too. With `features` (feature names), only theirs."""
     config, remote = workspace.config, workspace.remote
     if config.frontend is None:
         raise UsageError("Set [tool.fs] frontend in pyproject.toml to sync versions.")
-    frontend_names = {
-        version.name
-        for version in remote.versions(config.frontend)
-        if parse_version_name(version.name)
-    }
+    frontend_names = {version.name for version in remote.versions(config.frontend)}
     part_sets = {part_set.title for part_set in config.parts}
     missing = []
-    # Walk back from the newest backend version until reaching one already in the frontend
+    seen = set()
     for version in reversed(remote.versions(workspace.instance)):
-        released = parse_version_name(version.name)
-        if not released or released.feature_name in part_sets:
+        feature = _versioned_feature(version.name)
+        if feature is None or feature in part_sets or feature in seen:
             continue
-        if version.name in frontend_names:
-            break
-        missing.append(version)
+        if features is not None and feature not in features:
+            continue
+        seen.add(feature)
+        if version.name not in frontend_names:
+            missing.append(version)
     return missing[::-1]
+
+
+def _versioned_feature(name: str) -> str | None:
+    """The feature a backend version releases (`Robot frame - v1.3.0`) or deprecates (`DEPRECATED Robot frame`), or
+    None for other versions."""
+    released = parse_version_name(name)
+    if released:
+        return released.feature_name
+    if name.startswith(DEPRECATED) and len(name) > len(DEPRECATED):
+        return name[len(DEPRECATED) :]
+    return None
 
 
 def find_studio(workspace: Workspace, script: str) -> Studio:
@@ -618,8 +629,9 @@ def tag_versions(
     newest: dict[str, Version] = {}
     for version in versions:
         released = parse_version_name(version.name)
-        assert released
-        newest[released.feature_name] = version
+        # A deprecation has no file to tag
+        if released:
+            newest[released.feature_name] = version
     tagged = 0
     for version in newest.values():
         released = parse_version_name(version.name)

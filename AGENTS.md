@@ -7,7 +7,7 @@ FeatureScript here (including selections, editing logic, and manipulator change 
 
 Ask before anything that calls Onshape, and run it only once the user says yes, every time: the Onshape FeatureScript
 MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `parts`, `configuration`,
-`deprecate`, `sync-versions`, `sync-main`, `run-releases`, `branches`, `features`, `pull-std`,
+`deprecate`, `sync-versions`, `run-releases`, `features`, `pull-std`,
 `update-std`, `released --detect`, and the
 rest). Each call spends the
 user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
@@ -45,9 +45,9 @@ where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix
 FeatureScript-backed parts (FRCDesign's fasteners) are part sets, tried and released by `fs parts`, never `fs release`;
 see `docs/parts.md`.
 
-Each git branch pushes to a backend workspace of its own; main reaches the main workspace only by `fs sync-main`, which
-the Onshape workflow runs on merge, and releases are asked for in `releases/` files rather than run from a branch (see
-`docs/fs-cli.md#branches`).
+Every git branch pushes to the backend's main workspace. Releases are asked for in `releases/` files, which the Onshape
+workflow runs on main once they're merged: each pushes what it releases over Onshape's, as it is on GitHub, then
+versions it (see `docs/fs-cli.md#branches`).
 
 A "top level option" means a horizontal enum at the top of the feature (see `docs/featurescript-style.md`'s
 "Horizontal enums go at the top").
