@@ -342,11 +342,14 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             addDebugEntities(context, loose, DebugColor.BLUE);
         }
 
-        // The pockets are used up by the cut, and the sketches' copies aren't needed
-        opDeleteBodies(context, id + "cleanup", {
-                    "entities" : qUnion([qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES), qCreatedBy(id + "ribs", EntityType.BODY),
-                            qCreatedBy(id + "ribsByFace", EntityType.BODY), qCreatedBy(id + "regionsByFace", EntityType.BODY)])
-                });
+        // The pockets are used up by the cut, and the sketches' copies aren't needed. Without ribs or copies there's
+        // nothing left, and deleting nothing fails ("Select entities to delete")
+        const leftover = qUnion([qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES), qCreatedBy(id + "ribs", EntityType.BODY),
+                    qCreatedBy(id + "ribsByFace", EntityType.BODY), qCreatedBy(id + "regionsByFace", EntityType.BODY)]);
+        if (!isQueryEmpty(context, leftover))
+        {
+            opDeleteBodies(context, id + "cleanup", { "entities" : leftover });
+        }
     });
 
 /**
