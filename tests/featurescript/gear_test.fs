@@ -260,32 +260,63 @@ export function testBevelMateHasTheGearsFaceWidth()
     expectNear(mate.top, gear.faceWidth * cos(mate.cones.gear.pitchAngle), 1e-12 * meter);
 }
 
-export function testBevelSolidTopStopsAtItsPitchCircleThere()
+export function testBevelSectionIsCutOffByItsTop()
+{
+    const gear = bevel(20, 30, 90 * degree, 0.3 * inch, false);
+    const outline = bevelSection(gear, false).outline;
+    expectEqual(size(outline), 5);
+    // Its tips run up to its top, which runs in to its axis
+    expectNear(outline[2][1], gear.top, 1e-12 * meter);
+    expectNear(norm(outline[3] - vector(0 * meter, gear.top)), 0 * meter, 1e-12 * meter);
+}
+
+export function testBevelSolidTopsTeethEndSquareToItsPitchCone()
 {
     for (var shaftAngle in [45 * degree, 90 * degree, 110 * degree])
     {
         for (var teeth in [[20, 30], [30, 20]])
         {
-            const gear = bevel(teeth[0], teeth[1], shaftAngle, 0.3 * inch, false);
-            var definition = bevelDefinition(teeth[0], shaftAngle, 0.3 * inch, false);
-            definition.faceWidth = gear.faceWidth;
-            const mate = bevelShape(definition, MODULE, teeth[1]);
-            // Its pitch circle at its top, where its mate's teeth end
-            expectNear(bevelSolidRadius(gear, shaftAngle, gear.top), (gear.apex - gear.top) * tan(gear.cones.gear.pitchAngle), 1e-12 * meter);
-            // Anywhere along it, turned toward its mate, it's on the mate's top
-            for (var height in [gear.bottom, gear.top])
+            const gear = bevel(teeth[0], teeth[1], shaftAngle, 0.25 * inch, false);
+            const pitchAngle = gear.cones.gear.pitchAngle;
+            const along = vector(-sin(pitchAngle), cos(pitchAngle));
+            const section = bevelSection(gear, true);
+            const outline = section.outline;
+            expectEqual(size(outline), 6);
+            const tipFront = outline[2];
+            const frontPitch = outline[3];
+            // Its pitch circle at its top, its face width along its pitch cone from its back's
+            expectNear(norm(frontPitch - vector(gear.cones.gear.pitchRadius, 0 * meter) - along * gear.faceWidth), 0 * meter, 1e-12 * meter);
+            expectNear(frontPitch[1], gear.top, 1e-12 * meter);
+            expectNear(norm(outline[4] - vector(0 * meter, gear.top)), 0 * meter, 1e-12 * meter);
+            // Its teeth's ends are square to its pitch cone (as its back's are), their tips standing above its top
+            expectNear(dot(tipFront - frontPitch, along), 0 * meter, 1e-12 * meter);
+            expectNear(dot(outline[1] - vector(gear.cones.gear.pitchRadius, 0 * meter), along), 0 * meter, 1e-12 * meter);
+            expectTrue(tipFront[1] > gear.top, "its tips stand above its top");
+            // On its face cone
+            const face = along * cos(gear.depths.faceAngle) - vector(cos(pitchAngle), sin(pitchAngle)) * sin(gear.depths.faceAngle);
+            const toTip = tipFront - outline[1];
+            expectNear(toTip[0] * face[1] - toTip[1] * face[0], 0 * meter, 1e-12 * meter);
+            // What its gaps mustn't cut starts at its front cone, on its axis, and runs out past its tips
+            const solid = section.solid;
+            expectNear(solid[0][0], 0 * meter, 1e-12 * meter);
+            for (var point in [solid[0], solid[1]])
             {
-                const radius = bevelSolidRadius(gear, shaftAngle, height);
-                expectNear((gear.apex - height) * cos(shaftAngle) + radius * sin(shaftAngle), mate.apex - mate.top, 1e-12 * meter);
+                expectNear(dot(point - frontPitch, along), 0 * meter, 1e-12 * meter);
             }
+            expectTrue(norm(solid[1] - frontPitch) > norm(tipFront - frontPitch), "past its tips");
         }
     }
 }
 
-export function testBevelSolidTopIsRoundAtRightAngles()
+export function testBevelSolidTopsTipsMustReachItsFrontCone()
 {
-    const gear = bevel(20, 20, 90 * degree, 0.25 * inch, false);
-    expectNear(bevelSolidRadius(gear, 90 * degree, gear.bottom), bevelSolidRadius(gear, 90 * degree, gear.top), 1e-12 * meter);
+    // Nearly to its apex: its tips, coming down toward it, are below its pitch cone there
+    const gear = bevel(30, 20, 110 * degree, 0.3 * inch, false);
+    bevelSection(gear, false);
+    expectContains(expectThrows(function()
+            {
+                bevelSection(gear, true);
+            }), "thickness is too large");
 }
 
 export function testGleasonAddendaShareTheWorkingDepth()

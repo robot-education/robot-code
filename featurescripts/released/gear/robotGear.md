@@ -8,11 +8,12 @@ circle, sits on its location by its bottom (or middle, top, or a bevel gear's ap
 Gear pair, the gear it meshes with is made too. Its roots are fully rounded (or, as Onshape's Spur gear's Root fillet,
 a third or a quarter of the gap's width; or a router bit's radius, with a slot of the bit's width down each gap too
 narrow for it; a bevel gear's are full rounds, or a router bit's slots where it can't reach them), or without Root
-fillet, sharp, and it can have a bore. A bevel gear's top can be solid (Solid top), its gaps stopping short of it.
+fillet, sharp, and it can have a bore. A bevel gear's teeth can end square to its pitch cone, standing above a whole
+round top (Solid top), rather than cut off by it.
 
 | File | What it is |
 | --- | --- |
-| `robotGear.fs` | The feature: its dialog, the gear and its mate (`buildGear`, `gearMesh`, `gearMatePlane`, `bevelPairCones`), a bevel gear's depths, shape, and solid top (`bevelDepths`, `bevelShape`, `bevelSolidRadius`), and cutting a rack (`cutRack`) |
+| `robotGear.fs` | The feature: its dialog, the gear and its mate (`buildGear`, `gearMesh`, `gearMatePlane`, `bevelPairCones`), a bevel gear's depths, shape, and section (`bevelDepths`, `bevelShape`, `bevelSection`), and cutting a rack (`cutRack`) |
 | `gearCommon.fs` | The tooth form (`getGearForm`), its roots (`gearRoot`, `halfGapCurves`, `lowestContactRadius`), a gear's profile (`sketchGearProfile`), a bevel gear's cones, proportions, spherical involute teeth, tooth gap, and router bit slots (`bevelCones`, `gleasonProportions`, `sphericalInvolute`, `sphericalBevelForm`, `sketchToothGap`, `bevelBitRoot`), and a cut rack's teeth and regions (`rackToothCenters`, `partialTeeth`, `rackCutRegions`, `rackRootFilletRadius`, `relieveRackRoots`, `sketchRackCut`) |
 | `../../core/bore.fs` | The bore: its parameters, and cutting it |
 | `../../core/boreProfiles.py` | SplineXS bores at each standard fit, sketched with their fit, generating `boreProfiles.gen.fs` |
@@ -21,7 +22,7 @@ fillet, sharp, and it can have a bore. A bevel gear's top can be solid (Solid to
 | `../../core/pointManipulator.fs` | Where the gear sits on its location, as Robot pulley's (`pointManipulatorPredicate`, `applyPointManipulator`) |
 | `../../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
 | `../../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), the standard and custom pitches, pitch circles' teeth, bevel gaps, the units values are shown in, where a rack's teeth go and what's cut (never a partial tooth at an end), a partial rack's teeth and stop, and the SplineXS bores' profiles |
-| `../../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, with the center to center adjustment, and bevel), bevel gears' crown gear and thickness errors, their shape, points, solid top, and Gleason proportions, and joining round faces' angles |
+| `../../../tests/featurescript/gear_test.fs` | Tests of where a gear's mate goes (spur, with the center to center adjustment, and bevel), bevel gears' crown gear and thickness errors, their shape, points, section (with and without Solid top), and Gleason proportions, and joining round faces' angles |
 | `../../../tests/featurescript/fs_eval_bevel_test.py` | Tests of spherical bevel gears' teeth: taken back onto the sphere (their roots' radial lines too), a pair meshes (touching on both sides, not overlapping) through a tooth; their thickness at the pitch cone; their gap's sketch; where a router bit cuts slots |
 | `robotGearIcon.py` | Its icon, a thin spur gear with a hex bore through it, generating `robotGearIcon.svg` |
 | `spurGear.local.fs` | Onshape's Spur gear, for reference (see Compared with Spur gear): not synced |
@@ -30,8 +31,8 @@ fillet, sharp, and it can have a bore. A bevel gear's top can be solid (Solid to
 
 Since v1.0.0 (`fs changes robotGear`).
 
-- A bevel gear's Solid top: its gaps stop where its mate never reaches (`bevelSolidRadius`), so its top is a solid face
-  out to its pitch circle there, rather than cut through by its teeth.
+- A bevel gear's Solid top: its teeth end at its front cone, square to its pitch cone (`bevelSection`), standing above
+  its top, rather than cut off flush with it, so its top is a whole round face.
 
 ## Strings
 
@@ -68,9 +69,9 @@ Its own parameters have none. From `core/`:
 | Shaft angle is too large for a bevel mating gear, decrease the value or decrease mating gear teeth. | error | its mate's pitch cone (or face cone) is 90° or more (with or without Gear pair: the pair is what it's made for) | `shaftAngle`, `bevelMateTeeth` | Selected offset is too large, decrease the value. |
 | The angle reference is on the axis, so it doesn't give an angle. / The angle reference must be parallel to the location's plane. / The angle reference must be a point, circle, or line. | error | Gear pair's Angle reference (`core/mounting.fs`, shared with Robot motor, so not reworded here) | the location or `pitchCircle`, the angle reference | Limit face must be parallel to face being moved. |
 | Thickness is too small, increase the value. | error | a bevel gear's top is below its teeth's tips at its back, or its mate's teeth, as long as its, don't reach the mate's top | `thickness` | Bend angle is too small. |
-| Selected thickness is too large, decrease the value. | error | a bevel gear's top is at its apex or past it | `thickness` | Selected offset is too large, decrease the value. |
+| Selected thickness is too large, decrease the value. | error | a bevel gear's top is at its apex or past it; or with Solid top, its tips (coming down toward its apex, as Gleason's do) reach its pitch cone before its front cone (`bevelSection`) | `thickness` | Selected offset is too large, decrease the value. |
 | Profile offset is too small, increase the value. / Profile offset is too large, decrease the value. | error | a gear's (or a bevel gear's virtual or projected) teeth come to points below the tip circle, or meet at their roots | `profileOffsetDistance`, `teeth` / `profileOffsetDistance` | Selected offset is too large, decrease the value. |
-| Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the gap's loft, taking Solid top's solid from the gap, or cutting the gaps from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the gap's sketches or the gaps | Failed to extrude selections, check input. |
+| Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the gap's loft, taking what's in front of Solid top's front cone from the gap, or cutting the gaps from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the gap's sketches or the gaps | Failed to extrude selections, check input. |
 | Too few teeth for a gear, increase teeth. | error | the root circle's at or below the center | `teeth` | Cannot create hem, increase total length. |
 | Profile offset is larger than the bit's radius, decrease profile offset or increase bit diameter. | error | the profile offset leaves no root fillet | `profileOffsetDistance`, `bitDiameter` | Cannot create hem, decrease gap. |
 | Bit diameter is too large, decrease the value. | error | a router bit's full round, where it reaches the root but its fillets don't fit, meets the radial lines above where they meet the involutes (a bevel gear's, at its gap's small end); or a rack's corner fillet runs past its flank | `bitDiameter` | Selected offset is too large, decrease the value. |
@@ -231,20 +232,20 @@ side mirrored):
   top (its face width). Its mate's teeth are as long (`mateDefinition` passes the face width on), so their ends meet,
   and its mate's top is wherever that reaches. The top must be above the teeth's tips at the back (the gear's and its
   mate's), and below the apex, and its face cone (and its mate's) under 90°.
-- **Solid top** (`solidTop`, `bevelSolidRadius`): its gaps stop where its mate never reaches, so its top is a solid
-  face. Its mate's teeth end at its top, square to its axis; a point `s` from the apex along the gear's axis and `r` out
-  from it comes, turning, `s cos Σ + r sin Σ` from the apex along the mate's axis at most, so inside the cone where
-  that's the mate's top (a cylinder at 90°), the mate never reaches. The cone meets the pitch cone where the mate's
-  teeth end, at the gear's top: so its top is solid out to its pitch circle there, and its teeth's tips stand out past
-  that (the mate's teeth fill the gaps there). Its mate (with Gear pair) has Solid top too.
-- **Body**: its blank is revolved from its section through its axis: across its bottom, up its back cone to its face
-  cone, along that toward the apex to its top, and in to its axis. The gap runs a tooth's height past the blank at
+- **Solid top** (`solidTop`, `bevelSection`): its teeth end at its front cone, square to its pitch cone through its
+  pitch circle at its top, as its back cone is at its back, rather than cut off flush with its top. Each tooth's tip
+  ends in a corner standing above its top, which is a whole round face out to that pitch circle; the gaps' ends are the
+  front cone, from their roots up to it. Its mate (with Gear pair) has Solid top too, at the same cone distance: a
+  pair's front cones meet along the line their teeth touch on, as their back cones do. Gleason's tips come down toward
+  the apex, so a gear thick enough to nearly reach its apex can have none left at its front cone: an error.
+- **Body**: its blank is revolved from its section through its axis (`bevelSection`): across its bottom, up its back
+  cone to its face cone, along that toward the apex to its top (with Solid top, to its front cone, and down that to its
+  top), and in to its axis. The gap runs a tooth's height past the blank at
   both ends (at the front, past where its root cone reaches the top, or half way from there to the apex, if that's
-  nearer), so it cuts through it. With Solid top, a solid revolved from its section (inside the cone, from a tooth's
-  height below the bottom to a tooth's height above the top, clipped at the axis) is taken from the gap. The gap's
-  patterned around the axis once per tooth, and cut from the blank. Inside where the root cone reaches the top (or with
-  Solid top, inside the cone at the bottom and top and the blank's back and top, if that's further out), it's solid
-  all the way through: its bore mustn't reach past that.
+  nearer), so it cuts through it. With Solid top, what's in front of the front cone (from where it meets the axis, out
+  past the tips and up past them, revolved) is taken from the gap. The gap's patterned around the axis once per tooth,
+  and cut from the blank. Inside where the root cone reaches the top, it's solid all the way through: its bore mustn't
+  reach past that.
 - **Meshing**: two bevel gears mesh with their apexes together and their axes the shaft angle apart, each made with
   the other's teeth as Mating gear teeth. Its mate connector is at its apex, along its axis, for mating them.
 
