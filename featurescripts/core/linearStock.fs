@@ -1,7 +1,7 @@
 FeatureScript 2960;
 /**
- * Linear stock, like nut strips and frames: what it is (see `Stock`), how it's placed, along an edge or extruded from a
- * point (see `placeStock`), and what building it takes. It's built by a builder: `buildCutStock` in `core/cutStock.fs`,
+ * Linear stock, like nut strips and frames: what it is (see `Stock`), how it's placed, along an edge, on a face, between
+ * holes, or extruded from a point (see `placeStock`), and what building it takes. It's built by a builder: `buildCutStock` in `core/cutStock.fs`,
  * which extrudes its profile and cuts its holes.
  *
  * A feature using this module:
@@ -12,7 +12,7 @@ FeatureScript 2960;
  *   logic.
  *
  * Stock is drawn from its start, which matters since holes are spaced from it: the flip button (or manipulator) chooses
- * which end of the edge (or which way from the point) that is.
+ * which end of the edge, face, or holes (or which way from the point) that is.
  */
 import(path : "onshape/std/common.fs", version : "2960.0");
 
@@ -34,6 +34,10 @@ export enum StockPlacement
 {
     annotation { "Name" : "Edge" }
     EDGE,
+    annotation { "Name" : "Face" }
+    FACE,
+    annotation { "Name" : "Holes" }
+    HOLES,
     annotation { "Name" : "Point" }
     POINT
 }
@@ -41,6 +45,48 @@ export enum StockPlacement
 export predicate isEdgePlacement(definition is map)
 {
     definition.placement == StockPlacement.EDGE;
+}
+
+export predicate isFacePlacement(definition is map)
+{
+    definition.placement == StockPlacement.FACE;
+}
+
+export predicate isHolePlacement(definition is map)
+{
+    definition.placement == StockPlacement.HOLES;
+}
+
+export predicate isPointPlacement(definition is map)
+{
+    definition.placement == StockPlacement.POINT;
+}
+
+/**
+ * Where stock's ends are, on a face (see `faceEnds`).
+ */
+export enum FaceEndType
+{
+    annotation { "Name" : "Match face" }
+    MATCH,
+    annotation { "Name" : "Square, longest" }
+    LONGEST,
+    annotation { "Name" : "Square, shortest" }
+    SHORTEST
+}
+
+/**
+ * Which side of stock's profile is on a face, or the plane of holes (see `selectionShift`): its top (the side the face
+ * faces, or the holes' axis points to), its middle, or its bottom.
+ */
+export enum SelectionAt
+{
+    annotation { "Name" : "Top" }
+    TOP,
+    annotation { "Name" : "Middle" }
+    MIDDLE,
+    annotation { "Name" : "Bottom" }
+    BOTTOM
 }
 
 /**
@@ -57,12 +103,14 @@ const OFFSET_BOUNDS = {
         } as LengthBoundSpec;
 
 /**
- * Where stock goes: the edge to place it along and the offsets of its ends, or the point to extrude it from and the
- * extrude's options (see `isEdgePlacement`), in a Position group; then, on an edge, a Trim ends group of faces to trim
- * its ends to (like miters). Either way, `flip` (Flip `<name>` ends, and a flip manipulator) draws it from the other end
- * (see `acrossSign`), a button rotates it in 90 degree increments, and a nine point manipulator
- * chooses which point of its profile is on the edge or point (see `orientStock`). From a point, `oppositeDirection`
- * (Flip primary axis) is the extrude's.
+ * Where stock goes, in a Position group: along an edge, with the offsets of its ends; on a face, as one of its sides,
+ * with its ends' type and which of its sides is on the face; between two holes, with which of its sides is on their
+ * plane; or extruded from a point, with the extrude's options (see `isEdgePlacement` and the others). Then, unless it's
+ * extruded from a point, a Trim ends group of faces and parts to trim its ends to (like miters, or coped ends).
+ * Either way, `flip` (Flip `<name>` ends, and a flip manipulator) draws it from the other end (see `acrossSign`), and a
+ * button rotates it in 90 degree increments. Along an edge or from a point, a nine point manipulator chooses which point
+ * of its profile is on the edge or point (see `orientStock`); on a face or between holes, a three point manipulator
+ * chooses Face at or Holes at. From a point, `oppositeDirection` (Flip primary axis) is the extrude's.
  *
  * @param name : What's placed, e.g. `"nut strip"`.
  */
@@ -79,6 +127,33 @@ export predicate stockLocationPredicate(definition is map, name is string)
                         "UIHint" : ["UNCONFIGURABLE"] }
             definition.edge is Query;
         }
+        else if (isFacePlacement(definition))
+        {
+            annotation { "Name" : "Face to place " ~ name, "Filter" : EntityType.FACE && GeometryType.PLANE, "MaxNumberOfPicks" : 1,
+                        "UIHint" : ["UNCONFIGURABLE"] }
+            definition.face is Query;
+
+            annotation { "Name" : "End type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.faceEndType is FaceEndType;
+
+            annotation { "Name" : "Face at", "Default" : SelectionAt.BOTTOM, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.faceAt is SelectionAt;
+        }
+        else if (isHolePlacement(definition))
+        {
+            annotation { "Name" : "Start hole",
+                        "Filter" : (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR,
+                        "MaxNumberOfPicks" : 1, "UIHint" : ["UNCONFIGURABLE"] }
+            definition.startHole is Query;
+
+            annotation { "Name" : "End hole",
+                        "Filter" : (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR,
+                        "MaxNumberOfPicks" : 1, "UIHint" : ["UNCONFIGURABLE"] }
+            definition.endHole is Query;
+
+            annotation { "Name" : "Holes at", "Default" : SelectionAt.BOTTOM, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.holesAt is SelectionAt;
+        }
         else
         {
             locationPredicate(definition, name);
@@ -91,7 +166,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
             definition.oppositeDirection is boolean;
         }
 
-        // Shared by both placements, since Onshape doesn't allow declaring a parameter twice (even in different branches)
+        // Shared by every placement, since Onshape doesn't allow declaring a parameter twice (even in different branches)
         secondaryAxisPredicate(definition);
 
         annotation { "Name" : "Flip " ~ name ~ " ends" }
@@ -103,7 +178,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
         {
             stockOffsetsPredicate(definition);
         }
-        else
+        else if (isPointPlacement(definition))
         {
             stockBoundsPredicate(definition);
             extrudeDirectionPredicate(definition);
@@ -111,7 +186,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
         }
     }
 
-    if (isEdgePlacement(definition))
+    if (!isPointPlacement(definition))
     {
         annotation { "Name" : "Trim " ~ name ~ " ends" }
         definition.trimEnds is boolean;
@@ -123,6 +198,9 @@ export predicate stockLocationPredicate(definition is map, name is string)
                 annotation { "Name" : "Faces to trim to", "Filter" : (EntityType.FACE && GeometryType.PLANE) || BodyType.MATE_CONNECTOR,
                             "MaxNumberOfPicks" : 2 }
                 definition.trimFaces is Query;
+
+                annotation { "Name" : "Parts to trim to", "Filter" : EntityType.BODY && BodyType.SOLID }
+                definition.trimBodies is Query;
             }
         }
     }
@@ -653,28 +731,51 @@ const START_OFFSET_MANIPULATOR = "startOffsetManipulator";
 const END_OFFSET_MANIPULATOR = "endOffsetManipulator";
 // Not "flipManipulator", which is std's extrude's (see `addExtrudeManipulator`)
 const FLIP_MANIPULATOR = "stockFlipManipulator";
+const SELECTION_AT_MANIPULATOR = "selectionAtManipulator";
+
+/** Face at's and Holes at's choices, in the order of their manipulator's points (see `addSelectionAtManipulator`). */
+const SELECTION_AT_POINTS = [SelectionAt.TOP, SelectionAt.MIDDLE, SelectionAt.BOTTOM];
 
 /**
- * Builds stock along the selected edge, or extrudes it from the selected point, and names it and sets its properties
- * (see `setStockProperties`).
+ * Builds stock along the selected edge, on the selected face, between the selected holes, or extrudes it from the
+ * selected point, and names it and sets its properties (see `setStockProperties`).
  *
  * @param name : What's placed, e.g. `"nut strip"`, for messages.
  * @param build : Builds it, from (context, id, definition, stock, location, length, ends): `buildCutStock`
  *          (`core/cutStock.fs`). `location` is the middle of its start, with
  *          Z along it and its width along X, and `ends` has the `startPlane` and `endPlane` slanted ends are on (if
- *          they are), and other `cuts` to make (see `trimCuts`). It returns the stock's `body`, its `endFace`, the faces
- *          of its `tiedHoles`, and its holes' `tie` (see `getTie`; `undefined` if it has none).
+ *          they are), other `cuts` to make (see `trimCuts`), and `parts` to trim it to (see `partTrims`). It returns the
+ *          stock's `body`, its `endFace`, the faces of its `tiedHoles`, and its holes' `tie` (see `getTie`; `undefined`
+ *          if it has none).
  */
 export function placeStock(context is Context, id is Id, definition is map, stock is Stock, name is string, build is function)
 {
-    const placement = isEdgePlacement(definition) ?
-        edgePlacement(context, id, definition, name) :
-        extrudePlacement(context, id, definition, name);
+    var placement;
+    if (isEdgePlacement(definition))
+    {
+        placement = edgePlacement(context, id, definition, name);
+    }
+    else if (isFacePlacement(definition))
+    {
+        placement = facePlacement(context, definition, stock);
+    }
+    else if (isHolePlacement(definition))
+    {
+        placement = holePlacement(context, id, definition, stock, name);
+    }
+    else
+    {
+        placement = extrudePlacement(context, id, definition, name);
+    }
 
-    // Centered on the chosen point of its profile
+    // Centered on the chosen point of its profile (on a face or between holes, the placement's done it)
     const offsets = stockPointOffsets(definition, stock);
+    const ninePoints = isEdgePlacement(definition) || isPointPlacement(definition);
     var center = placement.location;
-    center.origin = toWorld(placement.location, -offsets[getNinePointIndex(definition)]);
+    if (ninePoints)
+    {
+        center.origin = toWorld(placement.location, -offsets[getNinePointIndex(definition)]);
+    }
     // From the farthest back point of a slanted start to the farthest point of a slanted end, as an extrude up to them
     // would reach
     const span = stockSpan(center, stock, placement.startPlane, placement.endPlane, placement.length);
@@ -684,20 +785,29 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
     {
         throw regenError("The " ~ name ~ " has no length.", placement.errorParameters);
     }
-    const cuts = definition.trimEnds && isEdgePlacement(definition) ? trimCuts(context, definition, stock, center, length, name) : [];
+    const trimmed = definition.trimEnds && !isPointPlacement(definition);
+    const cuts = trimmed ? trimCuts(context, definition, stock, center, length, name) : [];
+    const parts = trimmed ? partTrims(context, definition, center, length) : [];
     const built = build(context, id, definition, stock, center, length,
-        { "startPlane" : placement.startPlane, "endPlane" : placement.endPlane, "cuts" : cuts });
-    if (cuts != [])
+        { "startPlane" : placement.startPlane, "endPlane" : placement.endPlane, "cuts" : cuts, "parts" : parts });
+    if (cuts != [] || parts != [])
     {
         // Trimming shortens it
         length = stockExtent(context, built.body, center);
     }
     setStockProperties(context, built.body, definition, stock, length);
     // Halfway along it
-    addPointManipulator(context, id, definition, mapArray(offsets, function(offset)
-            {
-                return toWorld(center, offset + vector(0 * meter, 0 * meter, length / 2));
-            }), getNinePointIndex(definition));
+    if (ninePoints)
+    {
+        addPointManipulator(context, id, definition, mapArray(offsets, function(offset)
+                {
+                    return toWorld(center, offset + vector(0 * meter, 0 * meter, length / 2));
+                }), getNinePointIndex(definition));
+    }
+    else
+    {
+        addSelectionAtManipulator(context, id, definition, stock, center, length, placement.normal);
+    }
     addManipulators(context, id, {
                 (FLIP_MANIPULATOR) : flipManipulator({
                         "base" : center.origin + center.zAxis * length / 2,
@@ -725,12 +835,76 @@ export function placeStock(context is Context, id is Id, definition is map, stoc
     {
         const longest = stock.stock[size(stock.stock) - 1].length;
         reportFeatureWarning(context, id, "The " ~ name ~ " exceeds the max length sold by the vendor (" ~ lengthString(definition, longest) ~ ").",
-            [isEdgePlacement(definition) ? "edge" : "depth"]);
+            selectionParameters(definition));
     }
     else if (built.tie != undefined && !isRegularLength(length, built.tie))
     {
         reportFeatureInfo(context, id, regularLengthMessage(definition, name, built.tie));
     }
+}
+
+/**
+ * The parameters selecting where stock goes, for its placement: its edge, face, holes, or depth.
+ */
+function selectionParameters(definition is map) returns array
+{
+    if (isEdgePlacement(definition))
+    {
+        return ["edge"];
+    }
+    if (isFacePlacement(definition))
+    {
+        return ["face"];
+    }
+    return isHolePlacement(definition) ? ["startHole", "endHole"] : ["depth"];
+}
+
+/**
+ * How far the middle of stock `thickness` thick is from a face (or the plane of holes) along its normal, with its top,
+ * middle, or bottom on it (`at`, Face at or Holes at): down half its thickness with its top on it, up half with its
+ * bottom.
+ */
+export function selectionShift(at is SelectionAt, thickness is ValueWithUnits) returns ValueWithUnits
+{
+    if (at == SelectionAt.TOP)
+    {
+        return -thickness / 2;
+    }
+    return at == SelectionAt.BOTTOM ? thickness / 2 : 0 * meter;
+}
+
+/**
+ * How thick stock is along `direction`, which is along one of its axes at `location`.
+ */
+function profileThickness(stock is Stock, location is CoordSystem, direction is Vector) returns ValueWithUnits
+{
+    return abs(dot(location.xAxis, direction)) * stock.width + abs(dot(yAxis(location), direction)) * stock.height;
+}
+
+/**
+ * Face at or Holes at, whichever's placement it is.
+ */
+function selectionAt(definition is map) returns SelectionAt
+{
+    return isFacePlacement(definition) ? definition.faceAt : definition.holesAt;
+}
+
+/**
+ * The three point manipulator choosing Face at or Holes at: points at the top, middle, and bottom of stock (along the
+ * face's or holes' `normal`), halfway along it. The chosen one is on the face or holes' plane, as the nine point
+ * manipulator's chosen point is on an edge.
+ */
+function addSelectionAtManipulator(context is Context, id is Id, definition is map, stock is Stock, center is CoordSystem,
+    length is ValueWithUnits, normal is Vector)
+{
+    const halfway = center.origin + center.zAxis * length / 2;
+    const half = normal * profileThickness(stock, center, normal) / 2;
+    addManipulators(context, id, {
+                (SELECTION_AT_MANIPULATOR) : pointsManipulator({
+                        "points" : [halfway + half, halfway, halfway - half],
+                        "index" : indexOf(SELECTION_AT_POINTS, selectionAt(definition))
+                    })
+            });
 }
 
 /**
@@ -800,6 +974,261 @@ function trimCuts(context is Context, definition is map, stock is Stock, center 
         cuts = append(cuts, { "plane" : cut, "away" : -cut.normal });
     }
     return cuts;
+}
+
+/**
+ * The trims of stock to the selected parts (see `buildCutStock`): each part trims the end it's nearer, by the middle of
+ * where it's alongside the stock (along `center`'s Z, from 0 to `length`).
+ *
+ * @returns {array} : Maps of each trim's `part`, and whether it trims the start (`isStart`).
+ */
+function partTrims(context is Context, definition is map, center is CoordSystem, length is ValueWithUnits) returns array
+{
+    var trims = [];
+    for (var part in evaluateQuery(context, definition.trimBodies))
+    {
+        // Not tight: it only says which end the part's nearer
+        const bounds = evBox3d(context, { "topology" : part, "cSys" : center, "tight" : false });
+        const middle = (max(bounds.minCorner[2], 0 * meter) + min(bounds.maxCorner[2], length)) / 2;
+        trims = append(trims, { "part" : part, "isStart" : tolerantLessThan(middle, length / 2) });
+    }
+    return trims;
+}
+
+/**
+ * Where stock goes on the selected face, as if the face were one of its sides (like a sketch region drawn where it
+ * goes): along the face (see `faceDirection`), centered across it, and turned so its side as wide as the face is on it,
+ * unless the face is as wide as neither of its sides, or both (then its X, its top along a sketch's edge, is up out of
+ * the face; the rotate button turns it from there). Face at puts its top, middle, or bottom on the face (see
+ * `selectionShift`), and its ends are the face's (see `faceEnds`). Returns the `location` its start is at (oriented by
+ * `orientStock`), its `length`, the `startPlane` and `endPlane` its ends are on if they're slanted, and the face's
+ * `normal`.
+ */
+function facePlacement(context is Context, definition is map, stock is Stock) returns map
+{
+    const face = verifyNonemptyQuery(context, definition, "face", "Select a face to use.")[0];
+    const facePlane = evPlane(context, { "face" : face });
+    const direction = faceDirection(context, face, facePlane, stock);
+    // X up out of the face, Y across it, and Z along it
+    const onFace = coordSystem(facePlane.origin, facePlane.normal, direction);
+    const bounds = evBox3d(context, { "topology" : face, "cSys" : onFace, "tight" : true });
+    const width = bounds.maxCorner[1] - bounds.minCorner[1];
+    // Along the middle of the face
+    const middle = coordSystem(toWorld(onFace, vector(0 * meter, (bounds.minCorner[1] + bounds.maxCorner[1]) / 2, 0 * meter)),
+        facePlane.normal, direction);
+    const ends = faceEnds(context, definition, face, middle, bounds);
+    const turned = tolerantEquals(width, stock.width) && !tolerantEquals(width, stock.height);
+    var location = orientStock(definition, coordSystem(middle.origin, turned ? yAxis(middle) : middle.xAxis, direction));
+    const flipped = isFlipped(definition);
+    location.origin = middle.origin + direction * (flipped ? ends.end.along : ends.start.along) +
+        facePlane.normal * selectionShift(definition.faceAt, profileThickness(stock, location, facePlane.normal));
+    return {
+            "location" : location,
+            "length" : ends.end.along - ends.start.along,
+            "startPlane" : slantedEnd((flipped ? ends.end : ends.start).plane, location.zAxis),
+            "endPlane" : slantedEnd((flipped ? ends.start : ends.end).plane, location.zAxis),
+            "normal" : facePlane.normal,
+            "errorParameters" : ["face", "faceEndType"]
+        };
+}
+
+/**
+ * The direction stock runs along a face: its longest straight edge's, preferring edges across which the face is as
+ * wide as one of the stock's sides, so a short, mitered face runs along its sides rather than its miters.
+ */
+function faceDirection(context is Context, face is Query, facePlane is Plane, stock is Stock) returns Vector
+{
+    var best;
+    for (var edge in evaluateQuery(context, qLoopEdges(face)->qGeometry(GeometryType.LINE)))
+    {
+        const direction = evLine(context, { "edge" : edge }).direction;
+        const bounds = evBox3d(context, { "topology" : face, "cSys" : coordSystem(facePlane.origin, facePlane.normal, direction), "tight" : true });
+        const width = bounds.maxCorner[1] - bounds.minCorner[1];
+        const candidate = {
+                "direction" : direction,
+                "length" : evLength(context, { "entities" : edge }),
+                "fits" : tolerantEquals(width, stock.width) || tolerantEquals(width, stock.height)
+            };
+        if (best == undefined || (candidate.fits && !best.fits) ||
+            (candidate.fits == best.fits && tolerantGreaterThan(candidate.length, best.length)))
+        {
+            best = candidate;
+        }
+    }
+    if (best == undefined)
+    {
+        throw regenError("Select a face with straight edges.", ["face"], face);
+    }
+    return best.direction;
+}
+
+/**
+ * Where stock's ends are along a face, from `middle` (along the middle of the face, with Z along it and X its normal;
+ * `bounds` is the face's box in it): each end's distance `along` it, and the `plane` it's cut to, if it's cut along an
+ * edge. The face's ends are its edges which aren't straight sides along it, by which half of it their middles are in.
+ * End type says where each end is: along its straight edge, cut square to the face (Match face, so a miter drawn in a
+ * sketch is mitered), at the farthest of its edges (Square, longest: the whole face's length), or at the nearest
+ * (Square, shortest: where a mitered face's sides both reach, as for a butt joint).
+ */
+function faceEnds(context is Context, definition is map, face is Query, middle is CoordSystem, bounds is Box3d) returns map
+{
+    if (definition.faceEndType == FaceEndType.LONGEST)
+    {
+        return { "start" : { "along" : bounds.minCorner[2] }, "end" : { "along" : bounds.maxCorner[2] } };
+    }
+    const edges = qLoopEdges(face);
+    const sides = filter(evaluateQuery(context, edges->qGeometry(GeometryType.LINE)), function(edge)
+        {
+            return parallelVectors(evLine(context, { "edge" : edge }).direction, middle.zAxis);
+        });
+    const halfway = (bounds.minCorner[2] + bounds.maxCorner[2]) / 2;
+    var startEdges = [];
+    var endEdges = [];
+    for (var edge in evaluateQuery(context, qSubtraction(edges, qUnion(sides))))
+    {
+        const edgeMiddle = evEdgeTangentLine(context, { "edge" : edge, "parameter" : 0.5 }).origin;
+        if (tolerantLessThan(dot(edgeMiddle - middle.origin, middle.zAxis), halfway))
+        {
+            startEdges = append(startEdges, edge);
+        }
+        else
+        {
+            endEdges = append(endEdges, edge);
+        }
+    }
+    return {
+            "start" : faceEnd(context, definition, face, middle, startEdges, true),
+            "end" : faceEnd(context, definition, face, middle, endEdges, false)
+        };
+}
+
+/**
+ * Where one end of stock on a face is (see `faceEnds`), from the face's `edges` at that end.
+ */
+function faceEnd(context is Context, definition is map, face is Query, middle is CoordSystem, edges is array, isStart is boolean) returns map
+{
+    if (edges == [])
+    {
+        throw regenError("Select a face with straight edges.", ["face"], face);
+    }
+    if (definition.faceEndType == FaceEndType.SHORTEST)
+    {
+        const bounds = evBox3d(context, { "topology" : qUnion(edges), "cSys" : middle, "tight" : true });
+        return { "along" : isStart ? bounds.maxCorner[2] : bounds.minCorner[2] };
+    }
+    const lines = filter(edges, function(edge)
+        {
+            return !isQueryEmpty(context, edge->qGeometry(GeometryType.LINE));
+        });
+    if (size(lines) != 1)
+    {
+        throw regenError("Ends of selected face must be straight, or change end type.", ["face", "faceEndType"], qUnion(edges));
+    }
+    const line = evLine(context, { "edge" : lines[0] });
+    // Through the edge, square to the face
+    const cut = plane(line.origin, normalize(cross(line.direction, middle.xAxis)));
+    return { "along" : alongTo(middle.origin, middle.zAxis, cut), "plane" : cut };
+}
+
+/**
+ * Where stock goes between the selected holes, lined up with them: along the line between them (in the start hole's
+ * plane), with the holes through its walls facing their axis (X's, or rotated, Y's), and the first of them (see
+ * `alignedHole`) on the start hole (or flipped, the end hole). It reaches as far past each hole as that hole is from its
+ * start, so with the holes a whole number of its hole spacings apart, its holes line up with both; a warning says when
+ * they don't. Holes at puts its top, middle, or bottom on the holes' plane (see `selectionShift`). Returns the `location`
+ * its start is at (oriented by `orientStock`), its `length`, and the holes' `normal`.
+ */
+function holePlacement(context is Context, id is Id, definition is map, stock is Stock, name is string) returns map
+{
+    const startHole = verifyNonemptyQuery(context, definition, "startHole", "Select a start hole.")[0];
+    const endHole = verifyNonemptyQuery(context, definition, "endHole", "Select an end hole.")[0];
+    const start = holePlane(context, startHole, "startHole");
+    const end = holePlane(context, endHole, "endHole");
+    if (!parallelVectors(start.normal, end.normal))
+    {
+        throw regenError("End hole must be parallel to start hole.", ["startHole", "endHole"], qUnion([startHole, endHole]));
+    }
+    var between = end.origin - start.origin;
+    between -= start.normal * dot(between, start.normal);
+    const distance = norm(between);
+    if (tolerantEqualsZero(distance))
+    {
+        throw regenError("Select an end hole apart from the start hole.", ["endHole"], endHole);
+    }
+    const direction = between / distance;
+    var location = orientStock(definition, coordSystem(start.origin, start.normal, direction));
+    // The walls facing the holes' axis, and which way their rows' shapes are offset across them (see `stockFaces`)
+    const facesX = parallelVectors(location.xAxis, start.normal);
+    const hole = alignedHole(facesX ? stock.xRows : stock.yRows);
+    if (hole == undefined)
+    {
+        throw regenError("The " ~ name ~ " has no holes facing the selected holes, reorient secondary axis.", ["secondaryAxisType"]);
+    }
+    const offsetDirection = facesX ? yAxis(location) : location.xAxis * acrossSign(definition);
+    const first = isFlipped(definition) ? start.origin + between : start.origin;
+    location.origin = first - location.zAxis * hole.position - offsetDirection * hole.offset +
+        start.normal * selectionShift(definition.holesAt, profileThickness(stock, location, start.normal));
+    if (!tolerantEquals(distance, round(distance / hole.pitch) * hole.pitch))
+    {
+        reportFeatureWarning(context, id, "Selected holes are not a multiple of " ~ lengthString(definition, hole.pitch) ~ " apart.",
+            ["startHole", "endHole"]);
+    }
+    return {
+            "location" : location,
+            "length" : distance + 2 * hole.position,
+            "normal" : start.normal,
+            "errorParameters" : ["startHole", "endHole"]
+        };
+}
+
+/**
+ * A hole's plane, at its center and square to its axis: a hole's edge's faces out of the part it's in (as the flat face
+ * around it does), and a sketch circle's or point's as its sketch does; a mate connector's is its XY plane.
+ */
+function holePlane(context is Context, hole is Query, parameter is string) returns Plane
+{
+    var result = selectionPlane(context, hole);
+    if (result == undefined)
+    {
+        throw regenError("Select a hole's edge, a sketch point, or a mate connector to use.", [parameter], hole);
+    }
+    if (!isQueryEmpty(context, hole->qGeometry(GeometryType.CIRCLE)))
+    {
+        // The flat face around it: a part's face, or a sketch's region
+        const around = qAdjacent(hole, AdjacencyType.EDGE, EntityType.FACE)->qGeometry(GeometryType.PLANE);
+        if (!isQueryEmpty(context, around) && dot(evPlane(context, { "face" : qNthElement(around, 0) }).normal, result.normal) < 0)
+        {
+            result.normal = -result.normal;
+        }
+    }
+    return result;
+}
+
+/**
+ * The hole stock between holes is lined up with them by (see `holePlacement`), of its rows through the walls facing
+ * them: the one nearest the middle of its face, and of those, the nearest its start. Its `position` along the stock,
+ * `offset` across the face, and its row's `pitch`; `undefined` if the rows have none (MAXSpline cutouts aren't holes).
+ */
+export function alignedHole(rows is array)
+{
+    var best;
+    for (var row in rows)
+    {
+        for (var shape in row.shapes)
+        {
+            if (shape.maxSpline ?? false)
+            {
+                continue;
+            }
+            const hole = { "position" : row.start + shape.along, "offset" : shape.offset, "pitch" : row.pitch };
+            if (best == undefined || tolerantLessThan(abs(hole.offset), abs(best.offset)) ||
+                (tolerantEquals(abs(hole.offset), abs(best.offset)) && tolerantLessThan(hole.position, best.position)))
+            {
+                best = hole;
+            }
+        }
+    }
+    return best;
 }
 
 /**
@@ -1252,6 +1681,16 @@ export function stockManipulatorChange(context is Context, definition is map, ne
     {
         definition.flip = flip.flipped;
     }
+    if (isFacePlacement(definition) || isHolePlacement(definition))
+    {
+        // Its points are Face at's (or Holes at's) choices, in order
+        const at = newManipulators[SELECTION_AT_MANIPULATOR];
+        if (at != undefined && at.index is number && at.index >= 0 && at.index < size(SELECTION_AT_POINTS))
+        {
+            definition[isFacePlacement(definition) ? "faceAt" : "holesAt"] = SELECTION_AT_POINTS[at.index];
+        }
+        return definition;
+    }
     if (isEdgePlacement(definition))
     {
         // Dragged past the end of the edge, an offset flips
@@ -1301,6 +1740,10 @@ export function stockEditLogic(context is Context, id is Id, oldDefinition is ma
                 }
             }
         }
+        return definition;
+    }
+    if (!isPointPlacement(definition))
+    {
         return definition;
     }
     // Along the extrude's direction from the selected point. A guard, not a fallback: editing logic mustn't throw while

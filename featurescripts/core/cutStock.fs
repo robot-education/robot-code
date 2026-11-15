@@ -18,12 +18,14 @@ import(path : "9fc889bb93a3c29feb4f9ae5", version : "3eb159cc8a1f8aa01f9bed32");
  * whole while they're cut, and is then cut to `length`, cutting through any holes the end crosses, as cutting it from
  * longer stock would. Ends can be slanted (like miters): `ends` has the `startPlane` and `endPlane` they're on, which
  * are inside its length, and other `cuts` to make (see `trimCuts`); it's cut to each (see `trimBeyond`), and the face
- * each cut leaves is a frame's cap.
+ * each cut leaves is a frame's cap. Then it's trimmed to `ends.parts` (see `partTrims`): each part is subtracted from
+ * it, and of the pieces left, the one with its other end is kept, as std's Frame trims to parts.
  *
- * Booleans are slow, so each row's holes are cut by one seed (a tool for its first hole), and the seed's faces are face
- * patterned along the stock. A row's holes tied to the end (see `getTie`) have a seed of their own at the last of them,
- * patterned back toward the start, so their identities are counted from the end. Seeds patterned the same way are cut
- * and patterned together (see `seedGroups`), each group under its own id, so the faces it made are
+ * Booleans are slow, so each row's holes are cut by one seed (a tool for its first hole, or its last when they're all
+ * tied to the end), and the seed's faces are face patterned along the stock. Each pattern instance is named by its
+ * hole's count from the start, or for holes tied to the end (see `getTie`), from the end (see `holeInstances`), so
+ * tied holes keep their identities as the length changes. Seeds patterned the same way (with the same steps and
+ * names) are cut and patterned together (see `seedGroups`), each group under its own id, so the faces it made are
  * `qCreatedBy(groupId, EntityType.FACE)`.
  *
  * @returns {{
@@ -52,23 +54,17 @@ export const buildCutStock = function(context is Context, id is Id, definition i
                 "endDepth" : built
             });
     opDeleteBodies(context, id + "deleteProfile", { "entities" : qCreatedBy(profileId, EntityType.BODY) });
-    const body = qCreatedBy(stockId, EntityType.BODY);
+    var body = qCreatedBy(stockId, EntityType.BODY);
     if (stock.isFrame ?? false)
     {
         // Before the holes are cut, so its faces are still the extrude's
-        tagExtrudeAsFrame(context, stockId, stock.partName, stock.vendor);
+        tagExtrudeAsFrame(context, stockId);
     }
 
-    var tiedHoles = [];
     const groups = seedGroups(stock, location, length, tie, across);
     for (var i, group in groups)
     {
-        const groupId = id + ("holes" ~ i);
-        cutHoles(context, groupId, group, body, stock.holeDiameter);
-        if (group.tied)
-        {
-            tiedHoles = append(tiedHoles, qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body));
-        }
+        cutHoles(context, id + ("holes" ~ i), group, body, stock.holeDiameter);
     }
 
     // Cut to its ends and trims (after its holes are cut, so they're cut through like the stock it's cut from)
@@ -82,6 +78,8 @@ export const buildCutStock = function(context is Context, id is Id, definition i
     {
         cuts = append(cuts, { "plane" : ends.startPlane, "away" : -location.zAxis });
     }
+    // The faces at each end: its caps, and the faces the cuts and trims there leave
+    var startFaces = [qCapEntity(stockId, CapType.START, EntityType.FACE)];
     var endFaces = [qCapEntity(stockId, CapType.END, EntityType.FACE)];
     const reach = built + stock.width + stock.height;
     for (var i, cut in cuts)
@@ -96,9 +94,64 @@ export const buildCutStock = function(context is Context, id is Id, definition i
         {
             endFaces = append(endFaces, face);
         }
+        else
+        {
+            startFaces = append(startFaces, face);
+        }
     }
-    // The stock's end, or the faces the cuts at its end leave (those still on it)
+
+    // Trimmed to parts: each is subtracted, and the piece with the other end is kept (the rest, cut off past the part,
+    // are deleted), as std's Frame trims to parts
+    for (var i, trim in ends.parts)
+    {
+        const trimId = id + ("trimPart" ~ i);
+        try
+        {
+            opBoolean(context, trimId + "cut", {
+                        "tools" : trim.part,
+                        "targets" : body,
+                        "operationType" : BooleanOperationType.SUBTRACTION,
+                        "keepTools" : true
+                    });
+        }
+        catch
+        {
+            // A failed boolean changes nothing, so the part is still there to show
+            throw regenError("Failed to trim to the selected part.", ["trimBodies"], trim.part);
+        }
+        const kept = qOwnerBody(qUnion(trim.isStart ? endFaces : startFaces));
+        const trimmed = qCreatedBy(trimId + "cut", EntityType.FACE)->qOwnedByBody(kept);
+        if (isQueryEmpty(context, trimmed))
+        {
+            // It missed the stock, or cut away its other end
+            throw regenError("Failed to trim to the selected part.", ["trimBodies"], trim.part);
+        }
+        const pieces = qSubtraction(qUnion([body, qCreatedBy(trimId + "cut", EntityType.BODY)]), kept);
+        if (!isQueryEmpty(context, pieces))
+        {
+            opDeleteBodies(context, trimId + "delete", { "entities" : pieces });
+        }
+        body = kept;
+        if (stock.isFrame ?? false)
+        {
+            tagFrameCaps(context, trimmed, trim.isStart);
+        }
+        if (trim.isStart)
+        {
+            startFaces = append(startFaces, trimmed);
+        }
+        else
+        {
+            endFaces = append(endFaces, trimmed);
+        }
+    }
+    // The stock's end, or the faces the cuts and trims at its end leave (those still on it)
     const endFace = qUnion(endFaces)->qOwnedByBody(body);
+    if (stock.isFrame ?? false)
+    {
+        // On the body it ended up as, which a trim to parts may have split
+        tagFrameProfile(context, body, stock.partName, stock.vendor);
+    }
 
     // After trimming, so holes the trims removed aren't threaded
     if (stock.thread != undefined)
@@ -114,6 +167,19 @@ export const buildCutStock = function(context is Context, id is Id, definition i
         }
         setTappedThroughHoles(context, id, threadedHoles, stock.thread);
     }
+    var tiedHoles = [];
+    for (var i, group in groups)
+    {
+        const groupId = id + ("holes" ~ i);
+        if (group.seedTied)
+        {
+            tiedHoles = append(tiedHoles, qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body));
+        }
+        else if (group.tiedNames != [])
+        {
+            tiedHoles = append(tiedHoles, qPatternInstances(groupId + "pattern", group.tiedNames, EntityType.FACE)->qOwnedByBody(body));
+        }
+    }
     return {
             "body" : body,
             "endFace" : endFace,
@@ -123,15 +189,56 @@ export const buildCutStock = function(context is Context, id is Id, definition i
 };
 
 /**
- * The seeds which cut stock's holes (see `buildCutStock`), in groups patterned the same way (as many times, in the same
- * direction), which are cut and patterned together, in fewer operations. Holes which cross, like those of a solid nut
- * strip's rows which line up, have to be.
+ * How a row's holes (see `holePositions`, in order from the start) are patterned from one seed: by naming each pattern
+ * instance by its hole's count from the start, or for a hole tied to the end, from the end (`"e0"` is the last), tied
+ * holes keep their identities as the stock's length changes, with no seed or pattern of their own. The seed is the
+ * first hole, patterned toward the end, or when every hole is tied, the last, patterned back toward the start (so
+ * every hole, the seed too, is counted from the end).
  *
- * @returns {array} : Maps of each group's `count` (how many holes its seeds are patterned into, including themselves),
- *          the `step` between them, whether they're `tied`, and its `seeds`: maps of the `face` (see `stockFaces`) and
- *          row `shapes` they cut, and their `position` along the stock.
+ * @returns {{
+ *      @field seed {number} : The seed's hole, by its index in `positions`.
+ *      @field sign {number} : 1 if the pattern runs toward the end, -1 if back toward the start.
+ *      @field names {array} : The names of the instances after the seed, the hole a step further each.
+ *      @field seedTied {boolean} : Whether the seed is tied (and so every hole is).
+ *      @field tiedNames {array} : The names of the tied instances.
+ * }}
  */
-function seedGroups(stock is Stock, location is CoordSystem, length is ValueWithUnits, tie is map, across is number) returns array
+export function holeInstances(positions is array) returns map
+{
+    const count = size(positions);
+    const fromEnd = positions[0].tied;
+    var names = [];
+    var tiedNames = [];
+    for (var k = 1; k < count; k += 1)
+    {
+        const hole = fromEnd ? count - 1 - k : k;
+        const tied = positions[hole].tied;
+        const name = tied ? "e" ~ (count - 1 - hole) : toString(hole);
+        names = append(names, name);
+        if (tied)
+        {
+            tiedNames = append(tiedNames, name);
+        }
+    }
+    return {
+            "seed" : fromEnd ? count - 1 : 0,
+            "sign" : fromEnd ? -1 : 1,
+            "names" : names,
+            "seedTied" : fromEnd,
+            "tiedNames" : tiedNames
+        };
+}
+
+/**
+ * The seeds which cut stock's holes (see `buildCutStock`), in groups patterned the same way (the same steps, with the
+ * same instance names; see `holeInstances`), which are cut and patterned together, in fewer operations. Holes which
+ * cross, like those of a solid nut strip's rows which line up, have to be.
+ *
+ * @returns {array} : Maps of each group's `step` between holes, its instances' `names`, whether its seeds are tied
+ *          (`seedTied`), the names of its tied instances (`tiedNames`), and its `seeds`: maps of the `face` (see
+ *          `stockFaces`) and row `shapes` they cut, and their `position` along the stock.
+ */
+export function seedGroups(stock is Stock, location is CoordSystem, length is ValueWithUnits, tie is map, across is number) returns array
 {
     var groups = [];
     for (var face in stockFaces(stock, location, across))
@@ -139,37 +246,32 @@ function seedGroups(stock is Stock, location is CoordSystem, length is ValueWith
         for (var row in face.rows)
         {
             const positions = holePositions(row, rowExtent(row, stock.holeDiameter), length, tie);
-            for (var tied in [false, true])
+            if (positions == [])
             {
-                const holes = filter(positions, function(hole)
-                    {
-                        return hole.tied == tied;
-                    });
-                if (holes == [])
+                continue;
+            }
+            const instances = holeInstances(positions);
+            const seed = { "face" : face, "shapes" : row.shapes, "position" : positions[instances.seed].position };
+            const step = location.zAxis * instances.sign * row.pitch;
+            var found = false;
+            for (var i, group in groups)
+            {
+                if (group.names == instances.names && group.seedTied == instances.seedTied && tolerantEquals(group.step, step))
                 {
-                    continue;
+                    groups[i].seeds = append(group.seeds, seed);
+                    found = true;
+                    break;
                 }
-                const seed = {
-                        "face" : face,
-                        "shapes" : row.shapes,
-                        "position" : tied ? holes[size(holes) - 1].position : holes[0].position
-                    };
-                const count = size(holes);
-                const step = location.zAxis * (tied ? -row.pitch : row.pitch);
-                var found = false;
-                for (var i, group in groups)
-                {
-                    if (group.count == count && group.tied == tied && tolerantEquals(group.step, step))
-                    {
-                        groups[i].seeds = append(group.seeds, seed);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found)
-                {
-                    groups = append(groups, { "count" : count, "step" : step, "tied" : tied, "seeds" : [seed] });
-                }
+            }
+            if (!found)
+            {
+                groups = append(groups, {
+                            "step" : step,
+                            "names" : instances.names,
+                            "seedTied" : instances.seedTied,
+                            "tiedNames" : instances.tiedNames,
+                            "seeds" : [seed]
+                        });
             }
         }
     }
@@ -178,7 +280,7 @@ function seedGroups(stock is Stock, location is CoordSystem, length is ValueWith
 
 /**
  * Cuts a group of seeds (see `seedGroups`) from the body with one boolean, then face patterns the holes they made along
- * it, all under `groupId`.
+ * it, the instances named as `holeInstances` names them, all under `groupId`.
  */
 function cutHoles(context is Context, groupId is Id, group is map, body is Query, holeDiameter is ValueWithUnits)
 {
@@ -194,37 +296,33 @@ function cutHoles(context is Context, groupId is Id, group is map, body is Query
     opDeleteBodies(context, groupId + "deleteSketches", {
                 "entities" : qCreatedBy(groupId, EntityType.BODY)->qSketchFilter(SketchObject.YES)
             });
-    if (group.count > 1)
+    if (group.names != [])
     {
-        const instances = range(1, group.count - 1);
         opPattern(context, groupId + "pattern", {
                     "entities" : qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body),
-                    "transforms" : mapArray(instances, function(k)
+                    "transforms" : mapArray(range(1, size(group.names)), function(k)
                         {
                             return transform(group.step * k);
                         }),
-                    "instanceNames" : mapArray(instances, function(k)
-                        {
-                            return toString(k);
-                        })
+                    "instanceNames" : group.names
                 });
     }
 }
 
 /**
  * The holes a group of seeds cut (see `cutHoles`), for `setTappedThroughHoles`: maps of each hole's `faces` and
- * `coordSystem`. Each of the group's holes is its seeds' faces (its first) or a pattern instance's (see
+ * `coordSystem`. Each of the group's holes is its seeds' faces (the seed's hole) or a pattern instance's (see
  * `qPatternInstances`), split between its seeds by the direction they go through the stock.
  */
 function groupHoles(context is Context, groupId is Id, group is map, body is Query) returns array
 {
     const pattern = groupId + "pattern";
     var holes = [];
-    for (var k = 0; k < group.count; k += 1)
+    for (var k = 0; k <= size(group.names); k += 1)
     {
         const faces = k == 0 ?
             qSubtraction(qCreatedBy(groupId, EntityType.FACE)->qOwnedByBody(body), qCreatedBy(pattern, EntityType.FACE)) :
-            qPatternInstances(pattern, toString(k), EntityType.FACE);
+            qPatternInstances(pattern, group.names[k - 1], EntityType.FACE);
         for (var seed in group.seeds)
         {
             const plane = seed.face.plane;

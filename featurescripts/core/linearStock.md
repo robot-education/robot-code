@@ -1,7 +1,7 @@
 # Linear stock (`linearStock.fs`, `cutStock.fs`)
 
 The shared modules behind Robot frame and Robot nut strip: what a length of stock is (`Stock`), how it's placed along
-an edge or extruded from a point (`placeStock`), the dialog for placing it (`stockLocationPredicate`,
+an edge, on a face, between holes, or extruded from a point (`placeStock`), the dialog for placing it (`stockLocationPredicate`,
 `tieHolesPredicate`), and how it's built. See `docs/feature-writeups.md` for what writeups cover.
 
 | File | What it is |
@@ -19,23 +19,34 @@ else below is the same for both. `<name>` in strings is what's placed:
 ### Descriptions and hidden parameters
 
 None of its parameters have descriptions. `index` (the nine point manipulator's point, `core/pointManipulator.fs`) is
-hidden; the manipulator sets it.
+hidden; the manipulator sets it. On a face or between holes, the three point manipulator sets Face at or Holes at
+(`faceAt`, `holesAt`), which are shown.
 
 ### Errors, warnings, and info
 
-| Message | Kind | When | Highlights |
-| --- | --- | --- | --- |
-| Select an edge to use. | error | Edge, nothing selected | `edge` |
-| Select a sketch point, circle, or mate connector to use. | error | Point, nothing selected | `location` |
-| Specified offsets are too long. | error | Edge: the offsets add up to the edge's length or more | `edgeStartOffset`, `edgeEndOffset` and their Opposite directions, the edge |
-| The selected face does not intersect the `<name>`. | error | Edge, Trim: a face's plane misses the stock, or would cut all of it away | `trimFaces`, the face |
-| The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start | `depth`, `endBound`, `secondDirectionBound` |
-| The `<name>`'s ends must be flat. | error | Point, Up to next: the next face is curved | the bound's parameters, the face |
-| std's `EXTRUDE_FAILED` (Failed to extrude selections, check input.) | error | Point: up to next finds nothing in front of the point, or an up to face runs along the extrude | the bound's parameters (and face) |
-| std's `EXTRUDE_SELECT_TERMINATING_SURFACE`, `EXTRUDE_SELECT_TERMINATING_VERTEX` | error | Point, Up to face / vertex with nothing selected | the bound's parameters |
-| std's `EXTRUDE_SELECT_DIRECTION`, `EXTRUDE_DIRECTION_INVALID_ENTITY` | error | Point, Direction on: no direction, or not a direction | `extrudeDirection` |
-| The `<name>` exceeds the max length sold by the vendor (`<longest>`). | warning | the stock is longer than its longest `stock` length | `edge` or `depth` |
-| The `<name>`'s length should be a multiple of `<unit>`. / ... should be `<extra>` more than a multiple of `<unit>`. | info | stock with holes isn't a regular length (see Tying holes) | |
+| Message | Kind | When | Highlights | Closest std error |
+| --- | --- | --- | --- | --- |
+| Select an edge to use. | error | Edge, nothing selected | `edge` | std's form ("Select ... to use.") |
+| Select a face to use. | error | Face, nothing selected | `face` | std's form |
+| Select a face with straight edges. | error | Face: it has no straight edges, or no edges at one end | `face`, the face | none |
+| Ends of selected face must be straight, or change end type. | error | Face, Match face: an end has no straight edge, or more than one | `face`, `faceEndType`, that end's edges | none |
+| Select a start hole. / Select an end hole. | error | Holes, nothing selected | `startHole` / `endHole` | std's form |
+| Select a hole's edge, a sketch point, or a mate connector to use. | error | Holes: a selection has no plane (the filter shouldn't allow it) | the hole's parameter, the selection | std's form |
+| End hole must be parallel to start hole. | error | Holes: their axes aren't parallel | `startHole`, `endHole`, both | `UP_TO_FACE_NOT_PARALLEL` |
+| Select an end hole apart from the start hole. | error | Holes: they're on one axis | `endHole`, the end hole | none |
+| The `<name>` has no holes facing the selected holes, reorient secondary axis. | error | Holes: the walls facing the holes' axis have no holes (or only MAXSpline cutouts) | `secondaryAxisType` | none |
+| Failed to trim to the selected part. | error | Trim: a part's boolean fails, or leaves no new face on the piece with the other end (it misses the stock, or cuts that end away) | `trimBodies`, the part | `FRAME_TRIM_FAILED` |
+| Selected holes are not a multiple of `<pitch>` apart. | warning | Holes: their distance isn't a whole number of the aligned row's pitch, so the far hole misses | `startHole`, `endHole` | none |
+| Select a sketch point, circle, or mate connector to use. | error | Point, nothing selected | `location` | std's form |
+| Specified offsets are too long. | error | Edge: the offsets add up to the edge's length or more | `edgeStartOffset`, `edgeEndOffset` and their Opposite directions, the edge | none (std's wording) |
+| The selected face does not intersect the `<name>`. | error | Trim: a face's plane misses the stock, or would cut all of it away | `trimFaces`, the face | `MOVE_CURVE_BOUNDARY_TRIM_NO_INTERSECTION` |
+| The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start; Face: its ends cross | Point: `depth`, `endBound`, `secondDirectionBound`; Face: `face`, `faceEndType` | none |
+| The `<name>`'s ends must be flat. | error | Point, Up to next: the next face is curved | the bound's parameters, the face | none |
+| std's `EXTRUDE_FAILED` (Failed to extrude selections, check input.) | error | Point: up to next finds nothing in front of the point, or an up to face runs along the extrude | the bound's parameters (and face) | itself |
+| std's `EXTRUDE_SELECT_TERMINATING_SURFACE`, `EXTRUDE_SELECT_TERMINATING_VERTEX` | error | Point, Up to face / vertex with nothing selected | the bound's parameters | themselves |
+| std's `EXTRUDE_SELECT_DIRECTION`, `EXTRUDE_DIRECTION_INVALID_ENTITY` | error | Point, Direction on: no direction, or not a direction | `extrudeDirection` | themselves |
+| The `<name>` exceeds the max length sold by the vendor (`<longest>`). | warning | the stock is longer than its longest `stock` length | `edge`, `face`, `startHole` and `endHole`, or `depth` (`selectionParameters`) | none |
+| The `<name>`'s length should be a multiple of `<unit>`. / ... should be `<extra>` more than a multiple of `<unit>`. | info | stock with holes isn't a regular length (see Tying holes) | | none |
 
 Lengths in messages and part names are `lengthString`: inches to 3 places for FRC (`6 in.`), millimeters to 1 place
 for FTC (`136 mm`).
@@ -54,35 +65,43 @@ for FTC (`136 mm`).
 
 With Show tied holes, tied holes and the end face are colored `TIED_HOLE_COLOR` (Color tied holes) or shown as blue
 debug entities; tying by Length also shows a blue rectangle across the stock where tied holes start (`showTieMark`).
-Frames are also tagged for std's frame features (`core/frameTags.fs`): their profile and swept faces, and the faces
-their ends are cut to.
+Frames are also tagged for std's frame features (`core/frameTags.fs`): their swept faces, the faces their ends are cut
+and trimmed to, and (once it's trimmed, on the body it ended up as) their profile.
 
 ## How it works
 
 ### Execution order
 
-1. **Precondition**: the feature's parameters, then `stockLocationPredicate` (the Position group: Edge or Point, and
-   their options, Point's extrude options being std's, from `core/stdExtrude.fs`; then, on an edge, the Trim ends
-   group) and `tieHolesPredicate`.
+1. **Precondition**: the feature's parameters, then `stockLocationPredicate` (the Position group: Edge, Face, Holes, or
+   Point, and their options, Point's extrude options being std's, from `core/stdExtrude.fs`; then, but for Point, the
+   Trim ends group) and `tieHolesPredicate`.
 2. **Editing logic** (the feature's, which calls `stockEditLogic`): nothing when the feature is created. On edge
    placement, turning an offset on (or changing the part, if the feature says so) sets it to the feature's default
-   offset, unless it's been set. On point placement, `newExtrudeEditLogicAlong` (`core/stdExtrude.fs`) points the
+   offset, unless it's been set. On face and hole placement, nothing. On point placement, `newExtrudeEditLogicAlong` (`core/stdExtrude.fs`) points the
    extrude at what it's up to and its second direction away from its first, as std's extrude does, along the axis
    from the selected point.
 3. **Body**: the feature builds its `Stock` and calls `placeStock`:
-   1. Where it goes: `edgePlacement` or `extrudePlacement` (below) give the `location` of its start (a coordinate
-      system with Z along it, oriented by `orientStock`), its `length`, and, from point placement, the `startPlane` and
-      `endPlane` its ends are on if they're slanted.
-   2. The chosen nine point is moved onto the edge or point (`stockPointOffsets`), and `stockSpan` stretches the length
-      to reach the farthest corner of each slanted end, as an extrude up to a slanted face reaches it.
-   3. With Trim ends, `trimCuts` turns the selected faces into cuts (below).
+   1. Where it goes: `edgePlacement`, `facePlacement`, `holePlacement`, or `extrudePlacement` (below) give the
+      `location` of its start (a coordinate system with Z along it, oriented by `orientStock`), its `length`, and, from
+      face and point placement, the `startPlane` and `endPlane` its ends are on if they're slanted. Face and hole
+      placement also give the `normal` its top is toward, and have already put its top, middle, or bottom on the face or
+      holes' plane (`selectionShift`); hole placement warns if the holes are off its hole pattern.
+   2. Along an edge or from a point, the chosen nine point is moved onto the edge or point (`stockPointOffsets`). Then
+      `stockSpan` stretches the length to reach the farthest corner of each slanted end, as an extrude up to a slanted
+      face reaches it.
+   3. With Trim ends, `trimCuts` turns the selected faces into cuts, and `partTrims` says which end each selected part
+      trims (below).
    4. The feature's builder builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
    5. `setStockProperties` names it and sets its properties.
-   6. The nine point and flip manipulators are added (and, by `edgePlacement`, the offset manipulators; by
-      `extrudePlacement`, std's depth and flip manipulators, from the point moved by the starting offset).
+   6. Along an edge or from a point, the nine point manipulator is added; on a face or between holes, the three point
+      manipulator (`addSelectionAtManipulator`: its top, middle, and bottom along the normal, halfway along it). Then the
+      flip manipulator (and, by `edgePlacement`, the offset manipulators; by `extrudePlacement`, std's depth and flip
+      manipulators, from the point moved by the starting offset).
    7. Tied holes are shown, then a warning if it's longer than it's sold, or else info if it isn't a regular length.
-4. **Manipulator change** (`stockManipulatorChange`): the nine point, flip, and offset manipulators set their
-   parameters; std's extrude manipulators set depth and direction (`extrudeManipulatorChange`).
+4. **Manipulator change** (`stockManipulatorChange`): the nine point and flip manipulators set their parameters; on a
+   face or between holes, the three point manipulator sets Face at or Holes at (its points in `SELECTION_AT_POINTS`'
+   order); along an edge, the offset manipulators set the offsets; from a point, std's extrude manipulators set depth
+   and direction (`extrudeManipulatorChange`).
 
 ### Placing
 
@@ -98,6 +117,39 @@ moves its end in along the edge, or out past it with its Opposite direction (`ed
 manipulator past the edge's end sets that. Each offset
 moves its end in from the end of the edge, or out past it when it's negative; its Opposite direction reverses it
 (`edgeOffset`), and dragging an offset's manipulator past the end of the edge flips it.
+
+`facePlacement`: the face is one of the stock's sides, as a rectangle drawn in a sketch where a tube goes is (a
+sketch region is a face):
+
+1. Its direction (`faceDirection`): its longest straight edge's, preferring edges across which the face is as wide as
+   one of the stock's sides (measured with `evBox3d` square to each), so a short mitered face runs along its sides, not
+   its miters.
+2. Centered across the face, along its middle. Turned so its side as wide as the face is on it: X (up, as along a
+   sketch's edge) out of the face, unless the face is only as wide as the stock's `width` (its X side), when X is across
+   it. The rotate button turns it from there. A face as wide as neither side is allowed (a nut strip on the inside of
+   a tube), and isn't reported.
+3. Its ends (`faceEnds`): the face's edges which aren't straight sides along it, split by which half of it their middles
+   are in. Match face cuts each end along its one straight edge, square to the face (a slanted end: a drawn miter is
+   mitered); Square, longest ends square at the face's extent (the farthest of each end's edges); Square, shortest at
+   the nearest (where both sides of a mitered face reach, for a butt joint into the stock it's mitered with).
+4. Face at puts its top (the side the face's normal points to), middle, or bottom on the face (`selectionShift`, by its
+   thickness along the normal, `profileThickness`).
+
+`holePlacement`: between two holes (circular edges, sketch points, or mate connectors), lined up with them:
+
+1. Each hole's plane (`holePlane`, from `selectionPlane`): at its center, facing out of the part it's in, as the flat
+   face around the hole's edge does (or a sketch's region, for a sketch circle); a sketch point's sketch's, and a mate
+   connector's XY. Their axes must be parallel, and the stock runs from the start hole toward the end hole, in the start
+   hole's plane.
+2. Its X is along the holes' axis (the rotate button turns it), so the holes through its walls facing the axis (X's, or
+   Y's) line up with them; it's an error if those walls have none.
+3. The hole it lines up by (`alignedHole`): of those rows' holes, the one nearest the middle of its face, then the
+   nearest its start (MAXSpline cutouts aren't holes). That hole is on the start hole (flipped, on the end hole): the
+   stock's start is its `position` back from it, and it's moved across by its `offset`.
+4. It's `2 * position` longer than the distance between the holes, as far past each as its first hole is from its
+   start, so a whole number of that row's pitch apart, the far hole lines up too, and it's a regular length when the
+   hole is at `tieStart`. Otherwise a warning says the holes aren't a multiple of the pitch apart.
+5. Holes at puts its top, middle, or bottom on the start hole's plane, as Face at does.
 
 `extrudePlacement` works out where an extrude from the selected point would go, without extruding, as std's extrude
 decides it:
@@ -116,10 +168,18 @@ decides it:
 
 ### Trimming
 
+Trim ends is along an edge, on a face, or between holes (an extrude has its own bounds). Trimming only ever shortens
+stock: it's placed as it would be, then cut. Holes are laid out on the untrimmed length, so tied holes count from the
+untrimmed end.
+
 `trimCuts`: each selected face (or mate connector) cuts the stock with its plane, keeping the side the face faces (out
-of the part it's a face of, or along a mate connector's Z) and removing the rest. Trimming only ever shortens stock:
-it's built along the edge between its offsets, then cut. A face whose plane misses the stock, or would cut all of it
-away, is an error. Holes are laid out on the untrimmed length, so tied holes count from the untrimmed end.
+of the part it's a face of, or along a mate connector's Z) and removing the rest. A face whose plane misses the stock,
+or would cut all of it away, is an error.
+
+`partTrims`: each selected part trims the end it's nearer (by the middle of where its box is alongside the stock), as
+std's Frame's Parts to trim to does: the builder subtracts it (keeping the part), keeps the piece with the stock's other
+end, and deletes the rest, so a part crossing near an end cuts it off there, and a tube's end against a round tube is
+coped to it. Unlike std's, the stock isn't first extended to reach the part.
 
 ### Cut stock (`cutStock.fs`, `buildCutStock`)
 
@@ -131,10 +191,14 @@ Frames and nut strips are built this way:
 2. Frames are tagged as frames.
 3. Holes are cut. Each row's holes go at `holePositions`; booleans are slow, so each row has one seed (a tool for its
    first hole), seeds patterned the same way are grouped (`seedGroups`), and each group is cut with one boolean and
-   face patterned along the stock (`cutHoles`). Tied holes get their own seed at the last of them, patterned back
-   toward the start, so their identities count from the end.
+   face patterned along the stock (`cutHoles`). A pattern's instances are named (`holeInstances`): by each hole's count
+   from the start, or for tied holes, from the end (`e0` is the last), so tied holes' identities count from the end,
+   with no seed or pattern of their own. When every hole is tied, the seed is the last hole, patterned back toward the
+   start.
 4. It's cut to its ends and trims (`trimBeyond`: subtracting a block beyond each plane): its slanted ends, its end (if
-   it was built longer for its holes), and each trim. Frames' cut faces are tagged as their caps.
+   it was built longer for its holes), and each trim. Then it's trimmed to each part (`partTrims`, above). Frames' cut
+   and trimmed faces are tagged as their caps, and then the body it ended up as with its profile (a boolean splitting a
+   body keeps its attributes on only one of the pieces).
 5. Tapped stock (nut strips) gets hole attributes and cosmetic threads on its remaining holes
    (`setTappedThroughHoles`, `core/tappedHole.fs`), after cutting so holes the cuts removed aren't threaded.
 
@@ -150,13 +214,15 @@ so both ends have the same margin (`isRegularLength`).
 
 Errors are thrown with `regenError`, naming the parameters to highlight. Selections are checked before they're used
 (`verifyNonemptyQuery`, `isQueryEmpty`), and placements are checked before anything is built, so errors leave nothing
-behind. Warnings and info don't stop the feature.
+behind; only trimming to parts is checked as it's done (after the stock is built, which the error rolls back), since
+whether a part trims it is the boolean's to say. Warnings and info don't stop the feature.
 
 ### `try`s
 
 | Where | What it guards | When it fails |
 | --- | --- | --- |
 | `stockEditLogic` (`try silent`) | Finding the extrude's axis in editing logic | No point or direction selected yet: no axis, so editing logic sets no flips. A guard, not a fallback. |
+| `buildCutStock` (`try`) | Subtracting a part to trim to | Replaces the boolean's error with "Failed to trim to the selected part.", showing the part. Not a fallback. |
 
 There are no fallbacks.
 
@@ -167,3 +233,9 @@ There are no fallbacks.
 - "Sketch point to place `<name>`" also takes circles and mate connectors.
 - Cutting the end to length (stock with holes is built longer) replaces the extrude's end cap with the cut's face, so
   references to the end face follow the cut, not the extrude.
+- On a face as wide as neither of the stock's sides (a wrong size of frame, say), the stock is centered on it and
+  nothing says so; a warning would also show for every nut strip placed on a tube's inside face.
+- Holes are picked by their edges (or sketch points), not their cylindrical faces, which are easier to click: a
+  cylinder doesn't say which of its ends is on the part's face the stock goes on.
+- Square, shortest on a face with rounded corners ends where the rounding starts, not at the flat of its end.
+- Trimming to parts doesn't extend the stock to reach a part first, as std's Frame does.

@@ -9,10 +9,10 @@ import(path : "e316d3a31f8726cbc70fe081", version : "1ced5f9252d960ede6fe5632");
 export import(path : "9fc889bb93a3c29feb4f9ae5", version : "3eb159cc8a1f8aa01f9bed32");
 
 /**
- * Places a nut strip along an edge, or extrudes one from a point.
+ * Places a nut strip along an edge, on a face, or between holes, or extrudes one from a point.
  */
 annotation { "Feature Type Name" : "Robot nut strip",
-        "Feature Type Description" : "Add a nut strip along an edge, such as an inside edge of tube, or extrude one from a point." ~ CREDIT,
+        "Feature Type Description" : "Add a nut strip along an edge or a face, such as inside a tube, or between holes, or extrude one from a point." ~ CREDIT,
         "Manipulator Change Function" : "stockManipulatorChange",
         "Editing Logic Function" : "robotNutStripEditLogic",
         "Icon" : RobotNutStripIcon::BLOB_DATA

@@ -1,7 +1,7 @@
 # Robot nut strip
 
-Adds a nut strip, a solid bar of tapped holes for bolting through tube, along an edge (such as an inside edge of tube),
-or extrudes one from a point. The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md),
+Adds a nut strip, a solid bar of tapped holes for bolting through tube, along an edge or a face (such as inside a tube),
+or between holes, or extrudes one from a point. The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md),
 which this writeup doesn't repeat.
 
 | File | What it is |
@@ -21,7 +21,7 @@ Unreleased.
 | String | Where |
 | --- | --- |
 | Robot nut strip | feature name |
-| Add a nut strip along an edge, such as an inside edge of tube, or extrude one from a point. `<CREDIT>` | feature description |
+| Add a nut strip along an edge or a face, such as inside a tube, or between holes, or extrude one from a point. `<CREDIT>` | feature description |
 
 ### Descriptions and hidden parameters
 

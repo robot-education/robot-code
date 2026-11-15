@@ -1,7 +1,7 @@
 # Robot frame
 
-Adds tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so std's frame
-features work with it. Frames are COTS (from vendors' tables) or custom (a common size of tube or angle, or any size,
+Adds tube, channel, angle, or extrusion along an edge, on a face, or between holes, or extrudes it from a point, tagged
+as a frame so std's frame features work with it. Frames are COTS (from vendors' tables) or custom (a common size of tube or angle, or any size,
 with holes as the dialog says). The placing and building are linear stock's; see [linearStock.md](../core/linearStock.md), which this
 writeup doesn't repeat.
 
@@ -17,6 +17,21 @@ writeup doesn't repeat.
 
 Since v1.2.0 (`fs changes robotFrame`).
 
+- Tied holes are cut by the same seeds and patterns as the rest, their pattern instances named by their count from the
+  end, rather than by seeds and patterns of their own: fewer operations, but tied holes' faces have new identities, so
+  references to them (and to the holes near the start) in existing documents need fixing once.
+- Face selection type: the frame on a face as one of its sides (like a rectangle drawn in a sketch where a tube goes),
+  along its longest straight edge, centered across it, and turned so its side as wide as the face is on it. End type
+  ends it along the face's ends (Match face, so a drawn miter is mitered) or square at the face's longest or shortest
+  length (Square, longest and Square, shortest, for butt joints). Face at (with a three point manipulator in the
+  middle) puts its top, middle, or bottom on the face.
+- Holes selection type: the frame between a start hole and an end hole (holes' edges, sketch points, or mate
+  connectors), with its middle hole facing them on the start hole, as far past each hole as its first hole is from
+  its start; a warning when the holes aren't a multiple of its hole spacing apart. Holes at (and its manipulator) puts
+  its top, middle, or bottom on the holes' plane.
+- Trim frame ends has Parts to trim to, as std's Frame does: each part cuts off the end it's nearer (coping it, for a
+  round tube), and Trim frame ends is offered on faces and between holes too.
+- Its description mentions faces and holes.
 - The Custom size's Height is its size up (along X, the sketch's normal for a frame along a sketch's edge) and its Width
   across, where they were the other way around: an existing Custom size frame turns onto its side. They default to
   2 in. and 1 in., a 2x1 standing on a 1 in. face like the table's.
@@ -39,7 +54,7 @@ Since v1.2.0 (`fs changes robotFrame`).
 | String | Where |
 | --- | --- |
 | Robot frame | feature name |
-| Add tube, channel, angle, or extrusion along an edge, or extrude it from a point. `<CREDIT>` | feature description |
+| Add tube, channel, angle, or extrusion along an edge, on a face, or between holes, or extrude it from a point. `<CREDIT>` | feature description |
 
 ### Descriptions and hidden parameters
 

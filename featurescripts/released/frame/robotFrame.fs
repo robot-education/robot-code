@@ -42,11 +42,11 @@ const HEIGHT_BOUNDS = { (meter) : [1e-5, 0.0508, 500], (inch) : 2, (millimeter) 
 const ROWS_BOUNDS = { (unitless) : [1, 1, 100] } as IntegerBoundSpec;
 
 /**
- * Places tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so the std
- * frame features work with it.
+ * Places tube, channel, angle, or extrusion along an edge, on a face, or between holes, or extrudes it from a point,
+ * tagged as a frame so the std frame features work with it.
  */
 annotation { "Feature Type Name" : "Robot frame",
-        "Feature Type Description" : "Add tube, channel, angle, or extrusion along an edge, or extrude it from a point." ~ CREDIT,
+        "Feature Type Description" : "Add tube, channel, angle, or extrusion along an edge, on a face, or between holes, or extrude it from a point." ~ CREDIT,
         "Manipulator Change Function" : "stockManipulatorChange",
         "Editing Logic Function" : "robotFrameEditLogic",
         "Icon" : RobotFrameIcon::BLOB_DATA
