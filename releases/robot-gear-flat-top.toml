@@ -1,0 +1,4 @@
+script = "robotGear"
+bump = "minor"
+description = "Adds Flat top to bevel gears"
+publish = true

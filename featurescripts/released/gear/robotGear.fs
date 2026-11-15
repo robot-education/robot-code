@@ -341,8 +341,8 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             // by it (see `bevelShape`)
             if (definition.gearType == GearType.BEVEL)
             {
-                annotation { "Name" : "Solid top", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.solidTop is boolean;
+                annotation { "Name" : "Flat top", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.flatTop is boolean;
             }
 
             // Without it, the roots are sharp
@@ -899,12 +899,12 @@ export function bevelDepths(definition is map, module is ValueWithUnits, teeth i
  * its teeth's depths (see `bevelDepths`), its `bottom` (its flat back, under its teeth's back ends), its `top` (the
  * highest it reaches), its `topFace` (flat, square to its axis), its `apex`, and its `faceWidth`, how far its teeth run
  * along its pitch cone from its back. Its teeth end at its top face, cut off by it, so its top is its top face, and its
- * teeth reach it at their pitch cone. With Solid top (`solidTop`), they end instead at its front cone, square to its
+ * teeth reach it at their pitch cone. With Flat top (`flatTop`), they end instead at its front cone, square to its
  * pitch cone (as its back cone is at its back): their tips there are its top, and their roots there its top face, so
  * they stand above it, its whole round face (`tipFront` and `rootFront`, as points `(r, z)`, `r` out from its axis).
  * Either way, its top is Thickness above its bottom. A gear's face width is from its thickness; its mate's is the gear's
  * (`definition.faceWidth`, see `mateDefinition`), so their teeth meet end to end. Errors if the gear (or its mate) is
- * too thin for its teeth to reach its top, or so thick its top reaches its apex, or with Solid top, its tips (coming
+ * too thin for its teeth to reach its top, or so thick its top reaches its apex, or with Flat top, its tips (coming
  * down toward its apex, as Gleason's do) reach its pitch cone before its front cone.
  *
  * @returns {{
@@ -915,8 +915,8 @@ export function bevelDepths(definition is map, module is ValueWithUnits, teeth i
  *      @field topFace {ValueWithUnits} :
  *      @field apex {ValueWithUnits} :
  *      @field faceWidth {ValueWithUnits} :
- *      @field tipFront {Vector} : With Solid top.
- *      @field rootFront {Vector} : With Solid top.
+ *      @field tipFront {Vector} : With Flat top.
+ *      @field rootFront {Vector} : With Flat top.
  * }}
  */
 export function bevelShape(definition is map, module is ValueWithUnits, teeth is number) returns map
@@ -954,7 +954,7 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
         {
             throw regenError("Selected thickness is too large, decrease the value.", ["thickness"]);
         }
-        if (definition.solidTop)
+        if (definition.flatTop)
         {
             // Its tips rise from its back to its top
             faceWidth = (top - tipHeight(depths.addendum, pitchAngle)) / faceRise;
@@ -979,7 +979,7 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
         "apex" : apex,
         "faceWidth" : faceWidth
     };
-    if (definition.solidTop)
+    if (definition.flatTop)
     {
         // Its tips coming down toward its apex (Gleason's) reach its pitch cone before its front cone
         const frontAddendum = depths.addendum - faceWidth * tan(depths.faceAngle);
@@ -1005,15 +1005,15 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
 /**
  * A bevel gear's section through its axis (`shape`, as `bevelShape` gives it), as points `(r, z)`: `r` out from its
  * axis, `z` along it from its back's pitch circle. Its `outline` runs across its flat bottom, out to its back cone (its
- * teeth's roots and tips at its back), up its face cone (its tips') toward its apex to its top face (or with Solid top,
+ * teeth's roots and tips at its back), up its face cone (its tips') toward its apex to its top face (or with Flat top,
  * to its front cone, and down that to its teeth's roots there, on its top face), and in to its axis across its top face.
  * A pair's front cones, at the same cone distance, meet along the line their teeth touch on, as their back cones do.
- * With Solid top, its `solid` is what its gaps mustn't cut: from its front cone toward its apex, from where the cone
+ * With Flat top, its `solid` is what its gaps mustn't cut: from its front cone toward its apex, from where the cone
  * meets the axis out past its tips, and up past them.
  *
  * @returns {{
  *      @field outline {array} :
- *      @field solid {array} : With Solid top.
+ *      @field solid {array} : With Flat top.
  * }}
  */
 export function bevelSection(shape is map) returns map
@@ -1050,7 +1050,7 @@ export function bevelSection(shape is map) returns map
  * with Root fillet None), and with a router bit, slots where the bit can't reach them. In steps:
  *
  * 1. Its blank: revolved from its section through its axis (`bevelSection`): its flat bottom, out to its back cone, up
- *    that to its face cone (its tips'), along that toward the apex to its flat top face (or with Solid top, its front
+ *    that to its face cone (its tips'), along that toward the apex to its flat top face (or with Flat top, its front
  *    cone, and down that to its teeth's roots there, on its top face), and back to its axis.
  * 2. A tooth gap (`sketchToothGap`), on the plane square to its pitch cone at the middle of the gap after its first
  *    tooth, lofted to the same gap scaled toward the apex. Scaled about the apex, its flanks run straight to it. It runs
@@ -1060,7 +1060,7 @@ export function bevelSection(shape is map) returns map
  *    narrowest, see `bevelBitRoot`), a slot the bit's width straight down the gap's middle to its root, as a ball end
  *    bit square to the root cuts running along it toward the apex, joined to the gap. Where it's wide, the bit cuts the
  *    full round, and the slot's inside it. A slot meeting the flanks above the pitch cone at the small end is an error.
- * 4. With Solid top, the gap less what's in front of its front cone (`bevelSection`'s `solid`, revolved), so its teeth
+ * 4. With Flat top, the gap less what's in front of its front cone (`bevelSection`'s `solid`, revolved), so its teeth
  *    end there, and its top is whole.
  * 5. The gap, patterned around the axis once per tooth, and cut from the blank.
  *
@@ -1200,8 +1200,8 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         }
     }
 
-    // 4. With Solid top, the gap less what's in front of its front cone
-    if (definition.solidTop)
+    // 4. With Flat top, the gap less what's in front of its front cone
+    if (definition.flatTop)
     {
         const solidSketch = newSketchOnPlane(context, id + "solidSection", { "sketchPlane" : sectionPlane });
         for (var i, point in section.solid)
@@ -1216,7 +1216,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
                 });
         try silent
         {
-            opBoolean(context, id + "solidTop", {
+            opBoolean(context, id + "flatTop", {
                         "targets" : gap,
                         "tools" : qCreatedBy(id + "solid", EntityType.BODY),
                         "operationType" : BooleanOperationType.SUBTRACTION
@@ -1224,7 +1224,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         }
         catch
         {
-            processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "solidTop", "propagateErrorDisplay" : true });
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "flatTop", "propagateErrorDisplay" : true });
             throw regenError("Failed to create bevel gear teeth.", ["teeth", "bevelMateTeeth", "thickness"], gap);
         }
     }
