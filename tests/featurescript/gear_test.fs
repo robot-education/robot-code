@@ -260,6 +260,34 @@ export function testBevelMateHasTheGearsFaceWidth()
     expectNear(mate.top, gear.faceWidth * cos(mate.cones.gear.pitchAngle), 1e-12 * meter);
 }
 
+export function testBevelSolidTopStopsAtItsPitchCircleThere()
+{
+    for (var shaftAngle in [45 * degree, 90 * degree, 110 * degree])
+    {
+        for (var teeth in [[20, 30], [30, 20]])
+        {
+            const gear = bevel(teeth[0], teeth[1], shaftAngle, 0.3 * inch, false);
+            var definition = bevelDefinition(teeth[0], shaftAngle, 0.3 * inch, false);
+            definition.faceWidth = gear.faceWidth;
+            const mate = bevelShape(definition, MODULE, teeth[1]);
+            // Its pitch circle at its top, where its mate's teeth end
+            expectNear(bevelSolidRadius(gear, shaftAngle, gear.top), (gear.apex - gear.top) * tan(gear.cones.gear.pitchAngle), 1e-12 * meter);
+            // Anywhere along it, turned toward its mate, it's on the mate's top
+            for (var height in [gear.bottom, gear.top])
+            {
+                const radius = bevelSolidRadius(gear, shaftAngle, height);
+                expectNear((gear.apex - height) * cos(shaftAngle) + radius * sin(shaftAngle), mate.apex - mate.top, 1e-12 * meter);
+            }
+        }
+    }
+}
+
+export function testBevelSolidTopIsRoundAtRightAngles()
+{
+    const gear = bevel(20, 20, 90 * degree, 0.25 * inch, false);
+    expectNear(bevelSolidRadius(gear, 90 * degree, gear.bottom), bevelSolidRadius(gear, 90 * degree, gear.top), 1e-12 * meter);
+}
+
 export function testGleasonAddendaShareTheWorkingDepth()
 {
     // At right angles, the gear's is 0.54 m + 0.46 m over the ratio squared, and the pinion's the rest of 2 m

@@ -337,6 +337,13 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
 
+            // A bevel gear's top is a solid face, its gaps stopping where its mate never reaches (see `bevelSolidRadius`)
+            if (definition.gearType == GearType.BEVEL)
+            {
+                annotation { "Name" : "Solid top", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.solidTop is boolean;
+            }
+
             // Without it, the roots are sharp
             annotation { "Name" : "Root fillet", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.addRootFillet is boolean;
@@ -955,6 +962,20 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
 }
 
 /**
+ * How far out from a bevel gear's axis its mate never reaches, at `height` along its axis from its back's pitch circle
+ * (`shape`, as `bevelShape` gives it). Its mate's teeth end at its top, square to its axis, its face width from its
+ * back; a point `s` from the apex along the gear's axis and `r` out from it comes, turning around it, `s cos Σ + r sin
+ * Σ` from the apex along the mate's axis at most, so inside the cone where that's the mate's top, the mate never
+ * reaches it. The cone meets the gear's pitch cone where its mate's teeth end: at the gear's top, its pitch circle
+ * there. With Solid top, its gaps stop there.
+ */
+export function bevelSolidRadius(shape is map, shaftAngle is ValueWithUnits, height is ValueWithUnits) returns ValueWithUnits
+{
+    const mateTop = (shape.cones.gear.coneDistance - shape.faceWidth) * cos(shape.cones.mate.pitchAngle);
+    return (mateTop - (shape.apex - height) * cos(shaftAngle)) / sin(shaftAngle);
+}
+
+/**
  * A straight bevel gear, with spherical involute teeth (`sphericalBevelForm`), or approximate, by Tredgold's
  * approximation (its back cone's virtual spur gear's, see `bevelCones`); with its pitch circle on `gearPlane` (its
  * back) and its apex in front of it, along its normal, as `bevelShape` shapes it. Its roots are full rounds (or sharp,
@@ -970,12 +991,16 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
  *    narrowest, see `bevelBitRoot`), a slot the bit's width straight down the gap's middle to its root, as a ball end
  *    bit square to the root cuts running along it toward the apex, joined to the gap. Where it's wide, the bit cuts the
  *    full round, and the slot's inside it. A slot meeting the flanks above the pitch cone at the small end is an error.
- * 4. The gap, patterned around the axis once per tooth, and cut from the blank.
+ * 4. With Solid top, the gap less where its mate never reaches (`bevelSolidRadius`), revolved from its section: from a
+ *    tooth's height below its bottom to a tooth's height above its top, out to that cone, so its top is solid inside its
+ *    pitch circle there.
+ * 5. The gap, patterned around the axis once per tooth, and cut from the blank.
  *
  * @returns {{
  *      @field body {Query} :
  *      @field apex {Vector} :
- *      @field hubRadius {ValueWithUnits} : Where its root cone reaches its top: inside it, it's solid all the way through.
+ *      @field hubRadius {ValueWithUnits} : Where its root cone reaches its top (or with Solid top, where its gaps stop,
+ *              if that's further out): inside it, it's solid all the way through.
  * }}
  */
 function buildBevelGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
@@ -1110,7 +1135,62 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         }
     }
 
-    // 4. Patterned once per tooth, and cut from the blank
+    // 4. With Solid top, the gap less where its mate never reaches: revolved from its section, inside that cone (clipped
+    // at the axis), from a tooth's height below the bottom to a tooth's height above the top, so it reaches past the blank
+    var hubRadius = dot(rootBack - gearPlane.origin, x) * rootTop;
+    if (definition.solidTop)
+    {
+        var ends = [shape.bottom - height, shape.top + height];
+        var radii = mapArray(ends, end => bevelSolidRadius(shape, definition.shaftAngle, end));
+        // The cone is linear along the axis, and outside the axis at the top (through its pitch circle there)
+        for (var i in [0, 1])
+        {
+            if (radii[i] <= TOLERANCE.zeroLength * meter)
+            {
+                ends[i] = ends[i] + (ends[1 - i] - ends[i]) * radii[i] / (radii[i] - radii[1 - i]);
+                radii[i] = 0 * meter;
+            }
+        }
+        var outline = [vector(0 * meter, ends[0])];
+        for (var i in [0, 1])
+        {
+            if (radii[i] > 0 * meter)
+            {
+                outline = append(outline, vector(radii[i], ends[i]));
+            }
+        }
+        outline = append(outline, vector(0 * meter, ends[1]));
+        const solidSketch = newSketchOnPlane(context, id + "solidSection", { "sketchPlane" : sectionPlane });
+        for (var i, point in outline)
+        {
+            skLineSegment(solidSketch, "line" ~ i, { "start" : point, "end" : outline[(i + 1) % size(outline)] });
+        }
+        skSolve(solidSketch);
+        opRevolve(context, id + "solid", {
+                    "entities" : qCreatedBy(id + "solidSection", EntityType.FACE),
+                    "axis" : line(gearPlane.origin, axis),
+                    "angleForward" : 360 * degree
+                });
+        try silent
+        {
+            opBoolean(context, id + "solidTop", {
+                        "targets" : gap,
+                        "tools" : qCreatedBy(id + "solid", EntityType.BODY),
+                        "operationType" : BooleanOperationType.SUBTRACTION
+                    });
+        }
+        catch
+        {
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "solidTop", "propagateErrorDisplay" : true });
+            throw regenError("Failed to create bevel gear teeth.", ["teeth", "bevelMateTeeth", "thickness"], gap);
+        }
+        // Solid all the way through inside the blank's back and top, and the cone at the bottom and top
+        const solidRadius = min([dot(rootBack - gearPlane.origin, x), dot(tipTop - gearPlane.origin, x),
+                    bevelSolidRadius(shape, definition.shaftAngle, shape.bottom), bevelSolidRadius(shape, definition.shaftAngle, shape.top)]);
+        hubRadius = max(hubRadius, solidRadius);
+    }
+
+    // 5. Patterned once per tooth, and cut from the blank
     var transforms = [];
     var names = [];
     for (var i = 1; i < teeth; i += 1)
@@ -1138,7 +1218,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         throw regenError("Failed to cut bevel gear teeth.", ["teeth", "bevelMateTeeth", "thickness"], gaps);
     }
     cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
-    return { "body" : blank, "apex" : apex, "hubRadius" : dot(rootBack - gearPlane.origin, x) * rootTop };
+    return { "body" : blank, "apex" : apex, "hubRadius" : hubRadius };
 }
 
 /**
