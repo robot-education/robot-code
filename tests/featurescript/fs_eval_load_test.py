@@ -4,8 +4,6 @@ fails here, rather than when a test is first written for it."""
 
 import pathlib
 
-import pytest
-
 from fs_eval import ast
 from fs_eval.pytest_plugin import shared_evaluator
 
@@ -13,9 +11,12 @@ CODE = pathlib.Path(__file__).parents[2] / "featurescripts"
 FILES = sorted(path for path in CODE.rglob("*.fs") if ".local." not in path.name)
 
 
-@pytest.mark.parametrize("path", FILES, ids=lambda path: str(path.relative_to(CODE)))
-def test_loads_and_its_constants_evaluate(path):
-    module = shared_evaluator().module(path.resolve())
-    for declaration in module.program.declarations:
-        if type(declaration) is ast.ConstDecl:
-            module.resolve(declaration.name)
+def test_every_file_loads_and_its_constants_evaluate():
+    for path in FILES:
+        try:
+            module = shared_evaluator().module(path.resolve())
+            for declaration in module.program.declarations:
+                if type(declaration) is ast.ConstDecl:
+                    module.resolve(declaration.name)
+        except Exception as error:
+            raise AssertionError(f"{path.relative_to(CODE).as_posix()}: {error}") from error

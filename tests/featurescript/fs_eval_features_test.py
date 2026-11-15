@@ -161,33 +161,29 @@ FIRST_OPERATIONS = ["TAPPED_HOLE", "CLEARANCE_HOLE", "RETAINING_RING", "CAPTIVE_
 METRIC_FIRST_OPERATIONS = ["TAPPED_HOLE", "CLEARANCE_HOLE", "E_CLIP", "CAPTIVE_SHAFT"]
 
 
-@pytest.mark.parametrize("shaft", SHAFTS)
-@pytest.mark.parametrize("index", range(4))
-def test_first_end_predicates_match_its_operation(shaft, index):
-    overrides = {
-        **shaft,
-        "firstEndOperation": f"EndOperation.{FIRST_OPERATIONS[index]}",
-        "firstEndMetricOperation": f"MetricEndOperation.{METRIC_FIRST_OPERATIONS[index]}",
-    }
-    operation = str(evaluate(f"getEndOperation({shaft_definition(**overrides)}, ShaftEnd.FIRST)", SHAFT)).split(".")[-1]
-    assert shaft_is("isTappedFirstEnd", **overrides) is (operation == "TAPPED_HOLE")
-    assert shaft_is("isClearanceFirstEnd", **overrides) is (operation == "CLEARANCE_HOLE")
-    assert shaft_is("isGrooveFirstEnd", **overrides) is (operation == "RETAINING_RING")
-    # A clearance hole goes through, so there's no second end to choose
-    assert shaft_is("cannotSpecifySecondEnd", **overrides) is (operation == "CLEARANCE_HOLE")
-
-
-@pytest.mark.parametrize("shaft", SHAFTS)
-@pytest.mark.parametrize("index", range(3))
-def test_second_end_predicates_match_its_operation(shaft, index):
-    overrides = {
-        **shaft,
-        "secondEndOperation": f"SecondEndOperation.{['TAPPED_HOLE', 'RETAINING_RING', 'CAPTIVE_SHAFT'][index]}",
-        "secondEndMetricOperation": f"MetricSecondEndOperation.{['TAPPED_HOLE', 'E_CLIP', 'CAPTIVE_SHAFT'][index]}",
-    }
-    operation = str(evaluate(f"getEndOperation({shaft_definition(**overrides)}, ShaftEnd.SECOND)", SHAFT)).split(".")[-1]
-    assert shaft_is("isTappedSecondEnd", **overrides) is (operation == "TAPPED_HOLE")
-    assert shaft_is("isGrooveSecondEnd", **overrides) is (operation == "RETAINING_RING")
+def test_end_predicates_match_their_operations():
+    for shaft in SHAFTS:
+        for index in range(4):
+            overrides = {
+                **shaft,
+                "firstEndOperation": f"EndOperation.{FIRST_OPERATIONS[index]}",
+                "firstEndMetricOperation": f"MetricEndOperation.{METRIC_FIRST_OPERATIONS[index]}",
+            }
+            operation = str(evaluate(f"getEndOperation({shaft_definition(**overrides)}, ShaftEnd.FIRST)", SHAFT)).split(".")[-1]
+            assert shaft_is("isTappedFirstEnd", **overrides) is (operation == "TAPPED_HOLE")
+            assert shaft_is("isClearanceFirstEnd", **overrides) is (operation == "CLEARANCE_HOLE")
+            assert shaft_is("isGrooveFirstEnd", **overrides) is (operation == "RETAINING_RING")
+            # A clearance hole goes through, so there's no second end to choose
+            assert shaft_is("cannotSpecifySecondEnd", **overrides) is (operation == "CLEARANCE_HOLE")
+        for index in range(3):
+            overrides = {
+                **shaft,
+                "secondEndOperation": f"SecondEndOperation.{['TAPPED_HOLE', 'RETAINING_RING', 'CAPTIVE_SHAFT'][index]}",
+                "secondEndMetricOperation": f"MetricSecondEndOperation.{['TAPPED_HOLE', 'E_CLIP', 'CAPTIVE_SHAFT'][index]}",
+            }
+            operation = str(evaluate(f"getEndOperation({shaft_definition(**overrides)}, ShaftEnd.SECOND)", SHAFT)).split(".")[-1]
+            assert shaft_is("isTappedSecondEnd", **overrides) is (operation == "TAPPED_HOLE")
+            assert shaft_is("isGrooveSecondEnd", **overrides) is (operation == "RETAINING_RING")
 
 
 def test_factory_end_shafts_specify_only_their_cut_end():
