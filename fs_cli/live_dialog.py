@@ -500,7 +500,8 @@ function lookupLevels(tree, path) {
     const names = node.entries.map(([name]) => name);
     let choice = choices[levels.length] ?? node.default;
     if (!names.includes(choice)) {
-      choice = names[0];
+      // Onshape's default without one: the first in key order, as FeatureScript maps are sorted
+      choice = names.includes(node.default) ? node.default : [...names].sort()[0];
     }
     levels.push([node, choice]);
     node = node.entries[names.indexOf(choice)][1];

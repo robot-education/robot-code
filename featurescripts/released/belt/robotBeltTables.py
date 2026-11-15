@@ -9,22 +9,24 @@ def teeth_node(teeth: list[int]) -> Node:
     return Node("teeth", [Value(f"{count}T", {"beltTeeth": str(count)}) for count in teeth])
 
 
-def supplier_node(suppliers: dict[str, list[int]]) -> Node:
-    """Maps each supplier to the tooth counts of the belts it sells. "Custom" is always added."""
+def supplier_node(suppliers: dict[str, list[int]], custom: bool = True) -> Node:
+    """Maps each supplier to the tooth counts of the belts it sells, then "Custom" (any teeth), unless `custom` is
+    false."""
     entries = [Value(name, next=teeth_node(teeth)) for name, teeth in suppliers.items()]
     # Custom needs no value, since it can be determined from the path
-    return Node("supplier", [*entries, Value("Custom")], display_name="Belt supplier")
+    return Node("supplier", [*entries, *([Value("Custom")] if custom else [])], display_name="Belt supplier")
 
 
 # A belt of a width no supplier sells, or a custom one: its width is the feature's Custom width
 CUSTOM_WIDTH = "Custom"
 
 
-def width_node(widths: list[tuple[str, str]], extra: list[Value] = ()) -> Node:
-    """Each width, by its name and its expression, then `extra` widths, then Custom (which has no beltWidth)."""
+def width_node(widths: list[tuple[str, str]], extra: list[Value] = (), custom: bool = True) -> Node:
+    """Each width, by its name and its expression, then `extra` widths, then Custom (which has no beltWidth), unless
+    `custom` is false."""
     return Node(
         "width",
-        [*(Value(name, {"beltWidth": width}) for name, width in widths), *extra, Value(CUSTOM_WIDTH)],
+        [*(Value(name, {"beltWidth": width}) for name, width in widths), *extra, *([Value(CUSTOM_WIDTH)] if custom else [])],
         display_name="Belt width",
     )
 
@@ -54,7 +56,8 @@ belt_type = Node(
         Value("3mm GT2", {"beltType": BeltType["_3_MM_GT2"]}, width_node(WIDTHS["3mm GT2"])),
         Value("3mm HTD", {"beltType": BeltType["_3_MM_HTD"]}, width_node(WIDTHS["3mm HTD"])),
         Value("5mm HTD", {"beltType": BeltType["_5_MM_HTD"]}, width_node(WIDTHS["5mm HTD"])),
-        Value("RT25", {"beltType": BeltType["RT25"]}, width_node(WIDTHS["RT25"])),
+        # REV's: a closed set, so no custom belts
+        Value("RT25", {"beltType": BeltType["RT25"]}, width_node(WIDTHS["RT25"], custom=False)),
     ],
     display_name="Belt type",
     default="5mm HTD",
@@ -146,13 +149,14 @@ belt = belt_type.with_next(
             },
             [RUBBER_COATED_15_MM],
         ),
-        "RT25": belt_widths("RT25", {"1/2 in.": supplier_node(
+        "RT25": width_node(WIDTHS["RT25"], custom=False).with_next({"1/2 in.": supplier_node(
             {
                 "REV": [
                     32, 36, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160,
                     168, 176, 184, 192, 200, 208, 216,
                 ]
-            }
+            },
+            custom=False,
         )}),
     }
 )

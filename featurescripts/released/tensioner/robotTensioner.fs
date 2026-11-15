@@ -46,8 +46,7 @@ export const robotBeltTuner = defineFeature(function(context is Context, id is I
 
         if (definition.adjustmentType == AdjustmentType.MOVE)
         {
-            annotation { "Name" : "Direction", "Filter" : QueryFilterCompound.ALLOWS_DIRECTION, "MaxNumberOfPicks" : 1,
-                        "Description" : "The direction to move it in, like along a slot." }
+            annotation { "Name" : "Direction", "Filter" : QueryFilterCompound.ALLOWS_DIRECTION, "MaxNumberOfPicks" : 1 }
             definition.direction is Query;
         }
     }

@@ -230,6 +230,14 @@ feature runs. Don't read or set it anywhere; a click only reaches editing logic,
   avoid. Report what the dialog's state calls for instead, in the body ("Click add ribs to add the highlighted ribs."
   while Quick rib's Quick add has selections), and let a click do nothing when there's nothing to do.
 
+## Defaults
+
+Default to the most common real option, never Custom: a lookup table level defaults to its first entry as written
+(list the most common first, and Custom last), and an enum to its first value or its `"Default"`. `fs gen` writes each
+level's `"default"` into the table, as without one Onshape picks the first in key order (FeatureScript maps are
+sorted, so "Custom" before "REV" and "goBILDA"). Offer Custom only where something custom exists: not for a closed
+system like REV's RT25 belts.
+
 ## Remember previous values
 
 Give parameters `"UIHint" : ["REMEMBER_PREVIOUS_VALUE"]` (alongside any other hints), so a new feature starts with
@@ -431,6 +439,10 @@ feature shows what failed itself (see "Failing, and carrying on").
   an operation which worked may have used up what a later error wants to show: a boolean consumes its tools, and its
   targets become its result. Show the user's selections instead (they're always there), or rebuild what was used up
   under another id, show it, and delete it, as std's `processNewBodyIfNeeded` does with its `reconstructOp`.
+- **Draw what's being laid out before checking it**: a feature which lays something out (a belt's or chain's path)
+  adds its manipulators and draws it first, so an error about it shows it, wrong as it is (a belt on the wrong side of
+  a pulley), rather than nothing. Where there's nothing to draw (no path around circles inside each other), show what
+  it's laid out from: `sketchCircles` and `sketchOpenPath` in `core/loop.fs` sketch them for an error's entities.
 - **Check for nothing left after each step which can leave nothing**: an enclose, a boolean, a filter. An empty
   result isn't an error to the operations after it, so without a check the feature carries on, does nothing, and
   ends with no result and no useful message. Throw at the step which emptied it, saying why, and showing what's left

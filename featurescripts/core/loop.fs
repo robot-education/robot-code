@@ -370,6 +370,63 @@ function tangentLine(center1 is Vector, radius1 is ValueWithUnits, center2 is Ve
 }
 
 /**
+ * Sketches `circles` (`BoundaryCircle`s, or maps of a `location` and `radius`; points, with no radius) on `plane`, to
+ * show them, as an error's entities, and returns their edges and points.
+ */
+export function sketchCircles(context is Context, id is Id, plane is Plane, circles is array) returns Query
+{
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    for (var i, circle in circles)
+    {
+        if (circle.radius > 0 * meter)
+        {
+            skCircle(sketch, "circle" ~ i, { "center" : circle.location, "radius" : circle.radius });
+        }
+        else
+        {
+            skPoint(sketch, "point" ~ i, { "position" : circle.location });
+        }
+    }
+    skSolve(sketch);
+    return qUnion([qCreatedBy(id, EntityType.EDGE), qCreatedBy(id, EntityType.VERTEX)]);
+}
+
+/**
+ * Sketches an open path (see `openPath`) on `plane`, its lines and its arcs around its circles, to show it, as an
+ * error's entities, and returns its edges.
+ */
+export function sketchOpenPath(context is Context, id is Id, plane is Plane, path is map) returns Query
+{
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    for (var i, line in path.lines)
+    {
+        if (!tolerantEquals(line[0], line[1]))
+        {
+            skLineSegment(sketch, "line" ~ i, { "start" : line[0], "end" : line[1] });
+        }
+    }
+    for (var i, arc in path.arcs)
+    {
+        if (tolerantEqualsZero(arc.sweep / radian))
+        {
+            continue;
+        }
+        const direction = arc.counterClockwise ? 1 : -1;
+        const at = function(angle is ValueWithUnits) returns Vector
+            {
+                return arc.center + vector(cos(angle), sin(angle)) * arc.radius;
+            };
+        skArc(sketch, "arc" ~ i, {
+                    "start" : at(arc.startAngle),
+                    "mid" : at(arc.startAngle + direction * arc.sweep / 2),
+                    "end" : at(arc.startAngle + direction * arc.sweep)
+                });
+    }
+    skSolve(sketch);
+    return qCreatedBy(id, EntityType.EDGE);
+}
+
+/**
  * Sketches the region of an open path (see `openPath`) thickened `left` and `right` of it (going from its start to its
  * end), with square ends, on `plane`, and returns it: `faces`, and `arcs`, the edges around each circle (a query
  * each).

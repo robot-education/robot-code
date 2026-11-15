@@ -20,14 +20,17 @@ export const beltTable = {
             "2mm GT2" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "6 mm",
                 "entries" : {
                     "6 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "goBILDA",
                         "entries" : {
                             "goBILDA" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "44T",
                                 "entries" : {
                                     "44T" : { "beltTeeth" : 44, "beltType" : BeltType._2_MM_GT2, "beltWidth" : 6 * millimeter },
                                     "68T" : { "beltTeeth" : 68, "beltType" : BeltType._2_MM_GT2, "beltWidth" : 6 * millimeter },
@@ -59,6 +62,7 @@ export const beltTable = {
                     "Custom" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "Custom",
                         "entries" : {
                             "Custom" : { "beltType" : BeltType._2_MM_GT2 },
                         },
@@ -68,14 +72,17 @@ export const beltTable = {
             "3mm GT2" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "9 mm",
                 "entries" : {
                     "9 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "WCP",
                         "entries" : {
                             "WCP" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "45T",
                                 "entries" : {
                                     "45T" : { "beltTeeth" : 45, "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
                                     "50T" : { "beltTeeth" : 50, "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
@@ -107,6 +114,7 @@ export const beltTable = {
                             "REV" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "55T",
                                 "entries" : {
                                     "55T" : { "beltTeeth" : 55, "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
                                     "85T" : { "beltTeeth" : 85, "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
@@ -124,6 +132,7 @@ export const beltTable = {
                     "Custom" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "Custom",
                         "entries" : {
                             "Custom" : { "beltType" : BeltType._3_MM_GT2 },
                         },
@@ -133,14 +142,17 @@ export const beltTable = {
             "3mm HTD" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "15 mm",
                 "entries" : {
                     "15 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "goBILDA",
                         "entries" : {
                             "goBILDA" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "68T",
                                 "entries" : {
                                     "68T" : { "beltTeeth" : 68, "beltType" : BeltType._3_MM_HTD, "beltWidth" : 15 * millimeter },
                                     "84T" : { "beltTeeth" : 84, "beltType" : BeltType._3_MM_HTD, "beltWidth" : 15 * millimeter },
@@ -164,6 +176,7 @@ export const beltTable = {
                     "Custom" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "Custom",
                         "entries" : {
                             "Custom" : { "beltType" : BeltType._3_MM_HTD },
                         },
@@ -173,14 +186,17 @@ export const beltTable = {
             "5mm HTD" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "9 mm",
                 "entries" : {
                     "9 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "WCP",
                         "entries" : {
                             "WCP" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "30T",
                                 "entries" : {
                                     "30T" : { "beltTeeth" : 30, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
                                     "35T" : { "beltTeeth" : 35, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
@@ -238,6 +254,7 @@ export const beltTable = {
                             "AndyMark" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "30T",
                                 "entries" : {
                                     "30T" : { "beltTeeth" : 30, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
                                     "35T" : { "beltTeeth" : 35, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
@@ -285,6 +302,7 @@ export const beltTable = {
                             "The Thrifty Bot" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "35T",
                                 "entries" : {
                                     "35T" : { "beltTeeth" : 35, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
                                     "40T" : { "beltTeeth" : 40, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
@@ -335,6 +353,7 @@ export const beltTable = {
                             "goBILDA" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "43T",
                                 "entries" : {
                                     "43T" : { "beltTeeth" : 43, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
                                     "45T" : { "beltTeeth" : 45, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
@@ -368,10 +387,12 @@ export const beltTable = {
                     "15 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "WCP",
                         "entries" : {
                             "WCP" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "30T",
                                 "entries" : {
                                     "30T" : { "beltTeeth" : 30, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
                                     "35T" : { "beltTeeth" : 35, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
@@ -427,6 +448,7 @@ export const beltTable = {
                             "AndyMark" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "30T",
                                 "entries" : {
                                     "30T" : { "beltTeeth" : 30, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
                                     "35T" : { "beltTeeth" : 35, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
@@ -476,6 +498,7 @@ export const beltTable = {
                             "The Thrifty Bot" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "35T",
                                 "entries" : {
                                     "35T" : { "beltTeeth" : 35, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
                                     "40T" : { "beltTeeth" : 40, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
@@ -530,6 +553,7 @@ export const beltTable = {
                     "18 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "Custom",
                         "entries" : {
                             "Custom" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 18 * millimeter },
                         },
@@ -537,10 +561,12 @@ export const beltTable = {
                     "15 mm rubber coated" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "WCP",
                         "entries" : {
                             "WCP" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "30T",
                                 "entries" : {
                                     "30T" : { "backThickness" : 4 * millimeter, "beltTeeth" : 30, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter, "rubberCoated" : true },
                                     "40T" : { "backThickness" : 4 * millimeter, "beltTeeth" : 40, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter, "rubberCoated" : true },
@@ -578,6 +604,7 @@ export const beltTable = {
                     "Custom" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "Custom",
                         "entries" : {
                             "Custom" : { "beltType" : BeltType._5_MM_HTD },
                         },
@@ -587,14 +614,17 @@ export const beltTable = {
             "RT25" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "1/2 in.",
                 "entries" : {
                     "1/2 in." : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "REV",
                         "entries" : {
                             "REV" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "32T",
                                 "entries" : {
                                     "32T" : { "beltTeeth" : 32, "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
                                     "36T" : { "beltTeeth" : 36, "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
@@ -623,14 +653,6 @@ export const beltTable = {
                                     "216T" : { "beltTeeth" : 216, "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
                                 },
                             },
-                            "Custom" : { "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
-                        },
-                    },
-                    "Custom" : {
-                        "name" : "supplier",
-                        "displayName" : "Belt supplier",
-                        "entries" : {
-                            "Custom" : { "beltType" : BeltType.RT25 },
                         },
                     },
                 },
@@ -641,18 +663,22 @@ export const beltTable = {
 export const doubleBeltTable = {
         "name" : "beltType",
         "displayName" : "Belt type",
+        "default" : "5mm HTD",
         "entries" : {
             "5mm HTD" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "9 mm",
                 "entries" : {
                     "9 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "WCP",
                         "entries" : {
                             "WCP" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "100T",
                                 "entries" : {
                                     "100T" : { "beltTeeth" : 100, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter, "pitch" : 5 * millimeter },
                                     "125T" : { "beltTeeth" : 125, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter, "pitch" : 5 * millimeter },
@@ -666,6 +692,7 @@ export const doubleBeltTable = {
                             "The Thrifty Bot" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "100T",
                                 "entries" : {
                                     "100T" : { "beltTeeth" : 100, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter, "pitch" : 5 * millimeter },
                                     "125T" : { "beltTeeth" : 125, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter, "pitch" : 5 * millimeter },
@@ -682,10 +709,12 @@ export const doubleBeltTable = {
                     "15 mm" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "WCP",
                         "entries" : {
                             "WCP" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "100T",
                                 "entries" : {
                                     "100T" : { "beltTeeth" : 100, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter, "pitch" : 5 * millimeter },
                                     "125T" : { "beltTeeth" : 125, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter, "pitch" : 5 * millimeter },
@@ -699,6 +728,7 @@ export const doubleBeltTable = {
                             "The Thrifty Bot" : {
                                 "name" : "teeth",
                                 "displayName" : "Teeth",
+                                "default" : "100T",
                                 "entries" : {
                                     "100T" : { "beltTeeth" : 100, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter, "pitch" : 5 * millimeter },
                                     "125T" : { "beltTeeth" : 125, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter, "pitch" : 5 * millimeter },
@@ -715,6 +745,7 @@ export const doubleBeltTable = {
                     "Custom" : {
                         "name" : "supplier",
                         "displayName" : "Belt supplier",
+                        "default" : "Custom",
                         "entries" : {
                             "Custom" : { "beltType" : BeltType._5_MM_HTD, "pitch" : 5 * millimeter },
                         },
@@ -732,6 +763,7 @@ export const beltTypeTable = {
             "2mm GT2" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "6 mm",
                 "entries" : {
                     "6 mm" : { "beltType" : BeltType._2_MM_GT2, "beltWidth" : 6 * millimeter },
                     "Custom" : { "beltType" : BeltType._2_MM_GT2 },
@@ -740,6 +772,7 @@ export const beltTypeTable = {
             "3mm GT2" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "9 mm",
                 "entries" : {
                     "9 mm" : { "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
                     "Custom" : { "beltType" : BeltType._3_MM_GT2 },
@@ -748,6 +781,7 @@ export const beltTypeTable = {
             "3mm HTD" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "15 mm",
                 "entries" : {
                     "15 mm" : { "beltType" : BeltType._3_MM_HTD, "beltWidth" : 15 * millimeter },
                     "Custom" : { "beltType" : BeltType._3_MM_HTD },
@@ -756,6 +790,7 @@ export const beltTypeTable = {
             "5mm HTD" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "9 mm",
                 "entries" : {
                     "9 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
                     "15 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
@@ -766,9 +801,9 @@ export const beltTypeTable = {
             "RT25" : {
                 "name" : "width",
                 "displayName" : "Belt width",
+                "default" : "1/2 in.",
                 "entries" : {
                     "1/2 in." : { "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
-                    "Custom" : { "beltType" : BeltType.RT25 },
                 },
             },
         },

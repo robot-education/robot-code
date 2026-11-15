@@ -701,3 +701,32 @@ def test_rack_face_is_moved_out_to_the_tips(face_at, modules):
     # At the base (the root line), the teeth are added on the face: it's moved out their whole depth
     depth = shared_evaluator().eval(f'rackFaceDepth({{ "rackFaceAt" : RackFaceAt.{face_at} }}, inch / 20)', "released/gear/robotGear.fs")
     assert to_python(depth) == pytest.approx(modules * 0.0254 / 20, abs=1e-12)
+
+
+def test_error_display_sketches_circles_points_and_open_paths():
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    # An open belt's start and end (points), and a pulley between them, as errors show them
+    evaluator.eval(
+        """sketchCircles(context, newId() + "circles", XY_PLANE, [
+                { "location" : vector(0, 0) * inch, "radius" : 0 * meter },
+                { "location" : vector(3, 2) * inch, "radius" : 1 * inch },
+                { "location" : vector(6, 0) * inch, "radius" : 0 * meter }
+            ])""",
+        "core/loop.fs",
+        context=context,
+    )
+    circles = recorded_sketch(context, "circles")
+    assert [curve.kind for curve in circles.curves] == ["circle"]
+    assert circles.curves[0].radius == pytest.approx(0.0254)
+    # Its path, as an open belt's mixed sides error shows it: two lines and the arc between them
+    evaluator.eval(
+        """sketchOpenPath(context, newId() + "path", XY_PLANE,
+            openPath(vector(0, 0) * inch, [{ "location" : vector(3, 2) * inch, "radius" : 1 * inch, "flipped" : true } as BoundaryCircle],
+                vector(6, 0) * inch))""",
+        "core/loop.fs",
+        context=context,
+    )
+    path = recorded_sketch(context, "path")
+    assert sorted(curve.kind for curve in path.curves) == ["arc", "line", "line"]
+    assert len(path.loops()) == 1 and not path.loops()[0].closed

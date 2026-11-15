@@ -52,6 +52,8 @@ def test_render():
         '            "Red" : {\n'
         '                "name" : "size",\n'
         '                "displayName" : "Size",\n'
+        # Written even when it's the first: Onshape would otherwise pick the first in key order ("Large")
+        '                "default" : "Small",\n'
         '                "entries" : {\n'
         '                    "Small" : { "color" : Color.RED, "width" : 1 * inch },\n'
         '                    "Large" : { "color" : Color.RED, "width" : 2.5 * inch },\n'

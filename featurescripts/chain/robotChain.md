@@ -35,10 +35,7 @@ Its material is steel, and its appearance steel gray.
 | Parameter | Description |
 | --- | --- |
 | Location (`location`), Sprocket one location (`sprocketOneLocation`), Sprocket two location (`sprocketTwoLocation`) | Its center (a sketch point, mate connector, or a circle or cylinder around it, like a sprocket's bore), its pitch circle, or a Robot sprocket. |
-| Location type (`selectionType`, `sprocketOneSelectionType`, `sprocketTwoSelectionType`) | What the location is. Set from what's selected: a circle the size of a pitch circle is one. |
 | Idler diameter (`idlerDiameter`) | The diameter the chain's rollers run on. |
-| Chain side (`chainSide`) | Which side of the chain it's on: inside its loop, or outside it. |
-| Select closest links (`selectClosestLinks`) | Sets Links to the even number of links nearest the length of the path around the sprockets, where they're selected. |
 | Chain fit adjustment (`fitAdjustment`) | How much longer the path around the sprockets should be than the chain: positive for a looser chain. |
 
 No parameters are hidden. Editing logic sets the shown Location types (see Execution order).
@@ -52,14 +49,14 @@ No parameters are hidden. Editing logic sets the shown Location types (see Execu
 | Select the sprocket's or idler's center, pitch circle, or Robot sprocket. | error | Complex, a sprocket's location is empty | its `location` |
 | Select sprocket one's center, pitch circle, or Robot sprocket. (or two's) | error | Simple, its location is empty | `sprocketOneLocation` (or two's) |
 | The selected sprockets are on the same axis. | error | Simple, sprocket two's center projects onto sprocket one's | both locations, the selections |
-| The `<links>` link chain is too short for its sprockets. | error | Simple, no distance apart makes the path that long | `links` |
-| Center to center adjustment is too large, decrease the value. | error | Simple, no path around the sprockets at their distance with the adjustment | `centerToCenterAdjustment` |
+| The `<links>` link chain is too short for its sprockets. | error | Simple, no distance apart makes the path that long | `links`, the sprockets' pitch circles where they're selected |
+| Center to center adjustment is too large, decrease the value. | error | Simple, no path around the sprockets at their distance with the adjustment | `centerToCenterAdjustment`, the sprockets' pitch circles where they're selected |
 | Select a sprocket made by Robot sprocket, or one of its mate connectors. | error | Robot sprocket, but the selection has no `SprocketAttribute` | its `location`, the selection |
 | Select a circle the size of the sprocket's pitch circle. | error | Pitch circle, but the location isn't a circle | its `location`, the selection |
 | The selected pitch circle is too small for the chain. | error | the pitch circle's diameter is a pitch or less | its `location`, the selection |
 | Select a sketch point, mate connector, circle, or cylinder (or set the location type to Robot sprocket). | error | a center that isn't one | its `location`, the selection |
-| Two of the pulleys, sprockets, or circles the path goes around are in the same place. | error | two sprockets' centers coincide (`core/boundary.fs`) | |
-| The path can't go around a pulley, sprocket, or circle inside another. | error | one sprocket's circle is inside another's (`core/boundary.fs`) | |
+| Two of the pulleys, sprockets, or circles the path goes around are in the same place. | error | two sprockets' centers coincide (`core/boundary.fs`) | every sprocket's circle (`sketchCircles`) |
+| The path can't go around a pulley, sprocket, or circle inside another. | error | one sprocket's circle is inside another's (`core/boundary.fs`) | every sprocket's circle (`sketchCircles`) |
 | A selected pitch circle isn't the size of a sprocket with a whole number of teeth: it's used as the nearest one. | warning | a pitch circle's radius isn't the nearest whole number of teeth's, within std's length tolerance | those `location`s |
 | A selected Robot sprocket is for another type of chain. | warning | its chain's sprockets aren't the chain's (`sameSprockets`: #25's and #25H's are the same) | those `location`s |
 | A selected sprocket or idler isn't lined up with the first: the chain goes around where it is in the first one's plane. | warning | a sprocket's plane isn't the first's (or coplanar with it) | those `location`s |
@@ -134,6 +131,7 @@ links, a little shorter than the arc it wraps (about 1% at 12 teeth, and less on
 | Where | What it guards | When it fails |
 | --- | --- | --- |
 | `robotChainEditLogic` (`try silent`) | Finding the sprockets and the path's length (`selectedPathLength`) | A guard: with sprockets missing or wrong, Links is left as it is. |
+| The body's `sketchLoop` (`try`) | Sketching the path around the sprockets | Its error again, showing every sprocket's circle, as there's no path to show. |
 | `tryLoopLength` (`core/loop.fs`, `try silent`), through `twoCircleDistance` and `tryTwoCircleLength` | The path's length around two circles | There's no path (like a circle inside another): `undefined`, which `nearestRoot` stops at, and which Simple reports as an error. |
 
 ## Issues found

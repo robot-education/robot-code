@@ -158,11 +158,11 @@ def test_dialog_follows_the_precondition(repo):
         # A horizontal enum, without the hidden value
         "Edge",
         "Point",
-        # Each level of the lookup table, at its default
+        # Each level of the lookup table, at its default: with none named, the first in key order, as Onshape picks
         "Vendor",
-        "WCP",
+        "REV",
         "Size",
-        "1/2 in.",
+        "3/8 in.",
         # The branch for edges, without the hidden parameter
         "Edges",
         # From the predicate in another file, with its argument; the flip button joins its row
@@ -511,7 +511,7 @@ def test_tooltips(repo):
     assert tips == {
         # The feature's defaults map gives placement's default
         "placement": {"name": "Placement", "default": "Edge", "hints": "HORIZONTAL_ENUM"},
-        "size": {"name": "Size", "default": "WCP &gt; 1/2 in."},
+        "size": {"name": "Size", "default": "REV &gt; 3/8 in."},
         "depth": {"name": "Depth", "default": "1 in"},
         "flip": {"name": "Flip", "default": "false", "hints": "OPPOSITE_DIRECTION"},
         "hasSecond": {"name": "Second", "default": "true"},

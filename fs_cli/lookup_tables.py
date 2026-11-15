@@ -96,7 +96,8 @@ def flatten(name: str, module: str, table) -> Table:
 def options(name: str, module: str, table: dict) -> Table:
     """A lookup table's options, as the dialog shows them: from `fs_cli.ui`'s reading of it (a dict, in the order it's
     written), a row per path from its top level to a leaf, with each level's default its `default`, or else its first
-    option, as Onshape picks. Without values (see `with_values`)."""
+    option in key order, as Onshape picks (FeatureScript maps are sorted: "Custom" before "REV"). Without values (see
+    `with_values`)."""
     levels: list[list[str]] = []
     rows: list[Row] = []
 
@@ -113,7 +114,7 @@ def options(name: str, module: str, table: dict) -> Table:
             levels[depth].append(label)
         default = node.get("default")
         if default not in entries:
-            default = next(iter(entries))
+            default = min(entries, key=str)
         for key, child in entries.items():
             visit(child, path + [str(key)], defaults + [key == default])
 

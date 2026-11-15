@@ -82,8 +82,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
                     }
             definition.sprocketOneLocation is Query;
 
-            annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"],
-                        "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+            annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"] }
             definition.sprocketOneSelectionType is SprocketSelectionType;
 
             if (definition.sprocketOneSelectionType == SprocketSelectionType.CENTER)
@@ -101,8 +100,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
                     }
             definition.sprocketTwoLocation is Query;
 
-            annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"],
-                        "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+            annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"] }
             definition.sprocketTwoSelectionType is SprocketSelectionType;
 
             if (definition.sprocketTwoSelectionType == SprocketSelectionType.CENTER)
@@ -117,7 +115,6 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
                         "Name" : "Sprockets",
                         "Item name" : "Sprocket",
                         "Item label template" : "#chainSide #sprocketType",
-                        "UIHint" : [UIHint.FOCUS_INNER_QUERY],
                         "Driven query" : "location"
                     }
             definition.sprockets is array;
@@ -132,8 +129,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
                         }
                 sprocket.location is Query;
 
-                annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"],
-                            "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+                annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"] }
                 sprocket.selectionType is SprocketSelectionType;
 
                 if (sprocket.selectionType != SprocketSelectionType.ROBOT_SPROCKET)
@@ -153,7 +149,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
                     }
                 }
 
-                annotation { "Name" : "Chain side", "UIHint" : ["SHOW_LABEL"], "Description" : "Which side of the chain it's on: inside its loop, or outside it." }
+                annotation { "Name" : "Chain side", "UIHint" : ["SHOW_LABEL"] }
                 sprocket.chainSide is ChainSide;
             }
         }
@@ -168,7 +164,7 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
             annotation { "Name" : "Links", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             isInteger(definition.links, LINKS_BOUNDS);
 
-            annotation { "Name" : "Select closest links", "Description" : "Sets Links to the even number of links nearest the length of the path around the sprockets, where they're selected." }
+            annotation { "Name" : "Select closest links" }
             isButton(definition.selectClosestLinks);
         }
 
@@ -199,7 +195,16 @@ export const robotChain = defineFeature(function(context is Context, id is Id, d
         addStartOffsetManipulator(context, id, definition, chainPlane);
 
         const counterClockwise = loopCounterClockwise(circles);
-        const sketch = sketchLoop(context, id + "sketch", chainPlane, circles, counterClockwise);
+        var sketch;
+        try
+        {
+            sketch = sketchLoop(context, id + "sketch", chainPlane, circles, counterClockwise);
+        }
+        catch (error)
+        {
+            // There's no path around them (like one inside another): show them
+            throw regenError(error.message, sketchCircles(context, id + "errorCircles", chainPlane, circles));
+        }
         if (isSimpleChain(definition))
         {
             reportSimpleFit(context, id, definition, sprockets);
@@ -443,10 +448,18 @@ function getSimpleSprockets(context is Context, id is Id, definition is map, inf
             return getSprocketRadius(info.pitch, faceAttribute.teeth);
         });
     const measured = norm(toSecond);
+    // The sprockets' pitch circles where they're selected, to show what an error's about
+    const selected = function()
+        {
+            return sketchCircles(context, id + "errorCircles", plane, [
+                        { "location" : zeroVector(2) * meter, "radius" : radii[0] },
+                        { "location" : worldToPlane(plane, plane.origin + toSecond), "radius" : radii[1] }
+                    ]);
+        };
     const chainDistance = twoCircleDistance(radii, info.pitch * definition.links, measured);
     if (chainDistance == undefined)
     {
-        throw regenError("The " ~ definition.links ~ " link chain is too short for its sprockets.", ["links"]);
+        throw regenError("The " ~ definition.links ~ " link chain is too short for its sprockets.", ["links"], selected());
     }
     result.ideal = chainDistance + definition.centerToCenterAdjustment;
     result.measured = measured;
@@ -462,7 +475,7 @@ function getSimpleSprockets(context is Context, id is Id, definition is map, inf
     result.length = tryTwoCircleLength(radii, result.ideal);
     if (result.length == undefined)
     {
-        throw regenError("Center to center adjustment is too large, decrease the value.", ["centerToCenterAdjustment"]);
+        throw regenError("Center to center adjustment is too large, decrease the value.", ["centerToCenterAdjustment"], selected());
     }
     return result;
 }

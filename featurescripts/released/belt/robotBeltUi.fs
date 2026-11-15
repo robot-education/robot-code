@@ -79,8 +79,7 @@ export predicate selectionPredicate(definition is map)
 
 export predicate simpleBeltSelectionPredicate(definition is map)
 {
-    annotation { "Name" : "Standalone belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                "Description" : "A belt on its own, with its pulleys as far apart as it puts them, rather than between selections." }
+    annotation { "Name" : "Standalone belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
     definition.isStandaloneBelt is boolean;
 
     if (!isStandaloneBelt(definition))
@@ -93,7 +92,7 @@ export predicate simpleBeltSelectionPredicate(definition is map)
                 }
         definition.pulleyOneSelection is Query;
 
-        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"], "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"] }
         definition.pulleyOneSelectionType is SelectionType;
     }
 
@@ -113,7 +112,7 @@ export predicate simpleBeltSelectionPredicate(definition is map)
                 }
         definition.pulleyTwoSelection is Query;
 
-        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"], "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"] }
         definition.pulleyTwoSelectionType is SelectionType;
     }
 
@@ -128,8 +127,7 @@ export predicate complexBeltSelectionPredicate(definition is map)
 {
     if (isOpenBelt(definition))
     {
-        annotation { "Name" : "Start", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1,
-                    "Description" : "Where the belt starts: where its end is clamped." }
+        annotation { "Name" : "Start", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
         definition.startPoint is Query;
     }
 
@@ -137,7 +135,6 @@ export predicate complexBeltSelectionPredicate(definition is map)
                 "Name" : "Pulleys",
                 "Item name" : "Pulley",
                 "Item label template" : "#beltSide pulley",
-                "UIHint" : [UIHint.FOCUS_INNER_QUERY],
                 "Driven query" : "pulleySelection"
             }
     definition.pulleys is array;
@@ -151,12 +148,11 @@ export predicate complexBeltSelectionPredicate(definition is map)
                 }
         pulley.pulleySelection is Query;
 
-        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"], "Description" : "What the location is. Set from what's selected: a circle the size of a pitch circle is one." }
+        annotation { "Name" : "Location type", "UIHint" : ["SHOW_LABEL"] }
         pulley.selectionType is SelectionType;
 
         // A Robot pulley used as an idler (or a Robot pulley idler used as a pulley) is flagged by the feature
-        annotation { "Name" : "Belt side", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"],
-                    "Description" : "Which side of the belt it's on: its teeth's (inside), or its back (outside, an idler)." }
+        annotation { "Name" : "Belt side", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
         pulley.beltSide is BeltSide;
 
         if (!isDoubleSidedBelt(definition) && pulley.beltSide == BeltSide.OUTSIDE)
@@ -178,8 +174,7 @@ export predicate complexBeltSelectionPredicate(definition is map)
 
     if (isOpenBelt(definition))
     {
-        annotation { "Name" : "End", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1,
-                    "Description" : "Where the belt ends: where its other end is clamped." }
+        annotation { "Name" : "End", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
         definition.endPoint is Query;
     }
 }
@@ -222,7 +217,7 @@ export predicate beltPredicate(definition is map)
 
             if (!isStandaloneBelt(definition))
             {
-                annotation { "Name" : "Select closest belt", "Description" : "Sets the belt to the one which fits the selections best: of those its supplier sells, or any." }
+                annotation { "Name" : "Select closest belt" }
                 isButton(definition.selectClosestBelt);
             }
 
@@ -255,15 +250,14 @@ export predicate optionsPredicate(definition is map)
 
         if (isSimpleBelt(definition))
         {
-            annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "An adjustment to apply to the center to center distance. Useful for making slight adjustments to the tension of belts."
+            annotation { "Name" : "Center to center adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"]
                     }
             isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
         }
         else if (isComplexBelt(definition))
         {
             annotation { "Name" : "Belt fit adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "An adjustment to apply to the fit of the belt. Useful for making slight adjustments to the tension of belts."
+                        "Description" : "How much longer the path around the pulleys should be than the belt: positive for a looser belt."
                     }
             isLength(definition.beltFitAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
         }
@@ -271,7 +265,7 @@ export predicate optionsPredicate(definition is map)
         if (!isOpenBelt(definition))
         {
             annotation { "Name" : "Disable belt validation",
-                        "Description" : "Disable errors related to incorrect center to center distance and/or belt size." }
+                        "Description" : "Hides the warnings that the pulleys are the wrong distance apart, or the belt the wrong length." }
             definition.disableBeltValidation is boolean;
         }
     }

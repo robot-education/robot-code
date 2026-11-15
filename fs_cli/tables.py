@@ -59,7 +59,8 @@ class Node:
     Attributes:
         name: The key the choice is stored under.
         display_name: The name shown to the user; defaults to `name` capitalized.
-        default: The name of the Value chosen by default; defaults to the first.
+        default: The name of the Value chosen by default; defaults to the first (written into the table either way, as
+            Onshape would otherwise pick the first in sorted order).
     """
 
     name: str
@@ -137,8 +138,9 @@ def _render_node(
     pad = " " * indent
     lines.append(f"{pad}{string('name')} : {string(node.name)},")
     lines.append(f"{pad}{string('displayName')} : {string(node.display_name or '')},")
-    if node.default is not None and node.default != node.entries[0].name:
-        lines.append(f"{pad}{string('default')} : {string(node.default)},")
+    # Always written: without it Onshape picks the first entry in key order (FeatureScript maps are sorted), not the
+    # first written, so a level would default to "Custom" (which sorts before "REV" and "goBILDA")
+    lines.append(f"{pad}{string('default')} : {string(node.default if node.default is not None else node.entries[0].name)},")
     lines.append(f"{pad}{string('entries')} : {{")
     for entry in node.entries:
         # Values chosen closer to the root take precedence

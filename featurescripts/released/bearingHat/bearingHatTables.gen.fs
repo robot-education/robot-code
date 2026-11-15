@@ -42,10 +42,12 @@ export const boreTable = {
 export const holeTable = {
         "name" : "holeType",
         "displayName" : "Hole type",
+        "default" : "Clearance",
         "entries" : {
             "Clearance" : {
                 "name" : "fit",
                 "displayName" : "Fastener fit",
+                "default" : "Close",
                 "entries" : {
                     "Close" : { "holeDiameter" : "0.196 in" },
                     "Free" : { "holeDiameter" : "0.201 in" },
@@ -59,6 +61,7 @@ export const holeTable = {
                     "24 tpi (UNC)" : {
                         "name" : "fit",
                         "displayName" : "Fastener fit",
+                        "default" : "Close",
                         "entries" : {
                             "Close" : { "holeDiameter" : "0.196 in", "tapDrillDiameter" : "0.1495 in" },
                             "Free" : { "holeDiameter" : "0.201 in", "tapDrillDiameter" : "0.1495 in" },
@@ -67,6 +70,7 @@ export const holeTable = {
                     "32 tpi (UNF)" : {
                         "name" : "fit",
                         "displayName" : "Fastener fit",
+                        "default" : "Close",
                         "entries" : {
                             "Close" : { "holeDiameter" : "0.196 in", "tapDrillDiameter" : "0.1590 in" },
                             "Free" : { "holeDiameter" : "0.201 in", "tapDrillDiameter" : "0.1590 in" },
@@ -80,6 +84,7 @@ export const holeTable = {
 export const singleClearanceHoleTable = {
         "name" : "fit",
         "displayName" : "Fastener fit",
+        "default" : "Close",
         "entries" : {
             "Close" : { "holeDiameter" : "0.196 in" },
             "Free" : { "holeDiameter" : "0.201 in" },
@@ -89,10 +94,12 @@ export const singleClearanceHoleTable = {
 export const singleHoleTable = {
         "name" : "holeType",
         "displayName" : "Hole type",
+        "default" : "Clearance",
         "entries" : {
             "Clearance" : {
                 "name" : "fit",
                 "displayName" : "Fastener fit",
+                "default" : "Close",
                 "entries" : {
                     "Close" : { "holeDiameter" : "0.196 in" },
                     "Free" : { "holeDiameter" : "0.201 in" },

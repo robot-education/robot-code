@@ -28,7 +28,6 @@ Its material is Onyx, and its appearance printed green (as Robot pulley's).
 
 | Parameter | Description |
 | --- | --- |
-| Curved chain faces or mate connectors (`chainSelections`) | A Robot chain's faces around its sprockets, or its mate connectors: a sprocket is made for each. |
 | Width (`hexWidth`) | Across the hex's flats. |
 | Diameter (`boreDiameter`) | The diameter of the shaft it goes on. |
 | Fit (`fit`), Clearance (`fitClearance`) | (`core/fit.fs`'s) |

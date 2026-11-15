@@ -73,7 +73,8 @@ def test_command(capsys):
     assert cli.main(["table", "featurescripts/uiTestBench/uiTestBench.local.fs", "-n", "TEST"]) == 0
     out = capsys.readouterr().out
     assert out.startswith(f"TEST_TABLE  ({BENCH}, 4 rows)\nUsed by: {BENCH}: Lookup table\n")
-    assert "WCP *   3/8 in.    Rounded *  3" in out
+    # REV: without a default, the first vendor in key order, as Onshape picks
+    assert "REV *   1/2 in. *             4" in out
 
 
 def test_lookup_parameters():
@@ -85,7 +86,8 @@ def test_lookup_parameters():
 
 
 def test_options_are_shown_as_the_dialog_shows_them():
-    # In the order they're written, with a level's first option its default when it names none
+    # In the order they're written, with a level's first option in key order its default when it names none, as
+    # Onshape picks (FeatureScript maps are sorted): "#10" before "#8"
     written = {
         "name": "size",
         "displayName": "Size",
@@ -96,8 +98,8 @@ def test_options_are_shown_as_the_dialog_shows_them():
     }
     shown = options("sizes", "sizes.fs", written)
     assert [row.path for row in shown.rows] == [["#8", "32"], ["#8", "36"], ["#10", "24"], ["#10", "32"]]
-    assert [row.defaults for row in shown.rows] == [[True, True], [True, False], [False, False], [False, True]]
-    assert [row.is_default for row in shown.rows] == [True, False, False, False]
+    assert [row.defaults for row in shown.rows] == [[False, True], [False, False], [True, False], [True, True]]
+    assert [row.is_default for row in shown.rows] == [False, False, False, True]
     # Values are matched to them by path
     merged = with_values(shown, table())
     assert merged.rows[3].values == {"diameter": "0.19 in", "color": "#ff0080"}

@@ -1064,7 +1064,8 @@ def lookup_levels(table: dict, choices: list[str]) -> list[tuple[str, str, list[
         if choice not in entries:
             if index < len(choices):
                 raise UiError(f"The lookup table has no {choices[index]!r} at level {index + 1}; choose one of {list(entries)}.")
-            choice = next(iter(entries))
+            # Onshape's default without one: the first in key order, as FeatureScript maps are sorted
+            choice = min(entries, key=str)
         levels.append((str(node.get("displayName", node.get("name", ""))), str(choice), [str(entry) for entry in entries]))
         node = entries[choice]
     return levels

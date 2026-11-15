@@ -57,7 +57,16 @@ function doRobotBelt(context is Context, id is Id, definition is map)
 
     const circles = getBoundaryCircles(beltDefinition);
     const counterClockwise = loopCounterClockwise(circles);
-    const sketch = sketchLoop(context, id + "sketch", beltDefinition.beltPlane, circles, counterClockwise);
+    var sketch;
+    try
+    {
+        sketch = sketchLoop(context, id + "sketch", beltDefinition.beltPlane, circles, counterClockwise);
+    }
+    catch (error)
+    {
+        // There's no path around them (like one inside another): show them
+        throw regenError(error.message, sketchCircles(context, id + "errorCircles", beltDefinition.beltPlane, circles));
+    }
 
     if (isComplexBelt(definition))
     {
@@ -149,7 +158,7 @@ function doOpenBelt(context is Context, id is Id, definition is map)
     const end = worldToPlane(plane, evVertexCoordSystem(context, { "vertex" : definition.endPoint }).origin);
 
     var circles = getBoundaryCircles(beltDefinition);
-    var teethLeft = undefined;
+    var teethLeft = [];
     for (var i, circle in circles)
     {
         const before = i == 0 ? start : circles[i - 1].location;
@@ -159,23 +168,49 @@ function doOpenBelt(context is Context, id is Id, definition is map)
         // The belt turns left around it: it's on the belt's left
         const left = into[0] * out[1] - into[1] * out[0] >= 0 * meter ^ 2;
         circles[i].flipped = !left;
-        const teethOnLeft = isPulley(beltDefinition.pulleyDefinitions[i].pulleyType) ? left : !left;
-        if (teethLeft == undefined)
-        {
-            teethLeft = teethOnLeft;
-        }
-        else if (teethLeft != teethOnLeft)
-        {
-            throw regenError("An open belt's teeth face its pulleys, and its back its idlers, so its pulleys must all be on one side of it, and its idlers on the other.",
-                ["pulleys"]);
-        }
+        teethLeft = append(teethLeft, isPulley(beltDefinition.pulleyDefinitions[i].pulleyType) ? left : !left);
     }
 
-    const path = openPath(start, circles, end);
+    var path;
+    try
+    {
+        path = openPath(start, circles, end);
+    }
+    catch (error)
+    {
+        // There's no path to show: show its start, pulleys, and end
+        const points = concatenateArrays([[{ "location" : start, "radius" : 0 * meter }], circles, [{ "location" : end, "radius" : 0 * meter }]]);
+        throw regenError(error.message, ["pulleys"], sketchCircles(context, id + "errorCircles", plane, points));
+    }
+    // Its teeth are on the first's side: the pulleys and idlers it goes around the other way are on the wrong side
+    var wrongSide = [];
+    var wrongParameters = [];
+    for (var i, left in teethLeft)
+    {
+        if (left != teethLeft[0])
+        {
+            wrongSide = append(wrongSide, circles[i]);
+            wrongParameters = append(wrongParameters, arrayParameterId("pulleys", i, "beltSide"));
+        }
+    }
+    if (wrongSide != [])
+    {
+        throw regenError("An open belt's teeth face its pulleys, and its back its idlers, so its pulleys must all be on one side of it, and its idlers on the other.",
+            wrongParameters, qUnion([sketchOpenPath(context, id + "errorPath", plane, path), sketchCircles(context, id + "errorCircles", plane, wrongSide)]));
+    }
+
     const beltInfo = getBeltModelInfo(beltDefinition.beltType);
     const teethSide = getBeltModelInsideThickness(beltInfo, false);
-    const profile = sketchOpenPathProfile(context, id + "sketch", plane, path, teethLeft ? teethSide : beltDefinition.outsideThickness,
-        teethLeft ? beltDefinition.outsideThickness : teethSide);
+    var profile;
+    try
+    {
+        profile = sketchOpenPathProfile(context, id + "sketch", plane, path, teethLeft[0] ? teethSide : beltDefinition.outsideThickness,
+            teethLeft[0] ? beltDefinition.outsideThickness : teethSide);
+    }
+    catch (error)
+    {
+        throw regenError(error.message, ["pulleys"], sketchOpenPath(context, id + "errorPath", plane, path));
+    }
     const arcTracking = mapArray(profile.arcs, function(arc)
         {
             return startTracking(context, arc);
@@ -299,7 +334,20 @@ function getSimpleBeltDefinition(context is Context, id is Id, definition is map
     const pulleyTeeth = [pulleys.selections[0].pulleyTeeth, pulleys.selections[1].pulleyTeeth];
     const toSecond = pulleys.secondPoint - pulleys.beltPlane.origin;
     const measuredCenterToCenter = norm(toSecond);
-    const idealCenterToCenter = computeBeltCenterToCenter(beltValue.beltType, definition.beltTeeth, pulleyTeeth, measuredCenterToCenter) + definition.centerToCenterAdjustment;
+    var idealCenterToCenter;
+    try
+    {
+        idealCenterToCenter = computeBeltCenterToCenter(beltValue.beltType, definition.beltTeeth, pulleyTeeth, measuredCenterToCenter) + definition.centerToCenterAdjustment;
+    }
+    catch (error)
+    {
+        // Show the pulleys' pitch circles where they're selected
+        const pitch = getBeltPitch(beltValue.beltType);
+        throw regenError(error.message, ["beltTeeth"], sketchCircles(context, id + "errorCircles", pulleys.beltPlane, [
+                        { "location" : zeroVector(2) * meter, "radius" : getPulleyRadius(pitch, pulleyTeeth[0]) },
+                        { "location" : worldToPlane(pulleys.beltPlane, pulleys.secondPoint), "radius" : getPulleyRadius(pitch, pulleyTeeth[1]) }
+                    ]));
+    }
     // If the measured center to center is way off, fall back to the ideal center to center
     const centerToCenter = validateCenterToCenter(context, id, definition, measuredCenterToCenter, idealCenterToCenter) ? measuredCenterToCenter : idealCenterToCenter;
 

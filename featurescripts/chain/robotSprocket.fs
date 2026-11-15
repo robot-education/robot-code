@@ -60,8 +60,7 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
         else
         {
             annotation { "Name" : "Curved chain faces or mate connectors", "Filter" : (EntityType.FACE && GeometryType.CYLINDER) || BodyType.MATE_CONNECTOR,
-                        "UIHint" : UIHint.PREVENT_CREATING_NEW_MATE_CONNECTORS,
-                        "Description" : "A Robot chain's faces around its sprockets, or its mate connectors: a sprocket is made for each." }
+                        "UIHint" : UIHint.PREVENT_CREATING_NEW_MATE_CONNECTORS }
             definition.chainSelections is Query;
         }
 

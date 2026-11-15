@@ -13,6 +13,7 @@ export const tappedHoleTable = {
             "#8" : {
                 "name" : "pitch",
                 "displayName" : "Threads/inch",
+                "default" : "32 tpi (UNC)",
                 "entries" : {
                     "32 tpi (UNC)" : { "majorDiameter" : 0.164 * inch, "metric" : false, "tapDrillDiameter" : "0.1360 in" },
                     "36 tpi (UNF)" : { "majorDiameter" : 0.164 * inch, "metric" : false, "tapDrillDiameter" : "0.1360 in" },
@@ -30,6 +31,7 @@ export const tappedHoleTable = {
             "1/4" : {
                 "name" : "pitch",
                 "displayName" : "Threads/inch",
+                "default" : "20 tpi (UNC)",
                 "entries" : {
                     "20 tpi (UNC)" : { "majorDiameter" : 0.25 * inch, "metric" : false, "tapDrillDiameter" : "0.2010 in" },
                     "28 tpi (UNF)" : { "majorDiameter" : 0.25 * inch, "metric" : false, "tapDrillDiameter" : "0.2130 in" },
@@ -39,6 +41,7 @@ export const tappedHoleTable = {
             "5/16" : {
                 "name" : "pitch",
                 "displayName" : "Threads/inch",
+                "default" : "18 tpi (UNC)",
                 "entries" : {
                     "18 tpi (UNC)" : { "majorDiameter" : 0.3125 * inch, "metric" : false, "tapDrillDiameter" : "0.2570 in" },
                     "24 tpi (UNF)" : { "majorDiameter" : 0.3125 * inch, "metric" : false, "tapDrillDiameter" : "0.2720 in" },
@@ -48,6 +51,7 @@ export const tappedHoleTable = {
             "M3" : {
                 "name" : "pitch",
                 "displayName" : "Pitch",
+                "default" : "0.50 mm (Coarse)",
                 "entries" : {
                     "0.50 mm (Coarse)" : { "majorDiameter" : 3 * millimeter, "metric" : true, "tapDrillDiameter" : "2.5 mm" },
                     "0.35 mm (Fine)" : { "majorDiameter" : 3 * millimeter, "metric" : true, "tapDrillDiameter" : "2.65 mm" },
@@ -56,6 +60,7 @@ export const tappedHoleTable = {
             "M4" : {
                 "name" : "pitch",
                 "displayName" : "Pitch",
+                "default" : "0.70 mm (Coarse)",
                 "entries" : {
                     "0.70 mm (Coarse)" : { "majorDiameter" : 4 * millimeter, "metric" : true, "tapDrillDiameter" : "3.3 mm" },
                     "0.50 mm (Fine)" : { "majorDiameter" : 4 * millimeter, "metric" : true, "tapDrillDiameter" : "3.5 mm" },
@@ -72,6 +77,7 @@ export const clearanceHoleTable = {
             "#8" : {
                 "name" : "fit",
                 "displayName" : "Fastener fit",
+                "default" : "Free",
                 "entries" : {
                     "Free" : { "holeDiameter" : "0.177 in" },
                     "Close" : { "holeDiameter" : "0.1695 in" },
@@ -80,6 +86,7 @@ export const clearanceHoleTable = {
             "#10" : {
                 "name" : "fit",
                 "displayName" : "Fastener fit",
+                "default" : "Free",
                 "entries" : {
                     "Free" : { "holeDiameter" : "0.201 in" },
                     "Close" : { "holeDiameter" : "0.196 in" },
@@ -88,6 +95,7 @@ export const clearanceHoleTable = {
             "1/4" : {
                 "name" : "fit",
                 "displayName" : "Fastener fit",
+                "default" : "Free",
                 "entries" : {
                     "Free" : { "holeDiameter" : "0.266 in" },
                     "Close" : { "holeDiameter" : "0.257 in" },
@@ -99,14 +107,17 @@ export const clearanceHoleTable = {
 export const frcShaftTable = {
         "name" : "vendor",
         "displayName" : "Vendor",
+        "default" : "WCP",
         "entries" : {
             "WCP" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "Rounded hex",
                 "entries" : {
                     "Rounded hex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (WCP 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "WCP-0914", "url" : "https://wcproducts.com/products/wcp-0914" }], "vendor" : "WCP" },
                             "3/8 in." : { "appearance" : BLACK, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (WCP 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "WCP-0911", "url" : "https://wcproducts.com/products/wcp-0911" }], "vendor" : "WCP" },
@@ -115,6 +126,7 @@ export const frcShaftTable = {
                     "Hex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.STOCK, "material" : ALUMINUM, "partName" : "Hex Shaft (WCP 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "WCP-0915", "url" : "https://wcproducts.com/products/wcp-0915" }], "vendor" : "WCP" },
                             "3/8 in." : { "appearance" : BLACK, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : ALUMINUM, "partName" : "Hex Shaft (WCP 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "WCP-0912", "url" : "https://wcproducts.com/products/wcp-0912" }], "vendor" : "WCP" },
@@ -123,6 +135,7 @@ export const frcShaftTable = {
                     "Hex Lite" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.HEX_LITE, "material" : ALUMINUM, "partName" : "Hex Lite Shaft (WCP 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "WCP-0917", "url" : "https://wcproducts.com/products/wcp-0917" }], "vendor" : "WCP" },
                             "3/8 in." : { "appearance" : BLACK, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.HEX_LITE, "material" : ALUMINUM, "partName" : "Hex Lite Shaft (WCP 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "WCP-1418", "url" : "https://wcproducts.com/products/wcp-1418" }], "vendor" : "WCP" },
@@ -144,10 +157,12 @@ export const frcShaftTable = {
             "REV" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "Rounded hex",
                 "entries" : {
                     "Rounded hex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (REV 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "REV-21-1135", "url" : "https://www.revrobotics.com/search.php?search_query=REV-21-1135&section=product" }], "vendor" : "REV" },
                         },
@@ -155,6 +170,7 @@ export const frcShaftTable = {
                     "UltraHex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ULTRA_HEX, "material" : ALUMINUM, "partName" : "UltraHex Shaft (REV 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 72 * inch, "partNumber" : "REV-41-3205", "url" : "https://www.revrobotics.com/rev-41-3205/" }], "vendor" : "REV" },
                         },
@@ -166,10 +182,12 @@ export const frcShaftTable = {
             "AndyMark" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "Churro",
                 "entries" : {
                     "Churro" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.CHURRO, "material" : ALUMINUM, "partName" : "Churro Shaft (AndyMark 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 2.48 * inch, "partNumber" : "am-3399", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 3.375 * inch, "partNumber" : "am-2569", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 3.875 * inch, "partNumber" : "am-3087", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 6.25 * inch, "partNumber" : "am-5724", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 11.25 * inch, "partNumber" : "am-3398", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 12 * inch, "partNumber" : "am-3101-1", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 17.313 * inch, "partNumber" : "am-5218", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 17.8 * inch, "partNumber" : "am-3101-1780", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 24 * inch, "partNumber" : "am-3101-2", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 36 * inch, "partNumber" : "am-3101-3", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 47 * inch, "partNumber" : "am-3101-4700", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }], "vendor" : "AndyMark" },
                         },
@@ -177,6 +195,7 @@ export const frcShaftTable = {
                     "Hex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.STOCK, "material" : ALUMINUM_7075, "partName" : "Hex Shaft (AndyMark 1/2 in., 7075)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 12 * inch, "partNumber" : "am-2291-1", "url" : "https://andymark.com/products/0-5-in-7075-aluminum-hex-shaft-stock" }, { "length" : 47 * inch, "partNumber" : "am-2291-4700", "url" : "https://andymark.com/products/0-5-in-7075-aluminum-hex-shaft-stock" }], "vendor" : "AndyMark" },
                             "3/8 in." : { "appearance" : STEEL_GRAY, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Hex Shaft (AndyMark 3/8 in., steel)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 1.85 * inch, "partNumber" : "am-2356", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }, { "length" : 12 * inch, "partNumber" : "am-2356-1", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }, { "length" : 36 * inch, "partNumber" : "am-2356-3", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }, { "length" : 47 * inch, "partNumber" : "am-2356-4700", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }], "vendor" : "AndyMark" },
@@ -185,6 +204,7 @@ export const frcShaftTable = {
                     "Churro Lite" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "3/8 in.",
                         "entries" : {
                             "3/8 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.CHURRO, "material" : ALUMINUM, "partName" : "Churro Lite Shaft (AndyMark 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 10.5 * inch, "partNumber" : "am-5867", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }, { "length" : 36 * inch, "partNumber" : "am-3666-3", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }, { "length" : 47 * inch, "partNumber" : "am-3666-4700", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }], "vendor" : "AndyMark" },
                         },
@@ -194,14 +214,17 @@ export const frcShaftTable = {
             "Swyft" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "Rounded hex",
                 "entries" : {
                     "Rounded hex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : {
                                 "name" : "material",
                                 "displayName" : "Material",
+                                "default" : "7075",
                                 "entries" : {
                                     "7075" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM_7075, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 7075)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEX-0.5in-36in-AL7075", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
                                     "6061" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 6061)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEXtoSPLINE-0.5in-36in-AL6061", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
@@ -214,10 +237,12 @@ export const frcShaftTable = {
             "VEX" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "ThunderHex",
                 "entries" : {
                     "ThunderHex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "ThunderHex Shaft (VEX 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "217-8631", "url" : "https://www.vexrobotics.com/217-8631.html" }], "vendor" : "VEX" },
                             "3/8 in." : { "appearance" : BLACK, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "ThunderHex Shaft (VEX 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "217-5837", "url" : "https://www.vexrobotics.com/217-5837.html" }], "vendor" : "VEX" },
@@ -226,6 +251,7 @@ export const frcShaftTable = {
                     "Hex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.STOCK, "material" : ALUMINUM, "partName" : "Hex Shaft (VEX 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "217-2753", "url" : "https://www.vexrobotics.com/217-2753.html" }], "vendor" : "VEX" },
                             "3/8 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : ALUMINUM, "partName" : "Hex Shaft (VEX 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "217-2754", "url" : "https://www.vexrobotics.com/217-2754.html" }], "vendor" : "VEX" },
@@ -236,14 +262,17 @@ export const frcShaftTable = {
             "ThriftyBot" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "Rounded hex",
                 "entries" : {
                     "Rounded hex" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1/2 in.",
                         "entries" : {
                             "1/2 in." : {
                                 "name" : "material",
                                 "displayName" : "Material",
+                                "default" : "7075",
                                 "entries" : {
                                     "7075" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM_7075, "partName" : "Rounded Hex Shaft (ThriftyBot 1/2 in., 7075)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "TTB-0069", "url" : "https://www.thethriftybot.com/products/copy-of-qty-1-36-inch-long-1-2-rounded-hex-shaft-7075-aluminum" }], "vendor" : "ThriftyBot" },
                                     "6061" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (ThriftyBot 1/2 in., 6061)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "TTB-0068", "url" : "https://www.thethriftybot.com/products/qty-1-36-inch-long-1-2-rounded-hex-shaft-6061-aluminum" }], "vendor" : "ThriftyBot" },
@@ -255,6 +284,7 @@ export const frcShaftTable = {
                     "SplineXS" : {
                         "name" : "material",
                         "displayName" : "Material",
+                        "default" : "7075",
                         "entries" : {
                             "7075" : { "appearance" : BLACK, "material" : ALUMINUM_7075, "partName" : "SplineXS Shaft (ThriftyBot, 7075)", "predrilledHoleDiameter" : 0.159 * inch, "shaftType" : ShaftType.SPLINE, "splineType" : SplineType.SPLINE_XS, "stock" : [{ "length" : 36 * inch, "partNumber" : "TTB-0357", "url" : "https://www.thethriftybot.com/products/pre-order-splinexs-shafts" }], "vendor" : "ThriftyBot" },
                             "Steel" : { "appearance" : STEEL_GRAY, "material" : STEEL, "partName" : "SplineXS Shaft (ThriftyBot, steel)", "shaftType" : ShaftType.SPLINE, "splineType" : SplineType.SPLINE_XS, "stock" : [{ "length" : 36 * inch, "partNumber" : "TTB-0366", "url" : "https://www.thethriftybot.com/products/pre-order-splinexs-shafts" }], "vendor" : "ThriftyBot" },
@@ -278,10 +308,12 @@ export const frcShaftTable = {
 export const ftcShaftTable = {
         "name" : "vendor",
         "displayName" : "Vendor",
+        "default" : "goBILDA",
         "entries" : {
             "goBILDA" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "8 mm REX (e-clip)",
                 "entries" : {
                     "8 mm REX (e-clip)" : {
                         "name" : "length",
@@ -355,6 +387,7 @@ export const ftcShaftTable = {
                     "12 mm REX" : {
                         "name" : "material",
                         "displayName" : "Material",
+                        "default" : "Stainless steel",
                         "entries" : {
                             "Stainless steel" : {
                                 "name" : "length",
@@ -403,6 +436,7 @@ export const ftcShaftTable = {
             "AndyMark" : {
                 "name" : "type",
                 "displayName" : "Type",
+                "default" : "3/8 in. Robits hex",
                 "entries" : {
                     "3/8 in. Robits hex" : {
                         "name" : "length",

@@ -980,10 +980,12 @@ export const REV_MAXTUBE_2X2_MAX = [
 export const frcFrameTable = {
         "name" : "vendor",
         "displayName" : "Vendor",
+        "default" : "WCP",
         "entries" : {
             "WCP" : {
                 "name" : "profile",
                 "displayName" : "Profile",
+                "default" : "Tube",
                 "entries" : {
                     "Tube" : {
                         "name" : "size",
@@ -993,6 +995,7 @@ export const frcFrameTable = {
                             "1x1" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
+                                "default" : "1/16 in.",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (WCP, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0924", "url" : "https://wcproducts.com/products/wcp-0924" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (WCP, 3/32 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1586", "url" : "https://wcproducts.com/products/wcp-1586" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.09375 * inch, "wallY" : 0.09375 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
@@ -1002,10 +1005,12 @@ export const frcFrameTable = {
                             "2x1" : {
                                 "name" : "pattern",
                                 "displayName" : "Pattern",
+                                "default" : "Full",
                                 "entries" : {
                                     "Full" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
+                                        "default" : "1/16 in.",
                                         "entries" : {
                                             "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (WCP, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0895", "url" : "https://wcproducts.com/products/wcp-0895" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                             "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (WCP, 3/32 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1428", "url" : "https://wcproducts.com/products/wcp-1428" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.09375 * inch, "wallY" : 0.09375 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1015,6 +1020,7 @@ export const frcFrameTable = {
                                     "1 in. sides only" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
+                                        "default" : "1/16 in.",
                                         "entries" : {
                                             "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (WCP, 1/16 in. wall, 1 in. sides only)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0894", "url" : "https://wcproducts.com/products/wcp-0894" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
                                             "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (WCP, 3/32 in. wall, 1 in. sides only)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1427", "url" : "https://wcproducts.com/products/wcp-1427" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.09375 * inch, "wallY" : 0.09375 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
@@ -1026,6 +1032,7 @@ export const frcFrameTable = {
                             "2x2" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
+                                "default" : "1/16 in.",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 2 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x2 Tube (WCP, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0926", "url" : "https://wcproducts.com/products/wcp-0926" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                     "3/32 in." : { "appearance" : LIGHT_GRAY, "height" : 2 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x2 Tube (WCP, 3/32 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-1587", "url" : "https://wcproducts.com/products/wcp-1587" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.09375 * inch, "wallY" : 0.09375 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1034,6 +1041,7 @@ export const frcFrameTable = {
                             "C-Channel" : {
                                 "name" : "variant",
                                 "displayName" : "Type",
+                                "default" : "1x1x1",
                                 "entries" : {
                                     "1x1x1" : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : true, "partName" : "1x1x1 C-Channel (WCP, 2.5 mm wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0931", "url" : "https://wcproducts.com/products/wcp-0931" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0984251968503937 * inch, "wallY" : 0.0984251968503937 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "1x2x1" : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : true, "partName" : "1x2x1 C-Channel (WCP, 2.5 mm wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0932", "url" : "https://wcproducts.com/products/wcp-0932" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0984251968503937 * inch, "wallY" : 0.0984251968503937 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1044,6 +1052,7 @@ export const frcFrameTable = {
                     "Angle" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "1x1",
                         "entries" : {
                             "1x1" : { "angle" : true, "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Angle (WCP, 2.5 mm wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0929", "url" : "https://wcproducts.com/products/wcp-0929" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0984251968503937 * inch, "wallY" : 0.0984251968503937 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                             "2x2" : { "angle" : true, "appearance" : LIGHT_GRAY, "height" : 2 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x2 Angle (WCP, 2.5 mm wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "WCP-0930", "url" : "https://wcproducts.com/products/wcp-0930" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://wcproducts.com/products/punched-tubing", "vendor" : "WCP", "wallX" : 0.0984251968503937 * inch, "wallY" : 0.0984251968503937 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1054,6 +1063,7 @@ export const frcFrameTable = {
             "REV" : {
                 "name" : "profile",
                 "displayName" : "Profile",
+                "default" : "Tube",
                 "entries" : {
                     "Tube" : {
                         "name" : "size",
@@ -1063,6 +1073,7 @@ export const frcFrameTable = {
                             "1/2x1/2" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
+                                "default" : "1/16 in.",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : MEDIUM_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1/2x1/2 Tube (REV, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3289", "url" : "https://www.revrobotics.com/MAXTube-0.5x0.5/" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                 },
@@ -1080,6 +1091,7 @@ export const frcFrameTable = {
                             "2x1" : {
                                 "name" : "pattern",
                                 "displayName" : "Pattern",
+                                "default" : "Grid",
                                 "entries" : {
                                     "Grid" : {
                                         "name" : "wall",
@@ -1095,6 +1107,7 @@ export const frcFrameTable = {
                                     "1 in. sides only" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
+                                        "default" : "Light",
                                         "entries" : {
                                             "Light" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, light, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1_LIGHT, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2161", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
                                             "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, standard, 1 in. sides only)", "profile" : REV_MAXTUBE_2X1, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2162", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.04 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [] },
@@ -1103,6 +1116,7 @@ export const frcFrameTable = {
                                     "MAX Pattern" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
+                                        "default" : "Standard",
                                         "entries" : {
                                             "Standard" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, standard, MAX Pattern)", "profile" : REV_MAXTUBE_2X1_MAX, "stock" : [{ "length" : 3 * inch, "partNumber" : "REV-21-2163", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 5 * inch, "partNumber" : "REV-21-2164", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 7 * inch, "partNumber" : "REV-21-2165", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 15 * inch, "partNumber" : "REV-21-2169", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 23 * inch, "partNumber" : "REV-21-2173", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 31 * inch, "partNumber" : "REV-21-2177", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 47 * inch, "partNumber" : "REV-21-2185", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.04 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                             "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x1 Tube (REV, 1/8 in. wall, MAX Pattern)", "stock" : [{ "length" : 3 * inch, "partNumber" : "REV-21-3558", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 5 * inch, "partNumber" : "REV-21-3559", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 7 * inch, "partNumber" : "REV-21-3560", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 15 * inch, "partNumber" : "REV-21-3564", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 23 * inch, "partNumber" : "REV-21-3568", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 31 * inch, "partNumber" : "REV-21-3572", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }, { "length" : 47 * inch, "partNumber" : "REV-21-3580", "url" : "https://www.revrobotics.com/MAXTube-2x1/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1113,10 +1127,12 @@ export const frcFrameTable = {
                             "2x2" : {
                                 "name" : "pattern",
                                 "displayName" : "Pattern",
+                                "default" : "Grid",
                                 "entries" : {
                                     "Grid" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
+                                        "default" : "1/8 in.",
                                         "entries" : {
                                             "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, grid)", "profile" : REV_MAXTUBE_2X2, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3288", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                         },
@@ -1124,6 +1140,7 @@ export const frcFrameTable = {
                                     "MAX Pattern" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
+                                        "default" : "1/8 in.",
                                         "entries" : {
                                             "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, MAX Pattern)", "profile" : REV_MAXTUBE_2X2_MAX, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3286", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                         },
@@ -1131,6 +1148,7 @@ export const frcFrameTable = {
                                     "MAX Pattern and grid" : {
                                         "name" : "wall",
                                         "displayName" : "Wall",
+                                        "default" : "1/8 in.",
                                         "entries" : {
                                             "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, MAX Pattern and grid)", "profile" : REV_MAXTUBE_2X2, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3287", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                         },
@@ -1140,6 +1158,7 @@ export const frcFrameTable = {
                             "1 in. Extrusion" : {
                                 "name" : "finish",
                                 "displayName" : "Finish",
+                                "default" : "Clear anodized",
                                 "entries" : {
                                     "Clear anodized" : { "appearance" : MEDIUM_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1in Extrusion (REV, clear)", "profile" : REV_1IN_EXTRUSION, "stock" : [{ "length" : 48 * inch, "partNumber" : "REV-21-1000", "url" : "https://www.revrobotics.com/1in-extrusion/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0 * inch, "wallY" : 0 * inch, "width" : 1 * inch, "xRows" : [], "yRows" : [] },
                                     "Black anodized" : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1in Extrusion (REV, black)", "profile" : REV_1IN_EXTRUSION, "stock" : [{ "length" : 48 * inch, "partNumber" : "REV-21-1404", "url" : "https://www.revrobotics.com/1in-extrusion/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0 * inch, "wallY" : 0 * inch, "width" : 1 * inch, "xRows" : [], "yRows" : [] },
@@ -1150,6 +1169,7 @@ export const frcFrameTable = {
                     "Angle" : {
                         "name" : "size",
                         "displayName" : "Size",
+                        "default" : "0.74x0.74",
                         "entries" : {
                             "0.74x0.74" : { "angle" : true, "appearance" : MEDIUM_GRAY, "height" : 0.74 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "0.74x0.74 Angle (REV)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3207", "url" : "https://www.revrobotics.com/rev-21-3207/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 0.74 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0.13 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0.13 * inch }] }] },
                         },
@@ -1164,10 +1184,12 @@ export const frcFrameTable = {
                     "1x1" : {
                         "name" : "pattern",
                         "displayName" : "Pattern",
+                        "default" : "Full",
                         "entries" : {
                             "Full" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
+                                "default" : "1/16 in.",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (AndyMark, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5177", "url" : "https://andymark.com/am-5177" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                                     "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (AndyMark, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5178", "url" : "https://andymark.com/am-5178" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
@@ -1176,6 +1198,7 @@ export const frcFrameTable = {
                             "No holes" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
+                                "default" : "1/16 in.",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (AndyMark, 1/16 in. wall, no holes)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-4203", "url" : "https://andymark.com/am-4203" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 1 * inch, "xRows" : [], "yRows" : [] },
                                     "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "1x1 Tube (AndyMark, 1/8 in. wall, no holes)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-4204", "url" : "https://andymark.com/am-4204" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 1 * inch, "xRows" : [], "yRows" : [] },
@@ -1186,10 +1209,12 @@ export const frcFrameTable = {
                     "2x1" : {
                         "name" : "pattern",
                         "displayName" : "Pattern",
+                        "default" : "Full",
                         "entries" : {
                             "Full" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
+                                "default" : "1/16 in.",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (AndyMark, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5179", "url" : "https://andymark.com/am-5179" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                     "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (AndyMark, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5180", "url" : "https://andymark.com/am-5180" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1198,6 +1223,7 @@ export const frcFrameTable = {
                             "No holes" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
+                                "default" : "1/16 in.",
                                 "entries" : {
                                     "1/16 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (AndyMark, 1/16 in. wall, no holes)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-3214", "url" : "https://andymark.com/am-3214" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [], "yRows" : [] },
                                     "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "open" : false, "partName" : "2x1 Tube (AndyMark, 1/8 in. wall, no holes)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-4205", "url" : "https://andymark.com/am-4205" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [], "yRows" : [] },
@@ -1210,10 +1236,12 @@ export const frcFrameTable = {
             "ThriftyBot" : {
                 "name" : "size",
                 "displayName" : "Size",
+                "default" : "2x1",
                 "entries" : {
                     "2x1" : {
                         "name" : "wall",
                         "displayName" : "Wall",
+                        "default" : "0.080 in.",
                         "entries" : {
                             "0.080 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 0.080 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0291", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.08 * inch, "wallY" : 0.08 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                             "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0094", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
@@ -1229,6 +1257,7 @@ export const frcFrameTable = {
                     "1x1" : {
                         "name" : "wall",
                         "displayName" : "Wall",
+                        "default" : "1/16 in.",
                         "entries" : {
                             "1/16 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "1x1 Tube (Swyft, grid, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "SR-TUBE-0625-GRID-1X1-47", "url" : "https://swyftrobotics.com/structure/swyft-super-tube" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://swyftrobotics.com/structure/swyft-super-tube", "vendor" : "Swyft", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                             "1/8 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "1x1 Tube (Swyft, grid, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "SR-TUBE-125-GRID-1X1-47", "url" : "https://swyftrobotics.com/structure/swyft-super-tube" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://swyftrobotics.com/structure/swyft-super-tube", "vendor" : "Swyft", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 1 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
@@ -1237,6 +1266,7 @@ export const frcFrameTable = {
                     "2x1" : {
                         "name" : "pattern",
                         "displayName" : "Pattern",
+                        "default" : "Grid",
                         "entries" : {
                             "Grid" : {
                                 "name" : "wall",
@@ -1265,10 +1295,12 @@ export const frcFrameTable = {
             "Last Anvil" : {
                 "name" : "size",
                 "displayName" : "Size",
+                "default" : "2x1",
                 "entries" : {
                     "2x1" : {
                         "name" : "wall",
                         "displayName" : "Wall",
+                        "default" : "1/16 in.",
                         "entries" : {
                             "1/16 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "material" : ALUMINUM_7075, "open" : false, "partName" : "2x1 Tube (Last Anvil, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "240114", "url" : "https://lastanvil.com/products/patterned-tube?variant=42303483773134" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://lastanvil.com/products/patterned-tube", "vendor" : "Last Anvil", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                         },
@@ -1281,6 +1313,7 @@ export const frcFrameTable = {
 export const customFrameTable = {
         "name" : "profile",
         "displayName" : "Profile",
+        "default" : "Tube",
         "entries" : {
             "Tube" : {
                 "name" : "size",
@@ -1421,6 +1454,7 @@ export const customFrameTable = {
             "Angle" : {
                 "name" : "size",
                 "displayName" : "Size",
+                "default" : "1x1",
                 "entries" : {
                     "1x1" : {
                         "name" : "topRows",
@@ -1519,10 +1553,12 @@ export const customFrameTable = {
 export const ftcFrameTable = {
         "name" : "vendor",
         "displayName" : "Vendor",
+        "default" : "goBILDA",
         "entries" : {
             "goBILDA" : {
                 "name" : "size",
                 "displayName" : "Size",
+                "default" : "U-Channel",
                 "entries" : {
                     "U-Channel" : { "appearance" : MEDIUM_GRAY, "height" : 48 * millimeter, "holeDiameter" : 4 * millimeter, "open" : true, "partName" : "U-Channel (goBILDA 1120 Series)", "stock" : [{ "length" : 48 * millimeter, "partNumber" : "1120-0001-0048", "url" : "https://www.gobilda.com/1120-series-u-channel-1-hole-48mm-length/" }, { "length" : 72 * millimeter, "partNumber" : "1120-0002-0072", "url" : "https://www.gobilda.com/1120-series-u-channel-2-hole-72mm-length/" }, { "length" : 96 * millimeter, "partNumber" : "1120-0003-0096", "url" : "https://www.gobilda.com/1120-series-u-channel-3-hole-96mm-length/" }, { "length" : 120 * millimeter, "partNumber" : "1120-0004-0120", "url" : "https://www.gobilda.com/1120-series-u-channel-4-hole-120mm-length/" }, { "length" : 144 * millimeter, "partNumber" : "1120-0005-0144", "url" : "https://www.gobilda.com/1120-series-u-channel-5-hole-144mm-length/" }, { "length" : 168 * millimeter, "partNumber" : "1120-0006-0168", "url" : "https://www.gobilda.com/1120-series-u-channel-6-hole-168mm-length/" }, { "length" : 192 * millimeter, "partNumber" : "1120-0007-0192", "url" : "https://www.gobilda.com/1120-series-u-channel-7-hole-192mm-length/" }, { "length" : 216 * millimeter, "partNumber" : "1120-0008-0216", "url" : "https://www.gobilda.com/1120-series-u-channel-8-hole-216mm-length/" }, { "length" : 240 * millimeter, "partNumber" : "1120-0009-0240", "url" : "https://www.gobilda.com/1120-series-u-channel-9-hole-240mm-length/" }, { "length" : 264 * millimeter, "partNumber" : "1120-0010-0264", "url" : "https://www.gobilda.com/1120-series-u-channel-10-hole-264mm-length/" }, { "length" : 288 * millimeter, "partNumber" : "1120-0011-0288", "url" : "https://www.gobilda.com/1120-series-u-channel-11-hole-288mm-length/" }, { "length" : 312 * millimeter, "partNumber" : "1120-0012-0312", "url" : "https://www.gobilda.com/1120-series-u-channel-12-hole-312mm-length/" }, { "length" : 336 * millimeter, "partNumber" : "1120-0013-0336", "url" : "https://www.gobilda.com/1120-series-u-channel-13-hole-336mm-length/" }, { "length" : 360 * millimeter, "partNumber" : "1120-0014-0360", "url" : "https://www.gobilda.com/1120-series-u-channel-14-hole-360mm-length/" }, { "length" : 384 * millimeter, "partNumber" : "1120-0015-0384", "url" : "https://www.gobilda.com/1120-series-u-channel-15-hole-384mm-length/" }, { "length" : 408 * millimeter, "partNumber" : "1120-0016-0408", "url" : "https://www.gobilda.com/1120-series-u-channel-16-hole-408mm-length/" }, { "length" : 432 * millimeter, "partNumber" : "1120-0017-0432", "url" : "https://www.gobilda.com/1120-series-u-channel-17-hole-432mm-length/" }, { "length" : 456 * millimeter, "partNumber" : "1120-0018-0456", "url" : "https://www.gobilda.com/1120-series-u-channel-18-hole-456mm-length/" }, { "length" : 528 * millimeter, "partNumber" : "1120-0021-0528", "url" : "https://www.gobilda.com/1120-series-u-channel-21-hole-528mm-length/" }, { "length" : 624 * millimeter, "partNumber" : "1120-0025-0624", "url" : "https://www.gobilda.com/1120-series-u-channel-25-hole-624mm-length/" }, { "length" : 720 * millimeter, "partNumber" : "1120-0029-0720", "url" : "https://www.gobilda.com/1120-series-u-channel-29-hole-720mm-length/" }, { "length" : 816 * millimeter, "partNumber" : "1120-0033-0816", "url" : "https://www.gobilda.com/1120-series-u-channel-33-hole-816mm-length/" }, { "length" : 912 * millimeter, "partNumber" : "1120-0037-0912", "url" : "https://www.gobilda.com/1120-series-u-channel-37-hole-912mm-length/" }, { "length" : 1008 * millimeter, "partNumber" : "1120-0041-1008", "url" : "https://www.gobilda.com/1120-series-u-channel-41-hole-1008mm-length/" }, { "length" : 1104 * millimeter, "partNumber" : "1120-0045-1104", "url" : "https://www.gobilda.com/1120-series-u-channel-45-hole-1104mm-length/" }, { "length" : 1200 * millimeter, "partNumber" : "1120-0049-1200", "url" : "https://www.gobilda.com/1120-series-u-channel-49-hole-1200mm-length/" }], "tieStart" : 24 * millimeter, "tieUnit" : 24 * millimeter, "url" : "https://www.gobilda.com/channel/", "vendor" : "goBILDA", "wallX" : 2.5 * millimeter, "wallY" : 2.5 * millimeter, "width" : 48 * millimeter, "xRows" : [{ "start" : 24 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : 11.3137 * millimeter }, { "along" : 0 * meter, "offset" : -11.3137 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "slot" : 1.3726 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0.4853 * millimeter, "offset" : -8.4853 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0.4853 * millimeter, "offset" : 8.4853 * millimeter }] }, { "start" : 16 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : -0.4853 * millimeter, "offset" : -8.4853 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : -0.4853 * millimeter, "offset" : 8.4853 * millimeter }] }], "yRows" : [{ "start" : 24 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : 11.3137 * millimeter }, { "along" : 0 * meter, "offset" : -11.3137 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "slot" : 1.3726 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0.4853 * millimeter, "offset" : -8.4853 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0.4853 * millimeter, "offset" : 8.4853 * millimeter }] }, { "start" : 16 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : -0.4853 * millimeter, "offset" : -8.4853 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : -0.4853 * millimeter, "offset" : 8.4853 * millimeter }] }] },
                     "Low-Side U-Channel" : { "appearance" : MEDIUM_GRAY, "height" : 12 * millimeter, "holeDiameter" : 4 * millimeter, "open" : true, "partName" : "Low-Side U-Channel (goBILDA 1121 Series)", "stock" : [{ "length" : 48 * millimeter, "partNumber" : "1121-0001-0048", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-1-hole-48mm-length/" }, { "length" : 72 * millimeter, "partNumber" : "1121-0002-0072", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-2-hole-72mm-length/" }, { "length" : 96 * millimeter, "partNumber" : "1121-0003-0096", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-3-hole-96mm-length/" }, { "length" : 120 * millimeter, "partNumber" : "1121-0004-0120", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-4-hole-120mm-length/" }, { "length" : 144 * millimeter, "partNumber" : "1121-0005-0144", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-5-hole-144mm-length/" }, { "length" : 168 * millimeter, "partNumber" : "1121-0006-0168", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-6-hole-168mm-length/" }, { "length" : 192 * millimeter, "partNumber" : "1121-0007-0192", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-7-hole-192mm-length/" }, { "length" : 216 * millimeter, "partNumber" : "1121-0008-0216", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-8-hole-216mm-length/" }, { "length" : 240 * millimeter, "partNumber" : "1121-0009-0240", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-9-hole-240mm-length/" }, { "length" : 264 * millimeter, "partNumber" : "1121-0010-0264", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-10-hole-264mm-length/" }, { "length" : 288 * millimeter, "partNumber" : "1121-0011-0288", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-11-hole-288mm-length/" }, { "length" : 312 * millimeter, "partNumber" : "1121-0012-0312", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-12-hole-312mm-length/" }, { "length" : 336 * millimeter, "partNumber" : "1121-0013-0336", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-13-hole-336mm-length/" }, { "length" : 360 * millimeter, "partNumber" : "1121-0014-0360", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-14-hole-360mm-length/" }, { "length" : 384 * millimeter, "partNumber" : "1121-0015-0384", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-15-hole-384mm-length/" }, { "length" : 408 * millimeter, "partNumber" : "1121-0016-0408", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-16-hole-408mm-length/" }, { "length" : 432 * millimeter, "partNumber" : "1121-0017-0432", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-17-hole-432mm-length/" }, { "length" : 456 * millimeter, "partNumber" : "1121-0018-0456", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-18-hole-456mm-length/" }, { "length" : 528 * millimeter, "partNumber" : "1121-0021-0528", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-21-hole-528mm-length/" }, { "length" : 624 * millimeter, "partNumber" : "1121-0025-0624", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-25-hole-624mm-length/" }, { "length" : 720 * millimeter, "partNumber" : "1121-0029-0720", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-29-hole-720mm-length/" }, { "length" : 816 * millimeter, "partNumber" : "1121-0033-0816", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-33-hole-816mm-length/" }, { "length" : 912 * millimeter, "partNumber" : "1121-0037-0912", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-37-hole-912mm-length/" }, { "length" : 1008 * millimeter, "partNumber" : "1121-0041-1008", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-41-hole-1008mm-length/" }, { "length" : 1104 * millimeter, "partNumber" : "1121-0045-1104", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-45-hole-1104mm-length/" }, { "length" : 1200 * millimeter, "partNumber" : "1121-0049-1200", "url" : "https://www.gobilda.com/1121-series-low-side-u-channel-49-hole-1200mm-length/" }], "tieStart" : 24 * millimeter, "tieUnit" : 24 * millimeter, "url" : "https://www.gobilda.com/channel/", "vendor" : "goBILDA", "wallX" : 2.5 * millimeter, "wallY" : 2.5 * millimeter, "width" : 48 * millimeter, "xRows" : [{ "start" : 8 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 2 * millimeter }] }], "yRows" : [{ "start" : 24 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : 11.3137 * millimeter }, { "along" : 0 * meter, "offset" : -11.3137 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "slot" : 1.3726 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0.4853 * millimeter, "offset" : -8.4853 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0.4853 * millimeter, "offset" : 8.4853 * millimeter }] }, { "start" : 16 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : -0.4853 * millimeter, "offset" : -8.4853 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : -0.4853 * millimeter, "offset" : 8.4853 * millimeter }] }] },
@@ -1533,10 +1569,12 @@ export const ftcFrameTable = {
             "REV" : {
                 "name" : "size",
                 "displayName" : "Size",
+                "default" : "15mm Extrusion",
                 "entries" : {
                     "15mm Extrusion" : {
                         "name" : "finish",
                         "displayName" : "Finish",
+                        "default" : "Clear anodized",
                         "entries" : {
                             "Clear anodized" : { "appearance" : MEDIUM_GRAY, "height" : 15 * millimeter, "holeDiameter" : 4 * millimeter, "open" : false, "partName" : "15mm Extrusion (REV, clear)", "profile" : REV_15MM_EXTRUSION, "stock" : [{ "length" : 120 * millimeter, "partNumber" : "REV-41-1568-PK2", "url" : "https://www.revrobotics.com/15mm-extrusions/" }, { "length" : 225 * millimeter, "partNumber" : "REV-41-1431-PK2", "url" : "https://www.revrobotics.com/15mm-extrusions/" }, { "length" : 420 * millimeter, "partNumber" : "REV-41-1432-PK4", "url" : "https://www.revrobotics.com/15mm-extrusions/" }, { "length" : 1000 * millimeter, "partNumber" : "REV-41-1017", "url" : "https://www.revrobotics.com/15mm-extrusions/" }], "tieStart" : 15 * millimeter, "tieUnit" : 15 * millimeter, "url" : "https://www.revrobotics.com/15mm-extrusions/", "vendor" : "REV", "wallX" : 0 * millimeter, "wallY" : 0 * millimeter, "width" : 15 * millimeter, "xRows" : [], "yRows" : [] },
                             "Black anodized" : { "appearance" : BLACK, "height" : 15 * millimeter, "holeDiameter" : 4 * millimeter, "open" : false, "partName" : "15mm Extrusion (REV, black)", "profile" : REV_15MM_EXTRUSION, "stock" : [{ "length" : 1000 * millimeter, "partNumber" : "REV-41-1569", "url" : "https://www.revrobotics.com/15mm-extrusions/" }], "tieStart" : 15 * millimeter, "tieUnit" : 15 * millimeter, "url" : "https://www.revrobotics.com/15mm-extrusions/", "vendor" : "REV", "wallX" : 0 * millimeter, "wallY" : 0 * millimeter, "width" : 15 * millimeter, "xRows" : [], "yRows" : [] },
@@ -1545,6 +1583,7 @@ export const ftcFrameTable = {
                     "15x30mm Extrusion" : {
                         "name" : "finish",
                         "displayName" : "Finish",
+                        "default" : "Clear anodized",
                         "entries" : {
                             "Clear anodized" : { "appearance" : MEDIUM_GRAY, "height" : 15 * millimeter, "holeDiameter" : 4 * millimeter, "open" : false, "partName" : "15x30mm Extrusion (REV, clear)", "profile" : REV_15X30MM_EXTRUSION, "stock" : [{ "length" : 420 * millimeter, "partNumber" : "REV-41-1587-PK4", "url" : "https://www.revrobotics.com/15mm-extrusions/" }, { "length" : 1000 * millimeter, "partNumber" : "REV-41-1093", "url" : "https://www.revrobotics.com/15mm-extrusions/" }], "tieStart" : 15 * millimeter, "tieUnit" : 15 * millimeter, "url" : "https://www.revrobotics.com/15mm-extrusions/", "vendor" : "REV", "wallX" : 0 * millimeter, "wallY" : 0 * millimeter, "width" : 30 * millimeter, "xRows" : [], "yRows" : [] },
                             "Black anodized" : { "appearance" : BLACK, "height" : 15 * millimeter, "holeDiameter" : 4 * millimeter, "open" : false, "partName" : "15x30mm Extrusion (REV, black)", "profile" : REV_15X30MM_EXTRUSION, "stock" : [{ "length" : 1000 * millimeter, "partNumber" : "REV-41-1586", "url" : "https://www.revrobotics.com/15mm-extrusions/" }], "tieStart" : 15 * millimeter, "tieUnit" : 15 * millimeter, "url" : "https://www.revrobotics.com/15mm-extrusions/", "vendor" : "REV", "wallX" : 0 * millimeter, "wallY" : 0 * millimeter, "width" : 30 * millimeter, "xRows" : [], "yRows" : [] },
@@ -1555,6 +1594,7 @@ export const ftcFrameTable = {
             "Swyft" : {
                 "name" : "size",
                 "displayName" : "Size",
+                "default" : "Channel",
                 "entries" : {
                     "Channel" : { "appearance" : BLACK, "height" : 12 * millimeter, "holeDiameter" : 4 * millimeter, "open" : true, "partName" : "Channel (Swyft)", "stock" : [{ "length" : 424 * millimeter, "partNumber" : "SR-CHANNEL-L48-424", "url" : "https://swyftrobotics.com/structure/swyft-channel" }], "tieStart" : 20 * millimeter, "tieUnit" : 24 * millimeter, "url" : "https://swyftrobotics.com/structure/swyft-channel", "vendor" : "Swyft", "wallX" : 2 * millimeter, "wallY" : 2 * millimeter, "width" : 48 * millimeter, "xRows" : [{ "start" : 4 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 2 * millimeter }] }], "yRows" : [{ "start" : 20 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : -0.5 * inch, "diameter" : 5 * millimeter }, { "along" : 0 * meter, "offset" : 0.5 * inch, "diameter" : 5 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 5 * millimeter, "slot" : 1.4 * millimeter }] }, { "start" : 4 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }] },
                 },
@@ -1562,6 +1602,7 @@ export const ftcFrameTable = {
             "AndyMark" : {
                 "name" : "size",
                 "displayName" : "Size",
+                "default" : "1/2x1/2 (Robits)",
                 "entries" : {
                     "1/2x1/2 (Robits)" : { "appearance" : LIGHT_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.201 * inch, "open" : false, "partName" : "1/2x1/2 Tube (AndyMark Robits)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5001-4700", "url" : "https://andymark.com/am-5001-4700" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.063 * inch, "wallY" : 0.063 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                 },

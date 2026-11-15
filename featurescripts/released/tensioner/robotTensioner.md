@@ -35,7 +35,6 @@ Since its last release, as Robot belt tuner:
 | Parameter | Description |
 | --- | --- |
 | Pulley, sprocket, or idler (`adjust`) | The one to adjust: the belt's or chain's curved face around it, its mate connector, or a Robot pulley or sprocket. |
-| Direction (`direction`) | The direction to move it in, like along a slot. |
 
 No parameters are hidden.
 

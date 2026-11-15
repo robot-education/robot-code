@@ -51,7 +51,7 @@ export predicate pulleyGeneralPredicate(definition is map)
 {
     annotation { "Group Name" : "Pulley", "Collapsed By Default" : false }
     {
-        annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"], "Description" : "A pulley, with teeth, or an idler, smooth, for a belt's back." }
+        annotation { "Name" : "Type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
         definition.pulleyKind is PulleyKind;
 
         beltTypePredicate(definition);
