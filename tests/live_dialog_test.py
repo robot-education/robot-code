@@ -33,7 +33,7 @@ def feature(name: str) -> pathlib.Path:
 
 FEATURES = [
     # Every kind of parameter and layout
-    "uiTestBench.fs",
+    "uiTestBench.local.fs",
     # The deepest conditions (predicates calling predicates, lookup tables), and a "Set By" parameter
     "robotShaft.fs",
     "robotFrame.fs",
@@ -99,7 +99,7 @@ def test_script_draws_what_fs_ui_renders(name, tmp_path):
 def test_typed_values_are_drawn(tmp_path):
     config = load_config()
     project = _project(config)
-    path = feature("uiTestBench.fs")
+    path = feature("uiTestBench.local.fs")
     data, conditions = dialog_data(project, config.std_dir, path, None)
     [result] = run_script(page_script(data, conditions), [{"length": "1 <in>"}], tmp_path)
     expected = split_page(render_feature(project, config.std_dir, path, None, {"length": "1 <in>"})[0])[1]

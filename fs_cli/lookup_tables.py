@@ -174,12 +174,14 @@ def lookup_parameters(source: str) -> list[tuple[str, str]]:
 
 def find_uses(tables: list[Table], code_dir: pathlib.Path) -> None:
     """Fills in each table's `used_by`: the parameters whose annotations name it as their `"Lookup Table"`, by name
-    (so a table another file defines with the same name would be matched too)."""
+    (so a table another file defines with the same name would be matched too). Local files aren't searched, but those
+    the tables are in."""
     by_name: dict[str, list[Table]] = {}
     for table in tables:
         by_name.setdefault(table.name, []).append(table)
+    sources = {table.module for table in tables}
     for path in sorted(code_dir.rglob("*.fs")):
-        if is_local(path.name):
+        if is_local(path.name) and path.relative_to(code_dir).as_posix() not in sources:
             continue
         for match in _LOOKUP_ANNOTATION.finditer(path.read_text()):
             for table in by_name.get(match.group(1), []):

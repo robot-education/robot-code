@@ -116,12 +116,26 @@ def is_clean(root: pathlib.Path) -> bool:
     return status is not None and not status.strip()
 
 
-def remote_branches(root: pathlib.Path) -> set[str] | None:
-    """The branches on origin; None if it can't be reached."""
-    heads = _git(root, "ls-remote", "--heads", "origin")
-    if heads is None:
-        return None
-    return {line.split("refs/heads/", 1)[1] for line in heads.splitlines() if "refs/heads/" in line}
+def fetch(root: pathlib.Path, branch: str) -> bool:
+    """Fetches a branch from origin; whether it could."""
+    return _git(root, "fetch", "--quiet", "origin", branch) is not None
+
+
+def remote_commit(root: pathlib.Path, branch: str) -> str | None:
+    """The commit origin's branch is at, as last fetched."""
+    commit = _git(root, "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
+    return commit.strip() if commit else None
+
+
+def changed_paths(root: pathlib.Path, paths: list[pathlib.Path]) -> list[str]:
+    """Those of paths with changes git hasn't committed (staged, unstaged, or untracked), relative to root."""
+    if not paths:
+        return []
+    relative = [path.resolve().relative_to(root.resolve()).as_posix() for path in paths]
+    status = _git(root, "status", "--porcelain", "--", *relative)
+    if status is None:
+        return []
+    return sorted({line[3:].split(" -> ")[-1] for line in status.splitlines() if line.strip()})
 
 
 def commit_with_contents(root: pathlib.Path, file: pathlib.Path, contents: str) -> str | None:

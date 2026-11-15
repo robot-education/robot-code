@@ -189,42 +189,31 @@ Failed calls (like a 400) don't count. Commands that only read the repo (`fs che
 
 ## Branches
 
-With `main_branch` set in `[tool.fs]` (robot-code's is `main`), each git branch works in a workspace of its own in the
-backend document, and the main workspace holds only the main branch, changed by merging. So branches can't overwrite
-each other's Feature Studios, and Onshape can protect the main workspace (a workspace protection rule of Merge).
+Every git branch works in the backend's main workspace: `fs push` from any of them writes it, so what's there is
+whatever was pushed last, from wherever, and a studio someone's still working on may be broken there for a while. That's
+fine, as releases don't take what's there: each pushes what it releases first.
 
-- On any other branch, `fs push` (and `sync`, `tabs`, `parts --test`, `parts --diagnose`, `update-std --push`) works in a
-  workspace named after the branch, which the first of them creates, branched from the main workspace's latest
-  version (Onshape branches only from versions). Commands which only read (`status`, `pull`, `diff`, ...) read the
-  main workspace until the branch has one. Its state, what each studio looked like when last synced, is
-  `.fs-state.<branch>.json`, which starts as the main workspace's.
-- A tab is the same tab, by element id, in every workspace. When a branch has a tab from git that its workspace lacks
-  (another branch added it, reached main, and this branch merged main in git), the next push first merges the main
-  workspace into the branch's, keeping the branch's code where both changed, so the tab keeps its id.
-- On the main branch, writing is refused: changes reach the main workspace through `fs sync-main`, which the Onshape
-  workflow runs when something is merged into main. It merges the main workspace into the merged branch's workspace
-  (or into a new `sync <commit>` one, for a branch without one), pushes main's files there over whatever it has
-  (git is what main holds), merges that into the main workspace, taking its tabs where both changed, and deletes it.
-  Run again after a failure, it finishes.
-- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `run-releases`, `app-manifest`) runs only
-  on the main branch, so what's released is what was merged. A part set's release to a
-  target (`parts --release --target`), to try it out, runs from any branch, versioning its workspace (see
-  [docs/parts.md](parts.md)).
-- `fs branches` lists the workspaces fs made (marked by their description), and `fs branches --prune` deletes those
-  whose branch is gone from origin. Workspaces made by hand are never deleted.
+- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `run-releases`, `app-manifest`) runs only on
+  the main branch (`main_branch` in `[tool.fs]`, robot-code's `main`). `release`, `parts --release`, and `run-releases`
+  also run only once it's what GitHub has: they fetch origin, and refuse unless HEAD is origin's main and what's
+  released has no changes but what's committed. A part set's release to a target (`parts --release --target`), to try
+  it out, runs from any branch (see [docs/parts.md](parts.md)).
+- A release then pushes what it releases over Onshape's, as `fs push --release SCRIPT` does: the FeatureScript, and
+  every studio and image it imports, directly or not, in import order (so each import names the version just pushed),
+  overwriting changes made in Onshape (as `--force`), and deleting nothing. Studios it doesn't import are left as they
+  are, and are in the version as they are. Their import versions are committed, as `fs push` commits them.
 
 A CI checkout may leave no branch checked out; `FS_BRANCH` names it.
 
 ```
-uv run fs push                 # on a branch: its workspace, made on first use
-uv run fs sync-main            # on main: land it in the main workspace (the Onshape workflow runs this)
-uv run fs branches --prune     # delete the workspaces of branches gone from origin
+uv run fs push                           # from any branch: the main workspace
+uv run fs push --release robotFrame      # push what releasing robotFrame needs, over Onshape's
 ```
 
 ### Release files
 
 A branch asks for a release by adding a file to `releases/`, reviewed with its code; `fs run-releases` makes it once
-the branch is merged into main, after `fs sync-main`:
+the branch is merged into main:
 
 ```toml
 # releases/frame-hubs.toml
@@ -250,13 +239,13 @@ what it made, finish it by hand, and delete the file. A file added again later, 
 ### The Onshape workflow
 
 `.github/workflows/checks.yml` runs the tests, `fs check`, and `fs releases` on every pull request.
-`.github/workflows/onshape.yml` runs on each push to main, one run at a time: the same checks, then `fs sync-main`
-(with the merged pull request's branch), `fs run-releases`, a push of what they committed to main, and
-`fs branches --prune`. It needs:
+`.github/workflows/onshape.yml` runs on each push to main, one run at a time: the same checks, then `fs run-releases`,
+and a push of what it committed to main. It doesn't push anything else to Onshape. A run whose commit isn't origin's main
+any more (another push came after it) fails its releases, and the next run makes them. It needs:
 
 - The secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY`: API keys of an account with edit access to the backend,
-  frontend, and part set documents, whose allocation every run spends (about five calls a sync, plus one a studio
-  pushed, and a release's).
+  frontend, and part set documents, whose allocation a run spends only on releases (a release's calls, plus one a
+  studio it pushes).
 - Its commits pushed to main past branch protection: the workflow's `github-actions[bot]` allowed to bypass it.
 
 ## Checking and navigating
@@ -326,9 +315,9 @@ they use. To update them, capture the dialog again (below), save it over that fi
 python -m fs_cli.onshape_ui.extract featurescripts/uiTestBench/uiTestBench.html`.
 
 Arrays start empty, as in a new feature; `--set holes=2` shows two items, and `--set holes.1.depth=2in` sets the second
-item's depth. `featurescripts/uiTestBench/uiTestBench.fs` has one
+item's depth. `featurescripts/uiTestBench/uiTestBench.local.fs` has one
 of every kind of parameter and UI hint (and groups nested in groups), for comparing `fs ui` with Onshape (`uv run fs ui
-featurescripts/uiTestBench/uiTestBench.fs --set items=2`). To capture how Onshape draws a dialog, open it in Onshape and
+featurescripts/uiTestBench/uiTestBench.local.fs --set items=2`). To capture how Onshape draws a dialog, open it in Onshape and
 paste `fs_cli/ui_capture.js` into DevTools' console: it downloads the dialog as a self-contained HTML file, with what's
 typed and checked in it, the CSS rules which apply to it, and the icons it uses. It only reads the page.
 
@@ -466,8 +455,9 @@ uv run fs release robotFrame --minor --dry-run            # show the plan withou
 A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
 frontend studio of the same name at it (creating the studio if needed). A part set's FeatureScript
 (`[tool.fs.parts]`) isn't released here but by `fs parts SET --release`, into its FRCDesignLib document with its Part
-Studios; see [docs/parts.md](parts.md). The studio must be pushed and in sync before it can be released, and
-`fs release` asks for confirmation since versions can't be deleted (`-y` skips the prompt).
+Studios; see [docs/parts.md](parts.md). A release first pushes what it releases over Onshape's (`fs push --release`,
+below), so the version holds it as it is in the repo, and `fs release` asks for confirmation since versions can't be
+deleted (`-y` skips the prompt).
 
 A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
 version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend

@@ -2,7 +2,7 @@
 whose FeatureScript only they use. Their FeatureScript is in the backend document like any other, and its imports work
 the same, but it's tried and released here rather than by `fs release`:
 
-- `fs parts <set> --test` builds each Part Studio in the branch's backend workspace, named `<tab> (TEST)`, from the
+- `fs parts <set> --test` builds each Part Studio in the backend workspace, named `<tab> (TEST)`, from the
   FeatureScript as pushed, to try a change. Nothing else is written.
 - `fs parts <set> --release` versions the backend document, points the set's main document (an FRCDesignLib document)
   at that version, builds each Part Studio there and writes the set's manifest beside them (`<set>.parts.json`),
