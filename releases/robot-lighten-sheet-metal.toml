@@ -1,0 +1,4 @@
+script = "robotLighten"
+bump = "minor"
+description = "Sheet metal parts, Cut additional bodies, and a new description"
+publish = true
