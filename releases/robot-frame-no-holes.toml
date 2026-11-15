@@ -1,0 +1,4 @@
+script = "robotFrame"
+bump = "minor"
+description = "Frames with no holes, and FRCDesignLib color standards"
+publish = false
