@@ -1958,7 +1958,7 @@ def features(workspace: Workspace, args: argparse.Namespace) -> int:
 
 
 def parts(workspace: Workspace, args: argparse.Namespace) -> int:
-    from fs_cli.parts import plan_part_release, run_diagnose, run_part_release, run_test
+    from fs_cli.parts import part_set_script, plan_part_release, run_diagnose, run_part_release, run_test
 
     part_set = workspace.config.find_part_set(args.part_set)
     if not args.release and (args.target or args.bump or args.description):
@@ -1992,8 +1992,23 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
                 print(f"  refused {stage}: {error}")
         return 0
 
-    if args.target is None and not getattr(args, "checked", False):
-        check_synced_with_origin(workspace.config, [workspace.config.code_dir / part_set.folder])
+    if args.target is None:
+        if not getattr(args, "checked", False):
+            check_synced_with_origin(workspace.config, [workspace.config.code_dir / part_set.folder])
+        # Its Feature Studio as it is on GitHub, over whatever Onshape has, as a FeatureScript's release pushes
+        pushed = push(
+            workspace,
+            argparse.Namespace(
+                targets=[part_set_script(workspace, part_set)],
+                release=True,
+                force=True,
+                yes=True,
+                dry_run=args.dry_run,
+                no_commit=False,
+            ),
+        )
+        if pushed != 0:
+            raise UsageError(f"Couldn't push what the {part_set.name} part set needs to be released; nothing was released.")
     plan = plan_part_release(workspace, part_set, args.bump, args.target)
     label = plan.label
     if plan.released:

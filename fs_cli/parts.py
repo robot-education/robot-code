@@ -71,6 +71,19 @@ def part_set_definitions(workspace: Workspace, part_set: PartSet) -> list[tuple[
     return found
 
 
+def part_set_script(workspace: Workspace, part_set: PartSet) -> str:
+    """The FeatureScript in a part set's folder defining every feature its studios use, as `fs push --release` takes
+    it, read from the repo."""
+    features = sorted({studio.feature for _, studios in part_set_definitions(workspace, part_set) for studio in studios})
+    folder = workspace.config.code_dir / part_set.folder
+    found = [
+        path for path in sorted(folder.rglob("*.fs")) if all(defines(path.read_text(), feature) for feature in features)
+    ]
+    if len(found) != 1:
+        raise UsageError(f"Expected one FeatureScript in {part_set.folder}/ defining {', '.join(features)}; found {len(found)}.")
+    return str(found[0])
+
+
 def feature_studio(workspace: Workspace, part_set: PartSet, studios: list[ConfiguredStudio]) -> Studio:
     """The part set's Feature Studio defining every studio's feature, which they're built from. Every studio in the
     set's folder must be pushed and in sync, its tables included."""
