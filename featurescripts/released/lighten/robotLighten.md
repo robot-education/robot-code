@@ -18,7 +18,7 @@ Unreleased.
 
 - Lightens sheet metal parts: the pockets are cut with std's Boolean (`booleanBodies`), which cuts a sheet metal part
   through its sheets.
-- Cut additional bodies (under Selections): the pockets cut the Bodies to cut too, as a stack of plates under the
+- Cut additional bodies (at the bottom): the pockets cut the Bodies to cut too, as a stack of plates under the
   part. Through all goes to the far side of the part and every body to cut, and Weight reduced counts them all.
 - The description is now "Quickly and robustly cut lightening patterns into parts." (was "Lighten a part with
   pockets, leaving walls around its edges and holes, and ribs along a sketch.").
@@ -28,7 +28,7 @@ Unreleased.
 - When the walls can't be made, the error says the wall thickness (plus the fillet radius) is too large, and shows the
   face or the holes they fail at, instead of the pockets sticking out of the part.
 - Every pocket is cut, however small: none are left solid.
-- Exact pockets (under Options, on by default): off, walls and ribs are built 0.1 mm thicker, so walls which exactly
+- Exact pockets (on by default, after End type; the Options group is gone): off, walls and ribs are built 0.1 mm thicker, so walls which exactly
   meet at the sizes given (like round ones) don't fail; with Fillet corners, the pockets are grown back by as much, so
   their corners are rounded 0.1 mm more than Fillet radius. Errors which exact sizes can cause suggest it.
 - Growing the pockets back failing is a warning again, rather than failing the feature.
@@ -99,14 +99,15 @@ where they come up, and show only once it's done; of several, the last of the mo
 ### Dialog
 
 - **Selections** (at the top): Face to lighten, Ignore faces (with Faces to ignore, and Add walls around ignored
-  faces), Ribs to use (optional), Exclude construction lines, and Cut additional bodies (with Bodies to cut).
+  faces), Ribs to use (optional), and Exclude construction lines.
 - Wall thickness, Rib thickness, Fillet corners, and Fillet radius.
 - **Override rib thickness**: an array of ribs at other thicknesses (labeled like "0.25 in ribs"). Later overrides
   win over earlier ones, and all of them over Rib thickness.
 - **Override wall thickness**: an array of the part's faces whose walls are other thicknesses (labeled like
   "0.0625 in walls"). Later overrides win, and all of them win over Faces to ignore.
 - End type (Through all or Blind), and Depth.
-- **Options** (collapsed): Exact pockets.
+- Exact pockets.
+- Cut additional bodies, with Bodies to cut.
 
 ### Editing logic
 
@@ -232,7 +233,7 @@ pocket exactly the bit's width (Robot Lighten Example 2, with 0.25 in walls, fil
 pockets either side touch along an edge, which no cut can leave (`BOOLEAN_NON_MANIFOLD_RESULT`), or are left a sliver,
 which growing them back fails on.
 
-Exact pockets (under Options) is on by default, and builds everything exactly as given, ties and all. Off, walls and
+Exact pockets is on by default, and builds everything exactly as given, ties and all. Off, walls and
 ribs are built `TIE_OFFSET` (0.1 mm) thicker than they're to be, and where they'd meet exactly, they overlap a little
 instead: nothing's detected or retried, it's the same for every part. With Fillet corners, the pockets are grown back
 by as much, so walls and ribs are exactly as thick as asked, and the corners are rounded `TIE_OFFSET` more than Fillet

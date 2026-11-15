@@ -81,19 +81,6 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
 
             annotation { "Name" : "Exclude construction lines", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.excludeConstruction is boolean;
-
-            annotation { "Name" : "Cut additional bodies" }
-            definition.cutAdditionalBodies is boolean;
-
-            annotation { "Group Name" : "Cut additional bodies", "Driving Parameter" : "cutAdditionalBodies", "Collapsed By Default" : false }
-            {
-                if (definition.cutAdditionalBodies)
-                {
-                    annotation { "Name" : "Bodies to cut", "UIHint" : UIHint.INITIAL_FOCUS,
-                                "Filter" : EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES && AllowMeshGeometry.YES }
-                    definition.additionalBodies is Query;
-                }
-            }
         }
 
         annotation { "Name" : "Wall thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -165,11 +152,21 @@ export const robotLighten = defineFeature(function(context is Context, id is Id,
             isLength(definition.depth, DEPTH_BOUNDS);
         }
 
-        annotation { "Group Name" : "Options", "Collapsed By Default" : true }
+        annotation { "Name" : "Exact pockets", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                    "Description" : "If false, created pockets will be adjusted a slight amount in order to prevent issues with non-manifold geometry." }
+        definition.exactPockets is boolean;
+
+        annotation { "Name" : "Cut additional bodies" }
+        definition.cutAdditionalBodies is boolean;
+
+        annotation { "Group Name" : "Cut additional bodies", "Driving Parameter" : "cutAdditionalBodies", "Collapsed By Default" : false }
         {
-            annotation { "Name" : "Exact pockets", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "If false, created pockets will be adjusted a slight amount in order to prevent issues with non-manifold geometry." }
-            definition.exactPockets is boolean;
+            if (definition.cutAdditionalBodies)
+            {
+                annotation { "Name" : "Bodies to cut", "UIHint" : UIHint.INITIAL_FOCUS,
+                            "Filter" : EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES && AllowMeshGeometry.YES }
+                definition.additionalBodies is Query;
+            }
         }
     }
     {
