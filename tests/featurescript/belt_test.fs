@@ -72,7 +72,7 @@ export function testPulleyNeedsEnoughTeeth()
 {
     expectContains(expectThrows(function()
             {
-                sketchPulleyProfile(newContext(), newId() + "profile", XY_PLANE, BeltType._3_MM_GT2, 10, 0 * meter);
+                sketchPulleyProfile(newContext(), newId() + "profile", XY_PLANE, BeltType._3_MM_GT2, 5, 0 * meter);
             }), "needs more teeth");
 }
 

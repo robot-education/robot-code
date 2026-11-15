@@ -41,8 +41,8 @@ def test_pulley_profile_is_one_smooth_closed_loop(belt_type, teeth):
     assert len(loops) == 1
     loop = loops[0]
     assert loop.closed
-    # Per tooth: two fillets, a groove, and a land
-    assert len(loop.curves) == 4 * teeth
+    # Per tooth: two fillets, a groove, and a land, and a GT2 groove's two flanks
+    assert len(loop.curves) == (6 if "GT2" in belt_type else 4) * teeth
     for before, after in loop.joints():
         out, into = before.tangent(True), after.tangent(False)
         assert abs(out[0] * into[1] - out[1] * into[0]) < 1e-6, f"{before.id} and {after.id} aren't tangent"
@@ -62,6 +62,32 @@ def test_pulley_profile_stays_between_groove_and_land(belt_type):
     assert min(curve.nearest() for curve in curves) == pytest.approx(groove_bottom, abs=1e-9)
 
 
+GT2_FORMS = {
+    # Gates' GT2 profiles: tooth height h, flank R2, tip R3, and the flank's center's offset b across the tooth
+    "_2_MM_GT2": {"h": 0.75, "R2": 1.0, "R3": 0.555, "b": 0.4},
+    "_3_MM_GT2": {"h": 1.14, "R2": 1.52, "R3": 0.85, "b": 0.61},
+}
+
+
+@pytest.mark.parametrize("belt_type", GT2_FORMS)
+@pytest.mark.parametrize("teeth", [16, 60])
+def test_gt2_grooves_are_gates_profile(belt_type, teeth):
+    form = {key: value / 1000 for key, value in GT2_FORMS[belt_type].items()}
+    sketch = pulley_profile(belt_type, teeth)
+    land = pitch_radius(belt_type, teeth) - belt_model(belt_type)["insideThickness"]
+    curves = {curve.id: curve for curve in sketch.loops()[0].curves}
+    groove, flank = curves["groove0"], curves["flank0_2"]
+    assert groove.radius == pytest.approx(form["R3"], abs=1e-12)
+    assert flank.radius == pytest.approx(form["R2"], abs=1e-12)
+    # The groove's as deep as the tooth's tall, its flanks' centers are on the lands' circle, across the groove about
+    # b from its axis (exactly, on a straight belt), and its tip's arc is inside its flanks', tangent
+    assert land - groove.nearest() == pytest.approx(form["h"], abs=1e-9)
+    assert math.dist(flank.center, (0, 0)) == pytest.approx(land, abs=1e-9)
+    assert flank.center[1] < 0
+    assert -flank.center[1] == pytest.approx(form["b"], abs=0.01)
+    assert math.dist(flank.center, groove.center) == pytest.approx(form["R2"] - form["R3"], abs=1e-9)
+
+
 def test_profile_offset_grows_the_pulley():
     plain = pulley_profile("_5_MM_HTD", 24)
     offset = pulley_profile("_5_MM_HTD", 24, 0.1)
@@ -71,7 +97,7 @@ def test_profile_offset_grows_the_pulley():
 
 def test_too_few_teeth():
     with pytest.raises(FSError, match="needs more teeth"):
-        pulley_profile("_3_MM_GT2", 10)
+        pulley_profile("_3_MM_GT2", 5)
 
 
 CHAIN_TYPES = ["ANSI_25", "ANSI_35", "ISO_05B"]

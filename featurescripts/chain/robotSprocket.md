@@ -1,6 +1,6 @@
 # Robot sprocket
 
-Makes #25, #35, or 8mm (05B) sprockets: ISO 606 teeth, as wide as the chain's (0.93 of its inner width), at a sketch
+Makes #25 (and #25H, the same), #35, or 8mm (05B) sprockets: ISO 606 teeth, as wide as the chain's (0.93 of its inner width), at a sketch
 point, or wherever a Robot chain goes around a sprocket, with a bore.
 
 | File | What it is |
@@ -19,8 +19,8 @@ Unreleased.
 | String | Where |
 | --- | --- |
 | Robot sprocket | feature name |
-| Create #25, #35, and 8mm sprockets. `<br>`See also the Robot chain FeatureScript, which works with this feature directly. `<CREDIT>` | feature description |
-| `<teeth>`T `<#25, #35, or 8mm>` Sprocket | part name |
+| Create #25, #25H, #35, and 8mm sprockets. `<br>`See also the Robot chain FeatureScript, which works with this feature directly. `<CREDIT>` | feature description |
+| `<teeth>`T `<#25, #25H, #35, or 8mm>` Sprocket | part name |
 
 Its material is Onyx, and its appearance printed green (as Robot pulley's).
 

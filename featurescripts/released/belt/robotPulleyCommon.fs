@@ -134,73 +134,129 @@ export function getTwoBeltPulleyExtraWidth(beltType is BeltType, beltWidth is Va
 
 /**
  * Sketches the toothed profile of a pulley for a belt of `beltType` with `teeth` teeth, centered on `plane`, and returns
- * its face. Each groove is the belt's tooth (as Robot belt models it: a circle `toothOffset` inside the pitch circle,
- * of `toothRadius`), between lands at the belt's inside (`insideThickness` inside the pitch circle), with the lands'
- * corners rounded by the belt's tooth fillet, so the belt's modeled teeth sit in the grooves.
+ * its face. Each groove is the belt's tooth (see `getBeltModelInfo`): its tip, an arc of `toothRadius` around a center
+ * `toothOffset` inside the pitch circle, and for a GT2 belt, its flanks, arcs of `flankRadius` around centers on the
+ * lands' circle across the groove, which the tip's arc is inside, tangent. Between the grooves are lands at the belt's
+ * inside (`insideThickness` inside the pitch circle), their corners rounded by the belt's tooth fillet.
  *
  * @param profileOffset : How far the profile is offset outward (inward, if negative): to make the pulley a little
- *          bigger or smaller, for a tighter or looser belt.
+ *          bigger or smaller, for a tighter or looser belt. Every arc keeps its center: convex arcs grow, and concave
+ *          ones shrink.
  */
 export function sketchPulleyProfile(context is Context, id is Id, plane is Plane, beltType is BeltType, teeth is number,
     profileOffset is ValueWithUnits) returns Query
 {
     const belt = getBeltModelInfo(beltType);
     const pitchRadius = getPulleyRadius(getBeltPitch(beltType), teeth);
-    // The lands' circle, and each groove's and fillet's, offset: convex arcs grow, and concave ones shrink
-    const landRadius = pitchRadius - belt.insideThickness + profileOffset;
-    const grooveCenterRadius = pitchRadius - belt.toothOffset;
-    const grooveRadius = belt.toothRadius - profileOffset;
+    const toothAngle = 360 * degree / teeth;
+    const origin = zeroVector(2) * meter;
+    const tooFew = "A " ~ getBeltTypeName(beltType) ~ " pulley needs more teeth than " ~ teeth ~ ".";
+
+    // The first groove's, on the x axis: the rest are rotated copies. Its counter clockwise side's (+y) curves are
+    // found, and its clockwise side's are their mirror images.
+    const landRadius = pitchRadius - belt.insideThickness;
+    const tipCenter = vector(pitchRadius - belt.toothOffset, 0 * meter);
+    const tipRadius = belt.toothRadius - profileOffset;
     const filletRadius = belt.toothFilletRadius + profileOffset;
-    if (grooveRadius <= 0 * meter || filletRadius <= 0 * meter)
+    // The groove's side: a GT2 belt's flank, or the tip's arc itself
+    var sideCenter = tipCenter;
+    var sideRadius = tipRadius;
+    const hasFlanks = belt.flankRadius != undefined;
+    if (hasFlanks)
+    {
+        // On the lands' circle, across the groove, as far from the tip's center as the tip's arc is inside the flank
+        const centers = circleIntersections(origin, landRadius, tipCenter, belt.flankRadius - belt.toothRadius);
+        if (centers == [])
+        {
+            throw regenError(tooFew, ["pulleyTeeth"]);
+        }
+        sideCenter = centers[0][1] < centers[1][1] ? centers[0] : centers[1];
+        sideRadius = belt.flankRadius - profileOffset;
+    }
+    if (tipRadius <= 0 * meter || sideRadius <= 0 * meter || filletRadius <= 0 * meter)
     {
         throw regenError("The profile offset is too large for this belt's teeth.", ["profileOffsetDistance"]);
     }
 
-    // Each fillet's center is tangent inside the lands' circle and outside the groove: the angle between it and the
-    // groove's center, about the pulley's
-    const toFillet = landRadius - filletRadius;
-    const cosine = (grooveCenterRadius ^ 2 + toFillet ^ 2 - (grooveRadius + filletRadius) ^ 2) / (2 * grooveCenterRadius * toFillet);
-    const toothAngle = 360 * degree / teeth;
-    if (abs(cosine) > 1 || acos(cosine) >= toothAngle / 2)
+    // The fillet's center is inside the lands' circle and outside the side's, tangent to both (the same, offset or not)
+    const filletCenters = circleIntersections(origin, landRadius - belt.toothFilletRadius, sideCenter, sideRadius + filletRadius);
+    if (filletCenters == [])
     {
-        throw regenError("A " ~ getBeltTypeName(beltType) ~ " pulley needs more teeth than " ~ teeth ~ ".", ["pulleyTeeth"]);
+        throw regenError(tooFew, ["pulleyTeeth"]);
     }
-    const filletAngle = acos(cosine);
+    const filletCenter = filletCenters[0][1] > filletCenters[1][1] ? filletCenters[0] : filletCenters[1];
+    const filletAngle = atan2(filletCenter[1], filletCenter[0]);
+    const onLand = filletCenter / norm(filletCenter) * (landRadius + profileOffset);
+    const onSide = sideCenter + normalize(filletCenter - sideCenter) * sideRadius;
+    // Where a flank meets the tip: on the line from the flank's center through the tip's
+    const onTip = hasFlanks ? sideCenter + normalize(tipCenter - sideCenter) * sideRadius : onSide;
+    // A groove's fillets can't reach past the middle of its lands, and its flanks must go out from its tip
+    if (filletAngle >= toothAngle / 2 || onTip[1] <= 0 * meter || (hasFlanks && norm(onSide) <= norm(onTip)))
+    {
+        throw regenError(tooFew, ["pulleyTeeth"]);
+    }
+    const middle = function(center is Vector, radius is ValueWithUnits, start is Vector, end is Vector) returns Vector
+        {
+            return center + normalize(normalize(start - center) + normalize(end - center)) * radius;
+        };
+    const filletMiddle = middle(filletCenter, filletRadius, onLand, onSide);
+    const flankMiddle = middle(sideCenter, sideRadius, onTip, onSide);
+    const bottom = tipCenter - vector(tipRadius, 0 * meter);
+    const mirror = function(point is Vector) returns Vector
+        {
+            return vector(point[0], -point[1]);
+        };
 
     const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
-    const at = function(radius is ValueWithUnits, angle is ValueWithUnits) returns Vector
-        {
-            return vector(cos(angle), sin(angle)) * radius;
-        };
     for (var tooth = 0; tooth < teeth; tooth += 1)
     {
         const angle = tooth * toothAngle;
-        const grooveCenter = at(grooveCenterRadius, angle);
-        var landEnds = [];
-        var grooveEnds = [];
-        for (var side in [-1, 1])
+        const rotate = function(point is Vector) returns Vector
+            {
+                return vector(point[0] * cos(angle) - point[1] * sin(angle), point[0] * sin(angle) + point[1] * cos(angle));
+            };
+        skArc(sketch, "fillet" ~ tooth ~ "_0", { "start" : rotate(mirror(onLand)), "mid" : rotate(mirror(filletMiddle)), "end" : rotate(mirror(onSide)) });
+        if (hasFlanks)
         {
-            const filletCenter = at(toFillet, angle + side * filletAngle);
-            const onLand = at(landRadius, angle + side * filletAngle);
-            const onGroove = grooveCenter + normalize(filletCenter - grooveCenter) * grooveRadius;
-            const middle = filletCenter + normalize(normalize(onLand - filletCenter) + normalize(onGroove - filletCenter)) * filletRadius;
-            skArc(sketch, "fillet" ~ tooth ~ "_" ~ (side + 1), { "start" : onLand, "mid" : middle, "end" : onGroove });
-            landEnds = append(landEnds, onLand);
-            grooveEnds = append(grooveEnds, onGroove);
+            skArc(sketch, "flank" ~ tooth ~ "_0", { "start" : rotate(mirror(onSide)), "mid" : rotate(mirror(flankMiddle)), "end" : rotate(mirror(onTip)) });
         }
-        // The groove, through its bottom
-        skArc(sketch, "groove" ~ tooth, {
-                    "start" : grooveEnds[0],
-                    "mid" : grooveCenter - at(grooveRadius, angle),
-                    "end" : grooveEnds[1]
-                });
+        // The groove's bottom: the tooth's tip
+        skArc(sketch, "groove" ~ tooth, { "start" : rotate(mirror(onTip)), "mid" : rotate(bottom), "end" : rotate(onTip) });
+        if (hasFlanks)
+        {
+            skArc(sketch, "flank" ~ tooth ~ "_2", { "start" : rotate(onTip), "mid" : rotate(flankMiddle), "end" : rotate(onSide) });
+        }
+        skArc(sketch, "fillet" ~ tooth ~ "_2", { "start" : rotate(onSide), "mid" : rotate(filletMiddle), "end" : rotate(onLand) });
         // The land to the next groove
         skArc(sketch, "land" ~ tooth, {
-                    "start" : landEnds[1],
-                    "mid" : at(landRadius, angle + toothAngle / 2),
-                    "end" : at(landRadius, angle + toothAngle - filletAngle)
+                    "start" : rotate(onLand),
+                    "mid" : vector(cos(angle + toothAngle / 2), sin(angle + toothAngle / 2)) * (landRadius + profileOffset),
+                    "end" : vector(cos(angle + toothAngle - filletAngle), sin(angle + toothAngle - filletAngle)) * (landRadius + profileOffset)
                 });
     }
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);
+}
+
+/**
+ * Where two circles cross: two points (one, twice, where they touch), or none.
+ */
+function circleIntersections(center1 is Vector, radius1 is ValueWithUnits, center2 is Vector, radius2 is ValueWithUnits) returns array
+{
+    const distance = norm(center2 - center1);
+    if (tolerantEqualsZero(distance))
+    {
+        return [];
+    }
+    // Along the line between their centers, and off it
+    const along = (distance ^ 2 + radius1 ^ 2 - radius2 ^ 2) / (2 * distance);
+    const offSquared = radius1 ^ 2 - along ^ 2;
+    if (offSquared < 0 * meter ^ 2)
+    {
+        return [];
+    }
+    const direction = (center2 - center1) / distance;
+    const normal = vector(-direction[1], direction[0]);
+    const base = center1 + direction * along;
+    return [base + normal * sqrt(offSquared), base - normal * sqrt(offSquared)];
 }
