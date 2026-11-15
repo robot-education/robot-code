@@ -1241,6 +1241,15 @@ def test_a_part_set_takes_the_import_versions_onshape_gave_its_featurescript(rep
     assert "pull" not in onshape.calls
 
 
+def test_a_part_set_release_pushes_its_featurescript_over_onshape(repo, onshape):
+    part_set(repo, onshape)
+    write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
+
+    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
+    assert onshape.code("partMaker.fs").endswith("// edited\n")
+    assert [version.name for version in onshape.versions_by_document["back"]] == ["Parts - v0.1.0"]
+
+
 def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
     element_id = part_set(repo, onshape)
 
