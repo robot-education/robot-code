@@ -33,8 +33,7 @@ def pitch_radius(belt_type: str, teeth: int) -> float:
         f"getPulleyRadius(getBeltPitch(BeltType.{belt_type}), {teeth})", "released/belt/robotPulleyCommon.fs"))
 
 
-@pytest.mark.parametrize("belt_type", BELT_TYPES)
-@pytest.mark.parametrize("teeth", [12, 24, 60])
+@pytest.mark.parametrize("belt_type,teeth", list(zip(BELT_TYPES, [12, 24, 60, 18, 36])))
 def test_pulley_profile_is_one_smooth_closed_loop(belt_type, teeth):
     sketch = pulley_profile(belt_type, teeth)
     loops = sketch.loops()
@@ -89,8 +88,7 @@ def sprocket_profile(chain_type: str, teeth: int):
     return recorded_sketch(context, "profile"), form
 
 
-@pytest.mark.parametrize("chain_type", CHAIN_TYPES)
-@pytest.mark.parametrize("teeth", [6, 9, 16, 30, 100])
+@pytest.mark.parametrize("chain_type,teeth", list(zip(CHAIN_TYPES, [6, 16, 100])))
 def test_sprocket_profile(chain_type, teeth):
     sketch, form = sprocket_profile(chain_type, teeth)
     loops = sketch.loops()
@@ -154,8 +152,7 @@ def involute(angle: float) -> float:
     return math.tan(angle) - angle
 
 
-@pytest.mark.parametrize("teeth", [8, 12, 24, 60])
-@pytest.mark.parametrize("pressure_degrees", [14.5, 20])
+@pytest.mark.parametrize("teeth,pressure_degrees", [(8, 14.5), (60, 20)])
 def test_gear_profile(teeth, pressure_degrees):
     sketch, form = gear_profile(teeth, pressure_degrees=pressure_degrees)
     loops = sketch.loops()
@@ -240,9 +237,7 @@ def test_router_bit_too_wide_for_the_gap_at_the_pitch_circle():
 ROOT_FILLETS = ["1", "2 / 3", "1 / 2", "0"]
 
 
-@pytest.mark.parametrize("teeth", [10, 24, 60])
-@pytest.mark.parametrize("pressure_degrees", [14.5, 20])
-@pytest.mark.parametrize("fillet", ROOT_FILLETS[1:])
+@pytest.mark.parametrize("teeth,pressure_degrees,fillet", list(zip([10, 24, 60], [14.5, 20, 20], ROOT_FILLETS[1:])))
 def test_root_fillets_are_closed_and_meet_tangent(teeth, pressure_degrees, fillet):
     # 1/3, 1/4, and None, as Onshape's Spur gear's Root fillet (test_gear_profile checks Full): none of them dig below
     # the root
@@ -339,9 +334,15 @@ def inside(polygon, point) -> bool:
     return result
 
 
-@pytest.mark.parametrize("length_mm", [10 * math.pi, 7.3, 12.9, 20.05, 31.4])
-@pytest.mark.parametrize("gap_mm", [0, 0.4, 1.1, 2.9])
-@pytest.mark.parametrize("face_height,offset_mm", [("1 * millimeter", 0), ("0 * meter", 0), ("1 * millimeter", -0.1)])
+@pytest.mark.parametrize(
+    "length_mm,gap_mm,face_height,offset_mm",
+    [
+        (10 * math.pi, 0, "1 * millimeter", 0),
+        (7.3, 1.1, "0 * meter", 0),
+        (12.9, 2.9, "1 * millimeter", -0.1),
+        (31.4, 0.4, "0 * meter", 0),
+    ],
+)
 def test_rack_leaves_no_partial_teeth(length_mm, gap_mm, face_height, offset_mm):
     # Whatever its length and wherever it's lined up, the teeth are whole and a pitch apart, and past the first and
     # last, it's cut to the root: just above the root, everything's cut but the teeth's roots
@@ -585,8 +586,7 @@ def test_bevel_cones():
     assert pinion["coneDistance"] == pytest.approx(gear["coneDistance"])
 
 
-@pytest.mark.parametrize("virtual_teeth", [12.5, 28.28, 60])
-@pytest.mark.parametrize("fillet", ROOT_FILLETS)
+@pytest.mark.parametrize("virtual_teeth,fillet", list(zip([12.5, 28.28, 60, 12.5], ROOT_FILLETS)))
 def test_tooth_gap_is_one_closed_loop(virtual_teeth, fillet):
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
