@@ -154,7 +154,7 @@ robotLighten
 --> patternedPart, opTransform "patterned"         // in a mirror or pattern onto another part: pockets moved there
 --> booleanBodies "cut"                            // pockets cut from the part and the bodies to cut
 --> reportFeatureInfo                              // weight reduced, then loose parts (blue)
---> opDeleteBodies "cleanup"                       // pockets, ribs, and the sketches' copies
+--> opDeleteBodies "cleanup"                       // ribs and the sketches' copies, if there are any
 ```
 
 ### Walls
@@ -286,7 +286,8 @@ lightened in a mirror or pattern of the feature.
 
 ### Ribs
 
-Ribs are optional: with none (none selected, or only construction ones, excluded), there are just walls. Rib and wall
+Ribs are optional: with none (none selected, or only construction ones, excluded), there are just walls. Then the
+cleanup has nothing to delete, and is skipped, as deleting nothing fails ("Select entities to delete"). Rib and wall
 overrides with nothing selected (or nothing left once later ones take theirs) are left out.
 
 Each rib group's edges are extruded as sheets through the pockets, and each sheet thickened to half the group's
@@ -420,7 +421,7 @@ taking: Up to face and Up to part end types.
   sizes given, but walls can still exactly meet at other sizes, 0.1 mm off round ones.
 - Without Exact pockets, corners are 0.1 mm rounder than Fillet radius, or without Fillet corners, walls and ribs are
   0.1 mm thicker than asked.
-- Untested in Onshape: no ribs, feature mirrors and patterns (onto another part, with ribs or regions patterned or
+- Untested in Onshape: no ribs (which failed on the cleanup before it was skipped when empty), feature mirrors and patterns (onto another part, with ribs or regions patterned or
   not), Add walls around ignored faces off, and the loose parts' info. Checked only by `fs check`, and by Onshape's
   examples still building (none of them use these).
 - Without walls around ignored faces, pockets go right up to the regions, with sharp corners there.
