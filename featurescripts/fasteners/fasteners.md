@@ -66,7 +66,8 @@ can't disagree.
 ## How it works
 
 Every part is built along the Z axis, with a mate connector at the origin pointing out of the hole, where it seats
-(`id + "mateConnector"`). A washer has a second one on its top face, pointing the same way (`id + "topMateConnector"`).
+(`id + "mateConnector"`). A washer has a second one on its top face, pointing into the washer as a connector on its
+top edge does (`id + "topMateConnector"`).
 Each studio names its connectors in the manifest (`mate_connector`, `top_mate_connector`), since a fasten mate names a
 feature's connector under the feature's id.
 
