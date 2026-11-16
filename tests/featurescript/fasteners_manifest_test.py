@@ -359,13 +359,13 @@ def test_each_default_shows_with_the_others():
         assert selection in studio.combinations()
 
 
-def test_defaults_are_whats_inserted_most():
+def test_defaults():
     assert DEFINITION["STUDIOS"]["screw"].defaults() == {
-        "vendor": "GENERIC",
+        "vendor": "MCMASTER",
         "size": "NO_10_32",
         "head": "BUTTON",
         "finish": "BLACK",
-        "length": "IN_0_375",
+        "length": "IN_0_5",
         "fullyThreaded": "false",
     }
     assert DEFINITION["STUDIOS"]["nut"].defaults() == {"size": "NO_10_32", "type": "NYLOCK"}

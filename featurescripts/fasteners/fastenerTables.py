@@ -1252,12 +1252,14 @@ class Catalog:
         return [finish for (v, s, t, finish) in self.nuts if (v, s, t) == (vendor, size, type)]
 
 
-# The defaults are what's inserted most from FRCDesign's library: #10-32 x 3/8 in black button heads (from Generic, which
-# names no vendor), McMaster-Carr's #10 x 7/16 in OD stainless washers, and #10-32 nylocks
+# The defaults hold when the size, head or length changes, since the library's analytics favor whatever was already
+# chosen: McMaster-Carr's black screws make nearly every combination, each with a part number. A 1/2 in #10-32 button
+# head takes a 1/8 in plate on a 1/8 in tube wall with a nylock. McMaster-Carr's #10 x 7/16 in OD stainless washers and
+# #10-32 nylocks are as before.
 FRC = Catalog(
     IMPERIAL,
     Defaults(
-        ("GENERIC", "NO_10_32", "BUTTON", STANDARD_FINISH, length_id(Fraction(3, 8))),
+        ("MCMASTER", "NO_10_32", "BUTTON", STANDARD_FINISH, length_id(Fraction(1, 2))),
         ("MCMASTER", "NO_10_32", "NYLOCK", FRC_NUT_FINISH),
         ("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS"),
     ),
