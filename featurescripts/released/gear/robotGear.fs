@@ -745,9 +745,7 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
             throw regenError("Outside diameter is too small, increase the value.", ["outsideDiameter"]);
         }
         result.outsideRadius = form.outsideRadius;
-        const profile = sketchInternalGearProfile(context, id + "profile", gearPlane, form);
-        result.body = buildGearBody(context, id, definition, gearPlane, profile, form);
-        cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
+        result.body = buildInternalGearBody(context, id, definition, gearPlane, form);
         checkBitSlots(context, id, definition, gearPlane, form, result.body, undefined);
     }
     else
@@ -761,6 +759,51 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
     }
     setGearProperties(context, result.body, definition, teeth);
     return result;
+}
+
+/**
+ * An internal gear's body: its profile (see `sketchInternalGearProfile`) extruded, as a spur gear's (`buildGearBody`).
+ * A helical or herringbone gear's teeth are swept, as a spur gear's, in a ring of their own only part way out to its
+ * outside, joined to the rest of its ring, extruded: swept, its outside would be a swept surface, split where the
+ * sweep's halves meet. The two overlap (from a third to two thirds of the way out from its roots), so they join with
+ * nothing left between them.
+ */
+function buildInternalGearBody(context is Context, id is Id, definition is map, gearPlane is Plane, form is map) returns Query
+{
+    if (!definition.helical)
+    {
+        const profile = sketchInternalGearProfile(context, id + "profile", gearPlane, form);
+        const body = buildGearBody(context, id, definition, gearPlane, profile, form);
+        cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
+        return body;
+    }
+    const wall = form.outsideRadius - form.rootRadius;
+    var teethForm = form;
+    teethForm.outsideRadius = form.rootRadius + wall * 2 / 3;
+    const profile = sketchInternalGearProfile(context, id + "profile", gearPlane, teethForm);
+    const teeth = buildGearBody(context, id, definition, gearPlane, profile, form);
+
+    // The rest of its ring, overlapping its teeth's
+    const inside = form.rootRadius + wall / 3;
+    const ringSketch = newSketchOnPlane(context, id + "ringSketch", { "sketchPlane" : gearPlane });
+    skCircle(ringSketch, "inside", { "center" : vector(0, 0) * meter, "radius" : inside });
+    skCircle(ringSketch, "outside", { "center" : vector(0, 0) * meter, "radius" : form.outsideRadius });
+    skSolve(ringSketch);
+    opExtrude(context, id + "ring", {
+                "entities" : qContainsPoint(qCreatedBy(id + "ringSketch", EntityType.FACE), planeToWorld(gearPlane, vector((inside + form.outsideRadius) / 2, 0 * meter))),
+                "direction" : gearPlane.normal,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : definition.thickness / 2,
+                "startBound" : BoundingType.BLIND,
+                "startDepth" : definition.thickness / 2
+            });
+    const ring = qCreatedBy(id + "ring", EntityType.BODY);
+    cleanup(context, id + "deleteSketch", qUnion([qCreatedBy(id + "profile", EntityType.BODY), qCreatedBy(id + "ringSketch", EntityType.BODY)]));
+    opBoolean(context, id + "joinRing", {
+                "tools" : qUnion([teeth, ring]),
+                "operationType" : BooleanOperationType.UNION
+            });
+    return qUnion([teeth, ring]);
 }
 
 /**

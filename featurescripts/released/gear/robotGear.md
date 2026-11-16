@@ -32,15 +32,11 @@ whole round top (Flat top), rather than cut off by it.
 
 ## Changelog
 
-Since v1.0.0 (`fs changes robotGear`).
+Since v1.1.0 (`fs changes robotGear`).
 
 - Internal gears (Gear type's Internal): teeth inside a ring, sized by Ring size (Ring thickness, measured from their
   root, pitch, or tip diameter, or Outside diameter), with Size by, Pitch, Thickness, Root fillet (all its types,
   router bit slots too), Helical gear, and Profile offset; no bore or Gear pair.
-
-- A bevel gear's Flat top: its teeth end at its front cone, square to its pitch cone (`bevelShape`), their roots
-  there flush with its top face and their tips Thickness above its bottom, rather than cut off flush with its top, so
-  its top face is a whole round face.
 
 ## Strings
 
@@ -232,8 +228,11 @@ profile offset), or Outside diameter. It must be outside the root circle.
   side mirrored), from the gap's middle on the root circle, the root (above) to the flank, the flank (a fit spline
   through 9 points) in to the tip (none, if a slot reaches it), and an arc on the tip circle. The ring is the region between
   them and the outside circle.
-- **Body**: extruded, or swept along helices for a helical or herringbone gear, as a spur gear's (`buildGearBody`). An
-  internal gear meshes with a pinion of the same hand.
+- **Body** (`buildInternalGearBody`): extruded, or swept along helices for a helical or herringbone gear, as a spur
+  gear's (`buildGearBody`). A helical gear's teeth are swept in a ring of their own, out two thirds of the way from
+  their roots to its outside, and joined to the rest of its ring, extruded from a third of the way out: swept, its
+  outside would be a swept surface, split where the sweep's halves meet. They overlap, so they join with nothing left
+  between them, and its outside is one face. An internal gear meshes with a pinion of the same hand.
 
 ### Bevel gears
 
@@ -458,8 +457,9 @@ around it.
 - The icon is the generic robot icon.
 - Round faces are cut on the outside of a part only: teeth inside a hole (an internal gear's) are an error. Internal
   gears are made whole instead, with their ring.
-- Internal gears are untried in Onshape: their profile, sweep, router bit slots, and their error bodies. Nothing checks a pinion fits one: too few teeth between them (under about 12 at 20°) interfere at
-  the tips, or as the pinion turns in or out of mesh. Their full round can reach a little below where a big pinion's
+- Internal gears are tried in Onshape, but not since a helical one's ring was joined to its teeth's
+  (`buildInternalGearBody`, as its outside was split). Nothing checks a pinion fits one: too few teeth between them
+  (under about 12 at 20°) interfere at the tips, or as the pinion turns in or out of mesh. Their full round can reach a little below where a big pinion's
   tips touch the flank (a 72T 14.5° gear's, with a 36T pinion's, by about `0.02 m`). They have no bore or Gear pair.
   Their ring's Measured from says Tip diameter, not a rack's Outside diameter, for their teeth's tips: an internal
   gear's tips are inside, and Ring size's Outside diameter is its ring's.
