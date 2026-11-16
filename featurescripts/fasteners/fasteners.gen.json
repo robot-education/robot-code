@@ -2534,6 +2534,26 @@
             "vendor": "GENERIC",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "length": "IN_3_5"
+          },
+          "name": "#10-32 x 3-1/2 in Button Head Screw",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "length": "IN_4"
+          },
+          "name": "#10-32 x 4 in Button Head Screw",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "length": "IN_4_75"
           },
           "name": "#10-32 x 4-3/4 in Button Head Screw",
@@ -8832,6 +8852,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_125"
+          },
+          "name": "#10-32 x 1/8 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A432",
+          "url": "https://www.mcmaster.com/92949A432/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_0_1875"
           },
@@ -8840,6 +8874,20 @@
           "partNumber": "91255A025",
           "url": "https://www.mcmaster.com/91255A025/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_1875"
+          },
+          "name": "#10-32 x 3/16 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A259",
+          "url": "https://www.mcmaster.com/92949A259/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -8874,6 +8922,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_25"
+          },
+          "name": "#10-32 x 1/4 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A261",
+          "url": "https://www.mcmaster.com/92949A261/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_0_3125"
           },
@@ -8896,6 +8958,20 @@
           "partNumber": "91306A272",
           "url": "https://www.mcmaster.com/91306A272/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_3125"
+          },
+          "name": "#10-32 x 5/16 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A262",
+          "url": "https://www.mcmaster.com/92949A262/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -8930,6 +9006,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_375"
+          },
+          "name": "#10-32 x 3/8 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A263",
+          "url": "https://www.mcmaster.com/92949A263/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_0_4375"
           },
@@ -8958,6 +9048,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_4375"
+          },
+          "name": "#10-32 x 7/16 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A264",
+          "url": "https://www.mcmaster.com/92949A264/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_0_5"
           },
@@ -8980,6 +9084,20 @@
           "partNumber": "91306A356",
           "url": "https://www.mcmaster.com/91306A356/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_5"
+          },
+          "name": "#10-32 x 1/2 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A265",
+          "url": "https://www.mcmaster.com/92949A265/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -9028,6 +9146,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_625"
+          },
+          "name": "#10-32 x 5/8 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A267",
+          "url": "https://www.mcmaster.com/92949A267/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_0_75"
           },
@@ -9050,6 +9182,20 @@
           "partNumber": "91306A358",
           "url": "https://www.mcmaster.com/91306A358/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_75"
+          },
+          "name": "#10-32 x 3/4 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A269",
+          "url": "https://www.mcmaster.com/92949A269/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -9084,6 +9230,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_0_875"
+          },
+          "name": "#10-32 x 7/8 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A270",
+          "url": "https://www.mcmaster.com/92949A270/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_1"
           },
@@ -9112,6 +9272,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_1"
+          },
+          "name": "#10-32 x 1 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A271",
+          "url": "https://www.mcmaster.com/92949A271/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_1_125"
           },
@@ -9120,6 +9294,20 @@
           "partNumber": "91255A028",
           "url": "https://www.mcmaster.com/91255A028/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_1_125"
+          },
+          "name": "#10-32 x 1-1/8 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A826",
+          "url": "https://www.mcmaster.com/92949A826/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -9154,6 +9342,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_1_25"
+          },
+          "name": "#10-32 x 1-1/4 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A272",
+          "url": "https://www.mcmaster.com/92949A272/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_1_375"
           },
@@ -9162,6 +9364,20 @@
           "partNumber": "91255A272",
           "url": "https://www.mcmaster.com/91255A272/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_1_375"
+          },
+          "name": "#10-32 x 1-3/8 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A827",
+          "url": "https://www.mcmaster.com/92949A827/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -9196,6 +9412,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_1_5"
+          },
+          "name": "#10-32 x 1-1/2 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A273",
+          "url": "https://www.mcmaster.com/92949A273/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_1_625"
           },
@@ -9210,6 +9440,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_1_625"
+          },
+          "name": "#10-32 x 1-5/8 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A828",
+          "url": "https://www.mcmaster.com/92949A828/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_1_75"
           },
@@ -9218,6 +9462,20 @@
           "partNumber": "91255A276",
           "url": "https://www.mcmaster.com/91255A276/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_1_75"
+          },
+          "name": "#10-32 x 1-3/4 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A274",
+          "url": "https://www.mcmaster.com/92949A274/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -9252,6 +9510,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_2"
+          },
+          "name": "#10-32 x 2 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A275",
+          "url": "https://www.mcmaster.com/92949A275/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_2_25"
           },
@@ -9260,6 +9532,20 @@
           "partNumber": "91255A815",
           "url": "https://www.mcmaster.com/91255A815/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_2_25"
+          },
+          "name": "#10-32 x 2-1/4 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A829",
+          "url": "https://www.mcmaster.com/92949A829/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -9280,6 +9566,20 @@
             "vendor": "MCMASTER",
             "size": "NO_10_32",
             "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_2_5"
+          },
+          "name": "#10-32 x 2-1/2 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A277",
+          "url": "https://www.mcmaster.com/92949A277/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
             "finish": "BLACK",
             "length": "IN_3"
           },
@@ -9288,6 +9588,48 @@
           "partNumber": "91255A030",
           "url": "https://www.mcmaster.com/91255A030/",
           "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_3"
+          },
+          "name": "#10-32 x 3 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A279",
+          "url": "https://www.mcmaster.com/92949A279/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_3_5"
+          },
+          "name": "#10-32 x 3-1/2 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A830",
+          "url": "https://www.mcmaster.com/92949A830/",
+          "material": "Stainless Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "NO_10_32",
+            "head": "BUTTON",
+            "finish": "STAINLESS",
+            "length": "IN_4"
+          },
+          "name": "#10-32 x 4 in Button Head Screw (Stainless steel)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "92949A831",
+          "url": "https://www.mcmaster.com/92949A831/",
+          "material": "Stainless Steel"
         },
         {
           "values": {
@@ -16108,6 +16450,18 @@
           "fullThreadChoice": false
         },
         {
+          "id": "IN_3_5",
+          "name": "3-1/2 in",
+          "length": 0.0889,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_4",
+          "name": "4 in",
+          "length": 0.1016,
+          "fullThreadChoice": false
+        },
+        {
           "id": "IN_4_75",
           "name": "4-3/4 in",
           "length": 0.12065,
@@ -19289,6 +19643,152 @@
           "id": "IN_2",
           "name": "2 in",
           "length": 0.0508,
+          "fullThreadChoice": false
+        }
+      ]
+    },
+    {
+      "vendor": "MCMASTER",
+      "size": "NO_10_32",
+      "head": "BUTTON",
+      "finish": "STAINLESS",
+      "lengths": [
+        {
+          "id": "IN_0_125",
+          "name": "1/8 in",
+          "length": 0.003175,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_1875",
+          "name": "3/16 in",
+          "length": 0.0047625,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_25",
+          "name": "1/4 in",
+          "length": 0.00635,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_3125",
+          "name": "5/16 in",
+          "length": 0.0079375,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_375",
+          "name": "3/8 in",
+          "length": 0.009525,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_4375",
+          "name": "7/16 in",
+          "length": 0.0111125,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_5",
+          "name": "1/2 in",
+          "length": 0.0127,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_625",
+          "name": "5/8 in",
+          "length": 0.015875,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_75",
+          "name": "3/4 in",
+          "length": 0.01905,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_0_875",
+          "name": "7/8 in",
+          "length": 0.022225,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_1",
+          "name": "1 in",
+          "length": 0.0254,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_1_125",
+          "name": "1-1/8 in",
+          "length": 0.028575,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_1_25",
+          "name": "1-1/4 in",
+          "length": 0.03175,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_1_375",
+          "name": "1-3/8 in",
+          "length": 0.034925,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_1_5",
+          "name": "1-1/2 in",
+          "length": 0.0381,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_1_625",
+          "name": "1-5/8 in",
+          "length": 0.041275,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_1_75",
+          "name": "1-3/4 in",
+          "length": 0.04445,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_2",
+          "name": "2 in",
+          "length": 0.0508,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_2_25",
+          "name": "2-1/4 in",
+          "length": 0.05715,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_2_5",
+          "name": "2-1/2 in",
+          "length": 0.0635,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_3",
+          "name": "3 in",
+          "length": 0.0762,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_3_5",
+          "name": "3-1/2 in",
+          "length": 0.0889,
+          "fullThreadChoice": false
+        },
+        {
+          "id": "IN_4",
+          "name": "4 in",
+          "length": 0.1016,
           "fullThreadChoice": false
         }
       ]

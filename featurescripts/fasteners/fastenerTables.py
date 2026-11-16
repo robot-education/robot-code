@@ -377,6 +377,31 @@ def _option_names(part: dict, record: dict) -> list[str]:
     ]
 
 
+# McMaster-Carr's 18-8 stainless screws the library has none of, transcribed from its tables: each length's small-pack
+# part number, threaded its whole length
+_MCMASTER_STAINLESS_SCREWS = {
+    ("NO_10_32", "BUTTON"): {
+        "1/8": "92949A432", "3/16": "92949A259", "1/4": "92949A261", "5/16": "92949A262", "3/8": "92949A263",
+        "7/16": "92949A264", "1/2": "92949A265", "5/8": "92949A267", "3/4": "92949A269", "7/8": "92949A270",
+        "1": "92949A271", "1-1/8": "92949A826", "1-1/4": "92949A272", "1-3/8": "92949A827", "1-1/2": "92949A273",
+        "1-5/8": "92949A828", "1-3/4": "92949A274", "2": "92949A275", "2-1/4": "92949A829", "2-1/2": "92949A277",
+        "3": "92949A279", "3-1/2": "92949A830", "4": "92949A831",
+    },
+}
+
+
+def _mcmaster_stainless_screws() -> Screws:
+    return {
+        ("MCMASTER", size, head): {
+            parse_inches(length): {
+                Variant("STAINLESS"): Stock(part, f"https://www.mcmaster.com/{part}/", MATERIALS["Stainless Steel"], True)
+            }
+            for length, part in lengths.items()
+        }
+        for (size, head), lengths in _MCMASTER_STAINLESS_SCREWS.items()
+    }
+
+
 def _stocked_screws() -> Screws:
     stocked: Screws = {}
     for part in SNAPSHOT["parts"]:
@@ -396,6 +421,9 @@ def _stocked_screws() -> Screws:
             variants = stocked.setdefault(key, {}).setdefault(parse_inches(length), {})
             variants[Variant(finish, full_thread)] = Stock(record["partNumber"], record.get("url"), material)
     stocked.update(_store_screws())
+    for key, lengths in _mcmaster_stainless_screws().items():
+        for length, variants in lengths.items():
+            stocked.setdefault(key, {}).setdefault(length, {}).update(variants)
     for variants in (variants for lengths in stocked.values() for variants in lengths.values()):
         # Where a length is only sold fully threaded, that's its standard
         for variant in [variant for variant in variants if variant.full_thread]:

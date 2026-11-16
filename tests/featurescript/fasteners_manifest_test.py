@@ -135,7 +135,18 @@ def test_finish_comes_between_head_and_length_and_shows_where_theres_a_choice():
     generic = {"vendor": "GENERIC", "size": "NO_10_32", "head": "BUTTON"}
     assert [option.id for option in finish.options if shows(option, generic)] == []
     mcmaster = {"vendor": "MCMASTER", "size": "NO_10_32", "head": "BUTTON"}
-    assert [option.id for option in finish.options if shows(option, mcmaster)] == ["BLACK", "ZINC_PLATED"]
+    assert [option.id for option in finish.options if shows(option, mcmaster)] == ["BLACK", "ZINC_PLATED", "STAINLESS"]
+
+
+def test_mcmasters_stainless_button_heads_reach_four_inches():
+    lengths = DEFINITION["SCREWS"][("MCMASTER", "NO_10_32", "BUTTON")]
+    variant = DEFINITION["Variant"]("STAINLESS")
+    stainless = [length for length, variants in lengths.items() if variant in variants]
+    assert (len(stainless), stainless[-1]) == (23, 4)
+    four = lengths[Fraction(4)][variant]
+    assert (four.part_number, four.material.name, four.full_thread) == ("92949A831", "Stainless Steel", True)
+    # Generic offers every length anyone makes
+    assert Fraction(7, 2) in DEFINITION["SCREWS"][("GENERIC", "NO_10_32", "BUTTON")]
 
 
 def test_washer_finishes():
