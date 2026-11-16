@@ -2652,28 +2652,82 @@ export const NUTS = {
 export const WASHERS = {
             FastenerVendor.GENERIC : {
                 FastenerSize.NO_4_40 : {
+                    WasherType.OD_5_16_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.125 * inch, "outerDiameter" : 0.3125 * inch, "thickness" : 0.03 * inch, "name" : "#4 Washer (5/16 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_5_16_X_0_032 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.125 * inch, "outerDiameter" : 0.3125 * inch, "thickness" : 0.032 * inch, "name" : "#4 Washer (5/16 in OD x 0.032 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.NO_6_32 : {
+                    WasherType.OD_5_16_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.3125 * inch, "thickness" : 0.03 * inch, "name" : "#6 Washer (5/16 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_8_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.03 * inch, "name" : "#6 Washer (3/8 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_3_8_X_0_049 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.049 * inch, "name" : "#6 Washer (3/8 in OD x 0.049 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.031 * inch, "name" : "#6 Washer (5/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.NO_8_32 : {
+                    WasherType.OD_3_8_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.188 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.03 * inch, "name" : "#8 Washer (3/8 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_7_16_X_0_049 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.188 * inch, "outerDiameter" : 0.4375 * inch, "thickness" : 0.049 * inch, "name" : "#8 Washer (7/16 in OD x 0.049 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.NO_10_32 : {
+                    WasherType.OD_3_8_X_0_012 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.012 * inch, "name" : "#10 Washer (3/8 in OD x 0.012 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.031 * inch, "name" : "#10 Washer (3/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_7_16_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.4375 * inch, "thickness" : 0.03 * inch, "name" : "#10 Washer (7/16 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_1_2_X_0_04 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.5 * inch, "thickness" : 0.04 * inch, "name" : "#10 Washer (1/2 in OD x 0.04 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_1_2_X_0_049 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.5 * inch, "thickness" : 0.049 * inch, "name" : "#10 Washer (1/2 in OD x 0.049 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.031 * inch, "name" : "#10 Washer (5/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_4_X_0_062 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.75 * inch, "thickness" : 0.062 * inch, "name" : "#10 Washer (3/4 in OD x 0.062 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_1_X_0_062 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 1 * inch, "thickness" : 0.062 * inch, "name" : "#10 Washer (1 in OD x 0.062 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.QUARTER_20 : {
+                    WasherType.OD_3_8_X_0_012 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.012 * inch, "name" : "1/4 in Washer (3/8 in OD x 0.012 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.031 * inch, "name" : "1/4 in Washer (3/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_05 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.05 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.05 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_063 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.063 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.063 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_5_8_X_0_065 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.065 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.065 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_1_X_0_062 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 1 * inch, "thickness" : 0.062 * inch, "name" : "1/4 in Washer (1 in OD x 0.062 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_X_0_06 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 3 * inch, "thickness" : 0.06 * inch, "name" : "1/4 in Washer (3 in OD x 0.06 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.M3 : {

@@ -21,7 +21,7 @@ and AndyMark's washers. A screw's Fully threaded shows only where a length is so
 otherwise. The screws of vendors whose stores list them (`STORES`: WCP and AndyMark) come from their stores instead
 (vendor/stores.json), since a store is current where the group may not be. `uv run python
 featurescripts/fasteners/fastenerTables.py fetch` refreshes both. Generic offers every screw length any vendor makes,
-and SAE washers, without part numbers.
+and every washer any vendor makes besides SAE ones, without part numbers.
 
 Each part has one mate connector, where it seats: FRCDesign fastens a screw or nut to the top edge of the washer it
 sits on, or to the hole's own edge, so any washer goes under any screw or nut of its size.
@@ -837,7 +837,8 @@ NUTS = {**NUTS, **METRIC_NUTS}
 
 
 # Washers, like `#10 Washer (7/16" OD, 0.03" WD, Stainless Steel, Black Oxide)` or AndyMark's
-# `0.281" Washer (1" OD, 0.062" WD, Steel, Zink Finish)`; Generic's are SAE flat, and black
+# `0.281" Washer (1" OD, 0.062" WD, Steel, Zink Finish)`; Generic's are SAE flat and every other one made in a size, and
+# black
 
 
 @dataclasses.dataclass(frozen=True)
@@ -922,6 +923,13 @@ def _washers() -> dict[tuple[str, str, str, str], Washer]:
             od = parse_inches(outer)
             washers[(vendor, size, washer_type(od, thickness), finish)] = Washer(
                 inner, od, thickness, Stock(record["partNumber"], record.get("url"), material)
+            )
+    # Generic: every washer anyone makes in a size too, with the size's SAE bore, in the standard finish
+    for (vendor, size, type, _), washer in list(washers.items()):
+        if vendor != "GENERIC":
+            washers.setdefault(
+                ("GENERIC", size, type, STANDARD_FINISH),
+                Washer(WASHER_INNER_DIAMETERS[size], washer.outer_diameter, washer.thickness),
             )
     return dict(
         sorted(

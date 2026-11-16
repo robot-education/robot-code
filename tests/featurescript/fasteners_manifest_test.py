@@ -161,8 +161,10 @@ def test_washer_finishes():
     assert records[("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS")]["name"] == (
         "#10 Washer (7/16 in OD x 0.03 in, Stainless steel)"
     )
-    # Generic makes one washer in each size, so its type and finish are hidden
-    assert records[("GENERIC", "NO_10_32")]["name"] == "#10 Washer (1/2 in OD x 0.049 in)"
+    # Generic makes SAE washers and every other one made in a size, in one finish, which is hidden
+    generic = [values for values in records if values[:2] == ("GENERIC", "NO_10_32")]
+    assert len(generic) == 8 and all(len(values) == 3 for values in generic)
+    assert records[("GENERIC", "NO_10_32", "OD_1_2_X_0_049")]["name"] == "#10 Washer (1/2 in OD x 0.049 in)"
 
 
 def test_andymarks_washers_take_their_stated_bores():
