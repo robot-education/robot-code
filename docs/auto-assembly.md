@@ -8,7 +8,8 @@ FRCDesignApp for two things built together:
 - **Simplification**: one switch, set per Part Studio or assembly and carried down into what they contain, that makes
   the features which allow it build something lighter.
 
-They meet in the stand-in: the simple body a declaration draws is what a simplified feature builds too.
+They meet in the stand-in: the simple body a declaration draws for a big part (a gear, a motor) is what a simplified
+feature builds too.
 
 ## What's there already
 
@@ -28,10 +29,19 @@ They meet in the stand-in: the simple body a declaration draws is what a simplif
   - External Retaining Ring (3/8" and 1/2", McMaster-Carr or WCP), Push-On External Retaining Ring, and E-Clip (2 mm,
     3/16", 3/8", 1/2", 1/2" bowed; McMaster-Carr or FRC vendor).
   - Gears: 41 Part Studios by pitch, bore and vendor (WCP, REV, AndyMark, VEX, TTB), about 600 configurations.
+  - Motors & Servos (document `…6d66b0`): every FRC motor Robot motor knows, the Kraken X60 and X44, Falcon 500 (V1/2)
+    and NEO Vortex as assemblies, the rest as Part Studios. Most have a **Simplified Model** checkbox already: the
+    Krakens, Falcons, NEOs, NEO 550, Minion, Pulsar, and the RS-775's Simplified Motor.
+  - Block Models (document `5e3874e07384706ec3840340`): **Block Motor** (Kraken X60 and X44, NEO Vortex, NEO V1.0,
+    V1.1 and 2.0, Thrifty Pulsar, Falcon 500 V1/2 and V3, NEO 550), **Block MAXPlanetary** and **Block PlanetaryX**,
+    among others.
 
   None of them has a mate connector yet (`supportsFasten` is false for every one).
 - **The FeatureScripts tab** reads `featurescripts.json`, the manifest robot-code's `fs release` writes into the
   frontend document (FRCDesignApp's `docs/architecture/featurescripts.md`).
+- **Robot motor** (`featurescripts/motor/`, unreleased) cuts a motor's or gearbox's mounting face into plates, and
+  with Block motor brings in FRCDesign's Block Motor, derived from its document, or an envelope of its own for motors
+  Block Motor doesn't have (the Minion and Yellow Jackets), with a mate connector on its face.
 - **2023's `auto-assembly` branch** of this repo prototyped declared parts: mate connectors carrying an attribute
   naming a part, read by evaluating FeatureScript, inserted and fastened by a Python script.
 
@@ -41,6 +51,7 @@ The first declarations:
 
 - **Robot shaft**: a shaft end screw in a tapped end, and a retaining ring or e-clip in a groove.
 - **Robot gear**: a COTS gear in place of its modeled one.
+- **Robot motor**: the motor or gearbox whose face it cut (see [Robot motor](#robot-motor)).
 
 ### The declaration
 
@@ -72,23 +83,26 @@ It's set in up to two places, each with its own job: on a host connector, and on
 
 ### The host connector: placing it with no mates
 
-Where the hardware attaches to a part the feature made, the feature puts a mate connector on that part, carrying the
-declaration: the shaft's end, for its screw; the groove, for its ring. It comes into the assembly with the shaft, so
-Auto Assembly can place and fasten every screw and ring on a shaft with nobody mating anything. It's named by the
+Where the hardware attaches to a part the feature made or cut, the feature puts a mate connector on that part,
+carrying the declaration: the shaft's end, for its screw; the groove, for its ring; the plate, for a motor. It comes
+into the assembly with that part, so Auto Assembly can place and fasten every screw, ring and motor on it with nobody
+mating anything. It's named by the
 feature's id and a fixed name (`firstEnd`, `secondEnd`), so a mate to it survives the feature being edited.
 
 A gear has no host in its feature, so it has no host connector: its stand-in carries it (below).
 
 ### Stand-ins
 
-A feature with declarations has a **Stand-ins** checkbox, on by default and remembered. A stand-in is a separate,
-simple solid part for the hardware's envelope, which carries the declaration too:
+Only parts big enough to plan around get one: gears and motors. Simple hardware (end screws, e-clips, retaining rings,
+screws and bolts) gets a host connector alone; Auto Assembly places it, and nothing in the Part Studio stands for it.
+
+A feature declaring a gear or motor has a **Stand-in** checkbox, on by default and remembered (Robot motor's is its
+Block motor). A stand-in is a separate, simple solid part for the part's envelope, which carries the declaration too:
 
 | Kind | Stand-in |
 | --- | --- |
-| Shaft end screw | A cylinder for the head, on the end face, and one for the shank, its major diameter, down the hole |
-| Retaining ring, e-clip | A ring at its outer diameter, as thick as the ring, in the groove |
 | Gear | One extrude of one sketch: its pitch circle, with its bore as an inner loop, as thick as the gear. Two meshing gears' stand-ins touch where their teeth would mesh |
+| Motor, gearbox | FRCDesign's Block Motor, Block MAXPlanetary or Block PlanetaryX, configured for it, or Robot motor's own envelope where those have none |
 
 The gear's stand-in has no involutes, fillets or cuts, so a gearbox of them regenerates fast; it's also what Robot
 gear builds when simplified (see [Simplification](#simplification)).
@@ -101,21 +115,23 @@ stand-ins share one translucent appearance, so none is mistaken for a part to ma
 
 A stand-in has its own mate connectors, each named and placed where the library part has one of the same name. So in
 an assembly a stand-in is mated like any part: a person inserts or copies it, fastens it where it goes, and Auto
-Assembly later swaps it for the real part on those same mates.
+Assembly later swaps it for the real part on those same mates. A host connector is named and placed as the part's
+connector it takes, so it's fastened to the same way.
 
 | Kind | Connectors (on the stand-in, and on the library part) |
 | --- | --- |
 | Shaft end screw | `seat`: the center of the head's underside, Z from shank to head (the fasteners' convention) |
 | Retaining ring, e-clip | `face`: the center of one flat face, Z into the ring, as a washer's; X toward an e-clip's opening |
 | Gear | `bottom` and `top`: on its axis, on each face, Z out of the gear; X through a tooth |
+| Motor, gearbox | `face`: the center of its mounting face, Z into the motor, X to the right of its face as its drawing shows it (Robot motor's tables' convention) |
 
 Robot gear's profile centers a tooth on its sketch's X axis, so a library gear whose connectors' X goes through a tooth
 meshes as modeled. The library's own studios name their connectors with Mate connector features of those names; a
 generated part set's studios make them, and its manifest names them, as the fasteners' do.
 
-A host connector is placed to match: the shaft's end face's center, Z out of the shaft, for `seat`; the groove's wall
-nearer the shaft's end, Z into the groove, for `face`. A fasten made by hand between a stand-in and its host picks the
-same two spots.
+A host connector is placed to match: the shaft's end face's center, Z out of the shaft, for an end screw's `seat`; the
+groove's wall nearer the shaft's end, Z into the groove, for a ring's `face`; the plate's face under the motor's, Z
+out of the plate, for a motor's `face`.
 
 ### Placing declared parts
 
@@ -164,8 +180,8 @@ generated part set never changes a released option id (`AGENTS.md`).
   bearings. They join the fasteners part set (or one beside it), so each studio has its connectors where the
   convention says, and one catalog writes the feature's table, the studios' configurations and the manifest.
   FRCDesignLib has no e-clip for goBILDA's 8 mm and 12 mm REX shafts; generated, it would.
-- **The library's own studios**, for parts whose model is the point: gears, with their vendors' pockets and hubs. Each
-  studio gets its connectors added in FRCDesignLib. A studio whose connector a configuration loses is caught by the
+- **The library's own studios and assemblies**, for parts whose model is the point: gears, with their vendors'
+  pockets and hubs, and motors. Each gets its connectors added in FRCDesignLib. A studio whose connector a configuration loses is caught by the
   library's load as it is today (`UNSTABLE_MATE_CONNECTOR`). Until a studio has them, its gears are declared and drawn,
   and Auto Assembly says the part can't be placed.
 
@@ -201,6 +217,7 @@ What each feature builds when simplified:
 | --- | --- |
 | Robot gear | Its pitch-circle disc with its bore, as a stand-in's (a bevel gear: its pitch cone's frustum) |
 | Robot lighten | Nothing: the part, unpocketed |
+| Robot motor | The cut, and its own envelope in place of FRCDesign's Block Motor, which it then doesn't derive |
 | Later: Robot belt, Robot chain, Robot pulley, Robot sprocket | Their pitch path or pitch circle, without teeth |
 | Later: Robot shaft | The shaft, with no end holes, grooves or flutes |
 
@@ -234,10 +251,12 @@ does (FRCDesignApp's `AGENTS.md`).
 
 ### Library parts
 
-A library Part Studio or assembly can have the variable too. An admin marks it on the insertable, and the app then
-offers **Insert simplified** beside Insert, remembered per person, and Include what's inside sets it on library parts
-already in an assembly. A library part's simplified configuration is the admin's to model: a gear studio's might
-suppress its pockets and teeth.
+Much of the library is simplified already, by a checkbox of its own: the motors' **Simplified Model**. So a library
+part's switch is whichever of its parameters an admin marks as its simplification, on the insertable, rather than the
+variable. The app then offers **Insert simplified** beside Insert, remembered per person; Auto Assembly places a
+declared part simplified when its assembly is; and Include what's inside sets it on library parts already in an
+assembly. A library part without such a parameter can have one modeled by its admin: a gear studio's might suppress
+its pockets and teeth.
 
 ### Ideas, for later
 
@@ -247,6 +266,44 @@ suppress its pockets and teeth.
   person simplifies where it pays.
 - **Simplified by default.** An assembly's own setting, so new instances arrive simplified and the full configuration
   is used for drawings and exports.
+
+## Robot motor
+
+Unreleased, so it changes freely. It declares the motor or gearbox whose face it cuts, has a stand-in, and allows
+simplification.
+
+**What it declares.** Each entry of `motorTables.py` names its product: the library's motor, by its document and tab,
+and the configuration to insert (the Krakens' standard back cap, their first vendor, Simplified Model off). The
+generated table carries it as it carries the face. Where the library has the motor:
+
+| Robot motor's entry | Library part (Motors & Servos, or Gearboxes) |
+| --- | --- |
+| Kraken X60, Kraken X44 | Kraken X60 / X44 Brushless Motor (assemblies) |
+| Falcon 500 V1/2, V3 | Falcon 500 Brushless Motor (V1/2) (assembly), (V3) |
+| NEO V1.0, V1.1 | NEO Brushless Motor, by its Version |
+| NEO 2.0, NEO Vortex, NEO 550 | NEO 2.0, NEO Vortex (assembly), NEO 550 Brushless Motor |
+| CIM, Mini CIM, RS-775, Minion, Thrifty Pulsar | CIM Motor, Mini CIM Motor (assemblies), RS-775 Motor, Minion, Thrifty Pulsar 775 |
+| MAXPlanetary, PlanetaryX, UltraPlanetary, VersaPlanetary | The Gearboxes group's, where it has one |
+| Yellow Jackets, goBILDA planetary | ConfigLib's (FTC), once its library is loaded the same way |
+
+The product table is generated from the snapshot, as the others are, with each motor matched by name in
+`motorTables.py`, so the faces' sources stay where they are.
+
+**Host connector.** On the part the face sits on: of the merge scope's parts, the one nearest the plane behind it. At
+the face's center, Z out of the plate (toward the motor), X the face's drawing's right: the motor's `face`. With no
+merge scope (a block motor alone), there's none, and the stand-in carries the declaration.
+
+**Stand-in.** Block motor is its stand-in checkbox. FRCDesign's Block Motor already lines up with the face
+(`blockAngle`); its connector on the plane becomes `face`, carrying the declaration, and the part is excluded from the
+bill of materials and colored as stand-ins are. The gearboxes' faces take Block MAXPlanetary and Block PlanetaryX
+where they're the same gearbox, at their defaults, which adds them to Has block model. The CIM, Mini CIM and RS-775
+have no block model in FRCDesignLib; they get envelopes of our own, as the Minion's.
+
+**Simplified.** Deriving another document's Part Studio costs the most of anything Robot motor builds, so simplified
+it builds its own envelope (cylinders for body, pilot and shaft) for every motor, and derives nothing. That needs an
+envelope for each motor Block Motor covers: its diameter, length behind the face, pilot height and shaft, read from
+Block Motor's sketches as its turns were, or from the vendors' drawings. The cut is the same either way. In an
+assembly, a motor placed by Auto Assembly is placed with its Simplified Model on when the assembly is simplified.
 
 ## Icons in the FeatureScripts tab
 
@@ -262,8 +319,8 @@ feature's manifest entry, beside the products it references:
 "simplification" : true
 ```
 
-Declaring parts is calling `standInPredicate` (`core/autoAssembly.fs`); allowing simplification is calling
-`simplificationPredicate`. Library parts with the variable show the Simplified icon on their cards too.
+Declaring parts is calling `declarePart` (`core/autoAssembly.fs`), which every host connector and stand-in goes
+through; allowing simplification is calling `simplificationPredicate`. Library parts with the variable show the Simplified icon on their cards too.
 
 ## What to try in Onshape
 
@@ -288,6 +345,9 @@ Each of these is unverified, and the design leans on it:
   inside find the variable in Part Studios it didn't add it to.
 - **Which part sets first.** Proposed: e-clips and retaining rings, then end screws, as part sets; gears from the
   library's studios, with connectors added by hand.
-- **Order of work.** Proposed: the Onshape checks; `core/autoAssembly.fs` and `core/simplify.fs`; Robot gear (its
-  stand-in is its simplified form, so it exercises both); Robot lighten; Robot shaft's hardware with the first part
-  set; then the app: the part scan and run, the manifest's icons and references, and the Simplify menu.
+- **Order of work.** Proposed: the Onshape checks; `core/autoAssembly.fs` and `core/simplify.fs`; Robot motor
+  (unreleased, and it exercises a host connector, a stand-in and simplification at once); Robot gear; Robot lighten;
+  Robot shaft's hardware with the first part set; then the app: the part scan and run, the manifest's icons and
+  references, and the Simplify menu.
+- **Robot motor's envelopes.** Proposed: read from Block Motor's sketches through Onshape's features endpoint, a call
+  or two.
