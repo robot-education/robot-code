@@ -108,6 +108,32 @@ export enum GearHand
 }
 
 /**
+ * How an internal gear's ring is sized: by its thickness, out from its teeth (see `InternalRingFrom`), or its outside
+ * diameter.
+ */
+export enum InternalRingSize
+{
+    annotation { "Name" : "Ring thickness" }
+    THICKNESS,
+    annotation { "Name" : "Outside diameter" }
+    OUTSIDE_DIAMETER
+}
+
+/**
+ * Where an internal gear's ring thickness is measured out from: its teeth's roots, their pitch circle, or their tips
+ * (see `internalRingRadius`).
+ */
+export enum InternalRingFrom
+{
+    annotation { "Name" : "Root diameter" }
+    ROOT,
+    annotation { "Name" : "Pitch diameter" }
+    PITCH,
+    annotation { "Name" : "Tip diameter" }
+    TIP
+}
+
+/**
  * Where a cut rack's face is on its teeth: their pitch line, their tips, or their base (their root line: the teeth are
  * added on the face, see `rackFaceDepth`).
  */
@@ -178,8 +204,9 @@ const GEAR_TEETH_BOUNDS = { (unitless) : [4, 24, 1000] } as IntegerBoundSpec;
 const RACK_TEETH_BOUNDS = { (unitless) : [1, 10, 1000] } as IntegerBoundSpec;
 const PRESSURE_ANGLE_BOUNDS = { (degree) : [10, 20, 35] } as AngleBoundSpec;
 const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
-// An internal gear's ring, out from its roots
-const RIM_THICKNESS_BOUNDS = { (meter) : [1e-5, 0.00635, 500], (inch) : 0.25, (millimeter) : 6 } as LengthBoundSpec;
+// An internal gear's ring: its thickness out from its teeth, or its outside diameter
+const RING_THICKNESS_BOUNDS = { (meter) : [1e-5, 0.00635, 500], (inch) : 0.25, (millimeter) : 6 } as LengthBoundSpec;
+const RING_OUTSIDE_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.1016, 500], (inch) : 4, (millimeter) : 100 } as LengthBoundSpec;
 // A 1/8 in. router bit's
 const BIT_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 
@@ -253,7 +280,7 @@ predicate isMateByTeeth(definition is map)
 predicate isRouterBit(definition is map)
 {
     definition.addRootFillet;
-    ((definition.gearType == GearType.GEAR || definition.gearType == GearType.RACK) && definition.rootFillet == RootFillet.ROUTER_BIT) ||
+    (definition.gearType != GearType.BEVEL && definition.rootFillet == RootFillet.ROUTER_BIT) ||
         (definition.gearType == GearType.BEVEL && definition.bevelRootFillet == BevelRootFillet.ROUTER_BIT);
 }
 
@@ -341,11 +368,25 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
 
-            // An internal gear's ring, out from its roots
+            // An internal gear's ring: its thickness out from its teeth's roots, pitch circle, or tips, or its outside diameter
             if (definition.gearType == GearType.INTERNAL)
             {
-                annotation { "Name" : "Rim thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isLength(definition.rimThickness, RIM_THICKNESS_BOUNDS);
+                annotation { "Name" : "Ring size", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.ringSizeBy is InternalRingSize;
+
+                if (definition.ringSizeBy == InternalRingSize.THICKNESS)
+                {
+                    annotation { "Name" : "Ring thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.ringThickness, RING_THICKNESS_BOUNDS);
+
+                    annotation { "Name" : "Measured from", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    definition.ringFrom is InternalRingFrom;
+                }
+                else
+                {
+                    annotation { "Name" : "Outside diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.outsideDiameter, RING_OUTSIDE_DIAMETER_BOUNDS);
+                }
             }
 
             // A bevel gear's teeth end square to its pitch cone, their roots flush with its top face, rather than cut off
@@ -356,11 +397,11 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 definition.flatTop is boolean;
             }
 
-            // Without it, the roots are sharp; an internal gear's are full rounds
+            // Without it, the roots are sharp
             annotation { "Name" : "Root fillet", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.addRootFillet is boolean;
 
-            if (definition.addRootFillet && definition.gearType != GearType.INTERNAL)
+            if (definition.addRootFillet)
             {
                 annotation { "Group Name" : "Root fillet", "Collapsed By Default" : false, "Driving Parameter" : "addRootFillet" }
                 {
@@ -574,9 +615,9 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         var gears = [gear];
         var warning = size.warning == undefined ? undefined : { "message" : size.warning, "parameters" : ["pitchCircle"] };
         // A spur gear's pitch diameter, for spacing gears: two mesh their pitch radii apart (an internal gear's, less
-        // its mate's), and an internal gear's outside diameter
+        // its mate's), and an internal gear's outside diameter, sized by its thickness
         var info = definition.gearType == GearType.BEVEL ? undefined : "Pitch diameter is " ~ makeValueString(pitchUnits(definition), module * size.teeth, true) ~ ".";
-        if (gear.outsideRadius != undefined)
+        if (gear.outsideRadius != undefined && definition.ringSizeBy == InternalRingSize.THICKNESS)
         {
             info = info ~ " Outside diameter is " ~ makeValueString(pitchUnits(definition), 2 * gear.outsideRadius, true) ~ ".";
         }
@@ -675,7 +716,7 @@ function rootFilletSize(definition is map)
  *      @field connector {CoordSystem} : Where its mate connector goes: its center, or a bevel gear's apex.
  *      @field hubRadius {ValueWithUnits} : How far out it's solid all the way through, for its bore: its root, or a
  *              bevel gear's at its top face. Not an internal gear's, which has no bore.
- *      @field outsideRadius {ValueWithUnits} : An internal gear's ring's: its root, and Rim thickness.
+ *      @field outsideRadius {ValueWithUnits} : An internal gear's ring's (see `internalRingRadius`).
  * }}
  */
 function buildGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
@@ -691,12 +732,23 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
     }
     else if (definition.gearType == GearType.INTERNAL)
     {
-        // Its teeth inside a ring, its roots full rounds or sharp
-        const form = getInternalGearForm(module, teeth, pressureAngle(definition), definition.addRootFillet, getProfileOffset(definition));
-        result.outsideRadius = form.rootRadius + definition.rimThickness;
-        const profile = sketchInternalGearProfile(context, id + "profile", gearPlane, form, result.outsideRadius);
+        // Its teeth inside a ring
+        var form = getInternalGearForm(module, teeth, pressureAngle(definition), rootFilletSize(definition), getProfileOffset(definition));
+        form.outsideRadius = internalRingRadius(definition, module, teeth);
+        // Past its roots (a router bit's slots and fillets are inside the root circle)
+        if (form.outsideRadius <= form.rootRadius + TOLERANCE.zeroLength * meter)
+        {
+            if (definition.ringSizeBy == InternalRingSize.THICKNESS)
+            {
+                throw regenError("Ring thickness is too small, increase the value.", ["ringThickness", "ringFrom"]);
+            }
+            throw regenError("Outside diameter is too small, increase the value.", ["outsideDiameter"]);
+        }
+        result.outsideRadius = form.outsideRadius;
+        const profile = sketchInternalGearProfile(context, id + "profile", gearPlane, form);
         result.body = buildGearBody(context, id, definition, gearPlane, profile, form);
         cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
+        checkBitSlots(context, id, definition, gearPlane, form, result.body, undefined);
     }
     else
     {
@@ -712,19 +764,31 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
 }
 
 /**
- * Errors if a router bit's slots (see `gearRoot`) cut into the teeth's flanks where a mating gear's teeth touch them,
- * showing the gear (`body`, built from `form` on `gearPlane`) in blue, and what its slots cut from its teeth in red:
- * the same teeth with sharp roots, less the gear.
+ * Errors if a router bit's slots (see `gearRoot`, or an internal gear's `internalRoot`) cut into the teeth's flanks
+ * where a mating gear's teeth touch them, showing the gear (`body`, built from `form` on `gearPlane`) in blue, and what
+ * its slots cut from its teeth in red: the same teeth with sharp roots, less the gear.
  */
 function checkBitSlots(context is Context, id is Id, definition is map, gearPlane is Plane, form is map, body is Query, sectorTeeth)
 {
-    const slot = form.filletRadius == undefined ? undefined : gearRoot(form).slot;
+    const internal = form.internal != undefined;
+    const slot = form.filletRadius == undefined ? undefined : (internal ? internalRoot(form) : gearRoot(form)).slot;
     if (slot == undefined || !slot.tooLarge)
     {
         return;
     }
-    const sharp = getGearForm(form.module, form.teeth, form.pressureAngle, 0, form.offset);
-    const profile = sketchGearProfile(context, id + "sharpProfile", gearPlane, sharp, sectorTeeth);
+    var sharp;
+    var profile;
+    if (internal)
+    {
+        sharp = getInternalGearForm(form.module, form.teeth, form.pressureAngle, 0, form.offset);
+        sharp.outsideRadius = form.outsideRadius;
+        profile = sketchInternalGearProfile(context, id + "sharpProfile", gearPlane, sharp);
+    }
+    else
+    {
+        sharp = getGearForm(form.module, form.teeth, form.pressureAngle, 0, form.offset);
+        profile = sketchGearProfile(context, id + "sharpProfile", gearPlane, sharp, sectorTeeth);
+    }
     const slots = buildGearBody(context, id + "sharp", definition, gearPlane, profile, sharp);
     opBoolean(context, id + "slots", {
                 "targets" : slots,
@@ -1290,6 +1354,26 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
 }
 
 /**
+ * An internal gear's ring's outside radius: by Ring thickness, the thickness out from its teeth's roots (`1.25 m`
+ * outside its pitch circle), pitch circle, or tips (`internalTipRadius`), all without the profile offset; or its
+ * Outside diameter's.
+ */
+export function internalRingRadius(definition is map, module is ValueWithUnits, teeth is number) returns ValueWithUnits
+{
+    if (definition.ringSizeBy == InternalRingSize.OUTSIDE_DIAMETER)
+    {
+        return definition.outsideDiameter / 2;
+    }
+    const pitchRadius = module * teeth / 2;
+    const from = switch (definition.ringFrom) {
+            InternalRingFrom.ROOT : pitchRadius + 1.25 * module,
+            InternalRingFrom.PITCH : pitchRadius,
+            InternalRingFrom.TIP : internalTipRadius(pitchRadius, module, pressureAngle(definition))
+        };
+    return from + definition.ringThickness;
+}
+
+/**
  * The gear's teeth and plane: Teeth's, at the location; or with Size by Pitch circle, the nearest whole number of
  * teeth's, at the circle's center, with a `warning` if the circle isn't exactly their size (within std's length
  * tolerance).
@@ -1332,7 +1416,8 @@ function gearSize(context is Context, definition is map, module is ValueWithUnit
 /**
  * Editing logic: choosing a circle for the location that's a pitch circle at this pitch (a whole number of teeth's)
  * switches Size by to Pitch circle, with it; likewise a circle for Gear pair's angle reference switches Mate selection
- * to Pitch circle.
+ * to Pitch circle. Switching an internal gear's Ring size to Outside diameter, without having set it, sets it to the
+ * ring's as it was, so the gear doesn't change.
  */
 export function robotGearEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
@@ -1354,6 +1439,23 @@ export function robotGearEditLogic(context is Context, id is Id, oldDefinition i
         definition.mateSizeBy = GearSize.PITCH_CIRCLE;
         definition.matePitchCircle = definition.angleReference;
         definition.angleReference = qNothing();
+    }
+    if (definition.gearType == GearType.INTERNAL && oldDefinition.ringSizeBy == InternalRingSize.THICKNESS &&
+        definition.ringSizeBy == InternalRingSize.OUTSIDE_DIAMETER && !(specifiedParameters.outsideDiameter ?? false))
+    {
+        // Its teeth: a pitch circle's, if it's chosen (it mustn't throw while the dialog's being filled in)
+        var teeth = definition.teeth;
+        if (definition.sizeBy == GearSize.PITCH_CIRCLE)
+        {
+            const radius = try silent(evCurveDefinition(context, { "edge" : qNthElement(definition.pitchCircle, 0) }).radius);
+            teeth = radius == undefined ? undefined : nearestGearTeeth(radius, module);
+        }
+        if (teeth != undefined)
+        {
+            var thickness = definition;
+            thickness.ringSizeBy = InternalRingSize.THICKNESS;
+            definition.outsideDiameter = 2 * internalRingRadius(thickness, module, teeth);
+        }
     }
     return definition;
 }
