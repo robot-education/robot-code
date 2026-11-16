@@ -16,10 +16,12 @@ captive shaft ends), and shafts can be mirrored across an end.
 
 ## Changelog
 
-Since v3.0.0 (`fs changes robotShaft`).
+Since v3.0.1 (`fs changes robotShaft`).
 
-- The description is now "Create shafts used for both FRC and FTC." (was "Create the shafts FRC and FTC teams buy, or
-  custom ones.").
+- Its lookup tables' levels default to their first options, where Onshape picked the first in sorted order: FRC
+  shafts default to WCP's rounded hex (was AndyMark's), REV's to rounded hex (was MAXSpline), Swyft's to 7075 (was
+  6061), and FTC shafts to goBILDA's 8 mm REX (e-clip) in stainless steel (was AndyMark's); M3 and M4 tapped holes to
+  coarse threads (was fine), and clearance holes to a free fit (was close). Shafts already made keep their choices.
 
 ## Strings
 

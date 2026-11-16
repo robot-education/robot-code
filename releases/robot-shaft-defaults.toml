@@ -1,0 +1,4 @@
+script = "robotShaft"
+bump = "patch"
+description = "Lookup tables default to their first options (WCP, goBILDA, coarse threads, free fit), not Onshape's first in sorted order"
+publish = true
