@@ -44,8 +44,9 @@ The configuration only offers what's made, so these show only in the feature's o
 | Bearing | `<size> <bore> <type> Bearing (<OD> OD x <width>)`, with any seal but shields after its dimensions: `1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)`, `3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)`, `8 mm Round Flanged Bearing (16 mm OD x 5 mm)`, `8 mm REX Flanged Bearing (14 mm OD x 5 mm)`; R166ZZEE's dimensions are `0.375 in OD x 0.156 in (extended inner race)` |
 | Plain bearing | `<size> <bore> <type> Plain Bearing (<OD> OD x <width>)`: `5 mm Hex Flanged Plain Bearing (9 mm OD x 5 mm)` |
 
-A ball bearing is steel, in the standards' steel grey, with a sealed bearing's seals black; a plain bearing (REV's
-Through Bore Bearings) is acetal, in black, a placeholder for its color, which REV doesn't publish. Each has its vendor
+A ball bearing is steel, in the standards' steel grey, with a sealed bearing's seals black, as AndyMark's models color
+them (#C0C0C0 and #404040); a plain bearing (REV's Through Bore Bearings) is acetal, in black, a placeholder for its
+color, which REV's models don't carry. Each has its vendor
 as its Vendor, its part number, and its link as its description, where the vendor has them; Generic has no vendor or
 link, and its part number is the bearing's designation (`FR8ZZ-HexHD`) where FRCDesign gives one.
 
@@ -60,8 +61,16 @@ bearing is narrower than its shielded one (FR6 is 0.219 in wide, FR6ZZ 0.281 in)
 its Seal is hidden. The dialog is a flat list of the same enums, with no conditions.
 
 What FRC's vendors make comes from FRCDesign's records, by each record's Dimensions option, which names its bore, outer
-diameter, width, and seal (its record names disagree with it in places, such as WCP-2058's width). Generic makes every
-bearing any of them does. FRCDesign has F126ZZ 8 mm wide; it's 4 mm (am-3377's model).
+diameter, width, and seal (its record names disagree with it in places, such as WCP-2058's width), but for parts their
+vendors no longer sell (`DISCONTINUED`): those AndyMark's store tags Discontinued, and WCP-0782 and 217-5830, which
+WCP's store no longer lists. Generic makes every bearing any of them does, and every one FRCDesign's Generic records
+name, so a standard bearing only a discontinued part was (1621ZZ, say) is still Generic's. FRCDesign has F126ZZ 8 mm
+wide; it's 4 mm (am-3377's model).
+
+McMaster-Carr's bearings come from `vendor/mcmaster-bearings.json`, transcribed by hand, since its pages refuse automated
+reads: its rows are the bearings wanted from it (5 mm bores, which clear a #10 screw, flanged and radial, and common
+8 mm, thin-section, and imperial ones), and a row joins both sets' catalogs (FTC's only a metric one) once it has its
+part number and, flanged, its flange.
 
 FTC's are goBILDA's flanged and radial ball bearings (from its store and STEP files), REV's 8 x 12 x 3.5 mm flanged
 bearing and its two acetal Through Bore Bearings for 5 mm hex (REV-41-1326, 5 mm overall, and REV-41-1329, 11 mm), and
@@ -71,7 +80,7 @@ offered.
 
 The defaults are what's inserted most: from FRCDesign's library, Generic's 1/2 in rounded hex flanged bearing, 1.125 in
 OD x 0.313 in, shielded; from ConfigLib, goBILDA's 8 mm round flanged bearing, 14 mm OD x 5 mm. FTC's vendors are
-goBILDA, REV, then AndyMark. goBILDA names only its 12 mm radial bearing sealed, and the rest are taken as shielded.
+goBILDA, REV, AndyMark, then McMaster-Carr. goBILDA names only its 12 mm radial bearing sealed, and the rest are taken as shielded.
 
 Flanges are each vendor's where its model or drawing has them (`VENDOR_FLANGES`), and otherwise by size and dimensions
 (`FLANGES`): REV's drawings, AndyMark's specifications, goBILDA's STEP files, or the designation's standard.
@@ -108,10 +117,13 @@ There are no `try`s.
 - Not yet tried in Onshape: none of it has regenerated there, and no connector has been fastened to.
 - Assumed flanges, marked `TODO` in `bearingTables.py`: the 3/4 in bearing's (WCP-0782, 217-2789), ThriftyBot's
   8 x 16 x 6.3 mm, and Generic's and WCP's 30 and 35 mm thin-section bearings'. Swyft's 8 x 14 x 5 mm takes goBILDA's
-  measured one. WCP, VEX, ThriftyBot, Swyft, and SDS publish no models these could be checked against.
+  measured one. WCP, VEX, ThriftyBot, Swyft, and SDS publish no models these could be checked against, and REV's and
+goBILDA's models carry no colors.
 - AndyMark's FR82RS model (am-4465) is 0.375 in wide; AndyMark lists it, and FRCDesign has it, 0.313 in, as built.
 - goBILDA's 12 x 32 x 10 mm flanged bearing (1601-1032-0012) narrows between its body and its 2.3 mm flange in its STEP
   file, and the vendors' 1.125 in OD flanged bearings are undercut under their flanges; both are built as a plain step.
-- AndyMark lists several FRC bearings as discontinued (am-0027, am-0029, am-0031, am-0936, am-2095, am-4149, am-4455,
-  am-4459, am-4461, am-4464, am-4466 to am-4469); FRCDesign's records still offer them, and so does FRC's studio.
+- No McMaster-Carr bearing has its part number yet, so neither studio offers McMaster-Carr until its rows are
+  transcribed.
+- VEX's (its store refuses automated reads) and ThriftyBot's, Swyft's, and SDS's availability is unchecked: only
+  AndyMark's, WCP's, REV's, and goBILDA's stores were checked for discontinued parts.
 - FRCDesignApp reads no part set's manifest yet, so nothing there uses `bearings.gen.json`.

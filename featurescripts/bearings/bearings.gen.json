@@ -1100,19 +1100,6 @@
             "vendor": "WCP",
             "type": "FLANGED",
             "bore": "ROUND",
-            "size": "IN_3_4"
-          },
-          "name": "3/4 in Round Flanged Bearing (1.375 in OD x 0.438 in)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0782",
-          "url": "https://wcproducts.com/products/wcp-0782",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "FLANGED",
-            "bore": "ROUND",
             "size": "MM_8",
             "dimensions": "MM_16_X_5"
           },
@@ -1173,18 +1160,6 @@
           "vendor": "WCP",
           "partNumber": "WCP-1471",
           "url": "https://wcproducts.com/products/wcp-1471",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "FLANGED",
-            "bore": "THUNDERSQUARE"
-          },
-          "name": "1/4 in ThunderSquare Flanged Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "WCP",
-          "partNumber": "217-5830",
-          "url": "https://wcproducts.com/products/217-5830",
           "material": "Steel"
         },
         {
@@ -1480,20 +1455,6 @@
             "type": "FLANGED",
             "bore": "ROUND",
             "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_219"
-          },
-          "name": "3/8 in Round Flanged Bearing (0.875 in OD x 0.219 in, Open)",
-          "vendor": "AndyMark",
-          "partNumber": "am-0027",
-          "url": "https://andymark.com/am-0027",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_3_8",
             "dimensions": "OD_0_875_X_0_281",
             "seal": "SHIELDED"
           },
@@ -1537,19 +1498,6 @@
             "vendor": "ANDYMARK",
             "type": "FLANGED",
             "bore": "ROUND",
-            "size": "IN_3_16"
-          },
-          "name": "3/16 in Round Flanged Bearing (0.5 in OD x 0.196 in)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4459",
-          "url": "https://andymark.com/am-4459",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "FLANGED",
-            "bore": "ROUND",
             "size": "MM_5",
             "dimensions": "MM_11_X_4"
           },
@@ -1578,27 +1526,12 @@
             "vendor": "ANDYMARK",
             "type": "FLANGED",
             "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_12_X_4"
+            "size": "MM_6"
           },
           "name": "6 mm Round Flanged Bearing (12 mm OD x 4 mm)",
           "vendor": "AndyMark",
           "partNumber": "am-3377",
           "url": "https://andymark.com/am-3377",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_17_X_6"
-          },
-          "name": "6 mm Round Flanged Bearing (17 mm OD x 6 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4455",
-          "url": "https://andymark.com/am-4455",
           "material": "Steel"
         },
         {
@@ -1675,24 +1608,7 @@
             "vendor": "ANDYMARK",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_125_X_0_25"
-          },
-          "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.25 in, Open)",
-          "vendor": "AndyMark",
-          "partNumber": "am-0029",
-          "url": "https://andymark.com/am-0029",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_125_X_0_313",
-            "seal": "SHIELDED"
+            "size": "IN_1_2"
           },
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
           "vendor": "AndyMark",
@@ -1706,76 +1622,13 @@
             "vendor": "ANDYMARK",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_125_X_0_313",
-            "seal": "SEALED"
-          },
-          "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in, Sealed)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4464",
-          "url": "https://andymark.com/am-4464",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_375_X_0_438"
-          },
-          "name": "1/2 in Round Radial Bearing (1.375 in OD x 0.438 in)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4466",
-          "url": "https://andymark.com/am-4466",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
             "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_219"
-          },
-          "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.219 in, Open)",
-          "vendor": "AndyMark",
-          "partNumber": "am-0936",
-          "url": "https://andymark.com/am-0936",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_281",
-            "seal": "SHIELDED"
+            "dimensions": "OD_0_875_X_0_281"
           },
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
           "vendor": "AndyMark",
           "partNumber": "am-0516",
           "url": "https://andymark.com/am-0516",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_281",
-            "seal": "SEALED"
-          },
-          "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4462",
-          "url": "https://andymark.com/am-4462",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1799,23 +1652,7 @@
             "vendor": "ANDYMARK",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "IN_3_16",
-            "dimensions": "OD_0_5_X_0_156"
-          },
-          "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.156 in, Open)",
-          "vendor": "AndyMark",
-          "partNumber": "am-0031",
-          "url": "https://andymark.com/am-0031",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_3_16",
-            "dimensions": "OD_0_5_X_0_196"
+            "size": "IN_3_16"
           },
           "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)",
           "vendor": "AndyMark",
@@ -1857,20 +1694,6 @@
             "vendor": "ANDYMARK",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "IN_5_8"
-          },
-          "name": "5/8 in Round Radial Bearing (1.375 in OD x 0.438 in)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4467",
-          "url": "https://andymark.com/am-4467",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
             "size": "MM_5"
           },
           "name": "5 mm Round Radial Bearing (13 mm OD x 4 mm)",
@@ -1885,23 +1708,7 @@
             "vendor": "ANDYMARK",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_12_X_4"
-          },
-          "name": "6 mm Round Radial Bearing (12 mm OD x 4 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4149",
-          "url": "https://andymark.com/am-4149",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_17_X_6"
+            "size": "MM_6"
           },
           "name": "6 mm Round Radial Bearing (17 mm OD x 6 mm)",
           "vendor": "AndyMark",
@@ -1915,56 +1722,12 @@
             "vendor": "ANDYMARK",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_19_X_6"
-          },
-          "name": "8 mm Round Radial Bearing (19 mm OD x 6 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-2095",
-          "url": "https://andymark.com/am-2095",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_22_X_7"
+            "size": "MM_8"
           },
           "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm)",
           "vendor": "AndyMark",
           "partNumber": "am-4456",
           "url": "https://andymark.com/am-4456",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_10"
-          },
-          "name": "10 mm Round Radial Bearing (26 mm OD x 8 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4468",
-          "url": "https://andymark.com/am-4468",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_12"
-          },
-          "name": "12 mm Round Radial Bearing (28 mm OD x 8 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4469",
-          "url": "https://andymark.com/am-4469",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -3697,20 +3460,6 @@
       "vendor": "WCP",
       "type": "FLANGED",
       "bore": "ROUND",
-      "size": "IN_3_4",
-      "boreSize": 0.01905,
-      "dimensions": "OD_1_375_X_0_438",
-      "outerDiameter": 0.034925,
-      "width": 0.0111252,
-      "flangeDiameter": 0.0381,
-      "seal": "SHIELDED",
-      "partNumber": "WCP-0782",
-      "url": "https://wcproducts.com/products/wcp-0782"
-    },
-    {
-      "vendor": "WCP",
-      "type": "FLANGED",
-      "bore": "ROUND",
       "size": "MM_8",
       "boreSize": 0.008,
       "dimensions": "MM_16_X_5",
@@ -3776,20 +3525,6 @@
       "seal": "SHIELDED",
       "partNumber": "WCP-1471",
       "url": "https://wcproducts.com/products/wcp-1471"
-    },
-    {
-      "vendor": "WCP",
-      "type": "FLANGED",
-      "bore": "THUNDERSQUARE",
-      "size": "IN_1_4",
-      "boreSize": 0.00635,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "flangeDiameter": 0.024638,
-      "seal": "SHIELDED",
-      "partNumber": "217-5830",
-      "url": "https://wcproducts.com/products/217-5830"
     },
     {
       "vendor": "WCP",
@@ -4075,20 +3810,6 @@
       "bore": "ROUND",
       "size": "IN_3_8",
       "boreSize": 0.009525,
-      "dimensions": "OD_0_875_X_0_219",
-      "outerDiameter": 0.022225,
-      "width": 0.0055626,
-      "flangeDiameter": 0.0246888,
-      "seal": "OPEN",
-      "partNumber": "am-0027",
-      "url": "https://andymark.com/am-0027"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "FLANGED",
-      "bore": "ROUND",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
       "dimensions": "OD_0_875_X_0_281",
       "outerDiameter": 0.022225,
       "width": 0.0071374,
@@ -4124,20 +3845,6 @@
       "seal": "SHIELDED",
       "partNumber": "am-0573",
       "url": "https://andymark.com/am-0573"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "FLANGED",
-      "bore": "ROUND",
-      "size": "IN_3_16",
-      "boreSize": 0.0047625,
-      "dimensions": "OD_0_5_X_0_196",
-      "outerDiameter": 0.0127,
-      "width": 0.0049784,
-      "flangeDiameter": 0.014351,
-      "seal": "SHIELDED",
-      "partNumber": "am-4459",
-      "url": "https://andymark.com/am-4459"
     },
     {
       "vendor": "ANDYMARK",
@@ -4180,20 +3887,6 @@
       "seal": "SHIELDED",
       "partNumber": "am-3377",
       "url": "https://andymark.com/am-3377"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "FLANGED",
-      "bore": "ROUND",
-      "size": "MM_6",
-      "boreSize": 0.006,
-      "dimensions": "MM_17_X_6",
-      "outerDiameter": 0.017,
-      "width": 0.006,
-      "flangeDiameter": 0.019,
-      "seal": "SHIELDED",
-      "partNumber": "am-4455",
-      "url": "https://andymark.com/am-4455"
     },
     {
       "vendor": "ANDYMARK",
@@ -4269,64 +3962,12 @@
       "bore": "ROUND",
       "size": "IN_1_2",
       "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_25",
-      "outerDiameter": 0.028575,
-      "width": 0.00635,
-      "seal": "OPEN",
-      "partNumber": "am-0029",
-      "url": "https://andymark.com/am-0029"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
       "dimensions": "OD_1_125_X_0_313",
       "outerDiameter": 0.028575,
       "width": 0.0079502,
       "seal": "SHIELDED",
       "partNumber": "am-0181",
       "url": "https://andymark.com/am-0181"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "seal": "SEALED",
-      "partNumber": "am-4464",
-      "url": "https://andymark.com/am-4464"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_375_X_0_438",
-      "outerDiameter": 0.034925,
-      "width": 0.0111252,
-      "seal": "SHIELDED",
-      "partNumber": "am-4466",
-      "url": "https://andymark.com/am-4466"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
-      "dimensions": "OD_0_875_X_0_219",
-      "outerDiameter": 0.022225,
-      "width": 0.0055626,
-      "seal": "OPEN",
-      "partNumber": "am-0936",
-      "url": "https://andymark.com/am-0936"
     },
     {
       "vendor": "ANDYMARK",
@@ -4347,38 +3988,12 @@
       "bore": "ROUND",
       "size": "IN_3_8",
       "boreSize": 0.009525,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "seal": "SEALED",
-      "partNumber": "am-4462",
-      "url": "https://andymark.com/am-4462"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
       "dimensions": "OD_1_125_X_0_375",
       "outerDiameter": 0.028575,
       "width": 0.009525,
       "seal": "SHIELDED",
       "partNumber": "am-0209",
       "url": "https://andymark.com/am-0209"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_3_16",
-      "boreSize": 0.0047625,
-      "dimensions": "OD_0_5_X_0_156",
-      "outerDiameter": 0.0127,
-      "width": 0.0039624,
-      "seal": "OPEN",
-      "partNumber": "am-0031",
-      "url": "https://andymark.com/am-0031"
     },
     {
       "vendor": "ANDYMARK",
@@ -4423,19 +4038,6 @@
       "vendor": "ANDYMARK",
       "type": "RADIAL",
       "bore": "ROUND",
-      "size": "IN_5_8",
-      "boreSize": 0.015875,
-      "dimensions": "OD_1_375_X_0_438",
-      "outerDiameter": 0.034925,
-      "width": 0.0111252,
-      "seal": "SHIELDED",
-      "partNumber": "am-4467",
-      "url": "https://andymark.com/am-4467"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
       "size": "MM_5",
       "boreSize": 0.005,
       "dimensions": "MM_13_X_4",
@@ -4444,19 +4046,6 @@
       "seal": "SHIELDED",
       "partNumber": "am-4724",
       "url": "https://andymark.com/am-4724"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "MM_6",
-      "boreSize": 0.006,
-      "dimensions": "MM_12_X_4",
-      "outerDiameter": 0.012,
-      "width": 0.004,
-      "seal": "SHIELDED",
-      "partNumber": "am-4149",
-      "url": "https://andymark.com/am-4149"
     },
     {
       "vendor": "ANDYMARK",
@@ -4477,51 +4066,12 @@
       "bore": "ROUND",
       "size": "MM_8",
       "boreSize": 0.008,
-      "dimensions": "MM_19_X_6",
-      "outerDiameter": 0.019,
-      "width": 0.006,
-      "seal": "SHIELDED",
-      "partNumber": "am-2095",
-      "url": "https://andymark.com/am-2095"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "MM_8",
-      "boreSize": 0.008,
       "dimensions": "MM_22_X_7",
       "outerDiameter": 0.022,
       "width": 0.007,
       "seal": "SHIELDED",
       "partNumber": "am-4456",
       "url": "https://andymark.com/am-4456"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "MM_10",
-      "boreSize": 0.01,
-      "dimensions": "MM_26_X_8",
-      "outerDiameter": 0.026,
-      "width": 0.008,
-      "seal": "SHIELDED",
-      "partNumber": "am-4468",
-      "url": "https://andymark.com/am-4468"
-    },
-    {
-      "vendor": "ANDYMARK",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "MM_12",
-      "boreSize": 0.012,
-      "dimensions": "MM_28_X_8",
-      "outerDiameter": 0.028,
-      "width": 0.008,
-      "seal": "SHIELDED",
-      "partNumber": "am-4469",
-      "url": "https://andymark.com/am-4469"
     },
     {
       "vendor": "REV",

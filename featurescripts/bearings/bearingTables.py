@@ -14,8 +14,9 @@ This is the source of three things, which must agree:
 
 What each vendor makes, and its part numbers, come from FRCDesign's own Flanged Radial Bearing and Radial Bearing
 (vendor/frcdesign-bearings.json, a snapshot of their configurations from FRCDesign's public API), by each record's
-Dimensions option, which names its bore, outer diameter, width, and seal. Generic offers every bearing any vendor
-makes, with the bearing's designation (FR8ZZ) as its part number where FRCDesign gives one.
+Dimensions option, which names its bore, outer diameter, width, and seal, but for parts their vendors no longer sell
+(`DISCONTINUED`). McMaster-Carr's come from vendor/mcmaster-bearings.json, transcribed by hand. Generic offers every
+bearing any vendor makes, with the bearing's designation (FR8ZZ) as its part number where FRCDesign gives one.
 
 FTC's are goBILDA's (the only bearings in ConfigLib), REV's from its FTC catalog, and AndyMark's its store tags for FTC,
 from their stores and STEP files (vendor/, measured for their flanges and bores).
@@ -48,7 +49,7 @@ INCH = 0.0254
 
 BearingVendor = Enum(
     "BearingVendor",
-    ["GENERIC", "WCP", "ANDYMARK", "REV", "VEX", "THRIFTYBOT", "SWYFT", "SDS", "GOBILDA"],
+    ["GENERIC", "WCP", "ANDYMARK", "REV", "VEX", "THRIFTYBOT", "SWYFT", "SDS", "MCMASTER", "GOBILDA"],
     {
         "GENERIC": "Generic",
         "WCP": "WCP",
@@ -58,6 +59,7 @@ BearingVendor = Enum(
         "THRIFTYBOT": "ThriftyBot",
         "SWYFT": "Swyft",
         "SDS": "SDS",
+        "MCMASTER": "McMaster-Carr",
         "GOBILDA": "goBILDA",
     },
 )
@@ -269,9 +271,7 @@ VENDOR_FLANGES: dict[tuple[str, str, str], tuple[str, str]] = {
     **{("ANDYMARK", size, "OD_1_125_X_0_313"): ("1.225", "0.06") for size in ("IN_1_2", "IN_3_8")},
     ("ANDYMARK", "IN_3_8", "OD_0_875_X_0_281"): ("0.975", "0.062"),  # am-0028; am-4463's and am-4489's are within 0.01 in
     ("ANDYMARK", "IN_3_8", "OD_0_875_X_0_219"): ("0.972", "0.06"),  # am-0027
-    ("ANDYMARK", "IN_3_16", "OD_0_5_X_0_196"): ("0.565", "0.04"),  # am-4459
     ("ANDYMARK", "MM_6", "MM_12_X_4"): ("13.6", "0.8"),  # am-3377
-    ("ANDYMARK", "MM_6", "MM_17_X_6"): ("19", "1.2"),  # am-4455
     ("ANDYMARK", "MM_8", "MM_19_X_6"): ("22.1", "1.5"),  # am-0931
     ("ANDYMARK", "MM_8", "MM_22_X_7"): ("25", "1.5"),  # am-4457
     ("REV", "IN_1_2", "OD_1_X_0_281"): ("1.0625", "0.062"),  # REV-21-3197
@@ -333,8 +333,20 @@ def _order(item: tuple[tuple, tuple[Bearing, Stock]]) -> tuple:
     )
 
 
+# Parts FRCDesign's records offer which their vendors no longer sell: AndyMark's store tags these Discontinued, and WCP's
+# lists neither of its own (checked 2026-11-16)
+DISCONTINUED = {
+    ("ANDYMARK", part)
+    for part in (
+        "am-0027", "am-0029", "am-0031", "am-0936", "am-2095", "am-4149", "am-4455", "am-4459", "am-4462", "am-4464",
+        "am-4466", "am-4467", "am-4468", "am-4469",
+    )
+} | {("WCP", "WCP-0782"), ("WCP", "217-5830")}
+
+
 def _frc_bearings() -> Bearings:
-    """FRCDesign's records, and Generic's: every bearing any of their vendors makes, by its designation."""
+    """FRCDesign's records but the discontinued, McMaster-Carr's, and Generic's: every bearing any of their vendors
+    makes, by its designation."""
     stocked: Bearings = {}
     designations: dict[tuple, str] = {}
     for part in SNAPSHOT["parts"]:
@@ -349,12 +361,49 @@ def _frc_bearings() -> Bearings:
                     designations[bearing.key] = designation
                 stocked[("GENERIC", *bearing.key)] = (bearing, Stock())
                 continue
+            if (vendor, record.get("partNumber")) in DISCONTINUED:
+                continue
             stocked[(vendor, *bearing.key)] = (bearing, Stock(record.get("partNumber"), record.get("url")))
+    stocked.update(MCMASTER_BEARINGS)
     for (_, *key), (bearing, _) in list(stocked.items()):
         stocked[("GENERIC", *key)] = (bearing, Stock(designations.get(tuple(key))))
     return dict(sorted(stocked.items(), key=_order))
 
 
+# McMaster-Carr's, from vendor/mcmaster-bearings.json, the rows transcribed so far: a row joins once it has its part
+# number, and a flanged one its flange, which its own table gives
+MCMASTER_SNAPSHOT = json.loads((FOLDER / "vendor" / "mcmaster-bearings.json").read_text())
+
+
+def mcmaster_url(part_number: str) -> str:
+    return f"https://www.mcmaster.com/{part_number}/"
+
+
+def _mcmaster_bearings() -> Bearings:
+    bearings: Bearings = {}
+    for row in MCMASTER_SNAPSHOT["bearings"]:
+        part = row["partNumber"]
+        if part is None:
+            continue
+        dimensions = Dimensions(row["outerDiameter"], row["width"], row["unit"])
+        bearing = Bearing(row["type"], row["bore"], row["size"], dimensions, row["seal"])
+        if row["type"] == "FLANGED":
+            assert row["flangeDiameter"] and row["flangeThickness"], f"{part} needs its flange"
+        bearings[("MCMASTER", *bearing.key)] = (bearing, Stock(part, mcmaster_url(part)))
+    return bearings
+
+
+MCMASTER_BEARINGS = _mcmaster_bearings()
+VENDOR_FLANGES.update(
+    {
+        ("MCMASTER", row["size"], Dimensions(row["outerDiameter"], row["width"], row["unit"]).id): (
+            row["flangeDiameter"],
+            row["flangeThickness"],
+        )
+        for row in MCMASTER_SNAPSHOT["bearings"]
+        if row["partNumber"] is not None and row["type"] == "FLANGED"
+    }
+)
 FRC_BEARINGS = _frc_bearings()
 
 
@@ -398,10 +447,12 @@ _ANDYMARK_FTC = [
     ("RADIAL", "ROUND", "MM_5", "13", "4", "SHIELDED", "am-4724", "/5-mm-id-13-mm-od-shielded-bearing-695zz"),
 ]
 _FTC_STORES = {"GOBILDA": (_GOBILDA, GOBILDA_STORE), "REV": (_REV_FTC, REV_STORE), "ANDYMARK": (_ANDYMARK_FTC, ANDYMARK_STORE)}
+METRIC = {size.id for size in SIZES if size.unit == "mm"}
 
 
 def _ftc_bearings() -> Bearings:
-    """FTC's metric bearings, and AndyMark's 3/8 in hex Robits bearing (am-4489), which FRC's catalog has too."""
+    """FTC's metric bearings, McMaster-Carr's metric ones among them, and AndyMark's 3/8 in hex Robits bearing (am-4489),
+    which FRC's catalog has too."""
     bearings: Bearings = {}
     for vendor, (parts, store) in _FTC_STORES.items():
         for type, bore, size, outer, width, seal, sku, page in parts:
@@ -409,6 +460,7 @@ def _ftc_bearings() -> Bearings:
             bearings[(vendor, *bearing.key)] = (bearing, Stock(sku, store + page))
     robits = ("ANDYMARK", "FLANGED", "HEX", "IN_3_8", "OD_0_875_X_0_281", "SEALED")
     bearings[robits] = FRC_BEARINGS[robits]
+    bearings.update({key: value for key, value in MCMASTER_BEARINGS.items() if key[3] in METRIC})
     return dict(sorted(bearings.items(), key=_order))
 
 
@@ -545,7 +597,7 @@ class Catalog:
 # 1.125 in OD, and ConfigLib's goBILDA 8 mm round flanged bearing, 14 mm OD. ConfigLib has goBILDA's alone, so FTC's
 # vendors are goBILDA's first, then REV's, then AndyMark's
 FRC = Catalog(FRC_BEARINGS, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED"))
-FTC = Catalog(FTC_BEARINGS, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"), ["GOBILDA", "REV", "ANDYMARK"])
+FTC = Catalog(FTC_BEARINGS, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"), ["GOBILDA", "REV", "ANDYMARK", "MCMASTER"])
 
 TABLE = FRC.table
 STUDIOS = FRC.studios

@@ -59,7 +59,7 @@ def test_dimensions_and_seal_show_only_where_theres_a_choice():
 def test_bearings_come_from_frcdesigns_dimensions():
     wcp = BEARINGS[("WCP", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_X_0_281", "SHIELDED")]
     assert wcp[1].part_number == "WCP-2058"
-    assert BEARINGS[("ANDYMARK", "RADIAL", "ROUND", "IN_3_8", "OD_0_875_X_0_219", "OPEN")][1].part_number == "am-0936"
+    assert BEARINGS[("GENERIC", "RADIAL", "ROUND", "IN_3_8", "OD_0_875_X_0_219", "OPEN")][1].part_number == "R6"
     assert ("ANDYMARK", "RADIAL", "ROUND", "NO_10", "OD_0_375_X_0_156_EXTENDED", "SHIELDED") in BEARINGS
     # FRCDesign has F126ZZ 8 mm wide; it's 4 mm
     assert ("ANDYMARK", "FLANGED", "ROUND", "MM_6", "MM_12_X_4", "SHIELDED") in BEARINGS
@@ -141,3 +141,21 @@ def test_the_default_record_is_the_most_inserted_bearing():
     shown = {"vendor": "GENERIC", "type": "FLANGED", "bore": "ROUNDED_HEX", "size": "IN_1_2", "dimensions": "OD_1_125_X_0_313"}
     default = next(record for record in records if record["values"] == shown)
     assert default["name"] == "1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)"
+
+
+def test_discontinued_parts_are_dropped():
+    sold = {(key[0], stock.part_number) for key, (_, stock) in BEARINGS.items()}
+    assert not sold & DEFINITION["DISCONTINUED"]
+    # Generic still makes a standard bearing only a discontinued part was, by its designation: AndyMark's 1621ZZ
+    generic = BEARINGS[("GENERIC", "RADIAL", "ROUND", "IN_1_2", "OD_1_375_X_0_438", "SHIELDED")][1]
+    assert generic.part_number == "1621ZZ"
+    assert ("ANDYMARK", "RADIAL", "ROUND", "IN_1_2", "OD_1_375_X_0_438", "SHIELDED") not in BEARINGS
+
+
+def test_mcmaster_carrs_rows_join_once_transcribed():
+    rows = DEFINITION["MCMASTER_SNAPSHOT"]["bearings"]
+    transcribed = [row for row in rows if row["partNumber"] is not None]
+    assert len(DEFINITION["MCMASTER_BEARINGS"]) == len(transcribed)
+    # 5 mm bores, which clear a #10 screw, flanged and radial
+    wanted = {(row["type"], row["size"], row["outerDiameter"], row["width"]) for row in rows}
+    assert {("FLANGED", "MM_5", "13", "4"), ("RADIAL", "MM_5", "16", "5")} <= wanted

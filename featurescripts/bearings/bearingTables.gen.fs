@@ -22,6 +22,8 @@ export enum BearingVendor
     SWYFT,
     annotation { "Name" : "SDS" }
     SDS,
+    annotation { "Name" : "McMaster-Carr" }
+    MCMASTER,
     annotation { "Name" : "goBILDA" }
     GOBILDA
 }
@@ -618,11 +620,6 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.625 * inch, "width" : 0.196 * inch, "flangeDiameter" : 0.69 * inch, "flangeThickness" : 0.042 * inch, "name" : "1/4 in Round Flanged Bearing (0.625 in OD x 0.196 in)", "vendor" : "WCP", "partNumber" : "WCP-0042", "url" : "https://wcproducts.com/products/wcp-0042", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
-                BearingSize.IN_3_4 : {
-                    BearingDimensions.OD_1_375_X_0_438 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.375 * inch, "width" : 0.438 * inch, "flangeDiameter" : 1.5 * inch, "flangeThickness" : 0.063 * inch, "name" : "3/4 in Round Flanged Bearing (1.375 in OD x 0.438 in)", "vendor" : "WCP", "partNumber" : "WCP-0782", "url" : "https://wcproducts.com/products/wcp-0782", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
                 BearingSize.MM_8 : {
                     BearingDimensions.MM_16_X_5 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 5 mm)", "vendor" : "WCP", "partNumber" : "WCP-1508", "url" : "https://wcproducts.com/products/wcp-1508", "material" : STEEL, "appearance" : STEEL_GRAY }
@@ -644,13 +641,6 @@ export const BEARINGS = {
                 BearingSize.MM_35 : {
                     BearingDimensions.MM_47_X_7 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 47 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 50 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "35 mm Round Flanged Bearing (47 mm OD x 7 mm)", "vendor" : "WCP", "partNumber" : "WCP-1471", "url" : "https://wcproducts.com/products/wcp-1471", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            },
-            BearingBore.THUNDERSQUARE : {
-                BearingSize.IN_1_4 : {
-                    BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.97 * inch, "flangeThickness" : 0.06 * inch, "name" : "1/4 in ThunderSquare Flanged Bearing (0.875 in OD x 0.281 in)", "vendor" : "WCP", "partNumber" : "217-5830", "url" : "https://wcproducts.com/products/217-5830", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 }
             }
@@ -753,20 +743,12 @@ export const BEARINGS = {
                     }
                 },
                 BearingSize.IN_3_8 : {
-                    BearingDimensions.OD_0_875_X_0_219 : {
-                        BearingSeal.OPEN : { "outerDiameter" : 0.875 * inch, "width" : 0.219 * inch, "flangeDiameter" : 0.972 * inch, "flangeThickness" : 0.06 * inch, "name" : "3/8 in Round Flanged Bearing (0.875 in OD x 0.219 in, Open)", "vendor" : "AndyMark", "partNumber" : "am-0027", "url" : "https://andymark.com/am-0027", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
                     BearingDimensions.OD_0_875_X_0_281 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.975 * inch, "flangeThickness" : 0.062 * inch, "name" : "3/8 in Round Flanged Bearing (0.875 in OD x 0.281 in)", "vendor" : "AndyMark", "partNumber" : "am-0028", "url" : "https://andymark.com/am-0028", "material" : STEEL, "appearance" : STEEL_GRAY },
                         BearingSeal.SEALED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.975 * inch, "flangeThickness" : 0.062 * inch, "name" : "3/8 in Round Flanged Bearing (0.875 in OD x 0.281 in, Sealed)", "vendor" : "AndyMark", "partNumber" : "am-4463", "url" : "https://andymark.com/am-4463", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.OD_1_125_X_0_313 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.06 * inch, "name" : "3/8 in Round Flanged Bearing (1.125 in OD x 0.313 in)", "vendor" : "AndyMark", "partNumber" : "am-0573", "url" : "https://andymark.com/am-0573", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_3_16 : {
-                    BearingDimensions.OD_0_5_X_0_196 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.5 * inch, "width" : 0.196 * inch, "flangeDiameter" : 0.565 * inch, "flangeThickness" : 0.04 * inch, "name" : "3/16 in Round Flanged Bearing (0.5 in OD x 0.196 in)", "vendor" : "AndyMark", "partNumber" : "am-4459", "url" : "https://andymark.com/am-4459", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_5 : {
@@ -780,9 +762,6 @@ export const BEARINGS = {
                 BearingSize.MM_6 : {
                     BearingDimensions.MM_12_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 13.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "6 mm Round Flanged Bearing (12 mm OD x 4 mm)", "vendor" : "AndyMark", "partNumber" : "am-3377", "url" : "https://andymark.com/products/6-mm-id-12-mm-od-shielded-flanged-bearing-f126zz", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
-                    BearingDimensions.MM_17_X_6 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1.2 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm)", "vendor" : "AndyMark", "partNumber" : "am-4455", "url" : "https://andymark.com/am-4455", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_8 : {
@@ -815,33 +794,19 @@ export const BEARINGS = {
             },
             BearingBore.ROUND : {
                 BearingSize.IN_1_2 : {
-                    BearingDimensions.OD_1_125_X_0_25 : {
-                        BearingSeal.OPEN : { "outerDiameter" : 1.125 * inch, "width" : 0.25 * inch, "name" : "1/2 in Round Radial Bearing (1.125 in OD x 0.25 in, Open)", "vendor" : "AndyMark", "partNumber" : "am-0029", "url" : "https://andymark.com/am-0029", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
                     BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "name" : "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)", "vendor" : "AndyMark", "partNumber" : "am-0181", "url" : "https://andymark.com/am-0181", "material" : STEEL, "appearance" : STEEL_GRAY },
-                        BearingSeal.SEALED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "name" : "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in, Sealed)", "vendor" : "AndyMark", "partNumber" : "am-4464", "url" : "https://andymark.com/am-4464", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
-                    BearingDimensions.OD_1_375_X_0_438 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.375 * inch, "width" : 0.438 * inch, "name" : "1/2 in Round Radial Bearing (1.375 in OD x 0.438 in)", "vendor" : "AndyMark", "partNumber" : "am-4466", "url" : "https://andymark.com/am-4466", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "name" : "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)", "vendor" : "AndyMark", "partNumber" : "am-0181", "url" : "https://andymark.com/am-0181", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.IN_3_8 : {
-                    BearingDimensions.OD_0_875_X_0_219 : {
-                        BearingSeal.OPEN : { "outerDiameter" : 0.875 * inch, "width" : 0.219 * inch, "name" : "3/8 in Round Radial Bearing (0.875 in OD x 0.219 in, Open)", "vendor" : "AndyMark", "partNumber" : "am-0936", "url" : "https://andymark.com/am-0936", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
                     BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "name" : "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)", "vendor" : "AndyMark", "partNumber" : "am-0516", "url" : "https://andymark.com/am-0516", "material" : STEEL, "appearance" : STEEL_GRAY },
-                        BearingSeal.SEALED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "name" : "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)", "vendor" : "AndyMark", "partNumber" : "am-4462", "url" : "https://andymark.com/am-4462", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "name" : "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)", "vendor" : "AndyMark", "partNumber" : "am-0516", "url" : "https://andymark.com/am-0516", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.OD_1_125_X_0_375 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.375 * inch, "name" : "3/8 in Round Radial Bearing (1.125 in OD x 0.375 in)", "vendor" : "AndyMark", "partNumber" : "am-0209", "url" : "https://andymark.com/am-0209", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.IN_3_16 : {
-                    BearingDimensions.OD_0_5_X_0_156 : {
-                        BearingSeal.OPEN : { "outerDiameter" : 0.5 * inch, "width" : 0.156 * inch, "name" : "3/16 in Round Radial Bearing (0.5 in OD x 0.156 in, Open)", "vendor" : "AndyMark", "partNumber" : "am-0031", "url" : "https://andymark.com/am-0031", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
                     BearingDimensions.OD_0_5_X_0_196 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.5 * inch, "width" : 0.196 * inch, "name" : "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)", "vendor" : "AndyMark", "partNumber" : "am-4458", "url" : "https://andymark.com/am-4458", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
@@ -856,40 +821,19 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.625 * inch, "width" : 0.196 * inch, "name" : "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in)", "vendor" : "AndyMark", "partNumber" : "am-4460", "url" : "https://andymark.com/am-4460", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
-                BearingSize.IN_5_8 : {
-                    BearingDimensions.OD_1_375_X_0_438 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.375 * inch, "width" : 0.438 * inch, "name" : "5/8 in Round Radial Bearing (1.375 in OD x 0.438 in)", "vendor" : "AndyMark", "partNumber" : "am-4467", "url" : "https://andymark.com/am-4467", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
                 BearingSize.MM_5 : {
                     BearingDimensions.MM_13_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (13 mm OD x 4 mm)", "vendor" : "AndyMark", "partNumber" : "am-4724", "url" : "https://andymark.com/products/5-mm-id-13-mm-od-shielded-bearing-695zz", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_6 : {
-                    BearingDimensions.MM_12_X_4 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "name" : "6 mm Round Radial Bearing (12 mm OD x 4 mm)", "vendor" : "AndyMark", "partNumber" : "am-4149", "url" : "https://andymark.com/am-4149", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
                     BearingDimensions.MM_17_X_6 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "name" : "6 mm Round Radial Bearing (17 mm OD x 6 mm)", "vendor" : "AndyMark", "partNumber" : "am-4454", "url" : "https://andymark.com/am-4454", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_8 : {
-                    BearingDimensions.MM_19_X_6 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "8 mm Round Radial Bearing (19 mm OD x 6 mm)", "vendor" : "AndyMark", "partNumber" : "am-2095", "url" : "https://andymark.com/am-2095", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
                     BearingDimensions.MM_22_X_7 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "8 mm Round Radial Bearing (22 mm OD x 7 mm)", "vendor" : "AndyMark", "partNumber" : "am-4456", "url" : "https://andymark.com/am-4456", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.MM_10 : {
-                    BearingDimensions.MM_26_X_8 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 26 * millimeter, "width" : 8 * millimeter, "name" : "10 mm Round Radial Bearing (26 mm OD x 8 mm)", "vendor" : "AndyMark", "partNumber" : "am-4468", "url" : "https://andymark.com/am-4468", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.MM_12 : {
-                    BearingDimensions.MM_28_X_8 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 28 * millimeter, "width" : 8 * millimeter, "name" : "12 mm Round Radial Bearing (28 mm OD x 8 mm)", "vendor" : "AndyMark", "partNumber" : "am-4469", "url" : "https://andymark.com/am-4469", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 }
             }
