@@ -14,6 +14,11 @@ export const BELT_WIDTH_BOUNDS = { (meter) : [1e-4, 0.015, 500], (inch) : 0.5, (
  */
 export const CUSTOM_BELT_WIDTH = "Custom";
 
+/**
+ * A belt table's supplier for belts of any width and teeth, as `robotBeltTables.py`'s `GENERIC_SUPPLIER`.
+ */
+export const GENERIC_BELT_SUPPLIER = "Generic";
+
 export predicate beltTablePredicate(definition is map)
 {
     annotation { "Name" : "Belt table", "Lookup Table" : beltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -26,9 +31,13 @@ export predicate doubleBeltTablePredicate(definition is map)
     definition.doubleBeltPath is LookupTablePath;
 }
 
+/**
+ * Whether a belt table's path is to a Generic belt, whose teeth are any (the feature's Belt teeth), rather than a
+ * supplier's, whose teeth are the table's.
+ */
 export function hasCustomTeeth(path is LookupTablePath)
 {
-    return path.supplier == "Custom";
+    return path.supplier == GENERIC_BELT_SUPPLIER;
 }
 
 /**

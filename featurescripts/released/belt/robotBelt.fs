@@ -182,6 +182,8 @@ function doOpenBelt(context is Context, id is Id, definition is map)
         const points = concatenateArrays([[{ "location" : start, "radius" : 0 * meter }], circles, [{ "location" : end, "radius" : 0 * meter }]]);
         throw regenError(error.message, ["pulleys"], sketchCircles(context, id + "errorCircles", plane, points));
     }
+    // Before any error, so they're there to fix it with
+    addOpenBeltFlipManipulators(context, id, plane, path);
     // Its teeth are on the first's side: the pulleys and idlers it goes around the other way are on the wrong side
     var wrongSide = [];
     var wrongParameters = [];
@@ -826,6 +828,26 @@ function addBeltFlipManipulators(context is Context, id is Id, beltDefinition is
     addManipulators(context, id, manipulators);
 }
 
+/**
+ * A flip manipulator on each of an open belt's arcs (see `openPath`), pointing out from its pulley or idler, which
+ * swaps it between a pulley and an idler, as a complex belt's do.
+ */
+function addOpenBeltFlipManipulators(context is Context, id is Id, plane is Plane, path is map)
+{
+    var manipulators = {};
+    for (var i, arc in path.arcs)
+    {
+        const middle = arc.startAngle + (arc.counterClockwise ? 1 : -1) * arc.sweep / 2;
+        const outward = vector(cos(middle), sin(middle));
+        manipulators[BELT_SIDE_FLIP_MANIPULATOR ~ "." ~ i] = flipManipulator({
+                    "base" : planeToWorld(plane, arc.center + outward * arc.radius),
+                    "direction" : plane.x * outward[0] + yAxis(plane) * outward[1],
+                    "flipped" : false
+                });
+    }
+    addManipulators(context, id, manipulators);
+}
+
 export function robotBeltManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
     for (var key, manipulator in newManipulators)
@@ -845,7 +867,7 @@ export function robotBeltManipulatorChange(context is Context, definition is map
 
 /**
  * Sets each pulley's location type from what's selected, when its selection changes (see `locationKind`); Belt teeth
- * to the belt chosen, unless its supplier's Custom; and the belt to the one which fits the selections best when
+ * to the belt chosen, unless it's Generic; and the belt to the one which fits the selections best when
  * Select closest belt's clicked, or (while the feature's being created) the selections change and no belt's been
  * chosen.
  */

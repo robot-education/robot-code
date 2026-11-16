@@ -880,11 +880,12 @@ class DialogBuilder:
                 self.warnings.append(f"Couldn't decide if ({describe(node.args[0])}); showing its first branch.")
                 condition = True
             branch = node.args[1] if condition else node.args[2]
+            if not condition:
+                # Onshape still shows the header of a group driven by a parameter which is off (but shown), where the
+                # group is: before what an else branch shows
+                items.extend(self.driving_groups(node.args[1], scope))
             if branch is not None:
                 self.walk(branch, scope, items, {})
-            if not condition:
-                # Onshape still shows the header of a group driven by a parameter which is off (but shown)
-                items.extend(self.driving_groups(node.args[1], scope))
         elif kind == "declare":
             name, value = node.args
             scope[name] = self.evaluator.value(value, scope)

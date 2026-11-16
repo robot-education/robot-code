@@ -570,7 +570,8 @@ function shownItems(nodes, out, shown) {
       if (condition === U) {
         condition = true;
       }
-      shownItems(truthy(condition) ? node.a : node.b, out, shown);
+      // A group driven by a parameter which is off (but shown) still shows its header, where it is: before what an
+      // else branch shows
       if (!truthy(condition)) {
         for (const group of node.dg) {
           if (shown.has(group.drive)) {
@@ -578,6 +579,7 @@ function shownItems(nodes, out, shown) {
           }
         }
       }
+      shownItems(truthy(condition) ? node.a : node.b, out, shown);
     }
   }
 }

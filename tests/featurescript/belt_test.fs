@@ -11,7 +11,7 @@ function beltDefinition(teeth is string) returns map
             // Selections can't be evaluated here: a standalone belt has none
             "isStandaloneBelt" : true,
             "isDoubleSidedBelt" : false,
-            "beltPath" : { "beltType" : "2mm GT2", "width" : "6 mm", "supplier" : "goBILDA", "teeth" : teeth } as LookupTablePath,
+            "beltPath" : { "supplier" : "goBILDA", "beltType" : "2mm GT2", "width" : "6 mm", "teeth" : teeth } as LookupTablePath,
             "beltTeeth" : 0,
             "isCustomBeltWidth" : false,
             "customBeltWidth" : 20 * millimeter
@@ -36,7 +36,7 @@ export function testChoosingABeltSetsItsTeeth()
 export function testCustomBeltWidth()
 {
     var definition = beltDefinition("44T");
-    definition.beltPath = { "beltType" : "5mm HTD", "width" : "Custom", "supplier" : "Custom" } as LookupTablePath;
+    definition.beltPath = { "supplier" : "Generic", "beltType" : "5mm HTD", "width" : "Custom" } as LookupTablePath;
     expectTrue(isCustomWidthBelt(definition), "a Custom width should be custom");
     expectTrue(!isCustomWidthBelt(beltDefinition("44T")), "6 mm shouldn't be custom");
     const value = getBeltValue(getBeltTableAndPath(definition));
@@ -50,7 +50,7 @@ export function testCustomBeltWidth()
 export function testRubberCoatedBelts()
 {
     var definition = beltDefinition("44T");
-    definition.beltPath = { "beltType" : "5mm HTD", "width" : "15 mm rubber coated", "supplier" : "WCP", "teeth" : "100T" } as LookupTablePath;
+    definition.beltPath = { "supplier" : "WCP", "beltType" : "5mm HTD", "width" : "15 mm rubber coated", "teeth" : "100T" } as LookupTablePath;
     const value = getBeltValue(getBeltTableAndPath(definition));
     expectEqual(value.beltWidth, 15 * millimeter);
     // Its back's thicker than a plain belt's
@@ -63,7 +63,7 @@ export function testWcp44TBelts()
 {
     for (var width in ["9 mm", "15 mm"])
     {
-        const path = { "beltType" : "5mm HTD", "width" : width, "supplier" : "WCP", "teeth" : "44T" } as LookupTablePath;
+        const path = { "supplier" : "WCP", "beltType" : "5mm HTD", "width" : width, "teeth" : "44T" } as LookupTablePath;
         expectTrue(isIn(44, getCurrentBeltOptionsArray({ "table" : beltTable, "path" : path })), "WCP sells 44T " ~ width ~ " belts");
     }
 }
@@ -82,4 +82,26 @@ export function testPulleyProfileTooFarOffset()
             {
                 sketchPulleyProfile(newContext(), newId() + "profile", XY_PLANE, BeltType._2_MM_GT2, 20, 1 * millimeter);
             }), "profile offset is too large");
+}
+
+export function testGenericSupplierIsEveryBelt()
+{
+    // Every width a supplier sells is Generic's too (but REV's RT25, a closed set), with any teeth
+    for (var supplier, types in beltTable.entries)
+    {
+        for (var beltType, widths in types.entries)
+        {
+            for (var width, _ in widths.entries)
+            {
+                if (beltType != "RT25")
+                {
+                    expectTrue(beltTable.entries.Generic.entries[beltType].entries[width] != undefined, beltType ~ " " ~ width ~ " should be Generic");
+                }
+            }
+        }
+    }
+    expectEqual(beltTable.entries.Generic.entries.RT25, undefined);
+    const generic = { "supplier" : "Generic", "beltType" : "5mm HTD", "width" : "9 mm" } as LookupTablePath;
+    expectTrue(hasCustomTeeth(generic), "Generic belts should have any teeth");
+    expectEqual(getCurrentBeltOptionsArray({ "table" : beltTable, "path" : generic }), undefined);
 }

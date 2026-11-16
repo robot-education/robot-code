@@ -529,3 +529,26 @@ def test_render_reports_what_conditions_read(repo):
     # Every condition's parameters, even those of branches not shown, and in predicates in other files
     assert info["conditions"] == {"placement", "hasSecond", "hasOffset"}
     assert info["parameters"]["hasSecond"].kind == "boolean"
+
+
+DRIVEN_GROUP_WITH_ELSE_FEATURE = DRIVEN_GROUP_FEATURE.replace(
+    """                isLength(definition.extraDepth, LENGTH_BOUNDS);
+            }
+        }""",
+    """                isLength(definition.extraDepth, LENGTH_BOUNDS);
+            }
+        }
+        else
+        {
+            annotation { "Name" : "Plain" }
+            definition.plain is boolean;
+        }""",
+)
+
+
+def test_driven_group_header_comes_before_its_else_branch(repo):
+    # Its driving parameter is where it's declared: an off group's header, then what the else shows
+    (repo / "featurescripts" / "widget.fs").write_text(DRIVEN_GROUP_WITH_ELSE_FEATURE)
+    page, warnings = render(repo)
+    assert warnings == []
+    assert texts(page)[1:] == ["Extra", "Plain"]
