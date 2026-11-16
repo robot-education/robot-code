@@ -64,7 +64,6 @@
     "b75434df23d86ba9542f761e": "core/profileSide.fs",
     "b82468283e5ec09720bad185": "core/startOffset.fs",
     "c9dd8f6ce3af5ba6be6b6fb1": "released/splineProfile/robotSplineProfile.fs",
-    "cce4f323654623fb3965a957": "released/belt/pulleyText.fs",
     "cd2c6499801ec51a7947274e": "released/bearingHat/bearingHatTables.gen.fs",
     "d22e6409e86d7c19c6dfcbfe": "released/fillet/robotFillet.fs",
     "d82c5bf9082d0054f8f0b419": "released/belt/robotBeltTables.gen.fs",
