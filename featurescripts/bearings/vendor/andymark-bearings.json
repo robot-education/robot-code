@@ -1,0 +1,516 @@
+{
+ "source": "https://andymark.com/products.json: each bearing's Specifications, from its description",
+ "products": [
+  {
+   "sku": "am-0027",
+   "title": "3/8 (0.375) in. Round ID Flanged Bearing (FR6)",
+   "url": "https://andymark.com/products/3-8-0-375-in-round-id-flanged-bearing-fr6",
+   "specifications": {
+    "Flange Thickness": "0.062 in.",
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.219 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Open"
+   }
+  },
+  {
+   "sku": "am-0028",
+   "title": "3/8 (0.375) in. Round ID Flanged Shielded Bearing (FR6ZZ)",
+   "url": "https://andymark.com/products/3-8-0-375-in-round-id-flanged-shielded-bearing-fr6zz",
+   "specifications": {
+    "Flange Thickness": "0.062 in.",
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.280 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0029",
+   "title": "1/2 in. Round ID Bearing (R8)",
+   "url": "https://andymark.com/products/1-2-in-round-id-bearing-r8",
+   "specifications": {
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.25 in.",
+    "Bore": "0.500 in. [12.7 mm] (1/2)",
+    "Seal Type": "Open"
+   }
+  },
+  {
+   "sku": "am-0030",
+   "title": "1/2 in. Round ID Flanged Shielded Bearing (FR8ZZ)",
+   "url": "https://andymark.com/products/1-2-in-round-id-flanged-shielded-bearing-fr8zz",
+   "specifications": {
+    "Flange Thickness": "0.062 in.",
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.313 in.",
+    "Bore": "0.500 in. [12.7 mm] (1/2)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0031",
+   "title": "3/16 in. Round ID Bearing (R3)",
+   "url": "https://andymark.com/products/3-16-in-round-id-bearing-r3",
+   "specifications": {
+    "Outside Diameter": "0.5 in.",
+    "Width": "0.157 in.",
+    "Bore": "0.188 in. [4.8 mm] (3/16)",
+    "Seal Type": "Open"
+   }
+  },
+  {
+   "sku": "am-0181",
+   "title": "1/2 in. Round ID Shielded Bearing (R8ZZ)",
+   "url": "https://andymark.com/products/1-2-in-round-id-shielded-bearing-r8zz",
+   "specifications": {
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.313 in.",
+    "Bore": "0.500 in. [12.7 mm] (1/2)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0209",
+   "title": "3/8 (0.375) in. Round ID Shielded Bearing (1614ZZ)",
+   "url": "https://andymark.com/products/3-8-0-375-in-round-id-shielded-bearing-1614zz",
+   "specifications": {
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.375 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0516",
+   "title": "3/8 (0.375) in. Round ID Shielded Bearing (R6ZZ)",
+   "url": "https://andymark.com/products/3-8-0-375-in-round-id-shielded-bearing-r6zz",
+   "specifications": {
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.280 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0573",
+   "title": "3/8 (0.375) in. Round ID Shielded Flanged Bearing",
+   "url": "https://andymark.com/products/3-8-0-375-in-round-id-shielded-flanged-bearing",
+   "specifications": {
+    "Flange Diameter": "1.25 in.",
+    "Flange Thickness": "0.062 in.",
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.313 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0692",
+   "title": "3/8 (0.375) in. Hex ID Shielded Flanged Bearing (FR6ZZL-Hex)",
+   "url": "https://andymark.com/products/3-8-0-375-in-hex-id-shielded-flanged-bearing-fr6zzl-hex",
+   "specifications": {
+    "Flange Thickness": "0.055 in.",
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.313 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0931",
+   "title": "8 mm ID 19 mm OD Shielded Flanged Bearing (F698ZZ)",
+   "url": "https://andymark.com/products/8-mm-id-19-mm-od-shielded-flanged-bearing-f698zz",
+   "specifications": {
+    "Flange Diameter": "22 mm",
+    "Flange Thickness": "1.5 mm",
+    "Outside Diameter": "19 mm",
+    "Width": "6 mm",
+    "Bore": "0.313 in. [8 mm] (5/16)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-0936",
+   "title": "3/8 (0.375) in. Round ID Bearing (R6)",
+   "url": "https://andymark.com/products/3-8-0-375-in-round-id-bearing-r6",
+   "specifications": {
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.219 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Open"
+   }
+  },
+  {
+   "sku": "am-2095",
+   "title": "8 mm Round ID Shielded Bearing (R1980ZZ)",
+   "url": "https://andymark.com/products/8-mm-round-id-shielded-bearing-r1980zz",
+   "specifications": {
+    "Outside Diameter": "19 mm",
+    "Width": "6 mm",
+    "Bore": "0.313 in. [8 mm] (5/16)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-2986",
+   "title": "1/2 in. Hex ID 1.125 in. OD Shielded Flanged Bearing (FR8ZZ-HexHD)",
+   "url": "https://andymark.com/products/1-2-in-hex-id-1-125-in-od-shielded-flanged-bearing-fr8zz-hexhd",
+   "specifications": {
+    "Flange Thickness": "0.062 in.",
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.313 in.",
+    "Bore": "0.500 in. [12.7 mm] (1/2)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-3377",
+   "title": "6 mm ID 12 mm OD Shielded Flanged Bearing (F126ZZ)",
+   "url": "https://andymark.com/products/6-mm-id-12-mm-od-shielded-flanged-bearing-f126zz",
+   "specifications": {
+    "Outside Diameter": "12 mm",
+    "Width": "4 mm",
+    "Bore": "0.236 in. [6 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-3681",
+   "title": "0.190 In. ID 3/8 In. OD Extended Race Bearing (R166ZZEE)",
+   "url": "https://andymark.com/products/0-190-in-id-3-8-in-od-extended-race-bearing-r166zzee",
+   "specifications": {
+    "Outside Diameter": "0.375 in.",
+    "Width": "0.157 in.",
+    "Bore": "0.188 in. [4.8 mm] (3/16)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4149",
+   "title": "6 mm ID 12 mm OD Shielded Bearing (MR126ZZ)",
+   "url": "https://andymark.com/products/6-mm-id-12-mm-od-shielded-flanged-bearing-126zz",
+   "specifications": {
+    "Outside Diameter": "12 mm",
+    "Width": "8 mm",
+    "Bore": "0.236 in. [6 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4454",
+   "title": "6 mm ID 17 mm OD Shielded Bearing (606ZZ)",
+   "url": "https://andymark.com/products/6-mm-id-17-mm-od-shielded-bearing-606zz",
+   "specifications": {
+    "Outside Diameter": "17 mm",
+    "Width": "6 mm",
+    "Bore": "0.236 in. [6 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4455",
+   "title": "6 mm ID 17 mm OD Shielded Flanged Bearing (F606ZZ)",
+   "url": "https://andymark.com/products/6-mm-id-17-mm-od-shielded-flanged-bearing-f606zz",
+   "specifications": {
+    "Flange Diameter": "19 mm",
+    "Flange Thickness": "1 mm",
+    "Outside Diameter": "17 mm",
+    "Width": "6 mm",
+    "Bore": "0.236 in. [6 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4456",
+   "title": "8 mm ID 22 mm OD Shielded Bearing (608ZZ)",
+   "url": "https://andymark.com/products/8-mm-id-22-mm-od-shielded-bearing-608zz",
+   "specifications": {
+    "Outside Diameter": "22 mm",
+    "Width": "7 mm",
+    "Bore": "0.313 in. [8 mm] (5/16)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4457",
+   "title": "8 mm ID 22 mm OD Shielded Flanged Bearing (F608ZZ)",
+   "url": "https://andymark.com/products/8-mm-id-22-mm-od-shielded-flanged-bearing-f608zz",
+   "specifications": {
+    "Flange Diameter": "25 mm",
+    "Flange Thickness": "1.5 mm",
+    "Outside Diameter": "22 mm",
+    "Width": "7 mm",
+    "Bore": "0.313 in. [8 mm] (5/16)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4458",
+   "title": "3/16 in. ID 1/2 in. OD Shielded Bearing (R3ZZ)",
+   "url": "https://andymark.com/products/3-16-in-id-1-2-in-od-shielded-bearing-r3zz",
+   "specifications": {
+    "Outside Diameter": "0.5 in.",
+    "Width": "0.196 in.",
+    "Bore": "0.188 in. [4.8 mm] (3/16)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4459",
+   "title": "3/16 in. ID 1/2 in. OD Shielded Flanged Bearing (FR3ZZ)",
+   "url": "https://andymark.com/products/3-16-in-id-1-2-in-od-shielded-flanged-bearing-fr3zz",
+   "specifications": {
+    "Flange Diameter": "0.565 in.",
+    "Flange Thickness": "0.042 in.",
+    "Outside Diameter": "0.5 in.",
+    "Width": "0.196 in.",
+    "Bore": "0.188 in. [4.8 mm] (3/16)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4460",
+   "title": "1/4 in. ID 5/8 in. OD Shielded Bearing (R4ZZ)",
+   "url": "https://andymark.com/products/1-4-in-id-5-8-in-od-shielded-bearing-r4zz",
+   "specifications": {
+    "Outside Diameter": "0.625 in.",
+    "Width": "0.196 in.",
+    "Bore": "0.250 in. [6.4 mm] (1/4)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4461",
+   "title": "1/4 in. ID 5/8 in. OD Shielded Flanged Bearing (FR4ZZ)",
+   "url": "https://andymark.com/products/1-4-in-id-5-8-in-od-shielded-flanged-bearing-fr4zz",
+   "specifications": {
+    "Flange Diameter": "0.69 in.",
+    "Flange Thickness": "0.042 in.",
+    "Outside Diameter": "0.625 in.",
+    "Width": "0.196 in.",
+    "Bore": "0.250 in. [6.4 mm] (1/4)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4462",
+   "title": "3/8 in. ID 7/8 in. OD Sealed Bearing (R62RS)",
+   "url": "https://andymark.com/products/3-8-in-id-7-8-in-od-sealed-bearing-r62rs",
+   "specifications": {
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.280 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-4463",
+   "title": "3/8 in. ID 7/8 in. OD Sealed Flanged Bearing (FR62RS)",
+   "url": "https://andymark.com/products/3-8-in-id-7-8-in-od-sealed-flanged-bearing-fr62rs",
+   "specifications": {
+    "Flange Diameter": "0.967 in.",
+    "Flange Thickness": "0.06 in.",
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.280 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8)",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-4464",
+   "title": "1/2 in. ID 1 1/8 in. OD Sealed Bearing (R82RS)",
+   "url": "https://andymark.com/products/1-2-in-id-1-1-8-in-od-sealed-bearing-r82rs",
+   "specifications": {
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.313 in.",
+    "Bore": "0.500 in. [12.7 mm] (1/2)",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-4465",
+   "title": "1/2 in. ID 1 1/8 in. OD Sealed Flanged Bearing (FR82RS)",
+   "url": "https://andymark.com/products/1-2-in-id-1-1-8-in-od-sealed-flanged-bearing-fr82rs",
+   "specifications": {
+    "Flange Diameter": "1.225 in.",
+    "Flange Thickness": "0.061 in.",
+    "Outside Diameter": "1.125 in.",
+    "Width": "0.313 in.",
+    "Bore": "0.500 in. [12.7 mm] (1/2)",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-4466",
+   "title": "1/2 in. ID 1 3/8in. OD Shielded Bearing (1621ZZ)",
+   "url": "https://andymark.com/products/1-2-in-id-1-3-8in-od-shielded-bearing-1621zz",
+   "specifications": {
+    "Outside Diameter": "1.375 in.",
+    "Width": "0.438 in.",
+    "Bore": "0.500 in. [12.7 mm] (1/2)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4467",
+   "title": "5/8 in. ID 1 3/8 in. OD Shielded Bearing (1623ZZ)",
+   "url": "https://andymark.com/products/5-8-in-id-1-3-8-in-od-shielded-bearing-1623zz",
+   "specifications": {
+    "Outside Diameter": "1.375 in.",
+    "Width": "0.438 in.",
+    "Bore": "0.625 in. [15.9 mm] (5/8)",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4468",
+   "title": "10 mm ID 26 mm OD Shielded Bearing (6000ZZ)",
+   "url": "https://andymark.com/products/10-mm-id-26-mm-od-shielded-bearing-6000zz",
+   "specifications": {
+    "Outside Diameter": "26 mm",
+    "Width": "8 mm",
+    "Bore": "0.394 in. [10 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4469",
+   "title": "12 mm ID 28 mm OD Shielded Bearing (6001ZZ)",
+   "url": "https://andymark.com/products/12-mm-id-28-mm-od-shielded-bearing-6001zz",
+   "specifications": {
+    "Outside Diameter": "28 mm",
+    "Width": "8 mm",
+    "Bore": "0.472 in. [12 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-4489",
+   "title": "3/8 (0.375) in. Hex ID 7/8 (0.875) in. OD Sealed Flanged Bearing (FR62RS-Hex)",
+   "url": "https://andymark.com/products/3-8-0-375-in-hex-id-7-8-0-875-in-od-sealed-flanged-bearing-fr62rs-hex",
+   "specifications": {
+    "Flange Diameter": "0.975 in.",
+    "Flange Thickness": "0.065 in.",
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.280 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8) Hex",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-4702",
+   "title": "3/8 (0.375) in. Hex ID Sealed Bearing (R62RS-Hex)",
+   "url": "https://andymark.com/products/3-8-0-375-in-hex-id-sealed-bearing-r62rs-hex",
+   "specifications": {
+    "Outside Diameter": "0.875 in.",
+    "Width": "0.280 in.",
+    "Bore": "0.375 in. [9.5 mm] (3/8) Hex",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-4703",
+   "title": "1/2 in. Hex ID Sealed Bearing (R82RS-Hex)",
+   "url": "https://andymark.com/products/1-2-in-hex-id-sealed-bearing-r82rs-hex",
+   "specifications": {
+    "Outside Diameter": "1.125 in. Radial Dynamic",
+    "Width": "0.313 in.",
+    "Bore": "0.5 in. [12.7 mm] (1/2)",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-4724",
+   "title": "5 mm ID 13 mm OD Shielded Bearing (695ZZ)",
+   "url": "https://andymark.com/products/5-mm-id-13-mm-od-shielded-bearing-695zz",
+   "specifications": {
+    "Outside Diameter": "13 mm",
+    "Width": "4 mm",
+    "Bore": "0.197 in. [5 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-5469",
+   "title": "5 mm ID 13 mm OD Shielded Flanged Bearing (F695ZZ)",
+   "url": "https://andymark.com/products/5-mm-id-13-mm-od-shielded-flanged-bearing-f695zz",
+   "specifications": {
+    "Flange Diameter": "15 mm",
+    "Flange Thickness": "1 mm",
+    "Outside Diameter": "13 mm",
+    "Width": "4 mm",
+    "Bore": "0.197 in. [5 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-5536",
+   "title": "15 mm ID 21 mm OD Shielded Flanged Bearing (F6702ZZ)",
+   "url": "https://andymark.com/products/15-mm-id-21-mm-od-shielded-flanged-bearing-f6702zz",
+   "specifications": {
+    "Flange Diameter": "22.5 mm",
+    "Flange Thickness": "0.8 mm",
+    "Outside Diameter": "21 mm",
+    "Width": "4 mm",
+    "Bore": "0.591 in. [15 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-5606",
+   "title": "5 mm ID 11 mm OD Shielded Flanged Bearing (MF115ZZ)",
+   "url": "https://andymark.com/products/5-mm-id-11-mm-od-shielded-flanged-bearing-mf115zz",
+   "specifications": {
+    "Outside Diameter": "11 mm",
+    "Width": "4 mm",
+    "Bore": "0.197 in. [5 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-5693",
+   "title": "5 mm ID 9 mm OD Shielded Bearing (95-2Z)",
+   "url": "https://andymark.com/products/5-mm-id-9-mm-od-shielded-bearing-95-2z",
+   "specifications": {
+    "Outside Diameter": "9 mm",
+    "Width": "3 mm",
+    "Bore": "0.197 in. [5 mm]",
+    "Seal Type": "Sealed"
+   }
+  },
+  {
+   "sku": "am-5694",
+   "title": "5 mm ID 16 mm OD Shielded Bearing (625-2Z)",
+   "url": "https://andymark.com/products/5-mm-id-16-mm-od-shielded-bearing-625-2z",
+   "specifications": {
+    "Outside Diameter": "16 mm",
+    "Width": "5 mm",
+    "Bore": "0.197 in. [5 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-5712",
+   "title": "17 mm ID 23 mm OD Shielded Bearing (MR6703-ZZ)",
+   "url": "https://andymark.com/products/17-mm-id-23-mm-od-shielded-bearing-mr6703-zz",
+   "specifications": {
+    "Outside Diameter": "23 mm",
+    "Width": "0.157 in. [4 mm]",
+    "Bore": "0.669 in. [17 mm]",
+    "Seal Type": "Shielded"
+   }
+  },
+  {
+   "sku": "am-5713",
+   "title": "8 mm ID 14 mm OD Shielded Bearing (MR148-ZZ)",
+   "url": "https://andymark.com/products/8-mm-id-14-mm-od-shielded-bearing-mr148-zz",
+   "specifications": {
+    "Outside Diameter": "14 mm",
+    "Width": "4 mm",
+    "Bore": "8 mm [0.313 in.]",
+    "Seal Type": "Shielded"
+   }
+  }
+ ]
+}
