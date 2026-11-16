@@ -20,7 +20,9 @@ export enum BearingVendor
     annotation { "Name" : "Swyft" }
     SWYFT,
     annotation { "Name" : "SDS" }
-    SDS
+    SDS,
+    annotation { "Name" : "goBILDA" }
+    GOBILDA
 }
 
 export enum BearingType
@@ -40,7 +42,9 @@ export enum BearingBore
     annotation { "Name" : "Round" }
     ROUND,
     annotation { "Name" : "ThunderSquare" }
-    THUNDERSQUARE
+    THUNDERSQUARE,
+    annotation { "Name" : "REX" }
+    REX
 }
 
 export enum BearingSize
@@ -59,6 +63,8 @@ export enum BearingSize
     IN_5_8,
     annotation { "Name" : "3/4 in" }
     IN_3_4,
+    annotation { "Name" : "4 mm" }
+    MM_4,
     annotation { "Name" : "5 mm" }
     MM_5,
     annotation { "Name" : "6 mm" }
@@ -79,10 +85,14 @@ export enum BearingSize
     MM_25,
     annotation { "Name" : "30 mm" }
     MM_30,
+    annotation { "Name" : "32 mm" }
+    MM_32,
     annotation { "Name" : "35 mm" }
     MM_35,
     annotation { "Name" : "80 mm" }
-    MM_80
+    MM_80,
+    annotation { "Name" : "120 mm" }
+    MM_120
 }
 
 export enum BearingDimensions
@@ -115,6 +125,8 @@ export enum BearingDimensions
     OD_1_125_X_0_375,
     annotation { "Name" : "1.375 in OD x 0.438 in" }
     OD_1_375_X_0_438,
+    annotation { "Name" : "10 mm OD x 4 mm" }
+    MM_10_X_4,
     annotation { "Name" : "11 mm OD x 4 mm" }
     MM_11_X_4,
     annotation { "Name" : "12 mm OD x 4 mm" }
@@ -123,6 +135,8 @@ export enum BearingDimensions
     MM_13_X_4,
     annotation { "Name" : "14 mm OD x 5 mm" }
     MM_14_X_5,
+    annotation { "Name" : "16 mm OD x 4 mm" }
+    MM_16_X_4,
     annotation { "Name" : "16 mm OD x 5 mm" }
     MM_16_X_5,
     annotation { "Name" : "16 mm OD x 6.3 mm" }
@@ -153,14 +167,20 @@ export enum BearingDimensions
     MM_28_X_7,
     annotation { "Name" : "28 mm OD x 8 mm" }
     MM_28_X_8,
+    annotation { "Name" : "32 mm OD x 10 mm" }
+    MM_32_X_10,
     annotation { "Name" : "37 mm OD x 7 mm" }
     MM_37_X_7,
+    annotation { "Name" : "39 mm OD x 5 mm" }
+    MM_39_X_5,
     annotation { "Name" : "42 mm OD x 7 mm" }
     MM_42_X_7,
     annotation { "Name" : "47 mm OD x 7 mm" }
     MM_47_X_7,
     annotation { "Name" : "100 mm OD x 10 mm" }
-    MM_100_X_10
+    MM_100_X_10,
+    annotation { "Name" : "136 mm OD x 8 mm" }
+    MM_136_X_8
 }
 
 export enum BearingSeal
@@ -191,6 +211,7 @@ export const BEARING_BORES = {
         BearingSize.IN_1_4 : { "diameter" : 0.25 * inch },
         BearingSize.IN_5_8 : { "diameter" : 0.625 * inch },
         BearingSize.IN_3_4 : { "diameter" : 0.75 * inch },
+        BearingSize.MM_4 : { "diameter" : 4 * millimeter },
         BearingSize.MM_5 : { "diameter" : 5 * millimeter },
         BearingSize.MM_6 : { "diameter" : 6 * millimeter },
         BearingSize.MM_8 : { "diameter" : 8 * millimeter },
@@ -201,11 +222,16 @@ export const BEARING_BORES = {
         BearingSize.MM_17 : { "diameter" : 17 * millimeter },
         BearingSize.MM_25 : { "diameter" : 25 * millimeter },
         BearingSize.MM_30 : { "diameter" : 30 * millimeter },
+        BearingSize.MM_32 : { "diameter" : 32 * millimeter },
         BearingSize.MM_35 : { "diameter" : 35 * millimeter },
-        BearingSize.MM_80 : { "diameter" : 80 * millimeter }
+        BearingSize.MM_80 : { "diameter" : 80 * millimeter },
+        BearingSize.MM_120 : { "diameter" : 120 * millimeter }
     },
     BearingBore.THUNDERSQUARE : {
         BearingSize.IN_1_4 : { "acrossFlats" : 0.25 * inch, "sides" : 4, "diameter" : 0.302 * inch }
+    },
+    BearingBore.REX : {
+        BearingSize.MM_8 : { "acrossFlats" : 7 * millimeter, "sides" : 6 }
     }
 };
 
@@ -307,7 +333,7 @@ export const BEARINGS = {
                 },
                 BearingSize.MM_6 : {
                     BearingDimensions.MM_12_X_4 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 13.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "6 mm Round Flanged Bearing (12 mm OD x 4 mm)", "partNumber" : "F126ZZ" }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 13.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "6 mm Round Flanged Bearing (12 mm OD x 4 mm)", "partNumber" : "F126ZZ" }
                     },
                     BearingDimensions.MM_17_X_6 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm)", "partNumber" : "F606ZZ" }
@@ -315,7 +341,7 @@ export const BEARINGS = {
                 },
                 BearingSize.MM_8 : {
                     BearingDimensions.MM_14_X_5 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 5 mm)" }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 5 mm)" }
                     },
                     BearingDimensions.MM_16_X_5 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 5 mm)", "partNumber" : "W688AZZ" }
@@ -743,7 +769,7 @@ export const BEARINGS = {
                 },
                 BearingSize.MM_6 : {
                     BearingDimensions.MM_12_X_4 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 13.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "6 mm Round Flanged Bearing (12 mm OD x 4 mm)", "vendor" : "AndyMark", "partNumber" : "am-3377", "url" : "https://andymark.com/am-3377" }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 13.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "6 mm Round Flanged Bearing (12 mm OD x 4 mm)", "vendor" : "AndyMark", "partNumber" : "am-3377", "url" : "https://andymark.com/am-3377" }
                     },
                     BearingDimensions.MM_17_X_6 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm)", "vendor" : "AndyMark", "partNumber" : "am-4455", "url" : "https://andymark.com/am-4455" }
@@ -1088,7 +1114,7 @@ export const BEARINGS = {
                 },
                 BearingSize.MM_8 : {
                     BearingDimensions.MM_14_X_5 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "Swyft", "partNumber" : "BRG-8mm-14mm-01" }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "Swyft", "partNumber" : "BRG-8mm-14mm-01" }
                     }
                 }
             }
@@ -1132,6 +1158,84 @@ export const BEARINGS = {
                 BearingSize.MM_15 : {
                     BearingDimensions.MM_24_X_5 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 24 * millimeter, "width" : 5 * millimeter, "name" : "15 mm Round Radial Bearing (24 mm OD x 5 mm)", "vendor" : "SDS", "partNumber" : "6802ZZ" }
+                    }
+                }
+            }
+        }
+    },
+    BearingVendor.GOBILDA : {
+        BearingType.FLANGED : {
+            BearingBore.ROUND : {
+                BearingSize.MM_4 : {
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 16 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "4 mm Round Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "goBILDA", "partNumber" : "1601-0014-0004", "url" : "https://www.gobilda.com/4mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_5 : {
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 16 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "goBILDA", "partNumber" : "1601-0014-0005", "url" : "https://www.gobilda.com/5mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_6 : {
+                    BearingDimensions.MM_12_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 13.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "6 mm Round Flanged Bearing (12 mm OD x 4 mm)", "vendor" : "goBILDA", "partNumber" : "1601-0412-0006", "url" : "https://www.gobilda.com/6mm-id-flanged-ball-bearing-12mm-od-4mm-thickness-2-pack/" }
+                    },
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "goBILDA", "partNumber" : "1611-0514-0006", "url" : "https://www.gobilda.com/1611-series-flanged-ball-bearing-6mm-id-x-14mm-od-5mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_8 : {
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "goBILDA", "partNumber" : "1611-0514-0008", "url" : "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-id-x-14mm-od-5mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_12 : {
+                    BearingDimensions.MM_32_X_10 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 32 * millimeter, "width" : 10 * millimeter, "flangeDiameter" : 34 * millimeter, "flangeThickness" : 2.3 * millimeter, "name" : "12 mm Round Flanged Bearing (32 mm OD x 10 mm)", "vendor" : "goBILDA", "partNumber" : "1601-1032-0012", "url" : "https://www.gobilda.com/12mm-id-flanged-ball-bearing-32mm-od-10mm-thickness/" }
+                    }
+                },
+                BearingSize.MM_32 : {
+                    BearingDimensions.MM_39_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 39 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 41 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "32 mm Round Flanged Bearing (39 mm OD x 5 mm)", "vendor" : "goBILDA", "partNumber" : "1601-0039-0032", "url" : "https://www.gobilda.com/32mm-id-flanged-ball-bearing-39mm-od-5mm-thickness/" }
+                    }
+                }
+            },
+            BearingBore.REX : {
+                BearingSize.MM_8 : {
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "8 mm REX Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "goBILDA", "partNumber" : "1611-0514-4008", "url" : "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-rex-id-x-14mm-od-5mm-thickness-2-pack/" }
+                    }
+                }
+            }
+        },
+        BearingType.RADIAL : {
+            BearingBore.ROUND : {
+                BearingSize.MM_4 : {
+                    BearingDimensions.MM_10_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 10 * millimeter, "width" : 4 * millimeter, "name" : "4 mm Round Radial Bearing (10 mm OD x 4 mm)", "vendor" : "goBILDA", "partNumber" : "1600-0410-0004", "url" : "https://www.gobilda.com/4mm-id-non-flanged-ball-bearing-10mm-od-4mm-thickness-2-pack/" }
+                    },
+                    BearingDimensions.MM_16_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 4 * millimeter, "name" : "4 mm Round Radial Bearing (16 mm OD x 4 mm)", "vendor" : "goBILDA", "partNumber" : "1600-0416-0004", "url" : "https://www.gobilda.com/4mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_6 : {
+                    BearingDimensions.MM_16_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 4 * millimeter, "name" : "6 mm Round Radial Bearing (16 mm OD x 4 mm)", "vendor" : "goBILDA", "partNumber" : "1600-0416-0006", "url" : "https://www.gobilda.com/6mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_8 : {
+                    BearingDimensions.MM_22_X_7 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "8 mm Round Radial Bearing (22 mm OD x 7 mm)", "vendor" : "goBILDA", "partNumber" : "1600-0722-0008", "url" : "https://www.gobilda.com/1600-series-non-flanged-ball-bearing-8mm-id-x-22mm-od-7mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_12 : {
+                    BearingDimensions.MM_32_X_10 : {
+                        BearingSeal.SEALED : { "outerDiameter" : 32 * millimeter, "width" : 10 * millimeter, "name" : "12 mm Round Radial Bearing (32 mm OD x 10 mm, Sealed)", "vendor" : "goBILDA", "partNumber" : "1626-1032-0012", "url" : "https://www.gobilda.com/12mm-id-non-flanged-ball-bearing-sealed-32mm-od-10mm-thickness-2-pack/" }
+                    }
+                },
+                BearingSize.MM_120 : {
+                    BearingDimensions.MM_136_X_8 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 136 * millimeter, "width" : 8 * millimeter, "name" : "120 mm Round Radial Bearing (136 mm OD x 8 mm)", "vendor" : "goBILDA", "partNumber" : "1600-0001-0120", "url" : "https://www.gobilda.com/120mm-non-flanged-ball-bearing-136mm-od-8mm-thickness/" }
                     }
                 }
             }

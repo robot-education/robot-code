@@ -1,21 +1,26 @@
-"""Checks of bearingTables.py: what it reads from FRCDesign's snapshot, the configuration it lays out, and the manifest
-it writes for FRCDesign."""
+"""Checks of bearingTables.py: what it reads from FRCDesign's snapshot and goBILDA's catalog, the configurations it lays
+out for each part set, and the manifests it writes for FRCDesign (FRC's, and FTC's through ftcBearingTables.py)."""
 
 import json
 import pathlib
 import runpy
+
+import pytest
 
 from fs_cli.configured_studios import input_shows, shows
 
 FOLDER = pathlib.Path(__file__).parents[2] / "featurescripts" / "bearings"
 DEFINITION = runpy.run_path(str(FOLDER / "bearingTables.py"))
 MANIFEST = json.loads((FOLDER / "bearings.gen.json").read_text())
+FTC_MANIFEST = json.loads((FOLDER / "ftcBearings.gen.json").read_text())
 STUDIO = DEFINITION["STUDIOS"]["bearing"]
-BEARINGS = DEFINITION["BEARINGS"]
+FTC_STUDIO = DEFINITION["FTC"].studios["bearing"]
+BEARINGS = DEFINITION["FRC_BEARINGS"]
+FTC_BEARINGS = DEFINITION["FTC_BEARINGS"]
 
 
-def _shown(input_id: str, selection: dict[str, str]) -> list[str]:
-    input = next(input for input in STUDIO.inputs if input.id == input_id)
+def _shown(input_id: str, selection: dict[str, str], studio=STUDIO) -> list[str]:
+    input = next(input for input in studio.inputs if input.id == input_id)
     if input.fixed or not input_shows(input, selection):
         return []
     return [option.id for option in input.options if shows(option, selection)]
@@ -23,7 +28,6 @@ def _shown(input_id: str, selection: dict[str, str]) -> list[str]:
 
 def test_the_configuration_asks_vendor_then_type_bore_size_dimensions_and_seal():
     assert [input.id for input in STUDIO.inputs] == ["vendor", "type", "bore", "size", "dimensions", "seal"]
-    assert STUDIO.problems() == []
     # 1/2 in and 3/8 in come first, wherever they're made
     generic_round = {"vendor": "GENERIC", "type": "FLANGED", "bore": "ROUND"}
     assert _shown("size", generic_round)[:2] == ["IN_1_2", "IN_3_8"]
@@ -80,13 +84,43 @@ def test_names():
     assert name(metric) == "8 mm Round Flanged Bearing (16 mm OD x 5 mm)"
 
 
-def test_the_manifest_has_a_record_per_configuration():
-    studio = MANIFEST["studios"]["bearing"]
-    assert studio["feature"] == "libraryBearing" and studio["mateConnector"] == "mateConnector"
-    values = [record["values"] for record in studio["records"]]
+@pytest.mark.parametrize("manifest, studio", [(MANIFEST, STUDIO), (FTC_MANIFEST, FTC_STUDIO)])
+def test_the_manifest_has_a_record_per_configuration(manifest, studio):
+    assert studio.problems() == []
+    names = manifest["studios"]["bearing"]
+    assert names["feature"] == "libraryBearing"
+    assert (names["mateConnector"], names["topMateConnector"], names["bottomMateConnector"]) == (
+        "mateConnector",
+        "topMateConnector",
+        "bottomMateConnector",
+    )
+    values = [record["values"] for record in names["records"]]
     assert len(values) == len({json.dumps(value, sort_keys=True) for value in values})
     assert sorted(json.dumps(value, sort_keys=True) for value in values) == sorted(
-        json.dumps(combination, sort_keys=True) for combination in STUDIO.combinations()
+        json.dumps(combination, sort_keys=True) for combination in studio.combinations()
     )
-    default = next(record for record in studio["records"] if record["values"] == {"vendor": "GENERIC", "type": "FLANGED", "bore": "ROUNDED_HEX", "size": "IN_1_2", "dimensions": "OD_1_125_X_0_313"})
+
+
+def test_ftc_offers_gobildas_bearings_alone():
+    assert {key[0] for key in FTC_BEARINGS} == {"GOBILDA"}
+    assert not {key[0] for key in BEARINGS} & {"GOBILDA"}
+    # Vendor is fixed, so the configuration starts at Type
+    assert [input.id for input in FTC_STUDIO.configured_inputs()] == ["type", "bore", "size", "dimensions"]
+    assert FTC_STUDIO.defaults() == {"type": "FLANGED", "bore": "ROUND", "size": "MM_8", "dimensions": "MM_14_X_5"}
+    flanged = {"type": "FLANGED"}
+    assert _shown("bore", flanged, FTC_STUDIO) == ["ROUND", "REX"]
+    assert _shown("size", {**flanged, "bore": "REX"}, FTC_STUDIO) == []
+    rex = FTC_BEARINGS[("GOBILDA", "FLANGED", "REX", "MM_8", "MM_14_X_5", "SHIELDED")][1]
+    assert (rex.part_number, rex.url) == (
+        "1611-0514-4008",
+        "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-rex-id-x-14mm-od-5mm-thickness-2-pack/",
+    )
+    record = next(record for record in FTC_MANIFEST["studios"]["bearing"]["records"] if record.get("partNumber") == "1611-0514-4008")
+    assert record["name"] == "8 mm REX Flanged Bearing (14 mm OD x 5 mm)" and record["vendor"] == "goBILDA"
+
+
+def test_the_default_record_is_the_most_inserted_bearing():
+    records = MANIFEST["studios"]["bearing"]["records"]
+    shown = {"vendor": "GENERIC", "type": "FLANGED", "bore": "ROUNDED_HEX", "size": "IN_1_2", "dimensions": "OD_1_125_X_0_313"}
+    default = next(record for record in records if record["values"] == shown)
     assert default["name"] == "1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)"

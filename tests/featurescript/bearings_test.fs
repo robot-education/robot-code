@@ -11,6 +11,8 @@ export function testRoundedHexBoreReachesItsRound()
     // A ThunderSquare's corners, 0.177 in out, are rounded to 0.151 in
     expectNear(boreRadius(BEARING_BORES[BearingBore.THUNDERSQUARE][BearingSize.IN_1_4]), 0.151 * inch, 1e-9 * meter);
     expectNear(boreRadius(BEARING_BORES[BearingBore.ROUND][BearingSize.MM_8]), 4 * millimeter, 1e-9 * meter);
+    // goBILDA's 8 mm REX bearing is a 7 mm hex, its corners unrounded
+    expectNear(boreRadius(BEARING_BORES[BearingBore.REX][BearingSize.MM_8]), 7 * millimeter / sqrt(3), 1e-9 * meter);
 }
 
 export function testEveryBearingsProfileFitsAroundItsBore()

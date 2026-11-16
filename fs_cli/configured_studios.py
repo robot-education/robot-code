@@ -125,6 +125,8 @@ class ConfiguredStudio:
             manifest says it.
         top_mate_connector: The id its feature gives a second mate connector, on its top, where another part sits on
             it, as a screw sits on a washer. Named as `mate_connector` is.
+        bottom_mate_connector: The id its feature gives a mate connector on its bottom, where it sits on another part,
+            as a bearing's far face does. Named as `mate_connector` is.
     """
 
     name: str
@@ -134,6 +136,7 @@ class ConfiguredStudio:
     factor_first: Sequence[str] = ()
     mate_connector: str | None = None
     top_mate_connector: str | None = None
+    bottom_mate_connector: str | None = None
 
     @property
     def tab_name(self) -> str:
@@ -242,6 +245,7 @@ class ConfiguredStudio:
             "feature": self.feature,
             **({"mateConnector": self.mate_connector} if self.mate_connector else {}),
             **({"topMateConnector": self.top_mate_connector} if self.top_mate_connector else {}),
+            **({"bottomMateConnector": self.bottom_mate_connector} if self.bottom_mate_connector else {}),
         }
 
     def _factor_order(self) -> list[str]:

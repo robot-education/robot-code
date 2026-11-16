@@ -1,0 +1,377 @@
+{
+  "source": "featurescripts/bearings/ftcBearingTables.py",
+  "studios": {
+    "bearing": {
+      "feature": "libraryBearing",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "bottomMateConnector": "bottomMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "ROUND",
+            "size": "MM_4"
+          },
+          "name": "4 mm Round Flanged Bearing (14 mm OD x 5 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1601-0014-0004",
+          "url": "https://www.gobilda.com/4mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "ROUND",
+            "size": "MM_5"
+          },
+          "name": "5 mm Round Flanged Bearing (14 mm OD x 5 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1601-0014-0005",
+          "url": "https://www.gobilda.com/5mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "ROUND",
+            "size": "MM_6",
+            "dimensions": "MM_12_X_4"
+          },
+          "name": "6 mm Round Flanged Bearing (12 mm OD x 4 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1601-0412-0006",
+          "url": "https://www.gobilda.com/6mm-id-flanged-ball-bearing-12mm-od-4mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "ROUND",
+            "size": "MM_6",
+            "dimensions": "MM_14_X_5"
+          },
+          "name": "6 mm Round Flanged Bearing (14 mm OD x 5 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1611-0514-0006",
+          "url": "https://www.gobilda.com/1611-series-flanged-ball-bearing-6mm-id-x-14mm-od-5mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "ROUND",
+            "size": "MM_8"
+          },
+          "name": "8 mm Round Flanged Bearing (14 mm OD x 5 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1611-0514-0008",
+          "url": "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-id-x-14mm-od-5mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "ROUND",
+            "size": "MM_12"
+          },
+          "name": "12 mm Round Flanged Bearing (32 mm OD x 10 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1601-1032-0012",
+          "url": "https://www.gobilda.com/12mm-id-flanged-ball-bearing-32mm-od-10mm-thickness/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "ROUND",
+            "size": "MM_32"
+          },
+          "name": "32 mm Round Flanged Bearing (39 mm OD x 5 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1601-0039-0032",
+          "url": "https://www.gobilda.com/32mm-id-flanged-ball-bearing-39mm-od-5mm-thickness/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "FLANGED",
+            "bore": "REX"
+          },
+          "name": "8 mm REX Flanged Bearing (14 mm OD x 5 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1611-0514-4008",
+          "url": "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-rex-id-x-14mm-od-5mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "RADIAL",
+            "size": "MM_4",
+            "dimensions": "MM_10_X_4"
+          },
+          "name": "4 mm Round Radial Bearing (10 mm OD x 4 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1600-0410-0004",
+          "url": "https://www.gobilda.com/4mm-id-non-flanged-ball-bearing-10mm-od-4mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "RADIAL",
+            "size": "MM_4",
+            "dimensions": "MM_16_X_4"
+          },
+          "name": "4 mm Round Radial Bearing (16 mm OD x 4 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1600-0416-0004",
+          "url": "https://www.gobilda.com/4mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "RADIAL",
+            "size": "MM_6"
+          },
+          "name": "6 mm Round Radial Bearing (16 mm OD x 4 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1600-0416-0006",
+          "url": "https://www.gobilda.com/6mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "RADIAL",
+            "size": "MM_8"
+          },
+          "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1600-0722-0008",
+          "url": "https://www.gobilda.com/1600-series-non-flanged-ball-bearing-8mm-id-x-22mm-od-7mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "RADIAL",
+            "size": "MM_12"
+          },
+          "name": "12 mm Round Radial Bearing (32 mm OD x 10 mm, Sealed)",
+          "vendor": "goBILDA",
+          "partNumber": "1626-1032-0012",
+          "url": "https://www.gobilda.com/12mm-id-non-flanged-ball-bearing-sealed-32mm-od-10mm-thickness-2-pack/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "type": "RADIAL",
+            "size": "MM_120"
+          },
+          "name": "120 mm Round Radial Bearing (136 mm OD x 8 mm)",
+          "vendor": "goBILDA",
+          "partNumber": "1600-0001-0120",
+          "url": "https://www.gobilda.com/120mm-non-flanged-ball-bearing-136mm-od-8mm-thickness/",
+          "material": "Steel"
+        }
+      ]
+    }
+  },
+  "vendors": [
+    {
+      "id": "GOBILDA",
+      "name": "goBILDA"
+    }
+  ],
+  "bearings": [
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_4",
+      "boreSize": 0.004,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "flangeDiameter": 0.016,
+      "seal": "SHIELDED",
+      "partNumber": "1601-0014-0004",
+      "url": "https://www.gobilda.com/4mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "flangeDiameter": 0.016,
+      "seal": "SHIELDED",
+      "partNumber": "1601-0014-0005",
+      "url": "https://www.gobilda.com/5mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_12_X_4",
+      "outerDiameter": 0.012,
+      "width": 0.004,
+      "flangeDiameter": 0.0135,
+      "seal": "SHIELDED",
+      "partNumber": "1601-0412-0006",
+      "url": "https://www.gobilda.com/6mm-id-flanged-ball-bearing-12mm-od-4mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "flangeDiameter": 0.015,
+      "seal": "SHIELDED",
+      "partNumber": "1611-0514-0006",
+      "url": "https://www.gobilda.com/1611-series-flanged-ball-bearing-6mm-id-x-14mm-od-5mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "flangeDiameter": 0.015,
+      "seal": "SHIELDED",
+      "partNumber": "1611-0514-0008",
+      "url": "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-id-x-14mm-od-5mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_12",
+      "boreSize": 0.012,
+      "dimensions": "MM_32_X_10",
+      "outerDiameter": 0.032,
+      "width": 0.01,
+      "flangeDiameter": 0.034,
+      "seal": "SHIELDED",
+      "partNumber": "1601-1032-0012",
+      "url": "https://www.gobilda.com/12mm-id-flanged-ball-bearing-32mm-od-10mm-thickness/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_32",
+      "boreSize": 0.032,
+      "dimensions": "MM_39_X_5",
+      "outerDiameter": 0.039,
+      "width": 0.005,
+      "flangeDiameter": 0.041,
+      "seal": "SHIELDED",
+      "partNumber": "1601-0039-0032",
+      "url": "https://www.gobilda.com/32mm-id-flanged-ball-bearing-39mm-od-5mm-thickness/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "FLANGED",
+      "bore": "REX",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "flangeDiameter": 0.015,
+      "seal": "SHIELDED",
+      "partNumber": "1611-0514-4008",
+      "url": "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-rex-id-x-14mm-od-5mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_4",
+      "boreSize": 0.004,
+      "dimensions": "MM_10_X_4",
+      "outerDiameter": 0.01,
+      "width": 0.004,
+      "seal": "SHIELDED",
+      "partNumber": "1600-0410-0004",
+      "url": "https://www.gobilda.com/4mm-id-non-flanged-ball-bearing-10mm-od-4mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_4",
+      "boreSize": 0.004,
+      "dimensions": "MM_16_X_4",
+      "outerDiameter": 0.016,
+      "width": 0.004,
+      "seal": "SHIELDED",
+      "partNumber": "1600-0416-0004",
+      "url": "https://www.gobilda.com/4mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_16_X_4",
+      "outerDiameter": 0.016,
+      "width": 0.004,
+      "seal": "SHIELDED",
+      "partNumber": "1600-0416-0006",
+      "url": "https://www.gobilda.com/6mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "SHIELDED",
+      "partNumber": "1600-0722-0008",
+      "url": "https://www.gobilda.com/1600-series-non-flanged-ball-bearing-8mm-id-x-22mm-od-7mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_12",
+      "boreSize": 0.012,
+      "dimensions": "MM_32_X_10",
+      "outerDiameter": 0.032,
+      "width": 0.01,
+      "seal": "SEALED",
+      "partNumber": "1626-1032-0012",
+      "url": "https://www.gobilda.com/12mm-id-non-flanged-ball-bearing-sealed-32mm-od-10mm-thickness-2-pack/"
+    },
+    {
+      "vendor": "GOBILDA",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_120",
+      "boreSize": 0.12,
+      "dimensions": "MM_136_X_8",
+      "outerDiameter": 0.136,
+      "width": 0.008,
+      "seal": "SHIELDED",
+      "partNumber": "1600-0001-0120",
+      "url": "https://www.gobilda.com/120mm-non-flanged-ball-bearing-136mm-od-8mm-thickness/"
+    }
+  ]
+}

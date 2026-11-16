@@ -4,6 +4,8 @@
     "bearing": {
       "feature": "libraryBearing",
       "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "bottomMateConnector": "bottomMateConnector",
       "location": null,
       "records": [
         {
@@ -2789,7 +2791,7 @@
       "dimensions": "MM_12_X_4",
       "outerDiameter": 0.012,
       "width": 0.004,
-      "flangeDiameter": 0.0136,
+      "flangeDiameter": 0.0135,
       "seal": "SHIELDED",
       "partNumber": "F126ZZ"
     },
@@ -2815,7 +2817,7 @@
       "dimensions": "MM_14_X_5",
       "outerDiameter": 0.014,
       "width": 0.005,
-      "flangeDiameter": 0.0156,
+      "flangeDiameter": 0.015,
       "seal": "SHIELDED"
     },
     {
@@ -4077,7 +4079,7 @@
       "dimensions": "MM_12_X_4",
       "outerDiameter": 0.012,
       "width": 0.004,
-      "flangeDiameter": 0.0136,
+      "flangeDiameter": 0.0135,
       "seal": "SHIELDED",
       "partNumber": "am-3377",
       "url": "https://andymark.com/am-3377"
@@ -4932,7 +4934,7 @@
       "dimensions": "MM_14_X_5",
       "outerDiameter": 0.014,
       "width": 0.005,
-      "flangeDiameter": 0.0156,
+      "flangeDiameter": 0.015,
       "seal": "SHIELDED",
       "partNumber": "BRG-8mm-14mm-01"
     },

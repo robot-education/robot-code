@@ -94,8 +94,9 @@ A release:
 4. Builds each Part Studio in the main document, by its tab's name (`Screw`), from that studio as just pushed, and
    writes the set's manifest beside them as a file tab, `fasteners.parts.json`: the definition's manifest export with
    each studio's tab there (`elementId`) in place of where it was last released. A studio whose feature makes a mate
-   connector names the id it gives it (`mateConnector`, from `ConfiguredStudio.mate_connector`), and a second on its
-   top where it has one (`topMateConnector`, from `top_mate_connector`). A fasten mate names a connector
+   connector names the id it gives it (`mateConnector`, from `ConfiguredStudio.mate_connector`), and others on its
+   top and bottom where it has them (`topMateConnector` and `bottomMateConnector`, from `top_mate_connector` and
+   `bottom_mate_connector`). A fasten mate names a connector
    `<featureId>.<id>`, and Onshape's API shows no mate connector a feature makes, so this is how FRCDesignApp fastens
    to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
    the document's version, so the records it indexes are always those of the version it loads.

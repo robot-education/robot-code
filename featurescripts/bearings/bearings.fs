@@ -14,7 +14,8 @@ export import(path : "bearings/bearingTables.gen.fs", version : "");
  *
  * Each bearing is built along the Z axis, with a mate connector at the origin pointing out of the hole it sits in: a
  * flanged bearing's flange is above the origin, and the rest of it below; a radial bearing is below, its top face at
- * the origin.
+ * the origin. Two more, on the axis at its inner race's top and bottom faces, each pointing into the bearing, are where
+ * what's stacked on its shaft sits on it.
  */
 
 // Each race's thickness, of the distance from the bore's corners to the outer diameter
@@ -89,9 +90,17 @@ export const libraryBearing = defineFeature(function(context is Context, id is I
         const bottom = points[0][1];
         cutBore(context, id + "bore", body, boreShape, bottom, bearing.width);
 
-        // 3. Seat it
+        // 3. Seat it, and mark its inner race's faces: into the bearing, as a connector on a face's edge points
         opMateConnector(context, id + "mateConnector", {
                     "coordSystem" : coordSystem(WORLD_ORIGIN, X_DIRECTION, Z_DIRECTION),
+                    "owner" : body
+                });
+        opMateConnector(context, id + "topMateConnector", {
+                    "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, bottom + bearing.width), X_DIRECTION, -Z_DIRECTION),
+                    "owner" : body
+                });
+        opMateConnector(context, id + "bottomMateConnector", {
+                    "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, bottom), X_DIRECTION, Z_DIRECTION),
                     "owner" : body
                 });
 

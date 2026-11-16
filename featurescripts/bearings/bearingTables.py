@@ -1,5 +1,6 @@
 """FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings, by vendor, type, bore,
-size, dimensions, and seal. Run `uv run fs gen` after editing.
+size, dimensions, and seal, FRC's (`FRC`) and FTC's (`FTC`, whose Part Studio ftcBearingTables.py configures as a part
+set of its own). Run `uv run fs gen` after editing.
 
 This is the source of three things, which must agree:
 
@@ -16,8 +17,11 @@ What each vendor makes, and its part numbers, come from FRCDesign's own Flanged 
 Dimensions option, which names its bore, outer diameter, width, and seal. Generic offers every bearing any vendor
 makes, with the bearing's designation (FR8ZZ) as its part number where FRCDesign gives one.
 
-Flanges come from REV's drawings and AndyMark's listed specifications (vendor/), or else the designation's standard
-dimensions, marked where they're assumed. A bore is its shaft's nominal size: 13.75 mm and 10.25 mm across a rounded
+FTC's are goBILDA's, the only bearings in ConfigLib, from its store and its STEP files (vendor/, measured for their
+flanges and REX bores).
+
+Flanges come from REV's drawings, AndyMark's listed specifications, and goBILDA's STEP files (vendor/), or else the
+designation's standard dimensions, marked where they're assumed. A bore is its shaft's nominal size: 13.75 mm and 10.25 mm across a rounded
 hex's corners, as Robot shaft rounds its shafts, and 0.302 in across a ThunderSquare's.
 """
 
@@ -44,7 +48,7 @@ INCH = 0.0254
 
 BearingVendor = Enum(
     "BearingVendor",
-    ["GENERIC", "WCP", "ANDYMARK", "REV", "VEX", "THRIFTYBOT", "SWYFT", "SDS"],
+    ["GENERIC", "WCP", "ANDYMARK", "REV", "VEX", "THRIFTYBOT", "SWYFT", "SDS", "GOBILDA"],
     {
         "GENERIC": "Generic",
         "WCP": "WCP",
@@ -54,6 +58,7 @@ BearingVendor = Enum(
         "THRIFTYBOT": "ThriftyBot",
         "SWYFT": "Swyft",
         "SDS": "SDS",
+        "GOBILDA": "goBILDA",
     },
 )
 # FRCDesign's names for them, its Vendor options'
@@ -72,8 +77,8 @@ BearingType = Enum("BearingType", ["FLANGED", "RADIAL"], {"FLANGED": "Flanged", 
 
 BearingBore = Enum(
     "BearingBore",
-    ["HEX", "ROUNDED_HEX", "ROUND", "THUNDERSQUARE"],
-    {"HEX": "Hex", "ROUNDED_HEX": "Rounded hex", "ROUND": "Round", "THUNDERSQUARE": "ThunderSquare"},
+    ["HEX", "ROUNDED_HEX", "ROUND", "THUNDERSQUARE", "REX"],
+    {"HEX": "Hex", "ROUNDED_HEX": "Rounded hex", "ROUND": "Round", "THUNDERSQUARE": "ThunderSquare", "REX": "REX"},
 )
 
 BearingSeal = Enum("BearingSeal", ["SHIELDED", "SEALED", "OPEN"], {"SHIELDED": "Shielded", "SEALED": "Sealed", "OPEN": "Open"})
@@ -104,13 +109,16 @@ SIZES = [
     Size("IN_1_4", "1/4 in", 0.25),
     Size("IN_5_8", "5/8 in", 0.625),
     Size("IN_3_4", "3/4 in", 0.75),
-    *(Size(f"MM_{value}", f"{value} mm", value, "mm") for value in (5, 6, 8, 9, 10, 12, 15, 17, 25, 30, 35, 80)),
+    *(Size(f"MM_{value}", f"{value} mm", value, "mm") for value in (4, 5, 6, 8, 9, 10, 12, 15, 17, 25, 30, 32, 35, 80, 120)),
 ]
 SIZES_BY_ID = {size.id: size for size in SIZES}
 BearingSize = Enum("BearingSize", [size.id for size in SIZES], {size.id: size.name for size in SIZES})
 
 # The diameter a bore's corners are rounded to: Robot shaft's rounded hex shafts', and VEX's ThunderSquare's 0.302 in
 ROUNDED_DIAMETERS = {("ROUNDED_HEX", "IN_1_2"): mm(13.75), ("ROUNDED_HEX", "IN_3_8"): mm(10.25), ("THUNDERSQUARE", "IN_1_4"): inch(0.302)}
+# A bore across its flats where it isn't its size: goBILDA's 8 mm REX bearing's is a 7 mm hex, its corners unrounded
+# (1611-0514-4008's STEP file)
+BORE_FLATS = {("REX", "MM_8"): mm(7)}
 
 
 # Dimensions: an outer diameter and width, like `1.125 in OD x 0.313 in`
@@ -221,16 +229,21 @@ FLANGES: dict[tuple[str, str], tuple[str, str]] = {
     ("MM_5", "MM_13_X_4"): ("15", "1"),  # am-5469
     ("MM_5", "MM_16_X_5"): ("18", "1"),  # F625ZZ's standard
     ("MM_5", "MM_19_X_6"): ("22", "1.5"),  # F635ZZ's standard
-    ("MM_6", "MM_12_X_4"): ("13.6", "0.8"),  # F126ZZ's standard
+    ("MM_6", "MM_12_X_4"): ("13.5", "0.8"),  # 1601-0412-0006's STEP file
+    ("MM_6", "MM_14_X_5"): ("15", "1"),  # 1611-0514-0006's STEP file
+    **{(size, "MM_14_X_5"): ("16", "1") for size in ("MM_4", "MM_5")},  # 1601-0014-0004's and -0005's STEP files
     ("MM_6", "MM_17_X_6"): ("19", "1"),  # am-4455
-    # TODO: assumed, F688's; Swyft publishes none for BRG-8mm-14mm-01, nor ThriftyBot for TTB-0006
-    ("MM_8", "MM_14_X_5"): ("15.6", "0.8"),
+    # 1611-0514-0008's and -4008's STEP files; Swyft publishes none for BRG-8mm-14mm-01
+    ("MM_8", "MM_14_X_5"): ("15", "1"),
+    # TODO: assumed, F688's; ThriftyBot publishes none for TTB-0006
     ("MM_8", "MM_16_X_6_3"): ("18", "1.1"),
     ("MM_8", "MM_16_X_5"): ("18", "1.1"),  # W688AZZ's standard
     ("MM_8", "MM_19_X_6"): ("22", "1.5"),  # am-0931
     ("MM_8", "MM_22_X_7"): ("25", "1.5"),  # am-4457
     ("MM_9", "MM_17_X_5"): ("19", "1.1"),  # F689ZZ's standard
     ("MM_12", "MM_24_X_6"): ("26.5", "1.5"),  # F6901ZZ's standard
+    ("MM_12", "MM_32_X_10"): ("34", "2.3"),  # 1601-1032-0012's STEP file
+    ("MM_32", "MM_39_X_5"): ("41", "1"),  # 1601-0039-0032's STEP file
     ("MM_15", "MM_21_X_4"): ("22.5", "0.8"),  # am-5536
     # TODO: assumed; F6806ZZ's and F6807ZZ's flanges vary by maker
     ("MM_30", "MM_42_X_7"): ("45", "1.5"),
@@ -283,7 +296,8 @@ def _order(item: tuple[tuple, tuple[Bearing, Stock]]) -> tuple:
     )
 
 
-def _bearings() -> Bearings:
+def _frc_bearings() -> Bearings:
+    """FRCDesign's records, and Generic's: every bearing any of their vendors makes, by its designation."""
     stocked: Bearings = {}
     designations: dict[tuple, str] = {}
     for part in SNAPSHOT["parts"]:
@@ -299,13 +313,44 @@ def _bearings() -> Bearings:
                 stocked[("GENERIC", *bearing.key)] = (bearing, Stock())
                 continue
             stocked[(vendor, *bearing.key)] = (bearing, Stock(record.get("partNumber"), record.get("url")))
-    # Generic: every bearing anyone makes, by its designation
     for (_, *key), (bearing, _) in list(stocked.items()):
         stocked[("GENERIC", *key)] = (bearing, Stock(designations.get(tuple(key))))
     return dict(sorted(stocked.items(), key=_order))
 
 
-BEARINGS = _bearings()
+# FTC's: goBILDA's, by type, bore, size, outer diameter and width (mm), and seal, each its SKU and page. Its titles name
+# only its 12 mm non-flanged bearing sealed; the rest are taken as shielded
+GOBILDA_STORE = "https://www.gobilda.com"
+_GOBILDA = [
+    ("FLANGED", "ROUND", "MM_4", "14", "5", "SHIELDED", "1601-0014-0004", "/4mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/"),
+    ("FLANGED", "ROUND", "MM_5", "14", "5", "SHIELDED", "1601-0014-0005", "/5mm-id-flanged-ball-bearing-14mm-od-5mm-thickness-2-pack/"),
+    ("FLANGED", "ROUND", "MM_6", "12", "4", "SHIELDED", "1601-0412-0006", "/6mm-id-flanged-ball-bearing-12mm-od-4mm-thickness-2-pack/"),
+    ("FLANGED", "ROUND", "MM_6", "14", "5", "SHIELDED", "1611-0514-0006", "/1611-series-flanged-ball-bearing-6mm-id-x-14mm-od-5mm-thickness-2-pack/"),
+    ("FLANGED", "ROUND", "MM_8", "14", "5", "SHIELDED", "1611-0514-0008", "/1611-series-flanged-ball-bearing-8mm-id-x-14mm-od-5mm-thickness-2-pack/"),
+    ("FLANGED", "REX", "MM_8", "14", "5", "SHIELDED", "1611-0514-4008", "/1611-series-flanged-ball-bearing-8mm-rex-id-x-14mm-od-5mm-thickness-2-pack/"),
+    ("FLANGED", "ROUND", "MM_12", "32", "10", "SHIELDED", "1601-1032-0012", "/12mm-id-flanged-ball-bearing-32mm-od-10mm-thickness/"),
+    ("FLANGED", "ROUND", "MM_32", "39", "5", "SHIELDED", "1601-0039-0032", "/32mm-id-flanged-ball-bearing-39mm-od-5mm-thickness/"),
+    ("RADIAL", "ROUND", "MM_4", "10", "4", "SHIELDED", "1600-0410-0004", "/4mm-id-non-flanged-ball-bearing-10mm-od-4mm-thickness-2-pack/"),
+    ("RADIAL", "ROUND", "MM_4", "16", "4", "SHIELDED", "1600-0416-0004", "/4mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/"),
+    ("RADIAL", "ROUND", "MM_6", "16", "4", "SHIELDED", "1600-0416-0006", "/6mm-id-non-flanged-ball-bearing-16mm-od-4mm-thickness-2-pack/"),
+    ("RADIAL", "ROUND", "MM_8", "22", "7", "SHIELDED", "1600-0722-0008", "/1600-series-non-flanged-ball-bearing-8mm-id-x-22mm-od-7mm-thickness-2-pack/"),
+    ("RADIAL", "ROUND", "MM_12", "32", "10", "SEALED", "1626-1032-0012", "/12mm-id-non-flanged-ball-bearing-sealed-32mm-od-10mm-thickness-2-pack/"),
+    ("RADIAL", "ROUND", "MM_120", "136", "8", "SHIELDED", "1600-0001-0120", "/120mm-non-flanged-ball-bearing-136mm-od-8mm-thickness/"),
+]
+
+
+def _ftc_bearings() -> Bearings:
+    bearings: Bearings = {}
+    for type, bore, size, outer, width, seal, sku, page in _GOBILDA:
+        bearing = Bearing(type, bore, size, Dimensions(outer, width, "mm"), seal)
+        bearings[("GOBILDA", *bearing.key)] = (bearing, Stock(sku, GOBILDA_STORE + page))
+    return dict(sorted(bearings.items(), key=_order))
+
+
+FRC_BEARINGS = _frc_bearings()
+FTC_BEARINGS = _ftc_bearings()
+# Every bearing either set makes, which the feature's tables hold
+BEARINGS = {**FRC_BEARINGS, **FTC_BEARINGS}
 _ALL_DIMENSIONS = sorted(
     {bearing.dimensions for bearing, _ in BEARINGS.values()},
     key=lambda dimensions: (
@@ -321,7 +366,7 @@ BearingDimensions = Enum("BearingDimensions", list(DIMENSIONS), {id: dimensions.
 
 # What each part is called and sold as: the feature sets these, and FRCDesignApp indexes the same records
 
-_BORE_WORDS = {"HEX": "Hex", "ROUNDED_HEX": "Rounded Hex", "ROUND": "Round", "THUNDERSQUARE": "ThunderSquare"}
+_BORE_WORDS = {"HEX": "Hex", "ROUNDED_HEX": "Rounded Hex", "ROUND": "Round", "THUNDERSQUARE": "ThunderSquare", "REX": "REX"}
 _TYPE_WORDS = {"FLANGED": "Flanged", "RADIAL": "Radial"}
 _SIZE_WORDS = {"NO_10": "0.19 in"}
 
@@ -365,21 +410,10 @@ def _stock(stock: Stock) -> dict[str, str]:
     return {key: value for key, value in (("partNumber", stock.part_number), ("url", stock.url)) if value}
 
 
-# The studio's configuration: a lookup table of what's made (see `LookupTable`)
+# Each set's studio: a lookup table of what's made (see `LookupTable`), each input offering what's made with the choices
+# before it, and hidden where that's one thing
 
 COLUMNS = ("vendor", "type", "bore", "size", "dimensions", "seal")
-TABLE = LookupTable(COLUMNS, list(BEARINGS))
-
-
-def _list(id: str, name: str, enum: Enum, parameter: str, default: str) -> Input:
-    assert enum.names is not None
-    options = [Option(value, enum.names[value], value) for value in enum.values]
-    return TABLE.input(Input(id, name, parameter, options, enum_name=enum.name, default=default))
-
-
-# The defaults are what's inserted most from FRCDesign's library: Generic's 1/2 in rounded hex flanged bearing, 1.125 in
-# OD, and shielded
-DEFAULTS = ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED")
 _ENUMS = {
     "vendor": ("Vendor", BearingVendor, "vendor"),
     "type": ("Type", BearingType, "bearingType"),
@@ -388,21 +422,49 @@ _ENUMS = {
     "dimensions": ("Dimensions", BearingDimensions, "dimensions"),
     "seal": ("Seal", BearingSeal, "seal"),
 }
-STUDIOS = {
-    "bearing": ConfiguredStudio(
-        "bearing",
-        "libraryBearing",
-        [_list(id, *_ENUMS[id], default) for id, default in zip(COLUMNS, DEFAULTS)],
-        mate_connector="mateConnector",
-    )
-}
-RECORDS = {
-    "bearing": {
-        key: Record(TABLE.shown(key), bearing_name(bearing), key[0], stock) for key, (bearing, stock) in BEARINGS.items()
-    }
-}
 
-# Where the studio was last released: `fs parts bearings --release` records it beside this file
+
+class Catalog:
+    """One part set's studio, laid out from the bearings it makes, and its records: what FRCDesign indexes."""
+
+    def __init__(self, bearings: Bearings, defaults: tuple[str, str, str, str, str, str]):
+        self.bearings = bearings
+        self.table = LookupTable(COLUMNS, list(bearings))
+        self.studios = {
+            "bearing": ConfiguredStudio(
+                "bearing",
+                "libraryBearing",
+                [self._list(id, *_ENUMS[id], default) for id, default in zip(COLUMNS, defaults)],
+                mate_connector="mateConnector",
+                top_mate_connector="topMateConnector",
+                bottom_mate_connector="bottomMateConnector",
+            )
+        }
+        self.records = {
+            "bearing": {
+                key: Record(self.table.shown(key), bearing_name(bearing), key[0], stock)
+                for key, (bearing, stock) in bearings.items()
+            }
+        }
+
+    def _list(self, id: str, name: str, enum: Enum, parameter: str, default: str) -> Input:
+        assert enum.names is not None
+        options = [Option(value, enum.names[value], value) for value in enum.values]
+        return self.table.input(Input(id, name, parameter, options, enum_name=enum.name, default=default))
+
+
+# The defaults are what's inserted most from each library: FRCDesign's Generic 1/2 in rounded hex flanged bearing,
+# 1.125 in OD, and ConfigLib's goBILDA 8 mm round flanged bearing, 14 mm OD
+FRC = Catalog(FRC_BEARINGS, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED"))
+FTC = Catalog(FTC_BEARINGS, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"))
+
+TABLE = FRC.table
+STUDIOS = FRC.studios
+RECORDS = FRC.records
+ALL_RECORDS = {"bearing": {**FRC.records["bearing"], **FTC.records["bearing"]}}
+
+# Where the studio was last released: `fs parts bearings --release` records it beside this file, FTC's beside
+# ftcBearingTables.py
 LOCATIONS = read_locations(pathlib.Path(__file__))
 
 
@@ -436,7 +498,7 @@ def _nested(table: dict[tuple, object], enums: list[Enum], render, indent: int =
 
 def _bore_fields(bore: str, size: str) -> str:
     spec = SIZES_BY_ID[size]
-    value = _length(spec.value, spec.unit)
+    value = BORE_FLATS.get((bore, size), _length(spec.value, spec.unit))
     fields = {"diameter": value} if bore == "ROUND" else {"acrossFlats": value, "sides": "4" if bore == "THUNDERSQUARE" else "6"}
     if (bore, size) in ROUNDED_DIAMETERS:
         fields["diameter"] = ROUNDED_DIAMETERS[(bore, size)]
@@ -484,7 +546,7 @@ CONTENTS = [
         "/** What each vendor makes, by vendor, type, bore, size, dimensions, and seal: each bearing's dimensions, a"
         " flanged one's flange, and its properties. */\nexport const BEARINGS = "
         + _nested(
-            {key: (bearing, RECORDS["bearing"][key]) for key, (bearing, _) in BEARINGS.items()},
+            {key: (bearing, ALL_RECORDS["bearing"][key]) for key, (bearing, _) in BEARINGS.items()},
             [BearingVendor, BearingType, BearingBore, BearingSize, BearingDimensions, BearingSeal],
             _bearing_fields,
             0,
@@ -497,22 +559,22 @@ CONTENTS = [
 # FRCDesign's manifest
 
 
-def manifest() -> dict:
-    """The part set's manifest, for FRCDesign: its studio and records, and its catalog."""
+def manifest(catalog: Catalog = FRC, locations: dict = LOCATIONS, source: str = "bearingTables.py") -> dict:
+    """A part set's manifest, for FRCDesign: its studio and records, and its catalog."""
     return {
-        "source": "featurescripts/bearings/bearingTables.py",
+        "source": f"featurescripts/bearings/{source}",
         "studios": {
             name: {
                 **studio.manifest(),
-                "location": LOCATIONS.get(name),
-                "records": [record.manifest() for record in RECORDS[name].values()],
+                "location": locations.get(name),
+                "records": [record.manifest() for record in catalog.records[name].values()],
             }
-            for name, studio in STUDIOS.items()
+            for name, studio in catalog.studios.items()
         },
         "vendors": [
             {"id": id, "name": BearingVendor.names[id]}  # type: ignore[index]
             for id in BearingVendor.values
-            if any(key[0] == id for key in BEARINGS)
+            if any(key[0] == id for key in catalog.bearings)
         ],
         "bearings": [
             {
@@ -532,7 +594,7 @@ def manifest() -> dict:
                 "seal": seal,
                 **_stock(stock),
             }
-            for (vendor, type, bore, size, dimensions, seal), (bearing, stock) in BEARINGS.items()
+            for (vendor, type, bore, size, dimensions, seal), (bearing, stock) in catalog.bearings.items()
         ],
     }
 
