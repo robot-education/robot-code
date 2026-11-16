@@ -46,17 +46,15 @@ export predicate canBeBeltFaceAttribute(value)
 }
 
 /**
- * Whether the belt is a simple two-pulley belt, a complex belt with multiple pulleys and idlers, or an open belt with
- * ends (clamped, like a linear slide's).
+ * Whether the belt is a simple two-pulley belt, or a complex belt with multiple pulleys and idlers (a loop, or an open
+ * belt with ends, clamped like a linear slide's).
  */
 export enum BeltMode
 {
     annotation { "Name" : "Simple" }
     SIMPLE,
     annotation { "Name" : "Complex" }
-    COMPLEX,
-    annotation { "Name" : "Open" }
-    OPEN
+    COMPLEX
 }
 
 export enum PulleyType

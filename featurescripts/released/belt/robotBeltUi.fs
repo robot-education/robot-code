@@ -19,15 +19,26 @@ export predicate isComplexBelt(definition is map)
     definition.beltMode == BeltMode.COMPLEX;
 }
 
+/**
+ * A complex belt with ends (clamped, like a linear slide's), rather than a loop.
+ */
 export predicate isOpenBelt(definition is map)
 {
-    definition.beltMode == BeltMode.OPEN;
+    definition.beltMode == BeltMode.COMPLEX && definition.openBelt;
+}
+
+/**
+ * A complex belt which is a loop.
+ */
+export predicate isLoopComplexBelt(definition is map)
+{
+    definition.beltMode == BeltMode.COMPLEX && !definition.openBelt;
 }
 
 export predicate isDoubleSidedBelt(definition is map)
 {
-    // Nested predicates not allowed
-    definition.beltMode == BeltMode.COMPLEX && definition.isDoubleSidedBelt;
+    // Nested predicates not allowed. An open belt's single sided.
+    definition.beltMode == BeltMode.COMPLEX && !definition.openBelt && definition.isDoubleSidedBelt;
 }
 
 export predicate isStandaloneBelt(definition is map)
@@ -125,10 +136,24 @@ export predicate simpleBeltSelectionPredicate(definition is map)
 
 export predicate complexBeltSelectionPredicate(definition is map)
 {
-    if (isOpenBelt(definition))
+    annotation { "Name" : "Open belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.openBelt is boolean;
+
+    if (definition.openBelt)
     {
-        annotation { "Name" : "Start", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
-        definition.startPoint is Query;
+        annotation { "Group Name" : "Open belt", "Collapsed By Default" : false, "Driving Parameter" : "openBelt" }
+        {
+            annotation { "Name" : "Start", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
+            definition.startPoint is Query;
+
+            annotation { "Name" : "End", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
+            definition.endPoint is Query;
+        }
+    }
+    else
+    {
+        annotation { "Name" : "Double sided belt" }
+        definition.isDoubleSidedBelt is boolean;
     }
 
     annotation {
@@ -170,12 +195,6 @@ export predicate complexBeltSelectionPredicate(definition is map)
             annotation { "Name" : "Pulley teeth" }
             isInteger(pulley.pulleyTeeth, PULLEY_TEETH_BOUNDS);
         }
-    }
-
-    if (isOpenBelt(definition))
-    {
-        annotation { "Name" : "End", "Filter" : (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
-        definition.endPoint is Query;
     }
 }
 
@@ -254,7 +273,7 @@ export predicate optionsPredicate(definition is map)
                     }
             isLength(definition.centerToCenterAdjustment, ZERO_DEFAULT_LENGTH_BOUNDS);
         }
-        else if (isComplexBelt(definition))
+        else if (isLoopComplexBelt(definition))
         {
             annotation { "Name" : "Belt fit adjustment", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                         "Description" : "How much longer the path around the pulleys should be than the belt: positive for a looser belt."
@@ -277,12 +296,6 @@ export predicate robotBeltPredicate(definition is map)
 
     annotation { "Name" : "Belt mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
     definition.beltMode is BeltMode;
-
-    if (isComplexBelt(definition))
-    {
-        annotation { "Name" : "Double sided belt" }
-        definition.isDoubleSidedBelt is boolean;
-    }
 
     selectionPredicate(definition);
 
