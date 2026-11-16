@@ -1125,3 +1125,198 @@ export function sketchToothGap(context is Context, id is Id, plane is Plane, for
     skSolve(sketch);
     return qCreatedBy(id, EntityType.FACE);
 }
+
+/**
+ * An internal gear's tooth form, for a module (`m`) and pressure angle (`α`): its teeth point in toward its center,
+ * and its gaps are an external gear's teeth (of the same teeth and pitch), so its flanks are the same involutes, from
+ * the same base circle. Its tips are `m` inside its pitch circle, but no lower than its base circle (below it, there's
+ * no involute: an internal gear with few teeth, for its pressure angle, has shorter teeth), and its roots `1.25 m`
+ * outside it, rounded with a full round (`fullRound`) or sharp. The whole profile is offset by `offset`, which grows
+ * the part (shrinks it, if negative: for clearance), so its teeth grow inward, and its gaps shrink.
+ *
+ * @returns {{
+ *      @field module {ValueWithUnits} :
+ *      @field pressureAngle {ValueWithUnits} :
+ *      @field teeth {number} :
+ *      @field pitchRadius {ValueWithUnits} :
+ *      @field baseRadius {ValueWithUnits} :
+ *      @field tipRadius {ValueWithUnits} : Its teeth's tips, inside its pitch circle.
+ *      @field rootRadius {ValueWithUnits} : Its gaps' roots, outside its pitch circle.
+ *      @field fullRound {boolean} :
+ *      @field offset {ValueWithUnits} :
+ * }}
+ */
+export function getInternalGearForm(module is ValueWithUnits, teeth is number, pressureAngle is ValueWithUnits, fullRound is boolean, offset is ValueWithUnits) returns map
+{
+    const pitchRadius = module * teeth / 2;
+    const baseRadius = pitchRadius * cos(pressureAngle);
+    return {
+            "module" : module,
+            "teeth" : teeth,
+            "pressureAngle" : pressureAngle,
+            "offset" : offset,
+            "fullRound" : fullRound,
+            "pitchRadius" : pitchRadius,
+            "baseRadius" : baseRadius,
+            "tipRadius" : max(pitchRadius - module - offset, baseRadius),
+            "rootRadius" : pitchRadius + 1.25 * module - offset
+        };
+}
+
+/**
+ * Half of an internal gear's gap's angular width at `radius` (at least its base radius): an external gear's tooth's
+ * (see `toothHalfAngle`), its offset the other way, as the internal gear's offset grows its teeth into its gaps.
+ */
+export function internalGapHalfAngle(form is map, radius is ValueWithUnits) returns ValueWithUnits
+{
+    return toothHalfAngle(mergeMaps(form, { "offset" : -form.offset }), radius);
+}
+
+/**
+ * How many times `internalFullRound` halves the range where its full round meets the flank: to well within std's
+ * length tolerance.
+ */
+const INTERNAL_ROUND_STEPS = 50;
+
+/**
+ * An internal gear's full round, at the root of a gap centered on the x axis: tangent to the root circle (inside it)
+ * on the gap's middle, and to both flanks; or `undefined` if none fits on the flanks, between the tip and root circles.
+ *
+ * The gap's counterclockwise flank is an involute: at roll angle `t`, `P = r_b (u(ψ₀ - t) + t u(ψ₀ - t + 90°))`, for
+ * `ψ₀` its angle at the base circle and `u(θ)` the direction at `θ`. Its normal there runs to `r_b u(ψ₀ - t)`, its
+ * center of curvature, on the gap's side, so the circle tangent to it at `P` and centered on the gap's middle has a
+ * radius of `P_y / cos(ψ₀ - t)`. The full round is the one which also touches the root circle, found by halving the
+ * range of `t`: the circle grows toward the root circle as `P` rises.
+ *
+ * @returns {{
+ *      @field center {Vector} :
+ *      @field radius {ValueWithUnits} :
+ *      @field tangent {Vector} : Where it meets the counterclockwise flank.
+ * }}
+ */
+export function internalFullRound(form is map)
+{
+    const baseRadius = form.baseRadius;
+    const start = internalGapHalfAngle(form, baseRadius);
+    const rollAt = function(radius is ValueWithUnits) returns number
+        {
+            return sqrt(max((radius / baseRadius) ^ 2 - 1, 0));
+        };
+    const roundAt = function(t is number) returns map
+        {
+            const angle = start - t * radian;
+            const point = (vector(cos(angle), sin(angle)) + vector(-sin(angle), cos(angle)) * t) * baseRadius;
+            const radius = point[1] / cos(angle);
+            return { "center" : vector(point[0] + radius * sin(angle), 0 * meter), "radius" : radius, "tangent" : point, "roll" : t };
+        };
+    // How far past the root circle it reaches
+    const past = function(t is number) returns ValueWithUnits
+        {
+            const round = roundAt(t);
+            return round.center[0] + round.radius - form.rootRadius;
+        };
+    var low = rollAt(form.tipRadius);
+    var high = rollAt(form.rootRadius);
+    if (past(low) > 0 * meter || past(high) < 0 * meter)
+    {
+        return undefined;
+    }
+    for (var i = 0; i < INTERNAL_ROUND_STEPS; i += 1)
+    {
+        const middle = (low + high) / 2;
+        if (past(middle) > 0 * meter)
+        {
+            high = middle;
+        }
+        else
+        {
+            low = middle;
+        }
+    }
+    const round = roundAt((low + high) / 2);
+    // Bigger than the flank's curvature there, it would cut into the flank beside where it touches
+    if (round.radius <= 0 * meter || round.radius > baseRadius * round.roll)
+    {
+        return undefined;
+    }
+    return { "center" : round.center, "radius" : round.radius, "tangent" : round.tangent };
+}
+
+/**
+ * Half a gap and the flank below it, for an internal gear's tooth centered at angle 0 (pointing in toward the center),
+ * on its clockwise side: from the middle of the gap, on the root circle, down to the corner of its tip, as curves (see
+ * `halfGapCurves`). The root is a full round (with `form.fullRound`) or a sharp corner on the root circle, and the
+ * flank an involute (see `internalGapHalfAngle`).
+ */
+export function internalHalfToothCurves(form is map) returns array
+{
+    const rootGap = internalGapHalfAngle(form, form.rootRadius);
+    if (rootGap <= 0 * degree)
+    {
+        if (form.offset > 0 * meter)
+        {
+            throw regenError("Profile offset is too large, decrease the value.", ["profileOffsetDistance"]);
+        }
+        throw regenError("Too few teeth for an internal gear, increase teeth.", ["teeth"]);
+    }
+    if (internalGapHalfAngle(form, form.tipRadius) >= 180 * degree / form.teeth)
+    {
+        throw regenError("Profile offset is too small, increase the value.", ["profileOffsetDistance", "teeth"]);
+    }
+    // In the gap's frame (its middle on the x axis), turned to the tooth's after
+    var curves;
+    var flankTop;
+    if (form.fullRound)
+    {
+        const round = internalFullRound(form);
+        if (round == undefined)
+        {
+            throw regenError("Could not create full root fillet.", ["addRootFillet"]);
+        }
+        const bottom = vector(form.rootRadius, 0 * meter);
+        const middle = round.center + normalize(normalize(bottom - round.center) + normalize(round.tangent - round.center)) * round.radius;
+        curves = [{ "shape" : "arc", "points" : [bottom, middle, round.tangent] }];
+        flankTop = round.tangent;
+    }
+    else
+    {
+        flankTop = polar(form.rootRadius, rootGap);
+        curves = [{ "shape" : "arc", "points" : [polar(form.rootRadius, 0 * degree), polar(form.rootRadius, rootGap / 2), flankTop] }];
+    }
+    var flank = [flankTop];
+    const topRadius = norm(flankTop);
+    for (var i = 1; i <= FLANK_POINTS; i += 1)
+    {
+        const radius = topRadius + (form.tipRadius - topRadius) * i / FLANK_POINTS;
+        flank = append(flank, polar(radius, internalGapHalfAngle(form, radius)));
+    }
+    curves = append(curves, { "shape" : "spline", "points" : flank });
+    return rotatedCurves(curves, -180 * degree / form.teeth);
+}
+
+/**
+ * Sketches an internal gear's profile on `plane`, centered on it, and returns its face: the ring between its teeth
+ * (`form`, see `getInternalGearForm`), the first centered on the plane's x axis, and a circle of `outsideRadius`.
+ */
+export function sketchInternalGearProfile(context is Context, id is Id, plane is Plane, form is map, outsideRadius is ValueWithUnits) returns Query
+{
+    const teeth = form.teeth;
+    const toothAngle = 360 * degree / teeth;
+    const halfTooth = internalHalfToothCurves(form);
+    const tipHalf = 180 * degree / teeth - internalGapHalfAngle(form, form.tipRadius);
+    const tip = {
+            "shape" : "arc",
+            "points" : [polar(form.tipRadius, -tipHalf), polar(form.tipRadius, 0 * degree), polar(form.tipRadius, tipHalf)]
+        };
+    const curves = concatenateArrays([halfTooth, [tip], mirroredCurves(halfTooth)]);
+
+    const sketch = newSketchOnPlane(context, id, { "sketchPlane" : plane });
+    for (var tooth = 0; tooth < teeth; tooth += 1)
+    {
+        sketchCurves(sketch, "tooth" ~ tooth ~ "_", rotatedCurves(curves, tooth * toothAngle));
+    }
+    skCircle(sketch, "outside", { "center" : vector(0, 0) * meter, "radius" : outsideRadius });
+    skSolve(sketch);
+    // The ring, not the hole inside its teeth
+    return qContainsPoint(qCreatedBy(id, EntityType.FACE), planeToWorld(plane, vector((form.rootRadius + outsideRadius) / 2, 0 * meter)));
+}

@@ -282,6 +282,91 @@ def test_no_root_fillet_leaves_a_sharp_corner():
     assert {round(arc.radius, 9) for arc in arcs} == {round(form["rootRadius"], 9), round(form["tipRadius"], 9)}
 
 
+def internal_gear_profile(teeth: int, pressure_degrees: float = 20, full_round: bool = True, offset_mm: float = 0.0,
+                          rim_mm: float = 6.0):
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    m = evaluator.eval("1.27 * millimeter")
+    form = f"getInternalGearForm(m, {teeth}, {pressure_degrees} * degree, {str(full_round).lower()}, {offset_mm} * millimeter)"
+    evaluator.eval(f'sketchInternalGearProfile(context, newId() + "profile", XY_PLANE, {form}, {form}.rootRadius + {rim_mm} * millimeter)',
+                   "released/gear/gearCommon.fs", context=context, m=m)
+    return recorded_sketch(context, "profile"), to_python(evaluator.eval(form, "released/gear/gearCommon.fs", m=m))
+
+
+def internal_gap_half_angle(form: dict, radius: float) -> float:
+    """Half an internal gear's gap's width at `radius`, as an angle: an external gear's tooth's, its offset the other way."""
+    alpha = form["pressureAngle"]
+    return (math.pi / (2 * form["teeth"]) + involute(alpha) - involute(math.acos(min(form["baseRadius"] / radius, 1)))
+            - form["offset"] / form["baseRadius"])
+
+
+@pytest.mark.parametrize("teeth,pressure_degrees,full_round", [(40, 14.5, True), (72, 14.5, False), (34, 20, True), (100, 20, True)])
+def test_internal_gear_profile(teeth, pressure_degrees, full_round):
+    sketch, form = internal_gear_profile(teeth, pressure_degrees, full_round)
+    # Its teeth, and the ring's outside
+    teeth_loop, outside = sorted(sketch.loops(), key=lambda loop: len(loop.curves), reverse=True)
+    assert teeth_loop.closed and outside.closed
+    assert [curve.kind for curve in outside.curves] == ["circle"]
+    assert outside.curves[0].radius == pytest.approx(form["rootRadius"] + 0.006, abs=1e-12)
+    curves = teeth_loop.curves
+    assert min(curve.nearest() for curve in curves) == pytest.approx(form["tipRadius"], abs=1e-9)
+    assert max(curve.farthest() for curve in curves) == pytest.approx(form["rootRadius"], abs=1e-9)
+    # Its gaps are an external gear's teeth: every flank point is half of one's width from the nearest gap's middle
+    tooth_angle = 2 * math.pi / teeth
+    for curve in curves:
+        if curve.kind != "spline":
+            continue
+        for x, y in curve.points:
+            radius = math.hypot(x, y)
+            offset = abs(math.atan2(y, x) % tooth_angle - tooth_angle / 2)
+            assert offset == pytest.approx(internal_gap_half_angle(form, radius), abs=1e-9)
+    # Full rounds meet the root circle tangent, at their gaps' middles
+    if full_round:
+        for before, after in teeth_loop.joints():
+            if "spline" not in (before.kind, after.kind):
+                out, into = before.tangent(True), after.tangent(False)
+                assert abs(out[0] * into[1] - out[1] * into[0]) < 1e-6, f"{before.id} and {after.id} aren't tangent"
+
+
+def test_internal_gear_tips_stop_at_the_base_circle():
+    # A 40T 14.5° internal gear's tips would be a module inside its pitch circle, below its base circle, where there's
+    # no involute: they're on the base circle instead
+    _, form = internal_gear_profile(40, 14.5)
+    assert form["tipRadius"] == pytest.approx(form["baseRadius"], abs=1e-12)
+    assert form["tipRadius"] > form["pitchRadius"] - 1.27e-3
+    # A 100T 20° gear's are a module inside it
+    _, form = internal_gear_profile(100, 20)
+    assert form["tipRadius"] == pytest.approx(form["pitchRadius"] - 1.27e-3, abs=1e-12)
+
+
+def test_internal_full_round_is_tangent_to_the_root_and_flanks():
+    sketch, form = internal_gear_profile(60)
+    (round_arc,) = [curve for curve in sketch.loops()[0].curves + sketch.loops()[1].curves if curve.id == "tooth0_0"]
+    # Centered on the gap's middle, inside the root circle by its radius
+    assert math.hypot(*round_arc.center) + round_arc.radius == pytest.approx(form["rootRadius"], abs=1e-9)
+    assert math.atan2(round_arc.center[1], round_arc.center[0]) == pytest.approx(-math.pi / 60, abs=1e-9)
+    # Touching the flank's involute (sampled finely) without cutting into it
+    distances = []
+    for i in range(2001):
+        radius = form["tipRadius"] + (form["rootRadius"] - form["tipRadius"]) * i / 2000
+        angle = -math.pi / 60 + internal_gap_half_angle(form, radius)
+        distances.append(math.dist(round_arc.center, (radius * math.cos(angle), radius * math.sin(angle))))
+    assert min(distances) == pytest.approx(round_arc.radius, abs=1e-7)
+
+
+def test_internal_gear_profile_offset_grows_its_teeth():
+    _, form = internal_gear_profile(60)
+    _, grown = internal_gear_profile(60, offset_mm=0.05)
+    assert grown["tipRadius"] == pytest.approx(form["tipRadius"] - 0.00005, abs=1e-12)
+    assert grown["rootRadius"] == pytest.approx(form["rootRadius"] - 0.00005, abs=1e-12)
+    assert internal_gap_half_angle(grown, form["pitchRadius"]) < internal_gap_half_angle(form, form["pitchRadius"])
+
+
+def test_internal_gear_profile_offset_too_large():
+    with pytest.raises(FSError, match="Profile offset is too large"):
+        internal_gear_profile(60, offset_mm=0.6)
+
+
 RACK_FORM = "getGearForm(1 * millimeter, undefined, 20 * degree, {fillet}, {offset} * millimeter)"
 
 

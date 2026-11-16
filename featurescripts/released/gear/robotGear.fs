@@ -24,7 +24,9 @@ export enum GearType
     annotation { "Name" : "Rack" }
     RACK,
     annotation { "Name" : "Bevel" }
-    BEVEL
+    BEVEL,
+    annotation { "Name" : "Internal" }
+    INTERNAL
 }
 
 /**
@@ -176,6 +178,8 @@ const GEAR_TEETH_BOUNDS = { (unitless) : [4, 24, 1000] } as IntegerBoundSpec;
 const RACK_TEETH_BOUNDS = { (unitless) : [1, 10, 1000] } as IntegerBoundSpec;
 const PRESSURE_ANGLE_BOUNDS = { (degree) : [10, 20, 35] } as AngleBoundSpec;
 const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
+// An internal gear's ring, out from its roots
+const RIM_THICKNESS_BOUNDS = { (meter) : [1e-5, 0.00635, 500], (inch) : 0.25, (millimeter) : 6 } as LengthBoundSpec;
 // A 1/8 in. router bit's
 const BIT_DIAMETER_BOUNDS = { (meter) : [1e-5, 0.003175, 500], (inch) : 0.125, (millimeter) : 3 } as LengthBoundSpec;
 
@@ -201,7 +205,7 @@ const GEAR_PITCHES = {
     };
 
 /**
- * A gear or a bevel gear: not a rack.
+ * A gear, a bevel gear, or an internal gear: not a rack.
  */
 predicate isGear(definition is map)
 {
@@ -209,11 +213,19 @@ predicate isGear(definition is map)
 }
 
 /**
+ * A spur or bevel gear, which can have a bore and a mate: not a rack or an internal gear.
+ */
+predicate isExternalGear(definition is map)
+{
+    definition.gearType == GearType.GEAR || definition.gearType == GearType.BEVEL;
+}
+
+/**
  * Made with its mate: with Gear pair.
  */
 predicate isPair(definition is map)
 {
-    definition.gearType != GearType.RACK;
+    isExternalGear(definition);
     definition.gearPair;
 }
 
@@ -241,20 +253,12 @@ predicate isMateByTeeth(definition is map)
 predicate isRouterBit(definition is map)
 {
     definition.addRootFillet;
-    (definition.gearType != GearType.BEVEL && definition.rootFillet == RootFillet.ROUTER_BIT) ||
+    ((definition.gearType == GearType.GEAR || definition.gearType == GearType.RACK) && definition.rootFillet == RootFillet.ROUTER_BIT) ||
         (definition.gearType == GearType.BEVEL && definition.bevelRootFillet == BevelRootFillet.ROUTER_BIT);
 }
 
 /**
- * A spur gear (helical or herringbone too).
- */
-predicate isSpur(definition is map)
-{
-    definition.gearType == GearType.GEAR;
-}
-
-/**
- * Makes involute spur, helical, and herringbone gears and straight bevel gears (with spherical
+ * Makes involute spur, helical, and herringbone gears, internal gears (with a ring around them), and straight bevel gears (with spherical
  * involute teeth and Gleason's proportions, or approximate, by Tredgold's approximation), with fully rounded roots (or
  * Onshape's Spur gear's other root fillets, or a router bit's), or cuts rack teeth into a part's flat face (or a gear's
  * teeth around its round face); at robot gears' standard pitches, or by diametral pitch (in inches) or module (metric).
@@ -337,6 +341,13 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 isLength(definition.thickness, THICKNESS_BOUNDS);
             }
 
+            // An internal gear's ring, out from its roots
+            if (definition.gearType == GearType.INTERNAL)
+            {
+                annotation { "Name" : "Rim thickness", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.rimThickness, RIM_THICKNESS_BOUNDS);
+            }
+
             // A bevel gear's teeth end square to its pitch cone, their roots flush with its top face, rather than cut off
             // by it (see `bevelShape`)
             if (definition.gearType == GearType.BEVEL)
@@ -345,11 +356,11 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 definition.flatTop is boolean;
             }
 
-            // Without it, the roots are sharp
+            // Without it, the roots are sharp; an internal gear's are full rounds
             annotation { "Name" : "Root fillet", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.addRootFillet is boolean;
 
-            if (definition.addRootFillet)
+            if (definition.addRootFillet && definition.gearType != GearType.INTERNAL)
             {
                 annotation { "Group Name" : "Root fillet", "Collapsed By Default" : false, "Driving Parameter" : "addRootFillet" }
                 {
@@ -466,7 +477,8 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
-        if (isGear(definition))
+        // An internal gear has no bore or mate
+        if (isExternalGear(definition))
         {
             borePredicate(definition);
 
@@ -550,17 +562,24 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
         addPointManipulator(context, id, definition, mapArray(distances, distance => gearPlane.origin + gearPlane.normal * distance));
 
         const gear = buildGear(context, id, id + "gear", definition, gearPlane, module, size.teeth);
-        if (offsetProfile(definition) && isSpur(definition))
+        if (offsetProfile(definition) && definition.gearType != GearType.BEVEL)
         {
             const faces = qOwnedByBody(gear.body, EntityType.FACE);
-            addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, line(gearPlane.origin, gearPlane.x), qSubtraction(faces, qParallelPlanes(faces, gearPlane)),
+            // An internal gear's offset grows its teeth inward, toward its center
+            const toward = definition.gearType == GearType.INTERNAL ? -gearPlane.x : gearPlane.x;
+            addProfileOffsetManipulator(context, id, PROFILE_OFFSET_MANIPULATOR, line(gearPlane.origin, toward), qSubtraction(faces, qParallelPlanes(faces, gearPlane)),
                 definition.profileOffsetOppositeDirection);
         }
 
         var gears = [gear];
         var warning = size.warning == undefined ? undefined : { "message" : size.warning, "parameters" : ["pitchCircle"] };
-        // A spur gear's pitch diameter, for spacing gears: two mesh their pitch radii apart
-        var info = isSpur(definition) ? "Pitch diameter is " ~ makeValueString(pitchUnits(definition), module * size.teeth, true) ~ "." : undefined;
+        // A spur gear's pitch diameter, for spacing gears: two mesh their pitch radii apart (an internal gear's, less
+        // its mate's), and an internal gear's outside diameter
+        var info = definition.gearType == GearType.BEVEL ? undefined : "Pitch diameter is " ~ makeValueString(pitchUnits(definition), module * size.teeth, true) ~ ".";
+        if (gear.outsideRadius != undefined)
+        {
+            info = info ~ " Outside diameter is " ~ makeValueString(pitchUnits(definition), 2 * gear.outsideRadius, true) ~ ".";
+        }
         if (isPair(definition))
         {
             const place = matePlacement(context, id, definition, gearPlane, module, size.teeth);
@@ -576,7 +595,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
-        const bore = definitionBore(definition);
+        const bore = isExternalGear(definition) ? definitionBore(definition) : undefined;
         for (var i, built in gears)
         {
             if (definition.addMateConnectors)
@@ -647,7 +666,7 @@ function rootFilletSize(definition is map)
 }
 
 /**
- * A gear (a spur, helical, or herringbone gear, or a bevel gear) with `teeth`, centered on `gearPlane` (a
+ * A gear (a spur, helical, or herringbone gear, an internal gear, or a bevel gear) with `teeth`, centered on `gearPlane` (a
  * bevel gear's back), its first tooth on its x axis, and its properties set. `featureId` is the feature's, for statuses.
  *
  * @returns {{
@@ -655,7 +674,8 @@ function rootFilletSize(definition is map)
  *      @field plane {Plane} : `gearPlane`, for its bore.
  *      @field connector {CoordSystem} : Where its mate connector goes: its center, or a bevel gear's apex.
  *      @field hubRadius {ValueWithUnits} : How far out it's solid all the way through, for its bore: its root, or a
- *              bevel gear's at its top face.
+ *              bevel gear's at its top face. Not an internal gear's, which has no bore.
+ *      @field outsideRadius {ValueWithUnits} : An internal gear's ring's: its root, and Rim thickness.
  * }}
  */
 function buildGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
@@ -668,6 +688,15 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
         result.hubRadius = bevel.hubRadius;
         // Mated at their apexes, with their axes the shaft angle apart, a pair meshes
         result.connector = coordSystem(bevel.apex, gearPlane.x, gearPlane.normal);
+    }
+    else if (definition.gearType == GearType.INTERNAL)
+    {
+        // Its teeth inside a ring, its roots full rounds or sharp
+        const form = getInternalGearForm(module, teeth, pressureAngle(definition), definition.addRootFillet, getProfileOffset(definition));
+        result.outsideRadius = form.rootRadius + definition.rimThickness;
+        const profile = sketchInternalGearProfile(context, id + "profile", gearPlane, form, result.outsideRadius);
+        result.body = buildGearBody(context, id, definition, gearPlane, profile, form);
+        cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
     }
     else
     {
@@ -1319,7 +1348,7 @@ export function robotGearEditLogic(context is Context, id is Id, oldDefinition i
         definition.pitchCircle = definition.location;
         definition.location = qNothing();
     }
-    if (definition.gearType != GearType.BEVEL && definition.gearPair && definition.mateSizeBy == GearSize.TEETH &&
+    if (isSpurPair(definition) && definition.mateSizeBy == GearSize.TEETH &&
         oldDefinition.angleReference != definition.angleReference && isPitchCircle(context, definition.angleReference, module))
     {
         definition.mateSizeBy = GearSize.PITCH_CIRCLE;
@@ -2209,8 +2238,8 @@ function pressureAngle(definition is map) returns ValueWithUnits
 
 function setGearProperties(context is Context, gear is Query, definition is map, teeth is number)
 {
-    // 24T 20DP Gear, 30T Module 1 Helical Gear, 40T Module 0.8 Herringbone Gear, 20T 10DP Bevel Gear, or 20T 0.25 in.
-    // CP Gear
+    // 24T 20DP Gear, 30T Module 1 Helical Gear, 40T Module 0.8 Herringbone Gear, 20T 10DP Bevel Gear, 72T 20DP Internal
+    // Gear, or 20T 0.25 in. CP Gear
     var size;
     if (definition.pitch != GearPitch.CUSTOM)
     {
@@ -2228,8 +2257,8 @@ function setGearProperties(context is Context, gear is Query, definition is map,
     {
         size = pitchUnits(definition) == UnitSystem.IMPERIAL ? roundToPrecision(definition.circularPitch / inch, 4) ~ " in. CP" : roundToPrecision(definition.circularPitch / millimeter, 3) ~ " mm CP";
     }
-    const shape = definition.gearType == GearType.BEVEL ? "Bevel Gear" : "Gear";
-    const kind = !(isSpur(definition) && definition.helical) ? shape : (definition.doubleHelical ? "Herringbone " : "Helical ") ~ shape;
+    const shape = definition.gearType == GearType.BEVEL ? "Bevel Gear" : (definition.gearType == GearType.INTERNAL ? "Internal Gear" : "Gear");
+    const kind = definition.gearType == GearType.BEVEL || !definition.helical ? shape : (definition.doubleHelical ? "Herringbone " : "Helical ") ~ shape;
     setProperty(context, {
                 "entities" : gear,
                 "propertyType" : PropertyType.NAME,
