@@ -311,16 +311,36 @@ Each feature's card shows two small icons beside its name: **Auto Assembly** (th
 declares parts, and **Simplified** (a new icon: the gear's own outline reduced to a disc) when it allows
 simplification, each with a hover saying what it means.
 
-`fs release` decides both from the feature's precondition, which it already parses (`fs ui`), and writes them into the
-feature's manifest entry, beside the products it references:
+A feature says what it supports in its own annotation, beside its name:
+
+```
+annotation { "Feature Type Name" : "Robot motor",
+        "Feature Type Description" : "Cut the mounting holes of a motor or gearbox, and model a block motor." ~ CREDIT,
+        "Auto Assembly" : true,
+        "Simplification" : true,
+        "Icon" : RobotMotorIcon::BLOB_DATA }
+export const robotMotor = defineFeature(...);
+```
+
+Both keys are ours: Onshape ignores annotation keys it doesn't know, as it ignores `"Set By"`. `fs release` reads them
+as it reads `"Feature Type Name"` (`fs_cli/frontend.py`), and writes them into the feature's manifest entry, beside the
+products its tables reference:
 
 ```
 "autoAssembly" : { "products" : [ { "documentId" : "...", "elementId" : "...", "configurations" : [ ... ] } ] },
 "simplification" : true
 ```
 
-Declaring parts is calling `declarePart` (`core/autoAssembly.fs`), which every host connector and stand-in goes
-through; allowing simplification is calling `simplificationPredicate`. Library parts with the variable show the Simplified icon on their cards too.
+A key that's absent is false. `fs check` keeps them honest:
+
+- Both join its known annotation keys (`ANNOTATION_KEYS`, beside `"Set By"`), allowed only in a `defineFeature`'s
+  annotation, with a boolean value.
+- `"Auto Assembly" : true` needs the feature to declare parts (call `declarePart`, `core/autoAssembly.fs`), and a
+  feature that declares parts needs the key; likewise `"Simplification" : true` and `simplificationPredicate`
+  (`core/simplify.fs`). Either way round, it's an error naming what's missing, so a feature never shows an icon for
+  something it doesn't do, or hides one it does.
+
+Library parts whose admin marked a simplification parameter show the Simplified icon on their cards too.
 
 ## What to try in Onshape
 
