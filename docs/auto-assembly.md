@@ -6,10 +6,10 @@ FRCDesignApp's Auto Assembly, which places them, so both sides can be built agai
 ## The idea
 
 A FeatureScript that cuts something for a part (a tapped shaft end, a retaining ring groove, a gear's bore) also
-declares the part that goes there, by its vendor part number. It always makes a mate connector for it, on the part it
-attaches to, and optionally a simple **stand-in** body. In an assembly, Auto Assembly finds the declarations, looks the
-part numbers up in FRCDesign's library, inserts each part, and fastens it to its connector. The connector is the
-source of truth; the stand-in only shows where the part goes.
+declares the part that goes there: a library Part Studio, by its document and tab, and its configuration. It always
+makes a mate connector for it, on the part it attaches to, and optionally a simple **stand-in** body. In an assembly,
+Auto Assembly finds the declarations, inserts each part from the version of its Part Studio the library loaded last,
+and fastens it to its connector. The connector is the source of truth; the stand-in only shows where the part goes.
 
 The first declarations:
 
@@ -34,9 +34,7 @@ The first declarations:
     3/16", 3/8", 1/2", 1/2" bowed; McMaster-Carr or FRC vendor).
   - Gears: 41 Part Studios by pitch, bore and vendor (WCP, REV, AndyMark, VEX, TTB), about 600 configurations.
 
-  None of them has a mate connector yet (`supportsFasten` is false for every one). Nearly every configuration has its
-  vendor's part number, which the app already indexes (`ConfigurationRecord.partNumber`): every gear but VEX's 10 DP
-  involute profiles, every end screw and e-clip, and four of the six push-on rings.
+  None of them has a mate connector yet (`supportsFasten` is false for every one).
 - **2023's `auto-assembly` branch** of this repo prototyped the same shape: mate connectors carrying an attribute
   naming a part, read by evaluating FeatureScript, inserted and fastened by a Python script.
 
@@ -79,16 +77,20 @@ The connector carries an attribute, `frcAutoAssembly`:
 {
     "version" : 1,
     "kind" : AutoAssemblyKind.SHAFT_END_SCREW,  // SHAFT_END_SCREW, RETAINING_RING, E_CLIP, GEAR
-    "partNumber" : "WCP-2398",                  // the vendor's part number: the product
+    "documentId" : "...",                       // the library Part Studio, with no version
+    "elementId" : "...",
+    "configuration" : { "Configuration" : "_1_2__L___10_32__Heavy_Duty_" },   // parameter id to option id
     "spec" : { "size" : "#10-32", "depth" : 0.5 * inch },   // what the feature cut for it, by kind
     "name" : "Shaft End Screw (WCP) 1/2\" L (#10-32, Heavy Duty)"   // for messages, when the app can't find it
 }
 ```
 
-- **The part number is the product.** It names the part, not where the library keeps it, so the library can remodel a
-  part, rename its options, move or split its Part Studio, or release a new version, and the FeatureScript doesn't
-  change: the app looks the number up in what it loaded at the time of the run. A FeatureScript is released only to
-  offer a new product, or a new kind.
+- **The product is a tab, not a version.** The app takes the version of that Part Studio its library loaded last, at
+  the time of the run, so a library tweak released as a new version reaches every declaration with no FeatureScript
+  release. The configuration is the app's selection (parameter id to option id), as the app stores and sends it, so
+  a declaration stays good while the studio's parameter and option ids do: renaming an option is a tweak, deleting
+  and re-creating it isn't. Generated part sets never change a released option id (`AGENTS.md`), and the library's
+  own studios keep theirs the same way. A FeatureScript is released only to offer a new product, or a new kind.
 - **`spec`** is what the feature built for the part, so the app can say a product doesn't fit (a 3/8" ring on a 1/2"
   groove) rather than insert it.
 - **`version`** is the attribute's format. A new optional field leaves it as it is; a field changing meaning bumps
@@ -126,14 +128,14 @@ it would take its connector, and the gear's mate, with it.
 
 The feature's dialog offers the products for what it cut, as a lookup table: a tapped #10-32 end offers WCP's and
 REV's end screws by length, a 1/2" hex groove offers WCP's and McMaster-Carr's 1/2" retaining rings, and a gear
-offers the gears made in its pitch, teeth and bore. Choosing one sets the declaration's part number and sizes the
+offers the gears made in its pitch, teeth and bore. Choosing one sets the declaration's product and sizes the
 stand-in. A gear's product also sets its teeth, pitch and bore.
 
 The tables are generated, as the fasteners' are (see [fs-cli.md](fs-cli.md#generating-lookup-tables)): a Python
-definition reads a snapshot of the library's records from FRCDesign's public API (`/api/library-data` and
-`/api/configuration/insertable/{id}`, as `fastenerTables.py fetch` does), and writes each product's part number, name
-and stand-in dimensions into a `*.gen.fs` table. The table holds no document, element or option ids: nothing in it
-goes stale when the library changes how it models a part.
+definition reads a snapshot of the library from FRCDesign's public API (`/api/library-data` and
+`/api/configuration/insertable/{id}`, as `fastenerTables.py fetch` does), and writes each product's document, element,
+configuration, name and stand-in dimensions into a `*.gen.fs` table. It holds no version, so it doesn't go stale when
+the library releases one.
 
 Where the products come from:
 
@@ -156,12 +158,12 @@ Auto Assembly gains declared parts beside holes, run the same way:
    same immutable keys as the hole scan.
 2. **Pick.** Picking a part, or a whole instance, takes every declaration in it; picking nothing takes every one in
    the assembly. A declaration already fastened to (a mate names its connector) is left alone, or replaced when its
-   part number changed.
-3. **Resolve.** Each part number is looked up in the loaded libraries' configuration records, giving an insertable and
-   its configuration. A number found nowhere, or in more than one configuration, or in a studio with no connector, or
-   that doesn't fit its `spec`, gets no part, with why. A part number in two configurations is the library's to fix,
-   and the load reports it.
-4. **Insert** each part at its connector's place, in the run's one `transformedinstances` call.
+   product changed.
+3. **Resolve.** Each declaration's document and element are looked up among the loaded insertables, giving the
+   version the library loaded last, and its configuration is parsed as any selection is (`toSelection`). A studio the
+   library doesn't have, a configuration it doesn't offer, a studio with no connector, or a part that doesn't fit its
+   `spec`, gets no part, with why.
+4. **Insert** each part at its connector's place, from that version, in the run's one `transformedinstances` call.
 5. **Fasten** each to its declaration's connector: the host's instance path, and the connector's id.
 6. **Suppress** each stand-in it placed a part for (or hide it, if it owns its connector).
 7. **Record** one use per part placed, with a `UseTarget` of its own, so the dashboard can show declared parts beside
