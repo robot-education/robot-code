@@ -1,3 +1,4 @@
+import dataclasses
 import pytest
 
 from fs_cli.configured_studios import (
@@ -347,10 +348,17 @@ def test_a_lookup_table_needs_an_option_for_everything_made():
         TABLE.input(enum_input("size", "S1 S2 S3", default="S3"))
 
 
-def test_manifest_holds_the_configuration_onshape_answers():
+def test_manifest_holds_the_feature_not_the_configuration():
     manifest = studio().manifest()
-    assert manifest["configuration"] == studio().configuration_body()
+    assert manifest["feature"] == studio().feature
+    assert "configuration" not in manifest
     assert "inputs" not in manifest
+
+
+def test_manifest_names_a_top_mate_connector_only_where_the_studio_has_one():
+    assert "topMateConnector" not in studio().manifest()
+    topped = dataclasses.replace(studio(), mate_connector="bottom", top_mate_connector="top")
+    assert topped.manifest() == {"feature": topped.feature, "mateConnector": "bottom", "topMateConnector": "top"}
 
 
 def test_configured_studios_searches_nested_maps():

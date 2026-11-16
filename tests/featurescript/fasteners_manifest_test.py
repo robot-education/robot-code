@@ -373,14 +373,18 @@ def test_one_nut_vendor_is_fixed():
 
 
 @pytest.mark.parametrize("kind", KINDS)
-def test_each_feature_makes_one_mate_connector(kind):
-    """FRCDesignApp fastens to a generated studio's feature by its id, which names the one connector it makes."""
-    feature = DEFINITION["STUDIOS"][kind].feature
+def test_each_feature_makes_the_mate_connectors_its_studio_names(kind):
+    """FRCDesignApp fastens to a generated studio's connectors by the ids the manifest names, so its feature makes
+    each once, and no other."""
+    studio = DEFINITION["STUDIOS"][kind]
     code = (FOLDER / "fasteners.fs").read_text()
-    start = code.index(f"export const {feature} = defineFeature(")
+    start = code.index(f"export const {studio.feature} = defineFeature(")
     end = code.index("\n    });\n", start)
     body = code[start:end]
-    assert body.count("opMateConnector(") + body.count("addSeatMateConnector(") == 1
+    named = [id for id in (studio.mate_connector, studio.top_mate_connector) if id]
+    assert body.count("opMateConnector(") + body.count("addSeatMateConnector(") == len(named)
+    for id in named:
+        assert f'id + "{id}"' in body
     assert "for (" not in body and "while (" not in body
 
 

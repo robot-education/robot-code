@@ -86,24 +86,27 @@ uv run fs parts fasteners --release --minor -d "Added zinc screws"
 
 A release:
 
-1. Creates a version named e.g. `Fasteners - v1.2.0` in the backend document.
-2. Points the main document's Feature Studio of the same name (`fasteners.fs`) at that version, creating it if needed:
+1. Pushes the set's Feature Studio, and what it imports, as it is in the repo over Onshape's (as `fs push --release`
+   does for a FeatureScript), deleting nothing.
+2. Creates a version named e.g. `Fasteners - v1.2.0` in the backend document.
+3. Points the main document's Feature Studio of the same name (`fasteners.fs`) at that version, creating it if needed:
    a small generated studio re-exporting the backend's, as the frontend's are.
-3. Builds each Part Studio in the main document, by its tab's name (`Screw`), from that studio as just pushed, and
+4. Builds each Part Studio in the main document, by its tab's name (`Screw`), from that studio as just pushed, and
    writes the set's manifest beside them as a file tab, `fasteners.parts.json`: the definition's manifest export with
    each studio's tab there (`elementId`) in place of where it was last released. A studio whose feature makes a mate
-   connector names the id it gives it (`mateConnector`, from `ConfiguredStudio.mate_connector`): a fasten mate names
-   the connector `<featureId>.mateConnector`, and Onshape's API shows no mate connector a feature makes, so this is how
-   FRCDesignApp fastens to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
+   connector names the id it gives it (`mateConnector`, from `ConfiguredStudio.mate_connector`), and a second on its
+   top where it has one (`topMateConnector`, from `top_mate_connector`). A fasten mate names a connector
+   `<featureId>.<id>`, and Onshape's API shows no mate connector a feature makes, so this is how FRCDesignApp fastens
+   to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
    the document's version, so the records it indexes are always those of the version it loads.
-4. Records where the Part Studios are in `<definition>.studios.json` beside the definition (the main document and
+5. Records where the Part Studios are in `<definition>.studios.json` beside the definition (the main document and
    each tab), writes the definition's `EXPORTS` again, and tags the release in git, by the set's name
    (`fasteners/v1.2.0`, `ftcFasteners/v1.0.0`).
 
 It leaves the main document unversioned: its owner versions it in Onshape once they've checked the Part Studios, and
 FRCDesignApp loads that version (or holds it for approval). Releases are numbered by the backend document's versions.
 
-Every studio in the set's folder must be pushed and in sync first. Versions can't be deleted, so it asks for
+Every other studio in the set's folder must be pushed and in sync first. Versions can't be deleted, so it asks for
 confirmation (`-y` skips it). A feature that fails to regenerate stops the release before anything is recorded; the
 backend version stays, so the next try takes the next version number.
 

@@ -1112,7 +1112,11 @@ class Catalog:
             ),
             "nut": ConfiguredStudio("nut", "fastenerNut", self._nut_inputs(defaults.nut), mate_connector="mateConnector"),
             "washer": ConfiguredStudio(
-                "washer", "fastenerWasher", self._washer_inputs(defaults.washer), mate_connector="mateConnector"
+                "washer",
+                "fastenerWasher",
+                self._washer_inputs(defaults.washer),
+                mate_connector="mateConnector",
+                top_mate_connector="topMateConnector",
             ),
         }
         self.records = {"screw": self._screw_records(), "nut": self._nut_records(), "washer": self._washer_records()}
