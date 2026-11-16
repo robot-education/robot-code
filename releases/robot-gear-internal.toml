@@ -1,0 +1,4 @@
+script = "robotGear"
+bump = "minor"
+description = "Adds internal gears"
+publish = true
