@@ -52,6 +52,8 @@ The first declarations:
 - **Robot shaft**: a shaft end screw in a tapped end, and a retaining ring or e-clip in a groove.
 - **Robot gear**: a COTS gear in place of its modeled one.
 - **Robot motor**: the motor or gearbox whose face it cut (see [Robot motor](#robot-motor)).
+- **Robot bearing** (Robot bearing hat, renamed) and **Robot bushing** (new): the bearing or bushing in a bore, and
+  the bearing's retention: its hat, or its screws (see [Robot bearing and Robot bushing](#robot-bearing-and-robot-bushing)).
 
 ### The declaration
 
@@ -194,22 +196,26 @@ version. A gear's product also sets its teeth, pitch and bore.
 ## Simplification
 
 A large robot's assembly regenerates slowly, mostly because of detail nobody needs while laying out the robot: gear
-teeth, lightening pockets, belt and chain teeth, threads, fillets. Simplification is a switch that turns that detail
-off, everywhere at once.
+teeth, lightening pockets, belt and chain teeth, and hundreds of screws. Simplification is one switch that turns that
+detail off, everywhere at once. It acts on two things only: robot-code's FeatureScripts, which build less, and
+FRCDesignLib's hardware in assemblies, which is suppressed. It never suppresses or changes anyone's other features.
 
-### The switch: a configuration variable
+### The switch: the Simplified configuration parameter
 
-A Part Studio is simplified by a configuration variable, `simplified`, a number: 0 builds everything, 1 simplifies.
-A FeatureScript reads it as a variable (`getVariable(context, "simplified")`, as `core/logging.fs` reads `#logging`),
-and a Part Studio without it is never simplified. A number rather than a checkbox, so a later level (2, an envelope)
-needs no new switch.
+Every element simplifies by one configuration parameter named **Simplified**, off by default:
+
+- In a **Part Studio**, a configuration variable, which a FeatureScript reads as a variable
+  (`getVariable(context, "Simplified")`, as `core/logging.fs` reads `#logging`). A Part Studio without it is never
+  simplified.
+- In an **assembly**, a checkbox configuration input, which suppresses the hardware that follows it and is passed
+  down to the instances that have their own (see Include what's inside, below).
 
 `core/simplify.fs` holds it for features:
 
 - `simplificationPredicate(definition)`: **Allow simplification**, a checkbox in the feature's last group, on by
   default and remembered. Off, the feature always builds in full: for a part whose detail matters (a gear being
   checked for interference, a plate going to the router).
-- `isSimplified(context, definition)`: whether to build simplified: allowed, and the Part Studio's `simplified` is 1.
+- `isSimplified(context, definition)`: whether to build simplified: allowed, and the Part Studio's Simplified is on.
 
 What each feature builds when simplified:
 
@@ -229,25 +235,43 @@ simplified configuration.
 A **Simplify** button in the app's top toolbar opens a menu acting on the Part Studio or assembly the app was opened
 from:
 
-- **Add simplification**: adds the `simplified` configuration variable, at 0. In a Part Studio, it also offers to
-  suppress std features when simplified (fillets, chamfers, cosmetic threads, and any others picked): each gets a
-  suppression configured by the variable.
+- **Add simplification**: adds the Simplified parameter, off. Nothing else: the FeatureScripts that allow
+  simplification follow it by themselves.
 - **Include what's inside**: carries the variable into what the element uses, so simplifying a top assembly
   simplifies everything below it:
   - In a Part Studio, each Derived feature from a Part Studio with the variable gets its configuration set from the
-    Part Studio's own (`#simplified`); a Part Studio without it is offered Add simplification first, when it's in a
+    Part Studio's own (`#Simplified`); a Part Studio without it is offered Add simplification first, when it's in a
     document the person can edit.
-  - In an assembly, each instance of an element with the variable follows the assembly's own `simplified`, down
+  - In an assembly, each instance of an element with the parameter follows the assembly's own Simplified, down
     through its subassemblies. The API can't change an instance's configuration, so how depends on what Onshape
     allows (see [What to try in Onshape](#what-to-try-in-onshape)): by the assembly's configured instances, if the API
     can set them; otherwise by replacing each instance with one in the other configuration, keeping its mates, as
     placing a declared part does.
 - **Simplified / Full**: switches the element's own configuration, for the person viewing it.
+- In an assembly, **Suppress library hardware**: every FRCDesignLib fastener and other hardware Auto Assembly
+  inserted (screws, washers, nuts, end screws, rings) gets its suppression configured by Simplified, as Follow
+  simplified does for new ones (below). Hardware inserted by hand isn't touched.
 - In an assembly, **Swap placed parts for stand-ins** and back: the declared parts' real models are often the
   heaviest left, and a stand-in is lighter still than a simplified Part Studio.
 
 The menu lists what it would change before it changes anything, and each action records its use, as every feature
 does (FRCDesignApp's `AGENTS.md`).
+
+### Follow simplified, in Auto Assembly
+
+Auto Assembly's form has a **Follow simplified** checkbox, on by default and remembered, with an info icon whose
+tooltip reads: "Causes inserted hardware to automatically suppress/unsuppress in response to the Simplified
+configuration parameter."
+
+On, a run:
+
+1. Adds the assembly's Simplified parameter if it has none, off.
+2. Inserts the hardware as it does now.
+3. Configures each hardware instance it inserted to be suppressed when Simplified is on. Declared parts with a
+   stand-in (gears, motors) aren't hardware: they follow Simplified by their library part's own simplification
+   (below), not by suppression.
+4. If Simplified is on in the configuration the assembly is showing, the run's finished toast carries an info line:
+   "The inserted hardware is suppressed because Simplified is on."
 
 ### Library parts
 
@@ -260,8 +284,8 @@ its pockets and teeth.
 
 ### Ideas, for later
 
-- **Levels.** 1 drops detail, 2 builds envelopes (a gear as a cylinder at its outside diameter, a plate as its
-  outline), for packaging studies at robot scale.
+- **Envelopes.** A second level beside Simplified, building envelopes (a gear as a cylinder at its outside diameter,
+  a plate as its outline), for packaging studies at robot scale.
 - **Simplify by cost.** The menu shows each Part Studio's regeneration time (Onshape's per-feature timings), so the
   person simplifies where it pays.
 - **Simplified by default.** An assembly's own setting, so new instances arrive simplified and the full configuration
@@ -304,6 +328,58 @@ it builds its own envelope (cylinders for body, pilot and shaft) for every motor
 envelope for each motor Block Motor covers: its diameter, length behind the face, pilot height and shaft, read from
 Block Motor's sketches as its turns were, or from the vendors' drawings. The cut is the same either way. In an
 assembly, a motor placed by Auto Assembly is placed with its Simplified Model on when the assembly is simplified.
+
+## Robot bearing and Robot bushing
+
+Robot bearing hat is renamed **Robot bearing**: its Feature Type Name and its file (`fs mv` to
+`bearing/robotBearing.fs`), never its constant, `robotBearingHat`, which documents store (`docs/featurescript-style.md`,
+"Released feature constants"). **Robot bushing** is new. They share their placement in `core/bearing.fs`; Robot bushing
+is Robot bearing without retention.
+
+### What both do
+
+1. **Location**: a bore's circular edge, as Robot bearing hat takes it now, with its axis orientation. The part
+   whose face the edge is on is the host.
+2. **Product**: the bearing or bushing, from a generated table of the library's, by type and size: Flanged Radial
+   Bearing, Radial Bearing, X-Contact Bearing, Needle Roller Bearing for Robot bearing; Flanged Bushing for Robot
+   bushing. A warning when the bore isn't the product's outside diameter.
+3. **Declaration**: a host connector on the host at the bore's edge, Z out of the bore, X by the angle reference if
+   there is one: the product's `face` connector, on the face of its flange (or of the bearing, unflanged) that sits on
+   the plate. Flanged Radial Bearing already has a connector (`supportsFasten`); its place and name follow this.
+4. **Stand-in**: a ring at the product's outside diameter and width, with its flange, and its bore at its inside
+   diameter (a hex bore as a circle across its corners): one revolve. A Stand-in checkbox, as gears and motors have.
+
+`"Auto Assembly" : true` on both. Neither allows simplification: their stand-ins are already as simple as they get.
+
+### Retention (Robot bearing)
+
+A **Retention** group, with a **Retention** choice of **Hat** or **Screws**.
+
+**Hat** is today's feature: COTS, Standard or Custom hat, its table, its mounting holes, and its angle reference and
+angle. Its Auto Assembly options:
+
+- A COTS hat declares itself: WCP's Bearing Retention Hat, whose configurations are the same bore and centers as the
+  hat table's (0.875 in. bore at 1.25 or 2 in. centers, 1.125 in. at 1.5 or 2 in.). Its connector goes on the plate
+  where the hat's underside meets it, at the bore's center, X toward a mounting hole.
+- **Screws**: each mounting hole declares a screw, and with Clearance holes a nut on the far side, from the fasteners
+  part set (`fastenerTables.py`): Head, Length (or Automatic, as Auto Assembly sizes them now, from what the hole goes
+  through) and Finish, in the hole's size. Each hole's host connector is at its top edge, Z out of the hole: the
+  fasteners' own convention, so they need nothing new in the library.
+
+**Screws** retains the bearing with screw heads over its outer race or flange:
+
+- **Holes**: Tapped or Clearance, with their hole tables, as Robot bearing hat's.
+- **Count**: 2 or 3, evenly around the bore (180 or 120 degrees apart).
+- **Angle reference**, optional, with Angle (`core/mounting.fs`'s, as the hat's), turning the holes from the
+  location's X axis.
+- **Hole circle**: editing logic sets its diameter from the product and the screw's size, so each hole clears the
+  bore by a wall and its head overlaps the bearing; it can be overridden.
+- **Auto Assembly**: as the hat's screws: a screw in each hole, a washer under its head optionally (a washer widens
+  the overlap), and with Clearance holes a nut.
+
+### Robot bushing
+
+The four steps above, with Flanged Bushing's products, and no Retention group.
 
 ## Icons in the FeatureScripts tab
 
@@ -353,21 +429,23 @@ Each of these is unverified, and the design leans on it:
 4. A mate's queries can be rewritten through the API (updating the assembly feature), so it names another instance's
    connector, and the instance moves onto it.
 5. A FeatureScript reads a configuration variable with `getVariable`, and its value changes with the configuration.
-6. A Derived feature's configuration can be set to an expression of the Part Studio's own variable (`#simplified`).
+6. A Derived feature's configuration can be set to an expression of the Part Studio's own variable (`#Simplified`).
 7. The API can set an assembly's configured instances: an instance's configuration per the assembly's configuration.
-8. A configured suppression can be added to a Part Studio feature through the API.
+8. The API can add a configuration input to an assembly, and configure an instance's suppression by it.
 9. A stand-in with Exclude from BOM is left out of an assembly's bill of materials.
 10. A library gear studio's mate connectors stay put across its configurations.
+11. A Part Studio configuration variable named `Simplified` and an assembly checkbox input named `Simplified` can be
+    passed from one to the other when an assembly configures its instances.
 
 ## Still to decide
 
-- **The switch's name and type.** Proposed: `simplified`, a number, 0 or 1. A shared name is what lets Include what's
-  inside find the variable in Part Studios it didn't add it to.
+- **None as a retention.** Proposed: Hat or Screws only, as asked; a flanged bearing held by the parts around it
+  would want None.
 - **Which part sets first.** Proposed: e-clips and retaining rings, then end screws, as part sets; gears from the
   library's studios, with connectors added by hand.
 - **Order of work.** Proposed: the Onshape checks; `core/autoAssembly.fs` and `core/simplify.fs`; Robot motor
-  (unreleased, and it exercises a host connector, a stand-in and simplification at once); Robot gear; Robot lighten;
-  Robot shaft's hardware with the first part set; then the app: the part scan and run, the manifest's icons and
+  (unreleased, and it exercises a host connector, a stand-in and simplification at once); Robot bearing and Robot
+  bushing; Robot gear; Robot lighten; Robot shaft's hardware with the first part set; then the app: the part scan and run, the manifest's icons and
   references, and the Simplify menu.
 - **Robot motor's envelopes.** Proposed: read from Block Motor's sketches through Onshape's features endpoint, a call
   or two.
