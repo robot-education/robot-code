@@ -19,8 +19,7 @@ else below is the same for both. `<name>` in strings is what's placed:
 ### Descriptions and hidden parameters
 
 None of its parameters have descriptions. `index` (the nine point manipulator's point, `core/pointManipulator.fs`) is
-hidden; the manipulator sets it. On a face or between holes, the three point manipulator sets Face at or Holes at
-(`faceAt`, `holesAt`), which are shown.
+hidden; the manipulator sets it. On a face, the three point manipulator sets Face at (`faceAt`), which is shown.
 
 ### Errors, warnings, and info
 
@@ -28,8 +27,7 @@ hidden; the manipulator sets it. On a face or between holes, the three point man
 | --- | --- | --- | --- | --- |
 | Select an edge to use. | error | Edge, nothing selected | `edge` | std's form ("Select ... to use.") |
 | Select a face to use. | error | Face, nothing selected | `face` | std's form |
-| Select a face with straight edges. | error | Face: it has no straight edges, or no edges at one end | `face`, the face | none |
-| Ends of selected face must be straight, or change end type. | error | Face, Match face: an end has no straight edge, or more than one | `face`, `faceEndType`, that end's edges | none |
+| Select a face with straight edges. | error | Face: it has no straight edges | `face`, the face | none |
 | Select a start hole. / Select an end hole. | error | Holes, nothing selected | `startHole` / `endHole` | std's form |
 | Select a hole's edge, a sketch point, or a mate connector to use. | error | Holes: a selection has no plane (the filter shouldn't allow it) | the hole's parameter, the selection | std's form |
 | End hole must be parallel to start hole. | error | Holes: their axes aren't parallel | `startHole`, `endHole`, both | `UP_TO_FACE_NOT_PARALLEL` |
@@ -40,7 +38,7 @@ hidden; the manipulator sets it. On a face or between holes, the three point man
 | Select a sketch point, circle, or mate connector to use. | error | Point, nothing selected | `location` | std's form |
 | Specified offsets are too long. | error | Edge: the offsets add up to the edge's length or more | `edgeStartOffset`, `edgeEndOffset` and their Opposite directions, the edge | none (std's wording) |
 | The selected face does not intersect the `<name>`. | error | Trim: a face's plane misses the stock, or would cut all of it away | `trimFaces`, the face | `MOVE_CURVE_BOUNDARY_TRIM_NO_INTERSECTION` |
-| The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start; Face: its ends cross | Point: `depth`, `endBound`, `secondDirectionBound`; Face: `face`, `faceEndType` | none |
+| The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start; Holes: the offsets add up to its length or more | Point: `depth`, `endBound`, `secondDirectionBound`; Holes: `startHole`, `endHole`, and the offsets | none |
 | The `<name>`'s ends must be flat. | error | Point, Up to next: the next face is curved | the bound's parameters, the face | none |
 | std's `EXTRUDE_FAILED` (Failed to extrude selections, check input.) | error | Point: up to next finds nothing in front of the point, or an up to face runs along the extrude | the bound's parameters (and face) | itself |
 | std's `EXTRUDE_SELECT_TERMINATING_SURFACE`, `EXTRUDE_SELECT_TERMINATING_VERTEX` | error | Point, Up to face / vertex with nothing selected | the bound's parameters | themselves |
@@ -83,9 +81,10 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
 3. **Body**: the feature builds its `Stock` and calls `placeStock`:
    1. Where it goes: `edgePlacement`, `facePlacement`, `holePlacement`, or `extrudePlacement` (below) give the
       `location` of its start (a coordinate system with Z along it, oriented by `orientStock`), its `length`, and, from
-      face and point placement, the `startPlane` and `endPlane` its ends are on if they're slanted. Face and hole
-      placement also give the `normal` its top is toward, and have already put its top, middle, or bottom on the face or
-      holes' plane (`selectionShift`); hole placement warns if the holes are off its hole pattern.
+      point placement, the `startPlane` and `endPlane` its ends are on if they're slanted. Face and hole placement also
+      give the `normal` its top is toward, and have already put its top, middle, or bottom (between holes, its bottom)
+      on the face or holes' plane (`selectionShift`); hole placement warns if the holes are off its hole pattern, and
+      gives the `holeShift` its holes are moved by (`shiftedHoles`), so they stay on the holes whatever its offsets.
    2. Along an edge or from a point, the chosen nine point is moved onto the edge or point (`stockPointOffsets`). Then
       `stockSpan` stretches the length to reach the farthest corner of each slanted end, as an extrude up to a slanted
       face reaches it.
@@ -93,14 +92,14 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
       trims (below).
    4. The feature's builder builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
    5. `setStockProperties` names it and sets its properties.
-   6. Along an edge or from a point, the nine point manipulator is added; on a face or between holes, the three point
-      manipulator (`addSelectionAtManipulator`: its top, middle, and bottom along the normal, halfway along it). Then the
-      flip manipulator (and, by `edgePlacement`, the offset manipulators; by `extrudePlacement`, std's depth and flip
-      manipulators, from the point moved by the starting offset).
+   6. Along an edge or from a point, the nine point manipulator is added; on a face, the three point manipulator
+      (`addSelectionAtManipulator`: its top, middle, and bottom along the normal, halfway along it). Then the flip
+      manipulator (and, by `edgePlacement` and `holePlacement`, the offset manipulators; by `extrudePlacement`, std's
+      depth and flip manipulators, from the point moved by the starting offset).
    7. Tied holes are shown, then a warning if it's longer than it's sold, or else info if it isn't a regular length.
 4. **Manipulator change** (`stockManipulatorChange`): the nine point and flip manipulators set their parameters; on a
-   face or between holes, the three point manipulator sets Face at or Holes at (its points in `SELECTION_AT_POINTS`'
-   order); along an edge, the offset manipulators set the offsets; from a point, std's extrude manipulators set depth
+   face, the three point manipulator sets Face at (its points in `SELECTION_AT_POINTS`' order); along an edge or between
+   holes, the offset manipulators set the offsets; from a point, std's extrude manipulators set depth
    and direction (`extrudeManipulatorChange`).
 
 ### Placing
@@ -128,10 +127,8 @@ sketch region is a face):
    sketch's edge) out of the face, unless the face is only as wide as the stock's `width` (its X side), when X is across
    it. The rotate button turns it from there. A face as wide as neither side is allowed (a nut strip on the inside of
    a tube), and isn't reported.
-3. Its ends (`faceEnds`): the face's edges which aren't straight sides along it, split by which half of it their middles
-   are in. Match face cuts each end along its one straight edge, square to the face (a slanted end: a drawn miter is
-   mitered); Square, longest ends square at the face's extent (the farthest of each end's edges); Square, shortest at
-   the nearest (where both sides of a mitered face reach, for a butt joint into the stock it's mitered with).
+3. Its ends are square, at the ends of the face's bounding box along it (its farthest points), and its holes are
+   spaced from its start, as along an edge.
 4. Face at puts its top (the side the face's normal points to), middle, or bottom on the face (`selectionShift`, by its
    thickness along the normal, `profileThickness`).
 
@@ -149,7 +146,11 @@ sketch region is a face):
 4. It's `2 * position` longer than the distance between the holes, as far past each as its first hole is from its
    start, so a whole number of that row's pitch apart, the far hole lines up too, and it's a regular length when the
    hole is at `tieStart`. Otherwise a warning says the holes aren't a multiple of the pitch apart.
-5. Holes at puts its top, middle, or bottom on the start hole's plane, as Face at does.
+5. Its bottom is on the start hole's plane, on the side the holes face.
+6. Start offset and End offset (the edge's parameters and manipulators) move its ends in from there, or out past them,
+   as along an edge. Its holes stay on the selected holes (`shiftedHoles`): with its start moved out, each row's holes go
+   on into it, the first as near the start as it was; moved in, those still wholly on it stay. The holes counted for
+   tying move with them.
 
 `extrudePlacement` works out where an extrude from the selected point would go, without extruding, as std's extrude
 decides it:
@@ -237,5 +238,7 @@ There are no fallbacks.
   nothing says so; a warning would also show for every nut strip placed on a tube's inside face.
 - Holes are picked by their edges (or sketch points), not their cylindrical faces, which are easier to click: a
   cylinder doesn't say which of its ends is on the part's face the stock goes on.
-- Square, shortest on a face with rounded corners ends where the rounding starts, not at the flat of its end.
+- Between holes, a start offset that isn't a multiple of the hole spacing leaves the first hole nearer (or farther
+  from) the start than the stock's usual margin, as cutting it from longer stock would, and its length then isn't
+  regular (the info says so).
 - Trimming to parts doesn't extend the stock to reach a part first, as std's Frame does.

@@ -119,16 +119,48 @@ export function testSplineCutoutsAreNotHolesToAlignBy()
     expectEqual(alignedHole([]), undefined);
 }
 
-export function testThreePointManipulatorSetsFaceAtOrHolesAt()
+export function testThreePointManipulatorSetsFaceAt()
 {
     const moved = { "selectionAtManipulator" : { "index" : 0 } };
     const onFace = stockManipulatorChange(newContext(), { "placement" : StockPlacement.FACE, "faceAt" : SelectionAt.BOTTOM, "flip" : false }, moved);
     expectEqual(onFace.faceAt, SelectionAt.TOP);
-    const onHoles = stockManipulatorChange(newContext(), { "placement" : StockPlacement.HOLES, "holesAt" : SelectionAt.BOTTOM, "flip" : false }, moved);
-    expectEqual(onHoles.holesAt, SelectionAt.TOP);
     // Another manipulator leaves it
     const flipped = stockManipulatorChange(newContext(), { "placement" : StockPlacement.FACE, "faceAt" : SelectionAt.MIDDLE, "flip" : false },
         { "stockFlipManipulator" : { "flipped" : true } });
     expectEqual(flipped.faceAt, SelectionAt.MIDDLE);
     expectEqual(flipped.flip, true);
+}
+
+export function testHolesOffsetsDraggedPastTheirEndFlip()
+{
+    const dragged = stockManipulatorChange(newContext(), { "placement" : StockPlacement.HOLES, "flip" : false, "edgeStartOffset" : 0.25 * inch,
+                "edgeStartOffsetOppositeDirection" : false }, { "startOffsetManipulator" : { "offset" : -1 * inch } });
+    expectEqual(dragged.edgeStartOffset, 1 * inch);
+    expectEqual(dragged.edgeStartOffsetOppositeDirection, true);
+}
+
+export function testUnshiftedHolesStay()
+{
+    var stock = tube();
+    stock.xRows = [holeRow(0.75 * inch, 0.5 * inch)];
+    const shifted = shiftedHoles(stock, 0 * meter);
+    expectNear(shifted.xRows[0].start, 0.75 * inch, 1e-12 * meter);
+    expectNear(shifted.tieStart, 0.5 * inch, 1e-12 * meter);
+}
+
+export function testHolesGoOnIntoALongerStart()
+{
+    // Out 1.25 in.: the first hole is as near the start as it was, with the holes on the selected holes 1.25 in. on
+    const shifted = shiftedHoles(tube(), 1.25 * inch);
+    expectNear(shifted.xRows[0].start, 0.75 * inch, 1e-12 * meter);
+    expectNear(shifted.yRows[0].start, 0.75 * inch, 1e-12 * meter);
+    expectNear(shifted.tieStart, 0.75 * inch, 1e-12 * meter);
+}
+
+export function testHolesStillOnAShorterStartStay()
+{
+    // In 0.25 in.: the hole 0.25 in. from the start is still wholly on it
+    expectNear(shiftedHoles(tube(), -0.25 * inch).xRows[0].start, 0.25 * inch, 1e-12 * meter);
+    // In 0.45 in.: it isn't (its radius is 0.098 in.), so the next is first
+    expectNear(shiftedHoles(tube(), -0.45 * inch).xRows[0].start, 0.55 * inch, 1e-12 * meter);
 }
