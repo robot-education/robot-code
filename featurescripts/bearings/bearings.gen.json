@@ -454,7 +454,8 @@
           },
           "name": "1/2 in Hex Radial Bearing (1.125 in OD x 0.313 in, Sealed)",
           "partNumber": "R82RS-Hex",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -465,7 +466,8 @@
           },
           "name": "3/8 in Hex Radial Bearing (0.875 in OD x 0.281 in, Sealed)",
           "partNumber": "R62RS-Hex",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -474,7 +476,8 @@
             "bore": "ROUNDED_HEX"
           },
           "name": "1/2 in Rounded Hex Radial Bearing (1.125 in OD x 0.313 in)",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -485,7 +488,8 @@
             "dimensions": "OD_0_875_X_0_281"
           },
           "name": "1/2 in Round Radial Bearing (0.875 in OD x 0.281 in)",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -497,7 +501,8 @@
           },
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.25 in, Open)",
           "partNumber": "R8",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -510,7 +515,8 @@
           },
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
           "partNumber": "R8ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -523,7 +529,8 @@
           },
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in, Sealed)",
           "partNumber": "R82RS",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -535,7 +542,8 @@
           },
           "name": "1/2 in Round Radial Bearing (1.375 in OD x 0.438 in)",
           "partNumber": "1621ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -547,7 +555,8 @@
           },
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.219 in, Open)",
           "partNumber": "R6",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -560,7 +569,8 @@
           },
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
           "partNumber": "R6ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -573,7 +583,8 @@
           },
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)",
           "partNumber": "R62RS",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -585,7 +596,8 @@
           },
           "name": "3/8 in Round Radial Bearing (1.125 in OD x 0.375 in)",
           "partNumber": "1614ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -597,7 +609,8 @@
           },
           "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.156 in, Open)",
           "partNumber": "R3",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -609,7 +622,8 @@
           },
           "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)",
           "partNumber": "R3ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -620,7 +634,8 @@
           },
           "name": "0.19 in Round Radial Bearing (0.375 in OD x 0.156 in (extended inner race))",
           "partNumber": "R166ZZEE",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -632,7 +647,8 @@
           },
           "name": "1/4 in Round Radial Bearing (0.375 in OD x 0.125 in)",
           "partNumber": "R168ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -644,7 +660,8 @@
           },
           "name": "1/4 in Round Radial Bearing (0.5 in OD x 0.188 in)",
           "partNumber": "R188ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -656,7 +673,8 @@
           },
           "name": "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in)",
           "partNumber": "R4ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -668,7 +686,8 @@
           },
           "name": "1/4 in Round Radial Bearing (0.75 in OD x 0.281 in)",
           "partNumber": "RA4ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -679,7 +698,8 @@
           },
           "name": "5/8 in Round Radial Bearing (1.375 in OD x 0.438 in)",
           "partNumber": "1623ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -691,7 +711,8 @@
           },
           "name": "5 mm Round Radial Bearing (13 mm OD x 4 mm)",
           "partNumber": "695ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -703,7 +724,8 @@
           },
           "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm)",
           "partNumber": "635ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -715,7 +737,8 @@
           },
           "name": "6 mm Round Radial Bearing (12 mm OD x 4 mm)",
           "partNumber": "126ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -727,7 +750,8 @@
           },
           "name": "6 mm Round Radial Bearing (17 mm OD x 6 mm)",
           "partNumber": "606ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -739,7 +763,8 @@
           },
           "name": "8 mm Round Radial Bearing (16 mm OD x 5 mm)",
           "partNumber": "688ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -751,7 +776,8 @@
           },
           "name": "8 mm Round Radial Bearing (19 mm OD x 6 mm)",
           "partNumber": "R1980ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -763,7 +789,8 @@
           },
           "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm)",
           "partNumber": "608ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -774,7 +801,8 @@
           },
           "name": "10 mm Round Radial Bearing (26 mm OD x 8 mm)",
           "partNumber": "6000ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -786,7 +814,8 @@
           },
           "name": "12 mm Round Radial Bearing (21 mm OD x 5 mm)",
           "partNumber": "6801ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -798,7 +827,8 @@
           },
           "name": "12 mm Round Radial Bearing (28 mm OD x 8 mm)",
           "partNumber": "6001ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -810,7 +840,8 @@
           },
           "name": "15 mm Round Radial Bearing (21 mm OD x 4 mm)",
           "partNumber": "6702ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -822,7 +853,8 @@
           },
           "name": "15 mm Round Radial Bearing (24 mm OD x 5 mm)",
           "partNumber": "6802ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -834,7 +866,8 @@
           },
           "name": "15 mm Round Radial Bearing (28 mm OD x 7 mm)",
           "partNumber": "6902ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -846,7 +879,8 @@
           },
           "name": "17 mm Round Radial Bearing (23 mm OD x 4 mm)",
           "partNumber": "6703ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -858,7 +892,8 @@
           },
           "name": "17 mm Round Radial Bearing (26 mm OD x 5 mm)",
           "partNumber": "6803ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -869,7 +904,8 @@
           },
           "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm)",
           "partNumber": "6805ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -880,7 +916,8 @@
           },
           "name": "35 mm Round Radial Bearing (47 mm OD x 7 mm)",
           "partNumber": "6807ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -891,7 +928,8 @@
           },
           "name": "80 mm Round Radial Bearing (100 mm OD x 10 mm, Sealed)",
           "partNumber": "68162RS",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1160,7 +1198,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0777",
           "url": "https://wcproducts.com/products/wcp-0777",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1173,7 +1212,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0778",
           "url": "https://wcproducts.com/products/wcp-0778",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1185,7 +1225,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0776",
           "url": "https://wcproducts.com/products/wcp-0776",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1197,7 +1238,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0773",
           "url": "https://wcproducts.com/products/wcp-0773",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1210,7 +1252,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0774",
           "url": "https://wcproducts.com/products/wcp-0774",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1223,7 +1266,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0775",
           "url": "https://wcproducts.com/products/wcp-0775",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1236,7 +1280,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0041",
           "url": "https://wcproducts.com/products/wcp-0041",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1249,7 +1294,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0212",
           "url": "https://wcproducts.com/products/wcp-0212",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1261,7 +1307,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0498",
           "url": "https://wcproducts.com/products/wcp-0498",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1273,7 +1320,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-1756",
           "url": "https://wcproducts.com/products/wcp-1756",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1286,7 +1334,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0078",
           "url": "https://wcproducts.com/products/wcp-0078",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1299,7 +1348,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0840",
           "url": "https://wcproducts.com/products/wcp-0840",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1312,7 +1362,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-1660",
           "url": "https://wcproducts.com/products/wcp-1660",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1325,7 +1376,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0841",
           "url": "https://wcproducts.com/products/wcp-0841",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1337,7 +1389,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0027",
           "url": "https://wcproducts.com/products/wcp-0027",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1349,7 +1402,8 @@
           "vendor": "WCP",
           "partNumber": "WCP-0036",
           "url": "https://wcproducts.com/products/wcp-0036",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1599,7 +1653,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4703",
           "url": "https://andymark.com/am-4703",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1612,7 +1667,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4702",
           "url": "https://andymark.com/am-4702",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1626,7 +1682,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-0029",
           "url": "https://andymark.com/am-0029",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1641,7 +1698,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-0181",
           "url": "https://andymark.com/am-0181",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1656,7 +1714,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4464",
           "url": "https://andymark.com/am-4464",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1670,7 +1729,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4466",
           "url": "https://andymark.com/am-4466",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1684,7 +1744,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-0936",
           "url": "https://andymark.com/am-0936",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1699,7 +1760,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-0516",
           "url": "https://andymark.com/am-0516",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1714,7 +1776,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4462",
           "url": "https://andymark.com/am-4462",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1728,7 +1791,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-0209",
           "url": "https://andymark.com/am-0209",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1742,7 +1806,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-0031",
           "url": "https://andymark.com/am-0031",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1756,7 +1821,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4458",
           "url": "https://andymark.com/am-4458",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1769,7 +1835,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-3681",
           "url": "https://andymark.com/am-3681",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1782,7 +1849,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4460",
           "url": "https://andymark.com/am-4460",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1795,7 +1863,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4467",
           "url": "https://andymark.com/am-4467",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1808,7 +1877,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4724",
           "url": "https://andymark.com/am-4724",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1822,7 +1892,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4149",
           "url": "https://andymark.com/am-4149",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1836,7 +1907,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4454",
           "url": "https://andymark.com/am-4454",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1850,7 +1922,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-2095",
           "url": "https://andymark.com/am-2095",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1864,7 +1937,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4456",
           "url": "https://andymark.com/am-4456",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1877,7 +1951,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4468",
           "url": "https://andymark.com/am-4468",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1890,7 +1965,8 @@
           "vendor": "AndyMark",
           "partNumber": "am-4469",
           "url": "https://andymark.com/am-4469",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -1965,7 +2041,8 @@
           "vendor": "REV",
           "partNumber": "REV-29-3296",
           "url": "https://www.revrobotics.com/search.php?search_query=REV-29-3296&section=product",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2085,7 +2162,8 @@
           "name": "1/2 in Rounded Hex Radial Bearing (1.125 in OD x 0.313 in)",
           "vendor": "VEX",
           "partNumber": "217-4270",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2098,7 +2176,8 @@
           "name": "1/2 in Round Radial Bearing (0.875 in OD x 0.281 in)",
           "vendor": "VEX",
           "partNumber": "217-3337",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2111,7 +2190,8 @@
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
           "vendor": "VEX",
           "partNumber": "217-3109",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2123,7 +2203,8 @@
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
           "vendor": "VEX",
           "partNumber": "217-3239",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2135,7 +2216,8 @@
           "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)",
           "vendor": "VEX",
           "partNumber": "217-3246",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2148,7 +2230,8 @@
           "name": "1/4 in Round Radial Bearing (0.375 in OD x 0.125 in)",
           "vendor": "VEX",
           "partNumber": "217-2788",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2161,7 +2244,8 @@
           "name": "1/4 in Round Radial Bearing (0.5 in OD x 0.188 in)",
           "vendor": "VEX",
           "partNumber": "217-3489",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2263,7 +2347,8 @@
           "vendor": "ThriftyBot",
           "partNumber": "TTB-0024",
           "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0024",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2276,7 +2361,8 @@
           "vendor": "ThriftyBot",
           "partNumber": "TTB-0008",
           "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0008",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2289,7 +2375,8 @@
           "vendor": "ThriftyBot",
           "partNumber": "TTB-0022",
           "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0022",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2302,7 +2389,8 @@
           "vendor": "ThriftyBot",
           "partNumber": "TTB-0021",
           "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0021",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2315,7 +2403,8 @@
           "vendor": "ThriftyBot",
           "partNumber": "TTB-0027",
           "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0027",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2328,7 +2417,8 @@
           "vendor": "ThriftyBot",
           "partNumber": "TTB-0038",
           "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0038",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2340,7 +2430,8 @@
           "vendor": "ThriftyBot",
           "partNumber": "TTB-0064",
           "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0064",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2393,7 +2484,8 @@
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
           "vendor": "SDS",
           "partNumber": "R8ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2404,7 +2496,8 @@
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
           "vendor": "SDS",
           "partNumber": "R6ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2416,7 +2509,8 @@
           "name": "1/4 in Round Radial Bearing (0.5 in OD x 0.188 in)",
           "vendor": "SDS",
           "partNumber": "R188ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2428,7 +2522,8 @@
           "name": "1/4 in Round Radial Bearing (0.75 in OD x 0.281 in)",
           "vendor": "SDS",
           "partNumber": "RA4ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2439,7 +2534,8 @@
           "name": "8 mm Round Radial Bearing (16 mm OD x 5 mm)",
           "vendor": "SDS",
           "partNumber": "688ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         },
         {
           "values": {
@@ -2450,7 +2546,8 @@
           "name": "15 mm Round Radial Bearing (24 mm OD x 5 mm)",
           "vendor": "SDS",
           "partNumber": "6802ZZ",
-          "material": "Steel"
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
         }
       ]
     }
@@ -3925,7 +4022,7 @@
       "dimensions": "OD_0_875_X_0_281",
       "outerDiameter": 0.022225,
       "width": 0.0071374,
-      "flangeDiameter": 0.024638,
+      "flangeDiameter": 0.024765,
       "seal": "SEALED",
       "partNumber": "am-4489",
       "url": "https://andymark.com/am-4489"
@@ -3981,7 +4078,7 @@
       "dimensions": "OD_0_875_X_0_219",
       "outerDiameter": 0.022225,
       "width": 0.0055626,
-      "flangeDiameter": 0.024638,
+      "flangeDiameter": 0.0246888,
       "seal": "OPEN",
       "partNumber": "am-0027",
       "url": "https://andymark.com/am-0027"
@@ -3995,7 +4092,7 @@
       "dimensions": "OD_0_875_X_0_281",
       "outerDiameter": 0.022225,
       "width": 0.0071374,
-      "flangeDiameter": 0.024638,
+      "flangeDiameter": 0.024765,
       "seal": "SHIELDED",
       "partNumber": "am-0028",
       "url": "https://andymark.com/am-0028"
@@ -4009,7 +4106,7 @@
       "dimensions": "OD_0_875_X_0_281",
       "outerDiameter": 0.022225,
       "width": 0.0071374,
-      "flangeDiameter": 0.024638,
+      "flangeDiameter": 0.024765,
       "seal": "SEALED",
       "partNumber": "am-4463",
       "url": "https://andymark.com/am-4463"
@@ -4079,7 +4176,7 @@
       "dimensions": "MM_12_X_4",
       "outerDiameter": 0.012,
       "width": 0.004,
-      "flangeDiameter": 0.0135,
+      "flangeDiameter": 0.0136,
       "seal": "SHIELDED",
       "partNumber": "am-3377",
       "url": "https://andymark.com/am-3377"
@@ -4107,7 +4204,7 @@
       "dimensions": "MM_19_X_6",
       "outerDiameter": 0.019,
       "width": 0.006,
-      "flangeDiameter": 0.022,
+      "flangeDiameter": 0.0221,
       "seal": "SHIELDED",
       "partNumber": "am-0931",
       "url": "https://andymark.com/am-0931"
@@ -4449,7 +4546,7 @@
       "dimensions": "OD_1_X_0_281",
       "outerDiameter": 0.0254,
       "width": 0.0071374,
-      "flangeDiameter": 0.026924,
+      "flangeDiameter": 0.0269875,
       "seal": "SHIELDED",
       "partNumber": "REV-21-3197",
       "url": "https://www.revrobotics.com/search.php?search_query=REV-21-3197&section=product"
@@ -4477,7 +4574,7 @@
       "dimensions": "OD_0_875_X_0_281",
       "outerDiameter": 0.022225,
       "width": 0.0071374,
-      "flangeDiameter": 0.024638,
+      "flangeDiameter": 0.0246126,
       "seal": "SHIELDED",
       "partNumber": "REV-21-3199",
       "url": "https://www.revrobotics.com/search.php?search_query=REV-21-3199&section=product"

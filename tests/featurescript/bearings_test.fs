@@ -30,6 +30,10 @@ export function testEveryBearingsProfileFitsAroundItsBore()
                     {
                         for (var seal, bearing in seals)
                         {
+                            if (bearing.plain != undefined)
+                            {
+                                continue;
+                            }
                             const isFlanged = type == BearingType.FLANGED;
                             const points = bearingProfile(bearing, radius, isFlanged);
                             // Closed, on the axis
@@ -69,6 +73,18 @@ export function testExtendedInnerRaceStandsOutOfTheOuterRace()
     expectSamePoint(points[5], vector(0.375 / 2 * inch, -0.1405 * inch));
     expectSamePoint(points[6], vector(0.375 / 2 * inch, -0.0155 * inch));
     expectSamePoint(points[size(points) - 3], vector(points[1][0], 0 * meter));
+}
+
+export function testPlainBearingIsSolidUnderItsFlange()
+{
+    // REV's Through Bore Bearing - Short: 5 mm overall, a 13 x 2 mm flange on a 9 mm body
+    const bearing = BEARINGS[BearingVendor.REV][BearingType.FLANGED][BearingBore.HEX][BearingSize.MM_5][BearingDimensions.MM_9_X_5][BearingSeal.NONE];
+    const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.HEX][BearingSize.MM_5]), true);
+    expectEqual(size(points), 7);
+    expectSamePoint(points[0], vector(0 * meter, -3 * millimeter));
+    expectSamePoint(points[1], vector(4.5 * millimeter, -3 * millimeter));
+    expectSamePoint(points[4], vector(6.5 * millimeter, 2 * millimeter));
+    expectSamePoint(points[0], points[6]);
 }
 
 export function testHiddenChoicesResolveToTheOneMade()

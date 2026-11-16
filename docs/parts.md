@@ -96,7 +96,8 @@ A release:
    each studio's tab there (`elementId`) in place of where it was last released. A studio whose feature makes a mate
    connector names the id it gives it (`mateConnector`, from `ConfiguredStudio.mate_connector`), and others on its
    top and bottom where it has them (`topMateConnector` and `bottomMateConnector`, from `top_mate_connector` and
-   `bottom_mate_connector`). A fasten mate names a connector
+   `bottom_mate_connector`). A record naming one of these stands for its own configuration where it differs (a radial
+   bearing's `topMateConnector` is `mateConnector`, its top being where it seats). A fasten mate names a connector
    `<featureId>.<id>`, and Onshape's API shows no mate connector a feature makes, so this is how FRCDesignApp fastens
    to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
    the document's version, so the records it indexes are always those of the version it loads.

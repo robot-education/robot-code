@@ -17,8 +17,8 @@ What each vendor makes, and its part numbers, come from FRCDesign's own Flanged 
 Dimensions option, which names its bore, outer diameter, width, and seal. Generic offers every bearing any vendor
 makes, with the bearing's designation (FR8ZZ) as its part number where FRCDesign gives one.
 
-FTC's are goBILDA's, the only bearings in ConfigLib, from its store and its STEP files (vendor/, measured for their
-flanges and REX bores).
+FTC's are goBILDA's (the only bearings in ConfigLib), REV's from its FTC catalog, and AndyMark's its store tags for FTC,
+from their stores and STEP files (vendor/, measured for their flanges and bores).
 
 Flanges come from REV's drawings, AndyMark's listed specifications, and goBILDA's STEP files (vendor/), or else the
 designation's standard dimensions, marked where they're assumed. A bore is its shaft's nominal size: 13.75 mm and 10.25 mm across a rounded
@@ -81,7 +81,19 @@ BearingBore = Enum(
     {"HEX": "Hex", "ROUNDED_HEX": "Rounded hex", "ROUND": "Round", "THUNDERSQUARE": "ThunderSquare", "REX": "REX"},
 )
 
-BearingSeal = Enum("BearingSeal", ["SHIELDED", "SEALED", "OPEN"], {"SHIELDED": "Shielded", "SEALED": "Sealed", "OPEN": "Open"})
+# A plain bearing (REV's acetal Through Bore Bearings) has no seal: it has no balls or races to seal
+BearingSeal = Enum(
+    "BearingSeal",
+    ["SHIELDED", "SEALED", "OPEN", "NONE"],
+    {"SHIELDED": "Shielded", "SEALED": "Sealed", "OPEN": "Open", "NONE": "None"},
+)
+# Each bearing's material, as robotProperties.fs's constant and as Onshape names it: steel, but a plain bearing's acetal
+MATERIALS = {"STEEL": "Steel", "ACETAL": "Acetal"}
+
+
+def material(seal: str) -> str:
+    return "ACETAL" if seal == "NONE" else "STEEL"
+
 
 
 # Sizes: a bore's nominal size, 1/2 in and 3/8 in first, then the rest from smallest
@@ -250,6 +262,31 @@ FLANGES: dict[tuple[str, str], tuple[str, str]] = {
     ("MM_35", "MM_47_X_7"): ("50", "1.5"),
 }
 
+# Flanges as each vendor's model has them, by vendor, size, and dimensions, where they differ from `FLANGES`
+# (vendor/models: AndyMark's and REV's STEP files)
+VENDOR_FLANGES: dict[tuple[str, str, str], tuple[str, str]] = {
+    # AndyMark's 1.125 in OD flanges are 1.225 in x 0.06 in (am-0030, am-0573, am-0692, am-2986), FR82RS's 1.25 in
+    **{("ANDYMARK", size, "OD_1_125_X_0_313"): ("1.225", "0.06") for size in ("IN_1_2", "IN_3_8")},
+    ("ANDYMARK", "IN_3_8", "OD_0_875_X_0_281"): ("0.975", "0.062"),  # am-0028; am-4463's and am-4489's are within 0.01 in
+    ("ANDYMARK", "IN_3_8", "OD_0_875_X_0_219"): ("0.972", "0.06"),  # am-0027
+    ("ANDYMARK", "IN_3_16", "OD_0_5_X_0_196"): ("0.565", "0.04"),  # am-4459
+    ("ANDYMARK", "MM_6", "MM_12_X_4"): ("13.6", "0.8"),  # am-3377
+    ("ANDYMARK", "MM_6", "MM_17_X_6"): ("19", "1.2"),  # am-4455
+    ("ANDYMARK", "MM_8", "MM_19_X_6"): ("22.1", "1.5"),  # am-0931
+    ("ANDYMARK", "MM_8", "MM_22_X_7"): ("25", "1.5"),  # am-4457
+    ("REV", "IN_1_2", "OD_1_X_0_281"): ("1.0625", "0.062"),  # REV-21-3197
+    ("REV", "NO_10", "OD_0_875_X_0_281"): ("0.969", "0.0625"),  # REV-21-3199
+    ("REV", "MM_8", "MM_12_X_3_5"): ("13.6", "0.8"),  # REV-49-1559
+    ("REV", "MM_35", "MM_47_X_7"): ("50", "1.5"),  # REV-29-3295
+    ("REV", "MM_5", "MM_9_X_5"): ("13", "2"),  # REV-41-1326-DR.pdf
+    ("REV", "MM_5", "MM_9_X_11"): ("13", "2"),  # REV-41-1329-DR.pdf
+}
+
+
+def flange(vendor: str, size: str, dimensions: str) -> tuple[str, str]:
+    """A flanged bearing's flange: its diameter and thickness, in its dimensions' unit."""
+    return VENDOR_FLANGES.get((vendor, size, dimensions)) or FLANGES[(size, dimensions)]
+
 
 # What each vendor makes, from FRCDesign's records
 
@@ -318,6 +355,9 @@ def _frc_bearings() -> Bearings:
     return dict(sorted(stocked.items(), key=_order))
 
 
+FRC_BEARINGS = _frc_bearings()
+
+
 # FTC's: goBILDA's, by type, bore, size, outer diameter and width (mm), and seal, each its SKU and page. Its titles name
 # only its 12 mm non-flanged bearing sealed; the rest are taken as shielded
 GOBILDA_STORE = "https://www.gobilda.com"
@@ -339,15 +379,39 @@ _GOBILDA = [
 ]
 
 
+# REV's for FTC, from its FTC catalog's Bearings, Shafts, & Spacers: its flanged ball bearing, and its acetal Through
+# Bore Bearings, plain bearings for its 5 mm hex shafts, 5 mm and 11 mm long overall (REV-41-1326 and -1329's drawings
+# and STEP files). Its pulley bearings are V-grooved, and its end cap bearings caps, so neither is a bearing here.
+REV_STORE = "https://www.revrobotics.com"
+_REV_FTC = [
+    ("FLANGED", "ROUND", "MM_8", "12", "3.5", "SHIELDED", "REV-49-1559-PK10", "/rev-49-1559-pk10/"),
+    ("FLANGED", "HEX", "MM_5", "9", "5", "NONE", "REV-41-1326", "/Through-Bore-Bearings/"),
+    ("FLANGED", "HEX", "MM_5", "9", "11", "NONE", "REV-41-1329", "/Through-Bore-Bearings/"),
+]
+# AndyMark's for FTC: those its store tags for FTC (All FTC Parts, and its Robits line's bearings), but its V-grooved
+# pulley bearing (am-4836)
+ANDYMARK_STORE = "https://andymark.com/products"
+_ANDYMARK_FTC = [
+    ("FLANGED", "ROUND", "MM_5", "11", "4", "SHIELDED", "am-5606", "/5-mm-id-11-mm-od-shielded-flanged-bearing-mf115zz"),
+    ("FLANGED", "ROUND", "MM_6", "12", "4", "SHIELDED", "am-3377", "/6-mm-id-12-mm-od-shielded-flanged-bearing-f126zz"),
+    ("FLANGED", "ROUND", "MM_15", "21", "4", "SHIELDED", "am-5536", "/15-mm-id-21-mm-od-shielded-flanged-bearing-f6702zz"),
+    ("RADIAL", "ROUND", "MM_5", "13", "4", "SHIELDED", "am-4724", "/5-mm-id-13-mm-od-shielded-bearing-695zz"),
+]
+_FTC_STORES = {"GOBILDA": (_GOBILDA, GOBILDA_STORE), "REV": (_REV_FTC, REV_STORE), "ANDYMARK": (_ANDYMARK_FTC, ANDYMARK_STORE)}
+
+
 def _ftc_bearings() -> Bearings:
+    """FTC's metric bearings, and AndyMark's 3/8 in hex Robits bearing (am-4489), which FRC's catalog has too."""
     bearings: Bearings = {}
-    for type, bore, size, outer, width, seal, sku, page in _GOBILDA:
-        bearing = Bearing(type, bore, size, Dimensions(outer, width, "mm"), seal)
-        bearings[("GOBILDA", *bearing.key)] = (bearing, Stock(sku, GOBILDA_STORE + page))
+    for vendor, (parts, store) in _FTC_STORES.items():
+        for type, bore, size, outer, width, seal, sku, page in parts:
+            bearing = Bearing(type, bore, size, Dimensions(outer, width, "mm"), seal)
+            bearings[(vendor, *bearing.key)] = (bearing, Stock(sku, store + page))
+    robits = ("ANDYMARK", "FLANGED", "HEX", "IN_3_8", "OD_0_875_X_0_281", "SEALED")
+    bearings[robits] = FRC_BEARINGS[robits]
     return dict(sorted(bearings.items(), key=_order))
 
 
-FRC_BEARINGS = _frc_bearings()
 FTC_BEARINGS = _ftc_bearings()
 # Every bearing either set makes, which the feature's tables hold
 BEARINGS = {**FRC_BEARINGS, **FTC_BEARINGS}
@@ -373,8 +437,11 @@ _SIZE_WORDS = {"NO_10": "0.19 in"}
 
 def bearing_name(bearing: Bearing) -> str:
     """e.g. `1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)`, with any seal but shields after its
-    dimensions: `3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)`."""
+    dimensions: `3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)`, or a plain bearing's `5 mm Hex Flanged
+    Plain Bearing (9 mm OD x 5 mm)`."""
     size = _SIZE_WORDS.get(bearing.size, SIZES_BY_ID[bearing.size].name)
+    if bearing.seal == "NONE":
+        return f"{size} {_BORE_WORDS[bearing.bore]} {_TYPE_WORDS[bearing.type]} Plain Bearing ({bearing.dimensions.name})"
     described = [bearing.dimensions.name] + ([] if bearing.seal == "SHIELDED" else [BearingSeal.names[bearing.seal]])  # type: ignore[index]
     return f"{size} {_BORE_WORDS[bearing.bore]} {_TYPE_WORDS[bearing.type]} Bearing ({', '.join(described)})"
 
@@ -392,6 +459,7 @@ class Record:
     name: str
     vendor: str
     stock: Stock
+    bearing: Bearing
 
     def fields(self) -> dict[str, str]:
         vendor = vendor_name(self.vendor)
@@ -399,11 +467,22 @@ class Record:
             "name": string(self.name),
             **({"vendor": string(vendor)} if vendor else {}),
             **{key: string(value) for key, value in _stock(self.stock).items()},
+            "material": material(self.bearing.seal),
+            # Black, a placeholder for an acetal bearing's color, which REV doesn't publish
+            "appearance": "BLACK" if self.bearing.seal == "NONE" else "STEEL_GRAY",
         }
 
     def manifest(self) -> dict:
         vendor = vendor_name(self.vendor)
-        return {"values": self.values, "name": self.name, **({"vendor": vendor} if vendor else {}), **_stock(self.stock), "material": "Steel"}
+        return {
+            "values": self.values,
+            "name": self.name,
+            **({"vendor": vendor} if vendor else {}),
+            **_stock(self.stock),
+            "material": MATERIALS[material(self.bearing.seal)],
+            # A radial bearing's top is where it seats: one connector, which its studio's top connector stands for
+            **({"topMateConnector": SEAT_MATE_CONNECTOR} if self.bearing.type == "RADIAL" else {}),
+        }
 
 
 def _stock(stock: Stock) -> dict[str, str]:
@@ -424,39 +503,49 @@ _ENUMS = {
 }
 
 
-class Catalog:
-    """One part set's studio, laid out from the bearings it makes, and its records: what FRCDesign indexes."""
+SEAT_MATE_CONNECTOR = "mateConnector"
 
-    def __init__(self, bearings: Bearings, defaults: tuple[str, str, str, str, str, str]):
+
+class Catalog:
+    """One part set's studio, laid out from the bearings it makes, and its records: what FRCDesign indexes.
+
+    Args:
+        vendors: The vendors' order in its studio, most used first, where it isn't the enum's own.
+    """
+
+    def __init__(self, bearings: Bearings, defaults: tuple[str, str, str, str, str, str], vendors: list[str] | None = None):
         self.bearings = bearings
+        self.vendors = vendors or []
         self.table = LookupTable(COLUMNS, list(bearings))
         self.studios = {
             "bearing": ConfiguredStudio(
                 "bearing",
                 "libraryBearing",
                 [self._list(id, *_ENUMS[id], default) for id, default in zip(COLUMNS, defaults)],
-                mate_connector="mateConnector",
+                mate_connector=SEAT_MATE_CONNECTOR,
                 top_mate_connector="topMateConnector",
                 bottom_mate_connector="bottomMateConnector",
             )
         }
         self.records = {
             "bearing": {
-                key: Record(self.table.shown(key), bearing_name(bearing), key[0], stock)
+                key: Record(self.table.shown(key), bearing_name(bearing), key[0], stock, bearing)
                 for key, (bearing, stock) in bearings.items()
             }
         }
 
     def _list(self, id: str, name: str, enum: Enum, parameter: str, default: str) -> Input:
         assert enum.names is not None
-        options = [Option(value, enum.names[value], value) for value in enum.values]
+        order = self.vendors if enum is BearingVendor else []
+        options = [Option(value, enum.names[value], value) for value in order + [value for value in enum.values if value not in order]]
         return self.table.input(Input(id, name, parameter, options, enum_name=enum.name, default=default))
 
 
 # The defaults are what's inserted most from each library: FRCDesign's Generic 1/2 in rounded hex flanged bearing,
-# 1.125 in OD, and ConfigLib's goBILDA 8 mm round flanged bearing, 14 mm OD
+# 1.125 in OD, and ConfigLib's goBILDA 8 mm round flanged bearing, 14 mm OD. ConfigLib has goBILDA's alone, so FTC's
+# vendors are goBILDA's first, then REV's, then AndyMark's
 FRC = Catalog(FRC_BEARINGS, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED"))
-FTC = Catalog(FTC_BEARINGS, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"))
+FTC = Catalog(FTC_BEARINGS, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"), ["GOBILDA", "REV", "ANDYMARK"])
 
 TABLE = FRC.table
 STUDIOS = FRC.studios
@@ -515,8 +604,10 @@ def _bearing_fields(item: tuple[Bearing, Record]) -> str:
     }
     if dimensions.outer_width:
         fields["outerWidth"] = _length(dimensions.outer_width, unit)
+    if bearing.seal == "NONE":
+        fields["plain"] = "true"
     if bearing.type == "FLANGED":
-        diameter, thickness = FLANGES[(bearing.size, dimensions.id)]
+        diameter, thickness = flange(record.vendor, bearing.size, dimensions.id)
         fields["flangeDiameter"] = _length(diameter, unit)
         fields["flangeThickness"] = _length(thickness, unit)
     return _fields({**fields, **record.fields()})
@@ -525,6 +616,7 @@ def _bearing_fields(item: tuple[Bearing, Record]) -> str:
 _BORE_SIZES = {(bearing.bore, bearing.size) for bearing, _ in BEARINGS.values()}
 
 CONTENTS = [
+    Import("core/robotProperties.fs"),
     BearingVendor,
     BearingType,
     BearingBore,
@@ -587,7 +679,7 @@ def manifest(catalog: Catalog = FRC, locations: dict = LOCATIONS, source: str = 
                 "outerDiameter": bearing.dimensions.meters(bearing.dimensions.outer_diameter),
                 "width": bearing.dimensions.meters(bearing.dimensions.width),
                 **(
-                    {"flangeDiameter": bearing.dimensions.meters(FLANGES[(size, dimensions)][0])}
+                    {"flangeDiameter": bearing.dimensions.meters(flange(vendor, size, dimensions)[0])}
                     if type == "FLANGED"
                     else {}
                 ),

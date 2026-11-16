@@ -101,22 +101,39 @@ def test_the_manifest_has_a_record_per_configuration(manifest, studio):
     )
 
 
-def test_ftc_offers_gobildas_bearings_alone():
-    assert {key[0] for key in FTC_BEARINGS} == {"GOBILDA"}
-    assert not {key[0] for key in BEARINGS} & {"GOBILDA"}
-    # Vendor is fixed, so the configuration starts at Type
-    assert [input.id for input in FTC_STUDIO.configured_inputs()] == ["type", "bore", "size", "dimensions"]
-    assert FTC_STUDIO.defaults() == {"type": "FLANGED", "bore": "ROUND", "size": "MM_8", "dimensions": "MM_14_X_5"}
-    flanged = {"type": "FLANGED"}
-    assert _shown("bore", flanged, FTC_STUDIO) == ["ROUND", "REX"]
-    assert _shown("size", {**flanged, "bore": "REX"}, FTC_STUDIO) == []
+def test_ftc_offers_gobilda_rev_and_andymarks_ftc_bearings():
+    assert {key[0] for key in FTC_BEARINGS} == {"GOBILDA", "REV", "ANDYMARK"}
+    assert "GOBILDA" not in {key[0] for key in BEARINGS}
+    assert [option.id for option in FTC_STUDIO.inputs[0].options] == ["GOBILDA", "REV", "ANDYMARK"]
+    assert FTC_STUDIO.defaults() == {"vendor": "GOBILDA", "type": "FLANGED", "bore": "ROUND", "size": "MM_8", "dimensions": "MM_14_X_5"}
+    assert _shown("bore", {"vendor": "GOBILDA", "type": "FLANGED"}, FTC_STUDIO) == ["ROUND", "REX"]
+    # REV's Through Bore Bearings, short and long, and its flanged ball bearing
+    assert _shown("bore", {"vendor": "REV"}, FTC_STUDIO) == ["HEX", "ROUND"]
+    assert _shown("dimensions", {"vendor": "REV", "bore": "HEX"}, FTC_STUDIO) == ["MM_9_X_5", "MM_9_X_11"]
     rex = FTC_BEARINGS[("GOBILDA", "FLANGED", "REX", "MM_8", "MM_14_X_5", "SHIELDED")][1]
     assert (rex.part_number, rex.url) == (
         "1611-0514-4008",
         "https://www.gobilda.com/1611-series-flanged-ball-bearing-8mm-rex-id-x-14mm-od-5mm-thickness-2-pack/",
     )
-    record = next(record for record in FTC_MANIFEST["studios"]["bearing"]["records"] if record.get("partNumber") == "1611-0514-4008")
-    assert record["name"] == "8 mm REX Flanged Bearing (14 mm OD x 5 mm)" and record["vendor"] == "goBILDA"
+    records = {record.get("partNumber"): record for record in FTC_MANIFEST["studios"]["bearing"]["records"]}
+    assert records["1611-0514-4008"]["name"] == "8 mm REX Flanged Bearing (14 mm OD x 5 mm)"
+    assert records["REV-41-1326"]["name"] == "5 mm Hex Flanged Plain Bearing (9 mm OD x 5 mm)"
+    assert records["REV-41-1326"]["material"] == "Acetal" and records["am-3377"]["material"] == "Steel"
+
+
+def test_flanges_are_each_vendors_where_its_model_differs():
+    flange = DEFINITION["flange"]
+    assert flange("REV", "IN_1_2", "OD_1_X_0_281") == ("1.0625", "0.062")
+    assert flange("ANDYMARK", "IN_1_2", "OD_1_125_X_0_313") == ("1.225", "0.06")
+    assert flange("WCP", "IN_1_2", "OD_1_125_X_0_313") == ("1.225", "0.063")
+
+
+def test_a_radial_bearings_top_connector_is_its_seat():
+    records = MANIFEST["studios"]["bearing"]["records"]
+    radial = [record for record in records if "Radial" in record["name"]]
+    flanged = [record for record in records if "Flanged" in record["name"]]
+    assert radial and all(record["topMateConnector"] == "mateConnector" for record in radial)
+    assert flanged and all("topMateConnector" not in record for record in flanged)
 
 
 def test_the_default_record_is_the_most_inserted_bearing():

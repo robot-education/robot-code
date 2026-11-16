@@ -8,23 +8,26 @@ import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 export import(path : "bearings/bearingTables.gen.fs", version : "");
 
 /**
- * FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings. They're made in a Part
+ * FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings, and plain ones (REV's
+ * acetal Through Bore Bearings). They're made in a Part
  * Studio whose configuration sets every parameter and offers only what's made (see bearingTables.py), so this dialog
  * is rarely seen: a flat list of enums, with no conditions, which the configuration filters.
  *
  * Each bearing is built along the Z axis, with a mate connector at the origin pointing out of the hole it sits in: a
  * flanged bearing's flange is above the origin, and the rest of it below; a radial bearing is below, its top face at
- * the origin. Two more, on the axis at its inner race's top and bottom faces, each pointing into the bearing, are where
- * what's stacked on its shaft sits on it.
+ * the origin. Each points out of the part it's on, as do the ones on its top and bottom faces, where what's stacked on
+ * its shaft sits against it: a flanged bearing's top points up, and any bearing's bottom down. A radial bearing's top is
+ * where it seats, so it has no other.
  */
 
-// Each race's thickness, of the distance from the bore's corners to the outer diameter
-const RACE_FRACTION = 0.25;
-// How far the shields or seals between the races sit in from the faces
-const SHIELD_RECESS = 0.2 * millimeter;
+// Each race's thickness, of the distance from the bore's corners to the outer diameter, as REV's and AndyMark's models
+// have them
+const RACE_FRACTION = 0.3;
+// How far the shields or seals between the races sit in from the faces, of the bearing's width
+const SHIELD_RECESS = 1 / 16;
 
 annotation { "Feature Type Name" : "Bearing",
-        "Feature Type Description" : "A ball bearing from FRCDesign's library, seated at the origin." ~ CREDIT }
+        "Feature Type Description" : "A bearing from FRCDesign's library, seated at the origin." ~ CREDIT }
 export const libraryBearing = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
@@ -73,7 +76,7 @@ export const libraryBearing = defineFeature(function(context is Context, id is I
         const boreShape = BEARING_BORES[definition.bore][definition.size];
         const isFlanged = definition.bearingType == BearingType.FLANGED;
 
-        // 1. Revolve its races, from the axis out, with the shields or seals between them recessed
+        // 1. Revolve its races, from the axis out, with the shields or seals between them recessed; a plain bearing is solid
         const sketchId = id + "profile";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : PROFILE_PLANE });
         const points = bearingProfile(bearing, boreRadius(boreShape), isFlanged);
@@ -90,17 +93,20 @@ export const libraryBearing = defineFeature(function(context is Context, id is I
         const bottom = points[0][1];
         cutBore(context, id + "bore", body, boreShape, bottom, bearing.width);
 
-        // 3. Seat it, and mark its inner race's faces: into the bearing, as a connector on a face's edge points
+        // 3. Seat it, and mark its top and bottom, each pointing out of it
         opMateConnector(context, id + "mateConnector", {
                     "coordSystem" : coordSystem(WORLD_ORIGIN, X_DIRECTION, Z_DIRECTION),
                     "owner" : body
                 });
-        opMateConnector(context, id + "topMateConnector", {
-                    "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, bottom + bearing.width), X_DIRECTION, -Z_DIRECTION),
-                    "owner" : body
-                });
+        if (isFlanged)
+        {
+            opMateConnector(context, id + "topMateConnector", {
+                        "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, bottom + bearing.width), X_DIRECTION, Z_DIRECTION),
+                        "owner" : body
+                    });
+        }
         opMateConnector(context, id + "bottomMateConnector", {
-                    "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, bottom), X_DIRECTION, Z_DIRECTION),
+                    "coordSystem" : coordSystem(vector(0 * meter, 0 * meter, bottom), X_DIRECTION, -Z_DIRECTION),
                     "owner" : body
                 });
 
@@ -170,12 +176,21 @@ export function boreRadius(boreShape is map) returns ValueWithUnits
  * The bearing's half section, revolved about the axis, from its bottom on the axis: up its inner race to its top, with
  * the shields between its races recessed from each face, and out to its outer diameter and a flanged one's flange.
  * A flanged bearing's flange is above the origin, the rest of it below; a radial bearing is below the origin. An
- * extended inner race (`outerWidth`) stands out of both faces of the outer race.
+ * extended inner race (`outerWidth`) stands out of both faces of the outer race. A plain bearing (`plain`, always
+ * flanged) is solid, with no races.
  */
 export function bearingProfile(bearing is map, boreRadius is ValueWithUnits, isFlanged is boolean) returns array
 {
     const zero = 0 * meter;
     const radius = bearing.outerDiameter / 2;
+    if (bearing.plain != undefined)
+    {
+        const flangeTop = bearing.flangeThickness;
+        const flange = bearing.flangeDiameter / 2;
+        return [vector(zero, flangeTop - bearing.width), vector(radius, flangeTop - bearing.width), vector(radius, zero),
+                vector(flange, zero), vector(flange, flangeTop), vector(zero, flangeTop), vector(zero, flangeTop - bearing.width)];
+    }
+    const recess = bearing.width * SHIELD_RECESS;
     const race = (radius - boreRadius) * RACE_FRACTION;
     const inner = boreRadius + race;
     const outer = radius - race;
@@ -191,10 +206,10 @@ export function bearingProfile(bearing is map, boreRadius is ValueWithUnits, isF
         side = [vector(radius, zero), vector(flange, zero), vector(flange, outerTop)];
     }
     return concatenateArrays([
-                [vector(zero, bottom), vector(inner, bottom), vector(inner, outerBottom + SHIELD_RECESS),
-                    vector(outer, outerBottom + SHIELD_RECESS), vector(outer, outerBottom), vector(radius, outerBottom)],
+                [vector(zero, bottom), vector(inner, bottom), vector(inner, outerBottom + recess),
+                    vector(outer, outerBottom + recess), vector(outer, outerBottom), vector(radius, outerBottom)],
                 side,
-                [vector(outer, outerTop), vector(outer, outerTop - SHIELD_RECESS), vector(inner, outerTop - SHIELD_RECESS),
+                [vector(outer, outerTop), vector(outer, outerTop - recess), vector(inner, outerTop - recess),
                     vector(inner, top), vector(zero, top), vector(zero, bottom)]
             ]);
 }
@@ -250,7 +265,7 @@ function cutBore(context is Context, id is Id, body is Query, boreShape is map, 
 
 /**
  * Sets a part's properties from its table entry (see bearingTables.py's `Record`): its name, its vendor and part
- * number, and a link to buy it where it has them. Bearings are steel, in the standards' steel grey.
+ * number, a link to buy it where it has them, and its material and appearance.
  */
 function setBearingProperties(context is Context, body is Query, entry is map)
 {
@@ -267,6 +282,6 @@ function setBearingProperties(context is Context, body is Query, entry is map)
     {
         setProperty(context, { "entities" : body, "propertyType" : PropertyType.DESCRIPTION, "value" : entry.url });
     }
-    setProperty(context, { "entities" : body, "propertyType" : PropertyType.MATERIAL, "value" : STEEL });
-    setProperty(context, { "entities" : body, "propertyType" : PropertyType.APPEARANCE, "value" : STEEL_GRAY });
+    setProperty(context, { "entities" : body, "propertyType" : PropertyType.MATERIAL, "value" : entry.material });
+    setProperty(context, { "entities" : body, "propertyType" : PropertyType.APPEARANCE, "value" : entry.appearance });
 }
