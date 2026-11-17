@@ -284,7 +284,13 @@ VENDOR_FLANGES: dict[tuple[str, str, str], tuple[str, str]] = {
 
 def flange(vendor: str, size: str, dimensions: str) -> tuple[str, str]:
     """A flanged bearing's flange: its diameter and thickness, in its dimensions' unit."""
-    return VENDOR_FLANGES.get((vendor, size, dimensions)) or FLANGES[(size, dimensions)]
+    own = VENDOR_FLANGES.get((vendor, size, dimensions))
+    if own is not None:
+        return own
+    if (size, dimensions) in FLANGES:
+        return FLANGES[(size, dimensions)]
+    # A bearing only a vendor's own model or table gives, which Generic offers too, takes that vendor's flange
+    return next(found for (_, *key), found in VENDOR_FLANGES.items() if tuple(key) == (size, dimensions))
 
 
 # What each vendor makes, from FRCDesign's records

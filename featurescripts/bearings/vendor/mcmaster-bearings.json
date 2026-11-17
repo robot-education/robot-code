@@ -1,17 +1,53 @@
 {
- "source": "McMaster-Carr's ball bearing tables (shielded, steel), transcribed by hand: its pages refuse automated reads. A row joins the catalog once it has its partNumber, and a flanged one its flange (in the row's unit).",
+ "source": "McMaster-Carr's steel ball bearing tables (flanged shielded, flanged open, and radial open), transcribed from screenshots of its pages on 2026-11-17: its pages refuse automated reads. Widths are overall, flanges' included; a flanged row's flange is its OD and Thk. columns.",
  "bearings": [
   {
    "type": "FLANGED",
    "bore": "ROUND",
    "size": "MM_5",
+   "outerDiameter": "9",
+   "width": "3",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K643",
+   "flangeDiameter": "10.2",
+   "flangeThickness": "0.6"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_5",
+   "outerDiameter": "10",
+   "width": "4",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K568",
+   "flangeDiameter": "11.6",
+   "flangeThickness": "0.8"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_5",
    "outerDiameter": "11",
    "width": "4",
    "unit": "mm",
    "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
+   "partNumber": "57155K571",
+   "flangeDiameter": "12.6",
+   "flangeThickness": "0.8"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_5",
+   "outerDiameter": "11",
+   "width": "5",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K573",
+   "flangeDiameter": "12.5",
+   "flangeThickness": "1"
   },
   {
    "type": "FLANGED",
@@ -21,9 +57,9 @@
    "width": "4",
    "unit": "mm",
    "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
+   "partNumber": "57155K575",
+   "flangeDiameter": "15",
+   "flangeThickness": "1"
   },
   {
    "type": "FLANGED",
@@ -33,9 +69,9 @@
    "width": "5",
    "unit": "mm",
    "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
+   "partNumber": "57155K577",
+   "flangeDiameter": "16",
+   "flangeThickness": "1"
   },
   {
    "type": "FLANGED",
@@ -45,81 +81,309 @@
    "width": "5",
    "unit": "mm",
    "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
+   "partNumber": "57155K579",
+   "flangeDiameter": "18",
+   "flangeThickness": "1"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "10",
+   "width": "3",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K584",
+   "flangeDiameter": "11.2",
+   "flangeThickness": "0.6"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "13",
+   "width": "5",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K588",
+   "flangeDiameter": "15",
+   "flangeThickness": "1.1"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "15",
+   "width": "5",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K591",
+   "flangeDiameter": "17",
+   "flangeThickness": "1.2"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "17",
+   "width": "6",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K593",
+   "flangeDiameter": "19",
+   "flangeThickness": "1.2"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "19",
+   "width": "6",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K595",
+   "flangeDiameter": "22",
+   "flangeThickness": "1.5"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "14",
+   "width": "4",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K823",
+   "flangeDiameter": "15.6",
+   "flangeThickness": "0.8"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "16",
+   "width": "5",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K825",
+   "flangeDiameter": "18",
+   "flangeThickness": "1.1"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "19",
+   "width": "6",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K627",
+   "flangeDiameter": "22",
+   "flangeThickness": "1.5"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "22",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "57155K629",
+   "flangeDiameter": "25",
+   "flangeThickness": "1.5"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_25",
+   "outerDiameter": "37",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "4390N178",
+   "flangeDiameter": "40",
+   "flangeThickness": "1.5"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_30",
+   "outerDiameter": "42",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "4390N181",
+   "flangeDiameter": "45",
+   "flangeThickness": "1.5"
   },
   {
    "type": "FLANGED",
    "bore": "ROUND",
    "size": "MM_5",
-   "outerDiameter": "19",
-   "width": "6",
+   "outerDiameter": "8",
+   "width": "2",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
+   "seal": "OPEN",
+   "partNumber": "57155K455",
+   "flangeDiameter": "9.2",
+   "flangeThickness": "0.6"
   },
   {
-   "type": "RADIAL",
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_5",
+   "outerDiameter": "9",
+   "width": "2.5",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K457",
+   "flangeDiameter": "10.2",
+   "flangeThickness": "0.6"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_5",
+   "outerDiameter": "10",
+   "width": "3",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K459",
+   "flangeDiameter": "11.2",
+   "flangeThickness": "0.6"
+  },
+  {
+   "type": "FLANGED",
    "bore": "ROUND",
    "size": "MM_5",
    "outerDiameter": "11",
-   "width": "4",
+   "width": "3",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
+   "seal": "OPEN",
+   "partNumber": "57155K462",
+   "flangeDiameter": "12.5",
+   "flangeThickness": "0.8"
   },
   {
-   "type": "RADIAL",
-   "bore": "ROUND",
-   "size": "MM_5",
-   "outerDiameter": "13",
-   "width": "4",
-   "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
-  },
-  {
-   "type": "RADIAL",
+   "type": "FLANGED",
    "bore": "ROUND",
    "size": "MM_5",
    "outerDiameter": "14",
    "width": "5",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
+   "seal": "OPEN",
+   "partNumber": "57155K466",
+   "flangeDiameter": "16",
+   "flangeThickness": "1"
   },
   {
-   "type": "RADIAL",
+   "type": "FLANGED",
    "bore": "ROUND",
    "size": "MM_5",
    "outerDiameter": "16",
    "width": "5",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
+   "seal": "OPEN",
+   "partNumber": "57155K468",
+   "flangeDiameter": "18",
+   "flangeThickness": "1"
   },
   {
-   "type": "RADIAL",
+   "type": "FLANGED",
    "bore": "ROUND",
    "size": "MM_5",
    "outerDiameter": "19",
    "width": "6",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
+   "seal": "OPEN",
+   "partNumber": "57155K471",
+   "flangeDiameter": "22",
+   "flangeThickness": "1.5"
   },
   {
-   "type": "RADIAL",
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "10",
+   "width": "2.5",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K472",
+   "flangeDiameter": "11.2",
+   "flangeThickness": "0.6"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "13",
+   "width": "3.5",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K476",
+   "flangeDiameter": "15",
+   "flangeThickness": "1"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "15",
+   "width": "5",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K478",
+   "flangeDiameter": "17",
+   "flangeThickness": "1.2"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "17",
+   "width": "6",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K481",
+   "flangeDiameter": "19",
+   "flangeThickness": "1.2"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_6",
+   "outerDiameter": "19",
+   "width": "6",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K483",
+   "flangeDiameter": "22",
+   "flangeThickness": "1.5"
+  },
+  {
+   "type": "FLANGED",
    "bore": "ROUND",
    "size": "MM_8",
-   "outerDiameter": "22",
-   "width": "7",
+   "outerDiameter": "16",
+   "width": "4",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
+   "seal": "OPEN",
+   "partNumber": "57155K498",
+   "flangeDiameter": "18",
+   "flangeThickness": "1"
+  },
+  {
+   "type": "FLANGED",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "19",
+   "width": "6",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "57155K511",
+   "flangeDiameter": "22",
+   "flangeThickness": "1.5"
   },
   {
    "type": "FLANGED",
@@ -128,10 +392,70 @@
    "outerDiameter": "22",
    "width": "7",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
+   "seal": "OPEN",
+   "partNumber": "57155K513",
+   "flangeDiameter": "25",
+   "flangeThickness": "1.5"
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_3_16",
+   "outerDiameter": "0.5",
+   "width": "0.156",
+   "unit": "in",
+   "seal": "OPEN",
+   "partNumber": "60355K132"
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_1_4",
+   "outerDiameter": "0.625",
+   "width": "0.196",
+   "unit": "in",
+   "seal": "OPEN",
+   "partNumber": "60355K151"
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_3_8",
+   "outerDiameter": "0.875",
+   "width": "0.219",
+   "unit": "in",
+   "seal": "OPEN",
+   "partNumber": "60355K165"
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_1_2",
+   "outerDiameter": "1.125",
+   "width": "0.25",
+   "unit": "in",
+   "seal": "OPEN",
+   "partNumber": "60355K173"
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_5",
+   "outerDiameter": "19",
+   "width": "6",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "5972K197"
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "22",
+   "width": "7",
+   "unit": "mm",
+   "seal": "OPEN",
+   "partNumber": "5972K91"
   },
   {
    "type": "RADIAL",
@@ -140,8 +464,8 @@
    "outerDiameter": "37",
    "width": "7",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
+   "seal": "OPEN",
+   "partNumber": "5972K216"
   },
   {
    "type": "RADIAL",
@@ -150,84 +474,8 @@
    "outerDiameter": "42",
    "width": "7",
    "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
-  },
-  {
-   "type": "RADIAL",
-   "bore": "ROUND",
-   "size": "MM_35",
-   "outerDiameter": "47",
-   "width": "7",
-   "unit": "mm",
-   "seal": "SHIELDED",
-   "partNumber": null
-  },
-  {
-   "type": "RADIAL",
-   "bore": "ROUND",
-   "size": "IN_1_4",
-   "outerDiameter": "0.625",
-   "width": "0.196",
-   "unit": "in",
-   "seal": "SHIELDED",
-   "partNumber": null
-  },
-  {
-   "type": "FLANGED",
-   "bore": "ROUND",
-   "size": "IN_1_4",
-   "outerDiameter": "0.625",
-   "width": "0.196",
-   "unit": "in",
-   "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
-  },
-  {
-   "type": "RADIAL",
-   "bore": "ROUND",
-   "size": "IN_3_8",
-   "outerDiameter": "0.875",
-   "width": "0.281",
-   "unit": "in",
-   "seal": "SHIELDED",
-   "partNumber": null
-  },
-  {
-   "type": "FLANGED",
-   "bore": "ROUND",
-   "size": "IN_3_8",
-   "outerDiameter": "0.875",
-   "width": "0.281",
-   "unit": "in",
-   "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
-  },
-  {
-   "type": "RADIAL",
-   "bore": "ROUND",
-   "size": "IN_1_2",
-   "outerDiameter": "1.125",
-   "width": "0.313",
-   "unit": "in",
-   "seal": "SHIELDED",
-   "partNumber": null
-  },
-  {
-   "type": "FLANGED",
-   "bore": "ROUND",
-   "size": "IN_1_2",
-   "outerDiameter": "1.125",
-   "width": "0.313",
-   "unit": "in",
-   "seal": "SHIELDED",
-   "partNumber": null,
-   "flangeDiameter": null,
-   "flangeThickness": null
+   "seal": "OPEN",
+   "partNumber": "5972K217"
   }
  ]
 }

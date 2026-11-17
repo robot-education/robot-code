@@ -102,10 +102,17 @@ def test_the_manifest_has_a_record_per_configuration(manifest, studio):
 
 
 def test_ftc_offers_gobilda_rev_and_andymarks_ftc_bearings():
-    assert {key[0] for key in FTC_BEARINGS} == {"GOBILDA", "REV", "ANDYMARK"}
+    assert {key[0] for key in FTC_BEARINGS} == {"GOBILDA", "REV", "ANDYMARK", "MCMASTER"}
     assert "GOBILDA" not in {key[0] for key in BEARINGS}
-    assert [option.id for option in FTC_STUDIO.inputs[0].options] == ["GOBILDA", "REV", "ANDYMARK"]
-    assert FTC_STUDIO.defaults() == {"vendor": "GOBILDA", "type": "FLANGED", "bore": "ROUND", "size": "MM_8", "dimensions": "MM_14_X_5"}
+    assert [option.id for option in FTC_STUDIO.inputs[0].options] == ["GOBILDA", "REV", "ANDYMARK", "MCMASTER"]
+    assert FTC_STUDIO.defaults() == {
+        "vendor": "GOBILDA",
+        "type": "FLANGED",
+        "bore": "ROUND",
+        "size": "MM_8",
+        "dimensions": "MM_14_X_5",
+        "seal": "SHIELDED",
+    }
     assert _shown("bore", {"vendor": "GOBILDA", "type": "FLANGED"}, FTC_STUDIO) == ["ROUND", "REX"]
     # REV's Through Bore Bearings, short and long
     assert _shown("dimensions", {"vendor": "REV", "type": "BUSHING"}, FTC_STUDIO) == ["MM_9_X_5", "MM_9_X_11"]
@@ -151,13 +158,22 @@ def test_discontinued_parts_are_dropped():
     assert ("ANDYMARK", "RADIAL", "ROUND", "IN_1_2", "OD_1_375_X_0_438", "SHIELDED") not in BEARINGS
 
 
-def test_mcmaster_carrs_rows_join_once_transcribed():
+def test_mcmaster_carrs_rows_are_vendor_and_generic_bearings():
     rows = DEFINITION["MCMASTER_SNAPSHOT"]["bearings"]
-    transcribed = [row for row in rows if row["partNumber"] is not None]
-    assert len(DEFINITION["MCMASTER_BEARINGS"]) == len(transcribed)
-    # 5 mm bores, which clear a #10 screw, flanged and radial
-    wanted = {(row["type"], row["size"], row["outerDiameter"], row["width"]) for row in rows}
-    assert {("FLANGED", "MM_5", "13", "4"), ("RADIAL", "MM_5", "16", "5")} <= wanted
+    assert len(DEFINITION["MCMASTER_BEARINGS"]) == len(rows)
+    # A 5 mm bore, which clears a #10 screw, shielded or open
+    shielded = BEARINGS[("MCMASTER", "FLANGED", "ROUND", "MM_5", "MM_14_X_5", "SHIELDED")][1]
+    assert (shielded.part_number, shielded.url) == ("57155K577", "https://www.mcmaster.com/57155K577/")
+    assert _shown("seal", {"vendor": "MCMASTER", "type": "FLANGED", "bore": "ROUND", "size": "MM_5", "dimensions": "MM_14_X_5"}) == [
+        "SHIELDED",
+        "OPEN",
+    ]
+    assert DEFINITION["flange"]("MCMASTER", "MM_5", "MM_14_X_5") == ("16", "1")
+    # Generic offers a size only McMaster-Carr sells, with its flange; FTC's catalog its metric rows alone
+    assert ("GENERIC", "FLANGED", "ROUND", "MM_5", "MM_8_X_2", "OPEN") in BEARINGS
+    assert DEFINITION["flange"]("GENERIC", "MM_5", "MM_8_X_2") == ("9.2", "0.6")
+    assert ("MCMASTER", "RADIAL", "ROUND", "MM_5", "MM_19_X_6", "OPEN") in FTC_BEARINGS
+    assert not [key for key in FTC_BEARINGS if key[0] == "MCMASTER" and key[3].startswith("IN_")]
 
 
 def test_vex_and_vendorless_bearings_are_gone():

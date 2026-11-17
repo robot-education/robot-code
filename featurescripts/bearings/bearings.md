@@ -70,10 +70,11 @@ say), Generic's only while some vendor sells it: VEX's ThunderSquare bearing and
 sold are gone. FRCDesign has F126ZZ 8 mm
 wide; it's 4 mm (am-3377's model).
 
-McMaster-Carr's bearings come from `vendor/mcmaster-bearings.json`, transcribed by hand, since its pages refuse automated
-reads: its rows are the bearings wanted from it (5 mm bores, which clear a #10 screw, flanged and radial, and common
-8 mm, thin-section, and imperial ones), and a row joins both sets' catalogs (FTC's only a metric one) once it has its
-part number and, flanged, its flange.
+McMaster-Carr's bearings come from `vendor/mcmaster-bearings.json`, transcribed from its tables by hand, since its pages
+refuse automated reads: its flanged steel bearings with 5, 6, and 8 mm bores (5 mm clears a #10 screw), shielded and
+open, and its 25 and 30 mm thin-section ones, each with its flange; and its open radial R3, R4, R6, R8, 635, 608, 6805,
+and 6806. Each joins both sets' catalogs, FTC's its metric ones alone. A flange only McMaster-Carr's table gives is
+Generic's too, as Generic offers every bearing a vendor does.
 
 FTC's are goBILDA's flanged and radial ball bearings (from its store and STEP files), REV's 8 x 12 x 3.5 mm flanged
 bearing and its two acetal Through Bore Bearings, bushings for 5 mm hex (REV-41-1326, 5 mm overall, and REV-41-1329,
@@ -123,8 +124,8 @@ There are no `try`s.
 - AndyMark's FR82RS model (am-4465) is 0.375 in wide; AndyMark lists it, and FRCDesign has it, 0.313 in, as built.
 - goBILDA's 12 x 32 x 10 mm flanged bearing (1601-1032-0012) narrows between its body and its 2.3 mm flange in its STEP
   file, and the vendors' 1.125 in OD flanged bearings are undercut under their flanges; both are built as a plain step.
-- No McMaster-Carr bearing has its part number yet, so neither studio offers McMaster-Carr until its rows are
-  transcribed.
+- McMaster-Carr's shielded radial bearings aren't transcribed: only its open radial table was, so its radial bearings
+  are open alone.
 - ThriftyBot's, Swyft's, and SDS's availability is unchecked: only AndyMark's, WCP's, REV's, and goBILDA's stores
   were checked for discontinued parts.
 - FRCDesignApp reads no part set's manifest yet, so nothing there uses `bearings.gen.json`.

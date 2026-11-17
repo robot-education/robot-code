@@ -108,6 +108,499 @@
         },
         {
           "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_8_X_2"
+          },
+          "name": "5 mm Round Flanged Bearing (8 mm OD x 2 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K455",
+          "url": "https://www.mcmaster.com/57155K455/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_9_X_2_5"
+          },
+          "name": "5 mm Round Flanged Bearing (9 mm OD x 2.5 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K457",
+          "url": "https://www.mcmaster.com/57155K457/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_9_X_3"
+          },
+          "name": "5 mm Round Flanged Bearing (9 mm OD x 3 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K643",
+          "url": "https://www.mcmaster.com/57155K643/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_10_X_3"
+          },
+          "name": "5 mm Round Flanged Bearing (10 mm OD x 3 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K459",
+          "url": "https://www.mcmaster.com/57155K459/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_10_X_4"
+          },
+          "name": "5 mm Round Flanged Bearing (10 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K568",
+          "url": "https://www.mcmaster.com/57155K568/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_3"
+          },
+          "name": "5 mm Round Flanged Bearing (11 mm OD x 3 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K462",
+          "url": "https://www.mcmaster.com/57155K462/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_4"
+          },
+          "name": "5 mm Round Flanged Bearing (11 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K571",
+          "url": "https://www.mcmaster.com/57155K571/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_5"
+          },
+          "name": "5 mm Round Flanged Bearing (11 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K573",
+          "url": "https://www.mcmaster.com/57155K573/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_13_X_4"
+          },
+          "name": "5 mm Round Flanged Bearing (13 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K575",
+          "url": "https://www.mcmaster.com/57155K575/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_14_X_5",
+            "seal": "SHIELDED"
+          },
+          "name": "5 mm Round Flanged Bearing (14 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K577",
+          "url": "https://www.mcmaster.com/57155K577/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_14_X_5",
+            "seal": "OPEN"
+          },
+          "name": "5 mm Round Flanged Bearing (14 mm OD x 5 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K466",
+          "url": "https://www.mcmaster.com/57155K466/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_16_X_5",
+            "seal": "SHIELDED"
+          },
+          "name": "5 mm Round Flanged Bearing (16 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K579",
+          "url": "https://www.mcmaster.com/57155K579/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_16_X_5",
+            "seal": "OPEN"
+          },
+          "name": "5 mm Round Flanged Bearing (16 mm OD x 5 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K468",
+          "url": "https://www.mcmaster.com/57155K468/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_19_X_6"
+          },
+          "name": "5 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K471",
+          "url": "https://www.mcmaster.com/57155K471/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_10_X_2_5"
+          },
+          "name": "6 mm Round Flanged Bearing (10 mm OD x 2.5 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K472",
+          "url": "https://www.mcmaster.com/57155K472/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_10_X_3"
+          },
+          "name": "6 mm Round Flanged Bearing (10 mm OD x 3 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K584",
+          "url": "https://www.mcmaster.com/57155K584/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_13_X_3_5"
+          },
+          "name": "6 mm Round Flanged Bearing (13 mm OD x 3.5 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K476",
+          "url": "https://www.mcmaster.com/57155K476/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_13_X_5"
+          },
+          "name": "6 mm Round Flanged Bearing (13 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K588",
+          "url": "https://www.mcmaster.com/57155K588/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_15_X_5",
+            "seal": "SHIELDED"
+          },
+          "name": "6 mm Round Flanged Bearing (15 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K591",
+          "url": "https://www.mcmaster.com/57155K591/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_15_X_5",
+            "seal": "OPEN"
+          },
+          "name": "6 mm Round Flanged Bearing (15 mm OD x 5 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K478",
+          "url": "https://www.mcmaster.com/57155K478/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_17_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "6 mm Round Flanged Bearing (17 mm OD x 6 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K593",
+          "url": "https://www.mcmaster.com/57155K593/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_17_X_6",
+            "seal": "OPEN"
+          },
+          "name": "6 mm Round Flanged Bearing (17 mm OD x 6 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K481",
+          "url": "https://www.mcmaster.com/57155K481/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "6 mm Round Flanged Bearing (19 mm OD x 6 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K595",
+          "url": "https://www.mcmaster.com/57155K595/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_19_X_6",
+            "seal": "OPEN"
+          },
+          "name": "6 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K483",
+          "url": "https://www.mcmaster.com/57155K483/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_14_X_4"
+          },
+          "name": "8 mm Round Flanged Bearing (14 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K823",
+          "url": "https://www.mcmaster.com/57155K823/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_16_X_4"
+          },
+          "name": "8 mm Round Flanged Bearing (16 mm OD x 4 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K498",
+          "url": "https://www.mcmaster.com/57155K498/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_16_X_5"
+          },
+          "name": "8 mm Round Flanged Bearing (16 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K825",
+          "url": "https://www.mcmaster.com/57155K825/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K627",
+          "url": "https://www.mcmaster.com/57155K627/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_19_X_6",
+            "seal": "OPEN"
+          },
+          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K511",
+          "url": "https://www.mcmaster.com/57155K511/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_22_X_7",
+            "seal": "SHIELDED"
+          },
+          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K629",
+          "url": "https://www.mcmaster.com/57155K629/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_22_X_7",
+            "seal": "OPEN"
+          },
+          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K513",
+          "url": "https://www.mcmaster.com/57155K513/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_25"
+          },
+          "name": "25 mm Round Flanged Bearing (37 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "4390N178",
+          "url": "https://www.mcmaster.com/4390N178/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_30"
+          },
+          "name": "30 mm Round Flanged Bearing (42 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "4390N181",
+          "url": "https://www.mcmaster.com/4390N181/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5"
+          },
+          "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K197",
+          "url": "https://www.mcmaster.com/5972K197/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_8"
+          },
+          "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K91",
+          "url": "https://www.mcmaster.com/5972K91/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_25"
+          },
+          "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K216",
+          "url": "https://www.mcmaster.com/5972K216/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_30"
+          },
+          "name": "30 mm Round Radial Bearing (42 mm OD x 7 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K217",
+          "url": "https://www.mcmaster.com/5972K217/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
             "vendor": "GOBILDA",
             "type": "FLANGED",
             "bore": "ROUND",
@@ -304,6 +797,10 @@
       "name": "REV"
     },
     {
+      "id": "MCMASTER",
+      "name": "McMaster-Carr"
+    },
+    {
       "id": "GOBILDA",
       "name": "goBILDA"
     }
@@ -419,6 +916,520 @@
       "seal": "NONE",
       "partNumber": "REV-41-1329",
       "url": "https://www.revrobotics.com/Through-Bore-Bearings/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_8_X_2",
+      "outerDiameter": 0.008,
+      "width": 0.002,
+      "flangeDiameter": 0.0092,
+      "seal": "OPEN",
+      "partNumber": "57155K455",
+      "url": "https://www.mcmaster.com/57155K455/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_9_X_2_5",
+      "outerDiameter": 0.009,
+      "width": 0.0025,
+      "flangeDiameter": 0.0102,
+      "seal": "OPEN",
+      "partNumber": "57155K457",
+      "url": "https://www.mcmaster.com/57155K457/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_9_X_3",
+      "outerDiameter": 0.009,
+      "width": 0.003,
+      "flangeDiameter": 0.0102,
+      "seal": "SHIELDED",
+      "partNumber": "57155K643",
+      "url": "https://www.mcmaster.com/57155K643/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_10_X_3",
+      "outerDiameter": 0.01,
+      "width": 0.003,
+      "flangeDiameter": 0.0112,
+      "seal": "OPEN",
+      "partNumber": "57155K459",
+      "url": "https://www.mcmaster.com/57155K459/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_10_X_4",
+      "outerDiameter": 0.01,
+      "width": 0.004,
+      "flangeDiameter": 0.0116,
+      "seal": "SHIELDED",
+      "partNumber": "57155K568",
+      "url": "https://www.mcmaster.com/57155K568/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_11_X_3",
+      "outerDiameter": 0.011,
+      "width": 0.003,
+      "flangeDiameter": 0.0125,
+      "seal": "OPEN",
+      "partNumber": "57155K462",
+      "url": "https://www.mcmaster.com/57155K462/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_11_X_4",
+      "outerDiameter": 0.011,
+      "width": 0.004,
+      "flangeDiameter": 0.0126,
+      "seal": "SHIELDED",
+      "partNumber": "57155K571",
+      "url": "https://www.mcmaster.com/57155K571/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_11_X_5",
+      "outerDiameter": 0.011,
+      "width": 0.005,
+      "flangeDiameter": 0.0125,
+      "seal": "SHIELDED",
+      "partNumber": "57155K573",
+      "url": "https://www.mcmaster.com/57155K573/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_13_X_4",
+      "outerDiameter": 0.013,
+      "width": 0.004,
+      "flangeDiameter": 0.015,
+      "seal": "SHIELDED",
+      "partNumber": "57155K575",
+      "url": "https://www.mcmaster.com/57155K575/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "flangeDiameter": 0.016,
+      "seal": "SHIELDED",
+      "partNumber": "57155K577",
+      "url": "https://www.mcmaster.com/57155K577/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "flangeDiameter": 0.016,
+      "seal": "OPEN",
+      "partNumber": "57155K466",
+      "url": "https://www.mcmaster.com/57155K466/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_16_X_5",
+      "outerDiameter": 0.016,
+      "width": 0.005,
+      "flangeDiameter": 0.018,
+      "seal": "SHIELDED",
+      "partNumber": "57155K579",
+      "url": "https://www.mcmaster.com/57155K579/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_16_X_5",
+      "outerDiameter": 0.016,
+      "width": 0.005,
+      "flangeDiameter": 0.018,
+      "seal": "OPEN",
+      "partNumber": "57155K468",
+      "url": "https://www.mcmaster.com/57155K468/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "flangeDiameter": 0.022,
+      "seal": "OPEN",
+      "partNumber": "57155K471",
+      "url": "https://www.mcmaster.com/57155K471/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_10_X_2_5",
+      "outerDiameter": 0.01,
+      "width": 0.0025,
+      "flangeDiameter": 0.0112,
+      "seal": "OPEN",
+      "partNumber": "57155K472",
+      "url": "https://www.mcmaster.com/57155K472/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_10_X_3",
+      "outerDiameter": 0.01,
+      "width": 0.003,
+      "flangeDiameter": 0.0112,
+      "seal": "SHIELDED",
+      "partNumber": "57155K584",
+      "url": "https://www.mcmaster.com/57155K584/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_13_X_3_5",
+      "outerDiameter": 0.013,
+      "width": 0.0035,
+      "flangeDiameter": 0.015,
+      "seal": "OPEN",
+      "partNumber": "57155K476",
+      "url": "https://www.mcmaster.com/57155K476/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_13_X_5",
+      "outerDiameter": 0.013,
+      "width": 0.005,
+      "flangeDiameter": 0.015,
+      "seal": "SHIELDED",
+      "partNumber": "57155K588",
+      "url": "https://www.mcmaster.com/57155K588/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_15_X_5",
+      "outerDiameter": 0.015,
+      "width": 0.005,
+      "flangeDiameter": 0.017,
+      "seal": "SHIELDED",
+      "partNumber": "57155K591",
+      "url": "https://www.mcmaster.com/57155K591/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_15_X_5",
+      "outerDiameter": 0.015,
+      "width": 0.005,
+      "flangeDiameter": 0.017,
+      "seal": "OPEN",
+      "partNumber": "57155K478",
+      "url": "https://www.mcmaster.com/57155K478/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_17_X_6",
+      "outerDiameter": 0.017,
+      "width": 0.006,
+      "flangeDiameter": 0.019,
+      "seal": "SHIELDED",
+      "partNumber": "57155K593",
+      "url": "https://www.mcmaster.com/57155K593/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_17_X_6",
+      "outerDiameter": 0.017,
+      "width": 0.006,
+      "flangeDiameter": 0.019,
+      "seal": "OPEN",
+      "partNumber": "57155K481",
+      "url": "https://www.mcmaster.com/57155K481/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "flangeDiameter": 0.022,
+      "seal": "SHIELDED",
+      "partNumber": "57155K595",
+      "url": "https://www.mcmaster.com/57155K595/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_6",
+      "boreSize": 0.006,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "flangeDiameter": 0.022,
+      "seal": "OPEN",
+      "partNumber": "57155K483",
+      "url": "https://www.mcmaster.com/57155K483/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_14_X_4",
+      "outerDiameter": 0.014,
+      "width": 0.004,
+      "flangeDiameter": 0.0156,
+      "seal": "SHIELDED",
+      "partNumber": "57155K823",
+      "url": "https://www.mcmaster.com/57155K823/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_16_X_4",
+      "outerDiameter": 0.016,
+      "width": 0.004,
+      "flangeDiameter": 0.018,
+      "seal": "OPEN",
+      "partNumber": "57155K498",
+      "url": "https://www.mcmaster.com/57155K498/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_16_X_5",
+      "outerDiameter": 0.016,
+      "width": 0.005,
+      "flangeDiameter": 0.018,
+      "seal": "SHIELDED",
+      "partNumber": "57155K825",
+      "url": "https://www.mcmaster.com/57155K825/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "flangeDiameter": 0.022,
+      "seal": "SHIELDED",
+      "partNumber": "57155K627",
+      "url": "https://www.mcmaster.com/57155K627/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "flangeDiameter": 0.022,
+      "seal": "OPEN",
+      "partNumber": "57155K511",
+      "url": "https://www.mcmaster.com/57155K511/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "flangeDiameter": 0.025,
+      "seal": "SHIELDED",
+      "partNumber": "57155K629",
+      "url": "https://www.mcmaster.com/57155K629/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "flangeDiameter": 0.025,
+      "seal": "OPEN",
+      "partNumber": "57155K513",
+      "url": "https://www.mcmaster.com/57155K513/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_25",
+      "boreSize": 0.025,
+      "dimensions": "MM_37_X_7",
+      "outerDiameter": 0.037,
+      "width": 0.007,
+      "flangeDiameter": 0.04,
+      "seal": "SHIELDED",
+      "partNumber": "4390N178",
+      "url": "https://www.mcmaster.com/4390N178/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_30",
+      "boreSize": 0.03,
+      "dimensions": "MM_42_X_7",
+      "outerDiameter": 0.042,
+      "width": 0.007,
+      "flangeDiameter": 0.045,
+      "seal": "SHIELDED",
+      "partNumber": "4390N181",
+      "url": "https://www.mcmaster.com/4390N181/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "seal": "OPEN",
+      "partNumber": "5972K197",
+      "url": "https://www.mcmaster.com/5972K197/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_8",
+      "boreSize": 0.008,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "OPEN",
+      "partNumber": "5972K91",
+      "url": "https://www.mcmaster.com/5972K91/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_25",
+      "boreSize": 0.025,
+      "dimensions": "MM_37_X_7",
+      "outerDiameter": 0.037,
+      "width": 0.007,
+      "seal": "OPEN",
+      "partNumber": "5972K216",
+      "url": "https://www.mcmaster.com/5972K216/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_30",
+      "boreSize": 0.03,
+      "dimensions": "MM_42_X_7",
+      "outerDiameter": 0.042,
+      "width": 0.007,
+      "seal": "OPEN",
+      "partNumber": "5972K217",
+      "url": "https://www.mcmaster.com/5972K217/"
     },
     {
       "vendor": "GOBILDA",

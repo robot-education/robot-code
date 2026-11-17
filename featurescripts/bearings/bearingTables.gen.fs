@@ -126,22 +126,44 @@ export enum BearingDimensions
     OD_1_125_X_0_375,
     annotation { "Name" : "1.375 in OD x 0.438 in" }
     OD_1_375_X_0_438,
+    annotation { "Name" : "8 mm OD x 2 mm" }
+    MM_8_X_2,
+    annotation { "Name" : "9 mm OD x 2.5 mm" }
+    MM_9_X_2_5,
+    annotation { "Name" : "9 mm OD x 3 mm" }
+    MM_9_X_3,
     annotation { "Name" : "9 mm OD x 5 mm" }
     MM_9_X_5,
     annotation { "Name" : "9 mm OD x 11 mm" }
     MM_9_X_11,
+    annotation { "Name" : "10 mm OD x 2.5 mm" }
+    MM_10_X_2_5,
+    annotation { "Name" : "10 mm OD x 3 mm" }
+    MM_10_X_3,
     annotation { "Name" : "10 mm OD x 4 mm" }
     MM_10_X_4,
+    annotation { "Name" : "11 mm OD x 3 mm" }
+    MM_11_X_3,
     annotation { "Name" : "11 mm OD x 4 mm" }
     MM_11_X_4,
+    annotation { "Name" : "11 mm OD x 5 mm" }
+    MM_11_X_5,
     annotation { "Name" : "12 mm OD x 3.5 mm" }
     MM_12_X_3_5,
     annotation { "Name" : "12 mm OD x 4 mm" }
     MM_12_X_4,
+    annotation { "Name" : "13 mm OD x 3.5 mm" }
+    MM_13_X_3_5,
     annotation { "Name" : "13 mm OD x 4 mm" }
     MM_13_X_4,
+    annotation { "Name" : "13 mm OD x 5 mm" }
+    MM_13_X_5,
+    annotation { "Name" : "14 mm OD x 4 mm" }
+    MM_14_X_4,
     annotation { "Name" : "14 mm OD x 5 mm" }
     MM_14_X_5,
+    annotation { "Name" : "15 mm OD x 5 mm" }
+    MM_15_X_5,
     annotation { "Name" : "16 mm OD x 4 mm" }
     MM_16_X_4,
     annotation { "Name" : "16 mm OD x 5 mm" }
@@ -319,30 +341,84 @@ export const BEARINGS = {
                     }
                 },
                 BearingSize.MM_5 : {
+                    BearingDimensions.MM_8_X_2 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 8 * millimeter, "width" : 2 * millimeter, "flangeDiameter" : 9.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (8 mm OD x 2 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_9_X_2_5 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 9 * millimeter, "width" : 2.5 * millimeter, "flangeDiameter" : 10.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (9 mm OD x 2.5 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_9_X_3 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 9 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 10.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (9 mm OD x 3 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_3 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 10 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 11.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (10 mm OD x 3 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 10 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 11.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "5 mm Round Flanged Bearing (10 mm OD x 4 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_11_X_3 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 11 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 12.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "5 mm Round Flanged Bearing (11 mm OD x 3 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
                     BearingDimensions.MM_11_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 11 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 12.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "5 mm Round Flanged Bearing (11 mm OD x 4 mm)", "partNumber" : "MF115ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_11_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 11 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 12.5 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (11 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_13_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (13 mm OD x 4 mm)", "partNumber" : "F695ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 16 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (14 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 16 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (14 mm OD x 5 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
                     BearingDimensions.MM_16_X_5 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (16 mm OD x 5 mm)", "partNumber" : "F625ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (16 mm OD x 5 mm)", "partNumber" : "F625ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (16 mm OD x 5 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_19_X_6 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "5 mm Round Flanged Bearing (19 mm OD x 6 mm)", "partNumber" : "F1950ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "5 mm Round Flanged Bearing (19 mm OD x 6 mm)", "partNumber" : "F1950ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "5 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_6 : {
+                    BearingDimensions.MM_10_X_2_5 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 10 * millimeter, "width" : 2.5 * millimeter, "flangeDiameter" : 11.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "6 mm Round Flanged Bearing (10 mm OD x 2.5 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_3 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 10 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 11.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "6 mm Round Flanged Bearing (10 mm OD x 3 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
                     BearingDimensions.MM_12_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 12 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 13.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "6 mm Round Flanged Bearing (12 mm OD x 4 mm)", "partNumber" : "F126ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
+                    BearingDimensions.MM_13_X_3_5 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 13 * millimeter, "width" : 3.5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (13 mm OD x 3.5 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_13_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "6 mm Round Flanged Bearing (13 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_15_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 15 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 17 * millimeter, "flangeThickness" : 1.2 * millimeter, "name" : "6 mm Round Flanged Bearing (15 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 15 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 17 * millimeter, "flangeThickness" : 1.2 * millimeter, "name" : "6 mm Round Flanged Bearing (15 mm OD x 5 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
                     BearingDimensions.MM_17_X_6 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm)", "partNumber" : "F606ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm)", "partNumber" : "F606ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "6 mm Round Flanged Bearing (19 mm OD x 6 mm)", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "6 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_8 : {
+                    BearingDimensions.MM_14_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 15.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 4 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
                     BearingDimensions.MM_14_X_5 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_16_X_4 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 16 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 4 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_16_X_5 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 5 mm)", "partNumber" : "W688AZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
@@ -351,10 +427,12 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 6.3 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.3 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)", "partNumber" : "F688Z", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_19_X_6 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (19 mm OD x 6 mm)", "partNumber" : "F698ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (19 mm OD x 6 mm)", "partNumber" : "F698ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_22_X_7 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 25 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (22 mm OD x 7 mm)", "partNumber" : "F608ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 25 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (22 mm OD x 7 mm)", "partNumber" : "F608ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 25 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (22 mm OD x 7 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.OD_0_875_X_0_281 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.97 * inch, "flangeThickness" : 0.06 * inch, "name" : "8 mm Round Flanged Bearing (0.875 in OD x 0.281 in)", "material" : STEEL, "appearance" : STEEL_GRAY }
@@ -373,6 +451,11 @@ export const BEARINGS = {
                 BearingSize.MM_15 : {
                     BearingDimensions.MM_21_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 21 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 22.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "15 mm Round Flanged Bearing (21 mm OD x 4 mm)", "partNumber" : "F6702ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_25 : {
+                    BearingDimensions.MM_37_X_7 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 37 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 40 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "25 mm Round Flanged Bearing (37 mm OD x 7 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_30 : {
@@ -450,7 +533,8 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.5 * inch, "width" : 0.188 * inch, "name" : "1/4 in Round Radial Bearing (0.5 in OD x 0.188 in)", "partNumber" : "R188ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.OD_0_625_X_0_196 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.625 * inch, "width" : 0.196 * inch, "name" : "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in)", "partNumber" : "R4ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 0.625 * inch, "width" : 0.196 * inch, "name" : "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in)", "partNumber" : "R4ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 0.625 * inch, "width" : 0.196 * inch, "name" : "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.OD_0_75_X_0_281 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.75 * inch, "width" : 0.281 * inch, "name" : "1/4 in Round Radial Bearing (0.75 in OD x 0.281 in)", "partNumber" : "RA4ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
@@ -466,7 +550,8 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (13 mm OD x 4 mm)", "partNumber" : "695ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_19_X_6 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "5 mm Round Radial Bearing (19 mm OD x 6 mm)", "partNumber" : "635ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "5 mm Round Radial Bearing (19 mm OD x 6 mm)", "partNumber" : "635ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "5 mm Round Radial Bearing (19 mm OD x 6 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_6 : {
@@ -485,7 +570,8 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "8 mm Round Radial Bearing (19 mm OD x 6 mm)", "partNumber" : "R1980ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_22_X_7 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "8 mm Round Radial Bearing (22 mm OD x 7 mm)", "partNumber" : "608ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "8 mm Round Radial Bearing (22 mm OD x 7 mm)", "partNumber" : "608ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "8 mm Round Radial Bearing (22 mm OD x 7 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_10 : {
@@ -522,7 +608,13 @@ export const BEARINGS = {
                 },
                 BearingSize.MM_25 : {
                     BearingDimensions.MM_37_X_7 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 37 * millimeter, "width" : 7 * millimeter, "name" : "25 mm Round Radial Bearing (37 mm OD x 7 mm)", "partNumber" : "6805ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 37 * millimeter, "width" : 7 * millimeter, "name" : "25 mm Round Radial Bearing (37 mm OD x 7 mm)", "partNumber" : "6805ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 37 * millimeter, "width" : 7 * millimeter, "name" : "25 mm Round Radial Bearing (37 mm OD x 7 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_30 : {
+                    BearingDimensions.MM_42_X_7 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 42 * millimeter, "width" : 7 * millimeter, "name" : "30 mm Round Radial Bearing (42 mm OD x 7 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_35 : {
@@ -1012,6 +1104,151 @@ export const BEARINGS = {
                 BearingSize.MM_15 : {
                     BearingDimensions.MM_24_X_5 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 24 * millimeter, "width" : 5 * millimeter, "name" : "15 mm Round Radial Bearing (24 mm OD x 5 mm)", "vendor" : "SDS", "partNumber" : "6802ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                }
+            }
+        }
+    },
+    BearingVendor.MCMASTER : {
+        BearingType.FLANGED : {
+            BearingBore.ROUND : {
+                BearingSize.MM_5 : {
+                    BearingDimensions.MM_8_X_2 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 8 * millimeter, "width" : 2 * millimeter, "flangeDiameter" : 9.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (8 mm OD x 2 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K455", "url" : "https://www.mcmaster.com/57155K455/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_9_X_2_5 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 9 * millimeter, "width" : 2.5 * millimeter, "flangeDiameter" : 10.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (9 mm OD x 2.5 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K457", "url" : "https://www.mcmaster.com/57155K457/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_9_X_3 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 9 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 10.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (9 mm OD x 3 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K643", "url" : "https://www.mcmaster.com/57155K643/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_3 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 10 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 11.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "5 mm Round Flanged Bearing (10 mm OD x 3 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K459", "url" : "https://www.mcmaster.com/57155K459/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 10 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 11.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "5 mm Round Flanged Bearing (10 mm OD x 4 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K568", "url" : "https://www.mcmaster.com/57155K568/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_11_X_3 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 11 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 12.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "5 mm Round Flanged Bearing (11 mm OD x 3 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K462", "url" : "https://www.mcmaster.com/57155K462/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_11_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 11 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 12.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "5 mm Round Flanged Bearing (11 mm OD x 4 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K571", "url" : "https://www.mcmaster.com/57155K571/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_11_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 11 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 12.5 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (11 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K573", "url" : "https://www.mcmaster.com/57155K573/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_13_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (13 mm OD x 4 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K575", "url" : "https://www.mcmaster.com/57155K575/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 16 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (14 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K577", "url" : "https://www.mcmaster.com/57155K577/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 16 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (14 mm OD x 5 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K466", "url" : "https://www.mcmaster.com/57155K466/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_16_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (16 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K579", "url" : "https://www.mcmaster.com/57155K579/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "5 mm Round Flanged Bearing (16 mm OD x 5 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K468", "url" : "https://www.mcmaster.com/57155K468/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "5 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K471", "url" : "https://www.mcmaster.com/57155K471/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_6 : {
+                    BearingDimensions.MM_10_X_2_5 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 10 * millimeter, "width" : 2.5 * millimeter, "flangeDiameter" : 11.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "6 mm Round Flanged Bearing (10 mm OD x 2.5 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K472", "url" : "https://www.mcmaster.com/57155K472/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_3 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 10 * millimeter, "width" : 3 * millimeter, "flangeDiameter" : 11.2 * millimeter, "flangeThickness" : 0.6 * millimeter, "name" : "6 mm Round Flanged Bearing (10 mm OD x 3 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K584", "url" : "https://www.mcmaster.com/57155K584/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_13_X_3_5 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 13 * millimeter, "width" : 3.5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "6 mm Round Flanged Bearing (13 mm OD x 3.5 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K476", "url" : "https://www.mcmaster.com/57155K476/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_13_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 15 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "6 mm Round Flanged Bearing (13 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K588", "url" : "https://www.mcmaster.com/57155K588/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_15_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 15 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 17 * millimeter, "flangeThickness" : 1.2 * millimeter, "name" : "6 mm Round Flanged Bearing (15 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K591", "url" : "https://www.mcmaster.com/57155K591/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 15 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 17 * millimeter, "flangeThickness" : 1.2 * millimeter, "name" : "6 mm Round Flanged Bearing (15 mm OD x 5 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K478", "url" : "https://www.mcmaster.com/57155K478/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_17_X_6 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1.2 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K593", "url" : "https://www.mcmaster.com/57155K593/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 19 * millimeter, "flangeThickness" : 1.2 * millimeter, "name" : "6 mm Round Flanged Bearing (17 mm OD x 6 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K481", "url" : "https://www.mcmaster.com/57155K481/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "6 mm Round Flanged Bearing (19 mm OD x 6 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K595", "url" : "https://www.mcmaster.com/57155K595/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "6 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K483", "url" : "https://www.mcmaster.com/57155K483/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_8 : {
+                    BearingDimensions.MM_14_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 15.6 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "8 mm Round Flanged Bearing (14 mm OD x 4 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K823", "url" : "https://www.mcmaster.com/57155K823/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_16_X_4 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 16 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 4 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K498", "url" : "https://www.mcmaster.com/57155K498/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_16_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K825", "url" : "https://www.mcmaster.com/57155K825/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (19 mm OD x 6 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K627", "url" : "https://www.mcmaster.com/57155K627/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K511", "url" : "https://www.mcmaster.com/57155K511/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_22_X_7 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 25 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (22 mm OD x 7 mm)", "vendor" : "McMaster-Carr", "partNumber" : "57155K629", "url" : "https://www.mcmaster.com/57155K629/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 25 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (22 mm OD x 7 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "57155K513", "url" : "https://www.mcmaster.com/57155K513/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_25 : {
+                    BearingDimensions.MM_37_X_7 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 37 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 40 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "25 mm Round Flanged Bearing (37 mm OD x 7 mm)", "vendor" : "McMaster-Carr", "partNumber" : "4390N178", "url" : "https://www.mcmaster.com/4390N178/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_30 : {
+                    BearingDimensions.MM_42_X_7 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 42 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 45 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "30 mm Round Flanged Bearing (42 mm OD x 7 mm)", "vendor" : "McMaster-Carr", "partNumber" : "4390N181", "url" : "https://www.mcmaster.com/4390N181/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                }
+            }
+        },
+        BearingType.RADIAL : {
+            BearingBore.ROUND : {
+                BearingSize.IN_1_2 : {
+                    BearingDimensions.OD_1_125_X_0_25 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 1.125 * inch, "width" : 0.25 * inch, "name" : "1/2 in Round Radial Bearing (1.125 in OD x 0.25 in, Open)", "vendor" : "McMaster-Carr", "partNumber" : "60355K173", "url" : "https://www.mcmaster.com/60355K173/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.IN_3_8 : {
+                    BearingDimensions.OD_0_875_X_0_219 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 0.875 * inch, "width" : 0.219 * inch, "name" : "3/8 in Round Radial Bearing (0.875 in OD x 0.219 in, Open)", "vendor" : "McMaster-Carr", "partNumber" : "60355K165", "url" : "https://www.mcmaster.com/60355K165/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.IN_3_16 : {
+                    BearingDimensions.OD_0_5_X_0_156 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 0.5 * inch, "width" : 0.156 * inch, "name" : "3/16 in Round Radial Bearing (0.5 in OD x 0.156 in, Open)", "vendor" : "McMaster-Carr", "partNumber" : "60355K132", "url" : "https://www.mcmaster.com/60355K132/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.IN_1_4 : {
+                    BearingDimensions.OD_0_625_X_0_196 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 0.625 * inch, "width" : 0.196 * inch, "name" : "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in, Open)", "vendor" : "McMaster-Carr", "partNumber" : "60355K151", "url" : "https://www.mcmaster.com/60355K151/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_5 : {
+                    BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "5 mm Round Radial Bearing (19 mm OD x 6 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "5972K197", "url" : "https://www.mcmaster.com/5972K197/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_8 : {
+                    BearingDimensions.MM_22_X_7 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "8 mm Round Radial Bearing (22 mm OD x 7 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "5972K91", "url" : "https://www.mcmaster.com/5972K91/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_25 : {
+                    BearingDimensions.MM_37_X_7 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 37 * millimeter, "width" : 7 * millimeter, "name" : "25 mm Round Radial Bearing (37 mm OD x 7 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "5972K216", "url" : "https://www.mcmaster.com/5972K216/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_30 : {
+                    BearingDimensions.MM_42_X_7 : {
+                        BearingSeal.OPEN : { "outerDiameter" : 42 * millimeter, "width" : 7 * millimeter, "name" : "30 mm Round Radial Bearing (42 mm OD x 7 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "5972K217", "url" : "https://www.mcmaster.com/5972K217/", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 }
             }
