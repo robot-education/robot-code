@@ -22,8 +22,8 @@ FTC's are goBILDA's (the only bearings in ConfigLib), REV's from its FTC catalog
 from their stores and STEP files (vendor/, measured for their flanges and bores).
 
 Flanges come from REV's drawings, AndyMark's listed specifications, and goBILDA's STEP files (vendor/), or else the
-designation's standard dimensions, marked where they're assumed. A bore is its shaft's nominal size: 13.75 mm and 10.25 mm across a rounded
-hex's corners, as Robot shaft rounds its shafts, and 0.302 in across a ThunderSquare's.
+designation's standard dimensions, marked where they're assumed. A bore is its shaft's nominal size: 13.75 mm and
+10.25 mm across a rounded hex's corners, as Robot shaft rounds its shafts.
 """
 
 from __future__ import annotations
@@ -49,13 +49,12 @@ INCH = 0.0254
 
 BearingVendor = Enum(
     "BearingVendor",
-    ["GENERIC", "WCP", "ANDYMARK", "REV", "VEX", "THRIFTYBOT", "SWYFT", "SDS", "MCMASTER", "GOBILDA"],
+    ["GENERIC", "WCP", "ANDYMARK", "REV", "THRIFTYBOT", "SWYFT", "SDS", "MCMASTER", "GOBILDA"],
     {
         "GENERIC": "Generic",
         "WCP": "WCP",
         "ANDYMARK": "AndyMark",
         "REV": "REV",
-        "VEX": "VEX",
         "THRIFTYBOT": "ThriftyBot",
         "SWYFT": "Swyft",
         "SDS": "SDS",
@@ -69,32 +68,36 @@ _VENDOR_NAMES = {
     "West Coast Products": "WCP",
     "AndyMark": "ANDYMARK",
     "REV Robotics": "REV",
+    # VEX no longer sells bearings, so its records are left out
     "VEX Robotics": "VEX",
     "The Thrifty Bot": "THRIFTYBOT",
     "SWYFT Robotics": "SWYFT",
     "Swerve Drive Specialties": "SDS",
 }
 
-BearingType = Enum("BearingType", ["FLANGED", "RADIAL"], {"FLANGED": "Flanged", "RADIAL": "Radial"})
+# A bushing (REV's acetal Through Bore Bearings) is flanged, a solid ring with no races
+BearingType = Enum(
+    "BearingType", ["FLANGED", "RADIAL", "BUSHING"], {"FLANGED": "Flanged", "RADIAL": "Radial", "BUSHING": "Bushing"}
+)
 
 BearingBore = Enum(
     "BearingBore",
-    ["HEX", "ROUNDED_HEX", "ROUND", "THUNDERSQUARE", "REX"],
-    {"HEX": "Hex", "ROUNDED_HEX": "Rounded hex", "ROUND": "Round", "THUNDERSQUARE": "ThunderSquare", "REX": "REX"},
+    ["HEX", "ROUNDED_HEX", "ROUND", "REX"],
+    {"HEX": "Hex", "ROUNDED_HEX": "Rounded hex", "ROUND": "Round", "REX": "REX"},
 )
 
-# A plain bearing (REV's acetal Through Bore Bearings) has no seal: it has no balls or races to seal
+# A bushing has no seal: it has no balls or races to seal
 BearingSeal = Enum(
     "BearingSeal",
     ["SHIELDED", "SEALED", "OPEN", "NONE"],
     {"SHIELDED": "Shielded", "SEALED": "Sealed", "OPEN": "Open", "NONE": "None"},
 )
-# Each bearing's material, as robotProperties.fs's constant and as Onshape names it: steel, but a plain bearing's acetal
+# Each bearing's material, as robotProperties.fs's constant and as Onshape names it: steel, but a bushing's acetal
 MATERIALS = {"STEEL": "Steel", "ACETAL": "Acetal"}
 
 
-def material(seal: str) -> str:
-    return "ACETAL" if seal == "NONE" else "STEEL"
+def material(type: str) -> str:
+    return "ACETAL" if type == "BUSHING" else "STEEL"
 
 
 
@@ -128,8 +131,8 @@ SIZES = [
 SIZES_BY_ID = {size.id: size for size in SIZES}
 BearingSize = Enum("BearingSize", [size.id for size in SIZES], {size.id: size.name for size in SIZES})
 
-# The diameter a bore's corners are rounded to: Robot shaft's rounded hex shafts', and VEX's ThunderSquare's 0.302 in
-ROUNDED_DIAMETERS = {("ROUNDED_HEX", "IN_1_2"): mm(13.75), ("ROUNDED_HEX", "IN_3_8"): mm(10.25), ("THUNDERSQUARE", "IN_1_4"): inch(0.302)}
+# The diameter a rounded hex's corners are rounded to, as Robot shaft rounds its shafts
+ROUNDED_DIAMETERS = {("ROUNDED_HEX", "IN_1_2"): mm(13.75), ("ROUNDED_HEX", "IN_3_8"): mm(10.25)}
 # A bore across its flats where it isn't its size: goBILDA's 8 mm REX bearing's is a 7 mm hex, its corners unrounded
 # (1611-0514-4008's STEP file)
 BORE_FLATS = {("REX", "MM_8"): mm(7)}
@@ -174,7 +177,6 @@ _BORES = {
     '3/8" Rounded Hex': ("ROUNDED_HEX", "IN_3_8"),
     '1/2" Hex': ("HEX", "IN_1_2"),
     '3/8" Hex': ("HEX", "IN_3_8"),
-    '1/4" ThunderSquare': ("THUNDERSQUARE", "IN_1_4"),
     "#10 Clearance": ("ROUND", "NO_10"),
     '0.188"': ("ROUND", "IN_3_16"),
     '0.190"': ("ROUND", "NO_10"),
@@ -227,18 +229,18 @@ def parse_dimensions(type: str, text: str) -> Bearing:
 
 # Flanges, by size and dimensions: (diameter, thickness), in the dimensions' unit
 FLANGES: dict[tuple[str, str], tuple[str, str]] = {
-    # REV-21-1916-DR.pdf (1/2 in rounded hex); AndyMark lists 1.225 to 1.25 in x 0.061 to 0.062 in for its own
+    # REV-21-1916-DR.pdf (1/2 in rounded hex), and WCP-0785's and Swyft's BRG-0001 STEP files; AndyMark lists 1.225 to
+    # 1.25 in x 0.061 to 0.062 in for its own
     **{(size, "OD_1_125_X_0_313"): ("1.225", "0.063") for size in ("IN_1_2", "IN_3_8")},
     # REV-21-3197-DR.pdf
     **{(size, "OD_1_X_0_281"): ("1.06", "0.06") for size in ("IN_1_2", "IN_3_8")},
-    # REV-21-3199-DR.pdf (#10 clearance); AndyMark lists 0.967 to 0.975 in x 0.06 to 0.065 in (am-4463, am-4489)
+    # REV-21-3199-DR.pdf (#10 clearance), and Swyft's BRG-0002 STEP file; AndyMark lists 0.967 to 0.975 in x 0.06 to
+    # 0.065 in (am-4463, am-4489)
     **{(size, "OD_0_875_X_0_281"): ("0.97", "0.06") for size in ("IN_1_2", "IN_3_8", "IN_1_4", "NO_10", "MM_8")},
     ("IN_3_8", "OD_0_875_X_0_219"): ("0.97", "0.062"),  # am-0027 (FR6)
     ("IN_3_16", "OD_0_5_X_0_196"): ("0.565", "0.042"),  # am-4459 (FR3ZZ)
     ("IN_1_4", "OD_0_5_X_0_188"): ("0.565", "0.042"),  # FR188ZZ's standard
     ("IN_1_4", "OD_0_625_X_0_196"): ("0.69", "0.042"),  # am-4461 (FR4ZZ)
-    # TODO: assumed; WCP and VEX publish no flange for WCP-0782 or 217-2789
-    ("IN_3_4", "OD_1_375_X_0_438"): ("1.5", "0.063"),
     ("MM_5", "MM_11_X_4"): ("12.5", "0.8"),  # MF115ZZ's standard
     ("MM_5", "MM_13_X_4"): ("15", "1"),  # am-5469
     ("MM_5", "MM_16_X_5"): ("18", "1"),  # F625ZZ's standard
@@ -247,7 +249,7 @@ FLANGES: dict[tuple[str, str], tuple[str, str]] = {
     ("MM_6", "MM_14_X_5"): ("15", "1"),  # 1611-0514-0006's STEP file
     **{(size, "MM_14_X_5"): ("16", "1") for size in ("MM_4", "MM_5")},  # 1601-0014-0004's and -0005's STEP files
     ("MM_6", "MM_17_X_6"): ("19", "1"),  # am-4455
-    # 1611-0514-0008's and -4008's STEP files; Swyft publishes none for BRG-8mm-14mm-01
+    # 1611-0514-0008's and -4008's STEP files, and Swyft's BRG-8mm-14mm-01
     ("MM_8", "MM_14_X_5"): ("15", "1"),
     # TODO: assumed, F688's; ThriftyBot publishes none for TTB-0006
     ("MM_8", "MM_16_X_6_3"): ("18", "1.1"),
@@ -334,7 +336,7 @@ def _order(item: tuple[tuple, tuple[Bearing, Stock]]) -> tuple:
 
 
 # Parts FRCDesign's records offer which their vendors no longer sell: AndyMark's store tags these Discontinued, and WCP's
-# lists neither of its own (checked 2026-11-16)
+# lists neither of its own (checked 2026-11-16). VEX sells no bearings at all.
 DISCONTINUED = {
     ("ANDYMARK", part)
     for part in (
@@ -342,28 +344,33 @@ DISCONTINUED = {
         "am-4466", "am-4467", "am-4468", "am-4469",
     )
 } | {("WCP", "WCP-0782"), ("WCP", "217-5830")}
+DISCONTINUED_VENDORS = {"VEX"}
 
 
 def _frc_bearings() -> Bearings:
-    """FRCDesign's records but the discontinued, McMaster-Carr's, and Generic's: every bearing any of their vendors
-    makes, by its designation."""
+    """FRCDesign's records but the discontinued, McMaster-Carr's, and Generic's: every standard bearing FRCDesign's
+    Generic records name by its designation, and every bearing any of their vendors makes. A Generic record with no
+    designation is a vendor's own bearing (a rounded hex, say), Generic's only while a vendor sells it."""
     stocked: Bearings = {}
     designations: dict[tuple, str] = {}
     for part in SNAPSHOT["parts"]:
         type = _TYPES[part["name"]]
         for record in part["records"]:
             options = _option_names(part, record)
-            bearing = parse_dimensions(type, options["Dimensions"])
             vendor = _VENDOR_NAMES[options["Vendor"]]
+            part_number = record.get("partNumber")
+            if vendor in DISCONTINUED_VENDORS or (vendor, part_number) in DISCONTINUED:
+                continue
             if vendor == "GENERIC":
-                designation = _designation(record.get("partNumber"))
-                if designation:
-                    designations[bearing.key] = designation
+                designation = _designation(part_number)
+                if designation is None:
+                    continue
+                bearing = parse_dimensions(type, options["Dimensions"])
+                designations[bearing.key] = designation
                 stocked[("GENERIC", *bearing.key)] = (bearing, Stock())
                 continue
-            if (vendor, record.get("partNumber")) in DISCONTINUED:
-                continue
-            stocked[(vendor, *bearing.key)] = (bearing, Stock(record.get("partNumber"), record.get("url")))
+            bearing = parse_dimensions(type, options["Dimensions"])
+            stocked[(vendor, *bearing.key)] = (bearing, Stock(part_number, record.get("url")))
     stocked.update(MCMASTER_BEARINGS)
     for (_, *key), (bearing, _) in list(stocked.items()):
         stocked[("GENERIC", *key)] = (bearing, Stock(designations.get(tuple(key))))
@@ -428,14 +435,14 @@ _GOBILDA = [
 ]
 
 
-# REV's for FTC, from its FTC catalog's Bearings, Shafts, & Spacers: its flanged ball bearing, and its acetal Through
-# Bore Bearings, plain bearings for its 5 mm hex shafts, 5 mm and 11 mm long overall (REV-41-1326 and -1329's drawings
-# and STEP files). Its pulley bearings are V-grooved, and its end cap bearings caps, so neither is a bearing here.
+# REV's for FTC, from its FTC catalog's Bearings, Shafts, & Spacers: its flanged ball bearing, and its black acetal
+# Through Bore Bearings, bushings for its 5 mm hex shafts, 5 mm and 11 mm long overall (REV-41-1326 and -1329's
+# drawings and STEP files). Its pulley bearings are V-grooved, and its end cap bearings caps, so neither is a bearing here.
 REV_STORE = "https://www.revrobotics.com"
 _REV_FTC = [
     ("FLANGED", "ROUND", "MM_8", "12", "3.5", "SHIELDED", "REV-49-1559-PK10", "/rev-49-1559-pk10/"),
-    ("FLANGED", "HEX", "MM_5", "9", "5", "NONE", "REV-41-1326", "/Through-Bore-Bearings/"),
-    ("FLANGED", "HEX", "MM_5", "9", "11", "NONE", "REV-41-1329", "/Through-Bore-Bearings/"),
+    ("BUSHING", "HEX", "MM_5", "9", "5", "NONE", "REV-41-1326", "/Through-Bore-Bearings/"),
+    ("BUSHING", "HEX", "MM_5", "9", "11", "NONE", "REV-41-1329", "/Through-Bore-Bearings/"),
 ]
 # AndyMark's for FTC: those its store tags for FTC (All FTC Parts, and its Robits line's bearings), but its V-grooved
 # pulley bearing (am-4836)
@@ -482,20 +489,19 @@ BearingDimensions = Enum("BearingDimensions", list(DIMENSIONS), {id: dimensions.
 
 # What each part is called and sold as: the feature sets these, and FRCDesignApp indexes the same records
 
-_BORE_WORDS = {"HEX": "Hex", "ROUNDED_HEX": "Rounded Hex", "ROUND": "Round", "THUNDERSQUARE": "ThunderSquare", "REX": "REX"}
-_TYPE_WORDS = {"FLANGED": "Flanged", "RADIAL": "Radial"}
+_BORE_WORDS = {"HEX": "Hex", "ROUNDED_HEX": "Rounded Hex", "ROUND": "Round", "REX": "REX"}
+_TYPE_WORDS = {"FLANGED": "Flanged Bearing", "RADIAL": "Radial Bearing", "BUSHING": "Flanged Bushing"}
 _SIZE_WORDS = {"NO_10": "0.19 in"}
 
 
 def bearing_name(bearing: Bearing) -> str:
     """e.g. `1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)`, with any seal but shields after its
-    dimensions: `3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)`, or a plain bearing's `5 mm Hex Flanged
-    Plain Bearing (9 mm OD x 5 mm)`."""
+    dimensions: `3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)`, or a bushing's `5 mm Hex Flanged Bushing
+    (9 mm OD x 5 mm)`."""
     size = _SIZE_WORDS.get(bearing.size, SIZES_BY_ID[bearing.size].name)
-    if bearing.seal == "NONE":
-        return f"{size} {_BORE_WORDS[bearing.bore]} {_TYPE_WORDS[bearing.type]} Plain Bearing ({bearing.dimensions.name})"
-    described = [bearing.dimensions.name] + ([] if bearing.seal == "SHIELDED" else [BearingSeal.names[bearing.seal]])  # type: ignore[index]
-    return f"{size} {_BORE_WORDS[bearing.bore]} {_TYPE_WORDS[bearing.type]} Bearing ({', '.join(described)})"
+    plain = ("SHIELDED", "NONE")
+    described = [bearing.dimensions.name] + ([] if bearing.seal in plain else [BearingSeal.names[bearing.seal]])  # type: ignore[index]
+    return f"{size} {_BORE_WORDS[bearing.bore]} {_TYPE_WORDS[bearing.type]} ({', '.join(described)})"
 
 
 def vendor_name(vendor: str) -> str | None:
@@ -519,9 +525,9 @@ class Record:
             "name": string(self.name),
             **({"vendor": string(vendor)} if vendor else {}),
             **{key: string(value) for key, value in _stock(self.stock).items()},
-            "material": material(self.bearing.seal),
-            # Black, a placeholder for an acetal bearing's color, which REV doesn't publish
-            "appearance": "BLACK" if self.bearing.seal == "NONE" else "STEEL_GRAY",
+            "material": material(self.bearing.type),
+            # Every bearing's races in one steel grey, as WCP's models have them; REV's bushings are black
+            "appearance": "BLACK" if self.bearing.type == "BUSHING" else "STEEL_GRAY",
         }
 
     def manifest(self) -> dict:
@@ -531,7 +537,7 @@ class Record:
             "name": self.name,
             **({"vendor": vendor} if vendor else {}),
             **_stock(self.stock),
-            "material": MATERIALS[material(self.bearing.seal)],
+            "material": MATERIALS[material(self.bearing.type)],
             # A radial bearing's top is where it seats: one connector, which its studio's top connector stands for
             **({"topMateConnector": SEAT_MATE_CONNECTOR} if self.bearing.type == "RADIAL" else {}),
         }
@@ -640,7 +646,7 @@ def _nested(table: dict[tuple, object], enums: list[Enum], render, indent: int =
 def _bore_fields(bore: str, size: str) -> str:
     spec = SIZES_BY_ID[size]
     value = BORE_FLATS.get((bore, size), _length(spec.value, spec.unit))
-    fields = {"diameter": value} if bore == "ROUND" else {"acrossFlats": value, "sides": "4" if bore == "THUNDERSQUARE" else "6"}
+    fields = {"diameter": value} if bore == "ROUND" else {"acrossFlats": value}
     if (bore, size) in ROUNDED_DIAMETERS:
         fields["diameter"] = ROUNDED_DIAMETERS[(bore, size)]
     return _fields(fields)
@@ -656,9 +662,7 @@ def _bearing_fields(item: tuple[Bearing, Record]) -> str:
     }
     if dimensions.outer_width:
         fields["outerWidth"] = _length(dimensions.outer_width, unit)
-    if bearing.seal == "NONE":
-        fields["plain"] = "true"
-    if bearing.type == "FLANGED":
+    if bearing.type != "RADIAL":
         diameter, thickness = flange(record.vendor, bearing.size, dimensions.id)
         fields["flangeDiameter"] = _length(diameter, unit)
         fields["flangeThickness"] = _length(thickness, unit)
@@ -676,8 +680,8 @@ CONTENTS = [
     BearingDimensions,
     BearingSeal,
     Code(
-        "/** Each bore's shape: a round bore's `diameter`, or a hex's or square's `sides` and `acrossFlats`, with its"
-        " corners rounded to `diameter` where they are. */\nexport const BEARING_BORES = "
+        "/** Each bore's shape: a round bore's `diameter`, or a hex's `acrossFlats`, with its corners rounded to"
+        " `diameter` where they are. */\nexport const BEARING_BORES = "
         + _nested(
             {key: key for key in sorted(_BORE_SIZES, key=lambda key: (BearingBore.values.index(key[0]), BearingSize.values.index(key[1])))},
             [BearingBore, BearingSize],
@@ -732,7 +736,7 @@ def manifest(catalog: Catalog = FRC, locations: dict = LOCATIONS, source: str = 
                 "width": bearing.dimensions.meters(bearing.dimensions.width),
                 **(
                     {"flangeDiameter": bearing.dimensions.meters(flange(vendor, size, dimensions)[0])}
-                    if type == "FLANGED"
+                    if type != "RADIAL"
                     else {}
                 ),
                 "seal": seal,

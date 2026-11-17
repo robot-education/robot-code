@@ -14,8 +14,6 @@ export enum BearingVendor
     ANDYMARK,
     annotation { "Name" : "REV" }
     REV,
-    annotation { "Name" : "VEX" }
-    VEX,
     annotation { "Name" : "ThriftyBot" }
     THRIFTYBOT,
     annotation { "Name" : "Swyft" }
@@ -33,7 +31,9 @@ export enum BearingType
     annotation { "Name" : "Flanged" }
     FLANGED,
     annotation { "Name" : "Radial" }
-    RADIAL
+    RADIAL,
+    annotation { "Name" : "Bushing" }
+    BUSHING
 }
 
 export enum BearingBore
@@ -44,8 +44,6 @@ export enum BearingBore
     ROUNDED_HEX,
     annotation { "Name" : "Round" }
     ROUND,
-    annotation { "Name" : "ThunderSquare" }
-    THUNDERSQUARE,
     annotation { "Name" : "REX" }
     REX
 }
@@ -204,16 +202,16 @@ export enum BearingSeal
     NONE
 }
 
-/** Each bore's shape: a round bore's `diameter`, or a hex's or square's `sides` and `acrossFlats`, with its corners rounded to `diameter` where they are. */
+/** Each bore's shape: a round bore's `diameter`, or a hex's `acrossFlats`, with its corners rounded to `diameter` where they are. */
 export const BEARING_BORES = {
     BearingBore.HEX : {
-        BearingSize.IN_1_2 : { "acrossFlats" : 0.5 * inch, "sides" : 6 },
-        BearingSize.IN_3_8 : { "acrossFlats" : 0.375 * inch, "sides" : 6 },
-        BearingSize.MM_5 : { "acrossFlats" : 5 * millimeter, "sides" : 6 }
+        BearingSize.IN_1_2 : { "acrossFlats" : 0.5 * inch },
+        BearingSize.IN_3_8 : { "acrossFlats" : 0.375 * inch },
+        BearingSize.MM_5 : { "acrossFlats" : 5 * millimeter }
     },
     BearingBore.ROUNDED_HEX : {
-        BearingSize.IN_1_2 : { "acrossFlats" : 0.5 * inch, "sides" : 6, "diameter" : 13.75 * millimeter },
-        BearingSize.IN_3_8 : { "acrossFlats" : 0.375 * inch, "sides" : 6, "diameter" : 10.25 * millimeter }
+        BearingSize.IN_1_2 : { "acrossFlats" : 0.5 * inch, "diameter" : 13.75 * millimeter },
+        BearingSize.IN_3_8 : { "acrossFlats" : 0.375 * inch, "diameter" : 10.25 * millimeter }
     },
     BearingBore.ROUND : {
         BearingSize.IN_1_2 : { "diameter" : 0.5 * inch },
@@ -222,7 +220,6 @@ export const BEARING_BORES = {
         BearingSize.NO_10 : { "diameter" : 0.19 * inch },
         BearingSize.IN_1_4 : { "diameter" : 0.25 * inch },
         BearingSize.IN_5_8 : { "diameter" : 0.625 * inch },
-        BearingSize.IN_3_4 : { "diameter" : 0.75 * inch },
         BearingSize.MM_4 : { "diameter" : 4 * millimeter },
         BearingSize.MM_5 : { "diameter" : 5 * millimeter },
         BearingSize.MM_6 : { "diameter" : 6 * millimeter },
@@ -239,11 +236,8 @@ export const BEARING_BORES = {
         BearingSize.MM_80 : { "diameter" : 80 * millimeter },
         BearingSize.MM_120 : { "diameter" : 120 * millimeter }
     },
-    BearingBore.THUNDERSQUARE : {
-        BearingSize.IN_1_4 : { "acrossFlats" : 0.25 * inch, "sides" : 4, "diameter" : 0.302 * inch }
-    },
     BearingBore.REX : {
-        BearingSize.MM_8 : { "acrossFlats" : 7 * millimeter, "sides" : 6 }
+        BearingSize.MM_8 : { "acrossFlats" : 7 * millimeter }
     }
 };
 
@@ -324,11 +318,6 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 0.625 * inch, "width" : 0.196 * inch, "flangeDiameter" : 0.69 * inch, "flangeThickness" : 0.042 * inch, "name" : "1/4 in Round Flanged Bearing (0.625 in OD x 0.196 in)", "partNumber" : "FR4ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
-                BearingSize.IN_3_4 : {
-                    BearingDimensions.OD_1_375_X_0_438 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.375 * inch, "width" : 0.438 * inch, "flangeDiameter" : 1.5 * inch, "flangeThickness" : 0.063 * inch, "name" : "3/4 in Round Flanged Bearing (1.375 in OD x 0.438 in)", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
                 BearingSize.MM_5 : {
                     BearingDimensions.MM_11_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 11 * millimeter, "width" : 4 * millimeter, "flangeDiameter" : 12.5 * millimeter, "flangeThickness" : 0.8 * millimeter, "name" : "5 mm Round Flanged Bearing (11 mm OD x 4 mm)", "partNumber" : "MF115ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
@@ -397,13 +386,6 @@ export const BEARINGS = {
                         BearingSeal.SEALED : { "outerDiameter" : 47 * millimeter, "width" : 7 * millimeter, "flangeDiameter" : 50 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "35 mm Round Flanged Bearing (47 mm OD x 7 mm, Sealed)", "partNumber" : "F68072RS", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 }
-            },
-            BearingBore.THUNDERSQUARE : {
-                BearingSize.IN_1_4 : {
-                    BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.97 * inch, "flangeThickness" : 0.06 * inch, "name" : "1/4 in ThunderSquare Flanged Bearing (0.875 in OD x 0.281 in)", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
             }
         },
         BearingType.RADIAL : {
@@ -416,13 +398,6 @@ export const BEARINGS = {
                 BearingSize.IN_3_8 : {
                     BearingDimensions.OD_0_875_X_0_281 : {
                         BearingSeal.SEALED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "name" : "3/8 in Hex Radial Bearing (0.875 in OD x 0.281 in, Sealed)", "partNumber" : "R62RS-Hex", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            },
-            BearingBore.ROUNDED_HEX : {
-                BearingSize.IN_1_2 : {
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "name" : "1/2 in Rounded Hex Radial Bearing (1.125 in OD x 0.313 in)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 }
             },
@@ -846,14 +821,6 @@ export const BEARINGS = {
                     BearingDimensions.OD_1_125_X_0_313 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.063 * inch, "name" : "1/2 in Hex Flanged Bearing (1.125 in OD x 0.313 in)", "vendor" : "REV", "partNumber" : "REV-21-1915", "url" : "https://www.revrobotics.com/search.php?search_query=REV-21-1915&section=product", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
-                },
-                BearingSize.MM_5 : {
-                    BearingDimensions.MM_9_X_5 : {
-                        BearingSeal.NONE : { "outerDiameter" : 9 * millimeter, "width" : 5 * millimeter, "plain" : true, "flangeDiameter" : 13 * millimeter, "flangeThickness" : 2 * millimeter, "name" : "5 mm Hex Flanged Plain Bearing (9 mm OD x 5 mm)", "vendor" : "REV", "partNumber" : "REV-41-1326", "url" : "https://www.revrobotics.com/Through-Bore-Bearings/", "material" : ACETAL, "appearance" : BLACK }
-                    },
-                    BearingDimensions.MM_9_X_11 : {
-                        BearingSeal.NONE : { "outerDiameter" : 9 * millimeter, "width" : 11 * millimeter, "plain" : true, "flangeDiameter" : 13 * millimeter, "flangeThickness" : 2 * millimeter, "name" : "5 mm Hex Flanged Plain Bearing (9 mm OD x 11 mm)", "vendor" : "REV", "partNumber" : "REV-41-1329", "url" : "https://www.revrobotics.com/Through-Bore-Bearings/", "material" : ACETAL, "appearance" : BLACK }
-                    }
                 }
             },
             BearingBore.ROUNDED_HEX : {
@@ -892,95 +859,15 @@ export const BEARINGS = {
                     }
                 }
             }
-        }
-    },
-    BearingVendor.VEX : {
-        BearingType.FLANGED : {
-            BearingBore.HEX : {
-                BearingSize.IN_1_2 : {
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.063 * inch, "name" : "1/2 in Hex Flanged Bearing (1.125 in OD x 0.313 in)", "vendor" : "VEX", "partNumber" : "217-3875", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_3_8 : {
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.063 * inch, "name" : "3/8 in Hex Flanged Bearing (1.125 in OD x 0.313 in)", "vendor" : "VEX", "partNumber" : "217-2735", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            },
-            BearingBore.ROUNDED_HEX : {
-                BearingSize.IN_1_2 : {
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.063 * inch, "name" : "1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)", "vendor" : "VEX", "partNumber" : "217-4006", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_3_8 : {
-                    BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.97 * inch, "flangeThickness" : 0.06 * inch, "name" : "3/8 in Rounded Hex Flanged Bearing (0.875 in OD x 0.281 in)", "vendor" : "VEX", "partNumber" : "217-5829", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            },
-            BearingBore.ROUND : {
-                BearingSize.IN_1_2 : {
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.063 * inch, "name" : "1/2 in Round Flanged Bearing (1.125 in OD x 0.313 in)", "vendor" : "VEX", "partNumber" : "217-2731", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_3_8 : {
-                    BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.97 * inch, "flangeThickness" : 0.06 * inch, "name" : "3/8 in Round Flanged Bearing (0.875 in OD x 0.281 in)", "vendor" : "VEX", "partNumber" : "217-2733", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.063 * inch, "name" : "3/8 in Round Flanged Bearing (1.125 in OD x 0.313 in)", "vendor" : "VEX", "partNumber" : "217-2732", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_3_4 : {
-                    BearingDimensions.OD_1_375_X_0_438 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.375 * inch, "width" : 0.438 * inch, "flangeDiameter" : 1.5 * inch, "flangeThickness" : 0.063 * inch, "name" : "3/4 in Round Flanged Bearing (1.375 in OD x 0.438 in)", "vendor" : "VEX", "partNumber" : "217-2789", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            },
-            BearingBore.THUNDERSQUARE : {
-                BearingSize.IN_1_4 : {
-                    BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "flangeDiameter" : 0.97 * inch, "flangeThickness" : 0.06 * inch, "name" : "1/4 in ThunderSquare Flanged Bearing (0.875 in OD x 0.281 in)", "vendor" : "VEX", "partNumber" : "217-5830", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            }
         },
-        BearingType.RADIAL : {
-            BearingBore.ROUNDED_HEX : {
-                BearingSize.IN_1_2 : {
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "name" : "1/2 in Rounded Hex Radial Bearing (1.125 in OD x 0.313 in)", "vendor" : "VEX", "partNumber" : "217-4270", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            },
-            BearingBore.ROUND : {
-                BearingSize.IN_1_2 : {
-                    BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "name" : "1/2 in Round Radial Bearing (0.875 in OD x 0.281 in)", "vendor" : "VEX", "partNumber" : "217-3337", "material" : STEEL, "appearance" : STEEL_GRAY }
+        BearingType.BUSHING : {
+            BearingBore.HEX : {
+                BearingSize.MM_5 : {
+                    BearingDimensions.MM_9_X_5 : {
+                        BearingSeal.NONE : { "outerDiameter" : 9 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 13 * millimeter, "flangeThickness" : 2 * millimeter, "name" : "5 mm Hex Flanged Bushing (9 mm OD x 5 mm)", "vendor" : "REV", "partNumber" : "REV-41-1326", "url" : "https://www.revrobotics.com/Through-Bore-Bearings/", "material" : ACETAL, "appearance" : BLACK }
                     },
-                    BearingDimensions.OD_1_125_X_0_313 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "name" : "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)", "vendor" : "VEX", "partNumber" : "217-3109", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_3_8 : {
-                    BearingDimensions.OD_0_875_X_0_281 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.875 * inch, "width" : 0.281 * inch, "name" : "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)", "vendor" : "VEX", "partNumber" : "217-3239", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_3_16 : {
-                    BearingDimensions.OD_0_5_X_0_196 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.5 * inch, "width" : 0.196 * inch, "name" : "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)", "vendor" : "VEX", "partNumber" : "217-3246", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                },
-                BearingSize.IN_1_4 : {
-                    BearingDimensions.OD_0_375_X_0_125 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.375 * inch, "width" : 0.125 * inch, "name" : "1/4 in Round Radial Bearing (0.375 in OD x 0.125 in)", "vendor" : "VEX", "partNumber" : "217-2788", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    },
-                    BearingDimensions.OD_0_5_X_0_188 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 0.5 * inch, "width" : 0.188 * inch, "name" : "1/4 in Round Radial Bearing (0.5 in OD x 0.188 in)", "vendor" : "VEX", "partNumber" : "217-3489", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    BearingDimensions.MM_9_X_11 : {
+                        BearingSeal.NONE : { "outerDiameter" : 9 * millimeter, "width" : 11 * millimeter, "flangeDiameter" : 13 * millimeter, "flangeThickness" : 2 * millimeter, "name" : "5 mm Hex Flanged Bushing (9 mm OD x 11 mm)", "vendor" : "REV", "partNumber" : "REV-41-1329", "url" : "https://www.revrobotics.com/Through-Bore-Bearings/", "material" : ACETAL, "appearance" : BLACK }
                     }
                 }
             }

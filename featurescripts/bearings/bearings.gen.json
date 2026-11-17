@@ -221,16 +221,6 @@
             "vendor": "GENERIC",
             "type": "FLANGED",
             "bore": "ROUND",
-            "size": "IN_3_4"
-          },
-          "name": "3/4 in Round Flanged Bearing (1.375 in OD x 0.438 in)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
             "size": "MM_5",
             "dimensions": "MM_11_X_4"
           },
@@ -439,15 +429,6 @@
         {
           "values": {
             "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "THUNDERSQUARE"
-          },
-          "name": "1/4 in ThunderSquare Flanged Bearing (0.875 in OD x 0.281 in)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
             "type": "RADIAL",
             "bore": "HEX",
             "size": "IN_1_2"
@@ -466,16 +447,6 @@
           },
           "name": "3/8 in Hex Radial Bearing (0.875 in OD x 0.281 in, Sealed)",
           "partNumber": "R62RS-Hex",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUNDED_HEX"
-          },
-          "name": "1/2 in Rounded Hex Radial Bearing (1.125 in OD x 0.313 in)",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1809,209 +1780,6 @@
         },
         {
           "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "HEX",
-            "size": "IN_1_2"
-          },
-          "name": "1/2 in Hex Flanged Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "VEX",
-          "partNumber": "217-3875",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "HEX",
-            "size": "IN_3_8"
-          },
-          "name": "3/8 in Hex Flanged Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "VEX",
-          "partNumber": "217-2735",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "ROUNDED_HEX",
-            "size": "IN_1_2"
-          },
-          "name": "1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "VEX",
-          "partNumber": "217-4006",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "ROUNDED_HEX",
-            "size": "IN_3_8"
-          },
-          "name": "3/8 in Rounded Hex Flanged Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "VEX",
-          "partNumber": "217-5829",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_1_2"
-          },
-          "name": "1/2 in Round Flanged Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "VEX",
-          "partNumber": "217-2731",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_281"
-          },
-          "name": "3/8 in Round Flanged Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "VEX",
-          "partNumber": "217-2733",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_3_8",
-            "dimensions": "OD_1_125_X_0_313"
-          },
-          "name": "3/8 in Round Flanged Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "VEX",
-          "partNumber": "217-2732",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_3_4"
-          },
-          "name": "3/4 in Round Flanged Bearing (1.375 in OD x 0.438 in)",
-          "vendor": "VEX",
-          "partNumber": "217-2789",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "FLANGED",
-            "bore": "THUNDERSQUARE"
-          },
-          "name": "1/4 in ThunderSquare Flanged Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "VEX",
-          "partNumber": "217-5830",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "RADIAL",
-            "bore": "ROUNDED_HEX"
-          },
-          "name": "1/2 in Rounded Hex Radial Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "VEX",
-          "partNumber": "217-4270",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_2",
-            "dimensions": "OD_0_875_X_0_281"
-          },
-          "name": "1/2 in Round Radial Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "VEX",
-          "partNumber": "217-3337",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_125_X_0_313"
-          },
-          "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "VEX",
-          "partNumber": "217-3109",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_3_8"
-          },
-          "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "VEX",
-          "partNumber": "217-3239",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_3_16"
-          },
-          "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)",
-          "vendor": "VEX",
-          "partNumber": "217-3246",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_4",
-            "dimensions": "OD_0_375_X_0_125"
-          },
-          "name": "1/4 in Round Radial Bearing (0.375 in OD x 0.125 in)",
-          "vendor": "VEX",
-          "partNumber": "217-2788",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "VEX",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_4",
-            "dimensions": "OD_0_5_X_0_188"
-          },
-          "name": "1/4 in Round Radial Bearing (0.5 in OD x 0.188 in)",
-          "vendor": "VEX",
-          "partNumber": "217-3489",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
             "vendor": "THRIFTYBOT",
             "type": "FLANGED",
             "bore": "HEX"
@@ -2333,10 +2101,6 @@
       "name": "REV"
     },
     {
-      "id": "VEX",
-      "name": "VEX"
-    },
-    {
       "id": "THRIFTYBOT",
       "name": "ThriftyBot"
     },
@@ -2582,18 +2346,6 @@
       "vendor": "GENERIC",
       "type": "FLANGED",
       "bore": "ROUND",
-      "size": "IN_3_4",
-      "boreSize": 0.01905,
-      "dimensions": "OD_1_375_X_0_438",
-      "outerDiameter": 0.034925,
-      "width": 0.0111252,
-      "flangeDiameter": 0.0381,
-      "seal": "SHIELDED"
-    },
-    {
-      "vendor": "GENERIC",
-      "type": "FLANGED",
-      "bore": "ROUND",
       "size": "MM_5",
       "boreSize": 0.005,
       "dimensions": "MM_11_X_4",
@@ -2824,18 +2576,6 @@
     },
     {
       "vendor": "GENERIC",
-      "type": "FLANGED",
-      "bore": "THUNDERSQUARE",
-      "size": "IN_1_4",
-      "boreSize": 0.00635,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "flangeDiameter": 0.024638,
-      "seal": "SHIELDED"
-    },
-    {
-      "vendor": "GENERIC",
       "type": "RADIAL",
       "bore": "HEX",
       "size": "IN_1_2",
@@ -2857,17 +2597,6 @@
       "width": 0.0071374,
       "seal": "SEALED",
       "partNumber": "R62RS-Hex"
-    },
-    {
-      "vendor": "GENERIC",
-      "type": "RADIAL",
-      "bore": "ROUNDED_HEX",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "seal": "SHIELDED"
     },
     {
       "vendor": "GENERIC",
@@ -4155,207 +3884,6 @@
       "seal": "SHIELDED",
       "partNumber": "REV-29-3296",
       "url": "https://www.revrobotics.com/search.php?search_query=REV-29-3296&section=product"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "HEX",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "flangeDiameter": 0.031115,
-      "seal": "SHIELDED",
-      "partNumber": "217-3875"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "HEX",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "flangeDiameter": 0.031115,
-      "seal": "SHIELDED",
-      "partNumber": "217-2735"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "ROUNDED_HEX",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "flangeDiameter": 0.031115,
-      "seal": "SHIELDED",
-      "partNumber": "217-4006"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "ROUNDED_HEX",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "flangeDiameter": 0.024638,
-      "seal": "SHIELDED",
-      "partNumber": "217-5829"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "ROUND",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "flangeDiameter": 0.031115,
-      "seal": "SHIELDED",
-      "partNumber": "217-2731"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "ROUND",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "flangeDiameter": 0.024638,
-      "seal": "SHIELDED",
-      "partNumber": "217-2733"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "ROUND",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "flangeDiameter": 0.031115,
-      "seal": "SHIELDED",
-      "partNumber": "217-2732"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "ROUND",
-      "size": "IN_3_4",
-      "boreSize": 0.01905,
-      "dimensions": "OD_1_375_X_0_438",
-      "outerDiameter": 0.034925,
-      "width": 0.0111252,
-      "flangeDiameter": 0.0381,
-      "seal": "SHIELDED",
-      "partNumber": "217-2789"
-    },
-    {
-      "vendor": "VEX",
-      "type": "FLANGED",
-      "bore": "THUNDERSQUARE",
-      "size": "IN_1_4",
-      "boreSize": 0.00635,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "flangeDiameter": 0.024638,
-      "seal": "SHIELDED",
-      "partNumber": "217-5830"
-    },
-    {
-      "vendor": "VEX",
-      "type": "RADIAL",
-      "bore": "ROUNDED_HEX",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "seal": "SHIELDED",
-      "partNumber": "217-4270"
-    },
-    {
-      "vendor": "VEX",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "seal": "SHIELDED",
-      "partNumber": "217-3337"
-    },
-    {
-      "vendor": "VEX",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_1_2",
-      "boreSize": 0.0127,
-      "dimensions": "OD_1_125_X_0_313",
-      "outerDiameter": 0.028575,
-      "width": 0.0079502,
-      "seal": "SHIELDED",
-      "partNumber": "217-3109"
-    },
-    {
-      "vendor": "VEX",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_3_8",
-      "boreSize": 0.009525,
-      "dimensions": "OD_0_875_X_0_281",
-      "outerDiameter": 0.022225,
-      "width": 0.0071374,
-      "seal": "SHIELDED",
-      "partNumber": "217-3239"
-    },
-    {
-      "vendor": "VEX",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_3_16",
-      "boreSize": 0.0047625,
-      "dimensions": "OD_0_5_X_0_196",
-      "outerDiameter": 0.0127,
-      "width": 0.0049784,
-      "seal": "SHIELDED",
-      "partNumber": "217-3246"
-    },
-    {
-      "vendor": "VEX",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_1_4",
-      "boreSize": 0.00635,
-      "dimensions": "OD_0_375_X_0_125",
-      "outerDiameter": 0.009525,
-      "width": 0.003175,
-      "seal": "SHIELDED",
-      "partNumber": "217-2788"
-    },
-    {
-      "vendor": "VEX",
-      "type": "RADIAL",
-      "bore": "ROUND",
-      "size": "IN_1_4",
-      "boreSize": 0.00635,
-      "dimensions": "OD_0_5_X_0_188",
-      "outerDiameter": 0.0127,
-      "width": 0.0047752,
-      "seal": "SHIELDED",
-      "partNumber": "217-3489"
     },
     {
       "vendor": "THRIFTYBOT",

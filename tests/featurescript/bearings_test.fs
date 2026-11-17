@@ -8,8 +8,6 @@ export function testRoundedHexBoreReachesItsRound()
     // 1/2 in hex's corners are 0.2887 in out, past its 13.75 mm round
     expectNear(boreRadius(BEARING_BORES[BearingBore.HEX][BearingSize.IN_1_2]), 0.5 * inch / sqrt(3), 1e-9 * meter);
     expectNear(boreRadius(BEARING_BORES[BearingBore.ROUNDED_HEX][BearingSize.IN_1_2]), 13.75 / 2 * millimeter, 1e-9 * meter);
-    // A ThunderSquare's corners, 0.177 in out, are rounded to 0.151 in
-    expectNear(boreRadius(BEARING_BORES[BearingBore.THUNDERSQUARE][BearingSize.IN_1_4]), 0.151 * inch, 1e-9 * meter);
     expectNear(boreRadius(BEARING_BORES[BearingBore.ROUND][BearingSize.MM_8]), 4 * millimeter, 1e-9 * meter);
     // goBILDA's 8 mm REX bearing is a 7 mm hex, its corners unrounded
     expectNear(boreRadius(BEARING_BORES[BearingBore.REX][BearingSize.MM_8]), 7 * millimeter / sqrt(3), 1e-9 * meter);
@@ -30,12 +28,12 @@ export function testEveryBearingsProfileFitsAroundItsBore()
                     {
                         for (var seal, bearing in seals)
                         {
-                            if (bearing.plain != undefined)
+                            if (type == BearingType.BUSHING)
                             {
                                 continue;
                             }
                             const isFlanged = type == BearingType.FLANGED;
-                            const points = bearingProfile(bearing, radius, isFlanged);
+                            const points = bearingProfile(bearing, radius, type);
                             // Closed, on the axis
                             expectSamePoint(points[0], points[size(points) - 1]);
                             // Its inner race clears the bore, and its outer race is inside its outer diameter
@@ -59,7 +57,7 @@ export function testEveryBearingsProfileFitsAroundItsBore()
 export function testFlangedBearingSeatsOnItsFlange()
 {
     const bearing = BEARINGS[BearingVendor.GENERIC][BearingType.FLANGED][BearingBore.ROUNDED_HEX][BearingSize.IN_1_2][BearingDimensions.OD_1_125_X_0_313][BearingSeal.SHIELDED];
-    const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.ROUNDED_HEX][BearingSize.IN_1_2]), true);
+    const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.ROUNDED_HEX][BearingSize.IN_1_2]), BearingType.FLANGED);
     // Its flange's underside at the origin, the rest of it below
     expectSamePoint(points[0], vector(0 * meter, (0.063 - 0.313) * inch));
     expectSamePoint(points[7], vector(1.225 / 2 * inch, 0 * meter));
@@ -68,18 +66,18 @@ export function testFlangedBearingSeatsOnItsFlange()
 export function testExtendedInnerRaceStandsOutOfTheOuterRace()
 {
     const bearing = BEARINGS[BearingVendor.GENERIC][BearingType.RADIAL][BearingBore.ROUND][BearingSize.NO_10][BearingDimensions.OD_0_375_X_0_156_EXTENDED][BearingSeal.SHIELDED];
-    const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.ROUND][BearingSize.NO_10]), false);
+    const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.ROUND][BearingSize.NO_10]), BearingType.RADIAL);
     // The outer race, 0.125 in wide, centered on the inner race's 0.156 in
     expectSamePoint(points[5], vector(0.375 / 2 * inch, -0.1405 * inch));
     expectSamePoint(points[6], vector(0.375 / 2 * inch, -0.0155 * inch));
     expectSamePoint(points[size(points) - 3], vector(points[1][0], 0 * meter));
 }
 
-export function testPlainBearingIsSolidUnderItsFlange()
+export function testBushingIsSolidUnderItsFlange()
 {
     // REV's Through Bore Bearing - Short: 5 mm overall, a 13 x 2 mm flange on a 9 mm body
-    const bearing = BEARINGS[BearingVendor.REV][BearingType.FLANGED][BearingBore.HEX][BearingSize.MM_5][BearingDimensions.MM_9_X_5][BearingSeal.NONE];
-    const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.HEX][BearingSize.MM_5]), true);
+    const bearing = BEARINGS[BearingVendor.REV][BearingType.BUSHING][BearingBore.HEX][BearingSize.MM_5][BearingDimensions.MM_9_X_5][BearingSeal.NONE];
+    const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.HEX][BearingSize.MM_5]), BearingType.BUSHING);
     expectEqual(size(points), 7);
     expectSamePoint(points[0], vector(0 * meter, -3 * millimeter));
     expectSamePoint(points[1], vector(4.5 * millimeter, -3 * millimeter));

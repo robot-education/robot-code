@@ -31,8 +31,8 @@ def test_the_configuration_asks_vendor_then_type_bore_size_dimensions_and_seal()
     # 1/2 in and 3/8 in come first, wherever they're made
     generic_round = {"vendor": "GENERIC", "type": "FLANGED", "bore": "ROUND"}
     assert _shown("size", generic_round)[:2] == ["IN_1_2", "IN_3_8"]
-    vex = {"vendor": "VEX", "type": "FLANGED"}
-    assert _shown("bore", vex) == ["HEX", "ROUNDED_HEX", "ROUND", "THUNDERSQUARE"]
+    wcp = {"vendor": "WCP", "type": "FLANGED"}
+    assert _shown("bore", wcp) == ["HEX", "ROUNDED_HEX", "ROUND"]
 
 
 def test_the_default_is_the_most_inserted_bearing():
@@ -107,9 +107,8 @@ def test_ftc_offers_gobilda_rev_and_andymarks_ftc_bearings():
     assert [option.id for option in FTC_STUDIO.inputs[0].options] == ["GOBILDA", "REV", "ANDYMARK"]
     assert FTC_STUDIO.defaults() == {"vendor": "GOBILDA", "type": "FLANGED", "bore": "ROUND", "size": "MM_8", "dimensions": "MM_14_X_5"}
     assert _shown("bore", {"vendor": "GOBILDA", "type": "FLANGED"}, FTC_STUDIO) == ["ROUND", "REX"]
-    # REV's Through Bore Bearings, short and long, and its flanged ball bearing
-    assert _shown("bore", {"vendor": "REV"}, FTC_STUDIO) == ["HEX", "ROUND"]
-    assert _shown("dimensions", {"vendor": "REV", "bore": "HEX"}, FTC_STUDIO) == ["MM_9_X_5", "MM_9_X_11"]
+    # REV's Through Bore Bearings, short and long
+    assert _shown("dimensions", {"vendor": "REV", "type": "BUSHING"}, FTC_STUDIO) == ["MM_9_X_5", "MM_9_X_11"]
     rex = FTC_BEARINGS[("GOBILDA", "FLANGED", "REX", "MM_8", "MM_14_X_5", "SHIELDED")][1]
     assert (rex.part_number, rex.url) == (
         "1611-0514-4008",
@@ -117,7 +116,7 @@ def test_ftc_offers_gobilda_rev_and_andymarks_ftc_bearings():
     )
     records = {record.get("partNumber"): record for record in FTC_MANIFEST["studios"]["bearing"]["records"]}
     assert records["1611-0514-4008"]["name"] == "8 mm REX Flanged Bearing (14 mm OD x 5 mm)"
-    assert records["REV-41-1326"]["name"] == "5 mm Hex Flanged Plain Bearing (9 mm OD x 5 mm)"
+    assert records["REV-41-1326"]["name"] == "5 mm Hex Flanged Bushing (9 mm OD x 5 mm)"
     assert records["REV-41-1326"]["material"] == "Acetal" and records["am-3377"]["material"] == "Steel"
 
 
@@ -159,3 +158,17 @@ def test_mcmaster_carrs_rows_join_once_transcribed():
     # 5 mm bores, which clear a #10 screw, flanged and radial
     wanted = {(row["type"], row["size"], row["outerDiameter"], row["width"]) for row in rows}
     assert {("FLANGED", "MM_5", "13", "4"), ("RADIAL", "MM_5", "16", "5")} <= wanted
+
+
+def test_vex_and_vendorless_bearings_are_gone():
+    assert "VEX" not in {key[0] for key in BEARINGS}
+    # VEX's ThunderSquare and WCP's 3/4 in flanged bearing were sold by no one else, and have no designation
+    assert not [key for key in BEARINGS if key[3] == "IN_3_4" and key[1] == "FLANGED"]
+    # A vendor's own bearing is still Generic's while someone sells it: WCP's rounded hex
+    assert ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED") in BEARINGS
+
+
+def test_rev_through_bore_bearings_are_bushings():
+    bushings = [key for key in FTC_BEARINGS if key[1] == "BUSHING"]
+    assert {FTC_BEARINGS[key][1].part_number for key in bushings} == {"REV-41-1326", "REV-41-1329"}
+    assert _shown("type", {"vendor": "REV"}, FTC_STUDIO) == ["FLANGED", "BUSHING"]

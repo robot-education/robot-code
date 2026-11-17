@@ -8,16 +8,19 @@ import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 export import(path : "bearings/bearingTables.gen.fs", version : "");
 
 /**
- * FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings, and plain ones (REV's
- * acetal Through Bore Bearings). They're made in a Part
- * Studio whose configuration sets every parameter and offers only what's made (see bearingTables.py), so this dialog
- * is rarely seen: a flat list of enums, with no conditions, which the configuration filters.
+ * FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings, and flanged bushings
+ * (REV's acetal Through Bore Bearings). They're made in a Part Studio whose configuration sets every parameter and
+ * offers only what's made (see bearingTables.py), so this dialog is rarely seen: a flat list of enums, with no
+ * conditions, which the configuration filters.
  *
  * Each bearing is built along the Z axis, with a mate connector at the origin pointing out of the hole it sits in: a
- * flanged bearing's flange is above the origin, and the rest of it below; a radial bearing is below, its top face at
- * the origin. Each points out of the part it's on, as do the ones on its top and bottom faces, where what's stacked on
- * its shaft sits against it: a flanged bearing's top points up, and any bearing's bottom down. A radial bearing's top is
- * where it seats, so it has no other.
+ * flanged bearing's or bushing's flange is above the origin, and the rest of it below; a radial bearing is below, its
+ * top face at the origin. Each points out of the part it's on, as do the ones on its top and bottom faces, where what's
+ * stacked on its shaft sits against it: a flange's top points up, and any bearing's bottom down. A radial bearing's top
+ * is where it seats, so it has no other.
+ *
+ * Every ball bearing's colors are the same, as WCP's models color them, whatever its vendor's: steel grey races, and
+ * shields of `SHIELD_COLOR` or black seals between them.
  */
 
 // Each race's thickness, of the distance from the bore's corners to the outer diameter, as REV's and AndyMark's models
@@ -25,6 +28,8 @@ export import(path : "bearings/bearingTables.gen.fs", version : "");
 const RACE_FRACTION = 0.3;
 // How far the shields or seals between the races sit in from the faces, of the bearing's width
 const SHIELD_RECESS = 1 / 16;
+// WCP-0785's model's shields
+const SHIELD_COLOR = color(171 / 255, 169 / 255, 156 / 255);
 
 annotation { "Feature Type Name" : "Bearing",
         "Feature Type Description" : "A bearing from FRCDesign's library, seated at the origin." ~ CREDIT }
@@ -74,12 +79,12 @@ export const libraryBearing = defineFeature(function(context is Context, id is I
         definition = choices.definition;
         const bearing = choices.made;
         const boreShape = BEARING_BORES[definition.bore][definition.size];
-        const isFlanged = definition.bearingType == BearingType.FLANGED;
+        const isFlanged = definition.bearingType != BearingType.RADIAL;
 
-        // 1. Revolve its races, from the axis out, with the shields or seals between them recessed; a plain bearing is solid
+        // 1. Revolve its races, from the axis out, with the shields or seals between them recessed; a bushing is solid
         const sketchId = id + "profile";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : PROFILE_PLANE });
-        const points = bearingProfile(bearing, boreRadius(boreShape), isFlanged);
+        const points = bearingProfile(bearing, boreRadius(boreShape), definition.bearingType);
         skPolyline(sketch, "profile", { "points" : points });
         skSolve(sketch);
         opRevolve(context, id + "revolve", {
@@ -112,12 +117,16 @@ export const libraryBearing = defineFeature(function(context is Context, id is I
 
         cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
         setBearingProperties(context, body, bearing);
-        if (definition.seal == BearingSeal.SEALED)
+        if (definition.seal == BearingSeal.SHIELDED || definition.seal == BearingSeal.SEALED)
         {
-            // The seals' faces, between the races
+            // The shields' or seals' faces, between the races
             const faces = qOwnedByBody(body, EntityType.FACE)->qGeometry(GeometryType.PLANE);
             const seals = qUnion([faces->qContainsPoint(sealPoint(points, 3)), faces->qContainsPoint(sealPoint(points, size(points) - 4))]);
-            setProperty(context, { "entities" : seals, "propertyType" : PropertyType.APPEARANCE, "value" : BLACK });
+            setProperty(context, {
+                        "entities" : seals,
+                        "propertyType" : PropertyType.APPEARANCE,
+                        "value" : definition.seal == BearingSeal.SEALED ? BLACK : SHIELD_COLOR
+                    });
         }
     });
 
@@ -159,8 +168,7 @@ export function resolve(entries is map, value)
 const PROFILE_PLANE = plane(WORLD_ORIGIN, -Y_DIRECTION, X_DIRECTION);
 
 /**
- * How far a bore reaches from the axis: a round bore's radius, or a hex's or square's corners, where they're rounded
- * the round's.
+ * How far a bore reaches from the axis: a round bore's radius, or a hex's corners, where they're rounded the round's.
  */
 export function boreRadius(boreShape is map) returns ValueWithUnits
 {
@@ -168,7 +176,7 @@ export function boreRadius(boreShape is map) returns ValueWithUnits
     {
         return boreShape.diameter / 2;
     }
-    const corner = boreShape.acrossFlats / 2 / cos(180 * degree / boreShape.sides);
+    const corner = boreShape.acrossFlats / sqrt(3);
     return boreShape.diameter == undefined ? corner : min(corner, boreShape.diameter / 2);
 }
 
@@ -176,14 +184,14 @@ export function boreRadius(boreShape is map) returns ValueWithUnits
  * The bearing's half section, revolved about the axis, from its bottom on the axis: up its inner race to its top, with
  * the shields between its races recessed from each face, and out to its outer diameter and a flanged one's flange.
  * A flanged bearing's flange is above the origin, the rest of it below; a radial bearing is below the origin. An
- * extended inner race (`outerWidth`) stands out of both faces of the outer race. A plain bearing (`plain`, always
- * flanged) is solid, with no races.
+ * extended inner race (`outerWidth`) stands out of both faces of the outer race. A bushing is solid, with no races.
  */
-export function bearingProfile(bearing is map, boreRadius is ValueWithUnits, isFlanged is boolean) returns array
+export function bearingProfile(bearing is map, boreRadius is ValueWithUnits, bearingType is BearingType) returns array
 {
     const zero = 0 * meter;
     const radius = bearing.outerDiameter / 2;
-    if (bearing.plain != undefined)
+    const isFlanged = bearingType != BearingType.RADIAL;
+    if (bearingType == BearingType.BUSHING)
     {
         const flangeTop = bearing.flangeThickness;
         const flange = bearing.flangeDiameter / 2;
@@ -224,7 +232,7 @@ function sealPoint(points is array, index is number) returns Vector
 }
 
 /**
- * Cuts a bore through the bearing: a hex's or square's corners rounded to its `diameter` where it has one.
+ * Cuts a bore through the bearing: a hex's corners rounded to its `diameter` where it has one.
  */
 function cutBore(context is Context, id is Id, body is Query, boreShape is map, bottom is ValueWithUnits, width is ValueWithUnits)
 {
@@ -238,18 +246,14 @@ function cutBore(context is Context, id is Id, body is Query, boreShape is map, 
     }
     if (boreShape.acrossFlats != undefined)
     {
-        const sides = boreShape.sides;
-        const corner = boreShape.acrossFlats / 2 / cos(180 * degree / sides);
-        // A square's flats along X and Y
-        const angle = sides == 4 ? 45 * degree : 0 * degree;
-        skRegularPolygon(sketch, "polygon", {
+        skRegularPolygon(sketch, "hex", {
                     "center" : vector(0, 0) * meter,
-                    "firstVertex" : corner * vector(cos(angle), sin(angle)),
-                    "sides" : sides
+                    "firstVertex" : vector(boreShape.acrossFlats / sqrt(3), 0 * meter),
+                    "sides" : 6
                 });
     }
     skSolve(sketch);
-    // Where a round rounds a polygon's corners, the bore is the region both enclose, around the axis
+    // Where a round rounds a hex's corners, the bore is the region both enclose, around the axis
     opExtrude(context, id + "extrude", {
                 "entities" : qSketchRegion(sketchId)->qContainsPoint(vector(0 * meter, 0 * meter, start)),
                 "direction" : Z_DIRECTION,
