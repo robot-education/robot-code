@@ -66,8 +66,8 @@ can't disagree.
 ## How it works
 
 Every part is built along the Z axis, with a mate connector at the origin pointing out of the hole, where it seats
-(`id + "mateConnector"`). A washer has a second one on its top face, pointing into the washer as a connector on its
-top edge does (`id + "topMateConnector"`).
+(`id + "mateConnector"`). A washer has a second one on its top face, pointing out of it as a connector on a circular
+edge of that face does (`id + "topMateConnector"`), so a part fastened there sits as it would on a hole's edge.
 Each studio names its connectors in the manifest (`mate_connector`, `top_mate_connector`), since a fasten mate names a
 feature's connector under the feature's id.
 
@@ -90,8 +90,10 @@ head as well as its part. The tables hold both sets' parts, and REV makes a #10-
 so a hidden size resolves within its own set (imperial or metric), the only sizes its studio offers. Anything else not
 made is an error.
 
-The defaults are what's inserted most from FRCDesign's library, by its analytics: #10-32 x 3/8 in black button heads
-(from Generic, which names no vendor), #10-32 nylocks, and McMaster-Carr's #10 x 7/16 in OD stainless washers. FTC's
+FRC's default screw is McMaster-Carr's black #10-32 x 1/2 in button head. Its black screws make nearly every size, head
+and length, each with a part number, so the default holds when one changes. Half an inch takes a 1/8 in plate on a 1/8 in
+tube wall with a nylock. The library's analytics favor whatever was already the default, so they don't decide it. The
+nut is a #10-32 nylock, and the washer McMaster-Carr's #10 x 7/16 in OD stainless. FTC's
 are M4 x 10 mm socket heads, M4 nylocks, and M4 washers, all Generic, ConfigLib's most
 inserted; its studios list their finishes cheapest first (stainless for screws, zinc plating for nuts and washers).
 
