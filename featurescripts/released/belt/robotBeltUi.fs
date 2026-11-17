@@ -389,11 +389,11 @@ export predicate robotBeltPredicate(definition is map)
  */
 export function getBeltPathName(definition is map) returns string
 {
+    const program = isFrc(definition) ? "frc" : "ftc";
     if (isOpenBelt(definition))
     {
-        return "beltTypePath";
+        return program ~ "BeltTypePath";
     }
-    const program = isFrc(definition) ? "frc" : "ftc";
     if (isClosestBelt(definition))
     {
         return program ~ "BeltSizePath";
@@ -409,7 +409,8 @@ export function getBeltPathName(definition is map) returns string
 export function getBeltTableAndPath(definition is map) returns map
 {
     const tables = {
-            "beltTypePath" : beltTypeTable,
+            "frcBeltTypePath" : frcBeltTypeTable,
+            "ftcBeltTypePath" : ftcBeltTypeTable,
             "frcBeltPath" : frcBeltTable,
             "ftcBeltPath" : ftcBeltTable,
             "frcDoubleBeltPath" : frcDoubleBeltTable,

@@ -3,6 +3,7 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 
 export import(path : "20659432897c109a97ad647f", version : "4322ada0b7998fa395666667");
 export import(path : "d82c5bf9082d0054f8f0b419", version : "512461979234ba53a425b7f4");
+export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 
 /**
  * What a belt's body is modeled as (see `extrudeBelt`).
@@ -80,10 +81,47 @@ export predicate isOutside(pulleyType is PulleyType)
 }
 
 
+/**
+ * A belt's type and width, without a supplier (an open belt's, cut to length, or a pulley's): FRC's or FTC's.
+ */
 export predicate beltTypePredicate(definition is map)
 {
-    annotation { "Name" : "Belt type table", "Lookup Table" : beltTypeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-    definition.beltTypePath is LookupTablePath;
+    if (isFrc(definition))
+    {
+        annotation { "Name" : "FRC belt type", "Lookup Table" : frcBeltTypeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.frcBeltTypePath is LookupTablePath;
+    }
+    else
+    {
+        annotation { "Name" : "FTC belt type", "Lookup Table" : ftcBeltTypeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.ftcBeltTypePath is LookupTablePath;
+    }
+}
+
+/**
+ * The lookup table a belt's type and width are chosen from (see `beltTypePredicate`), and its path in it, and its
+ * Belt width if its width is Custom (see `getBeltValue`).
+ */
+export function getBeltTypeTableAndPath(definition is map) returns map
+{
+    return {
+            "table" : isFrc(definition) ? frcBeltTypeTable : ftcBeltTypeTable,
+            "path" : isFrc(definition) ? definition.frcBeltTypePath : definition.ftcBeltTypePath,
+            "customWidth" : definition.customBeltWidth
+        };
+}
+
+/**
+ * The belt type chosen (see `beltTypePredicate`). Used by Robot pulley.
+ *
+ * @returns {{
+ *      @field beltType {BeltType} :
+ *      @field beltWidth {ValueWithUnits} :
+ * }}
+ */
+export function getBeltTypeValue(definition is map) returns map
+{
+    return getBeltValue(getBeltTypeTableAndPath(definition));
 }
 
 export function getBeltPitch(beltType is BeltType) returns ValueWithUnits

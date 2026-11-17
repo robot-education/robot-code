@@ -74,21 +74,6 @@ export function getCustomBeltType(customBeltType is CustomBeltType) returns Belt
 }
 
 /**
- * Returns the user's currently selected beltType. Used by Robot pulley.
- *
- * @returns {{
- *      @field beltTeeth {number} : The number of teeth of the currently selected belt.
- *              Note this should only be used for editing logic, as that makes definition.beltTeeth the source of truth.
- *      @field beltType {BeltType} :
- *      @field beltWidth {ValueWithUnits} :
- * }}
- */
-export function getBeltTypeValue(definition is map) returns map
-{
-    return getBeltValue({ "table" : beltTypeTable, "path" : definition.beltTypePath, "customWidth" : definition.customBeltWidth });
-}
-
-/**
  * A belt of a custom width's Belt width: shown by the feature when its table's width is Custom (`showsCustomBelt`, in a
  * hidden parameter set by editing logic, as the precondition can't read the table).
  */

@@ -811,18 +811,20 @@ export const ftcDoubleBeltTable = {
         },
     };
 
-export const beltTypeTable = {
+export const frcBeltTypeTable = {
         "name" : "beltType",
         "displayName" : "Belt type",
         "default" : "5mm HTD",
         "entries" : {
-            "2mm GT2" : {
+            "5mm HTD" : {
                 "name" : "width",
                 "displayName" : "Belt width",
-                "default" : "6 mm",
+                "default" : "9 mm",
                 "entries" : {
-                    "6 mm" : { "beltType" : BeltType._2_MM_GT2, "beltWidth" : 6 * millimeter },
-                    "Custom" : { "beltType" : BeltType._2_MM_GT2 },
+                    "9 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
+                    "15 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
+                    "18 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 18 * millimeter },
+                    "Custom" : { "beltType" : BeltType._5_MM_HTD },
                 },
             },
             "3mm GT2" : {
@@ -832,6 +834,24 @@ export const beltTypeTable = {
                 "entries" : {
                     "9 mm" : { "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
                     "Custom" : { "beltType" : BeltType._3_MM_GT2 },
+                },
+            },
+            "RT25" : { "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
+        },
+    };
+
+export const ftcBeltTypeTable = {
+        "name" : "beltType",
+        "displayName" : "Belt type",
+        "default" : "2mm GT2",
+        "entries" : {
+            "2mm GT2" : {
+                "name" : "width",
+                "displayName" : "Belt width",
+                "default" : "6 mm",
+                "entries" : {
+                    "6 mm" : { "beltType" : BeltType._2_MM_GT2, "beltWidth" : 6 * millimeter },
+                    "Custom" : { "beltType" : BeltType._2_MM_GT2 },
                 },
             },
             "3mm HTD" : {
@@ -854,7 +874,15 @@ export const beltTypeTable = {
                     "Custom" : { "beltType" : BeltType._5_MM_HTD },
                 },
             },
-            "RT25" : { "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
+            "3mm GT2" : {
+                "name" : "width",
+                "displayName" : "Belt width",
+                "default" : "9 mm",
+                "entries" : {
+                    "9 mm" : { "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
+                    "Custom" : { "beltType" : BeltType._3_MM_GT2 },
+                },
+            },
         },
     };
 

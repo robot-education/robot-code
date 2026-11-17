@@ -44,7 +44,7 @@ export predicate isManualIdler(definition is map)
  */
 export function isCustomWidthPulley(definition is map) returns boolean
 {
-    return showsCustomBelt(definition.beltTypePath);
+    return showsCustomBelt(getBeltTypeTableAndPath(definition).path);
 }
 
 export predicate pulleyGeneralPredicate(definition is map)
@@ -187,7 +187,7 @@ export predicate pulleyBorePredicate(definition is map)
 
 export predicate pulleyPredicate(definition is map)
 {
-    unitSystemPredicate(definition);
+    programPredicate(definition);
 
     annotation { "Name" : "Creation method", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"], "Default" : "BELT" }
     definition.creationMethod is CreationMethod;

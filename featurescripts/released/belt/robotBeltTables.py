@@ -209,6 +209,30 @@ frc_double_belt = supplier_table(
 ftc_double_belt = supplier_table({})
 
 
+# What an open belt or a pulley's for, by program (no supplier: open belts are cut to length), the most common first
+def type_table(types: list[str]) -> Node:
+    entries = []
+    for name in types:
+        if name == "RT25":
+            # REV's: a closed set, so no custom belts, and one width
+            entries.append(Value("RT25", {"beltType": BeltType["RT25"], "beltWidth": inch(0.5)}))
+        else:
+            entries.append(Value(name, {"beltType": BELT_TYPES[name]}, width_node(WIDTHS[name])))
+    return Node("beltType", entries, display_name="Belt type")
+
+
+frc_belt_type = type_table(["5mm HTD", "3mm GT2", "RT25"])
+ftc_belt_type = type_table(["2mm GT2", "3mm HTD", "5mm HTD", "3mm GT2"])
+
+# Both widths of double sided belt come in the same lengths from the same suppliers (only FRC's)
+DOUBLE_BELT_TEETH = [100, 125, 150, 175, 200, 250, 300]
+frc_double_belt = supplier_table(
+    {supplier: {"5mm HTD": {"9 mm": DOUBLE_BELT_TEETH, "15 mm": DOUBLE_BELT_TEETH}} for supplier in ["WCP", "The Thrifty Bot"]}
+)
+# No FTC supplier sells them: only custom ones
+ftc_double_belt = supplier_table({})
+
+
 # What an open belt or a pulley's for (no supplier: open belts are cut to length)
 belt_type = Node(
     "beltType",
@@ -233,5 +257,6 @@ CONTENTS = [
     Table("ftcBeltSizeTable", ftc_belt_size),
     Table("frcDoubleBeltTable", frc_double_belt),
     Table("ftcDoubleBeltTable", ftc_double_belt),
-    Table("beltTypeTable", belt_type),
+    Table("frcBeltTypeTable", frc_belt_type),
+    Table("ftcBeltTypeTable", ftc_belt_type),
 ]

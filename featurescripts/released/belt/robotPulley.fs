@@ -21,6 +21,8 @@ export const robotPulley = defineFeature(function(context is Context, id is Id, 
         pulleyPredicate(definition);
     }
     {
+        // Sizes in FRC's inches, or FTC's millimeters
+        definition.unitSystem = isFrc(definition) ? UnitSystem.IMPERIAL : UnitSystem.METRIC;
         doRobotPulley(context, id, definition);
     });
 

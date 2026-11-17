@@ -59,7 +59,7 @@ export function testCustomBelt()
     // An open belt's custom by its width
     definition.beltMode = BeltMode.COMPLEX;
     definition.openBelt = true;
-    definition.beltTypePath = { "beltType" : "5mm HTD", "width" : "Custom" } as LookupTablePath;
+    definition.ftcBeltTypePath = { "beltType" : "5mm HTD", "width" : "Custom" } as LookupTablePath;
     expectTrue(isCustomBeltChosen(definition), "an open belt of a Custom width should be custom");
     expectEqual(getBeltValue(getBeltTableAndPath(definition)).beltType, BeltType._5_MM_HTD);
 }
