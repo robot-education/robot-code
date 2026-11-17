@@ -526,6 +526,18 @@
         {
           "values": {
             "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_30"
+          },
+          "name": "30 mm Round Flanged Bearing (42 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "4390N181",
+          "url": "https://www.mcmaster.com/4390N181/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
             "type": "RADIAL",
             "size": "MM_5",
             "dimensions": "MM_8_X_2_5"
@@ -839,7 +851,22 @@
           "values": {
             "vendor": "MCMASTER",
             "type": "RADIAL",
-            "size": "MM_17"
+            "size": "MM_17",
+            "dimensions": "MM_23_X_4"
+          },
+          "name": "17 mm Round Radial Bearing (23 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "6656K189",
+          "url": "https://www.mcmaster.com/6656K189/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_17",
+            "dimensions": "MM_26_X_5"
           },
           "name": "17 mm Round Radial Bearing (26 mm OD x 5 mm)",
           "vendor": "McMaster-Carr",
@@ -901,6 +928,19 @@
           "vendor": "McMaster-Carr",
           "partNumber": "5972K217",
           "url": "https://www.mcmaster.com/5972K217/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_35"
+          },
+          "name": "35 mm Round Radial Bearing (47 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "6656K216",
+          "url": "https://www.mcmaster.com/6656K216/",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1658,6 +1698,20 @@
     },
     {
       "vendor": "MCMASTER",
+      "type": "FLANGED",
+      "bore": "ROUND",
+      "size": "MM_30",
+      "boreSize": 0.03,
+      "dimensions": "MM_42_X_7",
+      "outerDiameter": 0.042,
+      "width": 0.007,
+      "flangeDiameter": 0.045,
+      "seal": "SHIELDED",
+      "partNumber": "4390N181",
+      "url": "https://www.mcmaster.com/4390N181/"
+    },
+    {
+      "vendor": "MCMASTER",
       "type": "RADIAL",
       "bore": "ROUND",
       "size": "MM_5",
@@ -1948,6 +2002,19 @@
       "bore": "ROUND",
       "size": "MM_17",
       "boreSize": 0.017,
+      "dimensions": "MM_23_X_4",
+      "outerDiameter": 0.023,
+      "width": 0.004,
+      "seal": "SHIELDED",
+      "partNumber": "6656K189",
+      "url": "https://www.mcmaster.com/6656K189/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_17",
+      "boreSize": 0.017,
       "dimensions": "MM_26_X_5",
       "outerDiameter": 0.026,
       "width": 0.005,
@@ -2006,6 +2073,19 @@
       "seal": "OPEN",
       "partNumber": "5972K217",
       "url": "https://www.mcmaster.com/5972K217/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_35",
+      "boreSize": 0.035,
+      "dimensions": "MM_47_X_7",
+      "outerDiameter": 0.047,
+      "width": 0.007,
+      "seal": "SHIELDED",
+      "partNumber": "6656K216",
+      "url": "https://www.mcmaster.com/6656K216/"
     },
     {
       "vendor": "GOBILDA",

@@ -75,11 +75,12 @@ McMaster-Carr's bearings come from `vendor/mcmaster-bearings.json`, transcribed 
 refuse automated reads: its flanged steel bearings with 5, 6, and 8 mm bores (5 mm clears a #10 screw), shielded and
 open, each with its flange; its open radial R3, R4, R6, R8, 635, 608, 6805,
 and 6806; its 5 and 7 mm radial bearings, shielded, sealed, and open; and its shielded radial bearings in the sizes the
-catalog's other vendors sell (R3, R4, R4A, R6, R8, 608, 6000, 6001, 6702, 6801 to 6803, 6805, 6806, and 6902). Where
-it sells a bearing more than one way (steel or 440C stainless, or another ABEC rating), the cheapest is offered, and is
-steel or stainless as that one is. None costs more than $20 (`MCMASTER_MAX_PRICE`): one that does is a specialty
-bearing teams don't buy, so its flanged 6805 and 6806, its 6703 and 6807, and its sealed 607 aren't offered. Nor are
-its bearings with no ABEC rating, rated to 5,000 rpm at most, or its 316 stainless ones, to 2,300 rpm. Each joins both sets' catalogs, FTC's its metric ones alone. A flange only McMaster-Carr's table gives is
+catalog's other vendors sell (R3, R4, R4A, R6, R8, 608, 6000, 6001, 6702, 6703, 6801 to 6803, 6805 to 6807, and
+6902). Where it sells a bearing more than one way (steel or 440C stainless, or another ABEC rating), the cheapest is
+offered, and is steel or stainless as that one is. One costing more than $20 (`MCMASTER_MAX_PRICE`) is offered only
+where another vendor sells the same bearing (its 6703, 6806 flanged, and 6807, as WCP, REV, and ThriftyBot do): a size
+no one else sells at that price is a specialty bearing teams don't buy, so its flanged 6805 and its sealed 607 aren't
+offered. Nor are its bearings with no ABEC rating, rated to 5,000 rpm at most, or its 316 stainless ones, to 2,300 rpm. Each joins both sets' catalogs, FTC's its metric ones alone. A flange only McMaster-Carr's table gives is
 Generic's too, as Generic offers every bearing a vendor does.
 
 FTC's are goBILDA's flanged and radial ball bearings (from its store and STEP files), REV's 8 x 12 x 3.5 mm flanged

@@ -353,12 +353,12 @@ DISCONTINUED = {
 DISCONTINUED_VENDORS = {"VEX"}
 
 
-def _frc_bearings() -> Bearings:
-    """FRCDesign's records but the discontinued, McMaster-Carr's, and Generic's: every standard bearing FRCDesign's
-    Generic records name by its designation, and every bearing any of their vendors makes. A Generic record with no
-    designation is a vendor's own bearing (a rounded hex, say), Generic's only while a vendor sells it."""
+def _frc_vendor_bearings() -> tuple[Bearings, dict[tuple, tuple[Bearing, str]]]:
+    """FRCDesign's vendors' records but the discontinued, and the standard bearings FRCDesign's Generic records name, by
+    their designations. A Generic record with no designation is a vendor's own bearing (a rounded hex, say), Generic's
+    only while a vendor sells it."""
     stocked: Bearings = {}
-    designations: dict[tuple, str] = {}
+    standard: dict[tuple, tuple[Bearing, str]] = {}
     for part in SNAPSHOT["parts"]:
         type = _TYPES[part["name"]]
         for record in part["records"]:
@@ -369,63 +369,16 @@ def _frc_bearings() -> Bearings:
                 continue
             if vendor == "GENERIC":
                 designation = _designation(part_number)
-                if designation is None:
-                    continue
-                bearing = parse_dimensions(type, options["Dimensions"])
-                designations[bearing.key] = designation
-                stocked[("GENERIC", *bearing.key)] = (bearing, Stock())
+                if designation is not None:
+                    bearing = parse_dimensions(type, options["Dimensions"])
+                    standard[bearing.key] = (bearing, designation)
                 continue
             bearing = parse_dimensions(type, options["Dimensions"])
             stocked[(vendor, *bearing.key)] = (bearing, Stock(part_number, record.get("url")))
-    stocked.update(MCMASTER_BEARINGS)
-    for (_, *key), (bearing, _) in list(stocked.items()):
-        stocked[("GENERIC", *key)] = (bearing, Stock(designations.get(tuple(key))))
-    return dict(sorted(stocked.items(), key=_order))
+    return stocked, standard
 
 
-# McMaster-Carr's, from vendor/mcmaster-bearings.json, the rows transcribed so far: a row joins once it has its part
-# number, and a flanged one its flange, which its own table gives
-MCMASTER_SNAPSHOT = json.loads((FOLDER / "vendor" / "mcmaster-bearings.json").read_text())
-
-
-def mcmaster_url(part_number: str) -> str:
-    return f"https://www.mcmaster.com/{part_number}/"
-
-
-# A bearing costing more is a specialty bearing teams don't buy, which McMaster-Carr's tables are full of
-MCMASTER_MAX_PRICE = 20
-
-
-def _mcmaster_bearings() -> Bearings:
-    bearings: Bearings = {}
-    prices: dict[tuple, float] = {}
-    for row in MCMASTER_SNAPSHOT["bearings"]:
-        part = row["partNumber"]
-        dimensions = Dimensions(row["outerDiameter"], row["width"], row["unit"])
-        bearing = Bearing(row["type"], row["bore"], row["size"], dimensions, row["seal"])
-        if row["type"] == "FLANGED":
-            assert row["flangeDiameter"] and row["flangeThickness"], f"{part} needs its flange"
-        key = ("MCMASTER", *bearing.key)
-        # Where it sells a bearing more than one way (steel or stainless, or another ABEC rating), the cheapest
-        if row["price"] > MCMASTER_MAX_PRICE or key in bearings and row["price"] >= prices[key]:
-            continue
-        prices[key] = row["price"]
-        bearings[key] = (bearing, Stock(part, mcmaster_url(part), row["material"]))
-    return bearings
-
-
-MCMASTER_BEARINGS = _mcmaster_bearings()
-VENDOR_FLANGES.update(
-    {
-        ("MCMASTER", row["size"], Dimensions(row["outerDiameter"], row["width"], row["unit"]).id): (
-            row["flangeDiameter"],
-            row["flangeThickness"],
-        )
-        for row in MCMASTER_SNAPSHOT["bearings"]
-        if row["type"] == "FLANGED" and row["price"] <= MCMASTER_MAX_PRICE
-    }
-)
-FRC_BEARINGS = _frc_bearings()
+FRC_VENDOR_BEARINGS, STANDARD_BEARINGS = _frc_vendor_bearings()
 
 
 # FTC's: goBILDA's, by type, bore, size, outer diameter and width (mm), and seal, each its SKU and page. Its titles name
@@ -471,20 +424,88 @@ _FTC_STORES = {"GOBILDA": (_GOBILDA, GOBILDA_STORE), "REV": (_REV_FTC, REV_STORE
 METRIC = {size.id for size in SIZES if size.unit == "mm"}
 
 
-def _ftc_bearings() -> Bearings:
-    """FTC's metric bearings, McMaster-Carr's metric ones among them, and AndyMark's 3/8 in hex Robits bearing (am-4489),
-    which FRC's catalog has too."""
+def _ftc_store_bearings() -> Bearings:
+    """FTC's vendors' metric bearings, and AndyMark's 3/8 in hex Robits bearing (am-4489), which FRC's catalog has too."""
     bearings: Bearings = {}
     for vendor, (parts, store) in _FTC_STORES.items():
         for type, bore, size, outer, width, seal, sku, page in parts:
             bearing = Bearing(type, bore, size, Dimensions(outer, width, "mm"), seal)
             bearings[(vendor, *bearing.key)] = (bearing, Stock(sku, store + page, material(type)))
     robits = ("ANDYMARK", "FLANGED", "HEX", "IN_3_8", "OD_0_875_X_0_281", "SEALED")
-    bearings[robits] = FRC_BEARINGS[robits]
-    bearings.update({key: value for key, value in MCMASTER_BEARINGS.items() if key[3] in METRIC})
+    bearings[robits] = FRC_VENDOR_BEARINGS[robits]
+    return bearings
+
+
+FTC_STORE_BEARINGS = _ftc_store_bearings()
+
+
+# McMaster-Carr's, from vendor/mcmaster-bearings.json, the rows transcribed so far: a row joins once it has its part
+# number, and a flanged one its flange, which its own table gives
+MCMASTER_SNAPSHOT = json.loads((FOLDER / "vendor" / "mcmaster-bearings.json").read_text())
+
+
+def mcmaster_url(part_number: str) -> str:
+    return f"https://www.mcmaster.com/{part_number}/"
+
+
+# A bearing costing more, which no other vendor sells, is a specialty bearing teams don't buy: McMaster-Carr's tables are
+# full of them
+MCMASTER_MAX_PRICE = 20
+
+
+def _mcmaster_bearings(sold: set[tuple]) -> Bearings:
+    """McMaster-Carr's bearings: of each, its cheapest row, and none over `MCMASTER_MAX_PRICE` that's not in `sold`,
+    the bearings other vendors sell."""
+    bearings: Bearings = {}
+    prices: dict[tuple, float] = {}
+    for row in MCMASTER_SNAPSHOT["bearings"]:
+        part = row["partNumber"]
+        dimensions = Dimensions(row["outerDiameter"], row["width"], row["unit"])
+        bearing = Bearing(row["type"], row["bore"], row["size"], dimensions, row["seal"])
+        if row["type"] == "FLANGED":
+            assert row["flangeDiameter"] and row["flangeThickness"], f"{part} needs its flange"
+        key = ("MCMASTER", *bearing.key)
+        # Where it sells a bearing more than one way (steel or stainless, or another ABEC rating), the cheapest
+        if row["price"] > MCMASTER_MAX_PRICE and bearing.key not in sold or key in bearings and row["price"] >= prices[key]:
+            continue
+        prices[key] = row["price"]
+        bearings[key] = (bearing, Stock(part, mcmaster_url(part), row["material"]))
+    return bearings
+
+
+MCMASTER_BEARINGS = _mcmaster_bearings({key[1:] for key in {**FRC_VENDOR_BEARINGS, **FTC_STORE_BEARINGS}})
+VENDOR_FLANGES.update(
+    {
+        ("MCMASTER", row["size"], Dimensions(row["outerDiameter"], row["width"], row["unit"]).id): (
+            row["flangeDiameter"],
+            row["flangeThickness"],
+        )
+        for row in MCMASTER_SNAPSHOT["bearings"]
+        if row["type"] == "FLANGED"
+        and ("MCMASTER", row["type"], row["bore"], row["size"], Dimensions(row["outerDiameter"], row["width"], row["unit"]).id, row["seal"])
+        in MCMASTER_BEARINGS
+    }
+)
+
+
+def _frc_bearings() -> Bearings:
+    """FRCDesign's vendors', McMaster-Carr's, and Generic's: every standard bearing FRCDesign's Generic records name,
+    and every bearing any vendor makes."""
+    stocked: Bearings = {**FRC_VENDOR_BEARINGS, **MCMASTER_BEARINGS}
+    designations = {key: designation for key, (_, designation) in STANDARD_BEARINGS.items()}
+    made = {key[1:]: bearing for key, (bearing, _) in stocked.items()} | {key: bearing for key, (bearing, _) in STANDARD_BEARINGS.items()}
+    for key, bearing in made.items():
+        stocked[("GENERIC", *key)] = (bearing, Stock(designations.get(key)))
+    return dict(sorted(stocked.items(), key=_order))
+
+
+def _ftc_bearings() -> Bearings:
+    """FTC's vendors', and McMaster-Carr's metric ones."""
+    bearings = {**FTC_STORE_BEARINGS, **{key: value for key, value in MCMASTER_BEARINGS.items() if key[3] in METRIC}}
     return dict(sorted(bearings.items(), key=_order))
 
 
+FRC_BEARINGS = _frc_bearings()
 FTC_BEARINGS = _ftc_bearings()
 # Every bearing either set makes, which the feature's tables hold
 BEARINGS = {**FRC_BEARINGS, **FTC_BEARINGS}
