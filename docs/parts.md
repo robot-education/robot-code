@@ -52,6 +52,10 @@ The folder holds:
   tab's name, its feature, and its configuration's inputs. Its `EXPORTS` write what reads the set outside Onshape
   (FRCDesignApp's manifest, `fasteners.gen.json`), including where each Part Studio was last released.
 
+`fs audit` on the set's Feature Studio, and VS Code's feature preview of it, show its Part Studios' configurations as
+Onshape will, choices and all, rather than the feature's own dialog (see [fs-cli.md](fs-cli.md)'s `fs audit`): no API
+calls, so it's the first place to look at a change.
+
 ## Trying a change
 
 Push it, then build the set's test Part Studios in the backend document:

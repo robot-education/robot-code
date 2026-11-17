@@ -1717,6 +1717,7 @@ def evaluate(config: Config, args: argparse.Namespace) -> int:
 
 def audit(config: Config, args: argparse.Namespace) -> int:
     from fs_cli.audit import OPEN_REQUEST, audit_page, check_problems, feature_tables, split_page
+    from fs_cli.configurations import configuration_page, configuration_script, part_set_views
     from fs_cli.live_dialog import dialog_data, page_script
 
     path = pathlib.Path(args.file)
@@ -1735,14 +1736,21 @@ def audit(config: Config, args: argparse.Namespace) -> int:
     writeup_path = path.with_suffix(".md")
     writeup = writeup_path.read_text() if writeup_path.is_file() else None
     source = pathlib.Path(os.path.relpath(path.resolve(), config.root)).as_posix()
-    page = audit_page(name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables, args.artifact)
+    configurations = [
+        (view.label, split_page(configuration_page(view.tab, view.configuration, {}, args.theme))[0], configuration_script(view.configuration, args.theme))
+        for view in part_set_views(config, path)
+        if feature is None or view.feature == feature
+    ]
+    page = audit_page(
+        name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables, args.artifact, configurations
+    )
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page)
-    print(
-        f"Wrote {_display_path(output)}: {len(data['parameters'])} parameters, {conditions.count("(v) =>")} conditions, "
-        f"{len(problems)} problems."
+    shown = f"{len(configurations)} Part Studio configurations" if configurations else (
+        f"{len(data['parameters'])} parameters, {conditions.count("(v) =>")} conditions"
     )
+    print(f"Wrote {_display_path(output)}: {shown}, {len(problems)} problems.")
     if args.open:
         if os.environ.get("TERM_PROGRAM") != "vscode" and "VSCODE_PID" not in os.environ:
             print("Not running in VS Code, so not shown in its preview: open the page instead.")
