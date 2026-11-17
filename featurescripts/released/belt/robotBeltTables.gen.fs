@@ -615,6 +615,100 @@ export const ftcBeltTable = {
         },
     };
 
+export const frcBeltSizeTable = {
+        "name" : "supplier",
+        "displayName" : "Belt supplier",
+        "default" : "WCP",
+        "entries" : {
+            "Custom" : {},
+            "WCP" : {
+                "name" : "beltType",
+                "displayName" : "Belt type",
+                "default" : "5mm HTD",
+                "entries" : {
+                    "5mm HTD" : {
+                        "name" : "width",
+                        "displayName" : "Belt width",
+                        "default" : "9 mm",
+                        "entries" : {
+                            "9 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
+                            "15 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
+                            "15 mm rubber coated" : { "backThickness" : 4 * millimeter, "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter, "rubberCoated" : true },
+                        },
+                    },
+                    "3mm GT2" : { "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
+                },
+            },
+            "The Thrifty Bot" : {
+                "name" : "beltType",
+                "displayName" : "Belt type",
+                "default" : "5mm HTD",
+                "entries" : {
+                    "5mm HTD" : {
+                        "name" : "width",
+                        "displayName" : "Belt width",
+                        "default" : "9 mm",
+                        "entries" : {
+                            "9 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
+                            "15 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
+                        },
+                    },
+                },
+            },
+            "AndyMark" : {
+                "name" : "beltType",
+                "displayName" : "Belt type",
+                "default" : "5mm HTD",
+                "entries" : {
+                    "5mm HTD" : {
+                        "name" : "width",
+                        "displayName" : "Belt width",
+                        "default" : "9 mm",
+                        "entries" : {
+                            "9 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
+                            "15 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
+                        },
+                    },
+                },
+            },
+            "REV" : {
+                "name" : "beltType",
+                "displayName" : "Belt type",
+                "default" : "RT25",
+                "entries" : {
+                    "RT25" : { "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
+                },
+            },
+        },
+    };
+
+export const ftcBeltSizeTable = {
+        "name" : "supplier",
+        "displayName" : "Belt supplier",
+        "default" : "goBILDA",
+        "entries" : {
+            "Custom" : {},
+            "goBILDA" : {
+                "name" : "beltType",
+                "displayName" : "Belt type",
+                "default" : "2mm GT2",
+                "entries" : {
+                    "2mm GT2" : { "beltType" : BeltType._2_MM_GT2, "beltWidth" : 6 * millimeter },
+                    "3mm HTD" : { "beltType" : BeltType._3_MM_HTD, "beltWidth" : 15 * millimeter },
+                    "5mm HTD" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 9 * millimeter },
+                },
+            },
+            "REV" : {
+                "name" : "beltType",
+                "displayName" : "Belt type",
+                "default" : "3mm GT2",
+                "entries" : {
+                    "3mm GT2" : { "beltType" : BeltType._3_MM_GT2, "beltWidth" : 9 * millimeter },
+                },
+            },
+        },
+    };
+
 export const frcDoubleBeltTable = {
         "name" : "supplier",
         "displayName" : "Belt supplier",

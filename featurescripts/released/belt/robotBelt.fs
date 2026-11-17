@@ -57,6 +57,10 @@ function doRobotBelt(context is Context, id is Id, definition is map)
         addStartOffsetManipulator(context, id, definition, beltDefinition.beltPlane);
     }
 
+    if (isMovePulleyBelt(definition))
+    {
+        beltDefinition = movePulleyToFit(context, id, definition, beltDefinition);
+    }
     const circles = getBoundaryCircles(beltDefinition);
     const counterClockwise = loopCounterClockwise(circles);
     var sketch;
@@ -73,7 +77,11 @@ function doRobotBelt(context is Context, id is Id, definition is map)
     if (isComplexBelt(definition))
     {
         addBeltFlipManipulators(context, id, beltDefinition, sketch.arcs, counterClockwise);
-        validateComplexBeltLength(context, id, definition, beltDefinition, loopLength(circles, counterClockwise));
+        // One moved to fit fits
+        if (!isMovePulleyBelt(definition))
+        {
+            validateComplexBeltLength(context, id, definition, beltDefinition, loopLength(circles, counterClockwise));
+        }
     }
 
     const belt = createBelt(context, id + "belt", definition, beltDefinition, sketch, counterClockwise);
@@ -327,7 +335,12 @@ function getSimpleBeltPulleys(context is Context, definition is map, beltType is
  */
 function getSimpleBeltDefinition(context is Context, id is Id, definition is map) returns BeltDefinition
 {
-    const beltValue = getBeltValue(getBeltTableAndPath(definition));
+    var beltValue = getBeltValue(getBeltTableAndPath(definition));
+    if (isClosestBelt(definition))
+    {
+        // The belt whose path is nearest the selections' distance: of those its supplier sells, or any
+        beltValue.beltTeeth = closestBeltTeeth(context, definition);
+    }
     const pulleys = getSimpleBeltPulleys(context, definition, beltValue.beltType);
     reportSelectionWarnings(context, id, definition, pulleys.selections, ["pulleyOneSelection", "pulleyTwoSelection"]);
     if (pulleys.selections[1].selectionType != SelectionType.GEOMETRY && !isPointOnPlane(pulleys.selections[1].plane.origin, pulleys.beltPlane))
@@ -353,7 +366,10 @@ function getSimpleBeltDefinition(context is Context, id is Id, definition is map
                     ]));
     }
     // If the measured center to center is way off, fall back to the ideal center to center
-    const centerToCenter = validateCenterToCenter(context, id, definition, measuredCenterToCenter, idealCenterToCenter) ? measuredCenterToCenter : idealCenterToCenter;
+    const fits = isClosestBelt(definition) ?
+        validateClosestBelt(context, id, definition, beltValue, measuredCenterToCenter, idealCenterToCenter) :
+        validateCenterToCenter(context, id, definition, measuredCenterToCenter, idealCenterToCenter);
+    const centerToCenter = fits ? measuredCenterToCenter : idealCenterToCenter;
 
     return {
                 "beltPlane" : pulleys.beltPlane,
@@ -601,6 +617,30 @@ function validateCenterToCenter(context is Context, id is Id, definition is map,
     return false;
 }
 
+/**
+ * Whether the closest belt fits the selections' distance (to the display's precision), as info, or if it doesn't (no
+ * belt is on pitch for it), a warning of the distance it needs. Its validation disabled, it fits.
+ */
+function validateClosestBelt(context is Context, id is Id, definition is map, beltValue is map, measuredCenterToCenter is ValueWithUnits,
+    idealCenterToCenter is ValueWithUnits) returns boolean
+{
+    // A 100T 5mm HTD belt
+    const name = "a " ~ beltValue.beltTeeth ~ "T " ~ getBeltTypeName(beltValue.beltType) ~ " belt";
+    if (withinDisplayPrecision(definition, measuredCenterToCenter, idealCenterToCenter))
+    {
+        reportFeatureInfo(context, id, "The closest belt, " ~ name ~ ", fits the selections.");
+        return true;
+    }
+    if (definition.disableBeltValidation)
+    {
+        return true;
+    }
+    // Doesn't end with a period, to make copying the distance easier, as validateCenterToCenter's
+    reportFeatureWarning(context, id, "No belt is on pitch for the selections: the closest, " ~ name ~ ", puts the pulleys " ~
+            makeValueString(definition.unitSystem, idealCenterToCenter) ~ " apart", ["pulleyTwoSelection"]);
+    return false;
+}
+
 function validateComplexBeltLength(context is Context, id is Id, definition is map, beltDefinition is BeltDefinition, actualLength is ValueWithUnits)
 {
     if (definition.disableBeltValidation)
@@ -801,6 +841,81 @@ function createMateConnectors(context is Context, id is Id, beltDefinition is Be
     }
 }
 
+const MOVE_PULLEY_MANIPULATOR = "movePulleyManipulator";
+
+/**
+ * A complex belt's definition with its Pulley to move moved along its Direction, as far as makes the path around its
+ * pulleys and idlers the belt's length (with the fit adjustment), nearest where it's selected; reported as info, with
+ * an arrow from where it's selected. A points manipulator on each pulley's center chooses the one to move (added
+ * first, so it's there to fix an error with).
+ */
+function movePulleyToFit(context is Context, id is Id, definition is map, beltDefinition is BeltDefinition) returns BeltDefinition
+{
+    const plane = beltDefinition.beltPlane;
+    const circles = getBoundaryCircles(beltDefinition);
+    const index = definition.movePulleyNumber - 1;
+    addManipulators(context, id, {
+                (MOVE_PULLEY_MANIPULATOR) : pointsManipulator({
+                        "points" : mapArray(circles, function(circle)
+                            {
+                                return planeToWorld(plane, circle.location);
+                            }),
+                        "index" : min(index, size(circles) - 1)
+                    })
+            });
+    if (index >= size(circles))
+    {
+        throw regenError("Select one of the belt's pulleys to move: its number in Pulleys, or click its point.", ["movePulleyNumber"]);
+    }
+
+    verifyNonemptyQuery(context, definition, "moveDirection", "Select a direction to move the pulley in.");
+    const worldDirection = extractDirection(context, definition.moveDirection);
+    if (worldDirection == undefined)
+    {
+        throw regenError("Select an edge, axis, or face to move the pulley along (or a face to move it out of).", ["moveDirection"], definition.moveDirection);
+    }
+    const inPlane = worldToPlane(plane, plane.origin + worldDirection * meter) / meter;
+    if (tolerantEqualsZero(norm(inPlane)))
+    {
+        throw regenError("The direction can't be across the belt: the pulley has to move in its plane.", ["moveDirection"], definition.moveDirection);
+    }
+    const direction = normalize(inPlane);
+
+    const length = getBeltPitch(beltDefinition.beltType) * beltDefinition.beltTeeth + definition.beltFitAdjustment;
+    const moved = function(offset is ValueWithUnits) returns array
+        {
+            var result = circles;
+            result[index].location += direction * offset;
+            return result;
+        };
+    // How much longer the path is than the belt, with the pulley moved `offset`
+    const tooLongBy = function(offset is ValueWithUnits)
+        {
+            const circlesThen = moved(offset);
+            const pathLength = tryLoopLength(circlesThen, loopCounterClockwise(circlesThen));
+            return pathLength == undefined ? undefined : pathLength - length;
+        };
+    const offset = nearestRoot(tooLongBy, 0.1 * millimeter, TOLERANCE.zeroLength * meter);
+    if (offset == undefined)
+    {
+        // Show the pulleys where they're selected
+        throw regenError("Moving the pulley that way doesn't make the belt fit: try another direction, or another belt.", ["moveDirection"],
+            qUnion([definition.moveDirection, sketchCircles(context, id + "errorCircles", plane, circles)]));
+    }
+
+    const start = planeToWorld(plane, circles[index].location);
+    const end = planeToWorld(plane, circles[index].location + direction * offset);
+    if (!tolerantEquals(start, end))
+    {
+        addDebugArrow(context, start, end, norm(end - start) * 0.2, DebugColor.GREEN);
+    }
+    // Pulley 2 moves 0.1234 in along the direction to fit the belt.
+    reportFeatureInfo(context, id, "Pulley " ~ definition.movePulleyNumber ~ " moves " ~ makeValueString(definition.unitSystem, abs(offset), true) ~
+            " " ~ (offset >= 0 * meter ? "along" : "against") ~ " the direction to fit the belt.");
+    beltDefinition.pulleyDefinitions[index].location += direction * offset;
+    return beltDefinition;
+}
+
 const BELT_SIDE_FLIP_MANIPULATOR = "beltSideFlipManipulator";
 
 function addBeltFlipManipulators(context is Context, id is Id, beltDefinition is BeltDefinition, arcs is array, counterClockwise is boolean)
@@ -863,6 +978,11 @@ export function robotBeltManipulatorChange(context is Context, definition is map
             definition.pulleys[index].beltSide = currentSide == BeltSide.INSIDE ? BeltSide.OUTSIDE : BeltSide.INSIDE;
         }
     }
+    const pointChosen = newManipulators[MOVE_PULLEY_MANIPULATOR];
+    if (pointChosen != undefined && pointChosen.index != undefined)
+    {
+        definition.movePulleyNumber = pointChosen.index + 1;
+    }
     definition = startOffsetManipulatorChange(definition, newManipulators);
     return definition;
 }
@@ -891,7 +1011,8 @@ export function robotBeltEditLogic(context is Context, id is Id, oldDefinition i
 
     const beltChosen = (specifiedParameters[getBeltPathName(definition)] ?? false) || (specifiedParameters.beltTeeth ?? false);
     const autoChoose = isCreating && selections.changed && !beltChosen;
-    if (!isOpenBelt(definition) && !isStandaloneBelt(definition) && (clickedButton == "selectClosestBelt" || autoChoose))
+    // A closest belt's chosen by the feature itself
+    if (!isOpenBelt(definition) && !isStandaloneBelt(definition) && !isClosestBelt(definition) && (clickedButton == "selectClosestBelt" || autoChoose))
     {
         // A guard: if the selections aren't all there (or are wrong), there's no closest belt
         try silent

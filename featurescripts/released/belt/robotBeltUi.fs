@@ -9,6 +9,15 @@ export import(path : "d82c5bf9082d0054f8f0b419", version : "abd856d63642589f61cb
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 
 const BELT_TEETH_BOUNDS = { (unitless) : [1, 100, 1e50] } as IntegerBoundSpec;
+const MOVE_PULLEY_BOUNDS = { (unitless) : [1, 1, 1000] } as IntegerBoundSpec;
+
+/**
+ * A complex belt which is a loop, made to fit by moving one of its pulleys or idlers along a direction.
+ */
+export predicate isMovePulleyBelt(definition is map)
+{
+    definition.beltMode == BeltMode.COMPLEX && !definition.openBelt && definition.movePulley;
+}
 
 export predicate isSimpleBelt(definition is map)
 {
@@ -18,6 +27,15 @@ export predicate isSimpleBelt(definition is map)
 export predicate isComplexBelt(definition is map)
 {
     definition.beltMode == BeltMode.COMPLEX;
+}
+
+/**
+ * A simple belt between selections, which is whichever belt its supplier sells (of the type and width chosen) is
+ * closest to their distance, rather than one chosen.
+ */
+export predicate isClosestBelt(definition is map)
+{
+    definition.beltMode == BeltMode.SIMPLE && !definition.isStandaloneBelt && definition.useClosestBelt;
 }
 
 /**
@@ -197,6 +215,24 @@ export predicate complexBeltSelectionPredicate(definition is map)
             isInteger(pulley.pulleyTeeth, PULLEY_TEETH_BOUNDS);
         }
     }
+
+    if (!definition.openBelt)
+    {
+        annotation { "Name" : "Move a pulley to fit", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.movePulley is boolean;
+
+        if (definition.movePulley)
+        {
+            annotation { "Group Name" : "Move a pulley to fit", "Collapsed By Default" : false, "Driving Parameter" : "movePulley" }
+            {
+                annotation { "Name" : "Pulley to move", "Description" : "Its number in Pulleys, or click its point." }
+                isInteger(definition.movePulleyNumber, MOVE_PULLEY_BOUNDS);
+
+                annotation { "Name" : "Direction", "Filter" : QueryFilterCompound.ALLOWS_DIRECTION, "MaxNumberOfPicks" : 1 }
+                definition.moveDirection is Query;
+            }
+        }
+    }
 }
 
 
@@ -204,10 +240,30 @@ export predicate beltPredicate(definition is map)
 {
     annotation { "Group Name" : "Belt", "Collapsed By Default" : false }
     {
+        if (isSimpleBelt(definition) && !definition.isStandaloneBelt)
+        {
+            annotation { "Name" : "Use closest belt", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.useClosestBelt is boolean;
+        }
+
         if (isOpenBelt(definition))
         {
             // An open belt's cut to length
             beltTypePredicate(definition);
+        }
+        else if (isClosestBelt(definition))
+        {
+            // The belt's teeth are the closest's
+            if (isFrc(definition))
+            {
+                annotation { "Name" : "FRC belt size", "Lookup Table" : frcBeltSizeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.frcBeltSizePath is LookupTablePath;
+            }
+            else
+            {
+                annotation { "Name" : "FTC belt size", "Lookup Table" : ftcBeltSizeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.ftcBeltSizePath is LookupTablePath;
+            }
         }
         else if (!isDoubleSidedBelt(definition))
         {
@@ -248,7 +304,7 @@ export predicate beltPredicate(definition is map)
 
             customBeltWidthPredicate(definition);
 
-            if (!isOpenBelt(definition))
+            if (!isOpenBelt(definition) && !isClosestBelt(definition))
             {
                 annotation { "Name" : "Belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isInteger(definition.beltTeeth, BELT_TEETH_BOUNDS);
@@ -257,7 +313,7 @@ export predicate beltPredicate(definition is map)
 
         if (!isOpenBelt(definition))
         {
-            if (!isStandaloneBelt(definition))
+            if (!isStandaloneBelt(definition) && !isClosestBelt(definition))
             {
                 annotation { "Name" : "Select closest belt" }
                 isButton(definition.selectClosestBelt);
@@ -338,6 +394,10 @@ export function getBeltPathName(definition is map) returns string
         return "beltTypePath";
     }
     const program = isFrc(definition) ? "frc" : "ftc";
+    if (isClosestBelt(definition))
+    {
+        return program ~ "BeltSizePath";
+    }
     return program ~ (isDoubleSidedBelt(definition) ? "DoubleBeltPath" : "BeltPath");
 }
 
@@ -353,11 +413,15 @@ export function getBeltTableAndPath(definition is map) returns map
             "frcBeltPath" : frcBeltTable,
             "ftcBeltPath" : ftcBeltTable,
             "frcDoubleBeltPath" : frcDoubleBeltTable,
-            "ftcDoubleBeltPath" : ftcDoubleBeltTable
+            "ftcDoubleBeltPath" : ftcDoubleBeltTable,
+            "frcBeltSizePath" : frcBeltSizeTable,
+            "ftcBeltSizePath" : ftcBeltSizeTable
         };
     const name = getBeltPathName(definition);
     return {
             "table" : tables[name],
+            // A size's belts are the full table's at its path
+            "optionsTable" : isClosestBelt(definition) ? (isFrc(definition) ? frcBeltTable : ftcBeltTable) : tables[name],
             "path" : definition[name],
             "customType" : getCustomBeltType(definition.customBeltType),
             "customWidth" : definition.customBeltWidth,

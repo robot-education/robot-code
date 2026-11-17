@@ -1,5 +1,7 @@
 """Belt tables for robotBelt and robotPulley. Run `uv run fs gen` after editing."""
 
+import dataclasses
+
 from fs_cli.tables import Enum, Node, Table, Value, inch, mm
 
 BeltType = Enum("BeltType", ["_2_MM_GT2", "_3_MM_GT2", "_3_MM_HTD", "_5_MM_HTD", "RT25"])
@@ -17,7 +19,7 @@ def teeth_node(teeth: list[int]) -> Node:
     return Node("teeth", [Value(f"{count}T", {"beltTeeth": str(count)}) for count in teeth])
 
 
-# A belt of a width no supplier sells, or a custom one: its width is the feature's Custom width
+# A belt of a width no supplier sells, or a custom one: its width is the feature's Belt width
 CUSTOM_WIDTH = "Custom"
 
 # A belt of any type, width, and teeth, given by the feature's own parameters: first, but not the default
@@ -180,6 +182,20 @@ def supplier_table(suppliers: dict[str, dict[str, dict[str, list[int]]]]) -> Nod
 frc_belt = supplier_table(FRC_SUPPLIERS)
 ftc_belt = supplier_table(FTC_SUPPLIERS)
 
+
+def without_teeth(node: Node) -> Node:
+    """A table's sizes: its levels down to its teeth, which a simple belt using the closest belt chooses for itself
+    (from the full table's teeth for its path)."""
+    entries = [
+        dataclasses.replace(entry, next=None if entry.next is None or entry.next.name == "teeth" else without_teeth(entry.next))
+        for entry in node.entries
+    ]
+    return dataclasses.replace(node, entries=entries)
+
+
+frc_belt_size = without_teeth(frc_belt)
+ftc_belt_size = without_teeth(ftc_belt)
+
 # Both widths of double sided belt come in the same lengths from the same suppliers (only FRC's)
 DOUBLE_BELT_TEETH = [100, 125, 150, 175, 200, 250, 300]
 frc_double_belt = supplier_table(
@@ -209,6 +225,8 @@ CONTENTS = [
     CustomBeltType,
     Table("frcBeltTable", frc_belt),
     Table("ftcBeltTable", ftc_belt),
+    Table("frcBeltSizeTable", frc_belt_size),
+    Table("ftcBeltSizeTable", ftc_belt_size),
     Table("frcDoubleBeltTable", frc_double_belt),
     Table("ftcDoubleBeltTable", ftc_double_belt),
     Table("beltTypeTable", belt_type),

@@ -17,6 +17,7 @@ function beltDefinition(teeth is string) returns map
             "ftcBeltPath" : { "supplier" : "goBILDA", "beltType" : "2mm GT2", "teeth" : teeth } as LookupTablePath,
             "beltTeeth" : 0,
             "isCustomBelt" : false,
+            "useClosestBelt" : false,
             "customBeltType" : CustomBeltType._3_MM_HTD,
             "customBeltWidth" : 20 * millimeter
         };
@@ -110,4 +111,36 @@ export function testPulleyProfileTooFarOffset()
             {
                 sketchPulleyProfile(newContext(), newId() + "profile", XY_PLANE, BeltType._2_MM_GT2, 20, 1 * millimeter);
             }), "profile offset is too large");
+}
+
+export function testClosestBeltsSizes()
+{
+    // A simple belt using the closest belt chooses its size (no teeth), and its belts are the full table's there
+    var definition = beltDefinition("44T");
+    definition.isStandaloneBelt = false;
+    definition.useClosestBelt = true;
+    definition.program = Program.FRC;
+    definition.frcBeltSizePath = { "supplier" : "WCP", "beltType" : "5mm HTD", "width" : "15 mm" } as LookupTablePath;
+    expectEqual(getBeltPathName(definition), "frcBeltSizePath");
+    const tableAndPath = getBeltTableAndPath(definition);
+    expectEqual(getBeltValue(tableAndPath).beltWidth, 15 * millimeter);
+    const options = getCurrentBeltOptionsArray(tableAndPath);
+    expectTrue(isIn(44, options) && !isIn(43, options), "WCP's 15 mm belts come in 44T, not 43T");
+    // One width: straight to its teeth
+    definition.frcBeltSizePath = { "supplier" : "REV", "beltType" : "RT25" } as LookupTablePath;
+    expectEqual(min(getCurrentBeltOptionsArray(getBeltTableAndPath(definition))), 32);
+    // Custom: any teeth
+    definition.frcBeltSizePath = { "supplier" : "Custom" } as LookupTablePath;
+    expectEqual(getCurrentBeltOptionsArray(getBeltTableAndPath(definition)), undefined);
+}
+
+export function testClickingAPulleysPointChoosesIt()
+{
+    var definition = beltDefinition("44T");
+    definition.startOffset = false;
+    definition.movePulleyNumber = 1;
+    definition.pulleys = [];
+    // The points manipulator's third point: pulley 3
+    const changed = robotBeltManipulatorChange(newContext(), definition, { "movePulleyManipulator" : { "index" : 2 } });
+    expectEqual(changed.movePulleyNumber, 3);
 }

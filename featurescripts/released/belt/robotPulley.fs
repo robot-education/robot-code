@@ -25,7 +25,7 @@ export const robotPulley = defineFeature(function(context is Context, id is Id, 
     });
 
 /**
- * Sets Custom belt width, which shows Custom width, from the belt chosen.
+ * Sets Custom belt width, which shows Belt width, from the belt chosen.
  */
 export function robotPulleyEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean) returns map
 {

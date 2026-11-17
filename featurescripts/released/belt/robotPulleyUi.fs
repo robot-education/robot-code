@@ -40,7 +40,7 @@ export predicate isManualIdler(definition is map)
 }
 
 /**
- * Custom belt width: whether Manual's belt's width is Custom, so its Custom width shows.
+ * Custom belt width: whether Manual's belt's width is Custom, so its Belt width shows.
  */
 export function isCustomWidthPulley(definition is map) returns boolean
 {
