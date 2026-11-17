@@ -6,7 +6,7 @@ import(path : "onshape/std/externalThread.fs", version : "2960.0");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 // Also exports the enums used as parameter types
-export import(path : "86033ffc9510cee8dd457b7f", version : "8c36cf69eb5f91ff9d171ef4");
+export import(path : "86033ffc9510cee8dd457b7f", version : "dc03547a3dcfae15b3bc80a1");
 
 /**
  * FRCDesign's library fasteners: its screws, washers, and nuts, generated for FRCDesignApp, FRC's imperial and FTC's
@@ -251,9 +251,10 @@ export const fastenerWasher = defineFeature(function(context is Context, id is I
                     "coordSystem" : coordSystem(WORLD_ORIGIN, X_DIRECTION, Z_DIRECTION),
                     "owner" : body
                 });
-        // What sits on the washer, a screw or nut, is fastened here. Into the washer, as a connector on its top edge points
+        // What sits on the washer, a screw or nut, is fastened here. Out of its top face, as a connector on a circular edge of it
+        // points, so a part fastened here sits as it would on a hole's edge
         opMateConnector(context, id + "topMateConnector", {
-                    "coordSystem" : coordSystem(WORLD_ORIGIN + washer.thickness * Z_DIRECTION, X_DIRECTION, -Z_DIRECTION),
+                    "coordSystem" : coordSystem(WORLD_ORIGIN + washer.thickness * Z_DIRECTION, X_DIRECTION, Z_DIRECTION),
                     "owner" : body
                 });
 

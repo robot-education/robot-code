@@ -21,7 +21,7 @@ and AndyMark's washers. A screw's Fully threaded shows only where a length is so
 otherwise. The screws of vendors whose stores list them (`STORES`: WCP and AndyMark) come from their stores instead
 (vendor/stores.json), since a store is current where the group may not be. `uv run python
 featurescripts/fasteners/fastenerTables.py fetch` refreshes both. Generic offers every screw length any vendor makes,
-and SAE washers, without part numbers.
+and every washer any vendor makes besides SAE ones, without part numbers.
 
 Each part has one mate connector, where it seats: FRCDesign fastens a screw or nut to the top edge of the washer it
 sits on, or to the hole's own edge, so any washer goes under any screw or nut of its size.
@@ -377,6 +377,31 @@ def _option_names(part: dict, record: dict) -> list[str]:
     ]
 
 
+# McMaster-Carr's 18-8 stainless screws the library has none of, transcribed from its tables: each length's small-pack
+# part number, threaded its whole length
+_MCMASTER_STAINLESS_SCREWS = {
+    ("NO_10_32", "BUTTON"): {
+        "1/8": "92949A432", "3/16": "92949A259", "1/4": "92949A261", "5/16": "92949A262", "3/8": "92949A263",
+        "7/16": "92949A264", "1/2": "92949A265", "5/8": "92949A267", "3/4": "92949A269", "7/8": "92949A270",
+        "1": "92949A271", "1-1/8": "92949A826", "1-1/4": "92949A272", "1-3/8": "92949A827", "1-1/2": "92949A273",
+        "1-5/8": "92949A828", "1-3/4": "92949A274", "2": "92949A275", "2-1/4": "92949A829", "2-1/2": "92949A277",
+        "3": "92949A279", "3-1/2": "92949A830", "4": "92949A831",
+    },
+}
+
+
+def _mcmaster_stainless_screws() -> Screws:
+    return {
+        ("MCMASTER", size, head): {
+            parse_inches(length): {
+                Variant("STAINLESS"): Stock(part, f"https://www.mcmaster.com/{part}/", MATERIALS["Stainless Steel"], True)
+            }
+            for length, part in lengths.items()
+        }
+        for (size, head), lengths in _MCMASTER_STAINLESS_SCREWS.items()
+    }
+
+
 def _stocked_screws() -> Screws:
     stocked: Screws = {}
     for part in SNAPSHOT["parts"]:
@@ -396,6 +421,9 @@ def _stocked_screws() -> Screws:
             variants = stocked.setdefault(key, {}).setdefault(parse_inches(length), {})
             variants[Variant(finish, full_thread)] = Stock(record["partNumber"], record.get("url"), material)
     stocked.update(_store_screws())
+    for key, lengths in _mcmaster_stainless_screws().items():
+        for length, variants in lengths.items():
+            stocked.setdefault(key, {}).setdefault(length, {}).update(variants)
     for variants in (variants for lengths in stocked.values() for variants in lengths.values()):
         # Where a length is only sold fully threaded, that's its standard
         for variant in [variant for variant in variants if variant.full_thread]:
@@ -809,7 +837,8 @@ NUTS = {**NUTS, **METRIC_NUTS}
 
 
 # Washers, like `#10 Washer (7/16" OD, 0.03" WD, Stainless Steel, Black Oxide)` or AndyMark's
-# `0.281" Washer (1" OD, 0.062" WD, Steel, Zink Finish)`; Generic's are SAE flat, and black
+# `0.281" Washer (1" OD, 0.062" WD, Steel, Zink Finish)`; Generic's are SAE flat and every other one made in a size, and
+# black
 
 
 @dataclasses.dataclass(frozen=True)
@@ -894,6 +923,13 @@ def _washers() -> dict[tuple[str, str, str, str], Washer]:
             od = parse_inches(outer)
             washers[(vendor, size, washer_type(od, thickness), finish)] = Washer(
                 inner, od, thickness, Stock(record["partNumber"], record.get("url"), material)
+            )
+    # Generic: every washer anyone makes in a size too, with the size's SAE bore, in the standard finish
+    for (vendor, size, type, _), washer in list(washers.items()):
+        if vendor != "GENERIC":
+            washers.setdefault(
+                ("GENERIC", size, type, STANDARD_FINISH),
+                Washer(WASHER_INNER_DIAMETERS[size], washer.outer_diameter, washer.thickness),
             )
     return dict(
         sorted(
@@ -1224,12 +1260,14 @@ class Catalog:
         return [finish for (v, s, t, finish) in self.nuts if (v, s, t) == (vendor, size, type)]
 
 
-# The defaults are what's inserted most from FRCDesign's library: #10-32 x 3/8 in black button heads (from Generic, which
-# names no vendor), McMaster-Carr's #10 x 7/16 in OD stainless washers, and #10-32 nylocks
+# The defaults hold when the size, head or length changes, since the library's analytics favor whatever was already
+# chosen: McMaster-Carr's black screws make nearly every combination, each with a part number. A 1/2 in #10-32 button
+# head takes a 1/8 in plate on a 1/8 in tube wall with a nylock. McMaster-Carr's #10 x 7/16 in OD stainless washers and
+# #10-32 nylocks are as before.
 FRC = Catalog(
     IMPERIAL,
     Defaults(
-        ("GENERIC", "NO_10_32", "BUTTON", STANDARD_FINISH, length_id(Fraction(3, 8))),
+        ("MCMASTER", "NO_10_32", "BUTTON", STANDARD_FINISH, length_id(Fraction(1, 2))),
         ("MCMASTER", "NO_10_32", "NYLOCK", FRC_NUT_FINISH),
         ("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS"),
     ),
